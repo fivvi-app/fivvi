@@ -53,6 +53,9 @@ window.FIVVI_I18N = (function () {
   /* Phrases and words, replaced on letter boundaries, longest first. */
   var PH = {
     /* app frame */
+    "Je dag in ringen": "Your day in rings", "Jouw sessies van vandaag.": "Your sessions today.",
+    "Privésessies die al voorbij zijn, van het totaal vandaag.": "Private sessions that are already over, out of today's total.",
+    "klaar": "done", "plekken": "spots",
     /* round 1 feedback */
     "Hele studio": "Whole studio", "Alles bij Studio Fit vandaag, van alle trainers.": "Everything at Studio Fit today, from all trainers.",
     "Jouw sessies bij Studio Fit en John's Gym.": "Your sessions at Studio Fit and John's Gym.",

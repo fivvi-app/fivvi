@@ -146,11 +146,10 @@
   var SHAPE = { priv: "cookie", group: "clover", gym: "burst" };
 
   function rings(vals) {
-    var uid = Math.random().toString(36).slice(2, 7), R = [48, 33, 18];
-    /* v = [fraction, start colour, end colour]: the gradient runs along the ring from the deeper to the brighter tone */
-    var g = vals.map(function (v, i) { return '<linearGradient id="g' + uid + i + '" x1="1" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:' + v[1] + '"/><stop offset="1" style="stop-color:' + v[2] + '"/></linearGradient>'; }).join("");
-    var c = vals.map(function (v, i) { return '<circle cx="56" cy="56" r="' + R[i] + '" style="stroke:color-mix(in srgb,' + v[1] + ' 20%,transparent)"/><circle cx="56" cy="56" r="' + R[i] + '" stroke="url(#g' + uid + i + ')" pathLength="100" stroke-dasharray="' + Math.max(0.5, Math.min(100, v[0] * 100)).toFixed(1) + ' 100"/>'; }).join("");
-    return '<svg width="112" height="112" viewBox="0 0 112 112" aria-hidden="true"><defs>' + g + '</defs><g fill="none" stroke-width="13" stroke-linecap="round" transform="rotate(-90 56 56)">' + c + "</g></svg>";
+    var uid = Math.random().toString(36).slice(2, 7), R = [49, 35, 21];
+    var g = vals.map(function (v, i) { return '<linearGradient id="g' + uid + i + '" x1="0" y1="0" x2="1" y2="1"><stop offset="0" style="stop-color:color-mix(in oklab,' + v[1] + ' 68%,#fff)"/><stop offset="1" style="stop-color:' + v[1] + '"/></linearGradient>'; }).join("");
+    var c = vals.map(function (v, i) { return '<circle cx="56" cy="56" r="' + R[i] + '" style="stroke:color-mix(in srgb,' + v[1] + ' 22%,transparent)"/><circle cx="56" cy="56" r="' + R[i] + '" stroke="url(#g' + uid + i + ')" pathLength="100" stroke-dasharray="' + Math.max(0.5, Math.min(100, v[0] * 100)).toFixed(1) + ' 100"/>'; }).join("");
+    return '<svg width="112" height="112" viewBox="0 0 112 112" aria-hidden="true"><defs>' + g + '</defs><g fill="none" stroke-width="12" stroke-linecap="round" transform="rotate(-90 56 56)">' + c + "</g></svg>";
   }
   function wavy(p, color) {
     var cx = 42, cy = 42, r = 32, steps = 200, end = Math.round(steps * p), d = "";
@@ -197,39 +196,28 @@
     var items = ws ? dayItems(TODAY).filter(function (i) { return i.ws === "sf"; }).concat(EXTRA_WS).sort(function (a, b) { return mins(a.s) - mins(b.s); }) : dayItems(TODAY);
     var live = items.filter(function (i) { return !i.cancelled && mins(i.e) > mins(NOWT); });
     var next = live[0];
-    /* Mijn dag: the day's wrap-up, three jobs only the trainer can finish (attendance, logging, sharing); all closed means
-       nothing is left to do. Hele studio: how full the studio is today, the owner's question. */
-    var active = items.filter(function (i) { return !i.cancelled; }), R;
-    if (!ws) {
-      var ended = active.filter(function (i) { return isPast(i, TODAY); });
-      var attDone = ended.filter(function (i) { return i.type === "priv" ? !!i.att : !!(i.attMap && Object.keys(i.attMap).length); }).length;
-      var priv = active.filter(function (i) { return i.type === "priv"; }), logged = priv.filter(function (i) { return i.wstate === "done"; });
-      var shared = logged.filter(function (i) { return i.shared; }).length;
-      R = [
-        [attDone, ended.length, "Aanwezigheid", "ingevuld", "var(--accent)", "var(--ring1b)"],
-        [logged.length, priv.length, "Trainingen", "gelogd", "#1FCB4F", "#B6FF3B"],
-        [shared, logged.length, "Gedeeld", "met klant", "#00A6E8", "#3DF2FF"]
-      ];
-    } else {
-      var gB = 0, gC = 0, oB = 0, oC = 0, pc = 0;
-      active.forEach(function (i) { if (i.type === "group") { gB += i.people.length; gC += i.cap; } else if (i.type === "gym") { oB += i.people.length; oC += i.cap; } else pc++; });
-      R = [
-        [gB, gC, "Groepslessen", "plekken bezet", "#A020D8", "#E46BFF"],
-        [oB, oC, "Open Gym", "plekken bezet", "#FF5A00", "#FFB340"],
-        [pc, 4, "Privésessies", "vorige do 4", "#0062E0", "#40B8FF"]
-      ];
-    }
+    /* The first version (owner's choice): private sessions done, group-class spots booked, Open Gym booked, in the
+       session-type colours. The toggle decides whose day they count: mine, or the whole studio. */
+    var active = items.filter(function (i) { return !i.cancelled; });
+    var priv = active.filter(function (i) { return i.type === "priv"; }), privDone = priv.filter(function (i) { return isPast(i, TODAY); }).length;
+    var gB = 0, gC = 0, oB = 0, oC = 0;
+    active.forEach(function (i) { if (i.type === "group") { gB += i.people.length; gC += i.cap; } else if (i.type === "gym") { oB += i.people.length; oC += i.cap; } });
+    var R = [
+      [privDone, priv.length, "Privé", "klaar", CV.priv, privDone + "/" + priv.length, "Privé"],
+      [gB, gC, "Groepslessen", "plekken", CV.group, Math.round(100 * gB / Math.max(1, gC)) + "%", "Groep"],
+      [oB, oC, "Open Gym", "geboekt", CV.gym, oB + "/" + oC, "Open Gym"]
+    ];
     var body = "";
     if (PREF.role === "owner") body += '<div class="pad" style="margin-bottom:12px">' + seg([["me", "Mijn dag"], ["ws", "Hele studio"]], S.scope, "scope") +
       '<div class="scope-note">' + (ws ? "Alles bij Studio Fit vandaag, van alle trainers." : "Jouw sessies bij Studio Fit en John's Gym.") + "</div></div>";
-    var info = '<button class="info" data-a="info" data-n="' + (ws ? "ringsWs" : "rings") + '" aria-label="Wat betekenen de ringen?">' + ic("info") + "</button>";
+    var info = '<button class="info" data-a="info" data-n="rings" aria-label="Wat betekenen de ringen?">' + ic("info") + "</button>";
     var sum;
     if (PREF.plat === "ios") {
-      sum = '<div class="card sum" style="position:relative">' + info + rings(R.map(function (r) { return [r[1] ? r[0] / r[1] : 0, r[4], r[5]]; })) +
-        '<div class="stats">' + R.map(function (r) { return '<div><div class="stat-l ink" style="--c:' + r[4] + '">' + r[2] + '</div><div class="num stat-v">' + r[0] + (ws && r === R[2] ? "" : "/" + r[1]) + "<small>" + r[3] + "</small></div></div>"; }).join("") + "</div></div>";
+      sum = '<div class="card sum" style="position:relative">' + info + rings(R.map(function (r) { return [r[1] ? r[0] / r[1] : 0, r[4]]; })) +
+        '<div class="stats">' + R.map(function (r) { return '<div><div class="stat-l ink" style="--c:' + r[4] + '">' + r[2] + '</div><div class="num stat-v">' + r[0] + "/" + r[1] + "<small>" + r[3] + "</small></div></div>"; }).join("") + "</div></div>";
     } else {
-      sum = '<div class="card" style="position:relative;display:grid;grid-template-columns:repeat(3,1fr);text-align:center;padding:22px 8px 18px">' + info +
-        R.map(function (r) { return '<div><div style="position:relative;width:84px;height:84px;margin:0 auto">' + wavy(r[1] ? r[0] / r[1] : 0, r[4]) + '<b class="num" style="position:absolute;inset:0;display:grid;place-items:center;font-size:20px">' + r[0] + "/" + r[1] + '</b></div><div style="font-size:13px;color:var(--label2);font-weight:500;margin-top:6px">' + r[2] + '<br><span style="font-size:12px">' + r[3] + "</span></div></div>"; }).join("") + "</div>";
+      sum = '<div class="card" style="position:relative;display:grid;grid-template-columns:repeat(3,1fr);text-align:center;padding:18px 8px">' + info +
+        R.map(function (r) { return '<div><div style="position:relative;width:84px;height:84px;margin:0 auto">' + wavy(r[1] ? r[0] / r[1] : 0, r[4]) + '<b class="num" style="position:absolute;inset:0;display:grid;place-items:center;font-size:20px">' + r[5] + '</b></div><div style="font-size:13px;color:var(--label2);font-weight:500;margin-top:6px">' + r[6] + "</div></div>"; }).join("") + "</div>";
     }
     body += '<div class="pad stack">' + sum;
     if (next) {
@@ -649,18 +637,12 @@
     removeEx: function (d) { var e = S.log.ex[d.e], n = e.sets.filter(function (s) { return s.done; }).length; return { t: e.name + " verwijderen?", p: e.name + " heeft " + n + (n === 1 ? " gelogde set" : " gelogde sets") + ". Toch verwijderen?", b: [["Verwijderen", "do-remove-ex", "dng"], ["Terug", "close-alert", "sec"]] }; },
     zero: function () { return { t: "Nog niets bijgehouden", p: "Je hebt nog geen sets afgevinkt. Toch afronden?", b: [["Afronden", "do-zero", "pri"], ["Terug", "close-alert", "sec"]] }; },
     rings: function () {
+      var ws = S.scope === "ws";
       function li(c, t, d) { return '<li><i style="background:' + c + '"></i><span><b>' + t + "</b>" + d + "</span></li>"; }
-      return { t: "Je dag afronden", h: "<p>Drie taken die alleen jij kunt afmaken. Zijn alle drie de ringen rond, dan staat er niets meer open voor vandaag.</p><ul class=\"legend\">" +
-        li("var(--accent)", "Aanwezigheid", "Voorbije sessies waarvan je de aanwezigheid hebt ingevuld.") +
-        li("#1FCB4F", "Trainingen", "Privésessies van vandaag waarvoor je een training hebt gelogd.") +
-        li("#00A6E8", "Gedeeld", "Gelogde trainingen die je met de klant hebt gedeeld.") + "</ul>", b: [["Begrepen", "close-alert", "pri"]] };
-    },
-    ringsWs: function () {
-      function li(c, t, d) { return '<li><i style="background:' + c + '"></i><span><b>' + t + "</b>" + d + "</span></li>"; }
-      return { t: "Hoe vol is de studio?", h: "<p>Alles bij Studio Fit vandaag, van alle trainers.</p><ul class=\"legend\">" +
-        li("#A020D8", "Groepslessen", "Geboekte plekken van alle groepslessen samen.") +
-        li("#FF5A00", "Open Gym", "Geboekte plekken van alle Open Gym-blokken samen.") +
-        li("#0062E0", "Privésessies", "Privésessies vandaag, vergeleken met vorige week donderdag. Rond is evenveel of meer.") + "</ul>", b: [["Begrepen", "close-alert", "pri"]] };
+      return { t: "Je dag in ringen", h: "<p>" + (ws ? "Alles bij Studio Fit vandaag, van alle trainers." : "Jouw sessies van vandaag.") + "</p><ul class=\"legend\">" +
+        li("var(--priv)", "Privé", "Privésessies die al voorbij zijn, van het totaal vandaag.") +
+        li("var(--group)", "Groepslessen", "Geboekte plekken van alle groepslessen samen.") +
+        li("var(--gym)", "Open Gym", "Geboekte plekken van alle Open Gym-blokken samen.") + "</ul>", b: [["Begrepen", "close-alert", "pri"]] };
     },
     diff: function () {
       function li(e, t, d) { return '<li><i class="emo" aria-hidden="true">' + e + "</i><span><b>" + t + "</b>" + d + "</span></li>"; }
