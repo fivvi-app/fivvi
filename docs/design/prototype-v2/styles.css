@@ -607,3 +607,9 @@ input:focus,select:focus,textarea:focus{outline:none}
 .android .seg button[disabled]{color:color-mix(in srgb,var(--m-on) 38%,transparent)}
 .android .row .seg{min-height:0}
 .android .row .seg button{min-height:34px}
+/* credit balance rows in the app */
+.bal-n{color:var(--label2);font-size:14px;display:flex;align-items:baseline;gap:4px}
+.bal-n b{font-size:24px;color:color-mix(in oklab,var(--c) calc(100% - var(--ev-ink-amt)),var(--ev-ink))}
+.abar{height:6px;border-radius:3px;margin-top:8px;display:flex;overflow:hidden;background:color-mix(in srgb,var(--c) 16%,transparent)}
+.abar i{display:block;height:100%;background:var(--c)}
+.abar i.p{background:repeating-linear-gradient(135deg,var(--c) 0 3px,color-mix(in srgb,var(--c) 45%,transparent) 3px 6px)}

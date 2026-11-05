@@ -27,6 +27,20 @@
   function desc(title) { var d = D.descriptions[title]; if (!d) return null; return D && window.FV.PREF.lang === "en" && d.en ? { t: d.en, nl: false } : { t: d.nl, nl: window.FV.PREF.lang === "en" }; }
   function itemTitle(i) { return F.title(i); }
   function openA(i) { return i.type === "priv" ? "w-open-priv" : "w-open-class"; }
+  /* ---------- billing (PRODUCT.md §90–§96) ---------- */
+  function money(c) { return F.OWNER() && c.ws === "sf"; }
+  function cap1(t) { return t.charAt(0).toUpperCase() + t.slice(1); }
+  var STATUS = { active: ["Actief", "var(--ok)"], open: ["Openstaande betaling", "var(--danger)"], ending: ["Stopt binnenkort", "var(--gym)"], expired: ["Verlopen", ""] };
+  var PAY = { paid: ["Betaald", "var(--ok)"], failed: ["Mislukt", "var(--danger)"], refund: ["Terugbetaald", ""] };
+  function balBlock(x) {
+    var t = Math.max(1, x.total);
+    return '<div class="w-bal"><div class="w-bal-h"><b>' + cap1(x.label[1]) + '</b><span class="w-num"><b>' + x.left + "</b> over</span></div>" +
+      '<div class="w-seg3" style="--c:' + x.label[2] + '"><i class="u" style="width:' + (x.used / t * 100) + '%"></i><i class="p" style="width:' + (x.planned / t * 100) + '%"></i></div>' +
+      '<div class="w-bal-l" style="--c:' + x.label[2] + '"><span><i class="u"></i>' + x.used + ' gebruikt</span><span><i class="p"></i>' + x.planned + ' gepland</span><span><i class="l"></i>' + x.left + ' over</span><span class="w-muted">van ' + x.total + " deze periode</span></div></div>";
+  }
+  function aboLine(a) { return "Deze week " + a.usedWeek + " van " + a.perWeek + " gebruikt" + (a.makeups ? " · " + a.makeups + (a.makeups === 1 ? " inhaalles" : " inhaallessen") : ""); }
+  function statusBadge(a) { var st = STATUS[a.status]; return badge(a.status === "ending" ? cap1(a.period) : st[0], st[1], st[1] ? "" : "outline"); }
+  function flagList(sum, c) { return sum.flags.filter(function (f) { return f[0] !== "danger" || money(c); }).map(function (f) { return '<p class="w-flag ' + f[0] + '">' + ic(f[0] === "none" ? "info" : "warn") + esc(f[1]) + "</p>"; }).join(""); }
   if (!D.requests) D.requests = [{ id: "rq1", name: "Kim de Graaf", email: "kim@example.com", when: "vandaag 09:12" }, { id: "rq2", name: "Ruben Vos", email: "ruben@example.com", when: "gisteren 21:40" }];
 
   /* ================= Trainer web ================= */
@@ -99,6 +113,7 @@
     var attn = [];
     openAtt.forEach(function (i) { attn.push(['<b>Aanwezigheid invullen</b> · ' + esc(itemTitle(i)) + " " + i.s, openA(i), i.id]); });
     act.forEach(function (i) { if (i.type === "group" && i.people.length >= i.cap && i.waitlist) attn.push(["<b>Vol</b> · " + esc(i.title) + " " + i.s + " · " + i.waitlist + " op de wachtlijst", "w-open-class", i.id]); });
+    if (!mine && F.OWNER()) D.clients.forEach(function (c) { if (c.ws !== "sf") return; D.bsum(c.id).flags.forEach(function (f) { if (f[0] === "danger" || f[0] === "warn") attn.push(["<b>" + esc(c.name) + "</b> · <span>" + esc(f[1]) + "</span>", "w-client-bill", c.id]); }); });
     if (!mine && F.OWNER() && D.requests.length) attn.push(["<b>" + D.requests.length + " aanmeldverzoeken</b> wachten op goedkeuring", "w-requests", ""]);
     var up = act.filter(function (i) { return !F.isPast(i, F.TODAY); });
     h += '<div class="w-grid2">' + card("Aandacht nodig", attn.length ? '<ul class="w-list">' + attn.map(function (x) { return '<li><button data-a="' + x[1] + '" data-id="' + x[2] + '">' + ic("warn") + "<span>" + x[0] + "</span>" + ic("chevR") + "</button></li>"; }).join("") + "</ul>" : '<p class="w-muted">Niets open. Alles is bijgewerkt.</p>') +
@@ -188,14 +203,21 @@
       return h;
     }
     var cs = D.clients.filter(function (c) { return F.WSS().indexOf(c.ws) >= 0; });
-    h += card("", table(["Naam", "E-mail", F.WSS().length > 1 ? "Werkruimte" : "Taal", "Laatste sessie", ""], cs.map(function (c) { return ['<button class="w-link w-cell" data-a="w-client" data-id="' + c.id + '">' + av(c.name, c.c) + "<b>" + esc(c.name) + "</b></button>", esc(c.email), F.WSS().length > 1 ? esc(D.workspaces[c.ws].name) : esc(c.lang), esc(c.last), '<button class="w-icon" data-a="w-client" data-id="' + c.id + '" aria-label="Openen">' + ic("chevR") + "</button>"]; })), { desc: cs.length + " klanten" });
+    var head = ["Naam", "Abonnement en tegoed"].concat(F.OWNER() ? ["Betaling"] : []).concat(["Laatste sessie", ""]);
+    h += card("", table(head, cs.map(function (c) {
+      var sum = D.bsum(c.id), last = sum.b.payments[0];
+      var bal = c.ws !== "sf" ? '<span class="w-muted">Bij ' + esc(D.workspaces[c.ws].name) + "</span>" : sum.short.length ? sum.short.map(function (t) { return badge(esc(t), "", "secondary"); }).join(" ") + (sum.flags.some(function (f) { return f[0] === "warn"; }) ? ' <span class="w-warn" title="Let op">' + ic("warn") + "</span>" : "") : '<span class="w-muted">Geen</span>';
+      var pay = !money(c) ? "—" : sum.open.length ? badge("Open " + sum.open[0].open, "var(--danger)") : last ? badge(PAY[last[4]][0], PAY[last[4]][1], PAY[last[4]][1] ? "" : "outline") : '<span class="w-muted">—</span>';
+      return ['<button class="w-link w-cell" data-a="w-client" data-id="' + c.id + '">' + av(c.name, c.c) + "<span><b>" + esc(c.name) + '</b><span class="w-sub">' + esc(c.email) + "</span></span></button>", bal].concat(F.OWNER() ? [pay] : []).concat([esc(c.last), '<button class="w-icon" data-a="w-client" data-id="' + c.id + '" aria-label="Openen">' + ic("chevR") + "</button>"]);
+    })), { desc: cs.length + " klanten" });
     return h;
   };
   PAGES.client = function () {
     var w = W(), c = F.CLIENT[w.cid], h = "";
     if (!c) { w.page = "clients"; return PAGES.clients(); }
     h += '<div class="w-phead">' + av(c.name, c.c).replace("w-av", "w-av lg") + '<div><h2>' + esc(c.name) + "</h2><p>" + esc(c.email) + " · " + esc(D.workspaces[c.ws].name) + "</p></div>" + '<div class="w-hgroup end">' + btn("Bewerken", "w-toast", { k: "outline", d: { m: "Opent het bewerkformulier" } }) + btn("Sessie plannen", "w-plan", { i: "cal", d: { id: c.id } }) + "</div></div>";
-    h += tabs([["overview", "Overzicht"], ["sessions", "Sessies"], ["workouts", "Trainingen"], ["bookings", "Boekingen"], ["notes", "Notities"], ["history", "Geschiedenis"]], w.tab, "w-tab");
+    h += tabs([["overview", "Overzicht"], ["billing", money(c) ? "Tegoed en betalingen" : "Tegoed"], ["sessions", "Sessies"], ["workouts", "Trainingen"], ["bookings", "Boekingen"], ["notes", "Notities"], ["history", "Geschiedenis"]], w.tab, "w-tab");
+    var sum = D.bsum(c.id);
     var notes = D.notes[c.id] || [], hist = D.history[c.id] || [], prog = D.progress[c.id];
     var sess = [], book = [];
     for (var i = -7; i <= 7; i++) { var k = F.key(F.add(F.NOW, i)); studioItems(k).forEach(function (it) { if (it.client === c.id) sess.push([k, it]); if (it.people && it.people.indexOf(c.id) >= 0) book.push([k, it]); }); }
@@ -204,12 +226,28 @@
       h += '<div class="w-grid3">' + card("Volgende sessie", next ? "<b>" + F.longDate(F.parse(next[0])) + "</b><p>" + next[1].s + "–" + next[1].e + " · " + esc(shortLoc(next[1].loc)) + "</p>" : '<p class="w-muted">Niets gepland.</p>') +
         card("Gegevens", '<dl class="w-dl"><dt>E-mail</dt><dd>' + esc(c.email) + "</dd><dt>Taal voor e-mails</dt><dd>" + esc(c.lang) + "</dd><dt>Werkruimte</dt><dd>" + esc(D.workspaces[c.ws].name) + "</dd></dl>") +
         card("Notities", notes.length ? '<p translate="no">' + esc(notes[0].t) + '</p><p class="w-muted">' + esc(notes[0].d) + " · " + esc(notes[0].by) + "</p>" : '<p class="w-muted">Nog geen notities.</p>', { desc: "Alleen voor trainers" }) + "</div>";
+      if (c.ws === "sf") h += card("Tegoed", (sum.abos.map(function (a) { return '<div class="w-abo"><b>' + esc(a.name) + "</b> " + statusBadge(a) + "<p>" + aboLine(a) + "</p></div>"; }).join("") + sum.balances.map(balBlock).join("") + flagList(sum, c)) || '<p class="w-muted">Geen abonnement of credits.</p>', { act: btn("Alles bekijken", "w-tab", { k: "outline sm", d: { v: "billing" } }) });
       if (prog) {
         var W_ = 600, H_ = 140, mn = Math.min.apply(null, prog) - 5, mx = Math.max.apply(null, prog) + 2.5;
         var pts = prog.map(function (v, j) { return [j / (prog.length - 1) * (W_ - 20) + 10, H_ - 10 - (v - mn) / (mx - mn) * (H_ - 30)]; }), line = pts.map(function (p, j) { return (j ? "L" : "M") + p[0].toFixed(1) + " " + p[1].toFixed(1); }).join(""), lp = pts[pts.length - 1];
         h += card("Bankdrukken · zwaarste set", '<div class="w-big">' + String(prog[prog.length - 1]).replace(".", ",") + ' kg <span class="w-up">+' + String(prog[prog.length - 1] - prog[0]).replace(".", ",") + " kg</span></div>" +
           '<svg viewBox="0 0 ' + W_ + " " + H_ + '" class="w-chart"><defs><linearGradient id="wcg" x1="0" y1="0" x2="0" y2="1"><stop offset="0" style="stop-color:var(--accent);stop-opacity:.3"/><stop offset="1" style="stop-color:var(--accent);stop-opacity:0"/></linearGradient></defs><path d="' + line + "L" + lp[0] + " " + H_ + "L" + pts[0][0] + " " + H_ + 'Z" fill="url(#wcg)"/><path d="' + line + '" fill="none" style="stroke:var(--accent)" stroke-width="2.5"/><circle cx="' + lp[0] + '" cy="' + lp[1] + '" r="5" style="fill:var(--accent)"/></svg>', { desc: "Laatste 8 weken" });
       }
+    } else if (w.tab === "billing") {
+      if (c.ws !== "sf") { h += card("", '<p class="w-muted">' + esc(c.name.split(" ")[0]) + " is klant van " + esc(D.workspaces[c.ws].name) + ". Abonnementen, tegoed en betalingen daar ziet alleen de eigenaar van " + esc(D.workspaces[c.ws].name) + ".</p>"); return h; }
+      if (sum.flags.length) h += '<div class="w-flags">' + flagList(sum, c) + "</div>";
+      if (sum.balances.length) h += '<div class="w-grid' + Math.min(3, Math.max(2, sum.balances.length)) + '">' + sum.balances.map(function (x) { return card("", balBlock(x)); }).join("") + "</div>";
+      h += card("Abonnementen en credits", sum.b.agreements.length ? sum.b.agreements.map(function (a) {
+        var open = w.hist === a.id;
+        return '<div class="w-agr"><div class="w-agr-h"><div><b>' + esc(a.name) + "</b> " + badge(D.KIND[a.kind], "", "secondary") + " " + statusBadge(a) + '<p class="w-muted">' + (money(c) ? esc(a.price) + " · " + esc(a.cycle) + " · " : "") + "sinds " + esc(a.since) + " · " + esc(a.period) + (a.next && a.next !== "—" && money(c) ? " · volgende betaling " + esc(a.next) : "") + "</p>" +
+          (a.kind === "abo" ? "<p>" + aboLine(a) + "</p>" : "<p>" + a.used + " gebruikt · " + a.planned + " gepland · <b>" + (a.total - a.used - a.planned) + " over</b> van " + a.total + "</p>") + "</div>" +
+          btn(open ? "Verberg geschiedenis" : "Geschiedenis", "w-hist", { k: "outline sm", d: { id: a.id } }) + "</div>" +
+          (open ? table(["Datum", "Wat", "Credits", "Door"], a.hist.map(function (x) { var sg = x[2].charAt(0); return [esc(x[0]), esc(x[1]), '<span class="w-tnum ' + (sg === "+" ? "w-plus" : sg === "−" ? "w-minus" : "w-muted") + '">' + esc(sg === "+" || sg === "−" ? x[2] : "(" + x[2] + ")") + "</span>", esc(x[3])]; })) : "") + "</div>";
+      }).join("") : '<p class="w-muted">' + esc(c.name.split(" ")[0]) + " heeft nog geen abonnement of credits.</p>", { desc: "Elke credit telt alleen voor zijn eigen soort: groep, privé of Open Gym.", act: money(c) ? btn("Aanbod sturen", "w-toast", { k: "outline sm", i: "plus", d: { m: "De klant krijgt een link om het aanbod te bevestigen en te betalen" } }) : "" });
+      if (money(c)) h += card("Betalingen en facturen", sum.b.payments.length ? table(["Datum", "Omschrijving", "Bedrag", "Methode", "Status", "Factuur", ""], sum.b.payments.map(function (p, pi) {
+        return [esc(p[0]), esc(p[1]), '<span class="w-tnum">' + esc(p[2]) + "</span>", esc(p[3]), badge(PAY[p[4]][0], PAY[p[4]][1], PAY[p[4]][1] ? "" : "outline"), p[5] ? '<button class="w-link" data-a="w-toast" data-m="Factuur gedownload">' + esc(p[5]) + "</button>" : '<span class="w-muted">—</span>', p[4] === "paid" ? btn("Terugbetalen", "w-dlg", { k: "ghost sm", d: { n: "refund", i: pi } }) : ""];
+      })) : '<p class="w-muted">Nog geen betalingen.</p>', { desc: "Klanten betalen online. Een mislukte incasso staat hier als open bedrag." });
+      else h += '<p class="w-muted">Bedragen en betalingen ziet alleen de eigenaar.</p>';
     } else if (w.tab === "sessions") {
       h += card("", sess.length ? table(["Datum", "Tijd", "Locatie", "Trainer", "Aanwezigheid"], sess.map(function (x) { return [F.shortDate(F.parse(x[0])), '<span class="w-tnum">' + x[1].s + "–" + x[1].e + "</span>", esc(shortLoc(x[1].loc)), esc(who(x[1]) === ME() ? "Jij" : who(x[1])), x[1].att === "yes" ? badge("Aanwezig", "var(--ok)") : x[1].att === "no" ? badge("Niet verschenen", "var(--danger)") : badge(F.isPast(x[1], x[0]) ? "Nog invullen" : "Gepland", "", "secondary")]; })) : '<p class="w-muted">Geen privésessies in deze periode.</p>');
     } else if (w.tab === "workouts") {
@@ -318,6 +356,7 @@
     else if (d.n === "wlremove") { t = "Van de wachtlijst halen?"; b = "<p>" + esc(waitNames(it)[d.i]) + " krijgt een e-mail en staat niet meer op de wachtlijst.</p>"; ok = "Verwijderen"; kind = "dng"; cancel = "Terug"; }
     else if (d.n === "renew") { t = "Link vernieuwen?"; b = "<p>De oude link en QR-code werken daarna niet meer. Hangt de QR-code ergens, vervang die dan ook.</p>"; ok = "Vernieuwen"; kind = "dng"; }
     else if (d.n === "decline") { var r = D.requests.filter(function (x) { return x.id === d.id; })[0]; t = "Verzoek afwijzen?"; b = "<p>" + esc(r.name) + " krijgt een korte e-mail en ziet niets van " + esc(wsName()) + ". Later opnieuw vragen kan.</p>"; ok = "Afwijzen"; kind = "dng"; cancel = "Terug"; }
+    else if (d.n === "refund") { var pay = D.billing[W().cid].payments[d.i]; t = "Terugbetalen"; b = "<p>" + esc(pay[1]) + " · " + esc(pay[0]) + " · " + esc(pay[2]) + "</p>" + fld("Bedrag", inp("amount", "text"), "Een deel kan ook. De klant krijgt een creditfactuur."); ok = "Terugbetalen"; kind = "dng"; cancel = "Terug"; }
     else if (d.n === "invite") { t = "Trainer uitnodigen"; b = fld("E-mail", inp("email", "email", "naam@voorbeeld.nl")) + fld("Taal van de uitnodiging", selF("lang", ["Nederlands", "English"])); ok = "Uitnodiging versturen"; }
     else if (d.n === "newpriv") { t = "Nieuwe privésessie"; b = fld("Klant", selF("client", D.clients.filter(function (c) { return F.WSS().indexOf(c.ws) >= 0; }).map(function (c) { return [c.id, c.name]; }))) + '<div class="w-inline2">' + fld("Datum", inp("date", "date")) + fld("Begin", inp("start", "time")) + fld("Duur", selF("dur", [["60", "1 uur"], ["45", "45 min"], ["30", "30 min"], ["90", "1,5 uur"]])) + "</div>" + fld("Locatie", selF("loc", D.locations)); ok = "Plannen"; }
     else if (d.n === "newclient") { t = "Klant toevoegen"; b = fld("Naam", inp("name", "text", "Voor- en achternaam")) + fld("E-mail", inp("email", "email", "naam@voorbeeld.nl")) + fld("Taal voor e-mails", selF("lang", ["Nederlands", "English"])) + '<p class="w-muted">De klant krijgt een e-mail met een uitnodiging om in te loggen.</p>'; ok = "Toevoegen"; }
@@ -340,6 +379,8 @@
   A["w-open-priv"] = function (d) { W().sheet = d.id; R(); };
   A["w-open-class"] = function (d) { var w = W(); w.kid = d.id; w.page = "klass"; w.sheet = null; R(); };
   A["w-client"] = function (d) { var w = W(); w.cid = d.id; w.page = "client"; w.tab = "overview"; w.sheet = null; w.q = ""; R(); };
+  A["w-client-bill"] = function (d) { var w = W(); w.cid = d.id; w.page = "client"; w.tab = "billing"; w.sheet = null; R(); };
+  A["w-hist"] = function (d) { var w = W(); w.hist = w.hist === d.id ? null : d.id; R(); };
   A["w-requests"] = function () { var w = W(); w.page = "clients"; w.ctab = "req"; R(); };
   A["w-ctab"] = function (d) { W().ctab = d.v; R(); };
   A["w-tab"] = function (d) { W().tab = d.v; R(); };
@@ -350,7 +391,7 @@
   A["w-dclose"] = function () { W().dialog = null; R(); };
   A["w-toast"] = function (d) { F.toast(d.m); };
   function openDlg(n, form, extra) { var w = W(); w.menu = null; w.form = Object.assign(today5(), form || {}); w.dialog = Object.assign({ n: n }, extra || {}); R(); }
-  A["w-dlg"] = function (d) { var w = W(), it = w.sheet ? F.findItem(w.sheet).it : w.kid ? (F.findItem(w.kid) || {}).it : null; openDlg(d.n, it ? { start: it.s, end: it.e, cap: String(it.cap || ""), date: w.sheet ? F.findItem(w.sheet).day : F.TODAY, trainer: D.trainers.sf.filter(function (x) { return !it || x !== who(it); })[0] } : {}, { i: d.i }); };
+  A["w-dlg"] = function (d) { if (d.n === "refund") { var pay = D.billing[W().cid].payments[+d.i]; openDlg("refund", { amount: pay[2] }, { i: +d.i }); return; } var w = W(), it = w.sheet ? F.findItem(w.sheet).it : w.kid ? (F.findItem(w.kid) || {}).it : null; openDlg(d.n, it ? { start: it.s, end: it.e, cap: String(it.cap || ""), date: w.sheet ? F.findItem(w.sheet).day : F.TODAY, trainer: D.trainers.sf.filter(function (x) { return !it || x !== who(it); })[0] } : {}, { i: d.i }); };
   A["w-decline"] = function (d) { openDlg("decline", {}, { id: d.id }); };
   A["w-new-priv"] = function () { openDlg("newpriv", { client: "anna", loc: D.locations[0] }); };
   A["w-plan"] = function (d) { openDlg("newpriv", { client: d.id, date: F.key(F.add(F.NOW, 1)), start: "10:30", loc: D.locations[0] }); };
@@ -373,6 +414,7 @@
     else if (d.n === "sub") { it.trainer = f.trainer; it.subFor = true; msg = f.trainer + " valt in"; }
     else if (d.n === "editclass") { it.s = f.start; it.e = f.end; it.cap = +f.cap || it.cap; }
     else if (d.n === "wlremove") { it.waitlist = Math.max(0, (it.waitlist || 0) - 1); msg = "Van de wachtlijst gehaald"; }
+    else if (d.n === "refund") { var pay = D.billing[w.cid].payments[d.i]; pay[4] = "refund"; pay[5] = (pay[5] ? pay[5] + " · " : "") + "creditfactuur F-2026-0430"; msg = "Terugbetaling van " + f.amount + " aangemaakt. De klant krijgt een creditfactuur."; }
     else if (d.n === "renew") { w.linkCode = ["9XP4", "3MV8", "6TR1"][Math.floor(Math.random() * 3)]; msg = "Nieuwe link gemaakt. De oude werkt niet meer."; }
     else if (d.n === "decline") { D.requests = D.requests.filter(function (x) { return x.id !== d.id; }); msg = "Verzoek afgewezen"; }
     else if (d.n === "invite") { if (!/.+@.+\..+/.test(f.email || "")) { F.toast("Vul een geldig e-mailadres in"); return; } msg = "Uitnodiging verstuurd naar " + f.email; }
@@ -442,7 +484,8 @@
     }
     var me = c.who === "anna" ? F.CLIENT.anna : { name: c.name || "Kim de Graaf", email: c.email || "kim@example.com" };
     return '<div class="c-prof">' + '<span class="c-logo lg" style="--c:var(--priv)">' + F.initials(me.name) + "</span><h1>" + esc(me.name) + "</h1><p>" + esc(me.email) + "</p></div>" +
-      '<div class="c-pad"><div class="c-box"><b>Je tegoed</b>' + (c.who === "anna" ? "<p>Privé-credits: <b>3</b> over van deze maand</p><p>Groepslessen: <b>1</b> van 2 deze week</p>" : "<p>Nog geen lidmaatschap of credits. Vanaf M11 koop je die hier.</p>") + "</div>" +
+      '<div class="c-pad"><div class="c-box"><b>Je tegoed</b>' + (c.who === "anna" ? D.bsum("anna").balances.map(function (x) { return "<p>Nog <b>" + x.left + "</b> " + (x.left === 1 ? x.label[0] : x.label[1]) + " tegoed · " + x.planned + " gepland · " + x.used + " gebruikt</p>"; }).join("") + D.billing.anna.agreements.map(function (a) { return '<p class="c-muted">' + esc(a.name) + " · " + esc(a.price) + " " + esc(a.cycle.toLowerCase()) + " · volgende betaling " + esc(a.next) + "</p>"; }).join("") : "<p>Nog geen abonnement of credits.</p>") + "</div>" +
+      (c.who === "anna" ? '<div class="c-box"><b>Facturen</b>' + D.billing.anna.payments.map(function (p) { return '<button class="c-row" data-a="w-toast" data-m="Factuur gedownload"><span><b>' + esc(p[5]) + "</b><span>" + esc(p[0]) + " · " + esc(p[2]) + "</span></span>" + ic("chevR") + "</button>"; }).join("") + "</div>" : "") +
       (c.who === "anna" ? '<div class="c-box"><b>Mijn trainingen</b>' + (D.history.anna || []).slice(0, 3).map(function (x, i) { return '<button class="c-row" data-a="c-workout" data-v="' + i + '"><span><b>' + esc(x.name) + "</b><span>" + esc(x.d) + " · " + esc(x.by) + "</span></span>" + ic("chevR") + "</button>"; }).join("") + "</div>" : "") +
       '<div class="c-box"><b>Taal</b><div class="c-filter" style="margin:8px 0 0">' + [["nl", "Nederlands"], ["en", "English"]].map(function (l) { return '<button translate="no" class="' + (F.PREF.lang === l[0] ? "on" : "") + '" data-a="c-lang" data-v="' + l[0] + '">' + l[1] + "</button>"; }).join("") + "</div></div>" +
       cbtn("Uitloggen", "c-signout", { k: "sec" }) + "</div>";
@@ -458,7 +501,7 @@
     if (st === "booked") h += '<div class="c-box ok"><b>' + ic("check") + "Je bent erbij</b><p>Gratis annuleren tot 12 uur voor de start. Daarna telt de les als gebruikt.</p></div>" + cbtn("Annuleren", "c-cancel", { k: "dng" });
     else if (st === "wl") h += '<div class="c-box"><b>Je staat op de wachtlijst: nummer ' + c.wl[it.id] + "</b><p>Komt er een plek vrij, dan word je automatisch geboekt en krijg je een e-mail. De wachtlijst sluit 30 minuten voor de start.</p></div>" + cbtn("Van de wachtlijst af", "c-wl-leave", { k: "sec" });
     else if (st === "full") h += '<div class="c-box"><b>Deze les is vol</b><p>' + (it.waitlist || 0) + " mensen staan op de wachtlijst.</p></div>" + (it.type === "group" ? cbtn("Op de wachtlijst", "c-wl") : "");
-    else h += '<p class="c-muted">' + (left === 1 ? "Nog 1 plek vrij" : "Nog " + left + " plekken vrij") + (c.who === "anna" ? " · je gebruikt 1 les van je lidmaatschap" : "") + "</p>" + cbtn("Boeken", "c-book");
+    else h += '<p class="c-muted">' + (left === 1 ? "Nog 1 plek vrij" : "Nog " + left + " plekken vrij") + (c.who === "anna" ? " · je gebruikt 1 groepscredit" : "") + "</p>" + cbtn("Boeken", "c-book");
     return h + "</div>";
   }
   function workoutView() {

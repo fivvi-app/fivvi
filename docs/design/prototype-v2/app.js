@@ -409,6 +409,20 @@
         '<div style="display:flex;justify-content:space-between;font-size:12px;color:var(--label2);margin-top:4px"><span>10 sep</span><span>29 okt</span></div></div>';
     }
     body += "</div>";
+    /* what the client has: abonnement, credits used / planned / left; the open amount for the owner only */
+    if (c.ws === "sf") {
+      var bs = D.bsum(c.id), brows = [];
+      if (OWNER()) bs.flags.filter(function (f) { return f[0] === "danger"; }).forEach(function (f) { brows.push(row({ lead: '<span class="dc-ic" style="--c:var(--danger)">' + ic("warn") + "</span>", title: esc(f[1]), sub: esc(f[2]), cls: "dc" })); });
+      bs.abos.forEach(function (a) { brows.push(row({ lead: '<span class="dc-ic" style="--c:var(--group)">' + ic("group") + "</span>", title: esc(a.name), sub: "Deze week " + a.usedWeek + " van " + a.perWeek + " gebruikt" + (a.makeups ? " · " + a.makeups + (a.makeups === 1 ? " inhaalles" : " inhaallessen") : "") + (a.status === "ending" ? " · " + esc(a.period) : ""), cls: "dc wrap" })); });
+      bs.balances.forEach(function (x) {
+        var t = Math.max(1, x.total);
+        brows.push(row({ lead: '<span class="dc-ic" style="--c:' + x.label[2] + '">' + ic(x.credit === "gym" ? "door" : x.credit === "groep" ? "group" : "me") + "</span>", title: x.label[1].charAt(0).toUpperCase() + x.label[1].slice(1), sub: x.used + " gebruikt · " + x.planned + " gepland · van " + x.total,
+          tr: '<span class="bal-n" style="--c:' + x.label[2] + '"><b class="num">' + x.left + "</b> over</span>", extra: '<div class="abar" style="--c:' + x.label[2] + '"><i style="width:' + (x.used / t * 100) + '%"></i><i class="p" style="width:' + (x.planned / t * 100) + '%"></i></div>', cls: "dc" }));
+      });
+      bs.flags.filter(function (f) { return f[0] === "warn" && f[1].indexOf("Abonnement") !== 0; }).forEach(function (f) { brows.push(row({ lead: '<span class="dc-ic" style="--c:var(--gym)">' + ic("warn") + "</span>", title: esc(f[1]), cls: "dc" })); });
+      if (!brows.length) brows.push(row({ title: "Geen abonnement of credits", sub: OWNER() ? "Stuur een aanbod vanaf het web." : "" }));
+      body += sh("Tegoed", "", "small") + '<div class="pad">' + grp(brows, "--inset:60px") + "</div>" + (OWNER() ? foot("Betalingen en facturen vind je op het web.") : "");
+    }
     body += sh("Gegevens", "", "small") + '<div class="pad">' + grp([row({ title: "E-mail", tr: c.email ? esc(c.email) : "Nog niet ingevuld", cls: "kv" }), row({ title: "Taal voor e-mails", tr: esc(c.lang), cls: "kv" }), row({ title: "Werkruimte", tr: wsLine(c.ws), cls: "kv" })]) + "</div>";
     body += sh("Notities", '<button data-a="note" data-id="' + c.id + '">+ Notitie</button>', "small");
     body += '<div class="pad">' + (notes.length ? grp(notes.map(function (n) { return row({ title: '<span translate="no">' + esc(n.t) + "</span>", small: n.d + " · " + esc(n.by), cls: "wrap" }); })) : '<div class="grp"><div class="row"><div class="m"><span>Nog geen notities.</span></div></div></div>') + "</div>" + foot("Alleen trainers van " + D.workspaces[c.ws].name + " zien notities.");
@@ -431,6 +445,11 @@
     var body = "";
     if (it.cancelled) body += '<div class="pad" style="margin-bottom:12px"><div class="banner" style="--c:var(--danger)">' + ic("warn") + "Deze sessie is geannuleerd.</div></div>";
     body += lt("", esc(c.name), longDate(d) + " · " + it.s + "–" + it.e);
+    /* before the session: is there a private credit for it, and is a payment open (owner only) */
+    var sb = D.bsum(it.client), pb = sb.balances.filter(function (x) { return x.credit === "prive"; })[0], first = c.name.split(" ")[0], bn = [];
+    if (OWNER() && sb.open.length) bn.push(["var(--danger)", "Openstaande betaling " + sb.open[0].open + " · " + sb.open[0].name]);
+    if (!it.cancelled && it.ws === "sf" && D.billing[it.client]) bn.push(!pb ? ["var(--gym)", first + " heeft geen privécredits"] : pb.left <= 0 ? ["var(--gym)", "Laatste privécredit van " + first + ". Daarna zijn ze op."] : ["var(--priv)", "Nog " + pb.left + " " + (pb.left === 1 ? "privécredit" : "privécredits") + " over na de geplande sessies"]);
+    if (bn.length) body += '<div class="pad stack" style="margin-bottom:12px">' + bn.map(function (x) { return '<div class="banner" style="--c:' + x[0] + '">' + ic(x[0] === "var(--priv)" ? "info" : "warn") + esc(x[1]) + "</div>"; }).join("") + "</div>";
     body += '<div class="pad stack">' + grp([
       row({ lead: '<span style="color:var(--priv);display:grid">' + ic("pin") + "</span>", title: esc(it.loc), tr: '<button class="btn ghost sm" data-a="toast" data-m="Opent de route in Kaarten">' + ic("route") + "Route</button>", cls: "kv" }),
       row({ lead: '<span style="color:var(--label2);display:grid">' + ic("people") + "</span>", title: D.workspaces[it.ws].name, sub: it.trainer ? esc(it.trainer) : "Jij", cls: "kv" })
