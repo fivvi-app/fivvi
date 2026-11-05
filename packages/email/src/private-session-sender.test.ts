@@ -89,4 +89,48 @@ describe('F020 EM-11 sender', () => {
     expect(transport.sent[0]?.text).toContain("Waar: John's Gym");
     expect(transport.sent[0]?.text).not.toContain('Voorbeeldstraat');
   });
+
+  describe('EM-04, when the mail says the session moved', () => {
+    // Moved from Thursday 24 September to Friday 25 September 2026, 10:00 to 11:00.
+    const moved = {
+      ...mail,
+      startsAt: new Date('2026-09-25T08:00:00Z'),
+      endsAt: new Date('2026-09-25T09:00:00Z'),
+      previous: { startsAt: mail.startsAt, endsAt: mail.endsAt },
+    };
+
+    it('AC6: sends EM-04 in the given language, with the old and the new time and the idempotency key', async () => {
+      const { transport, send } = setup();
+
+      await send(moved);
+
+      expect(transport.sent).toHaveLength(1);
+      expect(transport.sent[0]).toMatchObject({
+        to: { email: 'anna@example.com', name: 'Anna de Vries' },
+        locale: 'nl-NL',
+        template: 'private-session-moved',
+        subject:
+          'Wijziging: je sessie op donderdag 24 september om 09:00 is verplaatst naar vrijdag 25 september om 10:00',
+        idempotencyKey: mail.idempotencyKey,
+      });
+      expect(transport.sent[0]?.text).toContain(
+        'Eerder: donderdag 24 september 2026, 09:00 tot 10:00',
+      );
+      expect(transport.sent[0]?.text).toContain(
+        "Waar: John's Gym, Voorbeeldstraat 1 B, 1234 AB Amsterdam",
+      );
+    });
+
+    it('AC6: sends it in English when the mail says English', async () => {
+      const { transport, send } = setup();
+
+      await send({ ...moved, locale: 'en' });
+
+      expect(transport.sent[0]).toMatchObject({
+        locale: 'en',
+        subject:
+          'Change: your session on Thursday 24 September at 09:00 has moved to Friday 25 September at 10:00',
+      });
+    });
+  });
 });
