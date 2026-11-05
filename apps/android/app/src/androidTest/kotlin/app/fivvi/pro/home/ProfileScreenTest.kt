@@ -90,7 +90,7 @@ class ProfileScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         compose.waitUntilTagExists(HomeTags.OPEN_PROFILE)
         compose.onNodeWithTag(HomeTags.OPEN_PROFILE).performClick()
 
-        compose.onNodeWithTag(ProfileTags.TITLE).assertTextEquals(string(R.string.my_profile_title))
+        compose.onNodeWithTag(ProfileTags.TITLE).assertTextEquals(string(R.string.profile_title))
         compose.onNodeWithTag(
             ProfileTags.WORKSPACES_TITLE,
         ).assertTextEquals(string(R.string.my_profile_workspaces_title))

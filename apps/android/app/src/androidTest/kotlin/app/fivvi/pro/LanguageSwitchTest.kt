@@ -65,7 +65,7 @@ class LanguageSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val 
 
         compose.waitUntil(UI_TIMEOUT_MILLIS) { me.updates.isNotEmpty() }
         compose.onNodeWithTag(ProfileTags.LANGUAGE).assertTextEquals(string(other, R.string.profile_language))
-        compose.onNodeWithTag(ProfileTags.TITLE).assertTextEquals(string(other, R.string.my_profile_title))
+        compose.onNodeWithTag(ProfileTags.TITLE).assertTextEquals(string(other, R.string.profile_title))
         compose.onNodeWithTag("${ProfileTags.LANGUAGE}.${other.tag}").assertIsSelected()
         assertEquals(
             listOf(

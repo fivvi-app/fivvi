@@ -125,7 +125,7 @@ fun HomeScreen(
                     onClick = onOpenProfile,
                     modifier = Modifier.fillMaxWidth().heightIn(min = Spacing.space12).testTag(HomeTags.OPEN_PROFILE),
                 ) {
-                    Text(stringResource(R.string.my_profile_title), textAlign = TextAlign.Center)
+                    Text(stringResource(R.string.profile_title), textAlign = TextAlign.Center)
                 }
             }
             SignOut(signingOut, onSignOut)
