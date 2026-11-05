@@ -4,11 +4,13 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextInput
-import app.fivvi.pro.AppLanguage
+import app.fivvi.core.AppLanguage
+import app.fivvi.core.R
+import app.fivvi.core.auth.InMemorySessionStore
+import app.fivvi.core.auth.Session
+import app.fivvi.core.signin.FakeSignInApi
+import app.fivvi.core.signin.SignInTags
 import app.fivvi.pro.AppRule
-import app.fivvi.pro.R
-import app.fivvi.pro.auth.InMemorySessionStore
-import app.fivvi.pro.auth.Session
 import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.localizedString
 import app.fivvi.pro.signin.SignInSteps.Companion.ADDRESS

@@ -1,6 +1,7 @@
 package app.fivvi.pro
 
 import androidx.test.core.app.ApplicationProvider
+import app.fivvi.core.R
 import org.junit.Assert.assertEquals
 import org.junit.Test
 

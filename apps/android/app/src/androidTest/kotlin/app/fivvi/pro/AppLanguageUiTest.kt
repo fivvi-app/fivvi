@@ -3,6 +3,8 @@ package app.fivvi.pro
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import app.fivvi.core.AppLanguage
+import app.fivvi.core.R
 import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.hello.HelloTags
 import org.junit.Assert.assertEquals

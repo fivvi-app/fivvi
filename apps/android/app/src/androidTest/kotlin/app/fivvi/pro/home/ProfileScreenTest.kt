@@ -12,11 +12,13 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
 import app.fivvi.api.models.MyWorkspace
 import app.fivvi.api.models.MyWorkspace.Role
-import app.fivvi.pro.AppLanguage
+import app.fivvi.core.AppLanguage
+import app.fivvi.core.R
+import app.fivvi.core.appLanguageParameters
+import app.fivvi.core.me.FakeMeApi
+import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.pro.AppRule
-import app.fivvi.pro.R
 import app.fivvi.pro.UI_TIMEOUT_MILLIS
-import app.fivvi.pro.appLanguageParameters
 import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.localizedString
 import app.fivvi.pro.waitUntilTagExists

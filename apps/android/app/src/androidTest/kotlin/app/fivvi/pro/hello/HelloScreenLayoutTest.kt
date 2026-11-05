@@ -3,9 +3,9 @@ package app.fivvi.pro.hello
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.unit.dp
-import app.fivvi.pro.AppLanguage
-import app.fivvi.pro.R
-import app.fivvi.pro.appLanguageParameters
+import app.fivvi.core.AppLanguage
+import app.fivvi.core.R
+import app.fivvi.core.appLanguageParameters
 import app.fivvi.pro.assertButtonFits
 import app.fivvi.pro.assertNotCutOff
 import app.fivvi.pro.showAtLargestFontScale

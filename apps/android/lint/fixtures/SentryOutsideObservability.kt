@@ -3,7 +3,7 @@
 package app.fivvi.pro.hello
 
 import io.sentry.Sentry
-import app.fivvi.pro.observability.Observability
+import app.fivvi.core.observability.Observability
 
 fun reportFailure(error: Throwable) {
     Sentry.captureException(error)

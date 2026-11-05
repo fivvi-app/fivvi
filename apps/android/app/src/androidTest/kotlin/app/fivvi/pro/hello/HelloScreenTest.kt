@@ -9,10 +9,10 @@ import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import app.fivvi.pro.AppLanguage
+import app.fivvi.core.AppLanguage
+import app.fivvi.core.R
+import app.fivvi.core.appLanguageParameters
 import app.fivvi.pro.AppRule
-import app.fivvi.pro.R
-import app.fivvi.pro.appLanguageParameters
 import app.fivvi.pro.localizedString
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
