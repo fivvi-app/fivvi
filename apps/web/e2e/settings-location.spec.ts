@@ -102,12 +102,7 @@ test.describe('F015 Settings → Location (TW-08)', () => {
     ]);
   });
 
-  test('AC4: the Owner saves a new name and address', async ({
-    page,
-    context,
-    appLocale,
-    messages: copy,
-  }) => {
+  test('AC4: Owner saves the location', async ({ page, context, appLocale, messages: copy }) => {
     const slug = await johnOnLocationPage(page, context);
     const text = copy.settingsLocation;
 
@@ -145,12 +140,7 @@ test.describe('F015 Settings → Location (TW-08)', () => {
     await expect(page.getByLabel(text.additionLabel)).toHaveValue('2 hoog');
   });
 
-  test('AC5: validation messages for an empty and a too long name', async ({
-    page,
-    context,
-    appLocale,
-    messages: copy,
-  }) => {
+  test('AC5: validation messages', async ({ page, context, appLocale, messages: copy }) => {
     const slug = await johnOnLocationPage(page, context);
     const text = copy.settingsLocation;
     const name = page.getByLabel(text.nameLabel);
@@ -171,16 +161,12 @@ test.describe('F015 Settings → Location (TW-08)', () => {
     await expect(page.getByText(text.saved)).toHaveCount(0);
     // The pointer stays on the button after the click; axe judges the button at rest.
     await page.mouse.move(0, 0);
+    await expectNoAxeViolations(page, `TW-08 Location with a too long name in ${appLocale}`);
     // Nothing changed.
     expect((await locationsOf(page, slug))[0]?.name).toBe("John's Gym");
   });
 
-  test('AC6: Sarah has no Settings; the URL shows the no-permission page and the API refuses her change', async ({
-    page,
-    context,
-    appLocale,
-    messages: copy,
-  }) => {
+  test('AC6: Trainer has no Settings', async ({ page, context, appLocale, messages: copy }) => {
     const john = newAddress('john');
     const sarah = newAddress('sarah');
     await createAccount(john, undefined, 'John');
@@ -249,6 +235,110 @@ test.describe('F015 Settings → Location (TW-08)', () => {
     await expect(page.getByText(text.saved)).toBeVisible();
   });
 
+  test('AC13: what a lookup filled is emptied when the next query has no match; typed text stays', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    await johnOnLocationPage(page, context);
+    const text = copy.settingsLocation;
+    const postcode = page.getByLabel(text.postcodeLabel, { exact: true });
+    const houseNumber = page.getByLabel(text.houseNumberLabel);
+    const street = page.getByLabel(text.streetLabel);
+    const city = page.getByLabel(text.cityLabel);
+
+    await postcode.fill('1234 AB');
+    await houseNumber.fill('1');
+    await expect(street).toHaveValue('Voorbeeldstraat');
+    await expect(city).toHaveValue('Amsterdam');
+    await expect(page.getByText(text.lookup.filled)).toBeVisible();
+
+    // A postcode with no address: the no-match text shows, and nothing of the old address stays.
+    await postcode.fill('9999 ZZ');
+    await expect(page.getByText(text.lookup.notFound)).toBeVisible();
+    await expect(street).toHaveValue('');
+    await expect(city).toHaveValue('');
+    await expect(page.getByText(text.lookup.filled)).toHaveCount(0);
+    await expectNoAxeViolations(page, `TW-08 Location after a no-match in ${appLocale}`);
+
+    // The Owner's own street survives a later no-match; only what a lookup filled goes.
+    await postcode.fill('1234 AB');
+    await expect(city).toHaveValue('Amsterdam');
+    await street.fill('Mijn eigen straat');
+    await postcode.fill('9999 ZZ');
+    await expect(page.getByText(text.lookup.notFound)).toBeVisible();
+    await expect(city).toHaveValue('');
+    await expect(street).toHaveValue('Mijn eigen straat');
+  });
+
+  test('AC13: what a lookup filled is emptied when the postcode stops being one', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    await johnOnLocationPage(page, context);
+    const text = copy.settingsLocation;
+    const postcode = page.getByLabel(text.postcodeLabel, { exact: true });
+    const street = page.getByLabel(text.streetLabel);
+    const city = page.getByLabel(text.cityLabel);
+
+    await postcode.fill('1234 AB');
+    await page.getByLabel(text.houseNumberLabel).fill('1');
+    await expect(city).toHaveValue('Amsterdam');
+    await expect(page.getByText(text.lookup.filled)).toBeVisible();
+
+    // The API refuses "1234" (422): the note goes and the fields empty, with no message.
+    await postcode.fill('1234');
+    await expect(page.getByText(text.lookup.filled)).toHaveCount(0);
+    await expect(street).toHaveValue('');
+    await expect(city).toHaveValue('');
+    await expect(page.getByText(text.lookup.notFound)).toHaveCount(0);
+    await expect(page.getByText(text.lookup.unavailable)).toHaveCount(0);
+
+    // Emptying the house number does the same after a fresh lookup.
+    await postcode.fill('1234 AB');
+    await page.getByLabel(text.houseNumberLabel).fill('3');
+    await expect(city).toHaveValue('Haarlem');
+    await page.getByLabel(text.houseNumberLabel).fill('');
+    await expect(page.getByText(text.lookup.filled)).toHaveCount(0);
+    await expect(city).toHaveValue('');
+    await expectNoAxeViolations(page, `TW-08 Location after the query went blank in ${appLocale}`);
+  });
+
+  test('AC13: an answer to a query that has changed since is not used', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    await johnOnLocationPage(page, context);
+    const text = copy.settingsLocation;
+    // The first query is answered late, after the Owner has already changed it.
+    await page.route('**/address-lookup**postcode=1234+AB&houseNumber=1', async (route) => {
+      await new Promise((resolve) => setTimeout(resolve, 1500));
+      await route.continue();
+    });
+    const postcode = page.getByLabel(text.postcodeLabel, { exact: true });
+    const houseNumber = page.getByLabel(text.houseNumberLabel);
+
+    await postcode.fill('1234 AB');
+    await houseNumber.fill('1');
+    await expect(page.getByText(text.lookup.busy)).toBeVisible();
+    await houseNumber.fill('12');
+
+    // The late answer for number 1 arrives; number 12 is no address, so nothing is filled.
+    await expect(page.getByText(text.lookup.notFound)).toBeVisible();
+    await page.waitForTimeout(2000);
+    await expect(page.getByLabel(text.streetLabel)).toHaveValue('');
+    await expect(page.getByLabel(text.cityLabel)).toHaveValue('');
+    await expect(page.getByText(text.lookup.filled)).toHaveCount(0);
+
+    // Changed back to number 1, the query is looked up again and fills in.
+    await houseNumber.fill('1');
+    await expect(page.getByLabel(text.streetLabel)).toHaveValue('Voorbeeldstraat');
+  });
+
   test('AC13: the form stays usable while the lookup runs', async ({
     page,
     context,
@@ -273,7 +363,7 @@ test.describe('F015 Settings → Location (TW-08)', () => {
     await expect(page.getByText(text.lookup.busy)).toHaveCount(0);
   });
 
-  test('AC14: the no-match and unavailable texts show, and saving a hand-typed address works', async ({
+  test('AC14: no-match and unavailable texts; saving by hand works', async ({
     page,
     context,
     appLocale,
@@ -376,10 +466,17 @@ test.describe('F015 Settings → Location (TW-08)', () => {
     await expect(page.getByText(text.saved)).toBeVisible();
     expect((await locationsOf(page, slug))[0]?.address).toMatchObject({ postcode: '1234 AB' });
     await expect(page.getByText(text.errors.addressIncomplete)).toHaveCount(0);
+    // The pointer stays on the button after the click; axe judges the button at rest.
     await page.mouse.move(0, 0);
+    await expectNoAxeViolations(page, `TW-08 Location after saving "1234ab" in ${appLocale}`);
   });
 
-  test('saving without an address removes it', async ({ page, context, messages: copy }) => {
+  test('saving without an address removes it', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
     const slug = await johnOnLocationPage(page, context);
     const text = copy.settingsLocation;
     await page.getByLabel(text.postcodeLabel, { exact: true }).fill('5678 CD');
@@ -400,7 +497,9 @@ test.describe('F015 Settings → Location (TW-08)', () => {
     await page.getByRole('button', { name: text.save }).click();
 
     await expect(page.getByText(text.saved)).toBeVisible();
+    // The pointer stays on the button after the click; axe judges the button at rest.
     await page.mouse.move(0, 0);
+    await expectNoAxeViolations(page, `TW-08 Location after removing the address in ${appLocale}`);
     expect((await locationsOf(page, slug))[0]?.address).toBeNull();
   });
 });

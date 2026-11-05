@@ -25,3 +25,17 @@ export function fillFromLookup(
     cityFilled: city || current.cityFilled,
   };
 }
+
+/**
+ * What the street and the city become when the query they were looked up from no longer has an
+ * address (no match, not a postcode and number, or blank): the fields a lookup filled are emptied
+ * and lose their mark; a field the Owner typed is never touched.
+ */
+export function clearLookupFilled(current: FilledAddress): FilledAddress {
+  return {
+    street: current.streetFilled ? '' : current.street,
+    city: current.cityFilled ? '' : current.city,
+    streetFilled: false,
+    cityFilled: false,
+  };
+}

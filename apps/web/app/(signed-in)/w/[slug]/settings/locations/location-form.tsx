@@ -16,7 +16,7 @@ import { Label } from '@fivvi/ui/components/label';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
-import { type FilledAddress, fillFromLookup } from './fill-from-lookup';
+import { clearLookupFilled, type FilledAddress, fillFromLookup } from './fill-from-lookup';
 import {
   type AddressQuery,
   type LocationField,
@@ -102,8 +102,6 @@ export function LocationForm({
   const [pending, setPending] = useState(false);
   // The button waits for the page to hydrate: a click before that would submit the form natively.
   const [ready, setReady] = useState(false);
-  const latest = useRef(values);
-  latest.current = values;
   const pause = useRef<ReturnType<typeof setTimeout>>(undefined);
   // The query last looked up (the saved one at first), so blurring a field asks nothing new.
   const looked = useRef(queryKey(values));
@@ -129,10 +127,13 @@ export function LocationForm({
     if (result.kind === 'found') {
       setPlace((current) => fillFromLookup(current, result));
       setLookup('idle');
-    } else {
-      // The API did not take the query as a postcode and number (yet): there is nothing to say.
-      setLookup(result.kind === 'invalid' ? 'idle' : result.kind);
+      return;
     }
+    // This query has no address (or none could be had): what an earlier lookup filled belongs to
+    // another query, so it goes; what the Owner typed stays. A query the API did not take as a
+    // postcode and number (yet) has nothing to say.
+    setPlace(clearLookupFilled);
+    setLookup(result.kind === 'invalid' ? 'idle' : result.kind);
   }
 
   /** Looks up `query` after `delay`, when it holds a postcode and a house number. */
@@ -141,8 +142,15 @@ export function LocationForm({
     if (!query.postcode.trim() || !query.houseNumber.trim()) {
       generation.current += 1;
       looked.current = '';
+      setPlace(clearLookupFilled);
       setLookup('idle');
       return;
+    }
+    // A lookup still on its way is for another query: its answer is no longer wanted, and this
+    // query (even one the Owner changed back to) is looked up afresh.
+    if (queryKey(query) !== looked.current) {
+      generation.current += 1;
+      looked.current = '';
     }
     pause.current = setTimeout(() => void runLookup(query), delay);
   }
@@ -237,7 +245,7 @@ export function LocationForm({
                     value={values.postcode}
                     autoComplete="postal-code"
                     onChange={(event) => change('postcode', event.target.value)}
-                    onBlur={() => schedule(latest.current, 0)}
+                    onBlur={() => schedule(values, 0)}
                   />
                   {fieldError('postcode', 'location-postcode')}
                 </div>
@@ -250,7 +258,7 @@ export function LocationForm({
                     inputMode="numeric"
                     autoComplete="off"
                     onChange={(event) => change('houseNumber', event.target.value)}
-                    onBlur={() => schedule(latest.current, 0)}
+                    onBlur={() => schedule(values, 0)}
                   />
                   {fieldError('houseNumber', 'location-house-number')}
                 </div>
@@ -262,7 +270,7 @@ export function LocationForm({
                     value={values.houseNumberAddition}
                     autoComplete="off"
                     onChange={(event) => change('houseNumberAddition', event.target.value)}
-                    onBlur={() => schedule(latest.current, 0)}
+                    onBlur={() => schedule(values, 0)}
                   />
                   {fieldError('houseNumberAddition', 'location-addition')}
                 </div>
