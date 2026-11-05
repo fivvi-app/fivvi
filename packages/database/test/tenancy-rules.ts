@@ -22,6 +22,9 @@ export const DEFINER_FUNCTIONS: string[] = [];
 export const EXTRA_POLICIES: Record<string, string[]> = {
   clients: ['clients_own_account'],
   team_members: ['team_members_own_account'],
+  // The narrow read-only doors of a person with an invitation (F011): by the hash of the link's
+  // token, and by the address the sign-in gate asks about. See migration 0020.
+  trainer_invitations: ['trainer_invitations_by_token', 'trainer_invitations_by_email'],
 };
 
 export const RULES: TenancyRules = {
