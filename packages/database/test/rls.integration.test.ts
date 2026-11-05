@@ -9,6 +9,7 @@ import {
 } from '../src/index.ts';
 import {
   addClient,
+  addSession,
   addTeamRole,
   createAccount,
   createWorkspace,
@@ -92,6 +93,9 @@ async function seedScenario(admin: DatabaseExecutor): Promise<Scenario> {
     await factory.create(admin, a);
     await factory.create(admin, b);
   }
+  // A session of A with Sam's client in it, so a context that names Sam's client has a place to see
+  // (`session_participants` has the client policy, F020), next to the other client's session.
+  await addSession(admin, { workspaceId: a, clientId: clientInA });
   const all: Scenario['rows'] = {};
   for (const [table, factory] of Object.entries(isolationFactories)) {
     const found = await visible(admin, table, factory);
@@ -494,6 +498,18 @@ describe('E011 RLS as the app role', () => {
       expect(await rows<{ id: string }>(tx, sql`select id from clients order by id`)).toEqual([
         { id: x },
       ]);
+      // The places in sessions follow the same rule: X's own place, not the other clients' (F020).
+      const places = await rows<{ client_id: string }>(
+        tx,
+        sql`select client_id from session_participants`,
+      );
+      expect(places).toEqual([{ client_id: x }]);
+      await refused(tx, (inner) =>
+        inner.execute(
+          sql`insert into session_participants (organization_id, session_id, client_id)
+              select ${scenario.a}, s.id, ${y} from sessions s limit 1`,
+        ),
+      );
       // Writes for another client of A fail or change nothing.
       await refused(tx, (inner) => addClient(inner, { workspaceId: scenario.a }));
       await refused(tx, (inner) =>

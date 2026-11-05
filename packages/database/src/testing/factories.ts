@@ -7,6 +7,8 @@ import {
   clients,
   locations,
   organizations,
+  sessionParticipants,
+  sessions,
   teamMembers,
   trainerInvitations,
   trainerProfiles,
@@ -216,4 +218,70 @@ export async function addTrainerInvitation(
       }),
     'trainer invitation',
   );
+}
+
+/**
+ * A private session of a workspace (F020) with one participant, a client of it. Unless the test
+ * says otherwise: at the workspace's default location, for the given trainer profile (none when
+ * not given), planned by nobody, an hour long, starting at the given instant (default: a week
+ * from now), `scheduled`, version 1, with the client `booked`. A test that needs the client
+ * gives one (`clientId`); a group or Open Gym session passes `participant: false`.
+ */
+export async function addSession(
+  db: Pick<DatabaseExecutor, 'insert' | 'select'>,
+  options: {
+    workspaceId: string;
+    clientId?: string;
+    participant?: boolean;
+    trainerProfileId?: string | null;
+    createdByTeamMemberId?: string | null;
+    locationId?: string;
+    type?: 'private' | 'group' | 'open_gym';
+    status?: 'scheduled' | 'cancelled';
+    startsAt?: Date;
+    durationMinutes?: number;
+    capacity?: number;
+    version?: number;
+  },
+): Promise<{ id: string; startsAt: Date; endsAt: Date; locationId: string }> {
+  const locationId =
+    options.locationId ??
+    first(
+      await db
+        .select({ id: locations.id })
+        .from(locations)
+        .where(
+          and(eq(locations.organizationId, options.workspaceId), eq(locations.isDefault, true)),
+        ),
+      'default location',
+    ).id;
+  const type = options.type ?? 'private';
+  const startsAt = options.startsAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const endsAt = new Date(startsAt.getTime() + (options.durationMinutes ?? 60) * 60_000);
+  const session = first(
+    await db
+      .insert(sessions)
+      .values({
+        organizationId: options.workspaceId,
+        type,
+        status: options.status ?? 'scheduled',
+        trainerProfileId: options.trainerProfileId ?? null,
+        locationId,
+        startsAt,
+        endsAt,
+        capacity: options.capacity ?? (type === 'private' ? 1 : 10),
+        createdByTeamMemberId: options.createdByTeamMemberId ?? null,
+        version: options.version ?? 1,
+      })
+      .returning({ id: sessions.id }),
+    'session',
+  );
+  if (options.participant !== false) {
+    await db.insert(sessionParticipants).values({
+      organizationId: options.workspaceId,
+      sessionId: session.id,
+      clientId: options.clientId ?? (await addClient(db, { workspaceId: options.workspaceId })).id,
+    });
+  }
+  return { id: session.id, startsAt, endsAt, locationId };
 }

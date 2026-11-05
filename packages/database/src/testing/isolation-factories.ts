@@ -1,7 +1,9 @@
+import { eq } from 'drizzle-orm';
 import type { DatabaseExecutor } from '../client.ts';
-import { locations, organizations } from '../schema/index.ts';
+import { locations, organizations, sessionParticipants, trainerProfiles } from '../schema/index.ts';
 import {
   addClient,
+  addSession,
   addTeamRole,
   addTrainerInvitation,
   addTrainerProfile,
@@ -90,6 +92,50 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
         role: 'owner',
       });
       return addTrainerInvitation(db, { workspaceId, inviterTeamMemberId: inviter.id });
+    },
+  },
+  // A private session with a trainer of the workspace, planned by an Owner of it, and its one client.
+  sessions: {
+    scopeColumn: 'organization_id',
+    create: async (db, workspaceId) => {
+      const trainer = await addTeamRole(db, {
+        workspaceId,
+        accountId: (await createAccount(db, { label: 'session-trainer' })).id,
+      });
+      const [profile] = await db
+        .select({ id: trainerProfiles.id })
+        .from(trainerProfiles)
+        .where(eq(trainerProfiles.teamMemberId, trainer.id));
+      return addSession(db, {
+        workspaceId,
+        trainerProfileId: profile?.id ?? null,
+        createdByTeamMemberId: trainer.id,
+      });
+    },
+  },
+  // The place of a client in a session, both made for the workspace.
+  session_participants: {
+    scopeColumn: 'organization_id',
+    create: async (db, workspaceId) => {
+      // Inserts only, as every factory does: the RLS suite runs them under contexts that see no row,
+      // so a lookup of the default location would fail before the policy refuses the insert.
+      const [location] = await db
+        .insert(locations)
+        .values({ organizationId: workspaceId, name: uniqueMarker('location'), type: 'other' })
+        .returning({ id: locations.id });
+      if (!location) throw new Error('location was not created.');
+      const session = await addSession(db, {
+        workspaceId,
+        locationId: location.id,
+        participant: false,
+      });
+      const client = await addClient(db, { workspaceId });
+      const [row] = await db
+        .insert(sessionParticipants)
+        .values({ organizationId: workspaceId, sessionId: session.id, clientId: client.id })
+        .returning({ id: sessionParticipants.id });
+      if (!row) throw new Error('session participant was not created.');
+      return row;
     },
   },
 };

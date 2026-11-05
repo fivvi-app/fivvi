@@ -169,6 +169,14 @@
       "button": "Uitnodiging bekijken",
       "validity": "Deze uitnodiging is geldig tot {date}.",
       "ignore": "Verwacht je deze e-mail niet? Dan kun je hem negeren."
+    },
+    "privateSession": {
+      "subject": "Nieuwe afspraak: {date} om {time}",
+      "preview": "Je privésessie is gepland op {date} om {time}.",
+      "intro": "Er is een privésessie voor je gepland bij {workspace}.",
+      "when": "Wanneer: {date}, {start} tot {end}",
+      "where": "Waar: {location}",
+      "trainer": "Trainer: {trainer}"
     }
   },
   "roles": {

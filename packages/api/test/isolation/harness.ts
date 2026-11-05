@@ -17,6 +17,7 @@ import {
 } from '@fivvi/database/testing';
 import {
   createMemoryTransport,
+  createPrivateSessionSender,
   createSendEmail,
   createTrainerInvitationSender,
 } from '@fivvi/email';
@@ -94,6 +95,13 @@ export async function createWorld(): Promise<World> {
         sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
       }),
       appBaseUrl: () => 'https://fivvi.example.test',
+    }),
+    // The session routes email EM-11 (F020): into memory, never out.
+    sendPrivateSession: createPrivateSessionSender({
+      sendEmail: createSendEmail({
+        transport: createMemoryTransport(),
+        sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+      }),
     }),
     // The test accounts are `<id>@example.com`: every harness account is on the allowlist, so the
     // route that creates a workspace succeeds for every signed-in caller, team roles or not (F012).

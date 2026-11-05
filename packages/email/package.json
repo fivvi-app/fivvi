@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./private-session-mail": "./src/private-session-mail.ts",
     "./trainer-invitation-mail": "./src/trainer-invitation-mail.ts"
   },
   "scripts": {
