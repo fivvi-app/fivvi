@@ -5,7 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.fivvi.api.apis.HelloApi
 import app.fivvi.api.models.Locale as ApiLocale
-import app.fivvi.pro.R
+import app.fivvi.core.R
 import java.io.IOException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -8,10 +8,14 @@ import app.fivvi.api.apis.MeApi
 import app.fivvi.api.apis.SignInApi
 import app.fivvi.api.apis.TrainersApi
 import app.fivvi.api.apis.WorkspacesApi
-import app.fivvi.pro.auth.ApiServices
-import app.fivvi.pro.auth.KeystoreSessionStore
-import app.fivvi.pro.auth.Session
-import app.fivvi.pro.observability.Observability
+import app.fivvi.core.LanguagePreference
+import app.fivvi.core.LanguageSettings
+import app.fivvi.core.SharedPreferencesLanguageStore
+import app.fivvi.core.SystemLanguageSettings
+import app.fivvi.core.auth.ApiServices
+import app.fivvi.core.auth.KeystoreSessionStore
+import app.fivvi.core.auth.Session
+import app.fivvi.core.observability.Observability
 import app.fivvi.pro.workspace.CurrentWorkspace
 import app.fivvi.pro.workspace.SharedPreferencesLastWorkspaceStore
 
@@ -65,7 +69,7 @@ class FivviApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        Observability.start(this)
+        Observability.start(this, observabilityConfigOfThisBuild())
         dependencies = DefaultAppDependencies(this)
     }
 }

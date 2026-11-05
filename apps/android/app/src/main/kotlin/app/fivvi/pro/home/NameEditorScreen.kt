@@ -33,10 +33,10 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import app.fivvi.core.R
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
 import app.fivvi.designtokens.headline
-import app.fivvi.pro.R
 
 /**
  * The full-screen dialog that changes the person's name (TM-04): *Annuleren* and *Opslaan* in the bar on top, so the
