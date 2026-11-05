@@ -33,6 +33,8 @@ window.FIVVI_I18N = (function () {
 [/^Zelf gedaan · (\d+) sets$/, "On your own · $1 sets"],
 [/^(Gewicht|Herhalingen|Tijd|Waarde) set (\d+)$/, function (m, k, n) { return { Gewicht: "Weight", Herhalingen: "Reps", Tijd: "Time", Waarde: "Value" }[k] + " set " + n; }],
 [/^Set (\d+) gedaan$/, "Set $1 done"],
+[/^Zelf gedaan · (\d+) (oefening|oefeningen)$/, function (m, n, w) { return "On your own · " + n + (w === "oefening" ? " exercise" : " exercises"); }],
+[/^(.+) van (.+) verdwijnt uit Activiteit\. Dit kun je niet ongedaan maken\.$/, function (m, x, d) { return P(x) + " of " + P(d) + " disappears from Activity. You can't undo this."; }],
 [/^Kies een aanbod van (.+); daarna kun je hier boeken\.$/, "Choose an offer from $1; then you can book here."],
 [/^Doe alsof je de link van (.+) opent:$/, "Pretend you open $1's link:"],
 [/^(\d+) gedeelde trainingen$/, "$1 shared workouts"],
@@ -452,6 +454,9 @@ window.FIVVI_I18N = (function () {
     "Door jou toegevoegd": "Added by you", "Set toevoegen": "Add set", "Geen oefeningen meer. Voeg er een toe.": "No exercises left. Add one.", "In training": "In workout",
     "Wat je bij deze oefening hebt ingevuld, gaat verloren.": "What you filled in for this exercise will be lost.",
     "Weghalen": "Remove", "Oefening weghalen": "Remove exercise", "Oefening toevoegen (zelf)": "Add an exercise (own workout)",
+    "Wijzigingen opslaan": "Save changes", "Niet opslaan": "Don't save", "Wijzigingen niet opslaan?": "Discard changes?", "De training blijft zoals hij was.": "The workout stays as it was.",
+    "Wijzigingen opgeslagen": "Changes saved", "Training verwijderen?": "Delete workout?", "Training verwijderd": "Workout deleted", "Zelf gedane training bewerken": "Edit a workout done on your own",
+    "Alleen jij ziet deze training. Je kunt hem altijd aanpassen of verwijderen.": "Only you see this workout. You can change or delete it any time.",
     "Training zelf doen": "Do a workout yourself",
 "Zelf gedane training": "Workout done on your own",
     /* more than one studio (owner, 5 Nov 2026) */

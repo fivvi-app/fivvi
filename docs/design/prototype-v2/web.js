@@ -916,12 +916,30 @@
      add a set, add an exercise from the library or remove one (with confirmation). Private: only the client sees it. */
   function selfStart(w) {
     var x = D.history.anna[w];
-    return { w: w, done: {}, v: {}, nx: x.sets.length, ex: x.sets.map(function (s, e) { var ps = parseSets(s[1]); return { id: "x" + e, name: s[0], prev: s[1], kind: ps[0].w != null ? "w" : ps[0].tm != null ? "tm" : "t", sets: ps }; }) };
+    return { w: w, name: x.name, by: x.by, from: x.d.replace(/^\S+ /, ""), day: "Vandaag", done: {}, v: {}, nx: x.sets.length, ex: x.sets.map(function (s, e) { var ps = parseSets(s[1]); return { id: "x" + e, name: s[0], prev: s[1], kind: ps[0].w != null ? "w" : ps[0].tm != null ? "tm" : "t", sets: ps }; }) };
+  }
+  /* editing a finished one (owner, 5 Nov 2026: the client can edit or delete it any time): the logger with what they did, all sets ticked */
+  function selfFromLog(i) {
+    var l = D.selfLog.anna[i], done = {};
+    var ex = l.sets.map(function (s, e) { var ps = parseSets(s[1]); ps.forEach(function (p, k) { done["x" + e + "-" + k] = true; }); return { id: "x" + e, name: s[0], prev: s[2] || null, kind: ps[0].w != null ? "w" : ps[0].tm != null ? "tm" : "t", sets: ps }; });
+    return { edit: i, name: l.name, by: l.by, from: l.from, day: l.d, done: done, v: {}, nx: ex.length, ex: ex };
+  }
+  /* a finished solo workout: what the client did, with Bewerken and Verwijderen */
+  /* the demo entries start from the sample again, also after the client deleted it */
+  var SOLO_SEED = JSON.stringify(D.selfLog.anna);
+  function resetSolo() { D.selfLog.anna = JSON.parse(SOLO_SEED); }
+  function soloView() {
+    var c = C(), l = D.selfLog.anna[c.solo];
+    if (!l) { c.solo = null; return ATAB.training(); }
+    return { title: l.name, body: K.lt(esc(l.d), esc(l.name), "Zelf gedaan · " + l.n + (l.n === 1 ? " oefening" : " oefeningen")) +
+      '<div class="pad">' + K.grp(l.sets.map(function (s) { return K.row({ title: esc(s[0]), sub: esc(s[1]), cls: "kv" }); })) + "</div>" +
+      '<div class="pad stack" style="margin-top:18px">' + cbtn("Bewerken", "c-soloedit", { k: "sec", i: "pencil" }) + K.btn("Verwijderen", { k: "ghost", blk: true, a: "c-solodel" }) + "</div>" +
+      K.foot("Alleen jij ziet deze training. Je kunt hem altijd aanpassen of verwijderen.") };
   }
   function exKind(n) { var l = D.library.filter(function (e) { return e.n === n; })[0], ty = l ? l.ty : "wr"; return ty === "wr" ? "w" : ty === "r" ? "r" : ty === "t" ? "tm" : "t"; }
   function blankSet(kind) { return kind === "w" ? { w: "", r: "" } : kind === "r" ? { r: "" } : kind === "tm" ? { tm: "" } : { t: "" }; }
   function selfView() {
-    var c = C(), x = D.history.anna[c.self.w], total = 0, done = 0, h = "";
+    var c = C(), x = { name: c.self.name, by: c.self.by }, ed = c.self.edit != null, total = 0, done = 0, h = "";
     c.self.ex.forEach(function (ex) {
       var kind = ex.kind;
       var head = kind === "w" ? '<div class="c-seth"><span>Set</span><span>kg</span><span></span><span>Herhalingen</span><span></span></div>' : "";
@@ -936,9 +954,9 @@
         '<button class="c-addset" data-a="c-addset" data-v="' + ex.id + '">' + ic("plus") + "Set toevoegen</button></div>";
     });
     c.self.total = total; c.self.n = done;
-    var top = K.lt("Vandaag", esc(x.name), "Van " + esc(x.by) + " · " + done + " van " + total + " sets") + '<div class="pad"><div class="c-prog" role="progressbar" aria-valuemin="0" aria-valuemax="' + Math.max(1, total) + '" aria-valuenow="' + done + '"><i style="width:' + (total ? done / total * 100 : 0) + '%"></i></div></div>';
+    var top = K.lt(esc(c.self.day), esc(x.name), "Van " + esc(x.by) + " · " + done + " van " + total + " sets") + '<div class="pad"><div class="c-prog" role="progressbar" aria-valuemin="0" aria-valuemax="' + Math.max(1, total) + '" aria-valuenow="' + done + '"><i style="width:' + (total ? done / total * 100 : 0) + '%"></i></div></div>';
     return { title: x.name, body: top + '<div class="pad stack c-exs">' + (h || '<div class="card empty">Geen oefeningen meer. Voeg er een toe.</div>') + K.btn("Oefening toevoegen", { k: "sec", blk: true, a: "c-exadd", i: "plus" }) + "</div>" +
-      '<div class="pad stack" style="margin-top:18px">' + cbtn("Training afronden", "c-selfask", { dis: !done }) + K.btn("Stoppen zonder opslaan", { k: "ghost", blk: true, a: "c-selfstop" }) + "</div>" +
+      '<div class="pad stack" style="margin-top:18px">' + cbtn(ed ? "Wijzigingen opslaan" : "Training afronden", ed ? "c-selfok" : "c-selfask", { dis: !done }) + K.btn(ed ? "Niet opslaan" : "Stoppen zonder opslaan", { k: "ghost", blk: true, a: "c-selfstop" }) + "</div>" +
       K.foot("Pas het gewicht of de herhalingen aan als het anders ging. Alleen jij ziet deze training.") };
   }
   /* the library to add from: the same exercises as in Fivvi Pro, searchable in Dutch and English */
@@ -964,6 +982,8 @@
     }
     if (cd === "selfdone") return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Training afronden"><h3>Training afronden?</h3><p>' + C().self.n + " van " + C().self.total + " sets gedaan.</p><p>Je vindt hem terug in Activiteit. Alleen jij ziet hem.</p><div class=\"btns\">" + K.btn("Afronden", { a: "c-selfok" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>";
     if (cd === "exrm") { var ex = exById(C().dlgId); return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Oefening weghalen"><h3>' + esc(ex.name) + " weghalen?</h3><p>Wat je bij deze oefening hebt ingevuld, gaat verloren." + "" + '</p><div class="btns">' + K.btn("Weghalen", { k: "dng", a: "c-exrmok" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>"; }
+    if (cd === "solodel") { var sl = D.selfLog.anna[C().solo]; return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Training verwijderen"><h3>Training verwijderen?</h3><p>' + esc(sl.name) + " van " + esc(sl.d) + ' verdwijnt uit Activiteit. Dit kun je niet ongedaan maken.</p><div class="btns">' + K.btn("Verwijderen", { k: "dng", a: "c-solodelok" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>"; }
+    if (cd === "selfstop" && C().self && C().self.edit != null) return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Niet opslaan"><h3>Wijzigingen niet opslaan?</h3><p>De training blijft zoals hij was.</p><div class="btns">' + K.btn("Niet opslaan", { k: "dng", a: "c-selfundo" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>";
     if (cd === "selfstop") return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Stoppen"><h3>Stoppen zonder opslaan?</h3><p>Wat je hebt ingevuld, gaat verloren.</p><div class="btns">' + K.btn("Stoppen", { k: "dng", a: "c-selfdrop" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>";
     if (C().dialog === "delete") return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Account verwijderen"><h3>Account verwijderen?</h3><p>Je account en je gegevens worden verwijderd en je wordt uitgelogd. Facturen bewaart de studio zo lang als de wet vraagt.</p><div class="btns">' + K.btn("Account verwijderen", { k: "dng", a: "a-delete" }) + K.btn("Annuleren", { k: "sec", a: "c-dclose" }) + "</div></div>";
     var it = cfind(C().detail).it;
@@ -985,7 +1005,7 @@
         var body = ASTEP[c.astep]();
         return '<div class="screen"><div class="content c-body" style="padding-top:calc(var(--top) + 20px)">' + body + "</div></div>" + (c.dialog ? cdialog() : "");
       }
-      var sub = c.detail || c.workout != null || c.page, p = c.selfOn && c.self ? selfView() : c.workout != null ? workoutView() : c.detail ? detailView() : c.page === "tegoed" ? tegoedView() : ATAB[c.atab || "home"]();
+      var sub = c.detail || c.workout != null || c.page || c.solo != null, p = c.selfOn && c.self ? selfView() : c.solo != null ? soloView() : c.workout != null ? workoutView() : c.detail ? detailView() : c.page === "tegoed" ? tegoedView() : ATAB[c.atab || "home"]();
       var h;
       if (andr()) {
         h = '<div class="screen' + (sub ? "" : " root") + '"><div class="ab ' + (sub ? "" : "root") + '">' + (sub ? '<button class="ib" data-a="c-back" aria-label="Terug">' + ic("back") + "</button>" : "") + '<div class="t">' + esc(p.title) + '</div></div><div class="content c-body">' + p.body + "</div></div>";
@@ -1080,7 +1100,7 @@
     var c = C(), out = [], hist = c.who === "anna" && F.HAS("priv") ? D.history.anna || [] : [];
     var pn = F.PREF.setup === "pilates" ? "Reformer privé" : null;
     hist.forEach(function (x, i) { out.push({ d: x.d, title: pn || x.name, sub: "met " + x.by, type: "priv", w: i }); });
-    if (c.who === "anna" && F.HAS("priv")) (D.selfLog.anna || []).forEach(function (x) { out.push({ d: x.d, title: x.name, sub: x.n + (x.n === 1 ? " oefening" : " oefeningen"), type: "self", self: true }); });
+    if (c.who === "anna" && F.HAS("priv")) (D.selfLog.anna || []).forEach(function (x, i) { out.push({ d: x.d, title: x.name, sub: x.n + (x.n === 1 ? " oefening" : " oefeningen"), type: "self", self: true, sl: i }); });
     if (c.who === "anna" && (F.HAS("group") || F.HAS("gym"))) for (var i = 1, n = 0; i <= 21 && n < 4; i += 2) {
       var k = F.key(F.add(F.NOW, -i)), it = timetable(k).filter(function (x) { return x.type !== "priv" && !x.cancelled; })[n % 2];
       if (it) { out.push({ d: F.DS[F.parse(k).getDay()] + " " + F.parse(k).getDate() + " " + F.MS[F.parse(k).getMonth()], title: it.title, sub: it.type === "gym" ? "Zelf trainen" : cwho(it), type: it.type, k: k }); n++; }
@@ -1096,7 +1116,7 @@
     b += '<div class="pad"><div class="tiles two"><div class="tile c-tile" style="--c:var(--accent)"><span class="ink">November</span><b class="num">' + (xs.length + 3) + "</b><em>keer geweest</em></div>" +
       '<div class="tile c-tile" style="--c:var(--ok)"><span class="ink">Op rij</span><b class="num">5</b><em>weken achter elkaar</em><span class="wkdots" aria-hidden="true">' + wk.map(function (x) { return '<i class="' + (x ? "on" : "") + '"></i>'; }).join("") + "</span></div></div></div>";
     b += K.sh("Recent", "", "small") + '<div class="pad">' + K.grp(xs.map(function (x) {
-      return K.row({ a: x.w != null ? "c-workout" : null, d: x.w != null ? { v: x.w } : null, lead: '<span class="dc-ic" style="--c:' + cvx(x.type) + '">' + ic(x.w != null || x.self ? "dumb" : x.type === "gym" ? "door" : "group") + "</span>",
+      return K.row({ a: x.w != null ? "c-workout" : x.self ? "c-solo" : null, d: x.w != null ? { v: x.w } : x.self ? { v: x.sl } : null, lead: '<span class="dc-ic" style="--c:' + cvx(x.type) + '">' + ic(x.w != null || x.self ? "dumb" : x.type === "gym" ? "door" : "group") + "</span>",
         title: esc(x.title), sub: esc(x.d) + " · " + esc(x.sub), tr: x.w != null ? '<span class="pill tint" style="--c:var(--accent)">Details</span>' : x.self ? '<span class="pill tint" style="--c:var(--ok)">Zelf gedaan</span>' : "", cls: "dc c-row" });
     }), "--inset:60px") + "</div>" + K.foot("Wat je trainer met je deelt, open je hier met alle details.");
     return { title: "Activiteit", body: b };
@@ -1123,7 +1143,7 @@
   }
   A["c-qbook"] = function (d) { var c = C(); c.dialog = "book"; c.dlgId = d.id; R(); };
   A["c-qwl"] = function (d) { var c = C(); c.dialog = "wl"; c.dlgId = d.id; R(); };
-  A["c-atab"] = function (d) { var c = C(); c.atab = d.v; c.detail = null; c.workout = null; c.selfOn = false; c.web = null; c.page = null; R(); };
+  A["c-atab"] = function (d) { var c = C(); c.atab = d.v; c.detail = null; c.workout = null; c.selfOn = false; c.solo = null; if (c.self && c.self.edit != null) c.self = null; c.web = null; c.page = null; R(); };
   A["c-offers"] = function () { C().web = "offers"; R(); };
   A["c-webclose"] = function () { C().web = null; R(); };
   A["c-buy"] = function (d) { C().web = null; F.toast("Betaalpagina geopend: " + d.v + " met iDEAL"); };
@@ -1162,15 +1182,21 @@
   A["c-selfstop"] = function () { C().dialog = "selfstop"; R(); };
   A["c-selfdrop"] = function () { var c = C(); c.self = null; c.selfOn = false; c.dialog = null; R(); };
   A["c-selfok"] = function () {
-    var c = C(), x = D.history.anna[c.self.w], v = c.self.v, sets = [];
+    var c = C(), v = c.self.v, sets = [];
     /* what the client did, per exercise: the ticked sets with the values they typed */
     c.self.ex.forEach(function (ex) {
       var done = ex.sets.map(function (p, i) { var id = ex.id + "-" + i; if (!c.self.done[id]) return null; function g(k) { return v[id + "-" + k] != null ? v[id + "-" + k] : p[k]; } return ex.kind === "w" ? [g("w"), g("r")] : [g(ex.kind === "r" ? "r" : ex.kind === "tm" ? "tm" : "t")]; }).filter(Boolean);
       if (done.length) sets.push([ex.name, ex.kind === "w" ? done[0][0] + " kg × " + done.map(function (z) { return z[1]; }).join(", ") : done.map(function (z) { return z[0]; }).join(", ") + (ex.kind === "r" ? " herh." : ""), ex.prev]);
     });
-    D.selfLog.anna.unshift({ name: x.name, d: F.DS[F.NOW.getDay()] + " " + F.NOW.getDate() + " " + F.MS[F.NOW.getMonth()], n: sets.length, from: x.d.replace(/^\S+ /, ""), by: x.by, sets: sets });
+    if (c.self.edit != null) { var l = D.selfLog.anna[c.self.edit]; l.sets = sets; l.n = sets.length; c.solo = c.self.edit; c.self = null; c.selfOn = false; c.dialog = null; F.toast("Wijzigingen opgeslagen"); return; }
+    D.selfLog.anna.unshift({ name: c.self.name, d: F.DS[F.NOW.getDay()] + " " + F.NOW.getDate() + " " + F.MS[F.NOW.getMonth()], n: sets.length, from: c.self.from, by: c.self.by, sets: sets });
     c.self = null; c.selfOn = false; c.workout = null; c.dialog = null; c.atab = "training"; F.toast("Opgeslagen in Activiteit"); };
-  A["c-back"] = function () { var c = C(); if (c.selfOn) { c.selfOn = false; R(); return; } if (c.detail || c.workout != null) { c.detail = null; c.workout = null; } else c.page = null; R(); };
+  A["c-selfundo"] = function () { var c = C(); c.self = null; c.selfOn = false; c.dialog = null; R(); };
+  A["c-solo"] = function (d) { C().solo = +d.v; R(); };
+  A["c-soloedit"] = function () { var c = C(); c.self = selfFromLog(c.solo); c.selfOn = true; R(); };
+  A["c-solodel"] = function () { C().dialog = "solodel"; R(); };
+  A["c-solodelok"] = function () { var c = C(); D.selfLog.anna.splice(c.solo, 1); c.solo = null; c.dialog = null; F.toast("Training verwijderd"); };
+  A["c-back"] = function () { var c = C(); if (c.selfOn) { c.selfOn = false; if (c.self && c.self.edit != null) c.self = null; R(); return; } if (c.solo != null) { c.solo = null; R(); return; } if (c.detail || c.workout != null) { c.detail = null; c.workout = null; } else c.page = null; R(); };
   A["c-page"] = function (d) { var c = C(); c.page = d.v; if (d.ws) c.cws = d.ws; R(); };
   A["c-wsheet"] = function (d) { C().wsheet = d.v || "list"; R(); };
   A["c-wsclose"] = function () { C().wsheet = null; R(); };
@@ -1270,7 +1296,8 @@
     ["Studio toevoegen", "#469", goApp("app", { who: "anna", atab: "boeken", wsheet: "add" })],
     ["Training zelf doen", "F045", goApp("app", { who: "anna", atab: "training", workout: 0 }, function (c) { c.self = selfStart(0); c.self.done = { "x0-0": true, "x0-1": true }; c.selfOn = true; })],
     ["Oefening toevoegen (zelf)", "#602", goApp("app", { who: "anna", atab: "training", workout: 0 }, function (c) { c.self = selfStart(0); c.selfOn = true; c.exsheet = true; c.exq = ""; })],
-    ["Zelf gedane training", "F045", goApp("app", { who: "anna", atab: "training" })]
+    ["Zelf gedane training", "F045", goApp("app", { who: "anna", atab: "training", solo: 0 }, resetSolo)],
+    ["Zelf gedane training bewerken", "#602", goApp("app", { who: "anna", atab: "training", solo: 0 }, function (c) { resetSolo(); c.self = selfFromLog(0); c.selfOn = true; })]
   ]]);
   /* Anna also takes yoga at Yoga Loft, with one class booked there tomorrow evening */
   function twoStudios(c) { c.studios = ["sf", "yl"]; var t = ylItems(F.key(F.add(F.NOW, 1)))[2]; if (t) { c.booked[t.id] = true; ylbal().left -= 1; ylbal().planned += 1; } }

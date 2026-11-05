@@ -286,6 +286,7 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
   - The finished workout appears in *Activiteit* as *Zelf gedaan* and ticks the day in *Deze week*.
   - No booking, no credit, no attendance: it isn't a session.
   - **The client can add and remove exercises** (owner, 5 November 2026): *Oefening toevoegen* opens the exercise library (search in Dutch or English); a trash button per exercise asks *Plank weghalen?* first. *Set toevoegen* copies the last set.
+  - **The client can edit or delete a finished one at any time** (owner, 5 November 2026): it opens from *Activiteit*, with *Bewerken* (the logger with what they did) and *Verwijderen*, which asks for confirmation first.
   - **App only** (owner, 5 November 2026): not on the client web.
   - **Private to the client** (owner, 5 November 2026): what the client does on their own is theirs only. Trainers never see it, not in Fivvi Pro and not on the trainer web. The client app says so: *Alleen jij ziet deze training*.
 - **The header** (owner, 5 November 2026: "this header can be better"):
