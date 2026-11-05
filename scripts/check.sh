@@ -16,7 +16,8 @@
 #
 # At the end it prints a table of the tests each suite passed, failed and skipped and writes it as JSON to
 # .work/check-summary.json (git-ignored, in this checkout). Quote that summary in reports; don't retype counts
-# from the output (scripts/test-summary.sh). The decision is scripts/affected.mjs, which CI's "Detect changes" job runs too.
+# from the output (scripts/test-summary.sh). A suite the table lists as failed fails the run, whatever exit code its check
+# gave (#570). The decision is scripts/affected.mjs, which CI's "Detect changes" job runs too.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$ROOT/scripts/_shellcheck.sh"
@@ -294,5 +295,14 @@ done < <(all_suites)
 echo
 "$ROOT/scripts/test-summary.sh" --json "$SUMMARY_JSON" "${test_kinds[@]}" "$LOG_DIR/output.log" \
   || { echo "✗ test summary"; FAILED=1; }
+
+# A suite the summary lists as failed fails the run, whatever exit code its check gave (#570): turbo exited 0 in a factory
+# run while the table showed the root suite failed, and pr.sh pushed on that. Only "fail" counts: not-run and skipped
+# suites are a consequence of a failure or of --fast, and the check that caused them has failed already.
+if [ -f "$SUMMARY_JSON" ]; then
+  failed_suites="$(jq -r '[.suites[] | select(.status == "fail") | .name] | join(", ")' "$SUMMARY_JSON")" \
+    || { echo "✗ test summary: could not read ${SUMMARY_JSON#"$ROOT"/}"; FAILED=1; failed_suites=""; }
+  [ -z "$failed_suites" ] || { echo "✗ test summary: $failed_suites failed"; FAILED=1; }
+fi
 
 exit "$FAILED"

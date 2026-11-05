@@ -494,6 +494,31 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     assert.match(result.stdout, /ui\s+fail\s+34\s+1\s+0\n/);
   });
 
+  it('E002 #570 AC1: a suite the summary lists as failed fails check.sh, whatever exit code turbo gave', () => {
+    // turbo exited 0 while the root suite's log counts one failed test (seen in a factory run on 5 November 2026).
+    const exitsZero = { lines: node(259, 1, 0), exit: 0 };
+    const result = check({ unit: exitsZero, integration, e2e });
+    assert.deepEqual(
+      result.summary.suites.filter((s) => s.status === 'fail'),
+      [suite('root', 'unit', 'fail', 259, 1, 0)],
+    );
+    assert.match(result.stdout, /root\s+fail\s+259\s+1\s+0\n/);
+    assert.equal(result.status, 1, result.stdout);
+    assert.match(result.stdout, /✗ test summary: root failed/);
+  });
+
+  it('E002 #570 AC1: a failed integration or e2e suite fails check.sh the same way', () => {
+    const e2eFails = { lines: playwright('  14 passed (3.2s)', '  1 failed'), exit: 0 };
+    const result = check({ unit: unit(), integration, e2e: e2eFails });
+    assert.equal(result.status, 1, result.stdout);
+    assert.match(result.stdout, /✗ test summary: web e2e failed/);
+  });
+
+  it('E002 #570 AC1: suites that were skipped or not run do not fail check.sh by themselves', () => {
+    const result = check({ unit: unit(), integration, e2e }, ['--all', '--fast']);
+    assert.equal(result.status, 0, result.stdout);
+  });
+
   it('E002 #112 AC1: shows the output of a failing task, and not of the tasks that passed', () => {
     const result = check({ unit: failingUnit, integration, e2e });
     assert.match(result.stdout, /✗ lint, types, unit tests/);

@@ -7,9 +7,11 @@ import assert from 'node:assert/strict';
 import { execFileSync, spawnSync } from 'node:child_process';
 import {
   chmodSync,
+  copyFileSync,
   existsSync,
   mkdtempSync,
   readFileSync,
+  realpathSync,
   rmSync,
   mkdirSync,
   statSync,
@@ -21,8 +23,38 @@ import { join } from 'node:path';
 import { after, afterEach, beforeEach, describe, it } from 'node:test';
 import { fakeGh } from './fake-gh.mjs';
 
-const ROOT = join(import.meta.dirname, '../..');
+const REAL_ROOT = join(import.meta.dirname, '../..');
+
+// Git's identity and configuration: the test's own, and no GIT_DIR, GIT_WORK_TREE or GIT_INDEX_FILE of the environment
+// (a git hook, an editor or a shell sets those), which would point git at some other repository (#570).
+const gitEnv = (env = process.env) => ({
+  ...Object.fromEntries(Object.entries(env).filter(([name]) => !name.startsWith('GIT_'))),
+  GIT_CONFIG_GLOBAL: '/dev/null',
+  GIT_CONFIG_NOSYSTEM: '1',
+  GIT_AUTHOR_NAME: 'Test',
+  GIT_AUTHOR_EMAIL: 'test@users.noreply.github.com',
+  GIT_COMMITTER_NAME: 'Test',
+  GIT_COMMITTER_EMAIL: 'test@users.noreply.github.com',
+});
+
+// The repository the script runs in: a copy of the script and what it sources, in a repository of its own. "The repo is
+// unchanged" and "inside the repository" are then about this one, which nothing but the test touches. The checkout
+// under test is a worktree that other processes stage files in while the suite runs, and that made `git status` there
+// differ before and after a run that did nothing to it (#570).
+const ROOT = realpathSync(mkdtempSync(join(tmpdir(), 'release-secrets-repo-')));
 const SCRIPT = join(ROOT, 'scripts/release-secrets.sh');
+{
+  mkdirSync(join(ROOT, 'scripts'));
+  for (const name of ['_lib.sh', 'release-secrets.sh']) {
+    copyFileSync(join(REAL_ROOT, 'scripts', name), join(ROOT, 'scripts', name));
+  }
+  writeFileSync(join(ROOT, 'package.json'), '{}\n');
+  const git = (...args) => execFileSync('git', ['-C', ROOT, ...args], { env: gitEnv() });
+  git('init', '--quiet', '--initial-branch=main');
+  git('remote', 'add', 'origin', 'https://github.com/o/r.git');
+  git('add', '.');
+  git('commit', '--quiet', '-m', 'chore(E017): the script under test');
+}
 
 const SENTINEL = {
   certificate: 'synthetic-certificate-bytes\u0001\u0002binary',
@@ -52,7 +84,10 @@ beforeEach(() => {
   work = mkdtempSync(join(tmpdir(), 'release-secrets-'));
 });
 afterEach(() => rmSync(work, { recursive: true, force: true }));
-after(() => gh.cleanup());
+after(() => {
+  gh.cleanup();
+  rmSync(ROOT, { recursive: true, force: true });
+});
 
 const file = (name, content) => {
   const path = join(work, name);
@@ -115,7 +150,7 @@ const fakeBrewJdk = ({ works = true } = {}) => {
 };
 
 const run = (args, stdin = '', { rules = [], extraPath = '' } = {}) => {
-  const env = gh.env([...rules, { match: '^secret set ', out: '' }]);
+  const env = gitEnv(gh.env([...rules, { match: '^secret set ', out: '' }]));
   if (extraPath) env.PATH = `${extraPath}:${env.PATH}`;
   const result = spawnSync(SCRIPT, args, { encoding: 'utf8', env, input: stdin });
   return { ...result, calls: gh.calls() };
@@ -127,7 +162,10 @@ const sets = (calls) =>
       .map((call) => [call.args[2], call.stdin]),
   );
 const repoStatus = () =>
-  execFileSync('git', ['status', '--porcelain'], { cwd: ROOT, encoding: 'utf8' });
+  execFileSync('git', ['-C', ROOT, 'status', '--porcelain', '--untracked-files=all'], {
+    encoding: 'utf8',
+    env: gitEnv(),
+  });
 const everything = (result) =>
   result.stdout + result.stderr + JSON.stringify(result.calls.map((call) => call.args));
 
@@ -350,7 +388,7 @@ describe('E017 AC7: release-secrets.sh android, play and sentry', () => {
     noValueLeaks(result, [SENTINEL.sentryValue]);
     assert.match(result.stderr, /organisation auth token \(org:ci: releases and debug files\)/);
     assert.match(
-      readFileSync(join(ROOT, 'docs/engineering/RELEASE.md'), 'utf8'),
+      readFileSync(join(REAL_ROOT, 'docs/engineering/RELEASE.md'), 'utf8'),
       /organisation auth token \(`org:ci`: releases and debug files\)/,
     );
     assert.equal(repoStatus(), before);
@@ -523,5 +561,48 @@ describe('E017 AC7: release-secrets.sh list', () => {
       result.stdout,
       /⬜ ANDROID_UPLOAD_KEYSTORE +scripts\/release-secrets\.sh android\b/,
     );
+  });
+});
+
+describe('E002 #570: the repository checks see only the test’s own repository', () => {
+  // The git state of another worktree or process, reached through the environment a git hook, an editor or a shell
+  // leaves behind: GIT_DIR, GIT_WORK_TREE and GIT_INDEX_FILE point git at it whatever directory it runs in.
+  const decoy = () => {
+    const dir = realpathSync(mkdtempSync(join(tmpdir(), 'release-secrets-decoy-')));
+    execFileSync('git', ['init', '--quiet', dir], { env: gitEnv() });
+    writeFileSync(join(dir, 'moved-by-another-worktree.kt'), 'class Moved\n');
+    execFileSync('git', ['-C', dir, 'add', '.'], { env: gitEnv() });
+    return dir;
+  };
+  const withDecoyEnvironment = (action) => {
+    const dir = decoy();
+    const names = ['GIT_DIR', 'GIT_WORK_TREE', 'GIT_INDEX_FILE'];
+    const saved = names.map((name) => process.env[name]);
+    process.env.GIT_DIR = join(dir, '.git');
+    process.env.GIT_WORK_TREE = dir;
+    process.env.GIT_INDEX_FILE = join(dir, '.git', 'index');
+    try {
+      return action();
+    } finally {
+      names.forEach((name, i) => {
+        if (saved[i] === undefined) delete process.env[name];
+        else process.env[name] = saved[i];
+      });
+      rmSync(dir, { recursive: true, force: true });
+    }
+  };
+
+  it('repoStatus reads the repository of the test, not the one the environment points at', () => {
+    const own = repoStatus();
+    assert.equal(
+      withDecoyEnvironment(() => repoStatus()),
+      own,
+    );
+  });
+
+  it('the script runs in the test’s repository, whatever git state the environment carries', () => {
+    const result = withDecoyEnvironment(() => run(['sentry'], `${SENTINEL.sentryValue}\n`));
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(sets(result.calls), { SENTRY_AUTH_TOKEN: SENTINEL.sentryValue });
   });
 });
