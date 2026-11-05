@@ -505,7 +505,8 @@ jobs:
     needs: changes
     if: needs.changes.outputs.android == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 20
+    # Measured 1 to 2 minutes in the last 12 green runs; 12 keeps the Android chain under the merge queue's 60 (#519).
+    timeout-minutes: 12
     permissions:
       contents: read
       actions: read # scripts/step-timings.sh reads this run's step durations
@@ -529,7 +530,7 @@ jobs:
         run: scripts/android.sh setup --build-only
 
       - name: ktlint, checks and debug build
-        timeout-minutes: 20
+        timeout-minutes: 10
         run: scripts/android.sh build
 
       - name: Debug app for Maestro
@@ -667,7 +668,9 @@ jobs:
     needs: [changes, android-build]
     if: needs.changes.outputs.android == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 30
+    # The setup before the Maestro step (3 minutes measured, the emulator boot is capped at 10), the step (30) and the
+    # steps after it; still bounds a hung run (#519).
+    timeout-minutes: 40
     permissions:
       contents: read
       actions: read # scripts/step-timings.sh reads this run's step durations
@@ -756,8 +759,11 @@ jobs:
 
       # Postgres (migrated and seeded), the fake Brevo server and the web server, then every flow in nl-NL and en, with the
       # app of "Android build" (nothing is built here).
+      # Both locales run one after the other: run 41938461253 (10 flows) took 19 min 47 s on a slow runner, 14 to 18
+      # minutes on main. The 30 minutes are 1.5 x the slowest run (#519); the "Step durations" table shows how close a
+      # run came.
       - name: Maestro flows (sign-in, anonymous and hello; nl-NL and en)
-        timeout-minutes: 20
+        timeout-minutes: 30
         run: scripts/maestro.sh android --apk
 
       # The cache of the emulator is saved after this step: the emulator must not be running, or it would be copied in
