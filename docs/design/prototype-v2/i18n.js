@@ -7,6 +7,13 @@ window.FIVVI_I18N = (function () {
 
   /* Sentence-level rules first: these change word order or need a captured value. */
   var RULES = [
+[/^(\d+) gebruikt · (\d+) gepland · van (\d+)$/, "$1 used · $2 planned · of $3"],
+[/^van (\d+) deze periode$/, "of $1 this period"],
+[/^Je traint samen met (.+)\. Je trainer houdt ieders training apart bij\.$/, "You train together with $1. Your trainer keeps a separate record of each workout."],
+[/^Met (\S+) · samen met (\S+)$/, "With $1 · together with $2"],
+[/^Vorige keer · (\S+)$/, "Last time · $1"],
+[/^Niveau: (.+)$/, function (m, l) { return "Level: " + ({ "Alle niveaus": "All levels", "Beginner": "Beginner", "Gemiddeld": "Intermediate", "Gevorderd": "Advanced" })[l]; }],
+[/^Hoe noem je de mensen die lesgeven\? Klanten en je team zien dit woord overal in (.+): in het rooster, de app, e-mails en op de poster\. Pilatesstudio's kiezen vaak instructeur, yogastudio's docent\.$/, "What do you call the people who teach? Clients and your team see this word everywhere in $1: in the timetable, the app, emails and on the poster. Pilates studios often choose instructor, yoga studios teacher."],
 [/^Je hebt geen (groepscredits|privécredits|Open Gym-credits)\.$/, function (m, k) { return "You have no " + ({ "groepscredits": "group credits", "privécredits": "private credits", "Open Gym-credits": "Open Gym credits" })[k] + "."; }],
 [/^Vraag (.+) om een aanbod; dan kun je hier boeken\.$/, "Ask $1 for an offer; then you can book here."],
 [/^(\d+) afspraken de komende week$/, "$1 appointments in the coming week"],
@@ -317,6 +324,12 @@ window.FIVVI_I18N = (function () {
     /* data */
     "borst": "chest", "schouders": "shoulders", "rug": "back", "benen": "legs", "billen": "glutes", "armen": "arms", "conditie": "conditioning", "(buiten)": "(outdoors)",
     "Upper A · 29 okt": "Upper A · 29 Oct",
+    /* duo sessions, class levels, the word for trainers (5 Nov 2026) */
+    "Duosessie": "Duo session", "Nieuwe duosessie": "New duo session", "Duosessie gepland": "Duo session scheduled", "Tweede klant": "Second client", "Tweede klant (duo)": "Second client (duo)", "Geen": "None",
+    "Met een tweede klant wordt het een duosessie: één trainer, twee klanten, ieder met een eigen training en tegoed.": "With a second client it becomes a duo session: one trainer, two clients, each with their own workout and balance.",
+    "je logt per klant": "you log per client", "Samen met": "Together with", "Klanten": "Clients",
+    "Niveau": "Level", "Alle niveaus": "All levels", "Beginner": "Beginner", "Gemiddeld": "Intermediate", "Gevorderd": "Advanced",
+    "Woordkeuze": "Wording", "Bijvoorbeeld Reformer": "For example Reformer",
     /* dates */
     "maandag": "Monday", "dinsdag": "Tuesday", "woensdag": "Wednesday", "donderdag": "Thursday", "vrijdag": "Friday", "zaterdag": "Saturday", "zondag": "Sunday",
     "januari": "January", "februari": "February", "maart": "March", "april": "April", "mei": "May", "juni": "June", "juli": "July", "augustus": "August", "september": "September", "oktober": "October", "november": "November", "december": "December",

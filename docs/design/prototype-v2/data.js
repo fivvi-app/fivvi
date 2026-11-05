@@ -68,7 +68,8 @@ window.FIVVI_DATA = (function () {
     { id: "s3", ws: "sf", type: "priv", s: "10:30", e: "11:30", client: "anna", loc: "TrainMore Zuid", att: null, workout: "Upper A" },
     { id: "s4", ws: "sf", type: "gym", s: "12:00", e: "14:00", title: "Open Gym", loc: "Studio Fit, Kerkstraat 12", cap: 10, people: ["daan", "eva", "bram"] },
     { id: "s5", ws: "jg", type: "group", s: "15:00", e: "16:00", title: "Strength", loc: "John's Gym, Havenweg 3", cap: 8, people: ["chris", "iris", "jesse", "chris", "iris", "jesse", "chris"].map(function (x, i) { return i < 3 ? x : "guest" + i; }), sub: "Mike" },
-    { id: "s6", ws: "sf", type: "priv", s: "16:30", e: "17:30", client: "lisa", loc: "Vondelpark (buiten)", att: null },
+    /* a duo session: two clients, one trainer, each logged on their own (owner decision, 5 Nov 2026) */
+    { id: "s6", ws: "sf", type: "priv", s: "16:30", e: "17:30", client: "lisa", duo: "eva", loc: "Vondelpark (buiten)", att: null },
     /* only in the independent-trainer setup: a session at the client's home */
     { id: "s8", ws: "sf", type: "priv", s: "12:30", e: "13:30", client: "daan", loc: "Bij Daan thuis", att: null, soloOnly: true },
     { id: "s7", ws: "sf", type: "group", s: "18:00", e: "19:00", title: "HIIT", loc: "Studio Fit, Kerkstraat 12", cap: 12, people: [], cancelled: true }
@@ -94,6 +95,13 @@ window.FIVVI_DATA = (function () {
     Bootcamp: { nl: "Buiten trainen in het park als het droog is, binnen als het regent. Neem water mee.", en: "Outdoor training in the park when it's dry, indoors when it rains. Bring water." },
     Mobility: { nl: "Rustige les voor soepele heupen, schouders en rug. Fijn naast krachttraining.", en: "A calm class for supple hips, shoulders and back. A good match for strength training." }
   };
+
+  /* Class level, a field on the class (owner decision, 5 Nov 2026): no longer part of the name. Empty = no level shown. */
+  var LEVELS = ["Alle niveaus", "Beginner", "Gemiddeld", "Gevorderd"];
+  var levels = { Strength: "Alle niveaus", HIIT: "Gevorderd", Kracht: "Beginner", Spinning: "Alle niveaus", Bootcamp: "Gemiddeld", Mobility: "Beginner",
+    "Reformer Classic": "Beginner", "Reformer Power": "Gevorderd", "Reformer Flow": "Gemiddeld", "Mat Pilates": "Alle niveaus",
+    "Vinyasa Flow": "Gemiddeld", "Yin Yoga": "Alle niveaus", Hatha: "Beginner", "Power Yoga": "Gevorderd", "Workshop Ademwerk": "Alle niveaus",
+    "Small group kracht": "Gemiddeld", "Small group conditie": "Alle niveaus" };
 
   var templates = { anna: ["Upper A", "Lower A"], other: ["Full body", "Upper B", "Lower B", "Core & conditie"] };
 
@@ -144,31 +152,31 @@ window.FIVVI_DATA = (function () {
   function Pv(id, s, e, client, loc, extra) { var it = { id: id, ws: "sf", type: "priv", s: s, e: e, client: client, loc: loc, att: null }; for (var k in extra || {}) it[k] = extra[k]; return it; }
   var setups = {
     pilates: {
-      name: "Studio Kern", loc: "Studio Kern, Lindengracht 40", team: true, multiWs: false, types: ["group", "priv"],
+      name: "Studio Kern", term: "instructeur", loc: "Studio Kern, Lindengracht 40", team: true, multiWs: false, types: ["group", "priv"],
       trainers: ["Sarah Jansen", "Lotte Visser", "Emma de Wit"],
       today: [
-        G("p1", "08:00", "08:50", "Reformer Basis", 6, 6, { loc: "Studio Kern, Lindengracht 40", waitlist: 2, attMap: { 0: "yes", 1: "yes", 2: "yes", 3: "yes", 4: "no", 5: "yes" } }),
+        G("p1", "08:00", "08:50", "Reformer Classic", 6, 6, { loc: "Studio Kern, Lindengracht 40", waitlist: 2, attMap: { 0: "yes", 1: "yes", 2: "yes", 3: "yes", 4: "no", 5: "yes" } }),
         Pv("p2", "09:30", "10:25", "anna", "Studio Kern, Lindengracht 40", { workout: "Reformer privé" }),
         G("p3", "12:15", "13:00", "Mat Pilates", 12, 7, { loc: "Studio Kern, Lindengracht 40" }),
-        G("p4", "17:30", "18:20", "Reformer Gevorderd", 6, 5, { loc: "Studio Kern, Lindengracht 40" }),
+        G("p4", "17:30", "18:20", "Reformer Power", 6, 5, { loc: "Studio Kern, Lindengracht 40" }),
         Pv("p5", "18:45", "19:40", "lisa", "Studio Kern, Lindengracht 40")
       ],
       extra: [
-        G("pe1", "09:00", "09:50", "Reformer Basis", 6, 6, { loc: "Studio Kern, Lindengracht 40", trainer: "Lotte Visser", waitlist: 1 }),
+        G("pe1", "09:00", "09:50", "Reformer Classic", 6, 6, { loc: "Studio Kern, Lindengracht 40", trainer: "Lotte Visser", waitlist: 1 }),
         Pv("pe2", "10:00", "10:55", "noor", "Studio Kern, Lindengracht 40", { trainer: "Emma de Wit" }),
         G("pe3", "12:00", "12:50", "Reformer Flow", 6, 4, { loc: "Studio Kern, Lindengracht 40", trainer: "Lotte Visser" }),
         G("pe4", "19:00", "19:50", "Mat Pilates", 12, 10, { loc: "Studio Kern, Lindengracht 40", trainer: "Emma de Wit" })
       ],
-      pattern: [[["group", "08:00", "08:50", "Reformer Basis", 6, 6], ["priv", "10:00", "10:55", "sophie", "Studio Kern, Lindengracht 40"], ["group", "18:00", "18:50", "Mat Pilates", 12, 9]], [["group", "09:00", "09:50", "Reformer Flow", 6, 5]], [["group", "08:00", "08:50", "Reformer Basis", 6, 6], ["group", "19:00", "19:50", "Reformer Gevorderd", 6, 4]], null, [["group", "12:15", "13:00", "Mat Pilates", 12, 8]], [["group", "09:30", "10:20", "Reformer Basis", 6, 6], ["group", "10:30", "11:20", "Reformer Flow", 6, 6]], []],
+      pattern: [[["group", "08:00", "08:50", "Reformer Classic", 6, 6], ["priv", "10:00", "10:55", "sophie", "Studio Kern, Lindengracht 40"], ["group", "18:00", "18:50", "Mat Pilates", 12, 9]], [["group", "09:00", "09:50", "Reformer Flow", 6, 5]], [["group", "08:00", "08:50", "Reformer Classic", 6, 6], ["group", "19:00", "19:50", "Reformer Power", 6, 4]], null, [["group", "12:15", "13:00", "Mat Pilates", 12, 8]], [["group", "09:30", "10:20", "Reformer Classic", 6, 6], ["group", "10:30", "11:20", "Reformer Flow", 6, 6]], []],
       descriptions: {
-        "Reformer Basis": { nl: "Pilates op de reformer voor beginners. We leren de basis: ademhaling, core en controle. Maximaal 6 personen, er zijn 6 reformers.", en: "Reformer Pilates for beginners. We learn the basics: breathing, core and control. Up to 6 people, there are 6 reformers." },
-        "Reformer Gevorderd": { nl: "Voor wie de basis beheerst. Meer tempo, meer veren, meer uitdaging.", en: "For those who know the basics. More tempo, more springs, more challenge." },
+        "Reformer Classic": { nl: "Pilates op de reformer voor beginners. We leren de basis: ademhaling, core en controle. Maximaal 6 personen, er zijn 6 reformers.", en: "Reformer Pilates for beginners. We learn the basics: breathing, core and control. Up to 6 people, there are 6 reformers." },
+        "Reformer Power": { nl: "Voor wie de basis beheerst. Meer tempo, meer veren, meer uitdaging.", en: "For those who know the basics. More tempo, more springs, more challenge." },
         "Reformer Flow": { nl: "Vloeiende reeksen op de reformer, rustig opgebouwd.", en: "Flowing sequences on the reformer, built up calmly." },
         "Mat Pilates": { nl: "Pilates op de mat met kleine materialen. Geen reformer nodig.", en: "Pilates on the mat with small equipment. No reformer needed." }
       }
     },
     yoga: {
-      name: "Yoga Loft", loc: "Yoga Loft, Prinsengracht 210", team: true, multiWs: false, types: ["group"],
+      name: "Yoga Loft", term: "docent", loc: "Yoga Loft, Prinsengracht 210", team: true, multiWs: false, types: ["group"],
       trainers: ["Sarah Jansen", "Mila Bos", "Jasper Kok"],
       today: [
         G("y1", "07:00", "08:15", "Vinyasa Flow", 18, 12, { loc: "Yoga Loft, Prinsengracht 210" }),
@@ -276,6 +284,9 @@ window.FIVVI_DATA = (function () {
     return { b: b, balances: balances, abos: abos, flags: flags, short: short, open: b.agreements.filter(function (a) { return a.status === "open"; }) };
   }
 
-  return { lifts: lifts, weeks: weeks, DIFF: DIFF, spark: spark, bsum: bsum, CREDIT: CREDIT, KIND: KIND, billing: billing, setups: setups, me: me, workspaces: workspaces, locations: locations, trainers: trainers, clients: clients, notes: notes, history: history,
+  /* What a workspace calls its trainers (owner decision, 5 Nov 2026): one word, used everywhere in that workspace */
+  var TERMS = { trainer: { nl: ["trainer", "trainers"], en: ["trainer", "trainers"] }, instructeur: { nl: ["instructeur", "instructeurs"], en: ["instructor", "instructors"] },
+    docent: { nl: ["docent", "docenten"], en: ["teacher", "teachers"] }, coach: { nl: ["coach", "coaches"], en: ["coach", "coaches"] } };
+  return { TERMS: TERMS, LEVELS: LEVELS, levels: levels, lifts: lifts, weeks: weeks, DIFF: DIFF, spark: spark, bsum: bsum, CREDIT: CREDIT, KIND: KIND, billing: billing, setups: setups, me: me, workspaces: workspaces, locations: locations, trainers: trainers, clients: clients, notes: notes, history: history,
     progress: progress, tpl: tpl, descriptions: descriptions, today: today, pattern: pattern, templates: templates, library: library, upperA: upperA };
 })();

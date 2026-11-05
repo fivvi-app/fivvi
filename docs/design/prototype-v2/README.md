@@ -6,7 +6,8 @@ A throwaway, clickable prototype of the new look (November 2026): Calendar-style
 |---|---|---|
 | 1 | Fivvi Pro on iOS and Android: Vandaag, Agenda, Klanten, Profiel, sessions, classes, the workout logger | Scherm → iOS / Android |
 | 2 | Trainer web: dashboard, agenda (week, day per trainer, list), clients and join requests, client profile, classes with waitlist, Open Gym, workouts, trainers, join link and QR, settings | Scherm → Trainer web |
-| 3 | Client web (ADR-026): join through the link, wait for approval, timetable, booking, waitlist, my schedule, profile and balance, a shared workout | Scherm → Klantweb |
+| 3 | Client web (ADR-026), in the same design language as Fivvi Pro: join through the link, wait for approval, timetable, booking, waitlist, my schedule, profile and balance, a shared workout | Scherm → Klantweb |
+| 4 | Owner decisions of 5 November 2026: duo sessions (#586), class levels (#587), the workspace's own word for trainers (#588) | Index → Duosessie; Opzet → Pilatesstudio; Trainer web → Instellingen |
 
 The ⚙ panel also switches language (NL/EN), accent, light/dark, glass, role, and the business setup (gym, solo PT, PT with small groups, pilates, yoga). [SCENARIOS.md](SCENARIOS.md) checks those setups against the spec.
 

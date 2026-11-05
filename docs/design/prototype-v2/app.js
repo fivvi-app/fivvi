@@ -73,6 +73,8 @@
     EXTRA_WS = c ? JSON.parse(JSON.stringify(c.extra)) : ORIG_EXTRA;
     D.trainers.sf = c ? c.trainers.slice() : ORIG.trainers.slice();
     if (c) for (var k in c.descriptions) D.descriptions[k] = c.descriptions[k];
+    if (c && c.levels) for (var l in c.levels) D.levels[l] = c.levels[l];
+    D.workspaces.sf.term = c && c.term ? c.term : "trainer";
     DAYCACHE = {}; DAYCACHE[TODAY] = D.today; S.logs = {}; S.scope = "me";
   }
   function findItem(id) {
@@ -82,7 +84,11 @@
   }
   var CV = { priv: "var(--priv)", group: "var(--group)", gym: "var(--gym)" };
   var TYPE = { priv: "Privésessie", group: "Groepsles", gym: "Open Gym" };
-  function title(it) { return it.type === "priv" ? CLIENT[it.client].name : it.title; }
+  function title(it) { return it.type === "priv" ? (it.duo ? CLIENT[it.client].name.split(" ")[0] + " & " + CLIENT[it.duo].name.split(" ")[0] : CLIENT[it.client].name) : it.title; }
+  /* a class's level: its own field, else the level the class (by name) usually has */
+  function level(it) { return it.type !== "group" ? "" : it.level != null ? it.level : D.levels[it.title] || ""; }
+  function lvlTag(it) { var l = level(it), n = D.LEVELS.indexOf(l); return l ? '<span class="lvl l' + n + '" role="img" aria-label="Niveau: ' + l + '"><i></i><i></i><i></i><span>' + l + "</span></span>" : ""; }
+  function pair(it) { return it.duo ? [it.client, it.duo] : [it.client]; }
   function person(id) { return CLIENT[id] ? CLIENT[id].name : ["Ruben Vos", "Kim de Graaf", "Jasper Kok", "Mila Bos", "Sem Dekker", "Lotte Prins", "Finn Smits", "Zoë Meijer"][(+String(id).replace(/\D/g, "") || 0) % 8]; }
   function isPast(it, k) { return k < TODAY || (k === TODAY && mins(it.e) <= mins(NOWT)); }
   function isLive(it, k) { return k === TODAY && mins(it.s) <= mins(NOWT) && mins(it.e) > mins(NOWT); }
@@ -149,7 +155,7 @@
   function fresh() {
     S = { signedIn: true, signStep: "email", email: "", code: "", tab: "today", stacks: { today: [], agenda: [], clients: [], profile: [] },
       sheet: null, alert: null, menu: null, toast: null, anim: null, scope: "me", aview: "week", aday: TODAY, q: "", exq: "",
-      log: null, logs: {}, form: {}, err: {}, tabMin: false, showAll: {}, showDesc: {}, preview: false, scrollBottom: false };
+      log: null, logs: {}, form: {}, err: {}, tabMin: false, showAll: {}, showDesc: {}, duoSel: {}, preview: false, scrollBottom: false };
   }
   fresh();
   function top() { var st = S.stacks[S.tab]; return st[st.length - 1] || { n: S.tab }; }
@@ -206,7 +212,8 @@
     var full = it.cap && booked >= it.cap;
     /* iOS shows the booked count as a pill, so the line stays short; Android has no pill and keeps it in the line. */
     var tl = MIXED() ? TYPE[it.type] : "";
-    var sub = it.type === "priv" ? (tl ? tl + " · " : "") + esc(it.loc) : PREF.plat === "ios" || it.cancelled ? (tl || esc(it.loc.split(",")[0])) : (tl ? tl + " · " : "") + (full ? "Vol" : booked + "/" + it.cap + " geboekt");
+    var sub = it.type === "priv" ? (it.duo ? "Duosessie · " : tl ? tl + " · " : "") + esc(it.loc) : PREF.plat === "ios" || it.cancelled ? (tl || esc(it.loc.split(",")[0])) : (tl ? tl + " · " : "") + (full ? "Vol" : booked + "/" + it.cap + " geboekt");
+    if (level(it)) sub = lvlTag(it) + '<span class="lvl-sep"> · </span>' + sub;
     var smalls = [];
     if (opt.multi !== false && !opt.hideWs && !SOLO()) smalls.push(wsLine(it.ws));
     if (opt.who) smalls.push(it.trainer ? esc(it.trainer) : "Jij"); else if (it.trainer) smalls.push(esc(it.trainer));
@@ -465,37 +472,39 @@
   };
 
   SCREENS.session = function (r) {
-    var f = findItem(r.id), it = f.it, k = f.day, c = CLIENT[it.client], d = parse(k);
+    var f = findItem(r.id), it = f.it, k = f.day, d = parse(k), cid = it.duo ? (S.duoSel[it.id] || it.client) : it.client, c = CLIENT[cid];
     var body = "";
     if (it.cancelled) body += '<div class="pad" style="margin-bottom:12px"><div class="banner" style="--c:var(--danger)">' + ic("warn") + "Deze sessie is geannuleerd.</div></div>";
-    body += lt("", esc(c.name), longDate(d) + " · " + it.s + "–" + it.e);
+    body += lt(it.duo ? "Duosessie" : "", esc(title(it)), longDate(d) + " · " + it.s + "–" + it.e);
+    /* a duo: two clients, one trainer; credits, history, notes and attendance are per client */
+    if (it.duo) body += '<div class="pad" style="margin-bottom:12px">' + seg(pair(it).map(function (x) { return [x, CLIENT[x].name.split(" ")[0]]; }), cid, "duo-sel", { id: it.id }) + "</div>";
     /* before the session: is there a private credit for it, and is a payment open (owner only) */
-    var sb = D.bsum(it.client), pb = sb.balances.filter(function (x) { return x.credit === "prive"; })[0], first = c.name.split(" ")[0], bn = [];
+    var sb = D.bsum(cid), pb = sb.balances.filter(function (x) { return x.credit === "prive"; })[0], first = c.name.split(" ")[0], bn = [];
     if (OWNER() && sb.open.length) bn.push(["var(--danger)", "Openstaande betaling " + sb.open[0].open + " · " + sb.open[0].name]);
-    if (!it.cancelled && it.ws === "sf" && D.billing[it.client]) bn.push(!pb ? ["var(--gym)", first + " heeft geen privécredits"] : pb.left <= 0 ? ["var(--gym)", "Laatste privécredit van " + first + ". Daarna zijn ze op."] : ["var(--priv)", "Nog " + pb.left + " " + (pb.left === 1 ? "privécredit" : "privécredits") + " over na de geplande sessies"]);
+    if (!it.cancelled && it.ws === "sf" && D.billing[cid]) bn.push(!pb ? ["var(--gym)", first + " heeft geen privécredits"] : pb.left <= 0 ? ["var(--gym)", "Laatste privécredit van " + first + ". Daarna zijn ze op."] : ["var(--priv)", "Nog " + pb.left + " " + (pb.left === 1 ? "privécredit" : "privécredits") + " over na de geplande sessies"]);
     if (bn.length) body += '<div class="pad stack" style="margin-bottom:12px">' + bn.map(function (x) { return '<div class="banner" style="--c:' + x[0] + '">' + ic(x[0] === "var(--priv)" ? "info" : "warn") + esc(x[1]) + "</div>"; }).join("") + "</div>";
     body += '<div class="pad stack">' + grp([
       row({ lead: '<span style="color:var(--priv);display:grid">' + ic("pin") + "</span>", title: esc(it.loc), tr: '<button class="btn ghost sm" data-a="toast" data-m="Opent de route in Kaarten">' + ic("route") + "Route</button>", cls: "kv" }),
       row({ lead: '<span style="color:var(--label2);display:grid">' + ic("people") + "</span>", title: D.workspaces[it.ws].name, sub: it.trainer ? esc(it.trainer) : "Jij", cls: "kv" })
     ]);
     var ws = it.wstate, tpl = it.workout;
-    var tcard = '<div class="card"><div style="display:flex;gap:12px;align-items:center;margin-bottom:14px"><span class="av" style="--c:var(--priv);border-radius:14px">' + ic("dumb") + '</span><div><b style="display:block">' + (tpl ? esc(tpl) : "Nog geen schema") + '</b><span style="font-size:15px;color:var(--label2)">' + (ws === "done" ? "Afgerond · 6 oefeningen · 52 min" : ws === "running" ? "Bezig · gestart om " + it.s : tpl ? "5 oefeningen" : "Kies een schema of begin leeg") + "</span></div></div>" +
-      (ws === "done" ? '<div class="btns">' + btn("Bekijken", { k: "sec", a: "open-workout", d: { id: it.client, i: 0 } }) + (it.shared ? btn("Gedeeld", { k: "sec", dis: true, i: "check" }) : btn("Delen met " + esc(c.name.split(" ")[0]), { a: "share-item", d: { id: it.id }, i: "share" })) + "</div>" : btn(ws === "running" ? "Doorgaan met training" : "Training starten", { blk: true, a: "start-workout", d: { id: it.id }, i: "play", dis: it.cancelled })) + "</div>";
+    var tcard = '<div class="card"><div style="display:flex;gap:12px;align-items:center;margin-bottom:14px"><span class="av" style="--c:var(--priv);border-radius:14px">' + ic("dumb") + '</span><div><b style="display:block">' + (tpl ? esc(tpl) : "Nog geen schema") + '</b><span style="font-size:15px;color:var(--label2)">' + (ws === "done" ? "Afgerond · 6 oefeningen · 52 min" : ws === "running" ? "Bezig · gestart om " + it.s : tpl ? "5 oefeningen" : "Kies een schema of begin leeg") + (it.duo ? "<span> · je logt per klant</span>" : "") + "</span></div></div>" +
+      (ws === "done" ? '<div class="btns">' + btn("Bekijken", { k: "sec", a: "open-workout", d: { id: cid, i: 0 } }) + (it.shared ? btn("Gedeeld", { k: "sec", dis: true, i: "check" }) : btn("Delen met " + esc(c.name.split(" ")[0]), { a: "share-item", d: { id: it.id }, i: "share" })) + "</div>" : btn(ws === "running" ? "Doorgaan met training" : "Training starten", { blk: true, a: "start-workout", d: { id: it.id }, i: "play", dis: it.cancelled })) + "</div>";
     body += sh("Training", "", "small") + tcard + "</div>";
-    body += lastTime(it.client) + progressList(it.client);
-    var notes = D.notes[it.client] || [];
+    body += lastTime(cid) + progressList(cid);
+    var notes = D.notes[cid] || [];
     body += sh("Notities", '<button data-a="note" data-id="' + c.id + '">+ Notitie</button>', "small");
     body += '<div class="pad">' + (notes.length ? grp(notes.slice(0, 3).map(function (n) { return row({ title: '<span translate="no">' + esc(n.t) + "</span>", small: n.d + " · " + esc(n.by), cls: "wrap" }); })) : '<div class="grp"><div class="row"><div class="m"><span>Nog geen notities.</span></div></div></div>') + "</div>" + foot("Alleen voor trainers. Notities zie je nooit in meldingen of widgets.");
     var can = started(it, k) && !it.cancelled;
-    body += sh("Aanwezigheid", "", "small") + '<div class="pad">' + seg([["", "Geboekt", !can], ["yes", "Aanwezig", !can], ["no", "Niet verschenen", !can]], it.att || "", "satt", { id: it.id }) + "</div>" + (can ? "" : foot(it.cancelled ? "Geannuleerd." : "Vanaf " + it.s + "."));
-    return { title: c.name, body: body, trailing: [{ i: "more", a: "session-menu", label: "Meer", d: { id: it.id } }] };
+    body += sh("Aanwezigheid", "", "small") + '<div class="pad">' + seg([["", "Geboekt", !can], ["yes", "Aanwezig", !can], ["no", "Niet verschenen", !can]], (it.duo ? (it.attD || {})[cid] : it.att) || "", "satt", { id: it.id, c: cid }) + "</div>" + (can ? "" : foot(it.cancelled ? "Geannuleerd." : "Vanaf " + it.s + "."));
+    return { title: title(it), body: body, trailing: [{ i: "more", a: "session-menu", label: "Meer", d: { id: it.id } }] };
   };
 
   SCREENS.klass = function (r) {
     var f = findItem(r.id), it = f.it, k = f.day, d = parse(k), booked = it.people.length, free = it.cap - booked;
     var body = "";
     if (it.cancelled) body += '<div class="pad" style="margin-bottom:12px"><div class="banner" style="--c:var(--danger)">' + ic("warn") + "Deze les is geannuleerd. Geboekte klanten hebben een e-mail gekregen.</div></div>";
-    body += lt(TYPE[it.type], esc(it.title), longDate(d) + " · " + it.s + "–" + it.e);
+    body += lt(TYPE[it.type] + (level(it) ? " · " + level(it) : ""), esc(it.title), longDate(d) + " · " + it.s + "–" + it.e);
     body += '<div class="pad stack">';
     var ds = it.desc || D.descriptions[it.title];
     if (ds && ds.nl) {
@@ -589,12 +598,13 @@
   };
   SHEETS.newSession = function () {
     var cs = D.clients.filter(function (c) { return c.ws === "sf"; });
-    var body = '<div class="fgrp">' + fld("Klant", sel("client", cs.map(function (c) { return [c.id, c.name]; }))) + "</div>";
+    var body = '<div class="fgrp">' + fld("Klant", sel("client", cs.map(function (c) { return [c.id, c.name]; }))) + fld("Tweede klant", sel("duo", [["", "Geen"]].concat(cs.filter(function (c) { return c.id !== S.form.client; }).map(function (c) { return [c.id, c.name]; })))) + "</div>";
+    body += foot("Met een tweede klant wordt het een duosessie: één trainer, twee klanten, ieder met een eigen training en tegoed.");
     body += '<div class="fgrp" style="margin-top:16px">' + fld("Datum", inp("date", "date")) + fld("Begin", inp("start", "time")) + "</div>";
     body += '<div style="margin:16px 0 6px;font-size:13px;color:var(--label2);padding-left:4px">Duur</div>' + seg([["30", "30 min"], ["45", "45 min"], ["60", "1 uur"], ["90", "1,5 uur"]], String(S.form.dur), "fset", { f: "dur" });
     body += '<div class="fgrp" style="margin-top:16px">' + fld("Locatie", sel("loc", D.locations)) + "</div>";
     body += foot("Fivvi stelt de locatie van de vorige sessie met deze klant voor.");
-    return { title: "Nieuwe privésessie", body: body, save: "save-session" };
+    return { title: S.form.duo ? "Nieuwe duosessie" : "Nieuwe privésessie", body: body, save: "save-session" };
   };
   SHEETS.newClient = function () {
     var body = '<div class="fgrp">' + fld("Naam", inp("name", "text", "Voor- en achternaam", " autocomplete=\"off\"")) + fld("E-mail", inp("email", "email", "naam@voorbeeld.nl")) + "</div>";
@@ -603,7 +613,7 @@
     return { title: "Nieuwe klant", body: body, save: "save-client" };
   };
   SHEETS.newClass = function () {
-    var body = '<div class="fgrp">' + fld("Naam", inp("name", "text", "Bijvoorbeeld Strength")) + "</div>";
+    var body = '<div class="fgrp">' + fld("Naam", inp("name", "text", "Bijvoorbeeld Strength")) + fld("Niveau", sel("level", [["", "Geen"]].concat(D.LEVELS.map(function (l) { return [l, l]; })))) + "</div>";
     body += '<div class="fgrp" style="margin-top:16px">' + fld("Datum", inp("date", "date")) + fld("Begin", inp("start", "time")) + fld("Eind", inp("end", "time")) + fld("Capaciteit", inp("cap", "number", "", ' inputmode="numeric" min="1"')) + "</div>";
     body += '<div class="fgrp" style="margin-top:16px">' + fld("Trainer", sel("trainer", D.trainers.sf.concat(["Trainer nodig"]))) + fld("Herhalen", sel("rep", ["Niet herhalen", "Elke week op " + DAYS[parse(S.form.date || TODAY).getDay()]])) + "</div>";
     body += '<div class="fgrp" style="margin-top:16px">' + fld("Beschrijving", '<textarea data-f="desc" rows="3" placeholder="Wat doe je in deze les? Dit zien klanten op je boekingspagina.">' + esc(S.form.desc || "") + "</textarea>", "stack") +
@@ -664,6 +674,7 @@
     if (S.logs[itemId]) { S.log = S.logs[itemId]; S.log.step = "log"; }
     else {
       S.log = { item: itemId, client: it.client, step: step, tpl: tpl || null, ex: tpl ? tplEx(tpl) : [], start: Date.now(), changed: false, note: "", saveTpl: false, tplName: "", msg: "" };
+      if (it.duo) { S.log.pair = pair(it); S.log.per = {}; S.log.per[it.client] = S.log.ex; S.log.per[it.duo] = tpl ? tplEx(tpl) : []; }
     }
     S.anim = "up"; render();
   }
@@ -689,7 +700,8 @@
         return '<div class="row ro-row"><span class="ro-no">' + (i + 1) + '</span><div class="m"><b>' + esc(e.name) + "</b><span>" + e.sets.length + (e.sets.length === 1 ? " set" : " sets") + '</span></div><button class="grip" data-drag="ex" data-i="' + i + '" aria-label="' + esc(e.name) + ' verplaatsen">' + ic("grip") + "</button></div>";
       }).join("") + "</div></div>";
     } else if (L.step === "log" || L.step === "add") {
-      nav = barHTML(first + " · " + (L.tpl || "Training"), { left: { t: "Sluiten", a: "log-close" }, right: { t: "Afronden", a: "log-finish", prom: true }, timer: true });
+      nav = barHTML(L.per ? (L.tpl || "Training") : first + " · " + (L.tpl || "Training"), { left: { t: "Sluiten", a: "log-close" }, right: { t: "Afronden", a: "log-finish", prom: true }, timer: true });
+      if (L.per) body += '<div class="pad" style="margin-bottom:12px">' + seg(L.pair.map(function (x) { return [x, CLIENT[x].name.split(" ")[0]]; }), L.client, "log-who") + "</div>";
       var doneSets = 0; L.ex.forEach(function (e) { e.sets.forEach(function (s) { if (s.done) doneSets++; }); });
       body += '<div class="pad" style="display:flex;justify-content:space-between;font-size:15px;color:var(--label2);margin-bottom:12px"><span>' + L.ex.length + " oefeningen · " + doneSets + (doneSets === 1 ? " set" : " sets") + ' klaar</span><span style="color:var(--ok);display:flex;gap:4px;align-items:center">' + ic("check") + "Opgeslagen</span></div>";
       if (!L.ex.length) body += '<div class="pad"><div class="card" style="text-align:center;padding:28px 20px"><b style="display:block;font-size:19px;margin-bottom:6px">Nog geen oefeningen</b><span style="color:var(--label2);font-size:15px">Voeg de eerste oefening toe. Wat ' + esc(first) + " eerder deed, staat bovenaan.</span></div></div>";
@@ -866,7 +878,17 @@
     tr(dev);
     dev.querySelectorAll(".card.desc p.clamp").forEach(function (p) { if (p.scrollHeight <= p.clientHeight + 1) p.nextElementSibling.hidden = true; });
   }
-  function tr(root) { if (window.FIVVI_I18N) window.FIVVI_I18N.apply(root, PREF.lang); }
+  function tr(root) { if (window.FIVVI_I18N) window.FIVVI_I18N.apply(root, PREF.lang); if (dev && (root === dev || dev.contains(root))) term(root); }
+  /* The workspace's own word for its trainers, after translation. The prototype applies one word to the whole screen;
+     the product picks it per workspace. */
+  function term(root) {
+    var k = D.workspaces.sf.term, t = D.TERMS[k]; if (!t || k === "trainer") return;
+    var w = t[PREF.lang === "en" ? "en" : "nl"], re = /\b([Tt])rainer(s)?\b/g;
+    function fix(x) { return x.replace(re, function (m, T, pl) { var r = pl ? w[1] : w[0]; return T === "T" ? r[0].toUpperCase() + r.slice(1) : r; }); }
+    var walk = document.createTreeWalker(root, NodeFilter.SHOW_TEXT), n;
+    while ((n = walk.nextNode())) { if (n.parentElement.closest("[translate=no],script,style,textarea")) continue; if (re.test(n.nodeValue)) { re.lastIndex = 0; n.nodeValue = fix(n.nodeValue); } re.lastIndex = 0; }
+    root.querySelectorAll("[placeholder],[aria-label]").forEach(function (el) { ["placeholder", "aria-label"].forEach(function (a) { var v = el.getAttribute(a); if (v && /rainer/.test(v)) el.setAttribute(a, fix(v)); }); });
+  }
   function toastHTML() { var err = S.toastKind === "err"; return '<div class="toast glass anim-fade' + (err ? " err" : "") + '" role="' + (err ? "alert" : "status") + '">' + ic(err ? "warn" : "check") + esc(S.toast) + "</div>"; }
   /* a wrong entry: the field gets a red edge and the message under it, and the toast says it too */
   function bad(f, msg) { S.err = {}; S.err[f] = msg; toast(msg, "err"); return true; }
@@ -888,7 +910,7 @@
     "open-att": function (d) { var it = findItem(d.id).it; it.attDraft = null; push({ n: "attendance", id: d.id }); },
     push: function (d) { push({ n: d.n }); },
     att: function (d) { var it = findItem(d.id).it; it.att = d.v; toast(d.v === "yes" ? CLIENT[it.client].name.split(" ")[0] + " was aanwezig" : "Genoteerd als niet verschenen"); },
-    satt: function (d) { var it = findItem(d.id).it; it.att = d.v || null; render(); },
+    satt: function (d) { var it = findItem(d.id).it; if (it.duo) { it.attD = it.attD || {}; it.attD[d.c] = d.v || null; it.att = it.attD[it.client] && it.attD[it.duo] ? it.attD[it.client] : null; } else it.att = d.v || null; render(); },
     "att-one": function (d) { var it = findItem(d.id).it; it.attDraft[d.i] = it.attDraft[d.i] === d.v ? undefined : d.v; render(); },
     "att-all": function (d) { var it = findItem(d.id).it; it.people.forEach(function (p, i) { it.attDraft[i] = "yes"; }); render(); },
     "att-save": function (d) { var it = findItem(d.id).it; it.attMap = it.attDraft; S.stacks[S.tab].pop(); S.anim = "pop"; toast("Aanwezigheid opgeslagen"); },
@@ -910,7 +932,7 @@
     "close-sheet": function () { S.sheet = null; S.err = {}; render(); },
     fset: function (d) { S.form[d.f] = d.v; render(); },
     "save-session": function () {
-      var f = S.form, it = { id: "n" + Date.now(), ws: "sf", type: "priv", s: f.start, e: hm(mins(f.start) + +f.dur), client: f.client, loc: f.loc, att: null };
+      var f = S.form, it = { id: "n" + Date.now(), ws: "sf", type: "priv", s: f.start, e: hm(mins(f.start) + +f.dur), client: f.client, duo: f.duo && f.duo !== f.client ? f.duo : undefined, loc: f.loc, att: null };
       dayItems(f.date); DAYCACHE[f.date].push(it); S.sheet = null; S.stacks[S.tab].push({ n: "session", id: it.id }); S.anim = "push"; toast("Sessie gepland");
     },
     "save-client": function () {
@@ -921,7 +943,7 @@
     },
     "save-class": function () {
       var f = S.form; if (!f.name.trim()) { bad("name", "Vul een naam in"); return; }
-      var it = { id: "n" + Date.now(), ws: "sf", type: "group", s: f.start, e: f.end, title: f.name.trim(), cap: +f.cap || 10, people: [], loc: "Studio Fit, Kerkstraat 12", desc: { nl: (f.desc || "").trim(), en: (f.descEn || "").trim() } };
+      var it = { id: "n" + Date.now(), ws: "sf", type: "group", s: f.start, e: f.end, title: f.name.trim(), level: f.level || "", cap: +f.cap || 10, people: [], loc: "Studio Fit, Kerkstraat 12", desc: { nl: (f.desc || "").trim(), en: (f.descEn || "").trim() } };
       dayItems(f.date); DAYCACHE[f.date].push(it); S.sheet = null; S.stacks[S.tab].push({ n: "klass", id: it.id }); S.anim = "push"; toast(f.rep === "Niet herhalen" ? "Groepsles gepland" : "Wekelijkse groepsles gepland");
     },
     "save-gym": function () {
@@ -959,7 +981,9 @@
       var c = CLIENT[d.id], it = { id: "n" + Date.now(), ws: c.ws, type: "priv", s: NOWT, e: hm(mins(NOWT) + 60), client: d.id, loc: D.workspaces[c.ws].location, att: null };
       DAYCACHE[TODAY].push(it); openLogger(it.id, "start"); toast("Sessie aangemaakt voor nu, " + NOWT);
     },
-    "log-pick": function (d) { var L = S.log, it = findItem(L.item).it; L.tpl = d.t || null; L.ex = d.t ? tplEx(d.t) : []; L.step = d.t ? "log" : "add"; L.start = Date.now(); S.logs[L.item] = L; it.wstate = "running"; S.exq = ""; render(); },
+    "duo-sel": function (d) { S.duoSel[d.id] = d.v; render(); },
+    "log-who": function (d) { var L = S.log; L.client = d.v; L.ex = L.per[d.v]; render(); },
+    "log-pick": function (d) { var L = S.log, it = findItem(L.item).it; L.tpl = d.t || null; L.ex = d.t ? tplEx(d.t) : []; if (L.per) { L.per[L.pair[0]] = L.ex; L.per[L.pair[1]] = d.t ? tplEx(d.t) : []; L.client = L.pair[0]; } L.step = d.t ? "log" : "add"; L.start = Date.now(); S.logs[L.item] = L; it.wstate = "running"; S.exq = ""; render(); },
     "log-close-cancel": function () { S.log = null; render(); },
     "log-close": function () { S.log = null; render(); },
     "log-finish": function () { S.log.step = "finish"; render(); dev.querySelector(".full .content").scrollTop = 0; },
@@ -1132,6 +1156,8 @@
       ["Agenda · Week", "TD-04", function () { fresh(); S.tab = "agenda"; S.aview = "week"; }],
       ["Agenda · Maand", "TD-04", function () { fresh(); S.tab = "agenda"; S.aview = "month"; }],
       ["Privésessie", "TD-02", function () { fresh(); S.stacks.today = [{ n: "session", id: "s3" }]; }, true],
+      ["Duosessie", "nieuw", function () { fresh(); S.stacks.today = [{ n: "session", id: "s6" }]; }, true],
+      ["Duosessie loggen", "nieuw", function () { fresh(); S.stacks.today = [{ n: "session", id: "s6" }]; openLogger("s6", "log", "Full body"); S.logs.s6 = S.log; findItem("s6").it.wstate = "running"; S.anim = null; }, true],
       ["Groepsles (invallen)", "TD-03", function () { fresh(); PREF.setup = "team"; S.stacks.today = [{ n: "klass", id: "s5" }]; }, true],
       ["Aanwezigheid les", "CO-05", function () { fresh(); PREF.setup = "team"; var it = findItem("s2").it; it.attDraft = null; S.stacks.today = [{ n: "klass", id: "s2" }, { n: "attendance", id: "s2" }]; }, true],
       ["Open Gym", "TD-03", function () { fresh(); PREF.setup = "team"; S.stacks.today = [{ n: "klass", id: "s4" }]; }, true],
@@ -1204,7 +1230,7 @@
   function addClient(c) { D.clients.push(c); CLIENT[c.id] = c; }
   function addItem(k, it) { dayItems(k); DAYCACHE[k].push(it); }
   window.FV = { get S() { return S; }, PREF: PREF, D: D, A: A, CLIENT: CLIENT, dayItems: dayItems, findItem: findItem, extra: function () { return EXTRA_WS; },
-    CV: CV, TYPE: TYPE, title: title, esc: esc, ic: ic, mins: mins, hm: hm, key: key, parse: parse, add: add, monday: monday, longDate: longDate, shortDate: shortDate,
+    CV: CV, TYPE: TYPE, title: title, level: level, lvlTag: lvlTag, esc: esc, ic: ic, mins: mins, hm: hm, key: key, parse: parse, add: add, monday: monday, longDate: longDate, shortDate: shortDate,
     isoWeek: isoWeek, DAYS: DAYS, DS: DS, MONTHS: MONTHS, MS: MS, TODAY: TODAY, NOW: NOW, NOWT: NOWT, isPast: isPast, initials: initials, toast: toast, render: function () { render(); },
     OWNER: OWNER, SOLO: SOLO, HAS: HAS, MIXED: MIXED, WSS: WSS, avatar: avatar, addClient: addClient, addItem: addItem, INDEX: INDEX, kit: { row: row, grp: grp, sh: sh, lt: lt, btn: btn, seg: seg, foot: foot, avatar: avatar, rings: rings }, fresh: function () { fresh(); }, save: function () { save(); applyPrefs(); } };
 
