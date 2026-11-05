@@ -232,10 +232,12 @@ export function registerInvitations(app: OpenAPIHono, dependencies: ApiDependenc
         accountId: account.id,
         // Decided before the workspace is opened: a caller who may not answer never gets it.
         admit: (facts) => {
+          // An account was passed, so the scope tells its facts; if it is gone, nobody answers.
+          if (!facts.account) return 'closed';
           const decision = decideInvitationAnswer({
             invitation: facts.invitation,
             now: clock.now(),
-            account: facts.account ?? { email: '', emailVerified: false },
+            account: facts.account,
           });
           if (decision.outcome === 'allowed') return 'enter';
           return decision.reason === 'not_valid' ? 'closed' : 'refused';

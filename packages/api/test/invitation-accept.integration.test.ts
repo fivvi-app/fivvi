@@ -25,7 +25,7 @@ import {
   createProductEventCaptureTransport,
   createProductEvents,
 } from '@fivvi/observability';
-import { fixedClock } from '@fivvi/testing/clock';
+import { fixedClock, freezeSystemTime } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { and, count, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -96,6 +96,9 @@ describe('F011 answering a trainer invitation', () => {
 
   /** The API with the real sign-in: Better Auth with sign-up closed, as `apps/web` wires it. */
   function realSignIn() {
+    // Better Auth tidies up expired rows by the system clock, which it can't take as a clock, so
+    // that is frozen at the same instant as the injected one (TESTING.md §5.4).
+    freezeSystemTime(NOW);
     const auth = createAuth({
       db: app.db,
       secret: SECRET,

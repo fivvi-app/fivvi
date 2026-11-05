@@ -226,7 +226,10 @@ describe('F011 reaching an invitation by its token or its address', () => {
           { tokenHash: 'token-hash-read-only', admit: enter },
           (scope, invitationId) => closeInvitation(scope, invitationId, 'declined'),
         ),
-      ).rejects.toThrow();
+      ).rejects.toMatchObject({
+        // Drizzle wraps the driver's error; the cause is Postgres's read_only_sql_transaction.
+        cause: { code: '25006', message: expect.stringMatching(/read-only transaction/) },
+      });
     });
 
     it('lets the app role see no invitation without the token, whatever other settings hold', async () => {
