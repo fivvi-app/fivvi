@@ -870,7 +870,7 @@ export interface components {
             capacity: number;
             /** @description The places taken (not cancelled), for a group class or Open Gym: *{booked}/{capacity} geboekt*. Left out for a private session. */
             booked?: number;
-            /** @description The class name in the viewer’s language, for a group class. Left out until classes exist (F021 adds it). */
+            /** @description The class name in the viewer’s language, for a group class: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session and Open Gym. */
             className?: string;
             location?: components["schemas"]["Location"];
             /** @description The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail. */

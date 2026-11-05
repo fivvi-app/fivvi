@@ -1,6 +1,7 @@
 import { and, asc, eq, gte, inArray, lt, min } from 'drizzle-orm';
 import {
   clients,
+  groupClasses,
   locations,
   organizations,
   sessionParticipants,
@@ -70,6 +71,13 @@ export interface PersonalSessionRow {
   readonly location: LocationView;
   /** The client of a private session; `null` for any other kind (a class names no client). */
   readonly clientName: string | null;
+  /**
+   * The names of the class of a group session (F021), `null` for any other kind: the Dutch name
+   * and the English one when it has one. The viewer's language picks between them
+   * (`pickContentLanguage`, `packages/i18n`); that is not decided here.
+   */
+  readonly classNameNl: string | null;
+  readonly classNameEn: string | null;
 }
 
 /**
@@ -99,8 +107,8 @@ function myTrainerProfile(scope: WorkspaceScope) {
 /**
  * The sessions the scope's account is the current trainer of in the scope's workspace, starting
  * from `window.from` up to, not including, `window.to`, in time order. Cancelled ones stay (the
- * calendars show them struck through). Two queries: the sessions with their location, and their
- * participants.
+ * calendars show them struck through). Two queries: the sessions with their location and class, and
+ * their participants.
  */
 export async function listMySessions(
   scope: WorkspaceScope,
@@ -116,6 +124,8 @@ export async function listMySessions(
       endsAt: sessions.endsAt,
       capacity: sessions.capacity,
       location: locationColumns,
+      classNameNl: groupClasses.nameNl,
+      classNameEn: groupClasses.nameEn,
     })
     .from(sessions)
     .innerJoin(
@@ -123,6 +133,13 @@ export async function listMySessions(
       and(
         eq(locations.organizationId, sessions.organizationId),
         eq(locations.id, sessions.locationId),
+      ),
+    )
+    .leftJoin(
+      groupClasses,
+      and(
+        eq(groupClasses.organizationId, sessions.organizationId),
+        eq(groupClasses.id, sessions.groupClassId),
       ),
     )
     .where(

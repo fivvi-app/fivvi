@@ -19,6 +19,7 @@ import {
   PERSONAL_TIME_ZONE,
   type PersonalSessionTimes,
 } from '@fivvi/domain';
+import { parseAcceptLanguage, pickContentLanguage, resolveInterfaceLanguage } from '@fivvi/i18n';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
 import type { Context } from 'hono';
 import { type AccessEnv, defineRoute } from '../access.ts';
@@ -31,7 +32,7 @@ import { LocationSchema } from './locations.ts';
 
 // The personal read model of a trainer (F013, spec #457): every session the signed-in account is the
 // current trainer of, across all its workspaces, for *Mijn dag* / *Vandaag* and *Mijn agenda* /
-// *Agenda*. No new tables: the data is `sessions` (and the class dates that join it later).
+// *Agenda*. No new tables: the data is `sessions` and the class (`group_classes`) of a class date.
 //
 // Tenant isolation (ADR-006): the route is an `account` route whose context holds the account's
 // team workspaces. It lists the ones the account trains in, then reads each of them in a context of
@@ -140,8 +141,11 @@ export const PersonalSessionSchema = z
       .optional()
       .openapi({
         description:
-          'The class name in the viewer’s language, for a group class. Left out until classes ' +
-          'exist (F021 adds it).',
+          'The class name in the viewer’s language, for a group class: the English name for a ' +
+          'viewer whose language is English and a class that has one, else the Dutch name ' +
+          '(`pickContentLanguage`). The language is the account’s stored language, else the first ' +
+          'supported one of `Accept-Language`, else English (ADR-017). Left out for a private ' +
+          'session and Open Gym.',
       }),
     location: LocationSchema.optional(),
     clientName: z
@@ -323,9 +327,14 @@ interface PersonalItem extends PersonalSessionTimes {
   readonly booked: number;
   readonly location: PersonalSessionRow['location'];
   readonly clientName: string | null;
+  readonly className: string | null;
 }
 
-function toItem(row: PersonalSessionRow, workspace: PersonalWorkspace): PersonalItem {
+function toItem(
+  row: PersonalSessionRow,
+  workspace: PersonalWorkspace,
+  viewerLocale: string,
+): PersonalItem {
   return {
     sessionId: row.id,
     workspace: { id: workspace.id, slug: workspace.slug, name: workspace.name },
@@ -338,12 +347,16 @@ function toItem(row: PersonalSessionRow, workspace: PersonalWorkspace): Personal
     booked: row.booked,
     location: row.location,
     clientName: row.clientName,
+    className:
+      row.classNameNl === null
+        ? null
+        : pickContentLanguage(viewerLocale, row.classNameNl, row.classNameEn),
   };
 }
 
 /** What the answer shows of an item: instants as ISO text; the fields of the other kinds are left out. */
 function shown(item: PersonalItem) {
-  const { location, clientName } = item;
+  const { location, clientName, className } = item;
   return {
     sessionId: item.sessionId,
     workspace: item.workspace,
@@ -358,7 +371,7 @@ function shown(item: PersonalItem) {
           location,
           ...(clientName === null ? {} : { clientName }),
         }
-      : { booked: item.booked }),
+      : { booked: item.booked, ...(className === null ? {} : { className }) }),
   };
 }
 
@@ -372,12 +385,29 @@ function invalid(path: string, code: string) {
  * at a time, each in a context of its own (ADR-006). The workspaces come in name order; the callers
  * merge the lists. Answers the workspaces too, for a caller that reads them again.
  */
-async function readWorkspaces(scope: TenantScope, window: { from: Date; to: Date }) {
+async function readWorkspaces(
+  scope: TenantScope,
+  window: { from: Date; to: Date },
+  viewerLocale: string,
+) {
   const workspaces = await listMyTrainingWorkspaces(scope);
   const perWorkspace = await inEachWorkspace(scope, workspaces, async (workspaceScope, workspace) =>
-    (await listMySessions(workspaceScope, window)).map((row) => toItem(row, workspace)),
+    (await listMySessions(workspaceScope, window)).map((row) =>
+      toItem(row, workspace, viewerLocale),
+    ),
   );
   return { workspaces, perWorkspace };
+}
+
+/**
+ * The language of the viewer (ADR-017): the account's stored language, else the first supported
+ * language of the request's `Accept-Language` (an app sends its OS language there), else English.
+ */
+function viewerLocaleOf(c: Context<AccessEnv>) {
+  return resolveInterfaceLanguage({
+    stored: c.get('account').preferredLocale,
+    requested: parseAcceptLanguage(c.req.header('accept-language')),
+  });
 }
 
 /**
@@ -417,10 +447,11 @@ export function registerPersonal(app: OpenAPIHono) {
     const now = c.get('dependencies').clock.now();
 
     // Today and tomorrow in one query per workspace; the domain splits them.
-    const { workspaces, perWorkspace } = await readWorkspaces(scope, {
-      from: today.start,
-      to: tomorrow.end,
-    });
+    const { workspaces, perWorkspace } = await readWorkspaces(
+      scope,
+      { from: today.start, to: tomorrow.end },
+      viewerLocaleOf(c),
+    );
     const merged = mergePersonalDay(perWorkspace, now, PERSONAL_TIME_ZONE, { date });
 
     let nextSessionDate: string | undefined;
@@ -501,10 +532,11 @@ export function registerPersonal(app: OpenAPIHono) {
           return c.json(invalid('to', 'range_too_long'), 400);
       }
     }
-    const { perWorkspace } = await readWorkspaces(c.get('scope'), {
-      from: range.start,
-      to: range.end,
-    });
+    const { perWorkspace } = await readWorkspaces(
+      c.get('scope'),
+      { from: range.start, to: range.end },
+      viewerLocaleOf(c),
+    );
     trackView(c, 'my_calendar_viewed', surface, perWorkspace.length);
     return c.json(
       {

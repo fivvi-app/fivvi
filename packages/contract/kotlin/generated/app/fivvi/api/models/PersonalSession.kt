@@ -42,7 +42,7 @@ import kotlinx.serialization.Contextual
  * @param timeZone The workspace’s IANA time zone, e.g. `Europe/Amsterdam` (ADR-012).
  * @param capacity 1 for a private session.
  * @param booked The places taken (not cancelled), for a group class or Open Gym: *{booked}/{capacity} geboekt*. Left out for a private session.
- * @param className The class name in the viewer’s language, for a group class. Left out until classes exist (F021 adds it).
+ * @param className The class name in the viewer’s language, for a group class: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session and Open Gym.
  * @param location 
  * @param clientName The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail.
  */
@@ -85,7 +85,7 @@ data class PersonalSession (
     @SerialName(value = "booked")
     val booked: kotlin.Int? = null,
 
-    /* The class name in the viewer’s language, for a group class. Left out until classes exist (F021 adds it). */
+    /* The class name in the viewer’s language, for a group class: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session and Open Gym. */
     @SerialName(value = "className")
     val className: kotlin.String? = null,
 
