@@ -1302,6 +1302,8 @@ Trainer can assign workouts/programs to individual clients.
 
 Group programming can come later.
 
+A client can do a workout the trainer shared on their own, for example in their own gym, in the client app (owner, 5 November 2026, [#602](https://github.com/fivvi-app/fivvi/issues/602), with M7). They can change values, add and remove exercises, and edit or delete a finished one at any time. **It is private to the client:** trainers and the owner never see it. It isn't a session: no booking, credit or attendance.
+
 ---
 
 # 41. Live workout logging
@@ -1730,7 +1732,7 @@ The client app is a separate app, **Fivvi** (app ID `app.fivvi`, iOS and Android
 - **Paying** opens the web payment page in the browser; there are no payments inside the app (§53). Gym services are used outside the app, so the stores don't require in-app purchase.
 - **Notifications:** emails only at go-live; push notifications follow in Release 1.1 (§54).
 - **Distribution:** public App Store and Google Play listings in Dutch and English before go-live, with in-app account deletion (§79), the privacy label and data safety form, and a review account. Go-live doesn't wait for the store review: if Fivvi isn't approved in time, clients use the client web.
-- **After go-live:** the client's workout history comes with M7, so the **Training** tab arrives then.
+- **After go-live:** what the client did and their workout history come with M7, so the **Activiteit** tab arrives then. It is called Activiteit, not Training, because not every studio trains with workouts (owner, 5 November 2026; [`DECISIONS.md` §5b](../design/prototype-v2/DECISIONS.md#5b-client-app-fivvi)).
 - **Joining in the app (owner, 4 November 2026, [#469](https://github.com/fivvi-app/fivvi/issues/469)):** a client joins a workspace in Fivvi through the join link or the client invitation link (`fivvi.app/j/…`, `fivvi.app/i/…`). When Fivvi is installed the link opens it (Universal Links on iOS, verified App Links on Android), otherwise the web. There is no QR scanner in the app: the desk QR code holds the join link, so the phone's camera opens it.
 
 Launch:
@@ -1745,7 +1747,7 @@ Navigation:
 ```text
 Home
 Book
-Training
+Activity
 Profile
 ```
 
@@ -1754,7 +1756,7 @@ Dutch:
 ```text
 Home
 Boeken
-Training
+Activiteit
 Profiel
 ```
 
@@ -1764,7 +1766,8 @@ Features (the whole app; workout history comes with M7 and push notifications wi
 - group booking
 - Open Gym
 - cancellations
-- workout history
+- activity and workout history
+- doing a shared workout on your own (private to the client, #602)
 - notifications
 - language switching
 

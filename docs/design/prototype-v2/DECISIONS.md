@@ -225,7 +225,8 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
   - rows with the **level** icon;
   - **nothing in a list is cut off with "…"** (owner, 5 November 2026): no description in list rows (the class page shows it whole), and long names wrap to a second line;
   - **book straight from the list** (owner, 5 November 2026): each row has *Boeken*, or *Wachtlijst* on a full class, and keeps *Geboekt ✓* or *Wachtlijst #n* once done. Without a matching credit the button opens the class page, which explains. The free spots lead the small line (accent at 2 or fewer). **Booking and joining the waitlist always ask for confirmation** (owner, 5 November 2026), from the list and from the class page: class, day and time, trainer, which credit it uses and how many are left, and the free-cancellation rule. A booking plans one credit; cancelling in time gives it back. Cancelling stays on the class page, with its confirmation;
-  - the cancellation rule as a footnote.
+  - the cancellation rule as a footnote;
+  - the studio switcher in the header, for a client of more than one studio ([§5b](#5b-client-app-fivvi)).
 - **Class page:**
   - description;
   - a spots card with a bar;
@@ -244,9 +245,9 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
   - *Taal*, *Uitloggen*.
 - **NL | EN** in the header on every step.
 
-## 5b. Client app Fivvi (proposal, awaiting the owner's review)
+## 5b. Client app Fivvi
 
-Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch (*Fivvi Pro | Fivvi (klant)*) shows it on iOS and Android, and the index group *Fivvi (klant-app)* lists its screens. It shares its state with the client web, so a booking made in one shows in the other. **Not decided until the owner has clicked through it.**
+Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch (*Fivvi Pro | Fivvi (klant)*) shows it on iOS and Android, and the index group *Fivvi (klant-app)* lists its screens. It shares its state with the client web, so a booking made in one shows in the other. The owner reviewed it through comments on 5 November 2026; what is still open is under the question below and in §7.
 
 - **Tabs as in §55:**
   - *Home*: hello, the next session or class, a **"Deze week" card**, *Tegoed* as a small line, and what's coming up. The card is motivating and uses only facts Fivvi has (owner, 5 November 2026):
@@ -301,7 +302,7 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
   - The client web works the same way: the switcher on *Rooster*.
   - Screens: the index entries *Twee studio's* and *Studio toevoegen*, with the fictional second studio Yoga Loft.
 
-**Question for the owner:** should the client web move to the same four tabs as the app? It has *Rooster | Mijn agenda | Profiel* now, and the app has *Home | Boeken | Training | Profiel*. One layout would mean clients find things in the same place everywhere.
+**Question for the owner:** should the client web move to the same four tabs as the app? It has *Rooster | Mijn agenda | Profiel* now, and the app has *Home | Boeken | Activiteit | Profiel*. One layout would mean clients find things in the same place everywhere.
 
 ## 6. Product decisions
 
@@ -359,6 +360,6 @@ The prototype had to choose something for these. They are **not decided**; each 
 | TD-05, class descriptions | Descriptions can be entered in the app's new-class form, not only on the web | F021 [#427](https://github.com/fivvi-app/fivvi/issues/427) |
 | [IA §3.2](../information-architecture.md#32-role--navigation) | New owner page *Aanbod*. Trainers page: change role, remove with a handover, withdraw an invitation | F052 [#468](https://github.com/fivvi-app/fivvi/issues/468); F003/F004 follow-up in [#590](https://github.com/fivvi-app/fivvi/issues/590) |
 | [`GLOSSARY.md`](../../../GLOSSARY.md), [`packages/i18n/GLOSSARY.md`](../../../packages/i18n/GLOSSARY.md) | "Always *trainer*" becomes the workspace's chosen word | [#588](https://github.com/fivvi-app/fivvi/issues/588) |
-| [`PRODUCT.md §55`](../../product/PRODUCT.md#55-client-app-at-go-live), client app navigation | *Home, Boeken, Training, Profiel* becomes *Home, Boeken, Activiteit, Profiel* (once the owner confirms the client app proposal, §5b) | [#469](https://github.com/fivvi-app/fivvi/issues/469) and the F033 / F045 specs |
-| [`PRODUCT.md §40`](../../product/PRODUCT.md#40-client-workouts) and [`§55`](../../product/PRODUCT.md#55-client-app-at-go-live), [`FEATURES.md`](../../product/FEATURES.md) | Clients do a shared workout on their own; a new `PLANNED` feature for M7 | [#602](https://github.com/fivvi-app/fivvi/issues/602) |
+| [`PRODUCT.md §55`](../../product/PRODUCT.md#55-client-app-at-go-live), client app navigation | *Home, Boeken, Training, Profiel* becomes *Home, Boeken, Activiteit, Profiel* | `PRODUCT.md` (this PR); [#469](https://github.com/fivvi-app/fivvi/issues/469) and the F033 / F045 specs |
+| [`PRODUCT.md §40`](../../product/PRODUCT.md#40-client-workouts) and [`§55`](../../product/PRODUCT.md#55-client-app-at-go-live), [`FEATURES.md`](../../product/FEATURES.md) | Clients do a shared workout on their own, private to them; a new `PLANNED` feature for M7 | `PRODUCT.md §40` and `§55` (this PR); the `FEATURES.md` row with [#602](https://github.com/fivvi-app/fivvi/issues/602) |
 | [IA §7](../information-architecture.md#7-client-web), client web | The client web uses the app's design language ([§5](#5-client-web-adr-026)) | F027 [#489](https://github.com/fivvi-app/fivvi/issues/489), F033 [#497](https://github.com/fivvi-app/fivvi/issues/497) |
