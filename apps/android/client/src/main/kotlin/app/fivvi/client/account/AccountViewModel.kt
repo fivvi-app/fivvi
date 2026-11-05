@@ -40,10 +40,12 @@ sealed interface AccountState {
  * ([SignOut], F001 AC10).
  *
  * [refresh] runs when the app comes back to the foreground: it reads the account again without showing the loading state,
- * so a team role gained or lost elsewhere shows, and a failed read leaves the screen as it is.
+ * so a team role gained or lost elsewhere shows, and a failed read leaves the screen as it is. It does not hand on the
+ * stored language: `LanguageViewModel.refresh` reads that on foreground, with the guard of F010 AC3.
  *
  * [onAccount] is told the account's ID (a UUID) once `GET /api/v1/me` has answered, unless the sign-in has ended
- * meanwhile: the app sets it as the error-reporting user. [onPreferredLocale] is told the stored language (F010 AC2).
+ * meanwhile: the app sets it as the error-reporting user. [onPreferredLocale] is told the stored language when the account is
+ * loaded on opening or on a retry (F010 AC2).
  */
 class AccountViewModel(
     private val api: MeApi,
@@ -80,7 +82,7 @@ class AccountViewModel(
         if (_state.value !is AccountState.Loaded) return
         loading?.cancel()
         loading = viewModelScope.launch {
-            val loaded = fetch()
+            val loaded = fetch(opening = false)
             if (loaded is AccountState.Loaded) _state.value = loaded
         }
     }
@@ -88,10 +90,12 @@ class AccountViewModel(
     private fun load() {
         loading?.cancel()
         _state.value = AccountState.Loading
-        loading = viewModelScope.launch { _state.value = fetch() }
+        loading = viewModelScope.launch { _state.value = fetch(opening = true) }
     }
 
-    private suspend fun fetch(): AccountState {
+    // [opening]: the read of opening the tabs or of a retry, whose stored language is taken (F010 AC2, AC5). A read on foreground
+    // leaves the language to LanguageViewModel.refresh, which does not undo a choice made while it was under way (F010 AC3).
+    private suspend fun fetch(opening: Boolean): AccountState {
         val response = try {
             api.getMe()
         } catch (_: IOException) {
@@ -104,7 +108,7 @@ class AccountViewModel(
         // error-reporting user: this view model outlives the sign-out in the activity's store.
         if (session.state.value.let { it.signedIn && it.generation == generation }) {
             onAccount(account.id.toString())
-            onPreferredLocale(account.preferredLocale)
+            if (opening) onPreferredLocale(account.preferredLocale)
         }
         return AccountState.Loaded(account.name, account.email, account.workspaces.hasTeamRole())
     }

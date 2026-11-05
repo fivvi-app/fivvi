@@ -125,7 +125,9 @@ class MainActivity : ComponentActivity() {
         val online by dependencies.connectivity.online.collectAsStateWithLifecycle()
         var selected by rememberSaveable { mutableStateOf(Tab.HOME) }
 
-        // On foreground the account is read again: a team role or a language changed elsewhere shows (F010 AC2).
+        // On foreground the stored language is read again (F010 AC2, with the guard of AC3) and so is the account, for the
+        // team role.
+        OnForeground(languages::refresh)
         OnForeground(account::refresh)
 
         ClientShell(online, selected, onSelect = { selected = it }) { tab ->

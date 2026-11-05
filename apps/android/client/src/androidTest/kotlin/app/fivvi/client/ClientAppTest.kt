@@ -30,12 +30,16 @@ import app.fivvi.core.auth.Session
 import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.signin.FakeSignInApi
 import app.fivvi.core.signin.SignInTags
+import java.util.UUID
+import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
+import retrofit2.Response
 
 // Synthetic people (AGENTS.md, D8): Anna de Vries (anna@example.com) has an account and no workspace; Sarah
 // (trainer@example.com) is a Trainer of John's Gym with no client relationship.
@@ -185,6 +189,50 @@ class ClientAppTest(@Suppress("UNUSED_PARAMETER") tag: String, private val phone
             me.updates,
         )
     }
+
+    // F010 AC3: a foreground read that left before the choice and answers with the old language must not undo the choice.
+    @Test
+    fun E017_AC2_aChoiceMadeWhileAForegroundReadIsPendingIsKept() {
+        me.answerAccount(email = ANNA, name = "Anna de Vries", workspaces = emptyList())
+        app.launch(device = listOf(phone.tag), meApi = me)
+        compose.onNodeWithTag(Tab.PROFILE.tag).performClick()
+        compose.waitUntilTagExists(ProfileTags.EMAIL)
+        // The foreground reads (the account's and the language's) wait for this; both answer with the phone's language.
+        val answered = CompletableDeferred<Unit>()
+        val finished = AtomicInteger()
+        repeat(2) {
+            me.answers += {
+                answered.await()
+                finished.incrementAndGet()
+                Response.success(account(phone))
+            }
+        }
+        app.backgroundAndForeground()
+        compose.waitUntil(UI_TIMEOUT_MILLIS) { me.calls >= 2 }
+
+        compose.onNodeWithTag("${ProfileTags.LANGUAGE}.${other.tag}").performClick()
+        compose.waitUntil(UI_TIMEOUT_MILLIS) { me.updates.isNotEmpty() }
+        answered.complete(Unit)
+        // Every foreground read that started has answered.
+        compose.waitUntil(UI_TIMEOUT_MILLIS) { finished.get() == me.calls - 1 }
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("${ProfileTags.LANGUAGE}.${other.tag}").assertIsSelected()
+        compose.onNodeWithTag(ProfileTags.SIGN_OUT).assertTextEquals(string(other, R.string.sign_out_label))
+    }
+
+    private fun account(language: AppLanguage) = MeResponse(
+        id = UUID.randomUUID(),
+        email = ANNA,
+        name = "Anna de Vries",
+        preferredLocale = if (language == AppLanguage.DUTCH) {
+            MeResponse.PreferredLocale.NL_NL
+        } else {
+            MeResponse.PreferredLocale.EN
+        },
+        canCreateWorkspace = false,
+        workspaces = emptyList(),
+    )
 
     @Test
     fun E017_AC2_uitloggenRemovesTheTokenAndReturnsToSignIn() {

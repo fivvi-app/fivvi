@@ -188,8 +188,19 @@ describe('E017 #504 AC4: two Android apps, distinct IDs, shared generated source
     assert.match(read('apps/android/settings.gradle.kts'), /include\(":app", ":client", ":core"/);
   });
 
-  it('pnpm test:android runs the unit tests of every module, and the build number check of both apps', () => {
+  it('pnpm test:android runs the unit and the Compose UI tests of every module, and the build number check of both apps', () => {
     const script = read('scripts/android.sh');
+    // An unqualified task runs in every module that has it, so a module added later is covered; a task of :app or :client
+    // alone would leave the other app out.
+    const gradleLines = script.split('\n').filter((line) => /^\s*gradle\b/.test(line));
+    const unqualified = (task) =>
+      gradleLines.filter((line) => new RegExp(`(^|\\s)${task}(\\s|$)`).test(line.trim()));
+    assert.equal(
+      unqualified('testDebugUnitTest').length,
+      2,
+      'test and verify run testDebugUnitTest',
+    );
+    assert.equal(unqualified('connectedDebugAndroidTest').length, 1);
     assert.match(script, /--tests app\.fivvi\.pro\.BuildInfoTest/);
     assert.match(script, /:client:testDebugUnitTest --tests app\.fivvi\.client\.BuildInfoTest/);
   });

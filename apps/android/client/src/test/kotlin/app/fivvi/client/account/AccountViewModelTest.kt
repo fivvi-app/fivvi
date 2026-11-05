@@ -153,6 +153,21 @@ class AccountViewModelTest {
         )
     }
 
+    // F010 AC3 (E017 AC2): the stored language of a foreground read is LanguageViewModel's to take, with its guard against
+    // a choice made while the read was under way; the account's own foreground read must not pass it on.
+    @Test
+    fun E017_AC2_theForegroundReadDoesNotPassTheStoredLanguageOn() {
+        api.answerAccount(workspaces = emptyList(), preferredLocale = MeResponse.PreferredLocale.NL_NL)
+        val viewModel = viewModel()
+        stored.clear()
+        api.answerAccount(workspaces = emptyList(), preferredLocale = MeResponse.PreferredLocale.NL_NL)
+
+        viewModel.refresh()
+
+        assertEquals(emptyList<MeResponse.PreferredLocale?>(), stored)
+        assertEquals(2, api.calls)
+    }
+
     @Test
     fun E017_AC9_aForegroundReadThatFailsLeavesTheScreenAsItWas() {
         api.answerAccount(email = "anna@example.com", name = "Anna de Vries", workspaces = emptyList())
