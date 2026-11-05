@@ -56,6 +56,16 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     workspace_id: property.uuid(),
     surface: property.enum(['web', 'ios', 'android']),
   },
+  // F021: an Owner created a class, or put one on a date. The workspace ID only (the account's
+  // UUID is the distinct ID): no class or session ID, name, description, trainer, date or time.
+  class_created: {
+    workspace_id: property.uuid(),
+    surface: property.enum(['web', 'ios', 'android']),
+  },
+  class_scheduled: {
+    workspace_id: property.uuid(),
+    surface: property.enum(['web', 'ios', 'android']),
+  },
   // F020: a team member rescheduled a private session. The workspace ID and the surface only, as
   // for `private_session_created`: no session or client ID, name, email address, trainer, or the
   // old or new date or time.
@@ -84,6 +94,17 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
   workspace_switched: {
     workspace_id: property.uuid(),
     surface: property.enum(['web', 'ios', 'android']),
+  },
+  // F013: a trainer opened their day (*Vandaag* / *Mijn dag*) or their calendar (*Agenda* /
+  // *Mijn agenda*). The surface and how many workspaces the view spans only (the trainer's account
+  // UUID is the distinct ID): no client name, class name, workspace, time or session.
+  my_day_viewed: {
+    surface: property.enum(['web', 'ios', 'android']),
+    workspace_count: property.number(),
+  },
+  my_calendar_viewed: {
+    surface: property.enum(['web', 'ios', 'android']),
+    workspace_count: property.number(),
   },
   // F010: someone chose their interface language. The language and the surface only: the distinct
   // ID is random for each event (`anonymousDistinctId()`), so nothing leads to the account, and no

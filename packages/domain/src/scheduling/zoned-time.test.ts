@@ -1,6 +1,12 @@
 import { AMSTERDAM, dstTransitions, zonedTime } from '@fivvi/testing/clock';
 import { describe, expect, it } from 'vitest';
-import { wallClockToInstant } from './zoned-time.ts';
+import {
+  addDays,
+  instantToWallClock,
+  localDateOf,
+  localDayBounds,
+  wallClockToInstant,
+} from './zoned-time.ts';
 
 describe('ADR-012 wall-clock time to an instant', () => {
   it('reads a summer time in Amsterdam as UTC+2', () => {
@@ -71,5 +77,78 @@ describe('ADR-012 wall-clock time to an instant', () => {
     ['2026-09-24', '', 'time'],
   ])('says the input is invalid for %s %s: the %s', (date, time, field) => {
     expect(wallClockToInstant(date, time, AMSTERDAM)).toEqual({ outcome: 'invalid', field });
+  });
+});
+
+describe('ADR-012 an instant to the wall clock', () => {
+  it('reads a summer instant in Amsterdam as UTC+2 and a winter instant as UTC+1', () => {
+    expect(instantToWallClock(new Date('2026-10-06T16:30:00.000Z'), AMSTERDAM)).toEqual({
+      date: '2026-10-06',
+      time: '18:30',
+    });
+    expect(instantToWallClock(new Date('2026-12-01T08:00:00.000Z'), AMSTERDAM)).toEqual({
+      date: '2026-12-01',
+      time: '09:00',
+    });
+  });
+
+  it('moves to the next local day past midnight', () => {
+    expect(instantToWallClock(new Date('2026-09-24T22:30:00.000Z'), AMSTERDAM)).toEqual({
+      date: '2026-09-25',
+      time: '00:30',
+    });
+  });
+
+  it('gives back what wallClockToInstant took, also in the repeated hour', () => {
+    for (const [date, time] of [
+      ['2026-09-24', '09:00'],
+      ['2026-10-25', '02:30'],
+      ['2027-03-28', '03:00'],
+    ] as const) {
+      const result = wallClockToInstant(date, time, AMSTERDAM);
+      if (result.outcome !== 'instant') throw new Error('the time exists');
+      expect(instantToWallClock(result.instant, AMSTERDAM)).toEqual({ date, time });
+    }
+  });
+});
+
+describe('F013 calendar days in a time zone', () => {
+  it('names the local date of an instant, also just before and after midnight', () => {
+    // 22 September 2026 is summer time: 21:59 UTC is 23:59 in Amsterdam, 22:00 UTC is midnight.
+    expect(localDateOf(new Date('2026-09-22T21:59:59.999Z'), AMSTERDAM)).toBe('2026-09-22');
+    expect(localDateOf(new Date('2026-09-22T22:00:00.000Z'), AMSTERDAM)).toBe('2026-09-23');
+    expect(localDateOf(new Date('2026-09-22T22:00:00.000Z'), 'UTC')).toBe('2026-09-22');
+  });
+
+  it('adds days to a date across month and year ends and a leap day', () => {
+    expect(addDays('2026-09-30', 1)).toBe('2026-10-01');
+    expect(addDays('2026-12-31', 1)).toBe('2027-01-01');
+    expect(addDays('2028-02-28', 1)).toBe('2028-02-29');
+    expect(addDays('2026-03-01', -1)).toBe('2026-02-28');
+  });
+
+  it('bounds an ordinary day from local midnight to the next', () => {
+    expect(localDayBounds('2026-09-22', AMSTERDAM)).toEqual({
+      start: new Date('2026-09-21T22:00:00.000Z'),
+      end: new Date('2026-09-22T22:00:00.000Z'),
+    });
+  });
+
+  it('bounds the 25-hour day when the clocks go back and the 23-hour day when they go forward', () => {
+    const { fallBack, springForward } = dstTransitions(2026);
+    const back = localDayBounds(fallBack.date, AMSTERDAM);
+    const forward = localDayBounds(springForward.date, AMSTERDAM);
+
+    expect(back).toEqual({
+      start: new Date('2026-10-24T22:00:00.000Z'),
+      end: new Date('2026-10-25T23:00:00.000Z'),
+    });
+    expect(back && (back.end.getTime() - back.start.getTime()) / 3_600_000).toBe(25);
+    expect(forward && (forward.end.getTime() - forward.start.getTime()) / 3_600_000).toBe(23);
+  });
+
+  it('has no bounds for something that is not a date', () => {
+    expect(localDayBounds('2026-02-30', AMSTERDAM)).toBeUndefined();
+    expect(localDayBounds('22-09-2026', AMSTERDAM)).toBeUndefined();
   });
 });

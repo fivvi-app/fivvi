@@ -88,6 +88,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me/day": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My day: the sessions of one day across my workspaces
+         * @description Everything the signed-in account is the current trainer of on one day, in all the workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary, the tomorrow line, the date of the next session when the day is empty and the number of workspaces. Each workspace is read on its own; the answer is merged here. An account that trains in no workspace (an Owner who does not train, a client account) gets an empty answer, not `403`. The day is a date in Dutch time; times are UTC instants, to be shown in Dutch time.
+         */
+        get: operations["getMyDay"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * My sessions: a range of days across my workspaces
+         * @description The sessions the signed-in account is the current trainer of from the start of `from` to the end of `to` (at most 42 days, days in Dutch time), in all the workspaces it trains in, in time order: for the week and month views. Cancelled sessions stay. An account that trains nowhere gets an empty list, not `403`.
+         */
+        get: operations["listMySessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/sign-in/request": {
         parameters: {
             query?: never;
@@ -561,6 +601,78 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
+        /**
+         * Change one date of a class
+         * @description Changes the start, end and/or capacity of one date of a class (the Owner only), from the version the caller read (`409` with the date as it is now when it changed since). The date stays on its day. Times are wall-clock in the workspace’s time zone with the same daylight saving rules as scheduling. A start sent alone keeps the end at its time of day; when that is not after the new start the answer is `400` on `localEnd`. An end that is not after the start answers `400` on `localEnd` (`end_before_start`). The class and its other dates are not touched. A session that is not a class date of the workspace (a private session too) answers `404`.
+         */
+        patch: operations["updateGroupClassDate"];
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/group-classes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The classes of a workspace
+         * @description The workspace’s classes, sorted by Dutch name. Every team member may read them; a client of the workspace gets `403`, a person with no place in it `404`.
+         */
+        get: operations["listGroupClasses"];
+        put?: never;
+        /**
+         * Create a class
+         * @description Creates a class (the Owner only; a Trainer gets `403`). Empty or too long texts, a capacity outside 1 to 100 and a duration outside 15 to 240 minutes in steps of 5 answer `400` with the field in `issues`. With a `firstDate` the class is also put on that date (the apps’ quick create), both in one transaction: a refused date answers `400` and leaves no class. A trainer who does not train in the workspace answers `404`.
+         */
+        post: operations["createGroupClass"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/group-classes/{classId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One class
+         * @description A class of the workspace, for any team member. A class that is not in the workspace answers `404`.
+         */
+        get: operations["getGroupClass"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change a class
+         * @description Changes the fields given of a class (the Owner only). The same limits as creating apply. Dates already planned keep what they copied. A class or trainer that is not in the workspace answers `404`.
+         */
+        patch: operations["updateGroupClass"];
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/group-classes/{classId}/dates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Put a class on a date
+         * @description Schedules the class on a date (the Owner only): a `group` session at the local start, taking the class’s trainer, capacity and duration (a trainer or capacity in the request wins for this date; `trainerId: null` plans it without a trainer) and the workspace’s default location, stored and answered as UTC instants plus the workspace’s time zone. A start the clocks skip answers `400` on `localStart` (`time_does_not_exist`); one they repeat takes the first. A class or trainer that is not in the workspace answers `404`.
+         */
+        post: operations["scheduleGroupClassDate"];
+        delete?: never;
+        options?: never;
+        head?: never;
         patch?: never;
         trace?: never;
     };
@@ -708,7 +820,7 @@ export interface components {
              */
             role: "owner" | "trainer";
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read")[];
         };
         /** @description A workspace the account is on the team of. */
         MyWorkspace: {
@@ -727,7 +839,7 @@ export interface components {
              */
             role: "owner" | "trainer";
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read")[];
             /** @description Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner. */
             trainsHere: boolean;
         };
@@ -745,6 +857,161 @@ export interface components {
              * @enum {string}
              */
             surface?: "ios" | "android";
+        };
+        /** @description The personal day of a trainer across all their workspaces. */
+        MyDay: {
+            /** @description The day shown: `YYYY-MM-DD`, in `timeZone`. */
+            date: string;
+            /** @description The zone of the personal scope: `Europe/Amsterdam`. The day starts and ends on its wall clock. */
+            timeZone: string;
+            /** @description The workspaces the account trains in and the view spans. The apps show a workspace name on a row only when it is more than one. */
+            workspaceCount: number;
+            /** @description The day’s items in time order, cancelled ones included. */
+            items: components["schemas"]["PersonalSession"][];
+            summary: components["schemas"]["MyDaySummary"];
+            next?: components["schemas"]["MyDayNext"];
+            tomorrow?: components["schemas"]["MyDayTomorrow"];
+            /** @description The date of the next session that takes place after this day, `YYYY-MM-DD`. Only given when the day has no items; left out when there is none. */
+            nextSessionDate?: string;
+            /** @description Whether the account is the current trainer of any session at all, past or future. Only computed when the day is empty and no session follows, to tell a new trainer (*Je hebt nog geen sessies*) from one with nothing planned; true otherwise. */
+            hasSessions: boolean;
+        };
+        /** @description A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds. */
+        PersonalSession: {
+            /**
+             * Format: uuid
+             * @description The session ID. It opens in its own workspace: `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}` with the item’s `workspace.id`.
+             */
+            sessionId: string;
+            workspace: components["schemas"]["PersonalWorkspace"];
+            /**
+             * @description The kind of session, to be shown in words (*Privé*, *Groep*, *Open Gym*).
+             * @enum {string}
+             */
+            type: "private" | "group" | "open_gym";
+            /**
+             * @description Whether the session still takes place. A cancelled one stays in the list.
+             * @enum {string}
+             */
+            status: "scheduled" | "cancelled";
+            /**
+             * Format: date-time
+             * @description The start, a UTC instant.
+             */
+            startsAt: string;
+            /**
+             * Format: date-time
+             * @description The end, a UTC instant.
+             */
+            endsAt: string;
+            /** @description The workspace’s IANA time zone, e.g. `Europe/Amsterdam` (ADR-012). */
+            timeZone: string;
+            /** @description 1 for a private session. */
+            capacity: number;
+            /** @description The places taken (not cancelled), for a group class or Open Gym: *{booked}/{capacity} geboekt*. Left out for a private session. */
+            booked?: number;
+            /** @description The class name in the viewer’s language, for a group class. Left out until classes exist (F021 adds it). */
+            className?: string;
+            location?: components["schemas"]["Location"];
+            /** @description The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail. */
+            clientName?: string;
+        };
+        /** @description The workspace an item of the personal view is in. */
+        PersonalWorkspace: {
+            /**
+             * Format: uuid
+             * @description The workspace ID.
+             */
+            id: string;
+            /** @description The URL name: `/w/{slug}` on the web. */
+            slug: string;
+            /** @description The name shown in the product. */
+            name: string;
+        };
+        /** @description A place where sessions of the workspace take place. */
+        Location: {
+            /**
+             * Format: uuid
+             * @description The location ID.
+             */
+            id: string;
+            /** @description The name sessions show, up to 120 characters. */
+            name: string;
+            type: components["schemas"]["LocationType"];
+            address: components["schemas"]["LocationAddress"];
+            /** @description Whether this is the workspace’s default location, the one every new session takes. */
+            isDefault: boolean;
+        };
+        /**
+         * @description The kind of location. Every workspace has one `organization_location` (its own) at go-live; the other kinds exist in the model for later and are not written yet.
+         * @enum {string}
+         */
+        LocationType: "organization_location" | "external_gym" | "client_home" | "outdoor" | "online" | "other";
+        /** @description The address, or `null` when the location has none. */
+        LocationAddress: {
+            /** @description A Dutch postcode, stored as `1234 AB`. */
+            postcode: string;
+            /** @description One to five digits. */
+            houseNumber: string;
+            /** @description For example `A` or `2 hoog`; `null` when there is none. */
+            houseNumberAddition: string | null;
+            street: string;
+            city: string;
+        } | null;
+        /** @description *4 sessies · 09:00–19:00*. */
+        MyDaySummary: {
+            /** @description The items of the day, cancelled ones counted. */
+            count: number;
+            /**
+             * Format: date-time
+             * @description The start of the first item; left out for an empty day.
+             */
+            firstStartsAt?: string;
+            /**
+             * Format: date-time
+             * @description The end of the last item; left out for an empty day.
+             */
+            lastEndsAt?: string;
+        };
+        /** @description *Straks* / *Nu bezig*: the first item of today that has not ended and is not cancelled. Left out when nothing is left today, and for any day but today. */
+        MyDayNext: {
+            /**
+             * Format: uuid
+             * @description The item in `items`.
+             */
+            sessionId: string;
+            /**
+             * @description `upcoming` is *Straks*, `in_progress` is *Nu bezig*.
+             * @enum {string}
+             */
+            state: "upcoming" | "in_progress";
+            /** @description Minutes to the start, rounded up; 0 while it runs. */
+            startsInMinutes: number;
+        };
+        /** @description The footer *Morgen: 3 sessies, eerste om 07:00*. Cancelled sessions are not counted; left out when the next day has none. */
+        MyDayTomorrow: {
+            /** @description The next day: `YYYY-MM-DD`. */
+            date: string;
+            /** @description The sessions that day that take place. */
+            count: number;
+            /**
+             * Format: date-time
+             * @description The start of the first one.
+             */
+            firstStartsAt: string;
+        };
+        /** @description The personal sessions of a trainer across all their workspaces, for a range of days. */
+        MySessions: {
+            /** @description The first day: `YYYY-MM-DD`. */
+            from: string;
+            /** @description The last day, included: `YYYY-MM-DD`. */
+            to: string;
+            /** @description The zone of the personal scope: `Europe/Amsterdam`. The days follow its wall clock. */
+            timeZone: string;
+            /** @description The workspaces the account trains in and the view spans. */
+            workspaceCount: number;
+            /** @description The sessions from the start of `from` to the end of `to`, in time order. */
+            items: components["schemas"]["PersonalSession"][];
         };
         /** @description Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019. */
         SignInRequest: {
@@ -934,36 +1201,6 @@ export interface components {
              */
             trainsHere: true;
         };
-        /** @description A place where sessions of the workspace take place. */
-        Location: {
-            /**
-             * Format: uuid
-             * @description The location ID.
-             */
-            id: string;
-            /** @description The name sessions show, up to 120 characters. */
-            name: string;
-            type: components["schemas"]["LocationType"];
-            address: components["schemas"]["LocationAddress"];
-            /** @description Whether this is the workspace’s default location, the one every new session takes. */
-            isDefault: boolean;
-        };
-        /**
-         * @description The kind of location. Every workspace has one `organization_location` (its own) at go-live; the other kinds exist in the model for later and are not written yet.
-         * @enum {string}
-         */
-        LocationType: "organization_location" | "external_gym" | "client_home" | "outdoor" | "online" | "other";
-        /** @description The address, or `null` when the location has none. */
-        LocationAddress: {
-            /** @description A Dutch postcode, stored as `1234 AB`. */
-            postcode: string;
-            /** @description One to five digits. */
-            houseNumber: string;
-            /** @description For example `A` or `2 hoog`; `null` when there is none. */
-            houseNumberAddition: string | null;
-            street: string;
-            city: string;
-        } | null;
         /** @description Changes a location: its name, its address (a Dutch one, all or nothing; the postcode is stored as `1234 AB`), or both. `address: null` removes the address; leave `address` out to keep it as it is. The type and which location is the default never change. Other fields are ignored. */
         UpdateLocationRequest: {
             /** @description The new name: trimmed, not blank, at most 120 characters. */
@@ -1018,7 +1255,7 @@ export interface components {
              */
             id: string;
             /**
-             * @description The kind of session. Private sessions are planned here; the others come later.
+             * @description The kind of session. Private sessions are planned here, class dates are a class on a date (`…/group-classes/{classId}/dates`); Open Gym comes later.
              * @enum {string}
              */
             type: "private" | "group" | "open_gym";
@@ -1039,13 +1276,14 @@ export interface components {
             endsAt: string;
             /** @description The workspace’s IANA time zone, e.g. `Europe/Amsterdam`: the instants are shown in it (ADR-012). */
             timeZone: string;
-            /** @description 1 for a private session. */
+            /** @description 1 for a private session; the date’s own capacity for a class date. */
             capacity: number;
             /** @description Raised by every change; a change says the version it read. Starts at 1. */
             version: number;
             location: components["schemas"]["Location"];
             trainer?: components["schemas"]["SessionTrainer"];
-            /** @description The clients in the session, in the order they were added. One for a private session. */
+            groupClass?: components["schemas"]["SessionGroupClass"];
+            /** @description The clients in the session, in the order they were added. One for a private session; none for a class date until bookings exist (M5). */
             participants: components["schemas"]["SessionParticipant"][];
         };
         /** @description Left out when the session has no trainer (the trainer’s profile ended). */
@@ -1057,6 +1295,18 @@ export interface components {
             id: string;
             /** @description The account’s name; empty when it has none. */
             name: string;
+        };
+        /** @description The class of a class date (F021); left out for the other kinds. */
+        SessionGroupClass: {
+            /**
+             * Format: uuid
+             * @description The class ID.
+             */
+            id: string;
+            /** @description The class’s Dutch name. */
+            nameNl: string;
+            /** @description The class’s English name, `null` without one. Show it to a viewer whose language is English, else the Dutch name (`pickContentLanguage`). */
+            nameEn: string | null;
         };
         /** @description A client’s place in a session. */
         SessionParticipant: {
@@ -1171,6 +1421,121 @@ export interface components {
              */
             endsAt: string;
             trainer?: components["schemas"]["SessionTrainer"];
+        };
+        /** @description A class of the workspace: what it is called, who usually teaches it, how many people fit and how long it lasts. It is not a point in time; a class on a date is a `group` session. */
+        GroupClass: {
+            /**
+             * Format: uuid
+             * @description The class ID.
+             */
+            id: string;
+            /** @description The Dutch name: always there. */
+            nameNl: string;
+            /** @description The English name, `null` without one. Show it to a viewer whose language is English, else the Dutch name (`pickContentLanguage` of @fivvi/i18n). */
+            nameEn: string | null;
+            /** @description The Dutch description, or `null`. */
+            descriptionNl: string | null;
+            /** @description The English description, or `null`: shown only to English viewers. */
+            descriptionEn: string | null;
+            /** @description How many people fit: 1 to 100. */
+            capacity: number;
+            /** @description How long a date of the class lasts: 15 to 240 minutes in steps of 5. */
+            durationMinutes: number;
+            defaultTrainer?: components["schemas"]["SessionTrainer"] & unknown;
+        };
+        /** @description The class that was created, with its first date when the request had one. */
+        CreatedGroupClass: {
+            groupClass: components["schemas"]["GroupClass"];
+            firstDate?: components["schemas"]["Session"] & unknown;
+        };
+        /** @description A class to create: the Dutch name, optionally an English one, descriptions, the usual trainer, capacity and duration, and optionally its first date. */
+        CreateGroupClassRequest: {
+            /** @description The Dutch name: trimmed, 1 to 80 characters. */
+            nameNl: string;
+            /** @description The English name: trimmed, at most 80 characters. A blank text means none (and, in a change, clears it). */
+            nameEn?: string;
+            /** @description The Dutch description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it). */
+            descriptionNl?: string;
+            /** @description The English description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it). */
+            descriptionEn?: string;
+            /**
+             * Format: uuid
+             * @description The usual trainer’s team-member ID, from `GET …/trainers`. Leave it out, or send `null`, for *Trainer nodig*. A team member who does not train in the workspace answers `404`.
+             */
+            trainerId?: string | null;
+            /** @description 1 to 100 people. */
+            capacity: number;
+            /** @description 15 to 240 minutes in steps of 5; any other value answers `400` on `durationMinutes`. */
+            durationMinutes: number;
+            firstDate?: components["schemas"]["FirstGroupClassDate"];
+            /**
+             * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_created` event (and `class_scheduled` with a first date) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+             * @enum {string}
+             */
+            surface?: "ios" | "android";
+        };
+        /** @description Puts the new class on one date in the same request (the apps’ quick create, TD-05): class and date are stored together or not at all. A refused date (`400` on `firstDate.localDate` or `firstDate.localStart`) leaves no class behind. */
+        FirstGroupClassDate: {
+            /** @description The date in the workspace’s time zone: `YYYY-MM-DD`. */
+            localDate: string;
+            /** @description The start in the workspace’s time zone: `HH:mm`, 24 hours. */
+            localStart: string;
+        };
+        /** @description Changes a class: every field left out stays as it is. Dates already planned keep their own trainer, capacity and times (they were copied when they were planned). Other fields are ignored. */
+        UpdateGroupClassRequest: {
+            /** @description The new Dutch name: trimmed, 1 to 80 characters. */
+            nameNl?: string;
+            /** @description The new English name: trimmed, at most 80 characters. A blank text means none (and, in a change, clears it). */
+            nameEn?: string;
+            /** @description The new Dutch description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it). */
+            descriptionNl?: string;
+            /** @description The new English description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it). */
+            descriptionEn?: string;
+            /**
+             * Format: uuid
+             * @description The new usual trainer’s team-member ID; `null` makes the class *Trainer nodig*; left out keeps it.
+             */
+            trainerId?: string | null;
+            /** @description The new capacity, 1 to 100. */
+            capacity?: number;
+            /** @description The new duration, 15 to 240 minutes in steps of 5. */
+            durationMinutes?: number;
+        };
+        /** @description A class on a date: a local date and start; the end follows from the class’s duration. */
+        ScheduleGroupClassDateRequest: {
+            /** @description The date in the workspace’s time zone: `YYYY-MM-DD`. A date that is none (30 February) answers `400` on `localDate`. */
+            localDate: string;
+            /** @description The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first. */
+            localStart: string;
+            /**
+             * Format: uuid
+             * @description The trainer of this date, a team-member ID from `GET …/trainers`. Leave it out for the class’s usual trainer; `null` plans the date as *Trainer nodig*.
+             */
+            trainerId?: string | null;
+            /** @description The capacity of this date, 1 to 100. Leave it out for the class’s. */
+            capacity?: number;
+            /**
+             * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+             * @enum {string}
+             */
+            surface?: "ios" | "android";
+        };
+        /** @description The date was changed since the version in the request; nothing was written. `session` is the date as it is now, to show the reloaded values. Contains no user-facing text. */
+        ClassDateChanged: {
+            /** @enum {string} */
+            code: "class_date_changed";
+            session: components["schemas"]["Session"];
+        };
+        /** @description Changes one date of a class (CO-04): the start, the end and the capacity, each only when given. The date stays on its day. The class itself never changes. */
+        UpdateGroupClassDateRequest: {
+            /** @description The version of the date the change was made from (`Session.version`). If the date changed since, the answer is `409` and nothing is written. */
+            version: number;
+            /** @description The new start, `HH:mm` in the workspace’s time zone. Leave it out to keep it. */
+            localStart?: string;
+            /** @description The new end, `HH:mm` on the same day as the start. Leave it out to keep its time of day: a start moved alone does not move the end with it, and one moved to or past the unchanged end is refused like any end. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`. */
+            localEnd?: string;
+            /** @description The new capacity of this date, 1 to 100. Leave it out to keep it. */
+            capacity?: number;
         };
         /** @description One page of the clients of a workspace. */
         ClientList: {
@@ -1430,6 +1795,112 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MyWorkspace"][];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    getMyDay: {
+        parameters: {
+            query: {
+                /** @description The day to show: `YYYY-MM-DD`, in Dutch time (Europe/Amsterdam). A date that is none (30 February) answers `400` on `date`. */
+                date: string;
+                /** @description The app that sends the request: `ios` or `android`. A request with a bearer token records the product event of the view with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it. */
+                surface?: "ios" | "android";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The day. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyDay"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    listMySessions: {
+        parameters: {
+            query: {
+                /** @description The first day: `YYYY-MM-DD`, in Dutch time. A date that is none answers `400` on `from`. */
+                from: string;
+                /** @description The last day, included: `YYYY-MM-DD`, in Dutch time. Before `from` answers `400` on `to` with `before_from`; more than 42 days from `from` answers `400` with `range_too_long`. */
+                to: string;
+                /** @description The app that sends the request: `ios` or `android`. A request with a bearer token records the product event of the view with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it. */
+                surface?: "ios" | "android";
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The sessions. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MySessions"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
                 };
             };
             /** @description Nobody is signed in: no valid sign-in session or bearer token. */
@@ -3235,6 +3706,447 @@ export interface operations {
         responses: {
             /** @description The session. */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    updateGroupClassDate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The session ID. */
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateGroupClassDateRequest"];
+            };
+        };
+        responses: {
+            /** @description The date with its changes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description The date changed since the version in the request; nothing was written. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassDateChanged"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    listGroupClasses: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The classes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupClass"][];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    createGroupClass: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateGroupClassRequest"];
+            };
+        };
+        responses: {
+            /** @description The class was created. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedGroupClass"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    getGroupClass: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The class ID. */
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The class. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupClass"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    updateGroupClass: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The class ID. */
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateGroupClassRequest"];
+            };
+        };
+        responses: {
+            /** @description The class with its changes. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GroupClass"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    scheduleGroupClassDate: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The class ID. */
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ScheduleGroupClassDateRequest"];
+            };
+        };
+        responses: {
+            /** @description The class was scheduled. */
+            201: {
                 headers: {
                     [name: string]: unknown;
                 };

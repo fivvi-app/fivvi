@@ -182,6 +182,7 @@ describe('F004 roles on every workspace route', () => {
     );
     expect(ownerRoutes.map(({ name }) => name).sort()).toEqual([
       'changeTeamMemberRole',
+      'createGroupClass',
       'createTrainerInvitation',
       'deleteTrainerProfile',
       'listTeamMembers',
@@ -191,6 +192,9 @@ describe('F004 roles on every workspace route', () => {
       'removeTeamMember',
       'renameWorkspace',
       'resendTrainerInvitation',
+      'scheduleGroupClassDate',
+      'updateGroupClass',
+      'updateGroupClassDate',
       'updateLocation',
       'withdrawTrainerInvitation',
     ]);
@@ -219,16 +223,18 @@ describe('F004 roles on every workspace route', () => {
     // The clients (F006) are the Trainer's too: `clients.view` and `clients.manage`; so is the
     // report of a switch to the workspace (F012), which any team member may send, and the planning
     // and reading of sessions (F020: `session.private.manage.own`, and `clients.view`), the
-    // reschedule (`session.private.manage.own`; the handler asks whether it is theirs) and a
-    // client's upcoming sessions (`clients.view`).
+    // reschedule (`session.private.manage.own`; the handler asks whether it is theirs), a client's
+    // upcoming sessions (`clients.view`) and reading the classes (F021: `class.read`).
     expect(trainerRoutes.map(({ name }) => name).toSorted()).toEqual([
       'addClient',
       'createPrivateSession',
       'getClient',
+      'getGroupClass',
       'getSession',
       'getWorkspace',
       'listClientUpcomingSessions',
       'listClients',
+      'listGroupClasses',
       'listLocations',
       'listTrainers',
       'recordWorkspaceSwitch',
@@ -254,6 +260,8 @@ describe('F004 roles on every workspace route', () => {
       getSession: 404,
       reschedulePrivateSession: 400,
       listClientUpcomingSessions: 200,
+      listGroupClasses: 200,
+      getGroupClass: 404,
     });
   });
 
@@ -274,7 +282,13 @@ describe('F004 roles on every workspace route', () => {
       const allowed =
         route.name === 'lookupAddress'
           ? [422]
-          : [200, 201, 204, 400, ...(route.name === 'getSession' ? [404] : [])];
+          : [
+              200,
+              201,
+              204,
+              400,
+              ...(['getSession', 'getGroupClass'].includes(route.name) ? [404] : []),
+            ];
       expect(allowed, route.name).toContain((await call({ ...route, url }, john)).status);
     }
   });

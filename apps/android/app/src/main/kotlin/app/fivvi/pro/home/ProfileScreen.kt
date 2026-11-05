@@ -137,7 +137,7 @@ fun ProfileScreen(state: ProfileState, editor: NameEditor?, actions: ProfileActi
         verticalArrangement = Arrangement.spacedBy(Spacing.space4),
     ) {
         Text(
-            text = stringResource(R.string.my_profile_title),
+            text = stringResource(R.string.profile_title),
             modifier = Modifier.testTag(ProfileTags.TITLE).semantics { heading() },
             style = MaterialTheme.typography.title1,
         )

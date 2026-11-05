@@ -44,6 +44,7 @@ const FORBIDDEN: Record<string, string> = {
   'the trainer profiles table': "import { trainerProfiles } from '@fivvi/database';",
   'the locations table': "import { locations } from '@fivvi/database';",
   'the trainer invitations table': "import { trainerInvitations } from '@fivvi/database';",
+  'the group classes table': "import { groupClasses } from '@fivvi/database';",
   'the sessions table': "import { sessions } from '@fivvi/database';",
   'the session participants table': "import { sessionParticipants } from '@fivvi/database';",
   'the session type enum': "import { sessionType } from '@fivvi/database';",
@@ -253,6 +254,20 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     createPrivateSession: 'repository of the sessions, takes the workspace scope (F020)',
     rescheduleSession: 'repository of the sessions, takes the workspace scope (F020)',
     listUpcomingSessionsOfClient: 'repository of the sessions, takes the workspace scope (F020)',
+    listGroupClasses: 'repository of the group classes, takes the workspace scope (F021)',
+    findGroupClass: 'repository of the group classes, takes the workspace scope (F021)',
+    createGroupClass: 'repository of the group classes, takes the workspace scope (F021)',
+    updateGroupClass: 'repository of the group classes, takes the workspace scope (F021)',
+    createClassDate: 'repository of the group classes, takes the workspace scope (F021)',
+    updateClassDate: 'repository of the group classes, takes the workspace scope (F021)',
+    listMyTrainingWorkspaces:
+      'repository of the personal sessions, takes the account scope; the workspaces the account trains in (F013)',
+    listMySessions:
+      'repository of the personal sessions, takes the workspace scope; the account’s own sessions (F013)',
+    findMyNextSessionStart:
+      'repository of the personal sessions, takes the workspace scope; answers a time (F013)',
+    hasMySession:
+      'repository of the personal sessions, takes the workspace scope; answers yes or no (F013)',
     findInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
     lockInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
     closeInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
@@ -281,6 +296,8 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
       'type of the report the startup check receives (a role name and sentences); no handle',
     // The tenant scope: the one way to the repositories.
     createTenantScopes: 'builds the scopes around an executor it is given; opens no connection',
+    inEachWorkspace:
+      'takes the account scope and sets the request transaction’s context to one of its workspaces at a time (F013, ADR-006); the workspace must be in the scope and the account a team member there; opens no connection',
     // Constants and types.
     HELLO_GREETING: 'a constant of the system data',
     RateLimitRule: 'type',
@@ -300,9 +317,18 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     LocationAddress: 'type of the location repository (F015)',
     LocationChanges: 'type of the location repository (F015)',
     LocationView: 'type of the location repository (F015)',
+    PersonalSessionRow: 'type of the personal-sessions repository (F013)',
+    PersonalWorkspace: 'type of the personal-sessions repository (F013)',
     TrainerWithProfile: 'type of the trainer-profile repository (F020)',
     AttendanceStatus: 'type of the session repository (F020)',
     NewPrivateSession: 'type of the session repository (F020)',
+    GroupClassChanges: 'type of the group-class repository (F021)',
+    GroupClassView: 'type of the group-class repository (F021)',
+    ClassDateChanges: 'type of the group-class repository (F021)',
+    ClassDateUpdate: 'type of the group-class repository (F021)',
+    NewGroupClass: 'type of the group-class repository (F021)',
+    NewClassDate: 'type of the group-class repository (F021)',
+    SessionGroupClassView: 'type of the session repository (F021)',
     SessionParticipantView: 'type of the session repository (F020)',
     SessionReschedule: 'type of the session repository (F020)',
     SessionStatus: 'type of the session repository (F020)',

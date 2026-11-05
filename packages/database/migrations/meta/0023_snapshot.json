@@ -1,5 +1,5 @@
 {
-  "id": "b976c091-9dd4-4d86-8d2b-1df2e7b508d8",
+  "id": "f298212e-1703-4733-b277-008798c08ee9",
   "prevId": "320d89dc-396a-4ffd-b4d2-ae8fcd4704dd",
   "version": "7",
   "dialect": "postgresql",
@@ -429,6 +429,164 @@
         "auth_verifications_locale_supported": {
           "name": "auth_verifications_locale_supported",
           "value": "\"auth_verifications\".\"locale\" IS NULL OR \"auth_verifications\".\"locale\" IN ('nl-NL', 'en')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.group_classes": {
+      "name": "group_classes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name_nl": {
+          "name": "name_nl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name_en": {
+          "name": "name_en",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description_nl": {
+          "name": "description_nl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description_en": {
+          "name": "description_en",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "default_trainer_profile_id": {
+          "name": "default_trainer_profile_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "capacity": {
+          "name": "capacity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "duration_minutes": {
+          "name": "duration_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "archived_at": {
+          "name": "archived_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "group_classes_organization_id_organizations_id_fk": {
+          "name": "group_classes_organization_id_organizations_id_fk",
+          "tableFrom": "group_classes",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "group_classes_default_trainer_fk": {
+          "name": "group_classes_default_trainer_fk",
+          "tableFrom": "group_classes",
+          "tableTo": "trainer_profiles",
+          "columnsFrom": [
+            "organization_id",
+            "default_trainer_profile_id"
+          ],
+          "columnsTo": [
+            "organization_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "group_classes_organization_id_id_unique": {
+          "name": "group_classes_organization_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "organization_id",
+            "id"
+          ]
+        }
+      },
+      "policies": {
+        "group_classes_workspace": {
+          "name": "group_classes_workspace",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "fivvi_app"
+          ],
+          "using": "\"group_classes\".\"organization_id\" = ANY (app_workspace_ids())",
+          "withCheck": "\"group_classes\".\"organization_id\" = ANY (app_workspace_ids())"
+        }
+      },
+      "checkConstraints": {
+        "group_classes_name_nl_valid": {
+          "name": "group_classes_name_nl_valid",
+          "value": "btrim(\"group_classes\".\"name_nl\") <> '' AND char_length(\"group_classes\".\"name_nl\") <= 80"
+        },
+        "group_classes_name_en_valid": {
+          "name": "group_classes_name_en_valid",
+          "value": "\"group_classes\".\"name_en\" IS NULL OR (btrim(\"group_classes\".\"name_en\") <> '' AND char_length(\"group_classes\".\"name_en\") <= 80)"
+        },
+        "group_classes_descriptions_valid": {
+          "name": "group_classes_descriptions_valid",
+          "value": "(\"group_classes\".\"description_nl\" IS NULL OR (btrim(\"group_classes\".\"description_nl\") <> '' AND char_length(\"group_classes\".\"description_nl\") <= 500))\n        AND (\"group_classes\".\"description_en\" IS NULL OR (btrim(\"group_classes\".\"description_en\") <> '' AND char_length(\"group_classes\".\"description_en\") <= 500))"
+        },
+        "group_classes_capacity_valid": {
+          "name": "group_classes_capacity_valid",
+          "value": "\"group_classes\".\"capacity\" BETWEEN 1 AND 100"
+        },
+        "group_classes_duration_valid": {
+          "name": "group_classes_duration_valid",
+          "value": "\"group_classes\".\"duration_minutes\" BETWEEN 15 AND 240 AND \"group_classes\".\"duration_minutes\" % 5 = 0"
         }
       },
       "isRLSEnabled": false
@@ -1022,6 +1180,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "group_class_id": {
+          "name": "group_class_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "version": {
           "name": "version",
           "type": "integer",
@@ -1031,12 +1195,6 @@
         },
         "created_by_team_member_id": {
           "name": "created_by_team_member_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "updated_by_team_member_id": {
-          "name": "updated_by_team_member_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
@@ -1062,6 +1220,33 @@
           "columns": [
             {
               "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "starts_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "sessions_organization_id_group_class_id_starts_at_idx": {
+          "name": "sessions_organization_id_group_class_id_starts_at_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "group_class_id",
               "isExpression": false,
               "asc": true,
               "nulls": "last"
@@ -1150,13 +1335,13 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "sessions_created_by_fk": {
-          "name": "sessions_created_by_fk",
+        "sessions_group_class_fk": {
+          "name": "sessions_group_class_fk",
           "tableFrom": "sessions",
-          "tableTo": "team_members",
+          "tableTo": "group_classes",
           "columnsFrom": [
             "organization_id",
-            "created_by_team_member_id"
+            "group_class_id"
           ],
           "columnsTo": [
             "organization_id",
@@ -1165,13 +1350,13 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
-        "sessions_updated_by_fk": {
-          "name": "sessions_updated_by_fk",
+        "sessions_created_by_fk": {
+          "name": "sessions_created_by_fk",
           "tableFrom": "sessions",
           "tableTo": "team_members",
           "columnsFrom": [
             "organization_id",
-            "updated_by_team_member_id"
+            "created_by_team_member_id"
           ],
           "columnsTo": [
             "organization_id",
@@ -1216,6 +1401,10 @@
         "sessions_version_positive": {
           "name": "sessions_version_positive",
           "value": "\"sessions\".\"version\" >= 1"
+        },
+        "sessions_group_has_class": {
+          "name": "sessions_group_has_class",
+          "value": "\"sessions\".\"type\" <> 'group' OR \"sessions\".\"group_class_id\" IS NOT NULL"
         },
         "sessions_private_has_capacity_one": {
           "name": "sessions_private_has_capacity_one",

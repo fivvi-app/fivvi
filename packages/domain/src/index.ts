@@ -43,6 +43,27 @@ export {
   rolesWith,
 } from './permissions/matrix.ts';
 export {
+  decideGroupDateEdit,
+  GROUP_CLASS_LIMITS,
+  type GroupDateEditDecision,
+  type GroupDateEditFacts,
+  type GroupDateEditRefusal,
+  type ScheduleClassOnDateDecision,
+  type ScheduleClassOnDateFacts,
+  type ScheduleClassOnDateRefusal,
+  scheduleClassOnDate,
+} from './scheduling/group-class.ts';
+export {
+  decidePersonalRange,
+  mergePersonalDay,
+  orderPersonalSessions,
+  PERSONAL_RANGE_MAX_DAYS,
+  PERSONAL_TIME_ZONE,
+  type PersonalDay,
+  type PersonalRangeDecision,
+  type PersonalSessionTimes,
+} from './scheduling/personal-day.ts';
+export {
   confirmationLanguage,
   type PlanPrivateSessionDecision,
   type PlanPrivateSessionFacts,
@@ -56,7 +77,14 @@ export {
   sendsChangeNotice,
   sendsConfirmation,
 } from './scheduling/private-session.ts';
-export { type WallClockInstant, wallClockToInstant } from './scheduling/zoned-time.ts';
+export {
+  addDays,
+  instantToWallClock,
+  localDateOf,
+  localDayBounds,
+  type WallClockInstant,
+  wallClockToInstant,
+} from './scheduling/zoned-time.ts';
 export {
   canChangeRole,
   canRemoveTeamMember,

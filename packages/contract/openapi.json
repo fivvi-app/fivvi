@@ -262,7 +262,9 @@
                 "settings.manage",
                 "team.invite",
                 "session.private.manage.own",
-                "session.private.manage.any"
+                "session.private.manage.any",
+                "class.manage",
+                "class.read"
               ]
             },
             "description": "What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway."
@@ -316,7 +318,9 @@
                 "settings.manage",
                 "team.invite",
                 "session.private.manage.own",
-                "session.private.manage.any"
+                "session.private.manage.any",
+                "class.manage",
+                "class.read"
               ]
             },
             "description": "What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway."
@@ -363,6 +367,346 @@
           }
         },
         "description": "What to change on the signed-in account. Fields left out stay as they are."
+      },
+      "MyDay": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "The day shown: `YYYY-MM-DD`, in `timeZone`."
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "The zone of the personal scope: `Europe/Amsterdam`. The day starts and ends on its wall clock."
+          },
+          "workspaceCount": {
+            "type": "integer",
+            "description": "The workspaces the account trains in and the view spans. The apps show a workspace name on a row only when it is more than one."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonalSession"
+            },
+            "description": "The day’s items in time order, cancelled ones included."
+          },
+          "summary": {
+            "$ref": "#/components/schemas/MyDaySummary"
+          },
+          "next": {
+            "$ref": "#/components/schemas/MyDayNext"
+          },
+          "tomorrow": {
+            "$ref": "#/components/schemas/MyDayTomorrow"
+          },
+          "nextSessionDate": {
+            "type": "string",
+            "description": "The date of the next session that takes place after this day, `YYYY-MM-DD`. Only given when the day has no items; left out when there is none."
+          },
+          "hasSessions": {
+            "type": "boolean",
+            "description": "Whether the account is the current trainer of any session at all, past or future. Only computed when the day is empty and no session follows, to tell a new trainer (*Je hebt nog geen sessies*) from one with nothing planned; true otherwise."
+          }
+        },
+        "required": [
+          "date",
+          "timeZone",
+          "workspaceCount",
+          "items",
+          "summary",
+          "hasSessions"
+        ],
+        "description": "The personal day of a trainer across all their workspaces."
+      },
+      "PersonalSession": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The session ID. It opens in its own workspace: `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}` with the item’s `workspace.id`."
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/PersonalWorkspace"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "private",
+              "group",
+              "open_gym"
+            ],
+            "description": "The kind of session, to be shown in words (*Privé*, *Groep*, *Open Gym*)."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "cancelled"
+            ],
+            "description": "Whether the session still takes place. A cancelled one stays in the list."
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The start, a UTC instant."
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The end, a UTC instant."
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "The workspace’s IANA time zone, e.g. `Europe/Amsterdam` (ADR-012)."
+          },
+          "capacity": {
+            "type": "integer",
+            "description": "1 for a private session."
+          },
+          "booked": {
+            "type": "integer",
+            "description": "The places taken (not cancelled), for a group class or Open Gym: *{booked}/{capacity} geboekt*. Left out for a private session."
+          },
+          "className": {
+            "type": "string",
+            "description": "The class name in the viewer’s language, for a group class. Left out until classes exist (F021 adds it)."
+          },
+          "location": {
+            "$ref": "#/components/schemas/Location"
+          },
+          "clientName": {
+            "type": "string",
+            "description": "The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail."
+          }
+        },
+        "required": [
+          "sessionId",
+          "workspace",
+          "type",
+          "status",
+          "startsAt",
+          "endsAt",
+          "timeZone",
+          "capacity"
+        ],
+        "description": "A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds."
+      },
+      "PersonalWorkspace": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The workspace ID."
+          },
+          "slug": {
+            "type": "string",
+            "description": "The URL name: `/w/{slug}` on the web."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name shown in the product."
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name"
+        ],
+        "description": "The workspace an item of the personal view is in."
+      },
+      "Location": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The location ID."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name sessions show, up to 120 characters."
+          },
+          "type": {
+            "$ref": "#/components/schemas/LocationType"
+          },
+          "address": {
+            "$ref": "#/components/schemas/LocationAddress"
+          },
+          "isDefault": {
+            "type": "boolean",
+            "description": "Whether this is the workspace’s default location, the one every new session takes."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "address",
+          "isDefault"
+        ],
+        "description": "A place where sessions of the workspace take place."
+      },
+      "LocationType": {
+        "type": "string",
+        "enum": [
+          "organization_location",
+          "external_gym",
+          "client_home",
+          "outdoor",
+          "online",
+          "other"
+        ],
+        "description": "The kind of location. Every workspace has one `organization_location` (its own) at go-live; the other kinds exist in the model for later and are not written yet."
+      },
+      "LocationAddress": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "postcode": {
+            "type": "string",
+            "description": "A Dutch postcode, stored as `1234 AB`."
+          },
+          "houseNumber": {
+            "type": "string",
+            "description": "One to five digits."
+          },
+          "houseNumberAddition": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "For example `A` or `2 hoog`; `null` when there is none."
+          },
+          "street": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "postcode",
+          "houseNumber",
+          "houseNumberAddition",
+          "street",
+          "city"
+        ],
+        "description": "The address, or `null` when the location has none."
+      },
+      "MyDaySummary": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "The items of the day, cancelled ones counted."
+          },
+          "firstStartsAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The start of the first item; left out for an empty day."
+          },
+          "lastEndsAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The end of the last item; left out for an empty day."
+          }
+        },
+        "required": [
+          "count"
+        ],
+        "description": "*4 sessies · 09:00–19:00*."
+      },
+      "MyDayNext": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The item in `items`."
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "upcoming",
+              "in_progress"
+            ],
+            "description": "`upcoming` is *Straks*, `in_progress` is *Nu bezig*."
+          },
+          "startsInMinutes": {
+            "type": "integer",
+            "description": "Minutes to the start, rounded up; 0 while it runs."
+          }
+        },
+        "required": [
+          "sessionId",
+          "state",
+          "startsInMinutes"
+        ],
+        "description": "*Straks* / *Nu bezig*: the first item of today that has not ended and is not cancelled. Left out when nothing is left today, and for any day but today."
+      },
+      "MyDayTomorrow": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "The next day: `YYYY-MM-DD`."
+          },
+          "count": {
+            "type": "integer",
+            "description": "The sessions that day that take place."
+          },
+          "firstStartsAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The start of the first one."
+          }
+        },
+        "required": [
+          "date",
+          "count",
+          "firstStartsAt"
+        ],
+        "description": "The footer *Morgen: 3 sessies, eerste om 07:00*. Cancelled sessions are not counted; left out when the next day has none."
+      },
+      "MySessions": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "The first day: `YYYY-MM-DD`."
+          },
+          "to": {
+            "type": "string",
+            "description": "The last day, included: `YYYY-MM-DD`."
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "The zone of the personal scope: `Europe/Amsterdam`. The days follow its wall clock."
+          },
+          "workspaceCount": {
+            "type": "integer",
+            "description": "The workspaces the account trains in and the view spans."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonalSession"
+            },
+            "description": "The sessions from the start of `from` to the end of `to`, in time order."
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "timeZone",
+          "workspaceCount",
+          "items"
+        ],
+        "description": "The personal sessions of a trainer across all their workspaces, for a range of days."
       },
       "SignInRequest": {
         "type": "object",
@@ -763,87 +1107,6 @@
         ],
         "description": "The caller’s own trainer profile: they train in this workspace."
       },
-      "Location": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "description": "The location ID."
-          },
-          "name": {
-            "type": "string",
-            "description": "The name sessions show, up to 120 characters."
-          },
-          "type": {
-            "$ref": "#/components/schemas/LocationType"
-          },
-          "address": {
-            "$ref": "#/components/schemas/LocationAddress"
-          },
-          "isDefault": {
-            "type": "boolean",
-            "description": "Whether this is the workspace’s default location, the one every new session takes."
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "type",
-          "address",
-          "isDefault"
-        ],
-        "description": "A place where sessions of the workspace take place."
-      },
-      "LocationType": {
-        "type": "string",
-        "enum": [
-          "organization_location",
-          "external_gym",
-          "client_home",
-          "outdoor",
-          "online",
-          "other"
-        ],
-        "description": "The kind of location. Every workspace has one `organization_location` (its own) at go-live; the other kinds exist in the model for later and are not written yet."
-      },
-      "LocationAddress": {
-        "type": [
-          "object",
-          "null"
-        ],
-        "properties": {
-          "postcode": {
-            "type": "string",
-            "description": "A Dutch postcode, stored as `1234 AB`."
-          },
-          "houseNumber": {
-            "type": "string",
-            "description": "One to five digits."
-          },
-          "houseNumberAddition": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "For example `A` or `2 hoog`; `null` when there is none."
-          },
-          "street": {
-            "type": "string"
-          },
-          "city": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "postcode",
-          "houseNumber",
-          "houseNumberAddition",
-          "street",
-          "city"
-        ],
-        "description": "The address, or `null` when the location has none."
-      },
       "UpdateLocationRequest": {
         "type": "object",
         "properties": {
@@ -987,7 +1250,7 @@
               "group",
               "open_gym"
             ],
-            "description": "The kind of session. Private sessions are planned here; the others come later."
+            "description": "The kind of session. Private sessions are planned here, class dates are a class on a date (`…/group-classes/{classId}/dates`); Open Gym comes later."
           },
           "status": {
             "type": "string",
@@ -1013,7 +1276,7 @@
           },
           "capacity": {
             "type": "integer",
-            "description": "1 for a private session."
+            "description": "1 for a private session; the date’s own capacity for a class date."
           },
           "version": {
             "type": "integer",
@@ -1025,12 +1288,15 @@
           "trainer": {
             "$ref": "#/components/schemas/SessionTrainer"
           },
+          "groupClass": {
+            "$ref": "#/components/schemas/SessionGroupClass"
+          },
           "participants": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/SessionParticipant"
             },
-            "description": "The clients in the session, in the order they were added. One for a private session."
+            "description": "The clients in the session, in the order they were added. One for a private session; none for a class date until bookings exist (M5)."
           }
         },
         "required": [
@@ -1065,6 +1331,33 @@
           "name"
         ],
         "description": "Left out when the session has no trainer (the trainer’s profile ended)."
+      },
+      "SessionGroupClass": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The class ID."
+          },
+          "nameNl": {
+            "type": "string",
+            "description": "The class’s Dutch name."
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The class’s English name, `null` without one. Show it to a viewer whose language is English, else the Dutch name (`pickContentLanguage`)."
+          }
+        },
+        "required": [
+          "id",
+          "nameNl",
+          "nameEn"
+        ],
+        "description": "The class of a class date (F021); left out for the other kinds."
       },
       "SessionParticipant": {
         "type": "object",
@@ -1305,6 +1598,312 @@
           "endsAt"
         ],
         "description": "A client’s coming private session."
+      },
+      "GroupClass": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The class ID."
+          },
+          "nameNl": {
+            "type": "string",
+            "description": "The Dutch name: always there."
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The English name, `null` without one. Show it to a viewer whose language is English, else the Dutch name (`pickContentLanguage` of @fivvi/i18n)."
+          },
+          "descriptionNl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The Dutch description, or `null`."
+          },
+          "descriptionEn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The English description, or `null`: shown only to English viewers."
+          },
+          "capacity": {
+            "type": "integer",
+            "description": "How many people fit: 1 to 100."
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "description": "How long a date of the class lasts: 15 to 240 minutes in steps of 5."
+          },
+          "defaultTrainer": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SessionTrainer"
+              },
+              {
+                "description": "The usual trainer. Left out for *Trainer nodig* (none)."
+              }
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "nameNl",
+          "nameEn",
+          "descriptionNl",
+          "descriptionEn",
+          "capacity",
+          "durationMinutes"
+        ],
+        "description": "A class of the workspace: what it is called, who usually teaches it, how many people fit and how long it lasts. It is not a point in time; a class on a date is a `group` session."
+      },
+      "CreatedGroupClass": {
+        "type": "object",
+        "properties": {
+          "groupClass": {
+            "$ref": "#/components/schemas/GroupClass"
+          },
+          "firstDate": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Session"
+              },
+              {
+                "description": "The first date, when the request had a `firstDate`."
+              }
+            ]
+          }
+        },
+        "required": [
+          "groupClass"
+        ],
+        "description": "The class that was created, with its first date when the request had one."
+      },
+      "CreateGroupClassRequest": {
+        "type": "object",
+        "properties": {
+          "nameNl": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "The Dutch name: trimmed, 1 to 80 characters."
+          },
+          "nameEn": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "The English name: trimmed, at most 80 characters. A blank text means none (and, in a change, clears it)."
+          },
+          "descriptionNl": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "The Dutch description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it)."
+          },
+          "descriptionEn": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "The English description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it)."
+          },
+          "trainerId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The usual trainer’s team-member ID, from `GET …/trainers`. Leave it out, or send `null`, for *Trainer nodig*. A team member who does not train in the workspace answers `404`."
+          },
+          "capacity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "1 to 100 people."
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "minimum": 15,
+            "maximum": 240,
+            "description": "15 to 240 minutes in steps of 5; any other value answers `400` on `durationMinutes`."
+          },
+          "firstDate": {
+            "$ref": "#/components/schemas/FirstGroupClassDate"
+          },
+          "surface": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android"
+            ],
+            "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_created` event (and `class_scheduled` with a first date) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it."
+          }
+        },
+        "required": [
+          "nameNl",
+          "capacity",
+          "durationMinutes"
+        ],
+        "description": "A class to create: the Dutch name, optionally an English one, descriptions, the usual trainer, capacity and duration, and optionally its first date."
+      },
+      "FirstGroupClassDate": {
+        "type": "object",
+        "properties": {
+          "localDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "The date in the workspace’s time zone: `YYYY-MM-DD`."
+          },
+          "localStart": {
+            "type": "string",
+            "pattern": "^\\d{2}:\\d{2}$",
+            "description": "The start in the workspace’s time zone: `HH:mm`, 24 hours."
+          }
+        },
+        "required": [
+          "localDate",
+          "localStart"
+        ],
+        "description": "Puts the new class on one date in the same request (the apps’ quick create, TD-05): class and date are stored together or not at all. A refused date (`400` on `firstDate.localDate` or `firstDate.localStart`) leaves no class behind."
+      },
+      "UpdateGroupClassRequest": {
+        "type": "object",
+        "properties": {
+          "nameNl": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "The new Dutch name: trimmed, 1 to 80 characters."
+          },
+          "nameEn": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "The new English name: trimmed, at most 80 characters. A blank text means none (and, in a change, clears it)."
+          },
+          "descriptionNl": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "The new Dutch description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it)."
+          },
+          "descriptionEn": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "The new English description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it)."
+          },
+          "trainerId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The new usual trainer’s team-member ID; `null` makes the class *Trainer nodig*; left out keeps it."
+          },
+          "capacity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "The new capacity, 1 to 100."
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "minimum": 15,
+            "maximum": 240,
+            "description": "The new duration, 15 to 240 minutes in steps of 5."
+          }
+        },
+        "description": "Changes a class: every field left out stays as it is. Dates already planned keep their own trainer, capacity and times (they were copied when they were planned). Other fields are ignored."
+      },
+      "ScheduleGroupClassDateRequest": {
+        "type": "object",
+        "properties": {
+          "localDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "The date in the workspace’s time zone: `YYYY-MM-DD`. A date that is none (30 February) answers `400` on `localDate`."
+          },
+          "localStart": {
+            "type": "string",
+            "pattern": "^\\d{2}:\\d{2}$",
+            "description": "The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first."
+          },
+          "trainerId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The trainer of this date, a team-member ID from `GET …/trainers`. Leave it out for the class’s usual trainer; `null` plans the date as *Trainer nodig*."
+          },
+          "capacity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "The capacity of this date, 1 to 100. Leave it out for the class’s."
+          },
+          "surface": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android"
+            ],
+            "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it."
+          }
+        },
+        "required": [
+          "localDate",
+          "localStart"
+        ],
+        "description": "A class on a date: a local date and start; the end follows from the class’s duration."
+      },
+      "ClassDateChanged": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "class_date_changed"
+            ]
+          },
+          "session": {
+            "$ref": "#/components/schemas/Session"
+          }
+        },
+        "required": [
+          "code",
+          "session"
+        ],
+        "description": "The date was changed since the version in the request; nothing was written. `session` is the date as it is now, to show the reloaded values. Contains no user-facing text."
+      },
+      "UpdateGroupClassDateRequest": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "The version of the date the change was made from (`Session.version`). If the date changed since, the answer is `409` and nothing is written."
+          },
+          "localStart": {
+            "type": "string",
+            "pattern": "^\\d{2}:\\d{2}$",
+            "description": "The new start, `HH:mm` in the workspace’s time zone. Leave it out to keep it."
+          },
+          "localEnd": {
+            "type": "string",
+            "pattern": "^\\d{2}:\\d{2}$",
+            "description": "The new end, `HH:mm` on the same day as the start. Leave it out to keep its time of day: a start moved alone does not move the end with it, and one moved to or past the unchanged end is refused like any end. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`."
+          },
+          "capacity": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "The new capacity of this date, 1 to 100. Leave it out to keep it."
+          }
+        },
+        "required": [
+          "version"
+        ],
+        "description": "Changes one date of a class (CO-04): the start, the end and the capacity, each only when given. The date stays on its day. The class itself never changes."
       },
       "ClientList": {
         "type": "object",
@@ -1719,6 +2318,201 @@
                   "items": {
                     "$ref": "#/components/schemas/MyWorkspace"
                   }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/day": {
+      "get": {
+        "operationId": "getMyDay",
+        "tags": [
+          "me"
+        ],
+        "summary": "My day: the sessions of one day across my workspaces",
+        "description": "Everything the signed-in account is the current trainer of on one day, in all the workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary, the tomorrow line, the date of the next session when the day is empty and the number of workspaces. Each workspace is read on its own; the answer is merged here. An account that trains in no workspace (an Owner who does not train, a client account) gets an empty answer, not `403`. The day is a date in Dutch time; times are UTC instants, to be shown in Dutch time.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "account",
+          "workspaces": "team"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "The day to show: `YYYY-MM-DD`, in Dutch time (Europe/Amsterdam). A date that is none (30 February) answers `400` on `date`."
+            },
+            "required": true,
+            "description": "The day to show: `YYYY-MM-DD`, in Dutch time (Europe/Amsterdam). A date that is none (30 February) answers `400` on `date`.",
+            "name": "date",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ios",
+                "android"
+              ],
+              "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the product event of the view with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it."
+            },
+            "required": false,
+            "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the product event of the view with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.",
+            "name": "surface",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The day.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyDay"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/sessions": {
+      "get": {
+        "operationId": "listMySessions",
+        "tags": [
+          "me"
+        ],
+        "summary": "My sessions: a range of days across my workspaces",
+        "description": "The sessions the signed-in account is the current trainer of from the start of `from` to the end of `to` (at most 42 days, days in Dutch time), in all the workspaces it trains in, in time order: for the week and month views. Cancelled sessions stay. An account that trains nowhere gets an empty list, not `403`.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "account",
+          "workspaces": "team"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "The first day: `YYYY-MM-DD`, in Dutch time. A date that is none answers `400` on `from`."
+            },
+            "required": true,
+            "description": "The first day: `YYYY-MM-DD`, in Dutch time. A date that is none answers `400` on `from`.",
+            "name": "from",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "The last day, included: `YYYY-MM-DD`, in Dutch time. Before `from` answers `400` on `to` with `before_from`; more than 42 days from `from` answers `400` with `range_too_long`."
+            },
+            "required": true,
+            "description": "The last day, included: `YYYY-MM-DD`, in Dutch time. Before `from` answers `400` on `to` with `before_from`; more than 42 days from `from` answers `400` with `range_too_long`.",
+            "name": "to",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ios",
+                "android"
+              ],
+              "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the product event of the view with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it."
+            },
+            "required": false,
+            "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the product event of the view with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.",
+            "name": "surface",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The sessions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MySessions"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
                 }
               }
             }
@@ -4470,6 +5264,711 @@
         "responses": {
           "200": {
             "description": "The session.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateGroupClassDate",
+        "tags": [
+          "group-classes"
+        ],
+        "summary": "Change one date of a class",
+        "description": "Changes the start, end and/or capacity of one date of a class (the Owner only), from the version the caller read (`409` with the date as it is now when it changed since). The date stays on its day. Times are wall-clock in the workspace’s time zone with the same daylight saving rules as scheduling. A start sent alone keeps the end at its time of day; when that is not after the new start the answer is `400` on `localEnd`. An end that is not after the start answers `400` on `localEnd` (`end_before_start`). The class and its other dates are not touched. A session that is not a class date of the workspace (a private session too) answers `404`.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "class.manage",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The session ID."
+            },
+            "required": true,
+            "description": "The session ID.",
+            "name": "sessionId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGroupClassDateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The date with its changes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The date changed since the version in the request; nothing was written.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClassDateChanged"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/group-classes": {
+      "get": {
+        "operationId": "listGroupClasses",
+        "tags": [
+          "group-classes"
+        ],
+        "summary": "The classes of a workspace",
+        "description": "The workspace’s classes, sorted by Dutch name. Every team member may read them; a client of the workspace gets `403`, a person with no place in it `404`.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "class.read",
+          "roles": [
+            "owner",
+            "trainer"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The classes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GroupClass"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createGroupClass",
+        "tags": [
+          "group-classes"
+        ],
+        "summary": "Create a class",
+        "description": "Creates a class (the Owner only; a Trainer gets `403`). Empty or too long texts, a capacity outside 1 to 100 and a duration outside 15 to 240 minutes in steps of 5 answer `400` with the field in `issues`. With a `firstDate` the class is also put on that date (the apps’ quick create), both in one transaction: a refused date answers `400` and leaves no class. A trainer who does not train in the workspace answers `404`.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "class.manage",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateGroupClassRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The class was created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreatedGroupClass"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/group-classes/{classId}": {
+      "get": {
+        "operationId": "getGroupClass",
+        "tags": [
+          "group-classes"
+        ],
+        "summary": "One class",
+        "description": "A class of the workspace, for any team member. A class that is not in the workspace answers `404`.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "class.read",
+          "roles": [
+            "owner",
+            "trainer"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The class ID."
+            },
+            "required": true,
+            "description": "The class ID.",
+            "name": "classId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The class.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupClass"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateGroupClass",
+        "tags": [
+          "group-classes"
+        ],
+        "summary": "Change a class",
+        "description": "Changes the fields given of a class (the Owner only). The same limits as creating apply. Dates already planned keep what they copied. A class or trainer that is not in the workspace answers `404`.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "class.manage",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The class ID."
+            },
+            "required": true,
+            "description": "The class ID.",
+            "name": "classId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateGroupClassRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The class with its changes.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GroupClass"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/group-classes/{classId}/dates": {
+      "post": {
+        "operationId": "scheduleGroupClassDate",
+        "tags": [
+          "group-classes"
+        ],
+        "summary": "Put a class on a date",
+        "description": "Schedules the class on a date (the Owner only): a `group` session at the local start, taking the class’s trainer, capacity and duration (a trainer or capacity in the request wins for this date; `trainerId: null` plans it without a trainer) and the workspace’s default location, stored and answered as UTC instants plus the workspace’s time zone. A start the clocks skip answers `400` on `localStart` (`time_does_not_exist`); one they repeat takes the first. A class or trainer that is not in the workspace answers `404`.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "class.manage",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The class ID."
+            },
+            "required": true,
+            "description": "The class ID.",
+            "name": "classId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ScheduleGroupClassDateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The class was scheduled.",
             "content": {
               "application/json": {
                 "schema": {

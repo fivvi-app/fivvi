@@ -18,8 +18,7 @@ final class ProfileEditUITests: SignInUITestCase {
     private func openProfile(_ screen: SignInScreen) {
         let open = screen.app.buttons["home.openProfile"]
         XCTAssertTrue(open.waitUntilExists(timeout: timeout))
-        open.tap()
-        XCTAssertTrue(screen.app.staticTexts["profile.workspacesTitle"].waitUntilExists(timeout: timeout))
+        XCTAssertTrue(open.tap(until: screen.app.staticTexts["profile.workspacesTitle"], timeout: timeout))
     }
 
     /// Replaces what is in the name field with `text`.
