@@ -815,6 +815,66 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     assert.match(androidTests, /needs: changes\n/);
   });
 
+  it('E008 #519: the Maestro step holds both locales of the suite with margin, the job still bounds a hung run, and the chain stays under the merge queue timeout', () => {
+    const minutes = (section) => Number(section.match(/^ {4}timeout-minutes: (\d+)$/m)[1]);
+    const stepMinutes = (section, name) =>
+      Number(
+        section.match(
+          new RegExp(`- name: ${name.replace(/[()]/g, '\\$&')}\\n +timeout-minutes: (\\d+)\n`),
+        )[1],
+      );
+    const queue = Number(
+      readFileSync(join(SCRIPTS, '../.github/rulesets/main.json'), 'utf8').match(
+        /"check_response_timeout_minutes": (\d+)/,
+      )[1],
+    );
+    const maestroStep = 'Maestro flows (sign-in, anonymous and hello; nl-NL and en)';
+    const maestroStepMinutes = stepMinutes(androidMaestro, maestroStep);
+    // Run 41938461253 (PR #518, 10 flows): nl-NL 8m30s and en 8m34s of flows, 1 to 2 minutes of setup per locale, so about
+    // 20 minutes and 11 s over the 20-minute cap; on main 18, 14 and 16 minutes. The step needs at least 1.5 x 20 minutes.
+    const slowestRun = 20;
+    assert.ok(
+      maestroStepMinutes >= 1.5 * slowestRun,
+      'the Maestro step has at least 1.5 x the slowest recent run',
+    );
+    // The job holds its steps before the Maestro step (measured 3 minutes; the emulator boot alone is capped at 10), the
+    // Maestro step and the steps after it (under a minute), and stays above the step so a hung run is still bounded by
+    // the job, not by the queue.
+    assert.ok(
+      minutes(androidMaestro) >= maestroStepMinutes + 10,
+      'the job holds the step plus the setup before it and the reports after it',
+    );
+    assert.ok(minutes(androidMaestro) <= 40, 'the job still bounds a hung run');
+    // A run that nears the cap says so: the step durations step warns above two thirds of the step's own budget, and the
+    // budget it is given is the step's timeout.
+    assert.match(
+      androidMaestro,
+      new RegExp(
+        `run: scripts/step-timings\\.sh "${maestroStep.replace(/[()]/g, '\\$&')}=${maestroStepMinutes}"\n`,
+      ),
+    );
+    // Android build took 0.8 to 4.6 minutes in the last 46 runs (run 41674310293 the slowest);
+    // the job and its build step keep at least twice that, and the step fits in its job.
+    const slowestBuild = 4.6;
+    const buildStepMinutes = stepMinutes(androidBuild, 'ktlint, checks and debug build');
+    assert.ok(
+      minutes(androidBuild) >= 2 * slowestBuild,
+      'Android build keeps 2 x its slowest measured 4.6 minutes',
+    );
+    assert.ok(
+      buildStepMinutes >= 2 * slowestBuild,
+      'the build step keeps 2 x its slowest measured 4.6 minutes',
+    );
+    assert.ok(buildStepMinutes <= minutes(androidBuild), 'the build step fits in its job');
+    // Detect changes (5) + build + Maestro + the gate job (2) must end before the queue gives up on the check, and
+    // pr.sh wait must outlast it, or it gives up on a run that still passes.
+    const chain = 5 + minutes(androidBuild) + minutes(androidMaestro) + minutes(job('android'));
+    assert.ok(chain < queue, 'Android chain is under the queue timeout');
+    const pr = readFileSync(join(SCRIPTS, 'pr.sh'), 'utf8');
+    const waitNative = Number(pr.match(/^WAIT_MINUTES_NATIVE=(\d+)$/m)[1]);
+    assert.ok(waitNative > chain, 'pr.sh wait outlasts the Android chain by timeouts');
+  });
+
   it('#293: the debug app and the Maestro web server agree on the port the app has baked in', () => {
     const port = (section) => section.match(/^ {6}E2E_PORT: '(\d+)'$/m)?.[1];
     assert.ok(port(androidBuild), 'Android build sets E2E_PORT');

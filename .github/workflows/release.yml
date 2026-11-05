@@ -214,6 +214,8 @@ jobs:
           name: android-release-test-results
           path: |
             apps/android/app/build/reports/
+            apps/android/core/build/reports/
+            apps/android/client/build/reports/
             apps/android/app/build/outputs/androidTest-results/
             apps/android/build/emulator.log*
             e2e/maestro/build/
