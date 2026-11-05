@@ -1,13 +1,12 @@
 // Fivvi, the client app (E017, #469): application ID `app.fivvi`, built on :core with the generated API client, strings
 // and design tokens, like Fivvi Pro in :app. The version, the base URL and Sentry DSN per build type and the release
-// checks are shared with :app (gradle/app-build.gradle.kts). Release signing and the store lane come with the release-lane
-// ticket (#469).
+// checks are shared with :app (gradle/app-build.gradle.kts, applied by the root build.gradle.kts). Release signing and
+// the store lane come with the release-lane ticket (#469).
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
 }
 
-apply(from = "../gradle/app-build.gradle.kts")
 val appVersion = extra["fivvi.versionName"] as String
 val buildNumber = extra["fivvi.versionCode"] as Int
 val debugApiBaseUrl = extra["fivvi.debugApiBaseUrl"] as String

@@ -71,3 +71,8 @@ tasks.register<JavaExec>("ktlintFormat") {
     jvmArgs("--add-opens=java.base/java.lang=ALL-UNNAMED")
     args = listOf("--relative", "--format") + ktlintSources
 }
+
+// What both application modules share (version, build number, base URL and Sentry DSN per build type, release checks), as
+// `extra` properties and tasks of each. Applied from here, not by each module's own script: Android lint (lintVital in the
+// release bundle) fails on a module script that calls apply(from = ...).
+listOf(":app", ":client").forEach { project(it).apply(from = file("gradle/app-build.gradle.kts")) }

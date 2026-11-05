@@ -4,8 +4,7 @@ plugins {
 }
 
 // The version, the build number, the base URL and Sentry DSN per build type and the release checks are the ones of both
-// apps (gradle/app-build.gradle.kts).
-apply(from = "../gradle/app-build.gradle.kts")
+// apps (gradle/app-build.gradle.kts, applied by the root build.gradle.kts, so these values exist before this script runs).
 val appVersion = extra["fivvi.versionName"] as String
 val buildNumber = extra["fivvi.versionCode"] as Int
 val debugApiBaseUrl = extra["fivvi.debugApiBaseUrl"] as String

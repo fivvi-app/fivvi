@@ -1,7 +1,8 @@
-// What every application module (Fivvi Pro in app/, Fivvi in client/) shares, applied by each with
-// `apply(from = "../gradle/app-build.gradle.kts")` (E017): the version and build number, the base URL and Sentry DSN per
-// build type, and the release checks, so no app copies them. What belongs to one app (its application ID, label, icon,
-// signing) stays in its own build.gradle.kts. Reads gradle.properties, `-P` flags and apps/Version.xcconfig.
+// What every application module (Fivvi Pro in app/, Fivvi in client/) shares, applied to both by the root build.gradle.kts
+// (E017; not by each module's own script, which Android lint cannot analyse then): the version and build number, the base
+// URL and Sentry DSN per build type, and the release checks, so no app copies them. What belongs to one app (its
+// application ID, label, icon, signing) stays in its own build.gradle.kts. Reads gradle.properties, `-P` flags and
+// apps/Version.xcconfig.
 import java.net.URI
 
 // Version and build number (E017 AC4). The version is the one of both apps, in apps/Version.xcconfig, which the iOS build
