@@ -109,3 +109,18 @@ export async function changeTeamMemberRole(
     .limit(1);
   return view;
 }
+
+/**
+ * Whether an account with the email address (lower case) has a team role in the scope's
+ * workspace, Owner or Trainer. Only the yes or no is read (F011 AC8): an invitation is refused
+ * for someone already on the team.
+ */
+export async function isOnTeam(scope: WorkspaceScope, email: string): Promise<boolean> {
+  const [row] = await executorOf(scope)
+    .select({ id: teamMembers.id })
+    .from(teamMembers)
+    .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
+    .where(and(eq(teamMembers.organizationId, scope.workspaceId), eq(authUsers.email, email)))
+    .limit(1);
+  return row !== undefined;
+}

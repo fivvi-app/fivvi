@@ -41,8 +41,15 @@ export {
   helloEmail,
   type SignInEmailProps,
   signInEmail,
+  type TrainerInvitationEmailProps,
   templates,
+  trainerInvitationEmail,
 } from './templates/index.ts';
+export type { TrainerInvitationMail } from './trainer-invitation-mail.ts';
+export {
+  createTrainerInvitationSender,
+  type TrainerInvitationSenderOptions,
+} from './trainer-invitation-sender.ts';
 export {
   type EmailAddress,
   EmailSendError,

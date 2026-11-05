@@ -116,6 +116,34 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `DELETE /v1/workspaces/{workspaceId}/team-members/{teamMemberId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/team-members/{teamMemberId}/delete(removeTeamMember)`.
     func removeTeamMember(_ input: Operations.RemoveTeamMember.Input) async throws -> Operations.RemoveTeamMember.Output
+    /// The pending invitations of a workspace
+    ///
+    /// The invitations that are still pending (the Owner only), the latest sent first. One whose `expiresAt` has passed is still listed, so the Owner can send it again. Accepted, declined and withdrawn invitations are not listed.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/trainer-invitations`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-invitations/get(listTrainerInvitations)`.
+    func listTrainerInvitations(_ input: Operations.ListTrainerInvitations.Input) async throws -> Operations.ListTrainerInvitations.Output
+    /// Invite a trainer
+    ///
+    /// Invites a person to join the team as a Trainer (the Owner only) and emails them the invitation (EM-09) in the chosen language, else the language of the account with that address, else the workspace’s default. The invitation works for seven days. An address that is on the team answers `409` `already_on_team`; one with a pending invitation `409` `invitation_pending` with that invitation’s ID, and no second one is made. A workspace makes at most 20 invitations in 24 hours: the next answers `429`. If the email can not be sent the answer is `500` and nothing is stored.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/trainer-invitations`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-invitations/post(createTrainerInvitation)`.
+    func createTrainerInvitation(_ input: Operations.CreateTrainerInvitation.Input) async throws -> Operations.CreateTrainerInvitation.Output
+    /// Send an invitation again
+    ///
+    /// Emails a pending invitation again (the Owner only) with a new link and a new seven-day expiry; the old link stops working. An invitation that is not pending, or not found in the workspace, answers `404`. If the email can not be sent the answer is `500` and the old link keeps working.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}/resend`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}/resend/post(resendTrainerInvitation)`.
+    func resendTrainerInvitation(_ input: Operations.ResendTrainerInvitation.Input) async throws -> Operations.ResendTrainerInvitation.Output
+    /// Withdraw an invitation
+    ///
+    /// Withdraws a pending invitation (the Owner only): its link stops working and it leaves the list. An invitation that is not pending, or not found in the workspace, answers `404`. The address can be invited again.
+    ///
+    /// - Remark: HTTP `DELETE /v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}/delete(withdrawTrainerInvitation)`.
+    func withdrawTrainerInvitation(_ input: Operations.WithdrawTrainerInvitation.Input) async throws -> Operations.WithdrawTrainerInvitation.Output
     /// The trainers of a workspace
     ///
     /// The team members who train in the workspace, by name: every Trainer, and each Owner who also trains. Each has the team-member ID and the name. Both roles may read it; a client of the workspace gets `403`, a person with no place in it `404`.
@@ -393,6 +421,68 @@ extension APIProtocol {
         headers: Operations.RemoveTeamMember.Input.Headers = .init()
     ) async throws -> Operations.RemoveTeamMember.Output {
         try await removeTeamMember(Operations.RemoveTeamMember.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// The pending invitations of a workspace
+    ///
+    /// The invitations that are still pending (the Owner only), the latest sent first. One whose `expiresAt` has passed is still listed, so the Owner can send it again. Accepted, declined and withdrawn invitations are not listed.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/trainer-invitations`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-invitations/get(listTrainerInvitations)`.
+    public func listTrainerInvitations(
+        path: Operations.ListTrainerInvitations.Input.Path,
+        headers: Operations.ListTrainerInvitations.Input.Headers = .init()
+    ) async throws -> Operations.ListTrainerInvitations.Output {
+        try await listTrainerInvitations(Operations.ListTrainerInvitations.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Invite a trainer
+    ///
+    /// Invites a person to join the team as a Trainer (the Owner only) and emails them the invitation (EM-09) in the chosen language, else the language of the account with that address, else the workspace’s default. The invitation works for seven days. An address that is on the team answers `409` `already_on_team`; one with a pending invitation `409` `invitation_pending` with that invitation’s ID, and no second one is made. A workspace makes at most 20 invitations in 24 hours: the next answers `429`. If the email can not be sent the answer is `500` and nothing is stored.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/trainer-invitations`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-invitations/post(createTrainerInvitation)`.
+    public func createTrainerInvitation(
+        path: Operations.CreateTrainerInvitation.Input.Path,
+        headers: Operations.CreateTrainerInvitation.Input.Headers = .init(),
+        body: Operations.CreateTrainerInvitation.Input.Body
+    ) async throws -> Operations.CreateTrainerInvitation.Output {
+        try await createTrainerInvitation(Operations.CreateTrainerInvitation.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Send an invitation again
+    ///
+    /// Emails a pending invitation again (the Owner only) with a new link and a new seven-day expiry; the old link stops working. An invitation that is not pending, or not found in the workspace, answers `404`. If the email can not be sent the answer is `500` and the old link keeps working.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}/resend`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}/resend/post(resendTrainerInvitation)`.
+    public func resendTrainerInvitation(
+        path: Operations.ResendTrainerInvitation.Input.Path,
+        headers: Operations.ResendTrainerInvitation.Input.Headers = .init()
+    ) async throws -> Operations.ResendTrainerInvitation.Output {
+        try await resendTrainerInvitation(Operations.ResendTrainerInvitation.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Withdraw an invitation
+    ///
+    /// Withdraws a pending invitation (the Owner only): its link stops working and it leaves the list. An invitation that is not pending, or not found in the workspace, answers `404`. The address can be invited again.
+    ///
+    /// - Remark: HTTP `DELETE /v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}/delete(withdrawTrainerInvitation)`.
+    public func withdrawTrainerInvitation(
+        path: Operations.WithdrawTrainerInvitation.Input.Path,
+        headers: Operations.WithdrawTrainerInvitation.Input.Headers = .init()
+    ) async throws -> Operations.WithdrawTrainerInvitation.Output {
+        try await withdrawTrainerInvitation(Operations.WithdrawTrainerInvitation.Input(
             path: path,
             headers: headers
         ))

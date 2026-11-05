@@ -33,6 +33,7 @@ export const APP_TABLE_PRIVILEGES: Readonly<Record<string, readonly Privilege[]>
   clients: ALL,
   trainer_profiles: ALL,
   locations: ALL,
+  trainer_invitations: ALL,
 };
 
 /**

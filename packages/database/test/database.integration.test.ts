@@ -24,6 +24,7 @@ import {
   pingDatabase,
   systemGreetings,
   teamMembers,
+  trainerInvitations,
   trainerProfiles,
 } from '../src/index.ts';
 import { migrationsFolder, runMigrations } from '../src/migrate.ts';
@@ -484,6 +485,65 @@ describe('E004 database', () => {
         await seed(tx, { production: true });
 
         expect(await tx.$count(locations)).toBe(0);
+      });
+    });
+  });
+
+  describe('F011 seed trainer invitation', () => {
+    it('AC14: gives John’s Gym a pending invitation for invitee@example.com, from John, once', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        await seed(tx);
+
+        const invitations = await tx
+          .select({
+            workspace: organizations.slug,
+            name: trainerInvitations.name,
+            email: trainerInvitations.email,
+            status: trainerInvitations.status,
+            inviter: authUsers.email,
+            expiresAt: trainerInvitations.expiresAt,
+            tokenHash: trainerInvitations.tokenHash,
+          })
+          .from(trainerInvitations)
+          .innerJoin(organizations, eq(organizations.id, trainerInvitations.organizationId))
+          .innerJoin(teamMembers, eq(teamMembers.id, trainerInvitations.inviterTeamMemberId))
+          .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId));
+        expect(invitations).toEqual([
+          {
+            workspace: 'johns-gym',
+            name: 'Invitee',
+            email: 'invitee@example.com',
+            status: 'pending',
+            inviter: 'owner@example.com',
+            expiresAt: expect.any(Date),
+            tokenHash: expect.stringMatching(/^[0-9a-f]{64}$/),
+          },
+        ]);
+        expect(invitations[0]?.expiresAt.getTime()).toBeGreaterThan(Date.now());
+      });
+    });
+
+    it('AC14: leaves an invitation the Owner has since sent again, or withdrawn, alone', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        await tx.update(trainerInvitations).set({ status: 'withdrawn' });
+
+        await seed(tx);
+
+        // A withdrawn seed invitation is not made pending again behind the Owner's back.
+        const rows = await tx
+          .select({ status: trainerInvitations.status })
+          .from(trainerInvitations);
+        expect(rows).toEqual([{ status: 'withdrawn' }]);
+      });
+    });
+
+    it('AC14: seeds no invitation in production', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { production: true });
+
+        expect(await tx.$count(trainerInvitations)).toBe(0);
       });
     });
   });

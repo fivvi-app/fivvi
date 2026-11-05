@@ -76,7 +76,7 @@ data class MeWorkspace (
     /**
      * What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
      *
-     * Values: WORKSPACE_PERIOD_MANAGE,TEAM_PERIOD_VIEW,TEAM_PERIOD_MANAGE,TRAINERS_PERIOD_VIEW,CLIENTS_PERIOD_VIEW,CLIENTS_PERIOD_MANAGE,LOCATION_PERIOD_READ,SETTINGS_PERIOD_MANAGE
+     * Values: WORKSPACE_PERIOD_MANAGE,TEAM_PERIOD_VIEW,TEAM_PERIOD_MANAGE,TRAINERS_PERIOD_VIEW,CLIENTS_PERIOD_VIEW,CLIENTS_PERIOD_MANAGE,LOCATION_PERIOD_READ,SETTINGS_PERIOD_MANAGE,TEAM_PERIOD_INVITE
      */
     @Serializable
     enum class Capabilities(val value: kotlin.String) {
@@ -87,7 +87,8 @@ data class MeWorkspace (
         @SerialName(value = "clients.view") CLIENTS_PERIOD_VIEW("clients.view"),
         @SerialName(value = "clients.manage") CLIENTS_PERIOD_MANAGE("clients.manage"),
         @SerialName(value = "location.read") LOCATION_PERIOD_READ("location.read"),
-        @SerialName(value = "settings.manage") SETTINGS_PERIOD_MANAGE("settings.manage");
+        @SerialName(value = "settings.manage") SETTINGS_PERIOD_MANAGE("settings.manage"),
+        @SerialName(value = "team.invite") TEAM_PERIOD_INVITE("team.invite");
     }
 
 }

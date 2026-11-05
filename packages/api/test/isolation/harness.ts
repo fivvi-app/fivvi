@@ -16,6 +16,11 @@ import {
   readTenantContext,
   type StoredContext,
 } from '@fivvi/database/testing';
+import {
+  createMemoryTransport,
+  createSendEmail,
+  createTrainerInvitationSender,
+} from '@fivvi/email';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { createApp, NO_DEPENDENCIES } from '../../src/index.ts';
@@ -83,6 +88,14 @@ export async function createWorld(): Promise<World> {
     tenantScopes,
     // The lookup limit of the address route (F015), over the app connection like production.
     consumeRateLimit: (key, rule) => consumeRateLimit(app.db, key, rule, new Date()),
+    // The trainer invitation routes email EM-09 (F011): into memory, never out.
+    sendTrainerInvitation: createTrainerInvitationSender({
+      sendEmail: createSendEmail({
+        transport: createMemoryTransport(),
+        sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+      }),
+      appBaseUrl: () => 'https://fivvi.example.test',
+    }),
     // The test accounts are `<id>@example.com`: every harness account is on the allowlist, so the
     // route that creates a workspace succeeds for every signed-in caller, team roles or not (F012).
     signUpAllowlist: parseSignUpAllowlist('@example.com'),

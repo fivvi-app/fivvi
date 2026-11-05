@@ -43,6 +43,7 @@ const FORBIDDEN: Record<string, string> = {
   'a team members table': "import { teamMembers } from '@fivvi/database';",
   'the trainer profiles table': "import { trainerProfiles } from '@fivvi/database';",
   'the locations table': "import { locations } from '@fivvi/database';",
+  'the trainer invitations table': "import { trainerInvitations } from '@fivvi/database';",
   'a table among allowed names': "import { createClient, clients } from '@fivvi/database';",
   'a table renamed': "import { clients as c } from '@fivvi/database';",
   'a table as a type': "import type { clients } from '@fivvi/database';",
@@ -218,6 +219,22 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     setTrainerProfile: 'repository of the trainer profiles, takes the workspace scope (F005)',
     listLocations: 'repository of the locations, takes the workspace scope (F015)',
     updateLocation: 'repository of the locations, takes the workspace scope (F015)',
+    isOnTeam: 'repository of the team, takes the workspace scope; answers yes or no (F011)',
+    findPreferredLocaleByEmail:
+      'repository of accounts, takes a scope; reads a language only (F011)',
+    lockInvitationQuota: 'repository of the trainer invitations, takes the workspace scope (F011)',
+    countInvitationsSince:
+      'repository of the trainer invitations, takes the workspace scope (F011)',
+    findPendingInvitation:
+      'repository of the trainer invitations, takes the workspace scope (F011)',
+    findPendingInvitationByEmail:
+      'repository of the trainer invitations, takes the workspace scope (F011)',
+    listPendingInvitations:
+      'repository of the trainer invitations, takes the workspace scope (F011)',
+    createTrainerInvitation:
+      'repository of the trainer invitations, takes the workspace scope (F011)',
+    resendInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
+    withdrawInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
     updateWorkspace: 'repository of workspaces, takes the workspace scope (F002, F010)',
     setPreferredLocale: 'repository of accounts, takes the account scope (F010)',
     setAccountName: 'repository of accounts, takes the account scope (F005)',
@@ -254,6 +271,8 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     LocationAddress: 'type of the location repository (F015)',
     LocationChanges: 'type of the location repository (F015)',
     LocationView: 'type of the location repository (F015)',
+    NewTrainerInvitation: 'type of the trainer-invitation repository (F011)',
+    TrainerInvitationView: 'type of the trainer-invitation repository (F011)',
     AccountScopeInput: 'type of the tenant scope',
     ActingAs: 'type of the tenant scope',
     Place: 'type of the tenant scope',

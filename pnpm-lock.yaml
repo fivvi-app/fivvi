@@ -600,6 +600,10 @@ importers:
         version: 5.0.1(@types/node@26.6.2)(vite@8.3.0(@types/node@26.6.2))
 
   packages/domain:
+    dependencies:
+      '@fivvi/i18n':
+        specifier: workspace:*
+        version: link:../i18n
     devDependencies:
       '@biomejs/biome':
         specifier: 'catalog:'

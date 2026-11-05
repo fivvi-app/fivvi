@@ -18,6 +18,7 @@ import { registerLocations } from './routes/locations.ts';
 import { registerMe } from './routes/me.ts';
 import { registerSignIn } from './routes/sign-in.ts';
 import { registerTeamMembers } from './routes/team-members.ts';
+import { registerTrainerInvitations } from './routes/trainer-invitations.ts';
 import { registerTrainers } from './routes/trainers.ts';
 import { registerWorkspaces } from './routes/workspaces.ts';
 
@@ -68,6 +69,7 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
   registerSignIn(app, dependencies);
   registerWorkspaces(app);
   registerTeamMembers(app);
+  registerTrainerInvitations(app);
   registerTrainers(app);
   registerLocations(app);
   registerAddressLookup(app);

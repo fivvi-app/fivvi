@@ -1,12 +1,14 @@
 import { randomBytes } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import type { DatabaseExecutor } from '../client.ts';
+import { FIXTURE_INVITATION_VALIDITY_MS } from '../invitation-validity.ts';
 import {
   authUsers,
   clients,
   locations,
   organizations,
   teamMembers,
+  trainerInvitations,
   trainerProfiles,
 } from '../schema/index.ts';
 
@@ -171,5 +173,47 @@ export async function addClient(
       })
       .returning({ id: clients.id, name: clients.name }),
     'client',
+  );
+}
+
+/**
+ * A trainer invitation of a workspace (F011), sent by a team member of it. Pending, for a unique
+ * `@example.com` address, valid for 7 days from now, with a token hash of no real token, unless
+ * the test says otherwise.
+ */
+export async function addTrainerInvitation(
+  db: Executor,
+  options: {
+    workspaceId: string;
+    inviterTeamMemberId: string;
+    name?: string;
+    email?: string;
+    emailLocale?: 'nl-NL' | 'en';
+    status?: 'pending' | 'accepted' | 'declined' | 'withdrawn';
+    tokenHash?: string;
+    expiresAt?: Date;
+    createdAt?: Date;
+  },
+): Promise<{ id: string; name: string; email: string }> {
+  return first(
+    await db
+      .insert(trainerInvitations)
+      .values({
+        organizationId: options.workspaceId,
+        inviterTeamMemberId: options.inviterTeamMemberId,
+        name: options.name ?? uniqueMarker('invitee'),
+        email: options.email ?? `${uniqueMarker('invitee')}@example.com`,
+        emailLocale: options.emailLocale ?? null,
+        status: options.status ?? 'pending',
+        tokenHash: options.tokenHash ?? uniqueMarker('token-hash'),
+        expiresAt: options.expiresAt ?? new Date(Date.now() + FIXTURE_INVITATION_VALIDITY_MS),
+        ...(options.createdAt ? { createdAt: options.createdAt } : {}),
+      })
+      .returning({
+        id: trainerInvitations.id,
+        name: trainerInvitations.name,
+        email: trainerInvitations.email,
+      }),
+    'trainer invitation',
   );
 }

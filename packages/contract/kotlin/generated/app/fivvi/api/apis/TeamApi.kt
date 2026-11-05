@@ -8,11 +8,15 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
 import app.fivvi.api.models.ChangeTeamMemberRole
+import app.fivvi.api.models.CreateTrainerInvitationRequest
 import app.fivvi.api.models.Forbidden
 import app.fivvi.api.models.LastOwner
 import app.fivvi.api.models.NotFound
 import app.fivvi.api.models.NotSignedIn
 import app.fivvi.api.models.TeamMember
+import app.fivvi.api.models.TooManyInvitations
+import app.fivvi.api.models.TrainerInvitation
+import app.fivvi.api.models.TrainerInvitationConflict
 import app.fivvi.api.models.ValidationError
 
 interface TeamApi {
@@ -38,6 +42,27 @@ interface TeamApi {
     suspend fun changeTeamMemberRole(@Path("workspaceId") workspaceId: java.util.UUID, @Path("teamMemberId") teamMemberId: java.util.UUID, @Body changeTeamMemberRole: ChangeTeamMemberRole): Response<TeamMember>
 
     /**
+     * POST v1/workspaces/{workspaceId}/trainer-invitations
+     * Invite a trainer
+     * Invites a person to join the team as a Trainer (the Owner only) and emails them the invitation (EM-09) in the chosen language, else the language of the account with that address, else the workspace’s default. The invitation works for seven days. An address that is on the team answers &#x60;409&#x60; &#x60;already_on_team&#x60;; one with a pending invitation &#x60;409&#x60; &#x60;invitation_pending&#x60; with that invitation’s ID, and no second one is made. A workspace makes at most 20 invitations in 24 hours: the next answers &#x60;429&#x60;. If the email can not be sent the answer is &#x60;500&#x60; and nothing is stored.
+     * Responses:
+     *  - 201: The invitation was made and emailed.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 409: The address is on the team or has a pending invitation; nothing was sent.
+     *  - 429: The workspace reached its 20 invitations of the day; nothing was sent.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param createTrainerInvitationRequest 
+     * @return [TrainerInvitation]
+     */
+    @POST("v1/workspaces/{workspaceId}/trainer-invitations")
+    suspend fun createTrainerInvitation(@Path("workspaceId") workspaceId: java.util.UUID, @Body createTrainerInvitationRequest: CreateTrainerInvitationRequest): Response<TrainerInvitation>
+
+    /**
      * GET v1/workspaces/{workspaceId}/team-members
      * The team of a workspace
      * The people on the team of the workspace (the Owner only), sorted by name: team-member ID, name, email address and role. Clients of the workspace are not on the team.
@@ -54,6 +79,24 @@ interface TeamApi {
      */
     @GET("v1/workspaces/{workspaceId}/team-members")
     suspend fun listTeamMembers(@Path("workspaceId") workspaceId: java.util.UUID): Response<kotlin.collections.List<TeamMember>>
+
+    /**
+     * GET v1/workspaces/{workspaceId}/trainer-invitations
+     * The pending invitations of a workspace
+     * The invitations that are still pending (the Owner only), the latest sent first. One whose &#x60;expiresAt&#x60; has passed is still listed, so the Owner can send it again. Accepted, declined and withdrawn invitations are not listed.
+     * Responses:
+     *  - 200: The pending invitations.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @return [kotlin.collections.List<TrainerInvitation>]
+     */
+    @GET("v1/workspaces/{workspaceId}/trainer-invitations")
+    suspend fun listTrainerInvitations(@Path("workspaceId") workspaceId: java.util.UUID): Response<kotlin.collections.List<TrainerInvitation>>
 
     /**
      * DELETE v1/workspaces/{workspaceId}/team-members/{teamMemberId}
@@ -74,5 +117,43 @@ interface TeamApi {
      */
     @DELETE("v1/workspaces/{workspaceId}/team-members/{teamMemberId}")
     suspend fun removeTeamMember(@Path("workspaceId") workspaceId: java.util.UUID, @Path("teamMemberId") teamMemberId: java.util.UUID): Response<Unit>
+
+    /**
+     * POST v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}/resend
+     * Send an invitation again
+     * Emails a pending invitation again (the Owner only) with a new link and a new seven-day expiry; the old link stops working. An invitation that is not pending, or not found in the workspace, answers &#x60;404&#x60;. If the email can not be sent the answer is &#x60;500&#x60; and the old link keeps working.
+     * Responses:
+     *  - 200: The invitation with its new sending time and expiry.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param invitationId The invitation ID, from the list of pending invitations.
+     * @return [TrainerInvitation]
+     */
+    @POST("v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}/resend")
+    suspend fun resendTrainerInvitation(@Path("workspaceId") workspaceId: java.util.UUID, @Path("invitationId") invitationId: java.util.UUID): Response<TrainerInvitation>
+
+    /**
+     * DELETE v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}
+     * Withdraw an invitation
+     * Withdraws a pending invitation (the Owner only): its link stops working and it leaves the list. An invitation that is not pending, or not found in the workspace, answers &#x60;404&#x60;. The address can be invited again.
+     * Responses:
+     *  - 204: The invitation was withdrawn.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param invitationId The invitation ID, from the list of pending invitations.
+     * @return [Unit]
+     */
+    @DELETE("v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}")
+    suspend fun withdrawTrainerInvitation(@Path("workspaceId") workspaceId: java.util.UUID, @Path("invitationId") invitationId: java.util.UUID): Response<Unit>
 
 }
