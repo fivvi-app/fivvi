@@ -613,3 +613,20 @@ input:focus,select:focus,textarea:focus{outline:none}
 .abar{height:6px;border-radius:3px;margin-top:8px;display:flex;overflow:hidden;background:color-mix(in srgb,var(--c) 16%,transparent)}
 .abar i{display:block;height:100%;background:var(--c)}
 .abar i.p{background:repeating-linear-gradient(135deg,var(--c) 0 3px,color-mix(in srgb,var(--c) 45%,transparent) 3px 6px)}
+/* ---------- Errors: an icon in the message, the field marked ---------- */
+.toast.err svg{color:var(--danger)}
+.android .toast.err{justify-content:flex-start;gap:10px}
+.android .toast.err svg{display:block;color:#FFB4AB;width:18px;height:18px;flex:none}
+.fld .err{display:flex;align-items:center;gap:5px;color:var(--danger);font-size:13px;font-weight:600}
+.fld .err svg{width:14px;height:14px;flex:none}
+.ios .fld.invalid{flex-wrap:wrap;background:color-mix(in srgb,var(--danger) 8%,transparent)}
+.ios .fld.invalid .fl{color:var(--danger)}
+.ios .fld.invalid .err{flex-basis:100%;padding:0 0 10px}
+.ios .fld.stack.invalid .err{padding:6px 0 0}
+.android .fld.invalid,.android .fld.invalid:focus-within{border:2px solid #BA1A1A;padding:0 13px}
+.mk[data-mode="dark"] .android .fld.invalid{border-color:#FFB4AB}
+.android .fld.invalid .fl{color:#BA1A1A}
+.mk[data-mode="dark"] .android .fld.invalid .fl{color:#FFB4AB}
+.android .fld .err{position:absolute;left:14px;bottom:-20px;font-weight:500;font-size:12px;color:#BA1A1A}
+.mk[data-mode="dark"] .android .fld .err{color:#FFB4AB}
+.android .fld.invalid{margin-bottom:22px}

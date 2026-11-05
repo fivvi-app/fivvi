@@ -149,7 +149,7 @@
   function fresh() {
     S = { signedIn: true, signStep: "email", email: "", code: "", tab: "today", stacks: { today: [], agenda: [], clients: [], profile: [] },
       sheet: null, alert: null, menu: null, toast: null, anim: null, scope: "me", aview: "week", aday: TODAY, q: "", exq: "",
-      log: null, logs: {}, form: {}, tabMin: false, showAll: {}, showDesc: {}, preview: false, scrollBottom: false };
+      log: null, logs: {}, form: {}, err: {}, tabMin: false, showAll: {}, showDesc: {}, preview: false, scrollBottom: false };
   }
   fresh();
   function top() { var st = S.stacks[S.tab]; return st[st.length - 1] || { n: S.tab }; }
@@ -169,7 +169,10 @@
   function seg(opts, val, a, extra) { return '<div class="seg" role="group">' + opts.map(function (o) { return '<button data-a="' + a + '" data-v="' + o[0] + '"' + dattrs(extra) + (o[2] ? " disabled" : "") + ' class="' + (o[0] === val ? "on" : "") + '" aria-pressed="' + (o[0] === val) + '">' + o[1] + "</button>"; }).join("") + "</div>"; }
   function lt(eb, h, sub) { return '<div class="lt">' + (eb ? '<p class="eb">' + eb + "</p>" : "") + "<h1>" + h + "</h1>" + (sub ? '<div class="sub">' + sub + "</div>" : "") + "</div>"; }
   function foot(t) { return '<div class="foot">' + t + "</div>"; }
-  function fld(label, input, cls) { return '<label class="fld ' + (cls || "") + '"><span class="fl">' + label + "</span>" + input + "</label>"; }
+  function fld(label, input, cls) {
+    var m = /data-(?:f|in)="([^"]+)"/.exec(input), e = m && S.err && S.err[m[1]];
+    return '<label class="fld ' + (cls || "") + (e ? " invalid" : "") + '"><span class="fl">' + label + "</span>" + input + (e ? '<small class="err" role="alert">' + ic("warn") + esc(e) + "</small>" : "") + "</label>";
+  }
   function inp(f, type, ph, extra) { return '<input data-f="' + f + '" type="' + (type || "text") + '" value="' + esc(S.form[f] || "") + '" placeholder="' + esc(ph || "") + '"' + (extra || "") + ">"; }
   function sel(f, opts) { return '<select data-f="' + f + '">' + opts.map(function (o) { var v = Array.isArray(o) ? o[0] : o, l = Array.isArray(o) ? o[1] : o; return '<option value="' + esc(v) + '"' + (String(S.form[f]) === String(v) ? " selected" : "") + ">" + esc(l) + "</option>"; }).join("") + "</select>"; }
   function avatar(name, c, cls) { return '<span class="av ' + (cls || "") + '" style="--c:' + (c || "#8E8E93") + '">' + initials(name) + "</span>"; }
@@ -802,7 +805,7 @@
     if ((PREF.plat === "web" || PREF.plat === "client") && window.FVW) {
       var keep = window.FVW.scrollSave(dev);
       dev.className = "dev " + PREF.plat;
-      dev.innerHTML = window.FVW[PREF.plat]() + (S.toast ? '<div class="toast glass anim-fade" role="status">' + ic("check") + esc(S.toast) + "</div>" : "");
+      dev.innerHTML = window.FVW[PREF.plat]() + (S.toast ? toastHTML() : "");
       dev.dataset.rk = "";
       S.anim = null; syncPanel(); tr(dev); window.FVW.scrollRestore(dev, keep); fitDev();
       return;
@@ -829,7 +832,7 @@
     }
     if (S.menu) h += menuHTML();
     if (S.alert) h += alertHTML();
-    if (S.toast) h += '<div class="toast glass anim-fade" role="status">' + ic("check") + esc(S.toast) + "</div>";
+    if (S.toast) h += toastHTML();
     dev.innerHTML = h;
     dev.dataset.rk = routeKey();
     dev.dataset.sheet = S.sheet || "";
@@ -845,7 +848,10 @@
     dev.querySelectorAll(".card.desc p.clamp").forEach(function (p) { if (p.scrollHeight <= p.clientHeight + 1) p.nextElementSibling.hidden = true; });
   }
   function tr(root) { if (window.FIVVI_I18N) window.FIVVI_I18N.apply(root, PREF.lang); }
-  function toast(m) { S.toast = m; render(); clearTimeout(toast.t); toast.t = setTimeout(function () { S.toast = null; var el = dev.querySelector(".toast"); if (el) el.remove(); }, 2300); }
+  function toastHTML() { var err = S.toastKind === "err"; return '<div class="toast glass anim-fade' + (err ? " err" : "") + '" role="' + (err ? "alert" : "status") + '">' + ic(err ? "warn" : "check") + esc(S.toast) + "</div>"; }
+  /* a wrong entry: the field gets a red edge and the message under it, and the toast says it too */
+  function bad(f, msg) { S.err = {}; S.err[f] = msg; toast(msg, "err"); return true; }
+  function toast(m, kind) { S.toast = m; S.toastKind = kind || "ok"; render(); clearTimeout(toast.t); toast.t = setTimeout(function () { S.toast = null; var el = dev.querySelector(".toast"); if (el) el.remove(); }, 2300); }
   function push(r) { S.stacks[S.tab].push(r); S.anim = "push"; S.tabMin = false; render(); }
   function closeAll() { S.sheet = null; S.alert = null; S.menu = null; }
 
@@ -882,20 +888,20 @@
     "new-class": function () { S.form = Object.assign(today5(), { name: "", trainer: D.me.name, rep: "Niet herhalen", cap: "12", start: "19:00", end: "20:00" }); S.sheet = "newClass"; S.anim = "up"; render(); },
     "new-gym": function () { S.form = Object.assign(today5(), { start: "17:00", end: "19:00" }); S.sheet = "newGym"; S.anim = "up"; render(); },
     note: function (d) { S.form = { client: d.id, text: "" }; S.sheet = "note"; S.anim = "up"; render(); },
-    "close-sheet": function () { S.sheet = null; render(); },
+    "close-sheet": function () { S.sheet = null; S.err = {}; render(); },
     fset: function (d) { S.form[d.f] = d.v; render(); },
     "save-session": function () {
       var f = S.form, it = { id: "n" + Date.now(), ws: "sf", type: "priv", s: f.start, e: hm(mins(f.start) + +f.dur), client: f.client, loc: f.loc, att: null };
       dayItems(f.date); DAYCACHE[f.date].push(it); S.sheet = null; S.stacks[S.tab].push({ n: "session", id: it.id }); S.anim = "push"; toast("Sessie gepland");
     },
     "save-client": function () {
-      var f = S.form; if (!f.name.trim()) { toast("Vul een naam in"); return; }
-      if (!/.+@.+\..+/.test(f.email || "")) { toast("Vul een geldig e-mailadres in"); return; }
+      var f = S.form; if (!f.name.trim()) { bad("name", "Vul een naam in"); return; }
+      if (!/.+@.+\..+/.test(f.email || "")) { bad("email", "Vul een geldig e-mailadres in"); return; }
       var id = "c" + Date.now(), c = { id: id, ws: f.ws, name: f.name.trim(), email: f.email.trim(), lang: f.lang, last: "Nog geen sessie", c: "#8E8E93" };
       D.clients.push(c); CLIENT[id] = c; S.sheet = null; S.tab = S.tab === "profile" ? "clients" : S.tab; S.stacks[S.tab].push({ n: "client", id: id }); S.anim = "push"; toast("Klant toegevoegd");
     },
     "save-class": function () {
-      var f = S.form; if (!f.name.trim()) { toast("Vul een naam in"); return; }
+      var f = S.form; if (!f.name.trim()) { bad("name", "Vul een naam in"); return; }
       var it = { id: "n" + Date.now(), ws: "sf", type: "group", s: f.start, e: f.end, title: f.name.trim(), cap: +f.cap || 10, people: [], loc: "Studio Fit, Kerkstraat 12", desc: { nl: (f.desc || "").trim(), en: (f.descEn || "").trim() } };
       dayItems(f.date); DAYCACHE[f.date].push(it); S.sheet = null; S.stacks[S.tab].push({ n: "klass", id: it.id }); S.anim = "push"; toast(f.rep === "Niet herhalen" ? "Groepsles gepland" : "Wekelijkse groepsles gepland");
     },
@@ -903,7 +909,7 @@
       var f = S.form, it = { id: "n" + Date.now(), ws: "sf", type: "gym", s: f.start, e: f.end, title: "Open Gym", cap: +f.cap || 10, people: [], loc: "Studio Fit, Kerkstraat 12" };
       dayItems(f.date); DAYCACHE[f.date].push(it); S.sheet = null; S.stacks[S.tab].push({ n: "klass", id: it.id }); S.anim = "push"; toast("Open Gym gepland en gepubliceerd");
     },
-    "save-note": function () { var f = S.form; if (!f.text.trim()) { toast("Schrijf eerst een notitie"); return; } (D.notes[f.client] = D.notes[f.client] || []).unshift({ t: f.text.trim(), d: "5 nov", by: "Sarah" }); S.sheet = null; toast("Notitie opgeslagen"); },
+    "save-note": function () { var f = S.form; if (!f.text.trim()) { bad("text", "Schrijf eerst een notitie"); return; } (D.notes[f.client] = D.notes[f.client] || []).unshift({ t: f.text.trim(), d: "5 nov", by: "Sarah" }); S.sheet = null; toast("Notitie opgeslagen"); },
     "save-move": function () {
       var f = S.form, x = findItem(f.id), it = x.it; it.s = f.start; it.e = hm(mins(f.start) + +f.dur);
       if (f.date !== x.day) { DAYCACHE[x.day].splice(DAYCACHE[x.day].indexOf(it), 1); dayItems(f.date); DAYCACHE[f.date].push(it); }
@@ -925,7 +931,7 @@
     "do-delete": function () { S.alert = null; toast("Dit prototype verwijdert niets"); },
     "web-only": function () { S.menu = null; toast("Dit beheer je op het web"); },
     toast: function (d) { S.menu = null; toast(d.m); },
-    "sign-next": function () { if (!/.+@.+\..+/.test(S.email)) { toast("Vul een geldig e-mailadres in"); return; } S.signStep = "code"; S.code = ""; S.anim = "push"; render(); var i = dev.querySelector('[data-in="code"]'); if (i) i.focus(); },
+    "sign-next": function () { if (!/.+@.+\..+/.test(S.email)) { bad("email", "Vul een geldig e-mailadres in"); return; } S.signStep = "code"; S.code = ""; S.anim = "push"; render(); var i = dev.querySelector('[data-in="code"]'); if (i) i.focus(); },
     "sign-back": function () { S.signStep = "email"; render(); },
     "sign-in": function () { S.signedIn = true; S.signStep = "email"; S.tab = "today"; toast("Ingelogd als " + (S.email || D.me.email)); },
     /* logger */
@@ -1009,6 +1015,8 @@
   function onInput(e) {
     var t = e.target;
     if (window.FVW && window.FVW.onInput(t)) return;
+    var ek = t.dataset.f || t.dataset.in;
+    if (ek && S.err && S.err[ek]) { delete S.err[ek]; var lb = t.closest(".invalid"); if (lb) { lb.classList.remove("invalid"); var em = lb.querySelector(".err"); if (em) em.remove(); } }
     if (t.dataset.f) { S.form[t.dataset.f] = t.value; return; }
     var k = t.dataset.in;
     if (k === "q") { S.q = t.value; dev.querySelector("#clist").innerHTML = clientList(); tr(dev.querySelector("#clist")); }

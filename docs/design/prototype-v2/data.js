@@ -96,8 +96,20 @@ window.FIVVI_DATA = (function () {
     { n: "Opdrukken", en: "Push-up", ty: "r", mu: "borst" },
     { n: "Pull-up", en: "Pull-up", ty: "r", mu: "rug" },
     { n: "Plank", en: "Plank", ty: "t", mu: "core" },
-    { n: "Roeien", en: "Rowing", ty: "dt", mu: "conditie" }
+    { n: "Roeien", en: "Rowing", ty: "dt", mu: "conditie" },
+    /* the workspace's own exercises (F040): made by its trainers, never translated */
+    { n: "Sled push", en: "", ty: "dt", mu: "benen, conditie", own: true, by: "Sarah" },
+    { n: "Battle ropes", en: "", ty: "t", mu: "schouders, conditie", own: true, by: "Mike" }
   ];
+  /* templates: exercise, sets, target */
+  var tpl = {
+    "Upper A": [["Bankdrukken", 3, "8"], ["Kabel roeien", 3, "10"], ["Dumbbell schouderdrukken", 2, "10"], ["Plank", 3, "0:45"], ["Roeien", 1, "500 m"]],
+    "Lower A": [["Squat", 3, "8"], ["Deadlift", 3, "5"], ["Lunges", 3, "10"], ["Plank", 2, "0:45"]],
+    "Full body": [["Squat", 3, "10"], ["Bankdrukken", 3, "10"], ["Kabel roeien", 3, "10"], ["Plank", 3, "0:30"]],
+    "Upper B": [["Schuine bankdrukken", 3, "8"], ["Pull-up", 3, "6"], ["Face pull", 3, "12"]],
+    "Lower B": [["Deadlift", 4, "5"], ["Hip thrust", 3, "10"], ["Lunges", 2, "12"]],
+    "Core & conditie": [["Plank", 3, "0:45"], ["Battle ropes", 4, "0:30"], ["Sled push", 4, "20 m"]]
+  };
 
   /* Upper A for Anna, as the logger opens it: prefilled from last time and the target. */
   function upperA() {
@@ -249,5 +261,5 @@ window.FIVVI_DATA = (function () {
   }
 
   return { bsum: bsum, CREDIT: CREDIT, KIND: KIND, billing: billing, setups: setups, me: me, workspaces: workspaces, locations: locations, trainers: trainers, clients: clients, notes: notes, history: history,
-    progress: progress, descriptions: descriptions, today: today, pattern: pattern, templates: templates, library: library, upperA: upperA };
+    progress: progress, tpl: tpl, descriptions: descriptions, today: today, pattern: pattern, templates: templates, library: library, upperA: upperA };
 })();
