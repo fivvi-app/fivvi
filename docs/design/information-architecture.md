@@ -1,5 +1,13 @@
 # Information architecture
 
+
+> **Design v2 (5 November 2026, ADR-029).** The look of every surface is decided in [prototype v2](prototype-v2/DECISIONS.md). It changes this document in places:
+> - **Trainer web:** a new owner page *Aanbod* (F052); the Trainers page can change a role, remove a trainer with a handover and withdraw an invitation.
+> - **Client web:** it uses the app's design language.
+> - **Android:** it swipes to delete a set in the logger.
+> - **TD-05:** class descriptions can be entered in the app.
+>
+> [`DECISIONS.md` §8](prototype-v2/DECISIONS.md#8-what-this-changes-in-existing-documents) lists each change and where it is resolved.
 | | |
 |---|---|
 | **Status** | Draft for validation with the pilot owner |

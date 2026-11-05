@@ -11,6 +11,8 @@ A throwaway, clickable prototype of the new look (November 2026): Calendar-style
 | 4b | Renewing before the end: the owner gets "Verlengen" on an agreement that stops within its offer's renewal window (default 30 days, set per offer), a credit pack with 2 or fewer left, or one that ended; "Aanbod sturen" is always there (owner input for F052, #468) | Klantprofiel (Lisa, Bram, Mark), app and trainer web |
 | 4c | Aanbod (F052, §90): the workspace's offers by kind with an on/off switch, the three default plans (off until priced), and "Nieuw aanbod" with the fields of each kind, including the renewal window | Trainer web → Aanbod |
 
+**What was decided:** [DECISIONS.md](DECISIONS.md) (ADR-029). It is the record specs follow.
+
 The ⚙ panel also switches language (NL/EN), accent, light/dark, glass, role, and the business setup (gym, solo PT, PT with small groups, pilates, yoga). [SCENARIOS.md](SCENARIOS.md) checks those setups against the spec.
 
 **Run it:** open `index.html`, or `python3 -m http.server` in this folder. No build step.
