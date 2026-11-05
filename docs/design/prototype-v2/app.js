@@ -458,10 +458,10 @@
       if (!brows.length) brows.push(row({ title: "Geen abonnement of credits" }));
       /* the owner renews in one tap: Fivvi suggests it from a month before an agreement stops, or when a pack runs low */
       if (OWNER()) {
-        bs.renew.forEach(function (r) { var a = r[0]; brows.push(row({ lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("repeat") + "</span>", title: "Verlengen: <span>" + esc(a.name) + "</span>", sub: a.offerSent ? "Aanbod verstuurd " + esc(a.offerSent) + " · wacht op betaling" : esc(r[1]), tr: a.offerSent ? '<span class="pill">Verstuurd</span>' : btn("Verlengen", { sm: true, a: "offer", d: { id: c.id, ag: a.id } }), cls: "dc wrap" })); });
+        bs.renew.forEach(function (r) { var a = r[0]; brows.push(row({ lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("repeat") + "</span>", title: "Verlengen: <span>" + esc(a.name) + "</span>", sub: a.offerSent ? "Aanbod verstuurd " + esc(a.offerSent) + " · wacht op betaling" : esc(r[1]), small: !a.offerSent && a.remindSent ? "Herinnering verstuurd " + esc(a.remindSent) : "", tr: a.offerSent ? '<span class="pill">Verstuurd</span>' : btn("Verlengen", { sm: true, a: "offer", d: { id: c.id, ag: a.id } }), cls: "dc wrap" })); });
         brows.push(row({ a: "offer", d: { id: c.id }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("plus") + "</span>", title: '<span style="color:var(--accent-text)">Aanbod sturen</span>', cls: "dc", chev: false }));
       }
-      body += sh("Tegoed", "", "small") + '<div class="pad">' + grp(brows, "--inset:60px") + "</div>" + (OWNER() ? foot("Fivvi stelt verlengen voor vanaf " + D.RENEW_DAYS + " dagen voor het einde, of als een creditpakket bijna op is. Betalingen en facturen vind je op het web.") : "");
+      body += sh("Tegoed", "", "small") + '<div class="pad">' + grp(brows, "--inset:60px") + "</div>" + (OWNER() ? foot("Fivvi stelt verlengen voor vanaf " + D.RENEW_DAYS + " dagen voor het einde, of als een creditpakket bijna op is. De klant krijgt dan ook een herinnering. Betalingen en facturen vind je op het web.") : "");
     }
     body += lastTime(c.id) + progressList(c.id);
     body += sh("Gegevens", "", "small") + '<div class="pad">' + grp([row({ title: "E-mail", tr: c.email ? esc(c.email) : "Nog niet ingevuld", cls: "kv" }), row({ title: "Taal voor e-mails", tr: esc(c.lang), cls: "kv" }), row({ title: "Werkruimte", tr: wsLine(c.ws), cls: "kv" })]) + "</div>";

@@ -235,7 +235,7 @@ window.FIVVI_DATA = (function () {
       payments: [["22 okt 2026", "Privé 4 per 4 weken", "€ 240,00", "Incasso", "paid", "F-2026-0412"], ["1 okt 2026", "10 groepscredits", "€ 150,00", "iDEAL", "paid", "F-2026-0389"], ["24 sep 2026", "Privé 4 per 4 weken", "€ 240,00", "Incasso", "paid", "F-2026-0377"], ["27 aug 2026", "Privé 4 per 4 weken, eerste betaling", "€ 240,00", "iDEAL", "paid", "F-2026-0311"]]
     },
     mark: {
-      agreements: [{ id: "a2", end: "stop", endsIn: 26, kind: "pack", credit: "prive", name: "10 privésessies", price: "€ 550", cycle: "Eenmalig", since: "1 sep 2026", period: "geldig tot 1 dec 2026", status: "active", total: 10, used: 6, planned: 1,
+      agreements: [{ id: "a2", end: "stop", endsIn: 26, remindSent: "1 nov", kind: "pack", credit: "prive", name: "10 privésessies", price: "€ 550", cycle: "Eenmalig", since: "1 sep 2026", period: "geldig tot 1 dec 2026", status: "active", total: 10, used: 6, planned: 1,
         hist: [["1 sep", "10 privécredits toegekend", "+10", "Creditpakket gekocht"], ["5 nov", "Gebruikt voor Full body", "−1", "Sarah"], ["ma 9 nov", "Gepland: privésessie 07:00", "1", "Sarah"]] }],
       payments: [["1 sep 2026", "10 privésessies", "€ 550,00", "iDEAL", "paid", "F-2026-0318"]]
     },
@@ -243,16 +243,16 @@ window.FIVVI_DATA = (function () {
       agreements: [
         { id: "a3", end: "stop", endsIn: 115, kind: "abo", name: "Groep 2× per week", price: "€ 69", cycle: "Elke maand", since: "1 mrt 2026", period: "tot 28 feb 2027", next: "1 dec", status: "open", open: "€ 69,00", perWeek: 2, usedWeek: 1, makeups: 1,
           hist: [["ma 2 nov", "Week begonnen: 2 lessen", "+2", "Abonnement"], ["di 3 nov", "Gebruikt voor Kracht", "−1", "Lisa boekte"], ["okt", "Inhaalles na tijdig afzeggen", "+1", "Annuleringsbeleid"]] },
-        { id: "a4", end: "stop", endsIn: 40, kind: "pack", credit: "prive", name: "5 privésessies", price: "€ 300", cycle: "Eenmalig", since: "15 sep 2026", period: "geldig tot 15 dec 2026", status: "active", total: 5, used: 4, planned: 1,
+        { id: "a4", end: "stop", endsIn: 40, remindSent: "4 nov", kind: "pack", credit: "prive", name: "5 privésessies", price: "€ 300", cycle: "Eenmalig", since: "15 sep 2026", period: "geldig tot 15 dec 2026", status: "active", total: 5, used: 4, planned: 1,
           hist: [["15 sep", "5 privécredits toegekend", "+5", "Creditpakket gekocht"], ["5 nov", "Gepland: privésessie 16:30", "1", "Sarah"]] }
       ],
       payments: [["1 nov 2026", "Groep 2× per week", "€ 69,00", "Incasso", "failed", ""], ["1 okt 2026", "Groep 2× per week", "€ 69,00", "Incasso", "paid", "F-2026-0398"], ["15 sep 2026", "5 privésessies", "€ 300,00", "iDEAL", "paid", "F-2026-0352"]]
     },
     daan: { agreements: [{ id: "a5", end: "continue", kind: "abo", name: "Groep 3× per week", price: "€ 89", cycle: "Elke maand", since: "1 jun 2026", period: "loopt door", next: "1 dec", status: "active", perWeek: 3, usedWeek: 2, makeups: 0, hist: [["ma 2 nov", "Week begonnen: 3 lessen", "+3", "Abonnement"], ["ma 2 nov", "Gebruikt voor Kracht", "−1", "Daan boekte"], ["do 5 nov", "Gebruikt voor Strength", "−1", "Daan boekte"]] }],
       payments: [["1 nov 2026", "Groep 3× per week", "€ 89,00", "Incasso", "paid", "F-2026-0421"], ["1 okt 2026", "Groep 3× per week", "€ 89,00", "Incasso", "paid", "F-2026-0399"]] },
-    noor: { agreements: [{ id: "a6", end: "stop", endsIn: 40, kind: "pack", credit: "groep", name: "10 groepscredits", price: "€ 150", cycle: "Eenmalig", since: "15 sep 2026", period: "geldig tot 15 dec 2026", status: "active", total: 10, used: 8, planned: 0, hist: [["15 sep", "10 groepscredits toegekend", "+10", "Creditpakket gekocht"], ["do 5 nov", "Gebruikt voor Strength", "−1", "Noor boekte"]] }],
+    noor: { agreements: [{ id: "a6", end: "stop", endsIn: 40, remindSent: "3 nov", kind: "pack", credit: "groep", name: "10 groepscredits", price: "€ 150", cycle: "Eenmalig", since: "15 sep 2026", period: "geldig tot 15 dec 2026", status: "active", total: 10, used: 8, planned: 0, hist: [["15 sep", "10 groepscredits toegekend", "+10", "Creditpakket gekocht"], ["do 5 nov", "Gebruikt voor Strength", "−1", "Noor boekte"]] }],
       payments: [["15 sep 2026", "10 groepscredits", "€ 150,00", "iDEAL", "paid", "F-2026-0350"]] },
-    bram: { agreements: [{ id: "a7", end: "stop", endsIn: 25, kind: "abo", name: "Groep 1× per week", price: "€ 39", cycle: "Elke maand", since: "1 mei 2026", period: "stopt 30 nov 2026", next: "—", status: "ending", perWeek: 1, usedWeek: 1, makeups: 0, hist: [["ma 2 nov", "Week begonnen: 1 les", "+1", "Abonnement"], ["do 5 nov", "Gebruikt voor Strength", "−1", "Bram boekte"]] }],
+    bram: { agreements: [{ id: "a7", end: "stop", endsIn: 25, remindSent: "31 okt", kind: "abo", name: "Groep 1× per week", price: "€ 39", cycle: "Elke maand", since: "1 mei 2026", period: "stopt 30 nov 2026", next: "—", status: "ending", perWeek: 1, usedWeek: 1, makeups: 0, hist: [["ma 2 nov", "Week begonnen: 1 les", "+1", "Abonnement"], ["do 5 nov", "Gebruikt voor Strength", "−1", "Bram boekte"]] }],
       payments: [["1 nov 2026", "Groep 1× per week", "€ 39,00", "Incasso", "paid", "F-2026-0420"]] },
     fleur: { agreements: [{ id: "a8", end: "stop", endsIn: 57, kind: "pack", credit: "gym", name: "5 Open Gym-credits", price: "€ 40", cycle: "Eenmalig", since: "1 okt 2026", period: "geldig tot 1 jan 2027", status: "active", total: 5, used: 2, planned: 0, hist: [["1 okt", "5 Open Gym-credits toegekend", "+5", "Creditpakket gekocht"]] }],
       payments: [["1 okt 2026", "5 Open Gym-credits", "€ 40,00", "iDEAL", "refund", "F-2026-0391 · creditfactuur F-2026-0402"]] },

@@ -83,7 +83,7 @@
   /* renewal: suggested from a month before an agreement that stops ends, or when a credit pack runs low (owner only) */
   function renewLine(sum, a, c) {
     var r = sum.renew.filter(function (x) { return x[0] === a; })[0]; if (!r || !money(c)) return "";
-    return '<div class="w-renew">' + ic("repeat") + "<span><b>" + (a.offerSent ? "Aanbod verstuurd " + esc(a.offerSent) : "Verlengen voorgesteld") + "</b> · <span>" + (a.offerSent ? "wacht op betaling" : esc(r[1])) + "</span></span>" + (a.offerSent ? btn("Opnieuw sturen", "w-dlg", { k: "ghost sm", d: { n: "offer", ag: a.id } }) : btn("Verlengen", "w-dlg", { k: "sm", d: { n: "offer", ag: a.id } })) + "</div>";
+    return '<div class="w-renew">' + ic("repeat") + "<span><b>" + (a.offerSent ? "Aanbod verstuurd " + esc(a.offerSent) : "Verlengen voorgesteld") + "</b> · <span>" + (a.offerSent ? "wacht op betaling" : esc(r[1])) + "</span>" + (!a.offerSent && a.remindSent ? ' · <span>Herinnering verstuurd ' + esc(a.remindSent) + "</span>" : "") + "</span>" + (a.offerSent ? btn("Opnieuw sturen", "w-dlg", { k: "ghost sm", d: { n: "offer", ag: a.id } }) : btn("Verlengen", "w-dlg", { k: "sm", d: { n: "offer", ag: a.id } })) + "</div>";
   }
   function aboLine(a) { return "Deze week " + a.usedWeek + " van " + a.perWeek + " gebruikt" + (a.makeups ? " · " + a.makeups + (a.makeups === 1 ? " inhaalles" : " inhaallessen") : ""); }
   function statusBadge(a) { var st = STATUS[a.status]; return badge(a.status === "ending" ? cap1(a.period) : st[0], st[1], st[1] ? "" : "outline"); }
@@ -446,7 +446,7 @@
     if (o.kind === "pack") { x.push(o.credits + " " + (o.credits === 1 ? L[0] : L[1]) + " · geldig " + o.valid); if (o.intro) x.push("1× per klant (proefaanbod)"); if (o.memberOnly) x.push("Alleen voor klanten met een abonnement"); }
     if (o.kind === "plan") { x.push(o.credits + " " + (o.credits === 1 ? L[0] : L[1]) + " " + per(o.cycle) + " · meenemen max. " + o.carry); x.push("Minimaal " + o.minTerm + " · loopt door tot de klant opzegt"); }
     if (o.kind === "single") x.push("Eén groepsles, betaald bij het boeken");
-    if (o.end === "stop" && o.renew) x.push("Verlengen voorstellen: " + o.renew + " dagen voor het einde" + (o.kind === "pack" ? " of bij 2 over" : ""));
+    if (o.end === "stop" && o.renew) x.push("Verlengen en herinneren: " + o.renew + " dagen voor het einde" + (o.kind === "pack" ? " of bij 2 over" : ""));
     return x;
   }
   function offerCard(o) {
@@ -480,7 +480,7 @@
     if (k === "plan") b += '<div class="w-inline2">' + fld("Meenemen naar de volgende periode (max.)", inp("carry", "number")) + fld("Minimale looptijd", selF("minTerm", ["1 maand", "3 maanden", "6 maanden"])) + "</div>";
     if (k === "pack") b += '<div class="w-inline2">' + fld("Eén keer per klant (proefaanbod)", selF("intro", [["nee", "Nee"], ["ja", "Ja"]])) + fld("Alleen voor klanten met een abonnement", selF("memberOnly", [["nee", "Nee"], ["ja", "Ja"]])) + "</div>";
     if (k === "abo" || k === "plan") b += fld("Aan het einde", selF("end", [["stop", "Stopt: de klant kiest een nieuwe looptijd"], ["continue", "Loopt per maand door tot de klant opzegt"]]));
-    if (k !== "single" && (k === "pack" || f.end === "stop")) b += fld("Verlengen voorstellen", '<div class="w-inline"><input class="w-input sm" data-wf="renew" type="number" value="' + esc(f.renew) + '"> dagen voor het einde</div>', k === "pack" ? "En als er 2 credits of minder over zijn." : "Fivvi zet dan Verlengen bij de klant, voor jou en in de app.");
+    if (k !== "single" && (k === "pack" || f.end === "stop")) b += fld("Verlengen en herinneren", '<div class="w-inline"><input class="w-input sm" data-wf="renew" type="number" value="' + esc(f.renew) + '"> dagen voor het einde</div>', k === "pack" ? "En als er 2 credits of minder over zijn. Fivvi zet dan Verlengen bij de klant en stuurt de klant een herinnering." : "Fivvi zet dan Verlengen bij de klant en stuurt de klant een herinnering.");
     b += '<p class="w-muted">' + (o && o.active ? "Wijzigingen gelden voor nieuwe afspraken. De " + o.active + " lopende afspraken houden hun voorwaarden." : "Zonder prijs blijft het aanbod uit. Credits van verschillende soorten mengen nooit.") + "</p>";
     return b;
   }
@@ -823,6 +823,7 @@
       if (!types.length) return { title: tt, body: b + '<div class="pad"><div class="card empty">' + esc(sName(cws())) + " heeft geen lessen om te boeken. Je trainer plant je privésessies; die zie je in Mijn agenda.</div></div>" };
       var nx = upcoming().filter(function (r) { return r[1].type !== "priv" && c.booked[r[1].id]; })[0];
       if (nx && !APP) b += nextHero(nx, "Je volgende les");
+      if (!APP && renewCard()) b += '<div class="pad" style="margin-bottom:6px">' + renewCard() + "</div>";
       /* the week strip from Agenda: one dot per class that day */
       b += '<div class="wk c-wk">' + [0, 1, 2, 3, 4, 5, 6].map(function (i) {
         /* one dot per class you can still book (green: you're booked); not past, not cancelled, not full (owner, 5 Nov 2026) */
@@ -847,9 +848,44 @@
     }
     return { title: "Profiel", body: profile() };
   };
+  /* The client's renewal reminder (PRODUCT §90; owner, 5 Nov 2026): from the same moment Fivvi suggests renewing to the owner,
+     for an agreement that stops or a pack running low. One email, a card on Home and Tegoed, and a one-tap renewal on the web. */
+  function clientRenew() {
+    var c = C(); if (c.who !== "anna" || cws() !== "sf") return null;
+    var s = D.bsum("anna"), a12 = s.b.agreements.filter(function (x) { return x.id === "a12"; })[0];
+    var r = c.renewDemo === "low" ? { a: a12, low: true, left: 2 } : c.renewDemo ? { a: a12, days: 24, end: "29 nov", left: a12.total - a12.used - a12.planned } : null;
+    if (!r) s.renew.some(function (x) { var a = x[0], left = a.total != null ? a.total - a.used - a.planned : null; if (a.end !== "stop" || a.status === "expired" || a.endsIn < 0) return false; r = a.kind === "pack" && left <= 2 ? { a: a, low: true, left: left } : { a: a, days: a.endsIn, left: left }; return true; });
+    if (!r || (c.renewed || {})[r.a.id]) return null;
+    r.title = r.low ? "Je " + r.a.name + " zijn bijna op" : r.a.kind === "abo" ? "Je abonnement stopt over " + r.days + " dagen" : "Je " + r.a.name + " stoppen over " + r.days + " dagen";
+    r.sub = r.low ? "Nog " + r.left + " over. Verleng om door te gaan." : r.left != null ? "Nog " + r.left + " over. Verleng om door te gaan." : esc(r.a.name) + ". Verleng om door te gaan.";
+    return r;
+  }
+  function renewCard() {
+    var r = clientRenew(); if (!r) return "";
+    return '<div class="card c-renew"><div class="c-renew-h"><span class="dc-ic" style="--c:var(--accent)">' + ic("repeat") + "</span><div><b>" + esc(r.title) + "</b><span>" + esc(r.sub) + "</span></div></div>" + K.btn("Verlengen", { blk: true, a: "c-renew" }) + "</div>";
+  }
+  function webBar(url) {
+    return andr() ? '<div class="c-brbar"><button class="ib" data-a="c-webclose" aria-label="Sluiten">' + ic("x") + '</button><div><b>Verlengen</b><span translate="no">' + url + "</span></div></div>"
+      : '<div class="c-brbar ios"><button class="c-done" data-a="c-webclose">Klaar</button><div class="c-url glass"><i>🔒</i><span translate="no">' + url + "</span></div></div>";
+  }
+  /* one tap: the same offer is already chosen; paying stays on the web (§53) */
+  function renewPage() {
+    var c = C(), r = clientRenew(); if (!r) return "";
+    var o = D.offerList.filter(function (x) { return x.name === r.a.name; })[0], facts = o ? offerFacts(o).filter(function (t) { return t.indexOf("Verlengen") !== 0; }) : [];
+    return '<div class="scrim anim-fade" data-a="c-webclose"></div><div class="sheet large anim-up c-browser" role="dialog" aria-label="Verlengen">' + webBar("fivvi.app/" + slug() + "/verlengen") + '<div class="sbody">' +
+      K.lt("", esc(r.a.name) + " verlengen", "Hetzelfde aanbod is al gekozen.") +
+      '<div class="pad stack"><div class="card c-offer"><div><b>' + esc(r.a.name) + '</b><span class="num">' + esc(r.a.price) + " <small>" + esc(String(r.a.cycle).toLowerCase()) + "</small></span></div><ul>" + facts.map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul></div></div>" +
+      K.sh("Wanneer gaat het in?", "", "small") + '<div class="pad">' + K.seg([["end", "Als het huidige stopt"], ["now", "Na de betaling"]], c.renewStart || "end", "c-rstart") + "</div>" +
+      '<div class="pad stack" style="margin-top:16px">' + cbtn("Betalen met iDEAL", "c-renewpay") + K.btn("Ander aanbod bekijken", { k: "ghost", blk: true, a: "c-offers" }) + "</div>" + K.foot("Na de betaling krijg je de factuur per e-mail.") + "</div></div>";
+  }
+  /* what the reminder email says */
+  function mailView() {
+    var r = clientRenew(); if (!r) return "";
+    return '<div class="scrim anim-fade" data-a="c-webclose"></div><div class="sheet large anim-up c-browser" role="dialog" aria-label="E-mail"><div class="c-brbar ios"><button class="c-done" data-a="c-webclose">Klaar</button></div><div class="sbody"><div class="pad stack"><div class="card c-mail"><small>Van ' + esc(wsName()) + ' via Fivvi</small><h3>' + esc(r.title) + "</h3><p>Hoi Anna,</p><p>" + esc(r.sub) + "</p>" + K.btn("Verlengen", { blk: true, a: "c-renew" }) + "<p><small>Fivvi stuurt deze herinnering één keer. Heeft je studio je al een aanbod gestuurd, dan krijg je hem niet.</small></p></div></div></div></div>";
+  }
   /* the client's balance: tiles per kind (Fitness-style) and the agreements; shared by Profiel and the Tegoed screen */
   function tegoedParts() {
-    var h = "";
+    var h = renewCard() ? '<div class="pad" style="margin-bottom:6px">' + renewCard() + "</div>" : "";
       var s = D.bsum("anna"), tiles = [];
     /* Fitness-style tiles: the big number is what's left; the bar shows used and planned */
     s.abos.forEach(function (a) { var left = Math.max(0, a.perWeek - a.usedWeek); tiles.push('<div class="tile c-tile" style="--c:var(--group)"><span class="ink">Deze week</span><b class="num">' + left + '<small>/' + a.perWeek + "</small></b><em>" + (left === 1 ? "les over" : "lessen over") + '</em><div class="abar"><i style="width:' + (a.usedWeek / a.perWeek * 100) + '%"></i></div></div>'); });
@@ -1064,6 +1100,7 @@
     var b = K.lt(F.longDate(F.NOW), "Hoi " + esc(first), "");
     if (up.length) b += nextHero(up[0], up[0][1].type === "priv" ? "Je volgende sessie" : "Je volgende les");
     if (anna) {
+      if (renewCard()) b += '<div class="pad" style="margin-top:14px">' + renewCard() + "</div>";
       b += '<div class="pad" style="margin-top:14px">' + weekCard(up) + studios().map(function (ws) { return '<button class="c-balline" data-a="c-page" data-v="tegoed" data-ws="' + ws + '">' + (multi() ? sMark(ws, "xs") : ic("check")) + "<span>" + (multi() ? "<b>" + esc(sName(ws)) + "</b>" : "") + balText(ws) + "</span>" + ic("chevR") + "</button>"; }).join("") + "</div>";
     } else b += '<div class="pad" style="margin-top:14px"><div class="card empty">Nog geen abonnement of credits.<div style="margin-top:14px">' + K.btn("Aanbod bekijken", { k: "sec", a: "c-offers" }) + "</div></div></div>";
     var rest = up.slice(1, 7);
@@ -1135,6 +1172,8 @@
   ATAB.profiel = function () { return { title: "Profiel", body: profile() }; };
   /* Paying happens on the web (§53, QC16): the app opens the studio's offer page in a browser sheet */
   function browser() {
+    if (C().web === "renew") return renewPage();
+    if (C().web === "mail") return mailView();
     if ((C().webws || cws()) === "yl") return ylBrowser();
     var url = "fivvi.app/" + slug() + "/aanbod", offers = D.offerList.filter(function (o) { return o.on && offerFits(o) && o.kind !== "single" && !o.intro; });
     var bar = andr() ? '<div class="c-brbar"><button class="ib" data-a="c-webclose" aria-label="Sluiten">' + ic("x") + '</button><div><b>Aanbod</b><span translate="no">' + url + "</span></div></div>"
@@ -1157,6 +1196,9 @@
   A["c-atab"] = function (d) { var c = C(); c.atab = d.v; c.detail = null; c.workout = null; c.selfOn = false; c.solo = null; leaveEdit(c); c.web = null; c.page = null; R(); };
   A["c-offers"] = function () { var cf = C().detail && cfind(C().detail); C().webws = cf ? (cf.it.ws === "yl" ? "yl" : "sf") : cws(); C().web = "offers"; R(); };
   A["c-webclose"] = function () { C().web = null; R(); };
+  A["c-renew"] = function () { C().web = "renew"; R(); };
+  A["c-rstart"] = function (d) { C().renewStart = d.v; R(); };
+  A["c-renewpay"] = function () { var c = C(), r = clientRenew(); (c.renewed = c.renewed || {})[r.a.id] = true; c.web = null; F.toast("Verlengd: " + r.a.name + ". Je krijgt de factuur per e-mail."); };
   A["c-buy"] = function (d) { C().web = null; F.toast("Betaalpagina geopend: " + d.v + " met iDEAL"); };
   A["a-next"] = function () { var c = C(); if (!/.+@.+\..+/.test(c.email)) { c.err = { email: "Vul een geldig e-mailadres in" }; F.toast(c.err.email, "err"); return; } c.astep = "code"; c.code = ""; R(); };
   A["a-reset"] = function () { var c = C(); c.astep = "welcome"; c.code = ""; R(); };
@@ -1316,6 +1358,10 @@
     ["Twee studio's: boeken bij Yoga Loft", "QE05", goApp("app", { who: "anna", atab: "boeken", cws: "yl" }, twoStudios)],
     ["Twee studio's: tegoed", "QE05", goApp("app", { who: "anna", atab: "home", page: "tegoed" }, twoStudios)],
     ["Studio toevoegen", "#469", goApp("app", { who: "anna", atab: "boeken", wsheet: "add" })],
+    ["Verlengen: stopt bijna", "#468", goApp("app", { who: "anna", atab: "home", renewDemo: "ends" })],
+    ["Verlengen: bijna op", "#468", goApp("app", { who: "anna", atab: "home", renewDemo: "low" })],
+    ["Verlengen: de pagina", "#468", goApp("app", { who: "anna", atab: "home", renewDemo: "ends", web: "renew" })],
+    ["Verlengen: de herinnering per e-mail", "#468", goApp("app", { who: "anna", atab: "home", renewDemo: "ends", web: "mail" })],
     ["Training zelf doen", "F045", goApp("app", { who: "anna", atab: "training", workout: 0 }, function (c) { c.self = selfStart(0); c.self.done = { "x0-0": true, "x0-1": true }; c.selfOn = true; })],
     ["Oefening toevoegen (zelf)", "#602", goApp("app", { who: "anna", atab: "training", workout: 0 }, function (c) { c.self = selfStart(0); c.selfOn = true; c.exsheet = true; c.exq = ""; })],
     ["Zelf gedane training", "F045", goApp("app", { who: "anna", atab: "training", solo: 0 }, resetSolo)],

@@ -508,3 +508,14 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .c-exrm svg{width:20px;height:20px}
 .c-addset{display:flex;align-items:center;gap:6px;height:44px;margin-top:2px;padding:0 4px;border:0;background:none;color:var(--accent-text);font:inherit;font-size:15px;font-weight:600;cursor:pointer}
 .c-addset svg{width:16px;height:16px}
+
+/* the client's renewal reminder (PRODUCT §90) */
+.c-renew{display:grid;gap:12px}
+.c-renew-h{display:flex;gap:12px;align-items:flex-start}
+.c-renew-h > div{display:flex;flex-direction:column;gap:2px;min-width:0}
+.c-renew-h b{font-size:16px;font-weight:600}
+.c-renew-h span:not(.dc-ic){color:var(--label2);font-size:14px}
+.c-mail{display:grid;gap:10px}
+.c-mail h3{margin:0;font-size:20px}
+.c-mail p{margin:0;font-size:15px}
+.c-mail small{color:var(--label2);font-size:13px}
