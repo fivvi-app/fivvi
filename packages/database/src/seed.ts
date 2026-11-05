@@ -50,7 +50,13 @@ export function isProductionEnvironment(env: NodeJS.ProcessEnv = process.env): b
  * again to get a link. And a synthetic week of private sessions of John's Gym (F020 AC15): for
  * John, Sarah and Tom with the seeded clients, Monday to Friday of the current week, so previews
  * and the calendars of M4 have data; a week that has sessions already is left alone, and the next
- * week gets its own. Rows that
+ * week gets its own. And the people and the day of the personal calendar (F013, spec #457): Lisa
+ * (`lisa@example.com`), an account that is only a client of John's Gym, Mike (`mike@example.com`),
+ * the Owner of a third workspace, "Fit Studio" (`fit-studio`), who does not train, Anna de Vries
+ * as a client of Sarah Personal Training, and Tuesday 22 September 2026 as the spec has it: Sarah has
+ * Anna at 09:00 (Sarah Personal Training), Mark at 11:00 (John's Gym), "Kracht" at 15:00 (a group
+ * class, 0 of 8 places) and a cancelled "Kracht" at 18:00, while John and Tom have sessions that
+ * day too, which Sarah's calendar must leave out. Rows that
  * every environment needs, like the `hello` greeting, are data migrations instead
  * (`src/system-data.ts`).
  */
@@ -101,6 +107,22 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
       preferredLocale: 'nl-NL',
     })
     .onConflictDoNothing({ target: authUsers.email });
+  await db
+    .insert(authUsers)
+    .values([
+      { email: 'lisa@example.com', name: 'Lisa', emailVerified: true, preferredLocale: 'nl-NL' },
+      { email: 'mike@example.com', name: 'Mike', emailVerified: true, preferredLocale: 'nl-NL' },
+    ])
+    .onConflictDoNothing({ target: authUsers.email });
+  await db
+    .insert(organizations)
+    .values({
+      name: 'Fit Studio',
+      slug: 'fit-studio',
+      defaultLocale: 'nl-NL',
+      timeZone: 'Europe/Amsterdam',
+    })
+    .onConflictDoNothing({ target: organizations.slug });
   const accountId = async (email: string) => {
     const [row] = await db
       .select({ id: authUsers.id })
@@ -119,6 +141,7 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
   };
   const gym = await workspaceId('johns-gym');
   const personalTraining = await workspaceId('sarah-personal-training');
+  const fitStudio = await workspaceId('fit-studio');
   const owner = await accountId('owner@example.com');
   const sarah = await accountId('trainer@example.com');
   const tom = await accountId('tom@example.com');
@@ -129,6 +152,7 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
       { organizationId: gym, accountId: sarah, role: 'trainer' },
       { organizationId: gym, accountId: tom, role: 'trainer' },
       { organizationId: personalTraining, accountId: sarah, role: 'owner' },
+      { organizationId: fitStudio, accountId: await accountId('mike@example.com'), role: 'owner' },
     ])
     .onConflictDoNothing({ target: [teamMembers.organizationId, teamMembers.accountId] });
   // Who trains (F005): John (the creator), Sarah and Tom in John's Gym, Sarah in her own workspace.
@@ -153,7 +177,7 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
     insert into locations (organization_id, name, type, is_default)
     select o.id, o.name, 'organization_location', true
     from organizations o
-    where o.id in (${gym}, ${personalTraining})
+    where o.id in (${gym}, ${personalTraining}, ${fitStudio})
       and not exists (select 1 from locations l where l.organization_id = o.id and l.is_default)`);
   await db
     .update(locations)
@@ -211,6 +235,173 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
       .onConflictDoNothing();
   }
   await seedPrivateSessions(db, { workspaceId: gym, now: options.now ?? new Date() });
+  await seedPersonalCalendar(db, { gym, personalTraining });
+}
+
+/**
+ * The people and the day of the personal calendar (F013, spec #457): Lisa, who is only a client of
+ * John's Gym (her account is linked to her client record), Anna as a client of Sarah Personal
+ * Training, and Tuesday 22 September 2026 (Europe/Amsterdam, summer time). Idempotent: a client is
+ * there when its email address is used in the workspace, a session when its trainer already has
+ * one at that start.
+ */
+async function seedPersonalCalendar(
+  db: DatabaseExecutor,
+  workspaces: { gym: string; personalTraining: string },
+): Promise<void> {
+  const { gym, personalTraining } = workspaces;
+  const [lisa] = await db
+    .select({ id: authUsers.id })
+    .from(authUsers)
+    .where(eq(authUsers.email, 'lisa@example.com'));
+  if (!lisa) throw new Error('The seed did not find Lisa.');
+  await db
+    .insert(clients)
+    .values([
+      { organizationId: gym, accountId: lisa.id, name: 'Lisa', email: 'lisa@example.com' },
+      {
+        organizationId: personalTraining,
+        name: 'Anna de Vries',
+        email: 'anna@example.com',
+        emailLocale: 'en' as const,
+      },
+    ])
+    .onConflictDoNothing();
+
+  const profiles = await db
+    .select({
+      email: authUsers.email,
+      workspaceId: trainerProfiles.organizationId,
+      profileId: trainerProfiles.id,
+    })
+    .from(trainerProfiles)
+    .innerJoin(teamMembers, eq(teamMembers.id, trainerProfiles.teamMemberId))
+    .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
+    .where(inArray(trainerProfiles.organizationId, [gym, personalTraining]));
+  const profile = (email: string, workspaceId: string) => {
+    const found = profiles.find((row) => row.email === email && row.workspaceId === workspaceId);
+    if (!found) throw new Error('The seed did not find a trainer profile.');
+    return found.profileId;
+  };
+  const locationOf = async (workspaceId: string) => {
+    const [row] = await db
+      .select({ id: locations.id })
+      .from(locations)
+      .where(and(eq(locations.organizationId, workspaceId), eq(locations.isDefault, true)));
+    if (!row) throw new Error('The seed did not find a location.');
+    return row.id;
+  };
+  const clientOf = async (workspaceId: string, email: string) => {
+    const [row] = await db
+      .select({ id: clients.id })
+      .from(clients)
+      .where(and(eq(clients.organizationId, workspaceId), eq(clients.email, email)));
+    if (!row) throw new Error('The seed did not find a client.');
+    return row.id;
+  };
+
+  const sarahPT = profile('trainer@example.com', personalTraining);
+  const sarahGym = profile('trainer@example.com', gym);
+  const plans: readonly {
+    readonly workspaceId: string;
+    readonly trainerProfileId: string;
+    readonly start: string;
+    readonly minutes: number;
+    readonly type: 'private' | 'group';
+    readonly status: 'scheduled' | 'cancelled';
+    readonly client?: string;
+  }[] = [
+    // Sarah: Anna, Mark, Kracht and a cancelled Kracht.
+    {
+      workspaceId: personalTraining,
+      trainerProfileId: sarahPT,
+      start: '09:00',
+      minutes: 60,
+      type: 'private',
+      status: 'scheduled',
+      client: 'anna@example.com',
+    },
+    {
+      workspaceId: gym,
+      trainerProfileId: sarahGym,
+      start: '11:00',
+      minutes: 60,
+      type: 'private',
+      status: 'scheduled',
+      client: 'mark@example.com',
+    },
+    {
+      workspaceId: gym,
+      trainerProfileId: sarahGym,
+      start: '15:00',
+      minutes: 60,
+      type: 'group',
+      status: 'scheduled',
+    },
+    {
+      workspaceId: gym,
+      trainerProfileId: sarahGym,
+      start: '18:00',
+      minutes: 60,
+      type: 'group',
+      status: 'cancelled',
+    },
+    // Tom and John, the same day: not Sarah's.
+    {
+      workspaceId: gym,
+      trainerProfileId: profile('tom@example.com', gym),
+      start: '10:00',
+      minutes: 60,
+      type: 'private',
+      status: 'scheduled',
+      client: 'sophie.bakker@example.com',
+    },
+    {
+      workspaceId: gym,
+      trainerProfileId: profile('owner@example.com', gym),
+      start: '12:00',
+      minutes: 60,
+      type: 'private',
+      status: 'scheduled',
+      client: 'mark@example.com',
+    },
+  ];
+  for (const plan of plans) {
+    // The wall-clock time becomes an instant with Postgres's own time zone rules (as the week above).
+    const startsAt = sql`('2026-09-22'::date + ${plan.start}::time) at time zone 'Europe/Amsterdam'`;
+    const [there] = await db
+      .select({ id: sessions.id })
+      .from(sessions)
+      .where(
+        and(
+          eq(sessions.organizationId, plan.workspaceId),
+          eq(sessions.trainerProfileId, plan.trainerProfileId),
+          eq(sessions.startsAt, startsAt as never),
+        ),
+      );
+    if (there) continue;
+    const [session] = await db
+      .insert(sessions)
+      .values({
+        organizationId: plan.workspaceId,
+        type: plan.type,
+        status: plan.status,
+        trainerProfileId: plan.trainerProfileId,
+        locationId: await locationOf(plan.workspaceId),
+        startsAt: startsAt as never,
+        endsAt: sql`(${startsAt}) + ${plan.minutes} * interval '1 minute'` as never,
+        capacity: plan.type === 'private' ? 1 : 8,
+      })
+      .returning({ id: sessions.id });
+    if (!session) throw new Error('The seed did not store a session.');
+    if (plan.client) {
+      await db.insert(sessionParticipants).values({
+        organizationId: plan.workspaceId,
+        sessionId: session.id,
+        clientId: await clientOf(plan.workspaceId, plan.client),
+      });
+    }
+  }
 }
 
 /**

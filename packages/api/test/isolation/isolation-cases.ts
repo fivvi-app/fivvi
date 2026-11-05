@@ -1,4 +1,4 @@
-import { type DatabaseExecutor, locations } from '@fivvi/database';
+import { type DatabaseExecutor, locations, trainerProfiles } from '@fivvi/database';
 import {
   addSession,
   addTeamRole,
@@ -122,6 +122,28 @@ const theClientAndATeamThatTrains: IsolationCase['seed'] = async (
   return { client: clientId };
 };
 
+/**
+ * A session on 22 September 2026 for every trainer of the workspace the seed was called for, with the
+ * client it was called for in it: what the personal day and calendar read (F013). It returns no value
+ * on purpose: each trainer sees only their own session, so no token is one every caller must see; the
+ * suite still searches every response for the ids and names of the sessions of the other workspaces.
+ */
+const aSessionForEachTrainer: IsolationCase['seed'] = async (db, { workspaceId, clientId }) => {
+  const profiles = await db
+    .select({ id: trainerProfiles.id })
+    .from(trainerProfiles)
+    .where(eq(trainerProfiles.organizationId, workspaceId));
+  for (const profile of profiles) {
+    await addSession(db, {
+      workspaceId,
+      clientId,
+      trainerProfileId: profile.id,
+      startsAt: new Date('2026-09-22T08:00:00Z'),
+    });
+  }
+  return {};
+};
+
 export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   // Account routes.
   getMe: {},
@@ -130,6 +152,10 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   // The caller's own account: it stores their language and touches no workspace's data (F010).
   updateMe: { body: { preferredLocale: 'en' } },
   createWorkspace: { body: { name: "John's Gym" }, createsWorkspace: true },
+  // The personal day and sessions of a trainer, read across the caller's own workspaces one at a time
+  // (F013): a caller sees the sessions it is the trainer of, never another workspace's.
+  getMyDay: { seed: aSessionForEachTrainer, query: '?date=2026-09-22' },
+  listMySessions: { seed: aSessionForEachTrainer, query: '?from=2026-09-21&to=2026-09-27' },
 
   // The routes of one workspace (F002): a read shows its id, a rename takes a valid name.
   getWorkspace: { seed: theWorkspace },

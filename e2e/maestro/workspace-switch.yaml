@@ -2,9 +2,9 @@
 # Trainer of John's Gym and Owner of Sarah Personal Training. She signs in and the app opens John's Gym (first by name,
 # nothing remembered after clearState), shows its name and its clients; in Profiel → Mijn werkruimtes she taps Sarah
 # Personal Training, the app returns to the first tab, whose header shows that name, and Klanten holds none of John's
-# Gym's clients (Sarah Personal Training has no seeded clients: its empty state). Closing the app and opening it again
-# opens Sarah Personal Training; so does a sign-out and sign-in on the same device (the last workspace is kept on the
-# device, not on the account). The flow changes no data in the database, so it can run any number of times. It reopens
+# Gym's clients (Sarah Personal Training has one seeded client, Anna de Vries, F013; John's Gym's Lisa, Mark Jansen and
+# Sophie Bakker are not hers). Closing the app and opening it again opens Sarah Personal Training; so does a sign-out
+# and sign-in on the same device (the last workspace is kept on the device, not on the account). The flow changes no data in the database, so it can run any number of times. It reopens
 # the app (launchApp, no clearState) where it needs the first tab again: the back button of a pushed screen has no id
 # the two apps share, and Maestro's `back` is Android only.
 # The sign-in is the shared sub-flow. Elements are found by id: the Android testTag and the iOS accessibilityIdentifier,
@@ -61,11 +61,14 @@ env:
 # Klanten shows only the clients of Sarah Personal Training.
 - tapOn:
     id: home\.openClients
+# Anna is a client of both workspaces, so she proves nothing alone: once the list has loaded, John's Gym's other clients
+# must be gone. Lisa is only John's, and sorts right after Anna, so she would be on the first screen.
 - extendedWaitUntil:
-    visible:
-      id: clients\.empty
+    visible: .*Anna de Vries.*
     timeout: 20000
-- assertNotVisible: .*Anna de Vries.*
+- assertNotVisible: .*Lisa.*
+- assertNotVisible: .*Mark Jansen.*
+- assertNotVisible: .*Sophie Bakker.*
 # AC7: closing the app and opening it again opens Sarah Personal Training (no clearState: the session and the preference
 # stay).
 - launchApp

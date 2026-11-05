@@ -448,6 +448,8 @@ describe('E011 route access', () => {
       'post /v1/invitations/{token}/accept': 'public',
       'post /v1/invitations/{token}/decline': 'public',
       'get /v1/me': 'account',
+      'get /v1/me/day': 'account',
+      'get /v1/me/sessions': 'account',
       'get /v1/me/workspaces': 'account',
       'patch /v1/me': 'account',
       'post /v1/sign-in/request': 'public',

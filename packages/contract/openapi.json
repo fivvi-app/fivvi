@@ -364,6 +364,346 @@
         },
         "description": "What to change on the signed-in account. Fields left out stay as they are."
       },
+      "MyDay": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "The day shown: `YYYY-MM-DD`, in `timeZone`."
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "The zone of the personal scope: `Europe/Amsterdam`. The day starts and ends on its wall clock."
+          },
+          "workspaceCount": {
+            "type": "integer",
+            "description": "The workspaces the account trains in and the view spans. The apps show a workspace name on a row only when it is more than one."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonalSession"
+            },
+            "description": "The day’s items in time order, cancelled ones included."
+          },
+          "summary": {
+            "$ref": "#/components/schemas/MyDaySummary"
+          },
+          "next": {
+            "$ref": "#/components/schemas/MyDayNext"
+          },
+          "tomorrow": {
+            "$ref": "#/components/schemas/MyDayTomorrow"
+          },
+          "nextSessionDate": {
+            "type": "string",
+            "description": "The date of the next session that takes place after this day, `YYYY-MM-DD`. Only given when the day has no items; left out when there is none."
+          },
+          "hasSessions": {
+            "type": "boolean",
+            "description": "Whether the account is the current trainer of any session at all, past or future. Only computed when the day is empty and no session follows, to tell a new trainer (*Je hebt nog geen sessies*) from one with nothing planned; true otherwise."
+          }
+        },
+        "required": [
+          "date",
+          "timeZone",
+          "workspaceCount",
+          "items",
+          "summary",
+          "hasSessions"
+        ],
+        "description": "The personal day of a trainer across all their workspaces."
+      },
+      "PersonalSession": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The session ID. It opens in its own workspace: `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}` with the item’s `workspace.id`."
+          },
+          "workspace": {
+            "$ref": "#/components/schemas/PersonalWorkspace"
+          },
+          "type": {
+            "type": "string",
+            "enum": [
+              "private",
+              "group",
+              "open_gym"
+            ],
+            "description": "The kind of session, to be shown in words (*Privé*, *Groep*, *Open Gym*)."
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "scheduled",
+              "cancelled"
+            ],
+            "description": "Whether the session still takes place. A cancelled one stays in the list."
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The start, a UTC instant."
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The end, a UTC instant."
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "The workspace’s IANA time zone, e.g. `Europe/Amsterdam` (ADR-012)."
+          },
+          "capacity": {
+            "type": "integer",
+            "description": "1 for a private session."
+          },
+          "booked": {
+            "type": "integer",
+            "description": "The places taken (not cancelled), for a group class or Open Gym: *{booked}/{capacity} geboekt*. Left out for a private session."
+          },
+          "className": {
+            "type": "string",
+            "description": "The class name in the viewer’s language, for a group class. Left out until classes exist (F021 adds it)."
+          },
+          "location": {
+            "$ref": "#/components/schemas/Location"
+          },
+          "clientName": {
+            "type": "string",
+            "description": "The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail."
+          }
+        },
+        "required": [
+          "sessionId",
+          "workspace",
+          "type",
+          "status",
+          "startsAt",
+          "endsAt",
+          "timeZone",
+          "capacity"
+        ],
+        "description": "A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds."
+      },
+      "PersonalWorkspace": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The workspace ID."
+          },
+          "slug": {
+            "type": "string",
+            "description": "The URL name: `/w/{slug}` on the web."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name shown in the product."
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name"
+        ],
+        "description": "The workspace an item of the personal view is in."
+      },
+      "Location": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The location ID."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name sessions show, up to 120 characters."
+          },
+          "type": {
+            "$ref": "#/components/schemas/LocationType"
+          },
+          "address": {
+            "$ref": "#/components/schemas/LocationAddress"
+          },
+          "isDefault": {
+            "type": "boolean",
+            "description": "Whether this is the workspace’s default location, the one every new session takes."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "type",
+          "address",
+          "isDefault"
+        ],
+        "description": "A place where sessions of the workspace take place."
+      },
+      "LocationType": {
+        "type": "string",
+        "enum": [
+          "organization_location",
+          "external_gym",
+          "client_home",
+          "outdoor",
+          "online",
+          "other"
+        ],
+        "description": "The kind of location. Every workspace has one `organization_location` (its own) at go-live; the other kinds exist in the model for later and are not written yet."
+      },
+      "LocationAddress": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "postcode": {
+            "type": "string",
+            "description": "A Dutch postcode, stored as `1234 AB`."
+          },
+          "houseNumber": {
+            "type": "string",
+            "description": "One to five digits."
+          },
+          "houseNumberAddition": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "For example `A` or `2 hoog`; `null` when there is none."
+          },
+          "street": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "postcode",
+          "houseNumber",
+          "houseNumberAddition",
+          "street",
+          "city"
+        ],
+        "description": "The address, or `null` when the location has none."
+      },
+      "MyDaySummary": {
+        "type": "object",
+        "properties": {
+          "count": {
+            "type": "integer",
+            "description": "The items of the day, cancelled ones counted."
+          },
+          "firstStartsAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The start of the first item; left out for an empty day."
+          },
+          "lastEndsAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The end of the last item; left out for an empty day."
+          }
+        },
+        "required": [
+          "count"
+        ],
+        "description": "*4 sessies · 09:00–19:00*."
+      },
+      "MyDayNext": {
+        "type": "object",
+        "properties": {
+          "sessionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The item in `items`."
+          },
+          "state": {
+            "type": "string",
+            "enum": [
+              "upcoming",
+              "in_progress"
+            ],
+            "description": "`upcoming` is *Straks*, `in_progress` is *Nu bezig*."
+          },
+          "startsInMinutes": {
+            "type": "integer",
+            "description": "Minutes to the start, rounded up; 0 while it runs."
+          }
+        },
+        "required": [
+          "sessionId",
+          "state",
+          "startsInMinutes"
+        ],
+        "description": "*Straks* / *Nu bezig*: the first item of today that has not ended and is not cancelled. Left out when nothing is left today, and for any day but today."
+      },
+      "MyDayTomorrow": {
+        "type": "object",
+        "properties": {
+          "date": {
+            "type": "string",
+            "description": "The next day: `YYYY-MM-DD`."
+          },
+          "count": {
+            "type": "integer",
+            "description": "The sessions that day that take place."
+          },
+          "firstStartsAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The start of the first one."
+          }
+        },
+        "required": [
+          "date",
+          "count",
+          "firstStartsAt"
+        ],
+        "description": "The footer *Morgen: 3 sessies, eerste om 07:00*. Cancelled sessions are not counted; left out when the next day has none."
+      },
+      "MySessions": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "description": "The first day: `YYYY-MM-DD`."
+          },
+          "to": {
+            "type": "string",
+            "description": "The last day, included: `YYYY-MM-DD`."
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "The zone of the personal scope: `Europe/Amsterdam`. The days follow its wall clock."
+          },
+          "workspaceCount": {
+            "type": "integer",
+            "description": "The workspaces the account trains in and the view spans."
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PersonalSession"
+            },
+            "description": "The sessions from the start of `from` to the end of `to`, in time order."
+          }
+        },
+        "required": [
+          "from",
+          "to",
+          "timeZone",
+          "workspaceCount",
+          "items"
+        ],
+        "description": "The personal sessions of a trainer across all their workspaces, for a range of days."
+      },
       "SignInRequest": {
         "type": "object",
         "properties": {
@@ -762,87 +1102,6 @@
           "trainsHere"
         ],
         "description": "The caller’s own trainer profile: they train in this workspace."
-      },
-      "Location": {
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid",
-            "description": "The location ID."
-          },
-          "name": {
-            "type": "string",
-            "description": "The name sessions show, up to 120 characters."
-          },
-          "type": {
-            "$ref": "#/components/schemas/LocationType"
-          },
-          "address": {
-            "$ref": "#/components/schemas/LocationAddress"
-          },
-          "isDefault": {
-            "type": "boolean",
-            "description": "Whether this is the workspace’s default location, the one every new session takes."
-          }
-        },
-        "required": [
-          "id",
-          "name",
-          "type",
-          "address",
-          "isDefault"
-        ],
-        "description": "A place where sessions of the workspace take place."
-      },
-      "LocationType": {
-        "type": "string",
-        "enum": [
-          "organization_location",
-          "external_gym",
-          "client_home",
-          "outdoor",
-          "online",
-          "other"
-        ],
-        "description": "The kind of location. Every workspace has one `organization_location` (its own) at go-live; the other kinds exist in the model for later and are not written yet."
-      },
-      "LocationAddress": {
-        "type": [
-          "object",
-          "null"
-        ],
-        "properties": {
-          "postcode": {
-            "type": "string",
-            "description": "A Dutch postcode, stored as `1234 AB`."
-          },
-          "houseNumber": {
-            "type": "string",
-            "description": "One to five digits."
-          },
-          "houseNumberAddition": {
-            "type": [
-              "string",
-              "null"
-            ],
-            "description": "For example `A` or `2 hoog`; `null` when there is none."
-          },
-          "street": {
-            "type": "string"
-          },
-          "city": {
-            "type": "string"
-          }
-        },
-        "required": [
-          "postcode",
-          "houseNumber",
-          "houseNumberAddition",
-          "street",
-          "city"
-        ],
-        "description": "The address, or `null` when the location has none."
       },
       "UpdateLocationRequest": {
         "type": "object",
@@ -1558,6 +1817,201 @@
                   "items": {
                     "$ref": "#/components/schemas/MyWorkspace"
                   }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/day": {
+      "get": {
+        "operationId": "getMyDay",
+        "tags": [
+          "me"
+        ],
+        "summary": "My day: the sessions of one day across my workspaces",
+        "description": "Everything the signed-in account is the current trainer of on one day, in all the workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary, the tomorrow line, the date of the next session when the day is empty and the number of workspaces. Each workspace is read on its own; the answer is merged here. An account that trains in no workspace (an Owner who does not train, a client account) gets an empty answer, not `403`. The day is a date in Dutch time; times are UTC instants, to be shown in Dutch time.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "account",
+          "workspaces": "team"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "The day to show: `YYYY-MM-DD`, in Dutch time (Europe/Amsterdam). A date that is none (30 February) answers `400` on `date`."
+            },
+            "required": true,
+            "description": "The day to show: `YYYY-MM-DD`, in Dutch time (Europe/Amsterdam). A date that is none (30 February) answers `400` on `date`.",
+            "name": "date",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ios",
+                "android"
+              ],
+              "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the product event of the view with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it."
+            },
+            "required": false,
+            "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the product event of the view with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.",
+            "name": "surface",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The day.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MyDay"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/sessions": {
+      "get": {
+        "operationId": "listMySessions",
+        "tags": [
+          "me"
+        ],
+        "summary": "My sessions: a range of days across my workspaces",
+        "description": "The sessions the signed-in account is the current trainer of from the start of `from` to the end of `to` (at most 42 days, days in Dutch time), in all the workspaces it trains in, in time order: for the week and month views. Cancelled sessions stay. An account that trains nowhere gets an empty list, not `403`.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "account",
+          "workspaces": "team"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "The first day: `YYYY-MM-DD`, in Dutch time. A date that is none answers `400` on `from`."
+            },
+            "required": true,
+            "description": "The first day: `YYYY-MM-DD`, in Dutch time. A date that is none answers `400` on `from`.",
+            "name": "from",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+              "description": "The last day, included: `YYYY-MM-DD`, in Dutch time. Before `from` answers `400` on `to` with `before_from`; more than 42 days from `from` answers `400` with `range_too_long`."
+            },
+            "required": true,
+            "description": "The last day, included: `YYYY-MM-DD`, in Dutch time. Before `from` answers `400` on `to` with `before_from`; more than 42 days from `from` answers `400` with `range_too_long`.",
+            "name": "to",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "ios",
+                "android"
+              ],
+              "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the product event of the view with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it."
+            },
+            "required": false,
+            "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the product event of the view with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.",
+            "name": "surface",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The sessions.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MySessions"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
                 }
               }
             }

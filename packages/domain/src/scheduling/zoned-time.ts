@@ -84,3 +84,41 @@ export function wallClockToInstant(date: string, time: string, timeZone: string)
   if (earlier === undefined) return { outcome: 'does-not-exist' };
   return { outcome: 'instant', instant: new Date(earlier), repeated: matches.length > 1 };
 }
+
+/** The calendar date (`YYYY-MM-DD`) on the wall clock of `timeZone` at `instant`. */
+export function localDateOf(instant: Date, timeZone: string): string {
+  return new Date(wallAsUtc(instant.getTime(), timeZone)).toISOString().slice(0, 10);
+}
+
+/** The date `days` after `date` (before, when negative); a calendar date, so DST does not matter. */
+export function addDays(date: string, days: number): string {
+  const day = DATE.exec(date);
+  if (!day) throw new RangeError(`Not a date: ${date}`);
+  const shifted = Date.UTC(Number(day[1]), Number(day[2]) - 1, Number(day[3]) + days);
+  return new Date(shifted).toISOString().slice(0, 10);
+}
+
+/** The first instant of `date` in `timeZone`; a zone that skips midnight starts the day at the first hour that exists. */
+function startOfDay(date: string, timeZone: string): Date | undefined {
+  for (const hour of ['00', '01', '02', '03']) {
+    const found = wallClockToInstant(date, `${hour}:00`, timeZone);
+    if (found.outcome === 'invalid') return undefined;
+    if (found.outcome === 'instant') return found.instant;
+  }
+  return undefined;
+}
+
+/**
+ * The day `date` (`YYYY-MM-DD`) on the wall clock of `timeZone`, from its first instant up to, not
+ * including, the first instant of the next day: 23 hours when the clocks go forward, 25 when they
+ * go back. `undefined` when `date` is no calendar date.
+ */
+export function localDayBounds(
+  date: string,
+  timeZone: string,
+): { readonly start: Date; readonly end: Date } | undefined {
+  const start = startOfDay(date, timeZone);
+  if (!start) return undefined;
+  const end = startOfDay(addDays(date, 1), timeZone);
+  return end ? { start, end } : undefined;
+}
