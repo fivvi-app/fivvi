@@ -315,7 +315,7 @@ class ClientsScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         compose.onNodeWithTag("${ClientProfileTags.EDIT_PREFIX}.name").performTextReplacement("Mark Visser")
         compose.onNodeWithTag("${ClientProfileTags.EDIT_PREFIX}.email").performTextReplacement("mark@example.com")
         // Typing shows the keyboard and its animation runs outside Compose's idling; tap the language once it is gone (#569).
-        app.hideKeyboard()
+        app.hideKeyboard(compose)
         compose.onNodeWithTag("${ClientProfileTags.EDIT_PREFIX}.language.en").performClick()
         compose.onNodeWithTag("${ClientProfileTags.EDIT_PREFIX}.language.en").assertIsSelected()
         compose.onNodeWithTag(ClientProfileTags.EDIT_SAVE).performClick()

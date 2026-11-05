@@ -1,8 +1,9 @@
 package app.fivvi.pro
 
-import android.os.SystemClock
+import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsAnimationCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
@@ -30,6 +31,7 @@ import app.fivvi.pro.home.FakeWorkspacesApi
 import app.fivvi.pro.workspace.CurrentWorkspace
 import app.fivvi.pro.workspace.InMemoryLastWorkspaceStore
 import app.fivvi.pro.workspace.LastWorkspaceStore
+import java.util.concurrent.atomic.AtomicInteger
 import org.junit.rules.ExternalResource
 
 /**
@@ -74,7 +76,12 @@ class AppRule : ExternalResource() {
             override val languagePreference = LanguagePreference(languageStore, languageSettings)
             override val currentWorkspace = CurrentWorkspace(lastWorkspace)
         }
-        scenario = ActivityScenario.launch(MainActivity::class.java)
+        scenario = ActivityScenario.launch(MainActivity::class.java).also { launched ->
+            imeAnimations.set(0)
+            launched.onActivity { activity ->
+                ViewCompat.setWindowInsetsAnimationCallback(activity.window.decorView, imeAnimationCounter)
+            }
+        }
     }
 
     /** The system's back, as the gesture or button sends it to the activity. */
@@ -89,28 +96,40 @@ class AppRule : ExternalResource() {
     }
 
     /**
-     * Hides the soft keyboard and returns once it is gone and has stayed gone for a few polls. Typing into a field shows
-     * it, and each change of focus hides and shows it again: the insets animation (`imePadding`) runs outside Compose's
-     * idling, so a tap right after typing meets a layout that is still moving (#569). A test that goes on to a control
-     * below the fields calls this first.
+     * Hides the soft keyboard and waits until it is gone and its insets animation has ended. Typing shows it, and each
+     * change of focus hides and shows it again; `imePadding` follows that animation, which Compose's idling does not
+     * track, and the root insets already show the end state when it starts. A test that goes on to a control below the
+     * fields calls this first (#569). [launch] has registered the callback that counts the running animations.
      */
-    fun hideKeyboard(timeoutMillis: Long = KEYBOARD_TIMEOUT_MILLIS) {
-        val deadline = SystemClock.uptimeMillis() + timeoutMillis
-        var gonePolls = 0
-        while (gonePolls < KEYBOARD_GONE_POLLS) {
-            var bottom = 0
-            scenario?.onActivity { activity ->
+    fun hideKeyboard(compose: ComposeTestRule, timeoutMillis: Long = KEYBOARD_TIMEOUT_MILLIS) {
+        val running = requireNotNull(scenario) { "hideKeyboard needs a launched activity" }
+        compose.waitUntil(timeoutMillis) {
+            var shown = false
+            running.onActivity { activity ->
                 val decor = activity.window.decorView
-                val ime = WindowInsetsCompat.Type.ime()
-                if (ViewCompat.getRootWindowInsets(decor)?.isVisible(ime) == true) {
-                    WindowCompat.getInsetsController(activity.window, decor).hide(ime)
-                }
-                bottom = ViewCompat.getRootWindowInsets(decor)?.getInsets(ime)?.bottom ?: 0
+                shown = ViewCompat.getRootWindowInsets(decor)?.isVisible(WindowInsetsCompat.Type.ime()) == true
+                if (shown) WindowCompat.getInsetsController(activity.window, decor).hide(WindowInsetsCompat.Type.ime())
             }
-            gonePolls = if (bottom == 0) gonePolls + 1 else 0
-            check(SystemClock.uptimeMillis() < deadline) { "the soft keyboard did not go away in ${timeoutMillis}ms" }
-            Thread.sleep(KEYBOARD_POLL_MILLIS)
+            !shown && imeAnimations.get() == 0
         }
+        compose.waitForIdle()
+    }
+
+    // Counts the insets animations of the keyboard that are running: onPrepare comes before the first frame, onEnd after
+    // the last one (also when the animation is cancelled).
+    private val imeAnimations = AtomicInteger(0)
+    private val imeAnimationCounter = object : WindowInsetsAnimationCompat.Callback(DISPATCH_MODE_CONTINUE_ON_SUBTREE) {
+        override fun onPrepare(animation: WindowInsetsAnimationCompat) {
+            if (animation.isKeyboard()) imeAnimations.incrementAndGet()
+        }
+
+        override fun onProgress(insets: WindowInsetsCompat, running: List<WindowInsetsAnimationCompat>) = insets
+
+        override fun onEnd(animation: WindowInsetsAnimationCompat) {
+            if (animation.isKeyboard()) imeAnimations.decrementAndGet()
+        }
+
+        private fun WindowInsetsAnimationCompat.isKeyboard() = typeMask and WindowInsetsCompat.Type.ime() != 0
     }
 
     /** Closes the activity, as when the person leaves the app; [launch] starts it again. */
@@ -134,5 +153,3 @@ private fun storedOf(tags: List<String>) =
     }
 
 private const val KEYBOARD_TIMEOUT_MILLIS = 5_000L
-private const val KEYBOARD_GONE_POLLS = 5
-private const val KEYBOARD_POLL_MILLIS = 50L
