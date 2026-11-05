@@ -465,7 +465,9 @@
     if (F.OWNER() && (F.HAS("group") || F.SOLO())) items.push(["w-new-class", "Groepsles", "group"]);
     if (F.OWNER() && F.HAS("gym")) items.push(["w-new-gym", "Open Gym", "door"]);
     items.push(["w-new-client", "Klant", "personPlus"]);
-    return '<div class="w-scrim clear" data-a="w-close"></div><div class="w-menu" role="menu">' + items.map(function (x) { return '<button role="menuitem" data-a="' + x[0] + '">' + ic(x[2]) + x[1] + "</button>"; }).join("") + "</div>";
+    /* less frequent, owner only: below a divider so the daily items stay on top */
+    if (F.OWNER()) items.push("-", ["w-new-offer", "Aanbod", "repeat"]);
+    return '<div class="w-scrim clear" data-a="w-close"></div><div class="w-menu" role="menu">' + items.map(function (x) { return x === "-" ? '<hr role="separator">' : '<button role="menuitem" data-a="' + x[0] + '">' + ic(x[2]) + x[1] + "</button>"; }).join("") + "</div>";
   }
   function sheet() {
     var f = F.findItem(W().sheet), it = f.it, k = f.day, h = "";
@@ -554,6 +556,7 @@
   function from(w) { if (w.page !== "client" && w.page !== "klass") w.back = { page: w.page }; }
   A["w-open-class"] = function (d) { var w = W(); from(w); w.kid = d.id; w.page = "klass"; w.sheet = null; R(); };
   A["w-client"] = function (d) { var w = W(); from(w); w.cid = d.id; w.page = "client"; w.tab = "overview"; w.sheet = null; w.q = ""; R(); };
+  A["w-new-offer"] = function () { var w = W(); w.page = "offers"; w.menu = null; A["w-dlg"]({ n: "offer-edit" }); };
   A["w-offer-on"] = function (d) { var o = offerById(d.id); if (!o.on && !o.price) { A["w-dlg"]({ n: "offer-edit", id: o.id }); bad("price", "Vul een prijs in om het aan te zetten"); return; } o.on = !o.on; F.toast(o.on ? o.name + " staat aan. Klanten kunnen het kopen." : o.name + " staat uit. Lopende afspraken lopen door."); };
   A["w-offer-tpl"] = function (d) { var w = W(), t = offerById(d.id); w.form = offerForm(t); w.form.id = ""; R(); };
   A["w-term"] = function (d) { D.workspaces.sf.term = d.v; F.toast("Opgeslagen"); };

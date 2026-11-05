@@ -407,3 +407,4 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .w-starts .w-muted{width:100%;font-size:12px}
 .w-av:has(> svg){background:linear-gradient(160deg,color-mix(in oklab,var(--c) 85%,#000),color-mix(in oklab,var(--c) 75%,#000))}
 .w-list li>button svg:first-child,.w-warn,.c-wait{color:color-mix(in oklab,var(--gym) 78%,var(--ev-ink))}
+.w-menu hr{border:0;border-top:1px solid var(--w-border);margin:4px -4px}
