@@ -110,6 +110,44 @@
       "generic": "Something went wrong. Try again."
     }
   },
+  "settingsLocation": {
+    "title": "Location",
+    "help": "All sessions and classes take place here.",
+    "nameLabel": "Name",
+    "typeLabel": "Type",
+    "addressLegend": "Address",
+    "postcodeLabel": "Postcode",
+    "houseNumberLabel": "House number",
+    "additionLabel": "Addition",
+    "streetLabel": "Street",
+    "cityLabel": "City",
+    "save": "Save",
+    "saved": "Location saved.",
+    "lookup": {
+      "busy": "Looking up the address…",
+      "filled": "Filled in from the postcode and house number.",
+      "notFound": "We can't find an address for this postcode and house number. Fill in the street and city yourself.",
+      "unavailable": "We can't look up the address right now. Fill in the street and city yourself."
+    },
+    "types": {
+      "organizationLocation": "Own location",
+      "externalGym": "External gym",
+      "clientHome": "Client's home",
+      "outdoor": "Outdoors",
+      "online": "Online",
+      "other": "Other"
+    },
+    "errors": {
+      "nameRequired": "Enter a name.",
+      "nameTooLong": "This name is too long. Use a shorter one.",
+      "postcodeInvalid": "Enter a postcode like 1234 AB.",
+      "houseNumberInvalid": "Enter a house number of 1 to 5 digits.",
+      "tooLong": "This text is too long. Use a shorter one.",
+      "addressIncomplete": "Fill in the whole address, or leave it empty.",
+      "noConnection": "No connection. Check your internet and try again.",
+      "generic": "Something went wrong. Try again."
+    }
+  },
   "noPermission": {
     "title": "No access",
     "body": "You don't have access to this page. Ask the owner of {workspace}."
@@ -119,6 +157,7 @@
     "settings": "Settings",
     "settingsGeneral": "General",
     "settingsLanguage": "Language",
+    "settingsLocation": "Location",
     "workspaceWithRole": "{name} · {role}",
     "trainers": "Trainers",
     "clients": "Clients",

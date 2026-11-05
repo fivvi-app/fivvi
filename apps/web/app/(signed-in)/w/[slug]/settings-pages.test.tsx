@@ -5,6 +5,7 @@ import { escapeHtml, render } from '../../../../test/render';
 import { GeneralForm } from './settings/general/general-form';
 import { NoPermission } from './settings/general/no-permission';
 import { LanguageForm } from './settings/language/language-form';
+import { LocationForm } from './settings/locations/location-form';
 import { WorkspaceFrame } from './workspace-frame';
 
 // The form refreshes the page through the router, which exists only in a running app.
@@ -324,6 +325,124 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     // The read-only values are no inputs: only the name can be edited.
     expect(html.match(/<input/g)).toHaveLength(1);
     expect(html).not.toContain('role="alert"');
+  });
+
+  it('F015 AC4: the Owner has Location in the navigation, linking to the location settings', () => {
+    const html = render(
+      locale,
+      <WorkspaceFrame
+        name="John's Gym"
+        slug="johns-gym"
+        teamRole="owner"
+        workspaces={[]}
+        canCreateWorkspace={false}
+        capabilities={OWNER}
+        personName={null}
+      >
+        <hr id="page" />
+      </WorkspaceFrame>,
+    );
+
+    expect(html).toMatch(
+      new RegExp(
+        `<a[^>]*href="/w/johns-gym/settings/locations"[^>]*>${escapeHtml(copy.workspaceNav.settingsLocation)}</a>`,
+      ),
+    );
+  });
+
+  it('F015 AC6: a Trainer has no Location in the navigation, and Location needs settings.manage', () => {
+    const frame = (capabilities: typeof OWNER) =>
+      render(
+        locale,
+        <WorkspaceFrame
+          name="John's Gym"
+          slug="johns-gym"
+          teamRole="trainer"
+          workspaces={[]}
+          canCreateWorkspace={false}
+          capabilities={capabilities}
+          personName={null}
+        >
+          <hr />
+        </WorkspaceFrame>,
+      );
+
+    expect(frame(TRAINER)).not.toContain('/settings/locations');
+    expect(frame(['workspace.manage'])).not.toContain('/settings/locations');
+    expect(frame(['workspace.manage', 'settings.manage'])).toContain(
+      'href="/w/johns-gym/settings/locations"',
+    );
+  });
+
+  it('F015 AC2: TW-08 Location shows the name, the type read-only, the address fields and Save', () => {
+    const html = render(
+      locale,
+      <LocationForm
+        workspaceId="w1"
+        locationId="l1"
+        name="John's Gym"
+        type="organization_location"
+        address={null}
+      />,
+    );
+
+    expect(html).toContain(`<h1>${escapeHtml(copy.settingsLocation.title)}</h1>`);
+    expect(html).toContain(escapeHtml(copy.settingsLocation.help));
+    expect(html).toMatch(/<input[^>]*id="location-name"[^>]*value="John&#x27;s Gym"/);
+    // The type is text, not a field: only the name and the five address fields can be edited.
+    expect(html).toContain(escapeHtml(copy.settingsLocation.typeLabel));
+    expect(html).toContain(escapeHtml(copy.settingsLocation.types.organizationLocation));
+    expect(html.match(/<input/g)).toHaveLength(6);
+    for (const [id, label] of [
+      ['location-name', copy.settingsLocation.nameLabel],
+      ['location-postcode', copy.settingsLocation.postcodeLabel],
+      ['location-house-number', copy.settingsLocation.houseNumberLabel],
+      ['location-addition', copy.settingsLocation.additionLabel],
+      ['location-street', copy.settingsLocation.streetLabel],
+      ['location-city', copy.settingsLocation.cityLabel],
+    ] as const) {
+      expect(html).toMatch(new RegExp(`<label[^>]*for="${id}"[^>]*>${escapeHtml(label)}</label>`));
+    }
+    expect(html).toContain(escapeHtml(copy.settingsLocation.addressLegend));
+    expect(html).toMatch(
+      new RegExp(
+        `<button[^>]*type="submit"[^>]*>${escapeHtml(copy.settingsLocation.save)}</button>`,
+      ),
+    );
+    expect(html).not.toContain('role="alert"');
+    // Nothing was looked up, so there is no "filled in" note yet.
+    expect(html).not.toContain(escapeHtml(copy.settingsLocation.lookup.filled));
+  });
+
+  it('F015 AC4: TW-08 Location shows the saved address in its fields', () => {
+    const html = render(
+      locale,
+      <LocationForm
+        workspaceId="w1"
+        locationId="l1"
+        name="John's Gym Centrum"
+        type="organization_location"
+        address={{
+          postcode: '1234 AB',
+          houseNumber: '1',
+          houseNumberAddition: 'A',
+          street: 'Voorbeeldstraat',
+          city: 'Amsterdam',
+        }}
+      />,
+    );
+
+    for (const [id, value] of [
+      ['location-postcode', '1234 AB'],
+      ['location-house-number', '1'],
+      ['location-addition', 'A'],
+      ['location-street', 'Voorbeeldstraat'],
+      ['location-city', 'Amsterdam'],
+    ]) {
+      expect(html).toMatch(new RegExp(`<input[^>]*id="${id}"[^>]*value="${value}"`));
+    }
+    // A saved address was typed or looked up before: it is not claimed to be filled in now.
+    expect(html).not.toContain(escapeHtml(copy.settingsLocation.lookup.filled));
   });
 
   it('AC7: the no-permission page names the workspace and offers no form', () => {
