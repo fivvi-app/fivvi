@@ -577,3 +577,21 @@ input:focus,select:focus,textarea:focus{outline:none}
 .tbar{display:block;height:4px;border-radius:2px;background:color-mix(in srgb,var(--c) 18%,transparent);margin-top:8px;overflow:hidden}
 .tbar i{display:block;height:100%;border-radius:2px;background:var(--c)}
 .android .ds{background:var(--m-c);border-radius:28px}
+/* ---------- Studio view: one lane per trainer ---------- */
+.ds.team{--lab:64px}
+.tr-wrap{position:relative;display:grid;gap:5px}
+.tr-row{display:grid;grid-template-columns:var(--lab) minmax(0,1fr);align-items:center}
+.tr-lab{display:flex;align-items:center;gap:6px;font-size:13px;font-weight:600;min-width:0}
+.tr-lab>span:last-child{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.av.xs{width:24px;height:24px;font-size:10px}
+.tr-track{position:relative;border-radius:6px;background:repeating-linear-gradient(90deg,var(--fill) 0 1px,transparent 1px 100%) 0 0/calc(100%/12) 100%}
+.tr-wrap .ds-now{top:-4px;bottom:-4px}
+/* ---------- My day card ---------- */
+.dc-ic{width:32px;height:32px;border-radius:10px;display:grid;place-items:center;flex:none;color:#fff;background:var(--c)}
+.dc-ic svg{width:18px;height:18px}
+.row.dc{align-items:flex-start}
+.row.dc .dc-ic{margin-top:2px}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+.chip{border:0;border-radius:999px;padding:6px 12px;font-size:14px;font-weight:600;background:color-mix(in srgb,var(--gym) 16%,transparent);color:color-mix(in oklab,var(--gym) 55%,var(--ev-ink))}
+.android .chip{border-radius:8px}
+.row.dc .tr .btn{height:34px}

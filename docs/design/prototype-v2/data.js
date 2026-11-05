@@ -6,7 +6,7 @@ window.FIVVI_DATA = (function () {
     jg: { id: "jg", name: "John's Gym", role: "trainer", color: "var(--ws-jg)", location: "John's Gym, Havenweg 3" }
   };
   var locations = ["Studio Fit, Kerkstraat 12", "TrainMore Zuid", "Basic-Fit Oost", "Vondelpark (buiten)"];
-  var trainers = { sf: ["Sarah Jansen", "Mike de Boer", "Yara Koster"], jg: ["John Peters", "Mike de Boer", "Sarah Jansen"] };
+  var trainers = { sf: ["Sarah Jansen", "Mike de Boer", "Yara Koster", "Noah Bakker"], jg: ["John Peters", "Mike de Boer", "Sarah Jansen"] };
 
   var clients = [
     { id: "anna", ws: "sf", name: "Anna de Vries", email: "anna@example.com", lang: "Nederlands", last: "29 okt", c: "var(--priv)" },

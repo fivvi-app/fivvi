@@ -56,6 +56,8 @@ window.FIVVI_I18N = (function () {
     [/^(\d+) plekken vrij$/, "$1 spots left"],
     [/^Bij (.+) thuis$/, "At $1's home"],
     [/^Bij (.+)$/, "At $1"],
+    [/^Drukst (.+) · (\d+) tegelijk$/, "Busiest $1 · $2 at once"],
+    [/^Vrij (.+)$/, "Free $1"],
     [/^Week (\d+) · (.+)$/, function (m, n, r) { return "Week " + n + " · " + P(r); }],
     [/^We hebben een code gestuurd naar$/, "We sent a code to"]
   ];
@@ -63,6 +65,8 @@ window.FIVVI_I18N = (function () {
   /* Phrases and words, replaced on letter boundaries, longest first. */
   var PH = {
     /* app frame */
+    "Te doen": "To do", "Alles bijgewerkt": "All caught up", "Plannen": "Plan", "Route vandaag": "Today's route", "Locatie vandaag": "Today's location",
+    "Geen vrije tijd meer vandaag": "No free time left today", "Training delen": "Share workout", "trainers": "trainers",
     "Opzet": "Setup", "Studio met team": "Studio with a team", "Zelfstandige PT": "Independent PT", "Bovenkant Vandaag": "Top of Today", "Dagstrip": "Day strip", "Tegels": "Tiles", "Regel": "Line",
     "Vandaag · zelfstandige PT": "Today · independent PT", "sessies": "sessions", "sessie": "session", "Uren": "Hours", "uur": "hours",
     "Bij de klant thuis": "At the client's home", "Naam en e-mailadres. De klant krijgt een uitnodiging om in te loggen.": "Name and email address. The client gets an invitation to sign in.",
