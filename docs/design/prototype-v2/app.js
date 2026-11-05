@@ -448,9 +448,15 @@
         brows.push(row({ lead: '<span class="dc-ic" style="--c:' + x.label[2] + '">' + ic(x.credit === "gym" ? "door" : x.credit === "groep" ? "group" : "me") + "</span>", title: x.label[1].charAt(0).toUpperCase() + x.label[1].slice(1), sub: x.used + " gebruikt · " + x.planned + " gepland · van " + x.total,
           tr: '<span class="bal-n" style="--c:' + x.label[2] + '"><b class="num">' + x.left + "</b> over</span>", extra: '<div class="abar" style="--c:' + x.label[2] + '"><i style="width:' + (x.used / t * 100) + '%"></i><i class="p" style="width:' + (x.planned / t * 100) + '%"></i></div>', cls: "dc" }));
       });
-      bs.flags.filter(function (f) { return f[0] === "warn" && f[1].indexOf("Abonnement") !== 0; }).forEach(function (f) { brows.push(row({ lead: '<span class="dc-ic" style="--c:var(--gym)">' + ic("warn") + "</span>", title: esc(f[1]), cls: "dc" })); });
-      if (!brows.length) brows.push(row({ title: "Geen abonnement of credits", sub: OWNER() ? "Stuur een aanbod vanaf het web." : "" }));
-      body += sh("Tegoed", "", "small") + '<div class="pad">' + grp(brows, "--inset:60px") + "</div>" + (OWNER() ? foot("Betalingen en facturen vind je op het web.") : "");
+      var renewing = OWNER() ? bs.renew.map(function (r) { return r[0].name; }) : [];
+      bs.flags.filter(function (f) { return f[0] === "warn" && f[1].indexOf("Abonnement") !== 0 && renewing.indexOf(f[2]) < 0; }).forEach(function (f) { brows.push(row({ lead: '<span class="dc-ic" style="--c:var(--gym)">' + ic("warn") + "</span>", title: esc(f[1]), cls: "dc" })); });
+      if (!brows.length) brows.push(row({ title: "Geen abonnement of credits" }));
+      /* the owner renews in one tap: Fivvi suggests it from a month before an agreement stops, or when a pack runs low */
+      if (OWNER()) {
+        bs.renew.forEach(function (r) { var a = r[0]; brows.push(row({ lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("repeat") + "</span>", title: "Verlengen: <span>" + esc(a.name) + "</span>", sub: a.offerSent ? "Aanbod verstuurd " + esc(a.offerSent) + " · wacht op betaling" : esc(r[1]), tr: a.offerSent ? '<span class="pill">Verstuurd</span>' : btn("Verlengen", { sm: true, a: "offer", d: { id: c.id, ag: a.id } }), cls: "dc wrap" })); });
+        brows.push(row({ a: "offer", d: { id: c.id }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("plus") + "</span>", title: '<span style="color:var(--accent-text)">Aanbod sturen</span>', cls: "dc", chev: false }));
+      }
+      body += sh("Tegoed", "", "small") + '<div class="pad">' + grp(brows, "--inset:60px") + "</div>" + (OWNER() ? foot("Fivvi stelt verlengen voor vanaf " + D.RENEW_DAYS + " dagen voor het einde, of als een creditpakket bijna op is. Betalingen en facturen vind je op het web.") : "");
     }
     body += lastTime(c.id) + progressList(c.id);
     body += sh("Gegevens", "", "small") + '<div class="pad">' + grp([row({ title: "E-mail", tr: c.email ? esc(c.email) : "Nog niet ingevuld", cls: "kv" }), row({ title: "Taal voor e-mails", tr: esc(c.lang), cls: "kv" }), row({ title: "Werkruimte", tr: wsLine(c.ws), cls: "kv" })]) + "</div>";
@@ -605,6 +611,15 @@
     body += '<div class="fgrp" style="margin-top:16px">' + fld("Locatie", sel("loc", D.locations)) + "</div>";
     body += foot("Fivvi stelt de locatie van de vorige sessie met deze klant voor.");
     return { title: S.form.duo ? "Nieuwe duosessie" : "Nieuwe privésessie", body: body, save: "save-session" };
+  };
+  /* Send an offer: the client gets an email with a link to confirm and pay; the invoice follows the payment (§94, §96) */
+  SHEETS.offer = function () {
+    var f = S.form, c = CLIENT[f.client], a = f.ag ? D.billing[f.client].agreements.filter(function (x) { return x.id === f.ag; })[0] : null;
+    var body = '<div class="fgrp">' + fld("Aanbod", sel("offer", D.offers)) + "</div>";
+    var running = a && a.endsIn >= 0 && a.status !== "expired";
+    if (running) body += '<div style="margin:16px 0 6px;font-size:13px;color:var(--label2);padding-left:4px">Gaat in</div>' + seg([["after", "Na afloop"], ["now", "Direct"]], f.start, "fset", { f: "start" });
+    body += foot(esc(c.name.split(" ")[0]) + " krijgt een e-mail met een link om te bevestigen en te betalen met iDEAL. Na de betaling maakt Fivvi de factuur." + (running ? " Na afloop: het nieuwe begint als " + esc(a.name) + " eindigt, zonder gat en zonder overlap." : ""));
+    return { title: a ? "Verlengen" : "Aanbod sturen", body: body, save: "send-offer" };
   };
   SHEETS.newClient = function () {
     var body = '<div class="fgrp">' + fld("Naam", inp("name", "text", "Voor- en achternaam", " autocomplete=\"off\"")) + fld("E-mail", inp("email", "email", "naam@voorbeeld.nl")) + "</div>";
@@ -925,6 +940,8 @@
     "new": function () { S.sheet = "new"; S.anim = "up"; render(); },
     "new-session": function () { S.form = Object.assign(today5(), { client: "anna", loc: D.locations[1] }); S.sheet = "newSession"; S.anim = "up"; render(); },
     "plan-for": function (d) { S.form = Object.assign(today5(), { client: d.id, date: key(add(NOW, 1)), start: "10:30", loc: D.locations[1] }); S.sheet = "newSession"; S.anim = "up"; render(); },
+    offer: function (d) { var a = d.ag ? D.billing[d.id].agreements.filter(function (x) { return x.id === d.ag; })[0] : null; S.menu = null; S.form = { client: d.id, ag: d.ag || "", offer: a ? a.name : D.offers[1], start: "after" }; S.sheet = "offer"; S.anim = "up"; render(); },
+    "send-offer": function () { var f = S.form, c = CLIENT[f.client]; if (f.ag) D.billing[f.client].agreements.forEach(function (x) { if (x.id === f.ag) x.offerSent = "vandaag"; }); S.sheet = null; toast("Aanbod verstuurd aan " + c.name.split(" ")[0]); },
     "new-client": function () { S.form = { name: "", email: "", lang: "Nederlands", ws: "sf" }; S.sheet = "newClient"; S.anim = "up"; render(); },
     "new-class": function () { S.form = Object.assign(today5(), { name: "", trainer: D.me.name, rep: "Niet herhalen", cap: "12", start: "19:00", end: "20:00" }); S.sheet = "newClass"; S.anim = "up"; render(); },
     "new-gym": function () { S.form = Object.assign(today5(), { start: "17:00", end: "19:00" }); S.sheet = "newGym"; S.anim = "up"; render(); },

@@ -7,6 +7,19 @@ window.FIVVI_I18N = (function () {
 
   /* Sentence-level rules first: these change word order or need a captured value. */
   var RULES = [
+[/^Op$/, "Used up"],
+[/^Direct$/, "Now"],
+[/^Verlengen:$/, "Renew:"],
+[/^Aanbod verstuurd (vandaag)( · wacht op betaling)?$/, function (m, d, w) { return "Offer sent today" + (w ? " · waiting for payment" : ""); }],
+[/^Aanbod verstuurd aan (.+)$/, "Offer sent to $1"],
+[/^Stopt over (\d+) dagen$/, "Stops in $1 days"],
+[/^Nog (\d+) over, geldig nog (\d+) dagen$/, "$1 left, valid for $2 more days"],
+[/^Nog (\d+) over$/, "$1 left"],
+[/^Na afloop van (.+)$/, function (m, a) { return "When " + P(a) + " ends"; }],
+[/^Stopt (\d.+)$/, function (m, a) { return "Stops " + P(a); }],
+[/^Nog geen betalingen\.$/, "No payments yet."],
+[/^Fivvi stelt verlengen voor vanaf (\d+) dagen voor het einde, of als een creditpakket bijna op is\. Betalingen en facturen vind je op het web\.$/, "Fivvi suggests renewing from $1 days before the end, or when a credit pack is nearly used up. Payments and invoices are on the web."],
+[/^(\S+) krijgt een e-mail met een link om te bevestigen en te betalen met iDEAL\. Na de betaling maakt Fivvi de factuur\.( Na afloop: het nieuwe begint als (.+) eindigt, zonder gat en zonder overlap\.| Na afloop: geen gat en geen overlap\.)?$/, function (m, n, x, a) { return n + " gets an email with a link to confirm and pay with iDEAL. Fivvi makes the invoice after the payment." + (x ? (a ? " When it ends: the new one starts when " + P(a) + " ends, with no gap and no overlap." : " When it ends: no gap and no overlap.") : ""); }],
 [/^(\d+) gebruikt · (\d+) gepland · van (\d+)$/, "$1 used · $2 planned · of $3"],
 [/^van (\d+) deze periode$/, "of $1 this period"],
 [/^Je traint samen met (.+)\. Je trainer houdt ieders training apart bij\.$/, "You train together with $1. Your trainer keeps a separate record of each workout."],
@@ -330,6 +343,9 @@ window.FIVVI_I18N = (function () {
     "je logt per klant": "you log per client", "Samen met": "Together with", "Klanten": "Clients",
     "Niveau": "Level", "Alle niveaus": "All levels", "Beginner": "Beginner", "Gemiddeld": "Intermediate", "Gevorderd": "Advanced",
     "Woordkeuze": "Wording", "Bijvoorbeeld Reformer": "For example Reformer",
+    "Verlengen": "Renew", "Verlengen voorgesteld": "Renewal suggested", "Aanbod sturen": "Send offer", "Aanbod": "Offer", "Gaat in": "Starts", "Na afloop": "When it ends",
+    "Direct na betaling": "Right after payment", "Versturen": "Send", "Verstuurd": "Sent", "Opnieuw sturen": "Send again", "Afgelopen": "Ended", "Op na de geplande sessie": "Used up after the planned session", "wacht op betaling": "waiting for payment",
+    "Groep 1× per week": "Group 1× a week", "Groep 2× per week": "Group 2× a week", "Groep 3× per week": "Group 3× a week", "10 groepscredits": "10 group credits", "5 privésessies": "5 private sessions", "10 privésessies": "10 private sessions", "Privé 4 per 4 weken": "Private 4 per 4 weeks", "5 Open Gym-credits": "5 Open Gym credits",
     /* dates */
     "maandag": "Monday", "dinsdag": "Tuesday", "woensdag": "Wednesday", "donderdag": "Thursday", "vrijdag": "Friday", "zaterdag": "Saturday", "zondag": "Sunday",
     "januari": "January", "februari": "February", "maart": "March", "april": "April", "mei": "May", "juni": "June", "juli": "July", "augustus": "August", "september": "September", "oktober": "October", "november": "November", "december": "December",

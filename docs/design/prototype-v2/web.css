@@ -373,3 +373,7 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .w-terms button b{font-size:14px}
 .w-terms button span{font-size:12px;color:var(--w-mfg)}
 .w-terms button.on{border-color:var(--w-fg);box-shadow:0 0 0 1px var(--w-fg)}
+.w-renew{display:flex;align-items:center;gap:10px;margin-top:10px;padding:8px 10px 8px 12px;border-radius:10px;font-size:13px;
+  background:color-mix(in srgb,var(--accent) 8%,var(--w-card));border:1px solid color-mix(in srgb,var(--accent) 25%,var(--w-border))}
+.w-renew>svg{width:16px;height:16px;flex:none;color:var(--accent-text)}
+.w-renew span{flex:1}
