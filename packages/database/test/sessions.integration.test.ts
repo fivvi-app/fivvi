@@ -590,6 +590,12 @@ describe('F020 sessions and session participants tables', () => {
       await plan(anna.id, at(-1)); // past
       await plan(anna.id, at(3), { status: 'cancelled' });
       await plan(anna.id, at(4), { type: 'group' });
+      // A scheduled session whose place Anna cancelled is not one she is coming to.
+      const placeCancelled = await plan(anna.id, at(6));
+      await admin.db
+        .update(sessionParticipants)
+        .set({ attendanceStatus: 'cancelled' })
+        .where(eq(sessionParticipants.sessionId, placeCancelled.id));
       await plan(mark.id, at(1)); // another client's
       const startsNow = await plan(anna.id, now);
 

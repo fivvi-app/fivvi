@@ -18,6 +18,8 @@ import {
   sendsChangeNotice,
   sendsConfirmation,
 } from '@fivvi/domain';
+import type { PrivateSessionMail } from '@fivvi/email/private-session-mail';
+import type { Locale } from '@fivvi/i18n';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
 import { defineRoute, type WorkspaceEnv } from '../access.ts';
 import {
@@ -488,6 +490,50 @@ function invalid(path: string, code: string) {
   return { code: 'validation_failed' as const, issues: [{ path, code }] };
 }
 
+/** The `400` for a date, start or duration the rules refuse, naming the field: planning and rescheduling say the same. */
+function invalidTime(
+  reason: 'invalid-duration' | 'invalid-date' | 'invalid-time' | 'time-does-not-exist',
+) {
+  switch (reason) {
+    case 'invalid-duration':
+      return invalid('durationMinutes', 'invalid_duration');
+    case 'invalid-date':
+      return invalid('localDate', 'invalid_date');
+    case 'invalid-time':
+      return invalid('localStart', 'invalid_time');
+    case 'time-does-not-exist':
+      return invalid('localStart', 'time_does_not_exist');
+  }
+}
+
+/**
+ * The mail to a client about a session, EM-11 for a new one and EM-04 when `previous` says where it
+ * was: the language (the client's, then the workspace's), the place and the trainer as the session
+ * has them now. The key follows the session and its version, so each change has its own.
+ */
+function mailAbout(
+  client: { email: string; name: string; emailLocale: Locale | null },
+  workspace: { name: string; timeZone: string; defaultLocale: Locale },
+  session: SessionView,
+  previous?: { startsAt: Date; endsAt: Date },
+): PrivateSessionMail {
+  return {
+    to: { email: client.email, name: client.name },
+    locale: confirmationLanguage({
+      clientEmailLocale: client.emailLocale,
+      workspaceDefault: workspace.defaultLocale,
+    }),
+    workspaceName: workspace.name,
+    timeZone: workspace.timeZone,
+    startsAt: session.startsAt,
+    endsAt: session.endsAt,
+    ...(previous ? { previous } : {}),
+    location: { name: session.location.name, address: session.location.address },
+    trainerName: session.trainer?.name.trim() ? session.trainer.name : null,
+    idempotencyKey: privateSessionEmailKey(session.id, session.version),
+  };
+}
+
 export function registerSessions(app: OpenAPIHono) {
   const router = new OpenAPIHono<WorkspaceEnv>({ defaultHook: answerValidationFailure });
   router.openapi(planPrivateSessionRoute, async (c) => {
@@ -519,13 +565,10 @@ export function registerSessions(app: OpenAPIHono) {
         case 'unknown-trainer':
           return c.json(NOT_FOUND, 404);
         case 'invalid-duration':
-          return c.json(invalid('durationMinutes', 'invalid_duration'), 400);
         case 'invalid-date':
-          return c.json(invalid('localDate', 'invalid_date'), 400);
         case 'invalid-time':
-          return c.json(invalid('localStart', 'invalid_time'), 400);
         case 'time-does-not-exist':
-          return c.json(invalid('localStart', 'time_does_not_exist'), 400);
+          return c.json(invalidTime(decision.reason), 400);
       }
     }
     const client = await findClient(scope, body.clientId);
@@ -545,22 +588,7 @@ export function registerSessions(app: OpenAPIHono) {
     const confirmationEmail = sendsConfirmation({ notify: body.notify, past: decision.past });
     const afterCommit = c.get('afterCommit');
     if (confirmationEmail) {
-      afterCommit(() =>
-        sendPrivateSession({
-          to: { email: client.email, name: client.name },
-          locale: confirmationLanguage({
-            clientEmailLocale: client.emailLocale,
-            workspaceDefault: workspace.defaultLocale,
-          }),
-          workspaceName: workspace.name,
-          timeZone: workspace.timeZone,
-          startsAt: session.startsAt,
-          endsAt: session.endsAt,
-          location: { name: session.location.name, address: session.location.address },
-          trainerName: session.trainer?.name.trim() ? session.trainer.name : null,
-          idempotencyKey: privateSessionEmailKey(session.id, session.version),
-        }),
-      );
+      afterCommit(() => sendPrivateSession(mailAbout(client, workspace, session)));
     }
     // The workspace ID and the surface only: no session, client or trainer, no date or time
     // (OBSERVABILITY.md §4). The web sends no bearer token; an app names its surface, and one that
@@ -603,8 +631,6 @@ export function registerSessions(app: OpenAPIHono) {
         trainerTeamMemberId: session.trainer?.id ?? null,
         status: session.status,
         version: session.version,
-        startsAt: session.startsAt,
-        endsAt: session.endsAt,
       },
       expectedVersion: body.version,
       localDate: body.localDate,
@@ -619,13 +645,10 @@ export function registerSessions(app: OpenAPIHono) {
         case 'not-allowed':
           return c.json(FORBIDDEN, 403);
         case 'invalid-duration':
-          return c.json(invalid('durationMinutes', 'invalid_duration'), 400);
         case 'invalid-date':
-          return c.json(invalid('localDate', 'invalid_date'), 400);
         case 'invalid-time':
-          return c.json(invalid('localStart', 'invalid_time'), 400);
         case 'time-does-not-exist':
-          return c.json(invalid('localStart', 'time_does_not_exist'), 400);
+          return c.json(invalidTime(decision.reason), 400);
         case 'not-scheduled':
           return c.json(conflict('session_cancelled', session, workspace.timeZone), 409);
         case 'stale-version':
@@ -648,7 +671,9 @@ export function registerSessions(app: OpenAPIHono) {
     if (!moved) {
       const current = await findSession(scope, sessionId);
       if (!current) return c.json(NOT_FOUND, 404);
-      return c.json(conflict('session_changed', current, workspace.timeZone), 409);
+      // What the other change was decides which: cancelling (F026) is one that can win the race too.
+      const code = current.status === 'cancelled' ? 'session_cancelled' : 'session_changed';
+      return c.json(conflict(code, current, workspace.timeZone), 409);
     }
 
     const participant = moved.participants[0];
@@ -658,22 +683,13 @@ export function registerSessions(app: OpenAPIHono) {
     const afterCommit = c.get('afterCommit');
     if (changeEmail) {
       afterCommit(() =>
-        sendPrivateSession({
-          to: { email: client.email, name: client.name },
-          locale: confirmationLanguage({
-            clientEmailLocale: client.emailLocale,
-            workspaceDefault: workspace.defaultLocale,
+        // EM-04: the key follows the version after the change, so it differs from EM-11's.
+        sendPrivateSession(
+          mailAbout(client, workspace, moved, {
+            startsAt: session.startsAt,
+            endsAt: session.endsAt,
           }),
-          workspaceName: workspace.name,
-          timeZone: workspace.timeZone,
-          startsAt: moved.startsAt,
-          endsAt: moved.endsAt,
-          previous: { startsAt: session.startsAt, endsAt: session.endsAt },
-          location: { name: moved.location.name, address: moved.location.address },
-          trainerName: moved.trainer?.name.trim() ? moved.trainer.name : null,
-          // The version after the change: EM-11 went out at version 1, every move has its own key.
-          idempotencyKey: privateSessionEmailKey(moved.id, moved.version),
-        }),
+        ),
       );
     }
     // The workspace ID and the surface only (OBSERVABILITY.md §4), as for `private_session_created`.

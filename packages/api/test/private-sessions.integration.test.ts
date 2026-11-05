@@ -31,7 +31,7 @@ import {
 } from '@fivvi/observability';
 import { dstTransitions, manualClock, zonedTime } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
-import { asc, eq } from 'drizzle-orm';
+import { asc, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { type ApiDependencies, createApp, NO_DEPENDENCIES } from '../src/index.ts';
 import { privateSessionEmailKey } from '../src/sessions/email-key.ts';
@@ -1327,6 +1327,38 @@ describe('F020 plan a private session', () => {
         404,
       );
       expect((await storedSession(cancelled.id))?.version).toBe(1);
+      expect(transport.sent).toEqual([]);
+    });
+
+    it('a session cancelled while the save waits answers session_cancelled, not session_changed', async () => {
+      const people = await world();
+      const { server, transport } = setup();
+      const session = await sarahsSession(people);
+      let answer: Promise<Response> | undefined;
+
+      // Another transaction cancels the session (F026 will) and holds its row; the save reads
+      // version 1, waits on that row's lock, and matches nothing once the cancel has committed.
+      await admin.db.transaction(async (tx) => {
+        await tx
+          .update(sessions)
+          .set({ status: 'cancelled', version: 2 })
+          .where(eq(sessions.id, session.id));
+        answer = Promise.resolve(
+          reschedule(server, people.gym.id, session.id, people.sarah, move()),
+        );
+        for (let tries = 0; tries < 200; tries++) {
+          const { rows } = await tx.execute(sql`select 1 from pg_locks where not granted`);
+          if (rows.length > 0) break;
+          await new Promise((resolve) => setTimeout(resolve, 25));
+        }
+      });
+      const response = await answer;
+
+      expect(response?.status).toBe(409);
+      expect(await response?.json()).toMatchObject({
+        code: 'session_cancelled',
+        session: { id: session.id, status: 'cancelled', version: 2 },
+      });
       expect(transport.sent).toEqual([]);
     });
 

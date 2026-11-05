@@ -249,8 +249,6 @@ function rescheduleFacts(
       trainerTeamMemberId: SARAH,
       status: 'scheduled',
       version: 1,
-      startsAt: new Date('2026-09-24T07:00:00.000Z'),
-      endsAt: new Date('2026-09-24T08:00:00.000Z'),
     },
     expectedVersion: 1,
     // Friday 25 September 2026, 10:00.
