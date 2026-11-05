@@ -13,6 +13,9 @@ window.FIVVI_I18N = (function () {
 
   /* Sentence-level rules first: these change word order or need a captured value. */
   var RULES = [
+[/^nog (\d+) plekken$/, "$1 spots left"],
+[/^nog 1 plek$/, "1 spot left"],
+[/^Geboekt: (.+) (\d\d:\d\d)$/, function (m, t, h) { return "Booked: " + P(t) + " " + h; }],
 [/^(.+), (\d+) (les|lessen) te boeken$/, function (m, d, n, l) { return P(d) + ", " + n + (l === "les" ? " class" : " classes") + " to book"; }],
 [/^nog (\d+) gepland$/, "$1 more planned"],
 [/^Tegoed: (.+) over$/, function (m, x) { return "Balance: " + x.replace(/(\d+) (groepscredits?|privécredits?|Open Gym-credits?)/g, function (y, n, k) { return n + " " + CRED[k]; }) + " left"; }],
@@ -234,7 +237,7 @@ window.FIVVI_I18N = (function () {
     "Afdrukken": "Print", "Afwijzen": "Decline", "Al je sessies, ook bij andere werkruimtes.": "All your sessions, also at other workspaces.", "Algemeen schema": "General template", "Algemeen": "General",
     "Annuleren zonder kosten tot": "Free cancellation until", "Bericht voor de klanten (optioneel)": "Message for the clients (optional)", "Bewerken": "Edit", "Bezetting": "Occupancy",
     "Bij livegang heeft elke werkruimte één locatie.": "At go-live each workspace has one location.", "Bijvoorbeeld Reformer Basis": "For example Reformer Basics", "Bijvoorbeeld de reden": "For example the reason",
-    "Boeken": "Booking", "Boekingen per week per klant": "Bookings per week per client", "Boekingen": "Bookings", "Daarna schuift niemand meer door.": "After that nobody moves up.", "Dashboard": "Dashboard",
+    "Boeken": "Book", "Boeken en annuleren": "Booking and cancelling", "Boekingen per week per klant": "Bookings per week per client", "Boekingen": "Bookings", "Daarna schuift niemand meer door.": "After that nobody moves up.", "Dashboard": "Dashboard",
     "Deelnemers": "Participants", "Delen": "Share", "Eigenaar keurt goed": "Owner approves", "Eigenaar · Trainer": "Owner · Trainer", "Elke week": "Every week", "Eén link voor je hele werkruimte": "One link for your whole workspace",
     "Eén rij per trainer. Sessies tegelijk staan naast elkaar.": "One row per trainer. Sessions at the same time sit side by side.", "Geboekt. Je krijgt een bevestiging per e-mail.": "Booked. You'll get a confirmation by email.",
     "Gebruikt bij Anna de Vries": "Used with Anna de Vries", "Gedeelde training": "Shared workout", "Gepland": "Planned", "Gepubliceerd": "Published", "Geschiedenis": "History", "Geweest": "Attended",

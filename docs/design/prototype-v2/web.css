@@ -452,3 +452,8 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .c-balline svg{width:16px;height:16px;flex:none}
 .c-balline svg:first-child{color:color-mix(in oklab,var(--ok) 78%,var(--ev-ink))}
 .c-balline svg:last-child{width:9px;color:var(--label3)}
+.row .m span .c-spots{display:inline;color:inherit;white-space:nowrap}
+.row .m span .c-spots.low{color:var(--accent-text);font-weight:600}
+.c-row .tr .btn.sm{height:34px;padding:0 14px;font-size:14px}
+.row .m small .c-spots{color:var(--label2);font-weight:600}
+.row .m small .c-spots.low{color:var(--accent-text)}

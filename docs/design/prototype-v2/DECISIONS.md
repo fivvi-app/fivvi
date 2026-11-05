@@ -212,7 +212,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
 - **Aanmeldlink:**
   - link, QR, renew;
   - **a bilingual A4 poster** with the gym's (or PT's) name, the QR and the steps, in colour or black and white.
-- **Instellingen:** *Algemeen* (with *Woordkeuze*), *Locatie*, *Boeken*, *Taal*.
+- **Instellingen:** *Algemeen* (with *Woordkeuze*), *Locatie*, *Boeken en annuleren*, *Taal*.
 
 ## 5. Client web (ADR-026)
 
@@ -223,7 +223,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
   - a cancelled class never shows in the client timetable;
   - a filter, only when both groups and Open Gym exist;
   - rows with the **level**;
-  - state pills: *Geboekt ✓*, *Wachtlijst #n*, *Vol*, *Nog n plekken* (accent at 2 or fewer);
+  - **book straight from the list** (owner, 5 November 2026): each row has *Boeken*, or *Wachtlijst* on a full class, and keeps *Geboekt ✓* or *Wachtlijst #n* once done. Without a matching credit the button opens the class page, which explains. The free spots lead the small line (accent at 2 or fewer). Cancelling stays on the class page, with its confirmation;
   - the cancellation rule as a footnote.
 - **Class page:**
   - description;
