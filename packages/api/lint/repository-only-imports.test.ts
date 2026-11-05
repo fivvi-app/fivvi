@@ -235,6 +235,17 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
       'repository of the trainer invitations, takes the workspace scope (F011)',
     resendInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
     withdrawInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
+    findInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
+    lockInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
+    closeInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
+    addTrainerToTeam: 'repository of the team, takes the workspace scope (F011)',
+    findTeamMemberName:
+      'repository of the team, takes the workspace scope; reads a name only (F011)',
+    nameAccountIfEmpty: 'repository of accounts, takes a scope (F011)',
+    findAccountForInvitation:
+      'repository of accounts, takes a scope; reads the address and whether it is verified (F011)',
+    hasPendingInvitation:
+      'query of the sign-in gate for apps/web, takes the executor it is given; answers yes or no (F011)',
     updateWorkspace: 'repository of workspaces, takes the workspace scope (F002, F010)',
     setPreferredLocale: 'repository of accounts, takes the account scope (F010)',
     setAccountName: 'repository of accounts, takes the account scope (F005)',
@@ -272,6 +283,9 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     LocationChanges: 'type of the location repository (F015)',
     LocationView: 'type of the location repository (F015)',
     NewTrainerInvitation: 'type of the trainer-invitation repository (F011)',
+    InvitationRecord: 'type of the trainer-invitation repository (F011)',
+    InvitationEntry: 'type of the tenant scope (F011)',
+    InvitationScopeInput: 'type of the tenant scope (F011)',
     TrainerInvitationView: 'type of the trainer-invitation repository (F011)',
     AccountScopeInput: 'type of the tenant scope',
     ActingAs: 'type of the tenant scope',

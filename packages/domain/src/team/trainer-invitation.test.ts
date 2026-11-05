@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  decideInvitationAnswer,
   decideNewInvitation,
   INVITATION_NAME_MAX_LENGTH,
   INVITATION_VALIDITY_DAYS,
@@ -112,6 +113,89 @@ describe('F011 trainer invitation rules', () => {
           sentInLastDay: INVITATIONS_PER_DAY,
         }),
       ).toMatchObject({ reason: 'invitation_pending' });
+    });
+  });
+
+  describe('AC6: whether the person holding a link may accept or decline', () => {
+    const pending = {
+      status: 'pending' as const,
+      expiresAt: new Date('2026-11-12T10:00:00.000Z'),
+      email: 'lisa@example.com',
+    };
+    const lisa = { email: 'lisa@example.com', emailVerified: true };
+
+    it('a pending, unexpired invitation is open to the account with the invited address', () => {
+      expect(decideInvitationAnswer({ invitation: pending, now: NOW, account: lisa })).toEqual({
+        outcome: 'allowed',
+      });
+    });
+
+    it('compares the addresses without regard to case', () => {
+      expect(
+        decideInvitationAnswer({
+          invitation: pending,
+          now: NOW,
+          account: { email: 'Lisa@Example.com', emailVerified: true },
+        }),
+      ).toEqual({ outcome: 'allowed' });
+    });
+
+    it('an account with another address is refused as the wrong account', () => {
+      expect(
+        decideInvitationAnswer({
+          invitation: pending,
+          now: NOW,
+          account: { email: 'tom@example.com', emailVerified: true },
+        }),
+      ).toEqual({ outcome: 'refused', reason: 'wrong_account' });
+    });
+
+    it('an address that is not verified does not count as the invited one', () => {
+      expect(
+        decideInvitationAnswer({
+          invitation: pending,
+          now: NOW,
+          account: { ...lisa, emailVerified: false },
+        }),
+      ).toEqual({ outcome: 'refused', reason: 'wrong_account' });
+    });
+
+    it('an expired invitation is not valid, at the instant it expires and after', () => {
+      for (const now of [pending.expiresAt, new Date('2026-11-13T10:00:00.000Z')]) {
+        expect(decideInvitationAnswer({ invitation: pending, now, account: lisa })).toEqual({
+          outcome: 'refused',
+          reason: 'not_valid',
+        });
+      }
+      expect(
+        decideInvitationAnswer({
+          invitation: pending,
+          now: new Date(pending.expiresAt.getTime() - 1),
+          account: lisa,
+        }),
+      ).toEqual({ outcome: 'allowed' });
+    });
+
+    it('a withdrawn, accepted or declined invitation is not valid', () => {
+      for (const status of ['withdrawn', 'accepted', 'declined'] as const) {
+        expect(
+          decideInvitationAnswer({
+            invitation: { ...pending, status },
+            now: NOW,
+            account: lisa,
+          }),
+        ).toEqual({ outcome: 'refused', reason: 'not_valid' });
+      }
+    });
+
+    it('an invitation that is not valid says so to everyone, the wrong account included', () => {
+      expect(
+        decideInvitationAnswer({
+          invitation: { ...pending, status: 'withdrawn' },
+          now: NOW,
+          account: { email: 'tom@example.com', emailVerified: true },
+        }),
+      ).toEqual({ outcome: 'refused', reason: 'not_valid' });
     });
   });
 });

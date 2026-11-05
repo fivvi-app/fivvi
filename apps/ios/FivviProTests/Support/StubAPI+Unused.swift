@@ -71,4 +71,22 @@ extension StubAPI {
     ) async throws -> Operations.WithdrawTrainerInvitation.Output {
         fatalError("The app doesn't call withdrawTrainerInvitation yet")
     }
+
+    func getInvitation(
+        _ input: Operations.GetInvitation.Input
+    ) async throws -> Operations.GetInvitation.Output {
+        fatalError("The app doesn't call getInvitation yet")
+    }
+
+    func acceptInvitation(
+        _ input: Operations.AcceptInvitation.Input
+    ) async throws -> Operations.AcceptInvitation.Output {
+        fatalError("The app doesn't call acceptInvitation yet")
+    }
+
+    func declineInvitation(
+        _ input: Operations.DeclineInvitation.Input
+    ) async throws -> Operations.DeclineInvitation.Output {
+        fatalError("The app doesn't call declineInvitation yet")
+    }
 }

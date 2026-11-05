@@ -72,6 +72,7 @@ export {
   closeInvitation,
   countInvitationsSince,
   createTrainerInvitation,
+  findInvitation,
   findPendingInvitation,
   findPendingInvitationByEmail,
   hasPendingInvitation,

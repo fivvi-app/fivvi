@@ -1,5 +1,6 @@
 import { randomBytes, randomInt } from 'node:crypto';
 import { type Database, recordWrongSignInCode } from '@fivvi/database';
+import { maskEmail } from '@fivvi/domain';
 import { type SendEmail, signInEmail } from '@fivvi/email';
 import {
   isLocale,
@@ -14,7 +15,6 @@ import { setSessionCookie } from 'better-auth/cookies';
 import { z } from 'zod';
 import type { SignUpAllowlist } from './allowlist.ts';
 import { hashesEqual, hashSecretValue } from './hash.ts';
-import { maskEmail } from './mask-email.ts';
 import { MAX_RETURN_PATH_LENGTH, RETURN_PATH_PARAM, safeReturnPath } from './return-path.ts';
 
 /** How long the emailed code and link work (AC5). */
@@ -46,6 +46,13 @@ export interface SignInWithEmailOptions {
   clock: Clock;
   /** Addresses without an account that may create one by signing in (`PRODUCT.md §27`). */
   signUpAllowlist: SignUpAllowlist;
+  /**
+   * Whether an address has a pending, unexpired trainer invitation at `now` (F011): such an
+   * address may create an account too, beside the allowlist. Asked the same way for every
+   * address and answered by nothing the caller can see, so neither tells who has an invitation
+   * (ADR-007). Asked after the answer of a request, and again when the code or link is used.
+   */
+  isInvitedEmail: (email: string, now: Date) => Promise<boolean>;
   /**
    * Holds the work that follows a sign-in request's answer (see `requestSignInCode`). The task
    * never rejects. Tests keep the promise to wait for the email.
@@ -134,10 +141,16 @@ export function signInWithEmail({
   sendEmail,
   clock,
   signUpAllowlist,
+  isInvitedEmail,
   runInBackground,
   reportError,
   productEvents,
 }: SignInWithEmailOptions) {
+  /** Whether an address without an account may create one: it is allowed, or it is invited (F011). */
+  async function mayCreateAccount(email: string): Promise<boolean> {
+    return signUpAllowlist.allows(email) || (await isInvitedEmail(email, clock.now()));
+  }
+
   /**
    * The newest verification of `identifier` if it can still be used: not expired by the injected
    * clock and under the wrong-code limit. There is no unique index on the identifier (a request
@@ -238,7 +251,7 @@ export function signInWithEmail({
         : ((await ctx.context.internalAdapter.updateUser(found.user.id, {
             emailVerified: true,
           })) ?? found.user);
-    } else if (signUpAllowlist.allows(email)) {
+    } else if (await mayCreateAccount(email)) {
       newAccount = true;
       const { locale } = verification;
       user = await ctx.context.internalAdapter.createUser(
@@ -310,8 +323,8 @@ export function signInWithEmail({
           runInBackground(
             (async () => {
               const found = await ctx.context.internalAdapter.findUserByEmail(email);
-              // Sign-up is closed: only an account, or an allowed address, gets an email.
-              if (!found && !signUpAllowlist.allows(email)) return;
+              // Sign-up is closed: only an account, an allowed or an invited address gets an email.
+              if (!found && !(await mayCreateAccount(email))) return;
 
               const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
               const token = randomBytes(32).toString('base64url');

@@ -1,4 +1,5 @@
 import { type Locale, matchLocale, resolveCommunicationLanguage } from '@fivvi/i18n';
+import { normalizeEmail } from '../clients/new-client.ts';
 
 // Trainer invitations (F011, spec #422): the rules of inviting a trainer by email. Pure: the
 // route reads the facts, asks, and acts on the answer.
@@ -78,4 +79,48 @@ export function decideNewInvitation(facts: NewInvitationFacts): NewInvitationDec
     return { outcome: 'refused', reason: 'rate_limited' };
   }
   return { outcome: 'invite' };
+}
+
+/** What the database says about an invitation, for the person holding its link. */
+export interface InvitationFacts {
+  readonly status: 'pending' | 'accepted' | 'declined' | 'withdrawn';
+  readonly expiresAt: Date;
+  /** The address the invitation went to, lower case. */
+  readonly email: string;
+}
+
+export interface InvitationAnswerFacts {
+  readonly invitation: InvitationFacts;
+  readonly now: Date;
+  /** The signed-in account: its address and whether the person proved it. */
+  readonly account: { readonly email: string; readonly emailVerified: boolean };
+}
+
+export type InvitationAnswerDecision =
+  | { readonly outcome: 'allowed' }
+  | { readonly outcome: 'refused'; readonly reason: 'not_valid' | 'wrong_account' };
+
+/** Whether an invitation can still be answered: pending, and not past its expiry (F011 AC6). */
+export function isInvitationOpen(
+  invitation: Pick<InvitationFacts, 'status' | 'expiresAt'>,
+  now: Date,
+): boolean {
+  return invitation.status === 'pending' && invitation.expiresAt.getTime() > now.getTime();
+}
+
+/**
+ * Whether the signed-in person may accept or decline (F011 AC3, AC6). A link that is no longer
+ * valid (expired, withdrawn, used) is refused for everyone alike, so it reveals nothing about
+ * whom it was for; an open one only to the account whose verified address is the invitation's.
+ */
+export function decideInvitationAnswer(facts: InvitationAnswerFacts): InvitationAnswerDecision {
+  const { invitation, now, account } = facts;
+  if (!isInvitationOpen(invitation, now)) return { outcome: 'refused', reason: 'not_valid' };
+  if (
+    !account.emailVerified ||
+    normalizeEmail(account.email) !== normalizeEmail(invitation.email)
+  ) {
+    return { outcome: 'refused', reason: 'wrong_account' };
+  }
+  return { outcome: 'allowed' };
 }

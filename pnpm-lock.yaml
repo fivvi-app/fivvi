@@ -463,6 +463,9 @@ importers:
       '@fivvi/database':
         specifier: workspace:*
         version: link:../database
+      '@fivvi/domain':
+        specifier: workspace:*
+        version: link:../domain
       '@fivvi/email':
         specifier: workspace:*
         version: link:../email

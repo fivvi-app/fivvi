@@ -12,8 +12,8 @@ import {
 } from 'drizzle-orm/pg-core';
 import { businessTable } from './business-table.ts';
 import { instant, timestamps } from './columns.ts';
-import { APP_ROLE } from './tenant-policies.ts';
 import { teamMembers } from './tenancy.ts';
+import { APP_ROLE } from './tenant-policies.ts';
 
 /** Where an invitation stands: `pending` until the person accepts or declines or the Owner withdraws it. */
 export const invitationStatus = pgEnum('invitation_status', [

@@ -175,24 +175,18 @@ export interface InvitationRecord {
   readonly inviterTeamMemberId: string;
 }
 
-/**
- * Locks one invitation of the scope's workspace until the transaction ends and reads it as it is
- * now: two accepts of one invitation wait for each other here, so the second one decides on what
- * the first left (a closed invitation). `undefined` when it is not in the workspace.
- */
-export async function lockInvitation(
-  scope: WorkspaceScope,
-  invitationId: string,
-): Promise<InvitationRecord | undefined> {
-  const [row] = await executorOf(scope)
-    .select({
-      id: trainerInvitations.id,
-      name: trainerInvitations.name,
-      email: trainerInvitations.email,
-      status: trainerInvitations.status,
-      expiresAt: trainerInvitations.expiresAt,
-      inviterTeamMemberId: trainerInvitations.inviterTeamMemberId,
-    })
+const recordColumns = {
+  id: trainerInvitations.id,
+  name: trainerInvitations.name,
+  email: trainerInvitations.email,
+  status: trainerInvitations.status,
+  expiresAt: trainerInvitations.expiresAt,
+  inviterTeamMemberId: trainerInvitations.inviterTeamMemberId,
+};
+
+const recordOf = (scope: WorkspaceScope, invitationId: string) =>
+  executorOf(scope)
+    .select(recordColumns)
     .from(trainerInvitations)
     .where(
       and(
@@ -200,8 +194,27 @@ export async function lockInvitation(
         eq(trainerInvitations.id, invitationId),
       ),
     )
-    .limit(1)
-    .for('update');
+    .limit(1);
+
+/** One invitation of the scope's workspace as it is now, whatever its status; `undefined` when it is not there. */
+export async function findInvitation(
+  scope: WorkspaceScope,
+  invitationId: string,
+): Promise<InvitationRecord | undefined> {
+  const [row] = await recordOf(scope, invitationId);
+  return row;
+}
+
+/**
+ * Like `findInvitation`, and locks the invitation until the transaction ends: two accepts of one
+ * invitation wait for each other here, so the second one decides on what the first left (a closed
+ * invitation).
+ */
+export async function lockInvitation(
+  scope: WorkspaceScope,
+  invitationId: string,
+): Promise<InvitationRecord | undefined> {
+  const [row] = await recordOf(scope, invitationId).for('update');
   return row;
 }
 
@@ -228,7 +241,7 @@ export async function closeInvitation(
  * leaves, and only for the address asked about: the transaction names it in its context, which
  * is the only door of `trainer_invitations_by_email`. For the sign-in code, not for a route.
  */
-export async function hasPendingInvitation(
+export function hasPendingInvitation(
   db: DatabaseExecutor,
   email: string,
   now: Date,

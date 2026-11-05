@@ -1011,6 +1011,43 @@ extension Components {
                 case emailLocale
             }
         }
+        /// What the link of a valid invitation shows to anyone who holds it, signed in or not.
+        ///
+        /// - Remark: Generated from `#/components/schemas/InvitationPreview`.
+        public struct InvitationPreview: Codable, Hashable, Sendable {
+            /// The name of the workspace that invites.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvitationPreview/workspaceName`.
+            public var workspaceName: Swift.String
+            /// The name of the Owner who invited, `null` while they have given none. Never their address.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvitationPreview/inviterName`.
+            public var inviterName: Swift.String?
+            /// The address the invitation is for, hidden except for its first character and its domain (`l***@example.com`), so a person signed in with another address can see which to use.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvitationPreview/maskedEmail`.
+            public var maskedEmail: Swift.String
+            /// Creates a new `InvitationPreview`.
+            ///
+            /// - Parameters:
+            ///   - workspaceName: The name of the workspace that invites.
+            ///   - inviterName: The name of the Owner who invited, `null` while they have given none. Never their address.
+            ///   - maskedEmail: The address the invitation is for, hidden except for its first character and its domain (`l***@example.com`), so a person signed in with another address can see which to use.
+            public init(
+                workspaceName: Swift.String,
+                inviterName: Swift.String? = nil,
+                maskedEmail: Swift.String
+            ) {
+                self.workspaceName = workspaceName
+                self.inviterName = inviterName
+                self.maskedEmail = maskedEmail
+            }
+            public enum CodingKeys: String, CodingKey {
+                case workspaceName
+                case inviterName
+                case maskedEmail
+            }
+        }
         /// A team member who trains in the workspace.
         ///
         /// - Remark: Generated from `#/components/schemas/Trainer`.
