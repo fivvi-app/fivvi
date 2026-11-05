@@ -395,3 +395,14 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .w-back{display:inline-flex;align-items:center;gap:2px;justify-self:start;border:0;background:none;color:var(--w-mfg);font-size:14px;font-weight:500;padding:4px 8px 4px 2px;border-radius:8px;margin-bottom:-6px}
 .w-back:hover{color:var(--w-fg);background:var(--w-muted)}
 .w-back svg{width:16px;height:16px}
+/* client web: the balance, readable at a glance */
+.c-bal{padding:12px 0;border-top:.5px solid var(--sep)}
+.c-box>b+.c-bal{border-top:0;padding-top:6px}
+.c-bal-h{display:flex;align-items:center;gap:12px}
+.c-bal-n{font-family:var(--f-num);font-weight:800;font-size:34px;line-height:1;min-width:34px;color:color-mix(in oklab,var(--c) calc(100% - var(--ev-ink-amt)),var(--ev-ink))}
+.c-bal-h b{display:block;font-size:16px}
+.c-bal-h small{display:block;font-size:13px;color:var(--label2)}
+.c-bal .abar{margin-top:10px}
+.c-agrs{display:grid;gap:8px;padding-top:12px;border-top:.5px solid var(--sep)}
+.c-agr b{display:block;font-size:15px}
+.c-agr span{font-size:13px;color:var(--label2)}

@@ -111,6 +111,7 @@ window.FIVVI_I18N = (function () {
     [/^Zwaar: (.+)$/, function (m, a) { return "Hard: " + P(a); }],
     [/^(\d+) van de 8 weken$/, "$1 of the 8 weeks"],
     [/^([+−-]?[\d,]+) kg in 8 weken$/, function (m, a) { return a.replace(",", ".") + " kg in 8 weeks"; }],
+    [/^(\d+) gepland · (\d+) gebruikt · van (\d+)$/, "$1 planned · $2 used · of $3"],
     [/^Drukst (.+) · (\d+) tegelijk$/, "Busiest $1 · $2 at once"],
     [/^Vrij (.+)$/, "Free $1"],
     [/^Week (\d+) · (.+)$/, function (m, n, r) { return "Week " + n + " · " + P(r); }],
@@ -120,6 +121,7 @@ window.FIVVI_I18N = (function () {
   /* Phrases and words, replaced on letter boundaries, longest first. */
   var PH = {
     /* app frame */
+    "elke 4 weken": "every 4 weeks", "elke maand": "every month", "eenmalig": "once",
     "Details": "Details", "Voortgang": "Progress", "Getraind": "Trained", "Laatste training": "Last workout", "Hoe het ging, per oefening": "How it went, per exercise",
     "Zwaarste set per week, laatste 8 weken": "Heaviest set per week, last 8 weeks", "weken": "weeks", "vorige keer": "last time", "Vorige keer": "Last time", "Nog geen eerdere training.": "No previous workout yet.",
     "Eigen oefeningen": "Your exercises", "Bibliotheek": "Library", "Gemaakt door": "Made by", "Nieuw schema": "New template", "Oefening wijzigen": "Edit exercise", "Oefening verwijderen?": "Delete exercise?",
