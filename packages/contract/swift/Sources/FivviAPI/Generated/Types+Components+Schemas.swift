@@ -1830,5 +1830,468 @@ extension Components {
                 case clearEmailLocale
             }
         }
+        /// The personal day of a trainer across all their workspaces.
+        ///
+        /// - Remark: Generated from `#/components/schemas/MyDay`.
+        public struct MyDay: Codable, Hashable, Sendable {
+            /// The day shown: `YYYY-MM-DD`, in `timeZone`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDay/date`.
+            public var date: Swift.String
+            /// The zone of the personal scope: `Europe/Amsterdam`. The day starts and ends on its wall clock.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDay/timeZone`.
+            public var timeZone: Swift.String
+            /// The workspaces the account trains in and the view spans. The apps show a workspace name on a row only when it is more than one.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDay/workspaceCount`.
+            public var workspaceCount: Swift.Int
+            /// The day’s items in time order, cancelled ones included.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDay/items`.
+            public var items: [Components.Schemas.PersonalSession]
+            /// - Remark: Generated from `#/components/schemas/MyDay/summary`.
+            public var summary: Components.Schemas.MyDaySummary
+            /// - Remark: Generated from `#/components/schemas/MyDay/next`.
+            public var next: Components.Schemas.MyDayNext?
+            /// - Remark: Generated from `#/components/schemas/MyDay/tomorrow`.
+            public var tomorrow: Components.Schemas.MyDayTomorrow?
+            /// The date of the next session that takes place after this day, `YYYY-MM-DD`. Only given when the day has no items; left out when there is none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDay/nextSessionDate`.
+            public var nextSessionDate: Swift.String?
+            /// Whether the account is the current trainer of any session at all, past or future. Only computed when the day is empty and no session follows, to tell a new trainer (*Je hebt nog geen sessies*) from one with nothing planned; true otherwise.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDay/hasSessions`.
+            public var hasSessions: Swift.Bool
+            /// Creates a new `MyDay`.
+            ///
+            /// - Parameters:
+            ///   - date: The day shown: `YYYY-MM-DD`, in `timeZone`.
+            ///   - timeZone: The zone of the personal scope: `Europe/Amsterdam`. The day starts and ends on its wall clock.
+            ///   - workspaceCount: The workspaces the account trains in and the view spans. The apps show a workspace name on a row only when it is more than one.
+            ///   - items: The day’s items in time order, cancelled ones included.
+            ///   - summary:
+            ///   - next:
+            ///   - tomorrow:
+            ///   - nextSessionDate: The date of the next session that takes place after this day, `YYYY-MM-DD`. Only given when the day has no items; left out when there is none.
+            ///   - hasSessions: Whether the account is the current trainer of any session at all, past or future. Only computed when the day is empty and no session follows, to tell a new trainer (*Je hebt nog geen sessies*) from one with nothing planned; true otherwise.
+            public init(
+                date: Swift.String,
+                timeZone: Swift.String,
+                workspaceCount: Swift.Int,
+                items: [Components.Schemas.PersonalSession],
+                summary: Components.Schemas.MyDaySummary,
+                next: Components.Schemas.MyDayNext? = nil,
+                tomorrow: Components.Schemas.MyDayTomorrow? = nil,
+                nextSessionDate: Swift.String? = nil,
+                hasSessions: Swift.Bool
+            ) {
+                self.date = date
+                self.timeZone = timeZone
+                self.workspaceCount = workspaceCount
+                self.items = items
+                self.summary = summary
+                self.next = next
+                self.tomorrow = tomorrow
+                self.nextSessionDate = nextSessionDate
+                self.hasSessions = hasSessions
+            }
+            public enum CodingKeys: String, CodingKey {
+                case date
+                case timeZone
+                case workspaceCount
+                case items
+                case summary
+                case next
+                case tomorrow
+                case nextSessionDate
+                case hasSessions
+            }
+        }
+        /// A session the signed-in account is the current trainer of, in one of its workspaces.
+        ///
+        /// - Remark: Generated from `#/components/schemas/PersonalSession`.
+        public struct PersonalSession: Codable, Hashable, Sendable {
+            /// The session ID. It opens in its own workspace: `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}` with the item’s `workspace.id`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/sessionId`.
+            public var sessionId: Swift.String
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/workspace`.
+            public var workspace: Components.Schemas.PersonalWorkspace
+            /// The kind of session, to be shown in words (*Privé*, *Groep*, *Open Gym*).
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/type`.
+            @frozen public enum _TypePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case _private = "private"
+                case group = "group"
+                case openGym = "open_gym"
+            }
+            /// The kind of session, to be shown in words (*Privé*, *Groep*, *Open Gym*).
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/type`.
+            public var _type: Components.Schemas.PersonalSession._TypePayload
+            /// Whether the session still takes place. A cancelled one stays in the list.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/status`.
+            @frozen public enum StatusPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case scheduled = "scheduled"
+                case cancelled = "cancelled"
+            }
+            /// Whether the session still takes place. A cancelled one stays in the list.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/status`.
+            public var status: Components.Schemas.PersonalSession.StatusPayload
+            /// The start, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/startsAt`.
+            public var startsAt: Foundation.Date
+            /// The end, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/endsAt`.
+            public var endsAt: Foundation.Date
+            /// The workspace’s IANA time zone, e.g. `Europe/Amsterdam` (ADR-012).
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/timeZone`.
+            public var timeZone: Swift.String
+            /// 1 for a private session.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/capacity`.
+            public var capacity: Swift.Int
+            /// The places taken (not cancelled), for a group class or Open Gym: *{booked}/{capacity} geboekt*. Left out for a private session.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/booked`.
+            public var booked: Swift.Int?
+            /// The class name in the viewer’s language, for a group class. Left out until classes exist (F021 adds it).
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/className`.
+            public var className: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/location`.
+            public var location: Components.Schemas.PersonalLocation?
+            /// The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/clientName`.
+            public var clientName: Swift.String?
+            /// Creates a new `PersonalSession`.
+            ///
+            /// - Parameters:
+            ///   - sessionId: The session ID. It opens in its own workspace: `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}` with the item’s `workspace.id`.
+            ///   - workspace:
+            ///   - _type: The kind of session, to be shown in words (*Privé*, *Groep*, *Open Gym*).
+            ///   - status: Whether the session still takes place. A cancelled one stays in the list.
+            ///   - startsAt: The start, a UTC instant.
+            ///   - endsAt: The end, a UTC instant.
+            ///   - timeZone: The workspace’s IANA time zone, e.g. `Europe/Amsterdam` (ADR-012).
+            ///   - capacity: 1 for a private session.
+            ///   - booked: The places taken (not cancelled), for a group class or Open Gym: *{booked}/{capacity} geboekt*. Left out for a private session.
+            ///   - className: The class name in the viewer’s language, for a group class. Left out until classes exist (F021 adds it).
+            ///   - location:
+            ///   - clientName: The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail.
+            public init(
+                sessionId: Swift.String,
+                workspace: Components.Schemas.PersonalWorkspace,
+                _type: Components.Schemas.PersonalSession._TypePayload,
+                status: Components.Schemas.PersonalSession.StatusPayload,
+                startsAt: Foundation.Date,
+                endsAt: Foundation.Date,
+                timeZone: Swift.String,
+                capacity: Swift.Int,
+                booked: Swift.Int? = nil,
+                className: Swift.String? = nil,
+                location: Components.Schemas.PersonalLocation? = nil,
+                clientName: Swift.String? = nil
+            ) {
+                self.sessionId = sessionId
+                self.workspace = workspace
+                self._type = _type
+                self.status = status
+                self.startsAt = startsAt
+                self.endsAt = endsAt
+                self.timeZone = timeZone
+                self.capacity = capacity
+                self.booked = booked
+                self.className = className
+                self.location = location
+                self.clientName = clientName
+            }
+            public enum CodingKeys: String, CodingKey {
+                case sessionId
+                case workspace
+                case _type = "type"
+                case status
+                case startsAt
+                case endsAt
+                case timeZone
+                case capacity
+                case booked
+                case className
+                case location
+                case clientName
+            }
+        }
+        /// The workspace an item of the personal view is in.
+        ///
+        /// - Remark: Generated from `#/components/schemas/PersonalWorkspace`.
+        public struct PersonalWorkspace: Codable, Hashable, Sendable {
+            /// The workspace ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalWorkspace/id`.
+            public var id: Swift.String
+            /// The URL name: `/w/{slug}` on the web.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalWorkspace/slug`.
+            public var slug: Swift.String
+            /// The name shown in the product.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalWorkspace/name`.
+            public var name: Swift.String
+            /// Creates a new `PersonalWorkspace`.
+            ///
+            /// - Parameters:
+            ///   - id: The workspace ID.
+            ///   - slug: The URL name: `/w/{slug}` on the web.
+            ///   - name: The name shown in the product.
+            public init(
+                id: Swift.String,
+                slug: Swift.String,
+                name: Swift.String
+            ) {
+                self.id = id
+                self.slug = slug
+                self.name = name
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case slug
+                case name
+            }
+        }
+        /// Where a private session takes place; left out for the other kinds.
+        ///
+        /// - Remark: Generated from `#/components/schemas/PersonalLocation`.
+        public struct PersonalLocation: Codable, Hashable, Sendable {
+            /// The location’s name.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalLocation/name`.
+            public var name: Swift.String
+            /// - Remark: Generated from `#/components/schemas/PersonalLocation/address`.
+            public struct AddressPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/PersonalLocation/address/value1`.
+                public var value1: Components.Schemas.LocationAddress
+                /// The address; left out when the location has none.
+                ///
+                /// - Remark: Generated from `#/components/schemas/PersonalLocation/address/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `AddressPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The address; left out when the location has none.
+                public init(
+                    value1: Components.Schemas.LocationAddress,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/PersonalLocation/address`.
+            public var address: Components.Schemas.PersonalLocation.AddressPayload?
+            /// Creates a new `PersonalLocation`.
+            ///
+            /// - Parameters:
+            ///   - name: The location’s name.
+            ///   - address:
+            public init(
+                name: Swift.String,
+                address: Components.Schemas.PersonalLocation.AddressPayload? = nil
+            ) {
+                self.name = name
+                self.address = address
+            }
+            public enum CodingKeys: String, CodingKey {
+                case name
+                case address
+            }
+        }
+        /// *4 sessies · 09:00–19:00*.
+        ///
+        /// - Remark: Generated from `#/components/schemas/MyDaySummary`.
+        public struct MyDaySummary: Codable, Hashable, Sendable {
+            /// The items of the day, cancelled ones counted.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDaySummary/count`.
+            public var count: Swift.Int
+            /// The start of the first item; left out for an empty day.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDaySummary/firstStartsAt`.
+            public var firstStartsAt: Foundation.Date?
+            /// The end of the last item; left out for an empty day.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDaySummary/lastEndsAt`.
+            public var lastEndsAt: Foundation.Date?
+            /// Creates a new `MyDaySummary`.
+            ///
+            /// - Parameters:
+            ///   - count: The items of the day, cancelled ones counted.
+            ///   - firstStartsAt: The start of the first item; left out for an empty day.
+            ///   - lastEndsAt: The end of the last item; left out for an empty day.
+            public init(
+                count: Swift.Int,
+                firstStartsAt: Foundation.Date? = nil,
+                lastEndsAt: Foundation.Date? = nil
+            ) {
+                self.count = count
+                self.firstStartsAt = firstStartsAt
+                self.lastEndsAt = lastEndsAt
+            }
+            public enum CodingKeys: String, CodingKey {
+                case count
+                case firstStartsAt
+                case lastEndsAt
+            }
+        }
+        /// *Straks* / *Nu bezig*: the first item of today that has not ended and is not cancelled. Left out when nothing is left today, and for any day but today.
+        ///
+        /// - Remark: Generated from `#/components/schemas/MyDayNext`.
+        public struct MyDayNext: Codable, Hashable, Sendable {
+            /// The item in `items`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDayNext/sessionId`.
+            public var sessionId: Swift.String
+            /// `upcoming` is *Straks*, `in_progress` is *Nu bezig*.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDayNext/state`.
+            @frozen public enum StatePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case upcoming = "upcoming"
+                case inProgress = "in_progress"
+            }
+            /// `upcoming` is *Straks*, `in_progress` is *Nu bezig*.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDayNext/state`.
+            public var state: Components.Schemas.MyDayNext.StatePayload
+            /// Minutes to the start, rounded up; 0 while it runs.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDayNext/startsInMinutes`.
+            public var startsInMinutes: Swift.Int
+            /// Creates a new `MyDayNext`.
+            ///
+            /// - Parameters:
+            ///   - sessionId: The item in `items`.
+            ///   - state: `upcoming` is *Straks*, `in_progress` is *Nu bezig*.
+            ///   - startsInMinutes: Minutes to the start, rounded up; 0 while it runs.
+            public init(
+                sessionId: Swift.String,
+                state: Components.Schemas.MyDayNext.StatePayload,
+                startsInMinutes: Swift.Int
+            ) {
+                self.sessionId = sessionId
+                self.state = state
+                self.startsInMinutes = startsInMinutes
+            }
+            public enum CodingKeys: String, CodingKey {
+                case sessionId
+                case state
+                case startsInMinutes
+            }
+        }
+        /// The footer *Morgen: 3 sessies, eerste om 07:00*. Cancelled sessions are not counted; left out when the next day has none.
+        ///
+        /// - Remark: Generated from `#/components/schemas/MyDayTomorrow`.
+        public struct MyDayTomorrow: Codable, Hashable, Sendable {
+            /// The next day: `YYYY-MM-DD`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDayTomorrow/date`.
+            public var date: Swift.String
+            /// The sessions that day that take place.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDayTomorrow/count`.
+            public var count: Swift.Int
+            /// The start of the first one.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDayTomorrow/firstStartsAt`.
+            public var firstStartsAt: Foundation.Date
+            /// Creates a new `MyDayTomorrow`.
+            ///
+            /// - Parameters:
+            ///   - date: The next day: `YYYY-MM-DD`.
+            ///   - count: The sessions that day that take place.
+            ///   - firstStartsAt: The start of the first one.
+            public init(
+                date: Swift.String,
+                count: Swift.Int,
+                firstStartsAt: Foundation.Date
+            ) {
+                self.date = date
+                self.count = count
+                self.firstStartsAt = firstStartsAt
+            }
+            public enum CodingKeys: String, CodingKey {
+                case date
+                case count
+                case firstStartsAt
+            }
+        }
+        /// The personal sessions of a trainer across all their workspaces, for a range of days.
+        ///
+        /// - Remark: Generated from `#/components/schemas/MySessions`.
+        public struct MySessions: Codable, Hashable, Sendable {
+            /// The first day: `YYYY-MM-DD`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MySessions/from`.
+            public var from: Swift.String
+            /// The last day, included: `YYYY-MM-DD`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MySessions/to`.
+            public var to: Swift.String
+            /// The zone of the personal scope: `Europe/Amsterdam`. The days follow its wall clock.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MySessions/timeZone`.
+            public var timeZone: Swift.String
+            /// The workspaces the account trains in and the view spans.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MySessions/workspaceCount`.
+            public var workspaceCount: Swift.Int
+            /// The sessions from the start of `from` to the end of `to`, in time order.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MySessions/items`.
+            public var items: [Components.Schemas.PersonalSession]
+            /// Creates a new `MySessions`.
+            ///
+            /// - Parameters:
+            ///   - from: The first day: `YYYY-MM-DD`.
+            ///   - to: The last day, included: `YYYY-MM-DD`.
+            ///   - timeZone: The zone of the personal scope: `Europe/Amsterdam`. The days follow its wall clock.
+            ///   - workspaceCount: The workspaces the account trains in and the view spans.
+            ///   - items: The sessions from the start of `from` to the end of `to`, in time order.
+            public init(
+                from: Swift.String,
+                to: Swift.String,
+                timeZone: Swift.String,
+                workspaceCount: Swift.Int,
+                items: [Components.Schemas.PersonalSession]
+            ) {
+                self.from = from
+                self.to = to
+                self.timeZone = timeZone
+                self.workspaceCount = workspaceCount
+                self.items = items
+            }
+            public enum CodingKeys: String, CodingKey {
+                case from
+                case to
+                case timeZone
+                case workspaceCount
+                case items
+            }
+        }
     }
 }

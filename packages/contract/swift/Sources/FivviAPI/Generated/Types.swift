@@ -242,6 +242,20 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/clients/{clientId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/{clientId}/patch(updateClient)`.
     func updateClient(_ input: Operations.UpdateClient.Input) async throws -> Operations.UpdateClient.Output
+    /// My day: the sessions of one day across my workspaces
+    ///
+    /// Everything the signed-in account is the current trainer of on one day, in all the workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary, the tomorrow line, the date of the next session when the day is empty and the number of workspaces. Each workspace is read on its own; the answer is merged here. An account that trains in no workspace (an Owner who does not train, a client account) gets an empty answer, not `403`. The day is a date in Dutch time; times are UTC instants, to be shown in Dutch time.
+    ///
+    /// - Remark: HTTP `GET /v1/me/day`.
+    /// - Remark: Generated from `#/paths//v1/me/day/get(getMyDay)`.
+    func getMyDay(_ input: Operations.GetMyDay.Input) async throws -> Operations.GetMyDay.Output
+    /// My sessions: a range of days across my workspaces
+    ///
+    /// The sessions the signed-in account is the current trainer of from the start of `from` to the end of `to` (at most 42 days, days in Dutch time), in all the workspaces it trains in, in time order: for the week and month views. Cancelled sessions stay. An account that trains nowhere gets an empty list, not `403`.
+    ///
+    /// - Remark: HTTP `GET /v1/me/sessions`.
+    /// - Remark: Generated from `#/paths//v1/me/sessions/get(listMySessions)`.
+    func listMySessions(_ input: Operations.ListMySessions.Input) async throws -> Operations.ListMySessions.Output
 }
 
 /// Convenience overloads for operation inputs.
@@ -733,6 +747,36 @@ extension APIProtocol {
             path: path,
             headers: headers,
             body: body
+        ))
+    }
+    /// My day: the sessions of one day across my workspaces
+    ///
+    /// Everything the signed-in account is the current trainer of on one day, in all the workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary, the tomorrow line, the date of the next session when the day is empty and the number of workspaces. Each workspace is read on its own; the answer is merged here. An account that trains in no workspace (an Owner who does not train, a client account) gets an empty answer, not `403`. The day is a date in Dutch time; times are UTC instants, to be shown in Dutch time.
+    ///
+    /// - Remark: HTTP `GET /v1/me/day`.
+    /// - Remark: Generated from `#/paths//v1/me/day/get(getMyDay)`.
+    public func getMyDay(
+        query: Operations.GetMyDay.Input.Query,
+        headers: Operations.GetMyDay.Input.Headers = .init()
+    ) async throws -> Operations.GetMyDay.Output {
+        try await getMyDay(Operations.GetMyDay.Input(
+            query: query,
+            headers: headers
+        ))
+    }
+    /// My sessions: a range of days across my workspaces
+    ///
+    /// The sessions the signed-in account is the current trainer of from the start of `from` to the end of `to` (at most 42 days, days in Dutch time), in all the workspaces it trains in, in time order: for the week and month views. Cancelled sessions stay. An account that trains nowhere gets an empty list, not `403`.
+    ///
+    /// - Remark: HTTP `GET /v1/me/sessions`.
+    /// - Remark: Generated from `#/paths//v1/me/sessions/get(listMySessions)`.
+    public func listMySessions(
+        query: Operations.ListMySessions.Input.Query,
+        headers: Operations.ListMySessions.Input.Headers = .init()
+    ) async throws -> Operations.ListMySessions.Output {
+        try await listMySessions(Operations.ListMySessions.Input(
+            query: query,
+            headers: headers
         ))
     }
 }

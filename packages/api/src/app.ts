@@ -16,6 +16,7 @@ import { registerHello } from './routes/hello.ts';
 import { registerInvitations } from './routes/invitations.ts';
 import { registerLocations } from './routes/locations.ts';
 import { registerMe } from './routes/me.ts';
+import { registerPersonal } from './routes/personal.ts';
 import { registerSessions } from './routes/sessions.ts';
 import { registerSignIn } from './routes/sign-in.ts';
 import { registerTeamMembers } from './routes/team-members.ts';
@@ -76,6 +77,8 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
   registerLocations(app);
   registerSessions(app);
   registerClients(app);
+  // After the routes that define the shared location schemas, which the personal view reuses.
+  registerPersonal(app);
   return app;
 }
 
