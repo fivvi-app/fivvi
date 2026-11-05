@@ -37,6 +37,9 @@
   /* The independent-trainer setup has one workspace with private sessions only: no group classes, no Open Gym, no team. */
   function SOLO() { return PREF.setup === "solo"; }
   function OWNER() { return SOLO() || PREF.role === "owner"; }
+  /* The session type is only worth a label when there is more than one kind; a trainer with private sessions only
+     never sees "Privésessie" on every row. */
+  function MIXED() { return !SOLO(); }
   function WSS() { return SOLO() ? ["sf"] : ["sf", "jg"]; }
   function dayItems(k) {
     var all = dayItemsAll(k);
@@ -181,7 +184,7 @@
     var c = CV[it.type], past = isPast(it, k), booked = (it.people || []).length;
     var full = it.cap && booked >= it.cap;
     /* iOS shows the booked count as a pill, so the line stays short; Android has no pill and keeps it in the line. */
-    var sub = it.type === "priv" ? "Privésessie · " + esc(it.loc) : it.cancelled || PREF.plat === "ios" ? TYPE[it.type] : TYPE[it.type] + " · " + (full ? "Vol" : booked + "/" + it.cap + " geboekt");
+    var sub = it.type === "priv" ? (MIXED() ? "Privésessie · " : "") + esc(it.loc) : it.cancelled || PREF.plat === "ios" ? TYPE[it.type] : TYPE[it.type] + " · " + (full ? "Vol" : booked + "/" + it.cap + " geboekt");
     var smalls = [];
     if (opt.multi !== false && !opt.hideWs && !SOLO()) smalls.push(wsLine(it.ws));
     if (opt.who) smalls.push(it.trainer ? esc(it.trainer) : "Jij"); else if (it.trainer) smalls.push(esc(it.trainer));
@@ -224,7 +227,7 @@
     body += '<div class="pad stack">' + (ws ? teamStrip(items) : dayCard(items));
     if (next) {
       var inMin = mins(next.s) - mins(NOWT), cap = isLive(next, TODAY) ? "Nu bezig" : "Straks · over " + inMin + " min";
-      body += '<div class="hero" style="--c:' + CV[next.type] + '"><div class="cap">' + cap + "</div><h3>" + esc(title(next)) + "</h3><p>" + next.s + "–" + next.e + " · " + TYPE[next.type] + " · " + esc(next.loc) + "</p>" +
+      body += '<div class="hero" style="--c:' + CV[next.type] + '"><div class="cap">' + cap + "</div><h3>" + esc(title(next)) + "</h3><p>" + next.s + "–" + next.e + (MIXED() ? " · " + TYPE[next.type] : "") + " · " + esc(next.loc) + "</p>" +
         (ws ? '<p style="margin-top:2px">Trainer: ' + (next.trainer ? esc(next.trainer) : "jij") + "</p>" : "") +
         (next.workout ? '<p style="margin-top:2px">Schema: ' + esc(next.workout) + "</p>" : "") +
         '<div class="acts">' + (next.type === "priv" ? '<button class="gl glass" data-a="start-workout" data-id="' + next.id + '">' + ic("play") + (S.logs[next.id] ? "Doorgaan met training" : "Training starten") + "</button>" : "") +
