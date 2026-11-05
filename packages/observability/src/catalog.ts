@@ -56,6 +56,15 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     workspace_id: property.uuid(),
     surface: property.enum(['web', 'ios', 'android']),
   },
+  // F011: the invited person accepted, or declined, the invitation. The workspace ID only (the
+  // account's UUID is the distinct ID): not the invitation's ID, the person's name or email
+  // address, the Owner who invited, and never the token.
+  trainer_invitation_accepted: {
+    workspace_id: property.uuid(),
+  },
+  trainer_invitation_declined: {
+    workspace_id: property.uuid(),
+  },
   // F006: a team member added a client. The workspace ID and the surface only (the team member's
   // account UUID is the distinct ID): no client ID, name, email address or language.
   client_added: {

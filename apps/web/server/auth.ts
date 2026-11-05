@@ -1,4 +1,5 @@
 import { type Auth, createAuth, parseSignUpAllowlist, type SignUpAllowlist } from '@fivvi/auth';
+import { hasPendingInvitation } from '@fivvi/database';
 import { createEnvironmentSendEmail } from '@fivvi/email';
 import { database } from './database';
 import { errorReporter } from './error-reporter';
@@ -62,6 +63,8 @@ export function auth(): Auth {
     db: database(),
     ...readAuthConfig(process.env),
     sendEmail: createEnvironmentSendEmail(),
+    // An address with a pending trainer invitation may create its account too (F011).
+    isInvitedEmail: (email, now) => hasPendingInvitation(database(), email, now),
     // Failures of the work after a sign-in request's answer (a failed email) go to the shared
     // reporter (Sentry when SENTRY_DSN is set, E009), whose scrubber masks email addresses in
     // error messages and drops query strings from request and breadcrumb URLs.

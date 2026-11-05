@@ -83,6 +83,7 @@ function fakeTenantScopes(place?: Place) {
         value: await settle(() => run({ context: {}, actingAs } as unknown as WorkspaceScope)),
       };
     },
+    inInvitationScope: () => Promise.reject(new Error('No invitation in this test.')),
   };
   return { tenantScopes, ended };
 }
@@ -443,6 +444,9 @@ describe('E011 route access', () => {
       'delete /v1/workspaces/{workspaceId}/trainer-profile': 'workspace',
       'get /v1/health': 'public',
       'get /v1/hello': 'public',
+      'get /v1/invitations/{token}': 'public',
+      'post /v1/invitations/{token}/accept': 'public',
+      'post /v1/invitations/{token}/decline': 'public',
       'get /v1/me': 'account',
       'get /v1/me/workspaces': 'account',
       'patch /v1/me': 'account',

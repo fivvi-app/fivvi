@@ -8,8 +8,8 @@ export {
   decideNewClient,
   type NewClientDecision,
   type NewClientFacts,
-  normalizeEmail,
 } from './clients/new-client.ts';
+export { maskEmail, normalizeEmail } from './email.ts';
 export {
   ADDRESS_ADDITION_MAX_LENGTH,
   ADDRESS_TEXT_MAX_LENGTH,
@@ -54,14 +54,19 @@ export {
   type TeamRole,
 } from './team/last-owner.ts';
 export {
+  decideInvitationAnswer,
   decideNewInvitation,
   INVITATION_NAME_MAX_LENGTH,
   INVITATION_VALIDITY_DAYS,
   INVITATIONS_PER_DAY,
+  type InvitationAnswerDecision,
+  type InvitationAnswerFacts,
+  type InvitationFacts,
   type InvitationLanguageSources,
   invitationExpiry,
   invitationLanguage,
   invitationQuotaSince,
+  isInvitationOpen,
   type NewInvitationDecision,
   type NewInvitationFacts,
 } from './team/trainer-invitation.ts';

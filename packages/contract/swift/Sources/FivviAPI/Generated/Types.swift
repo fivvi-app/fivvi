@@ -144,6 +144,27 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `DELETE /v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}/delete(withdrawTrainerInvitation)`.
     func withdrawTrainerInvitation(_ input: Operations.WithdrawTrainerInvitation.Input) async throws -> Operations.WithdrawTrainerInvitation.Output
+    /// What an invitation link is for
+    ///
+    /// Anyone with the link (signed in or not) reads the name of the workspace that invites, the name of the inviter and the masked address the invitation is for, and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/invitations/{token}`.
+    /// - Remark: Generated from `#/paths//v1/invitations/{token}/get(getInvitation)`.
+    func getInvitation(_ input: Operations.GetInvitation.Input) async throws -> Operations.GetInvitation.Output
+    /// Accept an invitation
+    ///
+    /// The signed-in account whose verified address is the invitation’s joins the workspace as a Trainer, with a trainer profile: on the account it has, a client’s included, which stays as it is. The account’s name becomes the invitation’s name only when it has none. The invitation is used. Someone who is on the team already just gets the workspace back, with the role they have. Two accepts at once make one team-member record: the second answers `404`, as for any used invitation. An invitation that is no longer valid answers the neutral `404`; an account with another address `403`.
+    ///
+    /// - Remark: HTTP `POST /v1/invitations/{token}/accept`.
+    /// - Remark: Generated from `#/paths//v1/invitations/{token}/accept/post(acceptInvitation)`.
+    func acceptInvitation(_ input: Operations.AcceptInvitation.Input) async throws -> Operations.AcceptInvitation.Output
+    /// Decline an invitation
+    ///
+    /// The signed-in account whose verified address is the invitation’s declines it: no role is created, the invitation is closed and leaves the Owner’s list. An invitation that is no longer valid answers the neutral `404`; an account with another address `403`.
+    ///
+    /// - Remark: HTTP `POST /v1/invitations/{token}/decline`.
+    /// - Remark: Generated from `#/paths//v1/invitations/{token}/decline/post(declineInvitation)`.
+    func declineInvitation(_ input: Operations.DeclineInvitation.Input) async throws -> Operations.DeclineInvitation.Output
     /// The trainers of a workspace
     ///
     /// The team members who train in the workspace, by name: every Trainer, and each Owner who also trains. Each has the team-member ID and the name. Both roles may read it; a client of the workspace gets `403`, a person with no place in it `404`.
@@ -490,6 +511,51 @@ extension APIProtocol {
         headers: Operations.WithdrawTrainerInvitation.Input.Headers = .init()
     ) async throws -> Operations.WithdrawTrainerInvitation.Output {
         try await withdrawTrainerInvitation(Operations.WithdrawTrainerInvitation.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// What an invitation link is for
+    ///
+    /// Anyone with the link (signed in or not) reads the name of the workspace that invites, the name of the inviter and the masked address the invitation is for, and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/invitations/{token}`.
+    /// - Remark: Generated from `#/paths//v1/invitations/{token}/get(getInvitation)`.
+    public func getInvitation(
+        path: Operations.GetInvitation.Input.Path,
+        headers: Operations.GetInvitation.Input.Headers = .init()
+    ) async throws -> Operations.GetInvitation.Output {
+        try await getInvitation(Operations.GetInvitation.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Accept an invitation
+    ///
+    /// The signed-in account whose verified address is the invitation’s joins the workspace as a Trainer, with a trainer profile: on the account it has, a client’s included, which stays as it is. The account’s name becomes the invitation’s name only when it has none. The invitation is used. Someone who is on the team already just gets the workspace back, with the role they have. Two accepts at once make one team-member record: the second answers `404`, as for any used invitation. An invitation that is no longer valid answers the neutral `404`; an account with another address `403`.
+    ///
+    /// - Remark: HTTP `POST /v1/invitations/{token}/accept`.
+    /// - Remark: Generated from `#/paths//v1/invitations/{token}/accept/post(acceptInvitation)`.
+    public func acceptInvitation(
+        path: Operations.AcceptInvitation.Input.Path,
+        headers: Operations.AcceptInvitation.Input.Headers = .init()
+    ) async throws -> Operations.AcceptInvitation.Output {
+        try await acceptInvitation(Operations.AcceptInvitation.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Decline an invitation
+    ///
+    /// The signed-in account whose verified address is the invitation’s declines it: no role is created, the invitation is closed and leaves the Owner’s list. An invitation that is no longer valid answers the neutral `404`; an account with another address `403`.
+    ///
+    /// - Remark: HTTP `POST /v1/invitations/{token}/decline`.
+    /// - Remark: Generated from `#/paths//v1/invitations/{token}/decline/post(declineInvitation)`.
+    public func declineInvitation(
+        path: Operations.DeclineInvitation.Input.Path,
+        headers: Operations.DeclineInvitation.Input.Headers = .init()
+    ) async throws -> Operations.DeclineInvitation.Output {
+        try await declineInvitation(Operations.DeclineInvitation.Input(
             path: path,
             headers: headers
         ))

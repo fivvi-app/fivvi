@@ -91,6 +91,7 @@ export const NO_DEPENDENCIES: ApiDependencies = {
   tenantScopes: {
     inAccountScope: () => Promise.reject(new Error('No database configured.')),
     inWorkspaceScope: () => Promise.reject(new Error('No database configured.')),
+    inInvitationScope: () => Promise.reject(new Error('No database configured.')),
   },
   errorReporter,
   productEvents: createProductEvents({ env: {}, errorReporter }),

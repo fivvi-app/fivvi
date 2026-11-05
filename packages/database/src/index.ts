@@ -28,8 +28,10 @@ export {
 export { findSystemGreeting, type SystemGreetingView } from './queries/system-greetings.ts';
 export { recordWrongSignInCode } from './queries/verifications.ts';
 export {
+  findAccountForInvitation,
   findAccountIdByEmail,
   findPreferredLocaleByEmail,
+  nameAccountIfEmpty,
   setAccountName,
   setPreferredLocale,
 } from './repositories/accounts.ts';
@@ -67,9 +69,11 @@ export {
   type SessionView,
 } from './repositories/sessions.ts';
 export {
+  addTrainerToTeam,
   changeTeamMemberRole,
   deleteTeamMember,
   findTeamMember,
+  findTeamMemberName,
   isOnTeam,
   listTeamMembers,
   lockOwners,
@@ -77,11 +81,16 @@ export {
   type TeamMemberView,
 } from './repositories/team-members.ts';
 export {
+  closeInvitation,
   countInvitationsSince,
   createTrainerInvitation,
+  findInvitation,
   findPendingInvitation,
   findPendingInvitationByEmail,
+  hasPendingInvitation,
+  type InvitationRecord,
   listPendingInvitations,
+  lockInvitation,
   lockInvitationQuota,
   type NewTrainerInvitation,
   resendInvitation,
@@ -112,6 +121,10 @@ export {
   type AccountScopeInput,
   type ActingAs,
   createTenantScopes,
+  type InvitationAdmission,
+  type InvitationEntry,
+  type InvitationScopeFacts,
+  type InvitationScopeInput,
   type Place,
   type TeamRole,
   type TenantContext,
