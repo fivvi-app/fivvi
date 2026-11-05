@@ -7,7 +7,7 @@ import type {
 } from '@fivvi/database';
 import { type OpenAPIHono, z } from '@hono/zod-openapi';
 import { describe, expect, it, vi } from 'vitest';
-import { admission } from '../src/access.ts';
+import { type AfterCommit, admission } from '../src/access.ts';
 import {
   type ApiDependencies,
   buildOpenApiDocument,
@@ -83,6 +83,7 @@ function fakeTenantScopes(place?: Place) {
         value: await settle(() => run({ context: {}, actingAs } as unknown as WorkspaceScope)),
       };
     },
+    inInvitationScope: () => Promise.reject(new Error('No invitation in this test.')),
   };
   return { tenantScopes, ended };
 }
@@ -216,6 +217,84 @@ describe('E011 route access', () => {
 
       expect(response.status).toBe(500);
       expect(ended).toEqual(['rolled back']);
+      log.mockRestore();
+    });
+  });
+
+  describe('work queued with afterCommit runs once the transaction has committed (F020)', () => {
+    const path = '/v1/workspaces/0197c0de-0000-7000-8000-0000000000a1/queued';
+
+    /** A probe route that queues two tasks and answers with `status`; `ended` records the transaction. */
+    function queuedApp(status: 200 | 400, options: { failFirst?: boolean } = {}) {
+      const { tenantScopes, ended } = fakeTenantScopes({ teamRole: 'owner' });
+      const events: string[] = [];
+      const reported: unknown[] = [];
+      const app = probeApp({
+        ...signedIn,
+        tenantScopes,
+        errorReporter: { ...NO_DEPENDENCIES.errorReporter, captureError: (e) => reported.push(e) },
+      });
+      app.openapi(
+        defineRoute(
+          {
+            method: 'post',
+            path: '/v1/workspaces/{workspaceId}/queued',
+            operationId: 'queued',
+            responses: {
+              200: { description: 'It ran.' },
+              400: { description: 'It did not.' },
+            },
+          },
+          { type: 'workspace', capability: 'team.manage', client: 'none' },
+        ),
+        (c) => {
+          const afterCommit = (c as unknown as { get(key: 'afterCommit'): AfterCommit }).get(
+            'afterCommit',
+          );
+          afterCommit(() => {
+            events.push(`first (${ended.join(',') || 'open'})`);
+            if (options.failFirst) throw new Error('send failed for anna@example.com');
+          });
+          afterCommit(async () => {
+            await Promise.resolve();
+            events.push(`second (${ended.join(',') || 'open'})`);
+          });
+          events.push('handler');
+          return status === 200 ? c.body(null, 200) : (c.body(null, 400) as never);
+        },
+      );
+      return { app, events, reported, ended };
+    }
+
+    it('runs the tasks in order after the commit, before the response', async () => {
+      const { app, events } = queuedApp(200);
+
+      const response = await app.request(path, { method: 'POST' });
+
+      expect(response.status).toBe(200);
+      expect(events).toEqual(['handler', 'first (committed)', 'second (committed)']);
+    });
+
+    it('drops the tasks of a request that rolled back', async () => {
+      const { app, events, ended } = queuedApp(400);
+
+      const response = await app.request(path, { method: 'POST' });
+
+      expect(response.status).toBe(400);
+      expect(ended).toEqual(['rolled back']);
+      expect(events).toEqual(['handler']);
+    });
+
+    it('reports a failing task without its message, runs the next and keeps the answer', async () => {
+      const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const { app, events, reported } = queuedApp(200, { failFirst: true });
+
+      const response = await app.request(path, { method: 'POST' });
+
+      expect(response.status).toBe(200);
+      expect(events).toEqual(['handler', 'first (committed)', 'second (committed)']);
+      expect(reported).toHaveLength(1);
+      expect(log.mock.calls.flat().join(' ')).not.toContain('anna@example.com');
       log.mockRestore();
     });
   });
@@ -365,6 +444,9 @@ describe('E011 route access', () => {
       'delete /v1/workspaces/{workspaceId}/trainer-profile': 'workspace',
       'get /v1/health': 'public',
       'get /v1/hello': 'public',
+      'get /v1/invitations/{token}': 'public',
+      'post /v1/invitations/{token}/accept': 'public',
+      'post /v1/invitations/{token}/decline': 'public',
       'get /v1/me': 'account',
       'get /v1/me/workspaces': 'account',
       'patch /v1/me': 'account',
@@ -372,6 +454,7 @@ describe('E011 route access', () => {
       'post /v1/sign-in/token': 'public',
       'post /v1/sign-out': 'public',
       'get /v1/workspaces/{workspaceId}': 'workspace',
+      'get /v1/workspaces/{workspaceId}/address-lookup': 'workspace',
       'get /v1/workspaces/{workspaceId}/clients': 'workspace',
       'post /v1/workspaces/{workspaceId}/clients': 'workspace',
       'post /v1/workspaces/{workspaceId}/switched': 'workspace',
@@ -388,6 +471,8 @@ describe('E011 route access', () => {
       'post /v1/workspaces/{workspaceId}/trainer-invitations': 'workspace',
       'post /v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}/resend': 'workspace',
       'delete /v1/workspaces/{workspaceId}/trainer-invitations/{invitationId}': 'workspace',
+      'post /v1/workspaces/{workspaceId}/sessions/private': 'workspace',
+      'get /v1/workspaces/{workspaceId}/sessions/{sessionId}': 'workspace',
       'post /v1/workspaces': 'account',
     });
   });

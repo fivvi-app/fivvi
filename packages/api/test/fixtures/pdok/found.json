@@ -1,0 +1,14 @@
+{
+  "response": {
+    "numFound": 4,
+    "start": 0,
+    "maxScore": 1.0746719,
+    "numFoundExact": true,
+    "docs": [
+      {
+        "woonplaatsnaam": "'s-Gravenhage",
+        "straatnaam": "Binnenhof"
+      }
+    ]
+  }
+}

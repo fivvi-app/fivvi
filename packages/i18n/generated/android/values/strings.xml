@@ -324,4 +324,6 @@
     <string name="workspace_nav_trainers">Trainers</string>
     <!-- Header of the sidebar: the workspace name, then the role of the signed-in person in it, e.g. "John's Gym · Owner". {name} is the workspace name, {role} the role label. -->
     <string name="workspace_nav_workspace_with_role">%1$s · %2$s</string>
+    <!-- Last row of the scope switcher, only for accounts that may set up a workspace (the sign-up allowlist): opens the form to create another workspace. The + belongs to the label. -->
+    <string name="workspace_switcher_new_workspace">+ Nieuwe werkruimte</string>
 </resources>

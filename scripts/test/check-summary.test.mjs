@@ -1,14 +1,16 @@
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import {
   chmodSync,
   copyFileSync,
   existsSync,
+  lstatSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
   realpathSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -345,6 +347,7 @@ describe('E002 #112 check.sh prints and writes the test summary', () => {
     write(
       join(bin(), 'pnpm'),
       `#!/usr/bin/env bash
+printf '%s\\n' "\${TURBO_FORCE:-}" >> "$FAKE_RUNS/turbo-force"
 case "$*" in
   *"run lint"*) name=unit ;;
   *"test:integration"*) name=integration ;;
@@ -415,7 +418,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     execFileSync('git', ['-C', repo(), ...args], { encoding: 'utf8', env: gitEnv() });
 
   let n = 0;
-  const check = (runs, args = ['--all'], setup = () => {}) => {
+  const check = (runs, args = ['--all'], setup = () => {}, extraEnv = {}) => {
     const dir = join(base, `runs-${n++}`);
     mkdirSync(dir);
     for (const [name, { lines, exit = 0 }] of Object.entries(runs)) {
@@ -427,10 +430,17 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     const result = spawnSync(join(repo(), 'scripts/check.sh'), args, {
       encoding: 'utf8',
       cwd: repo(),
-      env: { ...gitEnv(), PATH: `${bin()}:${process.env.PATH}`, FAKE_RUNS: dir },
+      env: { ...gitEnv(), PATH: `${bin()}:${process.env.PATH}`, FAKE_RUNS: dir, ...extraEnv },
     });
     const file = join(repo(), '.work/check-summary.json');
-    return { ...result, summary: existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null };
+    const forced = join(dir, 'turbo-force');
+    return {
+      ...result,
+      turboForce: existsSync(forced)
+        ? readFileSync(forced, 'utf8').split('\n').filter(Boolean)
+        : [],
+      summary: existsSync(file) ? JSON.parse(readFileSync(file, 'utf8')) : null,
+    };
   };
 
   const unit = () => ({
@@ -492,6 +502,131 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       [suite('ui', 'unit', 'fail', 34, 1, 0)],
     );
     assert.match(result.stdout, /ui\s+fail\s+34\s+1\s+0\n/);
+  });
+
+  it('E002 #570 AC1: a suite the summary lists as failed fails check.sh, whatever exit code turbo gave', () => {
+    // turbo exited 0 while the root suite's log counts one failed test (seen in a factory run on 5 November 2026).
+    const exitsZero = { lines: node(259, 1, 0), exit: 0 };
+    const result = check({ unit: exitsZero, integration, e2e });
+    assert.deepEqual(
+      result.summary.suites.filter((s) => s.status === 'fail'),
+      [suite('root', 'unit', 'fail', 259, 1, 0)],
+    );
+    assert.match(result.stdout, /root\s+fail\s+259\s+1\s+0\n/);
+    assert.equal(result.status, 1, result.stdout);
+    assert.match(result.stdout, /✗ test summary: root failed/);
+  });
+
+  it('E002 #570 AC1: a failed suite behind a passing turbo run names the turbo cache and how to rerun it', () => {
+    // The cause in the factory run: a cache entry holding the log of concurrent runs, replayed by every cache hit.
+    const result = check({ unit: { lines: node(259, 1, 0), exit: 0 }, integration, e2e });
+    assert.match(result.stdout, /replayed from the turbo cache/);
+    assert.match(result.stdout, /pnpm turbo run \/\/#test:root --force/);
+  });
+
+  it('E002 #570 AC1: the rerun command of a failed package unit suite is its task, filtered and forced', () => {
+    const uiFails = {
+      lines: [...node(260, 0, 0), ...vitest('ui', 'test', '1 failed | 32 passed (33)')],
+      exit: 0,
+    };
+    const result = check({ unit: uiFails, integration, e2e });
+    assert.match(result.stdout, /pnpm turbo run test --filter=@fivvi\/ui --force/);
+  });
+
+  it('E002 #570 AC1: a failure turbo reported itself gets no cache hint', () => {
+    const result = check({ unit: failingUnit, integration, e2e });
+    assert.equal(result.status, 1);
+    assert.doesNotMatch(result.stdout, /turbo cache/);
+  });
+
+  describe('E002 #570: one check.sh per worktree', () => {
+    // The lock is a symbolic link to the pid of its owner: creating it fails when it exists, in one step.
+    const lock = () => join(repo(), '.work/check.lock');
+    const lockExists = () => {
+      try {
+        lstatSync(lock());
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    const holdLock = (pid) => () => {
+      mkdirSync(join(repo(), '.work'), { recursive: true });
+      symlinkSync(String(pid), lock());
+    };
+    const deadPid = () => spawnSync('true').pid;
+    // A live process whose command line names check.sh, like a check.sh run, for as long as the test needs it.
+    const runningCheck = () =>
+      spawn('bash', ['-c', 'sleep 20; :', 'scripts/check.sh'], { stdio: 'ignore' });
+
+    it('stops when another check.sh holds the lock, runs nothing, and leaves the lock to its holder', () => {
+      const holder = runningCheck();
+      try {
+        const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(holder.pid));
+        assert.equal(result.status, 1, result.stdout);
+        assert.match(
+          result.stdout,
+          new RegExp(`another scripts/check\\.sh runs in this worktree \\(pid ${holder.pid}\\)`),
+        );
+        assert.match(result.stdout, /delete \.work\/check\.lock/);
+        assert.doesNotMatch(result.stdout, /✓/);
+        assert.equal(result.summary, null);
+        assert.ok(lockExists(), 'the holder keeps its lock');
+      } finally {
+        holder.kill();
+      }
+    });
+
+    it('takes over the lock of a check.sh that is gone', () => {
+      const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(deadPid()));
+      assert.equal(result.status, 0, result.stdout);
+      assert.ok(!lockExists(), 'released at the end');
+    });
+
+    it('takes over a lock whose pid now belongs to a process that is not a check.sh', () => {
+      // After a kill -9 the pid can be reused: this test process is alive and is not a check.sh.
+      const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(process.pid));
+      assert.equal(result.status, 0, result.stdout);
+      assert.ok(!lockExists(), 'released at the end');
+    });
+
+    it('releases the lock when the run passes and when it fails', () => {
+      assert.equal(check({ unit: unit(), integration, e2e }).status, 0);
+      assert.ok(!lockExists());
+      assert.equal(check({ unit: failingUnit, integration, e2e }).status, 1);
+      assert.ok(!lockExists());
+    });
+  });
+
+  it('E002 #570 AC1: the rerun of a failed e2e suite is check.sh itself, forced, which sets the e2e port', () => {
+    const e2eFails = { lines: playwright('  14 passed (3.2s)', '  1 failed'), exit: 0 };
+    const result = check({ unit: unit(), integration, e2e: e2eFails });
+    assert.match(result.stdout, /TURBO_FORCE=1 scripts\/check\.sh/);
+    assert.doesNotMatch(result.stdout, /turbo run test:e2e/);
+  });
+
+  it('E002 #570 AC1: TURBO_FORCE=1 reaches every turbo run of check.sh', () => {
+    const result = check({ unit: unit(), integration, e2e }, ['--all'], () => {}, {
+      TURBO_FORCE: '1',
+    });
+    assert.equal(result.status, 0, result.stdout);
+    assert.ok(result.turboForce.length > 0);
+    assert.ok(
+      result.turboForce.every((value) => value === '1'),
+      result.turboForce.join(','),
+    );
+  });
+
+  it('E002 #570 AC1: a failed integration or e2e suite fails check.sh the same way', () => {
+    const e2eFails = { lines: playwright('  14 passed (3.2s)', '  1 failed'), exit: 0 };
+    const result = check({ unit: unit(), integration, e2e: e2eFails });
+    assert.equal(result.status, 1, result.stdout);
+    assert.match(result.stdout, /✗ test summary: web e2e failed/);
+  });
+
+  it('E002 #570 AC1: suites that were skipped or not run do not fail check.sh by themselves', () => {
+    const result = check({ unit: unit(), integration, e2e }, ['--all', '--fast']);
+    assert.equal(result.status, 0, result.stdout);
   });
 
   it('E002 #112 AC1: shows the output of a failing task, and not of the tasks that passed', () => {

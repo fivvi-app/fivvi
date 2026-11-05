@@ -10,8 +10,9 @@
 //                                             checkout); scripts/check.sh runs it
 //
 // Scanned: the tracked code files (TypeScript, JavaScript, Swift, Kotlin, JSON, YAML) of a test path: `*.test.*`,
-// `*.spec.*`, `test/`, `tests/`, `e2e/`, `packages/testing`, `apps/ios/*Tests*`, and `apps/android/app/src/{test,
-// androidTest,testShared}`. Lockfiles and their integrity hashes are not test files.
+// `*.spec.*`, `test/`, `tests/`, `e2e/`, `packages/testing`, `apps/ios/*Tests*`, and
+// `apps/android/{app,core,client}/src/{test,androidTest,testShared}`. Lockfiles and their integrity hashes are not
+// test files.
 //
 // A finding is a string literal of 20 or more characters that holds a token that looks random, or several literals that
 // together make one: `['aB3dE6gH', 'jK9mN2pQ'].join('')`, `'aB3dE6gH' + 'jK9mN2pQ'`. Findings name file:line and never
@@ -72,7 +73,7 @@ const TEST_PATH = [
   /(^|\/)(test|tests|e2e)\//,
   /^packages\/testing\//,
   /^apps\/ios\/[^/]*Tests[^/]*\//,
-  /^apps\/android\/app\/src\/(test|androidTest|testShared)\//,
+  /^apps\/android\/(app|core|client)\/src\/(test|androidTest|testShared)\//,
 ];
 const CODE_EXTENSION = /\.(ts|tsx|js|jsx|mjs|cjs|mts|cts|swift|kt|kts|json|ya?ml)$/;
 const LOCKFILE =

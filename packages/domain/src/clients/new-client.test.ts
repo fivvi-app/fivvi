@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { CLIENT_NAME_MAX_LENGTH, decideNewClient, normalizeEmail } from './new-client.ts';
+import { normalizeEmail } from '../email.ts';
+import { CLIENT_NAME_MAX_LENGTH, decideNewClient } from './new-client.ts';
 
 describe('F006 AC2: an email address is stored lower case', () => {
   it('lowers the case and drops the spaces around it', () => {

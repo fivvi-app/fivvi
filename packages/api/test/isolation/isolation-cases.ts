@@ -1,6 +1,11 @@
 import { type DatabaseExecutor, locations } from '@fivvi/database';
-import { addTeamRole, addTrainerInvitation, createAccount } from '@fivvi/database/testing';
-import { eq } from 'drizzle-orm';
+import {
+  addSession,
+  addTeamRole,
+  addTrainerInvitation,
+  createAccount,
+} from '@fivvi/database/testing';
+import { eq, sql } from 'drizzle-orm';
 
 // The isolation cases (E011, AC11, AC14): one per workspace and account operation, by operation
 // ID, holding only the data the isolation suite needs to call the route. The suite derives the
@@ -33,8 +38,12 @@ export interface IsolationCase {
   params?: Readonly<Record<string, string>>;
   /** A valid query string, with its `?`. */
   query?: string;
-  /** A valid body, for a route that takes one. */
-  body?: unknown;
+  /**
+   * A valid body, for a route that takes one. A function gets the values the seed returned for the
+   * records of the call (the workspace under test and the client it is called for), for a body that
+   * names a record of the workspace (a client to plan a session for, F020): it is called once per call.
+   */
+  body?: object | ((values: Readonly<Record<string, string>>) => object);
   /**
    * The route creates the caller's workspace (F002). Its business rule is the sign-up allowlist
    * alone (F012), and a call that succeeds adds one workspace of the caller's own, which the suite
@@ -43,6 +52,14 @@ export interface IsolationCase {
    * must succeed (`expectations.ts`).
    */
   createsWorkspace?: true;
+  /**
+   * The route reads no stored record: its answer comes from outside (the address lookup, F015), so
+   * there is no row of the workspace for a response to show. The only thing a case may say about
+   * what a read shows, and it is for a case with no `seed`: a case with both is a failure, so the
+   * flag can't switch off the check of a route that does read records. Status, the refusals, the
+   * markers of other workspaces in a response and the rows that change are checked as for any route.
+   */
+  readsNoRecords?: true;
 }
 
 /** The client row that the seed was called for: what a route about one client names. */
@@ -79,6 +96,30 @@ const anInvitation: IsolationCase['seed'] = async (db, { workspaceId }) => {
   });
   const { id } = await addTrainerInvitation(db, { workspaceId, inviterTeamMemberId: inviter.id });
   return { invitation: id };
+};
+
+/** A session of the workspace the seed was called for, with the client it was called for in it: what the session read shows (F020). */
+const aSession: IsolationCase['seed'] = async (db, { workspaceId, clientId }) => {
+  const { id } = await addSession(db, { workspaceId, clientId });
+  return { session: id };
+};
+
+/**
+ * The client the seed was called for, with everyone on the workspace's team training (a trainer
+ * profile each, F005), so a session planned "for yourself" succeeds for every role that may plan one
+ * (F020). An earlier case switches the Owner's training off, so the profiles are made here, right
+ * before the calls that need them, and not with the actors.
+ */
+const theClientAndATeamThatTrains: IsolationCase['seed'] = async (
+  db,
+  { workspaceId, clientId },
+) => {
+  await db.execute(
+    sql`insert into trainer_profiles (organization_id, team_member_id)
+        select organization_id, id from team_members where organization_id = ${workspaceId}
+        on conflict (team_member_id) do nothing`,
+  );
+  return { client: clientId };
 };
 
 export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
@@ -126,6 +167,21 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
     params: { invitationId: 'invitation' },
   },
 
+  // The sessions of a workspace (F020): the plan names the client the suite calls it for and leaves
+  // the trainer out, so it is the caller's own session whichever role calls it; the read names the
+  // seeded session.
+  createPrivateSession: {
+    seed: theClientAndATeamThatTrains,
+    body: (values) => ({
+      clientId: values.client,
+      localDate: '2026-09-24',
+      localStart: '09:00',
+      durationMinutes: 60,
+      notify: false,
+    }),
+  },
+  getSession: { seed: aSession, params: { sessionId: 'session' } },
+
   // The trainers of a workspace (F005): the list shows the seeded Trainer. The two switch routes
   // act on the caller's own trainer profile, so they name no record.
   listTrainers: { seed: aTeamMember },
@@ -140,6 +196,10 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
     params: { locationId: 'location' },
     body: { name: 'Renamed Location' },
   },
+
+  // The address lookup (F015): the fake answers the invented 1234 AB 1. It names no record of the
+  // workspace and the answer holds none; the isolation is the access and the rate-limit key.
+  lookupAddress: { query: '?postcode=1234AB&houseNumber=1', readsNoRecords: true },
 
   // The clients of a workspace (F006): the list shows every client the seed made (the suite calls
   // it once per client of the workspace), the add takes a name and an email address. Every call

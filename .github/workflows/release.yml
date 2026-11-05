@@ -9,6 +9,7 @@
 # nothing is uploaded for any platform. A platform can be released alone (the inputs); the suites of both always run.
 # Every step is a command of scripts/release*.sh (tested in scripts/test/release.test.mjs and release-android.test.mjs).
 # The `ios` and `android` jobs each wait for the owner's approval of the environment and run side by side.
+# The last job, `runners`, only reads the run: it says when an iOS job got no GitHub-hosted macOS runner (#437).
 
 # A secret is passed to the one step that needs it, as an environment variable of that step, and no step prints one.
 
@@ -72,12 +73,15 @@ jobs:
     name: iOS tests
     needs: prepare
     # The native suite on this commit in nl and en (TESTING.md §7), as `pnpm test:ios` runs it. No secret here, and no
-    # approval needed: the owner is asked to approve only a run whose tests passed. The image and Xcode are pinned, like in
-    # ci.yml.
-    runs-on: macos-26
+    # approval needed: the owner is asked to approve only a run whose tests passed. The image and Xcode are pinned, and
+    # the same as the iOS jobs of ci.yml (#437): the release build needs Xcode 26 and the iOS 26 SDK, which App Store
+    # Connect has required since 28 April 2026, and Swift 6.0 mode and the iOS 17 target build with Xcode 26.3. macos-15
+    # queued shorter than macos-26 (E002 #242), and CI tests the app on exactly this toolchain. Go back to macos-26 and
+    # its newest Xcode when the job fails here but not there, or when Apple requires a newer SDK than macos-15 has (Xcode 27).
+    runs-on: macos-15
     timeout-minutes: 45
     env:
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -210,6 +214,8 @@ jobs:
           name: android-release-test-results
           path: |
             apps/android/app/build/reports/
+            apps/android/core/build/reports/
+            apps/android/client/build/reports/
             apps/android/app/build/outputs/androidTest-results/
             apps/android/build/emulator.log*
             e2e/maestro/build/
@@ -223,10 +229,11 @@ jobs:
     # Waits here for the owner's approval; nothing below runs, and no secret is readable, before it. Only the jobs of this
     # environment read secrets.
     environment: release
-    runs-on: macos-26
+    # The image and Xcode of `ios-tests`, which has the reasons.
+    runs-on: macos-15
     timeout-minutes: 60
     env:
-      DEVELOPER_DIR: /Applications/Xcode_26.6.app/Contents/Developer
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
       RELEASE_BUILD_NUMBER: ${{ needs.prepare.outputs.build-number }}
       # The sentry-cli that pnpm-lock.yaml pins (@sentry/cli, a dependency of @fivvi/observability).
       SENTRY_CLI: ${{ github.workspace }}/packages/observability/node_modules/.bin/sentry-cli
@@ -371,3 +378,34 @@ jobs:
       - name: Delete the keystore
         if: always()
         run: scripts/release-android.sh cleanup
+
+  # GitHub's hosted macOS runners are short of capacity at times: a job that no runner picks up is cancelled after about 15
+  # minutes with no runner and no step, and the run then reads as a failed build although nothing ran (#437). This job
+  # runs last, whatever the others did, and says so in the error and the summary. It reads the run's jobs and nothing
+  # else: no environment and no secret, so it also runs when the owner has not approved, and never uploads.
+  runners:
+    name: macOS runners
+    needs: [ios-tests, ios]
+    if: always()
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read # scripts/ios-parts.sh reads this run's jobs
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Refuse a run outside main
+        run: scripts/release.sh guard
+
+      # A read that fails leaves the bare results, and the step then says nothing about a runner.
+      - name: Did the iOS jobs get a runner
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TESTS: ${{ needs.ios-tests.result }}
+          RELEASE: ${{ needs.ios.result }}
+        run: |
+          mapfile -t PARTS < <(scripts/ios-parts.sh job "iOS tests" "$TESTS"; scripts/ios-parts.sh job "iOS release" "$RELEASE")
+          scripts/release.sh runners "${PARTS[@]}"

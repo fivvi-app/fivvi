@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
-import { maskEmail } from './mask-email.ts';
+import { maskEmail } from './email.ts';
 
-describe('F001 the masked address of the confirm step (TW-10)', () => {
+describe('F001, F011 the masked address (the confirm step TW-10, the invitation read)', () => {
   it('keeps the first character and the whole domain', () => {
     expect(maskEmail('jan.jansen@example.com')).toBe('j***@example.com');
   });

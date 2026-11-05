@@ -320,6 +320,66 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/invitations/{token}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What an invitation link is for
+         * @description Anyone with the link (signed in or not) reads the name of the workspace that invites, the name of the inviter and the masked address the invitation is for, and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`.
+         */
+        get: operations["getInvitation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/invitations/{token}/accept": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Accept an invitation
+         * @description The signed-in account whose verified address is the invitation’s joins the workspace as a Trainer, with a trainer profile: on the account it has, a client’s included, which stays as it is. The account’s name becomes the invitation’s name only when it has none. The invitation is used. Someone who is on the team already just gets the workspace back, with the role they have. Two accepts at once make one team-member record: the second answers `404`, as for any used invitation. An invitation that is no longer valid answers the neutral `404`; an account with another address `403`.
+         */
+        post: operations["acceptInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/invitations/{token}/decline": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Decline an invitation
+         * @description The signed-in account whose verified address is the invitation’s declines it: no role is created, the invitation is closed and leaves the Owner’s list. An invitation that is no longer valid answers the neutral `404`; an account with another address `403`.
+         */
+        post: operations["declineInvitation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{workspaceId}/trainers": {
         parameters: {
             query?: never;
@@ -402,6 +462,66 @@ export interface paths {
          * @description Changes the name and/or the address of one location of the workspace (the Owner only; a Trainer gets `403`). The name is trimmed, not blank and at most 120 characters. The address is Dutch and all or nothing: a half-filled one, or a postcode that is not Dutch, answers `400` and nothing changes; `"1234ab"` is stored as `"1234 AB"`; `null` removes the address. A location of another workspace answers `404`.
          */
         patch: operations["updateLocation"];
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/address-lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The street and city of a postcode and house number
+         * @description Looks up a Dutch address by postcode, house number and optional addition and answers its street and city (the Owner only; a Trainer gets `403`). `404` when no address has that postcode, number and addition; `503` when the address service does not answer within 3 seconds or fails (the person fills the address in by hand); `422` for a postcode that is not Dutch, a house number that is not one to five digits or an addition that is too long or holds anything but letters, digits, spaces and hyphens (the service is not called); `429` after 60 lookups per workspace in an hour. The service receives the postcode, the house number and the addition only; nothing is logged.
+         */
+        get: operations["lookupAddress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/sessions/private": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Plan a private session
+         * @description Plans a private session for a client with a trainer (an Owner for any trainer of the workspace, a Trainer for themself; another trainer answers `403`) at the workspace’s default location. The date and start are wall-clock time in the workspace’s time zone; the session is stored and answered as UTC instants plus that zone. A past session is saved (`past`). A client or trainer that is not in the workspace (or a trainer who does not train) answers `404`; an invalid duration, date or time, or a start the clocks skip answers `400` with the field in `issues`. When `notify` is on and the session is not in the past, EM-11 goes to the client after the session is committed, in the client’s email language, else the workspace’s default.
+         */
+        post: operations["createPrivateSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/sessions/{sessionId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One session
+         * @description A session of the workspace with its location, trainer and participants, for any team member who may see the workspace’s clients. A session that is not in the workspace answers `404`.
+         */
+        get: operations["getSession"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/v1/workspaces/{workspaceId}/clients": {
@@ -548,7 +668,7 @@ export interface components {
              */
             role: "owner" | "trainer";
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any")[];
         };
         /** @description A workspace the account is on the team of. */
         MyWorkspace: {
@@ -567,7 +687,7 @@ export interface components {
              */
             role: "owner" | "trainer";
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any")[];
             /** @description Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner. */
             trainsHere: boolean;
         };
@@ -742,6 +862,15 @@ export interface components {
              */
             emailLocale?: "nl-NL" | "en" | null;
         };
+        /** @description What the link of a valid invitation shows to anyone who holds it, signed in or not. */
+        InvitationPreview: {
+            /** @description The name of the workspace that invites. */
+            workspaceName: string;
+            /** @description The name of the Owner who invited, `null` while they have given none. Never their address. */
+            inviterName: string | null;
+            /** @description The address the invitation is for, hidden except for its first character and its domain (`l***@example.com`), so a person signed in with another address can see which to use. */
+            maskedEmail: string;
+        };
         /** @description A team member who trains in the workspace. */
         Trainer: {
             /**
@@ -814,6 +943,122 @@ export interface components {
             /** @description At most 120 characters. */
             city: string;
         } | null;
+        /** @description The street and the city of an address. */
+        AddressLookupResult: {
+            /** @description The street, as the BAG writes it. */
+            street: string;
+            /** @description The city, as the BAG writes it. */
+            city: string;
+        };
+        /** @description Too many requests for this workspace in the last hour. Contains no user-facing text. */
+        RateLimited: {
+            /** @enum {string} */
+            code: "rate_limited";
+        };
+        /** @description The address service did not answer in time or answered with an error. Try again later. Contains no user-facing text. */
+        Unavailable: {
+            /** @enum {string} */
+            code: "unavailable";
+        };
+        /** @description The private session that was planned, with what the trainer should be told. */
+        PlannedPrivateSession: {
+            session: components["schemas"]["Session"];
+            /** @description The session starts before now: it was saved, and no email goes out. */
+            past: boolean;
+            /** @description The start happens twice because the clocks went back; the first (summer time) was taken. */
+            repeatedStart: boolean;
+            /** @description Whether the confirmation (EM-11) goes to the client: it was asked for and the session is not in the past. It is sent after the answer is decided; a failure is reported to error tracking and does not undo the session. */
+            confirmationEmail: boolean;
+        };
+        /** @description A session of the workspace as the team sees it. It holds no email address or other contact detail of a client. */
+        Session: {
+            /**
+             * Format: uuid
+             * @description The session ID.
+             */
+            id: string;
+            /**
+             * @description The kind of session. Private sessions are planned here; the others come later.
+             * @enum {string}
+             */
+            type: "private" | "group" | "open_gym";
+            /**
+             * @description Whether the session still takes place. A session is never deleted.
+             * @enum {string}
+             */
+            status: "scheduled" | "cancelled";
+            /**
+             * Format: date-time
+             * @description The start, a UTC instant.
+             */
+            startsAt: string;
+            /**
+             * Format: date-time
+             * @description The end, a UTC instant.
+             */
+            endsAt: string;
+            /** @description The workspace’s IANA time zone, e.g. `Europe/Amsterdam`: the instants are shown in it (ADR-012). */
+            timeZone: string;
+            /** @description 1 for a private session. */
+            capacity: number;
+            /** @description Raised by every change; a change says the version it read. Starts at 1. */
+            version: number;
+            location: components["schemas"]["Location"];
+            trainer?: components["schemas"]["SessionTrainer"];
+            /** @description The clients in the session, in the order they were added. One for a private session. */
+            participants: components["schemas"]["SessionParticipant"][];
+        };
+        /** @description Left out when the session has no trainer (the trainer’s profile ended). */
+        SessionTrainer: {
+            /**
+             * Format: uuid
+             * @description The trainer’s team-member ID, as in `GET …/trainers`.
+             */
+            id: string;
+            /** @description The account’s name; empty when it has none. */
+            name: string;
+        };
+        /** @description A client’s place in a session. */
+        SessionParticipant: {
+            /**
+             * Format: uuid
+             * @description The client ID.
+             */
+            clientId: string;
+            /** @description The client’s name. */
+            name: string;
+            /**
+             * @description What became of the client’s place: `booked` from the start; attendance and cancellations change it in later features.
+             * @enum {string}
+             */
+            attendanceStatus: "booked" | "attended" | "cancelled" | "no_show";
+        };
+        /** @description A private session to plan: one client, one trainer, a local date, start and length. */
+        PlanPrivateSessionRequest: {
+            /**
+             * Format: uuid
+             * @description The client of the workspace the session is for.
+             */
+            clientId: string;
+            /**
+             * Format: uuid
+             * @description The trainer’s team-member ID, from `GET …/trainers`. Leave it out to plan for yourself (the caller must train in the workspace). An Owner may plan for any trainer of the workspace, a Trainer only for themself (`403` otherwise).
+             */
+            trainerId?: string;
+            /** @description The date in the workspace’s time zone: `YYYY-MM-DD`. A date that is none (30 February) answers `400` on `localDate`. */
+            localDate: string;
+            /** @description The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first. */
+            localStart: string;
+            /** @description The length in minutes: 15 to 240 in steps of 5. Any other value answers `400` on `durationMinutes`. */
+            durationMinutes: number;
+            /** @description Whether to email the client the confirmation (EM-11). Not sent for a session that starts in the past, whatever this says. */
+            notify: boolean;
+            /**
+             * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+             * @enum {string}
+             */
+            surface?: "ios" | "android";
+        };
         /** @description One page of the clients of a workspace. */
         ClientList: {
             /** @description This page of clients, sorted by name. */
@@ -2015,6 +2260,190 @@ export interface operations {
             };
         };
     };
+    getInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The token in the invitation link: the last part of `/invitations/{token}`. */
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description A valid invitation. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitationPreview"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description The invitation is no longer valid: expired, withdrawn, already used or unknown. The same answer for all four; nothing changed. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    acceptInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The token in the invitation link: the last part of `/invitations/{token}`. */
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The workspace the account is now on the team of, as `listMyWorkspaces` shows it. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MyWorkspace"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The signed-in account’s verified address is not the one the invitation is for; nothing changed. Sign out and sign in with the address `GET /v1/invitations/{token}` shows masked. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The invitation is no longer valid: expired, withdrawn, already used or unknown. The same answer for all four; nothing changed. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    declineInvitation: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The token in the invitation link: the last part of `/invitations/{token}`. */
+                token: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The invitation was declined. */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The signed-in account’s verified address is not the one the invitation is for; nothing changed. Sign out and sign in with the address `GET /v1/invitations/{token}` shows masked. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The invitation is no longer valid: expired, withdrawn, already used or unknown. The same answer for all four; nothing changed. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
     listTrainers: {
         parameters: {
             query?: never;
@@ -2310,6 +2739,241 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Location"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    lookupAddress: {
+        parameters: {
+            query: {
+                /** @description A Dutch postcode: four digits, an optional space, two letters. */
+                postcode: string;
+                /** @description One to five digits. */
+                houseNumber: string;
+                /** @description The house number addition, for example `A` or `2 hoog`: at most 10 letters, digits, spaces and hyphens. Optional. */
+                addition?: string;
+            };
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The street and the city. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddressLookupResult"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description The postcode, house number or addition is not valid. The service is not called. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description More than 60 lookups for this workspace in the last hour. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RateLimited"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description The address service did not answer in time, or failed. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Unavailable"];
+                };
+            };
+        };
+    };
+    createPrivateSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PlanPrivateSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description The session was planned. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlannedPrivateSession"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    getSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The session ID. */
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The session. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Session"];
                 };
             };
             /** @description The request did not match the contract. */

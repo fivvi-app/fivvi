@@ -3564,6 +3564,24 @@
           }
         }
       }
+    },
+    "workspaceSwitcher.newWorkspace" : {
+      "comment" : "Last row of the scope switcher, only for accounts that may set up a workspace (the sign-up allowlist): opens the form to create another workspace. The + belongs to the label.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+ New workspace"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "+ Nieuwe werkruimte"
+          }
+        }
+      }
     }
   },
   "version" : "1.0"

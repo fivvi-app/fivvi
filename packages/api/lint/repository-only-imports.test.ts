@@ -44,6 +44,11 @@ const FORBIDDEN: Record<string, string> = {
   'the trainer profiles table': "import { trainerProfiles } from '@fivvi/database';",
   'the locations table': "import { locations } from '@fivvi/database';",
   'the trainer invitations table': "import { trainerInvitations } from '@fivvi/database';",
+  'the sessions table': "import { sessions } from '@fivvi/database';",
+  'the session participants table': "import { sessionParticipants } from '@fivvi/database';",
+  'the session type enum': "import { sessionType } from '@fivvi/database';",
+  'the session status enum': "import { sessionStatus } from '@fivvi/database';",
+  'the attendance status enum': "import { attendanceStatus } from '@fivvi/database';",
   'a table among allowed names': "import { createClient, clients } from '@fivvi/database';",
   'a table renamed': "import { clients as c } from '@fivvi/database';",
   'a table as a type': "import type { clients } from '@fivvi/database';",
@@ -71,6 +76,13 @@ const FORBIDDEN: Record<string, string> = {
   // The handles and the privileged connection of #264 in @fivvi/database.
   createAppDatabaseFromEnv: "import { createAppDatabaseFromEnv } from '@fivvi/database';",
   openPrivilegedDatabase: "import { openPrivilegedDatabase } from '@fivvi/database';",
+  // The cron's handle of E012: the role of the cron's tasks, which the API must never reach.
+  'AC7: the API cannot import the cron database handle':
+    "import { createCronDatabase } from '@fivvi/database';",
+  'AC7: the cron database handle renamed':
+    "import { createCronDatabase as cron } from '@fivvi/database';",
+  'AC7: the cron database handle re-exported':
+    "export { createCronDatabase } from '@fivvi/database';",
   inspectConnectionRole: "import { inspectConnectionRole } from '@fivvi/database';",
   readDatabaseConfig: "import { readDatabaseConfig } from '@fivvi/database';",
   // A dynamic import or a require gets the same rule as a static import.
@@ -235,6 +247,21 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
       'repository of the trainer invitations, takes the workspace scope (F011)',
     resendInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
     withdrawInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
+    findLocation: 'repository of the locations, takes the workspace scope (F020)',
+    findTrainer: 'repository of the trainer profiles, takes the workspace scope (F020)',
+    findSession: 'repository of the sessions, takes the workspace scope (F020)',
+    createPrivateSession: 'repository of the sessions, takes the workspace scope (F020)',
+    findInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
+    lockInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
+    closeInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
+    addTrainerToTeam: 'repository of the team, takes the workspace scope (F011)',
+    findTeamMemberName:
+      'repository of the team, takes the workspace scope; reads a name only (F011)',
+    nameAccountIfEmpty: 'repository of accounts, takes a scope (F011)',
+    findAccountForInvitation:
+      'repository of accounts, takes a scope; reads the address and whether it is verified (F011)',
+    hasPendingInvitation:
+      'query of the sign-in gate for apps/web, takes the executor it is given; answers yes or no (F011)',
     updateWorkspace: 'repository of workspaces, takes the workspace scope (F002, F010)',
     setPreferredLocale: 'repository of accounts, takes the account scope (F010)',
     setAccountName: 'repository of accounts, takes the account scope (F005)',
@@ -271,7 +298,20 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     LocationAddress: 'type of the location repository (F015)',
     LocationChanges: 'type of the location repository (F015)',
     LocationView: 'type of the location repository (F015)',
+    TrainerWithProfile: 'type of the trainer-profile repository (F020)',
+    AttendanceStatus: 'type of the session repository (F020)',
+    NewPrivateSession: 'type of the session repository (F020)',
+    SessionParticipantView: 'type of the session repository (F020)',
+    SessionStatus: 'type of the session repository (F020)',
+    SessionTrainerView: 'type of the session repository (F020)',
+    SessionType: 'type of the session repository (F020)',
+    SessionView: 'type of the session repository (F020)',
     NewTrainerInvitation: 'type of the trainer-invitation repository (F011)',
+    InvitationRecord: 'type of the trainer-invitation repository (F011)',
+    InvitationAdmission: 'type of the tenant scope (F011)',
+    InvitationEntry: 'type of the tenant scope (F011)',
+    InvitationScopeFacts: 'type of the tenant scope (F011)',
+    InvitationScopeInput: 'type of the tenant scope (F011)',
     TrainerInvitationView: 'type of the trainer-invitation repository (F011)',
     AccountScopeInput: 'type of the tenant scope',
     ActingAs: 'type of the tenant scope',
@@ -339,11 +379,12 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     expect(Object.keys(ALLOWED_EXPORTS).filter((name) => !exported.includes(name))).toEqual([]);
   });
 
-  it('still forbids the connection handles, those of the app-role work (#264) included', () => {
+  it('still forbids the connection handles, those of the app-role work (#264) and the cron (E012) included', () => {
     for (const name of [
       'createDatabase',
       'createDatabaseFromEnv',
       'createAppDatabaseFromEnv',
+      'createCronDatabase',
       'openPrivilegedDatabase',
       'inspectConnectionRole',
       'readDatabaseConfig',

@@ -16,7 +16,8 @@
 #
 # At the end it prints a table of the tests each suite passed, failed and skipped and writes it as JSON to
 # .work/check-summary.json (git-ignored, in this checkout). Quote that summary in reports; don't retype counts
-# from the output (scripts/test-summary.sh). The decision is scripts/affected.mjs, which CI's "Detect changes" job runs too.
+# from the output (scripts/test-summary.sh). A suite the table lists as failed fails the run, whatever exit code its check
+# gave (#570). One run per worktree: a second one stops (.work/check.lock). The decision is scripts/affected.mjs, which CI's "Detect changes" job runs too.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$ROOT/scripts/_shellcheck.sh"
@@ -37,12 +38,42 @@ use_pinned_shellcheck
 warn_shellcheck_version
 FAILED=0
 SUMMARY_JSON="$ROOT/.work/check-summary.json"
-# An early exit must not leave the summary of an earlier run behind.
-rm -f "$SUMMARY_JSON"
 # What every check printed, passed or failed: test-summary.sh reads the suites' counts from it.
 LOG_DIR="$(mktemp -d)"
-remove_log_dir() { rm -rf "$LOG_DIR"; }
-on_exit remove_log_dir
+# One check.sh per worktree (#570): two runs write the same turbo task logs (node_modules/.cache/turbo, .turbo), and a
+# passing run caches whatever is in the log then. Such a mixed log (three node:test summaries, one with "fail 1") was
+# replayed by every cache hit of every worktree while turbo exited 0. The lock is a symbolic link to the pid of its owner:
+# `ln -s` fails when the link exists, in one step, so two runs can't both take it. A lock whose pid is gone, or now belongs
+# to a process that is not a check.sh (after a kill -9 the pid can be reused), is stale and taken over; the one race left
+# is two runs taking over the same stale lock at once, and each only removes the lock it read.
+LOCK="$ROOT/.work/check.lock"
+OWN_LOCK=false
+is_check_sh() { case "$(ps -p "$1" -o command= 2>/dev/null)" in *check.sh*) return 0 ;; *) return 1 ;; esac; }
+acquire_lock() {
+  local holder _
+  mkdir -p "$ROOT/.work"
+  [ ! -e "$LOCK" ] || [ -L "$LOCK" ] || rm -rf "$LOCK"
+  for _ in 1 2 3; do
+    if ln -sn "$$" "$LOCK" 2>/dev/null; then OWN_LOCK=true; return 0; fi
+    holder="$(readlink "$LOCK" 2>/dev/null || true)"
+    if [ -n "$holder" ] && is_check_sh "$holder"; then
+      echo "✗ another scripts/check.sh runs in this worktree (pid $holder): two runs write the same turbo logs, and the"
+      echo "  cache then replays a log of both. Wait for it, or stop it, and run this again. If none runs, delete .work/check.lock."
+      exit 1
+    fi
+    [ "$(readlink "$LOCK" 2>/dev/null || true)" != "$holder" ] || rm -f "$LOCK"
+  done
+  echo "✗ could not take the lock ${LOCK#"$ROOT"/}: another scripts/check.sh started at the same time. Run this again."
+  exit 1
+}
+release() {
+  rm -rf "$LOG_DIR"
+  ! $OWN_LOCK || [ "$(readlink "$LOCK" 2>/dev/null || true)" != "$$" ] || rm -f "$LOCK"
+}
+on_exit release
+acquire_lock
+# An early exit must not leave the summary of an earlier run behind.
+rm -f "$SUMMARY_JSON"
 
 # What a failed check shows. A turbo run is logged in full (the parser reads every task's counts), but only the output of
 # the tasks that failed (named by "<package>#<task>:  ERROR") is shown, with turbo's footer; any other check shows all.
@@ -294,5 +325,29 @@ done < <(all_suites)
 echo
 "$ROOT/scripts/test-summary.sh" --json "$SUMMARY_JSON" "${test_kinds[@]}" "$LOG_DIR/output.log" \
   || { echo "✗ test summary"; FAILED=1; }
+
+# A suite the summary lists as failed fails the run, whatever exit code its check gave (#570): turbo exited 0 in a factory
+# run while the table showed the root suite failed, and pr.sh pushed on that. Only "fail" counts: not-run and skipped
+# suites are a consequence of a failure or of --fast, and the check that caused them has failed already.
+# When every check passed, the failure was not turbo's: a cache hit replayed a log with counts of a failed run in it (the
+# cache entry was written from the log of concurrent runs). Rerunning would hit the same entry, so say how to bypass it.
+if [ -f "$SUMMARY_JSON" ]; then
+  checks_failed=$FAILED
+  failed_suites="$(jq -r '[.suites[] | select(.status == "fail") | .name] | join(", ")' "$SUMMARY_JSON")" \
+    || { echo "✗ test summary: could not read ${SUMMARY_JSON#"$ROOT"/}"; FAILED=1; failed_suites=""; }
+  if [ -n "$failed_suites" ]; then
+    echo "✗ test summary: $failed_suites failed"
+    FAILED=1
+    if [ "$checks_failed" = 0 ]; then
+      echo "  Every check passed, so the log may be replayed from the turbo cache (\"cache hit, replaying logs\"). Run the task"
+      echo "  again without the cache, which also replaces the entry:"
+      jq -r '.suites[] | select(.status == "fail")
+        | if .kind == "unit"
+          then "    pnpm turbo run " + (if .name == "root" then "//#test:root" else "test --filter=@fivvi/" + .name end) + " --force"
+          else "    TURBO_FORCE=1 scripts/check.sh" end' "$SUMMARY_JSON" | sort -u
+      echo "  (An integration or e2e suite needs the database and E2E_PORT, which check.sh sets: TURBO_FORCE=1 makes it run every turbo task without the cache.)"
+    fi
+  fi
+fi
 
 exit "$FAILED"

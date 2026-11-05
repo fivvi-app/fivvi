@@ -11,7 +11,7 @@ import {
 import type { Locale } from '@fivvi/i18n';
 import { databaseUrl } from '@fivvi/testing/database/server';
 import type { BrowserContext } from '@playwright/test';
-import { eq } from 'drizzle-orm';
+import { and, eq } from 'drizzle-orm';
 import {
   ALLOWED_SIGN_UP_DOMAIN,
   appServer,
@@ -145,6 +145,34 @@ export async function joinTeam(
         .insert(trainerProfiles)
         .values({ organizationId: gym.id, teamMemberId: member.id });
     }
+  } finally {
+    await client.close();
+  }
+}
+
+/**
+ * Takes the account `email` off the team of the workspace with the URL name `slug`, on the e2e app
+ * server's database (as an Owner removing them would, F003): the workspace is no longer one of
+ * theirs. Their trainer profile there goes with the team role.
+ */
+export async function leaveTeam(email: string, slug: string): Promise<void> {
+  const client = createDatabase({ url: databaseUrl(appServer.database), maxConnections: 1 });
+  try {
+    const user = (await client.db.select().from(authUsers).where(eq(authUsers.email, email)))[0];
+    if (!user) throw new Error(`No account ${email} on the e2e database.`);
+    const gym = (
+      await client.db.select().from(organizations).where(eq(organizations.slug, slug))
+    )[0];
+    if (!gym) throw new Error(`No workspace ${slug} on the e2e database.`);
+    const member = (
+      await client.db
+        .select()
+        .from(teamMembers)
+        .where(and(eq(teamMembers.organizationId, gym.id), eq(teamMembers.accountId, user.id)))
+    )[0];
+    if (!member) throw new Error(`${email} is not on the team of ${slug}.`);
+    await client.db.delete(trainerProfiles).where(eq(trainerProfiles.teamMemberId, member.id));
+    await client.db.delete(teamMembers).where(eq(teamMembers.id, member.id));
   } finally {
     await client.close();
   }

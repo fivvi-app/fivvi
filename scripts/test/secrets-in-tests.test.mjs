@@ -61,6 +61,12 @@ describe('E002 #228 secrets-in-tests.mjs: which files are test files', () => {
       'apps/android/app/src/test/kotlin/app/fivvi/pro/ObservabilityTest.kt',
       'apps/android/app/src/androidTest/kotlin/app/fivvi/pro/HelloTest.kt',
       'apps/android/app/src/testShared/kotlin/app/fivvi/pro/Fixtures.kt',
+      'apps/android/core/src/test/kotlin/app/fivvi/core/SessionTest.kt',
+      'apps/android/core/src/androidTest/kotlin/app/fivvi/core/SessionInstrumentedTest.kt',
+      'apps/android/core/src/testShared/kotlin/app/fivvi/core/Fixtures.kt',
+      'apps/android/client/src/test/kotlin/app/fivvi/ClientTest.kt',
+      'apps/android/client/src/androidTest/kotlin/app/fivvi/ClientInstrumentedTest.kt',
+      'apps/android/client/src/testShared/kotlin/app/fivvi/Fixtures.kt',
       'e2e/maestro/hello.yaml',
     ]) {
       assert.ok(isTestFile(path), path);
@@ -71,6 +77,8 @@ describe('E002 #228 secrets-in-tests.mjs: which files are test files', () => {
     for (const path of [
       'packages/observability/src/scrub.ts',
       'apps/android/app/src/main/kotlin/app/fivvi/pro/Main.kt',
+      'apps/android/core/src/main/kotlin/app/fivvi/core/Session.kt',
+      'apps/android/client/src/main/kotlin/app/fivvi/Main.kt',
       'apps/ios/FivviPro/Hello.swift',
       'pnpm-lock.yaml',
       'packages/testing/pnpm-lock.yaml',

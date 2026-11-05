@@ -22,12 +22,12 @@ pattern database_module() { r".@fivvi/database." }
 // Every table of @fivvi/database (the business tables, the organizations, the sign-in tables, the
 // system data and the run records of the cron) with the schema helpers (businessTable, teamRole,
 // APP_ROLE), and everything that makes or types a connection: createDatabase, createDatabaseFromEnv and, from the app-role work (#264),
-// createAppDatabaseFromEnv, openPrivilegedDatabase and its allow-list, inspectConnectionRole and the
+// createAppDatabaseFromEnv, createCronDatabase (the cron role's handle, E012), openPrivilegedDatabase and its allow-list, inspectConnectionRole and the
 // config readers. Database, DatabaseClient and DatabaseExecutor type a handle. APP_DATABASE_URL_VARIABLE
 // (a variable name) and ConnectionRoleReport (a type) are not here: they open no connection, and the
 // startup check of packages/api/src (startup.ts) imports them.
 pattern table_or_handle() {
-  r"(?:authUsers|authSessions|authIdentities|authVerifications|authRateLimits|jobRuns|jobRunOutcome|JOB_RUN_MESSAGE_MAX_LENGTH|organizations|systemGreetings|teamMembers|trainerProfiles|trainerInvitations|invitationStatus|locations|clients|businessTable|teamRole|locationType|APP_ROLE|createDatabase|createDatabaseFromEnv|createAppDatabaseFromEnv|openPrivilegedDatabase|PRIVILEGED_ALLOW_LIST|PRIVILEGED_USES|PrivilegedOptions|PrivilegedReason|inspectConnectionRole|readDatabaseConfig|DatabaseConfig|Database|DatabaseClient|DatabaseExecutor)"
+  r"(?:authUsers|authSessions|authIdentities|authVerifications|authRateLimits|jobRuns|jobRunOutcome|JOB_RUN_MESSAGE_MAX_LENGTH|organizations|systemGreetings|teamMembers|trainerProfiles|trainerInvitations|invitationStatus|sessions|sessionParticipants|sessionType|sessionStatus|attendanceStatus|locations|clients|businessTable|teamRole|locationType|APP_ROLE|createDatabase|createDatabaseFromEnv|createAppDatabaseFromEnv|createCronDatabase|openPrivilegedDatabase|PRIVILEGED_ALLOW_LIST|PRIVILEGED_USES|PrivilegedOptions|PrivilegedReason|inspectConnectionRole|readDatabaseConfig|DatabaseConfig|Database|DatabaseClient|DatabaseExecutor)"
 }
 
 // A module that gives a handle, a query builder or a test helper, or a path into the source of the

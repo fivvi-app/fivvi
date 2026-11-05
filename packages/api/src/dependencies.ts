@@ -1,5 +1,11 @@
-import type { SignedInAccount, SystemGreetingView, TenantScopes } from '@fivvi/database';
+import type {
+  RateLimitRule,
+  SignedInAccount,
+  SystemGreetingView,
+  TenantScopes,
+} from '@fivvi/database';
 import type { SignUpAllowlist } from '@fivvi/domain';
+import type { PrivateSessionMail } from '@fivvi/email/private-session-mail';
 import type { TrainerInvitationMail } from '@fivvi/email/trainer-invitation-mail';
 import type { Locale } from '@fivvi/i18n';
 import {
@@ -8,6 +14,7 @@ import {
   type ErrorReporter,
   type ProductEvents,
 } from '@fivvi/observability';
+import { type AddressLookup, createFakeAddressLookup } from './address-lookup/index.ts';
 
 /** What the API needs from the outside world. apps/web wires the real ones; tests pass fakes. */
 export interface ApiDependencies {
@@ -46,13 +53,31 @@ export interface ApiDependencies {
    */
   tenantScopes: TenantScopes;
   /**
+   * Counts one request under `key` in the rate limits (Postgres, outside the request's
+   * transaction, so a refused request still counts) and says whether it is within `rule`.
+   * apps/web wires `consumeRateLimit` of `@fivvi/database` over the app's connection.
+   */
+  consumeRateLimit(key: string, rule: RateLimitRule): Promise<{ allowed: boolean }>;
+  /**
+   * The address lookup by postcode and house number (F015, spec #424): PDOK in production, an
+   * in-memory fake elsewhere (`createAddressLookup`, from `ADDRESS_LOOKUP`).
+   */
+  addressLookup: AddressLookup;
+  /**
    * Emails EM-09 to the person invited (F011): the template, the sending and the link are the
    * email package's (`createTrainerInvitationSender`, wired by apps/web); the route decides who,
    * in which language and with which token. A failed send throws, and the request fails with
    * nothing stored.
    */
   sendTrainerInvitation(mail: TrainerInvitationMail): Promise<void>;
-  /** Where "now" comes from: the expiry and the daily limit of an invitation (F011). Tests pass a manual clock. */
+  /**
+   * Emails EM-11 to the client of a private session (F020): the template and the sending are the
+   * email package's (`createPrivateSessionSender`, wired by apps/web); the route decides whether,
+   * to whom, in which language and with which key. It runs after the request's transaction has
+   * committed; a failed send is reported and does not fail the request (the session is stored).
+   */
+  sendPrivateSession(mail: PrivateSessionMail): Promise<void>;
+  /** Where "now" comes from: the expiry and the daily limit of an invitation (F011), the past of a session (F020). Tests pass a manual clock. */
   clock: { now(): Date };
   /** Reports unhandled route errors to Sentry (E009). Off without a DSN. */
   errorReporter: ErrorReporter;
@@ -78,11 +103,16 @@ export const NO_DEPENDENCIES: ApiDependencies = {
   signOutBearer: () => Promise.resolve(false),
   // Nothing is sent.
   sendTrainerInvitation: () => Promise.reject(new Error('No email configured.')),
+  sendPrivateSession: () => Promise.reject(new Error('No email configured.')),
   clock: { now: () => new Date() },
   tenantScopes: {
     inAccountScope: () => Promise.reject(new Error('No database configured.')),
     inWorkspaceScope: () => Promise.reject(new Error('No database configured.')),
+    inInvitationScope: () => Promise.reject(new Error('No database configured.')),
   },
+  consumeRateLimit: () => Promise.reject(new Error('No database configured.')),
+  // The fake: no test or document build reaches PDOK.
+  addressLookup: createFakeAddressLookup(),
   errorReporter,
   productEvents: createProductEvents({ env: {}, errorReporter }),
 };

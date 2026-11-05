@@ -21,6 +21,8 @@ the tests of this package may use tables, as they seed and read rows directly. E
 `lint/repository-only-imports.test.ts` (with the reason a route may use it); a new export in neither fails
 that test, so whoever adds a table, a handle or a connection opener has to say which it is.
 
+Work that must happen only once the request has committed (an email to a client, a product event) is queued with `c.get('afterCommit')(task)` (F020, `src/access.ts`): the tasks run in order after the commit and before the response is returned, are dropped when the request fails (`400` and up, or an error) and so rolled back, and a task that throws is reported to error tracking without changing the answer. The trainer invitation (F011) still sends inside the transaction, because it fails the request when the email can not be sent; a confirmation that must not undo what was stored (EM-11) goes after the commit.
+
 Business rules are not written in a route: the route calls `@fivvi/domain` (for example `canCreateWorkspace`, `slugCandidates`). A refusal that is a business rule and not the access (`POST /v1/workspaces`: not on the sign-up allowlist) is a route middleware that runs after the access and before the body's validation, so a refused caller gets `403` whatever it sent. Declare a `security` list once as a typed constant when a route has two schemes and a body (`SIGNED_IN` in `src/routes/workspaces.ts`): written inline, TypeScript loses the route's request types.
 
 ## The isolation suite (E011)
@@ -65,6 +67,8 @@ getSession: {                           // a route about one record of a workspa
 createSession: { body: { startsAt: '2030-01-01T10:00:00Z' } },       // a valid body (and `query: '?page=1'`)
 ```
 
+A route that takes a record in its body, not in its path (`createPrivateSession`, F020, names the client), gives `body` as a function of the seeded values: `body: (values) => ({ clientId: values.client, … })`. It is called once per call, with the values of the workspace and client the call is for, and makes the suite treat the route as one that names a record. Where the route needs more of the workspace than the case seeds (everyone on the team training), the seed makes it, right before the calls.
+
 `seed` runs through the privileged connection for every client of workspaces A and B, so a route
 about a client's records is called with the caller's own and with another client's. Make its rows with
 the factories in `@fivvi/database/testing`, so every record carries a unique id the suite can search
@@ -74,3 +78,9 @@ give a listing a seed that returns the ids it lists. A text column that holds a 
 (`label-1a2b3c4d`) is found by it too: return the marker. The suite reports a seed value it can't
 find as an id or marker in a stored row, and a `GET` of a workspace whose seed returns nothing it can
 look for (a too-strict policy would pass). Only an account route like `getMe` may go without a seed. A route with method `DELETE` consumes its record, so the suite calls `seed` again before each of its calls. A new business table also adds its entry to `isolationFactories` in the same package.
+
+A read that reads no stored record (the address lookup, whose answer comes from PDOK, F015) says `readsNoRecords: true` in its case instead of seeding one. The flag excuses only the check that a `GET` shows a seeded record: a case with both a flag and a `seed` is a failure, and the status, the refusals, the markers of other workspaces and the rows that change are checked as for any route.
+
+## The address lookup (F015)
+
+`GET /v1/workspaces/{workspaceId}/address-lookup` (Owner, `settings.manage`) answers the street and city of a postcode, house number and optional addition. The code is in `src/address-lookup/`: an `AddressLookup` interface, the PDOK adapter (Locatieserver v3.1 free search, 3 seconds, no retry, no key), an in-memory fake, a one-day cache on the normalized query, and `createAddressLookup(env)`, which picks one: PDOK in the production environment or with `ADDRESS_LOOKUP=pdok`, the fake everywhere else (CI, e2e, previews). The adapter sends the postcode, house number and addition only, and nothing is logged, reported or sent as a product event. The rate limit (60 per workspace per hour, `429`) is `ApiDependencies.consumeRateLimit`, over the sign-in's counters in Postgres, outside the request's transaction so a refused request still counts. The adapter's tests read recorded answers from `test/fixtures/pdok/` and never use the network; to record one again, call the URL of `pdok.ts` once with `curl` for a public address and save the body.

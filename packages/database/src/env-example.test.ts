@@ -1,5 +1,10 @@
 import { readFileSync } from 'node:fs';
-import { APP_ROLE_NAME, APP_ROLE_TEST_PASSWORD } from '@fivvi/testing/database/server';
+import {
+  APP_ROLE_NAME,
+  APP_ROLE_TEST_PASSWORD,
+  CRON_ROLE_NAME,
+  CRON_ROLE_TEST_PASSWORD,
+} from '@fivvi/testing/database/server';
 import { describe, expect, it } from 'vitest';
 
 const EXAMPLES = ['packages/database/.env.example', 'apps/web/.env.example'];
@@ -29,5 +34,17 @@ describe('E011 local app role password', () => {
     expect(readExample('packages/database/.env.example').get('APP_DATABASE_PASSWORD')).toBe(
       APP_ROLE_TEST_PASSWORD,
     );
+  });
+});
+
+describe('E012 local cron role password', () => {
+  // `fivvi_cron` is cluster-wide like `fivvi_app`: the test setup sets its password too.
+  it('packages/database/.env.example uses the password the test setup gives the cron role', () => {
+    const example = readExample('packages/database/.env.example');
+    const url = new URL(example.get('CRON_DATABASE_URL') ?? '');
+
+    expect(url.username).toBe(CRON_ROLE_NAME);
+    expect(decodeURIComponent(url.password)).toBe(CRON_ROLE_TEST_PASSWORD);
+    expect(example.get('CRON_DATABASE_PASSWORD')).toBe(CRON_ROLE_TEST_PASSWORD);
   });
 });

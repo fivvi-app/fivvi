@@ -46,6 +46,12 @@ export interface CreateAuthOptions {
    */
   signUpAllowlist?: SignUpAllowlist;
   /**
+   * Whether an address has a pending, unexpired trainer invitation at the given time (F011): such
+   * an address may create an account, beside `signUpAllowlist`. `hasPendingInvitation` of
+   * `@fivvi/database`, wired by apps/web. Nobody is invited when left out.
+   */
+  isInvitedEmail?: (email: string, now: Date) => Promise<boolean>;
+  /**
    * Receives the failure of the work that follows a sign-in request's answer (a failed email, a
    * database error), e.g. for Sentry. Called in addition to a safe log line. It must not put the
    * address, a code or a link anywhere.
@@ -130,6 +136,7 @@ export function createAuth({
   log = (line) => console.warn(line),
   requireClientIp = defaultRequireClientIp(),
   signUpAllowlist = closedSignUp,
+  isInvitedEmail = () => Promise.resolve(false),
   reportError,
   runInBackground = () => {},
   productEvents,
@@ -163,6 +170,7 @@ export function createAuth({
         sendEmail,
         clock,
         signUpAllowlist,
+        isInvitedEmail,
         runInBackground,
         reportError: (error) => {
           logFailure(error);

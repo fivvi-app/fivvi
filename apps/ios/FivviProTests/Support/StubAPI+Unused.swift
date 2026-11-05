@@ -48,6 +48,10 @@ extension StubAPI {
         fatalError("The app doesn't call updateLocation yet")
     }
 
+    func lookupAddress(_ input: Operations.LookupAddress.Input) async throws -> Operations.LookupAddress.Output {
+        fatalError("The app doesn't call lookupAddress yet")
+    }
+
     func createTrainerInvitation(
         _ input: Operations.CreateTrainerInvitation.Input
     ) async throws -> Operations.CreateTrainerInvitation.Output {
@@ -70,5 +74,35 @@ extension StubAPI {
         _ input: Operations.WithdrawTrainerInvitation.Input
     ) async throws -> Operations.WithdrawTrainerInvitation.Output {
         fatalError("The app doesn't call withdrawTrainerInvitation yet")
+    }
+
+    func createPrivateSession(
+        _ input: Operations.CreatePrivateSession.Input
+    ) async throws -> Operations.CreatePrivateSession.Output {
+        fatalError("The app doesn't call createPrivateSession yet")
+    }
+
+    func getSession(
+        _ input: Operations.GetSession.Input
+    ) async throws -> Operations.GetSession.Output {
+        fatalError("The app doesn't call getSession yet")
+    }
+
+    func getInvitation(
+        _ input: Operations.GetInvitation.Input
+    ) async throws -> Operations.GetInvitation.Output {
+        fatalError("The app doesn't call getInvitation yet")
+    }
+
+    func acceptInvitation(
+        _ input: Operations.AcceptInvitation.Input
+    ) async throws -> Operations.AcceptInvitation.Output {
+        fatalError("The app doesn't call acceptInvitation yet")
+    }
+
+    func declineInvitation(
+        _ input: Operations.DeclineInvitation.Input
+    ) async throws -> Operations.DeclineInvitation.Output {
+        fatalError("The app doesn't call declineInvitation yet")
     }
 }

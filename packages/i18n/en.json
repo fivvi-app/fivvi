@@ -127,6 +127,9 @@
     "newMenu": "Create new",
     "newClient": "Client"
   },
+  "workspaceSwitcher": {
+    "newWorkspace": "+ New workspace"
+  },
   "signOut": {
     "label": "Sign out",
     "error": "Signing out didn't work. Try again."
@@ -167,6 +170,14 @@
       "button": "View invitation",
       "validity": "This invitation is valid until {date}.",
       "ignore": "Not expecting this email? You can ignore it."
+    },
+    "privateSession": {
+      "subject": "New appointment: {date} at {time}",
+      "preview": "Your private session is planned for {date} at {time}.",
+      "intro": "A private session has been planned for you at {workspace}.",
+      "when": "When: {date}, {start} to {end}",
+      "where": "Where: {location}",
+      "trainer": "Trainer: {trainer}"
     }
   },
   "roles": {
