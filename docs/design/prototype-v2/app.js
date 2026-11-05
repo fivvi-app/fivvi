@@ -136,6 +136,7 @@
     up: '<path d="M12 19V5M6 11l6-6 6 6"/>',
     down: '<path d="M12 5v14M6 13l6 6 6-6"/>',
     grip: '<path d="M5 8h14M5 12h14M5 16h14"/>',
+    home: '<path d="M4 10.5 12 4l8 6.5V19a1.5 1.5 0 0 1-1.5 1.5H15v-6H9v6H5.5A1.5 1.5 0 0 1 4 19z"/>',
     today: '<rect x="3.5" y="5" width="17" height="15" rx="3.5"/><path d="M3.5 10h17M8 3v4M16 3v4"/><rect x="8" y="13" width="4" height="4" rx="1" fill="currentColor" stroke="none"/>'
   };
   function ic(n, cls) { return '<svg class="' + (cls || "") + '" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' + P[n] + "</svg>"; }
@@ -149,7 +150,7 @@
     { k: "green", n: "Exercise green", fill: "#30D158", on: "#000000", tl: "#1A7F37", td: "#4CD964" },
     { k: "orange", n: "Health orange", fill: "#FF8D28", on: "#000000", tl: "#B35400", td: "#FFA654" }
   ];
-  var PREF = { setup: "team", lang: "nl", plat: "ios", mode: matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light", accent: "pink", glass: "regular", role: "owner" };
+  var PREF = { setup: "team", lang: "nl", plat: "ios", mode: matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light", accent: "pink", glass: "regular", role: "owner", app: "pro" };
   try { var saved = JSON.parse(localStorage.getItem("fivvi-proto-v2") || "{}"); for (var pk in saved) if (pk in PREF) PREF[pk] = saved[pk]; } catch (e) { /* storage unavailable */ }
   var S;
   function fresh() {
@@ -848,6 +849,14 @@
   var dev, mk, scrollMem = {};
   function routeKey() { return S.tab + ":" + S.stacks[S.tab].map(function (r) { return r.n + (r.id || "") + (r.i || ""); }).join("/"); }
   function render() {
+    if ((PREF.plat === "ios" || PREF.plat === "android") && PREF.app === "client" && window.FVW) {
+      var keepA = window.FVW.scrollSave(dev);
+      dev.style.zoom = ""; dev.className = "dev " + PREF.plat;
+      dev.innerHTML = '<div class="status"><span>9:41</span><i><span style="width:17px;height:11px"></span><span style="width:15px;height:11px;border-radius:3px"></span><span style="width:25px;height:12px;border-radius:4px"></span></i></div>' + window.FVW.capp() + (S.toast ? toastHTML() : "");
+      dev.dataset.rk = ""; S.anim = null; syncPanel(); tr(dev); window.FVW.scrollRestore(dev, keepA);
+      var ca = dev.querySelector(".screen .content"); if (ca && ca.scrollTop > 30) ca.parentNode.classList.add("scrolled");
+      return;
+    }
     if ((PREF.plat === "web" || PREF.plat === "client") && window.FVW) {
       var keep = window.FVW.scrollSave(dev);
       dev.className = "dev " + PREF.plat + (PREF.plat === "client" ? " ios" : "");
@@ -1209,6 +1218,7 @@
       var p = b.dataset.go.split(","), x = INDEX[+p[0]][1][+p[1]]; if (!x[2]) return;
       if (x[3]) { PREF.setup = "team"; applyPrefs(); }
       if (+p[0] === 0 && (PREF.plat === "web" || PREF.plat === "client")) PREF.plat = "ios";
+      if (+p[0] === 0) PREF.app = "pro";
       if (S.log && S.log.timer) clearInterval(S.log.timer);
       scrollMem = {}; x[2](); save(); applyPrefs(); S.anim = null; render();
       if (window.innerWidth <= 640) document.getElementById("panel").classList.remove("open");
@@ -1249,7 +1259,7 @@
   window.FV = { get S() { return S; }, PREF: PREF, D: D, A: A, CLIENT: CLIENT, dayItems: dayItems, findItem: findItem, extra: function () { return EXTRA_WS; },
     CV: CV, TYPE: TYPE, title: title, level: level, lvlTag: lvlTag, esc: esc, ic: ic, mins: mins, hm: hm, key: key, parse: parse, add: add, monday: monday, longDate: longDate, shortDate: shortDate,
     isoWeek: isoWeek, DAYS: DAYS, DS: DS, MONTHS: MONTHS, MS: MS, TODAY: TODAY, NOW: NOW, NOWT: NOWT, isPast: isPast, initials: initials, toast: toast, render: function () { render(); },
-    OWNER: OWNER, SOLO: SOLO, HAS: HAS, MIXED: MIXED, WSS: WSS, avatar: avatar, addClient: addClient, addItem: addItem, INDEX: INDEX, kit: { row: row, grp: grp, sh: sh, lt: lt, btn: btn, seg: seg, foot: foot, avatar: avatar, rings: rings }, fresh: function () { fresh(); }, save: function () { save(); applyPrefs(); } };
+    OWNER: OWNER, SOLO: SOLO, HAS: HAS, MIXED: MIXED, WSS: WSS, avatar: avatar, addClient: addClient, addItem: addItem, INDEX: INDEX, kit: { row: row, grp: grp, sh: sh, lt: lt, btn: btn, seg: seg, foot: foot, avatar: avatar, rings: rings, shape: shape, SHAPE: SHAPE }, fresh: function () { fresh(); }, save: function () { save(); applyPrefs(); } };
 
   /* ---------- Boot ---------- */
   document.addEventListener("DOMContentLoaded", function () {

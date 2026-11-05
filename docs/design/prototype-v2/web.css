@@ -408,3 +408,19 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .w-av:has(> svg){background:linear-gradient(160deg,color-mix(in oklab,var(--c) 85%,#000),color-mix(in oklab,var(--c) 75%,#000))}
 .w-list li>button svg:first-child,.w-warn,.c-wait{color:color-mix(in oklab,var(--gym) 78%,var(--ev-ink))}
 .w-menu hr{border:0;border-top:1px solid var(--w-border);margin:4px -4px}
+/* ---------- Client app Fivvi: the offer page opens in a browser sheet (paying happens on the web) ---------- */
+.c-browser .sbody{padding-top:4px}
+.c-brbar{display:flex;align-items:center;gap:10px;padding:12px 14px 8px}
+.c-brbar.ios .c-done{border:0;background:none;color:var(--accent-text);font-size:17px;font-weight:600;padding:0 4px}
+.c-url{flex:1;height:36px;border-radius:999px;display:flex;align-items:center;justify-content:center;gap:6px;font-size:14px;color:var(--label2);border:.5px solid var(--glass-edge);padding:0 12px;min-width:0}
+.c-url i{font-style:normal;font-size:11px}
+.c-url span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-brbar:not(.ios)>div{display:grid;min-width:0}
+.c-brbar:not(.ios) b{font-size:16px}
+.c-brbar:not(.ios) span{font-size:12px;color:var(--label2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.c-offer{display:grid;gap:10px}
+.c-offer>div{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
+.c-offer b{font-size:17px}
+.c-offer .num{font-size:22px;white-space:nowrap}
+.c-offer .num small{font-size:13px;color:var(--label2);font-weight:600}
+.c-offer ul{margin:0;padding-left:18px;font-size:14px;color:var(--label2);display:grid;gap:2px}

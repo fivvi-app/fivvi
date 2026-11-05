@@ -661,3 +661,4 @@ input:focus,select:focus,textarea:focus{outline:none}
 .row .seg button.on[data-v="yes"]{--c:var(--ok)}
 .row .seg button.on[data-v="no"]{--c:var(--danger)}
 .banner svg{color:color-mix(in oklab,var(--c,var(--gym)) 78%,var(--ev-ink))}
+.toast svg{color:color-mix(in oklab,var(--ok) 78%,var(--ev-ink))}

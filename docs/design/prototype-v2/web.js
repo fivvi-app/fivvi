@@ -694,6 +694,7 @@
       : '<span class="gb glass c-studio"><span class="c-mark">' + F.initials(wsName()) + "</span><b>" + esc(wsName()) + "</b></span>";
     var h = '<div class="screen root c-web"><div class="nb">' + lead + '<span class="sp"></span>' + lang + '<div class="t">' + esc(p.title) + '</div></div><div class="content c-body">' + p.body + "</div></div>";
     h += '<div class="fade-b"></div><nav class="tabbar" aria-label="Tabs"><div class="tabs glass">' + [["rooster", "Rooster", "cal"], ["agenda", "Mijn agenda", "today"], ["profiel", "Profiel", "me"]].map(function (t) { var on = c.tab === t[0]; return '<button class="tab ' + (on ? "on" : "") + '" data-a="c-tab" data-v="' + t[0] + '" aria-current="' + (on ? "page" : "false") + '">' + ic(t[2]) + "<span>" + t[1] + "</span></button>"; }).join("") + "</div></nav>";
+    if (c.web) h += browser();
     if (c.dialog) h += cdialog();
     return h;
   }
@@ -723,8 +724,8 @@
       '<div class="pad"><div class="card c-proto"><b>Prototype</b><span>Doe alsof de eigenaar je verzoek goedkeurt:</span>' + cbtn("Eigenaar keurt goed", "c-approved", { k: "sec" }) + "</div></div>";
   };
   function timetable(k) { var its = F.dayItems(k).filter(function (i) { return i.ws === "sf" && i.type !== "priv"; }); if (k === F.TODAY && !F.SOLO()) its = its.concat(F.extra().filter(function (i) { return i.type !== "priv"; })); return its.sort(function (a, b) { return F.mins(a.s) - F.mins(b.s); }); }
-  function cState(it) { var c = C(); if (c.booked[it.id]) return "booked"; if (c.wl[it.id]) return "wl"; return it.people.length >= it.cap ? "full" : "open"; }
-  function spotsLeft(it) { return it.cap - it.people.length - (C().booked[it.id] ? 1 : 0); }
+  function cState(it) { var c = C(); if (!it.people) return "priv"; if (c.booked[it.id]) return "booked"; if (c.wl[it.id]) return "wl"; return it.people.length >= it.cap ? "full" : "open"; }
+  function spotsLeft(it) { return it.people ? it.cap - it.people.length - (C().booked[it.id] ? 1 : 0) : 0; }
   function statePill(it) {
     var st = cState(it), left = spotsLeft(it);
     if (st === "booked") return '<span class="pill tint c-pill" style="--c:var(--ok)">' + ic("check") + "Geboekt</span>";
@@ -732,11 +733,14 @@
     if (st === "full") return '<span class="pill strong">Vol</span>';
     return '<span class="pill' + (left <= 2 ? ' tint" style="--c:var(--accent)' : "") + '">' + (left === 1 ? "Nog 1 plek" : "Nog " + left + " plekken") + "</span>";
   }
-  function who(it) { return it.type === "gym" ? "Zelf trainen" : it.trainer || (it.trainer === "" ? "Trainer volgt nog" : ME()); }
+  function cwho(it) { return it.type === "gym" ? "Zelf trainen" : it.trainer || (it.trainer === "" ? "Trainer volgt nog" : ME()); }
   function crow(it, k, tr) {
     var ds = it.type === "group" ? desc(it.title) : null;
+    /* Android: the shaped avatar per session type, as in Fivvi Pro; the time moves into the line */
+    if (F.PREF.plat === "android") return K.row({ a: "c-open", d: { id: it.id }, style: "--c:" + F.CV[it.type], lead: K.shape(K.SHAPE[it.type], F.CV[it.type], it.type === "priv" ? F.initials(cwho(it)) : it.type === "gym" ? "OG" : it.title[0]),
+      title: esc(it.type === "priv" ? (it.duo ? "Duosessie" : "Privésessie") : it.title), sub: it.s + "–" + it.e + " · " + (it.type === "priv" ? "met " + esc(cwho(it).split(" ")[0]) : esc(cwho(it))), small: F.level(it) ? F.lvlTag(it) : "", tr: tr, cls: "c-row" });
     return K.row({ a: "c-open", d: { id: it.id }, style: "--c:" + F.CV[it.type], lead: '<div class="t"><b>' + it.s + "</b><span>" + it.e + '</span></div><i class="bar"></i>',
-      title: esc(it.type === "priv" ? (it.duo ? "Duosessie" : "Privésessie") : it.title), sub: F.level(it) ? F.lvlTag(it) + '<span class="lvl-sep"> · </span>' + esc(who(it)) : it.type === "priv" ? "Met " + esc(who(it).split(" ")[0]) + (it.duo ? " · samen met " + esc(F.CLIENT[mate(it)].name.split(" ")[0]) : " · " + esc(shortLoc(it.loc))) : esc(who(it)),
+      title: esc(it.type === "priv" ? (it.duo ? "Duosessie" : "Privésessie") : it.title), sub: F.level(it) ? F.lvlTag(it) + '<span class="lvl-sep"> · </span>' + esc(cwho(it)) : it.type === "priv" ? "Met " + esc(cwho(it).split(" ")[0]) + (it.duo ? " · samen met " + esc(F.CLIENT[mate(it)].name.split(" ")[0]) : " · " + esc(shortLoc(it.loc))) : esc(cwho(it)),
       small: ds ? '<span translate="no"' + (ds.nl ? ' lang="nl"' : "") + ">" + esc(ds.t) + "</span>" : "", tr: tr, cls: "c-row" });
   }
   function mate(it) { return it.client === C().who ? it.duo : it.client; }
@@ -749,7 +753,7 @@
   }
   function nextHero(r, cap) {
     var it = r[1];
-    return '<div class="pad" style="margin-bottom:6px"><div class="hero" style="--c:' + F.CV[it.type] + '"><div class="cap">' + cap + "</div><h3>" + esc(it.type === "priv" ? "Privésessie met " + who(it).split(" ")[0] : it.title) + "</h3><p>" + dayName(r[0]) + " · " + it.s + "–" + it.e + "</p><p>" + esc(it.type === "priv" ? shortLoc(it.loc) : who(it) + " · " + shortLoc(it.loc)) + '</p><div class="acts"><button class="gl glass" data-a="c-open" data-id="' + it.id + '">' + ic("chevR") + "Bekijken</button></div></div></div>";
+    return '<div class="pad" style="margin-bottom:6px"><div class="hero" style="--c:' + F.CV[it.type] + '"><div class="cap">' + cap + "</div><h3>" + esc(it.type === "priv" ? "Privésessie met " + cwho(it).split(" ")[0] : it.title) + "</h3><p>" + dayName(r[0]) + " · " + it.s + "–" + it.e + "</p><p>" + esc(it.type === "priv" ? shortLoc(it.loc) : cwho(it) + " · " + shortLoc(it.loc)) + '</p><div class="acts"><button class="gl glass" data-a="c-open" data-id="' + it.id + '">' + ic("chevR") + "Bekijken</button></div></div></div>";
   }
   CSTEP.app = function () {
     var c = C();
@@ -757,10 +761,10 @@
     if (c.detail) return detailView();
     if (c.tab === "rooster") {
       var types = []; if (F.HAS("group")) types.push(["group", "Groepslessen"]); if (F.HAS("gym")) types.push(["gym", "Open Gym"]);
-      var b = K.lt(F.longDate(F.NOW), "Rooster", "");
-      if (!types.length) return { title: "Rooster", body: b + '<div class="pad"><div class="card empty">' + esc(wsName()) + " heeft geen lessen om te boeken. Je trainer plant je privésessies; die zie je in Mijn agenda.</div></div>" };
+      var tt = APP ? "Boeken" : "Rooster", b = K.lt(F.longDate(F.NOW), tt, "");
+      if (!types.length) return { title: tt, body: b + '<div class="pad"><div class="card empty">' + esc(wsName()) + " heeft geen lessen om te boeken. Je trainer plant je privésessies; die zie je in Mijn agenda.</div></div>" };
       var nx = upcoming().filter(function (r) { return r[1].type !== "priv" && c.booked[r[1].id]; })[0];
-      if (nx) b += nextHero(nx, "Je volgende les");
+      if (nx && !APP) b += nextHero(nx, "Je volgende les");
       /* the week strip from Agenda: one dot per class that day */
       b += '<div class="wk c-wk">' + [0, 1, 2, 3, 4, 5, 6].map(function (i) {
         var d = F.add(F.NOW, i), k = F.key(d), its = timetable(k);
@@ -771,7 +775,7 @@
       b += K.sh(dayName(c.day) + (its.length ? " · " + its.length + (its.length === 1 ? " les" : " lessen") : ""), "", "small");
       b += '<div class="pad">' + (its.length ? K.grp(its.map(function (it) { return crow(it, c.day, statePill(it)); })) : '<div class="card empty">Geen lessen meer op deze dag.</div>') + "</div>";
       b += K.foot("Gratis annuleren tot 12 uur voor de start.");
-      return { title: "Rooster", body: b };
+      return { title: tt, body: b };
     }
     if (c.tab === "agenda") {
       var tf = c.typeFilter, all = upcoming(), list = all.filter(function (r) { return tf === "all" || (tf === "priv" ? r[1].type === "priv" : r[1].type !== "priv"); });
@@ -795,28 +799,30 @@
       h += K.sh("Tegoed", "", "small") + '<div class="pad"><div class="tiles two">' + tiles.join("") + "</div></div>";
       h += K.sh("Abonnement en credits", "", "small") + '<div class="pad">' + K.grp(D.billing.anna.agreements.map(function (a) { return K.row({ lead: '<span class="dc-ic" style="--c:' + (a.kind === "abo" ? "var(--group)" : D.CREDIT[a.credit][2]) + '">' + ic(a.kind === "abo" ? "cal" : "check") + "</span>", title: esc(a.name), sub: esc(a.price) + " · " + esc(a.cycle.toLowerCase()), small: a.kind === "pack" ? esc(a.period) : "Volgende betaling " + esc(a.next) }); }), "--inset:60px") + "</div>";
       h += K.sh("Facturen", "", "small") + '<div class="pad">' + K.grp(D.billing.anna.payments.map(function (p) { return K.row({ a: "w-toast", d: { m: "Factuur gedownload" }, title: esc(p[1]), sub: esc(p[0]) + " · " + esc(p[3]), tr: '<b class="num c-amt">' + esc(p[2]) + "</b>" + ic("down", "c-dl") }); })) + "</div>";
-      h += K.sh("Mijn trainingen", "", "small") + '<div class="pad">' + K.grp((D.history.anna || []).slice(0, 3).map(function (x, i) { return K.row({ a: "c-workout", d: { v: i }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("dumb") + "</span>", title: esc(x.name), sub: esc(x.d) + " · met " + esc(x.by) }); }), "--inset:60px") + "</div>";
-    } else h += '<div class="pad"><div class="card empty">Nog geen abonnement of credits. ' + esc(wsName()) + " zet dit voor je klaar.</div></div>";
+      if (!APP) h += K.sh("Mijn trainingen", "", "small") + '<div class="pad">' + K.grp((D.history.anna || []).slice(0, 3).map(function (x, i) { return K.row({ a: "c-workout", d: { v: i }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("dumb") + "</span>", title: esc(x.name), sub: esc(x.d) + " · met " + esc(x.by) }); }), "--inset:60px") + "</div>";
+    } else h += '<div class="pad"><div class="card empty">Nog geen abonnement of credits.<div style="margin-top:14px">' + K.btn("Aanbod bekijken", { k: "sec", a: "c-offers" }) + "</div></div></div>";
+    if (APP) h += K.sh("Studio", "", "small") + '<div class="pad">' + K.grp([K.row({ lead: '<span class="c-mark" style="width:36px;height:36px">' + F.initials(wsName()) + "</span>", title: esc(wsName()), sub: esc(shortLoc(D.workspaces.sf.location)) })], "--inset:64px") + "</div>";
     h += K.sh("Taal", "", "small") + '<div class="pad" translate="no">' + K.seg([["nl", "Nederlands"], ["en", "English"]], F.PREF.lang, "c-lang") + "</div>";
-    h += '<div class="pad" style="margin-top:22px">' + cbtn("Uitloggen", "c-signout", { k: "sec" }) + "</div>";
+    h += '<div class="pad" style="margin-top:22px">' + cbtn("Uitloggen", APP ? "a-signout" : "c-signout", { k: "sec" }) + "</div>";
+    if (APP) h += '<div class="pad" style="margin-top:10px">' + K.btn("Account verwijderen", { k: "ghost", blk: true, a: "a-delask" }) + "</div>" + K.foot("Je account en je gegevens worden verwijderd. Facturen bewaart de studio zo lang als de wet vraagt.");
     return h;
   }
   function kv(t, v) { return K.row({ title: t, tr: v, cls: "kv" }); }
   function detailView() {
     var c = C(), f = F.findItem(c.detail), it = f.it, k = f.day, st = cState(it), ds = it.type === "group" ? desc(it.title) : null, left = spotsLeft(it), when = dayName(k) + " · " + it.s + "–" + it.e;
-    if (it.type === "priv") return { title: it.duo ? "Duosessie" : "Privésessie", body: K.lt(it.duo ? "Duosessie" : "Privésessie", "Met " + esc(who(it).split(" ")[0]), when) + '<div class="pad">' + K.grp([kv("Trainer", esc(who(it)))].concat(it.duo ? [kv("Samen met", esc(F.CLIENT[mate(it)].name))] : []).concat([kv("Locatie", esc(it.loc))])) + "</div>" + (it.duo ? K.foot("Je traint samen met " + esc(F.CLIENT[mate(it)].name.split(" ")[0]) + ". Je trainer houdt ieders training apart bij.") : "") + K.foot("Verzetten of afzeggen? Neem contact op met je trainer.") };
+    if (it.type === "priv") return { title: it.duo ? "Duosessie" : "Privésessie", body: K.lt(it.duo ? "Duosessie" : "Privésessie", "Met " + esc(cwho(it).split(" ")[0]), when) + '<div class="pad">' + K.grp([kv("Trainer", esc(cwho(it)))].concat(it.duo ? [kv("Samen met", esc(F.CLIENT[mate(it)].name))] : []).concat([kv("Locatie", esc(it.loc))])) + "</div>" + (it.duo ? K.foot("Je traint samen met " + esc(F.CLIENT[mate(it)].name.split(" ")[0]) + ". Je trainer houdt ieders training apart bij.") : "") + K.foot("Verzetten of afzeggen? Neem contact op met je trainer.") };
     var b = K.lt(F.TYPE[it.type], esc(it.title), when) + '<div class="pad stack">';
     if (ds) b += '<div class="card"><p class="c-desc" translate="no"' + (ds.nl ? ' lang="nl"' : "") + ">" + esc(ds.t) + "</p></div>";
     var booked = it.cap - left, pct = Math.min(100, booked / it.cap * 100);
     b += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><div><div class="stat-l ink" style="--c:' + F.CV[it.type] + '">Plekken vrij</div><div class="num" style="font-size:34px;line-height:38px">' + Math.max(0, left) + '<small style="font-size:17px;color:var(--label2)">/' + it.cap + "</small></div></div>" + statePill(it) + "</div>" +
       '<div class="c-cap" style="--c:' + F.CV[it.type] + '"><i style="width:' + pct + '%"></i></div></div>';
-    b += K.grp((it.type === "gym" ? [] : [kv("Trainer", esc(who(it)))]).concat(F.level(it) ? [kv("Niveau", F.lvlTag(it))] : []).concat([kv("Locatie", esc(shortLoc(it.loc)))]));
+    b += K.grp((it.type === "gym" ? [] : [kv("Trainer", esc(cwho(it)))]).concat(F.level(it) ? [kv("Niveau", F.lvlTag(it))] : []).concat([kv("Locatie", esc(shortLoc(it.loc)))]));
     /* credit kinds never mix (PRODUCT §91): a class uses a groepscredit, Open Gym an Open Gym-credit */
     var ck = it.type === "gym" ? "gym" : "groep", bal = c.who === "anna" ? D.bsum("anna").balances.filter(function (x) { return x.credit === ck; })[0] : null, noCredit = c.who === "anna" && (!bal || bal.left <= 0);
     if (st === "booked") b += '<div class="banner" style="--c:var(--ok)">' + ic("check") + "<span><b>Je bent erbij.</b> Gratis annuleren tot 12 uur voor de start. Daarna telt de les als gebruikt.</span></div>" + cbtn("Annuleren", "c-cancel", { k: "dng" });
     else if (st === "wl") b += '<div class="banner" style="--c:var(--gym)">' + ic("clock") + "<span><b>Wachtlijst: nummer " + c.wl[it.id] + ".</b> Komt er een plek vrij, dan word je automatisch geboekt en krijg je een e-mail. De wachtlijst sluit 30 minuten voor de start.</span></div>" + cbtn("Van de wachtlijst af", "c-wl-leave", { k: "sec" });
     else if (st === "full") b += '<div class="banner" style="--c:var(--label2)">' + ic("people") + "<span><b>Deze les is vol.</b> " + (it.waitlist || 0) + " mensen staan op de wachtlijst.</span></div>" + (it.type === "group" ? cbtn("Op de wachtlijst", "c-wl", { i: "clock" }) : "");
-    else if (noCredit) b += '<div class="banner" style="--c:var(--gym)">' + ic("warn") + "<span><b>Je hebt geen " + D.CREDIT[ck][1] + ".</b> Vraag " + esc(wsName()) + " om een aanbod; dan kun je hier boeken.</span></div>" + cbtn("Boeken", "c-book", { i: "check", dis: true });
+    else if (noCredit) b += '<div class="banner" style="--c:var(--gym)">' + ic("warn") + "<span><b>Je hebt geen " + D.CREDIT[ck][1] + ".</b> Kies een aanbod van " + esc(wsName()) + "; daarna kun je hier boeken.</span></div>" + cbtn("Aanbod bekijken", "c-offers", { k: "sec" }) + cbtn("Boeken", "c-book", { i: "check", dis: true });
     else b += cbtn("Boeken", "c-book", { i: "check" });
     b += "</div>";
     if (st === "open" && bal && !noCredit) b += K.foot("Je gebruikt 1 " + D.CREDIT[ck][0] + "; je hebt er nog " + bal.left + ". Gratis annuleren tot 12 uur voor de start.");
@@ -830,9 +836,119 @@
       K.sh("Oefeningen · " + sets.length, "", "small") + '<div class="pad">' + K.grp(sets.map(function (s) { return K.row({ title: esc(s[0]), sub: esc(s[1]), tr: s[2] ? '<span class="diff-e" role="img" aria-label="' + D.DIFF[s[2]][1] + '">' + D.DIFF[s[2]][0] + "</span>" : "", cls: "kv" }); })) + "</div>" };
   }
   function cdialog() {
+    if (C().dialog === "delete") return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Account verwijderen"><h3>Account verwijderen?</h3><p>Je account en je gegevens worden verwijderd en je wordt uitgelogd. Facturen bewaart de studio zo lang als de wet vraagt.</p><div class="btns">' + K.btn("Account verwijderen", { k: "dng", a: "a-delete" }) + K.btn("Annuleren", { k: "sec", a: "c-dclose" }) + "</div></div>";
     var it = F.findItem(C().detail).it;
     return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Annuleren"><h3>' + esc(it.title) + " annuleren?</h3><p>Het is meer dan 12 uur voor de start, dus de les telt niet als gebruikt.</p><div class=\"btns\">" + K.btn("Ja, annuleren", { k: "dng", a: "c-cancel-ok" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>";
   }
+  /* ================= Client app Fivvi (PRODUCT §55) =================
+     The client web's scope as a native app: Home, Boeken, Training (from M7), Profiel. Signs in with the emailed
+     code; joins through the join link, which opens the app (no QR scanner); paying opens the web page in a browser
+     sheet; account deletion in the app (§79). Push notifications come in Release 1.1, so none here. */
+  var APP = false;
+  function andr() { return F.PREF.plat === "android"; }
+  var ATABS = [["home", "Home", "home"], ["boeken", "Boeken", "cal"], ["training", "Training", "dumb"], ["profiel", "Profiel", "me"]];
+  function capp() {
+    var c = C(); APP = true;
+    try {
+      if (!c.astep) c.astep = c.step === "app" ? "app" : "welcome";
+      var lang = '<div class="gb glass c-lng" translate="no">' + ["nl", "en"].map(function (l) { return '<button class="' + (F.PREF.lang === l ? "on" : "") + '" data-a="c-lang" data-v="' + l + '">' + l.toUpperCase() + "</button>"; }).join("") + "</div>";
+      if (c.astep !== "app") {
+        var body = ASTEP[c.astep]();
+        return '<div class="screen"><div class="content c-body" style="padding-top:calc(var(--top) + 20px)">' + body + "</div></div>" + (c.dialog ? cdialog() : "");
+      }
+      var sub = c.detail || c.workout != null, p = c.workout != null ? workoutView() : c.detail ? detailView() : ATAB[c.atab || "home"]();
+      var h;
+      if (andr()) {
+        h = '<div class="screen root"><div class="ab ' + (sub ? "" : "root") + '">' + (sub ? '<button class="ib" data-a="c-back" aria-label="Terug">' + ic("back") + "</button>" : "") + '<div class="t">' + esc(p.title) + '</div></div><div class="content c-body">' + p.body + "</div></div>";
+        h += '<nav class="navb" aria-label="Navigatie">' + ATABS.map(function (t) { var on = (c.atab || "home") === t[0]; return '<button class="' + (on ? "on" : "") + '" data-a="c-atab" data-v="' + t[0] + '"><i>' + ic(t[2]) + "</i>" + t[1] + "</button>"; }).join("") + "</nav>";
+      } else {
+        var lead = sub ? '<button class="gb glass back" data-a="c-back" aria-label="Terug">' + ic("chevL") + "</button>" : '<span class="gb glass c-studio"><span class="c-mark">' + F.initials(wsName()) + "</span><b>" + esc(wsName()) + "</b></span>";
+        h = '<div class="screen root c-web"><div class="nb">' + lead + '<span class="sp"></span><div class="t">' + esc(p.title) + '</div></div><div class="content c-body">' + p.body + "</div></div>";
+        h += '<div class="fade-b"></div><nav class="tabbar" aria-label="Tabs"><div class="tabs glass">' + ATABS.map(function (t) { var on = (c.atab || "home") === t[0]; return '<button class="tab ' + (on ? "on" : "") + '" data-a="c-atab" data-v="' + t[0] + '" aria-current="' + (on ? "page" : "false") + '">' + ic(t[2]) + "<span>" + t[1] + "</span></button>"; }).join("") + "</div></nav>";
+      }
+      if (c.web) h += browser();
+      if (c.dialog) h += cdialog();
+      return h;
+    } finally { APP = false; }
+  }
+  function brand(sm) { return '<div class="appicon c-appicon' + (sm ? " sm" : "") + '">F</div>'; }
+  var ASTEP = {};
+  ASTEP.welcome = function () {
+    return intro(brand(), "Welkom bij Fivvi", "Boek lessen en sessies bij je studio of trainer.") +
+      '<div class="pad stack"><div class="fgrp">' + cfield("E-mail", "email", '<input data-cin="email" type="email" autocomplete="email" placeholder="naam@voorbeeld.nl" value="' + esc(C().email) + '">') + "</div>" + cbtn("Doorgaan", "a-next") + "</div>" + K.foot("Je krijgt een code van 6 cijfers per e-mail. Geen wachtwoord nodig.");
+  };
+  ASTEP.code = function () {
+    var c = C(), digits = (c.code + "      ").slice(0, 6).split("");
+    return intro(brand(true), "Check je e-mail", 'We hebben een code gestuurd naar <b style="color:var(--label)">' + esc(c.email) + "</b>.") +
+      '<label style="display:block;position:relative"><div class="code" id="ccode">' + digits.map(function (x, i) { return '<span class="' + (i === c.code.length ? "cur" : "") + '">' + esc(x.trim()) + "</span>"; }).join("") + '</div><input data-cin="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" value="' + esc(c.code) + '" aria-label="Code van 6 cijfers" style="position:absolute;inset:0;opacity:0;width:100%"></label>' +
+      '<div class="pad stack" style="margin-top:20px">' + cbtn("Inloggen", "a-signin", { dis: c.code.length < 6 }) + K.btn("Andere e-mail gebruiken", { k: "ghost", blk: true, a: "a-reset" }) + "</div>" + K.foot("In dit prototype werkt elke code van 6 cijfers.");
+  };
+  /* signed in, but no studio yet: the studio's link or QR code opens Fivvi; there is no scanner in the app */
+  ASTEP.nolink = function () {
+    return intro('<span class="c-wait" style="color:var(--accent-text)">' + ic("link") + "</span>", "Nog geen studio", "Open de link van je studio of trainer, of scan hun QR-code met de camera van je telefoon. Fivvi opent dan vanzelf.") +
+      '<div class="pad"><div class="card c-proto"><b>Prototype</b><span>Doe alsof je de link van ' + esc(wsName()) + " opent:</span>" + cbtn("Link openen", "a-openlink", { k: "sec" }) + "</div></div>";
+  };
+  ASTEP.join = function () {
+    var c = C();
+    return intro(mark(false), "Meedoen met " + esc(wsName()), esc(wsName()) + " ziet je naam en e-mailadres en beslist of je mee mag doen.") +
+      '<div class="pad stack"><div class="fgrp">' + cfield("Naam", "name", '<input data-cin="name" type="text" placeholder="Voor- en achternaam" value="' + esc(c.name) + '">') + "</div>" + cbtn("Verzoek versturen", "a-request") + "</div>";
+  };
+  ASTEP.waiting = function () {
+    return intro('<span class="c-wait">' + ic("clock") + "</span>", "Wachten op " + esc(wsName()), "Je verzoek is verstuurd. Je krijgt een e-mail zodra de studio je heeft goedgekeurd.") +
+      '<div class="pad"><div class="card c-proto"><b>Prototype</b><span>Doe alsof de eigenaar je verzoek goedkeurt:</span>' + cbtn("Eigenaar keurt goed", "a-approved", { k: "sec" }) + "</div></div>";
+  };
+  var ATAB = {};
+  /* Home: what's next and my schedule (upcoming bookings and private sessions), with the balance at a glance */
+  ATAB.home = function () {
+    var c = C(), anna = c.who === "anna", first = anna ? "Anna" : (c.name || "Kim de Graaf").split(" ")[0], up = upcoming();
+    var b = K.lt(F.longDate(F.NOW), "Hoi " + esc(first), "");
+    if (up.length) b += nextHero(up[0], up[0][1].type === "priv" ? "Je volgende sessie" : "Je volgende les");
+    if (anna) {
+      var s = D.bsum("anna"), parts = s.balances.map(function (x) { return x.left + " " + (x.left === 1 ? x.label[0] : x.label[1]); });
+      b += '<div class="pad" style="margin-top:14px">' + K.grp([K.row({ a: "c-atab", d: { v: "profiel" }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("check") + "</span>", title: "Tegoed", sub: parts.join(" · ") + " over", cls: "dc" })], "--inset:60px") + "</div>";
+    } else b += '<div class="pad" style="margin-top:14px"><div class="card empty">Nog geen abonnement of credits.<div style="margin-top:14px">' + K.btn("Aanbod bekijken", { k: "sec", a: "c-offers" }) + "</div></div></div>";
+    var rest = up.slice(1, 7);
+    if (rest.length) {
+      var days = []; rest.forEach(function (r) { if (!days.length || days[days.length - 1][0] !== r[0]) days.push([r[0], []]); days[days.length - 1][1].push(r[1]); });
+      b += K.sh("Binnenkort", "", "");
+      days.forEach(function (d) { b += K.sh(dayName(d[0]), "", "small") + '<div class="pad">' + K.grp(d[1].map(function (it) { return crow(it, d[0], c.wl[it.id] ? '<span class="pill tint" style="--c:var(--gym)">Wachtlijst #' + c.wl[it.id] + "</span>" : ""); })) + "</div>"; });
+    } else if (!up.length) b += '<div class="pad" style="margin-top:12px"><div class="card empty">Nog niets gepland.<div style="margin-top:14px">' + K.btn("Les boeken", { k: "sec", a: "c-atab", d: { v: "boeken" } }) + "</div></div></div>";
+    return { title: "Home", body: b };
+  };
+  ATAB.boeken = function () { var c = C(), t = c.tab; c.tab = "rooster"; var p = CSTEP.app(); c.tab = t; return p; };
+  /* Training: the workouts the trainer shared (F045, arrives with M7) */
+  ATAB.training = function () {
+    var c = C(), xs = c.who === "anna" ? D.history.anna || [] : [];
+    var b = K.lt("", "Training", xs.length ? xs.length + " gedeelde trainingen" : "");
+    b += xs.length ? '<div class="pad">' + K.grp(xs.map(function (x, i) { return K.row({ a: "c-workout", d: { v: i }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("dumb") + "</span>", title: esc(x.name), sub: esc(x.d) + " · met " + esc(x.by), cls: "dc" }); }), "--inset:60px") + "</div>"
+      : '<div class="pad"><div class="card empty">Als je trainer een training met je deelt, staat die hier.</div></div>';
+    return { title: "Training", body: b };
+  };
+  ATAB.profiel = function () { return { title: "Profiel", body: profile() }; };
+  /* Paying happens on the web (§53, QC16): the app opens the studio's offer page in a browser sheet */
+  function browser() {
+    var url = "fivvi.app/" + slug() + "/aanbod", offers = D.offerList.filter(function (o) { return o.on && offerFits(o) && o.kind !== "single" && !o.intro; });
+    var bar = andr() ? '<div class="c-brbar"><button class="ib" data-a="c-webclose" aria-label="Sluiten">' + ic("x") + '</button><div><b>Aanbod</b><span translate="no">' + url + "</span></div></div>"
+      : '<div class="c-brbar ios"><button class="c-done" data-a="c-webclose">Klaar</button><div class="c-url glass"><i>🔒</i><span translate="no">' + url + "</span></div></div>";
+    return '<div class="scrim anim-fade" data-a="c-webclose"></div><div class="sheet large anim-up c-browser" role="dialog" aria-label="Aanbod">' + bar + '<div class="sbody">' +
+      K.lt("", "Aanbod van " + esc(wsName()), "Kies wat bij je past. Je betaalt met iDEAL.") + '<div class="pad stack">' + offers.map(function (o) {
+        return '<div class="card c-offer"><div><b>' + esc(o.name) + '</b><span class="num">€ ' + esc(o.price) + " <small>" + per(o.cycle) + "</small></span></div><ul>" + offerFacts(o).filter(function (t) { return t.indexOf("Verlengen") !== 0; }).map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul>" + (o.memberOnly && !(C().who === "anna" && D.bsum("anna").abos.length) ? K.btn("Eerst een abonnement nodig", { k: "sec", blk: true, dis: true }) : K.btn("Kiezen", { blk: true, a: "c-buy", d: { v: o.name } })) + "</div>";
+      }).join("") + "</div>" + K.foot("Na de betaling krijg je de factuur per e-mail en kun je meteen boeken.") + "</div></div>";
+  }
+
+  A["c-atab"] = function (d) { var c = C(); c.atab = d.v; c.detail = null; c.workout = null; c.web = null; R(); };
+  A["c-offers"] = function () { C().web = "offers"; R(); };
+  A["c-webclose"] = function () { C().web = null; R(); };
+  A["c-buy"] = function (d) { C().web = null; F.toast("Betaalpagina geopend: " + d.v + " met iDEAL"); };
+  A["a-next"] = function () { var c = C(); if (!/.+@.+\..+/.test(c.email)) { c.err = { email: "Vul een geldig e-mailadres in" }; F.toast(c.err.email, "err"); return; } c.astep = "code"; c.code = ""; R(); };
+  A["a-reset"] = function () { var c = C(); c.astep = "welcome"; c.code = ""; R(); };
+  A["a-signin"] = function () { var c = C(); if (c.who === "anna") { c.astep = "app"; c.step = "app"; c.atab = "home"; } else c.astep = "nolink"; R(); };
+  A["a-openlink"] = function () { C().astep = "join"; R(); };
+  A["a-request"] = function () { var c = C(); if (!c.name.trim()) { c.err = { name: "Vul je naam in" }; F.toast(c.err.name, "err"); return; } c.astep = "waiting"; F.toast("Verzoek verstuurd"); };
+  A["a-approved"] = function () { var c = C(); c.astep = "app"; c.step = "app"; c.atab = "home"; F.toast("Je bent goedgekeurd. Welkom!"); };
+  A["a-signout"] = function () { var c = C(); c.astep = "welcome"; c.step = "link"; c.code = ""; c.detail = null; c.workout = null; R(); };
+  A["a-delask"] = function () { C().dialog = "delete"; R(); };
+  A["a-delete"] = function () { var s = S(); s.c = null; var c = C(); c.astep = "welcome"; F.toast("Je account is verwijderd"); };
   A["c-lang"] = function (d) { F.PREF.lang = d.v; F.save(); R(); };
   A["c-next"] = function () { var c = C(); if (!/.+@.+\..+/.test(c.email)) { c.err = { email: "Vul een geldig e-mailadres in" }; F.toast(c.err.email, "err"); return; } c.step = "code"; c.code = ""; R(); };
   A["c-reset"] = function () { var c = C(); c.step = "link"; c.code = ""; R(); };
@@ -862,7 +978,7 @@
     if (t.dataset.win === "q") { W().q = t.value; var el = document.getElementById("w-sr"); if (el) { el.innerHTML = searchResults(); if (window.FIVVI_I18N) window.FIVVI_I18N.apply(el, F.PREF.lang); } return true; }
     if (t.dataset.cin) {
       var c = C(), k = t.dataset.cin; clearErr(t, c.err);
-      if (k === "code") { c.code = t.value.replace(/\D/g, "").slice(0, 6); t.value = c.code; var box = document.getElementById("ccode"); if (box) box.innerHTML = (c.code + "      ").slice(0, 6).split("").map(function (x, i) { return '<span class="' + (i === c.code.length ? "cur" : "") + '">' + esc(x.trim()) + "</span>"; }).join(""); var b = document.querySelector('[data-a="c-signin"]'); if (b) b.disabled = c.code.length < 6; }
+      if (k === "code") { c.code = t.value.replace(/\D/g, "").slice(0, 6); t.value = c.code; var box = document.getElementById("ccode"); if (box) box.innerHTML = (c.code + "      ").slice(0, 6).split("").map(function (x, i) { return '<span class="' + (i === c.code.length ? "cur" : "") + '">' + esc(x.trim()) + "</span>"; }).join(""); var b = document.querySelector('[data-a="c-signin"],[data-a="a-signin"]'); if (b) b.disabled = c.code.length < 6; }
       else c[k] = t.value;
       return true;
     }
@@ -870,7 +986,7 @@
   }
   function scrollSave(dev) { var el = dev.querySelector(".w-scroll,.c-body"); return el ? [el.className, el.scrollTop, W().page + (C().tab || "") + (C().detail || "")] : null; }
   function scrollRestore(dev, keep) { if (!keep) return; var el = dev.querySelector(".w-scroll,.c-body"); if (el && el.className === keep[0] && keep[2] === W().page + (C().tab || "") + (C().detail || "")) el.scrollTop = keep[1]; }
-  window.FVW = { web: web, client: client, onInput: onInput, scrollSave: scrollSave, scrollRestore: scrollRestore };
+  window.FVW = { web: web, client: client, capp: capp, onInput: onInput, scrollSave: scrollSave, scrollRestore: scrollRestore };
 
   /* panel entries for rounds 2 and 3 */
   function goWeb(page, extra) { return function () { F.fresh(); F.PREF.plat = "web"; var w = W(); w.page = page; for (var k in extra || {}) w[k] = extra[k]; }; }
@@ -900,6 +1016,31 @@
     ["Aanmeldlink en QR", "TW-07", goWeb("link")],
     ["Aanbod", "F052", goWeb("offers")],
     ["Instellingen", "TW-08", goWeb("settings")]
+  ]]);
+  /* the client app Fivvi: iOS unless the panel is on Android */
+  function goApp(astep, extra, setup) {
+    return function () {
+      F.fresh(); F.PREF.app = "client"; if (F.PREF.plat !== "android") F.PREF.plat = "ios";
+      var c = C(); c.astep = astep; for (var k in extra || {}) c[k] = extra[k];
+      if (astep === "app") c.step = "app";
+      if (c.who === "anna") { var n = 0; for (var i = 1; i <= 4 && n < 2; i++) timetable(F.key(F.add(F.NOW, i))).forEach(function (it) { if (n < 2 && it.type === "group" && it.people.length < it.cap) { c.booked[it.id] = true; n++; } }); }
+      if (setup) setup(c);
+    };
+  }
+  F.INDEX.push(["Fivvi (klant-app)", [
+    ["Welkom en inloggen", "§55", goApp("welcome")],
+    ["Nog geen studio", "§55", goApp("nolink", { email: "kim@example.com" })],
+    ["Link geopend: meedoen", "#469", goApp("join", { email: "kim@example.com" })],
+    ["Wachten op goedkeuring", "F029", goApp("waiting", { email: "kim@example.com", name: "Kim de Graaf" })],
+    ["Home", "F033", goApp("app", { who: "anna", atab: "home" })],
+    ["Boeken", "F027", goApp("app", { who: "anna", atab: "boeken" })],
+    ["Les boeken", "F031", goApp("app", { who: "anna", atab: "boeken" }, function (c) { var t = F.dayItems(F.key(F.add(F.NOW, 1))).filter(function (i) { return i.type !== "priv" && i.people.length < i.cap && !c.booked[i.id]; })[0]; c.detail = t ? t.id : null; c.day = F.key(F.add(F.NOW, 1)); })],
+    ["Geen credits: aanbod op het web", "F052", goApp("app", { who: "anna", atab: "boeken" }, function (c) { var t = timetable(F.key(F.add(F.NOW, 1))).filter(function (i) { return i.type === "gym"; })[0] || timetable(F.TODAY).filter(function (i) { return i.type === "gym"; })[0]; if (t) c.detail = t.id; else c.web = "offers"; })],
+    ["Training", "F045", goApp("app", { who: "anna", atab: "training" })],
+    ["Gedeelde training", "F045", goApp("app", { who: "anna", atab: "training", workout: 0 })],
+    ["Profiel en tegoed", "F033", goApp("app", { who: "anna", atab: "profiel" })],
+    ["Account verwijderen", "§79", goApp("app", { who: "anna", atab: "profiel", dialog: "delete" })],
+    ["Nieuwe klant zonder tegoed", "F033", goApp("app", { who: "new", name: "Kim de Graaf", email: "kim@example.com", atab: "home" })]
   ]]);
   F.INDEX.push(["Klantweb", [
     ["Meedoen via de link", "F029", goClient("link")],

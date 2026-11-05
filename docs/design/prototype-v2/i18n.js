@@ -13,6 +13,13 @@ window.FIVVI_I18N = (function () {
 
   /* Sentence-level rules first: these change word order or need a captured value. */
   var RULES = [
+[/^Hoi (.+)$/, "Hi $1"],
+[/^Kies een aanbod van (.+); daarna kun je hier boeken\.$/, "Choose an offer from $1; then you can book here."],
+[/^Doe alsof je de link van (.+) opent:$/, "Pretend you open $1's link:"],
+[/^(\d+) gedeelde trainingen$/, "$1 shared workouts"],
+[/^Aanbod van (.+)$/, "Offers from $1"],
+[/^Betaalpagina geopend: (.+) met iDEAL$/, function (m, o) { return "Payment page opened: " + P(o) + " with iDEAL"; }],
+[/^((\d+) (groepscredits?|privécredits?|Open Gym-credits?))( · (\d+) (groepscredits?|privécredits?|Open Gym-credits?))* over$/, function (m) { return m.replace(/ over$/, "").replace(/(\d+) (groepscredits?|privécredits?|Open Gym-credits?)/g, function (x, n, k) { return n + " " + CRED[k]; }) + " left"; }],
 [/^(\d+) lopende afspraak$/, "$1 running agreement"],
 [/^(\d+) lopende afspraken$/, "$1 running agreements"],
 [/^(per maand|per 4 weken|eenmalig|per les) · (\d+)% btw$/, function (m, p, v) { return PER[p] + " · " + v + "% VAT"; }],
@@ -363,7 +370,7 @@ window.FIVVI_I18N = (function () {
     "Check je e-mail": "Check your email", "Code van 6 cijfers": "6-digit code", "Inloggen": "Sign in", "Andere e-mail gebruiken": "Use another email",
     "In dit prototype werkt elke code van 6 cijfers.": "Any 6-digit code works in this prototype.", "Vul een geldig e-mailadres in": "Enter a valid email address",
     /* board panel */
-    "Prototype-instellingen": "Prototype settings", "App, trainer web en klantweb · fictieve gegevens · nu is do 5 nov, 10:05": "App, trainer web and client web · fictional data · it's Thu 5 Nov, 10:05",
+    "Prototype-instellingen": "Prototype settings", "Fivvi Pro, Fivvi, trainer web en klantweb · fictieve gegevens · nu is do 5 nov, 10:05": "Fivvi Pro, Fivvi, trainer web and client web · fictional data · it's Thu 5 Nov, 10:05",
     "Weergave": "Appearance", "Licht": "Light", "Donker": "Dark", "Glas (iOS)": "Glass (iOS)", "Helder": "Clear", "Getint": "Tinted", "Rol bij Studio Fit": "Role at Studio Fit", "Opnieuw beginnen": "Start over",
     "Tik door de app zoals op je telefoon. Alles wat je toevoegt of wijzigt, blijft tot je opnieuw begint. Ga direct naar een scherm:": "Tap through the app as on your phone. Anything you add or change stays until you start over. Jump straight to a screen:",
     "Fivvi Pro app": "Fivvi Pro app", "Volgt in de volgende rondes": "Coming in the next rounds", "Boekingspagina": "Booking page", "Klantweb": "Client web",
@@ -402,6 +409,16 @@ window.FIVVI_I18N = (function () {
     "Er moet altijd een eigenaar zijn. Maak eerst iemand anders eigenaar.": "There must always be an owner. Make someone else owner first.", "Er moet altijd een eigenaar zijn": "There must always be an owner",
     "Met niemand: lessen krijgen Trainer nodig, privésessies worden geannuleerd en die klanten krijgen een e-mail.": "With nobody: classes get Trainer needed, private sessions are cancelled and those clients get an email.",
     "Uitnodiging intrekken?": "Withdraw invitation?", "Uitnodiging ingetrokken": "Invitation withdrawn", "Uitnodiging opnieuw verstuurd": "Invitation sent again", "Naam en e-mailadres beheert ieder zelf, in het eigen profiel.": "Everyone manages their own name and email, in their own profile.",
+    /* client app Fivvi (§55) */
+    "Welkom bij Fivvi": "Welcome to Fivvi", "Boek lessen en sessies bij je studio of trainer.": "Book classes and sessions with your studio or trainer.", "Nog geen studio": "No studio yet",
+    "Open de link van je studio of trainer, of scan hun QR-code met de camera van je telefoon. Fivvi opent dan vanzelf.": "Open your studio's or trainer's link, or scan their QR code with your phone's camera. Fivvi then opens by itself.",
+    "Link openen": "Open link", "Je volgende sessie": "Your next session", "Binnenkort": "Coming up", "Nog niets gepland.": "Nothing planned yet.", "Aanbod bekijken": "View offers", "Home": "Home",
+    "Als je trainer een training met je deelt, staat die hier.": "When your trainer shares a workout with you, it shows up here.", "Kies wat bij je past. Je betaalt met iDEAL.": "Choose what suits you. You pay with iDEAL.", "Kiezen": "Choose", "Nog geen abonnement of credits.": "No membership or credits yet.", "Eerst een abonnement nodig": "Needs a membership first",
+    "Na de betaling krijg je de factuur per e-mail en kun je meteen boeken.": "After paying you get the invoice by email and can book right away.", "Studio": "Studio", "Account verwijderen": "Delete account", "Account verwijderen?": "Delete account?",
+    "Je account en je gegevens worden verwijderd. Facturen bewaart de studio zo lang als de wet vraagt.": "Your account and your data are deleted. The studio keeps invoices as long as the law requires.",
+    "Je account en je gegevens worden verwijderd en je wordt uitgelogd. Facturen bewaart de studio zo lang als de wet vraagt.": "Your account and your data are deleted and you're signed out. The studio keeps invoices as long as the law requires.",
+    "Je account is verwijderd": "Your account has been deleted", "App (iOS en Android)": "App (iOS and Android)", "Fivvi (klant)": "Fivvi (client)", "Fivvi (klant-app)": "Fivvi (client app)",
+    "Welkom en inloggen": "Welcome and sign in", "Link geopend: meedoen": "Link opened: join", "Geen credits: aanbod op het web": "No credits: offers on the web", "Nieuwe klant zonder tegoed": "New client without a balance",
     /* dates */
     "maandag": "Monday", "dinsdag": "Tuesday", "woensdag": "Wednesday", "donderdag": "Thursday", "vrijdag": "Friday", "zaterdag": "Saturday", "zondag": "Sunday",
     "januari": "January", "februari": "February", "maart": "March", "april": "April", "mei": "May", "juni": "June", "juli": "July", "augustus": "August", "september": "September", "oktober": "October", "november": "November", "december": "December",

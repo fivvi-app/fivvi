@@ -242,6 +242,34 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
   - *Taal*, *Uitloggen*.
 - **NL | EN** in the header on every step.
 
+## 5b. Client app Fivvi (proposal, awaiting the owner's review)
+
+Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch (*Fivvi Pro | Fivvi (klant)*) shows it on iOS and Android, and the index group *Fivvi (klant-app)* lists its screens. It shares its state with the client web, so a booking made in one shows in the other. **Not decided until the owner has clicked through it.**
+
+- **Tabs as in §55:**
+  - *Home*: hello, the next session or class, *Tegoed* at a glance, and what's coming up;
+  - *Boeken*: the timetable;
+  - *Training*: shared workouts, arriving with M7;
+  - *Profiel*.
+- **Platform look:**
+  - iOS uses the glass tab bar and large titles;
+  - Android uses the navigation bar and the M3 segmented button;
+  - Android rows use the shaped avatar per session type, as in Fivvi Pro.
+- **Signing in:** the emailed 6-digit code.
+  - Without a studio: "Nog geen studio". The studio's link or QR code opens Fivvi; there is no scanner in the app (#469).
+  - The link opens the join request, then waiting, then approved.
+- **Paying happens on the web** (`§53`, QC16):
+  - *Aanbod bekijken* opens the studio's offer page in a browser sheet (Safari view or Custom Tab), with the address shown;
+  - an offer for members only can't be chosen without a membership;
+  - the client web shows the same offer page.
+- ***Profiel*:**
+  - *Tegoed*, agreements, invoices, the studio, *Taal*;
+  - *Uitloggen*;
+  - **Account verwijderen**, with a confirmation that says invoices stay with the studio as long as the law requires (`§79`).
+- **No push notifications:** they come in Release 1.1 (`§54`).
+
+**Question for the owner:** should the client web move to the same four tabs as the app? It has *Rooster | Mijn agenda | Profiel* now, and the app has *Home | Boeken | Training | Profiel*. One layout would mean clients find things in the same place everywhere.
+
 ## 6. Product decisions
 
 | Decision | Detail | Where it's tracked |
