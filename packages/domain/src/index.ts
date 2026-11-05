@@ -22,6 +22,12 @@ export {
   normalizePostcode,
 } from './locations/address.ts';
 export {
+  type AddressLookupDecision,
+  type AddressLookupInput,
+  type AddressLookupQuery,
+  decideAddressLookup,
+} from './locations/address-lookup.ts';
+export {
   defaultLocation,
   LOCATION_NAME_MAX_LENGTH,
   LOCATION_TYPES,

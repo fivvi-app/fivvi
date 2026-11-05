@@ -1,5 +1,6 @@
 import { parseSignUpAllowlist } from '@fivvi/auth';
 import {
+  consumeRateLimit,
   createDatabase,
   createTenantScopes,
   type DatabaseClient,
@@ -80,6 +81,8 @@ export async function createWorld(): Promise<World> {
   const api = createApp({
     ...NO_DEPENDENCIES,
     tenantScopes,
+    // The lookup limit of the address route (F015), over the app connection like production.
+    consumeRateLimit: (key, rule) => consumeRateLimit(app.db, key, rule, new Date()),
     // The test accounts are `<id>@example.com`: every harness account is on the allowlist, so the
     // route that creates a workspace succeeds for every signed-in caller, team roles or not (F012).
     signUpAllowlist: parseSignUpAllowlist('@example.com'),

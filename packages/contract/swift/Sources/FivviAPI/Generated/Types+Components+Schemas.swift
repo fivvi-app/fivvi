@@ -1089,6 +1089,77 @@ extension Components {
                 case city
             }
         }
+        /// The street and the city of an address.
+        ///
+        /// - Remark: Generated from `#/components/schemas/AddressLookupResult`.
+        public struct AddressLookupResult: Codable, Hashable, Sendable {
+            /// The street, as the BAG writes it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AddressLookupResult/street`.
+            public var street: Swift.String
+            /// The city, as the BAG writes it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AddressLookupResult/city`.
+            public var city: Swift.String
+            /// Creates a new `AddressLookupResult`.
+            ///
+            /// - Parameters:
+            ///   - street: The street, as the BAG writes it.
+            ///   - city: The city, as the BAG writes it.
+            public init(
+                street: Swift.String,
+                city: Swift.String
+            ) {
+                self.street = street
+                self.city = city
+            }
+            public enum CodingKeys: String, CodingKey {
+                case street
+                case city
+            }
+        }
+        /// Too many requests for this workspace in the last hour. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/RateLimited`.
+        public struct RateLimited: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/RateLimited/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case rateLimited = "rate_limited"
+            }
+            /// - Remark: Generated from `#/components/schemas/RateLimited/code`.
+            public var code: Components.Schemas.RateLimited.CodePayload
+            /// Creates a new `RateLimited`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            public init(code: Components.Schemas.RateLimited.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+            }
+        }
+        /// The address service did not answer in time or answered with an error. Try again later. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Unavailable`.
+        public struct Unavailable: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/Unavailable/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case unavailable = "unavailable"
+            }
+            /// - Remark: Generated from `#/components/schemas/Unavailable/code`.
+            public var code: Components.Schemas.Unavailable.CodePayload
+            /// Creates a new `Unavailable`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            public init(code: Components.Schemas.Unavailable.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+            }
+        }
         /// One page of the clients of a workspace.
         ///
         /// - Remark: Generated from `#/components/schemas/ClientList`.

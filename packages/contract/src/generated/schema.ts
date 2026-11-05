@@ -340,6 +340,26 @@ export interface paths {
         patch: operations["updateLocation"];
         trace?: never;
     };
+    "/v1/workspaces/{workspaceId}/address-lookup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The street and city of a postcode and house number
+         * @description Looks up a Dutch address by postcode, house number and optional addition and answers its street and city (the Owner only; a Trainer gets `403`). `404` when no address has that postcode, number and addition; `503` when the address service does not answer within 3 seconds or fails (the person fills the address in by hand); `422` for a postcode that is not Dutch, a house number that is not one to five digits or an addition that is too long or holds anything but letters, digits, spaces and hyphens (the service is not called); `429` after 60 lookups per workspace in an hour. The service receives the postcode, the house number and the addition only; nothing is logged.
+         */
+        get: operations["lookupAddress"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{workspaceId}/clients": {
         parameters: {
             query?: never;
@@ -690,6 +710,23 @@ export interface components {
             /** @description At most 120 characters. */
             city: string;
         } | null;
+        /** @description The street and the city of an address. */
+        AddressLookupResult: {
+            /** @description The street, as the BAG writes it. */
+            street: string;
+            /** @description The city, as the BAG writes it. */
+            city: string;
+        };
+        /** @description Too many requests for this workspace in the last hour. Contains no user-facing text. */
+        RateLimited: {
+            /** @enum {string} */
+            code: "rate_limited";
+        };
+        /** @description The address service did not answer in time or answered with an error. Try again later. Contains no user-facing text. */
+        Unavailable: {
+            /** @enum {string} */
+            code: "unavailable";
+        };
         /** @description One page of the clients of a workspace. */
         ClientList: {
             /** @description This page of clients, sorted by name. */
@@ -1935,6 +1972,99 @@ export interface operations {
                 };
                 content: {
                     "text/plain": string;
+                };
+            };
+        };
+    };
+    lookupAddress: {
+        parameters: {
+            query: {
+                /** @description A Dutch postcode: four digits, an optional space, two letters. */
+                postcode: string;
+                /** @description One to five digits. */
+                houseNumber: string;
+                /** @description The house number addition, for example `A` or `2 hoog`: at most 10 letters, digits, spaces and hyphens. Optional. */
+                addition?: string;
+            };
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The street and the city. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AddressLookupResult"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description The postcode, house number or addition is not valid. The service is not called. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description More than 60 lookups for this workspace in the last hour. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RateLimited"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description The address service did not answer in time, or failed. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Unavailable"];
                 };
             };
         };

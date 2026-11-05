@@ -151,6 +151,13 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/locations/{locationId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/locations/{locationId}/patch(updateLocation)`.
     func updateLocation(_ input: Operations.UpdateLocation.Input) async throws -> Operations.UpdateLocation.Output
+    /// The street and city of a postcode and house number
+    ///
+    /// Looks up a Dutch address by postcode, house number and optional addition and answers its street and city (the Owner only; a Trainer gets `403`). `404` when no address has that postcode, number and addition; `503` when the address service does not answer within 3 seconds or fails (the person fills the address in by hand); `422` for a postcode that is not Dutch, a house number that is not one to five digits or an addition that is too long or holds anything but letters, digits, spaces and hyphens (the service is not called); `429` after 60 lookups per workspace in an hour. The service receives the postcode, the house number and the addition only; nothing is logged.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/address-lookup`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/address-lookup/get(lookupAddress)`.
+    func lookupAddress(_ input: Operations.LookupAddress.Input) async throws -> Operations.LookupAddress.Output
     /// The clients of a workspace
     ///
     /// The whole workspace’s clients (the Owner and every Trainer), sorted by name, one page at a time. `search` matches part of a name or an email address in the server, ignoring case and accents.
@@ -465,6 +472,23 @@ extension APIProtocol {
             path: path,
             headers: headers,
             body: body
+        ))
+    }
+    /// The street and city of a postcode and house number
+    ///
+    /// Looks up a Dutch address by postcode, house number and optional addition and answers its street and city (the Owner only; a Trainer gets `403`). `404` when no address has that postcode, number and addition; `503` when the address service does not answer within 3 seconds or fails (the person fills the address in by hand); `422` for a postcode that is not Dutch, a house number that is not one to five digits or an addition that is too long or holds anything but letters, digits, spaces and hyphens (the service is not called); `429` after 60 lookups per workspace in an hour. The service receives the postcode, the house number and the addition only; nothing is logged.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/address-lookup`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/address-lookup/get(lookupAddress)`.
+    public func lookupAddress(
+        path: Operations.LookupAddress.Input.Path,
+        query: Operations.LookupAddress.Input.Query,
+        headers: Operations.LookupAddress.Input.Headers = .init()
+    ) async throws -> Operations.LookupAddress.Output {
+        try await lookupAddress(Operations.LookupAddress.Input(
+            path: path,
+            query: query,
+            headers: headers
         ))
     }
     /// The clients of a workspace
