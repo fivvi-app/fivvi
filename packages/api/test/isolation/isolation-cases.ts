@@ -52,6 +52,14 @@ export interface IsolationCase {
    * must succeed (`expectations.ts`).
    */
   createsWorkspace?: true;
+  /**
+   * The route reads no stored record: its answer comes from outside (the address lookup, F015), so
+   * there is no row of the workspace for a response to show. The only thing a case may say about
+   * what a read shows, and it is for a case with no `seed`: a case with both is a failure, so the
+   * flag can't switch off the check of a route that does read records. Status, the refusals, the
+   * markers of other workspaces in a response and the rows that change are checked as for any route.
+   */
+  readsNoRecords?: true;
 }
 
 /** The client row that the seed was called for: what a route about one client names. */
@@ -188,6 +196,10 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
     params: { locationId: 'location' },
     body: { name: 'Renamed Location' },
   },
+
+  // The address lookup (F015): the fake answers the invented 1234 AB 1. It names no record of the
+  // workspace and the answer holds none; the isolation is the access and the rate-limit key.
+  lookupAddress: { query: '?postcode=1234AB&houseNumber=1', readsNoRecords: true },
 
   // The clients of a workspace (F006): the list shows every client the seed made (the suite calls
   // it once per client of the workspace), the add takes a name and an email address. Every call

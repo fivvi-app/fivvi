@@ -8,6 +8,7 @@ import {
 } from '@fivvi/domain';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
 import { defineRoute, type WorkspaceEnv } from '../access.ts';
+import { addressIssueCode } from '../address-issues.ts';
 import {
   answerValidationFailure,
   internalServerErrorResponse,
@@ -93,10 +94,8 @@ const LocationAddressInputSchema = z
   });
 
 /**
- * The domain's verdict on a typed address, as the validation errors of the contract: a field that
- * must be filled is `too_small`, a filled postcode or house number in the wrong format
- * `invalid_format`, a text over its limit `too_big` (the codes zod uses for a name, so a client
- * reads them one way).
+ * The domain's verdict on a typed address, as the validation errors of the contract (the codes of
+ * `addressIssueCode`).
  */
 function checkAddress(
   body: z.infer<typeof LocationAddressInputSchema> | null | undefined,
@@ -109,12 +108,13 @@ function checkAddress(
     const input = body?.[field] ?? '';
     const maximum =
       field === 'houseNumberAddition' ? ADDRESS_ADDITION_MAX_LENGTH : ADDRESS_TEXT_MAX_LENGTH;
-    if (problem === 'missing') {
-      ctx.addIssue({ code: 'too_small', origin: 'string', minimum: 1, path, input });
-    } else if (problem === 'invalid') {
-      ctx.addIssue({ code: 'invalid_format', format: 'regex', pattern: '', path, input });
+    const code = addressIssueCode(problem);
+    if (code === 'too_small') {
+      ctx.addIssue({ code, origin: 'string', minimum: 1, path, input });
+    } else if (code === 'invalid_format') {
+      ctx.addIssue({ code, format: 'regex', pattern: '', path, input });
     } else {
-      ctx.addIssue({ code: 'too_big', origin: 'string', maximum, path, input });
+      ctx.addIssue({ code, origin: 'string', maximum, path, input });
     }
   }
 }

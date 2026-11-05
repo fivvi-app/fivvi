@@ -1,5 +1,6 @@
 import { parseSignUpAllowlist } from '@fivvi/auth';
 import {
+  consumeRateLimit,
   createDatabase,
   createTenantScopes,
   type DatabaseClient,
@@ -88,6 +89,8 @@ export async function createWorld(): Promise<World> {
   const api = createApp({
     ...NO_DEPENDENCIES,
     tenantScopes,
+    // The lookup limit of the address route (F015), over the app connection like production.
+    consumeRateLimit: (key, rule) => consumeRateLimit(app.db, key, rule, new Date()),
     // The trainer invitation routes email EM-09 (F011): into memory, never out.
     sendTrainerInvitation: createTrainerInvitationSender({
       sendEmail: createSendEmail({
