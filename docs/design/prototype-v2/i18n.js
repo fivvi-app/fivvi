@@ -54,6 +54,8 @@ window.FIVVI_I18N = (function () {
     [/^Deelnemers · (\d+)$/, "Participants · $1"],
     [/^Toon alle (\d+)$/, "Show all $1"],
     [/^(\d+) plekken vrij$/, "$1 spots left"],
+    [/^Bij (.+) thuis$/, "At $1's home"],
+    [/^Bij (.+)$/, "At $1"],
     [/^Week (\d+) · (.+)$/, function (m, n, r) { return "Week " + n + " · " + P(r); }],
     [/^We hebben een code gestuurd naar$/, "We sent a code to"]
   ];
@@ -61,6 +63,10 @@ window.FIVVI_I18N = (function () {
   /* Phrases and words, replaced on letter boundaries, longest first. */
   var PH = {
     /* app frame */
+    "Opzet": "Setup", "Studio met team": "Studio with a team", "Zelfstandige PT": "Independent PT", "Bovenkant Vandaag": "Top of Today", "Dagstrip": "Day strip", "Tegels": "Tiles", "Regel": "Line",
+    "Vandaag · zelfstandige PT": "Today · independent PT", "sessies": "sessions", "sessie": "session", "Uren": "Hours", "uur": "hours",
+    "Bij de klant thuis": "At the client's home", "Naam en e-mailadres. De klant krijgt een uitnodiging om in te loggen.": "Name and email address. The client gets an invitation to sign in.",
+    "De klant krijgt een e-mail met een uitnodiging om in te loggen.": "The client gets an email inviting them to sign in.", "Geen sessies vandaag": "No sessions today",
     "Zwart-wit": "Black and white",
     "Omhoog": "Move up", "Omlaag": "Move down", "Volgorde wijzigen": "Reorder", "Volgorde": "Order", "Klaar": "Done",
     "Sleep aan ≡ om de volgorde te wijzigen.": "Drag ≡ to change the order.", "Zet de set eerst weer open": "Reopen the set first", "Dit is de enige set": "This is the only set",
@@ -177,7 +183,7 @@ window.FIVVI_I18N = (function () {
 
   function P(s) {
     /* one pass per position: protect replaced text so "Agenda" → "Calendar" isn't touched again */
-    var out = s.replace(/Je valt in voor /g, "Covering for ").replace(/Bezig · gestart om /g, "In progress · started at "), marks = [];
+    var out = s.replace(/Bij (\S+) thuis/g, "At $1's home").replace(/Je valt in voor /g, "Covering for ").replace(/Bezig · gestart om /g, "In progress · started at "), marks = [];
     PHL.forEach(function (p) { out = out.replace(p[0], function (m, pre) { marks.push(p[1]); return pre + "\u0001" + (marks.length - 1) + "\u0002"; }); });
     out = out.replace(/\u0001(\d+)\u0002/g, function (m, i) { return marks[+i]; });
     return out.replace(/(\d),(\d)/g, "$1.$2");

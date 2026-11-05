@@ -30,7 +30,15 @@
     { id: "x1", ws: "sf", type: "priv", s: "11:00", e: "12:00", client: "daan", loc: "Studio Fit, Kerkstraat 12", trainer: "Mike de Boer" },
     { id: "x2", ws: "sf", type: "priv", s: "13:00", e: "14:00", client: "sophie", loc: "Studio Fit, Kerkstraat 12", trainer: "Yara Koster" }
   ];
+  /* The independent-trainer setup has one workspace with private sessions only: no group classes, no Open Gym, no team. */
+  function SOLO() { return PREF.setup === "solo"; }
+  function OWNER() { return SOLO() || PREF.role === "owner"; }
+  function WSS() { return SOLO() ? ["sf"] : ["sf", "jg"]; }
   function dayItems(k) {
+    var all = dayItemsAll(k);
+    return SOLO() ? all.filter(function (i) { return i.ws === "sf" && i.type === "priv"; }) : all.filter(function (i) { return !i.soloOnly; });
+  }
+  function dayItemsAll(k) {
     if (!DAYCACHE[k]) {
       var d = parse(k), w = (d.getDay() + 6) % 7, pat = D.pattern[w] || D.pattern[0], sf = D.clients.filter(function (c) { return c.ws === "sf"; });
       DAYCACHE[k] = pat.map(function (p, i) {
@@ -110,7 +118,7 @@
     { k: "green", n: "Exercise green", fill: "#30D158", on: "#000000", tl: "#1A7F37", td: "#4CD964" },
     { k: "orange", n: "Health orange", fill: "#FF8D28", on: "#000000", tl: "#B35400", td: "#FFA654" }
   ];
-  var PREF = { lang: "nl", plat: "ios", mode: matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light", accent: "pink", glass: "regular", role: "owner" };
+  var PREF = { setup: "team", sum: "strip", lang: "nl", plat: "ios", mode: matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light", accent: "pink", glass: "regular", role: "owner" };
   try { var saved = JSON.parse(localStorage.getItem("fivvi-proto-v2") || "{}"); for (var pk in saved) if (pk in PREF) PREF[pk] = saved[pk]; } catch (e) { /* storage unavailable */ }
   var S;
   function fresh() {
@@ -171,7 +179,7 @@
     /* iOS shows the booked count as a pill, so the line stays short; Android has no pill and keeps it in the line. */
     var sub = it.type === "priv" ? "Privésessie · " + esc(it.loc) : it.cancelled || PREF.plat === "ios" ? TYPE[it.type] : TYPE[it.type] + " · " + (full ? "Vol" : booked + "/" + it.cap + " geboekt");
     var smalls = [];
-    if (opt.multi !== false && !opt.hideWs) smalls.push(wsLine(it.ws));
+    if (opt.multi !== false && !opt.hideWs && !SOLO()) smalls.push(wsLine(it.ws));
     if (opt.who) smalls.push(it.trainer ? esc(it.trainer) : "Jij"); else if (it.trainer) smalls.push(esc(it.trainer));
     if (it.sub) smalls.push("Je valt in voor " + esc(it.sub));
     if (it.type === "priv" && past && !it.cancelled && it.att) smalls.push(it.att === "yes" ? "Aanwezig" : "Niet verschenen");
@@ -196,34 +204,20 @@
   var SCREENS = {};
 
   SCREENS.today = function () {
-    var ws = S.scope === "ws";
+    var ws = S.scope === "ws" && OWNER() && !SOLO();
     var items = ws ? dayItems(TODAY).filter(function (i) { return i.ws === "sf"; }).concat(EXTRA_WS).sort(function (a, b) { return mins(a.s) - mins(b.s); }) : dayItems(TODAY);
     var live = items.filter(function (i) { return !i.cancelled && mins(i.e) > mins(NOWT); });
     var next = live[0];
-    /* The first version (owner's choice): private sessions done, group-class spots booked, Open Gym booked, in the
-       session-type colours. The toggle decides whose day they count: mine, or the whole studio. */
+    /* The top of Vandaag, in the variant chosen in the panel. Each shows only what exists: no group or Open Gym
+       figures for a trainer who has none. */
     var active = items.filter(function (i) { return !i.cancelled; });
-    var priv = active.filter(function (i) { return i.type === "priv"; }), privDone = priv.filter(function (i) { return isPast(i, TODAY); }).length;
-    var gB = 0, gC = 0, oB = 0, oC = 0;
-    active.forEach(function (i) { if (i.type === "group") { gB += i.people.length; gC += i.cap; } else if (i.type === "gym") { oB += i.people.length; oC += i.cap; } });
-    var R = [
-      [privDone, priv.length, "Privé", "klaar", CV.priv, privDone + "/" + priv.length, "Privé"],
-      [gB, gC, "Groepslessen", "plekken", CV.group, Math.round(100 * gB / Math.max(1, gC)) + "%", "Groep"],
-      [oB, oC, "Open Gym", "geboekt", CV.gym, oB + "/" + oC, "Open Gym"]
-    ];
+    var done = active.filter(function (i) { return isPast(i, TODAY); }).length;
+    var span = active.length ? active[0].s + "–" + active.reduce(function (m, i) { return mins(i.e) > mins(m) ? i.e : m; }, active[0].e) : "";
+    var summary = active.length ? active.length + (active.length === 1 ? " sessie" : " sessies") + " · " + span + " · " + done + " klaar" : "Geen sessies vandaag";
     var body = "";
-    if (PREF.role === "owner") body += '<div class="pad" style="margin-bottom:12px">' + seg([["me", "Mijn dag"], ["ws", "Hele studio"]], S.scope, "scope") +
+    if (OWNER() && !SOLO()) body += '<div class="pad" style="margin-bottom:12px">' + seg([["me", "Mijn dag"], ["ws", "Hele studio"]], S.scope, "scope") +
       '<div class="scope-note">' + (ws ? "Alles bij Studio Fit vandaag, van alle trainers." : "Jouw sessies bij Studio Fit en John's Gym.") + "</div></div>";
-    var info = '<button class="info" data-a="info" data-n="rings" aria-label="Wat betekenen de ringen?">' + ic("info") + "</button>";
-    var sum;
-    if (PREF.plat === "ios") {
-      sum = '<div class="card sum" style="position:relative">' + info + rings(R.map(function (r) { return [r[1] ? r[0] / r[1] : 0, r[4]]; })) +
-        '<div class="stats">' + R.map(function (r) { return '<div><div class="stat-l ink" style="--c:' + r[4] + '">' + r[2] + '</div><div class="num stat-v">' + r[0] + "/" + r[1] + "<small>" + r[3] + "</small></div></div>"; }).join("") + "</div></div>";
-    } else {
-      sum = '<div class="card" style="position:relative;display:grid;grid-template-columns:repeat(3,1fr);text-align:center;padding:18px 8px">' + info +
-        R.map(function (r) { return '<div><div style="position:relative;width:84px;height:84px;margin:0 auto">' + wavy(r[1] ? r[0] / r[1] : 0, r[4]) + '<b class="num" style="position:absolute;inset:0;display:grid;place-items:center;font-size:20px">' + r[5] + '</b></div><div style="font-size:13px;color:var(--label2);font-weight:500;margin-top:6px">' + r[6] + "</div></div>"; }).join("") + "</div>";
-    }
-    body += '<div class="pad stack">' + sum;
+    body += '<div class="pad stack">' + (PREF.sum === "strip" ? dayStrip(items, active, done, span) : PREF.sum === "tiles" ? dayTiles(active, done) : "");
     if (next) {
       var inMin = mins(next.s) - mins(NOWT), cap = isLive(next, TODAY) ? "Nu bezig" : "Straks · over " + inMin + " min";
       body += '<div class="hero" style="--c:' + CV[next.type] + '"><div class="cap">' + cap + "</div><h3>" + esc(title(next)) + "</h3><p>" + next.s + "–" + next.e + " · " + TYPE[next.type] + " · " + esc(next.loc) + "</p>" +
@@ -238,7 +232,7 @@
     body += '<div class="pad">' + (rest.length ? grp(rest.map(function (i) { return itemRow(i, TODAY, { hideWs: ws, who: ws }); }), "--inset:94px") : '<div class="empty">Geen sessies vandaag.</div>') + "</div>";
     var tom = dayItems(key(add(NOW, 1)));
     body += '<div class="pad" style="margin-top:12px">' + grp([row({ a: "agenda-day", d: { k: key(add(NOW, 1)) }, title: "Morgen", sub: tom.length + " sessies, eerste om " + tom[0].s, lead: PREF.plat === "ios" ? "" : "" })]) + "</div>";
-    return { large: true, eb: longDate(NOW), title: "Vandaag", body: body, add: { a: "new", label: "Nieuw" } };
+    return { large: true, eb: longDate(NOW), title: "Vandaag", sub: PREF.sum === "line" ? summary : "", body: body, add: { a: "new", label: "Nieuw" } };
   };
 
   SCREENS.agenda = function () {
@@ -291,12 +285,49 @@
     return { large: true, title: "Agenda", body: body, add: { a: "new", label: "Nieuw" }, trailing: [{ t: "Vandaag", a: "agenda-today", i: "today" }] };
   };
 
+  /* Dagstrip: the whole day as a Calendar-style strip; each block is a session, tap it to open. */
+  function dayStrip(items, active, done, span) {
+    if (!active.length) return '<div class="card ds"><div class="ds-top"><b>Geen sessies vandaag</b></div></div>';
+    var s0 = Math.min.apply(null, items.map(function (i) { return mins(i.s); })), e0 = Math.max.apply(null, items.map(function (i) { return mins(i.e); }));
+    var h0 = Math.min(7, Math.floor(s0 / 60)), h1 = Math.max(h0 + 9, Math.ceil(e0 / 60)), range = (h1 - h0) * 60;
+    var lanes = []; items.forEach(function (it) { var l = 0; while (lanes[l] && lanes[l].some(function (o) { return mins(o.s) < mins(it.e) && mins(it.s) < mins(o.e); })) l++; (lanes[l] = lanes[l] || []).push(it); it._lane = l; });
+    var LH = 22, n = Math.min(3, lanes.length);
+    var blocks = items.filter(function (it) { return it._lane < 3; }).map(function (it) {
+      var left = (mins(it.s) - h0 * 60) / range * 100, w = (mins(it.e) - mins(it.s)) / range * 100;
+      return '<button class="ds-b' + (isPast(it, TODAY) ? " past" : "") + (it.cancelled ? " cx" : "") + '" data-a="' + (it.type === "priv" ? "open-session" : "open-class") + '" data-id="' + it.id + '" style="--c:' + CV[it.type] + ";left:" + left.toFixed(2) + "%;width:calc(" + w.toFixed(2) + "% - 2px);top:" + it._lane * LH + 'px" aria-label="' + esc(title(it)) + " " + it.s + '"></button>';
+    }).join("");
+    var now = (mins(NOWT) - h0 * 60) / range * 100;
+    var axis = ""; for (var h = h0; h <= h1; h += 3) axis += '<span style="left:' + ((h - h0) * 60 / range * 100).toFixed(2) + '%">' + pad2(h) + "</span>";
+    return '<div class="card ds"><div class="ds-top"><b>' + active.length + (active.length === 1 ? " sessie" : " sessies") + "</b><span>" + span + " · " + done + " klaar</span></div>" +
+      '<div class="ds-track" style="height:' + (n * LH) + 'px">' + blocks + '<i class="ds-now" style="left:' + now.toFixed(2) + '%"></i></div><div class="ds-axis">' + axis + "</div>" + offerLine(active) + "</div>";
+  }
+  /* Group classes and Open Gym figures, only for what the day actually has */
+  function offerLine(active) {
+    var g = active.filter(function (i) { return i.type === "group"; }), o = active.filter(function (i) { return i.type === "gym"; }), out = [];
+    if (g.length) { var gb = 0, gc = 0; g.forEach(function (i) { gb += i.people.length; gc += i.cap; }); out.push('<span class="ink" style="--c:var(--group)">Groepslessen ' + gb + "/" + gc + "</span>"); }
+    if (o.length) { var ob = 0, oc = 0; o.forEach(function (i) { ob += i.people.length; oc += i.cap; }); out.push('<span class="ink" style="--c:var(--gym)">Open Gym ' + ob + "/" + oc + "</span>"); }
+    return out.length ? '<div class="ds-meta">' + out.join('<span class="dot">·</span>') + "</div>" : "";
+  }
+  /* Tegels: small Health-style figures; private-only days get clients and hours instead of group figures */
+  function dayTiles(active, done) {
+    function tile(c, label, v, of, unit) { return '<div class="tile"><span class="ink" style="--c:' + c + '">' + label + '</span><b class="num">' + v + (of != null ? "<small>/" + of + "</small>" : "") + (unit ? "<small> " + unit + "</small>" : "") + "</b>" + (of != null ? '<i class="tbar" style="--c:' + c + '"><i style="width:' + (of ? Math.round(v / of * 100) : 0) + '%"></i></i>' : "") + "</div>"; }
+    var t = [tile("var(--priv)", "Sessies", done, active.length)];
+    var g = active.filter(function (i) { return i.type === "group"; }), o = active.filter(function (i) { return i.type === "gym"; });
+    if (g.length) { var gb = 0, gc = 0; g.forEach(function (i) { gb += i.people.length; gc += i.cap; }); t.push(tile("var(--group)", "Groepslessen", gb, gc)); }
+    if (o.length) { var ob = 0, oc = 0; o.forEach(function (i) { ob += i.people.length; oc += i.cap; }); t.push(tile("var(--gym)", "Open Gym", ob, oc)); }
+    if (t.length === 1) {
+      var cl = {}, m = 0; active.forEach(function (i) { if (i.client) cl[i.client] = 1; m += mins(i.e) - mins(i.s); });
+      t.push(tile("var(--accent)", "Klanten", Object.keys(cl).length), tile("var(--ok)", "Uren", String(Math.round(m / 30) / 2).replace(".", ","), null, "uur"));
+    }
+    return '<div class="tiles' + (t.length === 2 ? " two" : "") + '">' + t.join("") + "</div>";
+  }
+
   function clientList() {
     var q = norm(S.q.trim()), out = "";
-    ["sf", "jg"].forEach(function (w) {
+    WSS().forEach(function (w) {
       var cs = D.clients.filter(function (c) { return c.ws === w && (!q || norm(c.name).indexOf(q) >= 0 || norm(c.email).indexOf(q) >= 0); });
       if (!cs.length) return;
-      out += sh(wsLine(w) + ' <span style="font-weight:500;opacity:.7">· ' + cs.length + "</span>", "", "small");
+      if (WSS().length > 1) out += sh(wsLine(w) + ' <span style="font-weight:500;opacity:.7">· ' + cs.length + "</span>", "", "small"); else out += '<div style="height:12px"></div>';
       out += '<div class="pad">' + grp(cs.map(function (c) { return row({ a: "open-client", d: { id: c.id }, lead: avatar(c.name, c.c), title: esc(c.name), sub: (c.email ? esc(c.email) : "Geen e-mailadres") + " · " + esc(c.last) }); }), "--inset:68px") + "</div>";
     });
     return out || '<div class="empty">Geen klant gevonden voor “' + esc(S.q) + "”.</div>";
@@ -413,7 +444,7 @@
   SCREENS.profile = function () {
     var body = '<div class="pad stack"><div class="card" style="display:flex;gap:14px;align-items:center">' + avatar(D.me.name, "var(--accent)") + '<div style="flex:1;min-width:0"><b style="display:block;font-size:19px">' + D.me.name + '</b><span style="color:var(--label2);font-size:15px">' + D.me.email + "</span></div>" + btn("Wijzigen", { k: "ghost", sm: true, a: "toast", d: { m: "Naam wijzigen opent een veld" } }) + "</div></div>";
     body += sh("Instellingen", "", "small") + '<div class="pad">' + grp([row({ a: "push", d: { n: "language" }, lead: '<span style="color:var(--label2);display:grid">' + ic("globe") + "</span>", title: "Taal", tr: '<span translate="no">' + (PREF.lang === "en" ? "English" : "Nederlands") + "</span>" })]) + "</div>";
-    body += sh("Werkruimtes", "", "small") + '<div class="pad">' + grp(["sf", "jg"].map(function (w) { var x = D.workspaces[w]; return row({ lead: '<span class="av" style="--c:' + x.color + ';border-radius:12px;width:36px;height:36px;font-size:13px">' + initials(x.name) + "</span>", title: x.name, tr: w === "sf" ? (PREF.role === "owner" ? "Eigenaar" : "Trainer") : "Trainer" }); })) + "</div>" + foot("Vandaag en Agenda tonen je sessies van alle werkruimtes samen.");
+    body += sh("Werkruimtes", "", "small") + '<div class="pad">' + grp(WSS().map(function (w) { var x = D.workspaces[w]; return row({ lead: '<span class="av" style="--c:' + x.color + ';border-radius:12px;width:36px;height:36px;font-size:13px">' + initials(x.name) + "</span>", title: x.name, tr: w === "sf" ? (OWNER() ? "Eigenaar" : "Trainer") : "Trainer" }); })) + "</div>" + (WSS().length > 1 ? foot("Vandaag en Agenda tonen je sessies van alle werkruimtes samen.") : "");
     body += '<div class="pad" style="margin-top:16px">' + grp([
       row({ a: "toast", d: { m: "Opent Fivvi op het web" }, lead: '<span style="color:var(--label2);display:grid">' + ic("ext") + "</span>", title: "Beheer op het web", chev: false }),
       row({ a: "toast", d: { m: "Opent het feedbackformulier" }, lead: '<span style="color:var(--label2);display:grid">' + ic("chat") + "</span>", title: "Feedback geven", chev: false })
@@ -452,12 +483,11 @@
   var SHEETS = {};
   SHEETS["new"] = function () {
     var items = [["new-session", "priv", "Privésessie", "Een sessie met één klant."]];
-    if (PREF.role === "owner") items.push(["new-class", "group", "Groepsles", "Bij Studio Fit"], ["new-gym", "gym", "Open Gym", "Bij Studio Fit"]);
-    items.push(["new-client", "", "Klant", "Een naam is genoeg. Het e-mailadres kan later."]);
+    if (OWNER()) items.push(["new-class", "group", "Groepsles", "Bij " + D.workspaces.sf.name], ["new-gym", "gym", "Open Gym", "Bij " + D.workspaces.sf.name]);
+    items.push(["new-client", "", "Klant", "Naam en e-mailadres. De klant krijgt een uitnodiging om in te loggen."]);
     var icons = { priv: "me", group: "group", gym: "door", "": "personPlus" };
     var body = grp(items.map(function (x) { return row({ a: x[0], lead: '<span class="av" style="--c:' + (x[1] ? CV[x[1]] : "var(--accent)") + ';border-radius:14px">' + ic(icons[x[1]]) + "</span>", title: x[2], sub: x[3], cls: "wrap" }); }), "--inset:68px");
-    if (PREF.role !== "owner") body += foot("Groepslessen en Open Gym van Studio Fit en John's Gym plant de eigenaar.");
-    else body += foot("Groepslessen en Open Gym van John's Gym plant de eigenaar.");
+    if (!SOLO()) body += foot(OWNER() ? "Groepslessen en Open Gym van John's Gym plant de eigenaar." : "Groepslessen en Open Gym van Studio Fit en John's Gym plant de eigenaar.");
     return { title: "Nieuw", small: true, body: body };
   };
   SHEETS.newSession = function () {
@@ -470,9 +500,9 @@
     return { title: "Nieuwe privésessie", body: body, save: "save-session" };
   };
   SHEETS.newClient = function () {
-    var body = '<div class="fgrp">' + fld("Naam", inp("name", "text", "Voor- en achternaam", " autocomplete=\"off\"")) + fld("E-mail", inp("email", "email", "Optioneel")) + "</div>";
-    body += '<div class="fgrp" style="margin-top:16px">' + fld("Taal voor e-mails", sel("lang", ["Nederlands", "English"])) + fld("Werkruimte", sel("ws", [["sf", "Studio Fit"], ["jg", "John's Gym"]])) + "</div>";
-    body += foot("Een naam is genoeg. Zonder e-mailadres krijgt de klant geen e-mails.");
+    var body = '<div class="fgrp">' + fld("Naam", inp("name", "text", "Voor- en achternaam", " autocomplete=\"off\"")) + fld("E-mail", inp("email", "email", "naam@voorbeeld.nl")) + "</div>";
+    body += '<div class="fgrp" style="margin-top:16px">' + fld("Taal voor e-mails", sel("lang", ["Nederlands", "English"])) + (WSS().length > 1 ? fld("Werkruimte", sel("ws", WSS().map(function (w) { return [w, D.workspaces[w].name]; }))) : "") + "</div>";
+    body += foot("De klant krijgt een e-mail met een uitnodiging om in te loggen.");
     return { title: "Nieuwe klant", body: body, save: "save-client" };
   };
   SHEETS.newClass = function () {
@@ -776,6 +806,7 @@
     },
     "save-client": function () {
       var f = S.form; if (!f.name.trim()) { toast("Vul een naam in"); return; }
+      if (!/.+@.+\..+/.test(f.email || "")) { toast("Vul een geldig e-mailadres in"); return; }
       var id = "c" + Date.now(), c = { id: id, ws: f.ws, name: f.name.trim(), email: f.email.trim(), lang: f.lang, last: "Nog geen sessie", c: "#8E8E93" };
       D.clients.push(c); CLIENT[id] = c; S.sheet = null; S.tab = S.tab === "profile" ? "clients" : S.tab; S.stacks[S.tab].push({ n: "client", id: id }); S.anim = "push"; toast("Klant toegevoegd");
     },
@@ -982,14 +1013,15 @@
     ["Fivvi Pro app", [
       ["Inloggen", "TM-01", function () { fresh(); S.signedIn = false; }],
       ["Vandaag", "TD-01", function () { fresh(); }],
-      ["Vandaag · hele studio", "TD-01", function () { fresh(); PREF.role = "owner"; S.scope = "ws"; }],
+      ["Vandaag · zelfstandige PT", "TD-01", function () { fresh(); PREF.setup = "solo"; }],
+      ["Vandaag · hele studio", "TD-01", function () { fresh(); PREF.setup = "team"; PREF.role = "owner"; S.scope = "ws"; }],
       ["Agenda · Dag", "TD-04", function () { fresh(); S.tab = "agenda"; S.aview = "day"; }],
       ["Agenda · Week", "TD-04", function () { fresh(); S.tab = "agenda"; S.aview = "week"; }],
       ["Agenda · Maand", "TD-04", function () { fresh(); S.tab = "agenda"; S.aview = "month"; }],
       ["Privésessie", "TD-02", function () { fresh(); S.stacks.today = [{ n: "session", id: "s3" }]; }],
-      ["Groepsles (invallen)", "TD-03", function () { fresh(); S.stacks.today = [{ n: "klass", id: "s5" }]; }],
-      ["Aanwezigheid les", "CO-05", function () { fresh(); var it = findItem("s2").it; it.attDraft = null; S.stacks.today = [{ n: "klass", id: "s2" }, { n: "attendance", id: "s2" }]; }],
-      ["Open Gym", "TD-03", function () { fresh(); S.stacks.today = [{ n: "klass", id: "s4" }]; }],
+      ["Groepsles (invallen)", "TD-03", function () { fresh(); PREF.setup = "team"; S.stacks.today = [{ n: "klass", id: "s5" }]; }],
+      ["Aanwezigheid les", "CO-05", function () { fresh(); PREF.setup = "team"; var it = findItem("s2").it; it.attDraft = null; S.stacks.today = [{ n: "klass", id: "s2" }, { n: "attendance", id: "s2" }]; }],
+      ["Open Gym", "TD-03", function () { fresh(); PREF.setup = "team"; S.stacks.today = [{ n: "klass", id: "s4" }]; }],
       ["Nieuw (+)", "TD-05", function () { fresh(); S.sheet = "new"; }],
       ["Nieuwe privésessie", "PS-04", function () { fresh(); A["new-session"](); }],
       ["Nieuwe groepsles", "TD-05", function () { fresh(); PREF.role = "owner"; A["new-class"](); }],
@@ -1029,6 +1061,10 @@
   function save() { try { localStorage.setItem("fivvi-proto-v2", JSON.stringify(PREF)); } catch (e) { /* ignore */ } }
   function applyPrefs() {
     var a = ACC.filter(function (x) { return x.k === PREF.accent; })[0] || ACC[0];
+    D.workspaces.sf.name = SOLO() ? "Sarah Personal Training" : "Studio Fit";
+    D.workspaces.sf.location = SOLO() ? "TrainMore Zuid" : "Studio Fit, Kerkstraat 12";
+    D.locations = SOLO() ? ["TrainMore Zuid", "Basic-Fit Oost", "Vondelpark (buiten)", "Bij de klant thuis"] : ["Studio Fit, Kerkstraat 12", "TrainMore Zuid", "Basic-Fit Oost", "Vondelpark (buiten)"];
+    if (SOLO()) S.scope = "me";
     var dark = PREF.mode === "dark" && a.fillD;
     mk.style.setProperty("--accent", dark ? a.fillD : a.fill); mk.style.setProperty("--on-accent", dark ? a.onD : a.on); mk.style.setProperty("--at-l", a.tl); mk.style.setProperty("--at-d", a.td);
     mk.dataset.mode = PREF.mode;

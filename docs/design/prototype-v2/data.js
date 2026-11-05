@@ -11,13 +11,13 @@ window.FIVVI_DATA = (function () {
   var clients = [
     { id: "anna", ws: "sf", name: "Anna de Vries", email: "anna@example.com", lang: "Nederlands", last: "29 okt", c: "var(--priv)" },
     { id: "mark", ws: "sf", name: "Mark Visser", email: "mark@example.com", lang: "Nederlands", last: "vandaag", c: "#34C759" },
-    { id: "lisa", ws: "sf", name: "Lisa Bakker", email: "", lang: "English", last: "3 nov", c: "#FF8D28" },
+    { id: "lisa", ws: "sf", name: "Lisa Bakker", email: "lisa@example.com", lang: "English", last: "3 nov", c: "#FF8D28" },
     { id: "daan", ws: "sf", name: "Daan Smit", email: "daan@example.com", lang: "Nederlands", last: "2 nov", c: "#6155F5" },
     { id: "noor", ws: "sf", name: "Noor el Amrani", email: "noor@example.com", lang: "Nederlands", last: "30 okt", c: "#CB30E0" },
     { id: "sophie", ws: "sf", name: "Sophie Mulder", email: "sophie@example.com", lang: "English", last: "28 okt", c: "#00C3D0" },
     { id: "bram", ws: "sf", name: "Bram Hendriks", email: "bram@example.com", lang: "Nederlands", last: "27 okt", c: "#AC7F5E" },
     { id: "fleur", ws: "sf", name: "Fleur de Jong", email: "fleur@example.com", lang: "Nederlands", last: "21 okt", c: "#FF2D55" },
-    { id: "thomas", ws: "sf", name: "Thomas Peters", email: "", lang: "Nederlands", last: "Nog geen sessie", c: "#8E8E93" },
+    { id: "thomas", ws: "sf", name: "Thomas Peters", email: "thomas@example.com", lang: "Nederlands", last: "Nog geen sessie", c: "#8E8E93" },
     { id: "eva", ws: "sf", name: "Eva Kok", email: "eva@example.com", lang: "Nederlands", last: "19 okt", c: "#34C759" },
     { id: "chris", ws: "jg", name: "Chris Bakker", email: "chris@example.com", lang: "Nederlands", last: "4 nov", c: "#0088FF" },
     { id: "iris", ws: "jg", name: "Iris Vos", email: "iris@example.com", lang: "English", last: "1 nov", c: "#FF8D28" },
@@ -53,6 +53,8 @@ window.FIVVI_DATA = (function () {
     { id: "s4", ws: "sf", type: "gym", s: "12:00", e: "14:00", title: "Open Gym", loc: "Studio Fit, Kerkstraat 12", cap: 10, people: ["daan", "eva", "bram"] },
     { id: "s5", ws: "jg", type: "group", s: "15:00", e: "16:00", title: "Strength", loc: "John's Gym, Havenweg 3", cap: 8, people: ["chris", "iris", "jesse", "chris", "iris", "jesse", "chris"].map(function (x, i) { return i < 3 ? x : "guest" + i; }), sub: "Mike" },
     { id: "s6", ws: "sf", type: "priv", s: "16:30", e: "17:30", client: "lisa", loc: "Vondelpark (buiten)", att: null },
+    /* only in the independent-trainer setup: a session at the client's home */
+    { id: "s8", ws: "sf", type: "priv", s: "12:30", e: "13:30", client: "daan", loc: "Bij Daan thuis", att: null, soloOnly: true },
     { id: "s7", ws: "sf", type: "group", s: "18:00", e: "19:00", title: "HIIT", loc: "Studio Fit, Kerkstraat 12", cap: 12, people: [], cancelled: true }
   ];
 

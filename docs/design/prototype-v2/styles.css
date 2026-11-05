@@ -557,3 +557,23 @@ input:focus,select:focus,textarea:focus{outline:none}
 /* Icon tiles (New sheet, training card, start-workout list): the glyph sits inside the tile, about half its size */
 .av svg{width:22px;height:22px;flex:none}
 .av.lg svg{width:40px;height:40px}
+/* ---------- Top of Vandaag: day strip and tiles ---------- */
+.ds{padding:14px 16px 12px}
+.ds-top{display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:12px}
+.ds-top b{font-size:17px}
+.ds-top span{font-size:15px;color:var(--label2);font-variant-numeric:tabular-nums}
+.ds-track{position:relative;border-radius:6px;background:repeating-linear-gradient(90deg,var(--fill) 0 1px,transparent 1px 100%) 0 0/calc(100%/12) 100%}
+.ds-b{position:absolute;height:19px;border:0;padding:0;border-radius:6px;background:var(--c);min-width:6px}
+.ds-b.past{opacity:.35}
+.ds-b.cx{background:repeating-linear-gradient(135deg,color-mix(in srgb,var(--c) 45%,transparent) 0 3px,transparent 3px 6px);opacity:.6}
+.ds-now{position:absolute;top:-4px;bottom:-4px;width:2px;margin-left:-1px;background:var(--accent);border-radius:1px}
+.ds-now::before{content:"";position:absolute;top:-3px;left:-3px;width:8px;height:8px;border-radius:50%;background:var(--accent)}
+.ds-axis{position:relative;height:16px;margin-top:6px;font-size:11px;color:var(--label2);font-variant-numeric:tabular-nums}
+.ds-axis span{position:absolute;transform:translateX(-50%)}
+.ds-axis span:first-child{transform:none}
+.ds-meta{display:flex;gap:6px;flex-wrap:wrap;font-size:14px;font-weight:600;margin-top:8px}
+.ds-meta .dot{color:var(--label3)}
+.tiles.two{grid-template-columns:repeat(2,1fr)}
+.tbar{display:block;height:4px;border-radius:2px;background:color-mix(in srgb,var(--c) 18%,transparent);margin-top:8px;overflow:hidden}
+.tbar i{display:block;height:100%;border-radius:2px;background:var(--c)}
+.android .ds{background:var(--m-c);border-radius:28px}
