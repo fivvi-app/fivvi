@@ -481,3 +481,21 @@ input:focus,select:focus,textarea:focus{outline:none}
 /* Overlays opened from the full-screen logger sit above it */
 .full ~ .scrim{z-index:72}
 .full ~ .sheet{z-index:74}
+/* Ring 1 follows the accent; its bright end is a lighter, pinker tone of it */
+.mk{--ring1b:color-mix(in oklab,var(--accent) 55%,#FF8AD8)}
+.scope-note{font-size:13px;color:var(--label2);text-align:center;margin-top:8px}
+/* A running workout sits above the tab bar, like Music's mini player (iOS 26 tabViewBottomAccessory) */
+.acc{position:absolute;left:14px;right:14px;bottom:96px;height:58px;border-radius:999px;z-index:30;display:flex;align-items:center;gap:12px;padding:0 8px 0 9px;color:var(--label);text-align:left;border:.5px solid var(--glass-edge)}
+.acc-ic{width:42px;height:42px;border-radius:50%;flex:none;display:grid;place-items:center;color:#fff;background:linear-gradient(160deg,color-mix(in oklab,var(--accent) 70%,#fff),var(--accent))}
+.acc-ic svg{width:22px;height:22px}
+.acc-t{flex:1;min-width:0}
+.acc-t b{display:block;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.acc-t small{font-size:13px;color:var(--label2);font-variant-numeric:tabular-nums}
+.acc-go{height:42px;padding:0 16px;border-radius:999px;display:grid;place-items:center;background:var(--accent);color:var(--on-accent);font-weight:600;font-size:15px;flex:none}
+.has-acc .content{padding-bottom:190px}
+@media (max-width:640px){.acc{bottom:calc(max(14px,env(safe-area-inset-bottom)) + 74px)}}
+.android .acc{left:12px;right:12px;bottom:92px;border-radius:20px;background:var(--m-pc);color:var(--m-on-pc);backdrop-filter:none;border:0;box-shadow:0 4px 12px rgba(0,0,0,.16)}
+.android .acc-t small{color:inherit;opacity:.8}
+.android .acc-go{background:var(--m-primary);color:var(--m-on-primary)}
+.android.has-acc .fab{bottom:162px}
+.acc-t small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}

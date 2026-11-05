@@ -47,8 +47,8 @@ window.FIVVI_DATA = (function () {
 
   /* Today, explicit. Times are local. */
   var today = [
-    { id: "s1", ws: "sf", type: "priv", s: "07:00", e: "08:00", client: "mark", loc: "Basic-Fit Oost", att: null, workout: "Full body", wstate: "done" },
-    { id: "s2", ws: "sf", type: "group", s: "08:30", e: "09:30", title: "Strength", loc: "Studio Fit, Kerkstraat 12", cap: 8, people: ["daan", "noor", "sophie", "bram", "fleur", "eva", "thomas", "lisa"], att: null },
+    { id: "s1", ws: "sf", type: "priv", s: "07:00", e: "08:00", client: "mark", loc: "Basic-Fit Oost", att: null, workout: "Full body", wstate: "done", shared: true },
+    { id: "s2", ws: "sf", type: "group", s: "08:30", e: "09:30", title: "Strength", loc: "Studio Fit, Kerkstraat 12", cap: 8, people: ["daan", "noor", "sophie", "bram", "fleur", "eva", "thomas", "lisa"], att: null, attMap: { 0: "yes", 1: "yes", 2: "yes", 3: "no", 4: "yes", 5: "yes", 6: "yes", 7: "yes" } },
     { id: "s3", ws: "sf", type: "priv", s: "10:30", e: "11:30", client: "anna", loc: "TrainMore Zuid", att: null, workout: "Upper A" },
     { id: "s4", ws: "sf", type: "gym", s: "12:00", e: "14:00", title: "Open Gym", loc: "Studio Fit, Kerkstraat 12", cap: 10, people: ["daan", "eva", "bram"] },
     { id: "s5", ws: "jg", type: "group", s: "15:00", e: "16:00", title: "Strength", loc: "John's Gym, Havenweg 3", cap: 8, people: ["chris", "iris", "jesse", "chris", "iris", "jesse", "chris"].map(function (x, i) { return i < 3 ? x : "guest" + i; }), sub: "Mike" },

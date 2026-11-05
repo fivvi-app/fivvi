@@ -53,6 +53,18 @@ window.FIVVI_I18N = (function () {
   /* Phrases and words, replaced on letter boundaries, longest first. */
   var PH = {
     /* app frame */
+    /* round 1 feedback */
+    "Hele studio": "Whole studio", "Alles bij Studio Fit vandaag, van alle trainers.": "Everything at Studio Fit today, from all trainers.",
+    "Jouw sessies bij Studio Fit en John's Gym.": "Your sessions at Studio Fit and John's Gym.",
+    "Je dag afronden": "Wrapping up your day", "Drie taken die alleen jij kunt afmaken. Zijn alle drie de ringen rond, dan staat er niets meer open voor vandaag.": "Three jobs only you can finish. When all three rings are closed, nothing is left open for today.",
+    "Voorbije sessies waarvan je de aanwezigheid hebt ingevuld.": "Past sessions where you recorded attendance.",
+    "Privésessies van vandaag waarvoor je een training hebt gelogd.": "Today's private sessions where you logged a workout.",
+    "Gelogde trainingen die je met de klant hebt gedeeld.": "Logged workouts you shared with the client.",
+    "Hoe vol is de studio?": "How full is the studio?", "Geboekte plekken van alle groepslessen samen.": "Booked spots across all group classes.",
+    "Geboekte plekken van alle Open Gym-blokken samen.": "Booked spots across all Open Gym blocks.",
+    "Privésessies vandaag, vergeleken met vorige week donderdag. Rond is evenveel of meer.": "Private sessions today, compared with last Thursday. Closed means as many or more.",
+    "Privésessies": "Private sessions", "plekken bezet": "spots filled", "vorige do 4": "last Thu 4", "met klant": "with client", "Gedeeld": "Shared",
+    "Training bezig": "Workout in progress", "Bekijken": "View", "jij": "you",
     "Vandaag · hele studio": "Today · whole studio", "Vandaag": "Today", "Agenda": "Calendar", "Klantprofiel": "Client profile", "Klanten": "Clients", "Profiel": "Profile",
     "Nieuw (+)": "New (+)", "Nieuwe privésessie": "New private session", "Nieuwe groepsles": "New group class", "Nieuwe klant": "New client", "Nieuw Open Gym-blok": "New Open Gym block", "Nieuwe oefening": "New exercise", "Nieuw": "New",
     "Zoek klant": "Search client", "Zoek op naam of e-mail": "Search by name or email", "Mijn dag": "My day", "Terug": "Back", "Meer": "More", "Bewerken": "Edit", "Opslaan": "Save", "Sluiten": "Close", "Annuleren": "Cancel",
