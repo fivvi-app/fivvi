@@ -17,7 +17,7 @@
 # At the end it prints a table of the tests each suite passed, failed and skipped and writes it as JSON to
 # .work/check-summary.json (git-ignored, in this checkout). Quote that summary in reports; don't retype counts
 # from the output (scripts/test-summary.sh). A suite the table lists as failed fails the run, whatever exit code its check
-# gave (#570). The decision is scripts/affected.mjs, which CI's "Detect changes" job runs too.
+# gave (#570). One run per worktree: a second one stops (.work/check.lock). The decision is scripts/affected.mjs, which CI's "Detect changes" job runs too.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$ROOT/scripts/_shellcheck.sh"
@@ -38,12 +38,38 @@ use_pinned_shellcheck
 warn_shellcheck_version
 FAILED=0
 SUMMARY_JSON="$ROOT/.work/check-summary.json"
-# An early exit must not leave the summary of an earlier run behind.
-rm -f "$SUMMARY_JSON"
 # What every check printed, passed or failed: test-summary.sh reads the suites' counts from it.
 LOG_DIR="$(mktemp -d)"
-remove_log_dir() { rm -rf "$LOG_DIR"; }
-on_exit remove_log_dir
+# One check.sh per worktree (#570): two runs write the same turbo task logs (node_modules/.cache/turbo, .turbo), and a
+# passing run caches whatever is in the log then. Such a mixed log (three node:test summaries, one with "fail 1") was
+# replayed by every cache hit of every worktree while turbo exited 0. The lock is a directory holding the pid of its
+# owner; one whose owner is gone is taken over.
+LOCK_DIR="$ROOT/.work/check.lock"
+OWN_LOCK=false
+acquire_lock() {
+  local holder
+  mkdir -p "$ROOT/.work"
+  if ! mkdir "$LOCK_DIR" 2>/dev/null; then
+    holder="$(cat "$LOCK_DIR/pid" 2>/dev/null || true)"
+    if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then
+      echo "✗ another scripts/check.sh runs in this worktree (pid $holder): two runs write the same turbo logs, and the"
+      echo "  cache then replays a log of both. Wait for it, or stop it, and run this again."
+      exit 1
+    fi
+    rm -rf "$LOCK_DIR"
+    mkdir "$LOCK_DIR" 2>/dev/null || { echo "✗ could not take the lock ${LOCK_DIR#"$ROOT"/}: another scripts/check.sh started at the same time"; exit 1; }
+  fi
+  OWN_LOCK=true
+  echo "$$" >"$LOCK_DIR/pid"
+}
+release() {
+  rm -rf "$LOG_DIR"
+  ! $OWN_LOCK || rm -rf "$LOCK_DIR"
+}
+on_exit release
+acquire_lock
+# An early exit must not leave the summary of an earlier run behind.
+rm -f "$SUMMARY_JSON"
 
 # What a failed check shows. A turbo run is logged in full (the parser reads every task's counts), but only the output of
 # the tasks that failed (named by "<package>#<task>:  ERROR") is shown, with turbo's footer; any other check shows all.
@@ -299,10 +325,23 @@ echo
 # A suite the summary lists as failed fails the run, whatever exit code its check gave (#570): turbo exited 0 in a factory
 # run while the table showed the root suite failed, and pr.sh pushed on that. Only "fail" counts: not-run and skipped
 # suites are a consequence of a failure or of --fast, and the check that caused them has failed already.
+# When every check passed, the failure was not turbo's: a cache hit replayed a log with counts of a failed run in it (the
+# cache entry was written from the log of concurrent runs). Rerunning would hit the same entry, so say how to bypass it.
 if [ -f "$SUMMARY_JSON" ]; then
+  checks_failed=$FAILED
   failed_suites="$(jq -r '[.suites[] | select(.status == "fail") | .name] | join(", ")' "$SUMMARY_JSON")" \
     || { echo "✗ test summary: could not read ${SUMMARY_JSON#"$ROOT"/}"; FAILED=1; failed_suites=""; }
-  [ -z "$failed_suites" ] || { echo "✗ test summary: $failed_suites failed"; FAILED=1; }
+  if [ -n "$failed_suites" ]; then
+    echo "✗ test summary: $failed_suites failed"
+    FAILED=1
+    if [ "$checks_failed" = 0 ]; then
+      echo "  Every check passed, so the log may be replayed from the turbo cache (\"cache hit, replaying logs\"). Run the task"
+      echo "  again without the cache, which also replaces the entry:"
+      jq -r '.suites[] | select(.status == "fail")
+        | "    pnpm turbo run " + (if .name == "root" then "//#test:root"
+            else (if .kind == "unit" then "test" else "test:" + .kind end) + " --filter=@fivvi/" + (.name | split(" ")[0]) end) + " --force"' "$SUMMARY_JSON"
+    fi
+  fi
 fi
 
 exit "$FAILED"

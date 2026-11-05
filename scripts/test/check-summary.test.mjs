@@ -507,6 +507,59 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     assert.match(result.stdout, /✗ test summary: root failed/);
   });
 
+  it('E002 #570 AC1: a failed suite behind a passing turbo run names the turbo cache and how to rerun it', () => {
+    // The cause in the factory run: a cache entry holding the log of concurrent runs, replayed by every cache hit.
+    const result = check({ unit: { lines: node(259, 1, 0), exit: 0 }, integration, e2e });
+    assert.match(result.stdout, /replayed from the turbo cache/);
+    assert.match(result.stdout, /pnpm turbo run \/\/#test:root --force/);
+  });
+
+  it('E002 #570 AC1: the rerun command of a failed package suite is its own task, filtered and forced', () => {
+    const e2eFails = { lines: playwright('  14 passed (3.2s)', '  1 failed'), exit: 0 };
+    const result = check({ unit: unit(), integration, e2e: e2eFails });
+    assert.match(result.stdout, /pnpm turbo run test:e2e --filter=@fivvi\/web --force/);
+  });
+
+  it('E002 #570 AC1: a failure turbo reported itself gets no cache hint', () => {
+    const result = check({ unit: failingUnit, integration, e2e });
+    assert.equal(result.status, 1);
+    assert.doesNotMatch(result.stdout, /turbo cache/);
+  });
+
+  describe('E002 #570: one check.sh per worktree', () => {
+    const lock = () => join(repo(), '.work/check.lock');
+    const holdLock = (pid) => () => {
+      mkdirSync(lock(), { recursive: true });
+      writeFileSync(join(lock(), 'pid'), `${pid}\n`);
+    };
+    const deadPid = () => spawnSync('true').pid;
+
+    it('stops when another check.sh holds the lock, runs nothing, and leaves the lock to its holder', () => {
+      const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(process.pid));
+      assert.equal(result.status, 1, result.stdout);
+      assert.match(
+        result.stdout,
+        new RegExp(`another scripts/check\\.sh runs in this worktree \\(pid ${process.pid}\\)`),
+      );
+      assert.doesNotMatch(result.stdout, /✓/);
+      assert.equal(result.summary, null);
+      assert.ok(existsSync(lock()), 'the holder keeps its lock');
+    });
+
+    it('takes over the lock of a check.sh that is gone', () => {
+      const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(deadPid()));
+      assert.equal(result.status, 0, result.stdout);
+      assert.ok(!existsSync(lock()), 'released at the end');
+    });
+
+    it('releases the lock when the run passes and when it fails', () => {
+      assert.equal(check({ unit: unit(), integration, e2e }).status, 0);
+      assert.ok(!existsSync(lock()));
+      assert.equal(check({ unit: failingUnit, integration, e2e }).status, 1);
+      assert.ok(!existsSync(lock()));
+    });
+  });
+
   it('E002 #570 AC1: a failed integration or e2e suite fails check.sh the same way', () => {
     const e2eFails = { lines: playwright('  14 passed (3.2s)', '  1 failed'), exit: 0 };
     const result = check({ unit: unit(), integration, e2e: e2eFails });

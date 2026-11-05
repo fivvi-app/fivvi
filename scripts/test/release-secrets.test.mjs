@@ -152,7 +152,7 @@ const fakeBrewJdk = ({ works = true } = {}) => {
 const run = (args, stdin = '', { rules = [], extraPath = '' } = {}) => {
   const env = gitEnv(gh.env([...rules, { match: '^secret set ', out: '' }]));
   if (extraPath) env.PATH = `${extraPath}:${env.PATH}`;
-  const result = spawnSync(SCRIPT, args, { encoding: 'utf8', env, input: stdin });
+  const result = spawnSync(SCRIPT, args, { encoding: 'utf8', env, input: stdin, cwd: ROOT });
   return { ...result, calls: gh.calls() };
 };
 const sets = (calls) =>
@@ -604,5 +604,7 @@ describe('E002 #570: the repository checks see only the test’s own repository'
     const result = withDecoyEnvironment(() => run(['sentry'], `${SENTINEL.sentryValue}\n`));
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(sets(result.calls), { SENTRY_AUTH_TOKEN: SENTINEL.sentryValue });
+    // The repository gh targets is the one of the test's repository (its origin), not the decoy's.
+    for (const call of result.calls) assert.ok(call.args.includes('o/r'), call.args.join(' '));
   });
 });
