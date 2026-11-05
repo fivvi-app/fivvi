@@ -275,7 +275,7 @@ describe('F013 the personal read model', () => {
         startsAt: first.startsAt,
         endsAt: first.endsAt,
         capacity: 1,
-        location: { name: w.gym.marker, address: null },
+        location: expect.objectContaining({ name: w.gym.marker, address: null }),
         clientName: 'Anna de Vries',
         booked: 1,
       });
@@ -407,7 +407,7 @@ describe('F013 the personal read model', () => {
         ),
       );
 
-      expect(rows?.[0]?.location).toEqual({
+      expect(rows?.[0]?.location).toMatchObject({
         name: w.gym.marker,
         address: {
           postcode: '1234 AB',

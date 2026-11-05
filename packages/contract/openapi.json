@@ -1361,7 +1361,14 @@
             "description": "The class name in the viewer’s language, for a group class. Left out until classes exist (F021 adds it)."
           },
           "location": {
-            "$ref": "#/components/schemas/PersonalLocation"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Location"
+              },
+              {
+                "description": "Where a private session takes place; left out for the other kinds."
+              }
+            ]
           },
           "clientName": {
             "type": "string",
@@ -1403,29 +1410,6 @@
           "name"
         ],
         "description": "The workspace an item of the personal view is in."
-      },
-      "PersonalLocation": {
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string",
-            "description": "The location’s name."
-          },
-          "address": {
-            "allOf": [
-              {
-                "$ref": "#/components/schemas/LocationAddress"
-              },
-              {
-                "description": "The address; left out when the location has none."
-              }
-            ]
-          }
-        },
-        "required": [
-          "name"
-        ],
-        "description": "Where a private session takes place; left out for the other kinds."
       },
       "MyDaySummary": {
         "type": "object",

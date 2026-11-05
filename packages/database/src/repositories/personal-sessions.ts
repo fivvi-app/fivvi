@@ -67,7 +67,7 @@ export interface PersonalSessionRow {
   readonly capacity: number;
   /** The places taken: participants whose place is not cancelled. */
   readonly booked: number;
-  readonly location: Pick<LocationView, 'name' | 'address'>;
+  readonly location: LocationView;
   /** The client of a private session; `null` for any other kind (a class names no client). */
   readonly clientName: string | null;
 }
@@ -161,11 +161,10 @@ export async function listMySessions(
     .orderBy(asc(sessionParticipants.createdAt), asc(sessionParticipants.id));
   return rows.map(({ location, ...row }) => {
     const places = participants.filter((place) => place.sessionId === row.id);
-    const shown = toLocationView(location);
     return {
       ...row,
       booked: places.filter((place) => place.attendanceStatus !== 'cancelled').length,
-      location: { name: shown.name, address: shown.address },
+      location: toLocationView(location),
       clientName: row.type === 'private' ? (places[0]?.clientName ?? null) : null,
     };
   });

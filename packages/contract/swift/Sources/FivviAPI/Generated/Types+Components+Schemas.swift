@@ -1967,7 +1967,36 @@ extension Components {
             /// - Remark: Generated from `#/components/schemas/PersonalSession/className`.
             public var className: Swift.String?
             /// - Remark: Generated from `#/components/schemas/PersonalSession/location`.
-            public var location: Components.Schemas.PersonalLocation?
+            public struct LocationPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/PersonalSession/location/value1`.
+                public var value1: Components.Schemas.Location
+                /// Where a private session takes place; left out for the other kinds.
+                ///
+                /// - Remark: Generated from `#/components/schemas/PersonalSession/location/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `LocationPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: Where a private session takes place; left out for the other kinds.
+                public init(
+                    value1: Components.Schemas.Location,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/location`.
+            public var location: Components.Schemas.PersonalSession.LocationPayload?
             /// The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail.
             ///
             /// - Remark: Generated from `#/components/schemas/PersonalSession/clientName`.
@@ -1998,7 +2027,7 @@ extension Components {
                 capacity: Swift.Int,
                 booked: Swift.Int? = nil,
                 className: Swift.String? = nil,
-                location: Components.Schemas.PersonalLocation? = nil,
+                location: Components.Schemas.PersonalSession.LocationPayload? = nil,
                 clientName: Swift.String? = nil
             ) {
                 self.sessionId = sessionId
@@ -2064,62 +2093,6 @@ extension Components {
                 case id
                 case slug
                 case name
-            }
-        }
-        /// Where a private session takes place; left out for the other kinds.
-        ///
-        /// - Remark: Generated from `#/components/schemas/PersonalLocation`.
-        public struct PersonalLocation: Codable, Hashable, Sendable {
-            /// The location’s name.
-            ///
-            /// - Remark: Generated from `#/components/schemas/PersonalLocation/name`.
-            public var name: Swift.String
-            /// - Remark: Generated from `#/components/schemas/PersonalLocation/address`.
-            public struct AddressPayload: Codable, Hashable, Sendable {
-                /// - Remark: Generated from `#/components/schemas/PersonalLocation/address/value1`.
-                public var value1: Components.Schemas.LocationAddress
-                /// The address; left out when the location has none.
-                ///
-                /// - Remark: Generated from `#/components/schemas/PersonalLocation/address/value2`.
-                public var value2: OpenAPIRuntime.OpenAPIValueContainer
-                /// Creates a new `AddressPayload`.
-                ///
-                /// - Parameters:
-                ///   - value1:
-                ///   - value2: The address; left out when the location has none.
-                public init(
-                    value1: Components.Schemas.LocationAddress,
-                    value2: OpenAPIRuntime.OpenAPIValueContainer
-                ) {
-                    self.value1 = value1
-                    self.value2 = value2
-                }
-                public init(from decoder: any Swift.Decoder) throws {
-                    self.value1 = try .init(from: decoder)
-                    self.value2 = try .init(from: decoder)
-                }
-                public func encode(to encoder: any Swift.Encoder) throws {
-                    try self.value1.encode(to: encoder)
-                    try self.value2.encode(to: encoder)
-                }
-            }
-            /// - Remark: Generated from `#/components/schemas/PersonalLocation/address`.
-            public var address: Components.Schemas.PersonalLocation.AddressPayload?
-            /// Creates a new `PersonalLocation`.
-            ///
-            /// - Parameters:
-            ///   - name: The location’s name.
-            ///   - address:
-            public init(
-                name: Swift.String,
-                address: Components.Schemas.PersonalLocation.AddressPayload? = nil
-            ) {
-                self.name = name
-                self.address = address
-            }
-            public enum CodingKeys: String, CodingKey {
-                case name
-                case address
             }
         }
         /// *4 sessies · 09:00–19:00*.

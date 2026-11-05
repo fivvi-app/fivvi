@@ -1190,7 +1190,7 @@ export interface components {
             booked?: number;
             /** @description The class name in the viewer’s language, for a group class. Left out until classes exist (F021 adds it). */
             className?: string;
-            location?: components["schemas"]["PersonalLocation"];
+            location?: components["schemas"]["Location"] & unknown;
             /** @description The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail. */
             clientName?: string;
         };
@@ -1205,12 +1205,6 @@ export interface components {
             slug: string;
             /** @description The name shown in the product. */
             name: string;
-        };
-        /** @description Where a private session takes place; left out for the other kinds. */
-        PersonalLocation: {
-            /** @description The location’s name. */
-            name: string;
-            address?: components["schemas"]["LocationAddress"] & unknown;
         };
         /** @description *4 sessies · 09:00–19:00*. */
         MyDaySummary: {

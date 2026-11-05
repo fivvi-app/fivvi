@@ -23,7 +23,7 @@
 
 package app.fivvi.api.models
 
-import app.fivvi.api.models.PersonalLocation
+import app.fivvi.api.models.Location
 import app.fivvi.api.models.PersonalWorkspace
 
 import kotlinx.serialization.Serializable
@@ -43,7 +43,7 @@ import kotlinx.serialization.Contextual
  * @param capacity 1 for a private session.
  * @param booked The places taken (not cancelled), for a group class or Open Gym: *{booked}/{capacity} geboekt*. Left out for a private session.
  * @param className The class name in the viewer’s language, for a group class. Left out until classes exist (F021 adds it).
- * @param location 
+ * @param location Where a private session takes place; left out for the other kinds.
  * @param clientName The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail.
  */
 @Serializable
@@ -89,8 +89,9 @@ data class PersonalSession (
     @SerialName(value = "className")
     val className: kotlin.String? = null,
 
+    /* Where a private session takes place; left out for the other kinds. */
     @SerialName(value = "location")
-    val location: PersonalLocation? = null,
+    val location: Location? = null,
 
     /* The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail. */
     @SerialName(value = "clientName")

@@ -54,7 +54,7 @@ interface Item {
   capacity: number;
   booked?: number;
   className?: string;
-  location?: { name: string; address?: unknown };
+  location?: { name: string; address: unknown };
   clientName?: string;
 }
 
@@ -321,7 +321,7 @@ describe('F013 the personal day and sessions through the API', () => {
         endsAt: '2026-09-22T08:00:00.000Z',
         timeZone: 'Europe/Amsterdam',
         capacity: 1,
-        location: { name: w.own.marker },
+        location: expect.objectContaining({ name: w.own.marker, address: null }),
         clientName: 'Anna de Vries',
       });
       expect(mark).toMatchObject({

@@ -77,7 +77,8 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
   registerLocations(app);
   registerSessions(app);
   registerClients(app);
-  // After the routes that define the shared location schemas, which the personal view reuses.
+  // After the routes that define the location schemas, which the personal view reuses: components take
+  // their shape from their first use, so an earlier registration would change the contract of `Location`.
   registerPersonal(app);
   return app;
 }

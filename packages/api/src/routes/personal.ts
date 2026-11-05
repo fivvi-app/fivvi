@@ -27,7 +27,7 @@ import {
   internalServerErrorResponse,
   validationErrorResponse,
 } from '../errors.ts';
-import { LocationAddressSchema } from './locations.ts';
+import { LocationSchema } from './locations.ts';
 
 // The personal read model of a trainer (F013, spec #457): every session the signed-in account is the
 // current trainer of, across all its workspaces, for *Mijn dag* / *Vandaag* and *Mijn agenda* /
@@ -106,16 +106,6 @@ const PersonalWorkspaceSchema = z
     description: 'The workspace an item of the personal view is in.',
   });
 
-const PersonalLocationSchema = z
-  .object({
-    name: z.string().openapi({ description: 'The location’s name.' }),
-    // Left out, not `null`: a union with `null` is dropped by the Swift generator (see sessions.ts).
-    address: LocationAddressSchema.optional().openapi({
-      description: 'The address; left out when the location has none.',
-    }),
-  })
-  .openapi('PersonalLocation', { description: 'Where a private session takes place.' });
-
 export const PersonalSessionSchema = z
   .object({
     sessionId: z.uuid().openapi({
@@ -153,7 +143,7 @@ export const PersonalSessionSchema = z
           'The class name in the viewer’s language, for a group class. Left out until classes ' +
           'exist (F021 adds it).',
       }),
-    location: PersonalLocationSchema.optional().openapi({
+    location: LocationSchema.optional().openapi({
       description: 'Where a private session takes place; left out for the other kinds.',
     }),
     clientName: z
@@ -366,10 +356,7 @@ function shown(item: PersonalItem) {
     capacity: item.capacity,
     ...(item.type === 'private'
       ? {
-          location: {
-            name: location.name,
-            ...(location.address ? { address: location.address } : {}),
-          },
+          location,
           ...(clientName === null ? {} : { clientName }),
         }
       : { booked: item.booked }),
@@ -384,13 +371,14 @@ function invalid(path: string, code: string) {
 /**
  * Reads the sessions from `from` up to `to` of each workspace the account trains in, one workspace
  * at a time, each in a context of its own (ADR-006). The workspaces come in name order; the callers
- * merge the lists.
+ * merge the lists. Answers the workspaces too, for a caller that reads them again.
  */
 async function readWorkspaces(scope: TenantScope, window: { from: Date; to: Date }) {
   const workspaces = await listMyTrainingWorkspaces(scope);
-  return inEachWorkspace(scope, workspaces, async (workspaceScope, workspace) =>
+  const perWorkspace = await inEachWorkspace(scope, workspaces, async (workspaceScope, workspace) =>
     (await listMySessions(workspaceScope, window)).map((row) => toItem(row, workspace)),
   );
+  return { workspaces, perWorkspace };
 }
 
 /**
@@ -430,14 +418,16 @@ export function registerPersonal(app: OpenAPIHono) {
     const now = c.get('dependencies').clock.now();
 
     // Today and tomorrow in one query per workspace; the domain splits them.
-    const perWorkspace = await readWorkspaces(scope, { from: today.start, to: tomorrow.end });
+    const { workspaces, perWorkspace } = await readWorkspaces(scope, {
+      from: today.start,
+      to: tomorrow.end,
+    });
     const merged = mergePersonalDay(perWorkspace, now, PERSONAL_TIME_ZONE, { date });
 
     let nextSessionDate: string | undefined;
     let hasSessions = true;
     if (merged.items.length === 0) {
       // An empty day: when does it go on, and has it ever begun? Each is read per workspace again.
-      const workspaces = await listMyTrainingWorkspaces(scope);
       const later = await inEachWorkspace(scope, workspaces, (workspaceScope) =>
         findMyNextSessionStart(workspaceScope, today.end),
       );
@@ -512,7 +502,10 @@ export function registerPersonal(app: OpenAPIHono) {
           return c.json(invalid('to', 'range_too_long'), 400);
       }
     }
-    const perWorkspace = await readWorkspaces(c.get('scope'), { from: range.start, to: range.end });
+    const { perWorkspace } = await readWorkspaces(c.get('scope'), {
+      from: range.start,
+      to: range.end,
+    });
     trackView(c, 'my_calendar_viewed', surface, perWorkspace.length);
     return c.json(
       {

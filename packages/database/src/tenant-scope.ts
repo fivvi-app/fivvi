@@ -181,6 +181,10 @@ export type InvitationEntry<T> =
  * workspace outside the account scope's context, or where the account's team role has ended since
  * the scope was opened, is skipped, never read. The account's team role is looked up again for
  * each, so a client relationship alone never gets a team member's scope.
+ *
+ * When `run` throws, the error goes up and the request's transaction rolls back: the account
+ * context is not put back, and the transaction must not be used for anything else. Only a call
+ * that returns leaves the scope as it found it.
  */
 export async function inEachWorkspace<W extends { readonly id: string }, T>(
   scope: TenantScope,
