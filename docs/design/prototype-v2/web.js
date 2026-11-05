@@ -801,16 +801,22 @@
     }
     return { title: "Profiel", body: profile() };
   };
+  /* the client's balance: tiles per kind (Fitness-style) and the agreements; shared by Profiel and the Tegoed screen */
+  function tegoedParts() {
+    var h = "";
+      var s = D.bsum("anna"), tiles = [];
+    /* Fitness-style tiles: the big number is what's left; the bar shows used and planned */
+    s.abos.forEach(function (a) { var left = Math.max(0, a.perWeek - a.usedWeek); tiles.push('<div class="tile c-tile" style="--c:var(--group)"><span class="ink">Deze week</span><b class="num">' + left + '<small>/' + a.perWeek + "</small></b><em>" + (left === 1 ? "les over" : "lessen over") + '</em><div class="abar"><i style="width:' + (a.usedWeek / a.perWeek * 100) + '%"></i></div></div>'); });
+    s.balances.forEach(function (x) { var t = Math.max(1, x.total); tiles.push('<div class="tile c-tile" style="--c:' + x.label[2] + '"><span class="ink">' + (x.left === 1 ? x.label[0] : x.label[1]) + '</span><b class="num">' + x.left + "<small>/" + x.total + "</small></b><em>over · " + x.planned + " gepland · " + x.used + ' gebruikt</em><div class="abar"><i style="width:' + (x.used / t * 100) + '%"></i><i class="p" style="width:' + (x.planned / t * 100) + '%"></i></div></div>'); });
+    h += K.sh("Tegoed", "", "small") + '<div class="pad"><div class="tiles two">' + tiles.join("") + "</div></div>";
+    h += K.sh("Abonnement en credits", "", "small") + '<div class="pad">' + K.grp(D.billing.anna.agreements.map(function (a) { return K.row({ lead: '<span class="dc-ic" style="--c:' + (a.kind === "abo" ? "var(--group)" : D.CREDIT[a.credit][2]) + '">' + ic(a.kind === "abo" ? "cal" : "check") + "</span>", title: esc(a.name), sub: esc(a.price) + " · " + esc(a.cycle.toLowerCase()), small: a.kind === "pack" ? esc(a.period) : "Volgende betaling " + esc(a.next) }); }), "--inset:60px") + "</div>";
+    return h;
+  }
   function profile() {
     var c = C(), anna = c.who === "anna", me = anna ? F.CLIENT.anna : { name: c.name || "Kim de Graaf", email: c.email || "kim@example.com" };
     var h = '<div class="c-me">' + K.avatar(me.name, anna ? me.c : "var(--priv)", "lg") + "<h1>" + esc(me.name) + "</h1><p>" + esc(me.email) + "</p></div>";
     if (anna) {
-      var s = D.bsum("anna"), tiles = [];
-      /* Fitness-style tiles: the big number is what's left; the bar shows used and planned */
-      s.abos.forEach(function (a) { var left = Math.max(0, a.perWeek - a.usedWeek); tiles.push('<div class="tile c-tile" style="--c:var(--group)"><span class="ink">Deze week</span><b class="num">' + left + '<small>/' + a.perWeek + "</small></b><em>" + (left === 1 ? "les over" : "lessen over") + '</em><div class="abar"><i style="width:' + (a.usedWeek / a.perWeek * 100) + '%"></i></div></div>'); });
-      s.balances.forEach(function (x) { var t = Math.max(1, x.total); tiles.push('<div class="tile c-tile" style="--c:' + x.label[2] + '"><span class="ink">' + (x.left === 1 ? x.label[0] : x.label[1]) + '</span><b class="num">' + x.left + "<small>/" + x.total + "</small></b><em>over · " + x.planned + " gepland · " + x.used + ' gebruikt</em><div class="abar"><i style="width:' + (x.used / t * 100) + '%"></i><i class="p" style="width:' + (x.planned / t * 100) + '%"></i></div></div>'); });
-      h += K.sh("Tegoed", "", "small") + '<div class="pad"><div class="tiles two">' + tiles.join("") + "</div></div>";
-      h += K.sh("Abonnement en credits", "", "small") + '<div class="pad">' + K.grp(D.billing.anna.agreements.map(function (a) { return K.row({ lead: '<span class="dc-ic" style="--c:' + (a.kind === "abo" ? "var(--group)" : D.CREDIT[a.credit][2]) + '">' + ic(a.kind === "abo" ? "cal" : "check") + "</span>", title: esc(a.name), sub: esc(a.price) + " · " + esc(a.cycle.toLowerCase()), small: a.kind === "pack" ? esc(a.period) : "Volgende betaling " + esc(a.next) }); }), "--inset:60px") + "</div>";
+      h += tegoedParts();
       h += K.sh("Facturen", "", "small") + '<div class="pad">' + K.grp(D.billing.anna.payments.map(function (p) { return K.row({ a: "w-toast", d: { m: "Factuur gedownload" }, title: esc(p[1]), sub: esc(p[0]) + " · " + esc(p[3]), tr: '<b class="num c-amt">' + esc(p[2]) + "</b>" + ic("down", "c-dl") }); })) + "</div>";
       if (!APP) h += K.sh("Mijn trainingen", "", "small") + '<div class="pad">' + K.grp((D.history.anna || []).slice(0, 3).map(function (x, i) { return K.row({ a: "c-workout", d: { v: i }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("dumb") + "</span>", title: esc(x.name), sub: esc(x.d) + " · met " + esc(x.by) }); }), "--inset:60px") + "</div>";
     } else h += '<div class="pad"><div class="card empty">Nog geen abonnement of credits.<div style="margin-top:14px">' + K.btn("Aanbod bekijken", { k: "sec", a: "c-offers" }) + "</div></div></div>";
@@ -869,7 +875,7 @@
         var body = ASTEP[c.astep]();
         return '<div class="screen"><div class="content c-body" style="padding-top:calc(var(--top) + 20px)">' + body + "</div></div>" + (c.dialog ? cdialog() : "");
       }
-      var sub = c.detail || c.workout != null, p = c.workout != null ? workoutView() : c.detail ? detailView() : ATAB[c.atab || "home"]();
+      var sub = c.detail || c.workout != null || c.page, p = c.workout != null ? workoutView() : c.detail ? detailView() : c.page === "tegoed" ? tegoedView() : ATAB[c.atab || "home"]();
       var h;
       if (andr()) {
         h = '<div class="screen root"><div class="ab ' + (sub ? "" : "root") + '">' + (sub ? '<button class="ib" data-a="c-back" aria-label="Terug">' + ic("back") + "</button>" : "") + '<div class="t">' + esc(p.title) + '</div></div><div class="content c-body">' + p.body + "</div></div>";
@@ -918,7 +924,7 @@
     if (up.length) b += nextHero(up[0], up[0][1].type === "priv" ? "Je volgende sessie" : "Je volgende les");
     if (anna) {
       var s = D.bsum("anna"), parts = s.balances.map(function (x) { return x.left + " " + (x.left === 1 ? x.label[0] : x.label[1]); });
-      b += '<div class="pad" style="margin-top:14px">' + weekCard(up) + '<button class="c-balline" data-a="c-atab" data-v="profiel">' + ic("check") + "<span>Tegoed: " + parts.join(" · ") + " over</span>" + ic("chevR") + "</button></div>";
+      b += '<div class="pad" style="margin-top:14px">' + weekCard(up) + '<button class="c-balline" data-a="c-page" data-v="tegoed">' + ic("check") + "<span>Tegoed: " + parts.join(" · ") + " over</span>" + ic("chevR") + "</button></div>";
     } else b += '<div class="pad" style="margin-top:14px"><div class="card empty">Nog geen abonnement of credits.<div style="margin-top:14px">' + K.btn("Aanbod bekijken", { k: "sec", a: "c-offers" }) + "</div></div></div>";
     var rest = up.slice(1, 7);
     if (rest.length) {
@@ -943,6 +949,9 @@
     else hl = '<div class="c-hl"><span class="c-hl-n num">' + (attended().length + 3) + "</span><span><b>keer in november</b><small>Zo vaak was je er deze maand</small></span></div>";
     return '<div class="card c-week"><div class="c-week-h"><div><span class="eb">Deze week</span>' + (nw || !np ? '<b class="num">' + nw + '<small>× geweest</small></b><em>' + (np ? (np === 1 ? "nog 1 gepland" : "nog " + np + " gepland") : "niets meer gepland") + "</em>"
       : '<b class="num">' + np + '<small>× gepland</small></b><em>De eerste: ' + dayName(up[0][0]).toLowerCase() + " " + up[0][1].s + "</em>") + '</div><span class="c-streak">🔥 5 weken op rij</span></div><div class="c-days7">' + days + "</div>" + hl + "</div>";
+  }
+  function tegoedView() {
+    return { title: "Tegoed", body: K.lt("", "Tegoed", "") + tegoedParts().replace(K.sh("Tegoed", "", "small"), "") + '<div class="pad" style="margin-top:16px">' + K.btn("Aanbod bekijken", { k: "sec", blk: true, a: "c-offers" }) + "</div>" + K.foot("Betalingen en facturen staan in Profiel.") };
   }
   ATAB.boeken = function () { var c = C(), t = c.tab; c.tab = "rooster"; var p = CSTEP.app(); c.tab = t; return p; };
   /* Training: the workouts the trainer shared (F045, arrives with M7) */
@@ -986,7 +995,7 @@
 
   A["c-qbook"] = function (d) { var c = C(), it = F.findItem(d.id).it; c.booked[d.id] = true; F.toast("Geboekt: " + it.title + " " + it.s); };
   A["c-qwl"] = function (d) { var c = C(), it = F.findItem(d.id).it; it.waitlist = (it.waitlist || 0) + 1; c.wl[d.id] = it.waitlist; F.toast("Je staat op de wachtlijst: nummer " + it.waitlist); };
-  A["c-atab"] = function (d) { var c = C(); c.atab = d.v; c.detail = null; c.workout = null; c.web = null; R(); };
+  A["c-atab"] = function (d) { var c = C(); c.atab = d.v; c.detail = null; c.workout = null; c.web = null; c.page = null; R(); };
   A["c-offers"] = function () { C().web = "offers"; R(); };
   A["c-webclose"] = function () { C().web = null; R(); };
   A["c-buy"] = function (d) { C().web = null; F.toast("Betaalpagina geopend: " + d.v + " met iDEAL"); };
@@ -1010,7 +1019,8 @@
   A["c-filter"] = function (d) { C().filter = d.v; R(); };
   A["c-tfilter"] = function (d) { C().typeFilter = d.v; R(); };
   A["c-open"] = function (d) { C().detail = d.id; R(); };
-  A["c-back"] = function () { var c = C(); c.detail = null; c.workout = null; R(); };
+  A["c-back"] = function () { var c = C(); if (c.detail || c.workout != null) { c.detail = null; c.workout = null; } else c.page = null; R(); };
+  A["c-page"] = function (d) { C().page = d.v; R(); };
   A["c-book"] = function () { var c = C(); c.booked[c.detail] = true; F.toast("Geboekt. Je krijgt een bevestiging per e-mail."); };
   A["c-wl"] = function () { var c = C(), it = F.findItem(c.detail).it; it.waitlist = (it.waitlist || 0) + 1; c.wl[c.detail] = it.waitlist; F.toast("Je staat op de wachtlijst: nummer " + it.waitlist); };
   A["c-wl-leave"] = function () { var c = C(), it = F.findItem(c.detail).it; it.waitlist = Math.max(0, (it.waitlist || 1) - 1); delete c.wl[c.detail]; F.toast("Je staat niet meer op de wachtlijst"); };

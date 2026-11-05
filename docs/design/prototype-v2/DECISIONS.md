@@ -254,6 +254,7 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
     - weeks in a row;
     - one highlight: a lift the trainer logged (PT), or the month's count (pilates, yoga).
     - It sets no goals Fivvi doesn't have;
+    - The *Tegoed* line opens a **Tegoed screen on top of Home, with a back button** (owner, 5 November 2026): balance tiles, agreements, *Aanbod bekijken*. A shortcut never drops the client in another tab without a way back;
   - *Boeken*: the timetable;
   - ***Activiteit*** instead of *Training* (owner, 5 November 2026: not every studio calls it training; a yoga or pilates studio doesn't log workouts):
     - what the client did: classes and sessions attended, newest first;
