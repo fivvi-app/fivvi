@@ -2049,6 +2049,18 @@ case "$*" in
     esac
     echo "restarting adbd as root" ;;
   "reconnect offline") [ "$FAKE_ADB_RECONNECT" = useless ] || echo 0 >"${state}/offline-left" ;;
+  # FAKE_EMULATOR_LOST=died|hung (#584) with FAKE_EMULATOR_LOST_SWITCHES="<n> ...": the framework restart of the n-th language
+  # switch (counted over the whole run) takes the emulator with it: died, the process exits and adb sees no device; hung,
+  # the process keeps running but never boots again. Either way adb has no device until a new emulator is launched.
+  "shell setprop persist.sys.locale"*)
+    n=$(( $(cat "${state}/switches" 2>/dev/null || echo 0) + 1 )); echo "$n" >"${state}/switches"
+    echo "adb-switch $n" >>"${state}/calls.log"
+    for lost in $FAKE_EMULATOR_LOST_SWITCHES; do
+      [ "$lost" = "$n" ] || continue
+      rm -f "${state}/booted"
+      [ "$FAKE_EMULATOR_LOST" != died ] || kill "$(cat "${state}/pid")"
+    done
+    [ -z "$FAKE_ADB_OFFLINE" ] || echo "$FAKE_ADB_OFFLINE" >"${state}/offline-left" ;;
   "shell setprop"*) [ -z "$FAKE_ADB_OFFLINE" ] || echo "$FAKE_ADB_OFFLINE" >"${state}/offline-left" ;;
   "shell pm path android") echo package:/system/framework/framework-res.apk ;;
   "shell getprop sys.boot_completed") [ -e "${state}/booted" ] && echo 1 || exit 1 ;;
@@ -2056,7 +2068,8 @@ case "$*" in
   "shell settings get global hide_error_dialogs") echo null ;;
   # As the real one: "OK" at once, and the emulator exits a moment later (0.3 s here), not before the command returns.
   # FAKE_STOP=hang (#373): the emulator ignores it and keeps running.
-  "emu kill") [ "$FAKE_STOP" = hang ] || (/bin/sleep 0.3; rm -f "${state}/booted"; kill "$(cat "${state}/pid")") </dev/null >/dev/null 2>&1 & ;;
+  # Without a device it does nothing, as the real one (error: no devices/emulators found).
+  "emu kill") [ "$FAKE_STOP" = hang ] || ! [ -e "${state}/booted" ] || (/bin/sleep 0.3; rm -f "${state}/booted"; kill "$(cat "${state}/pid")") </dev/null >/dev/null 2>&1 & ;;
 esac
 exit 0`,
     );
@@ -2065,7 +2078,7 @@ exit 0`,
       `case "$1" in
   -list-avds) echo fivvi ;;
   -accel-check) ;;
-  *) echo $$ >"${state}/pid"; touch "${state}/booted"; exec /bin/sleep 60 ;;
+  *) echo "$*" >>"${state}/emulator.log"; echo $$ >"${state}/pid"; touch "${state}/booted"; exec /bin/sleep 60 ;;
 esac`,
     );
     mkdirSync(join(base, 'jdk'));
@@ -3944,6 +3957,130 @@ esac`,
       assert.match(run.output, /Maestro failed in: en/);
       assert.equal(run.output.match(/re-running them once/g).length, 1, run.output);
       assert.equal(tests(fake).length, 3, tests(fake).join('\n'));
+    });
+  });
+
+  // #584: CI run 42015816516: after the nl-NL flows the framework restart of the switch to en took the emulator with it (no
+  // device for 300 s, no emulator process left), and the run failed before any en flow. The switch now relaunches the emulator
+  // once, cold, sets it up again and repeats the switch.
+  describe('#584: the emulator does not come back from the framework restart of a language switch', () => {
+    const calls = (fake) => fake.log('calls');
+    const flows = (fake) =>
+      calls(fake)
+        .filter(isFlow)
+        .map((call) => call.match(/android-(\S+)\.xml/)[1]);
+    const launches = (fake) => fake.log('emulator');
+    const lost = (mode, switches) => ({
+      FAKE_EMULATOR_LOST: mode,
+      FAKE_EMULATOR_LOST_SWITCHES: switches,
+      LOCALE_BOOT_TIMEOUT: '4',
+      STALE_EMULATOR_WAIT: '1',
+      DEVICE_STABLE_PROBES: '2',
+    });
+
+    for (const mode of ['died', 'hung']) {
+      it(`relaunches the emulator once, cold, and runs both locales when it ${mode} at the switch to en`, async () => {
+        const fake = checkout();
+
+        const run = await fake.run('scripts/maestro.sh', ['android'], lost(mode, '2'));
+
+        assert.equal(run.status, 0, run.output);
+        assert.match(
+          run.output,
+          /the emulator did not come back after the language switch; relaunching it once, cold/,
+        );
+        assert.equal(run.output.match(/relaunching it once/g).length, 1, run.output);
+        assert.equal(launches(fake).length, 2, launches(fake).join('\n'));
+        assert.match(launches(fake)[1], /(^| )-no-snapshot( |$)/, 'a cold boot');
+        // Each flow run once: nl-NL on the first emulator, en on the relaunched one, after the switch was repeated.
+        assert.deepEqual(flows(fake), ['nl-NL', 'en']);
+        const steps = calls(fake)
+          .filter((call) => /^adb-(switch|root) /.test(call) || isFlow(call))
+          .map((call) => (isFlow(call) ? `flow ${call.match(/android-(\S+)\.xml/)[1]}` : call));
+        assert.deepEqual(steps, [
+          'adb-root 1',
+          'adb-switch 1',
+          'flow nl-NL',
+          'adb-switch 2',
+          'adb-root 2',
+          'adb-switch 3',
+          'flow en',
+        ]);
+        const { pid, booted } = fake.emulator();
+        assert.ok(!booted && !running(pid), 'the relaunched emulator is stopped at the end');
+        assert.ok(fake.log('adb').filter((call) => call === 'emu kill').length >= 1);
+      });
+    }
+
+    it('also recovers an emulator that another process started (CI boots it in a step of its own)', async () => {
+      const fake = checkout({ emulatorRunning: true });
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], lost('hung', '2'));
+
+      assert.equal(run.status, 0, run.output);
+      assert.equal(launches(fake).length, 1, 'only the relaunch started an emulator');
+      assert.deepEqual(flows(fake), ['nl-NL', 'en']);
+      const { pid, booted } = fake.emulator();
+      assert.ok(!booted && !running(pid), 'the relaunched emulator is stopped at the end');
+    });
+
+    it('recovers at the switch to nl-NL, before the first flow, as well', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], lost('died', '1'));
+
+      assert.equal(run.status, 0, run.output);
+      assert.equal(launches(fake).length, 2);
+      assert.deepEqual(flows(fake), ['nl-NL', 'en']);
+    });
+
+    it('installs the APK again on the relaunched emulator, with the error dialogs hidden', async () => {
+      const fake = checkout();
+      const apk = join(fake.repo, 'app-debug.apk');
+      writeFileSync(apk, 'apk');
+
+      const run = await fake.run(
+        'scripts/maestro.sh',
+        ['android', '--apk', apk],
+        lost('died', '2'),
+      );
+
+      assert.equal(run.status, 0, run.output);
+      assert.deepEqual(
+        calls(fake).filter((call) => call.startsWith('adb install ')),
+        [`adb install -r -t ${apk}`, `adb install -r -t ${apk}`],
+      );
+      assert.equal(
+        calls(fake).filter((call) => call === 'adb shell settings put global hide_error_dialogs 1')
+          .length,
+        2,
+      );
+    });
+
+    it('relaunches only once: a second loss fails the run, with no flow of the second locale', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], lost('died', '2 3'));
+
+      assert.notEqual(run.status, 0, run.output);
+      assert.match(
+        run.output,
+        /the emulator did not come back after the language switch to en, even after it was relaunched/,
+      );
+      assert.equal(launches(fake).length, 2, 'one relaunch, no more');
+      assert.deepEqual(flows(fake), ['nl-NL']);
+      const { pid, booted } = fake.emulator();
+      assert.ok(!booted && !running(pid), 'the relaunched emulator is stopped at the end');
+    });
+
+    it('does not relaunch when the emulator comes back from the switch', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], lost('died', ''));
+
+      assert.equal(run.status, 0, run.output);
+      assert.doesNotMatch(run.output, /relaunching/);
+      assert.equal(launches(fake).length, 1);
     });
   });
 

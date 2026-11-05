@@ -33,6 +33,11 @@
 # starts its driver. The runner therefore (1) waits after every switch until the host's adb server sees the device and
 # it answers several probes in a row, reconnecting an offline device, and (2) re-runs once, and says so, the flows that
 # failed with that exact transport error (ADB_DROP_ERROR below), never a flow that failed an assertion.
+#
+# Once (run 42015816516, #584) the emulator did not come back at all from the framework restart of the switch to en: no
+# device for 300 s, no emulator process left. The switch therefore waits LOCALE_BOOT_TIMEOUT seconds for Android to boot
+# again, and if it doesn't relaunches the emulator once, cold, sets it up again and repeats the switch. A second failure
+# fails the run. No flow is re-run for it, and none has started when it happens.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/_android.sh"
@@ -52,6 +57,11 @@ DEVICE_LOCALE=""
 # Seconds to wait for the device to be usable again, and the number of probes (one a second) in a row it must answer.
 DEVICE_READY_TIMEOUT="${DEVICE_READY_TIMEOUT:-120}"
 DEVICE_STABLE_PROBES="${DEVICE_STABLE_PROBES:-5}"
+# Seconds Android gets to boot again after the framework restart of a language switch (it takes a minute or so on CI's 2
+# cores); past that the emulator is relaunched, once (#584). The boot of that relaunch has EMULATOR_BOOT_TIMEOUT.
+LOCALE_BOOT_TIMEOUT="${LOCALE_BOOT_TIMEOUT:-150}"
+# True once the emulator was relaunched after a language switch: a second failure fails the run.
+EMULATOR_RECOVERED=false
 # Set to a function that makes the device usable again (Android: wait_for_device_ready) before a flow is re-run.
 DEVICE_RECOVER=""
 export MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true
@@ -220,12 +230,65 @@ root_device() {
 
 # Root on the Google APIs emulator image, so the device language can be changed without a reboot: a framework restart.
 # The device must be online first (the adb connection may have dropped when the last Maestro run ended, #373), and after
-# the restart it must boot and then stay online.
+# the restart it must boot and then stay online. Returns 1, never exits, when it doesn't: the emulator once did not come
+# back from the restart at all (#584), and switch_device_locale then relaunches it.
 set_device_locale() {
   wait_for_device_ready || return 1
   adb shell "setprop persist.sys.locale $1; setprop sys.boot_completed 0; setprop ctl.restart zygote"
-  wait_for_boot
+  await_boot "$LOCALE_BOOT_TIMEOUT" || { echo "maestro.sh: $BOOT_ERROR after the switch to $1 (${LOCALE_BOOT_TIMEOUT}s)" >&2; return 1; }
   wait_for_device_ready
+}
+
+# Waits until the emulator that did not come back has exited: asks it to (`adb emu kill`), then ends the process, the one
+# this script started or the one android.sh emulator recorded in EMULATOR_PID_FILE, even a hung one.
+STALE_EMULATOR_WAIT="${STALE_EMULATOR_WAIT:-10}"
+stop_stale_emulator() {
+  local pid="$EMULATOR_PID" signal started
+  [ -n "$pid" ] || pid="$(cat "$EMULATOR_PID_FILE" 2>/dev/null || true)"
+  adb emu kill >/dev/null 2>&1 || true
+  for signal in "" TERM KILL; do
+    if [ -z "$pid" ] || ! kill -0 "$pid" 2>/dev/null; then break; fi
+    [ -z "$signal" ] || kill "-$signal" "$pid" 2>/dev/null || true
+    started=$SECONDS
+    while kill -0 "$pid" 2>/dev/null && [ "$((SECONDS - started))" -lt "$STALE_EMULATOR_WAIT" ]; do sleep 0.1; done
+  done
+  [ -z "$EMULATOR_PID" ] || wait "$EMULATOR_PID" 2>/dev/null || true
+  EMULATOR_PID=""
+  rm -f "$EMULATOR_PID_FILE"
+}
+
+# The debug app of the run: the APK of the build job, or the Gradle build installed for the web server's address.
+install_app() {
+  if [ -n "$APK" ]; then adb install -r -t "$APK"
+  else gradle installDebug "-Pfivvi.apiBaseUrl=http://10.0.2.2:$PORT/api/"
+  fi
+}
+
+# The one bounded recovery of #584: the emulator did not boot again after a language switch (CI run 42015816516: no device
+# for 300 s, the process gone). Boots the AVD again, cold: a snapshot would only bring back the state before the switch,
+# and a framework restart that went wrong is not worth another try. The new emulator is this script's, so cleanup stops
+# it. Then the device is set up as at the start of the run. A failure to boot fails the script with the emulator log.
+recover_emulator() {
+  EMULATOR_RECOVERED=true
+  echo "maestro.sh: the emulator did not come back after the language switch; relaunching it once, cold"
+  stop_stale_emulator
+  mkdir -p "$(dirname "$EMULATOR_LOG")"
+  if [ "$AVD_SNAPSHOT" = 1 ]; then launch_emulator -no-snapshot-load -no-snapshot-save; else launch_emulator -no-snapshot; fi
+  wait_for_boot
+  adb shell input keyevent 82
+  root_device
+  hide_error_dialogs
+  install_app # the crash may have lost the app
+  wait_for_device_ready || die "the relaunched emulator is not ready"
+}
+
+# Sets the device language; when the emulator does not come back from it, relaunches it once (recover_emulator) and sets
+# the language again. Whole flows are never re-run for it.
+switch_device_locale() {
+  set_device_locale "$1" && return 0
+  [ "$EMULATOR_RECOVERED" = false ] || die "the emulator did not come back after the language switch to $1, even after it was relaunched"
+  recover_emulator
+  set_device_locale "$1" || die "the emulator did not come back after the language switch to $1, even after it was relaunched"
 }
 
 # After a framework restart Android delivers BOOT_COMPLETED to every app again, which takes a minute or more on CI's 2
@@ -244,7 +307,8 @@ settle_device() {
 # hidden, Android restarts System UI instead. Applies at once. ERROR_DIALOGS keeps the device's own value (null: unset).
 ERROR_DIALOGS=""
 hide_error_dialogs() {
-  ERROR_DIALOGS="$(adb shell settings get global hide_error_dialogs | tr -d '\r')"
+  # Only the first time: after a relaunch (recover_emulator) the setting is already ours.
+  [ -n "$ERROR_DIALOGS" ] || ERROR_DIALOGS="$(adb shell settings get global hide_error_dialogs | tr -d '\r')"
   adb shell settings put global hide_error_dialogs 1
 }
 
@@ -392,6 +456,9 @@ cleanup() {
   stop_android
 }
 
+# The APK installed by --apk, installed again on an emulator relaunched after a language switch (empty: built by Gradle).
+APK=""
+
 cmd_android() {
   local apk=""
   case "${1:-}" in
@@ -413,15 +480,14 @@ cmd_android() {
   DEVICE_RECOVER=wait_for_device_ready
   if [ -n "$apk" ]; then
     [ -f "$apk" ] || die "no APK at $apk — run scripts/android.sh maestro-apk first"
-    adb install -r -t "$apk"
-  else
-    gradle installDebug "-Pfivvi.apiBaseUrl=http://10.0.2.2:$PORT/api/"
+    APK="$apk"
   fi
+  install_app
 
   local locale failed=""
   for locale in $LOCALES; do
     echo "Maestro on Android in $locale"
-    set_device_locale "$locale"
+    switch_device_locale "$locale"
     settle_device
     run_locale "$locale" "android-$locale" maestro || failed="$failed $locale"
   done
