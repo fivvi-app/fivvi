@@ -53,8 +53,8 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| [F015](https://github.com/fivvi-app/fivvi/issues/424) | Locations: every workspace has one location of its own from the start, named after it and of the type *Eigen locatie*, which the Owner names and gives an optional Dutch address under Instellingen → Locatie (web), the street and city looked up from the postcode and house number (PDOK, through the API); every team member reads it through the API | IMPLEMENTED | Must | M3 (one location; more after G4) (+ iOS/Android: shown) | F002 | ✅ | ✅ | §12 (go-live: one location per workspace; after go-live: more locations and the other types) |
-| [F016](https://github.com/fivvi-app/fivvi/issues/424) | Organization Default Location: the workspace's one location is its default (`isDefault` in the API, `defaultLocation` in `packages/domain`), the one every session takes so nobody chooses | IMPLEMENTED | Must | M3 (+ iOS/Android: shown) | F015 | ✅ | ✅ | §13 (the workspace's one location) |
+| F015 | Locations | IN PROGRESS | Must | M3 (one location; more after G4) (+ iOS/Android: shown) | F002 | ⬜ | ⬜ | §12 (go-live: one location per workspace; after go-live: more locations and the other types) |
+| F016 | Organization Default Location | PLANNED | Must | M3 (+ iOS/Android: shown) | F015 | ⬜ | ⬜ | §13 (the workspace's one location) |
 | F017 | Trainer Locations | PLANNED | Must | After G4, with M7 (+ iOS/Android) | F005, F015 | ⬜ | ⬜ | §13 |
 | F018 | Client Preferred Location | PLANNED | Must | After G4, with M7 (+ iOS/Android) | F006, F015 | ⬜ | ⬜ | §14 |
 | F019 | Automatic Location Selection | PLANNED | Must | After G4, with M7 (v1.19) (+ iOS/Android) | F016, F017, F018 | ⬜ | ⬜ | §2.6, §13 |
