@@ -11,7 +11,7 @@ This is the record of what the owner and the agent decided while clicking throug
 
 ## 1. How we decide UI
 
-- **Design first, where design matters.** A new screen or flow, a visible change to one, or a product question a screen makes concrete is talked over in the clickable prototype before a spec is written (owner, 5 November 2026). Work without a screen, and small changes that follow a pattern already here, skip it. The agent builds the proposal in the prototype, the owner clicks through it and comments, and the result is recorded here. Then the spec follows. See [`docs/agents/design.md`](../../agents/design.md).
+- **Design first, where design matters.** A new screen or flow, a visible change to one, or a product question a screen makes concrete is talked over in the clickable prototype before a spec is written (owner, 5 November 2026). Work without a screen, and small changes that follow a pattern already here, skip it. The agent builds the proposal in the prototype, the owner clicks through it and comments, and the result is recorded here. Then the spec follows. See [`DESIGN.md`](../../../DESIGN.md).
 - The prototype is throwaway code. It shows the look and the flow, not the architecture.
 
 ## 2. Platforms and visual direction
@@ -327,7 +327,7 @@ The prototype had to choose something for these. They are **not decided**; each 
 1. **Trainers and balances:** trainers see their clients' credit balances, but no money (`QC12`).
 2. ***Aanbod sturen*:** it sends the client a link to confirm and pay.
 3. **Changing a series' time:** bookings stay, and the clients get an email.
-4. **Renewal reminder:** does Fivvi also email the client itself when the renewal window opens, or only when the owner sends the offer? (#468, question 2)
+4. **Renewal reminder:** `PRODUCT.md §90` already promises the client "a reminder and a one-tap renewal" when an agreement stops. Open: does it use the same window as the owner's suggestion (per offer, default 30 days)? The prototype has no client screen for it yet (#468, question 2).
 5. **Duo sessions:**
    - each client uses one of their own privécredits;
    - the trainer plans it, and clients don't book a duo themselves;
@@ -353,7 +353,7 @@ The prototype had to choose something for these. They are **not decided**; each 
 | Document | What changes | Resolved in |
 |---|---|---|
 | [ADR-003](../../decisions/ADR-003-native-mobile-apps.md) | iOS minimum 17.0 → **26** | [ADR-029](../../decisions/ADR-029-design-v2.md) (this PR) |
-| [ADR-015](../../decisions/ADR-015-ui-foundation.md), [`visual-direction.md`](../visual-direction.md), [`packages/design-tokens`](../../../packages/design-tokens/README.md) | The v1 palette (muted violet) and look are replaced by [§2](#2-platforms-and-visual-direction). The token values change in the package | ADR-029; `visual-direction.md` (this PR); the token change is the Design v2 foundation spec [#590](https://github.com/fivvi-app/fivvi/issues/590) |
+| [ADR-015](../../decisions/ADR-015-ui-foundation.md), [`DESIGN.md`](../../../DESIGN.md), [`visual-direction.md`](../visual-direction.md), [`packages/design-tokens`](../../../packages/design-tokens/README.md) | The v1 palette (muted violet) and look are replaced by [§2](#2-platforms-and-visual-direction). The token values change in the package | ADR-029; `DESIGN.md` and `visual-direction.md` (this PR); the token change is the Design v2 foundation spec [#590](https://github.com/fivvi-app/fivvi/issues/590) |
 | [Flow 02](../flows/02-trainer-today.md), Vandaag | Summary and layout as in [§3](#3-fivvi-pro-ios-and-android): no rings, the *Mijn dag* card, lanes for the whole studio | F013 [#457](https://github.com/fivvi-app/fivvi/issues/457) |
 | [Flow 05](../flows/05-live-workout-logging.md), WL-02 | Difficulty as an emoji with (i), not "the word is the answer". Compact set rows. Swipe to delete sets. Reordering stays post-MVP (`§54`) | F043, F044 specs (to write) |
 | [IA §5.2](../information-architecture.md#52-platform-conventions-both-apps) | Android "no swipe actions by default" now has one exception: swipe to delete a set in the logger (with confirmation) | F043 spec (to write) |

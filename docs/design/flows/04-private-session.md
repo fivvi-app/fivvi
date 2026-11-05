@@ -1,5 +1,7 @@
 # Flow 04: Create / reschedule a private session (with location inference)
 
+> **Design v2 (5 November 2026, ADR-029).** The look of the session screen and its forms is decided in [prototype v2](../prototype-v2/DECISIONS.md#sessie-td-02), including duo sessions ([#586](https://github.com/fivvi-app/fivvi/issues/586)). Where this flow and `DECISIONS.md` disagree on the look, `DECISIONS.md` wins.
+
 **Choose client → pick date and time → location is filled in (asked only when ambiguous) → save → client informed**
 
 | | |
