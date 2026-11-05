@@ -541,102 +541,160 @@
     w.dialog = null; w.err = {}; F.toast(msg);
   };
 
-  /* ================= Client web (round 3) ================= */
+  /* ================= Client web (round 3) =================
+     A mobile website, built from the same parts as Fivvi Pro: large titles, glass bars, grouped lists,
+     Calendar-style rows and the gradient "next" card. */
+  var K = F.kit;
   function client() {
-    var c = C(), h = '<div class="c-web">';
-    h += '<header class="c-top"><span class="c-logo">' + F.initials(wsName()) + '</span><b>' + esc(wsName()) + '</b><span class="c-sp"></span><div class="c-lang" translate="no"><button class="' + (F.PREF.lang === "nl" ? "on" : "") + '" data-a="c-lang" data-v="nl">NL</button><button class="' + (F.PREF.lang === "en" ? "on" : "") + '" data-a="c-lang" data-v="en">EN</button></div></header>';
-    var body = (CSTEP[c.step] || CSTEP.app)();
-    h += '<div class="c-body">' + body + "</div>";
-    if (c.step === "app") h += '<nav class="c-nav">' + [["rooster", "Rooster", "cal"], ["agenda", "Mijn agenda", "today"], ["profiel", "Profiel", "me"]].map(function (t) { return '<button class="' + (c.tab === t[0] && !c.detail && !c.workout ? "on" : "") + '" data-a="c-tab" data-v="' + t[0] + '">' + ic(t[2]) + "<span>" + t[1] + "</span></button>"; }).join("") + "</nav>";
+    var c = C();
+    var lang = '<div class="gb glass c-lng" translate="no">' + ["nl", "en"].map(function (l) { return '<button class="' + (F.PREF.lang === l ? "on" : "") + '" data-a="c-lang" data-v="' + l + '" aria-pressed="' + (F.PREF.lang === l) + '">' + l.toUpperCase() + "</button>"; }).join("") + "</div>";
+    if (c.step !== "app") return '<div class="screen"><div class="nb"><span class="sp"></span>' + lang + '</div><div class="content c-body" style="padding-top:calc(var(--top) + 20px)">' + (CSTEP[c.step] || CSTEP.link)() + "</div></div>";
+    var p = CSTEP.app(), sub = c.detail || c.workout != null;
+    var lead = sub ? '<button class="gb glass back" data-a="c-back" aria-label="Terug">' + ic("chevL") + "</button>"
+      : '<span class="gb glass c-studio"><span class="c-mark">' + F.initials(wsName()) + "</span><b>" + esc(wsName()) + "</b></span>";
+    var h = '<div class="screen root c-web"><div class="nb">' + lead + '<span class="sp"></span>' + lang + '<div class="t">' + esc(p.title) + '</div></div><div class="content c-body">' + p.body + "</div></div>";
+    h += '<div class="fade-b"></div><nav class="tabbar" aria-label="Tabs"><div class="tabs glass">' + [["rooster", "Rooster", "cal"], ["agenda", "Mijn agenda", "today"], ["profiel", "Profiel", "me"]].map(function (t) { var on = c.tab === t[0]; return '<button class="tab ' + (on ? "on" : "") + '" data-a="c-tab" data-v="' + t[0] + '" aria-current="' + (on ? "page" : "false") + '">' + ic(t[2]) + "<span>" + t[1] + "</span></button>"; }).join("") + "</div></nav>";
     if (c.dialog) h += cdialog();
-    return h + "</div>";
+    return h;
   }
+  /* the app's form field, with the client web's errors */
+  function cfield(l, k, input) { var e = C().err && C().err[k]; return '<label class="fld' + (e ? " invalid" : "") + '"><span class="fl">' + l + "</span>" + input + (e ? '<small class="err" role="alert">' + ic("warn") + esc(e) + "</small>" : "") + "</label>"; }
+  function cbtn(t, a, o) { o = o || {}; return K.btn(t, { k: o.k || "pri", blk: true, a: a, d: o.d, dis: o.dis, i: o.i }); }
+  function intro(icon, h1, p) { return '<div class="c-intro">' + icon + "<h1>" + h1 + "</h1><p>" + p + "</p></div>"; }
+  function mark(lg) { return '<div class="appicon c-appicon' + (lg ? "" : " sm") + '">' + F.initials(wsName()) + "</div>"; }
   var CSTEP = {};
   CSTEP.link = function () {
-    return '<div class="c-hero"><span class="c-logo lg">' + F.initials(wsName()) + "</span><h1>Meedoen met " + esc(wsName()) + "</h1><p>Log in of maak een account. Daarna vraag je " + esc(wsName()) + " of je mee mag doen. Zodra de studio je goedkeurt, zie je het rooster en kun je boeken.</p></div>" +
-      '<div class="c-pad">' + cfield("E-mail", "email", '<input data-cin="email" type="email" autocomplete="email" placeholder="naam@voorbeeld.nl" value="' + esc(C().email) + '">') + cbtn("Doorgaan", "c-next") + '<p class="c-muted">Je krijgt een code van 6 cijfers per e-mail. Geen wachtwoord nodig.</p></div>';
+    return intro(mark(true), "Meedoen met " + esc(wsName()), "Log in of maak een account. Daarna vraag je " + esc(wsName()) + " of je mee mag doen. Zodra de studio je goedkeurt, zie je het rooster en kun je boeken.") +
+      '<div class="pad stack"><div class="fgrp">' + cfield("E-mail", "email", '<input data-cin="email" type="email" autocomplete="email" placeholder="naam@voorbeeld.nl" value="' + esc(C().email) + '">') + "</div>" + cbtn("Doorgaan", "c-next") + "</div>" + K.foot("Je krijgt een code van 6 cijfers per e-mail. Geen wachtwoord nodig.");
   };
   CSTEP.code = function () {
     var c = C(), digits = (c.code + "      ").slice(0, 6).split("");
-    return '<div class="c-hero"><h1>Check je e-mail</h1><p>We hebben een code gestuurd naar <b>' + esc(c.email) + '</b>.</p></div><div class="c-pad"><label style="display:block;position:relative"><div class="code" id="ccode">' + digits.map(function (x, i) { return '<span class="' + (i === c.code.length ? "cur" : "") + '">' + esc(x.trim()) + "</span>"; }).join("") + '</div><input data-cin="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" value="' + esc(c.code) + '" aria-label="Code van 6 cijfers" style="position:absolute;inset:0;opacity:0;width:100%"></label>' + cbtn("Inloggen", "c-signin", { dis: c.code.length < 6 }) + '<p class="c-muted">In dit prototype werkt elke code van 6 cijfers.</p></div>';
+    return intro(mark(false), "Check je e-mail", 'We hebben een code gestuurd naar <b style="color:var(--label)">' + esc(c.email) + "</b>.") +
+      '<label style="display:block;position:relative"><div class="code" id="ccode">' + digits.map(function (x, i) { return '<span class="' + (i === c.code.length ? "cur" : "") + '">' + esc(x.trim()) + "</span>"; }).join("") + '</div><input data-cin="code" inputmode="numeric" autocomplete="one-time-code" maxlength="6" value="' + esc(c.code) + '" aria-label="Code van 6 cijfers" style="position:absolute;inset:0;opacity:0;width:100%"></label>' +
+      '<div class="pad stack" style="margin-top:20px">' + cbtn("Inloggen", "c-signin", { dis: c.code.length < 6 }) + K.btn("Andere e-mail gebruiken", { k: "ghost", blk: true, a: "c-reset" }) + "</div>" + K.foot("In dit prototype werkt elke code van 6 cijfers.");
   };
   CSTEP.request = function () {
     var c = C();
-    return '<div class="c-hero"><h1>Vraag om mee te doen</h1><p>' + esc(wsName()) + " ziet je naam en e-mailadres en beslist of je mee mag doen.</p></div>" + '<div class="c-pad">' + cfield("Je naam", "name", '<input data-cin="name" placeholder="Voor- en achternaam" value="' + esc(c.name) + '">') + cbtn("Verzoek versturen", "c-request") + "</div>";
+    return intro(mark(false), "Vraag om mee te doen", esc(wsName()) + " ziet je naam en e-mailadres en beslist of je mee mag doen.") +
+      '<div class="pad stack"><div class="fgrp">' + cfield("Naam", "name", '<input data-cin="name" type="text" placeholder="Voor- en achternaam" value="' + esc(c.name) + '">') + "</div>" + cbtn("Verzoek versturen", "c-request") + "</div>";
   };
   CSTEP.waiting = function () {
-    return '<div class="c-hero"><span class="c-wait">' + ic("clock") + "</span><h1>Wachten op " + esc(wsName()) + "</h1><p>Je verzoek is verstuurd. Je krijgt een e-mail zodra de studio je heeft goedgekeurd.</p></div>" +
-      '<div class="c-pad"><div class="c-proto">' + "<b>Prototype</b><span>Doe alsof de eigenaar je verzoek goedkeurt:</span>" + cbtn("Eigenaar keurt goed", "c-approved", { k: "sec" }) + "</div></div>";
+    return intro('<span class="c-wait">' + ic("clock") + "</span>", "Wachten op " + esc(wsName()), "Je verzoek is verstuurd. Je krijgt een e-mail zodra de studio je heeft goedgekeurd.") +
+      '<div class="pad"><div class="card c-proto"><b>Prototype</b><span>Doe alsof de eigenaar je verzoek goedkeurt:</span>' + cbtn("Eigenaar keurt goed", "c-approved", { k: "sec" }) + "</div></div>";
   };
-  function cfield(l, k, input) { var e = C().err && C().err[k]; return '<label class="c-field' + (e ? " invalid" : "") + '"><span>' + l + "</span>" + input + (e ? '<small class="err" role="alert">' + ic("warn") + esc(e) + "</small>" : "") + "</label>"; }
-  function cbtn(t, a, o) { o = o || {}; return '<button class="c-btn ' + (o.k || "") + '" data-a="' + a + '"' + dat(o.d) + (o.dis ? " disabled" : "") + ">" + (o.i ? ic(o.i) : "") + t + "</button>"; }
   function timetable(k) { var its = F.dayItems(k).filter(function (i) { return i.ws === "sf" && i.type !== "priv"; }); if (k === F.TODAY && !F.SOLO()) its = its.concat(F.extra().filter(function (i) { return i.type !== "priv"; })); return its.sort(function (a, b) { return F.mins(a.s) - F.mins(b.s); }); }
   function cState(it) { var c = C(); if (c.booked[it.id]) return "booked"; if (c.wl[it.id]) return "wl"; return it.people.length >= it.cap ? "full" : "open"; }
+  function spotsLeft(it) { return it.cap - it.people.length - (C().booked[it.id] ? 1 : 0); }
+  function statePill(it) {
+    var st = cState(it), left = spotsLeft(it);
+    if (st === "booked") return '<span class="pill tint c-pill" style="--c:var(--ok)">' + ic("check") + "Geboekt</span>";
+    if (st === "wl") return '<span class="pill tint" style="--c:var(--gym)">Wachtlijst #' + C().wl[it.id] + "</span>";
+    if (st === "full") return '<span class="pill strong">Vol</span>';
+    return '<span class="pill' + (left <= 2 ? ' tint" style="--c:var(--accent)' : "") + '">' + (left === 1 ? "Nog 1 plek" : "Nog " + left + " plekken") + "</span>";
+  }
+  function who(it) { return it.type === "gym" ? "Zelf trainen" : it.trainer || (it.trainer === "" ? "Trainer volgt nog" : ME()); }
+  function crow(it, k, tr) {
+    var ds = it.type === "group" ? desc(it.title) : null;
+    return K.row({ a: "c-open", d: { id: it.id }, style: "--c:" + F.CV[it.type], lead: '<div class="t"><b>' + it.s + "</b><span>" + it.e + '</span></div><i class="bar"></i>',
+      title: esc(it.type === "priv" ? "Privésessie" : it.title), sub: it.type === "priv" ? "Met " + esc(who(it).split(" ")[0]) + " · " + esc(shortLoc(it.loc)) : esc(who(it)),
+      small: ds ? '<span translate="no"' + (ds.nl ? ' lang="nl"' : "") + ">" + esc(ds.t) + "</span>" : "", tr: tr, cls: "c-row" });
+  }
+  function dayName(k) { var d = F.parse(k), t = F.key(F.add(F.NOW, 1)); return k === F.TODAY ? "Vandaag" : k === t ? "Morgen" : F.longDate(d); }
+  /* the client's next booking: the same gradient card as Volgende on Vandaag in the app */
+  function upcoming() {
+    var c = C(), rows = [];
+    for (var i = 0; i <= 7; i++) { var k = F.key(F.add(F.NOW, i)); timetable(k).forEach(function (it) { if (c.booked[it.id] || c.wl[it.id]) rows.push([k, it]); }); if (c.who === "anna") F.dayItems(k).forEach(function (it) { if (it.type === "priv" && it.client === "anna") rows.push([k, it]); }); }
+    return rows.filter(function (r) { return !(r[0] === F.TODAY && F.isPast(r[1], r[0])); }).sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : F.mins(a[1].s) - F.mins(b[1].s); });
+  }
+  function nextHero(r, cap) {
+    var it = r[1];
+    return '<div class="pad" style="margin-bottom:6px"><div class="hero" style="--c:' + F.CV[it.type] + '"><div class="cap">' + cap + "</div><h3>" + esc(it.type === "priv" ? "Privésessie met " + who(it).split(" ")[0] : it.title) + "</h3><p>" + dayName(r[0]) + " · " + it.s + "–" + it.e + "</p><p>" + esc(it.type === "priv" ? shortLoc(it.loc) : who(it) + " · " + shortLoc(it.loc)) + '</p><div class="acts"><button class="gl glass" data-a="c-open" data-id="' + it.id + '">' + ic("chevR") + "Bekijken</button></div></div></div>";
+  }
   CSTEP.app = function () {
     var c = C();
     if (c.workout != null) return workoutView();
     if (c.detail) return detailView();
     if (c.tab === "rooster") {
-      var days = [0, 1, 2, 3, 4, 5, 6].map(function (i) { return F.add(F.NOW, i); }), h = '<div class="c-days">' + days.map(function (d) { var k = F.key(d); return '<button class="' + (k === c.day ? "on" : "") + '" data-a="c-day" data-v="' + k + '"><span>' + (k === F.TODAY ? "Vandaag" : F.DS[d.getDay()]) + "</span><b>" + d.getDate() + "</b></button>"; }).join("") + "</div>";
       var types = []; if (F.HAS("group")) types.push(["group", "Groepslessen"]); if (F.HAS("gym")) types.push(["gym", "Open Gym"]);
-      if (types.length > 1) h += '<div class="c-filter">' + [["all", "Alles"]].concat(types).map(function (t) { return '<button class="' + (c.filter === t[0] ? "on" : "") + '" data-a="c-filter" data-v="' + t[0] + '">' + t[1] + "</button>"; }).join("") + "</div>";
-      var its = timetable(c.day).filter(function (i) { return (c.filter === "all" || i.type === c.filter) && !(c.day === F.TODAY && F.isPast(i, c.day)); });
-      if (!types.length) h += '<div class="c-empty">' + esc(wsName()) + " heeft geen lessen om te boeken. Je trainer plant je privésessies; die zie je in Mijn agenda.</div>";
-      else if (!its.length) h += '<div class="c-empty">Geen lessen op deze dag.</div>';
-      else h += '<div class="c-list">' + its.map(function (it) {
-        var st = cState(it), left = it.cap - it.people.length - (c.booked[it.id] ? 1 : 0), ds = it.type === "group" ? desc(it.title) : null;
-        return '<button class="c-card" data-a="c-open" data-id="' + it.id + '" style="--c:' + F.CV[it.type] + '"><span class="c-time"><b>' + it.s + "</b><span>" + it.e + '</span></span><span class="c-main"><b>' + esc(it.title) + "</b><span>" + (it.type === "gym" ? "Zelf trainen" : esc(it.trainer || (it.trainer === "" ? "Trainer volgt nog" : ME()))) + "</span>" + (ds ? '<small translate="no"' + (ds.nl ? ' lang="nl"' : "") + ">" + esc(ds.t) + "</small>" : "") + '</span><span class="c-state s-' + st + '">' + (st === "booked" ? ic("check") + "Geboekt" : st === "wl" ? "Wachtlijst #" + c.wl[it.id] : st === "full" ? "Vol" : left === 1 ? "Nog 1 plek" : "Nog " + left + " plekken") + "</span></button>";
+      var b = K.lt(F.longDate(F.NOW), "Rooster", "");
+      if (!types.length) return { title: "Rooster", body: b + '<div class="pad"><div class="card empty">' + esc(wsName()) + " heeft geen lessen om te boeken. Je trainer plant je privésessies; die zie je in Mijn agenda.</div></div>" };
+      var nx = upcoming().filter(function (r) { return r[1].type !== "priv" && c.booked[r[1].id]; })[0];
+      if (nx) b += nextHero(nx, "Je volgende les");
+      /* the week strip from Agenda: one dot per class that day */
+      b += '<div class="wk c-wk">' + [0, 1, 2, 3, 4, 5, 6].map(function (i) {
+        var d = F.add(F.NOW, i), k = F.key(d), its = timetable(k);
+        return '<div><div class="d">' + F.DS[d.getDay()] + '</div><button class="n ' + (k === F.TODAY ? "today " : "") + (k === c.day ? "sel" : "") + '" data-a="c-day" data-v="' + k + '" aria-label="' + F.longDate(d) + '">' + d.getDate() + '</button><div class="dots">' + its.slice(0, 3).map(function (x) { return '<i style="--c:' + (c.booked[x.id] ? "var(--ok)" : F.CV[x.type]) + '"></i>'; }).join("") + "</div></div>";
       }).join("") + "</div>";
-      return h;
+      if (types.length > 1) b += '<div class="pad" style="margin-top:10px">' + K.seg([["all", "Alles"]].concat(types), c.filter, "c-filter") + "</div>";
+      var its = timetable(c.day).filter(function (i) { return (c.filter === "all" || i.type === c.filter) && !(c.day === F.TODAY && F.isPast(i, c.day)); });
+      b += K.sh(dayName(c.day) + (its.length ? " · " + its.length + (its.length === 1 ? " les" : " lessen") : ""), "", "small");
+      b += '<div class="pad">' + (its.length ? K.grp(its.map(function (it) { return crow(it, c.day, statePill(it)); })) : '<div class="card empty">Geen lessen meer op deze dag.</div>') + "</div>";
+      b += K.foot("Gratis annuleren tot 12 uur voor de start.");
+      return { title: "Rooster", body: b };
     }
     if (c.tab === "agenda") {
-      var rows = [];
-      for (var i = 0; i <= 7; i++) { var k = F.key(F.add(F.NOW, i)); timetable(k).forEach(function (it) { if (c.booked[it.id] || c.wl[it.id]) rows.push([k, it]); }); if (c.who === "anna") F.dayItems(k).forEach(function (it) { if (it.type === "priv" && it.client === "anna" && !(k === F.TODAY && F.isPast(it, k))) rows.push([k, it]); }); }
-      rows.sort(function (a, b) { return a[0] < b[0] ? -1 : a[0] > b[0] ? 1 : F.mins(a[1].s) - F.mins(b[1].s); });
-      var tf = c.typeFilter;
-      var hh = '<h2 class="c-h">Aankomend</h2>' + (F.MIXED() || c.who === "anna" ? '<div class="c-filter">' + [["all", "Alles"], ["group", "Lessen"], ["priv", "Privé"]].map(function (t) { return '<button class="' + (tf === t[0] ? "on" : "") + '" data-a="c-tfilter" data-v="' + t[0] + '">' + t[1] + "</button>"; }).join("") + "</div>" : "");
-      var list = rows.filter(function (r) { return tf === "all" || (tf === "priv" ? r[1].type === "priv" : r[1].type !== "priv"); });
-      hh += list.length ? '<div class="c-list">' + list.map(function (r) { var it = r[1]; return '<button class="c-card" data-a="c-open" data-id="' + it.id + '" style="--c:' + F.CV[it.type] + '"><span class="c-time"><b>' + F.DS[F.parse(r[0]).getDay()] + " " + F.parse(r[0]).getDate() + "</b><span>" + it.s + '</span></span><span class="c-main"><b>' + esc(it.type === "priv" ? "Privésessie" : it.title) + "</b><span>" + esc(it.type === "priv" ? "Met " + (it.trainer || ME()).split(" ")[0] + " · " + shortLoc(it.loc) : shortLoc(it.loc)) + '</span></span><span class="c-state s-' + (c.wl[it.id] ? "wl" : "booked") + '">' + (c.wl[it.id] ? "Wachtlijst #" + c.wl[it.id] : it.type === "priv" ? F.TYPE.priv.replace("sessie", "") : "Geboekt") + "</span></button>"; }).join("") + "</div>" : '<div class="c-empty">Nog niets geboekt. Kies een les in het Rooster.</div>';
-      return hh;
+      var tf = c.typeFilter, all = upcoming(), list = all.filter(function (r) { return tf === "all" || (tf === "priv" ? r[1].type === "priv" : r[1].type !== "priv"); });
+      var h = K.lt("", "Mijn agenda", all.length ? (all.length === 1 ? "1 afspraak" : all.length + " afspraken") + " de komende week" : "");
+      if (all.length && (F.MIXED() || c.who === "anna")) h += '<div class="pad" style="margin-bottom:4px">' + K.seg([["all", "Alles"], ["group", "Lessen"], ["priv", "Privé"]], tf, "c-tfilter") + "</div>";
+      if (!list.length) return { title: "Mijn agenda", body: h + '<div class="pad"><div class="card empty">Nog niets geboekt.<div style="margin-top:14px">' + K.btn("Naar het rooster", { k: "sec", a: "c-tab", d: { v: "rooster" } }) + "</div></div></div>" };
+      var days = []; list.forEach(function (r) { if (!days.length || days[days.length - 1][0] !== r[0]) days.push([r[0], []]); days[days.length - 1][1].push(r[1]); });
+      days.forEach(function (d) { h += K.sh(dayName(d[0]), "", "small") + '<div class="pad">' + K.grp(d[1].map(function (it) { return crow(it, d[0], c.wl[it.id] ? '<span class="pill tint" style="--c:var(--gym)">Wachtlijst #' + c.wl[it.id] + "</span>" : ""); })) + "</div>"; });
+      return { title: "Mijn agenda", body: h };
     }
-    var me = c.who === "anna" ? F.CLIENT.anna : { name: c.name || "Kim de Graaf", email: c.email || "kim@example.com" };
-    return '<div class="c-prof">' + '<span class="c-logo lg" style="--c:var(--priv)">' + F.initials(me.name) + "</span><h1>" + esc(me.name) + "</h1><p>" + esc(me.email) + "</p></div>" +
-      '<div class="c-pad"><div class="c-box"><b>Je tegoed</b>' + (c.who === "anna" ? D.bsum("anna").balances.map(function (x) {
-        /* one block per kind: the big number is what's left, the bar and the line say what's planned and used */
-        var t = Math.max(1, x.total);
-        return '<div class="c-bal" style="--c:' + x.label[2] + '"><div class="c-bal-h"><span class="c-bal-n">' + x.left + "</span><span><b>" + (x.left === 1 ? x.label[0] : x.label[1]) + " over</b><small>" + x.planned + " gepland · " + x.used + " gebruikt · van " + x.total + "</small></span></div>" +
-          '<div class="abar"><i style="width:' + (x.used / t * 100) + '%"></i><i class="p" style="width:' + (x.planned / t * 100) + '%"></i></div></div>';
-      }).join("") + '<div class="c-agrs">' + D.billing.anna.agreements.map(function (a) { return '<div class="c-agr"><b>' + esc(a.name) + "</b><span>" + esc(a.price) + " " + esc(a.cycle.toLowerCase()) + " · " + (a.kind === "pack" ? esc(a.period) : "volgende betaling " + esc(a.next)) + "</span></div>"; }).join("") + "</div>" : "<p>Nog geen abonnement of credits.</p>") + "</div>" +
-      (c.who === "anna" ? '<div class="c-box"><b>Facturen</b>' + D.billing.anna.payments.map(function (p) { return '<button class="c-row" data-a="w-toast" data-m="Factuur gedownload"><span><b>' + esc(p[5]) + "</b><span>" + esc(p[0]) + " · " + esc(p[2]) + "</span></span>" + ic("chevR") + "</button>"; }).join("") + "</div>" : "") +
-      (c.who === "anna" ? '<div class="c-box"><b>Mijn trainingen</b>' + (D.history.anna || []).slice(0, 3).map(function (x, i) { return '<button class="c-row" data-a="c-workout" data-v="' + i + '"><span><b>' + esc(x.name) + "</b><span>" + esc(x.d) + " · " + esc(x.by) + "</span></span>" + ic("chevR") + "</button>"; }).join("") + "</div>" : "") +
-      '<div class="c-box"><b>Taal</b><div class="c-filter" style="margin:8px 0 0">' + [["nl", "Nederlands"], ["en", "English"]].map(function (l) { return '<button translate="no" class="' + (F.PREF.lang === l[0] ? "on" : "") + '" data-a="c-lang" data-v="' + l[0] + '">' + l[1] + "</button>"; }).join("") + "</div></div>" +
-      cbtn("Uitloggen", "c-signout", { k: "sec" }) + "</div>";
+    return { title: "Profiel", body: profile() };
   };
+  function profile() {
+    var c = C(), anna = c.who === "anna", me = anna ? F.CLIENT.anna : { name: c.name || "Kim de Graaf", email: c.email || "kim@example.com" };
+    var h = '<div class="c-me">' + K.avatar(me.name, anna ? me.c : "var(--priv)", "lg") + "<h1>" + esc(me.name) + "</h1><p>" + esc(me.email) + "</p></div>";
+    if (anna) {
+      var s = D.bsum("anna"), tiles = [];
+      /* Fitness-style tiles: the big number is what's left; the bar shows used and planned */
+      s.abos.forEach(function (a) { var left = Math.max(0, a.perWeek - a.usedWeek); tiles.push('<div class="tile c-tile" style="--c:var(--group)"><span class="ink">Deze week</span><b class="num">' + left + '<small>/' + a.perWeek + "</small></b><em>" + (left === 1 ? "les over" : "lessen over") + '</em><div class="abar"><i style="width:' + (a.usedWeek / a.perWeek * 100) + '%"></i></div></div>'); });
+      s.balances.forEach(function (x) { var t = Math.max(1, x.total); tiles.push('<div class="tile c-tile" style="--c:' + x.label[2] + '"><span class="ink">' + (x.left === 1 ? x.label[0] : x.label[1]) + '</span><b class="num">' + x.left + "<small>/" + x.total + "</small></b><em>over · " + x.planned + " gepland · " + x.used + ' gebruikt</em><div class="abar"><i style="width:' + (x.used / t * 100) + '%"></i><i class="p" style="width:' + (x.planned / t * 100) + '%"></i></div></div>'); });
+      h += K.sh("Tegoed", "", "small") + '<div class="pad"><div class="tiles two">' + tiles.join("") + "</div></div>";
+      h += K.sh("Abonnement en credits", "", "small") + '<div class="pad">' + K.grp(D.billing.anna.agreements.map(function (a) { return K.row({ lead: '<span class="dc-ic" style="--c:' + (a.kind === "abo" ? "var(--group)" : D.CREDIT[a.credit][2]) + '">' + ic(a.kind === "abo" ? "cal" : "check") + "</span>", title: esc(a.name), sub: esc(a.price) + " · " + esc(a.cycle.toLowerCase()), small: a.kind === "pack" ? esc(a.period) : "Volgende betaling " + esc(a.next) }); }), "--inset:60px") + "</div>";
+      h += K.sh("Facturen", "", "small") + '<div class="pad">' + K.grp(D.billing.anna.payments.map(function (p) { return K.row({ a: "w-toast", d: { m: "Factuur gedownload" }, title: esc(p[1]), sub: esc(p[0]) + " · " + esc(p[3]), tr: '<b class="num c-amt">' + esc(p[2]) + "</b>" + ic("down", "c-dl") }); })) + "</div>";
+      h += K.sh("Mijn trainingen", "", "small") + '<div class="pad">' + K.grp((D.history.anna || []).slice(0, 3).map(function (x, i) { return K.row({ a: "c-workout", d: { v: i }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("dumb") + "</span>", title: esc(x.name), sub: esc(x.d) + " · met " + esc(x.by) }); }), "--inset:60px") + "</div>";
+    } else h += '<div class="pad"><div class="card empty">Nog geen abonnement of credits. ' + esc(wsName()) + " zet dit voor je klaar.</div></div>";
+    h += K.sh("Taal", "", "small") + '<div class="pad" translate="no">' + K.seg([["nl", "Nederlands"], ["en", "English"]], F.PREF.lang, "c-lang") + "</div>";
+    h += '<div class="pad" style="margin-top:22px">' + cbtn("Uitloggen", "c-signout", { k: "sec" }) + "</div>";
+    return h;
+  }
+  function kv(t, v) { return K.row({ title: t, tr: v, cls: "kv" }); }
   function detailView() {
-    var c = C(), f = F.findItem(c.detail), it = f.it, k = f.day, st = cState(it), ds = it.type === "group" ? desc(it.title) : null, left = it.cap - it.people.length;
-    var h = '<button class="c-back" data-a="c-back">' + ic("chevL") + "Terug</button>";
-    if (it.type === "priv") {
-      return h + '<div class="c-hero left" style="--c:var(--priv)"><span class="c-badge">Privésessie</span><h1>Met ' + esc((it.trainer || ME()).split(" ")[0]) + "</h1><p>" + F.longDate(F.parse(k)) + " · " + it.s + "–" + it.e + "</p><p>" + esc(it.loc) + "</p></div>" + '<div class="c-pad"><p class="c-muted">Verzetten of afzeggen? Neem contact op met je trainer.</p></div>';
-    }
-    h += '<div class="c-hero left" style="--c:' + F.CV[it.type] + '"><span class="c-badge">' + F.TYPE[it.type] + "</span><h1>" + esc(it.title) + "</h1><p>" + F.longDate(F.parse(k)) + " · " + it.s + "–" + it.e + "</p><p>" + (it.type === "gym" ? "" : esc(it.trainer || ME()) + " · ") + esc(shortLoc(it.loc)) + "</p></div>";
-    h += '<div class="c-pad">' + (ds ? '<p translate="no"' + (ds.nl ? ' lang="nl"' : "") + ">" + esc(ds.t) + "</p>" : "");
-    if (st === "booked") h += '<div class="c-box ok"><b>' + ic("check") + "Je bent erbij</b><p>Gratis annuleren tot 12 uur voor de start. Daarna telt de les als gebruikt.</p></div>" + cbtn("Annuleren", "c-cancel", { k: "dng" });
-    else if (st === "wl") h += '<div class="c-box"><b>Je staat op de wachtlijst: nummer ' + c.wl[it.id] + "</b><p>Komt er een plek vrij, dan word je automatisch geboekt en krijg je een e-mail. De wachtlijst sluit 30 minuten voor de start.</p></div>" + cbtn("Van de wachtlijst af", "c-wl-leave", { k: "sec" });
-    else if (st === "full") h += '<div class="c-box"><b>Deze les is vol</b><p>' + (it.waitlist || 0) + " mensen staan op de wachtlijst.</p></div>" + (it.type === "group" ? cbtn("Op de wachtlijst", "c-wl") : "");
-    else h += '<p class="c-muted">' + (left === 1 ? "Nog 1 plek vrij" : "Nog " + left + " plekken vrij") + (c.who === "anna" ? " · je gebruikt 1 groepscredit" : "") + "</p>" + cbtn("Boeken", "c-book");
-    return h + "</div>";
+    var c = C(), f = F.findItem(c.detail), it = f.it, k = f.day, st = cState(it), ds = it.type === "group" ? desc(it.title) : null, left = spotsLeft(it), when = dayName(k) + " · " + it.s + "–" + it.e;
+    if (it.type === "priv") return { title: "Privésessie", body: K.lt("Privésessie", "Met " + esc(who(it).split(" ")[0]), when) + '<div class="pad">' + K.grp([kv("Trainer", esc(who(it))), kv("Locatie", esc(it.loc))]) + "</div>" + K.foot("Verzetten of afzeggen? Neem contact op met je trainer.") };
+    var b = K.lt(F.TYPE[it.type], esc(it.title), when) + '<div class="pad stack">';
+    if (ds) b += '<div class="card"><p class="c-desc" translate="no"' + (ds.nl ? ' lang="nl"' : "") + ">" + esc(ds.t) + "</p></div>";
+    var booked = it.cap - left, pct = Math.min(100, booked / it.cap * 100);
+    b += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><div><div class="stat-l ink" style="--c:' + F.CV[it.type] + '">Plekken vrij</div><div class="num" style="font-size:34px;line-height:38px">' + Math.max(0, left) + '<small style="font-size:17px;color:var(--label2)">/' + it.cap + "</small></div></div>" + statePill(it) + "</div>" +
+      '<div class="c-cap" style="--c:' + F.CV[it.type] + '"><i style="width:' + pct + '%"></i></div></div>';
+    b += K.grp((it.type === "gym" ? [] : [kv("Trainer", esc(who(it)))]).concat([kv("Locatie", esc(shortLoc(it.loc)))]));
+    /* credit kinds never mix (PRODUCT §91): a class uses a groepscredit, Open Gym an Open Gym-credit */
+    var ck = it.type === "gym" ? "gym" : "groep", bal = c.who === "anna" ? D.bsum("anna").balances.filter(function (x) { return x.credit === ck; })[0] : null, noCredit = c.who === "anna" && (!bal || bal.left <= 0);
+    if (st === "booked") b += '<div class="banner" style="--c:var(--ok)">' + ic("check") + "<span><b>Je bent erbij.</b> Gratis annuleren tot 12 uur voor de start. Daarna telt de les als gebruikt.</span></div>" + cbtn("Annuleren", "c-cancel", { k: "dng" });
+    else if (st === "wl") b += '<div class="banner" style="--c:var(--gym)">' + ic("clock") + "<span><b>Wachtlijst: nummer " + c.wl[it.id] + ".</b> Komt er een plek vrij, dan word je automatisch geboekt en krijg je een e-mail. De wachtlijst sluit 30 minuten voor de start.</span></div>" + cbtn("Van de wachtlijst af", "c-wl-leave", { k: "sec" });
+    else if (st === "full") b += '<div class="banner" style="--c:var(--label2)">' + ic("people") + "<span><b>Deze les is vol.</b> " + (it.waitlist || 0) + " mensen staan op de wachtlijst.</span></div>" + (it.type === "group" ? cbtn("Op de wachtlijst", "c-wl", { i: "clock" }) : "");
+    else if (noCredit) b += '<div class="banner" style="--c:var(--gym)">' + ic("warn") + "<span><b>Je hebt geen " + D.CREDIT[ck][1] + ".</b> Vraag " + esc(wsName()) + " om een aanbod; dan kun je hier boeken.</span></div>" + cbtn("Boeken", "c-book", { i: "check", dis: true });
+    else b += cbtn("Boeken", "c-book", { i: "check" });
+    b += "</div>";
+    if (st === "open" && bal && !noCredit) b += K.foot("Je gebruikt 1 " + D.CREDIT[ck][0] + "; je hebt er nog " + bal.left + ". Gratis annuleren tot 12 uur voor de start.");
+    return { title: it.title, body: b };
   }
   function workoutView() {
     var c = C(), x = (D.history.anna || [])[c.workout];
-    return '<button class="c-back" data-a="c-back">' + ic("chevL") + 'Terug</button><div class="c-hero left" style="--c:var(--accent)"><span class="c-badge">Training</span><h1>' + esc(x.name) + "</h1><p>" + esc(x.d) + " · met " + esc(x.by) + "</p></div>" +
-      '<div class="c-pad"><div class="c-box"><b>Bericht van ' + esc(x.by) + '</b><p translate="no">Goed gewerkt vandaag! Volgende keer gaan we naar 62,5 kg.</p></div><div class="c-box">' + (x.sets || [["Squat", "60 kg × 8, 8, 8"], ["Bankdrukken", "57,5 kg × 8, 8, 6"]]).map(function (s) { return '<div class="c-set"><b>' + esc(s[0]) + "</b><span>" + esc(s[1]) + "</span></div>"; }).join("") + "</div></div>";
+    var sets = x.sets || [["Squat", "60 kg × 8, 8, 8"], ["Bankdrukken", "57,5 kg × 8, 8, 6"]];
+    return { title: x.name, body: K.lt("Training", esc(x.name), esc(x.d) + " · met " + esc(x.by)) +
+      '<div class="pad stack"><div class="card c-msg">' + K.avatar(x.by, "var(--accent)") + '<div><b>Bericht van ' + esc(x.by) + '</b><p translate="no">Goed gewerkt vandaag! Volgende keer gaan we naar 62,5 kg.</p></div></div></div>' +
+      K.sh("Oefeningen · " + sets.length, "", "small") + '<div class="pad">' + K.grp(sets.map(function (s) { return K.row({ title: esc(s[0]), sub: esc(s[1]), tr: s[2] ? '<span class="diff-e" role="img" aria-label="' + D.DIFF[s[2]][1] + '">' + D.DIFF[s[2]][0] + "</span>" : "", cls: "kv" }); })) + "</div>" };
   }
   function cdialog() {
-    var c = C(), it = F.findItem(c.detail).it;
-    return '<div class="c-scrim" data-a="c-dclose"></div><div class="c-dialog" role="alertdialog"><h3>' + esc(it.title) + " annuleren?</h3><p>Het is meer dan 12 uur voor de start, dus de les telt niet als gebruikt.</p>" + cbtn("Ja, annuleren", "c-cancel-ok", { k: "dng" }) + cbtn("Terug", "c-dclose", { k: "sec" }) + "</div>";
+    var it = F.findItem(C().detail).it;
+    return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Annuleren"><h3>' + esc(it.title) + " annuleren?</h3><p>Het is meer dan 12 uur voor de start, dus de les telt niet als gebruikt.</p><div class=\"btns\">" + K.btn("Ja, annuleren", { k: "dng", a: "c-cancel-ok" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>";
   }
   A["c-lang"] = function (d) { F.PREF.lang = d.v; F.save(); R(); };
   A["c-next"] = function () { var c = C(); if (!/.+@.+\..+/.test(c.email)) { c.err = { email: "Vul een geldig e-mailadres in" }; F.toast(c.err.email, "err"); return; } c.step = "code"; c.code = ""; R(); };
+  A["c-reset"] = function () { var c = C(); c.step = "link"; c.code = ""; R(); };
   A["c-signin"] = function () { var c = C(); c.step = c.who === "anna" ? "app" : "request"; R(); };
   A["c-request"] = function () { var c = C(); if (!c.name.trim()) { c.err = { name: "Vul je naam in" }; F.toast(c.err.name, "err"); return; } c.step = "waiting"; F.toast("Verzoek verstuurd"); };
   A["c-approved"] = function () { var c = C(); c.step = "app"; c.tab = "rooster"; F.toast("Je bent goedgekeurd. Welkom!"); };
@@ -703,7 +761,7 @@
     ["Meedoen via de link", "F029", goClient("link")],
     ["Wachten op goedkeuring", "F029", goClient("waiting", { name: "Kim de Graaf", email: "kim@example.com" })],
     ["Rooster", "F027", goClient("app", { who: "anna" })],
-    ["Les boeken", "F031", function () { goClient("app", { who: "anna" })(); var t = F.dayItems(F.key(F.add(F.NOW, 1))).filter(function (i) { return i.type !== "priv" && i.people.length < i.cap; })[0]; C().detail = t ? t.id : null; C().day = F.key(F.add(F.NOW, 1)); }],
+    ["Les boeken", "F031", function () { goClient("app", { who: "anna" })(); var t = F.dayItems(F.key(F.add(F.NOW, 1))).filter(function (i) { return i.type !== "priv" && i.people.length < i.cap && !C().booked[i.id]; })[0]; C().detail = t ? t.id : null; C().day = F.key(F.add(F.NOW, 1)); }],
     ["Wachtlijst", "F062", function () {
       goClient("app", { who: "anna" })();
       /* the next group class that is full; if none is, fill the next one so the waitlist shows */

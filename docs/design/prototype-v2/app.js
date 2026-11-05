@@ -823,10 +823,10 @@
   function render() {
     if ((PREF.plat === "web" || PREF.plat === "client") && window.FVW) {
       var keep = window.FVW.scrollSave(dev);
-      dev.className = "dev " + PREF.plat;
-      dev.innerHTML = window.FVW[PREF.plat]() + (S.toast ? toastHTML() : "");
+      dev.className = "dev " + PREF.plat + (PREF.plat === "client" ? " ios" : "");
+      dev.innerHTML = (PREF.plat === "client" ? '<div class="status"><span>9:41</span><i><span style="width:17px;height:11px"></span><span style="width:15px;height:11px;border-radius:3px"></span><span style="width:25px;height:12px;border-radius:4px"></span></i></div>' : "") + window.FVW[PREF.plat]() + (S.toast ? toastHTML() : "");
       dev.dataset.rk = "";
-      S.anim = null; syncPanel(); tr(dev); window.FVW.scrollRestore(dev, keep); fitDev();
+      S.anim = null; syncPanel(); tr(dev); window.FVW.scrollRestore(dev, keep); var cc = dev.querySelector(".screen .content"); if (cc && cc.scrollTop > 30) cc.parentNode.classList.add("scrolled"); fitDev();
       return;
     }
     dev.style.zoom = "";
@@ -1113,7 +1113,7 @@
   function onScroll(e) {
     var t = e.target; if (!t.classList || !t.classList.contains("content")) return;
     var host = t.parentNode; host.classList.toggle("scrolled", t.scrollTop > 30);
-    if (host.classList.contains("screen") && PREF.plat === "ios") {
+    if (host.classList.contains("screen") && (PREF.plat === "ios" || PREF.plat === "client")) {
       var dy = t.scrollTop - lastY, tb = dev.querySelector(".tabbar");
       if (tb && dy > 8 && t.scrollTop > 120) { tb.classList.add("min"); S.tabMin = true; }
       else if (tb && dy < -8) { tb.classList.remove("min"); S.tabMin = false; }
@@ -1206,7 +1206,7 @@
   window.FV = { get S() { return S; }, PREF: PREF, D: D, A: A, CLIENT: CLIENT, dayItems: dayItems, findItem: findItem, extra: function () { return EXTRA_WS; },
     CV: CV, TYPE: TYPE, title: title, esc: esc, ic: ic, mins: mins, hm: hm, key: key, parse: parse, add: add, monday: monday, longDate: longDate, shortDate: shortDate,
     isoWeek: isoWeek, DAYS: DAYS, DS: DS, MONTHS: MONTHS, MS: MS, TODAY: TODAY, NOW: NOW, NOWT: NOWT, isPast: isPast, initials: initials, toast: toast, render: function () { render(); },
-    OWNER: OWNER, SOLO: SOLO, HAS: HAS, MIXED: MIXED, WSS: WSS, avatar: avatar, addClient: addClient, addItem: addItem, INDEX: INDEX, fresh: function () { fresh(); }, save: function () { save(); applyPrefs(); } };
+    OWNER: OWNER, SOLO: SOLO, HAS: HAS, MIXED: MIXED, WSS: WSS, avatar: avatar, addClient: addClient, addItem: addItem, INDEX: INDEX, kit: { row: row, grp: grp, sh: sh, lt: lt, btn: btn, seg: seg, foot: foot, avatar: avatar, rings: rings }, fresh: function () { fresh(); }, save: function () { save(); applyPrefs(); } };
 
   /* ---------- Boot ---------- */
   document.addEventListener("DOMContentLoaded", function () {

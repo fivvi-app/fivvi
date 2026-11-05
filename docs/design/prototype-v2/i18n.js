@@ -7,6 +7,16 @@ window.FIVVI_I18N = (function () {
 
   /* Sentence-level rules first: these change word order or need a captured value. */
   var RULES = [
+[/^Je hebt geen (groepscredits|privécredits|Open Gym-credits)\.$/, function (m, k) { return "You have no " + ({ "groepscredits": "group credits", "privécredits": "private credits", "Open Gym-credits": "Open Gym credits" })[k] + "."; }],
+[/^Vraag (.+) om een aanbod; dan kun je hier boeken\.$/, "Ask $1 for an offer; then you can book here."],
+[/^(\d+) afspraken de komende week$/, "$1 appointments in the coming week"],
+[/^1 afspraak de komende week$/, "1 appointment in the coming week"],
+[/^Volgende betaling (.+)$/, "Next payment $1"],
+[/^Je gebruikt 1 (groepscredit|privécredit|Open Gym-credit); je hebt er nog (\d+)\. Gratis annuleren tot 12 uur voor de start\.$/, function (m, k, n) { return "This uses 1 " + ({ "groepscredit": "group credit", "privécredit": "private credit", "Open Gym-credit": "Open Gym credit" })[k] + "; you have " + n + " left. Free cancellation up to 12 hours before the start."; }],
+[/^Gratis annuleren tot 12 uur voor de start\.$/, "Free cancellation up to 12 hours before the start."],
+[/^Je volgende les$/, "Your next class"],
+[/^Wachtlijst: nummer (\d+)\.$/, "Waitlist: number $1."],
+[/^Oefeningen · (\d+)$/, "Exercises · $1"],
     [/^Straks · over (\d+) min$/, "Up next · in $1 min"],
     [/^Je valt in voor (.+?)(\.?)$/, "Covering for $1$2"],
     [/^(\d+) sessies, eerste om (\d\d:\d\d)$/, "$1 sessions, first at $2"],
