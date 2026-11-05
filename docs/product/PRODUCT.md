@@ -1528,6 +1528,7 @@ MVP client emails:
 - sign-in email (link and 6-digit code)
 - invitation to join a workspace (§26)
 - join request declined (short and neutral, §26)
+- renewal reminder for an agreement that stops (§90)
 - booking confirmation
 - on the waitlist (with the position, "Number 2 on the waitlist"), you're in (the booking confirmation, noting it came from the waitlist), you didn't get in (at the waitlist closing time) and, from M11, skipped (taken off the waitlist, with the reason) (§23)
 - cancellation
