@@ -5,8 +5,33 @@ window.FIVVI_I18N = (function () {
   "use strict";
   var D = window.FIVVI_DATA;
 
+  /* offers (F052): durations and credit kinds inside sentences */
+  function DUR(x) { return x.replace(/(\d+) maanden/, "$1 months").replace(/(\d+) maand/, "$1 month").replace(/(\d+) weken/, "$1 weeks").replace(/(\d+) week/, "$1 week"); }
+  var CRED = { groepscredit: "group credit", groepscredits: "group credits", "privécredit": "private credit", "privécredits": "private credits", "Open Gym-credit": "Open Gym credit", "Open Gym-credits": "Open Gym credits" };
+  var PER = { "per maand": "a month", "per 4 weken": "every 4 weeks", "eenmalig": "once", "per les": "per class" };
+  var OK = { Abonnement: "Membership", Creditpakket: "Credit pack", Creditabonnement: "Credit plan", "Losse les": "Single class" };
+
   /* Sentence-level rules first: these change word order or need a captured value. */
   var RULES = [
+[/^(\d+) lopende afspraak$/, "$1 running agreement"],
+[/^(\d+) lopende afspraken$/, "$1 running agreements"],
+[/^(per maand|per 4 weken|eenmalig|per les) · (\d+)% btw$/, function (m, p, v) { return PER[p] + " · " + v + "% VAT"; }],
+[/^(\d) groepsles(sen)? per week( · (\d+) inhaallessen per maand)?$/, function (m, n, pl, x, mk) { return n + " group class" + (pl ? "es" : "") + " a week" + (x ? " · " + mk + " makeup classes a month" : ""); }],
+[/^(\d+ maanden?) · (stopt aan het einde|loopt daarna per maand door)$/, function (m, t, e) { return DUR(t) + " · " + (e === "stopt aan het einde" ? "stops at the end" : "then continues monthly"); }],
+[/^(\d+) (groepscredits?|privécredits?|Open Gym-credits?) · geldig (.+)$/, function (m, n, k, v) { return n + " " + CRED[k] + " · valid " + DUR(v); }],
+[/^(\d+) (groepscredits?|privécredits?|Open Gym-credits?) (per maand|per 4 weken) · meenemen max\. (\d+)$/, function (m, n, k, p, c) { return n + " " + CRED[k] + " " + PER[p] + " · carry over max. " + c; }],
+[/^Minimaal (.+) · loopt door tot de klant opzegt$/, function (m, t) { return "At least " + DUR(t) + " · continues until the client cancels"; }],
+[/^Verlengen voorstellen: (\d+) dagen voor het einde( of bij 2 over)?$/, function (m, n, x) { return "Suggest renewal: " + n + " days before the end" + (x ? " or at 2 left" : ""); }],
+[/^(Abonnement|Creditpakket|Creditabonnement|Losse les) · standaardplan$/, function (m, k) { return OK[k] + " · default plan"; }],
+[/^(.+) staat aan\. Klanten kunnen het kopen\.$/, function (m, a) { return P(a) + " is on. Clients can buy it."; }],
+[/^(.+) staat uit\. Lopende afspraken lopen door\.$/, function (m, a) { return P(a) + " is off. Running agreements carry on."; }],
+[/^Wijzigingen gelden voor nieuwe afspraken\. De (\d+) lopende afspraken houden hun voorwaarden\.$/, "Changes apply to new agreements. The $1 running agreements keep their terms."],
+[/^Klanten kunnen het niet meer kopen\.( De (\d+) lopende afspraken lopen door tot hun einde\.)?$/, function (m, x, n) { return "Clients can no longer buy it." + (x ? " The " + n + " running agreements carry on until they end." : ""); }],
+[/^(.+) wijzigen$/, function (m, a) { return "Edit " + P(a); }],
+[/^(\d+ (maanden?|weken?))$/, function (m, t) { return DUR(t); }],
+[/^Uit$/, "Off"],
+[/^Ja$/, "Yes"],
+[/^Nee$/, "No"],
 [/^Op$/, "Used up"],
 [/^Direct$/, "Now"],
 [/^Verlengen:$/, "Renew:"],
@@ -346,6 +371,23 @@ window.FIVVI_I18N = (function () {
     "Verlengen": "Renew", "Verlengen voorgesteld": "Renewal suggested", "Aanbod sturen": "Send offer", "Aanbod": "Offer", "Gaat in": "Starts", "Na afloop": "When it ends",
     "Direct na betaling": "Right after payment", "Versturen": "Send", "Verstuurd": "Sent", "Opnieuw sturen": "Send again", "Afgelopen": "Ended", "Op na de geplande sessie": "Used up after the planned session", "wacht op betaling": "waiting for payment",
     "Groep 1× per week": "Group 1× a week", "Groep 2× per week": "Group 2× a week", "Groep 3× per week": "Group 3× a week", "10 groepscredits": "10 group credits", "5 privésessies": "5 private sessions", "10 privésessies": "10 private sessions", "Privé 4 per 4 weken": "Private 4 per 4 weeks", "5 Open Gym-credits": "5 Open Gym credits",
+    /* offers (F052) */
+    "Abonnementen": "Memberships", "Losse les": "Single class", "Privé 2 per maand": "Private 2 a month", "Creditpakketten": "Credit packs", "Creditabonnementen": "Credit plans", "Losse lessen": "Single classes", "Standaardplannen": "Default plans",
+    "Creditabonnement": "Credit plan", "Nieuw aanbod": "New offer", "Prijs nodig": "Price needed", "Nog niet verkocht": "Not sold yet", "Klanten zien het niet": "Clients don't see it",
+    "Naam in het Engels": "Name in English", "Prijs incl. btw (€)": "Price incl. VAT (€)", "Btw": "VAT", "Lessen per week": "Classes a week", "Looptijd": "Term", "Betalen": "Payment",
+    "Soort credits": "Kind of credits", "Aantal credits": "Number of credits", "Credits per periode": "Credits per period", "Geldig": "Valid", "Meenemen naar de volgende periode (max.)": "Carry over to the next period (max.)", "Minimale looptijd": "Minimum term",
+    "Eén keer per klant (proefaanbod)": "Once per client (intro offer)", "Alleen voor klanten met een abonnement": "Only for clients with a membership", "Aan het einde": "At the end", "Verlengen voorstellen": "Suggest renewal",
+    "Stopt: de klant kiest een nieuwe looptijd": "Stops: the client chooses a new term", "Loopt per maand door tot de klant opzegt": "Continues monthly until the client cancels",
+    "Abonnement: lessen per week": "Membership: classes a week", "Creditpakket: één keer betalen": "Credit pack: pay once", "Creditabonnement: credits per periode": "Credit plan: credits per period",
+    "Begin met een standaardplan:": "Start from a default plan:", "Elke 4 weken": "Every 4 weeks", "Groepscredits": "Group credits", "Privécredits": "Private credits", "Open Gym-credits": "Open Gym credits",
+    "En als er 2 credits of minder over zijn.": "And when 2 credits or fewer are left.", "Fivvi zet dan Verlengen bij de klant, voor jou en in de app.": "Fivvi then shows Renew on the client, for you and in the app.", "dagen voor het einde": "days before the end",
+    "Zonder prijs blijft het aanbod uit. Credits van verschillende soorten mengen nooit.": "Without a price the offer stays off. Credits of different kinds never mix.",
+    "Wat je verkoopt. Klanten zien alleen aanbod dat aan staat. Een wijziging geldt voor nieuwe afspraken: lopende afspraken houden hun voorwaarden.": "What you sell. Clients only see offers that are on. A change applies to new agreements: running agreements keep their terms.",
+    "Elke nieuwe werkruimte begint met deze drie. Ze staan uit tot je een prijs invult; Fivvi stelt nooit een prijs voor.": "Every new workspace starts with these three. They stay off until you add a price; Fivvi never suggests a price.",
+    "Aanbod verwijderd": "Offer removed", "Opgeslagen. Het staat uit tot je een prijs invult.": "Saved. It stays off until you add a price.", "Aanbod toegevoegd. Zet het aan als klanten het mogen kopen.": "Offer added. Switch it on when clients may buy it.",
+    "Vul een prijs in om het aan te zetten": "Add a price to switch it on", "Vul een bedrag in, bijvoorbeeld 69 of 17,50": "Enter an amount, for example 69 or 17.50", "Bijvoorbeeld Groep 2× per week": "For example Group 2× a week", "Bijvoorbeeld 69": "For example 69",
+    "Groepscreditpakket": "Group credit pack", "Privé creditabonnement": "Private credit plan", "1× per klant (proefaanbod)": "Once per client (intro offer)", "Eén groepsles, betaald bij het boeken": "One group class, paid when booking",
+    "Aan: klanten kunnen het kopen": "On: clients can buy it",
     /* dates */
     "maandag": "Monday", "dinsdag": "Tuesday", "woensdag": "Wednesday", "donderdag": "Thursday", "vrijdag": "Friday", "zaterdag": "Saturday", "zondag": "Sunday",
     "januari": "January", "februari": "February", "maart": "March", "april": "April", "mei": "May", "juni": "June", "juli": "July", "augustus": "August", "september": "September", "oktober": "October", "november": "November", "december": "December",

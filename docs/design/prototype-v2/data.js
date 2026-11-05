@@ -263,7 +263,26 @@ window.FIVVI_DATA = (function () {
   /* Renewal: Fivvi suggests sending a new offer from this many days before an agreement that stops ends
      (owner, 5 Nov 2026: "from 1 month before ending"; proposed as a workspace setting), or when a credit pack runs low. */
   var RENEW_DAYS = 30;
-  var offers = ["Groep 1× per week", "Groep 2× per week", "Groep 3× per week", "10 groepscredits", "5 privésessies", "10 privésessies", "Privé 4 per 4 weken", "5 Open Gym-credits"];
+  /* What the workspace sells (PRODUCT §90): four kinds, each with its own fields. "on" = clients can buy it. The three
+     default plans a new workspace starts with stay off until the owner adds a price. renew = days before the end that
+     Fivvi suggests renewing (per offer, owner 5 Nov 2026); packs are also suggested at 2 or fewer credits left. */
+  var offerList = [
+    { id: "o1", kind: "abo", name: "Groep 1× per week", price: "39", vat: "9", cycle: "Elke maand", perWeek: 1, term: "6 maanden", end: "stop", renew: 30, on: true, active: 9 },
+    { id: "o2", kind: "abo", name: "Groep 2× per week", price: "69", vat: "9", cycle: "Elke maand", perWeek: 2, term: "6 maanden", end: "stop", renew: 30, on: true, active: 21 },
+    { id: "o3", kind: "abo", name: "Groep 3× per week", price: "89", vat: "9", cycle: "Elke maand", perWeek: 3, term: "12 maanden", end: "continue", renew: 30, on: true, active: 7 },
+    { id: "o4", kind: "pack", credit: "groep", name: "10 groepscredits", price: "150", vat: "9", cycle: "Eenmalig", credits: 10, valid: "3 maanden", end: "stop", renew: 30, on: true, active: 6 },
+    { id: "o5", kind: "pack", credit: "groep", name: "Proefles", price: "0", vat: "9", cycle: "Eenmalig", credits: 1, valid: "1 week", end: "stop", renew: 0, intro: true, on: true, active: 1 },
+    { id: "o6", kind: "pack", credit: "prive", name: "5 privésessies", price: "300", vat: "21", cycle: "Eenmalig", credits: 5, valid: "3 maanden", end: "stop", renew: 30, on: true, active: 3 },
+    { id: "o7", kind: "pack", credit: "prive", name: "10 privésessies", price: "550", vat: "21", cycle: "Eenmalig", credits: 10, valid: "6 maanden", end: "stop", renew: 30, on: true, active: 4 },
+    { id: "o8", kind: "plan", credit: "prive", name: "Privé 4 per 4 weken", price: "240", vat: "21", cycle: "Elke 4 weken", credits: 4, carry: 2, minTerm: "3 maanden", end: "continue", renew: 30, on: true, active: 2 },
+    { id: "o9", kind: "plan", credit: "prive", name: "Privé 2 per maand", price: "125", vat: "21", cycle: "Elke maand", credits: 2, carry: 0, minTerm: "3 maanden", end: "continue", renew: 30, on: true, active: 1 },
+    { id: "o10", kind: "pack", credit: "gym", name: "5 Open Gym-credits", price: "40", vat: "9", cycle: "Eenmalig", credits: 5, valid: "3 maanden", end: "stop", renew: 30, memberOnly: true, on: true, active: 2 },
+    { id: "o11", kind: "single", credit: "groep", name: "Losse les", price: "17,50", vat: "9", cycle: "Bij het boeken", on: false, active: 0 },
+    { id: "d1", kind: "abo", name: "Abonnement", price: "", vat: "9", cycle: "Elke maand", perWeek: 2, term: "6 maanden", end: "stop", renew: 30, makeups: 2, on: false, def: true, active: 0 },
+    { id: "d2", kind: "pack", credit: "groep", name: "Groepscreditpakket", price: "", vat: "9", cycle: "Eenmalig", credits: 10, valid: "3 maanden", end: "stop", renew: 30, on: false, def: true, active: 0 },
+    { id: "d3", kind: "plan", credit: "prive", name: "Privé creditabonnement", price: "", vat: "21", cycle: "Elke maand", credits: 4, carry: 0, minTerm: "3 maanden", end: "continue", renew: 30, on: false, def: true, active: 0 }
+  ];
+  function offerNames() { return offerList.filter(function (o) { return o.on; }).map(function (o) { return o.name; }); }
   /* One summary per client: balances per credit kind, abonnementen, the open amount and what needs attention. */
   function bsum(id) {
     var b = billing[id] || { agreements: [], payments: [] }, bal = {}, abos = [], flags = [], active = 0;
@@ -302,6 +321,6 @@ window.FIVVI_DATA = (function () {
   /* What a workspace calls its trainers (owner decision, 5 Nov 2026): one word, used everywhere in that workspace */
   var TERMS = { trainer: { nl: ["trainer", "trainers"], en: ["trainer", "trainers"] }, instructeur: { nl: ["instructeur", "instructeurs"], en: ["instructor", "instructors"] },
     docent: { nl: ["docent", "docenten"], en: ["teacher", "teachers"] }, coach: { nl: ["coach", "coaches"], en: ["coach", "coaches"] } };
-  return { RENEW_DAYS: RENEW_DAYS, offers: offers, TERMS: TERMS, LEVELS: LEVELS, levels: levels, lifts: lifts, weeks: weeks, DIFF: DIFF, spark: spark, bsum: bsum, CREDIT: CREDIT, KIND: KIND, billing: billing, setups: setups, me: me, workspaces: workspaces, locations: locations, trainers: trainers, clients: clients, notes: notes, history: history,
+  return { RENEW_DAYS: RENEW_DAYS, offerList: offerList, offerNames: offerNames, TERMS: TERMS, LEVELS: LEVELS, levels: levels, lifts: lifts, weeks: weeks, DIFF: DIFF, spark: spark, bsum: bsum, CREDIT: CREDIT, KIND: KIND, billing: billing, setups: setups, me: me, workspaces: workspaces, locations: locations, trainers: trainers, clients: clients, notes: notes, history: history,
     progress: progress, tpl: tpl, descriptions: descriptions, today: today, pattern: pattern, templates: templates, library: library, upperA: upperA };
 })();

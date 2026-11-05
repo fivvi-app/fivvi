@@ -377,3 +377,28 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
   background:color-mix(in srgb,var(--accent) 8%,var(--w-card));border:1px solid color-mix(in srgb,var(--accent) 25%,var(--w-border))}
 .w-renew>svg{width:16px;height:16px;flex:none;color:var(--accent-text)}
 .w-renew span{flex:1}
+/* ---------- Aanbod (F052) ---------- */
+.w-sec{font-size:13px;font-weight:600;color:var(--w-mfg);text-transform:uppercase;letter-spacing:.03em;margin:22px 0 10px}
+.w-offers{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px}
+.w-offer{background:var(--w-card);border:1px solid var(--w-border);border-radius:12px;padding:14px;display:flex;flex-direction:column;gap:10px;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+.w-offer.off .w-offer-ic,.w-offer.off .w-offer-p b{filter:grayscale(1);opacity:.55}
+.w-offer-h{display:flex;align-items:center;gap:10px}
+.w-offer-h>div{flex:1;min-width:0}
+.w-offer-h b{display:block;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.w-offer-h span{font-size:12px;color:var(--w-mfg)}
+.w-offer-ic{width:34px;height:34px;border-radius:10px;display:grid;place-items:center;flex:none;color:#fff;background:linear-gradient(160deg,color-mix(in oklab,var(--c) 70%,#fff),var(--c))}
+.w-offer-ic svg{width:18px;height:18px}
+.w-offer-p b{font-size:22px;font-family:var(--f-num);font-weight:800;letter-spacing:-.01em}
+.w-offer-p span{font-size:12px;color:var(--w-mfg)}
+.w-need{display:inline-flex;align-items:center;gap:5px;font-size:13px;font-weight:600;color:color-mix(in oklab,var(--gym) 70%,var(--w-fg))}
+.w-need svg{width:15px;height:15px}
+.w-offer-x{margin:0;padding:0 0 0 16px;font-size:13px;color:var(--w-fg);display:grid;gap:3px;flex:1}
+.w-offer-x li::marker{color:var(--c)}
+.w-offer-f{display:flex;align-items:center;gap:6px;border-top:1px solid var(--w-border);padding-top:10px}
+.w-offer-f .w-muted{flex:1;font-size:12px}
+.w-switch{width:40px;height:24px;border-radius:999px;border:0;background:var(--w-border);position:relative;flex:none;padding:0;transition:background .15s}
+.w-switch i{position:absolute;top:2px;left:2px;width:20px;height:20px;border-radius:50%;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.25);transition:transform .15s}
+.w-switch.on{background:var(--accent)}
+.w-switch.on i{transform:translateX(16px)}
+.w-starts{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:12px}
+.w-starts .w-muted{width:100%;font-size:12px}

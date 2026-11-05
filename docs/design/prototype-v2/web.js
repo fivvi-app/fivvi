@@ -81,12 +81,13 @@
       ["classes", "Lessen", "group", own && F.HAS("group")],
       ["gym", "Open Gym", "door", own && F.HAS("gym")],
       ["workouts", "Trainingen", "dumb", true],
+      ["offers", "Aanbod", "repeat", own],
       ["trainers", "Trainers", "personPlus", own && team],
       ["link", "Aanmeldlink", "link", own],
       ["settings", "Instellingen", "pencil", own]
     ];
   };
-  var TITLES = { myday: "Mijn dag", mycal: "Mijn agenda", dashboard: "Dashboard", agenda: "Agenda", clients: "Klanten", client: "Klantprofiel", classes: "Lessen", klass: "Les", gym: "Open Gym", workouts: "Trainingen", trainers: "Trainers", link: "Aanmeldlink", settings: "Instellingen" };
+  var TITLES = { myday: "Mijn dag", mycal: "Mijn agenda", dashboard: "Dashboard", agenda: "Agenda", clients: "Klanten", client: "Klantprofiel", classes: "Lessen", klass: "Les", gym: "Open Gym", offers: "Aanbod", workouts: "Trainingen", trainers: "Trainers", link: "Aanmeldlink", settings: "Instellingen" };
 
   function web() {
     var w = W();
@@ -374,6 +375,56 @@
     return h;
   };
 
+  /* Aanbod (F052, PRODUCT §90): what the workspace sells. Owner only. */
+  var OKIND = { abo: ["Abonnement", "Abonnementen"], pack: ["Creditpakket", "Creditpakketten"], plan: ["Creditabonnement", "Creditabonnementen"], single: ["Losse les", "Losse lessen"] };
+  function offerFits(o) { return (o.kind === "abo" || o.credit === "groep" ? F.HAS("group") : true) && (o.credit === "gym" ? F.HAS("gym") : true); }
+  function offerColor(o) { return o.kind === "abo" || o.kind === "single" ? "var(--group)" : D.CREDIT[o.credit][2]; }
+  function per(cycle) { return { "Elke maand": "per maand", "Elke 4 weken": "per 4 weken", "Eenmalig": "eenmalig", "Bij het boeken": "per les" }[cycle] || ""; }
+  function offerFacts(o) {
+    var L = o.credit ? D.CREDIT[o.credit] : null, x = [];
+    if (o.kind === "abo") { x.push(o.perWeek + (o.perWeek === 1 ? " groepsles" : " groepslessen") + " per week" + (o.makeups ? " · " + o.makeups + " inhaallessen per maand" : "")); x.push(o.term + " · " + (o.end === "stop" ? "stopt aan het einde" : "loopt daarna per maand door")); }
+    if (o.kind === "pack") { x.push(o.credits + " " + (o.credits === 1 ? L[0] : L[1]) + " · geldig " + o.valid); if (o.intro) x.push("1× per klant (proefaanbod)"); if (o.memberOnly) x.push("Alleen voor klanten met een abonnement"); }
+    if (o.kind === "plan") { x.push(o.credits + " " + (o.credits === 1 ? L[0] : L[1]) + " " + per(o.cycle) + " · meenemen max. " + o.carry); x.push("Minimaal " + o.minTerm + " · loopt door tot de klant opzegt"); }
+    if (o.kind === "single") x.push("Eén groepsles, betaald bij het boeken");
+    if (o.end === "stop" && o.renew) x.push("Verlengen voorstellen: " + o.renew + " dagen voor het einde" + (o.kind === "pack" ? " of bij 2 over" : ""));
+    return x;
+  }
+  function offerCard(o) {
+    var priced = o.price !== "";
+    return '<div class="w-offer' + (o.on ? "" : " off") + '" style="--c:' + offerColor(o) + '"><div class="w-offer-h"><span class="w-offer-ic">' + ic(o.kind === "abo" ? "cal" : o.kind === "plan" ? "repeat" : o.credit === "gym" ? "door" : o.credit === "prive" ? "me" : "group") + "</span>" +
+      "<div><b>" + esc(o.name) + "</b><span>" + OKIND[o.kind][0] + (o.def ? " · standaardplan" : "") + "</span></div>" +
+      '<button class="w-switch' + (o.on ? " on" : "") + '" data-a="w-offer-on" data-id="' + o.id + '" role="switch" aria-checked="' + o.on + '" aria-label="' + (o.on ? "Aan: klanten kunnen het kopen" : "Uit") + '"><i></i></button></div>' +
+      '<div class="w-offer-p">' + (priced ? "<b>€ " + esc(o.price) + "</b> <span>" + per(o.cycle) + " · " + o.vat + "% btw</span>" : '<span class="w-need">' + ic("warn") + "Prijs nodig</span>") + "</div>" +
+      '<ul class="w-offer-x">' + offerFacts(o).map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul>" +
+      '<div class="w-offer-f"><span class="w-muted">' + (o.active ? o.active + (o.active === 1 ? " lopende afspraak" : " lopende afspraken") : o.on ? "Nog niet verkocht" : "Klanten zien het niet") + "</span>" +
+      btn("Wijzigen", "w-dlg", { k: "outline sm", d: { n: "offer-edit", id: o.id } }) + '<button class="w-icon" data-a="w-dlg" data-n="offer-del" data-id="' + o.id + '" aria-label="Verwijderen">' + ic("trash") + "</button></div></div>";
+  }
+  PAGES.offers = function () {
+    var all = D.offerList.filter(offerFits), own = all.filter(function (o) { return !o.def; }), defs = all.filter(function (o) { return o.def; });
+    var h = '<div class="w-row-between"><p class="w-muted">Wat je verkoopt. Klanten zien alleen aanbod dat aan staat. Een wijziging geldt voor nieuwe afspraken: lopende afspraken houden hun voorwaarden.</p>' + btn("Nieuw aanbod", "w-dlg", { i: "plus", d: { n: "offer-edit" } }) + "</div>";
+    ["abo", "pack", "plan", "single"].forEach(function (k) { var os = own.filter(function (o) { return o.kind === k; }); if (os.length) h += '<h3 class="w-sec">' + OKIND[k][1] + '</h3><div class="w-offers">' + os.map(offerCard).join("") + "</div>"; });
+    if (defs.length) h += '<h3 class="w-sec">Standaardplannen</h3><p class="w-muted" style="margin:-4px 0 10px">Elke nieuwe werkruimte begint met deze drie. Ze staan uit tot je een prijs invult; Fivvi stelt nooit een prijs voor.</p><div class="w-offers">' + defs.map(offerCard).join("") + "</div>";
+    return h;
+  };
+  function offerById(id) { return D.offerList.filter(function (o) { return o.id === id; })[0]; }
+  function offerForm(o) { o = o || {}; return { id: o.id || "", kind: o.kind || "abo", name: o.name || "", nameEn: o.nameEn || "", price: o.price || "", vat: o.vat || "9", cycle: o.cycle || "Elke maand", perWeek: String(o.perWeek || 2), term: o.term || "6 maanden", end: o.end || "stop", renew: String(o.renew != null ? o.renew : 30), credit: o.credit || "groep", credits: String(o.credits || 10), valid: o.valid || "3 maanden", carry: String(o.carry || 0), minTerm: o.minTerm || "3 maanden", intro: o.intro ? "ja" : "nee", memberOnly: o.memberOnly ? "ja" : "nee" }; }
+  function offerDialog(d) {
+    var f = W().form, o = d.id ? offerById(d.id) : null, k = f.kind, cr = [["groep", "Groepscredits"], ["prive", "Privécredits"]].concat(F.HAS("gym") ? [["gym", "Open Gym-credits"]] : []);
+    var b = "";
+    if (!o) b += '<div class="w-starts"><span class="w-muted">Begin met een standaardplan:</span>' + D.offerList.filter(function (x) { return x.def && offerFits(x); }).map(function (x) { return btn(x.name, "w-offer-tpl", { k: "outline sm", d: { id: x.id } }); }).join("") + "</div>";
+    b += (o ? "" : fld("Soort", selF("kind", [["abo", "Abonnement: lessen per week"], ["pack", "Creditpakket: één keer betalen"], ["plan", "Creditabonnement: credits per periode"], ["single", "Losse les"]].filter(function (x) { return x[0] !== "abo" && x[0] !== "single" || F.HAS("group"); }))));
+    b += '<div class="w-inline2">' + fld("Naam", inp("name", "text", "Bijvoorbeeld Groep 2× per week")) + fld("Naam in het Engels", inp("nameEn", "text", "Optioneel")) + "</div>";
+    b += '<div class="w-inline2">' + fld("Prijs incl. btw (€)", inp("price", "text", "Bijvoorbeeld 69")) + fld("Btw", selF("vat", [["9", "9%"], ["21", "21%"], ["0", "0%"]])) + "</div>";
+    if (k === "abo") b += '<div class="w-inline2">' + fld("Lessen per week", selF("perWeek", ["1", "2", "3"])) + fld("Looptijd", selF("term", ["3 maanden", "6 maanden", "12 maanden"])) + fld("Betalen", selF("cycle", ["Elke maand", "Elke 4 weken"])) + "</div>";
+    if (k === "pack" || k === "plan") b += '<div class="w-inline2">' + fld("Soort credits", selF("credit", cr)) + fld(k === "pack" ? "Aantal credits" : "Credits per periode", inp("credits", "number")) + (k === "pack" ? fld("Geldig", selF("valid", ["1 week", "2 weken", "1 maand", "3 maanden", "6 maanden", "12 maanden"])) : fld("Betalen", selF("cycle", ["Elke maand", "Elke 4 weken"]))) + "</div>";
+    if (k === "plan") b += '<div class="w-inline2">' + fld("Meenemen naar de volgende periode (max.)", inp("carry", "number")) + fld("Minimale looptijd", selF("minTerm", ["1 maand", "3 maanden", "6 maanden"])) + "</div>";
+    if (k === "pack") b += '<div class="w-inline2">' + fld("Eén keer per klant (proefaanbod)", selF("intro", [["nee", "Nee"], ["ja", "Ja"]])) + fld("Alleen voor klanten met een abonnement", selF("memberOnly", [["nee", "Nee"], ["ja", "Ja"]])) + "</div>";
+    if (k === "abo" || k === "plan") b += fld("Aan het einde", selF("end", [["stop", "Stopt: de klant kiest een nieuwe looptijd"], ["continue", "Loopt per maand door tot de klant opzegt"]]));
+    if (k !== "single" && (k === "pack" || f.end === "stop")) b += fld("Verlengen voorstellen", '<div class="w-inline"><input class="w-input sm" data-wf="renew" type="number" value="' + esc(f.renew) + '"> dagen voor het einde</div>', k === "pack" ? "En als er 2 credits of minder over zijn." : "Fivvi zet dan Verlengen bij de klant, voor jou en in de app.");
+    b += '<p class="w-muted">' + (o && o.active ? "Wijzigingen gelden voor nieuwe afspraken. De " + o.active + " lopende afspraken houden hun voorwaarden." : "Zonder prijs blijft het aanbod uit. Credits van verschillende soorten mengen nooit.") + "</p>";
+    return b;
+  }
+
   /* The QR poster for the desk or the wall: Dutch and English together, so every visitor can read it */
   function poster() {
     var w = W(), bw = w.posterBw, code = w.linkCode || "7KQ2", url = "fivvi.app/j/" + slug() + "-" + code, classes = F.HAS("group") || F.HAS("gym");
@@ -426,10 +477,12 @@
     else if (d.n === "wlremove") { t = "Van de wachtlijst halen?"; b = "<p>" + esc(waitNames(it)[d.i]) + " krijgt een e-mail en staat niet meer op de wachtlijst.</p>"; ok = "Verwijderen"; kind = "dng"; cancel = "Terug"; }
     else if (d.n === "renew") { t = "Link vernieuwen?"; b = "<p>De oude link en QR-code werken daarna niet meer. Hangt de QR-code ergens, vervang die dan ook.</p>"; ok = "Vernieuwen"; kind = "dng"; }
     else if (d.n === "decline") { var r = D.requests.filter(function (x) { return x.id === d.id; })[0]; t = "Verzoek afwijzen?"; b = "<p>" + esc(r.name) + " krijgt een korte e-mail en ziet niets van " + esc(wsName()) + ". Later opnieuw vragen kan.</p>"; ok = "Afwijzen"; kind = "dng"; cancel = "Terug"; }
+    else if (d.n === "offer-edit") { var oe = d.id ? offerById(d.id) : null; t = oe ? oe.name + " wijzigen" : "Nieuw aanbod"; b = offerDialog(d); ok = oe ? "Opslaan" : "Toevoegen"; }
+    else if (d.n === "offer-del") { var od = offerById(d.id); t = od.name + " verwijderen?"; b = "<p>Klanten kunnen het niet meer kopen." + (od.active ? " De " + od.active + " lopende afspraken lopen door tot hun einde." : "") + "</p>"; ok = "Verwijderen"; kind = "dng"; cancel = "Terug"; }
     else if (d.n === "offer") {
       var oc = F.CLIENT[W().cid], oa = d.ag ? D.billing[W().cid].agreements.filter(function (x) { return x.id === d.ag; })[0] : null, run = oa && oa.endsIn >= 0 && oa.status !== "expired";
       t = oa ? "Verlengen" : "Aanbod sturen"; ok = "Versturen";
-      b = fld("Aanbod", selF("offer", D.offers)) + (run ? fld("Gaat in", selF("start", [["after", "Na afloop van " + oa.name], ["now", "Direct na betaling"]])) : "") +
+      b = fld("Aanbod", selF("offer", D.offerNames())) + (run ? fld("Gaat in", selF("start", [["after", "Na afloop van " + oa.name], ["now", "Direct na betaling"]])) : "") +
         '<p class="w-muted">' + esc(oc.name.split(" ")[0]) + " krijgt een e-mail met een link om te bevestigen en te betalen met iDEAL. Na de betaling maakt Fivvi de factuur." + (run ? " Na afloop: geen gat en geen overlap." : "") + "</p>";
     }
     else if (d.n === "refund") { var pay = D.billing[W().cid].payments[d.i]; t = "Terugbetalen"; b = "<p>" + esc(pay[1]) + " · " + esc(pay[0]) + " · " + esc(pay[2]) + "</p>" + fld("Bedrag", inp("amount", "text"), "Een deel kan ook. De klant krijgt een creditfactuur."); ok = "Terugbetalen"; kind = "dng"; cancel = "Terug"; }
@@ -469,6 +522,8 @@
   function from(w) { if (w.page !== "client" && w.page !== "klass") w.back = { page: w.page }; }
   A["w-open-class"] = function (d) { var w = W(); from(w); w.kid = d.id; w.page = "klass"; w.sheet = null; R(); };
   A["w-client"] = function (d) { var w = W(); from(w); w.cid = d.id; w.page = "client"; w.tab = "overview"; w.sheet = null; w.q = ""; R(); };
+  A["w-offer-on"] = function (d) { var o = offerById(d.id); if (!o.on && !o.price) { A["w-dlg"]({ n: "offer-edit", id: o.id }); bad("price", "Vul een prijs in om het aan te zetten"); return; } o.on = !o.on; F.toast(o.on ? o.name + " staat aan. Klanten kunnen het kopen." : o.name + " staat uit. Lopende afspraken lopen door."); };
+  A["w-offer-tpl"] = function (d) { var w = W(), t = offerById(d.id); w.form = offerForm(t); w.form.id = ""; R(); };
   A["w-term"] = function (d) { D.workspaces.sf.term = d.v; F.toast("Opgeslagen"); };
   A["w-back"] = function () { var w = W(); w.page = w.back ? w.back.page : w.page === "client" ? "clients" : "classes"; w.back = null; R(); };
   A["w-client-bill"] = function (d) { var w = W(); from(w); w.cid = d.id; w.page = "client"; w.tab = "billing"; w.sheet = null; R(); };
@@ -497,7 +552,9 @@
       openDlg(d.n, { name: m.title, start: m.next ? m.next[1].s : "", end: m.next ? m.next[1].e : "", cap: String(m.cap), trainer: m.trainer, desc: ds.nl || "", descEn: ds.en || "" }, { t: d.t, future: m.future, booked: m.booked });
       return;
     }
-    if (d.n === "offer") { var ag = d.ag ? D.billing[W().cid].agreements.filter(function (x) { return x.id === d.ag; })[0] : null; openDlg("offer", { offer: ag ? ag.name : D.offers[1], start: "after" }, { ag: d.ag || "" }); return; }
+    if (d.n === "offer-edit") { openDlg("offer-edit", offerForm(d.id ? offerById(d.id) : { kind: F.HAS("group") ? "abo" : "pack", credit: F.HAS("group") ? "groep" : "prive" }), { id: d.id || "" }); return; }
+    if (d.n === "offer-del") { openDlg("offer-del", {}, { id: d.id }); return; }
+    if (d.n === "offer") { var ag = d.ag ? D.billing[W().cid].agreements.filter(function (x) { return x.id === d.ag; })[0] : null; openDlg("offer", { offer: ag ? ag.name : D.offerNames()[1], start: "after" }, { ag: d.ag || "" }); return; }
     if (d.n === "refund") { var pay = D.billing[W().cid].payments[+d.i]; openDlg("refund", { amount: pay[2] }, { i: +d.i }); return; } var w = W(), it = w.sheet ? F.findItem(w.sheet).it : w.kid ? (F.findItem(w.kid) || {}).it : null; openDlg(d.n, it ? { start: it.s, end: it.e, cap: String(it.cap || ""), level: F.level(it), date: w.sheet ? F.findItem(w.sheet).day : F.TODAY, trainer: D.trainers.sf.filter(function (x) { return !it || x !== who(it); })[0] } : {}, { i: d.i }); };
   A["w-decline"] = function (d) { openDlg("decline", {}, { id: d.id }); };
   A["w-new-priv"] = function () { openDlg("newpriv", { client: "anna", loc: D.locations[0] }); };
@@ -521,6 +578,24 @@
     else if (d.n === "sub") { it.trainer = f.trainer; it.subFor = true; msg = f.trainer + " valt in"; }
     else if (d.n === "editclass") { it.s = f.start; it.e = f.end; it.cap = +f.cap || it.cap; it.level = f.level || ""; }
     else if (d.n === "wlremove") { it.waitlist = Math.max(0, (it.waitlist || 0) - 1); msg = "Van de wachtlijst gehaald"; }
+    else if (d.n === "offer-edit") {
+      if (!(f.name || "").trim()) { bad("name", "Vul een naam in"); return; }
+      if (f.price && !/^\d+([.,]\d{1,2})?$/.test(f.price.trim())) { bad("price", "Vul een bedrag in, bijvoorbeeld 69 of 17,50"); return; }
+      var oo = d.id ? offerById(d.id) : { id: "o" + Date.now(), active: 0, on: false }, n = function (x) { return +x || 0; };
+      oo.kind = f.kind; oo.name = f.name.trim(); oo.nameEn = (f.nameEn || "").trim(); oo.price = (f.price || "").trim(); oo.vat = f.vat; oo.def = false;
+      oo.cycle = f.kind === "pack" ? "Eenmalig" : f.kind === "single" ? "Bij het boeken" : f.cycle;
+      if (f.kind === "abo") { oo.perWeek = n(f.perWeek); oo.term = f.term; }
+      if (f.kind === "pack" || f.kind === "plan" || f.kind === "single") oo.credit = f.kind === "single" ? "groep" : f.credit;
+      if (f.kind === "pack" || f.kind === "plan") oo.credits = n(f.credits) || 1;
+      if (f.kind === "pack") { oo.valid = f.valid; oo.intro = f.intro === "ja"; oo.memberOnly = f.memberOnly === "ja"; oo.end = "stop"; }
+      if (f.kind === "plan") { oo.carry = n(f.carry); oo.minTerm = f.minTerm; }
+      if (f.kind === "abo" || f.kind === "plan") oo.end = f.end;
+      oo.renew = n(f.renew);
+      if (!oo.price) oo.on = false;
+      if (!d.id) D.offerList.unshift(oo);
+      msg = !oo.price ? "Opgeslagen. Het staat uit tot je een prijs invult." : d.id ? "Opgeslagen" : "Aanbod toegevoegd. Zet het aan als klanten het mogen kopen.";
+    }
+    else if (d.n === "offer-del") { D.offerList.splice(D.offerList.indexOf(offerById(d.id)), 1); msg = "Aanbod verwijderd"; }
     else if (d.n === "offer") { if (d.ag) D.billing[w.cid].agreements.forEach(function (x) { if (x.id === d.ag) x.offerSent = "vandaag"; }); msg = "Aanbod verstuurd aan " + F.CLIENT[w.cid].name.split(" ")[0]; }
     else if (d.n === "refund") { var pay = D.billing[w.cid].payments[d.i]; pay[4] = "refund"; pay[5] = (pay[5] ? pay[5] + " · " : "") + "creditfactuur F-2026-0430"; msg = "Terugbetaling van " + f.amount + " aangemaakt. De klant krijgt een creditfactuur."; }
     else if (d.n === "editseries") {
@@ -735,7 +810,7 @@
   function clearErr(t, map) { var k = t.dataset.wf || t.dataset.cin; if (map && map[k]) { delete map[k]; var l = t.closest(".invalid"); if (l) { l.classList.remove("invalid"); var e = l.querySelector(".err"); if (e) e.remove(); } } }
   function onInput(t) {
     if (t.dataset.wrow) { var p = t.dataset.wrow.split(","); W().rows[+p[0]][+p[1]] = t.value; return true; }
-    if (t.dataset.wf) { W().form[t.dataset.wf] = t.value; clearErr(t, W().err); return true; }
+    if (t.dataset.wf) { W().form[t.dataset.wf] = t.value; clearErr(t, W().err); if (t.dataset.wf === "kind" || t.dataset.wf === "end") R(); return true; }
     if (t.dataset.win === "q") { W().q = t.value; var el = document.getElementById("w-sr"); if (el) { el.innerHTML = searchResults(); if (window.FIVVI_I18N) window.FIVVI_I18N.apply(el, F.PREF.lang); } return true; }
     if (t.dataset.cin) {
       var c = C(), k = t.dataset.cin; clearErr(t, c.err);
@@ -775,6 +850,7 @@
     ["Trainingen", "TW-05", goWeb("workouts")],
     ["Trainers", "TW-06", goWeb("trainers")],
     ["Aanmeldlink en QR", "TW-07", goWeb("link")],
+    ["Aanbod", "F052", goWeb("offers")],
     ["Instellingen", "TW-08", goWeb("settings")]
   ]]);
   F.INDEX.push(["Klantweb", [

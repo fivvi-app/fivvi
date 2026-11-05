@@ -615,7 +615,7 @@
   /* Send an offer: the client gets an email with a link to confirm and pay; the invoice follows the payment (§94, §96) */
   SHEETS.offer = function () {
     var f = S.form, c = CLIENT[f.client], a = f.ag ? D.billing[f.client].agreements.filter(function (x) { return x.id === f.ag; })[0] : null;
-    var body = '<div class="fgrp">' + fld("Aanbod", sel("offer", D.offers)) + "</div>";
+    var body = '<div class="fgrp">' + fld("Aanbod", sel("offer", D.offerNames())) + "</div>";
     var running = a && a.endsIn >= 0 && a.status !== "expired";
     if (running) body += '<div style="margin:16px 0 6px;font-size:13px;color:var(--label2);padding-left:4px">Gaat in</div>' + seg([["after", "Na afloop"], ["now", "Direct"]], f.start, "fset", { f: "start" });
     body += foot(esc(c.name.split(" ")[0]) + " krijgt een e-mail met een link om te bevestigen en te betalen met iDEAL. Na de betaling maakt Fivvi de factuur." + (running ? " Na afloop: het nieuwe begint als " + esc(a.name) + " eindigt, zonder gat en zonder overlap." : ""));
@@ -940,7 +940,7 @@
     "new": function () { S.sheet = "new"; S.anim = "up"; render(); },
     "new-session": function () { S.form = Object.assign(today5(), { client: "anna", loc: D.locations[1] }); S.sheet = "newSession"; S.anim = "up"; render(); },
     "plan-for": function (d) { S.form = Object.assign(today5(), { client: d.id, date: key(add(NOW, 1)), start: "10:30", loc: D.locations[1] }); S.sheet = "newSession"; S.anim = "up"; render(); },
-    offer: function (d) { var a = d.ag ? D.billing[d.id].agreements.filter(function (x) { return x.id === d.ag; })[0] : null; S.menu = null; S.form = { client: d.id, ag: d.ag || "", offer: a ? a.name : D.offers[1], start: "after" }; S.sheet = "offer"; S.anim = "up"; render(); },
+    offer: function (d) { var a = d.ag ? D.billing[d.id].agreements.filter(function (x) { return x.id === d.ag; })[0] : null; S.menu = null; S.form = { client: d.id, ag: d.ag || "", offer: a ? a.name : D.offerNames()[1], start: "after" }; S.sheet = "offer"; S.anim = "up"; render(); },
     "send-offer": function () { var f = S.form, c = CLIENT[f.client]; if (f.ag) D.billing[f.client].agreements.forEach(function (x) { if (x.id === f.ag) x.offerSent = "vandaag"; }); S.sheet = null; toast("Aanbod verstuurd aan " + c.name.split(" ")[0]); },
     "new-client": function () { S.form = { name: "", email: "", lang: "Nederlands", ws: "sf" }; S.sheet = "newClient"; S.anim = "up"; render(); },
     "new-class": function () { S.form = Object.assign(today5(), { name: "", trainer: D.me.name, rep: "Niet herhalen", cap: "12", start: "19:00", end: "20:00" }); S.sheet = "newClass"; S.anim = "up"; render(); },
