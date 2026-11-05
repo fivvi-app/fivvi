@@ -392,3 +392,6 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .w-wk i{width:11px;height:11px;border-radius:3px;background:var(--w-muted)}
 .w-wk i.on{background:var(--ok)}
 .w-sheet-sec h4{margin:4px 0 6px;font-size:14px}
+.w-back{display:inline-flex;align-items:center;gap:2px;justify-self:start;border:0;background:none;color:var(--w-mfg);font-size:14px;font-weight:500;padding:4px 8px 4px 2px;border-radius:8px;margin-bottom:-6px}
+.w-back:hover{color:var(--w-fg);background:var(--w-muted)}
+.w-back svg{width:16px;height:16px}

@@ -93,6 +93,7 @@
       return '<button class="w-nav' + (on ? " on" : "") + '" data-a="w-page" data-v="' + n[0] + '">' + ic(n[2]) + "<span>" + n[1] + "</span>" + (n[4] ? '<b class="w-count">' + n[4] + "</b>" : "") + "</button>";
     }).join("");
     var page = (PAGES[w.page] || PAGES.dashboard)();
+    if (w.page === "client" || w.page === "klass") { var to = w.back ? w.back.page : w.page === "client" ? "clients" : "classes"; page = '<button class="w-back" data-a="w-back">' + ic("chevL") + "<span>" + esc(TITLES[to] || "Terug") + "</span></button>" + page; }
     var h = '<div class="w-chrome"><i></i><i></i><i></i><span class="w-url">fivvi.app/w/' + slug() + "/" + w.page + "</span></div>";
     h += '<div class="w-app"><aside class="w-side"><button class="w-wsb" data-a="w-toast" data-m="Wissel van werkruimte">' + '<span class="w-logo">' + F.initials(wsName()) + '</span><span class="w-wsn"><b>' + esc(wsName()) + "</b><span>" + (F.OWNER() ? "Eigenaar" : "Trainer") + "</span></span>" + ic("chevR") + "</button>" + nav +
       '<div class="w-sidef"><button class="w-nav" data-a="w-toast" data-m="Opent het feedbackformulier">' + ic("chat") + "<span>Feedback geven</span></button>" +
@@ -451,9 +452,11 @@
   A["w-shift"] = function (d) { var w = W(); w.day = F.key(F.add(F.parse(w.day), (w.view === "day" ? 1 : 7) * +d.v)); R(); };
   A["w-ev"] = function (d) { W().sheet = d.id; R(); };
   A["w-open-priv"] = function (d) { W().sheet = d.id; R(); };
-  A["w-open-class"] = function (d) { var w = W(); w.kid = d.id; w.page = "klass"; w.sheet = null; R(); };
-  A["w-client"] = function (d) { var w = W(); w.cid = d.id; w.page = "client"; w.tab = "overview"; w.sheet = null; w.q = ""; R(); };
-  A["w-client-bill"] = function (d) { var w = W(); w.cid = d.id; w.page = "client"; w.tab = "billing"; w.sheet = null; R(); };
+  function from(w) { if (w.page !== "client" && w.page !== "klass") w.back = { page: w.page }; }
+  A["w-open-class"] = function (d) { var w = W(); from(w); w.kid = d.id; w.page = "klass"; w.sheet = null; R(); };
+  A["w-client"] = function (d) { var w = W(); from(w); w.cid = d.id; w.page = "client"; w.tab = "overview"; w.sheet = null; w.q = ""; R(); };
+  A["w-back"] = function () { var w = W(); w.page = w.back ? w.back.page : w.page === "client" ? "clients" : "classes"; w.back = null; R(); };
+  A["w-client-bill"] = function (d) { var w = W(); from(w); w.cid = d.id; w.page = "client"; w.tab = "billing"; w.sheet = null; R(); };
   A["w-hist"] = function (d) { var w = W(); w.hist = w.hist === d.id ? null : d.id; R(); };
   A["w-ex-new"] = function () { openDlg("exform", { name: "", ty: "wr", mu: "" }); };
   A["w-ex-edit"] = function (d) { var e = D.library[+d.i]; openDlg("exform", { name: e.n, ty: e.ty, mu: e.mu || "" }, { i: +d.i }); };
