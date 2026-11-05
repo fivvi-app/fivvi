@@ -14,10 +14,11 @@ const TRAINER_CAPABILITIES: readonly Capability[] = [
   'clients.manage',
   'location.read',
   'session.private.manage.own',
+  'class.read',
 ];
 
 describe('F004 permission matrix', () => {
-  it('AC1: Owner has every capability, Trainer only trainers.view, clients.view, clients.manage, location.read and session.private.manage.own', () => {
+  it('AC1: Owner has every capability, Trainer only trainers.view, clients.view, clients.manage, location.read, session.private.manage.own and class.read', () => {
     expect(ROLES).toEqual(['owner', 'trainer']);
     expect(CAPABILITIES).toEqual([
       'workspace.manage',
@@ -31,6 +32,8 @@ describe('F004 permission matrix', () => {
       'team.invite',
       'session.private.manage.own',
       'session.private.manage.any',
+      'class.manage',
+      'class.read',
     ]);
     expect(capabilitiesOf('owner')).toEqual(CAPABILITIES);
     expect(capabilitiesOf('trainer')).toEqual(TRAINER_CAPABILITIES);
@@ -56,6 +59,9 @@ describe('F004 permission matrix', () => {
     // F020: a Trainer plans their own private sessions, only the Owner plans for any trainer.
     expect(rolesWith('session.private.manage.own')).toEqual(['owner', 'trainer']);
     expect(rolesWith('session.private.manage.any')).toEqual(['owner']);
+    // F021: only the Owner manages group classes and puts them on a date; the whole team reads them.
+    expect(rolesWith('class.manage')).toEqual(['owner']);
+    expect(rolesWith('class.read')).toEqual(['owner', 'trainer']);
   });
 
   it('AC9: has no admin role', () => {

@@ -18,6 +18,7 @@ import {
 } from '../src/index.ts';
 import {
   addClient,
+  addGroupClass,
   addSession,
   addTeamRole,
   createAccount,
@@ -181,8 +182,16 @@ describe('F020 sessions and session participants tables', () => {
       'sessions_capacity_positive',
     );
     expect(await violated(insert({ version: 0 }))).toBe('sessions_version_positive');
-    // A group class holds more than one.
-    expect(await violated(insert({ type: 'group', capacity: 12 }))).toBeUndefined();
+    // A group class holds more than one, and is a class on a date (F021).
+    expect(
+      await violated(async (tx) =>
+        insert({
+          type: 'group',
+          capacity: 12,
+          groupClassId: (await addGroupClass(tx, { workspaceId: gym.id })).id,
+        })(tx),
+      ),
+    ).toBeUndefined();
   });
 
   it('AC12: a client has one place per session', async () => {

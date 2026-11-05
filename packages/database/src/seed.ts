@@ -4,6 +4,7 @@ import { FIXTURE_INVITATION_VALIDITY_MS } from './invitation-validity.ts';
 import {
   authUsers,
   clients,
+  groupClasses,
   locations,
   organizations,
   sessionParticipants,
@@ -50,7 +51,9 @@ export function isProductionEnvironment(env: NodeJS.ProcessEnv = process.env): b
  * again to get a link. And a synthetic week of private sessions of John's Gym (F020 AC15): for
  * John, Sarah and Tom with the seeded clients, Monday to Friday of the current week, so previews
  * and the calendars of M4 have data; a week that has sessions already is left alone, and the next
- * week gets its own. Rows that
+ * week gets its own. And three group classes of John's Gym with their dates in that week (F021
+ * AC12): one with an English name and one that needs a trainer; the classes are made once, the
+ * dates once per week. Rows that
  * every environment needs, like the `hello` greeting, are data migrations instead
  * (`src/system-data.ts`).
  */
@@ -211,6 +214,11 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
       .onConflictDoNothing();
   }
   await seedPrivateSessions(db, { workspaceId: gym, now: options.now ?? new Date() });
+  await seedGroupClasses(db, {
+    workspaceId: gym,
+    plannedBy: johnInGym.id,
+    now: options.now ?? new Date(),
+  });
 }
 
 /**
@@ -289,6 +297,55 @@ const SEED_SESSIONS: readonly SeedSession[] = [
     minutes: 60,
     trainer: 'trainer@example.com',
     client: 'sophie.bakker@example.com',
+  },
+];
+
+/**
+ * A group class of the seed (F021 AC12): the Dutch name, an optional English one, a description in
+ * Dutch, the usual trainer's account (none: *Trainer nodig*), capacity and length, and its dates in
+ * the week (weekday, 1 is Monday, and local start).
+ */
+interface SeedClass {
+  readonly nameNl: string;
+  readonly nameEn: string | null;
+  readonly descriptionNl: string;
+  readonly trainer: string | null;
+  readonly capacity: number;
+  readonly minutes: number;
+  readonly dates: readonly { readonly weekday: number; readonly start: string }[];
+}
+
+/** The synthetic classes of John's Gym (F021 AC12), planned beside the private week without overlapping it. */
+const SEED_CLASSES: readonly SeedClass[] = [
+  {
+    nameNl: 'Kracht',
+    nameEn: 'Strength',
+    descriptionNl: 'Een uur krachttraining met gewichten, voor alle niveaus.',
+    trainer: 'trainer@example.com',
+    capacity: 8,
+    minutes: 60,
+    dates: [
+      { weekday: 2, start: '18:00' },
+      { weekday: 4, start: '18:00' },
+    ],
+  },
+  {
+    nameNl: 'Mobility',
+    nameEn: null,
+    descriptionNl: 'Rustige les voor beweeglijkheid en herstel.',
+    trainer: 'tom@example.com',
+    capacity: 12,
+    minutes: 45,
+    dates: [{ weekday: 3, start: '12:15' }],
+  },
+  {
+    nameNl: 'Bootcamp',
+    nameEn: null,
+    descriptionNl: 'Intensieve conditietraining in groepjes. Nog geen trainer gekozen.',
+    trainer: null,
+    capacity: 15,
+    minutes: 60,
+    dates: [{ weekday: 5, start: '18:00' }],
   },
 ];
 
@@ -402,3 +459,112 @@ const SEED_INVITATION = { name: 'Invitee', email: 'invitee@example.com' } as con
  * seeded link opens nothing until an Owner sends the invitation again, which rotates it.
  */
 const SEED_INVITATION_TOKEN_HASH = '0'.repeat(64);
+
+/**
+ * Seeds the classes of John's Gym (F021 AC12) and, for the week `now` falls in, their dates, as
+ * `seedPrivateSessions` does for private sessions. A class is made once by its Dutch name: one an
+ * Owner changed since stays as it is. The dates of a week are added once: a week with any group
+ * session already, the seed's or an Owner's, is left alone. Each date copies the trainer,
+ * capacity and length of its class and takes the default location (`scheduleClassOnDate` does the
+ * same in the API; this package cannot import the domain).
+ */
+async function seedGroupClasses(
+  db: DatabaseExecutor,
+  { workspaceId, plannedBy, now }: { workspaceId: string; plannedBy: string; now: Date },
+): Promise<void> {
+  const [workspace] = await db
+    .select({ timeZone: organizations.timeZone })
+    .from(organizations)
+    .where(eq(organizations.id, workspaceId));
+  const [location] = await db
+    .select({ id: locations.id })
+    .from(locations)
+    .where(and(eq(locations.organizationId, workspaceId), eq(locations.isDefault, true)));
+  if (!workspace || !location) throw new Error('The seed did not find the workspace’s location.');
+  const trainers = new Map(
+    (
+      await db
+        .select({ email: authUsers.email, profileId: trainerProfiles.id })
+        .from(trainerProfiles)
+        .innerJoin(teamMembers, eq(teamMembers.id, trainerProfiles.teamMemberId))
+        .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId))
+        .where(eq(trainerProfiles.organizationId, workspaceId))
+    ).map((row) => [row.email, row.profileId]),
+  );
+  const trainerOf = (email: string | null): string | null => {
+    if (email === null) return null;
+    const profileId = trainers.get(email);
+    if (!profileId) throw new Error('The seed did not find a trainer.');
+    return profileId;
+  };
+
+  const classIds = new Map(
+    (
+      await db
+        .select({ nameNl: groupClasses.nameNl, id: groupClasses.id })
+        .from(groupClasses)
+        .where(eq(groupClasses.organizationId, workspaceId))
+    ).map((row) => [row.nameNl, row.id]),
+  );
+  for (const plan of SEED_CLASSES) {
+    if (classIds.has(plan.nameNl)) continue;
+    const [created] = await db
+      .insert(groupClasses)
+      .values({
+        organizationId: workspaceId,
+        nameNl: plan.nameNl,
+        nameEn: plan.nameEn,
+        descriptionNl: plan.descriptionNl,
+        defaultTrainerProfileId: trainerOf(plan.trainer),
+        capacity: plan.capacity,
+        durationMinutes: plan.minutes,
+      })
+      .returning({ id: groupClasses.id });
+    if (!created) throw new Error('The seed did not store a class.');
+    classIds.set(plan.nameNl, created.id);
+  }
+
+  const monday = mondayOf(now, workspace.timeZone);
+  const at = (date: ReturnType<typeof sql>) => sql`(${date}) at time zone ${workspace.timeZone}`;
+  const [seeded] = await db
+    .select({ id: sessions.id })
+    .from(sessions)
+    .where(
+      and(
+        eq(sessions.organizationId, workspaceId),
+        eq(sessions.type, 'group'),
+        gte(sessions.startsAt, at(sql`${monday}::date + time '00:00'`) as never),
+        lt(sessions.startsAt, at(sql`${monday}::date + 7 + time '00:00'`) as never),
+      ),
+    )
+    .limit(1);
+  if (seeded) return;
+  for (const plan of SEED_CLASSES) {
+    const groupClassId = classIds.get(plan.nameNl);
+    if (!groupClassId) throw new Error('The seed did not find a class.');
+    // The class as it is now: a date copies it, as the API does.
+    const [current] = await db
+      .select({
+        capacity: groupClasses.capacity,
+        durationMinutes: groupClasses.durationMinutes,
+        defaultTrainerProfileId: groupClasses.defaultTrainerProfileId,
+      })
+      .from(groupClasses)
+      .where(eq(groupClasses.id, groupClassId));
+    if (!current) throw new Error('The seed did not find a class.');
+    for (const date of plan.dates) {
+      const startsAt = at(sql`${monday}::date + ${date.weekday - 1}::int + ${date.start}::time`);
+      await db.insert(sessions).values({
+        organizationId: workspaceId,
+        type: 'group',
+        groupClassId,
+        trainerProfileId: current.defaultTrainerProfileId,
+        locationId: location.id,
+        startsAt: startsAt as never,
+        endsAt: sql`(${startsAt}) + ${current.durationMinutes} * interval '1 minute'` as never,
+        capacity: current.capacity,
+        createdByTeamMemberId: plannedBy,
+      });
+    }
+  }
+}

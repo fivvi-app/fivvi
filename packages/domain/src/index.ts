@@ -43,6 +43,17 @@ export {
   rolesWith,
 } from './permissions/matrix.ts';
 export {
+  decideGroupDateEdit,
+  GROUP_CLASS_LIMITS,
+  type GroupDateEditDecision,
+  type GroupDateEditFacts,
+  type GroupDateEditRefusal,
+  type ScheduleClassOnDateDecision,
+  type ScheduleClassOnDateFacts,
+  type ScheduleClassOnDateRefusal,
+  scheduleClassOnDate,
+} from './scheduling/group-class.ts';
+export {
   confirmationLanguage,
   type PlanPrivateSessionDecision,
   type PlanPrivateSessionFacts,
@@ -51,7 +62,11 @@ export {
   planPrivateSession,
   sendsConfirmation,
 } from './scheduling/private-session.ts';
-export { type WallClockInstant, wallClockToInstant } from './scheduling/zoned-time.ts';
+export {
+  instantToWallClock,
+  type WallClockInstant,
+  wallClockToInstant,
+} from './scheduling/zoned-time.ts';
 export {
   canChangeRole,
   canRemoveTeamMember,

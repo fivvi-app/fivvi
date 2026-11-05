@@ -84,3 +84,18 @@ export function wallClockToInstant(date: string, time: string, timeZone: string)
   if (earlier === undefined) return { outcome: 'does-not-exist' };
   return { outcome: 'instant', instant: new Date(earlier), repeated: matches.length > 1 };
 }
+
+/**
+ * The wall clock of `instant` in `timeZone`: the date (`YYYY-MM-DD`) and the time of day
+ * (`HH:mm`, 24 hours), the form `wallClockToInstant` takes. A repeated time (the clocks went back)
+ * reads the same for both instants, so for the later one it does not round-trip; stored sessions
+ * start at the earlier one.
+ */
+export function instantToWallClock(
+  instant: Date,
+  timeZone: string,
+): { readonly date: string; readonly time: string } {
+  const wall = new Date(wallAsUtc(instant.getTime(), timeZone));
+  const [date = '', time = ''] = wall.toISOString().split(/[T]/);
+  return { date, time: time.slice(0, 5) };
+}
