@@ -10691,7 +10691,7 @@ public enum Operations {
     }
     /// Change one date of a class
     ///
-    /// Changes the date, start, end and/or capacity of one group session (the Owner only), from the version the caller read (`409` with the date as it is now when it changed since). Times are wall-clock in the workspace’s time zone with the same daylight saving rules as scheduling. An end that is not after the start answers `400` on `localEnd` (`end_before_start`). The class and its other dates are not touched. A session that is not a group session of the workspace (a private session too) answers `404`.
+    /// Changes the start, end and/or capacity of one date of a class (the Owner only), from the version the caller read (`409` with the date as it is now when it changed since). The date stays on its day. Times are wall-clock in the workspace’s time zone with the same daylight saving rules as scheduling. A start sent alone keeps the end at its time of day; when that is not after the new start the answer is `400` on `localEnd`. An end that is not after the start answers `400` on `localEnd` (`end_before_start`). The class and its other dates are not touched. A session that is not a class date of the workspace (a private session too) answers `404`.
     ///
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/sessions/{sessionId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/patch(updateGroupClassDate)`.

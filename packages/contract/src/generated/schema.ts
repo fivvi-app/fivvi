@@ -523,7 +523,7 @@ export interface paths {
         head?: never;
         /**
          * Change one date of a class
-         * @description Changes the date, start, end and/or capacity of one group session (the Owner only), from the version the caller read (`409` with the date as it is now when it changed since). Times are wall-clock in the workspace’s time zone with the same daylight saving rules as scheduling. An end that is not after the start answers `400` on `localEnd` (`end_before_start`). The class and its other dates are not touched. A session that is not a group session of the workspace (a private session too) answers `404`.
+         * @description Changes the start, end and/or capacity of one date of a class (the Owner only), from the version the caller read (`409` with the date as it is now when it changed since). The date stays on its day. Times are wall-clock in the workspace’s time zone with the same daylight saving rules as scheduling. A start sent alone keeps the end at its time of day; when that is not after the new start the answer is `400` on `localEnd`. An end that is not after the start answers `400` on `localEnd` (`end_before_start`). The class and its other dates are not touched. A session that is not a class date of the workspace (a private session too) answers `404`.
          */
         patch: operations["updateGroupClassDate"];
         trace?: never;
@@ -1050,7 +1050,7 @@ export interface components {
              */
             id: string;
             /**
-             * @description The kind of session. Private sessions are planned here, group sessions are a class on a date (`…/group-classes/{classId}/dates`); Open Gym comes later.
+             * @description The kind of session. Private sessions are planned here, class dates are a class on a date (`…/group-classes/{classId}/dates`); Open Gym comes later.
              * @enum {string}
              */
             type: "private" | "group" | "open_gym";
@@ -1071,14 +1071,14 @@ export interface components {
             endsAt: string;
             /** @description The workspace’s IANA time zone, e.g. `Europe/Amsterdam`: the instants are shown in it (ADR-012). */
             timeZone: string;
-            /** @description 1 for a private session; the date’s own capacity for a group session. */
+            /** @description 1 for a private session; the date’s own capacity for a class date. */
             capacity: number;
             /** @description Raised by every change; a change says the version it read. Starts at 1. */
             version: number;
             location: components["schemas"]["Location"];
             trainer?: components["schemas"]["SessionTrainer"];
             groupClass?: components["schemas"]["SessionGroupClass"];
-            /** @description The clients in the session, in the order they were added. One for a private session; none for a group session until bookings exist (M5). */
+            /** @description The clients in the session, in the order they were added. One for a private session; none for a class date until bookings exist (M5). */
             participants: components["schemas"]["SessionParticipant"][];
         };
         /** @description Left out when the session has no trainer (the trainer’s profile ended). */
@@ -1091,7 +1091,7 @@ export interface components {
             /** @description The account’s name; empty when it has none. */
             name: string;
         };
-        /** @description The class of a group session (F021); left out for the other kinds. */
+        /** @description The class of a class date (F021); left out for the other kinds. */
         SessionGroupClass: {
             /**
              * Format: uuid
@@ -1248,15 +1248,13 @@ export interface components {
             code: "class_date_changed";
             session: components["schemas"]["Session"];
         };
-        /** @description Changes one date of a class (CO-04): the date, the start, the end and the capacity, each only when given. The class itself never changes. */
+        /** @description Changes one date of a class (CO-04): the start, the end and the capacity, each only when given. The date stays on its day. The class itself never changes. */
         UpdateGroupClassDateRequest: {
             /** @description The version of the date the change was made from (`Session.version`). If the date changed since, the answer is `409` and nothing is written. */
             version: number;
-            /** @description The new date in the workspace’s time zone, `YYYY-MM-DD`. Leave it out to keep it. */
-            localDate?: string;
             /** @description The new start, `HH:mm` in the workspace’s time zone. Leave it out to keep it. */
             localStart?: string;
-            /** @description The new end, `HH:mm` on the same date as the start. Leave it out to keep its time of day. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`. */
+            /** @description The new end, `HH:mm` on the same day as the start. Leave it out to keep its time of day: a start moved alone does not move the end with it, and one moved to or past the unchanged end is refused like any end. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`. */
             localEnd?: string;
             /** @description The new capacity of this date, 1 to 100. Leave it out to keep it. */
             capacity?: number;

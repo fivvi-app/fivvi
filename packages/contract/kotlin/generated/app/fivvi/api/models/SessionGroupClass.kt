@@ -29,7 +29,7 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * The class of a group session (F021); left out for the other kinds.
+ * The class of a class date (F021); left out for the other kinds.
  *
  * @param id The class ID.
  * @param nameNl The class’s Dutch name.

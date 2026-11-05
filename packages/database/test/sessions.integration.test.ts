@@ -89,6 +89,29 @@ describe('F020 sessions and session participants tables', () => {
     return { gym, sarah, profileId: profile.id };
   }
 
+  it('AC9: a group session needs its class; the other kinds do not', async () => {
+    const { gym } = await gymWithSarah();
+    const insert = (type: 'private' | 'group' | 'open_gym', groupClassId: string | null) =>
+      violated((tx) =>
+        addSession(tx, { workspaceId: gym.id, type, groupClassId, participant: false }),
+      );
+
+    expect(await insert('group', null)).toBe('sessions_group_has_class');
+    expect(
+      await violated(async (tx) => {
+        const kracht = await addGroupClass(tx, { workspaceId: gym.id });
+        await addSession(tx, {
+          workspaceId: gym.id,
+          type: 'group',
+          groupClassId: kracht.id,
+          participant: false,
+        });
+      }),
+    ).toBeUndefined();
+    expect(await insert('private', null)).toBeUndefined();
+    expect(await insert('open_gym', null)).toBeUndefined();
+  });
+
   it('AC12: a session has a type, a status, a version and its UTC instants; a participant is booked by default', async () => {
     const { gym, profileId } = await gymWithSarah();
     const anna = await addClient(admin.db, { workspaceId: gym.id });

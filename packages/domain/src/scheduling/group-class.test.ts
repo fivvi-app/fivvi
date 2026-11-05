@@ -9,15 +9,15 @@ import {
 } from './group-class.ts';
 
 const GYM_LOCATION = 'location-gym';
-const SARAH = 'team-member-sarah';
-const TOM = 'team-member-tom';
+const SARAH = { teamMemberId: 'team-member-sarah', trainerProfileId: 'trainer-profile-sarah' };
+const TOM = { teamMemberId: 'team-member-tom', trainerProfileId: 'trainer-profile-tom' };
 
 // "Kracht": Sarah, 8 places, 60 minutes. Tuesday 6 October 2026, 18:00 in Amsterdam is 16:00 UTC.
 const NOW = fixedClock('2026-09-28T10:00:00Z').now();
 
 function schedule(overrides: Partial<ScheduleClassOnDateFacts> = {}): ScheduleClassOnDateFacts {
   return {
-    groupClass: { capacity: 8, durationMinutes: 60, defaultTrainerTeamMemberId: SARAH },
+    groupClass: { capacity: 8, durationMinutes: 60, defaultTrainer: SARAH },
     localDate: '2026-10-06',
     localStart: '18:00',
     timeZone: AMSTERDAM,
@@ -31,7 +31,7 @@ describe('F021 AC9: schedule a class on a date', () => {
   it('AC3: Kracht on Tuesday 6 October 2026 at 18:00 is 16:00 to 17:00 UTC with Sarah, 8 places, at the default location', () => {
     expect(scheduleClassOnDate(schedule())).toEqual({
       outcome: 'scheduled',
-      trainerTeamMemberId: SARAH,
+      trainer: SARAH,
       locationId: GYM_LOCATION,
       startsAt: new Date('2026-10-06T16:00:00.000Z'),
       endsAt: new Date('2026-10-06T17:00:00.000Z'),
@@ -58,31 +58,32 @@ describe('F021 AC9: schedule a class on a date', () => {
     expect(
       scheduleClassOnDate(
         schedule({
-          groupClass: { capacity: 8, durationMinutes: 60, defaultTrainerTeamMemberId: null },
+          groupClass: { capacity: 8, durationMinutes: 60, defaultTrainer: null },
         }),
       ),
-    ).toMatchObject({ outcome: 'scheduled', trainerTeamMemberId: null });
+    ).toMatchObject({ outcome: 'scheduled', trainer: null });
   });
 
   it('copies the class’s defaults, and the date’s own trainer and capacity win when given', () => {
     expect(
       scheduleClassOnDate(
-        schedule({ requestedTrainer: { teamMemberId: TOM, trains: true }, requestedCapacity: 12 }),
+        schedule({ requestedTrainer: { ...TOM, trains: true }, requestedCapacity: 12 }),
       ),
-    ).toMatchObject({ outcome: 'scheduled', trainerTeamMemberId: TOM, capacity: 12 });
+    ).toMatchObject({ outcome: 'scheduled', trainer: TOM, capacity: 12 });
   });
 
   it('a requested trainer of null plans the date as Trainer nodig, whatever the class’s usual trainer', () => {
     expect(scheduleClassOnDate(schedule({ requestedTrainer: null }))).toMatchObject({
       outcome: 'scheduled',
-      trainerTeamMemberId: null,
+      trainer: null,
     });
   });
 
   it('refuses a requested trainer who does not train in the workspace', () => {
-    expect(
-      scheduleClassOnDate(schedule({ requestedTrainer: { teamMemberId: TOM, trains: false } })),
-    ).toEqual({ outcome: 'refused', reason: 'unknown-trainer' });
+    expect(scheduleClassOnDate(schedule({ requestedTrainer: { ...TOM, trains: false } }))).toEqual({
+      outcome: 'refused',
+      reason: 'unknown-trainer',
+    });
   });
 
   it('refuses a capacity outside 1 to 100, and a fraction', () => {
@@ -104,7 +105,7 @@ describe('F021 AC9: schedule a class on a date', () => {
     expect(
       scheduleClassOnDate(
         schedule({
-          groupClass: { capacity: 8, durationMinutes: 75, defaultTrainerTeamMemberId: SARAH },
+          groupClass: { capacity: 8, durationMinutes: 75, defaultTrainer: SARAH },
         }),
       ),
     ).toMatchObject({ endsAt: new Date('2026-10-06T17:15:00.000Z') });
@@ -145,7 +146,7 @@ describe('F021 AC9: schedule a class on a date', () => {
           schedule({
             localDate: '2026-10-25',
             localStart: '02:00',
-            groupClass: { capacity: 8, durationMinutes: 90, defaultTrainerTeamMemberId: SARAH },
+            groupClass: { capacity: 8, durationMinutes: 90, defaultTrainer: SARAH },
           }),
         ),
       ).toMatchObject({
@@ -198,15 +199,6 @@ describe('F021 AC4: edit one date', () => {
     });
   });
 
-  it('a new date keeps the times of day', () => {
-    expect(decideGroupDateEdit(edit({ requested: { localDate: '2026-10-13' } }))).toEqual({
-      outcome: 'edited',
-      startsAt: new Date('2026-10-13T16:00:00.000Z'),
-      endsAt: new Date('2026-10-13T17:00:00.000Z'),
-      capacity: 8,
-    });
-  });
-
   it('refuses an end before the start, or equal to it', () => {
     expect(decideGroupDateEdit(edit({ requested: { localEnd: '17:30' } }))).toEqual({
       outcome: 'refused',
@@ -232,11 +224,7 @@ describe('F021 AC4: edit one date', () => {
     }
   });
 
-  it('refuses a date, a start and an end that are none, naming which', () => {
-    expect(decideGroupDateEdit(edit({ requested: { localDate: '2026-13-01' } }))).toEqual({
-      outcome: 'refused',
-      reason: 'invalid-date',
-    });
+  it('refuses a start and an end that are none, naming which', () => {
     expect(decideGroupDateEdit(edit({ requested: { localStart: '9am' } }))).toEqual({
       outcome: 'refused',
       reason: 'invalid-time',

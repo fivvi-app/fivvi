@@ -1425,7 +1425,7 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/Session/id`.
             public var id: Swift.String
-            /// The kind of session. Private sessions are planned here, group sessions are a class on a date (`…/group-classes/{classId}/dates`); Open Gym comes later.
+            /// The kind of session. Private sessions are planned here, class dates are a class on a date (`…/group-classes/{classId}/dates`); Open Gym comes later.
             ///
             /// - Remark: Generated from `#/components/schemas/Session/type`.
             @frozen public enum _TypePayload: String, Codable, Hashable, Sendable, CaseIterable {
@@ -1433,7 +1433,7 @@ extension Components {
                 case group = "group"
                 case openGym = "open_gym"
             }
-            /// The kind of session. Private sessions are planned here, group sessions are a class on a date (`…/group-classes/{classId}/dates`); Open Gym comes later.
+            /// The kind of session. Private sessions are planned here, class dates are a class on a date (`…/group-classes/{classId}/dates`); Open Gym comes later.
             ///
             /// - Remark: Generated from `#/components/schemas/Session/type`.
             public var _type: Components.Schemas.Session._TypePayload
@@ -1460,7 +1460,7 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/Session/timeZone`.
             public var timeZone: Swift.String
-            /// 1 for a private session; the date’s own capacity for a group session.
+            /// 1 for a private session; the date’s own capacity for a class date.
             ///
             /// - Remark: Generated from `#/components/schemas/Session/capacity`.
             public var capacity: Swift.Int
@@ -1474,7 +1474,7 @@ extension Components {
             public var trainer: Components.Schemas.SessionTrainer?
             /// - Remark: Generated from `#/components/schemas/Session/groupClass`.
             public var groupClass: Components.Schemas.SessionGroupClass?
-            /// The clients in the session, in the order they were added. One for a private session; none for a group session until bookings exist (M5).
+            /// The clients in the session, in the order they were added. One for a private session; none for a class date until bookings exist (M5).
             ///
             /// - Remark: Generated from `#/components/schemas/Session/participants`.
             public var participants: [Components.Schemas.SessionParticipant]
@@ -1482,17 +1482,17 @@ extension Components {
             ///
             /// - Parameters:
             ///   - id: The session ID.
-            ///   - _type: The kind of session. Private sessions are planned here, group sessions are a class on a date (`…/group-classes/{classId}/dates`); Open Gym comes later.
+            ///   - _type: The kind of session. Private sessions are planned here, class dates are a class on a date (`…/group-classes/{classId}/dates`); Open Gym comes later.
             ///   - status: Whether the session still takes place. A session is never deleted.
             ///   - startsAt: The start, a UTC instant.
             ///   - endsAt: The end, a UTC instant.
             ///   - timeZone: The workspace’s IANA time zone, e.g. `Europe/Amsterdam`: the instants are shown in it (ADR-012).
-            ///   - capacity: 1 for a private session; the date’s own capacity for a group session.
+            ///   - capacity: 1 for a private session; the date’s own capacity for a class date.
             ///   - version: Raised by every change; a change says the version it read. Starts at 1.
             ///   - location:
             ///   - trainer:
             ///   - groupClass:
-            ///   - participants: The clients in the session, in the order they were added. One for a private session; none for a group session until bookings exist (M5).
+            ///   - participants: The clients in the session, in the order they were added. One for a private session; none for a class date until bookings exist (M5).
             public init(
                 id: Swift.String,
                 _type: Components.Schemas.Session._TypePayload,
@@ -1564,7 +1564,7 @@ extension Components {
                 case name
             }
         }
-        /// The class of a group session (F021); left out for the other kinds.
+        /// The class of a class date (F021); left out for the other kinds.
         ///
         /// - Remark: Generated from `#/components/schemas/SessionGroupClass`.
         public struct SessionGroupClass: Codable, Hashable, Sendable {
@@ -2158,7 +2158,7 @@ extension Components {
                 case session
             }
         }
-        /// Changes one date of a class (CO-04): the date, the start, the end and the capacity, each only when given. The class itself never changes.
+        /// Changes one date of a class (CO-04): the start, the end and the capacity, each only when given. The date stays on its day. The class itself never changes.
         ///
         /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest`.
         public struct UpdateGroupClassDateRequest: Codable, Hashable, Sendable {
@@ -2166,15 +2166,11 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/version`.
             public var version: Swift.Int
-            /// The new date in the workspace’s time zone, `YYYY-MM-DD`. Leave it out to keep it.
-            ///
-            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/localDate`.
-            public var localDate: Swift.String?
             /// The new start, `HH:mm` in the workspace’s time zone. Leave it out to keep it.
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/localStart`.
             public var localStart: Swift.String?
-            /// The new end, `HH:mm` on the same date as the start. Leave it out to keep its time of day. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`.
+            /// The new end, `HH:mm` on the same day as the start. Leave it out to keep its time of day: a start moved alone does not move the end with it, and one moved to or past the unchanged end is refused like any end. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`.
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/localEnd`.
             public var localEnd: Swift.String?
@@ -2186,26 +2182,22 @@ extension Components {
             ///
             /// - Parameters:
             ///   - version: The version of the date the change was made from (`Session.version`). If the date changed since, the answer is `409` and nothing is written.
-            ///   - localDate: The new date in the workspace’s time zone, `YYYY-MM-DD`. Leave it out to keep it.
             ///   - localStart: The new start, `HH:mm` in the workspace’s time zone. Leave it out to keep it.
-            ///   - localEnd: The new end, `HH:mm` on the same date as the start. Leave it out to keep its time of day. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`.
+            ///   - localEnd: The new end, `HH:mm` on the same day as the start. Leave it out to keep its time of day: a start moved alone does not move the end with it, and one moved to or past the unchanged end is refused like any end. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`.
             ///   - capacity: The new capacity of this date, 1 to 100. Leave it out to keep it.
             public init(
                 version: Swift.Int,
-                localDate: Swift.String? = nil,
                 localStart: Swift.String? = nil,
                 localEnd: Swift.String? = nil,
                 capacity: Swift.Int? = nil
             ) {
                 self.version = version
-                self.localDate = localDate
                 self.localStart = localStart
                 self.localEnd = localEnd
                 self.capacity = capacity
             }
             public enum CodingKeys: String, CodingKey {
                 case version
-                case localDate
                 case localStart
                 case localEnd
                 case capacity

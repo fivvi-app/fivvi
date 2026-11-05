@@ -39,7 +39,7 @@ export interface SessionTrainerView {
   readonly name: string;
 }
 
-/** The class a group session was scheduled from, by name (F021): the viewer's language picks one. */
+/** The class a class date was scheduled from, by name (F021): the viewer's language picks one. */
 export interface SessionGroupClassView {
   readonly id: string;
   readonly nameNl: string;
@@ -59,7 +59,7 @@ export interface SessionView {
   readonly location: LocationView;
   /** `null` when the session has no trainer (an Open Gym, or the trainer's profile ended). */
   readonly trainer: SessionTrainerView | null;
-  /** The class of a group session (F021); `null` for the other kinds. */
+  /** The class of a class date (F021); `null` for the other kinds. */
   readonly groupClass: SessionGroupClassView | null;
   /** In the order they were added. */
   readonly participants: SessionParticipantView[];

@@ -23,20 +23,26 @@ function validCapacity(capacity: number): boolean {
   return Number.isInteger(capacity) && capacity >= min && capacity <= max;
 }
 
+/** A trainer by the two IDs the caller stores: the team member (the API's trainer) and the trainer profile. */
+export interface TrainerReference {
+  readonly teamMemberId: string;
+  readonly trainerProfileId: string;
+}
+
 /** What the rules need to schedule a class on a date, all read by the caller: no I/O in here. */
 export interface ScheduleClassOnDateFacts {
   /** The class as stored: its defaults are copied. */
   readonly groupClass: {
     readonly capacity: number;
     readonly durationMinutes: number;
-    /** The usual trainer's team-member ID; `null` for *Trainer nodig*. */
-    readonly defaultTrainerTeamMemberId: string | null;
+    /** The usual trainer; `null` for *Trainer nodig*. */
+    readonly defaultTrainer: TrainerReference | null;
   };
   /**
    * The trainer the person chose for this date: left out takes the class's usual trainer, `null`
    * plans the date as *Trainer nodig*, a team member must train in the workspace (`trains`, F005).
    */
-  readonly requestedTrainer?: { readonly teamMemberId: string; readonly trains: boolean } | null;
+  readonly requestedTrainer?: (TrainerReference & { readonly trains: boolean }) | null;
   /** The capacity chosen for this date; left out takes the class's. */
   readonly requestedCapacity?: number;
   /** The date typed, in the workspace's time zone: `YYYY-MM-DD`. */
@@ -62,8 +68,8 @@ export type ScheduleClassOnDateRefusal =
 export type ScheduleClassOnDateDecision =
   | {
       readonly outcome: 'scheduled';
-      /** `null`: *Trainer nodig*. */
-      readonly trainerTeamMemberId: string | null;
+      /** The trainer of the date; `null`: *Trainer nodig*. */
+      readonly trainer: TrainerReference | null;
       readonly locationId: string;
       readonly startsAt: Date;
       readonly endsAt: Date;
@@ -97,10 +103,13 @@ export function scheduleClassOnDate(facts: ScheduleClassOnDateFacts): ScheduleCl
   }
   return {
     outcome: 'scheduled',
-    trainerTeamMemberId:
+    trainer:
       requestedTrainer === undefined
-        ? groupClass.defaultTrainerTeamMemberId
-        : (requestedTrainer?.teamMemberId ?? null),
+        ? groupClass.defaultTrainer
+        : requestedTrainer && {
+            teamMemberId: requestedTrainer.teamMemberId,
+            trainerProfileId: requestedTrainer.trainerProfileId,
+          },
     locationId: defaultLocation({ locations: facts.locations }).id,
     startsAt: start.instant,
     endsAt: new Date(start.instant.getTime() + groupClass.durationMinutes * MINUTE_MS),
@@ -115,8 +124,6 @@ export interface GroupDateEditFacts {
   /** The date as stored. */
   readonly current: { readonly startsAt: Date; readonly endsAt: Date; readonly capacity: number };
   readonly requested: {
-    /** `YYYY-MM-DD` in the workspace's time zone. */
-    readonly localDate?: string;
     /** `HH:mm`. */
     readonly localStart?: string;
     /** `HH:mm`, on the same date as the start. */
@@ -129,7 +136,6 @@ export interface GroupDateEditFacts {
 export type GroupDateEditRefusal =
   | 'nothing-to-change'
   | 'invalid-capacity'
-  | 'invalid-date'
   | 'invalid-time'
   | 'invalid-end-time'
   | 'time-does-not-exist'
@@ -147,16 +153,16 @@ export type GroupDateEditDecision =
   | { readonly outcome: 'refused'; readonly reason: GroupDateEditRefusal };
 
 /**
- * Edits one date of a class (CO-04, AC4): the date, the start, the end and the capacity, each
- * only when given, read in the workspace's time zone with the same daylight saving rules as
- * scheduling (a skipped time is refused, a repeated one takes the first instant). The end is on
- * the same date as the start and must be after it; a start moved past the unchanged end is
- * refused for the same reason. The class itself is never touched.
+ * Edits one date of a class (CO-04, AC4): the start, the end and the capacity, each only when
+ * given, read in the workspace's time zone with the same daylight saving rules as scheduling (a
+ * skipped time is refused, a repeated one takes the first instant). The day stays: a date does
+ * not move to another day. The end is on the same day as the start and must be after it; an
+ * unchanged end keeps its time of day, so a start moved past it is refused for the same reason.
+ * The class itself is never touched.
  */
 export function decideGroupDateEdit(facts: GroupDateEditFacts): GroupDateEditDecision {
   const { current, requested, timeZone } = facts;
   if (
-    requested.localDate === undefined &&
     requested.localStart === undefined &&
     requested.localEnd === undefined &&
     requested.capacity === undefined
@@ -166,26 +172,19 @@ export function decideGroupDateEdit(facts: GroupDateEditFacts): GroupDateEditDec
   const capacity = requested.capacity ?? current.capacity;
   if (!validCapacity(capacity)) return { outcome: 'refused', reason: 'invalid-capacity' };
 
-  if (
-    requested.localDate === undefined &&
-    requested.localStart === undefined &&
-    requested.localEnd === undefined
-  ) {
+  if (requested.localStart === undefined && requested.localEnd === undefined) {
     return { outcome: 'edited', startsAt: current.startsAt, endsAt: current.endsAt, capacity };
   }
 
   const now = instantToWallClock(current.startsAt, timeZone);
-  const date = requested.localDate ?? now.date;
   const startTime = requested.localStart ?? now.time;
   const endTime = requested.localEnd ?? instantToWallClock(current.endsAt, timeZone).time;
-  const start = wallClockToInstant(date, startTime, timeZone);
-  if (start.outcome === 'invalid') {
-    return { outcome: 'refused', reason: start.field === 'date' ? 'invalid-date' : 'invalid-time' };
-  }
+  const start = wallClockToInstant(now.date, startTime, timeZone);
+  if (start.outcome === 'invalid') return { outcome: 'refused', reason: 'invalid-time' };
   if (start.outcome === 'does-not-exist') {
     return { outcome: 'refused', reason: 'time-does-not-exist' };
   }
-  const end = wallClockToInstant(date, endTime, timeZone);
+  const end = wallClockToInstant(now.date, endTime, timeZone);
   if (end.outcome === 'invalid') return { outcome: 'refused', reason: 'invalid-end-time' };
   if (end.outcome === 'does-not-exist') {
     return { outcome: 'refused', reason: 'end-time-does-not-exist' };

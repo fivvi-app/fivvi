@@ -991,7 +991,7 @@
               "group",
               "open_gym"
             ],
-            "description": "The kind of session. Private sessions are planned here, group sessions are a class on a date (`…/group-classes/{classId}/dates`); Open Gym comes later."
+            "description": "The kind of session. Private sessions are planned here, class dates are a class on a date (`…/group-classes/{classId}/dates`); Open Gym comes later."
           },
           "status": {
             "type": "string",
@@ -1017,7 +1017,7 @@
           },
           "capacity": {
             "type": "integer",
-            "description": "1 for a private session; the date’s own capacity for a group session."
+            "description": "1 for a private session; the date’s own capacity for a class date."
           },
           "version": {
             "type": "integer",
@@ -1037,7 +1037,7 @@
             "items": {
               "$ref": "#/components/schemas/SessionParticipant"
             },
-            "description": "The clients in the session, in the order they were added. One for a private session; none for a group session until bookings exist (M5)."
+            "description": "The clients in the session, in the order they were added. One for a private session; none for a class date until bookings exist (M5)."
           }
         },
         "required": [
@@ -1098,7 +1098,7 @@
           "nameNl",
           "nameEn"
         ],
-        "description": "The class of a group session (F021); left out for the other kinds."
+        "description": "The class of a class date (F021); left out for the other kinds."
       },
       "SessionParticipant": {
         "type": "object",
@@ -1463,11 +1463,6 @@
             "minimum": 1,
             "description": "The version of the date the change was made from (`Session.version`). If the date changed since, the answer is `409` and nothing is written."
           },
-          "localDate": {
-            "type": "string",
-            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
-            "description": "The new date in the workspace’s time zone, `YYYY-MM-DD`. Leave it out to keep it."
-          },
           "localStart": {
             "type": "string",
             "pattern": "^\\d{2}:\\d{2}$",
@@ -1476,7 +1471,7 @@
           "localEnd": {
             "type": "string",
             "pattern": "^\\d{2}:\\d{2}$",
-            "description": "The new end, `HH:mm` on the same date as the start. Leave it out to keep its time of day. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`."
+            "description": "The new end, `HH:mm` on the same day as the start. Leave it out to keep its time of day: a start moved alone does not move the end with it, and one moved to or past the unchanged end is refused like any end. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`."
           },
           "capacity": {
             "type": "integer",
@@ -1488,7 +1483,7 @@
         "required": [
           "version"
         ],
-        "description": "Changes one date of a class (CO-04): the date, the start, the end and the capacity, each only when given. The class itself never changes."
+        "description": "Changes one date of a class (CO-04): the start, the end and the capacity, each only when given. The date stays on its day. The class itself never changes."
       },
       "ClientList": {
         "type": "object",
@@ -4473,7 +4468,7 @@
           "group-classes"
         ],
         "summary": "Change one date of a class",
-        "description": "Changes the date, start, end and/or capacity of one group session (the Owner only), from the version the caller read (`409` with the date as it is now when it changed since). Times are wall-clock in the workspace’s time zone with the same daylight saving rules as scheduling. An end that is not after the start answers `400` on `localEnd` (`end_before_start`). The class and its other dates are not touched. A session that is not a group session of the workspace (a private session too) answers `404`.",
+        "description": "Changes the start, end and/or capacity of one date of a class (the Owner only), from the version the caller read (`409` with the date as it is now when it changed since). The date stays on its day. Times are wall-clock in the workspace’s time zone with the same daylight saving rules as scheduling. A start sent alone keeps the end at its time of day; when that is not after the new start the answer is `400` on `localEnd`. An end that is not after the start answers `400` on `localEnd` (`end_before_start`). The class and its other dates are not touched. A session that is not a class date of the workspace (a private session too) answers `404`.",
         "security": [
           {
             "cookieAuth": []

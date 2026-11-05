@@ -86,7 +86,7 @@ describe('F021 edit one date of a class', () => {
     expect((await stored(other.id))?.version).toBe(1);
   });
 
-  it('AC4: a new end, and a new date, move only what they name', async () => {
+  it('AC4: a new end, and a new start, move only what they name; the end keeps its time of day', async () => {
     const { gym, john, server, date } = await aDate();
 
     const longer = await updateDate(server, gym.id, date.id, john, {
@@ -100,14 +100,29 @@ describe('F021 edit one date of a class', () => {
       version: 2,
     });
 
-    const moved = await updateDate(server, gym.id, date.id, john, {
+    const earlier = await updateDate(server, gym.id, date.id, john, {
       version: 2,
+      localStart: '17:00',
+    });
+    expect(await earlier.json()).toMatchObject({
+      startsAt: '2026-10-06T15:00:00.000Z',
+      endsAt: '2026-10-06T17:30:00.000Z',
+      version: 3,
+    });
+  });
+
+  it('AC4: a date stays on its day: the edit has no field for another day', async () => {
+    const { gym, john, server, date } = await aDate();
+
+    const response = await updateDate(server, gym.id, date.id, john, {
+      version: 1,
       localDate: '2026-10-07',
     });
-    expect(await moved.json()).toMatchObject({
-      startsAt: '2026-10-07T16:00:00.000Z',
-      endsAt: '2026-10-07T17:30:00.000Z',
-      version: 3,
+
+    expect(response.status).toBe(400);
+    expect(await stored(date.id)).toMatchObject({
+      startsAt: new Date('2026-10-06T16:00:00.000Z'),
+      version: 1,
     });
   });
 
@@ -133,11 +148,10 @@ describe('F021 edit one date of a class', () => {
     });
   });
 
-  it('refuses a date, start, end or capacity that is none, naming the field', async () => {
+  it('refuses a start, end or capacity that is none, naming the field', async () => {
     const { gym, john, server, date } = await aDate();
 
     for (const [change, path, code] of [
-      [{ localDate: '2026-02-30' }, 'localDate', 'invalid_date'],
       [{ localStart: '25:00' }, 'localStart', 'invalid_time'],
       [{ localStart: '9am' }, 'localStart', 'invalid_format'],
       [{ localEnd: '24:00' }, 'localEnd', 'invalid_time'],

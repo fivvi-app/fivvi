@@ -33,13 +33,11 @@ export interface IsolationCase {
    */
   seed?(
     db: DatabaseExecutor,
-    input: { workspaceId: string; clientId: string; callerAccountId?: string },
+    input: { workspaceId: string; clientId: string },
   ): Promise<Record<string, string>>;
   /**
-   * The route changes the record it names, or what the caller may do with it depends on the caller
-   * (a Trainer reschedules only their own session, F020): the seed runs again before every call,
-   * for that call's caller (`callerAccountId`, left out for the anonymous caller and for the first
-   * round of seeds), so each call starts from a record it may change. Like a `DELETE`, which is
+   * The route changes the record it names (a date edit raises its version): the seed runs again
+   * before every call, so each call starts from a record it may change. Like a `DELETE`, which is
    * always seeded again.
    */
   reseedForEachCall?: true;

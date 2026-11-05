@@ -29,12 +29,11 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * Changes one date of a class (CO-04): the date, the start, the end and the capacity, each only when given. The class itself never changes.
+ * Changes one date of a class (CO-04): the start, the end and the capacity, each only when given. The date stays on its day. The class itself never changes.
  *
  * @param version The version of the date the change was made from (`Session.version`). If the date changed since, the answer is `409` and nothing is written.
- * @param localDate The new date in the workspace’s time zone, `YYYY-MM-DD`. Leave it out to keep it.
  * @param localStart The new start, `HH:mm` in the workspace’s time zone. Leave it out to keep it.
- * @param localEnd The new end, `HH:mm` on the same date as the start. Leave it out to keep its time of day. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`.
+ * @param localEnd The new end, `HH:mm` on the same day as the start. Leave it out to keep its time of day: a start moved alone does not move the end with it, and one moved to or past the unchanged end is refused like any end. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`.
  * @param capacity The new capacity of this date, 1 to 100. Leave it out to keep it.
  */
 @Serializable
@@ -45,15 +44,11 @@ data class UpdateGroupClassDateRequest (
     @SerialName(value = "version")
     val version: kotlin.Int,
 
-    /* The new date in the workspace’s time zone, `YYYY-MM-DD`. Leave it out to keep it. */
-    @SerialName(value = "localDate")
-    val localDate: kotlin.String? = null,
-
     /* The new start, `HH:mm` in the workspace’s time zone. Leave it out to keep it. */
     @SerialName(value = "localStart")
     val localStart: kotlin.String? = null,
 
-    /* The new end, `HH:mm` on the same date as the start. Leave it out to keep its time of day. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`. */
+    /* The new end, `HH:mm` on the same day as the start. Leave it out to keep its time of day: a start moved alone does not move the end with it, and one moved to or past the unchanged end is refused like any end. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`. */
     @SerialName(value = "localEnd")
     val localEnd: kotlin.String? = null,
 

@@ -162,7 +162,7 @@ export async function updateGroupClass(
 }
 
 /** What a class on a date is made of: the decisions of `scheduleClassOnDate`. */
-export interface NewGroupSession {
+export interface NewClassDate {
   readonly groupClassId: string;
   /** The trainer profile (`findTrainer`); `null` for *Trainer nodig*. */
   readonly trainerProfileId: string | null;
@@ -179,9 +179,9 @@ export interface NewGroupSession {
  * no participants) and returns it as `findSession` shows it. The caller has decided it is allowed
  * (`scheduleClassOnDate`) and that the class is the workspace's.
  */
-export async function createGroupSession(
+export async function createClassDate(
   scope: WorkspaceScope,
-  input: NewGroupSession,
+  input: NewClassDate,
 ): Promise<SessionView> {
   const [created] = await executorOf(scope)
     .insert(sessions)
@@ -204,7 +204,7 @@ export async function createGroupSession(
 }
 
 /** What one date of a class changes to: the decisions of `decideGroupDateEdit`. */
-export interface GroupSessionChanges {
+export interface ClassDateChanges {
   /** The version the writer read: the change applies only if it is still the current one. */
   readonly version: number;
   readonly startsAt: Date;
@@ -212,23 +212,23 @@ export interface GroupSessionChanges {
   readonly capacity: number;
 }
 
-export type GroupSessionUpdate =
+export type ClassDateUpdate =
   | { readonly outcome: 'updated'; readonly session: SessionView }
-  /** The workspace has no group session with that ID (a private session is none). */
+  /** The workspace has no class date with that ID (a private session is none). */
   | { readonly outcome: 'not-found' }
   /** The session changed since the writer read it; nothing was written. */
   | { readonly outcome: 'stale' };
 
 /**
- * Changes the start, end and capacity of one group session of the scope's workspace and raises its
+ * Changes the start, end and capacity of one class date of the scope's workspace and raises its
  * version, when the version is still the one the writer read (optimistic concurrency: the check is
  * in the `UPDATE`, so two saves from the same version cannot both win). The class is untouched.
  */
-export async function updateGroupSession(
+export async function updateClassDate(
   scope: WorkspaceScope,
   sessionId: string,
-  changes: GroupSessionChanges,
-): Promise<GroupSessionUpdate> {
+  changes: ClassDateChanges,
+): Promise<ClassDateUpdate> {
   const updated = await executorOf(scope)
     .update(sessions)
     .set({

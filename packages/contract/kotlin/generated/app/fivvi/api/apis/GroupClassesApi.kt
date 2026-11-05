@@ -120,7 +120,7 @@ interface GroupClassesApi {
     /**
      * PATCH v1/workspaces/{workspaceId}/sessions/{sessionId}
      * Change one date of a class
-     * Changes the date, start, end and/or capacity of one group session (the Owner only), from the version the caller read (&#x60;409&#x60; with the date as it is now when it changed since). Times are wall-clock in the workspace’s time zone with the same daylight saving rules as scheduling. An end that is not after the start answers &#x60;400&#x60; on &#x60;localEnd&#x60; (&#x60;end_before_start&#x60;). The class and its other dates are not touched. A session that is not a group session of the workspace (a private session too) answers &#x60;404&#x60;.
+     * Changes the start, end and/or capacity of one date of a class (the Owner only), from the version the caller read (&#x60;409&#x60; with the date as it is now when it changed since). The date stays on its day. Times are wall-clock in the workspace’s time zone with the same daylight saving rules as scheduling. A start sent alone keeps the end at its time of day; when that is not after the new start the answer is &#x60;400&#x60; on &#x60;localEnd&#x60;. An end that is not after the start answers &#x60;400&#x60; on &#x60;localEnd&#x60; (&#x60;end_before_start&#x60;). The class and its other dates are not touched. A session that is not a class date of the workspace (a private session too) answers &#x60;404&#x60;.
      * Responses:
      *  - 200: The date with its changes.
      *  - 400: The request did not match the contract.

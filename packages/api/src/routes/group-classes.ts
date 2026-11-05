@@ -1,6 +1,6 @@
 import {
+  createClassDate,
   createGroupClass,
-  createGroupSession,
   findGroupClass,
   findOwnTeamMember,
   findSession,
@@ -9,8 +9,8 @@ import {
   type GroupClassView,
   listGroupClasses,
   listLocations,
+  updateClassDate,
   updateGroupClass,
-  updateGroupSession,
   type WorkspaceScope,
 } from '@fivvi/database';
 import { decideGroupDateEdit, GROUP_CLASS_LIMITS, scheduleClassOnDate } from '@fivvi/domain';
@@ -306,17 +306,14 @@ const UpdateGroupClassDateBodySchema = z
           'The version of the date the change was made from (`Session.version`). If the date ' +
           'changed since, the answer is `409` and nothing is written.',
       }),
-    localDate: localDateField.optional().openapi({
-      description:
-        'The new date in the workspace’s time zone, `YYYY-MM-DD`. Leave it out to keep it.',
-    }),
     localStart: localTimeField.optional().openapi({
       description: 'The new start, `HH:mm` in the workspace’s time zone. Leave it out to keep it.',
     }),
     localEnd: localTimeField.optional().openapi({
       description:
-        'The new end, `HH:mm` on the same date as the start. Leave it out to keep its time of ' +
-        'day. An end that is not after the start answers `400` on `localEnd` with the code ' +
+        'The new end, `HH:mm` on the same day as the start. Leave it out to keep its time of ' +
+        'day: a start moved alone does not move the end with it, and one moved to or past the ' +
+        'unchanged end is refused like any end. An end that is not after the start answers `400` on `localEnd` with the code ' +
         '`end_before_start`.',
     }),
     capacity: capacityField.optional().openapi({
@@ -328,16 +325,13 @@ const UpdateGroupClassDateBodySchema = z
   // A save that changes nothing is refused on the start.
   .refine(
     (body) =>
-      body.localDate !== undefined ||
-      body.localStart !== undefined ||
-      body.localEnd !== undefined ||
-      body.capacity !== undefined,
+      body.localStart !== undefined || body.localEnd !== undefined || body.capacity !== undefined,
     { path: ['localStart'], error: 'Give at least one field to change.' },
   )
   .openapi('UpdateGroupClassDateRequest', {
     description:
-      'Changes one date of a class (CO-04): the date, the start, the end and the capacity, ' +
-      'each only when given. The class itself never changes.',
+      'Changes one date of a class (CO-04): the start, the end and the capacity, each only ' +
+      'when given. The date stays on its day. The class itself never changes.',
   });
 
 const ClassDateChangedSchema = z
@@ -510,12 +504,14 @@ const updateGroupClassDateRoute = defineRoute(
     tags: ['group-classes'],
     summary: 'Change one date of a class',
     description:
-      'Changes the date, start, end and/or capacity of one group session (the Owner only), ' +
-      'from the version the caller read (`409` with the date as it is now when it changed ' +
-      'since). Times are wall-clock in the workspace’s time zone with the same daylight saving ' +
-      'rules as scheduling. An end that is not after the start answers `400` on `localEnd` ' +
-      '(`end_before_start`). The class and its other dates are not touched. A session that is ' +
-      'not a group session of the workspace (a private session too) answers `404`.',
+      'Changes the start, end and/or capacity of one date of a class (the Owner only), from ' +
+      'the version the caller read (`409` with the date as it is now when it changed since). ' +
+      'The date stays on its day. Times are wall-clock in the workspace’s time zone with the ' +
+      'same daylight saving rules as scheduling. A start sent alone keeps the end at its time ' +
+      'of day; when that is not after the new start the answer is `400` on `localEnd`. An end ' +
+      'that is not after the start answers `400` on `localEnd` (`end_before_start`). The class ' +
+      'and its other dates are not touched. A session that is not a class date of the ' +
+      'workspace (a private session too) answers `404`.',
     security: SIGNED_IN,
     request: {
       params: SessionParamsSchema,
@@ -544,6 +540,12 @@ const updateGroupClassDateRoute = defineRoute(
 function invalid(path: string, code: string) {
   return { code: 'validation_failed' as const, issues: [{ path, code }] };
 }
+
+/** A trainer as the domain rules take it: the team member and the trainer profile. */
+const referenceOf = (trainer: { readonly id: string; readonly trainerProfileId: string }) => ({
+  teamMemberId: trainer.id,
+  trainerProfileId: trainer.trainerProfileId,
+});
 
 /** What the answer shows of a class: no `defaultTrainer` key without a usual trainer. */
 function shownClass(groupClass: GroupClassView) {
@@ -606,7 +608,7 @@ export function registerGroupClasses(app: OpenAPIHono) {
           groupClass: {
             capacity: body.capacity,
             durationMinutes: body.durationMinutes,
-            defaultTrainerTeamMemberId: trainer?.id ?? null,
+            defaultTrainer: trainer ? referenceOf(trainer) : null,
           },
           localDate: body.firstDate.localDate,
           localStart: body.firstDate.localStart,
@@ -628,9 +630,9 @@ export function registerGroupClasses(app: OpenAPIHono) {
     });
     const firstDate = plan
       ? shown(
-          await createGroupSession(scope, {
+          await createClassDate(scope, {
             groupClassId: groupClass.id,
-            trainerProfileId,
+            trainerProfileId: plan.trainer?.trainerProfileId ?? null,
             locationId: plan.locationId,
             startsAt: plan.startsAt,
             endsAt: plan.endsAt,
@@ -700,19 +702,24 @@ export function registerGroupClasses(app: OpenAPIHono) {
     const actor = await findOwnTeamMember(scope);
     if (!groupClass || !workspace || !actor) return c.json(NOT_FOUND, 404);
     const requested = await namedTrainer(scope, body.trainerId);
+    if (requested === 'unknown') return c.json(NOT_FOUND, 404);
     const decision = scheduleClassOnDate({
       groupClass: {
         capacity: groupClass.capacity,
         durationMinutes: groupClass.durationMinutes,
-        defaultTrainerTeamMemberId: groupClass.defaultTrainer?.id ?? null,
+        defaultTrainer:
+          groupClass.defaultTrainer && groupClass.defaultTrainerProfileId
+            ? {
+                teamMemberId: groupClass.defaultTrainer.id,
+                trainerProfileId: groupClass.defaultTrainerProfileId,
+              }
+            : null,
       },
       ...(requested === undefined
         ? {}
         : {
             requestedTrainer:
-              requested === null
-                ? null
-                : { teamMemberId: body.trainerId ?? '', trains: requested !== 'unknown' },
+              requested === null ? null : { ...referenceOf(requested), trains: true },
           }),
       ...(body.capacity === undefined ? {} : { requestedCapacity: body.capacity }),
       localDate: body.localDate,
@@ -726,16 +733,9 @@ export function registerGroupClasses(app: OpenAPIHono) {
       if (decision.reason === 'unknown-trainer') return c.json(NOT_FOUND, 404);
       return c.json(...refusalOfDate(decision.reason, ''));
     }
-    // The trainer profile of the date: the one named for it, else the class's usual trainer.
-    const trainerProfileId =
-      decision.trainerTeamMemberId === null
-        ? null
-        : requested !== undefined && requested !== null && requested !== 'unknown'
-          ? requested.trainerProfileId
-          : groupClass.defaultTrainerProfileId;
-    const session = await createGroupSession(scope, {
+    const session = await createClassDate(scope, {
       groupClassId: groupClass.id,
-      trainerProfileId,
+      trainerProfileId: decision.trainer?.trainerProfileId ?? null,
       locationId: decision.locationId,
       startsAt: decision.startsAt,
       endsAt: decision.endsAt,
@@ -773,7 +773,6 @@ export function registerGroupClasses(app: OpenAPIHono) {
     const decision = decideGroupDateEdit({
       current: { startsAt: current.startsAt, endsAt: current.endsAt, capacity: current.capacity },
       requested: {
-        ...(body.localDate === undefined ? {} : { localDate: body.localDate }),
         ...(body.localStart === undefined ? {} : { localStart: body.localStart }),
         ...(body.localEnd === undefined ? {} : { localEnd: body.localEnd }),
         ...(body.capacity === undefined ? {} : { capacity: body.capacity }),
@@ -782,7 +781,7 @@ export function registerGroupClasses(app: OpenAPIHono) {
     });
     if (decision.outcome === 'refused') return c.json(...refusalOfEdit(decision.reason));
 
-    const result = await updateGroupSession(scope, sessionId, {
+    const result = await updateClassDate(scope, sessionId, {
       version: body.version,
       startsAt: decision.startsAt,
       endsAt: decision.endsAt,
@@ -830,7 +829,6 @@ function refusalOfEdit(
   reason:
     | 'nothing-to-change'
     | 'invalid-capacity'
-    | 'invalid-date'
     | 'invalid-time'
     | 'invalid-end-time'
     | 'time-does-not-exist'
@@ -838,8 +836,6 @@ function refusalOfEdit(
     | 'end-before-start',
 ) {
   switch (reason) {
-    case 'invalid-date':
-      return [invalid('localDate', 'invalid_date'), 400] as const;
     case 'invalid-time':
       return [invalid('localStart', 'invalid_time'), 400] as const;
     case 'invalid-end-time':

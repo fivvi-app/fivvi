@@ -50,18 +50,18 @@ export {
   updateClient,
 } from './repositories/clients.ts';
 export {
+  type ClassDateChanges,
+  type ClassDateUpdate,
+  createClassDate,
   createGroupClass,
-  createGroupSession,
   findGroupClass,
   type GroupClassChanges,
   type GroupClassView,
-  type GroupSessionChanges,
-  type GroupSessionUpdate,
   listGroupClasses,
+  type NewClassDate,
   type NewGroupClass,
-  type NewGroupSession,
+  updateClassDate,
   updateGroupClass,
-  updateGroupSession,
 } from './repositories/group-classes.ts';
 export {
   findLocation,

@@ -2,9 +2,9 @@ import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/databas
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
+  createClassDate,
   createDatabase,
   createGroupClass,
-  createGroupSession,
   createTenantScopes,
   type DatabaseClient,
   type DatabaseExecutor,
@@ -16,8 +16,8 @@ import {
   locations,
   sessions,
   trainerProfiles,
+  updateClassDate,
   updateGroupClass,
-  updateGroupSession,
   type WorkspaceScope,
 } from '../src/index.ts';
 import {
@@ -110,29 +110,6 @@ describe('F021 group classes', () => {
   }
 
   describe('the tables', () => {
-    it('AC9: a group session needs its class; the other kinds do not', async () => {
-      const { workspace } = await gym();
-      const insert = (type: 'private' | 'group' | 'open_gym', groupClassId: string | null) =>
-        violated((tx) =>
-          addSession(tx, { workspaceId: workspace.id, type, groupClassId, participant: false }),
-        );
-
-      expect(await insert('group', null)).toBe('sessions_group_has_class');
-      expect(
-        await violated(async (tx) => {
-          const kracht = await addGroupClass(tx, { workspaceId: workspace.id });
-          await addSession(tx, {
-            workspaceId: workspace.id,
-            type: 'group',
-            groupClassId: kracht.id,
-            participant: false,
-          });
-        }),
-      ).toBeUndefined();
-      expect(await insert('private', null)).toBeUndefined();
-      expect(await insert('open_gym', null)).toBeUndefined();
-    });
-
     it('a class on a date points at a class of its own workspace only', async () => {
       const { workspace } = await gym();
       const other = await gym();
@@ -306,7 +283,7 @@ describe('F021 group classes', () => {
       });
 
       const created = await asTeam(john.id, workspace.id, (scope) =>
-        createGroupSession(scope, {
+        createClassDate(scope, {
           groupClassId: kracht.id,
           trainerProfileId: profileId,
           locationId,
@@ -341,7 +318,7 @@ describe('F021 group classes', () => {
       const kracht = await addGroupClass(admin.db, { workspaceId: workspace.id });
 
       const created = await asTeam(john.id, workspace.id, (scope) =>
-        createGroupSession(scope, {
+        createClassDate(scope, {
           groupClassId: kracht.id,
           trainerProfileId: null,
           locationId,
@@ -355,7 +332,7 @@ describe('F021 group classes', () => {
       expect(created.trainer).toBeNull();
     });
 
-    describe('updateGroupSession', () => {
+    describe('updateClassDate', () => {
       async function aDate() {
         const world = await gym();
         const kracht = await addGroupClass(admin.db, {
@@ -377,7 +354,7 @@ describe('F021 group classes', () => {
         const { workspace, john, kracht, date } = await aDate();
 
         const result = await asTeam(john.id, workspace.id, (scope) =>
-          updateGroupSession(scope, date.id, {
+          updateClassDate(scope, date.id, {
             version: 1,
             startsAt: new Date('2026-10-06T16:30:00.000Z'),
             endsAt: new Date('2026-10-06T17:00:00.000Z'),
@@ -406,7 +383,7 @@ describe('F021 group classes', () => {
         const { workspace, john, date } = await aDate();
         const change = (version: number, capacity: number) =>
           asTeam(john.id, workspace.id, (scope) =>
-            updateGroupSession(scope, date.id, {
+            updateClassDate(scope, date.id, {
               version,
               startsAt: date.startsAt,
               endsAt: date.endsAt,
@@ -427,7 +404,7 @@ describe('F021 group classes', () => {
         const privateSession = await addSession(admin.db, { workspaceId: workspace.id });
         const attempt = (sessionId: string) =>
           asTeam(john.id, workspace.id, (scope) =>
-            updateGroupSession(scope, sessionId, {
+            updateClassDate(scope, sessionId, {
               version: 1,
               startsAt: new Date('2026-10-06T16:00:00.000Z'),
               endsAt: new Date('2026-10-06T17:00:00.000Z'),

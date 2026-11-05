@@ -80,7 +80,7 @@ const SessionGroupClassSchema = z
           'English, else the Dutch name (`pickContentLanguage`).',
       }),
   })
-  .openapi('SessionGroupClass', { description: 'The class a group session was scheduled from.' });
+  .openapi('SessionGroupClass', { description: 'The class a class date was scheduled from.' });
 
 export const SessionTrainerSchema = z
   .object({
@@ -94,7 +94,7 @@ export const SessionSchema = z
     id: z.uuid().openapi({ description: 'The session ID.' }),
     type: z.enum(['private', 'group', 'open_gym']).openapi({
       description:
-        'The kind of session. Private sessions are planned here, group sessions are a class on ' +
+        'The kind of session. Private sessions are planned here, class dates are a class on ' +
         'a date (`…/group-classes/{classId}/dates`); Open Gym comes later.',
     }),
     status: z.enum(['scheduled', 'cancelled']).openapi({
@@ -108,7 +108,7 @@ export const SessionSchema = z
         '(ADR-012).',
     }),
     capacity: z.number().int().openapi({
-      description: '1 for a private session; the date’s own capacity for a group session.',
+      description: '1 for a private session; the date’s own capacity for a class date.',
     }),
     version: z.number().int().openapi({
       description: 'Raised by every change; a change says the version it read. Starts at 1.',
@@ -120,12 +120,12 @@ export const SessionSchema = z
       description: 'Left out when the session has no trainer (the trainer’s profile ended).',
     }),
     groupClass: SessionGroupClassSchema.optional().openapi({
-      description: 'The class of a group session (F021); left out for the other kinds.',
+      description: 'The class of a class date (F021); left out for the other kinds.',
     }),
     participants: z.array(SessionParticipantSchema).openapi({
       description:
         'The clients in the session, in the order they were added. One for a private session; ' +
-        'none for a group session until bookings exist (M5).',
+        'none for a class date until bookings exist (M5).',
     }),
   })
   .openapi('Session', {
