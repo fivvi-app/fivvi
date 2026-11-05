@@ -110,6 +110,76 @@ window.FIVVI_DATA = (function () {
     ];
   }
 
-  return { me: me, workspaces: workspaces, locations: locations, trainers: trainers, clients: clients, notes: notes, history: history,
+  /* Scenarios beyond the gym: each replaces the day's data. team = other trainers work here (studio view);
+     types = the kinds of sessions this business has. All names and places are fictional. */
+  function G(id, s, e, title, cap, n, extra) { var ppl = ["anna", "mark", "lisa", "daan", "noor", "sophie", "bram", "fleur", "thomas", "eva"]; var people = []; for (var i = 0; i < n; i++) people.push(i < ppl.length ? ppl[i] : "guest" + i); var it = { id: id, ws: "sf", type: "group", s: s, e: e, title: title, cap: cap, people: people, att: null }; for (var k in extra || {}) it[k] = extra[k]; return it; }
+  function Pv(id, s, e, client, loc, extra) { var it = { id: id, ws: "sf", type: "priv", s: s, e: e, client: client, loc: loc, att: null }; for (var k in extra || {}) it[k] = extra[k]; return it; }
+  var setups = {
+    pilates: {
+      name: "Studio Kern", loc: "Studio Kern, Lindengracht 40", team: true, multiWs: false, types: ["group", "priv"],
+      trainers: ["Sarah Jansen", "Lotte Visser", "Emma de Wit"],
+      today: [
+        G("p1", "08:00", "08:50", "Reformer Basis", 6, 6, { loc: "Studio Kern, Lindengracht 40", waitlist: 2, attMap: { 0: "yes", 1: "yes", 2: "yes", 3: "yes", 4: "no", 5: "yes" } }),
+        Pv("p2", "09:30", "10:25", "anna", "Studio Kern, Lindengracht 40", { workout: "Reformer privé" }),
+        G("p3", "12:15", "13:00", "Mat Pilates", 12, 7, { loc: "Studio Kern, Lindengracht 40" }),
+        G("p4", "17:30", "18:20", "Reformer Gevorderd", 6, 5, { loc: "Studio Kern, Lindengracht 40" }),
+        Pv("p5", "18:45", "19:40", "lisa", "Studio Kern, Lindengracht 40")
+      ],
+      extra: [
+        G("pe1", "09:00", "09:50", "Reformer Basis", 6, 6, { loc: "Studio Kern, Lindengracht 40", trainer: "Lotte Visser", waitlist: 1 }),
+        Pv("pe2", "10:00", "10:55", "noor", "Studio Kern, Lindengracht 40", { trainer: "Emma de Wit" }),
+        G("pe3", "12:00", "12:50", "Reformer Flow", 6, 4, { loc: "Studio Kern, Lindengracht 40", trainer: "Lotte Visser" }),
+        G("pe4", "19:00", "19:50", "Mat Pilates", 12, 10, { loc: "Studio Kern, Lindengracht 40", trainer: "Emma de Wit" })
+      ],
+      pattern: [[["group", "08:00", "08:50", "Reformer Basis", 6, 6], ["priv", "10:00", "10:55", "sophie", "Studio Kern, Lindengracht 40"], ["group", "18:00", "18:50", "Mat Pilates", 12, 9]], [["group", "09:00", "09:50", "Reformer Flow", 6, 5]], [["group", "08:00", "08:50", "Reformer Basis", 6, 6], ["group", "19:00", "19:50", "Reformer Gevorderd", 6, 4]], null, [["group", "12:15", "13:00", "Mat Pilates", 12, 8]], [["group", "09:30", "10:20", "Reformer Basis", 6, 6], ["group", "10:30", "11:20", "Reformer Flow", 6, 6]], []],
+      descriptions: {
+        "Reformer Basis": { nl: "Pilates op de reformer voor beginners. We leren de basis: ademhaling, core en controle. Maximaal 6 personen, er zijn 6 reformers.", en: "Reformer Pilates for beginners. We learn the basics: breathing, core and control. Up to 6 people, there are 6 reformers." },
+        "Reformer Gevorderd": { nl: "Voor wie de basis beheerst. Meer tempo, meer veren, meer uitdaging.", en: "For those who know the basics. More tempo, more springs, more challenge." },
+        "Reformer Flow": { nl: "Vloeiende reeksen op de reformer, rustig opgebouwd.", en: "Flowing sequences on the reformer, built up calmly." },
+        "Mat Pilates": { nl: "Pilates op de mat met kleine materialen. Geen reformer nodig.", en: "Pilates on the mat with small equipment. No reformer needed." }
+      }
+    },
+    yoga: {
+      name: "Yoga Loft", loc: "Yoga Loft, Prinsengracht 210", team: true, multiWs: false, types: ["group"],
+      trainers: ["Sarah Jansen", "Mila Bos", "Jasper Kok"],
+      today: [
+        G("y1", "07:00", "08:15", "Vinyasa Flow", 18, 12, { loc: "Yoga Loft, Prinsengracht 210" }),
+        G("y2", "12:30", "13:30", "Yin Yoga", 16, 9, { loc: "Yoga Loft, Prinsengracht 210" }),
+        G("y3", "18:00", "19:15", "Hatha", 18, 18, { loc: "Yoga Loft, Prinsengracht 210", waitlist: 3 })
+      ],
+      extra: [
+        G("ye1", "09:30", "10:45", "Vinyasa Flow", 18, 15, { loc: "Yoga Loft, Prinsengracht 210", trainer: "Mila Bos" }),
+        G("ye2", "19:30", "20:30", "Power Yoga", 16, 10, { loc: "Yoga Loft, Prinsengracht 210", trainer: "Jasper Kok" }),
+        G("ye3", "20:45", "21:45", "Yin Yoga", 16, 6, { loc: "Yoga Loft, Prinsengracht 210", trainer: "Mila Bos" })
+      ],
+      pattern: [[["group", "07:00", "08:15", "Vinyasa Flow", 18, 14], ["group", "18:00", "19:15", "Hatha", 18, 16]], [["group", "12:30", "13:30", "Yin Yoga", 16, 8]], [["group", "07:00", "08:15", "Vinyasa Flow", 18, 18], ["group", "19:30", "20:30", "Power Yoga", 16, 12]], null, [["group", "18:00", "19:15", "Hatha", 18, 13]], [["group", "09:30", "10:45", "Vinyasa Flow", 18, 18]], [["group", "10:00", "11:30", "Workshop Ademwerk", 20, 11]]],
+      descriptions: {
+        "Vinyasa Flow": { nl: "Dynamische yoga waarin beweging en adem samengaan. Neem je eigen mat mee of huur er een.", en: "Dynamic yoga where movement and breath go together. Bring your own mat or rent one." },
+        "Yin Yoga": { nl: "Lang aangehouden houdingen, voor ontspanning en soepelheid.", en: "Long-held poses, for relaxation and flexibility." },
+        Hatha: { nl: "Klassieke yoga in een rustig tempo, voor elk niveau.", en: "Classic yoga at a calm pace, for every level." },
+        "Power Yoga": { nl: "Stevige, krachtige les. Je gaat zweten.", en: "A strong, powerful class. You will sweat." },
+        "Workshop Ademwerk": { nl: "Eenmalige workshop van anderhalf uur over ademhaling.", en: "" }
+      }
+    },
+    small: {
+      name: "Fit met Sarah", loc: "Vondelpark (buiten)", team: false, multiWs: false, types: ["group", "priv"],
+      trainers: ["Sarah Jansen"],
+      today: [
+        G("g1", "07:00", "08:00", "Small group kracht", 4, 4, { loc: "Vondelpark (buiten)", attMap: { 0: "yes", 1: "yes", 2: "yes", 3: "yes" } }),
+        Pv("g2", "09:00", "10:00", "mark", "Basic-Fit Oost", { workout: "Full body", wstate: "done" }),
+        G("g3", "12:00", "13:00", "Small group conditie", 3, 2, { loc: "TrainMore Zuid" }),
+        Pv("g4", "17:00", "18:00", "anna", "TrainMore Zuid", { workout: "Upper A" })
+      ],
+      extra: [],
+      pattern: [[["group", "07:00", "08:00", "Small group kracht", 4, 4], ["priv", "18:00", "19:00", "noor", "TrainMore Zuid"]], [["priv", "07:30", "08:30", "daan", "Basic-Fit Oost"]], [["group", "07:00", "08:00", "Small group kracht", 4, 3]], null, [["group", "12:00", "13:00", "Small group conditie", 3, 3]], [["group", "09:00", "10:00", "Bootcamp", 8, 6]], []],
+      descriptions: {
+        "Small group kracht": { nl: "Krachttraining met maximaal 4 personen, buiten in het park.", en: "Strength training with up to 4 people, outdoors in the park." },
+        "Small group conditie": { nl: "Conditietraining met maximaal 3 personen.", en: "" },
+        Bootcamp: { nl: "Bootcamp in het park, voor elk niveau.", en: "Park bootcamp, for every level." }
+      }
+    }
+  };
+
+  return { setups: setups, me: me, workspaces: workspaces, locations: locations, trainers: trainers, clients: clients, notes: notes, history: history,
     progress: progress, descriptions: descriptions, today: today, pattern: pattern, templates: templates, library: library, upperA: upperA };
 })();

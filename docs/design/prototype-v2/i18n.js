@@ -56,6 +56,7 @@ window.FIVVI_I18N = (function () {
     [/^(\d+) plekken vrij$/, "$1 spots left"],
     [/^Bij (.+) thuis$/, "At $1's home"],
     [/^Bij (.+)$/, "At $1"],
+    [/^Alles bij (.+) vandaag, van alle trainers\.$/, "Everything at $1 today, from all trainers."],
     [/^Drukst (.+) · (\d+) tegelijk$/, "Busiest $1 · $2 at once"],
     [/^Vrij (.+)$/, "Free $1"],
     [/^Week (\d+) · (.+)$/, function (m, n, r) { return "Week " + n + " · " + P(r); }],
@@ -65,6 +66,8 @@ window.FIVVI_I18N = (function () {
   /* Phrases and words, replaced on letter boundaries, longest first. */
   var PH = {
     /* app frame */
+    "Geen overlap": "No overlap",
+    "Gym met team": "Gym with a team", "PT met small groups": "PT with small groups", "Pilatesstudio": "Pilates studio", "Yogastudio": "Yoga studio", "Alleen jouw sessies.": "Only your sessions.",
     "Te doen": "To do", "Alles bijgewerkt": "All caught up", "Plannen": "Plan", "Route vandaag": "Today's route", "Locatie vandaag": "Today's location",
     "Geen vrije tijd meer vandaag": "No free time left today", "Training delen": "Share workout", "trainers": "trainers",
     "Opzet": "Setup", "Studio met team": "Studio with a team", "Zelfstandige PT": "Independent PT", "Bovenkant Vandaag": "Top of Today", "Dagstrip": "Day strip", "Tegels": "Tiles", "Regel": "Line",
