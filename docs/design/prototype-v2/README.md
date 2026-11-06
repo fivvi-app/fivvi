@@ -12,6 +12,7 @@ A throwaway, clickable prototype of the new look (November 2026): Calendar-style
 | 4c | Aanbod (F052, §90): the workspace's offers by kind with an on/off switch, the three default plans (off until priced), and "Nieuw aanbod" with the fields of each kind, including the renewal window | Trainer web → Aanbod |
 | 4d | Connecting payments (#466): the owner's steps, what stays locked for clients, the client's payment; recording a payment outside Fivvi and studios without Mollie (#606) | Index → *Betalingen*, *Betaling*, *Betalen*, *Studio zonder Mollie* |
 | 5 | The client app Fivvi (§55): Home, Boeken, Activiteit, Profiel on iOS and Android, the studio switcher for a client of more than one studio, and doing a shared workout on your own (#602); joining by link, offers on the web in a browser sheet, account deletion | App → Fivvi (klant); index → Fivvi (klant-app) |
+| 6 | Everything the specs describe: agreements, payments, payouts, invoices, membership rules, invitations, joining, privacy, import, booking links and QR, class and trainer dialogs, every client booking and cancelling state, all emails (`more-web.js`, `more-client.js`, `more-pro.js`, `more-email.js`) | Scherm → all; E-mails |
 
 **What was decided:** [DECISIONS.md](DECISIONS.md) (ADR-029). It is the record specs follow.
 
@@ -28,6 +29,5 @@ The ⚙ panel also switches language (NL/EN), accent, light/dark, glass, role, a
 | `app.js` | The app: state, screens, logger, panel |
 | `web.js` | Trainer web and client web |
 | `i18n.js` | English on top of the Dutch screens (the real apps use `packages/i18n`) |
-| 6 | Everything the specs describe: agreements, payments, payouts, invoices, membership rules, invitations, joining, privacy, import, booking links and QR, class and trainer dialogs, every client booking and cancelling state, all emails (`more-web.js`, `more-client.js`, `more-pro.js`, `more-email.js`) | Scherm → all; E-mails |
 
 Decisions the owner made while reviewing it are listed in the commit history of this branch; they move into the design tokens, the flow docs and the specs once the prototype is final.
