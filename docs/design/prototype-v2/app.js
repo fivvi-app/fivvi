@@ -50,11 +50,16 @@
   function PAYOPEN() { var p = PAYST(); return PAYONLINE() || p === "broken" || !!PAYW().wasLive || PAYSTUDIO(); }
   function PAYLOCK() { return !PAYOPEN(); }
   function OFFEROPEN(o) { return PAYST() === "ready" || PAYSTUDIO() || (PAYST() === "debit" && o.kind !== "abo" && o.kind !== "plan"); }
-  function OFFERNAMEOPEN(n) { var o = D.offerList.filter(function (x) { return x.name === n; })[0]; return !o || OFFEROPEN(o); }
-  /* what the viewer reads: an offer's own English when the owner typed one; the value stays the offer */
-  function agrName(a) { return PREF.lang === "en" && a.nameEn ? a.nameEn : a.name; }
-  function offerOpts(names) { return names.map(function (n) { var o = D.offerList.filter(function (x) { return x.name === n; })[0]; return [n, o ? agrName(o) : n]; }); }
-  function OPENOFFERS() { return D.offerNames().filter(OFFERNAMEOPEN); }
+  function AGROPEN(a) { var o = D.offerOf(a); return !o || OFFEROPEN(o); }
+  /* what the viewer reads of an offer or agreement. A saved offer has its own nameEn, also when left empty: in English
+     that name or else the Dutch one, between marks that keep the English layer off it (i18n.js). The samples have none and go through the dictionary. */
+  function agrName(a) { return PREF.lang === "en" && a.nameEn !== undefined ? "\uE000" + (a.nameEn || a.name) + "\uE001" : a.name; }
+  function offerOpts(list) { return list.map(function (o) { return [o.id, agrName(o)]; }); }
+  function OPENOFFERS() { return D.onOffers().filter(OFFEROPEN); }
+  /* what a form's offer list opens on: the renewed agreement's offer, or else the second one, as the sample's most usual choice */
+  function offerStart(list, a) { var o = a && D.offerOf(a); return (o || list[1] || list[0] || {}).id; }
+  /* a class is known by its Dutch name, as its description is. A new class with a known name adds to what's there; editing the series can also clear it */
+  function saveClassText(n, f, edit) { var old = D.descriptions[n] || {}, en = (f.nameEn || "").trim(); D.descriptions[n] = edit ? { nl: f.desc || "", en: f.descEn || "", nameEn: en } : { nl: f.desc || old.nl || "", en: f.descEn || old.en || "", nameEn: en || old.nameEn || "" }; if (edit || en) window.FIVVI_I18N.nameClass(n, en); }
   /* The session type is only worth a label when there is more than one kind; a trainer with private sessions only
      never sees "Privésessie" on every row. */
   function MIXED() { return CFG().types.length > 1; }
@@ -476,9 +481,9 @@
       /* the owner renews in one tap: Fivvi suggests it from a month before an agreement stops, or when a pack runs low */
       if (OWNER()) {
         /* payments outside Fivvi (#606, owner 6 Nov 2026): cash is often taken at the desk, so it can be recorded here too */
-        if (!PAYLOCK()) bs.b.agreements.forEach(function (a) { if (a.cash && a.next) brows.push(row({ lead: '<span class="dc-ic" style="--c:' + (a.late ? "var(--danger)" : "var(--accent)") + '">' + ic(a.late ? "warn" : "repeat") + "</span>", title: esc(a.name) + ": <span>" + esc(a.cash) + "</span>", sub: a.late ? "Betaling van " + esc(a.next) + " nog niet vastgelegd" : "Volgende betaling " + esc(a.next), tr: btn("Betaald", { sm: true, a: "cash-paid", d: { id: c.id, ag: a.id } }), cls: "dc wrap" })); });
+        if (!PAYLOCK()) bs.b.agreements.forEach(function (a) { if (a.cash && a.next) brows.push(row({ lead: '<span class="dc-ic" style="--c:' + (a.late ? "var(--danger)" : "var(--accent)") + '">' + ic(a.late ? "warn" : "repeat") + "</span>", title: esc(agrName(a)) + ": <span>" + esc(a.cash) + "</span>", sub: a.late ? "Betaling van " + esc(a.next) + " nog niet vastgelegd" : "Volgende betaling " + esc(a.next), tr: btn("Betaald", { sm: true, a: "cash-paid", d: { id: c.id, ag: a.id } }), cls: "dc wrap" })); });
         if (!PAYLOCK()) brows.push(row({ a: "cash", d: { id: c.id }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("plus") + "</span>", title: "Betaling buiten Fivvi", sub: "Contant, pin of overboeking vastleggen", cls: "dc" }));
-        bs.renew.forEach(function (r) { var a = r[0]; brows.push(row({ lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("repeat") + "</span>", title: "Verlengen: <span>" + esc(a.name) + "</span>", sub: a.offerSent ? "Aanbod verstuurd " + esc(a.offerSent) + " · wacht op betaling" : esc(r[1]), small: esc(D.remindLine(a)), tr: a.offerSent ? '<span class="pill">Verstuurd</span>' : PAYSTUDIO() ? btn("Betaald", { sm: true, a: "cash", d: { id: c.id } }) : !PAYONLINE() || !OFFERNAMEOPEN(a.name) ? "" : btn("Verlengen", { sm: true, a: "offer", d: { id: c.id, ag: a.id } }), cls: "dc wrap" })); });
+        bs.renew.forEach(function (r) { var a = r[0]; brows.push(row({ lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("repeat") + "</span>", title: "Verlengen: <span>" + esc(agrName(a)) + "</span>", sub: a.offerSent ? "Aanbod verstuurd " + esc(a.offerSent) + " · wacht op betaling" : esc(r[1]), small: esc(D.remindLine(a)), tr: a.offerSent ? '<span class="pill">Verstuurd</span>' : PAYSTUDIO() ? btn("Betaald", { sm: true, a: "cash", d: { id: c.id } }) : !PAYONLINE() || !AGROPEN(a) ? "" : btn("Verlengen", { sm: true, a: "offer", d: { id: c.id, ag: a.id } }), cls: "dc wrap" })); });
         if (PAYONLINE()) brows.push(row({ a: "offer", d: { id: c.id }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("plus") + "</span>", title: '<span style="color:var(--accent-text)">Aanbod sturen</span>', cls: "dc", chev: false }));
       }
       body += sh("Tegoed", "", "small") + '<div class="pad">' + grp(brows, "--inset:60px") + "</div>" + (OWNER() ? foot("Fivvi stelt verlengen voor vanaf " + D.RENEW_DAYS + " dagen voor het einde, of als een creditpakket bijna op is. De klant krijgt dan een herinnering en 7 dagen voor het einde nog een, ook als je zelf een aanbod stuurt. Betalingen en facturen vind je op het web.") : "");
@@ -537,7 +542,7 @@
     if (it.cancelled) body += '<div class="pad" style="margin-bottom:12px"><div class="banner" style="--c:var(--danger)">' + ic("warn") + "Deze les is geannuleerd. Geboekte klanten hebben een e-mail gekregen.</div></div>";
     body += lt(TYPE[it.type] + (level(it) ? " · " + level(it) : ""), esc(it.title), longDate(d) + " · " + it.s + "–" + it.e);
     body += '<div class="pad stack">';
-    var ds = it.desc || D.descriptions[it.title];
+    var ds = D.descriptions[it.title];
     if (ds && ds.nl) {
       var useEn = PREF.lang === "en" && ds.en, open = S.showDesc[it.id];
       body += '<div class="card desc"><p translate="no"' + (PREF.lang === "en" && !ds.en ? ' lang="nl"' : "") + ' class="' + (open ? "" : "clamp") + '">' + esc(useEn ? ds.en : ds.nl) + "</p>" +
@@ -644,12 +649,12 @@
     var body = '<div class="fgrp">' + fld("Aanbod", sel("offer", offerOpts(OPENOFFERS()))) + "</div>";
     var running = a && a.endsIn >= 0 && a.status !== "expired";
     if (running) body += '<div style="margin:16px 0 6px;font-size:13px;color:var(--label2);padding-left:4px">Gaat in</div>' + seg([["after", "Na afloop"], ["now", "Direct"]], f.start, "fset", { f: "start" });
-    body += foot(esc(c.name.split(" ")[0]) + " krijgt een e-mail met een link om te bevestigen en te betalen met iDEAL. Na de betaling maakt Fivvi de factuur." + (running ? " Na afloop: het nieuwe begint als " + esc(a.name) + " eindigt, zonder gat en zonder overlap." : ""));
+    body += foot(esc(c.name.split(" ")[0]) + " krijgt een e-mail met een link om te bevestigen en te betalen met iDEAL. Na de betaling maakt Fivvi de factuur." + (running ? " Na afloop: het nieuwe begint als " + esc(agrName(a)) + " eindigt, zonder gat en zonder overlap." : ""));
     return { title: a ? "Verlengen" : "Aanbod sturen", body: body, save: "send-offer" };
   };
   SHEETS.cash = function () {
     var f = S.form, c = CLIENT[f.client];
-    var body = '<div class="fgrp">' + fld("Aanbod", sel("offer", offerOpts(D.offerNames()))) + fld("Hoe betaald", sel("how", ["Contant", "Pin bij de studio", "Overboeking"])) + fld("Betaald op", inp("date", "date")) + "</div>";
+    var body = '<div class="fgrp">' + fld("Aanbod", sel("offer", offerOpts(D.onOffers()))) + fld("Hoe betaald", sel("how", ["Contant", "Pin bij de studio", "Overboeking"])) + fld("Betaald op", inp("date", "date")) + "</div>";
     body += foot(esc(c.name.split(" ")[0]) + " heeft dit bij jou betaald. Er gaat geen geld via Mollie en het gaat meteen in. Een abonnement staat daarna elke maand op dit profiel, tot je vastlegt dat het is betaald. Fivvi maakt hiervoor niet vanzelf een factuur. Je administratie en belasting regel je zelf; deze betaling blijft hier staan.");
     return { title: "Betaling buiten Fivvi", body: body, save: "save-cash" };
   };
@@ -979,8 +984,8 @@
     "new": function () { S.sheet = "new"; S.anim = "up"; render(); },
     "new-session": function () { S.form = Object.assign(today5(), { client: "anna", loc: D.locations[1] }); S.sheet = "newSession"; S.anim = "up"; render(); },
     "plan-for": function (d) { S.form = Object.assign(today5(), { client: d.id, date: key(add(NOW, 1)), start: "10:30", loc: D.locations[1] }); S.sheet = "newSession"; S.anim = "up"; render(); },
-    offer: function (d) { var a = d.ag ? D.billing[d.id].agreements.filter(function (x) { return x.id === d.ag; })[0] : null; S.menu = null; S.form = { client: d.id, ag: d.ag || "", offer: a ? a.name : OPENOFFERS()[1] || OPENOFFERS()[0], start: "after" }; S.sheet = "offer"; S.anim = "up"; render(); },
-    cash: function (d) { S.menu = null; S.form = { client: d.id, offer: D.offerNames()[1], how: "Contant", date: TODAY }; S.sheet = "cash"; S.anim = "up"; render(); },
+    offer: function (d) { var a = d.ag ? D.billing[d.id].agreements.filter(function (x) { return x.id === d.ag; })[0] : null; S.menu = null; S.form = { client: d.id, ag: d.ag || "", offer: offerStart(OPENOFFERS(), a), start: "after" }; S.sheet = "offer"; S.anim = "up"; render(); },
+    cash: function (d) { S.menu = null; S.form = { client: d.id, offer: offerStart(D.onOffers()), how: "Contant", date: TODAY }; S.sheet = "cash"; S.anim = "up"; render(); },
     "save-cash": function () { D.recordOutside(S.form.client, S.form.offer, S.form.how, S.form.date); S.sheet = null; toast("Betaling vastgelegd."); },
     "cash-paid": function (d) { D.recordOutsidePaid(d.id, d.ag); toast("Betaling vastgelegd."); },
     "send-offer": function () { var f = S.form, c = CLIENT[f.client]; if (f.ag) D.billing[f.client].agreements.forEach(function (x) { if (x.id === f.ag) x.offerSent = "vandaag"; }); S.sheet = null; toast("Aanbod verstuurd aan " + c.name.split(" ")[0]); },
@@ -1002,8 +1007,8 @@
     },
     "save-class": function () {
       var f = S.form; if (!f.name.trim()) { bad("name", "Vul een naam in"); return; }
-      if ((f.nameEn || "").trim()) window.FIVVI_I18N.nameClass(f.name.trim(), f.nameEn.trim());
-      var it = { id: "n" + Date.now(), ws: "sf", type: "group", s: f.start, e: f.end, title: f.name.trim(), level: f.level || "", cap: +f.cap || 10, people: [], loc: "Studio Fit, Kerkstraat 12", desc: { nl: (f.desc || "").trim(), en: (f.descEn || "").trim() } };
+      saveClassText(f.name.trim(), { nameEn: f.nameEn, desc: (f.desc || "").trim(), descEn: (f.descEn || "").trim() }, false);
+      var it = { id: "n" + Date.now(), ws: "sf", type: "group", s: f.start, e: f.end, title: f.name.trim(), level: f.level || "", cap: +f.cap || 10, people: [], loc: "Studio Fit, Kerkstraat 12" };
       dayItems(f.date); DAYCACHE[f.date].push(it); S.sheet = null; S.stacks[S.tab].push({ n: "klass", id: it.id }); S.anim = "push"; toast(f.rep === "Niet herhalen" ? "Groepsles gepland" : "Wekelijkse groepsles gepland");
     },
     "save-gym": function () {
@@ -1212,7 +1217,7 @@
       ["Vandaag", "TD-01", function () { fresh(); }],
       ["Vandaag · zelfstandige PT", "TD-01", function () { fresh(); PREF.setup = "solo"; }],
       ["Klantprofiel: contante betaling nog niet vastgelegd", "#606", function () { fresh(); PREF.setup = "team"; PREF.role = "owner"; S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "eva" }]; }],
-      ["Betaling buiten Fivvi vastleggen", "#606", function () { fresh(); PREF.setup = "team"; PREF.role = "owner"; S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "eva" }]; S.form = { client: "eva", offer: "Groep 2× per week", how: "Contant", date: TODAY }; S.sheet = "cash"; }],
+      ["Betaling buiten Fivvi vastleggen", "#606", function () { fresh(); PREF.setup = "team"; PREF.role = "owner"; S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "eva" }]; S.form = { client: "eva", offer: "o2", how: "Contant", date: TODAY }; S.sheet = "cash"; }],
       ["Vandaag: betalingen nog niet gekoppeld", "#466", function () { fresh(); PREF.setup = "team"; PREF.role = "owner"; S.proPay = true; }],
       ["Vandaag · hele studio", "TD-01", function () { fresh(); PREF.setup = "team"; PREF.role = "owner"; S.scope = "ws"; }],
       ["Agenda · Dag", "TD-04", function () { fresh(); S.tab = "agenda"; S.aview = "day"; }],
@@ -1292,7 +1297,7 @@
   window.addEventListener("resize", function () { if (dev) fitDev(); });
   function addClient(c) { D.clients.push(c); CLIENT[c.id] = c; }
   function addItem(k, it) { dayItems(k); DAYCACHE[k].push(it); }
-  window.FV = { agrName: agrName, offerOpts: offerOpts, PAYST: PAYST, PAYONLINE: PAYONLINE, PAYSTUDIO: PAYSTUDIO, PAYOPEN: PAYOPEN, OFFEROPEN: OFFEROPEN, OFFERNAMEOPEN: OFFERNAMEOPEN, OPENOFFERS: OPENOFFERS, get S() { return S; }, PREF: PREF, D: D, A: A, CLIENT: CLIENT, dayItems: dayItems, findItem: findItem, extra: function () { return EXTRA_WS; },
+  window.FV = { agrName: agrName, offerOpts: offerOpts, offerStart: offerStart, saveClassText: saveClassText, PAYST: PAYST, PAYONLINE: PAYONLINE, PAYSTUDIO: PAYSTUDIO, PAYOPEN: PAYOPEN, OFFEROPEN: OFFEROPEN, AGROPEN: AGROPEN, OPENOFFERS: OPENOFFERS, get S() { return S; }, PREF: PREF, D: D, A: A, CLIENT: CLIENT, dayItems: dayItems, findItem: findItem, extra: function () { return EXTRA_WS; },
     CV: CV, TYPE: TYPE, title: title, level: level, lvlTag: lvlTag, esc: esc, ic: ic, mins: mins, hm: hm, key: key, parse: parse, add: add, monday: monday, longDate: longDate, shortDate: shortDate,
     isoWeek: isoWeek, DAYS: DAYS, DS: DS, MONTHS: MONTHS, MS: MS, TODAY: TODAY, NOW: NOW, NOWT: NOWT, isPast: isPast, initials: initials, toast: toast, render: function () { render(); },
     OWNER: OWNER, SOLO: SOLO, HAS: HAS, MIXED: MIXED, WSS: WSS, avatar: avatar, addClient: addClient, addItem: addItem, INDEX: INDEX, SHEETS: SHEETS, SCREENS: SCREENS, kit: { fld: fld, inp: inp, sel: sel, row: row, grp: grp, sh: sh, lt: lt, btn: btn, seg: seg, foot: foot, avatar: avatar, rings: rings, shape: shape, SHAPE: SHAPE }, fresh: function () { fresh(); }, save: function () { save(); applyPrefs(); } };

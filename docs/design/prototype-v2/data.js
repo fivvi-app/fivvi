@@ -297,7 +297,9 @@ window.FIVVI_DATA = (function () {
     { id: "d2", kind: "pack", credit: "groep", name: "Groepscreditpakket", price: "", vat: "9", cycle: "Eenmalig", credits: 10, valid: "3 maanden", end: "stop", renew: 30, on: false, def: true, active: 0 },
     { id: "d3", kind: "plan", credit: "prive", name: "Privé creditabonnement", price: "", vat: "21", cycle: "Elke maand", credits: 4, carry: 0, minTerm: "3 maanden", end: "continue", renew: 30, on: false, def: true, active: 0 }
   ];
-  function offerNames() { return offerList.filter(function (o) { return o.on; }).map(function (o) { return o.name; }); }
+  function onOffers() { return offerList.filter(function (o) { return o.on; }); }
+  /* the offer behind an agreement: the one it was made from, or for the samples the one with its name */
+  function offerOf(a) { return offerList.filter(function (o) { return a.offerId ? o.id === a.offerId : o.name === a.name; })[0]; }
   /* One summary per client: balances per credit kind, abonnementen, the open amount and what needs attention. */
   function bsum(id) {
     var b = billing[id] || { agreements: [], payments: [] }, bal = {}, abos = [], flags = [], active = 0;
@@ -330,7 +332,7 @@ window.FIVVI_DATA = (function () {
       else if (a.endsIn <= RENEW_DAYS) renew.push([a, (a.kind === "abo" ? "Stopt over " : "Nog " + left + " over, geldig nog ") + a.endsIn + " dagen"]);
       else if (a.kind === "pack" && left <= 2) renew.push([a, "Nog " + left + " over"]);
     });
-    var short = abos.map(function (a) { return a.name; }).concat(balances.map(function (x) { return x.left + " " + (x.left === 1 ? x.label[0] : x.label[1]); }));
+    var short = balances.map(function (x) { return x.left + " " + (x.left === 1 ? x.label[0] : x.label[1]); });
     return { b: b, balances: balances, abos: abos, flags: flags, renew: renew, short: short, open: b.agreements.filter(function (a) { return a.status === "open"; }) };
   }
 
@@ -339,15 +341,15 @@ window.FIVVI_DATA = (function () {
     docent: { nl: ["docent", "docenten"], en: ["teacher", "teachers"] }, coach: { nl: ["coach", "coaches"], en: ["coach", "coaches"] } };
   /* A payment outside Fivvi (#606): the owner records it; no money moves through Mollie and no invoice is made automatically (owner, 6 Nov 2026). */
   function fmtDate(v) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ""); return m ? +m[3] + " " + MONTHS[+m[2] - 1] + " " + m[1] : "5 nov 2026"; }
-  function recordOutside(cid, name, how, date) {
-    var o = offerList.filter(function (x) { return x.name === name; })[0], rec = o.kind === "abo" || o.kind === "plan", b = billing[cid] || (billing[cid] = { agreements: [], payments: [] }), a = { id: "c" + Date.now(), end: o.end || "stop", endsIn: 180, kind: o.kind, name: o.name, nameEn: o.nameEn, price: "€ " + o.price, cycle: o.cycle, since: fmtDate(date), period: rec ? "loopt door" : "geldig " + (o.valid || "3 maanden"), status: "active", cash: how, hist: [[fmtDate(date), o.name + " gestart", "", "Vastgelegd door de eigenaar"]] };
+  function recordOutside(cid, id, how, date) {
+    var o = offerList.filter(function (x) { return x.id === id; })[0], rec = o.kind === "abo" || o.kind === "plan", b = billing[cid] || (billing[cid] = { agreements: [], payments: [] }), a = { id: "c" + Date.now(), offerId: o.id, end: o.end || "stop", endsIn: 180, kind: o.kind, name: o.name, nameEn: o.nameEn, price: "€ " + o.price, cycle: o.cycle, since: fmtDate(date), period: rec ? "loopt door" : "geldig " + (o.valid || "3 maanden"), status: "active", cash: how, hist: [[fmtDate(date), o.name + " gestart", "", "Vastgelegd door de eigenaar"]] };
     if (rec) a.next = "5 dec";
     if (o.kind === "abo") { a.perWeek = o.perWeek || 1; a.usedWeek = 0; a.makeups = 0; } else { a.credit = o.credit; a.total = o.credits || 0; a.used = 0; a.planned = 0; }
-    b.agreements.unshift(a); b.payments.unshift([fmtDate(date), o.name, "€ " + o.price + ",00", how, "paid", ""]);
+    b.agreements.unshift(a); b.payments.unshift([fmtDate(date), o.name, "€ " + o.price + ",00", how, "paid", "", o.nameEn]);
   }
   function recordOutsidePaid(cid, id) {
     var b = billing[cid], a = b.agreements.filter(function (x) { return x.id === id; })[0], p = a.next.split(" "), m = MONTHS.indexOf(p[1]);
-    b.payments.unshift([a.next + " " + (m < 10 ? 2027 : 2026), a.name, a.price + ",00", a.cash, "paid", ""]);
+    b.payments.unshift([a.next + " " + (m < 10 ? 2027 : 2026), a.name, a.price + ",00", a.cash, "paid", "", a.nameEn]);
     a.next = p[0] + " " + MONTHS[(m + 1) % 12]; a.late = false;
   }
   /* every panel entry and "Opnieuw beginnen" starts from the sample again */
@@ -356,6 +358,6 @@ window.FIVVI_DATA = (function () {
   /* Open Gym comes later (owner, 6 Nov 2026; PRODUCT §53): the sample has none, and the code stays for when it comes */
   function noGym(l) { return l.filter(function (x) { return (x.type || x[0]) !== "gym"; }); }
   today = noGym(today); pattern = pattern.map(function (d) { return d && noGym(d); });
-  return { RENEW_DAYS: RENEW_DAYS, remindLine: remindLine, recordOutside: recordOutside, recordOutsidePaid: recordOutsidePaid, resetBilling: resetBilling, offerList: offerList, offerNames: offerNames, TERMS: TERMS, LEVELS: LEVELS, levels: levels, lifts: lifts, weeks: weeks, DIFF: DIFF, spark: spark, bsum: bsum, CREDIT: CREDIT, KIND: KIND, billing: billing, setups: setups, me: me, workspaces: workspaces, locations: locations, trainers: trainers, clients: clients, notes: notes, history: history, selfLog: selfLog,
+  return { RENEW_DAYS: RENEW_DAYS, remindLine: remindLine, recordOutside: recordOutside, recordOutsidePaid: recordOutsidePaid, resetBilling: resetBilling, offerList: offerList, onOffers: onOffers, offerOf: offerOf, TERMS: TERMS, LEVELS: LEVELS, levels: levels, lifts: lifts, weeks: weeks, DIFF: DIFF, spark: spark, bsum: bsum, CREDIT: CREDIT, KIND: KIND, billing: billing, setups: setups, me: me, workspaces: workspaces, locations: locations, trainers: trainers, clients: clients, notes: notes, history: history, selfLog: selfLog,
     progress: progress, tpl: tpl, descriptions: descriptions, today: today, pattern: pattern, templates: templates, library: library, upperA: upperA };
 })();
