@@ -48,7 +48,7 @@ Runs sessions and classes, logs workouts, writes notes and marks attendance. One
 _Avoid_: coach, instructor, teacher, PT (as a role name)
 
 **Workspace's word**:
-What a workspace calls its trainers in every screen, email and on the QR poster: trainer, instructor, teacher or coach (the Dutch words are in `packages/i18n/GLOSSARY.md`). One choice per workspace, from this fixed list. A person who works at two workspaces sees each one's own word. It changes the wording only, never the Trainer role or its rights.
+What a workspace calls its trainers in every screen, email and on the QR poster: trainer, instructor, teacher or coach (the Dutch words go in `packages/i18n/GLOSSARY.md` with F068's first ticket). One choice per workspace, from this fixed list. A person who works at two workspaces sees each one's own word. It changes the wording only, never the Trainer role or its rights.
 _Avoid_: job title, trainer name
 
 **Independent trainer**:
