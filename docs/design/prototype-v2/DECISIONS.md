@@ -211,7 +211,19 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
 - **Aanmeldlink:**
   - link, QR, renew;
   - **a bilingual A4 poster** with the gym's (or PT's) name, the QR and the steps, in colour or black and white.
-- **Instellingen:** *Algemeen* (with *Woordkeuze*), *Locatie*, *Boeken en annuleren*, *Taal*.
+- **Instellingen:** *Algemeen* (with *Woordkeuze*), *Locatie*, *Boeken en annuleren*, *Betalingen*, *Taal*.
+
+### Betalingen (CM-03, #466): a proposal for the owner to click through
+
+The owner asked to see this process before approving [#466](https://github.com/fivvi-app/fivvi/issues/466) (6 November 2026). **Not decided yet.** The panel's entries *Betalingen*, *Betaling* and *Betalen* show it; every status has a *Prototype* button that moves it on, because in real life Mollie takes minutes to days.
+
+- **Owner only**, on the web. Trainers never see it, and Fivvi Pro has no payments.
+- **Steps:** *Betalingen koppelen*, a short explanation, Mollie's own pages, then back to Fivvi: *Mollie controleert je gegevens*, *Automatische incasso wordt nog gecontroleerd* (iDEAL already works), *Klaar om betalingen te ontvangen*.
+- **Already at Mollie:** *Ik heb al een Mollie-account* signs in and approves what Fivvi may do.
+- **Aanbod** stays off until payments work. While direct debit is in review, credit packs can go on, but memberships and credit plans can't.
+- **It breaks:** *Koppeling werkt niet meer*, with a banner on the Dashboard and *Opnieuw koppelen*. *Ontkoppelen* asks for confirmation.
+- **The client** pays on Mollie's page, and returns to *Betaald*, *Nog bezig* or *Niet gelukt*, with *Opnieuw proberen*. If the studio isn't ready, the client reads that online payment isn't available yet.
+- Mollie's pages are **sketches, labelled as such**: this prototype doesn't copy them or ask for any details.
 
 ## 5. Client web (ADR-026)
 

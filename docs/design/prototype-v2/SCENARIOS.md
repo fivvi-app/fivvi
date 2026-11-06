@@ -51,6 +51,18 @@ The prototype's panel has five setups (⚙ → **Opzet**). Each is a fictional b
 
 **Fixed groups** (a client enrolled in a weekly series, booked every week until they stop) are not in the MVP (owner, 6 November 2026).
 
+## Connecting payments (#466, for the owner to click through)
+
+The owner of a studio connects Mollie once, on the web, at least a week before starting:
+
+1. **Instellingen → Betalingen → Betalingen koppelen**, or *Ik heb al een Mollie-account*.
+2. A short explanation of what Mollie checks and how long it takes.
+3. Mollie's own pages (a sketch here), with the studio's details already filled in.
+4. Back in Fivvi: Mollie checks the details, then direct debit (up to about 3 working days). iDEAL works before direct debit does.
+5. **Klaar:** offers can be switched on and clients can pay.
+
+Every setup is the same, a solo PT too: each has their own Mollie account, so the money goes straight to their bank account.
+
 ## Assumptions in the prototype, as confirmed by the owner (`DECISIONS.md` §7)
 
 - **Duo:** each client uses one of their own privécredits; the trainer plans it (clients don't book duos themselves); the client sees "Duosessie, samen met Noor" and only their own workout.
