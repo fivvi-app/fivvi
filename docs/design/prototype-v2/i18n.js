@@ -446,7 +446,7 @@ window.FIVVI_I18N = (function () {
     /* offers (F052) */
     "Abonnementen": "Memberships", "Losse les": "Single class", "Privé 2 per maand": "Private 2 a month", "Creditpakketten": "Credit packs", "Creditabonnementen": "Credit plans", "Losse lessen": "Single classes", "Standaardplannen": "Default plans",
     "Creditabonnement": "Credit plan", "Nieuw aanbod": "New offer", "Prijs nodig": "Price needed", "Nog niet verkocht": "Not sold yet", "Klanten zien het niet": "Clients don't see it",
-    "Naam in het Engels": "Name in English", "Prijs incl. btw (€)": "Price incl. VAT (€)", "Btw": "VAT", "Lessen per week": "Classes a week", "Looptijd": "Term", "Betalen": "Payment",
+    "Naam (Nederlands)": "Name (Dutch)", "Naam (Engels, optioneel)": "Name (English, optional)", "Omschrijving (Nederlands, optioneel)": "Description (Dutch, optional)", "Omschrijving (Engels, optioneel)": "Description (English, optional)", "Prijs incl. btw (€)": "Price incl. VAT (€)", "Btw": "VAT", "Lessen per week": "Classes a week", "Looptijd": "Term", "Betalen": "Payment",
     "Soort credits": "Kind of credits", "Aantal credits": "Number of credits", "Credits per periode": "Credits per period", "Geldig": "Valid", "Meenemen naar de volgende periode (max.)": "Carry over to the next period (max.)", "Minimale looptijd": "Minimum term",
     "Eén keer per klant (proefaanbod)": "Once per client (intro offer)", "Alleen voor klanten met een abonnement": "Only for clients with a membership", "Aan het einde": "At the end", "Verlengen voorstellen": "Suggest renewal",
     "Stopt: de klant kiest een nieuwe looptijd": "Stops: the client chooses a new term", "Loopt per maand door tot de klant opzegt": "Continues monthly until the client cancels",
@@ -468,7 +468,7 @@ window.FIVVI_I18N = (function () {
     "Uitnodiging intrekken?": "Withdraw invitation?", "Uitnodiging ingetrokken": "Invitation withdrawn", "Uitnodiging opnieuw verstuurd": "Invitation sent again", "Naam en e-mailadres beheert ieder zelf, in het eigen profiel.": "Everyone manages their own name and email, in their own profile.",
     /* client app Fivvi (§55) */
     "Welkom bij Fivvi": "Welcome to Fivvi", "Boek lessen en sessies bij je studio of trainer.": "Book classes and sessions with your studio or trainer.", "Nog geen studio": "No studio yet",
-    "Open de link van je studio of trainer, of scan hun QR-code met de camera van je telefoon. Fivvi opent dan vanzelf.": "Open your studio's or trainer's link, or scan their QR code with your phone's camera. Fivvi then opens by itself.",
+    "Open de link van je studio of trainer, of scan hun QR-code.": "Open your studio's or trainer's link, or scan their QR code.",
     "Link openen": "Open link", "Je volgende sessie": "Your next session", "Binnenkort": "Coming up", "Nog niets gepland.": "Nothing planned yet.", "Aanbod bekijken": "View offers", "Home": "Home",
     "Als je trainer een training met je deelt, staat die hier.": "When your trainer shares a workout with you, it shows up here.", "Kies wat bij je past. Je betaalt met iDEAL.": "Choose what suits you. You pay with iDEAL.", "Kiezen": "Choose", "Betalingen en facturen staan in Profiel.": "Payments and invoices are in Profile.", "Deze week": "This week", "× geweest": "× so far", "× gepland": "× planned", "nog 1 gepland": "1 more planned", "niets meer gepland": "nothing else planned", "🔥 5 weken op rij": "🔥 5 weeks in a row", "keer in november": "times in November", "Zo vaak was je er deze maand": "How often you went this month", "Activiteit": "Activity", "Hier zie je de lessen en sessies waar je bent geweest.": "Here you see the classes and sessions you went to.", "November": "November", "keer geweest": "times", "Op rij": "In a row", "weken achter elkaar": "weeks in a row", "Recent": "Recent", "Wat je trainer met je deelt, open je hier met alle details.": "What your trainer shares with you opens here with all the details.", "Nog geen abonnement of credits.": "No membership or credits yet.", "Eerst een abonnement nodig": "Needs a membership first",
     "Na de betaling krijg je de factuur per e-mail en kun je meteen boeken.": "After paying you get the invoice by email and can book right away.", "Studio": "Studio", "Account verwijderen": "Delete account", "Account verwijderen?": "Delete account?",
@@ -534,17 +534,23 @@ window.FIVVI_I18N = (function () {
   function reEsc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
   var PHL = Object.keys(PH).sort(function (a, b) { return b.length - a.length; }).map(function (k) { return [new RegExp("(^|[^\\p{L}])" + reEsc(k) + "(?=$|[^\\p{L}])", "gu"), PH[k]]; });
 
+  /* class names the owner typed, in a list of their own that always wins: empty means "show the Dutch".
+     A class in the prototype is known by its Dutch name, as its description is; offers keep their own English. */
+  var TYPED = {}, TYPEDL = [];
+  function nameClass(nl, en) { TYPED[nl] = en || ""; TYPEDL = Object.keys(TYPED).sort(function (a, b) { return b.length - a.length; }).map(function (k) { return [new RegExp("(^|[^\\p{L}])" + reEsc(k) + "(?=$|[^\\p{L}])", "gu"), TYPED[k] || k]; }); }
+  function wholeName(nl) { return nl in TYPED ? TYPED[nl] : Object.prototype.hasOwnProperty.call(PH, nl) ? PH[nl] : ""; }
   function isEx(x) { var L = window.FIVVI_DATA && window.FIVVI_DATA.library; return !!L && L.some(function (e) { return e.n === x; }); }
   function P(s) {
     /* one pass per position: protect replaced text so "Agenda" → "Calendar" isn't touched again */
     var out = s.replace(/Bij (\S+) thuis/g, "At $1's home").replace(/Je valt in voor /g, "Covering for ").replace(/Bezig · gestart om /g, "In progress · started at "), marks = [];
-    PHL.forEach(function (p) { out = out.replace(p[0], function (m, pre) { marks.push(p[1]); return pre + "\u0001" + (marks.length - 1) + "\u0002"; }); });
+    TYPEDL.concat(PHL).forEach(function (p) { out = out.replace(p[0], function (m, pre) { marks.push(p[1]); return pre + "\u0001" + (marks.length - 1) + "\u0002"; }); });
     out = out.replace(/\u0001(\d+)\u0002/g, function (m, i) { return marks[+i]; });
-    return out.replace(/(\d),(\d)/g, "$1.$2");
+    return out.replace(/(\d)\.(\d{3}),(\d{2})/g, "$1\u0003$2.$3").replace(/(\d),(\d)/g, "$1.$2").replace(/\u0003/g, ",");
   }
   function T(s) {
     var lead = s.match(/^\s*/)[0], trail = s.match(/\s*$/)[0], core = s.trim();
     if (!core) return s;
+    if (core in TYPED) return lead + (TYPED[core] || core) + trail;
     if (PH[core]) return lead + PH[core] + trail;
     for (var i = 0; i < RULES.length; i++) { if (RULES[i][0].test(core)) return lead + core.replace(RULES[i][0], RULES[i][1]) + trail; }
     return lead + P(core) + trail;
@@ -570,5 +576,6 @@ window.FIVVI_I18N = (function () {
     });
     root.querySelectorAll && root.querySelectorAll("input").forEach(function (i) { if (lang === "en" && /^\d+,\d+$/.test(i.value) && i.dataset.ls) i.value = i.value.replace(",", "."); });
   }
-  return { apply: apply, T: T };
+  /* the screens in more-*.js carry their English next to their Dutch */
+  return { apply: apply, T: T, add: function (nl, en) { if (!(nl in PH)) PH[nl] = en; return nl; }, nameClass: nameClass, wholeName: wholeName, rule: function (re, en) { RULES.unshift([re, en]); }, P: P };
 })();

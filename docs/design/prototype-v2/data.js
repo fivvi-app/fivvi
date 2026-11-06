@@ -5,7 +5,7 @@ window.FIVVI_DATA = (function () {
     sf: { id: "sf", name: "Studio Fit", role: "owner", color: "var(--ws-sf)", location: "Studio Fit, Kerkstraat 12" },
     jg: { id: "jg", name: "John's Gym", role: "trainer", color: "var(--ws-jg)", location: "John's Gym, Havenweg 3" }
   };
-  var locations = ["Studio Fit, Kerkstraat 12", "TrainMore Zuid", "Basic-Fit Oost", "Vondelpark (buiten)"];
+  var locations = ["Studio Fit, Kerkstraat 12", "Fitcentrum Zuid", "Sportcentrum Oost", "Vondelpark (buiten)"];
   var trainers = { sf: ["Sarah Jansen", "Mike de Boer", "Yara Koster", "Noah Bakker"], jg: ["John Peters", "Mike de Boer", "Sarah Jansen"] };
 
   var clients = [
@@ -69,9 +69,9 @@ window.FIVVI_DATA = (function () {
 
   /* Today, explicit. Times are local. */
   var today = [
-    { id: "s1", ws: "sf", type: "priv", s: "07:00", e: "08:00", client: "mark", loc: "Basic-Fit Oost", att: null, workout: "Full body", wstate: "done", shared: true },
+    { id: "s1", ws: "sf", type: "priv", s: "07:00", e: "08:00", client: "mark", loc: "Sportcentrum Oost", att: null, workout: "Full body", wstate: "done", shared: true },
     { id: "s2", ws: "sf", type: "group", s: "08:30", e: "09:30", title: "Strength", loc: "Studio Fit, Kerkstraat 12", cap: 8, people: ["daan", "noor", "sophie", "bram", "fleur", "eva", "thomas", "lisa"], att: null, attMap: { 0: "yes", 1: "yes", 2: "yes", 3: "no", 4: "yes", 5: "yes", 6: "yes", 7: "yes" } },
-    { id: "s3", ws: "sf", type: "priv", s: "10:30", e: "11:30", client: "anna", loc: "TrainMore Zuid", att: null, workout: "Upper A" },
+    { id: "s3", ws: "sf", type: "priv", s: "10:30", e: "11:30", client: "anna", loc: "Fitcentrum Zuid", att: null, workout: "Upper A" },
     { id: "s4", ws: "sf", type: "gym", s: "12:00", e: "14:00", title: "Open Gym", loc: "Studio Fit, Kerkstraat 12", cap: 10, people: ["daan", "eva", "bram"] },
     { id: "s5", ws: "jg", type: "group", s: "15:00", e: "16:00", title: "Strength", loc: "John's Gym, Havenweg 3", cap: 8, people: ["chris", "iris", "jesse", "chris", "iris", "jesse", "chris"].map(function (x, i) { return i < 3 ? x : "guest" + i; }), sub: "Mike" },
     /* a duo session: two clients, one trainer, each logged on their own (owner decision, 5 Nov 2026) */
@@ -83,9 +83,9 @@ window.FIVVI_DATA = (function () {
 
   /* A repeating weekly pattern for the other days (0 = Monday). */
   var pattern = [
-    [["priv", "07:00", "08:00", "daan", "Basic-Fit Oost"], ["group", "09:30", "10:30", "Kracht", 12, 9], ["priv", "16:00", "17:00", "noor", "TrainMore Zuid"]],
+    [["priv", "07:00", "08:00", "daan", "Sportcentrum Oost"], ["group", "09:30", "10:30", "Kracht", 12, 9], ["priv", "16:00", "17:00", "noor", "Fitcentrum Zuid"]],
     [["priv", "07:30", "08:15", "sophie", "Studio Fit, Kerkstraat 12"], ["gym", "11:00", "13:00", "Open Gym", 10, 4], ["priv", "14:00", "15:00", "bram", "Studio Fit, Kerkstraat 12"], ["group", "19:00", "20:00", "Spinning", 14, 11]],
-    [["group", "09:30", "10:30", "Kracht", 12, 12], ["priv", "12:00", "13:00", "fleur", "TrainMore Zuid"]],
+    [["group", "09:30", "10:30", "Kracht", 12, 12], ["priv", "12:00", "13:00", "fleur", "Fitcentrum Zuid"]],
     null,
     [["group", "10:00", "11:00", "HIIT", 12, 10], ["gym", "13:00", "15:00", "Open Gym", 10, 7], ["priv", "15:30", "16:30", "eva", "Studio Fit, Kerkstraat 12"]],
     [["group", "09:00", "10:00", "Bootcamp", 16, 14], ["gym", "10:30", "12:30", "Open Gym", 10, 9]],
@@ -208,12 +208,12 @@ window.FIVVI_DATA = (function () {
       trainers: ["Sarah Jansen"],
       today: [
         G("g1", "07:00", "08:00", "Small group kracht", 4, 4, { loc: "Vondelpark (buiten)", attMap: { 0: "yes", 1: "yes", 2: "yes", 3: "yes" } }),
-        Pv("g2", "09:00", "10:00", "mark", "Basic-Fit Oost", { workout: "Full body", wstate: "done" }),
-        G("g3", "12:00", "13:00", "Small group conditie", 3, 2, { loc: "TrainMore Zuid" }),
-        Pv("g4", "17:00", "18:00", "anna", "TrainMore Zuid", { workout: "Upper A" })
+        Pv("g2", "09:00", "10:00", "mark", "Sportcentrum Oost", { workout: "Full body", wstate: "done" }),
+        G("g3", "12:00", "13:00", "Small group conditie", 3, 2, { loc: "Fitcentrum Zuid" }),
+        Pv("g4", "17:00", "18:00", "anna", "Fitcentrum Zuid", { workout: "Upper A" })
       ],
       extra: [],
-      pattern: [[["group", "07:00", "08:00", "Small group kracht", 4, 4], ["priv", "18:00", "19:00", "noor", "TrainMore Zuid"]], [["priv", "07:30", "08:30", "daan", "Basic-Fit Oost"]], [["group", "07:00", "08:00", "Small group kracht", 4, 3]], null, [["group", "12:00", "13:00", "Small group conditie", 3, 3]], [["group", "09:00", "10:00", "Bootcamp", 8, 6]], []],
+      pattern: [[["group", "07:00", "08:00", "Small group kracht", 4, 4], ["priv", "18:00", "19:00", "noor", "Fitcentrum Zuid"]], [["priv", "07:30", "08:30", "daan", "Sportcentrum Oost"]], [["group", "07:00", "08:00", "Small group kracht", 4, 3]], null, [["group", "12:00", "13:00", "Small group conditie", 3, 3]], [["group", "09:00", "10:00", "Bootcamp", 8, 6]], []],
       descriptions: {
         "Small group kracht": { nl: "Krachttraining met maximaal 4 personen, buiten in het park.", en: "Strength training with up to 4 people, outdoors in the park." },
         "Small group conditie": { nl: "Conditietraining met maximaal 3 personen.", en: "" },
@@ -282,9 +282,9 @@ window.FIVVI_DATA = (function () {
      default plans a new workspace starts with stay off until the owner adds a price. renew = days before the end that
      Fivvi suggests renewing (per offer, owner 5 Nov 2026); packs are also suggested at 2 or fewer credits left. */
   var offerList = [
-    { id: "o1", kind: "abo", name: "Groep 1× per week", price: "39", vat: "9", cycle: "Elke maand", perWeek: 1, term: "6 maanden", end: "stop", renew: 30, on: true, active: 9 },
-    { id: "o2", kind: "abo", name: "Groep 2× per week", price: "69", vat: "9", cycle: "Elke maand", perWeek: 2, term: "6 maanden", end: "stop", renew: 30, on: true, active: 21 },
-    { id: "o3", kind: "abo", name: "Groep 3× per week", price: "89", vat: "9", cycle: "Elke maand", perWeek: 3, term: "12 maanden", end: "continue", renew: 30, on: true, active: 7 },
+    { id: "o1", kind: "abo", limit: "4", name: "Groep 1× per week", price: "39", vat: "9", cycle: "Elke maand", perWeek: 1, term: "6 maanden", end: "stop", renew: 30, on: true, active: 9 },
+    { id: "o2", kind: "abo", limit: "4", name: "Groep 2× per week", price: "69", vat: "9", cycle: "Elke maand", perWeek: 2, term: "6 maanden", end: "stop", renew: 30, on: true, active: 21 },
+    { id: "o3", kind: "abo", limit: "4", name: "Groep 3× per week", price: "89", vat: "9", cycle: "Elke maand", perWeek: 3, term: "12 maanden", end: "continue", renew: 30, on: true, active: 7 },
     { id: "o4", kind: "pack", credit: "groep", name: "10 groepscredits", price: "150", vat: "9", cycle: "Eenmalig", credits: 10, valid: "3 maanden", end: "stop", renew: 30, on: true, active: 6 },
     { id: "o5", kind: "pack", credit: "groep", name: "Proefles", price: "0", vat: "9", cycle: "Eenmalig", credits: 1, valid: "1 week", end: "stop", renew: 0, intro: true, on: true, active: 1 },
     { id: "o6", kind: "pack", credit: "prive", name: "5 privésessies", price: "300", vat: "21", cycle: "Eenmalig", credits: 5, valid: "3 maanden", end: "stop", renew: 30, on: true, active: 3 },
@@ -293,7 +293,7 @@ window.FIVVI_DATA = (function () {
     { id: "o9", kind: "plan", credit: "prive", name: "Privé 2 per maand", price: "125", vat: "21", cycle: "Elke maand", credits: 2, carry: 0, minTerm: "3 maanden", end: "continue", renew: 30, on: true, active: 1 },
     { id: "o10", kind: "pack", credit: "groep", name: "5 groepscredits", price: "40", vat: "9", cycle: "Eenmalig", credits: 5, valid: "3 maanden", end: "stop", renew: 30, memberOnly: true, on: true, active: 2 },
     { id: "o11", kind: "single", credit: "groep", name: "Losse les", price: "17,50", vat: "9", cycle: "Bij het boeken", on: false, active: 0 },
-    { id: "d1", kind: "abo", name: "Abonnement", price: "", vat: "9", cycle: "Elke maand", perWeek: 2, term: "6 maanden", end: "stop", renew: 30, makeups: 2, on: false, def: true, active: 0 },
+    { id: "d1", kind: "abo", limit: "4", name: "Abonnement", price: "", vat: "9", cycle: "Elke maand", perWeek: 2, term: "6 maanden", end: "stop", renew: 30, makeups: 2, on: false, def: true, active: 0 },
     { id: "d2", kind: "pack", credit: "groep", name: "Groepscreditpakket", price: "", vat: "9", cycle: "Eenmalig", credits: 10, valid: "3 maanden", end: "stop", renew: 30, on: false, def: true, active: 0 },
     { id: "d3", kind: "plan", credit: "prive", name: "Privé creditabonnement", price: "", vat: "21", cycle: "Elke maand", credits: 4, carry: 0, minTerm: "3 maanden", end: "continue", renew: 30, on: false, def: true, active: 0 }
   ];
@@ -340,7 +340,7 @@ window.FIVVI_DATA = (function () {
   /* A payment outside Fivvi (#606): the owner records it; no money moves through Mollie and no invoice is made automatically (owner, 6 Nov 2026). */
   function fmtDate(v) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ""); return m ? +m[3] + " " + MONTHS[+m[2] - 1] + " " + m[1] : "5 nov 2026"; }
   function recordOutside(cid, name, how, date) {
-    var o = offerList.filter(function (x) { return x.name === name; })[0], rec = o.kind === "abo" || o.kind === "plan", b = billing[cid] || (billing[cid] = { agreements: [], payments: [] }), a = { id: "c" + Date.now(), end: o.end || "stop", endsIn: 180, kind: o.kind, name: o.name, price: "€ " + o.price, cycle: o.cycle, since: fmtDate(date), period: rec ? "loopt door" : "geldig " + (o.valid || "3 maanden"), status: "active", cash: how, hist: [[fmtDate(date), o.name + " gestart", "", "Vastgelegd door de eigenaar"]] };
+    var o = offerList.filter(function (x) { return x.name === name; })[0], rec = o.kind === "abo" || o.kind === "plan", b = billing[cid] || (billing[cid] = { agreements: [], payments: [] }), a = { id: "c" + Date.now(), end: o.end || "stop", endsIn: 180, kind: o.kind, name: o.name, nameEn: o.nameEn, price: "€ " + o.price, cycle: o.cycle, since: fmtDate(date), period: rec ? "loopt door" : "geldig " + (o.valid || "3 maanden"), status: "active", cash: how, hist: [[fmtDate(date), o.name + " gestart", "", "Vastgelegd door de eigenaar"]] };
     if (rec) a.next = "5 dec";
     if (o.kind === "abo") { a.perWeek = o.perWeek || 1; a.usedWeek = 0; a.makeups = 0; } else { a.credit = o.credit; a.total = o.credits || 0; a.used = 0; a.planned = 0; }
     b.agreements.unshift(a); b.payments.unshift([fmtDate(date), o.name, "€ " + o.price + ",00", how, "paid", ""]);
