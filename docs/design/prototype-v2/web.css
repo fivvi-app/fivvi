@@ -568,3 +568,8 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .w-paymail small{color:var(--w-mfg)}
 .w-paymail h3{margin:0;font-size:17px}
 .w-paymail p{margin:0}
+
+.w-lose{list-style:none;margin:8px 0 14px;padding:0;display:grid;gap:7px}
+.w-lose li{display:flex;gap:8px;align-items:flex-start}
+.w-lose svg{flex:none;width:16px;height:16px;margin-top:2px;color:var(--danger)}
+.w-sub{margin:14px 0 0;font-size:13px;font-weight:600}
