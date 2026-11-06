@@ -302,7 +302,7 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
   - Android uses the navigation bar and the M3 segmented button;
   - Android rows use the shaped avatar per session type, as in Fivvi Pro.
 - **Signing in:** the emailed 6-digit code.
-  - Without a studio: "Nog geen studio". The studio's link or QR code opens Fivvi; there is no scanner in the app (#469).
+  - Without a studio: "Nog geen studio". The studio's link opens Fivvi, or the app scans their QR code with *QR-code scannen* (#484; owner, 6 November 2026).
   - The link opens the join request, then waiting, then approved.
 - **Paying happens on the web** (`§53`, QC16):
   - *Aanbod bekijken* opens the studio's offer page in a browser sheet (Safari view or Custom Tab), with the address shown;
@@ -359,6 +359,7 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
 | **Clients do a shared workout on their own: build it, MVP with M7** | Owner, 5 November 2026. The client logs a workout the trainer shared (F045), for example in their own gym. **Private to the client:** trainers never see it. App only | [#602](https://github.com/fivvi-app/fivvi/issues/602) |
 | **Fixed groups: not in the MVP** | A client isn't enrolled in a weekly series (owner, 6 November 2026) | [SCENARIOS.md](SCENARIOS.md) |
 | **Unused classes and the weekly limit sit in the membership offer** | Owner, 6 November 2026: the owner always sees them there, and a running agreement keeps its terms. This replaces the two workspace settings of 31 October 2026. The client sees the rule on the offer | [#483](https://github.com/fivvi-app/fivvi/issues/483), `PRODUCT.md §91` |
+| **An owner doesn't edit a trainer's details** | Owner, 6 November 2026: a trainer's name and email belong to their own account, so the owner changes roles and removes people, and nothing else. There's no correcting an invitation's address and no name per studio | F005 [#173](https://github.com/fivvi-app/fivvi/issues/173) |
 | **Offer and class forms name each language** | Owner, 6 November 2026: *Naam (Nederlands)* and *Naam (Engels, optioneel)* on offers, classes and series, and the same for *Omschrijving*, in both UI languages. The default plan you start from stays highlighted, and tapping it again clears the form | [#468](https://github.com/fivvi-app/fivvi/issues/468), [#427](https://github.com/fivvi-app/fivvi/issues/427) |
 | **Connecting payments comes first** | Everything clients can see or buy waits until payments work, or until the owner chooses to take payments only at the studio; the owner's own setup stays open (owner, 6 November 2026) | [Betalingen](#betalingen-cm-03-466), [#466](https://github.com/fivvi-app/fivvi/issues/466), [#484](https://github.com/fivvi-app/fivvi/issues/484), [#482](https://github.com/fivvi-app/fivvi/issues/482) |
 | **Payments outside Fivvi: build it** | The owner records cash and similar payments on the client's profile, on the web and in Fivvi Pro. Cash-only studios may skip Mollie. No automatic invoice; the accountant check is open | [#606](https://github.com/fivvi-app/fivvi/issues/606) |
@@ -367,7 +368,7 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
 
 ## 7. Assumptions
 
-The prototype had to choose something for these. **The owner confirmed every item here on 6 November 2026, except items 9, 12, 13, 14, 15, 16 and 17.** A spec builds the confirmed items as written. The others are not decided, so a spec that touches them asks the owner.
+The prototype had to choose something for these. **The owner confirmed every item here on 6 November 2026, except items 9, 12, 13 and 15.** A spec builds the confirmed items as written. The others are not decided, so a spec that touches them asks the owner.
 
 1. **Trainers and balances:** trainers see their clients' credit balances, but no money (`QC12`).
 2. ***Aanbod sturen*:** it sends the client a link to confirm and pay.
@@ -400,10 +401,10 @@ The prototype had to choose something for these. **The owner confirmed every ite
     - the client adds exercises from the library only and can't create new ones.
 12. **Reminder emails to the owner** (#466): one the day after starting without finishing, and one 3 days later; none once payments work. Mollie emails the owner itself when it needs something.
 13. **A connection that breaks later** (#466): the studio stays open for its clients, who keep booking with what they have, and the join link keeps working. New online sales and renewals stop until the owner reconnects.
-14. **Weekly limit** (#483): set per membership offer, with *Ongebruikte lessen*. The field shows only when unused classes stay valid, because a client can't save up classes that expire. Default: unused classes expire, no limit. Open point: `PRODUCT.md §91` has the pilot on a limit of 4 *and* expiring classes, which this rule would hide.
+14. **Weekly limit** (#483): an option on every membership offer, next to *Ongebruikte lessen*, and it shows whether unused classes expire or stay valid, because the pilot uses both a limit of 4 and expiring classes (owner, 6 November 2026). A new offer starts with no limit; the default plan starts with the pilot's answers (`PRODUCT.md §90`).
 15. **Screens added on 6 November 2026 from the spec text** (`more-*.js`): the screens and states the specs already described but the prototype didn't show. The copy follows the spec, shortened in places, and the spec's wording wins when they differ. The layout isn't the owner's choice until they've clicked through it. *Korte teksten* lists messages with no screen of their own.
-16. **A trainer or owner changing their own email address:** the same account-level step as a client's (#497, F033, verified by a code), on *Mijn profiel* and in Fivvi Pro's *Profiel*. F005 (#173) built the address as read-only and left changing it out of scope (F001), so this adds to it; the owner asked about it on 6 November 2026.
-17. **Scanning a QR code in the client app:** the approved text of #484 has *QR-code scannen* on the no-studio screen, while §5 says there is no scanner in the app (#469). *Nog geen studio* still has no scanner; the spec's own state shows the button in the app only, and the scanner's two states open from *Andere situaties*.
+16. **A trainer or owner changing their own email address** (owner, 6 November 2026): the same account-level step as a client's (#497, F033, verified by a code), on *Mijn profiel* and in Fivvi Pro's *Profiel*. F005 (#173) built the address as read-only and left changing it out of scope (F001), so this has a spec of its own, [#610](https://github.com/fivvi-app/fivvi/issues/610).
+17. **Scanning a QR code in the client app** (owner, 6 November 2026): yes, as #484 has it: *QR-code scannen* on the no-studio screen, in the app only. A Fivvi join link opens the join screen; anything else, or no camera access, shows its own message.
 
 ## 8. What this changes in existing documents
 

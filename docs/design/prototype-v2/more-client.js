@@ -17,6 +17,7 @@
     ["Meedoen: al klant", "#484", "ok", "fivvi.app/j/studio-fit", ["Je bent al klant", "You're already a client"], [["Je bent al klant bij Studio Fit.", "You're already a client of Studio Fit."]], [["Rooster bekijken", "See the timetable"]]],
     ["Meedoen: eerder afgewezen", "#484", "info", "fivvi.app/j/studio-fit", ["Klant worden bij Studio Fit?", "Become a client of Studio Fit?"], [["Je kunt later opnieuw een verzoek sturen.", "You can send a new request later."]], []],
     ["Meedoen: link werkt niet meer", "#484", "bad", "fivvi.app/j/…", ["Link werkt niet meer", "Link no longer works"], [["Deze aanmeldlink werkt niet meer. Vraag je studio om de nieuwe link.", "This join link no longer works. Ask your studio for the new link."]], []],
+    ["QR-code scannen", "#484", "info", "", ["QR-code scannen", "Scan QR code"], [["Fivvi gebruikt de camera om de QR-code van je studio te scannen.", "Fivvi uses the camera to scan your studio's QR code."]], [["Een aanmeldlink scannen", "Scan a join link"], ["Iets anders scannen", "Scan something else"], ["Geen cameratoegang", "No camera access"]], [["Prototype: wat gebeurt er?", "Prototype: what happens?"]]],
     ["QR-code: geen aanmeldlink", "#484", "bad", "", ["QR-code scannen", "Scan QR code"], [["Dit is geen aanmeldlink van Fivvi.", "This isn't a Fivvi join link."]], [["Opnieuw proberen", "Try again"]]],
     ["QR-code: geen cameratoegang", "#484", "warn", "", ["QR-code scannen", "Scan QR code"], [["Fivvi gebruikt de camera om de QR-code van je studio te scannen.", "Fivvi uses the camera to scan your studio's QR code."], ["Geef Fivvi toegang tot de camera in Instellingen, of open de link van je studio.", "Give Fivvi access to the camera in Settings, or open your studio's link."]], [["Naar Instellingen", "Go to Settings"]]],
     /* ---- #482 invitation page ---- */
@@ -112,7 +113,7 @@
   /* ---------- what follows each state: real next steps, and the prototype's list of other situations ---------- */
   var FAM = {
     signin: ["Inloggen: nieuw bij Fivvi", "Inloggen met Apple lukte niet", "Uitnodiging voor een ander adres (Apple)", "Je naam invullen", "Geen studio: wat nu", "Fivvi Pro: klant logt in"],
-    join: ["Meedoen: verzoek sturen", "Meedoen: wachten, verzoek intrekken", "Meedoen: al klant", "Meedoen: eerder afgewezen", "Meedoen: link werkt niet meer", "QR-code: geen aanmeldlink", "QR-code: geen cameratoegang"],
+    join: ["Meedoen: verzoek sturen", "Meedoen: wachten, verzoek intrekken", "Meedoen: al klant", "Meedoen: eerder afgewezen", "Meedoen: link werkt niet meer", "QR-code scannen", "QR-code: geen aanmeldlink", "QR-code: geen cameratoegang"],
     invite: ["Uitnodiging: inloggen", "Uitnodiging: code", "Uitnodiging: ander account", "Uitnodiging: werkt niet meer", "Uitnodiging: welkom"],
     trainerinv: ["Trainer-uitnodiging: accepteren", "Trainer-uitnodiging: ander account", "Trainer-uitnodiging: niet meer geldig", "Trainer-uitnodiging zonder naam"],
     sched: ["Rooster: niets gepland", "Rooster: laden lukt niet", "Rooster: geen klant", "Rooster: voorbeeld voor de studio", "Les gaat niet door in rooster", "Offline"],
@@ -133,7 +134,7 @@
   var START = ["Inloggen: nieuw bij Fivvi", "Meedoen: verzoek sturen", "Uitnodiging: inloggen", "Trainer-uitnodiging: accepteren", "Boekingslink bestaat niet (PB-09)"];
   var FAMOF = {}; Object.keys(FAM).forEach(function (k) { FAM[k].forEach(function (n) { FAMOF[n] = k; }); });
   [["Inloggen: nieuw bij Fivvi", "Sign in: new to Fivvi"], ["Inloggen met Apple lukte niet", "Signing in with Apple failed"], ["Uitnodiging voor een ander adres (Apple)", "Invitation for another address (Apple)"], ["Je naam invullen", "Fill in your name"], ["Geen studio: wat nu", "No studio: what now"], ["Fivvi Pro: klant logt in", "Fivvi Pro: a client signs in"],
-    ["Meedoen: verzoek sturen", "Join: send a request"], ["Meedoen: wachten, verzoek intrekken", "Join: waiting, withdraw request"], ["Meedoen: al klant", "Join: already a client"], ["Meedoen: eerder afgewezen", "Join: declined before"], ["Meedoen: link werkt niet meer", "Join: link no longer works"], ["QR-code: geen aanmeldlink", "QR code: not a join link"], ["QR-code: geen cameratoegang", "QR code: no camera access"],
+    ["Meedoen: verzoek sturen", "Join: send a request"], ["Meedoen: wachten, verzoek intrekken", "Join: waiting, withdraw request"], ["Meedoen: al klant", "Join: already a client"], ["Meedoen: eerder afgewezen", "Join: declined before"], ["Meedoen: link werkt niet meer", "Join: link no longer works"], ["QR-code scannen", "Scan QR code"], ["QR-code: geen aanmeldlink", "QR code: not a join link"], ["QR-code: geen cameratoegang", "QR code: no camera access"],
     ["Uitnodiging: inloggen", "Invitation: sign in"], ["Uitnodiging: code", "Invitation: code"], ["E-mailadres: code", "Email address: code"], ["Uitnodiging: ander account", "Invitation: another account"], ["Uitnodiging: werkt niet meer", "Invitation: no longer works"], ["Uitnodiging: welkom", "Invitation: welcome"],
     ["Trainer-uitnodiging: accepteren", "Trainer invitation: accept"], ["Trainer-uitnodiging: ander account", "Trainer invitation: another account"], ["Trainer-uitnodiging: niet meer geldig", "Trainer invitation: no longer valid"], ["Trainer-uitnodiging zonder naam", "Trainer invitation without a name"],
     ["Rooster: niets gepland", "Timetable: nothing planned"], ["Rooster: laden lukt niet", "Timetable: can't load"], ["Rooster: geen klant", "Timetable: not a client"], ["Rooster: voorbeeld voor de studio", "Timetable: preview for the studio"], ["Les gaat niet door in rooster", "Cancelled class in the timetable"],
@@ -143,7 +144,7 @@
     ["Annuleren aanvragen", "Request cancellation"], ["Annulering aangevraagd", "Cancellation requested"], ["Sessie gaat door", "Session goes ahead"], ["Sessie al begonnen", "Session already started"], ["Mijn boekingen: geen", "My bookings: none"], ["Eerdere boekingen: geen", "Past bookings: none"],
     ["Bevestigen en betalen (CP-02)", "Confirm and pay (CP-02)"], ["Bevestigen: loopt per maand door", "Confirm: continues monthly"], ["Bevestigen: creditpakket", "Confirm: credit pack"], ["Mijn abonnementen (CP-04)", "My memberships (CP-04)"], ["Lessen blijven geldig", "Classes stay valid"], ["Creditabonnement: deze periode", "Credit plan: this period"], ["Geen tegoed", "No credits"], ["Betalingen en facturen (CP-05)", "Payments and invoices (CP-05)"], ["Openstaand bedrag betalen (CP-07)", "Pay the open amount (CP-07)"],
     ["Opzeggen (CP-06)", "Give notice (CP-06)"], ["Opzeggen: vaste looptijd", "Give notice: fixed term"], ["Opgezegd", "Notice given"], ["E-mailadres gewijzigd", "Email address changed"], ["Factuurgegevens klant", "Client's invoice details"], ["Account verwijderen: code", "Delete account: code"], ["Account verwijderen: enige eigenaar", "Delete account: only owner"], ["Account blijft bestaan", "Account stays"], ["Boekingslink bestaat niet (PB-09)", "Booking link doesn't exist (PB-09)"], ["Boekingslink niet meer actief (PB-09)", "Booking link no longer active (PB-09)"],
-    ["Andere situaties", "Other situations"], ["Verzetten? Neem contact op met je trainer.", "Need to move it? Contact your trainer."], ["In je agenda gezet", "Added to your calendar"], ["Voorwaarden geopend", "Terms opened"], ["Opent de instellingen van je telefoon", "Opens your phone's settings"], ["Opgeslagen", "Saved"], ["Code verstuurd", "Code sent"], ["Uitnodiging geaccepteerd", "Invitation accepted"], ["Uitnodiging afgewezen", "Invitation declined"], ["Verzoek ingetrokken", "Request withdrawn"], ["5 groepscredits", "5 group credits"], ["Looptijd", "Term"], ["per maand", "a month"], ["per 4 weken", "every 4 weeks"], ["per les", "per class"], ["Met je eerste betaling geef je", "Your first payment also gives"], ["ook een machtiging voor de incasso's.", "a mandate for the direct debits."], ["of met je e-mailadres", "or with your email"]
+    ["Andere situaties", "Other situations"], ["Open de link van je studio of trainer, of scan hun QR-code.", "Open your studio or trainer's link, or scan their QR code."], ["Verzetten? Neem contact op met je trainer.", "Need to move it? Contact your trainer."], ["In je agenda gezet", "Added to your calendar"], ["Voorwaarden geopend", "Terms opened"], ["Opent de instellingen van je telefoon", "Opens your phone's settings"], ["Opgeslagen", "Saved"], ["Code verstuurd", "Code sent"], ["Uitnodiging geaccepteerd", "Invitation accepted"], ["Uitnodiging afgewezen", "Invitation declined"], ["Verzoek ingetrokken", "Request withdrawn"], ["5 groepscredits", "5 group credits"], ["Looptijd", "Term"], ["per maand", "a month"], ["per 4 weken", "every 4 weeks"], ["per les", "per class"], ["Met je eerste betaling geef je", "Your first payment also gives"], ["ook een machtiging voor de incasso's.", "a mandate for the direct debits."], ["of met je e-mailadres", "or with your email"]
   ].forEach(L);
   L(["Geen lessen meer op deze dag.", "No more classes on this day."]);
   I.rule(/^€ (\d+),(\d{2})$/, "€$1.$2");
@@ -160,7 +161,9 @@
   var GO = {
     "Inloggen: nieuw bij Fivvi": { "Doorgaan met Apple": "apple:st:Geen studio: wat nu", "Doorgaan met Google": "st:Geen studio: wat nu" },
     "Je naam invullen": { "Verder": "aftername" },
-    "Geen studio: wat nu": { "QR-code scannen": "st:QR-code: geen aanmeldlink" },
+    "Geen studio: wat nu": { "QR-code scannen": "st:QR-code scannen" },
+    "QR-code scannen": { "Een aanmeldlink scannen": "openlink", "Iets anders scannen": "st:QR-code: geen aanmeldlink", "Geen cameratoegang": "st:QR-code: geen cameratoegang" },
+    "QR-code: geen aanmeldlink": { "Opnieuw proberen": "st:QR-code scannen" },
     "Meedoen: verzoek sturen": { "Verzoek sturen": "st:Meedoen: wachten, verzoek intrekken" },
     "Meedoen: wachten, verzoek intrekken": { "Verzoek intrekken": "st:Meedoen: verzoek sturen" },
     "Uitnodiging: inloggen": { "Doorgaan met Apple": "st:Uitnodiging: welkom", "Doorgaan met Google": "st:Uitnodiging: welkom", "Stuur me een code": "st:Uitnodiging: code" },
@@ -195,6 +198,7 @@
     var c = C(), t = d.v;
     if (t === "aftername") t = c.afterName || "st:Geen studio: wat nu";
     if (/^apple:/.test(t)) { c.afterName = t.slice(6); c.web = "st:Je naam invullen"; return R(); }
+    if (t === "openlink") { c.web = null; return A["a-openlink"](); }
     if (t === "nolink") { c.web = null; c.astep = "nolink"; if (!c.email) c.email = "kim@example.com"; return R(); }
     if (t === "request") { c.web = null; c.step = "request"; if (!c.name) c.name = "Kim de Graaf"; return R(); }
     if (/^st:/.test(t)) { c.web = t; return R(); }
@@ -256,7 +260,7 @@
   var CS = X.CSTEP, AS = X.ASTEP;
   /* the join page carries on with the request to join, as signing in by email does */
   (function () { var o = CS.link; CS.link = function () { return withSso(o(), "request") + (X.payOpen() ? fam(START) : ""); }; })();
-  (function () { var o = AS.welcome; AS.welcome = function () { return withSso(o(), "nolink") + fam(START); }; var n = AS.nolink; AS.nolink = function () { return n() + fam(FAM.join); }; })();
+  (function () { var o = AS.welcome; AS.welcome = function () { return withSso(o(), "nolink") + fam(START); }; var n = AS.nolink; AS.nolink = function () { var h = n(), at = '<div class="pad"><div class="card c-proto">', i = h.indexOf(at); return h.slice(0, i) + '<div class="pad stack">' + cbtn("QR-code scannen", "c-flow", { d: { v: "st:QR-code scannen" } }) + "</div>" + h.slice(i) + fam(FAM.join); }; })();
   (function () { var o = CS.app; CS.app = function () { var r = o(), c = C(); if (!c.detail && c.workout == null) r.body += fam(c.tab === "agenda" ? FAM.mine : c.tab === "rooster" ? FAM.sched : []); return r; }; var h = X.ATAB.home; X.ATAB.home = function () { var r = h(); r.body += fam(FAM.mine); return r; }; })();
   /* the real buttons lead to these states too */
   [["c-bookok", "Geboekt"], ["c-wlok", "Op de wachtlijst"], ["c-cancel-ok", "Geannuleerd"], ["c-wl-leave", "Niet meer op de wachtlijst"]].forEach(function (x) { var o = A[x[0]]; if (!o) return; A[x[0]] = function (d) { o(d); C().web = "st:" + x[1]; F.S.toast = null; R(); }; });

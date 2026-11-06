@@ -10,11 +10,10 @@
 
   /* ---------- #483 Unused classes and the weekly limit, set per membership offer ---------- */
   L("Ongebruikte lessen", "Unused classes"); L("Vervallen aan het eind van de week", "Expire at the end of the week"); L("Blijven geldig tot het abonnement afloopt", "Stay valid until the membership ends"); L("Weeklimiet", "Weekly limit"); L("Uit", "Off"); L("Geen limiet", "No limit");
-  L("Een klant kan maximaal zoveel keer per week een groepsles boeken, ook met opgespaarde lessen.", "A client can book a group class at most this many times a week, also with saved-up classes.");
+  L("Een klant kan maximaal zoveel keer per week een groepsles boeken.", "A client can book a group class at most this many times a week.");
   
   /* set per membership offer (owner, 6 Nov 2026), so a running agreement keeps its terms */
-  document.addEventListener("change", function (e) { var t = e.target; if (t && t.getAttribute && t.getAttribute("data-wf") === "unused") { W().form.unused = t.value; R(); } });
-  L("Ongebruikte lessen vervallen aan het eind van de week", "Unused classes expire at the end of the week"); L("Ongebruikte lessen blijven geldig", "Unused classes stay valid"); I.rule(/^Ongebruikte lessen blijven geldig · maximaal (\d+) per week$/, "Unused classes stay valid · at most $1 a week");
+  L("Ongebruikte lessen vervallen aan het eind van de week", "Unused classes expire at the end of the week"); L("Ongebruikte lessen blijven geldig", "Unused classes stay valid"); I.rule(/^Ongebruikte lessen blijven geldig · maximaal (\d+) per week$/, "Unused classes stay valid · at most $1 a week"); I.rule(/^Ongebruikte lessen vervallen aan het eind van de week · maximaal (\d+) per week$/, "Unused classes expire at the end of the week · at most $1 a week");
 
   /* ---------- #468 + Nieuw aanbod: first step, and the extra fields ---------- */
   L("Wat wil je aanbieden?", "What do you want to offer?"); L("Een aantal groepslessen per week, maandelijks betaald", "A number of group classes a week, paid monthly"); L("Een aantal credits, één keer betaald", "A number of credits, paid once"); L("Elke betaalperiode nieuwe credits", "New credits every billing cycle"); L("Eén groepsles, betaald bij het boeken", "One group class, paid when booking"); L("Creditabonnement", "Credit plan"); L("Creditpakket", "Credit pack"); L("Abonnement", "Membership"); L("Losse sessie", "Single class"); L("Verder", "Continue");

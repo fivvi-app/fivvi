@@ -282,9 +282,9 @@ window.FIVVI_DATA = (function () {
      default plans a new workspace starts with stay off until the owner adds a price. renew = days before the end that
      Fivvi suggests renewing (per offer, owner 5 Nov 2026); packs are also suggested at 2 or fewer credits left. */
   var offerList = [
-    { id: "o1", kind: "abo", name: "Groep 1× per week", price: "39", vat: "9", cycle: "Elke maand", perWeek: 1, term: "6 maanden", end: "stop", renew: 30, on: true, active: 9 },
-    { id: "o2", kind: "abo", name: "Groep 2× per week", price: "69", vat: "9", cycle: "Elke maand", perWeek: 2, term: "6 maanden", end: "stop", renew: 30, on: true, active: 21 },
-    { id: "o3", kind: "abo", name: "Groep 3× per week", price: "89", vat: "9", cycle: "Elke maand", perWeek: 3, term: "12 maanden", end: "continue", renew: 30, on: true, active: 7 },
+    { id: "o1", kind: "abo", limit: "4", name: "Groep 1× per week", price: "39", vat: "9", cycle: "Elke maand", perWeek: 1, term: "6 maanden", end: "stop", renew: 30, on: true, active: 9 },
+    { id: "o2", kind: "abo", limit: "4", name: "Groep 2× per week", price: "69", vat: "9", cycle: "Elke maand", perWeek: 2, term: "6 maanden", end: "stop", renew: 30, on: true, active: 21 },
+    { id: "o3", kind: "abo", limit: "4", name: "Groep 3× per week", price: "89", vat: "9", cycle: "Elke maand", perWeek: 3, term: "12 maanden", end: "continue", renew: 30, on: true, active: 7 },
     { id: "o4", kind: "pack", credit: "groep", name: "10 groepscredits", price: "150", vat: "9", cycle: "Eenmalig", credits: 10, valid: "3 maanden", end: "stop", renew: 30, on: true, active: 6 },
     { id: "o5", kind: "pack", credit: "groep", name: "Proefles", price: "0", vat: "9", cycle: "Eenmalig", credits: 1, valid: "1 week", end: "stop", renew: 0, intro: true, on: true, active: 1 },
     { id: "o6", kind: "pack", credit: "prive", name: "5 privésessies", price: "300", vat: "21", cycle: "Eenmalig", credits: 5, valid: "3 maanden", end: "stop", renew: 30, on: true, active: 3 },
@@ -293,7 +293,7 @@ window.FIVVI_DATA = (function () {
     { id: "o9", kind: "plan", credit: "prive", name: "Privé 2 per maand", price: "125", vat: "21", cycle: "Elke maand", credits: 2, carry: 0, minTerm: "3 maanden", end: "continue", renew: 30, on: true, active: 1 },
     { id: "o10", kind: "pack", credit: "groep", name: "5 groepscredits", price: "40", vat: "9", cycle: "Eenmalig", credits: 5, valid: "3 maanden", end: "stop", renew: 30, memberOnly: true, on: true, active: 2 },
     { id: "o11", kind: "single", credit: "groep", name: "Losse les", price: "17,50", vat: "9", cycle: "Bij het boeken", on: false, active: 0 },
-    { id: "d1", kind: "abo", name: "Abonnement", price: "", vat: "9", cycle: "Elke maand", perWeek: 2, term: "6 maanden", end: "stop", renew: 30, makeups: 2, on: false, def: true, active: 0 },
+    { id: "d1", kind: "abo", limit: "4", name: "Abonnement", price: "", vat: "9", cycle: "Elke maand", perWeek: 2, term: "6 maanden", end: "stop", renew: 30, makeups: 2, on: false, def: true, active: 0 },
     { id: "d2", kind: "pack", credit: "groep", name: "Groepscreditpakket", price: "", vat: "9", cycle: "Eenmalig", credits: 10, valid: "3 maanden", end: "stop", renew: 30, on: false, def: true, active: 0 },
     { id: "d3", kind: "plan", credit: "prive", name: "Privé creditabonnement", price: "", vat: "21", cycle: "Elke maand", credits: 4, carry: 0, minTerm: "3 maanden", end: "continue", renew: 30, on: false, def: true, active: 0 }
   ];
