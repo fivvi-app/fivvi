@@ -107,22 +107,13 @@ window.PAGES = (function () {
       ],
       subNote: ["Mollie verwerkt betalingen onder een eigen overeenkomst met je studio.", "Mollie processes payments under its own agreement with your studio."]
     },
-    styles: {
-      eye: ["Beeldstijl", "Image style"],
-      h1: ["Welke miniaturen passen bij Fivvi?", "Which miniatures fit Fivvi?"],
-      lead: ["Dezelfde vijf plekken, in twee kleuren. Met de knop zie je ze overal op de site.", "The same five places, in two colourings. The button shows them across the site."],
-      see: ["Bekijk op de site", "See it on the site"], on: ["Staat nu aan", "Currently on"], rec: ["Mijn advies", "My advice"],
-      list: [
-        ["mina", ["Licht", "Light"], ["Warm wit en licht eiken, met roze als accent. Rustig, en het past bij het grijze canvas en de witte kaarten van de app. Elke plek herken je meteen.", "Warm white and light oak, with pink as the accent. Calm, and it fits the app's grey canvas and white cards. You recognise each place right away."]],
-        ["minb", ["Roze wereld", "Pink world"], ["Alles in het roze van Fivvi. Dit valt direct op en is helemaal van ons, maar het is krachtig naast de roze knoppen en je ziet minder detail.", "Everything in Fivvi's pink. It stands out right away and is entirely ours, but it's strong next to the pink buttons and shows less detail."]]
-      ]
-    },
     direction: {
       decidedH: ["Wat je hebt besloten", "What you decided"],
       decided: [
         [["De knop wordt een demo", "The button becomes a demo"], ["Elke pagina leidt naar Plan een demo.", "Every page leads to Book a demo."]],
         [["De site staat op https://fivvi.app", "The site lives at https://fivvi.app"], ["De hoofdpagina wordt de website. De app blijft op dezelfde plek achter Inloggen.", "The main page becomes the website. The app stays in place behind Sign in."]],
         [["De site gaat eerder live", "The site goes live sooner"], ["Mollie vraagt om een openbare website, dus dit wacht niet op Release 2.0.", "Mollie asks for a public website, so this doesn't wait for Release 2.0."]],
+        [["Miniaturen, in het licht", "Miniatures, in the light colouring"], ["Eén reeks 3D-scènes in warm wit en licht eiken, met roze als accent. Beeld staat op zichzelf en nooit achter schermen of tekst.", "One series of 3D scenes in warm white and light oak, with pink as the accent. Images stand alone, never behind screens or text."]],
         [["Mollie staat er met naam op", "Mollie is named"], ["Met iDEAL ernaast.", "With iDEAL next to it."]]
       ],
       needsH: ["Wat elke partij eist, en waar het staat", "What each party requires, and where it is"],

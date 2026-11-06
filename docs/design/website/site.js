@@ -1,10 +1,10 @@
 /* Fivvi website proposal: hash routes (home, the audiences, #prijzen, #demo, #support, the legal pages, #richting), Dutch and English, light and dark. */
 (function () {
   var C = window.COPY, UI = C.UI, A = C.A, ORDER = C.ORDER, P = window.PAGES;
-  var EXTRA = ["richting", "prijzen", "demo", "support", "account-verwijderen", "privacy", "voorwaarden", "subverwerkers", "beeld"];
+  var EXTRA = ["richting", "prijzen", "demo", "support", "account-verwijderen", "privacy", "voorwaarden", "subverwerkers"];
   var root = document.documentElement;
   var page = document.getElementById("page"), nav = document.getElementById("nav"), foot = document.getElementById("foot"), review = document.getElementById("review");
-  var S = { lang: "nl", who: "gym", kind: "pilates", demo: 0, plat: "pro", style: "mina" };
+  var S = { lang: "nl", who: "gym", kind: "pilates", demo: 0, plat: "pro" };
   try { S.lang = localStorage.getItem("fivvi-site-lang") || "nl"; } catch (e) { /* storage unavailable */ }
 
   function t(x) { return x[S.lang === "en" ? 1 : 0]; }
@@ -29,8 +29,8 @@
   }
   /* An audience's image stands on its own and is never a background (owner). */
   var ART_KEY = { gym: "gym", pt: "pt", klanten: "client" };
-  function art(k, style) {
-    return '<img class="art" src="assets/photos/' + (style || S.style) + "-" + (ART_KEY[k] || S.kind) + '.webp" alt="" loading="lazy">';
+  function art(k) {
+    return '<img class="art" src="assets/photos/' + (ART_KEY[k] || S.kind) + '.webp" alt="" loading="lazy">';
   }
 
   function colour(k) { return { priv: "var(--priv)", group: "var(--group)", ok: "var(--ok)", accent: "var(--accent)" }[k]; }
@@ -126,7 +126,7 @@
 
   function direction() {
     var D = C.DIRECTION;
-    return '<div class="wrap hero ahero"><p class="eyebrow">' + t(UI.direction) + '</p><h1 style="margin-top:8px">' + t(D.h1) + '</h1><p class="lead">' + t(D.lead) + '</p><p style="margin-top:14px"><a class="link" href="#beeld">' + t(P.styles.h1) + ' →</a></p><div class="dgrid">' +
+    return '<div class="wrap hero ahero"><p class="eyebrow">' + t(UI.direction) + '</p><h1 style="margin-top:8px">' + t(D.h1) + '</h1><p class="lead">' + t(D.lead) + '</p><div class="dgrid">' +
       D.cards.map(function (c) { return '<div class="dcard"><h3>' + t(c[0]) + "</h3><p>" + t(c[1]) + "</p></div>"; }).join("") +
       '</div><div class="dgrid"><div class="dcard"><h3>' + (S.lang === "en" ? "Colour" : "Kleur") + '</h3><div class="swatches"><i style="background:#F2F2F7"></i><i style="background:#FFFFFF"></i><i style="background:#000000"></i><i style="background:#1C1C1E"></i><i style="background:#E6164A"></i><i style="background:#0088FF"></i><i style="background:#CB30E0"></i><i style="background:#34C759"></i></div></div><div class="dcard"><h3>' + (S.lang === "en" ? "Type" : "Letter") + '</h3><div class="typeA">Vandaag</div><div class="typeB">07:30</div></div><div class="dcard"><h3>' + (S.lang === "en" ? "Corners and frames" : "Hoeken en lijsten") + "</h3><p>" + (S.lang === "en" ? "Radius 26 on every card, pills for every button, and iPhone, Android and laptop frames around real screens." : "Radius 26 op elke kaart, pillen voor elke knop, en iPhone-, Android- en laptoplijsten om echte schermen.") + "</p></div></div></div>" + directionMore() + '<section><div class="wrap"><h2 class="h2">' + t(D.assumeH) + '</h2><ol class="olist" style="list-style:none;padding:0">' + D.assume.map(function (o) { return "<li><div><b>" + t(o[0]) + "</b><span>" + t(o[1]) + "</span></div></li>"; }).join("") + "</ol></div></section>";
   }
@@ -167,14 +167,6 @@
     return '<div class="wrap hero ahero"><h1>' + t(X.subH) + '</h1><p class="lead">' + t(X.subLead) + "</p>" + statusLine() + '<div class="tablewrap"><table><thead><tr>' + X.subCols.map(function (c) { return "<th>" + t(c) + "</th>"; }).join("") + "</tr></thead><tbody>" + X.subs.map(function (r) { return "<tr><td><b>" + r[0] + "</b></td><td>" + t(r[1]) + "</td><td>" + t(r[2]) + "</td></tr>"; }).join("") + '</tbody></table></div><p class="notebox">' + t(X.subNote) + '</p><p class="notebox">' + t(X.draft) + "</p></div>";
   }
 
-  function styles() {
-    var X = P.styles;
-    return head(X.eye, X.h1, X.lead) + X.list.map(function (o) {
-      var on = S.style === o[0];
-      return '<section class="stylerow"><div class="stylehead"><div><h2>' + t(o[1]) + (o[0] === "mina" ? " <mark>" + t(X.rec) + "</mark>" : "") + "</h2><p>" + t(o[2]) + '</p></div><button class="btn ' + (on ? "tonal" : "primary") + ' small" data-style-pick="' + o[0] + '">' + t(on ? X.on : X.see) + '</button></div><div class="stylecards">' + ORDER.map(function (k) { return '<div class="acard">' + art(k, o[0]) + "<div><h3>" + t(A[k].cardH) + "</h3></div></div>"; }).join("") + "</div></section>";
-    }).join("") + "</div>";
-  }
-
   /* what the decisions, required pages and search work look like, on the design-choices page */
   function directionMore() {
     var X = P.direction;
@@ -191,7 +183,7 @@
     root.lang = S.lang === "en" ? "en" : "nl";
     renderNav();
     var F = P.foot;
-    page.innerHTML = r === "home" ? home() : r === "richting" ? direction() : r === "prijzen" ? pricing() : r === "demo" ? demo() : r === "support" ? support() : r === "account-verwijderen" ? deletion() : r === "privacy" ? legal("privacy", F.privacy) : r === "voorwaarden" ? legal("terms", F.terms) : r === "subverwerkers" ? subs() : r === "beeld" ? styles() : audience(r);
+    page.innerHTML = r === "home" ? home() : r === "richting" ? direction() : r === "prijzen" ? pricing() : r === "demo" ? demo() : r === "support" ? support() : r === "account-verwijderen" ? deletion() : r === "privacy" ? legal("privacy", F.privacy) : r === "voorwaarden" ? legal("terms", F.terms) : r === "subverwerkers" ? subs() : audience(r);
     document.title = "Fivvi Website";
     window.scrollTo({ top: keepScroll ? y : 0, behavior: "instant" });
   }
@@ -202,7 +194,7 @@
   }
 
   document.addEventListener("click", function (e) {
-    var b = e.target.closest("[data-lang],[data-who],[data-kind],[data-plat],[data-style-pick],[data-demo],[data-theme-toggle]");
+    var b = e.target.closest("[data-lang],[data-who],[data-kind],[data-plat],[data-demo],[data-theme-toggle]");
     if (!b) return;
     if (b.dataset.lang) { S.lang = b.dataset.lang; try { localStorage.setItem("fivvi-site-lang", S.lang); } catch (x) { /* storage unavailable */ } render(true); return; }
     if (b.dataset.who) {
@@ -213,7 +205,6 @@
       document.getElementById("herocopy").innerHTML = "<p>" + t(A[S.who].short) + '</p><a class="link" href="#' + S.who + '">' + t(UI.see) + " →</a>";
       return;
     }
-    if (b.dataset.stylePick) { S.style = b.dataset.stylePick; if (location.hash === "#gym") render(false); else location.hash = "gym"; return; }
     if (b.dataset.plat) {
       S.plat = b.dataset.plat;
       document.querySelectorAll("[data-plat]").forEach(function (o) { o.setAttribute("aria-pressed", o.dataset.plat === S.plat); });

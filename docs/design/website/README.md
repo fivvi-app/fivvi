@@ -21,14 +21,13 @@ node docs/design/website/build-legal.cjs
 
 ## Images
 
-A series of miniature 3D scenes, generated with Codex's built-in `image_gen` tool on the owner's ChatGPT subscription, with transparent backgrounds and no people, text or logos. An image stands on its own beside the words, and is never a background behind screens or text (owner). The owner chose miniatures over objects and number posters, and rejected empty rooms and screens only. Two colourings are compared at `#beeld` (`mina-*` light, `minb-*` pink); the unused one then leaves this folder.
+A series of miniature 3D scenes, generated with Codex's built-in `image_gen` tool on the owner's ChatGPT subscription, with transparent backgrounds and no people, text or logos. An image stands on its own beside the words, and is never a background behind screens or text (owner). The owner chose miniatures in the light colouring, over objects, number posters and an all-pink version, and rejected empty rooms and screens only.
 
 To keep the series consistent, make one master, then pass it with `-i` as a style reference for the others ("match its camera angle, base shape and size, materials, lighting and colours exactly"). Always run Codex with `</dev/null`, or it can wait forever.
 
 **Shared style:** a premium 3D illustration with a high-end Blender render look. A miniature cutaway scene in isometric view, seen from the front right at about 30 degrees, standing on one thick square base with softly rounded corners. Soft matte clay materials with subtle bevels, soft global illumination and gentle ambient occlusion, warm light from the upper left, small crisp details, tidy and uncluttered, charming and calm.
 
-- **Light:** warm white walls and base, pale grey, light oak wood, a little soft green from plants, with vivid pink #E6164A on two or three objects only.
-- **Pink:** tone on tone, the entire scene in tints and shades of one vivid pink hue based on #E6164A, with white highlights.
+**Colour:** warm white walls and base, pale grey, light oak wood, a little soft green from plants, with vivid pink #E6164A on two or three objects only.
 
 | File | Scene |
 |---|---|
