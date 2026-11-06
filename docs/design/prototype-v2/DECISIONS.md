@@ -7,7 +7,7 @@
 | **Scope** | Fivvi Pro and the client app Fivvi (iOS and Android), trainer web, client web; the public website in [§9](#9-public-website) |
 | **Replaces** | [`visual-direction.md`](../visual-direction.md) v1 (muted violet), and the parts of the flows and the IA listed in [§8](#8-what-this-changes-in-existing-documents) |
 
-This is the record of what the owner and the agent decided while clicking through the prototype. The prototype shows how each decision looks and behaves; this file says it in words. A spec or ticket with a UI follows this file and names the prototype screen it implements. Where an older document disagrees, [§8](#8-what-this-changes-in-existing-documents) lists the conflict and where it gets resolved. The prototype's assumptions are in [§7](#7-assumptions), which says which ones the owner confirmed.
+This is the record of what the owner and the agent decided while clicking through the prototype. The prototype shows how each decision looks and behaves; this file says it in words. A spec or ticket with a UI follows this file and names the prototype screen it implements. Where an older document disagrees, [§8](#8-what-this-changes-in-existing-documents) lists the conflict and where it gets resolved. The prototype's assumptions are in [§7](#7-assumptions), which says which ones the owner confirmed; the website's are in [§9](#9-public-website).
 
 ## 1. How we decide UI
 
@@ -430,14 +430,16 @@ Designed with the owner on 6 November 2026 in its own artifact, [Fivvi Website](
 - **Address:** the main site is `https://fivvi.app`, Dutch at `/`, English at `/en` (owner).
 - **Timing:** sooner than Release 2.0, because Mollie needs a public website (owner).
 - **Main button:** *Plan een demo* on every page, because workspace creation stays closed until 2.0 (owner).
-- **Mollie and iDEAL are named** on the site (owner).
+- **Mollie is named** on the site (owner), with iDEAL next to it.
+- **Dutch copy says *sportschool*,** as `packages/i18n/GLOSSARY.md` asks, at `/sportscholen`; English says *gyms*.
 - **Images:** real screens first. Photos are for atmosphere, without people, so nothing passes for a real customer.
 - **Nothing made up:** no figures, testimonials or ratings until they exist.
 
 **Assumptions, not yet confirmed by the owner:**
 
 1. **Pricing:** free during the pilot, Mollie charges per payment, 60 days' notice before Fivvi charges (`terms` A4, `open-questions.md` Q15). Mollie asks for a price on the site.
-2. **The demo:** 30 minutes online, a reply within 1 working day.
+2. **The demo and support:** a demo of 30 minutes online, and a reply within 1 working day to demo requests and questions.
 3. **The trade name** K&S Apps, from #151, and the addresses `support@fivvi.app` and `privacy@fivvi.app`.
 4. **A signed-in user** who opens `/` goes to their home in the app.
+5. **Going live before the product is ready.** The site goes live for Mollie, before M11 (payments and invoices), M7 (workouts, notes, sharing) and the store listings. So every page says Fivvi is being built with its first gym and the demo says what's ready, and each claim is checked before publishing (#611 AC19).
 

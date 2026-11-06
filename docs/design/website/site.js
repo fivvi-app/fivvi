@@ -47,6 +47,8 @@
       '</div><p class="fine">' + t(UI.foot) + "</p></div>";
   }
 
+  function statusLine() { return '<p class="statusline"><i></i>' + t(P.status) + "</p>"; }
+
   function stage() {
     var a = A[S.who], s = a.stage, h = "";
     if (s.web) h = device(s.web, "", true) + device(s.phone, "", true);
@@ -78,7 +80,7 @@
 
   function home() {
     var a = A[S.who];
-    return '<div class="wrap hero"><h1>' + t(UI.tagline) + '</h1><p class="lead">' + t(UI.heroLead) + '</p><div class="who"><p id="who-l">' + t(UI.iam) + '</p><div class="seg" role="group" aria-labelledby="who-l">' +
+    return '<div class="wrap hero"><h1>' + t(UI.tagline) + '</h1><p class="lead">' + t(UI.heroLead) + "</p>" + statusLine() + '<div class="who"><p id="who-l">' + t(UI.iam) + '</p><div class="seg" role="group" aria-labelledby="who-l">' +
       ORDER.map(function (k) { return '<button data-who="' + k + '" aria-pressed="' + (S.who === k) + '">' + t(A[k].who) + "</button>"; }).join("") +
       '</div></div><div class="herocopy" id="herocopy"><p>' + t(a.short) + '</p><a class="link" href="#' + S.who + '">' + t(UI.see) + ' →</a></div><div class="stage" id="stage">' + stage() + "</div></div>" +
       '<section><div class="wrap"><p class="eyebrow">' + t(UI.onePlaceEye) + '</p><h2 class="h2">' + t(UI.onePlaceH) + '</h2><p class="lead" style="margin-top:14px">' + t(UI.onePlaceLead) + '</p><div class="oneplace"><ul class="scatter">' +
@@ -103,7 +105,7 @@
     var ph = isStudio && S.kind === "yoga" ? "yoga" : a.photo;
     var phone = isStudio ? "pro-today-" + S.kind : a.heroPhone;
     var kindSeg = isStudio ? '<div class="who"><p id="kind-l">' + t(UI.kindLabel) + '</p><div class="seg" role="group" aria-labelledby="kind-l">' + ["pilates", "yoga"].map(function (x) { return '<button data-kind="' + x + '" aria-pressed="' + (S.kind === x) + '">' + t(UI[x]) + "</button>"; }).join("") + "</div></div>" : "";
-    return '<div class="wrap hero ahero"><p class="eyebrow">' + t(a.cardH) + '</p><h1 style="margin-top:8px">' + t(a.h1) + '</h1><p class="lead">' + t(a.lead) + "</p>" + kindSeg +
+    return '<div class="wrap hero ahero"><p class="eyebrow">' + t(a.cardH) + '</p><h1 style="margin-top:8px">' + t(a.h1) + '</h1><p class="lead">' + t(a.lead) + "</p>" + statusLine() + kindSeg +
       '<div class="photo"><img src="assets/photos/' + ph + '.webp" alt="">' + (a.heroWeb ? device(a.heroWeb, "", true) : "") + device(phone, "", true) + "</div></div>" +
       '<section style="padding-top:clamp(20px,4vw,48px)"><div class="wrap"><h2 class="h2">' + t(UI.recognise) + '</h2><ul class="pains">' + a.pains.map(function (p) { return "<li>" + t(p) + "</li>"; }).join("") + "</ul></div></section>" +
       '<section><div class="wrap"><p class="eyebrow">' + t(UI.dayEye) + '</p><p class="lead" style="margin-top:6px;color:var(--ink);font-weight:500">' + t(UI.dayLead) + '</p><div class="day">' +
@@ -121,7 +123,7 @@
       "</div></div>" + directionMore() + '<section><div class="wrap"><h2 class="h2">' + t(D.assumeH) + '</h2><ol class="olist" style="list-style:none;padding:0">' + D.assume.map(function (o) { return "<li><div><b>" + t(o[0]) + "</b><span>" + t(o[1]) + "</span></div></li>"; }).join("") + "</ol></div></section>";
   }
 
-  function head(eye, h1, lead) { return '<div class="wrap hero ahero"><p class="eyebrow">' + t(eye) + '</p><h1 style="margin-top:8px">' + t(h1) + "</h1>" + (lead ? '<p class="lead">' + t(lead) + "</p>" : ""); }
+  function head(eye, h1, lead) { return '<div class="wrap hero ahero"><p class="eyebrow">' + t(eye) + '</p><h1 style="margin-top:8px">' + t(h1) + "</h1>" + (lead ? '<p class="lead">' + t(lead) + "</p>" : "") + statusLine(); }
 
   function pricing() {
     var X = P.pricing;

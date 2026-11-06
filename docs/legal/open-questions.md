@@ -34,6 +34,7 @@ Each question has a recommendation, so a short "agree" is a valid answer.
 | # | Follow-up | Why | Where |
 |---|---|---|---|
 | **Q17** | Add rules D7 and D8 to `AGENTS.md`: Railway preview databases never come from production, and agents never get production data or real pilot files | Keeps the AI agents' providers out of the sub-processor list | `AGENTS.md`, `role-mapping.md` §7 |
+| **Q18** | Where do the published legal texts live? They are user-facing long-form content, but `AGENTS.md` says all user-facing strings come from `packages/i18n` | Proposed in [ADR-030](../decisions/ADR-030-public-website.md): per-locale Markdown in `docs/legal`, rendered by the web app at build time as a documented exception, at `/privacy`, `/en/privacy`, `/voorwaarden` and `/en/terms`. Merging ADR-030 settles it | ADR-030 |
 | **Q20** | Terminology. These drafts use "workspace", "klant" and "owner". Align them with `packages/i18n/GLOSSARY.md` once it's merged | Legal texts and the UI should use the same words | All documents |
 
 ## Resolved decisions
@@ -41,7 +42,6 @@ Each question has a recommendation, so a short "agree" is a valid answer.
 | # | Decision | Outcome |
 |---|---|---|
 | **Q1** | Hosting and database | Railway EU West (Amsterdam) for web, API, cron and Postgres; ADR-011 accepted. DPA execution remains Q6 |
-| **Q18** | Where the published legal texts live | Per-locale Markdown in `docs/legal`, rendered by the web app at build time, as the documented exception to `packages/i18n` ([ADR-030](../decisions/ADR-030-public-website.md), proposed). Addresses: `/privacy`, `/en/privacy`, `/voorwaarden`, `/en/terms` |
 | **Q5** | Transactional email | Brevo selected and set up in E006 (2026-10-03): DPA (part of the terms), EU storage, limits, tracking and log retention checked; see `sub-processors.md §4` for what remains before G2 |
 | **Q19** | Reconcile with merged ADRs | `sub-processors.md` synchronized with ADR-009, 011 and 013 |
 | **Q21** | Hosting cost plan | `ROADMAP.md §12` already reflects Railway Hobby during the build and Pro at G4 |

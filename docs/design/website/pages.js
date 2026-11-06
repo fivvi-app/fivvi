@@ -14,6 +14,7 @@ window.PAGES = (function () {
   };
 
   return {
+    status: ["Fivvi wordt nu gebouwd, samen met onze eerste sportschool. Vraag in de demo wat er al klaar is.", "Fivvi is being built right now, together with our first gym. Ask in the demo what's ready."],
     nav: { pricing: ["Prijzen", "Pricing"], login: ["Inloggen", "Sign in"], demo: ["Plan een demo", "Book a demo"] },
     foot: {
       product: ["Product", "Product"], help: ["Hulp", "Help"], legal: ["Juridisch", "Legal"],
@@ -31,7 +32,7 @@ window.PAGES = (function () {
       h1: ["Gratis tijdens de pilot.", "Free during the pilot."],
       lead: ["Fivvi kost nu niets: geen abonnement en geen kosten per klant. Neem je betalingen aan via Mollie, dan betaal je alleen Mollie.", "Fivvi costs nothing right now: no subscription and no fee per client. If you take payments through Mollie, you only pay Mollie."],
       cards: [
-        { big: "€ 0", name: ["Fivvi", "Fivvi"], sub: ["tijdens de pilot", "during the pilot"], items: [["Agenda, boekingen en wachtlijst", "Calendar, bookings and waitlist"], ["Abonnementen, credits en facturen", "Memberships, credits and invoices"], ["Fivvi Pro op iPhone en Android, en Fivvi op je laptop", "Fivvi Pro on iPhone and Android, and Fivvi on your laptop"], ["Trainingen loggen en delen", "Logging and sharing workouts"]] },
+        { big: "€ 0", name: ["Fivvi", "Fivvi"], sub: ["tijdens de pilot", "during the pilot"], items: [["Agenda, boekingen en wachtlijst", "Calendar, bookings and waitlist"], ["Abonnementen, credits en facturen", "Memberships, credits and invoices"], ["Fivvi Pro op iPhone en Android, en Fivvi op je laptop", "Fivvi Pro on iPhone and Android, and Fivvi on your laptop"], ["Trainingen loggen en delen, zodra dat klaar is", "Logging and sharing workouts, once that's ready"]] },
         { big: ["Per betaling", "Per payment"], name: ["Betalingen via Mollie", "Payments through Mollie"], sub: ["aan Mollie, volgens hun tarieven", "to Mollie, at their rates"], items: [["Je eigen Mollie-account, in één begeleide stap", "Your own Mollie account, in one guided step"], ["iDEAL, en daarna automatische incasso", "iDEAL, then automatic direct debit"], ["Het geld gaat rechtstreeks naar jouw rekening", "The money goes straight to your account"]] },
         { big: "€ 0", name: ["Voor je klanten", "For your clients"], sub: ["de app en de website", "the app and the website"], items: [["Klanten betalen alleen jou", "Clients only pay you"], ["Boeken kan in de app of in de browser", "Booking works in the app or the browser"], ["Contant of pin kan ook", "Cash or card is fine too"]] }
       ],
@@ -45,11 +46,11 @@ window.PAGES = (function () {
       lead: ["In 30 minuten, online. Geen verkooppraatje, gewoon je eigen werkweek in Fivvi.", "30 minutes, online. No sales pitch, just your own working week in Fivvi."],
       steps: [
         [["Je vertelt hoe het nu gaat", "You tell us how it works now"], ["Welke apps, lijstjes en berichtjes gebruik je vandaag?", "Which apps, lists and messages do you use today?"]],
-        [["We laten jouw soort bedrijf zien", "We show your kind of business"], ["Gym, studio of personal trainer: je ziet alleen wat bij jou hoort.", "Gym, studio or personal trainer: you only see what fits you."]],
-        [["Je weet meteen of het past", "You know right away if it fits"], ["En zo ja, wat er nodig is om over te stappen.", "And if so, what it takes to switch."]]
+        [["We laten jouw soort bedrijf zien", "We show your kind of business"], ["Sportschool, studio of personal trainer: je ziet alleen wat bij jou hoort.", "Gym, studio or personal trainer: you only see what fits you."]],
+        [["Je weet meteen of het past", "You know right away if it fits"], ["En zo ja, hoe je mee kunt doen met de pilot.", "And if so, how you can join the pilot."]]
       ],
       name: ["Je naam", "Your name"], email: ["Je e-mailadres", "Your email address"], who: ["Ik heb", "I run"],
-      whoOpts: [["Een gym met een team", "A gym with a team"], ["Een pilates- of yogastudio", "A pilates or yoga studio"], ["Een eigen PT-bedrijf", "My own PT business"]],
+      whoOpts: [["Een sportschool met een team", "A gym with a team"], ["Een pilates- of yogastudio", "A pilates or yoga studio"], ["Een eigen PT-bedrijf", "My own PT business"]],
       size: ["Hoeveel trainers?", "How many trainers?"], sizeOpts: [["Alleen ik", "Just me"], ["2 tot 4", "2 to 4"], ["5 of meer", "5 or more"]],
       msg: ["Wat wil je vooral zien? (mag leeg)", "What would you most like to see? (optional)"],
       send: ["Demo aanvragen", "Request a demo"],
@@ -72,8 +73,8 @@ window.PAGES = (function () {
       qOwners: [
         [["Hoe koppel ik betalingen?", "How do I connect payments?"], ["Ga op je laptop naar Instellingen, Betalingen, Betalingen koppelen. Mollie controleert je gegevens. iDEAL werkt daarna als eerste, automatische incasso duurt tot ongeveer 3 werkdagen langer.", "On your laptop, go to Settings, Payments, Connect payments. Mollie checks your details. iDEAL works first; automatic direct debit takes up to about 3 working days longer."]],
         [["Moet ik Mollie gebruiken?", "Do I have to use Mollie?"], ["Nee. Neem je alleen contant of met pin aan, dan kan dat ook. Fivvi vertelt eerst wat je dan mist, en je kunt Mollie later altijd nog koppelen.", "No. If you only take cash or card, that's fine. Fivvi first tells you what you'd miss, and you can always connect Mollie later."]],
-        [["Op welke apparaten werkt Fivvi?", "Which devices does Fivvi work on?"], ["Fivvi Pro is er voor iPhone en Android. De administratie doe je in de browser op je laptop. Klanten gebruiken de app of hun browser.", "Fivvi Pro is available for iPhone and Android. You do the admin in the browser on your laptop. Clients use the app or their browser."]],
-        [["Waar staan mijn gegevens?", "Where is my data stored?"], ["Op servers in Amsterdam. Notities zijn alleen voor trainers. Welke diensten we gebruiken, staat bij Subverwerkers.", "On servers in Amsterdam. Notes are for trainers only. The services we use are listed under Sub-processors."]]
+        [["Op welke apparaten werkt Fivvi?", "Which devices does Fivvi work on?"], ["Fivvi Pro komt voor iPhone en Android. De administratie doe je in de browser op je laptop. Klanten gebruiken de app of hun browser.", "Fivvi Pro is coming for iPhone and Android. You do the admin in the browser on your laptop. Clients use the app or their browser."]],
+        [["Waar staan mijn gegevens?", "Where is my data stored?"], ["De database staat in Amsterdam. Enkele diensten zijn van Amerikaanse bedrijven, met de waarborgen die de wet vraagt. Welke dat zijn, staat bij Subverwerkers. Notities zijn alleen voor trainers.", "The database is in Amsterdam. Some services are from US companies, with the safeguards the law requires. They're listed under Sub-processors. Notes are for trainers only."]]
       ]
     },
     del: {
@@ -88,22 +89,22 @@ window.PAGES = (function () {
       gone: [["Je naam, e-mailadres en voorkeuren", "Your name, email address and preferences"], ["Je inloggegevens", "Your sign-in details"], ["Trainingen die je zelf hebt gedaan", "Workouts you did on your own"]],
       keepH: ["Wat er blijft bewaard", "What is kept"],
       keep: [["Facturen blijven bij je studio, zo lang als de wet dat vraagt.", "Invoices stay with your studio for as long as the law requires."], ["Je studio beslist over de gegevens die zij over jou bewaart, zoals je klantprofiel. Vraag het je studio, of mail ons.", "Your studio decides about the data it keeps on you, such as your client profile. Ask your studio, or email us."], ["Back-ups vervallen vanzelf binnen 30 dagen.", "Backups expire by themselves within 30 days."]],
-      owner: ["Ben je eigenaar van een studio of gym? Mail ons eerst, zodat je klanten en facturen goed geregeld blijven.", "Do you own a studio or gym? Email us first, so your clients and invoices stay properly handled."]
+      owner: ["Ben je eigenaar van een studio of sportschool? Mail ons eerst, zodat je klanten en facturen goed geregeld blijven.", "Do you own a studio or gym? Email us first, so your clients and invoices stay properly handled."]
     },
     legal: {
       draft: ["Concept. Deze tekst is nog niet nagekeken en moet nog worden bijgewerkt voor betalingen, de klant-app, de nieuwe e-maildienst en het demoformulier. Roze waarden vul jij nog in.", "Draft. This text hasn't been reviewed yet and still needs updating for payments, the client app, the new email service and the demo form. You still fill in the pink values."],
       privacy: ["Privacyverklaring", "Privacy policy"], terms: ["Algemene voorwaarden", "Terms of service"],
       subH: ["Subverwerkers", "Sub-processors"],
-      subLead: ["Deze diensten verwerken gegevens voor Fivvi. Komt er een nieuwe bij, dan laten we dat eerst weten aan elke studio.", "These services process data for Fivvi. When a new one is added, we tell every studio first."],
-      subCols: [["Dienst", "Service"], ["Waarvoor", "What for"], ["Waar", "Where"]],
+      subLead: ["Deze diensten verwerken gegevens voor Fivvi. Railway, Sentry, PostHog en Cloudflare zijn Amerikaanse bedrijven; de privacyverklaring legt uit welke waarborgen gelden. Komt er een nieuwe dienst bij, dan laten we dat eerst weten aan elke studio.", "These services process data for Fivvi. Railway, Sentry, PostHog and Cloudflare are US companies; the privacy policy explains the safeguards. When a new service is added, we tell every studio first."],
+      subCols: [["Dienst", "Service"], ["Waarvoor", "What for"], ["Opslag", "Stored in"]],
       subs: [
         ["Railway", ["Hosting van de website, de apps en de database", "Hosting the website, apps and database"], ["Amsterdam", "Amsterdam"]],
         ["Lettermint", ["E-mails, zoals je inlogcode en bevestigingen", "Emails, such as your sign-in code and confirmations"], ["Nederland", "Netherlands"]],
-        ["Sentry", ["Foutmeldingen, zonder persoonsgegevens", "Error reports, without personal data"], ["EU", "EU"]],
+        ["Sentry", ["Foutmeldingen, zonder namen, e-mailadressen of notities", "Error reports, without names, email addresses or notes"], ["EU", "EU"]],
         ["PostHog", ["Statistieken zonder cookies", "Statistics without cookies"], ["EU", "EU"]],
         ["Cloudflare Turnstile", ["Bescherming van formulieren tegen bots", "Protecting forms against bots"], ["Wereldwijd", "Worldwide"]]
       ],
-      subNote: ["Mollie verwerkt betalingen als zelfstandige verantwoordelijke, onder een eigen overeenkomst met je studio.", "Mollie processes payments as an independent controller, under its own agreement with your studio."]
+      subNote: ["Mollie verwerkt betalingen onder een eigen overeenkomst met je studio.", "Mollie processes payments under its own agreement with your studio."]
     },
     direction: {
       decidedH: ["Wat je hebt besloten", "What you decided"],
@@ -131,8 +132,8 @@ window.PAGES = (function () {
       seoH: ["Zo vindt Google ons", "How Google finds us"],
       seoLead: ["Dit ontwerp is de voorstelling. De echte site krijgt voor elke pagina een eigen adres, in twee talen, met dit als titel en omschrijving. Hieronder zie je hoe dat er in Google uitziet.", "This design is the preview. The real site gives each page its own address, in two languages, with this title and description. Below you see how that looks in Google."],
       seo: [
-        ["/", "/en", ["Fivvi: software voor personal trainers, studio's en gyms", "Fivvi: software for personal trainers, studios and gyms"], ["Agenda, boekingen, credits, betalingen en facturen op één plek. Zo houd je tijd over om te trainen. Plan een demo.", "Calendar, bookings, credits, payments and invoices in one place, so you have time left to train. Book a demo."]],
-        ["/gyms", "/en/gyms", ["Software voor sportscholen en gyms met een team | Fivvi", "Software for gyms with a team | Fivvi"], ["Eén agenda voor al je trainers, rollen die kloppen en betalingen die vanzelf gaan. Bekijk een werkdag in Fivvi.", "One calendar for all your trainers, proper roles and payments that run by themselves. See a working day in Fivvi."]],
+        ["/", "/en", ["Fivvi: software voor personal trainers, studio's en sportscholen", "Fivvi: software for personal trainers, studios and gyms"], ["Agenda, boekingen, credits, betalingen en facturen op één plek. Zo houd je tijd over om te trainen. Plan een demo.", "Calendar, bookings, credits, payments and invoices in one place, so you have time left to train. Book a demo."]],
+        ["/sportscholen", "/en/gyms", ["Software voor sportscholen met een team | Fivvi", "Software for gyms with a team | Fivvi"], ["Eén agenda voor al je trainers, rollen die kloppen en betalingen die vanzelf gaan. Bekijk een werkdag in Fivvi.", "One calendar for all your trainers, proper roles and payments that run by themselves. See a working day in Fivvi."]],
         ["/studios", "/en/studios", ["Boekingssysteem voor pilates- en yogastudio's | Fivvi", "Booking system for pilates and yoga studios | Fivvi"], ["Klanten boeken zelf, de wachtlijst loopt vanzelf en credits kloppen altijd. In de woorden van jouw studio.", "Clients book themselves, the waitlist runs by itself and credits always add up. In your studio's own words."]],
         ["/personal-trainers", "/en/personal-trainers", ["Software voor personal trainers: agenda en logboek | Fivvi", "Software for personal trainers: calendar and log | Fivvi"], ["Je dag, je klanten, je logboek en je credits op je telefoon. Zonder schermen die je niet gebruikt.", "Your day, clients, log and credits on your phone. Without screens you don't use."]],
         ["/klanten", "/en/clients", ["Boek je les in een paar tikken | Fivvi voor klanten", "Book your class in a few taps | Fivvi for clients"], ["Boek, zet jezelf op de wachtlijst en zie altijd wat je nog tegoed hebt. Met de app of gewoon in je browser.", "Book, join the waitlist and always see your balance. With the app or just in your browser."]],
@@ -154,9 +155,10 @@ window.PAGES = (function () {
       youH: ["Wat ik nog van jou nodig heb", "What I still need from you"],
       you: [
         [["Je bedrijfsgegevens", "Your business details"], ["KvK-nummer, btw-nummer, adres, en een telefoon- of WhatsApp-nummer. Let op: dit adres staat straks openbaar op de site.", "KvK number, VAT number, address, and a phone or WhatsApp number. Note: this address will be public on the site."]],
+        [["Mag dit zo eerlijk?", "Is this honest line right?"], ["De site gaat live voordat alles klaar is. Daarom staat bovenaan elke pagina: Fivvi wordt nu gebouwd, samen met onze eerste sportschool. Kies je eigen woorden als je wilt, maar zo'n regel moet er staan.", "The site goes live before everything is ready. So the top of every page says: Fivvi is being built right now, together with our first gym. Choose your own words if you like, but a line like this has to be there."]],
         [["Kloppen de prijzen zo?", "Is the pricing right?"], ["Mollie wil een prijs zien. De pagina volgt nu je voorwaarden: gratis tijdens de pilot, en 60 dagen vooraf bericht als dat verandert.", "Mollie wants to see a price. The page now follows your terms: free during the pilot, and 60 days' notice if that changes."]],
         [["Juridische vragen uit #158", "Legal questions from #158"], ["Voor publicatie: Q2 (je bedrijf), Q11 (minimumleeftijd) en Q15 (prijswijzigingen). Elke vraag heeft een aanbeveling, dus \"akkoord\" is genoeg.", "Before publishing: Q2 (your company), Q11 (minimum age) and Q15 (price changes). Each has a recommendation, so \"agree\" is enough."]],
-        [["De demo zelf", "The demo itself"], ["Ik ga uit van 30 minuten online, door jou, en antwoord binnen 1 werkdag. Klopt dat?", "I'm assuming 30 minutes online, by you, and a reply within 1 working day. Is that right?"]]
+        [["De demo zelf", "The demo itself"], ["Ik ga uit van 30 minuten online, door jou, en antwoord binnen 1 werkdag op demo-aanvragen en vragen. Klopt dat?", "I'm assuming 30 minutes online, by you, and a reply within 1 working day to demo requests and questions. Is that right?"]]
       ]
     }
   };
