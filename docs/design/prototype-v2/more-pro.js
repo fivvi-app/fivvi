@@ -7,10 +7,12 @@
     SH["st:" + t[0]] = function () {
       var b = t[5].map(function (x) { return '<p class="pro-line">' + esc(x[0]) + "</p>"; }).join("");
       if (t[6].length) b += '<div class="fgrp">' + t[6].map(function (x) { return K.fld(x[0], '<input type="text">'); }).join("") + "</div>";
-      b += t.slice(10).map(function (x) { var cb = /^\[([ x])\] /.exec(x[0]); return '<label class="pro-check"><input type="' + (cb ? "checkbox" : "radio") + '" name="o"' + (cb && cb[1] === "x" ? " checked" : "") + "> <span>" + esc(x[0].replace(/^\[[ x]\] /, "")) + "</span></label>"; }).join("");
+      b += t.slice(10).map(function (x) { var cb = /^\[([ x])\] /.exec(x[0]); return '<label class="pro-check"><input type="' + (cb ? "checkbox" : "radio") + '" name="o"' + ((cb && cb[1] === "x") || /^\*/.test(x[0]) ? " checked" : "") + "> <span>" + esc(x[0].replace(/^\[[ x]\] /, "").replace(/^\*/, "")) + "</span></label>"; }).join("");
+      if (t[0] === "req-review") b = '<div class="fgrp">' + K.fld("Kort antwoord aan Anna", '<input type="text">') + "</div>" + K.btn("Verplaatsen", { blk: true, k: "sec", a: "pro-open", d: { v: "move-late" } }) + K.btn("Annuleren", { blk: true, k: "sec", a: "pro-open", d: { v: "cancel-priv" } }) + '<p class="pro-line" style="margin-top:10px">Laten staan</p>';
       return { title: t[4][0], body: b, save: "pro-ok", saveLabel: t[7][0] };
     };
   });
+  A["pro-open"] = function (d) { F.S.sheet = "st:" + d.v; F.render(); };
   A["pro-ok"] = function () { F.S.sheet = null; F.render(); };
   /* notes on Vandaag and Agenda */
   var I = window.FIVVI_I18N, L = function (p) { I.add(p[0], p[1]); return p[0]; };
