@@ -604,6 +604,7 @@
     var body;
     if (S.signStep === "email") {
       body = '<div style="padding:40px 24px 0;text-align:center"><div class="appicon">F</div><h1 style="font-size:28px;margin:22px 0 6px">Inloggen bij Fivvi Pro</h1><p style="color:var(--label2);margin:0 0 26px;font-size:16px">Vul je e-mailadres in. We sturen je een code van 6 cijfers.</p></div>' +
+        '<div class="pad stack">' + btn("Doorgaan met Apple", { k: "sec", blk: true, a: "sign-in" }) + btn("Doorgaan met Google", { k: "sec", blk: true, a: "sign-in" }) + '</div><p class="c-or">of met je e-mailadres</p>' +
         '<div class="pad stack"><div class="fgrp">' + fld("E-mail", '<input data-in="email" type="email" autocomplete="email" placeholder="naam@voorbeeld.nl" value="' + esc(S.email) + '">') + "</div>" + btn("Doorgaan", { blk: true, a: "sign-next" }) + "</div>" + foot("Nog geen account? Je eigenaar nodigt je uit, of je maakt een werkruimte aan op het web.");
     } else {
       var digits = (S.code + "      ").slice(0, 6).split("");

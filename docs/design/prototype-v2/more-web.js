@@ -13,7 +13,7 @@
   L("Een klant kan maximaal zoveel keer per week een groepsles boeken, ook met opgespaarde lessen.", "A client can book a group class at most this many times a week, also with saved-up classes.");
   
   /* set per membership offer (owner, 6 Nov 2026), so a running agreement keeps its terms */
-  document.addEventListener("change", function (e) { var t = e.target; if (t && t.getAttribute && t.getAttribute("data-wf") === "unused") { W().form.unused = t.value; R(); } });
+  document.addEventListener("change", function (e) { var t = e.target; if (t && t.getAttribute && t.getAttribute("data-wf") === "unused") { W().form.unused = t.value; R(); } if (t && t.getAttribute && t.getAttribute("data-wf") === "kind" && W().form && W().form.tpl) { W().form.tpl = ""; R(); } });
   L("Ongebruikte lessen vervallen aan het eind van de week", "Unused classes expire at the end of the week"); L("Ongebruikte lessen blijven geldig", "Unused classes stay valid"); I.rule(/^Ongebruikte lessen blijven geldig · maximaal (\d+) per week$/, "Unused classes stay valid · at most $1 a week");
 
   /* ---------- #468 + Nieuw aanbod: first step, and the extra fields ---------- */
@@ -321,7 +321,8 @@
   L("Training bijhouden", "Log workout"); L("Oefening", "Exercise"); L("Set", "Set"); L("Gewicht", "Weight"); L("Herhalingen", "Reps"); L("Training afronden", "Finish workout"); L("Bankdrukken", "Bench press"); L("Set toevoegen", "Add set"); L("Oefening toevoegen", "Add exercise"); L("Training afgerond", "Workout finished"); L("Inloggen", "Sign in"); L("E-mailadres", "Email address"); L("Stuur me een code", "Send me a code"); L("Code gestuurd", "Code sent"); L("Je krijgt een code van 6 cijfers per e-mail. Geen wachtwoord nodig.", "You get a 6-digit code by email. No password needed.");
   X.TITLES.logweb = "Training bijhouden"; X.TITLES.signin = "Inloggen";
   PAGES.logweb = function () { function n(v) { return '<input class="w-input sm" value="' + v + '" aria-label="' + v + '">'; } return card("Bankdrukken", table(["Set", "Gewicht", "Herhalingen"], [["1", n("60"), n("8")], ["2", n("60"), n("8")], ["3", n("62,5"), n("6")]]) + '<div class="w-hgroup" style="margin-top:10px">' + btn("Set toevoegen", "w-toast", { k: "outline sm", d: { m: "Set toevoegen" } }) + btn("Oefening toevoegen", "w-toast", { k: "outline sm", d: { m: "Oefening toevoegen" } }) + btn("Training afronden", "w-toast", { k: "sm", d: { m: "Training afgerond" } }) + "</div>"); };
-  PAGES.signin = function () { return card("Inloggen", fld("E-mailadres", '<input class="w-input" placeholder="naam@example.com">', "Je krijgt een code van 6 cijfers per e-mail. Geen wachtwoord nodig.") + btn("Stuur me een code", "w-toast", { d: { m: "Code gestuurd" } })); };
+  L("of met je e-mailadres", "or with your email"); L("Doorgaan met Apple", "Continue with Apple"); L("Doorgaan met Google", "Continue with Google");
+  PAGES.signin = function () { return card("Inloggen", '<div class="w-hgroup">' + btn("Doorgaan met Apple", "w-page", { k: "outline", d: { v: "dashboard" } }) + btn("Doorgaan met Google", "w-page", { k: "outline", d: { v: "dashboard" } }) + "</div>" + muted("of met je e-mailadres") + fld("E-mailadres", '<input class="w-input" placeholder="naam@example.com">', "Je krijgt een code van 6 cijfers per e-mail. Geen wachtwoord nodig.") + btn("Stuur me een code", "w-toast", { d: { m: "Code gestuurd" } })); };
 
   /* ---------- entries ---------- */
   var cl = F.INDEX.filter(function (g) { return g[0] === "Trainer web"; })[0][1];
@@ -409,11 +410,13 @@
   /* a solo PT has no classes and no team, a trainer no owner pages or dialogs */
   var NEEDS_GROUP = ["classsum", "classempty", "classseries", "class-new", "class-plan", "class-edit", "class-dst", "assign", "sub2", "series-trainer", "cancel-scope", "add-part", "rem-part", "cap-low", "drag-move", "Abonnement: ongebruikte lessen en weeklimiet", "Aanbod bewerken: alle velden", "Aanbod: prijs, gearchiveerd en koppelen"];
   var NEEDS_TEAM = ["assign", "sub2", "series-trainer", "priv-trainer", "conflict", "trainer-inv", "trainer-remove", "trainer-noperm", "Dag: je valt in"];
+  var NEEDS_PRIV = ["priv-trainer", "trainer-noperm", "conflict", "cancel-priv", "cancel-late", "cancel-started", "move-late", "req-review", "Vandaag: annulering aangevraagd", "Sessie: offline annuleren"];
   var NEEDS_OWNER = ["Aanmeldlink: net vernieuwd", "Klanten: niet uitgenodigd", "Klanten: verwijderd", "Klanten: te beoordelen"];
   /* one list for the trainer web and Fivvi Pro: what this setup and role can actually run into */
   window.FVW.varFits = function (key, name) {
     if (!F.OWNER() && (X.OWNERDLG[key] || NEEDS_OWNER.indexOf(name) >= 0)) return false;
     if (!F.HAS("group") && (NEEDS_GROUP.indexOf(key) >= 0 || NEEDS_GROUP.indexOf(name) >= 0)) return false;
+    if (!F.HAS("priv") && (NEEDS_PRIV.indexOf(key) >= 0 || NEEDS_PRIV.indexOf(name) >= 0)) return false;
     if (F.SOLO() && (NEEDS_TEAM.indexOf(key) >= 0 || NEEDS_TEAM.indexOf(name) >= 0)) return false;
     return true;
   };
@@ -423,7 +426,7 @@
     cl.forEach(function (e, i) { if (i >= VARSTART && from.indexOf(e[2].page) >= 0 && varFits(e)) out.push('<button class="c-chip" data-a="w-var" data-i="' + i + '">' + esc(e[0]) + "</button>"); });
     return out.length ? '<details class="w-proto"><summary><b>Prototype</b> · <span>Andere situaties</span> (' + out.length + ')</summary><div class="c-chips">' + out.join("") + "</div></details>" : "";
   }
-  Object.keys(PAGES).forEach(function (k) { var o = PAGES[k]; PAGES[k] = function () { return o() + varList(k); }; });
+  Object.keys(PAGES).forEach(function (k) { var o = PAGES[k]; PAGES[k] = function () { var h = o(); return W().page === k ? h + varList(k) : h; }; });
   A["w-var"] = function (d) { cl[+d.i][2](); F.S.anim = null; R(); };
   window.FVW.more = { L: L, p: p, muted: muted, alert: alert, CL: CL, list: cl };
   /* panel names stay Dutch for new entries */

@@ -370,7 +370,7 @@
       kpi("Aanwezig", String(Object.keys(am).filter(function (x) { return am[x] === "yes"; }).length), "van " + it.people.length, "var(--ok)") + kpi("Wachtlijst", String(it.waitlist || 0), it.waitlist ? "op volgorde" : "niemand", "var(--accent)") + "</div>";
     h += '<div class="w-grid2">' + card("Deelnemers", it.people.length ? table(["Naam", "Aanwezigheid"], it.people.map(function (p, i) { return ['<span class="w-cell">' + av(personName(p), F.CLIENT[p] ? F.CLIENT[p].c : null) + "<b>" + esc(personName(p)) + "</b></span>", '<div class="w-seg">' + ["yes", "no"].map(function (v) { return '<button class="' + (am[i] === v ? "on " + v : "") + '" data-a="w-att" data-id="' + it.id + '" data-i="' + i + '" data-v="' + v + '">' + (v === "yes" ? "Aanwezig" : "Niet verschenen") + "</button>"; }).join("") + "</div>"]; })) : '<p class="w-muted">Nog niemand geboekt.</p>', { act: it.people.length ? btn("Iedereen aanwezig", "w-att-all", { k: "outline sm", d: { id: it.id } }) : "" }) +
       '<div class="w-stack">' + (it.type === "group" ? card("Wachtlijst", it.waitlist ? '<ol class="w-list plain num">' + waitNames(it).map(function (n, i) { return "<li><div><b>" + (i + 1) + ". " + esc(n) + '</b></div><button class="w-icon" data-a="w-dlg" data-n="wlremove" data-i="' + i + '" aria-label="' + esc(n) + ' van de wachtlijst halen">' + ic("x") + "</button></li>"; }).join("") + "</ol>" : '<p class="w-muted">Niemand op de wachtlijst.</p>', { desc: "Komt er een plek vrij, dan krijgt de eerste die plek en een e-mail." }) : "") +
-      (ds ? card("Beschrijving", '<p translate="no"' + (ds.nl ? ' lang="nl"' : "") + ">" + esc(ds.t) + "</p>", { desc: "Zo zien klanten deze les." }) : "") + "</div></div>";
+      (ds ? card("Omschrijving", '<p translate="no"' + (ds.nl ? ' lang="nl"' : "") + ">" + esc(ds.t) + "</p>", { desc: "Zo zien klanten deze les." }) : "") + "</div></div>";
     return h;
   };
   PAGES.gym = function () {
@@ -409,7 +409,7 @@
         role(t) === "owner" ? "Eigenaar" : "Trainer", badge("Actief", "var(--ok)"),
         '<div class="w-hgroup end">' + btn("Rol wijzigen", "w-dlg", { k: "outline sm", d: { n: "trole", t: t } }) + (me || soleOwner ? "" : btn("Verwijderen", "w-dlg", { k: "ghost sm", d: { n: "tremove", t: t } })) + "</div>"];
     }).concat(D.invited.map(function (x, i) {
-      return ['<span class="w-cell">' + av(x.email, "#8E8E93") + '<b class="w-muted">' + esc(x.email) + "</b></span>", esc(x.email), "Trainer", badge("Uitgenodigd", "", "outline"),
+      return ['<span class="w-cell">' + av(x.name || x.email, "#8E8E93") + '<b class="w-muted">' + esc(x.name || x.email) + "</b></span>", esc(x.email), "Trainer", badge("Uitgenodigd", "", "outline"),
         '<div class="w-hgroup end">' + btn("Opnieuw sturen", "w-toast", { k: "outline sm", d: { m: "Uitnodiging opnieuw verstuurd" } }) + btn("Intrekken", "w-dlg", { k: "ghost sm", d: { n: "tinvdel", i: i } }) + "</div>"];
     }));
     return '<div class="w-row-between"><p class="w-muted">Iedereen die bij ' + esc(wsName()) + " traint. Een eigenaar kan alles, ook betalingen, aanbod en instellingen; een trainer doet zijn eigen sessies, lessen en klanten.</p>" + btn("Trainer uitnodigen", "w-dlg", { i: "personPlus", d: { n: "invite" } }) + "</div>" +
@@ -520,13 +520,14 @@
     return h;
   };
   function offerById(id) { return D.offerList.filter(function (o) { return o.id === id; })[0]; }
-  function offerForm(o) { o = o || {}; return { unused: o.unused || "expire", limit: o.limit || "", id: o.id || "", kind: o.kind || "abo", name: o.name || "", nameEn: o.nameEn || "", price: o.price || "", vat: o.vat || "9", cycle: o.cycle || "Elke maand", perWeek: String(o.perWeek || 2), term: o.term || "6 maanden", end: o.end || "stop", renew: String(o.renew != null ? o.renew : 30), credit: o.credit || "groep", credits: String(o.credits || 10), valid: o.valid || "3 maanden", carry: String(o.carry || 0), minTerm: o.minTerm || "3 maanden", intro: o.intro ? "ja" : "nee", memberOnly: o.memberOnly ? "ja" : "nee" }; }
+  function offerForm(o) { o = o || {}; return { unused: o.unused || "expire", limit: o.limit || "", id: o.id || "", kind: o.kind || "abo", name: o.name || "", nameEn: o.nameEn || "", desc: o.desc || "", descEn: o.descEn || "", price: o.price || "", vat: o.vat || "9", cycle: o.cycle || "Elke maand", perWeek: String(o.perWeek || 2), term: o.term || "6 maanden", end: o.end || "stop", renew: String(o.renew != null ? o.renew : 30), credit: o.credit || "groep", credits: String(o.credits || 10), valid: o.valid || "3 maanden", carry: String(o.carry || 0), minTerm: o.minTerm || "3 maanden", intro: o.intro ? "ja" : "nee", memberOnly: o.memberOnly ? "ja" : "nee" }; }
   function offerDialog(d) {
     var f = W().form, o = d.id ? offerById(d.id) : null, k = f.kind, cr = [["groep", "Groepscredits"], ["prive", "Privécredits"]].concat(F.HAS("gym") ? [["gym", "Open Gym-credits"]] : []);
     var b = "";
     if (!o) b += '<div class="w-starts"><span class="w-muted">Begin met een standaardplan:</span>' + D.offerList.filter(function (x) { return x.def && offerFits(x); }).map(function (x) { var on = f.tpl === x.id; return btn(x.name, "w-offer-tpl", { k: on ? "sm" : "outline sm", i: on ? "check" : "", d: { id: x.id } }); }).join("") + "</div>";
     b += (o ? "" : fld("Soort", selF("kind", [["abo", "Abonnement: lessen per week"], ["pack", "Creditpakket: één keer betalen"], ["plan", "Creditabonnement: credits per periode"], ["single", "Losse les"]].filter(function (x) { return x[0] !== "abo" && x[0] !== "single" || F.HAS("group"); }))));
-    b += '<div class="w-inline2">' + fld("Naam (Nederlands)", inp("name", "text", "Bijvoorbeeld Groep 2× per week")) + fld("Naam (Engels, optioneel)", inp("nameEn", "text", "Optioneel")) + "</div>";
+    b += '<div class="w-inline2">' + fld("Naam (Nederlands)", inp("name", "text", "Bijvoorbeeld Groep 2× per week")) + fld("Naam (Engels, optioneel)", inp("nameEn")) + "</div>";
+    b += '<div class="w-inline2">' + fld("Omschrijving (Nederlands, optioneel)", '<textarea class="w-input" data-wf="desc" rows="2">' + esc(f.desc) + "</textarea>") + fld("Omschrijving (Engels, optioneel)", '<textarea class="w-input" data-wf="descEn" rows="2">' + esc(f.descEn) + "</textarea>") + "</div>";
     b += '<div class="w-inline2">' + fld("Prijs incl. btw (€)", inp("price", "text", "Bijvoorbeeld 69")) + fld("Btw", selF("vat", [["9", "9%"], ["21", "21%"], ["0", "0%"]])) + "</div>";
     if (k === "abo") b += '<div class="w-inline2">' + fld("Lessen per week", selF("perWeek", ["1", "2", "3"])) + fld("Looptijd", selF("term", ["3 maanden", "6 maanden", "12 maanden"])) + fld("Betalen", selF("cycle", ["Elke maand", "Elke 4 weken"])) + "</div>" + fld("Ongebruikte lessen", selF("unused", [["expire", "Vervallen aan het eind van de week"], ["keep", "Blijven geldig tot het abonnement afloopt"]])) + (f.unused === "keep" ? fld("Weeklimiet", selF("limit", [["", "Geen limiet"], ["2", "2"], ["3", "3"], ["4", "4"], ["5", "5"]]), "Een klant kan maximaal zoveel keer per week een groepsles boeken, ook met opgespaarde lessen.") : "");
     if (k === "pack" || k === "plan") b += '<div class="w-inline2">' + fld("Soort credits", selF("credit", cr)) + fld(k === "pack" ? "Aantal credits" : "Credits per periode", inp("credits", "number")) + (k === "pack" ? fld("Geldig", selF("valid", ["1 week", "2 weken", "1 maand", "3 maanden", "6 maanden", "12 maanden"])) : fld("Betalen", selF("cycle", ["Elke maand", "Elke 4 weken"]))) + "</div>";
@@ -728,7 +729,7 @@
       if (!(f.name || "").trim()) { bad("name", "Vul een naam in"); return; }
       if (f.price && !/^\d+([.,]\d{1,2})?$/.test(f.price.trim())) { bad("price", "Vul een bedrag in, bijvoorbeeld 69 of 17,50"); return; }
       var oo = d.id ? offerById(d.id) : { id: "o" + Date.now(), active: 0, on: false }, n = function (x) { return +x || 0; };
-      oo.kind = f.kind; oo.name = f.name.trim(); oo.nameEn = (f.nameEn || "").trim(); oo.price = (f.price || "").trim(); oo.vat = f.vat; oo.def = false;
+      oo.kind = f.kind; oo.name = f.name.trim(); oo.nameEn = (f.nameEn || "").trim(); oo.desc = (f.desc || "").trim(); oo.descEn = (f.descEn || "").trim(); oo.price = (f.price || "").trim(); oo.vat = f.vat; oo.def = false;
       oo.cycle = f.kind === "pack" ? "Eenmalig" : f.kind === "single" ? "Bij het boeken" : f.cycle;
       if (f.kind === "abo") { oo.perWeek = n(f.perWeek); oo.term = f.term; oo.unused = f.unused; oo.limit = f.limit; }
       if (f.kind === "pack" || f.kind === "plan" || f.kind === "single") oo.credit = f.kind === "single" ? "groep" : f.credit;
@@ -774,7 +775,7 @@
     else if (d.n === "tpldel") { delete D.tpl[d.t]; msg = "Schema verwijderd"; }
     else if (d.n === "renew") { w.linkCode = ["9XP4", "3MV8", "6TR1"][Math.floor(Math.random() * 3)]; msg = "Nieuwe link gemaakt. De oude werkt niet meer."; }
     else if (d.n === "decline") { D.requests = D.requests.filter(function (x) { return x.id !== d.id; }); msg = "Verzoek afgewezen"; }
-    else if (d.n === "invite") { if (!/.+@.+\..+/.test(f.email || "")) { bad("email", "Vul een geldig e-mailadres in"); return; } D.invited.push({ email: f.email.trim(), lang: f.lang }); msg = "Uitnodiging verstuurd naar " + f.email; }
+    else if (d.n === "invite") { if (!/.+@.+\..+/.test(f.email || "")) { bad("email", "Vul een geldig e-mailadres in"); return; } D.invited.push({ email: f.email.trim(), name: (f.name || "").trim(), lang: f.lang }); msg = "Uitnodiging verstuurd naar " + ((f.name || "").trim() || f.email); }
     else if (d.n === "trole") {
       if (f.role !== "owner" && role(d.t) === "owner" && owners().length === 1) { bad("role", "Er moet altijd een eigenaar zijn"); return; }
       D.roles[d.t] = f.role; msg = d.t.split(" ")[0] + " is nu " + (f.role === "owner" ? "eigenaar" : "trainer");
@@ -1121,7 +1122,6 @@
     if (cd === "solodel") { var sl = D.selfLog.anna[C().solo]; return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Training verwijderen"><h3>Training verwijderen?</h3><p>' + esc(sl.name) + " van " + esc(sl.d) + ' verdwijnt uit Activiteit. Dit kun je niet ongedaan maken.</p><div class="btns">' + K.btn("Verwijderen", { k: "dng", a: "c-solodelok" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>"; }
     if (cd === "selfstop" && C().self && C().self.edit != null) return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Niet opslaan"><h3>Wijzigingen niet opslaan?</h3><p>De training blijft zoals hij was.</p><div class="btns">' + K.btn("Niet opslaan", { k: "dng", a: "c-selfundo" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>";
     if (cd === "selfstop") return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Stoppen"><h3>Stoppen zonder opslaan?</h3><p>Wat je hebt ingevuld, gaat verloren.</p><div class="btns">' + K.btn("Stoppen", { k: "dng", a: "c-selfdrop" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>";
-    if (C().dialog === "delete") return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Account verwijderen"><h3>Account verwijderen?</h3><p>Je account en je gegevens worden verwijderd en je wordt uitgelogd. Facturen bewaart de studio zo lang als de wet vraagt.</p><div class="btns">' + K.btn("Account verwijderen", { k: "dng", a: "a-delete" }) + K.btn("Annuleren", { k: "sec", a: "c-dclose" }) + "</div></div>";
     var it = cfind(C().detail).it;
     return '<div class="scrim anim-fade" data-a="c-dclose"></div><div class="alert anim-fade" role="alertdialog" aria-label="Annuleren"><h3>' + esc(it.title) + " annuleren?</h3><p>Het is meer dan 12 uur voor de start, dus de les telt niet als gebruikt.</p><div class=\"btns\">" + K.btn("Ja, annuleren", { k: "dng", a: "c-cancel-ok" }) + K.btn("Terug", { k: "sec", a: "c-dclose" }) + "</div></div>";
   }
@@ -1292,7 +1292,7 @@
       : '<div class="c-brbar ios"><button class="c-done" data-a="c-webclose">Klaar</button><div class="c-url glass"><i>🔒</i><span translate="no">' + url + "</span></div></div>";
     return '<div class="scrim anim-fade" data-a="c-webclose"></div><div class="sheet large anim-up c-browser" role="dialog" aria-label="Aanbod">' + bar + '<div class="sbody">' +
       K.lt("", "Aanbod van " + esc(wsName()), "Kies wat bij je past. Je betaalt met iDEAL.") + '<div class="pad stack">' + offers.map(function (o) {
-        return '<div class="card c-offer"><div><b>' + esc(o.name) + '</b><span class="num">€ ' + esc(o.price) + " <small>" + per(o.cycle) + "</small></span></div><ul>" + offerFacts(o).filter(function (t) { return t.indexOf("Verlengen") !== 0; }).map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul>" + (o.memberOnly && !(C().who === "anna" && D.bsum("anna").abos.length) ? K.btn("Eerst een abonnement nodig", { k: "sec", blk: true, dis: true }) : K.btn("Kiezen", { blk: true, a: "c-buy", d: { v: o.name } })) + "</div>";
+        return '<div class="card c-offer"><div><b>' + esc(o.name) + '</b><span class="num">€ ' + esc(o.price) + " <small>" + per(o.cycle) + "</small></span></div>" + (o.desc ? '<p class="c-desc" translate="no"' + (F.PREF.lang === "en" && o.descEn ? "" : ' lang="nl"') + ">" + esc(F.PREF.lang === "en" && o.descEn ? o.descEn : o.desc) + "</p>" : "") + "<ul>" + offerFacts(o).filter(function (t) { return t.indexOf("Verlengen") !== 0; }).map(function (t) { return "<li>" + esc(t) + "</li>"; }).join("") + "</ul>" + (o.memberOnly && !(C().who === "anna" && D.bsum("anna").abos.length) ? K.btn("Eerst een abonnement nodig", { k: "sec", blk: true, dis: true }) : K.btn("Kiezen", { blk: true, a: "c-buy", d: { v: o.name } })) + "</div>";
       }).join("") + "</div>" + (W().payDesk ? K.foot("Liever contant of met pin? Dat kan ook bij je studio.") : "") + K.foot("Na de betaling krijg je de factuur per e-mail en kun je meteen boeken.") + "</div></div>";
   }
 
@@ -1331,7 +1331,7 @@
   A["a-request"] = function () { var c = C(); if (!c.name.trim()) { c.err = { name: "Vul je naam in" }; F.toast(c.err.name, "err"); return; } c.astep = "waiting"; F.toast("Verzoek verstuurd"); };
   A["a-approved"] = function () { var c = C(); c.astep = "app"; c.step = "app"; c.atab = "home"; F.toast("Je bent goedgekeurd. Welkom!"); };
   A["a-signout"] = function () { var c = C(); c.astep = "welcome"; c.step = "link"; c.code = ""; c.detail = null; c.workout = null; R(); };
-  A["a-delask"] = function () { C().dialog = "delete"; R(); };
+  A["a-delask"] = function () { C().web = "st:Account verwijderen: code"; R(); };
   A["a-delete"] = function () { var s = S(); s.c = null; var c = C(); c.astep = "welcome"; F.toast("Je account is verwijderd"); };
   A["c-lang"] = function (d) { F.PREF.lang = d.v; F.save(); R(); };
   A["c-next"] = function () { var c = C(); if (!/.+@.+\..+/.test(c.email)) { c.err = { email: "Vul een geldig e-mailadres in" }; F.toast(c.err.email, "err"); return; } c.step = "code"; c.code = ""; R(); };
@@ -1498,7 +1498,7 @@
     ["Activiteit", "F045", goApp("app", { who: "anna", atab: "training" })],
     ["Gedeelde training", "F045", goApp("app", { who: "anna", atab: "training", workout: 0 })],
     ["Profiel en tegoed", "F033", goApp("app", { who: "anna", atab: "profiel" })],
-    ["Account verwijderen", "§79", goApp("app", { who: "anna", atab: "profiel", dialog: "delete" })],
+    ["Account verwijderen", "§79", goApp("app", { who: "anna", atab: "profiel", web: "st:Account verwijderen: code" })],
     ["Nieuwe klant zonder tegoed", "F033", goApp("app", { who: "new", name: "Kim de Graaf", email: "kim@example.com", atab: "home" })],
     ["Twee studio's: Home", "QE05", goApp("app", { who: "anna", atab: "home" }, twoStudios)],
     ["Twee studio's: studio wisselen", "QE05", goApp("app", { who: "anna", atab: "boeken", wsheet: "list" }, twoStudios)],

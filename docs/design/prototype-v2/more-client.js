@@ -6,7 +6,7 @@
   /* name, ref, tone (ok | warn | bad | info), url, title, [lines], [buttons], extra html */
   var ST = [
     /* ---- #480 sign-up, #498 Apple and Google ---- */
-    ["Inloggen: nieuw bij Fivvi", "#480", "info", "fivvi.app/inloggen", ["Inloggen", "Sign in"], [["Nieuw bij Fivvi? Dan maken we meteen een account voor je aan.", "New to Fivvi? We'll create an account for you right away."], ["Lees hoe we met je gegevens omgaan in onze privacyverklaring.", "Read how we handle your data in our privacy statement."]], [["Doorgaan met Apple", "Continue with Apple"], ["Doorgaan met Google", "Continue with Google"], ["Stuur me een code", "Send me a code"]], [["of met je e-mailadres", "or with your email address"]]],
+    ["Inloggen: nieuw bij Fivvi", "#480", "info", "fivvi.app/inloggen", ["Inloggen", "Sign in"], [["Nieuw bij Fivvi? Dan maken we meteen een account voor je aan.", "New to Fivvi? We'll create an account for you right away."], ["Lees hoe we met je gegevens omgaan in onze privacyverklaring.", "Read how we handle your data in our privacy statement."]], [["Doorgaan met Apple", "Continue with Apple"], ["Doorgaan met Google", "Continue with Google"], ["Stuur me een code", "Send me a code"]], [["of met je e-mailadres", "or with your email"]]],
     ["Inloggen met Apple lukte niet", "#498", "bad", "fivvi.app/inloggen", ["Inloggen lukte niet", "Couldn't sign in"], [["Inloggen met Apple lukte niet. Probeer het opnieuw of log in met je e-mailadres.", "Signing in with Apple didn't work. Try again or sign in with your email address."]], [["Stuur me een code", "Send me a code"]]],
     ["Uitnodiging voor een ander adres (Apple)", "#498", "warn", "fivvi.app/i/…", ["Ander e-mailadres", "Different email address"], [["Je bent ingelogd als a•••@example.com. Deze uitnodiging is voor k•••@example.com.", "You're signed in as a•••@example.com. This invitation is for k•••@example.com."], ["Gebruik hetzelfde e-mailadres als in de uitnodiging.", "Use the same email address as in the invitation."]], [["Uitloggen en verder", "Sign out and continue"]]],
     ["Je naam invullen", "#480", "info", "fivvi.app/welkom", ["Hoe mogen we je noemen?", "What should we call you?"], [["Je studio ziet deze naam.", "Your studio sees this name."]], [["Verder", "Continue"]], null, [["Naam", "Name"]]],
@@ -20,7 +20,7 @@
     ["QR-code: geen aanmeldlink", "#484", "bad", "", ["QR-code scannen", "Scan QR code"], [["Dit is geen aanmeldlink van Fivvi.", "This isn't a Fivvi join link."]], [["Opnieuw proberen", "Try again"]]],
     ["QR-code: geen cameratoegang", "#484", "warn", "", ["QR-code scannen", "Scan QR code"], [["Fivvi gebruikt de camera om de QR-code van je studio te scannen.", "Fivvi uses the camera to scan your studio's QR code."], ["Geef Fivvi toegang tot de camera in Instellingen, of open de link van je studio.", "Give Fivvi access to the camera in Settings, or open your studio's link."]], [["Naar Instellingen", "Go to Settings"]]],
     /* ---- #482 invitation page ---- */
-    ["Uitnodiging: inloggen", "#482", "info", "fivvi.app/i/…", ["Studio Fit heeft je toegevoegd als klant", "Studio Fit added you as a client"], [["Log in als a•••@example.com om lessen te boeken.", "Sign in as a•••@example.com to book classes."]], [["Stuur me een code", "Send me a code"]]],
+    ["Uitnodiging: inloggen", "#482", "info", "fivvi.app/i/…", ["Studio Fit heeft je toegevoegd als klant", "Studio Fit added you as a client"], [["Log in als a•••@example.com om lessen te boeken.", "Sign in as a•••@example.com to book classes."], ["Gebruik hetzelfde e-mailadres als in de uitnodiging.", "Use the same email address as in the invitation."]], [["Doorgaan met Apple", "Continue with Apple"], ["Doorgaan met Google", "Continue with Google"], ["Stuur me een code", "Send me a code"]]],
     ["Uitnodiging: code", "#482", "info", "fivvi.app/i/…", ["Check je e-mail", "Check your email"], [["We hebben een code gestuurd naar a•••@example.com.", "We've sent a code to a•••@example.com."]], [["Inloggen", "Sign in"]], null, [["Code", "Code"]]],
     ["Uitnodiging: ander account", "#482", "warn", "fivvi.app/i/…", ["Ander e-mailadres", "Different email address"], [["Deze uitnodiging is voor a•••@example.com. Je bent ingelogd als k•••@example.com.", "This invitation is for a•••@example.com. You're signed in as k•••@example.com."]], [["Uitloggen en verder", "Sign out and continue"]]],
     ["Uitnodiging: werkt niet meer", "#482", "bad", "fivvi.app/i/…", ["Uitnodiging werkt niet meer", "Invitation no longer works"], [["Deze uitnodiging werkt niet meer. Vraag Studio Fit om een nieuwe.", "This invitation no longer works. Ask Studio Fit for a new one."]], []],
@@ -143,7 +143,7 @@
     ["Annuleren aanvragen", "Request cancellation"], ["Annulering aangevraagd", "Cancellation requested"], ["Sessie gaat door", "Session goes ahead"], ["Sessie al begonnen", "Session already started"], ["Mijn boekingen: geen", "My bookings: none"], ["Eerdere boekingen: geen", "Past bookings: none"],
     ["Bevestigen en betalen (CP-02)", "Confirm and pay (CP-02)"], ["Bevestigen: loopt per maand door", "Confirm: continues monthly"], ["Bevestigen: creditpakket", "Confirm: credit pack"], ["Mijn abonnementen (CP-04)", "My memberships (CP-04)"], ["Lessen blijven geldig", "Classes stay valid"], ["Creditabonnement: deze periode", "Credit plan: this period"], ["Geen tegoed", "No credits"], ["Betalingen en facturen (CP-05)", "Payments and invoices (CP-05)"], ["Openstaand bedrag betalen (CP-07)", "Pay the open amount (CP-07)"],
     ["Opzeggen (CP-06)", "Give notice (CP-06)"], ["Opzeggen: vaste looptijd", "Give notice: fixed term"], ["Opgezegd", "Notice given"], ["E-mailadres gewijzigd", "Email address changed"], ["Factuurgegevens klant", "Client's invoice details"], ["Account verwijderen: code", "Delete account: code"], ["Account verwijderen: enige eigenaar", "Delete account: only owner"], ["Account blijft bestaan", "Account stays"], ["Boekingslink bestaat niet (PB-09)", "Booking link doesn't exist (PB-09)"], ["Boekingslink niet meer actief (PB-09)", "Booking link no longer active (PB-09)"],
-    ["Andere situaties", "Other situations"], ["Verzetten? Neem contact op met je trainer.", "Need to move it? Contact your trainer."], ["In je agenda gezet", "Added to your calendar"], ["Voorwaarden geopend", "Terms opened"], ["Opent de instellingen van je telefoon", "Opens your phone's settings"], ["Opgeslagen", "Saved"], ["Code verstuurd", "Code sent"], ["Uitnodiging geaccepteerd", "Invitation accepted"], ["Uitnodiging afgewezen", "Invitation declined"], ["Verzoek ingetrokken", "Request withdrawn"], ["Looptijd", "Term"], ["Met je eerste betaling geef je", "Your first payment also gives"], ["ook een machtiging voor de incasso's.", "a mandate for the direct debits."], ["of met je e-mailadres", "or with your email address"]
+    ["Andere situaties", "Other situations"], ["Verzetten? Neem contact op met je trainer.", "Need to move it? Contact your trainer."], ["In je agenda gezet", "Added to your calendar"], ["Voorwaarden geopend", "Terms opened"], ["Opent de instellingen van je telefoon", "Opens your phone's settings"], ["Opgeslagen", "Saved"], ["Code verstuurd", "Code sent"], ["Uitnodiging geaccepteerd", "Invitation accepted"], ["Uitnodiging afgewezen", "Invitation declined"], ["Verzoek ingetrokken", "Request withdrawn"], ["Looptijd", "Term"], ["Met je eerste betaling geef je", "Your first payment also gives"], ["ook een machtiging voor de incasso's.", "a mandate for the direct debits."], ["of met je e-mailadres", "or with your email"]
   ].forEach(L);
   L(["Geen lessen meer op deze dag.", "No more classes on this day."]);
   I.rule(/^€ (\d+),(\d{2})$/, "€$1.$2");
@@ -159,11 +159,11 @@
   var ANY = { "Betalen met iDEAL": "checkout", "Betalen": "checkout", "Nu betalen": "checkout", "Aanbod bekijken": "offers", "Stuur me een code": "code", "Uitloggen en verder": "signout", "Rooster bekijken": "book", "Andere momenten bekijken": "book", "Andere lessen bekijken": "book", "Nog een les boeken": "book", "Een andere les boeken": "book", "Boek een les": "book", "Bekijk het rooster van Studio Fit": "book", "Meer dagen tonen": "book", "Naar mijn boekingen": "bookings", "Bekijk je boeking": "bookings", "Naar je overzicht": "home", "Zet in je agenda": "toast:In je agenda gezet", "Zet me op de wachtlijst": "st:Op de wachtlijst", "Voorwaarden bekijken": "toast:Voorwaarden geopend", "Naar Instellingen": "toast:Opent de instellingen van je telefoon", "Boeking annuleren": "st:Geannuleerd", "Toch annuleren": "st:Geannuleerd", "Stuur code": "toast:Code verstuurd" };
   var GO = {
     "Inloggen: nieuw bij Fivvi": { "Doorgaan met Apple": "st:Je naam invullen", "Doorgaan met Google": "st:Geen studio: wat nu" },
-    "Je naam invullen": { "Verder": "st:Geen studio: wat nu" },
+    "Je naam invullen": { "Verder": "aftername" },
     "Geen studio: wat nu": { "QR-code scannen": "st:QR-code: geen aanmeldlink" },
     "Meedoen: verzoek sturen": { "Verzoek sturen": "st:Meedoen: wachten, verzoek intrekken" },
     "Meedoen: wachten, verzoek intrekken": { "Verzoek intrekken": "st:Meedoen: verzoek sturen" },
-    "Uitnodiging: inloggen": { "Stuur me een code": "st:Uitnodiging: code" },
+    "Uitnodiging: inloggen": { "Doorgaan met Apple": "st:Uitnodiging: welkom", "Doorgaan met Google": "st:Uitnodiging: welkom", "Stuur me een code": "st:Uitnodiging: code" },
     "Uitnodiging: code": { "Inloggen": "st:Uitnodiging: welkom" },
     "Boeken met abonnement": { "Boek deze les": "st:Geboekt met abonnement" },
     "Abonnement op: met credit": { "Boek deze les": "st:Geboekt met credit" },
@@ -193,6 +193,9 @@
   function chosen(c, state) { var o = c.payFor && c.payFor.offer; return o && (state === "Bevestigen: creditpakket" ? o.kind === "pack" : state === "Bevestigen en betalen (CP-02)" && o.kind !== "pack"); }
   A["c-flow"] = function (d) {
     var c = C(), t = d.v;
+    if (t === "aftername") t = c.afterName || "st:Geen studio: wat nu";
+    if (/^apple:/.test(t)) { c.afterName = t.slice(6); c.web = "st:Je naam invullen"; return R(); }
+    if (t === "request") { c.web = null; c.step = "request"; if (!c.name) c.name = "Kim de Graaf"; return R(); }
     if (/^st:/.test(t)) { c.web = t; return R(); }
     if (/^toast:/.test(t)) return F.toast(t.slice(6));
     if (/^done:/.test(t)) { c.web = null; return F.toast(t.slice(5)); }
@@ -240,20 +243,20 @@
     CWEB["st:" + s[0]] = function () {
       var t = TONE[s[2]], b = '<div class="pad stack"><div class="card c-payres" style="--c:' + t[1] + '"><span>' + ic(t[0]) + "</span><h3>" + esc(s[4][0]) + "</h3>" + s[5].map(function (l) { return "<p>" + esc(l[0]) + "</p>"; }).join("") + "</div>";
       if (s[8]) b += '<div class="fgrp">' + s[8].map(function (f) { return '<label class="fld"><span>' + esc(f[0]) + '</span><input type="text"></label>'; }).join("") + "</div>";
-      if (s[7]) s[7].forEach(function (x) { b += /^Ik /.test(x[0]) ? '<label class="pro-check"><input type="checkbox"> <span>' + esc(x[0]) + "</span></label>" : '<p class="c-st-note">' + esc(x[0]) + "</p>"; });
-      (s[6] || []).filter(function (x) { return appMode() || x[0] !== "QR-code scannen"; }).forEach(function (x, i) { var f = { v: target(s[0], x[0]), f: s[0] }; b += i === 0 ? cbtn(x[0], "c-flow", { d: f }) : K.btn(x[0], { k: "ghost", blk: true, a: "c-flow", d: f }); });
+      if (s[7]) s[7].filter(function (x) { return x[0] !== "of met je e-mailadres"; }).forEach(function (x) { b += /^Ik /.test(x[0]) ? '<label class="pro-check"><input type="checkbox"> <span>' + esc(x[0]) + "</span></label>" : '<p class="c-st-note">' + esc(x[0]) + "</p>"; });
+      (s[6] || []).filter(function (x) { return appMode() || x[0] !== "QR-code scannen"; }).forEach(function (x, i) { var f = { v: target(s[0], x[0]), f: s[0] }, sso = /^Doorgaan met/.test(x[0]), or = x[0] === "Stuur me een code" && i > 0; if (or) b += '<p class="c-or">of met je e-mailadres</p>'; b += sso ? cbtn(x[0], "c-flow", { k: "sec", d: f }) : i === 0 || or ? cbtn(x[0], "c-flow", { d: f }) : K.btn(x[0], { k: "ghost", blk: true, a: "c-flow", d: f }); });
       return X.payWeb(s[4][0], s[3] || "Fivvi", b + "</div>" + fam(FAM[FAMOF[s[0]]], s[0]));
     };
   });
   ["Bevestigen en betalen (CP-02)", "Bevestigen: creditpakket"].forEach(function (n) { var o = CWEB["st:" + n]; CWEB["st:" + n] = function () { return chosen(C(), n) ? buyPage(n) : o(); }; });
   /* the screens these states start from */
   /* Apple may hide the name, Google gives it, so only Apple asks for it (#498) */
-  function withSso(html) { var at = '<div class="pad stack"><div class="fgrp">', i = html.indexOf(at); if (i < 0) return html; return html.slice(0, i) + '<div class="pad stack">' + cbtn("Doorgaan met Apple", "c-flow", { k: "sec", d: { v: "st:Je naam invullen" } }) + cbtn("Doorgaan met Google", "c-flow", { k: "sec", d: { v: "st:Geen studio: wat nu" } }) + '</div><p class="c-or">of met je e-mailadres</p>' + html.slice(i); }
+  function withSso(html, next) { var at = '<div class="pad stack"><div class="fgrp">', i = html.indexOf(at); if (i < 0) return html; return html.slice(0, i) + '<div class="pad stack">' + cbtn("Doorgaan met Apple", "c-flow", { k: "sec", d: { v: "apple:" + next } }) + cbtn("Doorgaan met Google", "c-flow", { k: "sec", d: { v: next } }) + '</div><p class="c-or">of met je e-mailadres</p>' + html.slice(i); }
   var CS = X.CSTEP, AS = X.ASTEP;
-  ["link"].forEach(function (k) { var o = CS[k]; CS[k] = function () { return withSso(o()) + (X.payOpen() ? fam(START) : ""); }; });
-  (function () { var o = AS.welcome; AS.welcome = function () { return withSso(o()) + fam(START); }; var n = AS.nolink; AS.nolink = function () { return n() + fam(FAM.join); }; })();
+  /* the join page carries on with the request to join, as signing in by email does */
+  (function () { var o = CS.link; CS.link = function () { return withSso(o(), "request") + (X.payOpen() ? fam(START) : ""); }; })();
+  (function () { var o = AS.welcome; AS.welcome = function () { return withSso(o(), "st:Geen studio: wat nu") + fam(START); }; var n = AS.nolink; AS.nolink = function () { return n() + fam(FAM.join); }; })();
   (function () { var o = CS.app; CS.app = function () { var r = o(), c = C(); if (!c.detail && c.workout == null) r.body += fam(c.tab === "agenda" ? FAM.mine : c.tab === "rooster" ? FAM.sched : []); return r; }; var h = X.ATAB.home; X.ATAB.home = function () { var r = h(); r.body += fam(FAM.mine); return r; }; })();
-  A["a-delask"] = function () { C().web = "st:Account verwijderen: code"; R(); };
   /* the real buttons lead to these states too */
   [["c-bookok", "Geboekt"], ["c-wlok", "Op de wachtlijst"], ["c-cancel-ok", "Geannuleerd"], ["c-wl-leave", "Niet meer op de wachtlijst"]].forEach(function (x) { var o = A[x[0]]; if (!o) return; A[x[0]] = function (d) { o(d); C().web = "st:" + x[1]; F.S.toast = null; R(); }; });
   var ap = F.INDEX.filter(function (g) { return g[0] === "Fivvi (klant-app)"; })[0][1];
