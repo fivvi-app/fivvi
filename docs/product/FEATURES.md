@@ -188,5 +188,5 @@ These get `F0xx` IDs when they move to `PLANNED`. Full context is in [`ROADMAP.m
 | 2.1 | Freelance improvements · gym access information |
 | 2.2 | Workspace switching · cross-workspace conflict detection · workspace-specific permissions |
 | 2.3 | Multi-location organizations |
-| 4.0 | Advanced commerce: discounts · gift cards · reminders and dunning · POS/kiosk · accounting integrations · revenue reports |
+| 4.0 | Advanced commerce: discounts · gift cards · bring a friend · reminders and dunning · POS/kiosk · accounting integrations · revenue reports |
 | 3.0 – 3.2, 5.0 – 7.0 | See roadmap themes |
