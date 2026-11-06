@@ -588,9 +588,8 @@
       row({ a: "toast", d: { m: "Opent het feedbackformulier" }, lead: '<span style="color:var(--label2);display:grid">' + ic("chat") + "</span>", title: "Feedback geven", chev: false })
     ]) + "</div>";
     body += '<div class="pad" style="margin-top:16px">' + grp([
-      row({ a: "alert", d: { n: "signout" }, title: '<span style="color:var(--accent-text)">Uitloggen</span>', chev: false }),
-      row({ a: "alert", d: { n: "delete" }, title: '<span style="color:var(--danger)">Account verwijderen</span>', chev: false })
-    ]) + "</div>" + foot("Fivvi Pro · prototype v2 · fictieve gegevens");
+      row({ a: "alert", d: { n: "signout" }, title: '<span style="color:var(--accent-text)">Uitloggen</span>', chev: false })
+    ]) + "</div>" + '<div class="pad">' + window.FVW.dzZone(btn("Account verwijderen", { k: "dng", a: "pro-acc-del" })) + "</div>" + foot("Fivvi Pro · prototype v2 · fictieve gegevens");
     return { large: true, title: "Profiel", body: body };
   };
 
@@ -846,7 +845,6 @@
 
   var ALERTS = {
     signout: function () { return { t: "Uitloggen?", p: "Je kunt altijd weer inloggen met je e-mailadres.", b: [["Uitloggen", "do-signout", "pri"], ["Annuleren", "close-alert", "sec"]] }; },
-    "delete": function () { return { t: "Account verwijderen?", p: "Je account en je gegevens worden verwijderd. Werkruimtes waar je eigenaar bent, draag je eerst over op het web.", b: [["Verwijderen", "do-delete", "dng"], ["Annuleren", "close-alert", "sec"]] }; },
     cancelSession: function (d) { var it = findItem(d.id).it; return { t: "Sessie annuleren?", p: CLIENT[it.client].name.split(" ")[0] + " krijgt een e-mail dat de sessie van " + it.s + " niet doorgaat.", b: [["Sessie annuleren", "do-cancel", "dng"], ["Terug", "close-alert", "sec"]] }; },
     cancelClass: function (d) { var it = findItem(d.id).it; return { t: "Les annuleren?", p: "De " + it.people.length + " geboekte klanten krijgen een e-mail. Je kunt er een bericht bij zetten op het web.", b: [["Les annuleren", "do-cancel", "dng"], ["Terug", "close-alert", "sec"]] }; },
     removeEx: function (d) { var e = S.log.ex[d.e], n = e.sets.filter(function (s) { return s.done; }).length; return { t: e.name + " verwijderen?", p: n ? e.name + " heeft " + n + (n === 1 ? " gelogde set" : " gelogde sets") + ". Toch verwijderen?" : (e.sets.length === 1 ? "De enige set van " + e.name + " gaat uit deze training." : (e.sets.length === 2 ? "Beide" : "Alle " + e.sets.length) + " sets van " + e.name + " gaan uit deze training."), b: [["Verwijderen", "do-remove-ex", "dng"], ["Terug", "close-alert", "sec"]] }; },
@@ -1031,7 +1029,7 @@
     "close-alert": function () { S.alert = null; render(); },
     "do-cancel": function () { var it = findItem(S.alert.id).it; it.cancelled = true; S.alert = null; toast(it.type === "priv" ? "Sessie geannuleerd" : "Les geannuleerd"); },
     "do-signout": function () { fresh(); S.signedIn = false; S.anim = "push"; render(); },
-    "do-delete": function () { S.alert = null; toast("Dit prototype verwijdert niets"); },
+    "do-delete": function () { S.alert = null; S.sheet = null; toast("Dit prototype verwijdert niets"); },
     "web-only": function () { S.menu = null; toast("Dit beheer je op het web"); },
     toast: function (d) { S.menu = null; toast(d.m); },
     "sign-next": function () { if (!/.+@.+\..+/.test(S.email)) { bad("email", "Vul een geldig e-mailadres in"); return; } S.signStep = "code"; S.code = ""; S.anim = "push"; render(); var i = dev.querySelector('[data-in="code"]'); if (i) i.focus(); },

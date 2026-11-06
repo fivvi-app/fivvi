@@ -15,6 +15,8 @@
     };
   });
   SH["me-email"] = function () { return { title: "E-mailadres wijzigen", body: '<div class="fgrp">' + K.fld("Nieuw e-mailadres", '<input type="email">') + '</div><p class="pro-line">We sturen een code naar je nieuwe adres. Met dat adres log je voortaan in, bij elke werkruimte.</p><div style="margin-top:14px">' + K.btn("Stuur code", { blk: true, a: "pro-ok", d: { m: "Code gestuurd" } }) + "</div>" }; };
+  SH["acc-del"] = function () { if (F.OWNER()) return { title: "Account verwijderen", body: '<p class="pro-line">Je bent de enige eigenaar van Studio Fit. Neem contact met ons op om je account te verwijderen.</p>' }; return { title: "Account verwijderen", body: window.FVW.dzFlow(F.D.me.email, function (l, i) { return '<div class="fgrp">' + K.fld(l, i) + "</div>"; }, function (l, a, k, dis) { return K.btn(l, { k: k, blk: true, a: a, dis: dis }); }, "do-delete") }; };
+  A["pro-acc-del"] = function () { F.S.sheet = "acc-del"; F.S.anim = "up"; F.render(); };
   A["pro-me-email"] = function () { F.S.sheet = "me-email"; F.S.anim = "up"; F.render(); };
   A["pro-open"] = function (d) { F.S.sheet = "st:" + d.v; F.render(); };
   A["pro-ok"] = function (d) { if (["st:req-review", "st:move-late", "st:cancel-priv"].indexOf(F.S.sheet) >= 0 && /^Annulering aangevraagd/.test(F.S.proNote || "")) F.S.proNote = null; F.S.sheet = null; if (d && d.m) F.toast(d.m); else F.render(); };
@@ -29,9 +31,11 @@
       sheets.map(function (t) { return '<button class="c-chip" data-a="pro-open" data-v="' + esc(t[0]) + '">' + esc(t[1]) + "</button>"; }).join("") +
       (F.S.proNote ? '<button class="c-chip" data-a="pro-note" data-v="">Geen melding</button>' : "") + notes.map(function (x) { return '<button class="c-chip" data-a="pro-note" data-v="' + esc(x[2][0]) + '">' + esc(x[0]) + "</button>"; }).join("") + "</div></details></div>";
   }
-  [["Vandaag: offline", "Today: offline"], ["Vandaag: geen toegang meer", "Today: no access any more"], ["Sessie: offline annuleren", "Session: cancelling offline"], ["Aanwezigheid: wacht op verbinding", "Attendance: waiting for connection"], ["Vandaag: annulering aangevraagd", "Today: cancellation requested"], ["Training: synchroniseren (WL-07)", "Workout: syncing (WL-07)"]].forEach(L);
+  [["Profiel: account verwijderen", "Profile: delete account"], ["Profiel: account verwijderen, enige eigenaar", "Profile: delete account, only owner"], ["Vandaag: offline", "Today: offline"], ["Vandaag: geen toegang meer", "Today: no access any more"], ["Sessie: offline annuleren", "Session: cancelling offline"], ["Aanwezigheid: wacht op verbinding", "Attendance: waiting for connection"], ["Vandaag: annulering aangevraagd", "Today: cancellation requested"], ["Training: synchroniseren (WL-07)", "Workout: syncing (WL-07)"]].forEach(L);
   L(["Geen melding", "No notice"]); L(["Stuur code", "Send code"]); L(["Code gestuurd", "Code sent"]);
   var pro = F.INDEX.filter(function (g) { return g[0] === "Fivvi Pro app"; })[0][1];
+  pro.push(["Profiel: account verwijderen", "#477", function () { F.fresh(); F.PREF.setup = "team"; F.PREF.role = "trainer"; F.S.tab = "profile"; F.S.sheet = "acc-del"; }]);
+  pro.push(["Profiel: account verwijderen, enige eigenaar", "#477", function () { F.fresh(); F.PREF.setup = "team"; F.PREF.role = "owner"; F.S.tab = "profile"; F.S.sheet = "acc-del"; }]);
   pro.push(["Profiel: e-mailadres wijzigen", "F005", function () { F.fresh(); F.PREF.setup = "team"; F.S.tab = "profile"; F.S.sheet = "me-email"; }]);
   window.FVW.moreNotes.concat(PN).forEach(function (n) { L(n[2]); pro.push([n[0], n[1], function () { F.fresh(); F.PREF.setup = "team"; F.PREF.role = "owner"; F.S.proNote = n[2][0]; }]); });
   T.filter(function (t) { return ON.indexOf(t[0]) >= 0; }).forEach(function (t) {

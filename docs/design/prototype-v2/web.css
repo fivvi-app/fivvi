@@ -146,6 +146,15 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .w-inline2{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .w-inline2:has(>:nth-child(2):last-child){grid-template-columns:repeat(2,minmax(0,1fr))}
 .w-inline2>.w-field{align-content:start}
+.dz{margin:26px 0 8px;padding:14px 16px;border:1px solid color-mix(in srgb,var(--danger) 60%,transparent);border-radius:12px}
+.dz h3{margin:0 0 10px;font-size:15px;font-weight:650;color:color-mix(in oklab,var(--danger) 85%,var(--ev-ink))}
+.dz-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.dz-row>div{flex:1 1 200px;min-width:0}
+.dz-row p{margin:2px 0 0;font-size:13px;line-height:18px;opacity:.72}
+.dz-flow{display:grid;gap:12px}
+.dz-flow p{margin:0}
+.dz-flow [data-dzb="step2"]{display:grid;gap:12px}
+.dz-flow [hidden],.dz-flow [data-dzb="step2"][hidden]{display:none}
 .w-sect{border-top:1px solid var(--w-border);padding-top:16px;margin-top:6px}
 .w-starts+.w-sect,.w-dialog h3+.w-sect{border-top:0;padding-top:4px;margin-top:0}
 .w-sect>h4{margin:0 0 12px;font-size:15px;font-weight:650}

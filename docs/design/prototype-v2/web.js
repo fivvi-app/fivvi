@@ -647,7 +647,7 @@
     else if (d.n === "newclient") { t = "Klant toevoegen"; b = fld("Naam", inp("name", "text", "Voor- en achternaam")) + fld("E-mail", inp("email", "email", "naam@voorbeeld.nl")) + fld("Taal voor e-mails", selF("lang", ["Nederlands", "English"])) + (payOpen() ? '<p class="w-muted">De klant krijgt een e-mail met een uitnodiging om in te loggen.</p>' : '<p class="w-muted">De klant krijgt een uitnodiging zodra de studio klaar is.</p>'); ok = "Toevoegen"; }
     else if (d.n === "newclass") { t = "Nieuwe les"; b = sect("Naam en omschrijving", fld("Naam (Nederlands)", inp("name", "text", "Bijvoorbeeld Reformer")) + fld("Naam (Engels, optioneel)", inp("nameEn")) + fld("Omschrijving (Nederlands, optioneel)", '<textarea class="w-input" data-wf="desc" rows="2"></textarea>') + fld("Omschrijving (Engels, optioneel)", '<textarea class="w-input" data-wf="descEn" rows="2"></textarea>')) + sect("De les", '<div class="w-inline2">' + fld("Trainer", selF("trainer", D.trainers.sf.concat(["Trainer nodig"]))) + fld("Niveau", selF("level", [["", "Geen"]].concat(D.LEVELS.map(function (l) { return [l, l]; })))) + fld("Plekken", inp("cap", "number")) + "</div>") + sect("Wanneer", '<div class="w-inline2">' + fld("Dag", selF("day", ["maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag", "zondag"])) + fld("Begin", inp("start", "time")) + "</div>" + fld("Herhalen", selF("rep", ["Elke week", "Niet herhalen"]))); ok = "Les maken"; }
     else if (d.n === "newgym") { t = "Nieuw Open Gym-blok"; b = '<div class="w-inline2">' + fld("Datum", inp("date", "date")) + fld("Begin", inp("start", "time")) + fld("Eind", inp("end", "time")) + "</div>" + fld("Plekken", inp("cap", "number")); ok = "Publiceren"; }
-    return '<div class="w-scrim dark" data-a="w-dclose"></div><div class="w-dialog" role="dialog" aria-label="' + esc(t) + '"><h3>' + t + "</h3>" + b + '<div class="w-dialog-f">' + btn(cancel, "w-dclose", { k: "outline" }) + btn(ok, "w-dok", { k: kind }) + "</div></div>";
+    return '<div class="w-scrim dark" data-a="w-dclose"></div><div class="w-dialog" role="dialog" aria-label="' + esc(t) + '"><h3>' + t + "</h3>" + b + '<div class="w-dialog-f">' + btn(cancel, "w-dclose", { k: "outline" }) + (ok ? btn(ok, "w-dok", { k: kind }) : "") + "</div></div>";
   }
 
   /* ---------- actions ---------- */
@@ -1004,8 +1004,7 @@
       .concat([K.row({ a: "c-wsheet", d: { v: "add" }, lead: '<span class="c-mark lg add" aria-hidden="true">' + ic("plus") + "</span>", title: "Studio toevoegen", cls: "c-row" })]), "--inset:68px") + "</div>";
     h += K.sh("Taal", "", "small") + '<div class="pad" translate="no">' + K.seg([["nl", "Nederlands"], ["en", "English"]], F.PREF.lang, "c-lang") + "</div>";
     h += '<div class="pad" style="margin-top:22px">' + cbtn("Uitloggen", APP ? "a-signout" : "c-signout", { k: "sec" }) + "</div>";
-    if (APP) h += '<div class="pad" style="margin-top:10px">' + K.btn("Account verwijderen", { k: "ghost", blk: true, a: "a-delask" }) + "</div>" + K.foot("Je account en je gegevens worden verwijderd. Facturen bewaart de studio zo lang als de wet vraagt.");
-    else h += '<div class="pad" style="margin-top:10px">' + K.btn("Account verwijderen", { k: "ghost", blk: true, a: "a-delask" }) + "</div>";
+    h += '<div class="pad">' + window.FVW.dzZone(K.btn("Account verwijderen", { k: "dng", a: "a-delask" })) + "</div>";
     return h;
   }
   function kv(t, v) { return K.row({ title: t, tr: v, cls: "kv" }); }

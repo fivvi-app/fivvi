@@ -184,7 +184,6 @@
     "Opzeggen (CP-06)": { "Opzeggen": "st:Opgezegd", "Terug": "st:Mijn abonnementen (CP-04)" },
     "Opzeggen: vaste looptijd": { "Terug": "st:Mijn abonnementen (CP-04)" },
     "Factuurgegevens klant": { "Opslaan": "done:Opgeslagen" },
-    "Account verwijderen: code": { "Account definitief verwijderen": "delete" },
     "Trainer-uitnodiging: accepteren": { "Accepteren": "team", "Afwijzen": "done:Uitnodiging afgewezen" },
     "Trainer-uitnodiging zonder naam": { "Accepteren": "team", "Afwijzen": "done:Uitnodiging afgewezen" }
   };
@@ -206,7 +205,6 @@
     if (/^done:/.test(t)) { c.web = null; return F.toast(t.slice(5)); }
     if (t === "checkout") { if (PAY[d.f] && !chosen(c, d.f)) c.payFor = { name: PAY[d.f], after: AFTERPAY[d.f] }; c.web = "checkout"; return R(); }
     if (t === "offers") return A["c-offers"]();
-    if (t === "delete") return A["a-delete"]();
     if (t === "team") { F.PREF.role = "trainer"; X.goWeb("myday")(); F.save(); F.S.anim = null; return F.toast("Uitnodiging geaccepteerd"); }
     c.web = null; c.detail = null; c.workout = null; c.page = null;
     if (t === "code") { if (!c.email) c.email = "kim@example.com"; c.step = "code"; c.astep = "code"; c.code = ""; }
@@ -254,6 +252,8 @@
     };
   });
   ["Bevestigen en betalen (CP-02)", "Bevestigen: creditpakket"].forEach(function (n) { var o = CWEB["st:" + n]; CWEB["st:" + n] = function () { return chosen(C(), n) ? buyPage(n) : o(); }; });
+  /* deleting an account: type the address, then the code (#477; owner, 6 Nov 2026) */
+  CWEB["st:Account verwijderen: code"] = function () { var c = C(), email = c.email || F.CLIENT.anna.email, b = window.FVW.dzFlow(email, function (l, i) { return '<div class="fgrp">' + F.kit.fld(l, i) + "</div>"; }, function (l, a, k, dis) { return K.btn(l, { k: k, blk: true, a: a, dis: dis }); }, "a-delete"); return X.payWeb("Account verwijderen", "fivvi.app/account-verwijderen", '<div class="pad stack">' + b + "</div>" + fam(FAM.del, "Account verwijderen: code")); };
   /* the screens these states start from */
   /* Apple may hide the name, Google gives it, so only Apple asks for it (#498) */
   function withSso(html, next) { var at = '<div class="pad stack"><div class="fgrp">', i = html.indexOf(at); if (i < 0) return html; return html.slice(0, i) + '<div class="pad stack">' + cbtn("Doorgaan met Apple", "c-flow", { k: "sec", d: { v: "apple:" + next } }) + cbtn("Doorgaan met Google", "c-flow", { k: "sec", d: { v: next } }) + '</div><p class="c-or">of met je e-mailadres</p>' + html.slice(i); }
