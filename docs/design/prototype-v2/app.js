@@ -51,6 +51,9 @@
   function PAYLOCK() { return !PAYOPEN(); }
   function OFFEROPEN(o) { return PAYST() === "ready" || PAYSTUDIO() || (PAYST() === "debit" && o.kind !== "abo" && o.kind !== "plan"); }
   function OFFERNAMEOPEN(n) { var o = D.offerList.filter(function (x) { return x.name === n; })[0]; return !o || OFFEROPEN(o); }
+  /* what the viewer reads: an offer's own English when the owner typed one; the value stays the offer */
+  function agrName(a) { return PREF.lang === "en" && a.nameEn ? a.nameEn : a.name; }
+  function offerOpts(names) { return names.map(function (n) { var o = D.offerList.filter(function (x) { return x.name === n; })[0]; return [n, o ? agrName(o) : n]; }); }
   function OPENOFFERS() { return D.offerNames().filter(OFFERNAMEOPEN); }
   /* The session type is only worth a label when there is more than one kind; a trainer with private sessions only
      never sees "Privésessie" on every row. */
@@ -461,7 +464,7 @@
     if (c.ws === "sf") {
       var bs = D.bsum(c.id), brows = [];
       if (OWNER()) bs.flags.filter(function (f) { return f[0] === "danger"; }).forEach(function (f) { brows.push(row({ lead: '<span class="dc-ic" style="--c:var(--danger)">' + ic("warn") + "</span>", title: esc(f[1]), sub: esc(f[2]), cls: "dc" })); });
-      bs.abos.forEach(function (a) { brows.push(row({ lead: '<span class="dc-ic" style="--c:var(--group)">' + ic("group") + "</span>", title: esc(a.name), sub: "Deze week " + a.usedWeek + " van " + a.perWeek + " gebruikt" + (a.makeups ? " · " + a.makeups + (a.makeups === 1 ? " inhaalles" : " inhaallessen") : "") + (a.status === "ending" ? " · " + esc(a.period) : ""), cls: "dc wrap" })); });
+      bs.abos.forEach(function (a) { brows.push(row({ lead: '<span class="dc-ic" style="--c:var(--group)">' + ic("group") + "</span>", title: esc(agrName(a)), sub: "Deze week " + a.usedWeek + " van " + a.perWeek + " gebruikt" + (a.makeups ? " · " + a.makeups + (a.makeups === 1 ? " inhaalles" : " inhaallessen") : "") + (a.status === "ending" ? " · " + esc(a.period) : ""), cls: "dc wrap" })); });
       bs.balances.forEach(function (x) {
         var t = Math.max(1, x.total);
         brows.push(row({ lead: '<span class="dc-ic" style="--c:' + x.label[2] + '">' + ic(x.credit === "gym" ? "door" : x.credit === "groep" ? "group" : "me") + "</span>", title: x.label[1].charAt(0).toUpperCase() + x.label[1].slice(1), sub: x.used + " gebruikt · " + x.planned + " gepland · van " + x.total,
@@ -639,7 +642,7 @@
   /* Send an offer: the client gets an email with a link to confirm and pay; the invoice follows the payment (§94, §96) */
   SHEETS.offer = function () {
     var f = S.form, c = CLIENT[f.client], a = f.ag ? D.billing[f.client].agreements.filter(function (x) { return x.id === f.ag; })[0] : null;
-    var body = '<div class="fgrp">' + fld("Aanbod", sel("offer", OPENOFFERS())) + "</div>";
+    var body = '<div class="fgrp">' + fld("Aanbod", sel("offer", offerOpts(OPENOFFERS()))) + "</div>";
     var running = a && a.endsIn >= 0 && a.status !== "expired";
     if (running) body += '<div style="margin:16px 0 6px;font-size:13px;color:var(--label2);padding-left:4px">Gaat in</div>' + seg([["after", "Na afloop"], ["now", "Direct"]], f.start, "fset", { f: "start" });
     body += foot(esc(c.name.split(" ")[0]) + " krijgt een e-mail met een link om te bevestigen en te betalen met iDEAL. Na de betaling maakt Fivvi de factuur." + (running ? " Na afloop: het nieuwe begint als " + esc(a.name) + " eindigt, zonder gat en zonder overlap." : ""));
@@ -647,7 +650,7 @@
   };
   SHEETS.cash = function () {
     var f = S.form, c = CLIENT[f.client];
-    var body = '<div class="fgrp">' + fld("Aanbod", sel("offer", D.offerNames())) + fld("Hoe betaald", sel("how", ["Contant", "Pin bij de studio", "Overboeking"])) + fld("Betaald op", inp("date", "date")) + "</div>";
+    var body = '<div class="fgrp">' + fld("Aanbod", sel("offer", offerOpts(D.offerNames()))) + fld("Hoe betaald", sel("how", ["Contant", "Pin bij de studio", "Overboeking"])) + fld("Betaald op", inp("date", "date")) + "</div>";
     body += foot(esc(c.name.split(" ")[0]) + " heeft dit bij jou betaald. Er gaat geen geld via Mollie en het gaat meteen in. Een abonnement staat daarna elke maand op dit profiel, tot je vastlegt dat het is betaald. Fivvi maakt hiervoor niet vanzelf een factuur. Je administratie en belasting regel je zelf; deze betaling blijft hier staan.");
     return { title: "Betaling buiten Fivvi", body: body, save: "save-cash" };
   };
@@ -1291,7 +1294,7 @@
   window.addEventListener("resize", function () { if (dev) fitDev(); });
   function addClient(c) { D.clients.push(c); CLIENT[c.id] = c; }
   function addItem(k, it) { dayItems(k); DAYCACHE[k].push(it); }
-  window.FV = { PAYST: PAYST, PAYONLINE: PAYONLINE, PAYSTUDIO: PAYSTUDIO, PAYOPEN: PAYOPEN, OFFEROPEN: OFFEROPEN, OFFERNAMEOPEN: OFFERNAMEOPEN, OPENOFFERS: OPENOFFERS, get S() { return S; }, PREF: PREF, D: D, A: A, CLIENT: CLIENT, dayItems: dayItems, findItem: findItem, extra: function () { return EXTRA_WS; },
+  window.FV = { agrName: agrName, offerOpts: offerOpts, PAYST: PAYST, PAYONLINE: PAYONLINE, PAYSTUDIO: PAYSTUDIO, PAYOPEN: PAYOPEN, OFFEROPEN: OFFEROPEN, OFFERNAMEOPEN: OFFERNAMEOPEN, OPENOFFERS: OPENOFFERS, get S() { return S; }, PREF: PREF, D: D, A: A, CLIENT: CLIENT, dayItems: dayItems, findItem: findItem, extra: function () { return EXTRA_WS; },
     CV: CV, TYPE: TYPE, title: title, level: level, lvlTag: lvlTag, esc: esc, ic: ic, mins: mins, hm: hm, key: key, parse: parse, add: add, monday: monday, longDate: longDate, shortDate: shortDate,
     isoWeek: isoWeek, DAYS: DAYS, DS: DS, MONTHS: MONTHS, MS: MS, TODAY: TODAY, NOW: NOW, NOWT: NOWT, isPast: isPast, initials: initials, toast: toast, render: function () { render(); },
     OWNER: OWNER, SOLO: SOLO, HAS: HAS, MIXED: MIXED, WSS: WSS, avatar: avatar, addClient: addClient, addItem: addItem, INDEX: INDEX, SHEETS: SHEETS, SCREENS: SCREENS, kit: { fld: fld, inp: inp, sel: sel, row: row, grp: grp, sh: sh, lt: lt, btn: btn, seg: seg, foot: foot, avatar: avatar, rings: rings, shape: shape, SHAPE: SHAPE }, fresh: function () { fresh(); }, save: function () { save(); applyPrefs(); } };
