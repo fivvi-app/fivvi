@@ -6,7 +6,7 @@
 > - **Compact rows:** one row per set, *Set | Vorige | values | tick*.
 > - **Difficulty** is an **emoji with an (i)**, not "the word is the answer"; the words stay as accessible names.
 > - **Sets:** swipe left to delete, also on Android, with confirmation.
-> - **Exercises:** a ⋯ menu. Reordering sets and exercises stays post-MVP (Release 1.1, `PRODUCT.md §54`); the prototype only previews it.
+> - **Exercises:** a ⋯ menu. Reordering sets and exercises is in the MVP (owner, 6 November 2026), as the prototype shows it.
 > - **Duo sessions** log one workout per client.
 
 > **Updated 23 September 2026 (prototype feedback, `ROADMAP` v1.11).** A workout never needs a prior plan. WL-01 puts *Lege training* first and adds *Vorige training herhalen* (F051, moved from Release 1.1). Sets are prefilled and logged with one tap on their check. WL-05 can save the workout as a template. A workout can also start from a client profile without a planned session.
@@ -169,7 +169,7 @@ flowchart TD
 - **+ Oefening toevoegen** ends the list (WL-04). A new exercise joins the end; focus moves to it.
 - **No fixed dock**: nothing covers the rows, also in short landscape. iOS uses inset grouped sections; Android uses cards.
 - **Empty state** (Lege training): *Nog geen oefeningen. Voeg de eerste oefening toe. Wat {client} eerder deed, staat bovenaan.* with *Oefening toevoegen*.
-- Reordering exercises is a Release 1.1 item. The screen **stays awake** while the logger is open.
+- The screen **stays awake** while the logger is open.
 
 | Element | NL | EN |
 |---|---|---|

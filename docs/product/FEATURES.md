@@ -39,7 +39,7 @@ The single source of truth for feature status. A status changes **in the same PR
 | F009 | English UI | PLANNED | Must | continuous | F007 | — | ⬜ | §2.2 |
 | [F010](https://github.com/fivvi-app/fivvi/issues/175) | Locale Preference: choose Dutch or English in the user menu and on My profile (web) and under Profiel → Taal (iOS, Android), saved on the account and followed by every browser and app; the switch on the sign-in screens; the Owner's default communication language in Settings → Language; every M2 screen complete in both languages | IMPLEMENTED | Must | M2 (+ iOS/Android; + Fivvi iOS/Android from M5) | F001, F007 | ✅ | ✅ | §3 |
 | F063 | Sign in with Apple and Google: a second way to sign in, on the web first (clients and team members), then Fivvi Pro and Fivvi (App Store guideline 4.8: Sign in with Apple when an app offers Google). Owner steps later: an Apple Services ID and a Google OAuth client | PLANNED | **Should** | M5 (web first; Fivvi Pro and Fivvi after) | F001 | ⬜ | ⬜ | §27, [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md) |
-| [F068](https://github.com/fivvi-app/fivvi/issues/588) | The workspace's word for its trainers: trainer, instructeur, docent or coach, chosen per workspace in Instellingen and used in every screen, email and the QR poster; the role stays Trainer | PLANNED | Must | M4 (proposed; the owner confirms on the spec) (+ iOS/Android; + Fivvi iOS/Android) | F002, F004, E005, E006 | ⬜ | ⬜ | §9, §3, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §6, §7 item 7 |
+| [F068](https://github.com/fivvi-app/fivvi/issues/588) | The workspace's word for its trainers: trainer, instructeur, docent or coach, chosen per workspace in Instellingen and used in every screen, email and the QR poster; the role stays Trainer | PLANNED | Must | M4 (+ iOS/Android; + Fivvi iOS/Android) | F002, F004, E005, E006 | ⬜ | ⬜ | §9, §3, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §6, §7 item 7 |
 
 ### Trainers
 
@@ -71,8 +71,8 @@ The single source of truth for feature status. A status changes **in the same PR
 | F024 | Trainer Substitution | PLANNED | Must | M4 | F022, F023 | ⬜ | ⬜ | §19 |
 | F025 | Attendance | PLANNED | Must | M4 (+ iOS/Android) | F020, F022 | ⬜ | ⬜ | §43 |
 | F026 | Cancellations | PLANNED | Must | M4 (+ iOS/Android: cancel a session) | F020, F022, F049 | ⬜ | ⬜ | §17, §43, §51 (records time and actor for the §93 cutoff) |
-| [F066](https://github.com/fivvi-app/fivvi/issues/586) | Duo Sessions: two clients and one trainer, each with their own credit, attendance, notes and workout; only the trainer plans one; if one client cancels it continues as a private session | PLANNED | Must | M4 (+ iOS/Android); client view M5 (+ Fivvi iOS/Android); credits M11; workout logs M7 (these stages: proposed; the owner confirms on the spec) | F020, F025, F026; later stages F033, F054, F055, F043, F045 | ⬜ | ⬜ | §17, §92, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §6, §7 item 5 |
-| [F067](https://github.com/fivvi-app/fivvi/issues/587) | Class Levels: a fixed list of four levels on a class, set on the series and changeable per date; information only, with no filter and no limit on who books | PLANNED | Must | M4 (+ iOS/Android); client view M5 (+ Fivvi iOS/Android) (these stages: proposed; the owner confirms on the spec) | F021, F022; client view F027, F033 | ⬜ | ⬜ | §18, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §6, §7 item 6 |
+| [F066](https://github.com/fivvi-app/fivvi/issues/586) | Duo Sessions: two clients and one trainer, each with their own credit, attendance, notes and workout; only the trainer plans one; if one client cancels it continues as a private session | PLANNED | Must | M4 (+ iOS/Android); client view M5 (+ Fivvi iOS/Android); credits M11; workout logs M7 | F020, F025, F026; later stages F033, F054, F055, F043, F045 | ⬜ | ⬜ | §17, §92, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §6, §7 item 5 |
+| [F067](https://github.com/fivvi-app/fivvi/issues/587) | Class Levels: a fixed list of four levels on a class, set on the series and changeable per date; information only, with no filter and no limit on who books | PLANNED | Must | M4 (+ iOS/Android); client view M5 (+ Fivvi iOS/Android) | F021, F022; client view F027, F033 | ⬜ | ⬜ | §18, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §6, §7 item 6 |
 
 ### Booking
 
@@ -186,7 +186,7 @@ These get `F0xx` IDs when they move to `PLANNED`. Full context is in [`ROADMAP.m
 
 | Release | Candidate items |
 |---|---|
-| 1.1 | Recurring private appointments · schedule exceptions · holidays · blocked time · workout duplication · warm-up sets · supersets · workout reordering · pinned notes · note search · offline resilience · bulk attendance · *session reminder emails (suggested)* · *read-only ICS calendar feed (suggested)* · *deep links (Universal Links / App Links) so email links open the apps directly (suggested)* · push notifications in Fivvi and Fivvi Pro (APNs + FCM) |
+| 1.1 | Recurring private appointments · schedule exceptions · holidays · blocked time · workout duplication · warm-up sets · supersets · pinned notes · note search · offline resilience · *session reminder emails (suggested)* · *read-only ICS calendar feed (suggested)* · *deep links (Universal Links / App Links) so email links open the apps directly (suggested)* · push notifications in Fivvi and Fivvi Pro (APNs + FCM) |
 | 1.2 | *(moved into the MVP in v1.31: the client app Fivvi ships at go-live)* |
 | 1.3 | AI note capture (NL/EN, speech + text, trainer confirms) |
 | 1.4 | AI pre-session client briefing |

@@ -595,6 +595,7 @@
     var w = W(), d = w.dialog, it = w.sheet ? F.findItem(w.sheet).it : w.kid ? (F.findItem(w.kid) || {}).it : null, t, b, ok, kind = "", cancel = "Annuleren";
     if (DLG[d.n]) { var x_ = DLG[d.n](d, w); t = x_.t; b = x_.b; ok = x_.ok; kind = x_.kind || ""; cancel = x_.cancel || "Annuleren"; }
     else if (d.n === "cancelclass") { t = "Les annuleren?"; b = "<p>De " + it.people.length + " geboekte klanten krijgen een e-mail" + (it.waitlist ? ", ook de " + it.waitlist + " op de wachtlijst" : "") + ".</p>" + fld("Bericht voor de klanten (optioneel)", '<textarea class="w-input" data-wf="msg" rows="3" placeholder="Bijvoorbeeld de reden"></textarea>', "Komt letterlijk in de e-mail, niet vertaald."); ok = "Les annuleren"; kind = "dng"; cancel = "Terug"; }
+    else if (d.n === "cancelpriv" && it.duo) { t = "Wie annuleer je?"; b = fld("Annuleren voor", selF("who", [["first", "Alleen " + F.CLIENT[it.client].name.split(" ")[0]], ["second", "Alleen " + F.CLIENT[it.duo].name.split(" ")[0]], ["both", "Hele sessie"]])) + "<p>Annuleer je één klant, dan gaat de sessie door met de ander. Beiden krijgen een e-mail.</p>"; ok = "Annuleren"; kind = "dng"; cancel = "Terug"; }
     else if (d.n === "cancelpriv") { t = "Sessie annuleren?"; b = "<p>" + esc(F.CLIENT[it.client].name.split(" ")[0]) + " krijgt een e-mail dat de sessie van " + it.s + " niet doorgaat.</p>"; ok = "Sessie annuleren"; kind = "dng"; cancel = "Terug"; }
     else if (d.n === "move") { t = "Verplaatsen"; b = fld("Datum", inp("date", "date")) + fld("Begin", inp("start", "time")) + '<p class="w-muted">' + (it.type === "priv" ? "De klant krijgt" : "Geboekte klanten krijgen") + " een e-mail met de nieuwe tijd.</p>"; ok = "Opslaan"; }
     else if (d.n === "sub") { t = "Trainer vervangen"; b = fld("Wie valt in?", selF("trainer", D.trainers.sf.filter(function (x) { return x !== who(it); }))) + '<p class="w-muted">De invaller krijgt een e-mail. Klanten zien de nieuwe naam bij de les.</p>'; ok = "Vervangen"; }
@@ -727,6 +728,7 @@
   A["w-dok"] = function () {
     var w = W(), d = w.dialog, f = w.form, it = w.sheet ? F.findItem(w.sheet).it : w.kid ? (F.findItem(w.kid) || {}).it : null, msg = "Opgeslagen";
     if (DLGOK[d.n]) { var r_ = DLGOK[d.n](f, d, w); if (r_ === false) return; msg = r_ || msg; }
+    else if (d.n === "cancelpriv" && it.duo && (f.who || "first") !== "both") { msg = F.cancelDuoPart(it, (f.who || "first") === "first"); }
     else if (d.n === "cancelclass" || d.n === "cancelpriv") { it.cancelled = true; msg = d.n === "cancelpriv" ? "Sessie geannuleerd" : "Les geannuleerd. Klanten krijgen een e-mail."; }
     else if (d.n === "move") { var dur = F.mins(it.e) - F.mins(it.s); it.s = f.start; it.e = F.hm(F.mins(f.start) + dur); msg = "Verplaatst naar " + f.start; }
     else if (d.n === "sub") { it.trainer = f.trainer; it.subFor = true; msg = f.trainer + " valt in"; }
@@ -1450,6 +1452,7 @@
     ["Agenda · week", "WC-02", goWeb("agenda", { view: "week" })],
     ["Agenda · dag per trainer", "WC-02", goWeb("agenda", { view: "day" })],
     ["Agenda · lijst", "WC-02", goWeb("agenda", { view: "list" })],
+    ["Duosessie: één klant annuleren", "#586", goWeb("agenda", { sheet: "s6", dialog: { n: "cancelpriv" }, form: {} })],
     ["Klanten", "TW-01", goWeb("clients")],
     ["Aanmeldverzoeken", "F029", goWeb("clients", { ctab: "req" })],
     ["Klantprofiel", "TW-02", goWeb("client", { cid: "anna" })],

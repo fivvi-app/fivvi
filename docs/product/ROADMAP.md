@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Version** | 1.38 |
+| **Version** | 1.39 |
 | **Date** | 6 November 2026 |
 | **Owner** | Keyvan Mahmoudi (product owner, reviewer, final decision-maker) |
 | **Builders** | AI coding agents: GitHub Copilot (VS Code + CLI), Claude Code and Codex, working in parallel worktrees |
@@ -145,7 +145,7 @@ Size is relative complexity (S / M / L / XL), not a duration.
 | **M1** | Engineering foundation | A "hello" runs web + iOS + Android → API → DB → email, in NL and EN, with CI | E001–E010, E018 | L |
 | **M2** | Identity & tenancy | Owner signs in, creates a workspace, sees Dutch-default UI, switches to English; signs in on iOS and Android with the 6-digit code | F001–F010, E011, E017 | L |
 | **M3** | Trainers & location | Owner invites trainers; a trainer belongs to several workspaces; the workspace has one location (the gym's own) and every session takes it | F011, F012, F015 (one location), F016 | M |
-| **M4** | Scheduling core | A full week shaped like the pilot's timetable (synthetic data) runs: private sessions, recurring classes, substitution, attendance, cancellations (time and actor recorded for the M11 cutoff); every calendar labels and filters by type; the trainer's day (Today, calendar, session, attendance, **+**) also runs on iOS and Android | F013, F014, F020–F026, E012, E020; proposed, until the owner confirms on each spec: F066–F068 | XL |
+| **M4** | Scheduling core | A full week shaped like the pilot's timetable (synthetic data) runs: private sessions, recurring classes, substitution, attendance, cancellations (time and actor recorded for the M11 cutoff); every calendar labels and filters by type; the trainer's day (Today, calendar, session, attendance, **+**) also runs on iOS and Android | F013, F014, F020–F026, F066–F068, E012, E020 | XL |
 | **M5** | Client sign-in and booking | A client signs in with their email (no password), joins a studio by its link or invitation, and books from its timetable; a client joins the waitlist of a full class and gets a freed spot | F027–F033, F049, F050, F062, F063, E013 | L |
 | **M6** | Sharing | Booking links, the join link and QR posters are printable | F037, F038 | M |
 | **M11** | Commerce | A client confirms a membership, a credit pack or a credit plan and pays online; recurring payments are collected; every online payment gets an invoice; credit balances and makeups are explainable (single classes and payouts are proposed scope, [decision 9](#14-decisions)) | F052–F061, F065, E019 | XL |
@@ -388,7 +388,7 @@ Each milestone lists its **goal**, **scope** (features from `FEATURES.md`), **ke
 
 **Goal:** The platform can run a gym's weekly schedule: a full week shaped like the pilot's timetable, built from synthetic data.
 
-**Scope:** F013 Personal Trainer Calendar, F014 Workspace Calendar, F020 Private Sessions, F021 Group Class Templates, F022 Recurring Classes, F023 Trainer Assignment, F024 Trainer Substitution, F025 Attendance, F026 Cancellations, E012 Scheduled jobs, E020 Design v2 foundation. Proposed, until the owner confirms on each spec: F066 Duo Sessions, F067 Class Levels, F068 The workspace's word for its trainers.
+**Scope:** F013 Personal Trainer Calendar, F014 Workspace Calendar, F020 Private Sessions, F021 Group Class Templates, F022 Recurring Classes, F023 Trainer Assignment, F024 Trainer Substitution, F025 Attendance, F026 Cancellations, E012 Scheduled jobs, E020 Design v2 foundation, F066 Duo Sessions, F067 Class Levels, F068 The workspace's word for its trainers.
 
 **Native slice (the M8 track):** iOS and Android tickets next to the web ones, with the same acceptance criteria: Today (*Vandaag*), the personal calendar, clients (list, profile, quick add), the session screen for private sessions and classes, attendance, and the **+** menu by role (private session and client for every trainer; group class, one-off or weekly, for the owner; `PRODUCT.md §15`). Class templates, series edits, trainers, booking links and settings stay on web.
 
@@ -687,7 +687,7 @@ Near-term releases have concrete scope. Later releases are **themes**, and their
 #### Release 1.1: Pilot refinement
 - **Goal:** Close the gaps the pilot exposes.
 - **Planned (owner, 31 October 2026, v1.31):** **push notifications** in Fivvi and Fivvi Pro via APNs + FCM directly (both free), with localized payloads, for the events that send an email today.
-- **Candidate scope (from `PRODUCT.md §54`, re-ranked by evidence):** recurring private appointments, schedule exceptions, holidays, blocked time, workout duplication, warm-up sets, supersets, workout reordering, pinned notes, note search, offline resilience, bulk attendance. (Waitlists moved into the MVP, before the pilot, on 31 October 2026, v1.28.)
+- **Candidate scope (from `PRODUCT.md §54`, re-ranked by evidence):** recurring private appointments, schedule exceptions, holidays, blocked time, workout duplication, warm-up sets, supersets, pinned notes, note search, offline resilience. (Waitlists moved into the MVP, before the pilot, on 31 October 2026, v1.28.)
 - **Suggested additions (not in spec, validate in pilot):**
   - **Session reminder emails** (e.g. 24 h before): a cheap way to reduce no-shows.
   - **Read-only calendar feed (ICS)** per trainer: covers much of the Google/Apple/Outlook need well before 6.0.
@@ -949,3 +949,4 @@ These are intentionally left open. Each one is decided when its release's entry 
 | 2026-11-06 | 1.36 | **Payments first, and payments outside Fivvi (owner).** Everything a client can see or buy waits until payments work, or until the owner chooses to take payments only at the studio; the owner's own setup stays open ([#466](https://github.com/fivvi-app/fivvi/issues/466)). An owner records cash and similar payments on the client's profile, with no automatic invoice ([#606](https://github.com/fivvi-app/fivvi/issues/606)). A connected till or card terminal stays in Release 4.0. |
 | 2026-11-06 | 1.37 | **Bring a friend, parked in Release 4.0 (owner).** A client can bring a friend to a class as a guest. The owner sets on the offer how many free visits a client gets, the cost after that and how many paid visits are allowed. It is counted per client, and a paid visit costs credits, never euros. It stays out of the MVP (`PRODUCT.md §53`, §66); the rest of its rules are proposals, to settle in the prototype before a spec, among them that it can move earlier if the pilot gym asks. |
 | 2026-11-06 | 1.38 | **The design round's features get their IDs (specs [#590](https://github.com/fivvi-app/fivvi/issues/590), [#606](https://github.com/fivvi-app/fivvi/issues/606), [#586](https://github.com/fivvi-app/fivvi/issues/586), [#587](https://github.com/fivvi-app/fivvi/issues/587), [#588](https://github.com/fivvi-app/fivvi/issues/588), [#602](https://github.com/fivvi-app/fivvi/issues/602)).** The owner decided to build these in the prototype (`docs/design/prototype-v2/DECISIONS.md`); F065 still waits on the owner's accountant check. New: **E020** Design v2 foundation in M4, before more M4 screens are built (owner); **F065** Payments Outside Fivvi in M11; **F069** Own Workouts in M7; **F066** Duo Sessions, **F067** Class Levels and **F068** the workspace's word for its trainers. A proposal the owner confirms on each spec: F066 to F068 in M4, F066 and F067 reaching clients in M5, and F066's credits and workout logs in M11 and M7. |
+| 2026-11-06 | 1.39 | **Reordering and bulk attendance move into the MVP, and the placements are confirmed (owner).** Reordering sets and exercises comes with F043 in M7, and *Iedereen aanwezig* with F025 in M4 ([#460](https://github.com/fivvi-app/fivvi/issues/460)). Both leave the Release 1.1 list. The owner confirmed F066 to F068 in M4, F066 and F067 reaching clients in M5, and F066's credits and workout logs in M11 and M7. |
