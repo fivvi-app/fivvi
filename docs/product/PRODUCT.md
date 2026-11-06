@@ -1528,7 +1528,7 @@ MVP client emails:
 - sign-in email (link and 6-digit code)
 - invitation to join a workspace (§26)
 - join request declined (short and neutral, §26)
-- renewal reminder for an agreement that stops (§90)
+- renewal reminders for an agreement that stops (§90)
 - booking confirmation
 - on the waitlist (with the position, "Number 2 on the waitlist"), you're in (the booking confirmation, noting it came from the waitlist), you didn't get in (at the waitlist closing time) and, from M11, skipped (taken off the waitlist, with the reason) (§23)
 - cancellation
@@ -2684,7 +2684,7 @@ Every offer also has these settings (product owner, 31 October 2026, for every w
 - **Billing cycle:** every month or every 4 weeks (the pilot: every month, because 4-weekly means 13 payments a year, which the gym owner finds unfair to clients).
 - **Intro offer:** a credit pack can be limited to **once per client**, for example 2 classes valid for 2 weeks (the pilot does trials by hand and won't use it).
 - **Member-only:** an offer can be limited to clients with an active membership, for example extra group credits for a member who wants another class in a week (QC08).
-- **End of term:** the agreement either **stops** (the client chooses a new term, with a reminder and a one-tap renewal; Fivvi sends the reminder automatically from the offer's renewal window, by default 30 days before the end, the same moment it suggests renewing to the owner, owner, 5 November 2026) or **continues per cycle** at the same price until the client gives notice. A continuing agreement follows Dutch consumer law: no tacit renewal for another fixed term, a first term over 12 months is presumed unreasonable, notice of at most one month on any day, and online if the client signed up online (QC07; the legal check is `ROADMAP.md §4.4`). Which setting the pilot uses is open.
+- **End of term:** the agreement either **stops** (the client chooses a new term, with a reminder and a one-tap renewal; Fivvi sends two reminders automatically, at the start of the offer's renewal window, by default 30 days before the end, the same moment it suggests renewing to the owner, and 7 days before the end, also when the owner already sent an offer, owner, 5 and 6 November 2026) or **continues per cycle** at the same price until the client gives notice. A continuing agreement follows Dutch consumer law: no tacit renewal for another fixed term, a first term over 12 months is presumed unreasonable, notice of at most one month on any day, and online if the client signed up online (QC07; the legal check is `ROADMAP.md §4.4`). Which setting the pilot uses is open.
 
 **Plan changes** are not an offer setting: the pilot's own rule is **upgrades at any time and no downgrades**. Whether that becomes a setting for every workspace is not decided.
 

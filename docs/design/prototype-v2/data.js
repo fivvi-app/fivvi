@@ -269,6 +269,14 @@ window.FIVVI_DATA = (function () {
   /* Renewal: Fivvi suggests sending a new offer from this many days before an agreement that stops ends
      (owner, 5 Nov 2026: "from 1 month before ending"; proposed as a workspace setting), or when a credit pack runs low. */
   var RENEW_DAYS = 30;
+  /* what the owner sees about the client's two reminders: the first at the start of the window, the last by 7 days before the end. The sample's today is 5 Nov 2026 */
+  var LAST_REMIND = 7, MONTHS = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
+  function remindLine(a) {
+    if (!a.remindSent) return "";
+    if (a.endsIn <= LAST_REMIND) return "Laatste herinnering verstuurd";
+    var d = new Date(2026, 10, 5 + a.endsIn - LAST_REMIND);
+    return "Herinnering verstuurd " + a.remindSent + " · laatste uiterlijk " + d.getDate() + " " + MONTHS[d.getMonth()];
+  }
   /* What the workspace sells (PRODUCT §90): four kinds, each with its own fields. "on" = clients can buy it. The three
      default plans a new workspace starts with stay off until the owner adds a price. renew = days before the end that
      Fivvi suggests renewing (per offer, owner 5 Nov 2026); packs are also suggested at 2 or fewer credits left. */
@@ -327,6 +335,6 @@ window.FIVVI_DATA = (function () {
   /* What a workspace calls its trainers (owner decision, 5 Nov 2026): one word, used everywhere in that workspace */
   var TERMS = { trainer: { nl: ["trainer", "trainers"], en: ["trainer", "trainers"] }, instructeur: { nl: ["instructeur", "instructeurs"], en: ["instructor", "instructors"] },
     docent: { nl: ["docent", "docenten"], en: ["teacher", "teachers"] }, coach: { nl: ["coach", "coaches"], en: ["coach", "coaches"] } };
-  return { RENEW_DAYS: RENEW_DAYS, offerList: offerList, offerNames: offerNames, TERMS: TERMS, LEVELS: LEVELS, levels: levels, lifts: lifts, weeks: weeks, DIFF: DIFF, spark: spark, bsum: bsum, CREDIT: CREDIT, KIND: KIND, billing: billing, setups: setups, me: me, workspaces: workspaces, locations: locations, trainers: trainers, clients: clients, notes: notes, history: history, selfLog: selfLog,
+  return { RENEW_DAYS: RENEW_DAYS, remindLine: remindLine, offerList: offerList, offerNames: offerNames, TERMS: TERMS, LEVELS: LEVELS, levels: levels, lifts: lifts, weeks: weeks, DIFF: DIFF, spark: spark, bsum: bsum, CREDIT: CREDIT, KIND: KIND, billing: billing, setups: setups, me: me, workspaces: workspaces, locations: locations, trainers: trainers, clients: clients, notes: notes, history: history, selfLog: selfLog,
     progress: progress, tpl: tpl, descriptions: descriptions, today: today, pattern: pattern, templates: templates, library: library, upperA: upperA };
 })();
