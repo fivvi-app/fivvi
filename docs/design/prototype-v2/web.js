@@ -136,6 +136,7 @@
   var OWNERPAGES = ["dashboard", "classes", "gym", "trainers", "settings", "offers", "payments", "payout", "invoice", "agreement", "import", "posters", "offerstates", "classempty", "classseries"];
   function web() {
     var w = W();
+    if (w.page === "signin") return '<div class="w-chrome"><i></i><i></i><i></i><span class="w-url">fivvi.app/inloggen</span></div><div class="w-gate"><div class="w-gate-box">' + PAGES.signin() + "</div></div>";
     if (!F.OWNER() && OWNERPAGES.indexOf(w.page) >= 0) w.page = "myday";
     if (!F.OWNER() && w.dialog && OWNERDLG[w.dialog.n]) w.dialog = null;
     var nav = NAV().map(function (n) {
