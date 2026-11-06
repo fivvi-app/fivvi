@@ -325,7 +325,7 @@ window.FIVVI_DATA = (function () {
        An agreement that continues per cycle, and a credit plan that refills, need nothing. */
     var renew = [];
     b.agreements.forEach(function (a) {
-      if (a.end === "continue") return;
+      if (a.end === "continue" || a.corrected) return;
       var left = a.kind === "abo" ? null : a.total - a.used - a.planned;
       if (a.status === "expired" || a.endsIn < 0) renew.push([a, "Afgelopen"]);
       else if (a.kind === "pack" && left <= 0) renew.push([a, a.planned ? "Op na de geplande sessie" : "Op"]);
