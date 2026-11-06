@@ -34,7 +34,7 @@ export function MyProfile({
   return (
     <main className="flex flex-1 justify-center p-4">
       <div className="grid w-full max-w-lg content-start gap-4">
-        <h1 className="font-display text-2xl font-semibold">{t('title')}</h1>
+        <h1 className="text-2xl font-semibold">{t('title')}</h1>
         <NameForm name={name} email={email} />
         <LanguageRow />
         <Card>

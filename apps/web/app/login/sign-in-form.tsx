@@ -99,7 +99,7 @@ export function SignInForm({ locale, returnPath }: { locale: Locale; returnPath?
         {step === 'email' ? (
           <form noValidate onSubmit={sendEmail} className="grid gap-(--card-spacing)">
             <CardHeader>
-              <CardTitle className="font-display">
+              <CardTitle>
                 <h1>{t('title')}</h1>
               </CardTitle>
             </CardHeader>
@@ -125,7 +125,7 @@ export function SignInForm({ locale, returnPath }: { locale: Locale; returnPath?
         ) : (
           <form noValidate onSubmit={signIn} className="grid gap-(--card-spacing)">
             <CardHeader>
-              <CardTitle className="font-display">
+              <CardTitle>
                 <h1>{t('checkEmailTitle')}</h1>
               </CardTitle>
               <CardDescription>{t('checkEmailBody', { email })}</CardDescription>

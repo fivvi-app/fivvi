@@ -135,7 +135,7 @@ export function TeamList({
   return (
     <main className="flex flex-1 justify-center p-4">
       <div className="grid w-full max-w-3xl content-start gap-4">
-        <h1 className="font-display text-2xl font-semibold">{t('title')}</h1>
+        <h1 className="text-2xl font-semibold">{t('title')}</h1>
         {notice ? <p role="status">{notice}</p> : null}
         {failure ? (
           <p role="alert" className="text-status-danger-fg">

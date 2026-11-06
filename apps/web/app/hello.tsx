@@ -25,7 +25,7 @@ export function Hello({ greeting, firstName }: { greeting: Greeting; firstName: 
       <Card className="w-full max-w-sm">
         <CardHeader>
           {greeting.status === 'loaded' ? (
-            <CardTitle className="font-display">
+            <CardTitle>
               <h1>{catalog(greeting.key)}</h1>
             </CardTitle>
           ) : (

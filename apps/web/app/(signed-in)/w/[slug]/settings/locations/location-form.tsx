@@ -213,7 +213,7 @@ export function LocationForm({
       <Card className="w-full max-w-md">
         <form noValidate onSubmit={submit} className="grid gap-(--card-spacing)">
           <CardHeader>
-            <CardTitle className="font-display">
+            <CardTitle>
               <h1>{t('title')}</h1>
             </CardTitle>
             <CardDescription>{t('help')}</CardDescription>

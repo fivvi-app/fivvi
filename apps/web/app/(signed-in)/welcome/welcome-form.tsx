@@ -67,7 +67,7 @@ export function WelcomeForm({ askName }: { askName: boolean }) {
       <Card className="w-full max-w-sm">
         <form noValidate onSubmit={submit} className="grid gap-(--card-spacing)">
           <CardHeader>
-            <CardTitle className="font-display">
+            <CardTitle>
               <h1>{t('title')}</h1>
             </CardTitle>
             <CardDescription>{t('description')}</CardDescription>

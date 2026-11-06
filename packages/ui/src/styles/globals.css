@@ -9,6 +9,7 @@
 @import "./palette-reset.css";
 @import "@fivvi/design-tokens/tokens.css";
 @import "@fivvi/design-tokens/shadcn.css";
+@import "@fivvi/design-tokens/client.css";
 @import "@fivvi/design-tokens/theme.css";
 
 /* The app's own files are found automatically; the kit's components live outside the app. */

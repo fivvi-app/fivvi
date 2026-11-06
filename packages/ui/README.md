@@ -39,13 +39,9 @@ A page picks its density with a `data-density` attribute on a layout element, no
 
 `apps/web`'s root layout puts `touch` on `<body>`, so every page is touch unless a layout nested inside it, such as Trainer Web's, sets `compact`; the nearest layout wins. The density sets the body text size and line height: the size text inherits, and `text-sm`, the body size shadcn's components use (`Card`, `Button`, `Label`). Other size classes keep their size. It also sets the minimum height of the kit's controls; icon-only buttons get the same minimum width. It is a minimum, so a control can still be made larger with a class. The values come from the token CSS variables, so a token change applies without editing the kit. A new control that should follow the density gets its `data-slot` added to the density rule in `globals.css`.
 
-## Display font
+## Fonts
 
-> **Design v2:** `font-display` goes with [#590](https://github.com/fivvi-app/fivvi/issues/590); don't use it on new screens ([`DESIGN.md`](../../DESIGN.md)).
-
-`font-display` sets the display style's font, `font.family.display`: Bricolage Grotesque, then the system font. Use it sparingly for headings on public pages and brand moments, never for body text or form labels ([visual direction](../../docs/design/visual-direction.md)). Body text uses the system font (`font-sans`, the default).
-
-The app self-hosts the face: `apps/web/app/display-font.ts` loads it with `next/font/google`, which downloads it at build time and serves it from the app's own origin, so no request goes to a font host at runtime. next/font names the face after the font, so it matches the first family of the token stack. Don't use next/font's `className` or `variable` for it: they put next/font's metric-adjusted Arial in front of the system fallback.
+All text uses the system stack (`font-sans`, the default); no web font is loaded. There is no `font-display` any more (Design v2, [#590](https://github.com/fivvi-app/fivvi/issues/590)). Numbers use the rounded face with tabular digits: `font-numeric` (the token `font.family.numeric`, `ui-rounded` first) with `tabular-nums`.
 
 ## Adding a component
 

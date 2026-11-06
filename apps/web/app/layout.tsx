@@ -4,7 +4,6 @@ import type { Metadata } from 'next';
 import { NextIntlClientProvider } from 'next-intl';
 import { getLocale, getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
-import './display-font';
 import { PageViews } from './page-views';
 
 // Pages without their own title still get one: axe requires a <title> (WCAG 2.4.2).

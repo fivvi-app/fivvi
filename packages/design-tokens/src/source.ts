@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
+import { type MixSpace, mix } from './colour.ts';
 
 export const modes = ['light', 'dark'] as const;
 export type Mode = (typeof modes)[number];
@@ -13,14 +14,26 @@ export const sourceFiles = {
   contrastPairs: 'tokens/contrast-pairs.json',
 } as const;
 
-/** WCAG 2.2 AA minimum per kind of pair: text 1.4.3, non-text 1.4.11 (and the focus ring, 2.4.13). */
-export const minimumRatio = { text: 4.5, 'non-text': 3 } as const;
+/**
+ * Minimum contrast per kind of pair: text 1.4.3, non-text 1.4.11 (and the focus ring, 2.4.13).
+ * `native-secondary-text` is the one exception to the 4.5:1 rule (ADR-032): the native apps'
+ * secondary text, which may not drop below 3:1.
+ */
+export const minimumRatio = { text: 4.5, 'non-text': 3, 'native-secondary-text': 3 } as const;
+
+/** The one token that may be the foreground of a `native-secondary-text` pair, and only of those. */
+export const nativeSecondaryText = 'color.text.secondary';
+
+/** Colours the contrast check can't read: translucent glass surfaces and decorative marks. */
+const outsideContrastPairs = /^color\.(web\.glass\.|fill\.decorative$)/;
 
 export interface ContrastPair {
   fg: string;
   bg: string;
   kind: keyof typeof minimumRatio;
   use: string;
+  /** Why the pair may stay under the usual minimum; required for `native-secondary-text`. */
+  reason?: string;
 }
 
 /** A DTCG group or token: tokens have `$value`, groups have child keys. */
@@ -79,6 +92,9 @@ export function platformNotes(tree: TokenTree, platform: Platform): Map<string, 
 /** Whether a token belongs to the base palette, which apps never use directly. */
 export const isPalette = (tokenPath: string) => tokenPath.startsWith('color.base.');
 
+/** Whether a semantic colour is for the web only (`color.web.*`): the native apps don't generate it. */
+export const isWebOnly = (tokenPath: string) => tokenPath.startsWith('color.web.');
+
 /** Paths of the semantic colours (`color.*` outside the base palette): what apps may use. */
 export function semanticColours(source: TokenSource): string[] {
   return tokenPaths(source.light).filter(
@@ -122,9 +138,68 @@ function overlay(base: TokenTree, overrides: TokenTree): TokenTree {
   return result;
 }
 
+/**
+ * A colour derived from others, written as the `$value` of a token:
+ * `{ "mix": { "color": "{color.base.accent.fill}", "with": "#000000", "amount": 85, "space": "oklab" } }`
+ * is `amount`% of `color` with the rest of `with`, as CSS `color-mix`. Both may be `#rrggbb`
+ * or a reference. Derived values are written down once, so changing a base colour changes them.
+ */
+interface MixValue {
+  mix: { color: string; with: string; amount: number; space: MixSpace };
+}
+
+const isMix = (value: unknown): value is MixValue =>
+  isObject(value) && isObject(value.mix) && 'color' in value.mix;
+
+/** The token at a dotted path in `tree`, if it is one. */
+function tokenAt(
+  tree: TokenTree,
+  tokenPath: string,
+): (TokenTree & { $value: unknown }) | undefined {
+  let node: unknown = tree;
+  for (const key of tokenPath.split('.')) node = isObject(node) ? node[key] : undefined;
+  return isToken(node) ? node : undefined;
+}
+
+/** A copy of `tree` where every mixed colour is its resulting `#rrggbb`. */
+export function resolveMixes(tree: TokenTree): TokenTree {
+  const copy = structuredClone(tree);
+  const problems: string[] = [];
+  const resolving: string[] = [];
+  const colourOf = (operand: string, from: string): string => {
+    if (!operand.startsWith('{')) return operand;
+    const target = operand.slice(1, -1);
+    const token = tokenAt(copy, target);
+    if (!token) {
+      problems.push(`${from} mixes ${operand}, which is not a token`);
+      return '#000000';
+    }
+    return colourValue(target, token.$value);
+  };
+  const colourValue = (tokenPath: string, value: unknown): string => {
+    if (typeof value === 'string' && value.startsWith('{')) return colourOf(value, tokenPath);
+    if (!isMix(value)) return String(value);
+    if (resolving.includes(tokenPath)) {
+      problems.push(`${tokenPath} mixes itself: ${[...resolving, tokenPath].join(' > ')}`);
+      return '#000000';
+    }
+    resolving.push(tokenPath);
+    const { color, with: other, amount, space } = value.mix;
+    const result = mix(colourOf(color, tokenPath), colourOf(other, tokenPath), amount, space);
+    resolving.pop();
+    return result;
+  };
+  for (const tokenPath of tokenPaths(copy)) {
+    const token = tokenAt(copy, tokenPath);
+    if (token && isMix(token.$value)) token.$value = colourValue(tokenPath, token.$value);
+  }
+  if (problems.length > 0) throw new TokenSourceError(problems);
+  return copy;
+}
+
 /** The full token tree for a mode: dark is light with the dark semantic colours on top. */
 export function treeFor(source: TokenSource, mode: Mode): TokenTree {
-  return mode === 'light' ? source.light : overlay(source.light, source.dark);
+  return resolveMixes(mode === 'light' ? source.light : overlay(source.light, source.dark));
 }
 
 /** Problems that make the source unusable: missing or unknown dark values, bad contrast pairs. */
@@ -151,6 +226,22 @@ export function validate(source: TokenSource): string[] {
     }
     if (!Object.hasOwn(minimumRatio, pair.kind)) {
       problems.push(`${label}: kind must be one of ${Object.keys(minimumRatio).join(', ')}`);
+    }
+    for (const side of [pair.fg, pair.bg]) {
+      if (outsideContrastPairs.test(side)) {
+        problems.push(`${label}: ${side} is translucent or decorative and has no contrast pair`);
+      }
+    }
+    if (pair.kind === 'native-secondary-text') {
+      if (pair.fg !== nativeSecondaryText) {
+        problems.push(`${label}: only ${nativeSecondaryText} may be a native-secondary-text pair`);
+      }
+      if (!pair.reason?.trim())
+        problems.push(`${label}: a native-secondary-text pair needs a reason`);
+    } else if (pair.fg === nativeSecondaryText) {
+      problems.push(
+        `${label}: ${nativeSecondaryText} may only be in native-secondary-text pairs (ADR-032)`,
+      );
     }
   }
   return problems;

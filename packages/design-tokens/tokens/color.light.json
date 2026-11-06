@@ -1,11 +1,11 @@
 {
-  "$description": "Semantic colours (tier 2), light mode. The default values; color.dark.json overrides every one of them for dark mode.",
+  "$description": "Semantic colours (tier 2), light mode. The default values; color.dark.json overrides every one of them for dark mode. A value is a hex colour, a reference, or a mix of two (see README, \"Derived colours\").",
   "color": {
     "bg": {
       "$type": "color",
       "canvas": {
-        "$value": "{color.base.neutral.25}",
-        "$description": "App/page background. iOS: systemGroupedBackground role. M3: surface."
+        "$value": "{color.base.gray.50}",
+        "$description": "App/page background: the grouped grey (true black in dark). iOS: systemGroupedBackground. M3: surface."
       },
       "surface": {
         "$value": "{color.base.white}",
@@ -13,157 +13,658 @@
       },
       "raised": {
         "$value": "{color.base.white}",
-        "$description": "Sheets, dialogs, menus. iOS: sheet material. M3: surfaceContainerHigh."
+        "$description": "Sheets, dialogs, menus, the thumb of a segmented control. M3: surfaceContainerHigh."
       },
       "subtle": {
-        "$value": "{color.base.neutral.50}",
-        "$description": "Quiet fills: segmented tracks, table stripes, read-only fields. M3: surfaceContainer."
+        "$value": "{color.base.gray.50}",
+        "$description": "Quiet fills inside a card: read-only fields, table stripes. M3: surfaceContainer."
       },
       "inverse": {
-        "$value": "{color.base.neutral.900}",
+        "$value": "{color.base.gray.900}",
         "$description": "Toasts/snackbars."
       }
     },
     "text": {
       "$type": "color",
       "primary": {
-        "$value": "{color.base.neutral.900}"
+        "$value": "{color.base.black}",
+        "$description": "The label colour, and the mode's ink for mixed colours."
       },
       "secondary": {
-        "$value": "{color.base.neutral.600}",
-        "$description": "Meta lines (workspace, location). Must still pass 4.5:1 on canvas and surface."
-      },
-      "tertiary": {
-        "$value": "{color.base.neutral.500}",
-        "$description": "Placeholders and hints. Still AA (4.5:1) on surface: placeholders are real text."
+        "$value": "{color.base.gray.450}",
+        "$description": "Secondary text in the native apps: the prototype's grey as one opaque value. The one exception to 4.5:1 (ADR-032): 3.3:1 on the canvas, 3.7:1 on cards, declared only as native-secondary-text pairs. Tertiary text and placeholders use it too. Web uses color.web.* instead."
       },
       "inverse": {
-        "$value": "{color.base.neutral.25}"
+        "$value": "{color.base.white}",
+        "$description": "Text on bg.inverse."
       },
       "link": {
-        "$value": "{color.base.neutral.800}"
+        "$value": "{color.accent.text}",
+        "$description": "Text buttons and links: the accent as text."
       }
     },
     "border": {
       "$type": "color",
       "default": {
-        "$value": "{color.base.neutral.100}",
+        "$value": {
+          "mix": {
+            "color": "{color.base.gray.700}",
+            "with": "{color.bg.surface}",
+            "amount": 18,
+            "space": "srgb"
+          }
+        },
         "$description": "Decorative separators only (hairlines between rows). Not used for control boundaries."
       },
       "control": {
-        "$value": "{color.base.neutral.400}",
+        "$value": "{color.base.gray.450}",
         "$description": "Input and control outlines: 3:1 non-text contrast (WCAG 1.4.11)."
       },
       "focus": {
-        "$value": "{color.base.neutral.600}",
+        "$value": "{color.accent.text}",
         "$description": "Focus ring, 2px + 2px offset on web. Native uses the platform focus system."
+      }
+    },
+    "fill": {
+      "$type": "color",
+      "decorative": {
+        "$value": {
+          "mix": {
+            "color": "{color.base.gray.700}",
+            "with": "{color.bg.surface}",
+            "amount": 30,
+            "space": "srgb"
+          }
+        },
+        "$description": "Decorative marks only: chevrons and the sheet handle (the prototype's lighter label). Outside the contrast pairs; never for text."
+      }
+    },
+    "accent": {
+      "$type": "color",
+      "fill": {
+        "$value": "{color.base.accent.fill}",
+        "$description": "Move pink as a fill. Anything on it uses color.accent.on."
+      },
+      "on": {
+        "$value": "{color.base.white}",
+        "$description": "The on-accent colour: text and icons on an accent fill."
+      },
+      "text": {
+        "$value": "{color.base.accent.text-light}",
+        "$description": "The accent as text and icons on the canvas and cards."
+      },
+      "gradient-top": {
+        "$value": {
+          "mix": {
+            "color": "{color.accent.fill}",
+            "with": "{color.base.black}",
+            "amount": 85,
+            "space": "oklab"
+          }
+        },
+        "$description": "Top of an accent gradient: the accent mixed with black, 85%."
+      },
+      "gradient-bottom": {
+        "$value": {
+          "mix": {
+            "color": "{color.accent.fill}",
+            "with": "{color.base.black}",
+            "amount": 75,
+            "space": "oklab"
+          }
+        },
+        "$description": "Bottom of an accent gradient: 75%."
       }
     },
     "action": {
       "$type": "color",
       "primary": {
         "bg": {
-          "$value": "#595299",
+          "$value": "{color.accent.fill}",
           "$description": "Filled buttons. iOS: app tint/accentColor. M3: primary."
         },
         "bg-pressed": {
-          "$value": "#49427F"
+          "$value": "{color.accent.gradient-top}"
         },
         "fg": {
-          "$value": "{color.base.white}",
+          "$value": "{color.accent.on}",
           "$description": "M3: onPrimary."
         }
       },
       "tonal": {
         "bg": {
-          "$value": "{color.base.neutral.50}",
+          "$value": {
+            "mix": {
+              "color": "{color.base.gray.550}",
+              "with": "{color.bg.surface}",
+              "amount": 12,
+              "space": "srgb"
+            }
+          },
           "$description": "Secondary/tonal buttons, selected chips, selected tab indicator. M3: secondaryContainer."
         },
         "fg": {
-          "$value": "{color.base.neutral.900}",
+          "$value": "{color.text.primary}",
           "$description": "M3: onSecondaryContainer."
         }
       },
       "danger": {
         "bg": {
-          "$value": "{color.base.red.700}",
-          "$description": "Destructive confirm (cancel class). iOS: role .destructive. M3: error."
+          "$value": {
+            "mix": {
+              "color": "{color.base.red}",
+              "with": "{color.base.black}",
+              "amount": 85,
+              "space": "srgb"
+            }
+          },
+          "$description": "Destructive confirm (cancel class) with white text: the danger colour mixed with black, 85%, because the pure colour is 3.57:1 with white. iOS: role .destructive. M3: error."
         },
         "fg": {
           "$value": "{color.base.white}"
         }
       }
     },
-    "status": {
-      "$type": "color",
-      "success": {
-        "fg": {
-          "$value": "{color.base.green.700}"
-        },
-        "bg": {
-          "$value": "{color.base.green.50}"
-        }
-      },
-      "warning": {
-        "fg": {
-          "$value": "{color.base.amber.700}"
-        },
-        "bg": {
-          "$value": "{color.base.amber.50}"
-        }
-      },
-      "danger": {
-        "fg": {
-          "$value": "{color.base.red.700}"
-        },
-        "bg": {
-          "$value": "{color.base.red.50}"
-        }
-      },
-      "neutral": {
-        "fg": {
-          "$value": "{color.base.neutral.700}"
-        },
-        "bg": {
-          "$value": "{color.base.neutral.50}"
-        }
-      }
-    },
     "session": {
       "$type": "color",
-      "$description": "Session type identity (PRODUCT.md §16). Always paired with a text label; colour is never the only signal.",
       "private": {
         "solid": {
-          "$value": "{color.base.blue.500}",
-          "$description": "Calendar bar/dot. 3:1 against surface."
+          "$value": "{color.base.blue}",
+          "$description": "Private sessions (PRODUCT.md section 16). Always paired with a text label; colour is never the only signal. Calendar bar/dot."
         },
         "fg": {
-          "$value": "{color.base.blue.700}"
+          "$value": {
+            "mix": {
+              "color": "{color.session.private.solid}",
+              "with": "{color.text.primary}",
+              "amount": 78,
+              "space": "oklab"
+            }
+          },
+          "$description": "Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; not for text on the tint (use text)."
+        },
+        "text": {
+          "$value": {
+            "mix": {
+              "color": "{color.session.private.solid}",
+              "with": "{color.text.primary}",
+              "amount": 42,
+              "space": "oklab"
+            }
+          },
+          "$description": "Text in this colour on the tint, on cards and on the canvas (prototype: the colour mixed with the ink, 42% in light, 55% in dark). 4.5:1."
         },
         "bg": {
-          "$value": "{color.base.blue.50}"
+          "$value": {
+            "mix": {
+              "color": "{color.session.private.solid}",
+              "with": "{color.bg.surface}",
+              "amount": 15,
+              "space": "srgb"
+            }
+          },
+          "$description": "The tint: the colour at 15% (light) or 30% (dark) on a card."
+        },
+        "on-solid": {
+          "$value": "{color.base.white}",
+          "$description": "Glyphs on the gradient. White never sits on the unmixed colour."
+        },
+        "gradient-top": {
+          "$value": {
+            "mix": {
+              "color": "{color.session.private.solid}",
+              "with": "{color.base.black}",
+              "amount": 85,
+              "space": "oklab"
+            }
+          },
+          "$description": "Top of the fill: the colour mixed with black, 85%."
+        },
+        "gradient-bottom": {
+          "$value": {
+            "mix": {
+              "color": "{color.session.private.solid}",
+              "with": "{color.base.black}",
+              "amount": 75,
+              "space": "oklab"
+            }
+          },
+          "$description": "Bottom of the fill: 75%."
         }
       },
       "group": {
         "solid": {
-          "$value": "{color.base.violet.500}"
+          "$value": "{color.base.purple}",
+          "$description": "Group classes. Calendar bar/dot."
         },
         "fg": {
-          "$value": "{color.base.violet.700}"
+          "$value": {
+            "mix": {
+              "color": "{color.session.group.solid}",
+              "with": "{color.text.primary}",
+              "amount": 78,
+              "space": "oklab"
+            }
+          },
+          "$description": "Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; not for text on the tint (use text)."
+        },
+        "text": {
+          "$value": {
+            "mix": {
+              "color": "{color.session.group.solid}",
+              "with": "{color.text.primary}",
+              "amount": 42,
+              "space": "oklab"
+            }
+          },
+          "$description": "Text in this colour on the tint, on cards and on the canvas (prototype: the colour mixed with the ink, 42% in light, 55% in dark). 4.5:1."
         },
         "bg": {
-          "$value": "{color.base.violet.50}"
+          "$value": {
+            "mix": {
+              "color": "{color.session.group.solid}",
+              "with": "{color.bg.surface}",
+              "amount": 15,
+              "space": "srgb"
+            }
+          },
+          "$description": "The tint: the colour at 15% (light) or 30% (dark) on a card."
+        },
+        "on-solid": {
+          "$value": "{color.base.white}",
+          "$description": "Glyphs on the gradient. White never sits on the unmixed colour."
+        },
+        "gradient-top": {
+          "$value": {
+            "mix": {
+              "color": "{color.session.group.solid}",
+              "with": "{color.base.black}",
+              "amount": 85,
+              "space": "oklab"
+            }
+          },
+          "$description": "Top of the fill: the colour mixed with black, 85%."
+        },
+        "gradient-bottom": {
+          "$value": {
+            "mix": {
+              "color": "{color.session.group.solid}",
+              "with": "{color.base.black}",
+              "amount": 75,
+              "space": "oklab"
+            }
+          },
+          "$description": "Bottom of the fill: 75%."
         }
       },
       "open-gym": {
         "solid": {
-          "$value": "{color.base.amber.500}"
+          "$value": "{color.base.orange}",
+          "$description": "Open Gym. Decorative only: 2.3:1 on a card. Built, but no screen or kit component uses it yet."
         },
         "fg": {
-          "$value": "{color.base.amber.700}"
+          "$value": {
+            "mix": {
+              "color": "{color.session.open-gym.solid}",
+              "with": "{color.text.primary}",
+              "amount": 78,
+              "space": "oklab"
+            }
+          },
+          "$description": "Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; not for text on the tint (use text)."
+        },
+        "text": {
+          "$value": {
+            "mix": {
+              "color": "{color.session.open-gym.solid}",
+              "with": "{color.text.primary}",
+              "amount": 42,
+              "space": "oklab"
+            }
+          },
+          "$description": "Text in this colour on the tint, on cards and on the canvas (prototype: the colour mixed with the ink, 42% in light, 55% in dark). 4.5:1."
         },
         "bg": {
-          "$value": "{color.base.amber.50}"
+          "$value": {
+            "mix": {
+              "color": "{color.session.open-gym.solid}",
+              "with": "{color.bg.surface}",
+              "amount": 15,
+              "space": "srgb"
+            }
+          },
+          "$description": "The tint: the colour at 15% (light) or 30% (dark) on a card."
+        },
+        "on-solid": {
+          "$value": "{color.base.white}",
+          "$description": "Glyphs on the gradient. White never sits on the unmixed colour."
+        },
+        "gradient-top": {
+          "$value": {
+            "mix": {
+              "color": "{color.session.open-gym.solid}",
+              "with": "{color.base.black}",
+              "amount": 85,
+              "space": "oklab"
+            }
+          },
+          "$description": "Top of the fill: the colour mixed with black, 85%."
+        },
+        "gradient-bottom": {
+          "$value": {
+            "mix": {
+              "color": "{color.session.open-gym.solid}",
+              "with": "{color.base.black}",
+              "amount": 75,
+              "space": "oklab"
+            }
+          },
+          "$description": "Bottom of the fill: 75%."
+        }
+      }
+    },
+    "status": {
+      "$type": "color",
+      "success": {
+        "solid": {
+          "$value": "{color.base.green}",
+          "$description": "Success. Decorative only: 2.2:1 on a card. Never carries white text."
+        },
+        "fg": {
+          "$value": {
+            "mix": {
+              "color": "{color.status.success.solid}",
+              "with": "{color.text.primary}",
+              "amount": 78,
+              "space": "oklab"
+            }
+          },
+          "$description": "Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; not for text on the tint (use text)."
+        },
+        "text": {
+          "$value": {
+            "mix": {
+              "color": "{color.status.success.solid}",
+              "with": "{color.text.primary}",
+              "amount": 42,
+              "space": "oklab"
+            }
+          },
+          "$description": "Text in this colour on the tint, on cards and on the canvas (prototype: the colour mixed with the ink, 42% in light, 55% in dark). 4.5:1."
+        },
+        "bg": {
+          "$value": {
+            "mix": {
+              "color": "{color.status.success.solid}",
+              "with": "{color.bg.surface}",
+              "amount": 15,
+              "space": "srgb"
+            }
+          },
+          "$description": "The tint: the colour at 15% (light) or 30% (dark) on a card."
+        },
+        "on-solid": {
+          "$value": "{color.base.white}",
+          "$description": "Glyphs on the gradient. White never sits on the unmixed colour."
+        },
+        "gradient-top": {
+          "$value": {
+            "mix": {
+              "color": "{color.status.success.solid}",
+              "with": "{color.base.black}",
+              "amount": 85,
+              "space": "oklab"
+            }
+          },
+          "$description": "Top of the fill: the colour mixed with black, 85%."
+        },
+        "gradient-bottom": {
+          "$value": {
+            "mix": {
+              "color": "{color.status.success.solid}",
+              "with": "{color.base.black}",
+              "amount": 75,
+              "space": "oklab"
+            }
+          },
+          "$description": "Bottom of the fill: 75%."
+        }
+      },
+      "danger": {
+        "solid": {
+          "$value": "{color.base.red}",
+          "$description": "Danger."
+        },
+        "fg": {
+          "$value": {
+            "mix": {
+              "color": "{color.status.danger.solid}",
+              "with": "{color.text.primary}",
+              "amount": 78,
+              "space": "oklab"
+            }
+          },
+          "$description": "Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; not for text on the tint (use text)."
+        },
+        "text": {
+          "$value": {
+            "mix": {
+              "color": "{color.status.danger.solid}",
+              "with": "{color.text.primary}",
+              "amount": 42,
+              "space": "oklab"
+            }
+          },
+          "$description": "Text in this colour on the tint, on cards and on the canvas (prototype: the colour mixed with the ink, 42% in light, 55% in dark). 4.5:1."
+        },
+        "bg": {
+          "$value": {
+            "mix": {
+              "color": "{color.status.danger.solid}",
+              "with": "{color.bg.surface}",
+              "amount": 15,
+              "space": "srgb"
+            }
+          },
+          "$description": "The tint: the colour at 15% (light) or 30% (dark) on a card."
+        },
+        "on-solid": {
+          "$value": "{color.base.white}",
+          "$description": "Glyphs on the gradient. White never sits on the unmixed colour."
+        },
+        "gradient-top": {
+          "$value": {
+            "mix": {
+              "color": "{color.status.danger.solid}",
+              "with": "{color.base.black}",
+              "amount": 85,
+              "space": "oklab"
+            }
+          },
+          "$description": "Top of the fill: the colour mixed with black, 85%."
+        },
+        "gradient-bottom": {
+          "$value": {
+            "mix": {
+              "color": "{color.status.danger.solid}",
+              "with": "{color.base.black}",
+              "amount": 75,
+              "space": "oklab"
+            }
+          },
+          "$description": "Bottom of the fill: 75%."
+        }
+      },
+      "warning": {
+        "solid": {
+          "$value": "{color.base.orange}",
+          "$description": "Warning. Decorative only: 2.3:1 on a card."
+        },
+        "fg": {
+          "$value": {
+            "mix": {
+              "color": "{color.status.warning.solid}",
+              "with": "{color.text.primary}",
+              "amount": 78,
+              "space": "oklab"
+            }
+          },
+          "$description": "Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; not for text on the tint (use text)."
+        },
+        "text": {
+          "$value": {
+            "mix": {
+              "color": "{color.status.warning.solid}",
+              "with": "{color.text.primary}",
+              "amount": 42,
+              "space": "oklab"
+            }
+          },
+          "$description": "Text in this colour on the tint, on cards and on the canvas (prototype: the colour mixed with the ink, 42% in light, 55% in dark). 4.5:1."
+        },
+        "bg": {
+          "$value": {
+            "mix": {
+              "color": "{color.status.warning.solid}",
+              "with": "{color.bg.surface}",
+              "amount": 15,
+              "space": "srgb"
+            }
+          },
+          "$description": "The tint: the colour at 15% (light) or 30% (dark) on a card."
+        },
+        "on-solid": {
+          "$value": "{color.base.white}",
+          "$description": "Glyphs on the gradient. White never sits on the unmixed colour."
+        },
+        "gradient-top": {
+          "$value": {
+            "mix": {
+              "color": "{color.status.warning.solid}",
+              "with": "{color.base.black}",
+              "amount": 85,
+              "space": "oklab"
+            }
+          },
+          "$description": "Top of the fill: the colour mixed with black, 85%."
+        },
+        "gradient-bottom": {
+          "$value": {
+            "mix": {
+              "color": "{color.status.warning.solid}",
+              "with": "{color.base.black}",
+              "amount": 75,
+              "space": "oklab"
+            }
+          },
+          "$description": "Bottom of the fill: 75%."
+        }
+      },
+      "neutral": {
+        "fg": {
+          "$value": "{color.text.primary}"
+        },
+        "bg": {
+          "$value": "{color.action.tonal.bg}"
+        }
+      }
+    },
+    "workspace": {
+      "$type": "color",
+      "cyan": {
+        "$value": {
+          "mix": {
+            "color": "{color.base.workspace.cyan}",
+            "with": "{color.base.black}",
+            "amount": 80,
+            "space": "oklab"
+          }
+        },
+        "$description": "Workspace dot colours, picked automatically from the workspace ID (workspaceColour in TypeScript, workspaceColor on native). 3:1 on cards and the canvas in both modes."
+      },
+      "brown": {
+        "$value": "{color.base.workspace.brown}"
+      },
+      "indigo": {
+        "$value": "{color.base.workspace.indigo}"
+      },
+      "gold": {
+        "$value": {
+          "mix": {
+            "color": "{color.base.workspace.gold}",
+            "with": "{color.base.black}",
+            "amount": 70,
+            "space": "oklab"
+          }
+        }
+      },
+      "slate": {
+        "$value": {
+          "mix": {
+            "color": "{color.base.workspace.slate}",
+            "with": "{color.base.black}",
+            "amount": 95,
+            "space": "oklab"
+          }
+        }
+      },
+      "lime": {
+        "$value": {
+          "mix": {
+            "color": "{color.base.workspace.lime}",
+            "with": "{color.base.black}",
+            "amount": 80,
+            "space": "oklab"
+          }
+        }
+      }
+    },
+    "web": {
+      "$type": "color",
+      "trainer": {
+        "background": {
+          "$value": "{color.base.white}",
+          "$description": "The trainer web's shadcn/ui zinc neutrals (web only; the native apps don't generate them). Secondary text there is zinc's 71717A / A1A1AA (ADR-032)."
+        },
+        "foreground": {
+          "$value": "{color.base.zinc.950}"
+        },
+        "card": {
+          "$value": "{color.base.white}"
+        },
+        "sidebar": {
+          "$value": "{color.base.zinc.50}"
+        },
+        "muted": {
+          "$value": "{color.base.zinc.75}",
+          "$description": "The trainer web's quiet fill (hover, skeletons). zinc 75 rather than 100 so that muted-foreground keeps 4.5:1 on it; the web ticket may settle both differently."
+        },
+        "muted-foreground": {
+          "$value": "{color.base.zinc.500}"
+        },
+        "border": {
+          "$value": "{color.base.zinc.200}"
+        }
+      },
+      "client": {
+        "secondary": {
+          "$value": "{color.base.gray.600}",
+          "$description": "Secondary text on the client web: darker than the apps' grey so it meets WCAG 2.2 AA (ADR-032). Web only."
+        }
+      },
+      "glass": {
+        "bg": {
+          "$value": "#FFFFFF99",
+          "$description": "Glass surfaces for the client web: a hex colour with alpha (the one place the source allows it). Never in a contrast pair."
+        },
+        "strong": {
+          "$value": "#FAFAFCE0"
+        },
+        "edge": {
+          "$value": "#FFFFFFCC"
+        },
+        "shadow": {
+          "$value": "#0000001A"
         }
       }
     }

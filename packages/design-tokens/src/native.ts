@@ -7,6 +7,7 @@ import {
   TokenSourceError,
   tokenPaths,
 } from './source.ts';
+import { fnvOffsetBasis, fnvPrime } from './workspace-colour.ts';
 
 /**
  * The Swift package, hand-written `Package.swift`. Its directory is named after the package: Xcode
@@ -68,7 +69,7 @@ export const materialColours = {
   error: 'color.action.danger.bg',
   onError: 'color.action.danger.fg',
   errorContainer: 'color.status.danger.bg',
-  onErrorContainer: 'color.status.danger.fg',
+  onErrorContainer: 'color.status.danger.text',
   outline: 'color.border.control',
   outlineVariant: 'color.border.default',
   surfaceBright: 'color.bg.raised',
@@ -180,16 +181,28 @@ export function nativeTextStyles(source: TokenSource): NativeTextStyle[] {
 /** A spacing or radius token in points (iOS) and dp (Android). */
 export interface NativeDimension {
   token: ResolvedToken;
+  /** Points on iOS. */
   value: number;
+  /** dp on Android. */
+  android: number;
 }
 
-function dimensions(tokens: ResolvedToken[], group: string): NativeDimension[] {
+/**
+ * The tokens of a group in points (iOS) and dp (Android). An android note such as `28dp` replaces
+ * the Android value (the card is 26 on iOS and the web, 28 on Android).
+ */
+function dimensions(
+  tokens: ResolvedToken[],
+  group: string,
+  androidNotes: Map<string, string>,
+): NativeDimension[] {
   return tokens
     .filter((token) => token.path.startsWith(`${group}.`))
     .map((token) => {
       const px = token.value.match(/^(\d+(?:\.\d+)?)px$/)?.[1];
       if (px === undefined) throw new TokenSourceError([`${token.path} is not a px dimension`]);
-      return { token, value: Number(px) };
+      const dp = androidNotes.get(token.path)?.match(/^(\d+(?:\.\d+)?)dp$/)?.[1];
+      return { token, value: Number(px), android: dp === undefined ? Number(px) : Number(dp) };
     });
 }
 
@@ -225,11 +238,12 @@ export function nativeInput(
   colours: Record<Mode, ResolvedToken[]>,
   light: ResolvedToken[],
 ): NativeInput {
+  const androidNotes = platformNotes(source.light, 'android');
   return {
     colours,
     textStyles: nativeTextStyles(source),
-    spacing: dimensions(light, 'space'),
-    radius: dimensions(light, 'radius'),
+    spacing: dimensions(light, 'space', androidNotes),
+    radius: dimensions(light, 'radius', androidNotes),
     shapes: shapes(source),
   };
 }
@@ -287,6 +301,9 @@ private extension NSColor {
 `;
 }
 
+const workspaceTokens = (colours: ResolvedToken[]) =>
+  colours.filter((token) => token.path.startsWith('color.workspace.'));
+
 function renderSwiftColors({ colours }: NativeInput): string {
   const dark = new Map(colours.dark.map((token) => [token.path, token]));
   const members = colours.light.map((token) => {
@@ -294,6 +311,9 @@ function renderSwiftColors({ colours }: NativeInput): string {
     if (!darkToken) throw new TokenSourceError([`${token.path} has no dark value`]);
     return `${docComment(token, '        ')}        public static let ${nativeName(token.path)} = Color(light: 0x${rgb(token)}, dark: 0x${rgb(darkToken)})`;
   });
+  const workspace = workspaceTokens(colours.light).map(
+    (token) => `            Colors.${nativeName(token.path)}`,
+  );
   return `${header(swiftOutputs.colors)}
 import SwiftUI
 
@@ -301,6 +321,19 @@ public extension Tokens {
     /// Semantic colours. Every one follows the system appearance (light and dark mode).
     enum Colors {
 ${members.join('\n')}
+    }
+
+    /// The dot colour of a workspace, picked from its ID: the 32-bit FNV-1a hash of the ID's UTF-8
+    /// bytes, modulo the number of colours. The same function runs on every platform.
+    static func workspaceColor(for id: String) -> Color {
+        let palette: [Color] = [
+${workspace.join(',\n')},
+        ]
+        var hash: UInt32 = ${fnvOffsetBasis}
+        for byte in id.utf8 {
+            hash = (hash ^ UInt32(byte)) &* ${fnvPrime}
+        }
+        return palette[Int(hash % UInt32(palette.count))]
     }
 }
 `;
@@ -333,6 +366,23 @@ ${values('light').join('\n')}
 val DarkTokenColors: TokenColors = TokenColors(
 ${values('dark').join('\n')}
 )
+
+/**
+ * The dot colour of a workspace, picked from its ID: the 32-bit FNV-1a hash of the ID's UTF-8
+ * bytes, modulo the number of colours. The same function runs on every platform.
+ */
+fun TokenColors.workspaceColor(id: String): Color {
+    val palette = listOf(
+${workspaceTokens(colours.light)
+  .map((token) => `        ${nativeName(token.path)},`)
+  .join('\n')}
+    )
+    var hash = ${fnvOffsetBasis}u
+    for (byte in id.encodeToByteArray()) {
+        hash = (hash xor byte.toUByte().toUInt()) * ${fnvPrime}u
+    }
+    return palette[(hash % palette.size.toUInt()).toInt()]
+}
 `;
 }
 
@@ -431,8 +481,8 @@ function renderKotlinLayout({ spacing, radius, shapes }: NativeInput): string {
   const members = (values: NativeDimension[]) =>
     values
       .map(
-        ({ token, value }) =>
-          `${kdoc(token, '    ')}    val ${nativeName(token.path)}: Dp = ${value}.dp`,
+        ({ token, android }) =>
+          `${kdoc(token, '    ')}    val ${nativeName(token.path)}: Dp = ${android}.dp`,
       )
       .join('\n');
   return `${header(kotlinOutputs.layout)}

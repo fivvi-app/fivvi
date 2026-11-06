@@ -11,7 +11,7 @@ export function WorkspaceHome({ name }: { name: string }) {
     <main className="flex flex-1 items-center justify-center p-4">
       <Card className="w-full max-w-sm">
         <CardHeader>
-          <CardTitle className="font-display">
+          <CardTitle>
             <h1>{name}</h1>
           </CardTitle>
           <CardDescription>{t('description')}</CardDescription>
