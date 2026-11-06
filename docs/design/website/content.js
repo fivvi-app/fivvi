@@ -34,17 +34,23 @@ window.COPY = (function () {
     say2: ["Aanwezig. Het credit is gebruikt, zonder dat iemand iets bijhoudt.", "Attended. The credit is used, and nobody had to keep track."],
     forEye: ["Voor wie", "Who it's for"],
     forH: ["Jouw dag ziet er anders uit. Fivvi ook.", "Your day looks different. So does Fivvi."],
-    forLead: ["Fivvi laat alleen zien wat jij doet. Een zelfstandige PT ziet nooit groepslessen. Een yogastudio ziet nooit een trainingslogboek.", "Fivvi only shows what you do. A solo PT never sees group classes. A yoga studio never sees a workout log."],
+    forLead: ["Fivvi laat alleen zien wat jij doet. Een zelfstandig trainer ziet nooit groepslessen. Een yogastudio ziet nooit trainingsschermen.", "Fivvi only shows what you do. A solo PT never sees group classes. A yoga studio never sees a workout log."],
     readDay: ["Lees hun dag", "Read their day"],
     platEye: ["Overal", "Everywhere"],
     platH: ["Echt thuis op elk scherm.", "At home on every screen."],
-    platLead: ["Echte apps, met het glas van iOS op je iPhone en Material op je Android. En een rustig overzicht op je laptop.", "Real apps, with iOS glass on your iPhone and Material on your Android. And a calm overview on your laptop."],
-    plat: [
-      ["pro-today-solo", ["Fivvi Pro op iPhone", "Fivvi Pro on iPhone"], ["Voor eigenaren en trainers.", "For owners and trainers."]],
-      ["pro-today-android", ["Fivvi Pro op Android", "Fivvi Pro on Android"], ["Dezelfde dag, op de manier van Android.", "The same day, the Android way."]],
-      ["app-home", ["Fivvi voor klanten", "Fivvi for clients"], ["Als app, of gewoon in de browser.", "As an app, or just in the browser."]],
-      ["web-dashboard", ["Fivvi op je laptop", "Fivvi on your laptop"], ["Voor de administratie, zonder gedoe.", "For the admin, without the fuss."], 1]
-    ],
+    platLead: ["Twee producten, elk op drie plekken. Echte apps op iPhone en Android, en dezelfde rust in je browser.", "Two products, each in three places. Real apps on iPhone and Android, and the same calm in your browser."],
+    plat: {
+      pro: { name: ["Fivvi Pro", "Fivvi Pro"], who: ["Voor eigenaren en trainers.", "For owners and trainers."], items: [
+        ["pro-today-gym", ["Op iPhone", "On iPhone"], ["Met het glas van iOS.", "With iOS glass."]],
+        ["pro-today-android", ["Op Android", "On Android"], ["Dezelfde dag, op de manier van Android.", "The same day, the Android way."]],
+        ["web-dashboard", ["In je browser", "In your browser"], ["Voor de administratie op je laptop.", "For the admin on your laptop."], 1]
+      ] },
+      client: { name: ["Fivvi", "Fivvi"], who: ["Voor klanten.", "For clients."], items: [
+        ["app-home", ["Op iPhone", "On iPhone"], ["Je volgende les, deze week en je tegoed.", "Your next class, this week and your balance."]],
+        ["app-android", ["Op Android", "On Android"], ["Dezelfde app, op de manier van Android.", "The same app, the Android way."]],
+        ["cw-timetable", ["In je browser", "In your browser"], ["Boeken zonder iets te installeren.", "Booking without installing anything."]]
+      ] }
+    },
     promisesEye: ["Waar je op kunt rekenen", "What you can count on"],
     promisesH: ["Simpel, en netjes geregeld.", "Simple, and properly done."],
     promises: [
@@ -103,14 +109,14 @@ window.COPY = (function () {
         ["10:30", "group", ["Je {who} belt zich ziek.", "Your {who} calls in sick."], ["Zet een vervanger op de les. Klanten boeken gewoon door en de les blijft staan.", "Put a substitute on the class. Clients keep booking and the class stays on."], [["Op dezelfde pagina zie je wie er komt", "The same page shows who's coming"]], "web-class-kind"],
         ["12:00", "priv", ["Beginners in een les voor gevorderden.", "Beginners in an advanced class."], ["Geef elke les een niveau en een beschrijving, in het Nederlands en het Engels. Zo kiest iedereen de juiste les.", "Give each class a level and a description, in Dutch and English. So everyone picks the right class."], [["Beginner, gemiddeld, gevorderd of alle niveaus", "Beginner, intermediate, advanced or all levels"], ["Per datum aan te passen", "Changeable per date"]], "pro-class-kind"],
         ["15:00", "accent", ["Wij zeggen geen trainer.", "We don't say trainer."], ["Kies je eigen woord: trainer, instructeur, docent of coach. Heel Fivvi praat daarna zoals jouw studio. En een yogastudio met alleen lessen ziet geen trainingsschermen.", "Choose your own word: trainer, instructor, teacher or coach. All of Fivvi then speaks like your studio. And a yoga studio with only classes sees no workout screens."], [["Fivvi laat alleen zien wat jullie doen", "Fivvi only shows what you do"]], "pro-today-kind"],
-        ["19:00", "ok", ["Nieuwe klant aan de balie. En nu?", "A new client at the desk. Now what?"], ["Print de A4-poster met je QR-code, in twee talen. Scannen, aanmelden, jij keurt goed, klaar.", "Print the A4 poster with your QR code, in two languages. Scan, sign up, you approve, done."], [["Geen app nodig om te boeken", "No app needed to book"], ["In kleur of zwart-wit", "In colour or black and white"]], "web-join-kind"]
+        ["19:00", "ok", ["Nieuwe klant aan de balie. En nu?", "A new client at the desk. Now what?"], ["Print de A4-poster met je QR-code, in twee talen. Scannen, aanmeldverzoek sturen, jij keurt goed, klaar.", "Print the A4 poster with your QR code, in two languages. Scan, sign up, you approve, done."], [["Geen app nodig om te boeken", "No app needed to book"], ["In kleur of zwart-wit", "In colour or black and white"]], "web-join-kind"]
       ]
     },
     pt: {
       nav: ["Personal trainers", "Personal trainers"], who: ["Personal trainer", "Personal trainer"], photo: "pt", colour: "priv",
       short: ["Je hele dag in je broekzak: wie er komt, wat jullie vorige keer deden en wat er nog over is.", "Your whole day in your pocket: who's coming, what you did last time and what's left."],
       cardH: ["Personal trainers", "Personal trainers"],
-      stage: { phone: "pro-today-solo", second: "pro-log" },
+      stage: { phones: ["pro-today-solo", "pro-log", "pro-client"] },
       h1: ["Train je klant. Niet je administratie.", "Train your client. Not your admin."],
       lead: ["Alles voor je sessies op je telefoon, ook midden op de vloer. Zonder groepslessen of teamschermen die je toch niet gebruikt.", "Everything for your sessions on your phone, even in the middle of the floor. Without the group classes or team screens you'd never use."],
       heroPhone: "pro-today-solo",
@@ -118,9 +124,9 @@ window.COPY = (function () {
       day: [
         ["07:00", "priv", ["Waar moet je ook alweer zijn?", "Where do you need to be again?"], ["Vandaag laat in één regel je dag zien, en daaronder wie, hoe laat en waar. Werk je op meer plekken, dan zie je de route van vandaag.", "Today shows your day in one line, and below it who, when and where. Working in several places? You'll see today's route."], [["Het volgende gat in je dag staat klaar om te plannen", "Your next free gap is ready to plan"]], "pro-today-solo"],
         ["07:25", "priv", ["Wat deden we vorige keer?", "What did we do last time?"], ["Open de klant en je ziet de laatste training, wat zwaar was, je eigen notitie en de voortgang per oefening.", "Open the client and you see the last workout, what was hard, your own note and progress per exercise."], [["Notities zijn alleen voor jou", "Notes are for you only"]], "pro-client"],
-        ["07:30", "ok", ["Je logt nog op papier, of helemaal niet.", "You log on paper, or not at all."], ["Eén rij per set met de waarde van vorige keer ernaast. Vink af, en geef per oefening aan hoe zwaar het was.", "One row per set with last time's value next to it. Tick it off, and mark how hard each exercise was."], [["Gemaakt om te gebruiken met één hand", "Made to use with one hand"], ["Opslaan als schema voor de volgende keer", "Save it as a template for next time"]], "pro-log"],
+        ["07:30", "ok", ["Je houdt het nog op papier bij, of helemaal niet.", "You log on paper, or not at all."], ["Eén rij per set met de waarde van vorige keer ernaast. Vink af, en geef per oefening aan hoe zwaar het was.", "One row per set with last time's value next to it. Tick it off, and mark how hard each exercise was."], [["Gemaakt om te gebruiken met één hand", "Made to use with one hand"], ["Opslaan als schema voor de volgende keer", "Save it as a template for next time"]], "pro-log"],
         ["08:30", "accent", ["Hoeveel sessies heeft ze nog?", "How many sessions does she have left?"], ["Geen rekenwerk: voor de sessie zie je al of het credit bijna op is, of dat er nog een betaling openstaat.", "No sums: before the session you already see if credits are running out, or if a payment is still open."], [["Gebruikt, gepland en over", "Used, planned and left"], ["Verlengen met één tik", "Renew with one tap"]], "pro-session"],
-        ["09:15", "group", ["Twee vriendinnen willen samen trainen.", "Two friends want to train together."], ["Een duosessie: één trainer, twee klanten, ieder met een eigen training, credit en aanwezigheid.", "A duo session: one trainer, two clients, each with their own workout, credit and attendance."], [["Schakel tussen de twee tijdens het loggen", "Switch between the two while logging"]], "pro-duo"],
+        ["09:15", "group", ["Twee vriendinnen willen samen trainen.", "Two friends want to train together."], ["Een duosessie: één trainer, twee klanten, ieder met een eigen training, credit en aanwezigheid.", "A duo session: one trainer, two clients, each with their own workout, credit and attendance."], [["Schakel tussen de twee tijdens het bijhouden", "Switch between the two while logging"]], "pro-duo"],
         ["09:20", "ok", ["Je klant wil weten wat ze vandaag gedaan heeft.", "Your client wants to know what she did today."], ["Deel de training met één bericht. Je klant ziet alle oefeningen en kan hem zelf nog eens doen.", "Share the workout with one message. Your client sees every exercise and can redo it on their own."], [["Geen schermafbeeldingen meer in de chat", "No more screenshots in a chat"]], "pro-share"]
       ]
     },
@@ -128,7 +134,7 @@ window.COPY = (function () {
       nav: ["Klanten", "Clients"], who: ["Klant", "Client"], photo: "client", colour: "accent",
       short: ["Boek je les in een paar tikken en zie altijd wat je nog tegoed hebt.", "Book your class in a few taps and always see what's on your balance."],
       cardH: ["En hun klanten", "And their clients"],
-      stage: { phone: "app-home", second: "app-book" },
+      stage: { phones: ["app-home", "app-book", "app-credit"] },
       h1: ["Sporten is al moeilijk genoeg. Boeken niet.", "Working out is hard enough. Booking isn't."],
       lead: ["Vraag je studio of trainer om Fivvi, en boek voortaan vanaf je telefoon. Altijd duidelijk wat je geboekt hebt en wat je nog over hebt.", "Ask your studio or trainer for Fivvi, and book from your phone from now on. Always clear what you've booked and what you have left."],
       heroPhone: "app-home",
@@ -149,7 +155,7 @@ window.COPY = (function () {
 
   var SHOTS = {
     "pro-today-gym": ["Fivvi Pro: de dag van de hele studio, met een baan per trainer", "Fivvi Pro: the whole studio's day, with a lane per trainer"],
-    "pro-today-solo": ["Fivvi Pro: de dag van een zelfstandige personal trainer", "Fivvi Pro: a solo personal trainer's day"],
+    "pro-today-solo": ["Fivvi Pro: de dag van een zelfstandig trainer", "Fivvi Pro: a solo personal trainer's day"],
     "pro-today-pilates": ["Fivvi Pro: de dag van een pilatesstudio", "Fivvi Pro: a pilates studio's day"],
     "pro-today-yoga": ["Fivvi Pro: de dag van een yogastudio", "Fivvi Pro: a yoga studio's day"],
     "pro-today-android": ["Fivvi Pro op Android: de dag van vandaag", "Fivvi Pro on Android: today's day"],
@@ -157,8 +163,10 @@ window.COPY = (function () {
     "pro-session": ["Fivvi Pro: een privésessie met de tegoeden van de klant", "Fivvi Pro: a private session with the client's balance"],
     "pro-duo": ["Fivvi Pro: een duosessie met twee klanten", "Fivvi Pro: a duo session with two clients"],
     "pro-class": ["Fivvi Pro: een groepsles met een vervanger", "Fivvi Pro: a group class with a substitute"],
-    "pro-log": ["Fivvi Pro: een training loggen, per set", "Fivvi Pro: logging a workout, set by set"],
+    "pro-log": ["Fivvi Pro: een training bijhouden, per set", "Fivvi Pro: logging a workout, set by set"],
     "pro-share": ["Fivvi Pro: een training delen met de klant", "Fivvi Pro: sharing a workout with the client"],
+    "app-android": ["Fivvi op Android: Home met de volgende les", "Fivvi on Android: Home with the next class"],
+    "cw-timetable": ["Klantweb: het rooster in de browser", "Client web: the timetable in the browser"],
     "app-home": ["Fivvi: Home met de volgende les en deze week", "Fivvi: Home with the next class and this week"],
     "app-book": ["Fivvi: het rooster met Boeken bij elke les", "Fivvi: the timetable with Book on every class"],
     "app-confirm": ["Fivvi: een boeking bevestigen, met het credit dat het kost", "Fivvi: confirming a booking, with the credit it uses"],

@@ -30,13 +30,10 @@ const SHOTS = [
   ['pro-class', '0,13', 'ios', 'team'],
   ['pro-log', '0,25', 'ios', 'team'],
   ['pro-share', '0,28', 'ios', 'team'],
-  ['pro-week', '0,8', 'ios', 'team'],
-  ['pro-cash', '0,4', 'ios', 'team'],
   // Fivvi, the client app
   ['app-home', '2,4', 'ios', 'team'],
   ['app-book', '2,5', 'ios', 'team', 'busiest-day'],
   ['app-confirm', '2,5', 'ios', 'team', 'confirm-booking'],
-  ['app-activity', '2,8', 'ios', 'team'],
   ['app-credit', '2,10', 'ios', 'team'],
   ['app-studios', '2,14', 'ios', 'team'],
   ['app-renew', '2,27', 'ios', 'team'],
@@ -56,7 +53,6 @@ const SHOTS = [
   // Trainer web
   ['web-dashboard', '1,0', 'web', 'team'],
   ['web-agenda', '1,3', 'web', 'team'],
-  ['web-clients', '1,5', 'web', 'team'],
   ['web-client', '1,7', 'web', 'team'],
   ['web-class', '1,9', 'web', 'team'],
   ['web-trainers', '1,11', 'web', 'team'],

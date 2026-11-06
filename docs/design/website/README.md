@@ -14,7 +14,7 @@ node docs/design/website/build-legal.cjs
 | File | What |
 |---|---|
 | `index.html`, `site.css`, `site.js` | The pages and their routes |
-| `content.js`, `pages.js` | All the words, Dutch first |
+| `content.js`, `pages.js` | The words, Dutch first; a few on the design-choices page sit in `site.js` |
 | `capture.cjs` | Captures the prototype's screens, in Dutch and English, light and dark |
 | `build-legal.cjs` | Makes `legal.js` from `docs/legal`, so the legal pages show the current drafts |
 | `assets/photos/` | The photos |

@@ -4,7 +4,7 @@
   var EXTRA = ["richting", "prijzen", "demo", "support", "account-verwijderen", "privacy", "voorwaarden", "subverwerkers"];
   var root = document.documentElement;
   var page = document.getElementById("page"), nav = document.getElementById("nav"), foot = document.getElementById("foot"), review = document.getElementById("review");
-  var S = { lang: "nl", who: "gym", kind: "pilates", demo: 0 };
+  var S = { lang: "nl", who: "gym", kind: "pilates", demo: 0, plat: "pro" };
   try { S.lang = localStorage.getItem("fivvi-site-lang") || "nl"; } catch (e) { /* storage unavailable */ }
 
   function t(x) { return x[S.lang === "en" ? 1 : 0]; }
@@ -50,10 +50,9 @@
   function statusLine() { return '<p class="statusline"><i></i>' + t(P.status) + "</p>"; }
 
   function stage() {
-    var a = A[S.who], s = a.stage, h = "";
-    if (s.web) h = device(s.web, "", true) + device(s.phone, "", true);
-    else h = device(s.phone, "lead-phone", true) + device(s.second, "", true);
-    return '<div class="swap">' + h + "</div>";
+    var s = A[S.who].stage;
+    if (s.web) return '<div class="swap mix">' + device(s.web, "", true) + '<div class="cell">' + device(s.phone, "", true) + "</div></div>";
+    return '<div class="swap row">' + s.phones.map(function (id) { return device(id, "", true); }).join("") + "</div>";
   }
 
   function chain() {
@@ -90,9 +89,13 @@
       '<section><div class="wrap"><p class="eyebrow">' + t(UI.forEye) + '</p><h2 class="h2">' + t(UI.forH) + '</h2><p class="lead" style="margin-top:14px">' + t(UI.forLead) + '</p><div class="cards">' +
       ORDER.map(function (k) { return '<a class="acard" href="#' + k + '">' + photo(A[k].photo, "ph") + "<div><h3>" + t(A[k].cardH) + "</h3><p>" + t(A[k].short) + '</p><span class="link">' + t(UI.readDay) + " →</span></div></a>"; }).join("") +
       "</div></div></section>" +
-      '<section><div class="wrap"><p class="eyebrow">' + t(UI.platEye) + '</p><h2 class="h2">' + t(UI.platH) + '</h2><p class="lead" style="margin-top:14px">' + t(UI.platLead) + '</p><div class="devices">' +
-      UI.plat.map(function (p) { return '<figure class="' + (p[3] ? "wide" : "") + '">' + device(p[0]) + "<figcaption><b>" + t(p[1]) + "</b><span>" + t(p[2]) + "</span></figcaption></figure>"; }).join("") +
-      "</div></div></section>" + promises() + cta();
+      '<section><div class="wrap"><p class="eyebrow">' + t(UI.platEye) + '</p><h2 class="h2">' + t(UI.platH) + '</h2><p class="lead" style="margin-top:14px">' + t(UI.platLead) + '</p><div class="who"><div class="seg" role="group" aria-label="Fivvi Pro / Fivvi">' + ["pro", "client"].map(function (k) { return '<button data-plat="' + k + '" aria-pressed="' + (S.plat === k) + '">' + t(UI.plat[k].name) + "</button>"; }).join("") + '</div></div><div id="devices">' + devices() + "</div>" +
+      "</div></section>" + promises() + cta();
+  }
+
+  function devices() {
+    var p = UI.plat[S.plat];
+    return '<p class="platwho">' + t(p.who) + '</p><div class="devices">' + p.items.map(function (i) { return '<figure class="' + (i[3] ? "wide" : "") + '">' + device(i[0]) + "<figcaption><b>" + t(i[1]) + "</b><span>" + t(i[2]) + "</span></figcaption></figure>"; }).join("") + "</div>";
   }
 
   function promises() {
@@ -152,12 +155,12 @@
   }
 
   function legal(key, title) {
-    return '<div class="wrap hero ahero"><h1>' + t(title) + '</h1><p class="notebox" style="margin-top:20px">' + t(P.legal.draft) + '</p><div class="legal">' + t(window.LEGAL[key]) + "</div></div>";
+    return '<div class="wrap hero ahero"><h1>' + t(title) + '</h1>' + statusLine() + '<p class="notebox" style="margin-top:20px">' + t(P.legal.draft) + '</p><div class="legal">' + t(window.LEGAL[key]) + "</div></div>";
   }
 
   function subs() {
     var X = P.legal;
-    return '<div class="wrap hero ahero"><h1>' + t(X.subH) + '</h1><p class="lead">' + t(X.subLead) + '</p><div class="tablewrap"><table><thead><tr>' + X.subCols.map(function (c) { return "<th>" + t(c) + "</th>"; }).join("") + "</tr></thead><tbody>" + X.subs.map(function (r) { return "<tr><td><b>" + r[0] + "</b></td><td>" + t(r[1]) + "</td><td>" + t(r[2]) + "</td></tr>"; }).join("") + '</tbody></table></div><p class="notebox">' + t(X.subNote) + '</p><p class="notebox">' + t(X.draft) + "</p></div>";
+    return '<div class="wrap hero ahero"><h1>' + t(X.subH) + '</h1><p class="lead">' + t(X.subLead) + "</p>" + statusLine() + '<div class="tablewrap"><table><thead><tr>' + X.subCols.map(function (c) { return "<th>" + t(c) + "</th>"; }).join("") + "</tr></thead><tbody>" + X.subs.map(function (r) { return "<tr><td><b>" + r[0] + "</b></td><td>" + t(r[1]) + "</td><td>" + t(r[2]) + "</td></tr>"; }).join("") + '</tbody></table></div><p class="notebox">' + t(X.subNote) + '</p><p class="notebox">' + t(X.draft) + "</p></div>";
   }
 
   /* what the decisions, required pages and search work look like, on the design-choices page */
@@ -187,7 +190,7 @@
   }
 
   document.addEventListener("click", function (e) {
-    var b = e.target.closest("[data-lang],[data-who],[data-kind],[data-demo],[data-theme-toggle]");
+    var b = e.target.closest("[data-lang],[data-who],[data-kind],[data-plat],[data-demo],[data-theme-toggle]");
     if (!b) return;
     if (b.dataset.lang) { S.lang = b.dataset.lang; try { localStorage.setItem("fivvi-site-lang", S.lang); } catch (x) { /* storage unavailable */ } render(true); return; }
     if (b.dataset.who) {
@@ -195,6 +198,12 @@
       document.querySelectorAll("[data-who]").forEach(function (o) { o.setAttribute("aria-pressed", o.dataset.who === S.who); });
       document.getElementById("stage").innerHTML = stage();
       document.getElementById("herocopy").innerHTML = "<p>" + t(A[S.who].short) + '</p><a class="link" href="#' + S.who + '">' + t(UI.see) + " →</a>";
+      return;
+    }
+    if (b.dataset.plat) {
+      S.plat = b.dataset.plat;
+      document.querySelectorAll("[data-plat]").forEach(function (o) { o.setAttribute("aria-pressed", o.dataset.plat === S.plat); });
+      document.getElementById("devices").innerHTML = devices();
       return;
     }
     if (b.dataset.kind) { S.kind = b.dataset.kind; render(true); return; }
