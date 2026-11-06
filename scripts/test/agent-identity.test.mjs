@@ -25,6 +25,7 @@ const SCRIPT = join(import.meta.dirname, '..', 'agent-identity.mjs');
 const FAKE_TOKEN = 'not-a-real-token-1';
 const OTHER_FAKE_TOKEN = 'not-a-real-token-2';
 const BOT_ID = 4242;
+const ASKPASS_ANSWER = 'askpass-stub-answer';
 const SLUG = 'example-bot-app';
 const SERVICE = 'example-service';
 
@@ -44,14 +45,29 @@ const exec = (command, args, { env = {}, cwd, input = '' } = {}) =>
     child.on('close', (status) => resolve({ status, stdout, stderr }));
     child.stdin.end(input);
   });
+// The value after `--settings`, or undefined when it is missing or is the next option (as the script reads it too).
+const settingsValue = (args) => {
+  const value = args[args.indexOf('--settings') + 1];
+  return args.includes('--settings') && value && !value.startsWith('--') ? value : undefined;
+};
 // Leaks this suite must never have: `setup` run from the real script writes the real main checkout's settings (it
 // finds the checkout from its own location, whatever the cwd), and a run with the real HOME or the real PATH reads the
 // owner's App config, Keychain item and token cache. So `run` refuses both, before it starts anything.
+const TEMP_ROOTS = [tmpdir(), realpathSync(tmpdir())];
 const run = (args, { script = SCRIPT, ...options } = {}) => {
-  if (args[0] === 'setup' && script === SCRIPT && !args.includes('--settings')) {
-    throw new Error(
-      'refusing to run the real script `setup` without --settings: it would write the real main checkout',
-    );
+  if (args[0] === 'setup' && script === SCRIPT) {
+    const value = settingsValue(args);
+    if (value === undefined) {
+      throw new Error(
+        'refusing to run the real script `setup` without --settings <path>: it would write the real main checkout',
+      );
+    }
+    const target = resolve(options.cwd ?? process.cwd(), value);
+    if (!TEMP_ROOTS.some((root) => target.startsWith(`${root}/`))) {
+      throw new Error(
+        `refusing to run the real script \`setup\` with --settings outside a temporary folder`,
+      );
+    }
   }
   const { HOME, PATH } = options.env ?? {};
   if (
@@ -67,6 +83,7 @@ const run = (args, { script = SCRIPT, ...options } = {}) => {
 };
 
 // A read-only watch on a file: assertUnchanged() fails when it was created, changed or removed since the watch began.
+// It only detects: a live session that writes the real settings file during a run can make it fail.
 const fingerprint = (path) =>
   existsSync(path) ? createHash('sha256').update(readFileSync(path)).digest('hex') : 'missing';
 const watch = (path) => {
@@ -128,6 +145,35 @@ describe('the suite cannot touch the real machine', () => {
     assert.throws(
       () => run(['setup', '--assignee', 'x'], { env: safeEnv(), cwd: dir }),
       /without --settings/,
+    );
+  });
+
+  it('run refuses `--settings` with no value, or with another option as its value (the incident path)', () => {
+    for (const args of [
+      ['setup', '--remove', '--settings'],
+      ['setup', '--settings', '--remove'],
+      ['setup', '--assignee', 'x', '--settings', '--assignee', 'x'],
+      ['setup', '--settings', ''],
+    ]) {
+      assert.throws(() => run(args, { env: safeEnv(), cwd: dir }), /without --settings/, `${args}`);
+    }
+  });
+
+  it('run refuses a `--settings` path outside the temporary folder', () => {
+    assert.throws(
+      () =>
+        run(['setup', '--remove', '--settings', join(REAL_MAIN_CHECKOUT, 'x.json')], {
+          env: safeEnv(),
+        }),
+      /outside a temporary folder/,
+    );
+    assert.throws(
+      () =>
+        run(['setup', '--remove', '--settings', 'x.json'], {
+          env: safeEnv(),
+          cwd: REAL_MAIN_CHECKOUT,
+        }),
+      /outside a temporary folder/,
     );
   });
 
@@ -273,6 +319,35 @@ describe('scripts/agent-identity.mjs', () => {
       assert.equal(second.stdout, `${FAKE_TOKEN}\n`);
       assert.equal(api.requests.length, 1, 'no second request');
     });
+
+    it('tightens a cache file that is readable by others back to 0600 when it reuses it', async () => {
+      writeApp();
+      await startWith(mintOk);
+      await run(['token'], { env });
+      const cache = join(configDir(), 'token.json');
+      chmodSync(cache, 0o644);
+      const second = await run(['token'], { env });
+      assert.equal(second.stdout, `${FAKE_TOKEN}\n`);
+      assert.equal(api.requests.length, 1, 'it was a cache hit');
+      assert.equal(statSync(cache).mode & 0o777, 0o600);
+    });
+
+    for (const base of [
+      'http://example.com',
+      'http://127.0.0.1.example.com',
+      'http://localhost.example.com:8080',
+      'ftp://127.0.0.1',
+      'not a url',
+    ]) {
+      it(`never sends the signed JWT to FIVVI_GITHUB_API=${base}: only https, or http on loopback`, async () => {
+        writeApp();
+        env = { ...env, FIVVI_GITHUB_API: base };
+        const result = await run(['token'], { env });
+        assert.notEqual(result.status, 0);
+        assert.equal(result.stdout, '');
+        assert.match(result.stderr, /^agent-identity: FIVVI_GITHUB_API must be/);
+      });
+    }
 
     it('asks for a new token when 10 minutes or less remain', async () => {
       writeApp();
@@ -440,6 +515,79 @@ describe('scripts/agent-identity.mjs', () => {
       assert.equal(existsSync(settings), false);
     });
 
+    describe('the incident path: setup without a usable --settings never falls back to the default file', () => {
+      const defaultFile = () => join(checkout, '.claude', 'settings.local.json');
+      const seedDefault = () => {
+        mkdirSync(join(checkout, '.claude'), { recursive: true });
+        writeFileSync(defaultFile(), '{"permissions":{"allow":["Bash(ls:*)"]}}\n');
+        return readFileSync(defaultFile(), 'utf8');
+      };
+      for (const args of [
+        ['--remove', '--settings'],
+        ['--settings', '--remove'],
+        ['--assignee', 'example-owner', '--settings'],
+        ['--assignee', 'example-owner', '--settings', '--remove'],
+      ]) {
+        it(`setup ${args.join(' ')} fails and leaves the default file alone`, async () => {
+          const seeded = seedDefault();
+          const result = await setup(...args);
+          assert.notEqual(result.status, 0);
+          assert.match(result.stderr, /--settings needs a path/);
+          assert.equal(readFileSync(defaultFile(), 'utf8'), seeded);
+        });
+      }
+
+      it('--assignee with no value, or another option as its value, is refused', async () => {
+        for (const args of [['--assignee'], ['--assignee', '--settings', settings]]) {
+          const result = await setup(...args);
+          assert.notEqual(result.status, 0, `${args}`);
+          assert.match(result.stderr, /--assignee needs a value/);
+        }
+        assert.equal(existsSync(settings), false);
+      });
+
+      it('without --settings, refuses from a folder outside the script checkout, even a git repository', async () => {
+        const seeded = seedDefault();
+        const other = join(home, 'other-repo');
+        mkdirSync(other);
+        execFileSync('git', ['init', '--quiet', other], { env });
+        const notARepo = join(home, 'plain-folder');
+        mkdirSync(notARepo);
+        for (const cwd of [other, notARepo]) {
+          for (const args of [['--remove'], ['--assignee', 'example-owner']]) {
+            const result = await run(['setup', ...args], { env, cwd, script: scriptPath() });
+            assert.notEqual(result.status, 0, `${cwd} ${args}`);
+            assert.match(result.stderr, /only from a folder of this checkout/);
+            assert.equal(readFileSync(defaultFile(), 'utf8'), seeded);
+            assert.equal(existsSync(join(other, '.claude')), false);
+          }
+        }
+      });
+
+      it('without --settings, works from a linked worktree of the same checkout', async () => {
+        execFileSync('git', ['-C', checkout, 'commit', '--quiet', '--allow-empty', '-m', 'init'], {
+          env: {
+            ...env,
+            GIT_AUTHOR_NAME: 'a',
+            GIT_AUTHOR_EMAIL: 'a@example.com',
+            GIT_COMMITTER_NAME: 'a',
+            GIT_COMMITTER_EMAIL: 'a@example.com',
+          },
+        });
+        const linked = join(home, 'linked');
+        execFileSync('git', ['-C', checkout, 'worktree', 'add', '--quiet', '-b', 'x', linked], {
+          env,
+        });
+        const result = await run(['setup', '--assignee', 'example-owner'], {
+          env,
+          cwd: linked,
+          script: scriptPath(),
+        });
+        assert.equal(result.status, 0, result.stderr);
+        assert.ok(existsSync(defaultFile()));
+      });
+    });
+
     it('defaults to .claude/settings.local.json of the main checkout', async () => {
       const result = await setup('--assignee', 'example-owner');
       assert.equal(result.status, 0, result.stderr);
@@ -509,6 +657,87 @@ describe('scripts/agent-identity.mjs', () => {
       await setup('--assignee', 'example-owner', '--settings', settings);
       await setup('--remove', '--settings', settings);
       assert.deepEqual(read(), {});
+    });
+
+    it('sets the env that makes gh and git fail closed when the hook or the helper does not answer', async () => {
+      await setup('--assignee', 'example-owner', '--settings', settings);
+      const { env: wired } = read();
+      assert.equal(wired.GH_TOKEN, 'fivvi-claude-token-unavailable');
+      assert.equal(wired.GIT_TERMINAL_PROMPT, '0');
+      assert.equal(wired.GIT_ASKPASS, '');
+      assert.equal(wired.SSH_ASKPASS, '');
+    });
+
+    it('--remove leaves a file that was never wired exactly as it is, FIVVI_ASSIGNEE and GIT_TERMINAL_PROMPT included', async () => {
+      const before = {
+        env: {
+          FIVVI_ASSIGNEE: 'someone-else',
+          GIT_TERMINAL_PROMPT: '0',
+          GH_TOKEN: 'mine',
+          GIT_ASKPASS: '/bin/true',
+          SSH_ASKPASS: '/bin/true',
+        },
+        hooks: { SessionStart: [{ hooks: [{ type: 'command', command: 'echo hi' }] }] },
+      };
+      writeFileSync(settings, JSON.stringify(before));
+      const result = await setup('--remove', '--settings', settings);
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(read(), before);
+    });
+
+    for (const key of [
+      'FIVVI_ASSIGNEE',
+      'GIT_TERMINAL_PROMPT',
+      'GH_TOKEN',
+      'GIT_ASKPASS',
+      'SSH_ASKPASS',
+    ]) {
+      it(`setup refuses to overwrite an existing ${key} in env, and writes nothing`, async () => {
+        const before = { env: { [key]: 'something-of-mine' } };
+        writeFileSync(settings, JSON.stringify(before));
+        const result = await setup('--assignee', 'example-owner', '--settings', settings);
+        assert.notEqual(result.status, 0);
+        assert.match(result.stderr, new RegExp(`already sets ${key}`));
+        assert.deepEqual(read(), before);
+      });
+    }
+
+    it('--remove takes out only our hook when another hook shares its entry', async () => {
+      await setup('--assignee', 'example-owner', '--settings', settings);
+      const wired = read();
+      const ours = wired.hooks.SessionStart[0].hooks[0];
+      const other = { type: 'command', command: 'echo mine' };
+      wired.hooks.SessionStart[0].hooks = [other, ours];
+      writeFileSync(settings, JSON.stringify(wired));
+      await setup('--remove', '--settings', settings);
+      assert.deepEqual(read().hooks, { SessionStart: [{ hooks: [other] }] });
+    });
+
+    it('setup keeps the other hooks of an entry that holds our old hook', async () => {
+      await setup('--assignee', 'example-owner', '--settings', settings);
+      const wired = read();
+      const other = { type: 'command', command: 'echo mine' };
+      wired.hooks.SessionStart[0].hooks.unshift(other);
+      writeFileSync(settings, JSON.stringify(wired));
+      await setup('--assignee', 'example-owner', '--settings', settings);
+      const commands = read().hooks.SessionStart.flatMap((entry) =>
+        entry.hooks.map((hook) => hook.command),
+      );
+      assert.equal(commands.filter((command) => command === 'echo mine').length, 1);
+      assert.equal(
+        commands.filter((command) => command.includes('agent-identity.mjs token')).length,
+        1,
+      );
+    });
+
+    it('keeps the mode of an existing settings file on setup and on --remove, and makes a new one 0644', async () => {
+      await setup('--assignee', 'example-owner', '--settings', settings);
+      assert.equal(statSync(settings).mode & 0o777, 0o644);
+      chmodSync(settings, 0o600);
+      await setup('--assignee', 'example-owner', '--settings', settings);
+      assert.equal(statSync(settings).mode & 0o777, 0o600);
+      await setup('--remove', '--settings', settings);
+      assert.equal(statSync(settings).mode & 0o777, 0o600);
     });
 
     it('does not overwrite a settings file that is not valid JSON', async () => {
@@ -582,21 +811,27 @@ describe('scripts/agent-identity.mjs', () => {
 
       // The environment Claude Code gives a session with this wiring, on a machine whose own git config would
       // otherwise supply someone else's identity and credentials.
-      const sessionEnv = () => {
+      const sessionEnv = (skipWiring = []) => {
         const owners = join(home, 'bin', 'owners-helper');
         writeFileSync(
           owners,
           '#!/bin/sh\n[ "$1" = get ] && printf "username=owner\\npassword=owners-stored-login\\n"\nexit 0\n',
         );
         chmodSync(owners, 0o755);
+        // Another credential source git could ask: an askpass program, from the caller's environment and from config.
+        const askpass = join(home, 'bin', 'askpass-stub');
+        writeFileSync(askpass, `#!/bin/sh\necho ${ASKPASS_ANSWER}\n`);
+        chmodSync(askpass, 0o755);
         writeFileSync(
           join(home, '.gitconfig'),
-          `[user]\n\tname = Someone Else\n\temail = someone@example.com\n[credential]\n\thelper = !${owners}\n`,
+          `[user]\n\tname = Someone Else\n\temail = someone@example.com\n[core]\n\taskPass = ${askpass}\n[credential]\n\thelper = !${owners}\n`,
         );
-        return { ...env, ...read().env };
+        const wired = read().env;
+        for (const key of skipWiring) delete wired[key];
+        return { ...env, GIT_ASKPASS: askpass, SSH_ASKPASS: askpass, ...wired };
       };
-      const git = (args, input = '') =>
-        exec('git', ['-C', checkout, ...args], { env: sessionEnv(), input });
+      const git = (args, input = '', { skipWiring = [] } = {}) =>
+        exec('git', ['-C', checkout, ...args], { env: sessionEnv(skipWiring), input });
       const GITHUB = 'protocol=https\nhost=github.com\n\n';
 
       it('git commits as the bot', async () => {
@@ -632,6 +867,36 @@ describe('scripts/agent-identity.mjs', () => {
           'git fails instead of asking another helper or a terminal',
         );
         assert.ok(!result.stdout.includes('owners-stored-login'));
+      });
+
+      it('git cannot ask an askpass program for github.com when the helper fails, whichever the caller sets', async () => {
+        rmSync(join(configDir(), 'app.json'));
+        const result = await git(['credential', 'fill'], GITHUB);
+        assert.notEqual(result.status, 0);
+        assert.ok(
+          !result.stdout.includes(ASKPASS_ANSWER),
+          'the askpass answer did not come through',
+        );
+        assert.ok(!result.stdout.includes('owners-stored-login'));
+      });
+
+      it("the control: without GIT_ASKPASS and SSH_ASKPASS in the wiring, the caller's askpass answer does come through", async () => {
+        rmSync(join(configDir(), 'app.json'));
+        const result = await git(['credential', 'fill'], GITHUB, {
+          skipWiring: ['GIT_ASKPASS', 'SSH_ASKPASS'],
+        });
+        assert.match(result.stdout, new RegExp(ASKPASS_ANSWER));
+      });
+
+      it('an empty GIT_ASKPASS alone already stops SSH_ASKPASS and core.askPass from answering', async () => {
+        rmSync(join(configDir(), 'app.json'));
+        const result = await git(['credential', 'fill'], GITHUB, { skipWiring: ['SSH_ASKPASS'] });
+        assert.notEqual(result.status, 0);
+        assert.ok(!result.stdout.includes(ASKPASS_ANSWER));
+      });
+
+      it('never prompts on a terminal', () => {
+        assert.equal(read().env.GIT_TERMINAL_PROMPT, '0');
       });
 
       it('other hosts keep git config as it is', async () => {

@@ -1093,7 +1093,7 @@ describe('flow.sh facts', () => {
       encoding: 'utf8',
       env: {
         ...gh.env([
-          { match: '^api user', out: { login: 'thekeyvan' } },
+          { match: '^api user', out: { login: 'person1' } },
           {
             match: '^issue view 9999 ',
             out: {
@@ -1175,11 +1175,11 @@ describe('flow.sh facts', () => {
   });
 
   it('without FIVVI_ASSIGNEE, `me` is the login gh api user reads', () => {
-    assert.equal(factsOfMe(), 'thekeyvan');
+    assert.equal(factsOfMe(), 'person1');
   });
 
   it('an empty FIVVI_ASSIGNEE counts as unset', () => {
-    assert.equal(factsOfMe({ FIVVI_ASSIGNEE: '' }), 'thekeyvan');
+    assert.equal(factsOfMe({ FIVVI_ASSIGNEE: '' }), 'person1');
   });
 
   it('calls a question answered once the newest comment is not a triage note', () => {
