@@ -107,6 +107,8 @@
     ["Les gaat niet door in rooster", "#489", "warn", "", ["Kracht", "Strength"], [["Gaat niet door", "Cancelled"]], [["Naar je overzicht", "To your overview"]]],
     ["Offline", "#469", "warn", "", ["Je bent offline", "You're offline"], [["Je bent offline. Sommige gegevens zijn misschien niet actueel.", "You're offline. Some information may not be up to date."]], []]
   ];
+  /* buttons that lead on, the rest close the page */
+  var NEXT = { "Betalen met iDEAL": "c-checkout", "Aanbod bekijken": "c-offers", "Betalen": "c-checkout", "Nu betalen": "c-checkout" };
   var TONE = { ok: ["check", "var(--ok)"], warn: ["warn", "var(--gym)"], bad: ["warn", "var(--danger)"], info: ["info", "var(--accent)"] };
   ST.forEach(function (s) {
     L(s[4]); s[5].forEach(L); (s[6] || []).forEach(L); (s[7] || []).forEach(L); (s[8] || []).forEach(L);
@@ -114,7 +116,7 @@
       var t = TONE[s[2]], b = '<div class="pad stack"><div class="card c-payres" style="--c:' + t[1] + '"><span>' + ic(t[0]) + "</span><h3>" + esc(s[4][0]) + "</h3>" + s[5].map(function (l) { return "<p>" + esc(l[0]) + "</p>"; }).join("") + "</div>";
       if (s[8]) b += '<div class="fgrp">' + s[8].map(function (f) { return '<label class="fld"><span>' + esc(f[0]) + '</span><input type="text"></label>'; }).join("") + "</div>";
       if (s[7]) s[7].forEach(function (x) { b += /^Ik /.test(x[0]) ? '<label class="pro-check"><input type="checkbox"> <span>' + esc(x[0]) + "</span></label>" : '<p class="c-st-note">' + esc(x[0]) + "</p>"; });
-      (s[6] || []).forEach(function (x, i) { b += i === 0 ? cbtn(x[0], "c-webclose") : K.btn(x[0], { k: "ghost", blk: true, a: "c-webclose" }); });
+      (s[6] || []).forEach(function (x, i) { var act = NEXT[x[0]] || "c-webclose"; b += i === 0 ? cbtn(x[0], act) : K.btn(x[0], { k: "ghost", blk: true, a: act }); });
       return X.payWeb(s[4][0], s[3] || "Fivvi", b + "</div>");
     };
   });
