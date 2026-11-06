@@ -400,7 +400,7 @@ The prototype had to choose something for these. **The owner confirmed every ite
 13. **A connection that breaks later** (#466): the studio stays open for its clients, who keep booking with what they have, and the join link keeps working. New online sales and renewals stop until the owner reconnects.
 14. **Weekly limit** (#483): the *Weeklimiet* field shows only when unused classes stay valid, because a client can't save up classes that expire. A new workspace starts with no limit; the pilot sets 4.
 15. **Screens added on 6 November 2026 from the spec text** (`more-*.js`): the screens and states the specs already described but the prototype didn't show. The copy follows the spec, shortened in places, and the spec's wording wins when they differ. The layout isn't the owner's choice until they've clicked through it. *Korte teksten* lists messages with no screen of their own.
-16. **A trainer or owner changing their own email address:** the same account-level step as a client's (#497, F033, verified by a code), on *Mijn profiel* and in Fivvi Pro's *Profiel*. No spec covers it for the team yet; the owner asked about it on 6 November 2026.
+16. **A trainer or owner changing their own email address:** the same account-level step as a client's (#497, F033, verified by a code), on *Mijn profiel* and in Fivvi Pro's *Profiel*. F005 (#173) built the address as read-only and left changing it out of scope (F001), so this adds to it; the owner asked about it on 6 November 2026.
 
 ## 8. What this changes in existing documents
 
