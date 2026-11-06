@@ -722,8 +722,8 @@
     if (d.n === "cash") { openDlg("cash", { offer: F.offerStart(D.onOffers()), how: "Contant", date: F.TODAY }); return; }
     if (d.n === "refund") { var pay = D.billing[W().cid].payments[+d.i]; openDlg("refund", { amount: pay[2] }, { i: +d.i }); return; } var w = W(), it = w.sheet ? F.findItem(w.sheet).it : w.kid ? (F.findItem(w.kid) || {}).it : null; openDlg(d.n, it ? { start: it.s, end: it.e, cap: String(it.cap || ""), level: F.level(it), date: w.sheet ? F.findItem(w.sheet).day : F.TODAY, trainer: D.trainers.sf.filter(function (x) { return !it || x !== who(it); })[0] } : {}, { i: d.i }); };
   A["w-decline"] = function (d) { openDlg("decline", {}, { id: d.id }); };
-  A["w-new-priv"] = function () { openDlg("newpriv", { client: "anna", loc: D.locations[0] }); };
-  A["w-plan"] = function (d) { openDlg("newpriv", { client: d.id, date: F.key(F.add(F.NOW, 1)), start: "10:30", loc: D.locations[0] }); };
+  A["w-new-priv"] = function () { openDlg("newpriv", { client: "anna", loc: D.workspaces.sf.location }); };
+  A["w-plan"] = function (d) { openDlg("newpriv", { client: d.id, date: F.key(F.add(F.NOW, 1)), start: "10:30", loc: D.workspaces.sf.location }); };
   A["w-new-client"] = function () { openDlg("newclient", { name: "", email: "" }); };
   A["w-new-class"] = function () { openDlg("newclass", { name: "", start: "19:00", cap: "8", trainer: ME() }); };
   A["w-new-gym"] = function () { openDlg("newgym", { start: "17:00", end: "19:00" }); };
@@ -743,7 +743,7 @@
     else if (d.n === "cancelclass" || d.n === "cancelpriv") { it.cancelled = true; msg = d.n === "cancelpriv" ? "Sessie geannuleerd" : "Les geannuleerd. Klanten krijgen een e-mail."; }
     else if (d.n === "move") { var dur = F.mins(it.e) - F.mins(it.s); it.s = f.start; it.e = F.hm(F.mins(f.start) + dur); msg = "Verplaatst naar " + f.start; }
     else if (d.n === "sub") { it.trainer = f.trainer; it.subFor = true; msg = f.trainer + " valt in"; }
-    else if (d.n === "editclass") { it.s = f.start; it.e = f.end; it.cap = +f.cap || it.cap; it.level = f.level || ""; it.loc = F.placeOf(f.loc); }
+    else if (d.n === "editclass") { it.s = f.start; it.e = f.end; it.cap = +f.cap || it.cap; it.level = f.level || ""; it.loc = F.placeOf(f.loc, it.ws); }
     else if (d.n === "wlremove") { it.waitlist = Math.max(0, (it.waitlist || 0) - 1); msg = "Van de wachtlijst gehaald"; }
     else if (d.n === "offer-edit") {
       if (!(f.name || "").trim()) { bad("name", "Vul een naam in"); return; }

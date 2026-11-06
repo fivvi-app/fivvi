@@ -208,8 +208,9 @@
     return '<label class="fld ' + (cls || "") + (e ? " invalid" : "") + '"><span class="fl">' + label + "</span>" + input + (e ? '<small class="err" role="alert">' + ic("warn") + esc(e) + "</small>" : "") + "</label>";
   }
   function inp(f, type, ph, extra) { return '<input data-f="' + f + '" type="' + (type || "text") + '" value="' + esc(S.form[f] || "") + '" placeholder="' + esc(ph || "") + '"' + (extra || "") + ">"; }
-  /* #586-style sample of item 20: a typed place is offered next time */
-  function placeOf(l) { l = (l || "").trim() || D.workspaces.sf.location; var i = D.locations.indexOf(l); if (i >= 0) D.locations.splice(i, 1); D.locations.unshift(l); return l; }
+  /* DECISIONS.md §7 item 20: a typed place is offered next time, until the setup changes */
+  var PLACESFOR;
+  function placeOf(l, ws) { l = (l || "").trim() || D.workspaces[ws || "sf"].location; var i = D.locations.indexOf(l); if (i >= 0) D.locations.splice(i, 1); D.locations.unshift(l); return l; }
   function whereInp() { return inp("loc", "text", "Bijvoorbeeld Vondelpark", ' list="fv-places" autocomplete="off"') + '<datalist id="fv-places">' + D.locations.map(function (l) { return '<option value="' + esc(l) + '">'; }).join("") + "</datalist>"; }
   function sel(f, opts) { return '<select data-f="' + f + '">' + opts.map(function (o) { var v = Array.isArray(o) ? o[0] : o, l = Array.isArray(o) ? o[1] : o; return '<option value="' + esc(v) + '"' + (String(S.form[f]) === String(v) ? " selected" : "") + ">" + esc(l) + "</option>"; }).join("") + "</select>"; }
   function avatar(name, c, cls) { return '<span class="av ' + (cls || "") + '" style="--c:' + (c || "#8E8E93") + '">' + initials(name) + "</span>"; }
@@ -1283,7 +1284,7 @@
     var sc = SETUPS[PREF.setup];
     D.workspaces.sf.name = sc ? sc.name : PREF.setup === "solo" ? "Sarah Personal Training" : "Studio Fit";
     D.workspaces.sf.location = sc ? sc.loc : PREF.setup === "solo" ? "Fitcentrum Zuid" : "Studio Fit, Kerkstraat 12";
-    D.locations = sc ? [sc.loc, "Fitcentrum Zuid", "Sportcentrum Oost", "Vondelpark (buiten)"] : PREF.setup === "solo" ? ["Fitcentrum Zuid", "Sportcentrum Oost", "Vondelpark (buiten)", "Bij de klant thuis"] : ["Studio Fit, Kerkstraat 12", "Fitcentrum Zuid", "Sportcentrum Oost", "Vondelpark (buiten)"];
+    if (PLACESFOR !== PREF.setup) PLACESFOR = PREF.setup, D.locations = sc ? [sc.loc, "Fitcentrum Zuid", "Sportcentrum Oost", "Vondelpark (buiten)"] : PREF.setup === "solo" ? ["Fitcentrum Zuid", "Sportcentrum Oost", "Vondelpark (buiten)", "Bij de klant thuis"] : ["Studio Fit, Kerkstraat 12", "Fitcentrum Zuid", "Sportcentrum Oost", "Vondelpark (buiten)"];
     loadSetup();
     if (SOLO()) S.scope = "me";
     var dark = PREF.mode === "dark" && a.fillD;
