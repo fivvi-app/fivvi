@@ -16,7 +16,7 @@ All baselines are estimates (quick questions, not a diary). At G5 the same quest
 | | |
 |---|---|
 | **Baseline** | Group classes: booked through the current booking app, sometimes WhatsApp. Private training: WhatsApp. The gym owner expects 10 out of 10 clients to book themselves through a link or QR code (question 20) |
-| **Agreed target** | **≥ 80 %** of group-class and Open Gym bookings through the public booking pages (minimum), hoped for 90 % or more |
+| **Agreed target** | **≥ 80 %** of group-class and Open Gym bookings (group classes only while Open Gym is postponed, `PRODUCT.md §53`) through the public booking pages (minimum), hoped for 90 % or more |
 | **Reason** | The roadmap default stands. The gym owner expects almost everyone to self-book, and group classes already self-book today |
 | **Measured** | Bookings by source in the database, pilot weeks 4–6 |
 

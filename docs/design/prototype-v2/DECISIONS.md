@@ -7,7 +7,7 @@
 | **Scope** | Fivvi Pro and the client app Fivvi (iOS and Android), trainer web, client web |
 | **Replaces** | [`visual-direction.md`](../visual-direction.md) v1 (muted violet), and the parts of the flows and the IA listed in [§8](#8-what-this-changes-in-existing-documents) |
 
-This is the record of what the owner and the agent decided while clicking through the prototype. The prototype shows how each decision looks and behaves; this file says it in words. A spec or ticket with a UI follows this file and names the prototype screen it implements. Where an older document disagrees, [§8](#8-what-this-changes-in-existing-documents) lists the conflict and where it gets resolved. Open points are in [§7](#7-assumptions-still-to-confirm): they are **not** decided.
+This is the record of what the owner and the agent decided while clicking through the prototype. The prototype shows how each decision looks and behaves; this file says it in words. A spec or ticket with a UI follows this file and names the prototype screen it implements. Where an older document disagrees, [§8](#8-what-this-changes-in-existing-documents) lists the conflict and where it gets resolved. The prototype's assumptions are in [§7](#7-assumptions), which says which ones the owner confirmed.
 
 ## 1. How we decide UI
 
@@ -308,7 +308,7 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
   - The client web works the same way: the switcher on *Rooster*.
   - Screens: the index entries *Twee studio's* and *Studio toevoegen*, with the fictional second studio Yoga Loft.
 
-**Question for the owner:** should the client web move to the same four tabs as the app? It has *Rooster | Mijn agenda | Profiel* now, and the app has *Home | Boeken | Activiteit | Profiel*. One layout would mean clients find things in the same place everywhere.
+**Decided (owner, 6 November 2026):** the client web moves to the same four tabs as the app, *Home | Boeken | Activiteit | Profiel*, so clients find things in the same place everywhere. The prototype still shows *Rooster | Mijn agenda | Profiel* until it is updated.
 
 ## 6. Product decisions
 
@@ -328,9 +328,9 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
 | **Open Gym: later** | Owner, 6 November 2026: not in the MVP, with Open Gym credits and the Open Gym booking link. The prototype hides it everywhere; the code stays for when it comes. The colour stays reserved | `PRODUCT.md §53`, [#470](https://github.com/fivvi-app/fivvi/issues/470), [#471](https://github.com/fivvi-app/fivvi/issues/471), [#472](https://github.com/fivvi-app/fivvi/issues/472) |
 | **Client web tabs** | The same four tabs as the app, *Home · Boeken · Activiteit · Profiel* (owner, 6 November 2026). The prototype still shows the earlier tabs | [#489](https://github.com/fivvi-app/fivvi/issues/489), [#497](https://github.com/fivvi-app/fivvi/issues/497) |
 
-## 7. Assumptions still to confirm
+## 7. Assumptions
 
-The prototype had to choose something for these. **The owner confirmed every item here on 6 November 2026, except item 9**, so a spec builds them as written and asks only about item 9.
+The prototype had to choose something for these. **The owner confirmed every item here on 6 November 2026, except item 9.** A spec builds the confirmed items as written. Item 9 is not decided, so a spec that touches it asks the owner.
 
 1. **Trainers and balances:** trainers see their clients' credit balances, but no money (`QC12`).
 2. ***Aanbod sturen*:** it sends the client a link to confirm and pay.
@@ -348,14 +348,14 @@ The prototype had to choose something for these. **The owner confirmed every ite
    - two clients; if one cancels, it continues as a private session (#586).
 6. **Levels:**
    - a fixed list of four;
-   - information only;
+   - information only, with no filter;
    - set on the series and changeable per date (#587).
 7. **Wording:** a fixed list of four words, and the internal role stays *trainer* (#588).
 8. **Trainers page:**
    - a workspace may have more than one owner;
    - the handover covers the next 2 weeks.
 9. **Reordering and bulk attendance:** the prototype shows reordering sets and exercises, and *Iedereen aanwezig* on class attendance. Both are planned for Release 1.1 (`PRODUCT.md §54`: "workout reordering", "bulk attendance"), so the MVP builds without them unless the owner moves them into the MVP.
-10. **More than one studio:** *Home* and *Mijn agenda* combine every studio. QE05 leaves this to the F033 spec; the prototype assumes it.
+10. **More than one studio:** *Home* and *Mijn agenda* combine every studio. QE05 left this to the F033 spec; the owner confirmed it.
 11. **Doing a shared workout on your own** (#602):
     - it is stored under the workspace whose trainer shared the workout (`organization_id`); that only the client can read it is decided (§5b);
     - it counts in *Deze week*, *Activiteit* and the weeks in a row;

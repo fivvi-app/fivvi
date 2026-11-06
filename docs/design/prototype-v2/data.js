@@ -254,7 +254,7 @@ window.FIVVI_DATA = (function () {
       payments: [["15 sep 2026", "10 groepscredits", "€ 150,00", "iDEAL", "paid", "F-2026-0350"]] },
     bram: { agreements: [{ id: "a7", end: "stop", endsIn: 25, remindSent: "31 okt", kind: "abo", name: "Groep 1× per week", price: "€ 39", cycle: "Elke maand", since: "1 mei 2026", period: "stopt 30 nov 2026", next: "—", status: "ending", perWeek: 1, usedWeek: 1, makeups: 0, hist: [["ma 2 nov", "Week begonnen: 1 les", "+1", "Abonnement"], ["do 5 nov", "Gebruikt voor Strength", "−1", "Bram boekte"]] }],
       payments: [["1 nov 2026", "Groep 1× per week", "€ 39,00", "Incasso", "paid", "F-2026-0420"]] },
-    fleur: { agreements: [{ id: "a8", end: "stop", endsIn: 57, kind: "pack", credit: "groep", name: "5 groepscredits", price: "€ 40", cycle: "Eenmalig", since: "1 okt 2026", period: "geldig tot 1 jan 2027", status: "active", total: 5, used: 2, planned: 0, hist: [["1 okt", "5 Open Gym-credits toegekend", "+5", "Creditpakket gekocht"]] }],
+    fleur: { agreements: [{ id: "a8", end: "stop", endsIn: 57, kind: "pack", credit: "groep", name: "5 groepscredits", price: "€ 40", cycle: "Eenmalig", since: "1 okt 2026", period: "geldig tot 1 jan 2027", status: "active", total: 5, used: 2, planned: 0, hist: [["1 okt", "5 groepscredits toegekend", "+5", "Creditpakket gekocht"]] }],
       payments: [["1 okt 2026", "5 groepscredits", "€ 40,00", "iDEAL", "refund", "F-2026-0391 · creditfactuur F-2026-0402"]] },
     thomas: { agreements: [{ id: "a9", end: "stop", endsIn: -1, kind: "pack", credit: "groep", name: "Proefles", price: "€ 0", cycle: "Eenmalig", since: "28 okt 2026", period: "verlopen 4 nov 2026", status: "expired", total: 1, used: 1, planned: 0, hist: [["28 okt", "1 groepscredit toegekend", "+1", "Proefaanbod, 1× per klant"], ["30 okt", "Gebruikt voor Strength", "−1", "Thomas boekte"]] }], payments: [] },
     eva: { agreements: [
@@ -339,6 +339,7 @@ window.FIVVI_DATA = (function () {
   /* Open Gym comes later (owner, 6 Nov 2026; PRODUCT §53): the sample has none, and the code stays for when it comes */
   function noGym(l) { return l.filter(function (x) { return (x.type || x[0]) !== "gym"; }); }
   today = noGym(today); pattern = pattern.map(function (d) { return d && noGym(d); });
+  offerList = offerList.filter(function (o) { return o.credit !== "gym"; });
   return { RENEW_DAYS: RENEW_DAYS, remindLine: remindLine, offerList: offerList, offerNames: offerNames, TERMS: TERMS, LEVELS: LEVELS, levels: levels, lifts: lifts, weeks: weeks, DIFF: DIFF, spark: spark, bsum: bsum, CREDIT: CREDIT, KIND: KIND, billing: billing, setups: setups, me: me, workspaces: workspaces, locations: locations, trainers: trainers, clients: clients, notes: notes, history: history, selfLog: selfLog,
     progress: progress, tpl: tpl, descriptions: descriptions, today: today, pattern: pattern, templates: templates, library: library, upperA: upperA };
 })();

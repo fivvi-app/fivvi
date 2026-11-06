@@ -17,7 +17,7 @@ Each agent's `claude-tools` field is its tool allowlist in Claude Code (the gene
 
 ## Design
 
-A ticket with a screen builds what the owner decided in the prototype. Before building or reviewing it, read the part of [`docs/design/prototype-v2/DECISIONS.md`](../design/prototype-v2/DECISIONS.md) for that surface, and the comments on the parent spec (`gh issue view <spec> --comments`): `issue.sh show` prints only the body, and the design decisions on specs approved before the prototype are in their comments. Where a ticket and `DECISIONS.md` disagree, stop and report it. `DECISIONS.md` §7 lists assumptions that are not decided: ask, don't build them as decided. The prototype shows look and flow, never architecture.
+A ticket with a screen builds what the owner decided in the prototype. Before building or reviewing it, read the part of [`docs/design/prototype-v2/DECISIONS.md`](../design/prototype-v2/DECISIONS.md) for that surface, and the comments on the parent spec (`gh issue view <spec> --comments`): `issue.sh show` prints only the body, and the design decisions on specs approved before the prototype are in their comments. Where a ticket and `DECISIONS.md` disagree, stop and report it. `DECISIONS.md` §7 lists the prototype's assumptions: build the ones the owner confirmed, and ask about any other, don't build it as decided. The prototype shows look and flow, never architecture.
 
 ## Loop
 

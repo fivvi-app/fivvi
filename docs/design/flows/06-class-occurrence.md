@@ -2,7 +2,7 @@
 
 **Open one class on one date → swap the trainer, change or cancel it, or take attendance**
 
-> **Design v2 (5 November 2026, ADR-029).** [Prototype v2](../prototype-v2/DECISIONS.md#les-and-open-gym-td-03) adds a class level in the header (#587), the waitlist in order on the web, and confirmations for every removal. The flow below still applies.
+> **Design v2 (5 November 2026, ADR-029).** [Prototype v2](../prototype-v2/DECISIONS.md#les-td-03) adds a class level in the header (#587), the waitlist in order on the web, and confirmations for every removal. The flow below still applies.
 
 | | |
 |---|---|

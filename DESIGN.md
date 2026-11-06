@@ -52,7 +52,7 @@ Where the design matters, the owner decides by **talking it over in the clickabl
 **Rules:**
 
 - The prototype shows look and flow, never architecture. Business rules stay in `packages/domain`; strings in the product come from `packages/i18n`.
-- `DECISIONS.md` §7 lists assumptions that are **not decided**. A spec asks the owner about each one it touches; it never builds an assumption as if it were decided.
+- `DECISIONS.md` §7 lists the prototype's assumptions and which of them the owner confirmed. A spec builds a confirmed one as written. It asks the owner about any other it touches, and never builds that as if it were decided.
 
 ## Web (`apps/web`, `packages/ui`)
 

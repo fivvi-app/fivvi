@@ -873,6 +873,7 @@
     if (kind === "offer" || kind === "offerlast") a.offerSent = "3 nov";
     if (kind === "last" || kind === "offerlast") { a.endsIn = 7; a.period = "geldig tot 12 nov 2026"; a.remindSent = "13 okt"; }
     if (kind === "low") { a.used = 6; a.remindSent = "5 nov"; }
+    if (kind === "usedup") a.used = 8;
   }
   function renewCard() {
     var r = clientRenew(); if (!r) return "";
@@ -1360,7 +1361,7 @@
     ["Home", "F033", goApp("app", { who: "anna", atab: "home" })],
     ["Boeken", "F027", goApp("app", { who: "anna", atab: "boeken" })],
     ["Les boeken", "F031", goApp("app", { who: "anna", atab: "boeken" }, function (c) { var t = F.dayItems(F.key(F.add(F.NOW, 1))).filter(function (i) { return i.type !== "priv" && i.people.length < i.cap && !c.booked[i.id]; })[0]; c.detail = t ? t.id : null; c.day = F.key(F.add(F.NOW, 1)); })],
-    ["Geen credits: aanbod op het web", "F052", goApp("app", { who: "anna", atab: "boeken" }, function (c) { var t = timetable(F.key(F.add(F.NOW, 1))).filter(function (i) { return i.type === "gym"; })[0] || timetable(F.TODAY).filter(function (i) { return i.type === "gym"; })[0]; if (t) c.detail = t.id; else c.web = "offers"; })],
+    ["Geen credits: aanbod op het web", "F052", goApp("app", { who: "anna", atab: "boeken" }, function (c) { renewDemo("usedup"); var t = timetable(F.key(F.add(F.NOW, 1)))[0] || timetable(F.TODAY)[0]; if (t) c.detail = t.id; else c.web = "offers"; })],
     ["Activiteit", "F045", goApp("app", { who: "anna", atab: "training" })],
     ["Gedeelde training", "F045", goApp("app", { who: "anna", atab: "training", workout: 0 })],
     ["Profiel en tegoed", "F033", goApp("app", { who: "anna", atab: "profiel" })],
