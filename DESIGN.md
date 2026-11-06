@@ -18,7 +18,7 @@ The locked design system, and how design decisions are made. Design tools and sk
 **Calendar calm, Fitness pops.** Fivvi looks like it belongs next to Apple Calendar, Fitness and Health, and reads clearly in a busy gym: time, client, location, capacity and the next action come first.
 
 - **Calm:** a grouped grey canvas, white cards, inset lists, true black in dark mode.
-- **Energy:** gradient cards in one hue, rounded numbers, sharp colour in small doses, with **Move pink** as the accent and a black-and-white accent as the alternative.
+- **Energy:** gradient cards in one hue, rounded numbers, sharp colour in small doses, with **Move pink** as the only accent.
 - The session type is shown in words, never by colour alone. Light and dark follow the system setting.
 - The UI only shows what exists: a solo PT never sees group classes or Open Gym. Every list can be added to, changed and removed from, and every removal asks for confirmation.
 

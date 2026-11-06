@@ -29,7 +29,7 @@ The latest iOS design, Liquid Glass, needs **iOS 26**. ADR-003 set the minimum a
 - **Web: shadcn/ui**, with zinc neutrals, as in ADR-015.
 - **One theme on every platform:** "Calendar calm, Fitness pops".
   - Base: a grouped grey canvas with white cards, true black in dark mode, and inset grouped lists with radius 26.
-  - Accent: **Move pink `#E6164A`**, with a black-and-white accent as the alternative.
+  - Accent: **Move pink `#E6164A`**, the only accent (owner, 6 November 2026; this drops the black-and-white alternative first recorded here).
   - Session-type colours: private `#0088FF`, group `#CB30E0`, Open Gym `#FF8D28`.
   - Gradients stay in one hue; numbers use a rounded face with tabular digits.
   - Contrast: text 4.5:1, icons 3:1, in light and dark.

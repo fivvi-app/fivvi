@@ -553,7 +553,6 @@ input:focus,select:focus,textarea:focus{outline:none}
 .android .row{min-width:0}
 .android .att .btn{height:36px;padding:0 14px;font-size:14px}
 /* the black accent's swatch needs an edge on a dark panel */
-.sw button[data-v="mono"]{box-shadow:inset 0 0 0 1px rgba(255,255,255,.25),inset 0 0 0 1px rgba(0,0,0,.1)}
 /* On a phone the device fills the screen: no fake status bar, so only a small top inset (this must come after .dev{--top}) */
 @media (max-width:640px){.dev,.dev.android{--top:14px}}
 /* Icon tiles (New sheet, training card, start-workout list): the glyph sits inside the tile, about half its size */
@@ -597,7 +596,7 @@ input:focus,select:focus,textarea:focus{outline:none}
 .chip{border:0;border-radius:999px;padding:6px 12px;font-size:14px;font-weight:600;background:color-mix(in srgb,var(--gym) 16%,transparent);color:color-mix(in oklab,var(--gym) 55%,var(--ev-ink))}
 .android .chip{border-radius:8px}
 .row.dc .tr .btn{height:34px}
-/* Anything filled with the accent uses the accent's own text colour (the black-and-white accent is near-white in dark mode) */
+/* Anything filled with the accent uses the accent's own text colour */
 .dc-ic[style*="var(--accent)"],.av[style*="var(--accent)"]{color:var(--on-accent)}
 .acc-ic,.appicon{color:var(--on-accent)}
 /* Android single-choice toggles: the Material 3 segmented button, one outlined pill split into equal segments */

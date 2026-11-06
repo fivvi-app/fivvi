@@ -163,12 +163,7 @@
 
   /* ---------- State ---------- */
   var ACC = [
-    { k: "pink", n: "Move pink", fill: "#E6164A", on: "#FFFFFF", tl: "#C8103D", td: "#FF6482" },
-    { k: "mono", n: "Zwart-wit", fill: "#18181B", on: "#FFFFFF", tl: "#18181B", td: "#FAFAFA", fillD: "#FAFAFA", onD: "#18181B" },
-    { k: "indigo", n: "Indigo", fill: "#6155F5", on: "#FFFFFF", tl: "#5146E0", td: "#9D97FF" },
-    { k: "blue", n: "Calendar blue", fill: "#0071E3", on: "#FFFFFF", tl: "#0066CC", td: "#4AA3FF" },
-    { k: "green", n: "Exercise green", fill: "#30D158", on: "#000000", tl: "#1A7F37", td: "#4CD964" },
-    { k: "orange", n: "Health orange", fill: "#FF8D28", on: "#000000", tl: "#B35400", td: "#FFA654" }
+    { k: "pink", n: "Move pink", fill: "#E6164A", on: "#FFFFFF", tl: "#C8103D", td: "#FF6482" }
   ];
   var PREF = { setup: "team", lang: "nl", plat: "ios", mode: matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light", accent: "pink", glass: "regular", role: "owner", app: "pro" };
   try { var saved = JSON.parse(localStorage.getItem("fivvi-proto-v2") || "{}"); for (var pk in saved) if (pk in PREF) PREF[pk] = saved[pk]; } catch (e) { /* storage unavailable */ }
@@ -1242,8 +1237,6 @@
     ]]
   ];
   function buildPanel() {
-    var sw = document.getElementById("sw");
-    sw.innerHTML = ACC.map(function (a) { return '<button data-pref="accent" data-v="' + a.k + '" style="--c:' + a.fill + '" title="' + a.n + '" aria-label="' + a.n + '"></button>'; }).join("");
     document.getElementById("idx").innerHTML = INDEX.map(function (g, gi) {
       return "<h3>" + g[0] + "</h3>" + g[1].map(function (x, i) { return '<button data-go="' + gi + "," + i + '"' + (x[2] ? "" : " disabled style=\"opacity:.45;cursor:default\"") + ">" + x[0] + "<span>" + x[1] + "</span></button>"; }).join("");
     }).join("");
