@@ -16,6 +16,8 @@
     return its.sort(function (a, b) { return F.mins(a.s) - F.mins(b.s); });
   }
   function shortLoc(l) { return String(l || "").split(",")[0]; }
+  /* item 20: a place with an address gets a route, a place without one is just its name */
+  function routeLink(l) { return /\d/.test(l) ? ' <button class="w-link" data-a="w-toast" data-m="Opent de route in Kaarten">Route</button>' : ""; }
   /* A client can train at more than one studio or PT with one account (PRODUCT §2.9, ADR-026; owner, 5 Nov 2026).
      Home, Mijn agenda and Activiteit show every studio together; Boeken and Tegoed are per studio, with a switcher.
      Yoga Loft is a fictional second studio for the prototype. */
@@ -368,7 +370,7 @@
   PAGES.klass = function () {
     var w = W(), f = F.findItem(w.kid); if (!f) { w.page = "classes"; return PAGES.classes(); }
     var it = f.it, k = f.day, am = it.attMap || (it.attMap = {}), h = "", free = it.cap - it.people.length, ds = desc(it.title);
-    h += '<div class="w-phead"><span class="w-av lg" style="--c:' + F.CV[it.type] + ';border-radius:14px">' + ic(it.type === "gym" ? "door" : "group") + "</span><div><h2>" + esc(it.title) + (it.cancelled ? " " + badge("Geannuleerd", "var(--danger)") : "") + "</h2><p>" + F.longDate(F.parse(k)) + " · " + it.s + "–" + it.e + " · " + esc(shortLoc(it.loc)) + (it.type !== "gym" ? " · " + esc(who(it) === ME() ? "Jij" : who(it)) : "") + "</p></div>" +
+    h += '<div class="w-phead"><span class="w-av lg" style="--c:' + F.CV[it.type] + ';border-radius:14px">' + ic(it.type === "gym" ? "door" : "group") + "</span><div><h2>" + esc(it.title) + (it.cancelled ? " " + badge("Geannuleerd", "var(--danger)") : "") + "</h2><p>" + F.longDate(F.parse(k)) + " · " + it.s + "–" + it.e + " · " + esc(it.loc) + (it.type !== "gym" ? " · " + esc(who(it) === ME() ? "Jij" : who(it)) : "") + "</p></div>" +
       '<div class="w-hgroup end">' + (it.type !== "gym" ? btn("Trainer vervangen", "w-dlg", { k: "outline", d: { n: "sub" } }) : "") + btn("Wijzigen", "w-dlg", { k: "outline", d: { n: "editclass" } }) + btn("Les annuleren", "w-dlg", { k: "dng", d: { n: "cancelclass" }, dis: it.cancelled }) + "</div></div>";
     h += '<div class="w-kpis" style="--n:3">' + kpi("Geboekt", it.people.length + "<small>/" + it.cap + "</small>", free > 0 ? free + (free === 1 ? " plek vrij" : " plekken vrij") : "vol", F.CV[it.type], it.people.length, it.cap) +
       kpi("Aanwezig", String(Object.keys(am).filter(function (x) { return am[x] === "yes"; }).length), "van " + it.people.length, "var(--ok)") + kpi("Wachtlijst", String(it.waitlist || 0), it.waitlist ? "op volgorde" : "niemand", "var(--accent)") + "</div>";
@@ -741,7 +743,7 @@
     else if (d.n === "cancelclass" || d.n === "cancelpriv") { it.cancelled = true; msg = d.n === "cancelpriv" ? "Sessie geannuleerd" : "Les geannuleerd. Klanten krijgen een e-mail."; }
     else if (d.n === "move") { var dur = F.mins(it.e) - F.mins(it.s); it.s = f.start; it.e = F.hm(F.mins(f.start) + dur); msg = "Verplaatst naar " + f.start; }
     else if (d.n === "sub") { it.trainer = f.trainer; it.subFor = true; msg = f.trainer + " valt in"; }
-    else if (d.n === "editclass") { it.s = f.start; it.e = f.end; it.cap = +f.cap || it.cap; it.level = f.level || ""; it.loc = (f.loc || "").trim() || it.loc; }
+    else if (d.n === "editclass") { it.s = f.start; it.e = f.end; it.cap = +f.cap || it.cap; it.level = f.level || ""; it.loc = F.placeOf(f.loc); }
     else if (d.n === "wlremove") { it.waitlist = Math.max(0, (it.waitlist || 0) - 1); msg = "Van de wachtlijst gehaald"; }
     else if (d.n === "offer-edit") {
       if (!(f.name || "").trim()) { bad("name", "Vul een naam in"); return; }
@@ -805,9 +807,9 @@
       msg = d.t.split(" ")[0] + " is verwijderd" + (f.to ? ". Sessies en lessen zijn overgedragen aan " + f.to.split(" ")[0] : "");
     }
     else if (d.n === "tinvdel") { D.invited.splice(d.i, 1); msg = "Uitnodiging ingetrokken"; }
-    else if (d.n === "newpriv") { F.addItem(f.date, { id: "n" + Date.now(), ws: "sf", type: "priv", s: f.start, e: F.hm(F.mins(f.start) + +f.dur), client: f.client, duo: f.duo && f.duo !== f.client ? f.duo : undefined, loc: (f.loc || "").trim() || D.workspaces.sf.location, att: null }); msg = f.duo && f.duo !== f.client ? "Duosessie gepland" : "Sessie gepland"; }
+    else if (d.n === "newpriv") { F.addItem(f.date, { id: "n" + Date.now(), ws: "sf", type: "priv", s: f.start, e: F.hm(F.mins(f.start) + +f.dur), client: f.client, duo: f.duo && f.duo !== f.client ? f.duo : undefined, loc: F.placeOf(f.loc), att: null }); msg = f.duo && f.duo !== f.client ? "Duosessie gepland" : "Sessie gepland"; }
     else if (d.n === "newclient") { if (!(f.name || "").trim()) { bad("name", "Vul een naam in"); return; } if (!/.+@.+\..+/.test(f.email || "")) { bad("email", "Vul een geldig e-mailadres in"); return; } F.addClient({ id: "c" + Date.now(), ws: "sf", name: f.name.trim(), email: f.email.trim(), lang: f.lang, last: "Nog geen sessie", c: "#8E8E93" }); msg = payOpen() ? "Klant toegevoegd. De uitnodiging is verstuurd." : "Klant toegevoegd. De uitnodiging gaat uit zodra de studio klaar is."; }
-    else if (d.n === "newclass") { if (!(f.name || "").trim()) { bad("name", "Vul een naam in"); return; } F.saveClassText(f.name.trim(), f, false); F.addItem(F.key(F.add(F.NOW, 1)), { id: "n" + Date.now(), ws: "sf", type: "group", s: f.start, e: F.hm(F.mins(f.start) + 60), title: f.name.trim(), level: f.level || "", cap: +f.cap || 8, people: [], loc: (f.loc || "").trim() || D.workspaces.sf.location, trainer: f.trainer === "Trainer nodig" ? "" : f.trainer }); msg = "Les gemaakt"; }
+    else if (d.n === "newclass") { if (!(f.name || "").trim()) { bad("name", "Vul een naam in"); return; } F.saveClassText(f.name.trim(), f, false); F.addItem(F.key(F.add(F.NOW, 1)), { id: "n" + Date.now(), ws: "sf", type: "group", s: f.start, e: F.hm(F.mins(f.start) + 60), title: f.name.trim(), level: f.level || "", cap: +f.cap || 8, people: [], loc: F.placeOf(f.loc), trainer: f.trainer === "Trainer nodig" ? "" : f.trainer }); msg = "Les gemaakt"; }
     else if (d.n === "newgym") { F.addItem(f.date, { id: "n" + Date.now(), ws: "sf", type: "gym", s: f.start, e: f.end, title: "Open Gym", cap: +f.cap || 10, people: [], loc: D.workspaces.sf.location }); msg = "Open Gym-blok gepubliceerd"; }
     w.dialog = null; w.err = {}; F.toast(msg);
   };
@@ -1021,13 +1023,13 @@
   function cfam(k) { var f = window.FVW.cfam; return f ? f(k) : ""; }
   function detailView() {
     var c = C(), f = cfind(c.detail), it = f.it, k = f.day, st = cState(it), ds = it.type === "group" ? desc(it.title) : null, left = spotsLeft(it), when = dayName(k) + " · " + it.s + "–" + it.e;
-    if (it.type === "priv") return { title: it.duo ? "Duosessie" : "Privésessie", body: K.lt(it.duo ? "Duosessie" : "Privésessie", "Met " + esc(cwho(it).split(" ")[0]), when) + '<div class="pad">' + K.grp([kv("Trainer", esc(cwho(it)))].concat(it.duo ? [kv("Samen met", esc(F.CLIENT[mate(it)].name))] : []).concat([kv("Locatie", esc(it.loc))])) + "</div>" + (it.duo ? K.foot("Je traint samen met " + esc(F.CLIENT[mate(it)].name.split(" ")[0]) + ". Je trainer houdt ieders training apart bij.") : "") + K.foot("Verzetten? Neem contact op met je trainer.") + '<div class="pad stack" style="margin-top:12px">' + K.btn("Annuleren aanvragen", { k: "sec", blk: true, a: "c-st", d: { v: "Annuleren aanvragen" } }) + "</div>" + cfam("priv") };
+    if (it.type === "priv") return { title: it.duo ? "Duosessie" : "Privésessie", body: K.lt(it.duo ? "Duosessie" : "Privésessie", "Met " + esc(cwho(it).split(" ")[0]), when) + '<div class="pad">' + K.grp([kv("Trainer", esc(cwho(it)))].concat(it.duo ? [kv("Samen met", esc(F.CLIENT[mate(it)].name))] : []).concat([kv("Locatie", esc(it.loc) + routeLink(it.loc))])) + "</div>" + (it.duo ? K.foot("Je traint samen met " + esc(F.CLIENT[mate(it)].name.split(" ")[0]) + ". Je trainer houdt ieders training apart bij.") : "") + K.foot("Verzetten? Neem contact op met je trainer.") + '<div class="pad stack" style="margin-top:12px">' + K.btn("Annuleren aanvragen", { k: "sec", blk: true, a: "c-st", d: { v: "Annuleren aanvragen" } }) + "</div>" + cfam("priv") };
     var b = K.lt(F.TYPE[it.type], esc(it.title), when) + '<div class="pad stack">';
     if (ds) b += '<div class="card"><p class="c-desc" translate="no"' + (ds.nl ? ' lang="nl"' : "") + ">" + esc(ds.t) + "</p></div>";
     var booked = it.cap - left, pct = Math.min(100, booked / it.cap * 100);
     b += '<div class="card"><div style="display:flex;justify-content:space-between;align-items:baseline"><div><div class="stat-l ink" style="--c:' + F.CV[it.type] + '">Plekken vrij</div><div class="num" style="font-size:34px;line-height:38px">' + Math.max(0, left) + '<small style="font-size:17px;color:var(--label2)">/' + it.cap + "</small></div></div>" + statePill(it) + "</div>" +
       '<div class="c-cap" style="--c:' + F.CV[it.type] + '"><i style="width:' + pct + '%"></i></div></div>';
-    b += K.grp((it.type === "gym" ? [] : [kv("Trainer", esc(cwho(it)))]).concat(F.level(it) ? [kv("Niveau", F.lvlTag(it))] : []).concat([kv("Locatie", esc(shortLoc(it.loc)))]));
+    b += K.grp((it.type === "gym" ? [] : [kv("Trainer", esc(cwho(it)))]).concat(F.level(it) ? [kv("Niveau", F.lvlTag(it))] : []).concat([kv("Locatie", esc(it.loc) + routeLink(it.loc))]));
     /* credit kinds never mix (PRODUCT §91): a class uses a groepscredit, Open Gym an Open Gym-credit */
     var cr = creditFor(it), ck = cr.ck, bal = cr.bal, noCredit = cr.no;
     if (st === "booked") b += '<div class="banner" style="--c:var(--ok)">' + ic("check") + "<span><b>Je bent erbij.</b> Gratis annuleren tot 12 uur voor de start. Daarna telt de les als gebruikt.</span></div>" + cbtn("Annuleren", "c-cancel", { k: "dng" });
@@ -1462,7 +1464,7 @@
     ["Agenda · week", "WC-02", goWeb("agenda", { view: "week" })],
     ["Agenda · dag per trainer", "WC-02", goWeb("agenda", { view: "day" })],
     ["Agenda · lijst", "WC-02", goWeb("agenda", { view: "list" })],
-    ["Duosessie: één klant annuleren", "#586", goWeb("agenda", { sheet: "s6", dialog: { n: "cancelpriv" }, form: {} })],
+    ["Duosessie: één klant annuleren", "#586", goWeb("agenda", { sheet: "s6", dialog: { n: "cancelpriv" }, form: {} }), true],
     ["Klanten", "TW-01", goWeb("clients")],
     ["Aanmeldverzoeken", "F029", goWeb("clients", { ctab: "req" })],
     ["Klantprofiel", "TW-02", goWeb("client", { cid: "anna" })],

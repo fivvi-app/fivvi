@@ -208,6 +208,8 @@
     return '<label class="fld ' + (cls || "") + (e ? " invalid" : "") + '"><span class="fl">' + label + "</span>" + input + (e ? '<small class="err" role="alert">' + ic("warn") + esc(e) + "</small>" : "") + "</label>";
   }
   function inp(f, type, ph, extra) { return '<input data-f="' + f + '" type="' + (type || "text") + '" value="' + esc(S.form[f] || "") + '" placeholder="' + esc(ph || "") + '"' + (extra || "") + ">"; }
+  /* #586-style sample of item 20: a typed place is offered next time */
+  function placeOf(l) { l = (l || "").trim() || D.workspaces.sf.location; var i = D.locations.indexOf(l); if (i >= 0) D.locations.splice(i, 1); D.locations.unshift(l); return l; }
   function whereInp() { return inp("loc", "text", "Bijvoorbeeld Vondelpark", ' list="fv-places" autocomplete="off"') + '<datalist id="fv-places">' + D.locations.map(function (l) { return '<option value="' + esc(l) + '">'; }).join("") + "</datalist>"; }
   function sel(f, opts) { return '<select data-f="' + f + '">' + opts.map(function (o) { var v = Array.isArray(o) ? o[0] : o, l = Array.isArray(o) ? o[1] : o; return '<option value="' + esc(v) + '"' + (String(S.form[f]) === String(v) ? " selected" : "") + ">" + esc(l) + "</option>"; }).join("") + "</select>"; }
   function avatar(name, c, cls) { return '<span class="av ' + (cls || "") + '" style="--c:' + (c || "#8E8E93") + '">' + initials(name) + "</span>"; }
@@ -674,7 +676,7 @@
     body += '<div class="fgrp" style="margin-top:16px">' + fld("Waar?", whereInp()) + fld("Trainer", sel("trainer", D.trainers.sf.concat(["Trainer nodig"]))) + fld("Herhalen", sel("rep", ["Niet herhalen", "Elke week op " + DAYS[parse(S.form.date || TODAY).getDay()]])) + "</div>";
     body += '<div class="fgrp" style="margin-top:16px">' + fld("Omschrijving (Nederlands, optioneel)", '<textarea data-f="desc" rows="3" placeholder="Wat doe je in deze les? Dit zien klanten op je boekingspagina.">' + esc(S.form.desc || "") + "</textarea>", "stack") +
       fld("Omschrijving (Engels, optioneel)", '<textarea data-f="descEn" rows="3">' + esc(S.form.descEn || "") + "</textarea>", "stack") + "</div>";
-    body += foot("Zonder Engelse tekst zien Engelstalige klanten de Nederlandse. Studio Fit, Kerkstraat 12. Een vaste reeks beheer je op het web.");
+    body += foot("Zonder Engelse tekst zien Engelstalige klanten de Nederlandse. Een vaste reeks beheer je op het web.");
     return { title: "Nieuwe groepsles", body: body, save: "save-class" };
   };
   SHEETS.newGym = function () {
@@ -1002,7 +1004,7 @@
     "close-sheet": function () { S.sheet = null; S.err = {}; render(); },
     fset: function (d) { S.form[d.f] = d.v; render(); },
     "save-session": function () {
-      var f = S.form, it = { id: "n" + Date.now(), ws: "sf", type: "priv", s: f.start, e: hm(mins(f.start) + +f.dur), client: f.client, duo: f.duo && f.duo !== f.client ? f.duo : undefined, loc: (f.loc || "").trim() || D.workspaces.sf.location, att: null };
+      var f = S.form, it = { id: "n" + Date.now(), ws: "sf", type: "priv", s: f.start, e: hm(mins(f.start) + +f.dur), client: f.client, duo: f.duo && f.duo !== f.client ? f.duo : undefined, loc: placeOf(f.loc), att: null };
       dayItems(f.date); DAYCACHE[f.date].push(it); S.sheet = null; S.stacks[S.tab].push({ n: "session", id: it.id }); S.anim = "push"; toast("Sessie gepland");
     },
     "save-client": function () {
@@ -1014,7 +1016,7 @@
     "save-class": function () {
       var f = S.form; if (!f.name.trim()) { bad("name", "Vul een naam in"); return; }
       saveClassText(f.name.trim(), { nameEn: f.nameEn, desc: (f.desc || "").trim(), descEn: (f.descEn || "").trim() }, false);
-      var it = { id: "n" + Date.now(), ws: "sf", type: "group", s: f.start, e: f.end, title: f.name.trim(), level: f.level || "", cap: +f.cap || 10, people: [], loc: (f.loc || "").trim() || D.workspaces.sf.location };
+      var it = { id: "n" + Date.now(), ws: "sf", type: "group", s: f.start, e: f.end, title: f.name.trim(), level: f.level || "", cap: +f.cap || 10, people: [], loc: placeOf(f.loc) };
       dayItems(f.date); DAYCACHE[f.date].push(it); S.sheet = null; S.stacks[S.tab].push({ n: "klass", id: it.id }); S.anim = "push"; toast(f.rep === "Niet herhalen" ? "Groepsles gepland" : "Wekelijkse groepsles gepland");
     },
     "save-gym": function () {
@@ -1307,7 +1309,7 @@
   function addClient(c) { D.clients.push(c); CLIENT[c.id] = c; }
   function addItem(k, it) { dayItems(k); DAYCACHE[k].push(it); }
   window.FV = { agrName: agrName, offerOpts: offerOpts, offerStart: offerStart, saveClassText: saveClassText, PAYST: PAYST, PAYONLINE: PAYONLINE, PAYSTUDIO: PAYSTUDIO, PAYOPEN: PAYOPEN, OFFEROPEN: OFFEROPEN, AGROPEN: AGROPEN, OPENOFFERS: OPENOFFERS, get S() { return S; }, PREF: PREF, D: D, A: A, CLIENT: CLIENT, dayItems: dayItems, findItem: findItem, extra: function () { return EXTRA_WS; },
-    cancelDuoPart: cancelDuoPart, CV: CV, TYPE: TYPE, title: title, level: level, lvlTag: lvlTag, esc: esc, ic: ic, mins: mins, hm: hm, key: key, parse: parse, add: add, monday: monday, longDate: longDate, shortDate: shortDate,
+    placeOf: placeOf, cancelDuoPart: cancelDuoPart, CV: CV, TYPE: TYPE, title: title, level: level, lvlTag: lvlTag, esc: esc, ic: ic, mins: mins, hm: hm, key: key, parse: parse, add: add, monday: monday, longDate: longDate, shortDate: shortDate,
     isoWeek: isoWeek, DAYS: DAYS, DS: DS, MONTHS: MONTHS, MS: MS, TODAY: TODAY, NOW: NOW, NOWT: NOWT, isPast: isPast, initials: initials, toast: toast, render: function () { render(); },
     OWNER: OWNER, SOLO: SOLO, HAS: HAS, MIXED: MIXED, WSS: WSS, avatar: avatar, addClient: addClient, addItem: addItem, INDEX: INDEX, SHEETS: SHEETS, SCREENS: SCREENS, kit: { fld: fld, inp: inp, sel: sel, row: row, grp: grp, sh: sh, lt: lt, btn: btn, seg: seg, foot: foot, avatar: avatar, rings: rings, shape: shape, SHAPE: SHAPE }, fresh: function () { fresh(); }, save: function () { save(); applyPrefs(); } };
 
