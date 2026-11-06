@@ -54,8 +54,11 @@
   X.TITLES.email = "E-mail";
   X.PAGES.email = function () {
     var id = X.W().mail, m = M.filter(function (x) { return x[0] === id; })[0] || M[0];
-    return X.card("", '<div class="w-paymail"><small>' + esc(m[0]) + " · Aan: " + esc(m[1]) + "</small><h3>" + esc(m[3][0]) + "</h3>" + m[4].map(function (l) { return "<p>" + esc(l[0]) + "</p>"; }).join("") + (m[5] ? X.btn(m[5][0], "w-toast", { d: { m: "Geopend" } }) : "") + '<small>' + esc(FOOT[m[2]][0]) + "</small></div>");
+    return X.card("", '<div class="w-paymail"><small>' + esc(m[0]) + " · Aan: " + esc(m[1]) + "</small><h3>" + esc(m[3][0]) + "</h3>" + m[4].map(function (l) { return "<p>" + esc(l[0]) + "</p>"; }).join("") + (m[5] ? X.btn(m[5][0], "w-mail-go", { d: { v: m[0] } }) : "") + '<small>' + esc(FOOT[m[2]][0]) + "</small></div>");
   };
-  L("Geopend", "Opened");
+  /* a button in an email leads where the real link leads */
+  var ANNA = function (x) { return X.goClient("app", Object.assign({ who: "anna" }, x)); };
+  var LEADS = { "Bekijk je boeking": ANNA({ tab: "agenda" }), "Bekijk je boekingen": ANNA({ tab: "agenda" }), "Een andere les boeken": ANNA({ tab: "rooster" }), "Andere lessen bekijken": ANNA({ tab: "rooster" }), "Rooster bekijken": ANNA({ tab: "rooster" }), "Bekijk je training": ANNA({ tab: "profiel" }), "Bevestigen en betalen": ANNA({ web: "st:Bevestigen en betalen (CP-02)" }), "Betalen met iDEAL": ANNA({ web: "st:Bevestigen en betalen (CP-02)" }), "Bekijk je facturen": ANNA({ web: "st:Betalingen en facturen (CP-05)" }), "Verlengen": ANNA({ web: "renew" }), "Bekijk het aanbod": ANNA({ web: "offers" }), "Nu betalen": ANNA({ web: "st:Openstaand bedrag betalen (CP-07)" }), "Uitnodiging bekijken": X.goClient("link", { web: "st:Trainer-uitnodiging: accepteren" }), "Inloggen bij Studio Fit": X.goClient("link", { web: "st:Uitnodiging: inloggen" }), "Bekijk de les": X.goWeb("classsum"), "In Fivvi bekijken": X.goWeb("myday"), "Bekijk de afspraak": X.goWeb("agreement"), "Betalingen koppelen": X.goWeb("payments", { pay: "none" }), "Verzoek bekijken": X.goWeb("clients", { ctab: "req" }) };
+  F.A["w-mail-go"] = function (d) { var m = M.filter(function (x) { return x[0] === d.v; })[0], label = m[5][0], fn = m[0] === "EM-21" ? X.goWeb("agenda", { dialog: { n: "req-review" }, form: {} }) : label === "Bekijk de les" && m[1] === "Klant" ? ANNA({ tab: "rooster" }) : LEADS[label]; fn(); F.save(); F.S.anim = null; F.render(); };
   F.INDEX.push(["E-mails", M.map(function (m) { return [m[0], m[1], X.goWeb("email", { mail: m[0] })]; })]);
 })();

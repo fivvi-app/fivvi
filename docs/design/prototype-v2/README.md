@@ -16,6 +16,8 @@ A throwaway, clickable prototype of the new look (November 2026): Calendar-style
 
 **What was decided:** [DECISIONS.md](DECISIONS.md) (ADR-029). It is the record specs follow.
 
+Screens have a dashed **Prototype · Andere situaties** list: what can also happen on that screen, one click away. It is not part of the product. Emails live in the panel; their buttons lead where the real link leads.
+
 The ⚙ panel also switches language (NL/EN), accent, light/dark, glass, role, and the business setup (gym, solo PT, PT with small groups, pilates, yoga). [SCENARIOS.md](SCENARIOS.md) checks those setups against the spec.
 
 **Run it:** open `index.html`, or `python3 -m http.server` in this folder. No build step.

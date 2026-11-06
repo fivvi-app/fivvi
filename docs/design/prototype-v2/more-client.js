@@ -107,8 +107,113 @@
     ["Les gaat niet door in rooster", "#489", "warn", "", ["Kracht", "Strength"], [["Gaat niet door", "Cancelled"]], [["Naar je overzicht", "To your overview"]]],
     ["Offline", "#469", "warn", "", ["Je bent offline", "You're offline"], [["Je bent offline. Sommige gegevens zijn misschien niet actueel.", "You're offline. Some information may not be up to date."]], []]
   ];
-  /* buttons that lead on, the rest close the page */
-  var NEXT = { "Betalen met iDEAL": "c-checkout", "Aanbod bekijken": "c-offers", "Betalen": "c-checkout", "Nu betalen": "c-checkout" };
+  /* ---------- what follows each state: real next steps, and the prototype's list of other situations ---------- */
+  var FAM = {
+    signin: ["Inloggen: nieuw bij Fivvi", "Inloggen met Apple lukte niet", "Uitnodiging voor een ander adres (Apple)", "Je naam invullen", "Geen studio: wat nu", "Fivvi Pro: klant logt in"],
+    join: ["Meedoen: verzoek sturen", "Meedoen: wachten, verzoek intrekken", "Meedoen: al klant", "Meedoen: eerder afgewezen", "Meedoen: link werkt niet meer", "QR-code: geen aanmeldlink", "QR-code: geen cameratoegang"],
+    invite: ["Uitnodiging: inloggen", "Uitnodiging: ander account", "Uitnodiging: werkt niet meer", "Uitnodiging: welkom"],
+    trainerinv: ["Trainer-uitnodiging: accepteren", "Trainer-uitnodiging: ander account", "Trainer-uitnodiging: niet meer geldig", "Trainer-uitnodiging zonder naam"],
+    sched: ["Rooster: niets gepland", "Rooster: laden lukt niet", "Rooster: geen klant", "Rooster: voorbeeld voor de studio", "Les gaat niet door in rooster", "Offline"],
+    book: ["Boeken met abonnement", "Abonnement op deze week", "Weeklimiet bereikt", "Les niet in abonnement", "Abonnement wacht op betaling", "Geen abonnement of tegoed", "Abonnement op: met credit", "Geen credits meer", "Credits niet voor deze les", "Tegoed verlopen op lesdatum", "Boeken met inhaalles", "Losse sessie kopen", "Losse sessie: geen wachtlijst", "Openstaand: nog boeken", "Openstaand: niet meer boeken", "Net te laat", "Al geboekt", "Les al begonnen", "Les gaat niet door", "Wachtlijst gesloten", "Wachtlijst: niet boekbaar"],
+    done: ["Geboekt", "Geboekt met abonnement", "Geboekt met credit", "Geboekt met inhaalles", "Losse sessie: geboekt", "Losse sessie: plek vrijgegeven"],
+    wl: ["Op de wachtlijst", "Van de wachtlijst af", "Niet meer op de wachtlijst"],
+    cancel: ["Boeking annuleren", "Annuleren: op tijd, credit terug", "Annuleren: inhaalles", "Annuleren: te laat", "Annuleren: limiet bereikt", "Annuleren: plek via wachtlijst", "Geannuleerd"],
+    priv: ["Annuleren aanvragen", "Annulering aangevraagd", "Sessie gaat door", "Sessie al begonnen"],
+    mine: ["Mijn boekingen: geen", "Eerdere boekingen: geen"],
+    buy: ["Bevestigen en betalen (CP-02)", "Bevestigen: loopt per maand door", "Bevestigen: creditpakket"],
+    agr: ["Mijn abonnementen (CP-04)", "Lessen blijven geldig", "Creditabonnement: deze periode", "Geen tegoed", "Betalingen en facturen (CP-05)", "Openstaand bedrag betalen (CP-07)"],
+    stop: ["Opzeggen (CP-06)", "Opzeggen: vaste looptijd", "Opgezegd"],
+    me: ["E-mailadres wijzigen", "E-mailadres gewijzigd", "Factuurgegevens klant"],
+    del: ["Account verwijderen: code", "Account verwijderen: enige eigenaar", "Account blijft bestaan"],
+    link: ["Boekingslink bestaat niet (PB-09)", "Boekingslink niet meer actief (PB-09)"]
+  };
+  /* what you can open from the signed-out screens: a link or an invitation brings you there */
+  var START = ["Inloggen: nieuw bij Fivvi", "Meedoen: verzoek sturen", "Uitnodiging: inloggen", "Trainer-uitnodiging: accepteren", "Boekingslink bestaat niet (PB-09)"];
+  var FAMOF = {}; Object.keys(FAM).forEach(function (k) { FAM[k].forEach(function (n) { FAMOF[n] = k; }); });
+  [["Inloggen: nieuw bij Fivvi", "Sign in: new to Fivvi"], ["Inloggen met Apple lukte niet", "Signing in with Apple failed"], ["Uitnodiging voor een ander adres (Apple)", "Invitation for another address (Apple)"], ["Je naam invullen", "Fill in your name"], ["Geen studio: wat nu", "No studio: what now"], ["Fivvi Pro: klant logt in", "Fivvi Pro: a client signs in"],
+    ["Meedoen: verzoek sturen", "Join: send a request"], ["Meedoen: wachten, verzoek intrekken", "Join: waiting, withdraw request"], ["Meedoen: al klant", "Join: already a client"], ["Meedoen: eerder afgewezen", "Join: declined before"], ["Meedoen: link werkt niet meer", "Join: link no longer works"], ["QR-code: geen aanmeldlink", "QR code: not a join link"], ["QR-code: geen cameratoegang", "QR code: no camera access"],
+    ["Uitnodiging: inloggen", "Invitation: sign in"], ["Uitnodiging: ander account", "Invitation: another account"], ["Uitnodiging: werkt niet meer", "Invitation: no longer works"], ["Uitnodiging: welkom", "Invitation: welcome"],
+    ["Trainer-uitnodiging: accepteren", "Trainer invitation: accept"], ["Trainer-uitnodiging: ander account", "Trainer invitation: another account"], ["Trainer-uitnodiging: niet meer geldig", "Trainer invitation: no longer valid"], ["Trainer-uitnodiging zonder naam", "Trainer invitation without a name"],
+    ["Rooster: niets gepland", "Timetable: nothing planned"], ["Rooster: laden lukt niet", "Timetable: can't load"], ["Rooster: geen klant", "Timetable: not a client"], ["Rooster: voorbeeld voor de studio", "Timetable: preview for the studio"], ["Les gaat niet door in rooster", "Cancelled class in the timetable"],
+    ["Boeken met abonnement", "Book with a membership"], ["Abonnement op deze week", "Membership used up this week"], ["Weeklimiet bereikt", "Weekly limit reached"], ["Les niet in abonnement", "Class not in the membership"], ["Abonnement wacht op betaling", "Membership waiting for payment"], ["Geen abonnement of tegoed", "No membership or credits"], ["Abonnement op: met credit", "Membership used up: with a credit"], ["Geen credits meer", "No credits left"], ["Credits niet voor deze les", "Credits not for this class"], ["Tegoed verlopen op lesdatum", "Credits expired on the class date"], ["Boeken met inhaalles", "Book with a makeup class"], ["Losse sessie kopen", "Buy a single class"], ["Losse sessie: geen wachtlijst", "Single class: no waitlist"], ["Openstaand: nog boeken", "Open amount: can still book"], ["Openstaand: niet meer boeken", "Open amount: can't book"], ["Net te laat", "Just too late"], ["Al geboekt", "Already booked"], ["Les al begonnen", "Class already started"], ["Les gaat niet door", "Class cancelled"], ["Wachtlijst gesloten", "Waitlist closed"], ["Wachtlijst: niet boekbaar", "Waitlist: can't book"],
+    ["Geboekt met abonnement", "Booked with a membership"], ["Geboekt met credit", "Booked with a credit"], ["Geboekt met inhaalles", "Booked with a makeup class"], ["Losse sessie: geboekt", "Single class: booked"], ["Losse sessie: plek vrijgegeven", "Single class: spot released"],
+    ["Van de wachtlijst af", "Leave the waitlist"], ["Niet meer op de wachtlijst", "No longer on the waitlist"], ["Boeking annuleren", "Cancel booking"], ["Annuleren: op tijd, credit terug", "Cancel: in time, credit back"], ["Annuleren: inhaalles", "Cancel: makeup class"], ["Annuleren: te laat", "Cancel: too late"], ["Annuleren: limiet bereikt", "Cancel: limit reached"], ["Annuleren: plek via wachtlijst", "Cancel: spot goes to the waitlist"],
+    ["Annuleren aanvragen", "Request cancellation"], ["Annulering aangevraagd", "Cancellation requested"], ["Sessie gaat door", "Session goes ahead"], ["Sessie al begonnen", "Session already started"], ["Mijn boekingen: geen", "My bookings: none"], ["Eerdere boekingen: geen", "Past bookings: none"],
+    ["Bevestigen en betalen (CP-02)", "Confirm and pay (CP-02)"], ["Bevestigen: loopt per maand door", "Confirm: continues monthly"], ["Bevestigen: creditpakket", "Confirm: credit pack"], ["Mijn abonnementen (CP-04)", "My memberships (CP-04)"], ["Lessen blijven geldig", "Classes stay valid"], ["Creditabonnement: deze periode", "Credit plan: this period"], ["Geen tegoed", "No credits"], ["Betalingen en facturen (CP-05)", "Payments and invoices (CP-05)"], ["Openstaand bedrag betalen (CP-07)", "Pay the open amount (CP-07)"],
+    ["Opzeggen (CP-06)", "Give notice (CP-06)"], ["Opzeggen: vaste looptijd", "Give notice: fixed term"], ["Opgezegd", "Notice given"], ["E-mailadres gewijzigd", "Email address changed"], ["Factuurgegevens klant", "Client's invoice details"], ["Account verwijderen: code", "Delete account: code"], ["Account verwijderen: enige eigenaar", "Delete account: only owner"], ["Account blijft bestaan", "Account stays"], ["Boekingslink bestaat niet (PB-09)", "Booking link doesn't exist (PB-09)"], ["Boekingslink niet meer actief (PB-09)", "Booking link no longer active (PB-09)"],
+    ["Andere situaties", "Other situations"], ["Verzetten? Neem contact op met je trainer.", "Need to move it? Contact your trainer."], ["In je agenda gezet", "Added to your calendar"], ["Voorwaarden geopend", "Terms opened"], ["Opent de instellingen van je telefoon", "Opens your phone's settings"], ["Opgeslagen", "Saved"], ["Code verstuurd", "Code sent"], ["Uitnodiging geaccepteerd", "Invitation accepted"], ["Uitnodiging afgewezen", "Invitation declined"], ["Verzoek ingetrokken", "Request withdrawn"], ["Daarna via automatische incasso", "Then by direct debit"], ["Looptijd", "Term"]
+  ].forEach(L);
+  I.rule(/^Vandaag betaal je € (.+)$/, function (m, a) { return "Today you pay €" + a.replace(",", "."); });
+  function appMode() { return F.PREF.plat !== "client"; }
+  function fam(names, self) {
+    var l = names.filter(function (n) { return n !== self && (appMode() || !/^QR-code/.test(n)); });
+    if (!l.length) return "";
+    return '<div class="pad" style="margin-top:14px"><details class="card c-proto"><summary><b>Prototype</b> · <span>Andere situaties</span> (' + l.length + ')</summary><div class="c-chips">' + l.map(function (n) { return '<button class="c-chip" data-a="c-st" data-v="' + esc(n) + '">' + esc(n) + "</button>"; }).join("") + "</div></details></div>";
+  }
+  window.FVW.cfam = function (k) { return fam(FAM[k]); };
+  /* where a button leads: first the state's own next step, then what the label always means */
+  var ANY = { "Betalen met iDEAL": "checkout", "Betalen": "checkout", "Nu betalen": "checkout", "Aanbod bekijken": "offers", "Stuur me een code": "code", "Uitloggen en verder": "signout", "Rooster bekijken": "book", "Andere momenten bekijken": "book", "Andere lessen bekijken": "book", "Nog een les boeken": "book", "Een andere les boeken": "book", "Boek een les": "book", "Bekijk het rooster van Studio Fit": "book", "Meer dagen tonen": "book", "Naar mijn boekingen": "bookings", "Bekijk je boeking": "bookings", "Naar je overzicht": "home", "Zet in je agenda": "toast:In je agenda gezet", "Zet me op de wachtlijst": "st:Op de wachtlijst", "Voorwaarden bekijken": "toast:Voorwaarden geopend", "Naar Instellingen": "toast:Opent de instellingen van je telefoon", "Boeking annuleren": "st:Geannuleerd", "Toch annuleren": "st:Geannuleerd", "Stuur code": "toast:Code verstuurd" };
+  var GO = {
+    "Inloggen: nieuw bij Fivvi": { "Doorgaan met Apple": "st:Je naam invullen", "Doorgaan met Google": "st:Je naam invullen" },
+    "Je naam invullen": { "Verder": "st:Geen studio: wat nu" },
+    "Geen studio: wat nu": { "QR-code scannen": "st:QR-code: geen aanmeldlink" },
+    "Meedoen: verzoek sturen": { "Verzoek sturen": "st:Meedoen: wachten, verzoek intrekken" },
+    "Meedoen: wachten, verzoek intrekken": { "Verzoek intrekken": "st:Meedoen: verzoek sturen" },
+    "QR-code: geen aanmeldlink": { "Opnieuw proberen": "st:QR-code: geen cameratoegang" },
+    "Uitnodiging: inloggen": { "Stuur me een code": "st:Uitnodiging: welkom" },
+    "Boeken met abonnement": { "Boek deze les": "st:Geboekt met abonnement" },
+    "Abonnement op: met credit": { "Boek deze les": "st:Geboekt met credit" },
+    "Boeken met inhaalles": { "Boek deze les": "st:Geboekt met inhaalles" },
+    "Losse sessie kopen": { "Losse sessie kopen · € 15,00": "checkout" },
+    "Openstaand: nog boeken": { "Boek deze les": "st:Geboekt", "Nu betalen": "st:Openstaand bedrag betalen (CP-07)" },
+    "Openstaand: niet meer boeken": { "Nu betalen": "st:Openstaand bedrag betalen (CP-07)" },
+    "Op de wachtlijst": { "Van de wachtlijst af": "st:Van de wachtlijst af" },
+    "Van de wachtlijst af": { "Van de wachtlijst af": "st:Niet meer op de wachtlijst" },
+    "Annuleren aanvragen": { "Annuleren aanvragen": "st:Annulering aangevraagd" },
+    "Annulering aangevraagd": { "Verzoek intrekken": "toast:Verzoek ingetrokken" },
+    "E-mailadres wijzigen": { "Stuur code": "st:E-mailadres gewijzigd" },
+    "Mijn abonnementen (CP-04)": { "Opzeggen": "st:Opzeggen (CP-06)" },
+    "Opzeggen (CP-06)": { "Opzeggen": "st:Opgezegd", "Terug": "st:Mijn abonnementen (CP-04)" },
+    "Opzeggen: vaste looptijd": { "Terug": "st:Mijn abonnementen (CP-04)" },
+    "Factuurgegevens klant": { "Opslaan": "toast:Opgeslagen" },
+    "Account verwijderen: code": { "Account definitief verwijderen": "delete" },
+    "Trainer-uitnodiging: accepteren": { "Accepteren": "team", "Afwijzen": "toast:Uitnodiging afgewezen" },
+    "Trainer-uitnodiging zonder naam": { "Accepteren": "team", "Afwijzen": "toast:Uitnodiging afgewezen" }
+  };
+  /* what you pay for when a state names no chosen offer */
+  var PAY = { "Bevestigen en betalen (CP-02)": "Groep 2× per week", "Bevestigen: loopt per maand door": "Groep 2× per week", "Bevestigen: creditpakket": "10 groepscredits", "Openstaand bedrag betalen (CP-07)": "Groep 2× per week", "Abonnement wacht op betaling": "Groep 2× per week", "Losse sessie kopen": "Losse les" };
+  function target(state, label) { return (GO[state] && GO[state][label]) || ANY[label] || "close"; }
+  function chosen(c, state) { var o = c.payFor && c.payFor.offer; return o && (state === "Bevestigen: creditpakket" ? o.kind === "pack" : state === "Bevestigen en betalen (CP-02)" && o.kind !== "pack"); }
+  A["c-flow"] = function (d) {
+    var c = C(), t = d.v;
+    if (/^st:/.test(t)) { c.web = t; return R(); }
+    if (/^toast:/.test(t)) { c.web = null; return F.toast(t.slice(6)); }
+    if (t === "checkout") { if (PAY[d.f] && !chosen(c, d.f)) c.payFor = { name: PAY[d.f] }; c.web = "checkout"; return R(); }
+    if (t === "offers") return A["c-offers"]();
+    if (t === "delete") return A["a-delete"]();
+    if (t === "team") { X.goWeb("myday")(); F.save(); F.S.anim = null; return F.toast("Uitnodiging geaccepteerd"); }
+    c.web = null; c.detail = null; c.workout = null; c.page = null;
+    if (t === "code") { if (!c.email) c.email = "kim@example.com"; c.step = "code"; c.astep = "code"; c.code = ""; }
+    else if (t === "signout") { c.step = "link"; c.astep = "welcome"; c.code = ""; }
+    else if (t === "book") { c.step = "app"; c.astep = "app"; c.tab = "rooster"; c.atab = "boeken"; }
+    else if (t === "bookings") { c.step = "app"; c.astep = "app"; c.tab = "agenda"; c.atab = "home"; }
+    else if (t === "home") { c.step = "app"; c.astep = "app"; c.tab = "rooster"; c.atab = "home"; }
+    R();
+  };
+  /* a chosen offer gets its own lines on the confirm page, never the sample's */
+  function euro(p) { return "€ " + (/,/.test(p) ? p : p + ",00"); }
+  function buyPage(state) {
+    var c = C(), pf = c.payFor, o = pf.offer, ws = pf.ws === "yl" ? "Yoga Loft" : "Studio Fit", rec = o.kind === "abo" || o.kind === "plan", s = ST.filter(function (x) { return x[0] === state; })[0];
+    var b = '<div class="pad stack"><div class="card c-payres" style="--c:var(--accent)"><span>' + ic("info") + "</span><h3>" + esc(s[4][0]) + "</h3><p><b>" + esc(pf.name) + "</b> · " + esc(euro(o.price)) + " · <span>" + esc(o.cycle || "Eenmalig") + "</span></p><p>Vandaag betaal je " + esc(euro(o.price)) + "</p>";
+    if (rec) b += "<p><span>Daarna via automatische incasso</span></p>";
+    if (o.term) b += "<p><span>Looptijd</span>: <span>" + esc(o.term) + "</span></p>";
+    b += "</div>";
+    if (rec) b += '<label class="pro-check"><input type="checkbox"> <span>Ik ga akkoord met de voorwaarden en geef <span translate="no">' + esc(ws) + "</span> toestemming om de volgende bedragen automatisch af te schrijven.</span></label>";
+    else b += '<label class="pro-check"><input type="checkbox"> <span>Ik ga akkoord met de voorwaarden.</span></label>';
+    b += cbtn("Betalen met iDEAL", "c-checkout") + K.btn("Voorwaarden bekijken", { k: "ghost", blk: true, a: "c-flow", d: { v: "toast:Voorwaarden geopend" } });
+    return X.payWeb(s[4][0], s[3], b + "</div>" + fam(FAM.buy, state));
+  }
+  L(["Ik ga akkoord met de voorwaarden en geef", "I agree to the terms and authorise"]); L(["toestemming om de volgende bedragen automatisch af te schrijven.", "to collect the next amounts by direct debit."]);
   var TONE = { ok: ["check", "var(--ok)"], warn: ["warn", "var(--gym)"], bad: ["warn", "var(--danger)"], info: ["info", "var(--accent)"] };
   ST.forEach(function (s) {
     L(s[4]); s[5].forEach(L); (s[6] || []).forEach(L); (s[7] || []).forEach(L); (s[8] || []).forEach(L);
@@ -116,10 +221,18 @@
       var t = TONE[s[2]], b = '<div class="pad stack"><div class="card c-payres" style="--c:' + t[1] + '"><span>' + ic(t[0]) + "</span><h3>" + esc(s[4][0]) + "</h3>" + s[5].map(function (l) { return "<p>" + esc(l[0]) + "</p>"; }).join("") + "</div>";
       if (s[8]) b += '<div class="fgrp">' + s[8].map(function (f) { return '<label class="fld"><span>' + esc(f[0]) + '</span><input type="text"></label>'; }).join("") + "</div>";
       if (s[7]) s[7].forEach(function (x) { b += /^Ik /.test(x[0]) ? '<label class="pro-check"><input type="checkbox"> <span>' + esc(x[0]) + "</span></label>" : '<p class="c-st-note">' + esc(x[0]) + "</p>"; });
-      (s[6] || []).forEach(function (x, i) { var act = NEXT[x[0]] || "c-webclose"; b += i === 0 ? cbtn(x[0], act) : K.btn(x[0], { k: "ghost", blk: true, a: act }); });
-      return X.payWeb(s[4][0], s[3] || "Fivvi", b + "</div>");
+      (s[6] || []).forEach(function (x, i) { var f = { v: target(s[0], x[0]), f: s[0] }; b += i === 0 ? cbtn(x[0], "c-flow", { d: f }) : K.btn(x[0], { k: "ghost", blk: true, a: "c-flow", d: f }); });
+      return X.payWeb(s[4][0], s[3] || "Fivvi", b + "</div>" + fam(FAM[FAMOF[s[0]]], s[0]));
     };
   });
+  ["Bevestigen en betalen (CP-02)", "Bevestigen: creditpakket"].forEach(function (n) { var o = CWEB["st:" + n]; CWEB["st:" + n] = function () { return chosen(C(), n) ? buyPage(n) : o(); }; });
+  /* the screens these states start from */
+  function ssoBtns() { return '<div class="pad stack" style="margin-top:10px">' + cbtn("Doorgaan met Apple", "c-flow", { k: "sec", d: { v: "st:Je naam invullen" } }) + cbtn("Doorgaan met Google", "c-flow", { k: "sec", d: { v: "st:Je naam invullen" } }) + "</div>"; }
+  var CS = X.CSTEP, AS = X.ASTEP;
+  ["link"].forEach(function (k) { var o = CS[k]; CS[k] = function () { return o() + (X.payOpen() ? ssoBtns() + fam(START) : ""); }; });
+  (function () { var o = AS.welcome; AS.welcome = function () { return o() + ssoBtns() + fam(START); }; var n = AS.nolink; AS.nolink = function () { return n() + fam(FAM.join); }; })();
+  (function () { var o = CS.app; CS.app = function () { var r = o(), c = C(); if (!c.detail && c.workout == null) r.body += fam(c.tab === "agenda" ? FAM.mine : c.tab === "rooster" ? FAM.sched : []); return r; }; var h = X.ATAB.home; X.ATAB.home = function () { var r = h(); r.body += fam(FAM.mine); return r; }; })();
+  A["a-delask"] = function () { C().web = "st:Account verwijderen: code"; R(); };
   /* the real buttons lead to these states too */
   [["c-bookok", "Geboekt"], ["c-wlok", "Op de wachtlijst"], ["c-cancel-ok", "Geannuleerd"], ["c-wl-leave", "Niet meer op de wachtlijst"]].forEach(function (x) { var o = A[x[0]]; if (!o) return; A[x[0]] = function (d) { o(d); C().web = "st:" + x[1]; F.S.toast = null; R(); }; });
   var ap = F.INDEX.filter(function (g) { return g[0] === "Fivvi (klant-app)"; })[0][1];

@@ -446,7 +446,7 @@ window.FIVVI_I18N = (function () {
     /* offers (F052) */
     "Abonnementen": "Memberships", "Losse les": "Single class", "Privé 2 per maand": "Private 2 a month", "Creditpakketten": "Credit packs", "Creditabonnementen": "Credit plans", "Losse lessen": "Single classes", "Standaardplannen": "Default plans",
     "Creditabonnement": "Credit plan", "Nieuw aanbod": "New offer", "Prijs nodig": "Price needed", "Nog niet verkocht": "Not sold yet", "Klanten zien het niet": "Clients don't see it",
-    "Naam in het Engels": "Name in English", "Prijs incl. btw (€)": "Price incl. VAT (€)", "Btw": "VAT", "Lessen per week": "Classes a week", "Looptijd": "Term", "Betalen": "Payment",
+    "Naam (Nederlands)": "Name (Dutch)", "Naam (Engels, optioneel)": "Name (English, optional)", "Prijs incl. btw (€)": "Price incl. VAT (€)", "Btw": "VAT", "Lessen per week": "Classes a week", "Looptijd": "Term", "Betalen": "Payment",
     "Soort credits": "Kind of credits", "Aantal credits": "Number of credits", "Credits per periode": "Credits per period", "Geldig": "Valid", "Meenemen naar de volgende periode (max.)": "Carry over to the next period (max.)", "Minimale looptijd": "Minimum term",
     "Eén keer per klant (proefaanbod)": "Once per client (intro offer)", "Alleen voor klanten met een abonnement": "Only for clients with a membership", "Aan het einde": "At the end", "Verlengen voorstellen": "Suggest renewal",
     "Stopt: de klant kiest een nieuwe looptijd": "Stops: the client chooses a new term", "Loopt per maand door tot de klant opzegt": "Continues monthly until the client cancels",

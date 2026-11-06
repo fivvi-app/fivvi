@@ -245,6 +245,13 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .c-wait svg{width:36px;height:36px}
 .c-proto{display:grid;gap:10px;font-size:15px;color:var(--label2);border:1px dashed var(--label3);background:none}
 .c-proto b{color:var(--label)}
+.c-proto summary,.w-proto summary{cursor:pointer}
+.c-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.c-chip{font:inherit;font-size:13px;line-height:18px;padding:8px 12px;border-radius:999px;border:1px solid var(--label3);background:none;color:var(--label);cursor:pointer;text-align:left}
+.w-proto{margin-top:16px;padding:12px 14px;border:1px dashed var(--w-border);border-radius:10px;font-size:13px;color:var(--w-mfg)}
+.w-proto b{color:var(--w-fg)}
+.w-proto .c-chip{border-color:var(--w-border);color:var(--w-fg)}
+.pro-tap{width:100%;text-align:left;font:inherit;cursor:pointer}
 .c-wk{grid-template-columns:repeat(7,1fr);padding:2px 8px 0}
 .c-row .m small{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;white-space:normal}
 .c-pill{display:inline-flex;align-items:center;gap:3px}

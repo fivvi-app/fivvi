@@ -255,7 +255,7 @@ What a client can still use under one agreement, in credits of one kind (group o
 _Avoid_: session balance (retired), saldo, remaining sessions
 
 **Weekly limit**:
-The most bookings one client can make in a week, a workspace setting (a number, or off). The pilot uses 4, whatever the size of the membership. It also stops a client from saving up unused weekly classes and using them all at once.
+The most bookings one client can make in a week, set per membership offer (a number, or off). The pilot uses 4, whatever the size of the membership. It also stops a client from saving up unused weekly classes and using them all at once.
 _Avoid_: maximum, cap, quota
 
 **Billing cycle**:
