@@ -14,7 +14,7 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | Release | Features | Released |
 |---|---|---|
-| MVP | 60 (F001–F063 without F034–F036, Open Gym, later) + 19 engineering enablers (E001–E019); F017–F019 (more locations) and M7 (F039–F048, F051) come after go-live; trainer (Fivvi Pro) and, from M5, client (Fivvi) iOS and Android screens are built with their web features (the M8 native track) | 0 |
+| MVP | 61 (F001–F064 without F034–F036, Open Gym, later) + 19 engineering enablers (E001–E019); F017–F019 (more locations) and M7 (F039–F048, F051) come after go-live; trainer (Fivvi Pro) and, from M5, client (Fivvi) iOS and Android screens are built with their web features (the M8 native track) | 0 |
 
 **Waitlist moved to the MVP (31 October 2026, [#150](https://github.com/fivvi-app/fivvi/issues/150)):** it was a Release 1.1 candidate. The owner placed it as **F062** in **M5** (31 October 2026, `ROADMAP.md` v1.29); the rules are in `PRODUCT.md §23`.
 
@@ -39,6 +39,7 @@ The single source of truth for feature status. A status changes **in the same PR
 | F009 | English UI | PLANNED | Must | continuous | F007 | — | ⬜ | §2.2 |
 | [F010](https://github.com/fivvi-app/fivvi/issues/175) | Locale Preference: choose Dutch or English in the user menu and on My profile (web) and under Profiel → Taal (iOS, Android), saved on the account and followed by every browser and app; the switch on the sign-in screens; the Owner's default communication language in Settings → Language; every M2 screen complete in both languages | IMPLEMENTED | Must | M2 (+ iOS/Android; + Fivvi iOS/Android from M5) | F001, F007 | ✅ | ✅ | §3 |
 | F063 | Sign in with Apple and Google: a second way to sign in, on the web first (clients and team members), then Fivvi Pro and Fivvi (App Store guideline 4.8: Sign in with Apple when an app offers Google). Owner steps later: an Apple Services ID and a Google OAuth client | PLANNED | **Should** | M5 (web first; Fivvi Pro and Fivvi after) | F001 | ⬜ | ⬜ | §27, [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md) |
+| [F064](https://github.com/fivvi-app/fivvi/issues/611) | Public website at fivvi.app: homepage, a page per audience (gyms, studios, personal trainers, clients), pricing, demo request, help and contact, account deletion and the legal pages, built for search engines (ADR-030) | PLANNED | Must | Parallel, before #151 | E005, F007, E006 | ⬜ | ⬜ | §2.2, §53, §79, §94; `DECISIONS.md` §9 |
 
 ### Trainers
 
@@ -184,7 +185,7 @@ These get `F0xx` IDs when they move to `PLANNED`. Full context is in [`ROADMAP.m
 | 1.2 | *(moved into the MVP in v1.31: the client app Fivvi ships at go-live)* |
 | 1.3 | AI note capture (NL/EN, speech + text, trainer confirms) |
 | 1.4 | AI pre-session client briefing |
-| 2.0 | Self-serve workspace creation · persona onboarding · marketing site · help center · *platform billing (decision pending)* |
+| 2.0 | Self-serve workspace creation · persona onboarding · help center · *platform billing (decision pending)* |
 | 2.1 | Freelance improvements · gym access information |
 | 2.2 | Workspace switching · cross-workspace conflict detection · workspace-specific permissions |
 | 2.3 | Multi-location organizations |

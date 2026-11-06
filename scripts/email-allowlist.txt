@@ -30,3 +30,6 @@ noreply@fivvi.app
 
 # Third-party text, not ours (maintainer contacts in package deprecation notices)
 path: pnpm-lock.yaml
+# The public website's role addresses (#611, docs/legal/open-questions.md Q2)
+support@fivvi.app
+privacy@fivvi.app

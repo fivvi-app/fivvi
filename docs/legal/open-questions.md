@@ -14,7 +14,7 @@ Each question has a recommendation, so a short "agree" is a valid answer.
 
 | # | Question | Recommendation | Blocks | Affects |
 |---|---|---|---|---|
-| **Q2** | **Legal entity.** Under which entity is Fivvi offered (eenmanszaak, VOF, BV)? We need the name, KvK number, address, a privacy email address and a support email address for every document | Decide before the processor agreement is signed; use a dedicated privacy@ address on fivvi.app (bought 21 October 2026) | **Sign**, **Publish** | All documents (`{{…}}` placeholders) |
+| **Q2** | **Legal entity.** Under which entity is Fivvi offered (eenmanszaak, VOF, BV)? We need the name, KvK number, VAT number, address, a phone or live contact, a privacy email address and a support email address for every document and the public website (#611), where Mollie and Apple require them | Decide before the processor agreement is signed; use a dedicated privacy@ address on fivvi.app (bought 21 October 2026) | **Sign**, **Publish** | All documents (`{{…}}` placeholders) |
 | **Q3** | **Pilot artefacts in M0.** The discovery kit collects the pilot's real Excel sheets and notes (`ROADMAP.md §4.1`). Where are they kept, and who can see them? | Keep them on the owner's machine only. Never commit them, paste them into an AI agent, or upload them to a preview. Use anonymized samples for design, and for the M9 import dry-run until the processor agreement is signed | **Now** | D8 in `role-mapping.md`, E015 |
 | **Q4** | **Pilot gym's own paperwork.** Does the pilot gym have its own privacy notice for its clients, and an intake form? Should Fivvi provide a short template privacy notice for gyms? | Yes, provide a one-page template in a follow-up PR. Most small gyms don't have one, and they are the controller | **G4** | `privacy-policy.*` §2, terms A7 |
 | **Q6** | **Railway DPA execution and health data.** Has Railway signed the submitted DPA, and does its processing schedule cover notes containing health data despite the published Exhibit A listing special-category data as “None”? | Keep the signed copy; obtain written clarification or amended terms before storing health data in notes. Document the US transfer mechanism | **G2** for execution; **M7** for health notes | `sub-processors.md` §3, ADR-011 |
@@ -34,7 +34,6 @@ Each question has a recommendation, so a short "agree" is a valid answer.
 | # | Follow-up | Why | Where |
 |---|---|---|---|
 | **Q17** | Add rules D7 and D8 to `AGENTS.md`: Railway preview databases never come from production, and agents never get production data or real pilot files | Keeps the AI agents' providers out of the sub-processor list | `AGENTS.md`, `role-mapping.md` §7 |
-| **Q18** | Where do the published legal texts live? They are user-facing long-form content, but `AGENTS.md` says all user-facing strings come from `packages/i18n`. Options: an exception for per-locale Markdown/MDX pages (`/privacy`, `/voorwaarden`), or storage in the catalogs | A documented exception: per-locale MDX pages rendered by the web app, linked from the native apps. Record it in the ADR-008 write-up | ADR-008, E005 |
 | **Q20** | Terminology. These drafts use "workspace", "klant" and "owner". Align them with `packages/i18n/GLOSSARY.md` once it's merged | Legal texts and the UI should use the same words | All documents |
 
 ## Resolved decisions
@@ -42,6 +41,7 @@ Each question has a recommendation, so a short "agree" is a valid answer.
 | # | Decision | Outcome |
 |---|---|---|
 | **Q1** | Hosting and database | Railway EU West (Amsterdam) for web, API, cron and Postgres; ADR-011 accepted. DPA execution remains Q6 |
+| **Q18** | Where the published legal texts live | Per-locale Markdown in `docs/legal`, rendered by the web app at build time, as the documented exception to `packages/i18n` ([ADR-030](../decisions/ADR-030-public-website.md), proposed). Addresses: `/privacy`, `/en/privacy`, `/voorwaarden`, `/en/terms` |
 | **Q5** | Transactional email | Brevo selected and set up in E006 (2026-10-03): DPA (part of the terms), EU storage, limits, tracking and log retention checked; see `sub-processors.md §4` for what remains before G2 |
 | **Q19** | Reconcile with merged ADRs | `sub-processors.md` synchronized with ADR-009, 011 and 013 |
 | **Q21** | Hosting cost plan | `ROADMAP.md §12` already reflects Railway Hobby during the build and Pro at G4 |
