@@ -1262,8 +1262,8 @@
     var a = ACC.filter(function (x) { return x.k === PREF.accent; })[0] || ACC[0];
     var sc = SETUPS[PREF.setup];
     D.workspaces.sf.name = sc ? sc.name : PREF.setup === "solo" ? "Sarah Personal Training" : "Studio Fit";
-    D.workspaces.sf.location = sc ? sc.loc : PREF.setup === "solo" ? "TrainMore Zuid" : "Studio Fit, Kerkstraat 12";
-    D.locations = sc ? [sc.loc, "TrainMore Zuid", "Basic-Fit Oost", "Vondelpark (buiten)"] : PREF.setup === "solo" ? ["TrainMore Zuid", "Basic-Fit Oost", "Vondelpark (buiten)", "Bij de klant thuis"] : ["Studio Fit, Kerkstraat 12", "TrainMore Zuid", "Basic-Fit Oost", "Vondelpark (buiten)"];
+    D.workspaces.sf.location = sc ? sc.loc : PREF.setup === "solo" ? "Fitcentrum Zuid" : "Studio Fit, Kerkstraat 12";
+    D.locations = sc ? [sc.loc, "Fitcentrum Zuid", "Sportcentrum Oost", "Vondelpark (buiten)"] : PREF.setup === "solo" ? ["Fitcentrum Zuid", "Sportcentrum Oost", "Vondelpark (buiten)", "Bij de klant thuis"] : ["Studio Fit, Kerkstraat 12", "Fitcentrum Zuid", "Sportcentrum Oost", "Vondelpark (buiten)"];
     loadSetup();
     if (SOLO()) S.scope = "me";
     var dark = PREF.mode === "dark" && a.fillD;

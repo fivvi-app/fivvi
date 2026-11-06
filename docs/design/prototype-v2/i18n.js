@@ -540,7 +540,7 @@ window.FIVVI_I18N = (function () {
     var out = s.replace(/Bij (\S+) thuis/g, "At $1's home").replace(/Je valt in voor /g, "Covering for ").replace(/Bezig · gestart om /g, "In progress · started at "), marks = [];
     PHL.forEach(function (p) { out = out.replace(p[0], function (m, pre) { marks.push(p[1]); return pre + "\u0001" + (marks.length - 1) + "\u0002"; }); });
     out = out.replace(/\u0001(\d+)\u0002/g, function (m, i) { return marks[+i]; });
-    return out.replace(/(\d),(\d)/g, "$1.$2");
+    return out.replace(/(\d)\.(\d{3}),(\d{2})/g, "$1\u0003$2.$3").replace(/(\d),(\d)/g, "$1.$2").replace(/\u0003/g, ",");
   }
   function T(s) {
     var lead = s.match(/^\s*/)[0], trail = s.match(/\s*$/)[0], core = s.trim();
@@ -571,5 +571,5 @@ window.FIVVI_I18N = (function () {
     root.querySelectorAll && root.querySelectorAll("input").forEach(function (i) { if (lang === "en" && /^\d+,\d+$/.test(i.value) && i.dataset.ls) i.value = i.value.replace(",", "."); });
   }
   /* the screens in more-*.js carry their English next to their Dutch */
-  return { apply: apply, T: T, add: function (nl, en) { PH[nl] = en; return nl; }, rule: function (re, en) { RULES.unshift([re, en]); }, P: P };
+  return { apply: apply, T: T, add: function (nl, en) { if (!(nl in PH)) PH[nl] = en; return nl; }, rule: function (re, en) { RULES.unshift([re, en]); }, P: P };
 })();

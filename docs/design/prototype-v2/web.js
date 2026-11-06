@@ -127,7 +127,7 @@
       ["offers", "Aanbod", "repeat", own],
       ["payments", "Betalingen", "swap", own],
       ["trainers", "Trainers", "personPlus", own && team],
-      ["link", "Aanmeldlink", "link", own],
+      ["link", "Aanmeldlink", "link", true],
       ["settings", "Instellingen", "pencil", own]
     ];
   };
@@ -135,7 +135,8 @@
 
   function web() {
     var w = W();
-    if (!F.OWNER() && ["dashboard", "classes", "gym", "trainers", "link", "settings"].indexOf(w.page) >= 0) w.page = "myday";
+    if (!F.OWNER() && ["dashboard", "classes", "gym", "trainers", "settings", "offers", "payments", "payout", "invoice", "agreement", "import", "posters", "offerstates", "classempty", "classseries"].indexOf(w.page) >= 0) w.page = "myday";
+    if (!F.OWNER() && w.dialog && OWNERDLG[w.dialog.n]) w.dialog = null;
     var nav = NAV().map(function (n) {
       if (n[0] === "h") return '<div class="w-navh">' + esc(n[1]) + "</div>";
       if (!n[3]) return "";
@@ -147,7 +148,7 @@
     var h = '<div class="w-chrome"><i></i><i></i><i></i><span class="w-url">fivvi.app/w/' + slug() + "/" + w.page + "</span></div>";
     h += '<div class="w-app"><aside class="w-side"><button class="w-wsb" data-a="w-toast" data-m="Wissel van werkruimte">' + '<span class="w-logo">' + F.initials(wsName()) + '</span><span class="w-wsn"><b>' + esc(wsName()) + "</b><span>" + (F.OWNER() ? "Eigenaar" : "Trainer") + "</span></span>" + ic("chevR") + "</button>" + nav +
       '<div class="w-sidef"><button class="w-nav" data-a="w-toast" data-m="Opent het feedbackformulier">' + ic("chat") + "<span>Feedback geven</span></button>" +
-      '<div class="w-user">' + av(ME(), "var(--accent)") + "<span><b>" + esc(ME()) + "</b><span>" + esc(D.me.email) + "</span></span></div></div></aside>";
+      '<button class="w-user" data-a="w-page" data-v="me">' + av(ME(), "var(--accent)") + "<span><b>" + esc(ME()) + "</b><span>" + esc(D.me.email) + "</span></span></button></div></aside>";
     h += '<main class="w-main"><header class="w-top"><h1>' + esc(TITLES[w.page] || "") + '</h1><div class="w-search">' + ic("search") + '<input data-win="q" placeholder="Zoek klant…" value="' + esc(w.q) + '" aria-label="Zoek klant"><div id="w-sr" class="w-sr">' + searchResults() + "</div></div>" +
       btn("Nieuw", "w-new", { i: "plus" }) + '</header><div class="w-scroll"><div class="w-page">' + page + "</div></div></main></div>";
     if (w.menu) h += menu();
@@ -313,7 +314,7 @@
         var open = w.hist === a.id;
         return '<div class="w-agr"><div class="w-agr-h"><div><b>' + esc(a.name) + "</b> " + badge(D.KIND[a.kind], "", "secondary") + " " + statusBadge(a) + '<p class="w-muted">' + (money(c) ? esc(a.price) + " · " + esc(a.cycle) + " · " : "") + "sinds " + esc(a.since) + " · " + esc(a.period) + (a.next && a.next !== "—" && money(c) ? " · volgende betaling " + esc(a.next) : "") + "</p>" +
           (a.kind === "abo" ? "<p>" + aboLine(a) + "</p>" : "<p>" + a.used + " gebruikt · " + a.planned + " gepland · <b>" + (a.total - a.used - a.planned) + " over</b> van " + a.total + "</p>") + "</div>" +
-          btn(open ? "Verberg geschiedenis" : "Geschiedenis", "w-hist", { k: "outline sm", d: { id: a.id } }) + "</div>" + renewLine(sum, a, c) + (a.cash && a.next && money(c) ? '<div class="w-renew">' + ic("repeat") + "<span><b>" + esc(a.cash) + "</b> · <span>" + (a.late ? "betaling van " + esc(a.next) + " nog niet vastgelegd" : "volgende betaling " + esc(a.next)) + "</span></span>" + btn("Betaald", "w-cashdue", { k: "sm", dis: !payOpen(), d: { id: a.id } }) + "</div>" : "") +
+          (money(c) ? '<div class="w-hgroup">' + btn("Bekijken", "w-page", { k: "ghost sm", d: { v: "agreement" } }) + btn("Tegoed aanpassen", "w-dlg", { k: "ghost sm", d: { n: "adjust" } }) + "</div>" : "") + btn(open ? "Verberg geschiedenis" : "Geschiedenis", "w-hist", { k: "outline sm", d: { id: a.id } }) + "</div>" + renewLine(sum, a, c) + (a.cash && a.next && money(c) ? '<div class="w-renew">' + ic("repeat") + "<span><b>" + esc(a.cash) + "</b> · <span>" + (a.late ? "betaling van " + esc(a.next) + " nog niet vastgelegd" : "volgende betaling " + esc(a.next)) + "</span></span>" + btn("Betaald", "w-cashdue", { k: "sm", dis: !payOpen(), d: { id: a.id } }) + "</div>" : "") +
           (open ? table(["Datum", "Wat", "Credits", "Door"], a.hist.map(function (x) { var sg = x[2].charAt(0); return [esc(x[0]), esc(x[1]), '<span class="w-tnum ' + (sg === "+" ? "w-plus" : sg === "−" ? "w-minus" : "w-muted") + '">' + esc(sg === "+" || sg === "−" ? x[2] : "(" + x[2] + ")") + "</span>", esc(x[3])]; })) : "") + "</div>";
       }).join("") : '<p class="w-muted">' + esc(c.name.split(" ")[0]) + " heeft nog geen abonnement of credits.</p>", { desc: "Elke credit telt alleen voor zijn eigen soort: groep of privé.", act: money(c) ? '<div class="w-hgroup">' + btn("Betaling buiten Fivvi", "w-dlg", { k: "outline sm", dis: !payOpen(), d: { n: "cash" } }) + (paysAtStudio() ? "" : btn("Aanbod sturen", "w-dlg", { k: "outline sm", i: "plus", dis: !payOnline(), d: { n: "offer" } })) + "</div>" : "" });
       if (money(c)) h += card("Betalingen en facturen", sum.b.payments.length ? table(["Datum", "Omschrijving", "Bedrag", "Methode", "Status", "Factuur", ""], sum.b.payments.map(function (p, pi) {
@@ -512,7 +513,7 @@
   }
   PAGES.offers = function () {
     var all = D.offerList.filter(offerFits), own = all.filter(function (o) { return !o.def; }), defs = all.filter(function (o) { return o.def; });
-    var h = payGate() + (PAGES.offerRules ? PAGES.offerRules() : "") + '<div class="w-row-between"><p class="w-muted">Wat je verkoopt. Klanten zien alleen aanbod dat aan staat. Een wijziging geldt voor nieuwe afspraken: lopende afspraken houden hun voorwaarden.</p>' + btn("Nieuw aanbod", "w-dlg", { i: "plus", d: { n: "offer-edit" } }) + "</div>";
+    var h = payGate() + (PAGES.offerRules ? PAGES.offerRules() : "") + '<div class="w-row-between"><p class="w-muted">Wat je verkoopt. Klanten zien alleen aanbod dat aan staat. Een wijziging geldt voor nieuwe afspraken: lopende afspraken houden hun voorwaarden.</p>' + btn("Nieuw aanbod", "w-dlg", { i: "plus", d: { n: "offer-kind" } }) + "</div>";
     ["abo", "pack", "plan", "single"].forEach(function (k) { var os = own.filter(function (o) { return o.kind === k; }); if (os.length) h += '<h3 class="w-sec">' + OKIND[k][1] + '</h3><div class="w-offers">' + os.map(offerCard).join("") + "</div>"; });
     if (defs.length) h += '<h3 class="w-sec">Standaardplannen</h3><p class="w-muted" style="margin:-4px 0 10px">Elke nieuwe werkruimte begint met deze drie. Ze staan uit tot je een prijs invult; Fivvi stelt nooit een prijs voor.</p><div class="w-offers">' + defs.map(offerCard).join("") + "</div>";
     return h;
@@ -983,6 +984,7 @@
     var h = '<div class="c-me">' + K.avatar(me.name, anna ? me.c : "var(--priv)", "lg") + "<h1>" + esc(me.name) + "</h1><p>" + esc(me.email) + "</p></div>";
     if (anna) {
       h += tegoedParts();
+      h += '<div class="pad" style="margin-top:12px">' + K.grp([["Mijn abonnementen (CP-04)", "Mijn abonnementen en tegoed"], ["Betalingen en facturen (CP-05)", "Betalingen en facturen"], ["Opzeggen (CP-06)", "Opzeggen"], ["Factuurgegevens klant", "Factuurgegevens"]].map(function (x) { return K.row({ a: "c-st", d: { v: x[0] }, title: x[1], cls: "c-row", chev: true }); })) + "</div>";
       h += K.sh("Facturen", "", "small") + '<div class="pad">' + K.grp(D.billing.anna.payments.map(function (p) { return K.row({ a: "w-toast", d: { m: "Factuur gedownload" }, cls: "c-row", title: esc(p[1]), sub: esc(p[0]) + " · " + esc(p[3]), tr: '<b class="num c-amt">' + esc(p[2]) + "</b>" + ic("down", "c-dl") }); })) + "</div>";
       if (!APP) h += K.sh("Mijn trainingen", "", "small") + '<div class="pad">' + K.grp((D.history.anna || []).slice(0, 3).map(function (x, i) { return K.row({ a: "c-workout", d: { v: i }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("dumb") + "</span>", title: esc(x.name), sub: esc(x.d) + " · met " + esc(x.by) }); }), "--inset:60px") + "</div>";
     } else h += '<div class="pad"><div class="card empty">Nog geen abonnement of credits.<div style="margin-top:14px">' + K.btn("Aanbod bekijken", { k: "sec", a: "c-offers" }) + "</div></div></div>";
@@ -1301,6 +1303,7 @@
   A["c-atab"] = function (d) { var c = C(); c.atab = d.v; c.detail = null; c.workout = null; c.selfOn = false; c.solo = null; leaveEdit(c); c.web = null; c.page = null; R(); };
   A["c-offers"] = function () { var cf = C().detail && cfind(C().detail); C().webws = cf ? (cf.it.ws === "yl" ? "yl" : "sf") : C().web === "renew" ? "sf" : cws(); C().web = "offers"; R(); };
   A["c-webclose"] = function () { C().web = null; R(); };
+  A["c-st"] = function (d) { C().web = "st:" + d.v; R(); };
   A["c-renew"] = function () { C().web = "renew"; R(); };
   A["c-rstart"] = function (d) { C().renewStart = d.v; R(); };
   A["c-renewpay"] = function () { var c = C(), r = clientRenew(); c.payFor = { name: r.a.name, renew: r.a.id }; c.web = "checkout"; R(); };
@@ -1414,9 +1417,9 @@
   function scrollSave(dev) { var el = dev.querySelector(".w-scroll,.c-body"), s = S(); if (!el || dev.fivviS !== s) return null; (s.sm = s.sm || {})[dev.dataset.ck] = el.scrollTop; return [el.className, el.scrollTop, dev.dataset.ck || ""]; }
   function scrollRestore(dev, keep) { var k = scrollKey(), s = S(), el = keep && dev.querySelector(".w-scroll,.c-body"), m = (s.sm || {})[k]; if (el && el.className === keep[0] && m != null) el.scrollTop = m; dev.dataset.ck = k; dev.fivviS = s; }
   /* registries for the screens in more-*.js: a dialog, its OK, a client web page, a page title */
-  var DLG = {}, DLGOK = {}, CWEB = {};
+  var DLG = {}, DLGOK = {}, CWEB = {}, OWNERDLG = {};
   window.FVW = { web: web, client: client, capp: capp, onInput: onInput, scrollSave: scrollSave, scrollRestore: scrollRestore,
-    x: { W: W, C: C, card: card, btn: btn, table: table, badge: badge, tabs: tabs, fld: fld, inp: inp, selF: selF, av: av, PAGES: PAGES, TITLES: TITLES, DLG: DLG, DLGOK: DLGOK, CWEB: CWEB, K: K, cbtn: cbtn, intro: intro, mark: mark, wsName: wsName, slug: slug, payOpen: payOpen, payOnline: payOnline, paysAtStudio: paysAtStudio, payState: payState, payWeb: payWeb, webBar: webBar, CSTEP: CSTEP, ASTEP: ASTEP, goWeb: goWeb, goApp: goApp, goClient: goClient, timetable: timetable, cfind: cfind, shortLoc: shortLoc, cwho: cwho, dayName: dayName, R: R, renewDemo: renewDemo } };
+    x: { W: W, C: C, card: card, btn: btn, table: table, badge: badge, tabs: tabs, fld: fld, inp: inp, selF: selF, av: av, PAGES: PAGES, TITLES: TITLES, DLG: DLG, DLGOK: DLGOK, CWEB: CWEB, OWNERDLG: OWNERDLG, K: K, cbtn: cbtn, intro: intro, mark: mark, wsName: wsName, slug: slug, payOpen: payOpen, payOnline: payOnline, paysAtStudio: paysAtStudio, payState: payState, payWeb: payWeb, webBar: webBar, CSTEP: CSTEP, ASTEP: ASTEP, goWeb: goWeb, goApp: goApp, goClient: goClient, timetable: timetable, cfind: cfind, shortLoc: shortLoc, cwho: cwho, dayName: dayName, R: R, renewDemo: renewDemo } };
 
   /* panel entries for rounds 2 and 3 */
   function goWeb(page, extra) { return function () { F.fresh(); F.PREF.plat = "web"; var w = W(); w.page = page; for (var k in extra || {}) w[k] = extra[k]; }; }

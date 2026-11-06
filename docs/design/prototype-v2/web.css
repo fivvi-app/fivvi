@@ -592,3 +592,4 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .w-qrbox{display:grid;justify-items:center;gap:8px;margin-bottom:10px}
 .w-qr{width:150px;height:150px;background:#fff;padding:8px;border-radius:8px}
 .w-dialog .w-hgroup{flex-wrap:wrap}
+.w-user{border:0;background:none;width:100%;text-align:left;cursor:pointer;color:inherit;font:inherit}
