@@ -1134,7 +1134,7 @@
   }
   /* ================= Client app Fivvi (PRODUCT §55) =================
      The client web's scope as a native app: Home, Boeken, Activiteit (from M7), Profiel. Signs in with the emailed
-     code; joins through the join link, which opens the app (no QR scanner); paying opens the web page in a browser
+     code; joins through the join link, which opens the app, or by scanning its QR code; paying opens the web page in a browser
      sheet; account deletion in the app (§79). Push notifications come in Release 1.1, so none here. */
   var APP = false;
   function andr() { return F.PREF.plat === "android"; }

@@ -1735,7 +1735,7 @@ The client app is a separate app, **Fivvi** (app ID `app.fivvi`, iOS and Android
 - **Notifications:** emails only at go-live; push notifications follow in Release 1.1 (§54).
 - **Distribution:** public App Store and Google Play listings in Dutch and English before go-live, with in-app account deletion (§79), the privacy label and data safety form, and a review account. Go-live doesn't wait for the store review: if Fivvi isn't approved in time, clients use the client web.
 - **After go-live:** what the client did and their workout history come with M7, so the **Activiteit** tab arrives then. It is called Activiteit, not Training, because not every studio trains with workouts (owner, 5 November 2026; [`DECISIONS.md` §5b](../design/prototype-v2/DECISIONS.md#5b-client-app-fivvi)).
-- **Joining in the app (owner, 4 November 2026, [#469](https://github.com/fivvi-app/fivvi/issues/469)):** a client joins a workspace in Fivvi through the join link or the client invitation link (`fivvi.app/j/…`, `fivvi.app/i/…`). When Fivvi is installed the link opens it (Universal Links on iOS, verified App Links on Android), otherwise the web. There is no QR scanner in the app: the desk QR code holds the join link, so the phone's camera opens it.
+- **Joining in the app (owner, 4 November 2026, [#469](https://github.com/fivvi-app/fivvi/issues/469)):** a client joins a workspace in Fivvi through the join link or the client invitation link (`fivvi.app/j/…`, `fivvi.app/i/…`). When Fivvi is installed the link opens it (Universal Links on iOS, verified App Links on Android), otherwise the web. The desk QR code holds the join link, so the phone's camera opens it, and in the app *QR-code scannen* on the no-studio screen scans it too (owner, 6 November 2026, [#484](https://github.com/fivvi-app/fivvi/issues/484)).
 
 Launch:
 
@@ -2693,12 +2693,12 @@ A new workspace starts with three ready-made offers, the **default plans** (owne
 
 | Default plan | Kind | Pre-filled | Paid |
 |---|---|---|---|
-| **Membership** | Membership | 2 group classes a week, for 6 months, 2 makeups a month | Monthly (§94) |
+| **Membership** | Membership | 2 group classes a week, for 6 months, 2 makeups a month, weekly limit 4 (proposal, #483) | Monthly (§94) |
 | **Group credit pack** | Credit pack, group | 10 group credits, valid for 3 months | Once, up front (§94) |
 | **Private credit plan** | Credit plan, private | 4 private credits a month (about one session a week), minimum term of 3 months | Monthly (§94) |
 
 - **The owner can change every field of an offer** (owner decision), a default included: its name and description (Dutch and optional English, as in §18), price, VAT rate, classes and weekdays, credits, term or validity, payment schedule, cancellation cutoff, makeup limit, carry-over, unused classes and weekly limit, where they apply. The owner can also switch a default off again or delete it.
-- **Starting values.** The defaults start with the pilot's answers: a cutoff of 12 hours for classes and 24 hours for private sessions ([QC02](../design/open-questions.md#qc02)), a minimum term of 3 months for the private credit plan (QC19 d) and 2 makeups a month for the membership ([QC03](../design/open-questions.md#qc03), QC19 e). The membership's weekly limit starts at the pilot's 4, with unused classes expiring (§91). The carry-over limit starts at 0 ([QC17](../design/open-questions.md#qc17), the proposal stands). The rest of QC19 (a to c) is still a proposal, unconfirmed.
+- **Starting values.** The defaults start with the pilot's answers: a cutoff of 12 hours for classes and 24 hours for private sessions ([QC02](../design/open-questions.md#qc02)), a minimum term of 3 months for the private credit plan (QC19 d) and 2 makeups a month for the membership ([QC03](../design/open-questions.md#qc03), QC19 e). As a proposal, the membership's weekly limit starts at the pilot's 4, with unused classes expiring (§91; [#483](https://github.com/fivvi-app/fivvi/issues/483) question 5). The carry-over limit starts at 0 ([QC17](../design/open-questions.md#qc17), the proposal stands). The rest of QC19 (a to c) is still a proposal, unconfirmed.
 - **A default is a starting point, not a template that stays linked** (proposal, QC19 b). The workspace gets its own copy when it is created; later changes to Fivvi's defaults never change an existing workspace.
 - **Changes apply to new agreements only** (proposal, [QC15](../design/open-questions.md#qc15)); this includes changing any field, switching an offer off or deleting it: agreements that already run keep their terms.
 
