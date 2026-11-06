@@ -16,7 +16,7 @@ This is the record of what the owner and the agent decided while clicking throug
 
 ## 2. Platforms and visual direction
 
-Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md), amended by [ADR-031](../../decisions/ADR-031-move-pink-is-the-only-accent.md).
+Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md), amended by [ADR-031](../../decisions/ADR-031-move-pink-is-the-only-accent.md) and [ADR-032](../../decisions/ADR-032-secondary-text-in-the-native-apps.md).
 
 | Platform | Decision |
 |---|---|

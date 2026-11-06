@@ -19,11 +19,11 @@ The owner compared it with a darker grey and chose to keep the prototype's look.
 
 | Where | Value | Contrast |
 |---|---|---|
-| Fivvi Pro and Fivvi, iOS and Android | `#85858B`, the prototype's grey | 3.3:1 on the canvas, 3.7:1 on cards |
+| Fivvi Pro and Fivvi, iOS and Android | `#85858B`, the prototype's grey as it lands on the canvas, used as one opaque value, so it's slightly darker on cards than the prototype shows | 3.3:1 on the canvas, 3.7:1 on cards |
 | Client web | `#6C6C70` | 4.7:1 on the canvas, 5.2:1 on cards |
 | Trainer web | zinc `#71717A`, unchanged | 4.8:1 on white |
 
-Dark mode is `#98989F` in the apps and on the client web. **This is the only exception to the 4.5:1 rule.** It is declared in the tokens' contrast pairs with a minimum of 3:1 and a reason, so it can't drop further and no other colour can use it.
+Dark mode is `#98989F` in the apps and on the client web, and zinc `#A1A1AA` on the trainer web. **This is the only exception to the 4.5:1 rule.** It is declared in the tokens' contrast pairs with a minimum of 3:1 and a reason, so it can't drop further and no other colour can use it.
 
 ## Consequences
 

@@ -594,7 +594,7 @@ The client app **Fivvi** (v1.31):
 - [ ] Local security review + owner sign-off: authn/authz on every route, tenant isolation suite green, rate limits, security headers, secrets rotation, dependency audit, native secure storage for tokens (Keychain / EncryptedSharedPreferences or DataStore).
 - [ ] Privacy: data export and deletion work per client and per workspace (§79); retention jobs run; processor agreement signed.
 - [ ] **Full bilingual QA pass:** review every string locally against the glossary and tone guide, on web, iOS, Android and email. Dates/times checked (`22 september 2026`, 24h, Europe/Amsterdam). The pilot owner flags anything that reads oddly.
-- [ ] Accessibility: the client timetable, the join pages and client web meet WCAG 2.2 AA. Native apps support Dynamic Type / font scaling, VoiceOver / TalkBack labels, and have sufficient contrast.
+- [ ] Accessibility: the client timetable, the join pages and client web meet WCAG 2.2 AA. Native apps support Dynamic Type / font scaling, VoiceOver / TalkBack labels, and have sufficient contrast (the one exception for secondary text is in ADR-032).
 - [ ] Performance: client timetable budget met; calendar loads a busy week quickly.
 - [ ] Backups verified by an **actual restore** to a scratch Postgres service on Railway.
 - [ ] Runbooks: incident response, rollback, "a client says they didn't get the email", "wrong booking".
@@ -749,7 +749,7 @@ These run continuously from M1 onward. They are not phases.
 | **API contract** | All clients use generated clients; changes are additive and versioned after a freeze | OpenAPI drift check in CI |
 | **Security** | Least privilege; tenant isolation; hashed single-use tokens; rate limits; secure token storage on devices; dependency updates | E011 suite in CI; local security review at M9 and before each major release |
 | **Privacy (AVG/GDPR)** | Minimal data (name + email for booking); trainer-only notes by default; EU residency; export and deletion; retention; processor agreements | Definition of Done checklist for any feature touching personal data |
-| **Accessibility** | WCAG 2.2 AA on the client timetable, the join pages and client web; Dynamic Type, VoiceOver/TalkBack and contrast on native | axe checks in web e2e; native accessibility audits at M9 |
+| **Accessibility** | WCAG 2.2 AA on the client timetable, the join pages and client web; Dynamic Type, VoiceOver/TalkBack and contrast on native (the one exception for secondary text is in ADR-032) | axe checks in web e2e; native accessibility audits at M9 |
 | **Observability** | Errors, logs, uptime, crash-free rate; **product events captured from MVP** (bookings, attendance, logging) so 3.2 analytics has history | E009; event list maintained in `docs/engineering/` |
 | **Quality** | Test pyramid; e2e for booking, tenancy, scheduling; tests ship with every change (`docs/engineering/TESTING.md`) | Deterministic CI checks on `main`; feature Test plans; local review checklist |
 | **Documentation** | Spec issues + registry + `GLOSSARY.md` updated with the code | PR checklist (WORKFLOW.md) |
