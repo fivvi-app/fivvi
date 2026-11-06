@@ -2,6 +2,9 @@ import FivviAPI
 import XCTest
 
 @testable import FivviPro
+@testable import FivviStrings
+@testable import FivviLanguage
+@testable import FivviSignIn
 
 /// What the screen reader was told, in order.
 final class Announcements {

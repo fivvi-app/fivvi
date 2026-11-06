@@ -2,6 +2,7 @@ import Foundation
 import FivviAPI
 
 @testable import FivviPro
+@testable import FivviStrings
 
 /// Expected copy, read from packages/i18n/generated/ios/Localizable.xcstrings compiled into this test bundle, so
 /// tests never hard-code Dutch or English text.

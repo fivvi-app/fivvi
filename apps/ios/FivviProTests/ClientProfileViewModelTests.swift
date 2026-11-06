@@ -2,6 +2,8 @@ import FivviAPI
 import XCTest
 
 @testable import FivviPro
+@testable import FivviStrings
+@testable import FivviLanguage
 
 /// *Klantprofiel* / *Client profile* (TM-03, F006 AC7 and AC12): the overview of one client. The test plan runs every
 /// test in nl and en (FivviPro.xctestplan).

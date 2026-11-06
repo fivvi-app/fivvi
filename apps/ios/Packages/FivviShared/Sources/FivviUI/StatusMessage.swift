@@ -1,9 +1,9 @@
 import SwiftUI
 import FivviDesignTokens
 
-/// A message on a clients screen: a rounded surface that wraps its text (a failed save, a confirmation, an offer).
-struct ClientMessage: View {
-    enum Kind {
+/// A message on a screen: a rounded surface that wraps its text (a failed save, a confirmation, an offer).
+public struct StatusMessage: View {
+    public enum Kind {
         case error, success, info
     }
 
@@ -11,7 +11,13 @@ struct ClientMessage: View {
     let kind: Kind
     let id: String
 
-    var body: some View {
+    public init(text: String, kind: Kind, id: String) {
+        self.text = text
+        self.kind = kind
+        self.id = id
+    }
+
+    public var body: some View {
         Text(text)
             .font(.system(Tokens.TextStyle.body))
             .foregroundStyle(foreground)
@@ -41,11 +47,16 @@ struct ClientMessage: View {
 
 /// Grey rows in the shape of the list while it loads (`information-architecture.md §9.5`: skeleton rows, no
 /// spinner-only screen). Read as one loading indicator by VoiceOver.
-struct ClientSkeletonRows: View {
+public struct SkeletonRows: View {
     let label: String
     let id: String
 
-    var body: some View {
+    public init(label: String, id: String) {
+        self.label = label
+        self.id = id
+    }
+
+    public var body: some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.space4) {
             ForEach(0 ..< 6, id: \.self) { _ in
                 VStack(alignment: .leading, spacing: Tokens.Spacing.space1) {

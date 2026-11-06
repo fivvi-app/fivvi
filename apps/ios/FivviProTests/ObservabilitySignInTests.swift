@@ -2,6 +2,7 @@ import Sentry
 import XCTest
 
 @testable import FivviPro
+@testable import FivviObservability
 
 /// F001 AC12: what a failed sign-in reports to Sentry, through the scrubber (`ErrorReporting.beforeSend`).
 final class ObservabilitySignInTests: XCTestCase {

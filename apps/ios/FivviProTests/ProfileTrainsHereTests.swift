@@ -2,6 +2,8 @@ import FivviAPI
 import XCTest
 
 @testable import FivviPro
+@testable import FivviStrings
+@testable import FivviLanguage
 
 /// *Profiel* (TM-04), the Owner's switch *I also train here* (F005 AC4, AC5): shown where `GET /api/v1/me/workspaces`
 /// lists `team.manage`, never from the role; it moves only when the API accepted the change (`PUT` / `DELETE` of the

@@ -1,10 +1,14 @@
 import SwiftUI
 import FivviAPI
 import FivviDesignTokens
+import FivviLanguage
+import FivviSession
+import FivviStrings
+import FivviUI
 
 /// TM-01: one screen with two steps, the email step and the code step. Colours and text styles come from the design
 /// tokens, text from the catalog; text wraps and every control keeps a 44 pt touch target.
-struct SignInView: View {
+public struct SignInView: View {
     @State private var model: SignInViewModel
     private let language: AppLanguage
     @FocusState private var focus: Field?
@@ -14,7 +18,7 @@ struct SignInView: View {
         case email, code
     }
 
-    init(
+    public init(
         api: any APIProtocol, store: any SessionStore, language: AppLanguage, afterRejection: Bool,
         onSignedIn: @escaping () -> Void
     ) {
@@ -25,7 +29,7 @@ struct SignInView: View {
         self.language = language
     }
 
-    var body: some View {
+    public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: Tokens.Spacing.space6) {
                 languageSwitch

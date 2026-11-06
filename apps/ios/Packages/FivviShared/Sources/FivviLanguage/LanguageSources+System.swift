@@ -3,7 +3,7 @@ import Foundation
 extension LanguageSources {
     /// The sources on this device. iOS stores the per-app language from Settings as `AppleLanguages` in the app's own
     /// defaults domain; `Locale.preferredLanguages` is the device's list.
-    static func system(
+    public static func system(
         defaults: UserDefaults = .standard,
         appDomain: String = Bundle.main.bundleIdentifier ?? "",
         device: [String] = Locale.preferredLanguages

@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import FivviAPI
+import FivviStrings
 
 /// The form that adds a client (*+ Nieuwe klant*, a sheet) or edits one (the overview's *Bewerken*): name, email
 /// address and language for emails, with the rules and messages of the web (F006 AC1 to AC3, AC7, AC12). The name and
