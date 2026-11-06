@@ -273,7 +273,8 @@ window.FIVVI_DATA = (function () {
   var LAST_REMIND = 7, MONTHS = ["jan", "feb", "mrt", "apr", "mei", "jun", "jul", "aug", "sep", "okt", "nov", "dec"];
   function remindLine(a) {
     if (!a.remindSent) return "";
-    if (a.endsIn <= LAST_REMIND) return "Laatste herinnering verstuurd";
+    var usedUp = a.kind === "pack" && a.total != null && a.total - a.used - a.planned <= 0;
+    if (a.endsIn <= LAST_REMIND || usedUp) return "Laatste herinnering verstuurd";
     var d = new Date(2026, 10, 5 + a.endsIn - LAST_REMIND);
     return "Herinnering verstuurd " + a.remindSent + " · laatste uiterlijk " + d.getDate() + " " + MONTHS[d.getMonth()];
   }

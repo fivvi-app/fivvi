@@ -848,7 +848,7 @@
     }
     return { title: "Profiel", body: profile() };
   };
-  /* The client's renewal reminder (PRODUCT §90; owner, 5 Nov 2026): from the same moment Fivvi suggests renewing to the owner,
+  /* The client's renewal reminders (PRODUCT §90; owner, 5 and 6 Nov 2026): from the same moment Fivvi suggests renewing to the owner,
      for an agreement that stops or a pack running low. Two emails, a card on Home and Tegoed, and a one-tap renewal on the web. */
   function clientRenew() {
     var c = C(), r = null, s; if (c.who !== "anna") return null;
@@ -856,9 +856,11 @@
     /* the reminders also go when the owner sent an offer, and then point at that offer; a paid one is done, so the next one can show */
     s.renew.some(function (x) { var a = x[0], left = a.total != null ? a.total - a.used - a.planned : null; if (a.end !== "stop" || a.status === "expired" || a.endsIn < 0 || (c.renewed || {})[a.id]) return false; r = { a: a, left: left, days: a.endsIn, offer: !!a.offerSent, used: a.kind === "pack" && left <= 0, low: a.kind === "pack" && left > 0 && left <= 2 }; return true; });
     if (!r) return null;
-    var nd = r.days === 1 ? "1 dag" : r.days + " dagen";
-    r.title = r.used ? "Je " + r.a.name + " zijn op" : r.low ? "Je " + r.a.name + " zijn bijna op" : r.a.kind === "abo" ? "Je abonnement stopt over " + nd : "Je " + r.a.name + " stoppen over " + nd;
+    function head(days) { var nd = days === 1 ? "1 dag" : days + " dagen"; return r.used ? "Je " + r.a.name + " zijn op" : r.low ? "Je " + r.a.name + " zijn bijna op" : r.a.kind === "abo" ? "Je abonnement stopt over " + nd : "Je " + r.a.name + " stoppen over " + nd; }
+    r.title = head(r.days);
     r.last = r.used || r.days <= 7;
+    /* the email says what was true on the day it went */
+    r.mailTitle = head(r.last ? r.days : D.RENEW_DAYS);
     r.cta = r.offer ? "Bekijk het aanbod" : "Verlengen";
     r.sub = r.offer ? "Je studio heeft je een aanbod gestuurd. Bekijk het om door te gaan." : r.used ? "Verleng om weer te kunnen boeken." : r.left != null ? "Nog " + r.left + " over. Verleng om door te gaan." : r.a.name + ". Verleng om door te gaan.";
     return r;
@@ -868,8 +870,8 @@
     var a = D.billing.anna.agreements.filter(function (x) { return x.id === "a12"; })[0];
     a.endsIn = 57; a.period = "geldig tot 1 jan 2027"; a.used = 5; a.planned = 2; delete a.remindSent; delete a.offerSent;
     if (kind === "ends" || kind === "offer") { a.endsIn = 24; a.period = "geldig tot 29 nov 2026"; a.remindSent = "30 okt"; }
-    if (kind === "offer") a.offerSent = "3 nov";
-    if (kind === "last") { a.endsIn = 7; a.period = "geldig tot 12 nov 2026"; a.remindSent = "13 okt"; }
+    if (kind === "offer" || kind === "offerlast") a.offerSent = "3 nov";
+    if (kind === "last" || kind === "offerlast") { a.endsIn = 7; a.period = "geldig tot 12 nov 2026"; a.remindSent = "13 okt"; }
     if (kind === "low") { a.used = 6; a.remindSent = "5 nov"; }
   }
   function renewCard() {
@@ -893,7 +895,7 @@
   /* what the reminder email says */
   function mailView() {
     var r = clientRenew(); if (!r) return "";
-    return '<div class="scrim anim-fade" data-a="c-webclose"></div><div class="sheet large anim-up c-browser" role="dialog" aria-label="E-mail">' + (andr() ? '<div class="c-brbar"><button class="ib" data-a="c-webclose" aria-label="Sluiten">' + ic("x") + "</button><div><b>E-mail</b></div></div>" : '<div class="c-brbar ios"><button class="c-done" data-a="c-webclose">Klaar</button></div>') + '<div class="sbody"><div class="pad stack"><div class="card c-mail"><small>Van ' + esc(wsName()) + ' via Fivvi</small><h3>' + esc(r.title) + "</h3><p>Hoi Anna,</p><p>" + esc(r.sub) + "</p>" + K.btn(r.cta, { blk: true, a: "c-renew" }) + "<p><small>" + (r.last ? "Dit is de laatste herinnering." : r.a.kind === "pack" ? "Je krijgt nog één herinnering, als ze op zijn of uiterlijk 7 dagen voor het einde. Verleng je eerder, dan krijg je hem niet." : "Je krijgt nog één herinnering, 7 dagen voor het einde. Verleng je eerder, dan krijg je hem niet.") + "</small></p></div></div></div></div>";
+    return '<div class="scrim anim-fade" data-a="c-webclose"></div><div class="sheet large anim-up c-browser" role="dialog" aria-label="E-mail">' + (andr() ? '<div class="c-brbar"><button class="ib" data-a="c-webclose" aria-label="Sluiten">' + ic("x") + "</button><div><b>E-mail</b></div></div>" : '<div class="c-brbar ios"><button class="c-done" data-a="c-webclose">Klaar</button></div>') + '<div class="sbody"><div class="pad stack"><div class="card c-mail"><small>Van ' + esc(wsName()) + ' via Fivvi</small><h3>' + esc(r.mailTitle) + "</h3><p>Hoi Anna,</p><p>" + esc(r.sub) + "</p>" + K.btn(r.cta, { blk: true, a: "c-renew" }) + "<p><small>" + (r.last ? "Dit is de laatste herinnering." : r.a.kind === "pack" ? "Je krijgt nog één herinnering, als ze op zijn of uiterlijk 7 dagen voor het einde. Verleng je eerder, dan krijg je hem niet." : "Je krijgt nog één herinnering, 7 dagen voor het einde. Verleng je eerder, dan krijg je hem niet.") + "</small></p></div></div></div></div>";
   }
   /* the client's balance: tiles per kind (Fitness-style) and the agreements; shared by Profiel and the Tegoed screen */
   function tegoedParts() {
@@ -1376,7 +1378,7 @@
     ["Verlengen: eerste herinnering per e-mail", "#468", goApp("app", { who: "anna", atab: "home", web: "mail" }, function () { renewDemo("ends"); })],
     ["Verlengen: laatste herinnering per e-mail", "#468", goApp("app", { who: "anna", atab: "home", web: "mail" }, function () { renewDemo("last"); })],
     ["Verlengen: met een aanbod van de studio", "#468", goApp("app", { who: "anna", atab: "home" }, function () { renewDemo("offer"); })],
-    ["Verlengen: herinnering met een aanbod", "#468", goApp("app", { who: "anna", atab: "home", web: "mail" }, function () { renewDemo("offer"); })],
+    ["Verlengen: herinnering met een aanbod", "#468", goApp("app", { who: "anna", atab: "home", web: "mail" }, function () { renewDemo("offerlast"); })],
     ["Training zelf doen", "F045", goApp("app", { who: "anna", atab: "training", workout: 0 }, function (c) { c.self = selfStart(0); c.self.done = { "x0-0": true, "x0-1": true }; c.selfOn = true; })],
     ["Oefening toevoegen (zelf)", "#602", goApp("app", { who: "anna", atab: "training", workout: 0 }, function (c) { c.self = selfStart(0); c.selfOn = true; c.exsheet = true; c.exq = ""; })],
     ["Zelf gedane training", "F045", goApp("app", { who: "anna", atab: "training", solo: 0 }, resetSolo)],
