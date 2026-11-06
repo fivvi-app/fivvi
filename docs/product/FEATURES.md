@@ -14,7 +14,7 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | Release | Features | Released |
 |---|---|---|
-| MVP | 65 (F001–F063 and F065–F069 without F034–F036, Open Gym, later) + 20 engineering enablers (E001–E020); F017–F019 (more locations) and M7 (F039–F048, F051) come after go-live; trainer (Fivvi Pro) and, from M5, client (Fivvi) iOS and Android screens are built with their web features (the M8 native track) | 0 |
+| MVP | 65 (F001–F063 and F065–F069 without F034–F036, Open Gym, later) + 20 engineering enablers (E001–E020); F017–F019 (more locations) and M7 (F039–F048, F051, F069) come after go-live; trainer (Fivvi Pro) and, from M5, client (Fivvi) iOS and Android screens are built with their web features (the M8 native track) | 0 |
 
 **Waitlist moved to the MVP (31 October 2026, [#150](https://github.com/fivvi-app/fivvi/issues/150)):** it was a Release 1.1 candidate. The owner placed it as **F062** in **M5** (31 October 2026, `ROADMAP.md` v1.29); the rules are in `PRODUCT.md §23`.
 
@@ -39,7 +39,7 @@ The single source of truth for feature status. A status changes **in the same PR
 | F009 | English UI | PLANNED | Must | continuous | F007 | — | ⬜ | §2.2 |
 | [F010](https://github.com/fivvi-app/fivvi/issues/175) | Locale Preference: choose Dutch or English in the user menu and on My profile (web) and under Profiel → Taal (iOS, Android), saved on the account and followed by every browser and app; the switch on the sign-in screens; the Owner's default communication language in Settings → Language; every M2 screen complete in both languages | IMPLEMENTED | Must | M2 (+ iOS/Android; + Fivvi iOS/Android from M5) | F001, F007 | ✅ | ✅ | §3 |
 | F063 | Sign in with Apple and Google: a second way to sign in, on the web first (clients and team members), then Fivvi Pro and Fivvi (App Store guideline 4.8: Sign in with Apple when an app offers Google). Owner steps later: an Apple Services ID and a Google OAuth client | PLANNED | **Should** | M5 (web first; Fivvi Pro and Fivvi after) | F001 | ⬜ | ⬜ | §27, [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md) |
-| [F068](https://github.com/fivvi-app/fivvi/issues/588) | The workspace's word for its trainers: trainer, instructeur, docent or coach, chosen per workspace in Instellingen and used in every screen, email and the QR poster; the role stays Trainer | PLANNED | Must | M4 (+ iOS/Android; + Fivvi iOS/Android) | F002, F004, E005, E006 | ⬜ | ⬜ | §4, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §6, §7 item 7 |
+| [F068](https://github.com/fivvi-app/fivvi/issues/588) | The workspace's word for its trainers: trainer, instructeur, docent or coach, chosen per workspace in Instellingen and used in every screen, email and the QR poster; the role stays Trainer | PLANNED | Must | M4 (proposed; the owner confirms on the spec) (+ iOS/Android; + Fivvi iOS/Android) | F002, F004, E005, E006 | ⬜ | ⬜ | §9, §3, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §6, §7 item 7 |
 
 ### Trainers
 
@@ -71,8 +71,8 @@ The single source of truth for feature status. A status changes **in the same PR
 | F024 | Trainer Substitution | PLANNED | Must | M4 | F022, F023 | ⬜ | ⬜ | §19 |
 | F025 | Attendance | PLANNED | Must | M4 (+ iOS/Android) | F020, F022 | ⬜ | ⬜ | §43 |
 | F026 | Cancellations | PLANNED | Must | M4 (+ iOS/Android: cancel a session) | F020, F022, F049 | ⬜ | ⬜ | §17, §43, §51 (records time and actor for the §93 cutoff) |
-| [F066](https://github.com/fivvi-app/fivvi/issues/586) | Duo Sessions: two clients and one trainer, each with their own credit, attendance, notes and workout; only the trainer plans one; if one client cancels it continues as a private session | PLANNED | Must | M4 (+ iOS/Android); client view M5 (+ Fivvi iOS/Android); credits M11; workout logs M7 | F020, F025, F026 | ⬜ | ⬜ | §17, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §6, §7 item 5 |
-| [F067](https://github.com/fivvi-app/fivvi/issues/587) | Class Levels: a fixed list of four levels on a class, set on the series and changeable per date; information only, with no filter and no limit on who books | PLANNED | Must | M4 (+ iOS/Android); client view M5 (+ Fivvi iOS/Android) | F021, F022 | ⬜ | ⬜ | §18, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §6, §7 item 6 |
+| [F066](https://github.com/fivvi-app/fivvi/issues/586) | Duo Sessions: two clients and one trainer, each with their own credit, attendance, notes and workout; only the trainer plans one; if one client cancels it continues as a private session | PLANNED | Must | M4 (+ iOS/Android); client view M5 (+ Fivvi iOS/Android); credits M11; workout logs M7 (these stages: proposed; the owner confirms on the spec) | F020, F025, F026; later stages F033, F054, F055, F043, F045 | ⬜ | ⬜ | §17, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §6, §7 item 5 |
+| [F067](https://github.com/fivvi-app/fivvi/issues/587) | Class Levels: a fixed list of four levels on a class, set on the series and changeable per date; information only, with no filter and no limit on who books | PLANNED | Must | M4 (+ iOS/Android); client view M5 (+ Fivvi iOS/Android) (these stages: proposed; the owner confirms on the spec) | F021, F022; client view F027, F033 | ⬜ | ⬜ | §18, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §6, §7 item 6 |
 
 ### Booking
 
@@ -140,7 +140,7 @@ Added in roadmap v1.19 (M11), before go-live; credit packs and credit plans, gro
 | F059 | Invoices and Billing Details | PLANNED | Must | M11 | F006, F052 | ⬜ | ⬜ | §96 (company details, gapless numbers, credit notes) |
 | F060 | Failed Payments and Refunds | PLANNED | Must | M11 | F057, F059 | ⬜ | ⬜ | §94 |
 | F061 | Payouts and Reconciliation | PLANNED | Must (proposed, decision 9) | M11 | F057, F060 | ⬜ | ⬜ | §97 |
-| [F065](https://github.com/fivvi-app/fivvi/issues/606) | Payments Outside Fivvi: the Owner records a payment taken at the studio or by bank transfer on the client's profile, and a studio may take payments only at the studio, without Mollie | PLANNED | Must | M11 (+ iOS/Android) | E019, F052, F053, F054, F055, F059 | ⬜ | ⬜ | §53, §94, §96, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) *Betaling buiten Fivvi* |
+| [F065](https://github.com/fivvi-app/fivvi/issues/606) | Payments Outside Fivvi: the Owner records a payment taken at the studio or by bank transfer on the client's profile, and a studio may take payments only at the studio, without Mollie | PLANNED | Must | M11 (+ iOS/Android; + Fivvi iOS/Android) | E019, F052, F053, F054, F055, F057, F059, F060 | ⬜ | ⬜ | §53, §91, §92, §94, §96, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) *Betaling buiten Fivvi* |
 
 ### Notifications
 

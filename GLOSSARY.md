@@ -48,7 +48,7 @@ Runs sessions and classes, logs workouts, writes notes and marks attendance. One
 _Avoid_: coach, instructor, teacher, PT (as a role name)
 
 **Workspace's word**:
-What a workspace calls its trainers in every screen, email and on the QR poster: trainer, instructeur, docent or coach (English: trainer, instructor, teacher, coach). One choice per workspace, from this fixed list. A person who works at two workspaces sees each one's own word. It changes the wording only, never the Trainer role or its rights.
+What a workspace calls its trainers in every screen, email and on the QR poster: trainer, instructor, teacher or coach (the Dutch words are in `packages/i18n/GLOSSARY.md`). One choice per workspace, from this fixed list. A person who works at two workspaces sees each one's own word. It changes the wording only, never the Trainer role or its rights.
 _Avoid_: job title, trainer name
 
 **Independent trainer**:
@@ -91,7 +91,7 @@ The generic word for any scheduled item: a private session, a class occurrence o
 _Avoid_: appointment, event, activity
 
 **Private session**:
-A trainer-led session for one named client, created by a trainer (an owner who trains counts as one).
+A trainer-led session for one named client, or two in a **Duo session**, created by a trainer (an owner who trains counts as one).
 _Avoid_: PT session, personal training, appointment, lesson
 
 **Class**:
@@ -159,7 +159,7 @@ A private session with two clients and one trainer. Each client has their own cr
 _Avoid_: semi-private, small group, group class
 
 **Class level**:
-How demanding a class is, from a fixed list: all levels, beginner, intermediate, advanced (*Alle niveaus, Beginner, Gemiddeld, Gevorderd*). Set on the series and changeable per date. It is information only: it never limits who can book.
+How demanding a class is, from a fixed list: all levels, beginner, intermediate, advanced. Set on the series and changeable per date. It is information only: it never limits who can book.
 _Avoid_: difficulty (that belongs to an exercise in a workout), grade
 
 ### Locations
@@ -299,7 +299,7 @@ The business that sells to the client and receives the money. In Fivvi it is the
 _Avoid_: seller (alone), vendor
 
 **Payment**:
-Money collected from a client: a first payment, a recurring payment or a single class.
+Money collected from a client: a first payment, a recurring payment or a single class. A **Payment outside Fivvi** is recorded by the owner and collected by them.
 _Avoid_: transaction (outside code), charge
 
 **Recurring payment**:
