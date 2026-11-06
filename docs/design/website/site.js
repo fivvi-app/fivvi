@@ -1,10 +1,10 @@
 /* Fivvi website proposal: hash routes (home, the audiences, #prijzen, #demo, #support, the legal pages, #richting), Dutch and English, light and dark. */
 (function () {
   var C = window.COPY, UI = C.UI, A = C.A, ORDER = C.ORDER, P = window.PAGES;
-  var EXTRA = ["richting", "prijzen", "demo", "support", "account-verwijderen", "privacy", "voorwaarden", "subverwerkers"];
+  var EXTRA = ["richting", "prijzen", "demo", "support", "account-verwijderen", "privacy", "voorwaarden", "subverwerkers", "beeld"];
   var root = document.documentElement;
   var page = document.getElementById("page"), nav = document.getElementById("nav"), foot = document.getElementById("foot"), review = document.getElementById("review");
-  var S = { lang: "nl", who: "gym", kind: "pilates", demo: 0, plat: "pro" };
+  var S = { lang: "nl", who: "gym", kind: "pilates", demo: 0, plat: "pro", style: "rooms" };
   try { S.lang = localStorage.getItem("fivvi-site-lang") || "nl"; } catch (e) { /* storage unavailable */ }
 
   function t(x) { return x[S.lang === "en" ? 1 : 0]; }
@@ -27,7 +27,20 @@
     if (id.indexOf("web-") === 0) return '<div class="browser ' + (cls || "") + '">' + img(id, eager) + "</div>";
     return '<div class="phone ' + (id.indexOf("android") > -1 ? "android " : "") + (cls || "") + '">' + img(id, eager) + "</div>";
   }
-  function photo(name, cls) { return '<img class="' + (cls || "") + '" src="assets/photos/' + name + '.webp" alt="" loading="lazy">'; }
+  /* the image-style comparison (#beeld): which photo each style uses for a subject */
+  var STYLE_KEY = { team: "gym", gym: "gym", pilates: "studio", yoga: "studio", pt: "pt", client: "client" };
+  function photoSrc(name, style) {
+    style = style || S.style;
+    return "assets/photos/" + (style === "obj" || style === "mov" ? style + "-" + STYLE_KEY[name] : name) + ".webp";
+  }
+  function photo(name, cls) { return '<img class="' + (cls || "") + '" src="' + photoSrc(name) + '" alt="" loading="lazy">'; }
+  /* a card's image: a photo, or for screens only a phone on the audience's tint */
+  function cardImage(k, style) {
+    style = style || S.style;
+    if (style !== "screens") return '<img class="ph" src="' + photoSrc(A[k].photo, style) + '" alt="" loading="lazy">';
+    var st = A[k].stage;
+    return '<div class="ph shot" style="--c:' + colour(A[k].colour) + '">' + device(st.phone || st.phones[0]) + "</div>";
+  }
   function colour(k) { return { priv: "var(--priv)", group: "var(--group)", ok: "var(--ok)", accent: "var(--accent)" }[k]; }
   function who(s) { return s.split("{who}").join(S.kind === "yoga" ? (S.lang === "en" ? "teacher" : "docent") : (S.lang === "en" ? "instructor" : "instructeur")); }
 
@@ -87,9 +100,9 @@
       '<li class="now"><span>' + t(UI.oneRow) + '</span><span class="tick">' + t(UI.oneRowD) + "</span></li></ul>" + device("web-agenda") + "</div></div></section>" +
       '<section><div class="wrap"><p class="eyebrow">' + t(UI.chainEye) + '</p><h2 class="h2">' + t(UI.chainH) + '</h2><p class="lead" style="margin-top:14px">' + t(UI.chainLead) + '</p><div class="chain" id="chain">' + chain() + "</div></div></section>" +
       '<section><div class="wrap"><p class="eyebrow">' + t(UI.forEye) + '</p><h2 class="h2">' + t(UI.forH) + '</h2><p class="lead" style="margin-top:14px">' + t(UI.forLead) + '</p><div class="cards">' +
-      ORDER.map(function (k) { return '<a class="acard" href="#' + k + '">' + photo(A[k].photo, "ph") + "<div><h3>" + t(A[k].cardH) + "</h3><p>" + t(A[k].short) + '</p><span class="link">' + t(UI.readDay) + " →</span></div></a>"; }).join("") +
+      ORDER.map(function (k) { return '<a class="acard" href="#' + k + '">' + cardImage(k) + "<div><h3>" + t(A[k].cardH) + "</h3><p>" + t(A[k].short) + '</p><span class="link">' + t(UI.readDay) + " →</span></div></a>"; }).join("") +
       "</div></div></section>" +
-      '<section><div class="wrap"><p class="eyebrow">' + t(UI.platEye) + '</p><h2 class="h2">' + t(UI.platH) + '</h2><p class="lead" style="margin-top:14px">' + t(UI.platLead) + '</p><div class="who"><div class="seg" role="group" aria-label="Eigenaren en trainers / Klanten">' + ["pro", "client"].map(function (k) { return '<button data-plat="' + k + '" aria-pressed="' + (S.plat === k) + '">' + t(UI.plat[k].name) + "</button>"; }).join("") + '</div></div><div id="devices">' + devices() + "</div>" +
+      '<section><div class="wrap"><p class="eyebrow">' + t(UI.platEye) + '</p><h2 class="h2">' + t(UI.platH) + '</h2><p class="lead" style="margin-top:14px">' + t(UI.platLead) + '</p><div class="who"><div class="seg" role="group" aria-label="' + t(UI.plat.pro.name) + " / " + t(UI.plat.client.name) + '">' + ["pro", "client"].map(function (k) { return '<button data-plat="' + k + '" aria-pressed="' + (S.plat === k) + '">' + t(UI.plat[k].name) + "</button>"; }).join("") + '</div></div><div id="devices">' + devices() + "</div>" +
       "</div></section>" + promises() + cta();
   }
 
@@ -109,7 +122,7 @@
     var phone = isStudio ? "pro-today-" + S.kind : a.heroPhone;
     var kindSeg = isStudio ? '<div class="who"><p id="kind-l">' + t(UI.kindLabel) + '</p><div class="seg" role="group" aria-labelledby="kind-l">' + ["pilates", "yoga"].map(function (x) { return '<button data-kind="' + x + '" aria-pressed="' + (S.kind === x) + '">' + t(UI[x]) + "</button>"; }).join("") + "</div></div>" : "";
     return '<div class="wrap hero ahero"><p class="eyebrow">' + t(a.cardH) + '</p><h1 style="margin-top:8px">' + t(a.h1) + '</h1><p class="lead">' + t(a.lead) + "</p>" + statusLine() + kindSeg +
-      '<div class="photo"><img src="assets/photos/' + ph + '.webp" alt="">' + (a.heroWeb ? device(a.heroWeb, "", true) : "") + device(phone, "", true) + "</div></div>" +
+      '<div class="photo">' + (S.style === "screens" ? '<div class="blank" style="--c:' + colour(a.colour) + '"></div>' : '<img src="' + photoSrc(ph) + '" alt="">') + (a.heroWeb ? device(a.heroWeb, "", true) : "") + device(phone, "", true) + "</div></div>" +
       '<section style="padding-top:clamp(20px,4vw,48px)"><div class="wrap"><h2 class="h2">' + t(UI.recognise) + '</h2><ul class="pains">' + a.pains.map(function (p) { return "<li>" + t(p) + "</li>"; }).join("") + "</ul></div></section>" +
       '<section><div class="wrap"><p class="eyebrow">' + t(UI.dayEye) + '</p><p class="lead" style="margin-top:6px;color:var(--ink);font-weight:500">' + t(UI.dayLead) + '</p><div class="day">' +
       a.day.map(function (m) {
@@ -119,7 +132,7 @@
 
   function direction() {
     var D = C.DIRECTION;
-    return '<div class="wrap hero ahero"><p class="eyebrow">' + t(UI.direction) + '</p><h1 style="margin-top:8px">' + t(D.h1) + '</h1><p class="lead">' + t(D.lead) + '</p><div class="dgrid">' +
+    return '<div class="wrap hero ahero"><p class="eyebrow">' + t(UI.direction) + '</p><h1 style="margin-top:8px">' + t(D.h1) + '</h1><p class="lead">' + t(D.lead) + '</p><p style="margin-top:14px"><a class="link" href="#beeld">' + t(P.styles.h1) + ' →</a></p><div class="dgrid">' +
       D.cards.map(function (c) { return '<div class="dcard"><h3>' + t(c[0]) + "</h3><p>" + t(c[1]) + "</p></div>"; }).join("") +
       '</div><div class="dgrid"><div class="dcard"><h3>' + (S.lang === "en" ? "Colour" : "Kleur") + '</h3><div class="swatches"><i style="background:#F2F2F7"></i><i style="background:#FFFFFF"></i><i style="background:#000000"></i><i style="background:#1C1C1E"></i><i style="background:#E6164A"></i><i style="background:#0088FF"></i><i style="background:#CB30E0"></i><i style="background:#34C759"></i></div></div><div class="dcard"><h3>' + (S.lang === "en" ? "Type" : "Letter") + '</h3><div class="typeA">Vandaag</div><div class="typeB">07:30</div></div><div class="dcard"><h3>' + (S.lang === "en" ? "Corners and frames" : "Hoeken en lijsten") + "</h3><p>" + (S.lang === "en" ? "Radius 26 on every card, pills for every button, and iPhone, Android and laptop frames around real screens." : "Radius 26 op elke kaart, pillen voor elke knop, en iPhone-, Android- en laptoplijsten om echte schermen.") + '</p></div></div><div class="pair">' +
       ["gym", "team", "pilates", "yoga", "pt", "client"].map(function (n) { return photo(n); }).join("") +
@@ -130,9 +143,8 @@
 
   function pricing() {
     var X = P.pricing;
-    return head(X.eye, X.h1, X.lead) + '<div class="plans">' + X.cards.map(function (c) {
-      return '<div class="plan"><h2>' + t(c.name) + '</h2><p class="big num">' + (typeof c.big === "string" ? c.big : t(c.big)) + '</p><p class="sub">' + t(c.sub) + '</p><ul class="ticks">' + c.items.map(function (i) { return "<li><span>" + t(i) + "</span></li>"; }).join("") + "</ul></div>";
-    }).join("") + '</div><div class="later"><h2>' + t(X.laterH) + "</h2><p>" + t(X.later) + '</p><p class="small">' + t(X.terms) + "</p></div></div>" + cta();
+    return head(X.eye, X.h1, X.lead) + '<div class="plan"><div><h2>' + t(X.name) + '</h2><p class="big num">' + X.big + '</p><p class="sub">' + t(X.sub) + '</p></div><ul class="ticks">' + X.items.map(function (i) { return "<li><span>" + t(i) + "</span></li>"; }).join("") +
+      '</ul></div><h2 class="faqh">' + t(X.qaH) + '</h2><div class="faq three">' + X.qa.map(function (q) { return "<article><h3>" + t(q[0]) + "</h3><p>" + t(q[1]) + "</p></article>"; }).join("") + '</div><p class="small" style="margin-top:14px">' + t(X.terms) + "</p></div>" + cta();
   }
 
   function demo() {
@@ -163,6 +175,14 @@
     return '<div class="wrap hero ahero"><h1>' + t(X.subH) + '</h1><p class="lead">' + t(X.subLead) + "</p>" + statusLine() + '<div class="tablewrap"><table><thead><tr>' + X.subCols.map(function (c) { return "<th>" + t(c) + "</th>"; }).join("") + "</tr></thead><tbody>" + X.subs.map(function (r) { return "<tr><td><b>" + r[0] + "</b></td><td>" + t(r[1]) + "</td><td>" + t(r[2]) + "</td></tr>"; }).join("") + '</tbody></table></div><p class="notebox">' + t(X.subNote) + '</p><p class="notebox">' + t(X.draft) + "</p></div>";
   }
 
+  function styles() {
+    var X = P.styles;
+    return head(X.eye, X.h1, X.lead) + X.list.map(function (o) {
+      var on = S.style === o[0];
+      return '<section class="stylerow"><div class="stylehead"><div><h2>' + t(o[1]) + (o[0] === "obj" ? " <mark>" + t(X.rec) + "</mark>" : "") + "</h2><p>" + t(o[2]) + '</p></div><button class="btn ' + (on ? "tonal" : "primary") + ' small" data-style-pick="' + o[0] + '">' + t(on ? X.on : X.see) + '</button></div><div class="stylecards" data-style="' + o[0] + '">' + ORDER.map(function (k) { return '<div class="acard">' + cardImage(k, o[0]) + "<div><h3>" + t(A[k].cardH) + "</h3></div></div>"; }).join("") + "</div></section>";
+    }).join("") + "</div>";
+  }
+
   /* what the decisions, required pages and search work look like, on the design-choices page */
   function directionMore() {
     var X = P.direction;
@@ -177,9 +197,10 @@
   function render(keepScroll) {
     var y = window.scrollY, r = route();
     root.lang = S.lang === "en" ? "en" : "nl";
+    root.setAttribute("data-style", S.style);
     renderNav();
     var F = P.foot;
-    page.innerHTML = r === "home" ? home() : r === "richting" ? direction() : r === "prijzen" ? pricing() : r === "demo" ? demo() : r === "support" ? support() : r === "account-verwijderen" ? deletion() : r === "privacy" ? legal("privacy", F.privacy) : r === "voorwaarden" ? legal("terms", F.terms) : r === "subverwerkers" ? subs() : audience(r);
+    page.innerHTML = r === "home" ? home() : r === "richting" ? direction() : r === "prijzen" ? pricing() : r === "demo" ? demo() : r === "support" ? support() : r === "account-verwijderen" ? deletion() : r === "privacy" ? legal("privacy", F.privacy) : r === "voorwaarden" ? legal("terms", F.terms) : r === "subverwerkers" ? subs() : r === "beeld" ? styles() : audience(r);
     document.title = "Fivvi Website";
     window.scrollTo({ top: keepScroll ? y : 0, behavior: "instant" });
   }
@@ -190,7 +211,7 @@
   }
 
   document.addEventListener("click", function (e) {
-    var b = e.target.closest("[data-lang],[data-who],[data-kind],[data-plat],[data-demo],[data-theme-toggle]");
+    var b = e.target.closest("[data-lang],[data-who],[data-kind],[data-plat],[data-style-pick],[data-demo],[data-theme-toggle]");
     if (!b) return;
     if (b.dataset.lang) { S.lang = b.dataset.lang; try { localStorage.setItem("fivvi-site-lang", S.lang); } catch (x) { /* storage unavailable */ } render(true); return; }
     if (b.dataset.who) {
@@ -200,6 +221,7 @@
       document.getElementById("herocopy").innerHTML = "<p>" + t(A[S.who].short) + '</p><a class="link" href="#' + S.who + '">' + t(UI.see) + " →</a>";
       return;
     }
+    if (b.dataset.stylePick) { S.style = b.dataset.stylePick; if (location.hash === "#gym") render(false); else location.hash = "gym"; return; }
     if (b.dataset.plat) {
       S.plat = b.dataset.plat;
       document.querySelectorAll("[data-plat]").forEach(function (o) { o.setAttribute("aria-pressed", o.dataset.plat === S.plat); });

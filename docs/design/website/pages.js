@@ -30,15 +30,16 @@ window.PAGES = (function () {
     pricing: {
       eye: ["Prijzen", "Pricing"],
       h1: ["Gratis tijdens de pilot.", "Free during the pilot."],
-      lead: ["Fivvi kost nu niets: geen abonnement en geen kosten per klant. Neem je betalingen aan via Mollie, dan betaal je alleen Mollie.", "Fivvi costs nothing right now: no subscription and no fee per client. If you take payments through Mollie, you only pay Mollie."],
-      cards: [
-        { big: "€ 0", name: ["Fivvi", "Fivvi"], sub: ["tijdens de pilot", "during the pilot"], items: [["Agenda, boekingen en wachtlijst", "Calendar, bookings and waitlist"], ["Abonnementen, credits en facturen", "Memberships, credits and invoices"], ["Fivvi Pro op iPhone en Android, en Fivvi op je laptop", "Fivvi Pro on iPhone and Android, and Fivvi on your laptop"], ["Trainingen bijhouden en delen, zodra dat klaar is", "Logging and sharing workouts, once that's ready"]] },
-        { big: ["Per betaling", "Per payment"], name: ["Betalingen via Mollie", "Payments through Mollie"], sub: ["aan Mollie, volgens hun tarieven", "to Mollie, at their rates"], items: [["Je eigen Mollie-account, in één begeleide stap", "Your own Mollie account, in one guided step"], ["iDEAL, en daarna automatische incasso", "iDEAL, then automatic direct debit"], ["Het geld gaat rechtstreeks naar jouw rekening", "The money goes straight to your account"]] },
-        { big: "€ 0", name: ["Voor je klanten", "For your clients"], sub: ["de app en de website", "the app and the website"], items: [["Klanten betalen alleen jou", "Clients only pay you"], ["Boeken kan in de app of in de browser", "Booking works in the app or the browser"], ["Contant of pin kan ook", "Cash or card is fine too"]] }
+      lead: ["Fivvi kost nu niets: geen abonnement en geen kosten per klant.", "Fivvi costs nothing right now: no subscription and no fee per client."],
+      name: ["Fivvi", "Fivvi"], big: "€ 0", sub: ["tijdens de pilot", "during the pilot"],
+      items: [["Agenda, boekingen en wachtlijst", "Calendar, bookings and waitlist"], ["Abonnementen, credits en facturen", "Memberships, credits and invoices"], ["Fivvi Pro voor jou en je trainers", "Fivvi Pro for you and your trainers"], ["Fivvi voor je klanten", "Fivvi for your clients"], ["Trainingen bijhouden en delen, zodra dat klaar is", "Logging and sharing workouts, once that's ready"]],
+      qaH: ["Goed om te weten", "Good to know"],
+      qa: [
+        [["Wat kost het om betalingen aan te nemen?", "What does it cost to take payments?"], ["Klanten online laten betalen doe je met een eigen Mollie-account. Mollie rekent per betaling een bedrag, volgens hun tarieven. Dat betaal je aan Mollie, niet aan Fivvi. Neem je alleen contant of met pin aan, dan heb je Mollie niet nodig.", "To let clients pay online, you use your own Mollie account. Mollie charges an amount per payment, at their rates. You pay that to Mollie, not to Fivvi. If you only take cash or card, you don't need Mollie."]],
+        [["Wat betalen mijn klanten?", "What do my clients pay?"], ["Alleen wat jij rekent. De app en de website zijn voor hen gratis.", "Only what you charge. The app and the website are free for them."]],
+        [["En als Fivvi later geld gaat kosten?", "And if Fivvi starts charging later?"], ["Dan hoor je dat minstens 60 dagen vooraf. Je kunt dan gratis stoppen en je gegevens meenemen. Je betaalt nooit iets waar je niet eerst mee hebt ingestemd.", "You'll hear at least 60 days in advance. You can then stop for free and take your data with you. You never pay for anything you didn't agree to first."]]
       ],
-      laterH: ["En straks?", "And later?"],
-      later: ["Als Fivvi later geld gaat kosten, hoor je dat minstens 60 dagen vooraf. Je kunt dan gratis stoppen en je gegevens meenemen. Je betaalt nooit iets waar je niet eerst mee hebt ingestemd.", "If Fivvi starts charging later, you'll hear at least 60 days in advance. You can then stop for free and take your data with you. You never pay for anything you didn't agree to first."],
-      terms: ["Alle bedragen zijn in euro. Er zijn nu geen betaalvoorwaarden, omdat je Fivvi niets betaalt.", "All amounts are in euros. There are no payment terms for now, because you don't pay Fivvi anything."]
+      terms: ["Alle bedragen zijn in euro. Omdat je Fivvi nu niets betaalt, zijn er geen betaalvoorwaarden.", "All amounts are in euros. Because you don't pay Fivvi anything right now, there are no payment terms."]
     },
     demo: {
       eye: ["Demo", "Demo"],
@@ -105,6 +106,18 @@ window.PAGES = (function () {
         ["Cloudflare Turnstile", ["Bescherming van formulieren tegen bots", "Protecting forms against bots"], ["Wereldwijd", "Worldwide"]]
       ],
       subNote: ["Mollie verwerkt betalingen onder een eigen overeenkomst met je studio.", "Mollie processes payments under its own agreement with your studio."]
+    },
+    styles: {
+      eye: ["Beeldstijl", "Image style"],
+      h1: ["Welke beeldstijl past bij Fivvi?", "Which image style fits Fivvi?"],
+      lead: ["Vier richtingen op dezelfde kaarten. Met de knop zie je een stijl overal op de site. Zeg welke je wilt, of wat je anders wilt.", "Four directions on the same cards. The button shows a style across the whole site. Tell me which you want, or what you'd change."],
+      see: ["Bekijk op de site", "See it on the site"], on: ["Staat nu aan", "Currently on"], rec: ["Mijn advies", "My advice"],
+      list: [
+        ["obj", ["Objecten", "Objects"], ["Eén object op het grijs van de app, met roze als enige kleur. Strak en rustig, net als Fivvi zelf. Er staat niemand op, dus niets lijkt op een echte klant.", "One object on the app's grey, with pink as the only colour. Crisp and calm, just like Fivvi itself. Nobody's in it, so nothing passes for a real client."]],
+        ["screens", ["Alleen schermen", "Screens only"], ["Geen foto's: Fivvi zelf is het beeld. Het eerlijkst, en het klopt altijd. Wel minder sfeer, en de pagina's lijken meer op elkaar.", "No photos: Fivvi itself is the image. The most honest, and it's always right. Less atmosphere, though, and the pages look more alike."]],
+        ["mov", ["In beweging", "In motion"], ["Zwart-wit, van dichtbij, met een randje roze. Veel energie, maar minder rustig dan de app. Handen en voeten van AI vallen hier snel op, dus dit vraagt streng nakijken.", "Black and white, close up, with a rim of pink. Lots of energy, but less calm than the app. AI hands and feet show quickly here, so this needs strict checking."]],
+        ["rooms", ["Ruimtes", "Rooms"], ["De foto's van nu: lege studio's in zacht daglicht. Warm, maar het lijkt op stockfoto's en het staat los van de app.", "The current photos: empty studios in soft daylight. Warm, but they look like stock photos and feel separate from the app."]]
+      ]
     },
     direction: {
       decidedH: ["Wat je hebt besloten", "What you decided"],

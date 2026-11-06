@@ -33,3 +33,10 @@ Generated with Codex's built-in `image_gen` tool on the owner's ChatGPT subscrip
 | `yoga` | A warm yoga room with rolled mats and cork blocks stacked along an oak floor, linen curtains, late afternoon light |
 | `pt` | A quiet Dutch city park at first light: a rolled mat, a kettlebell and a water bottle on the grass beside a path |
 | `client` | A simple wooden bench by a studio door: a sports bag, a folded towel and a water bottle, soft window light |
+
+## Image styles being compared
+
+`#beeld` shows these next to the rooms above and next to screens only. The owner picks one; the others then leave this folder.
+
+- **Objects** (`obj-*`): *clean Apple-like product photography, one simple matte fitness object group centred on a plain seamless light grey #F2F2F7 background, soft even studio light, a soft contact shadow, lots of empty space, one crisp accent colour of vivid pink #E6164A, everything else black, white or grey.*
+- **In motion** (`mov-*`): *bold high-contrast black-and-white sports photography, very close crop on hands or feet only, dramatic side light on a near-black background, real texture and motion, with one thin rim of vivid pink #E6164A light as the only colour.*
