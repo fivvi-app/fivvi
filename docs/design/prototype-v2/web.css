@@ -519,3 +519,62 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .c-mail h3{margin:0;font-size:20px}
 .c-mail p{margin:0;font-size:15px}
 .c-mail small{color:var(--label2);font-size:13px}
+
+/* Betalingen (CM-03, #466) and the client's payment return page */
+.w-paysteps{display:flex;flex-wrap:wrap;gap:6px 14px;list-style:none;margin:12px 0 14px;padding:0;font-size:13px;color:var(--w-mfg)}
+.w-paysteps li{display:flex;align-items:center;gap:7px}
+.w-paysteps li span{width:22px;height:22px;border-radius:50%;display:grid;place-items:center;font-size:12px;font-weight:600;background:var(--w-muted)}
+.w-paysteps li span svg{width:13px;height:13px}
+.w-paysteps li.done{color:var(--w-fg)}
+.w-paysteps li.done span{background:var(--ok);color:#000}
+.w-paysteps li.now{color:var(--w-fg);font-weight:600}
+.w-paysteps li.now span{background:var(--w-fg);color:var(--w-bg)}
+.w-paystat{display:flex;gap:10px;margin:0 0 14px}
+.w-paystat>i{flex:none;width:10px;height:10px;margin-top:5px;border-radius:50%;background:var(--c)}
+.w-paystat p{margin:2px 0 0;color:var(--w-mfg)}
+.w-paydemo{display:flex;align-items:center;gap:10px;margin-top:14px;padding:8px 10px;border:1px dashed var(--w-border);border-radius:10px}
+.w-paydemo>span{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--w-mfg)}
+.w-paysketch{border:1.5px dashed var(--w-ring);border-radius:12px;padding:16px 18px;background:var(--w-muted)}
+.w-paysketch small{display:block;margin-bottom:10px;color:var(--w-mfg)}
+.w-paysketch h3{margin:0 0 6px;font-size:16px}
+.w-paysketch ul{margin:4px 0 10px;padding-left:18px}
+.w-paysketch p{margin:6px 0 2px}
+.w-paytest{display:flex;align-items:center;gap:8px;margin-bottom:12px;padding:8px 12px;border-radius:10px;background:#FFE066;color:#000;font-weight:600;font-size:13px}
+.w-paytest svg{width:16px;height:16px}
+.w-payalert{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding:10px 14px;border:1px solid var(--w-border);border-radius:12px;background:var(--w-muted)}
+.w-payalert>svg{flex:none;width:18px;height:18px;color:var(--gym)}
+.w-payalert>span{flex:1}
+.w-payalert.bad{border-color:var(--danger)}
+.w-payalert.bad>svg{color:var(--danger)}
+.c-paysketch{border:1.5px dashed var(--label3,#8E8E93);display:grid;gap:6px}
+.c-paysketch small{color:var(--label2)}
+.c-paysketch h3,.c-payres h3{margin:0;font-size:18px}
+.c-paysketch p,.c-payres p{margin:0;color:var(--label2)}
+.c-payres{display:grid;justify-items:center;text-align:center;gap:8px;padding:22px 18px}
+.c-payres>span{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 18%,transparent);color:var(--c)}
+.c-payres>span svg{width:26px;height:26px}
+
+.w-setup{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.w-setup li{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--w-border);border-radius:12px}
+.w-setup li>div{flex:1;min-width:0}
+.w-setup li p{margin:2px 0 0;color:var(--w-mfg);font-size:13px}
+.w-setup li>span{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:13px;background:var(--w-muted)}
+.w-setup li>span svg{width:14px;height:14px}
+.w-setup li.now{border-color:var(--w-fg)}
+.w-setup li.now>span{background:var(--w-fg);color:var(--w-bg)}
+.w-setup li.done>span{background:var(--ok);color:#000}
+.w-setup li.lock{opacity:.75}
+.w-paymail{display:grid;gap:8px;justify-items:start;max-width:520px}
+.w-paymail small{color:var(--w-mfg)}
+.w-paymail h3{margin:0;font-size:17px}
+.w-paymail p{margin:0}
+
+.w-lose{list-style:none;margin:8px 0 14px;padding:0;display:grid;gap:7px}
+.w-lose li{display:flex;gap:8px;align-items:flex-start}
+.w-lose svg{flex:none;width:16px;height:16px;margin-top:2px;color:var(--danger)}
+.w-sub{margin:14px 0 0;font-size:13px;font-weight:600}
+
+.w-paydesk{display:flex;align-items:center;gap:14px;margin-top:14px;padding:12px 14px;border:1px solid var(--w-border);border-radius:12px}
+.w-paydesk>div{flex:1;min-width:0}
+.w-paydesk p{margin:2px 0 0;color:var(--w-mfg);font-size:13px}
+.w-paydesk .w-switch{flex:none}
