@@ -657,11 +657,11 @@
     return { title: "Nieuwe klant", body: body, save: "save-client" };
   };
   SHEETS.newClass = function () {
-    var body = '<div class="fgrp">' + fld("Naam", inp("name", "text", "Bijvoorbeeld Strength")) + fld("Niveau", sel("level", [["", "Geen"]].concat(D.LEVELS.map(function (l) { return [l, l]; })))) + "</div>";
+    var body = '<div class="fgrp">' + fld("Naam (Nederlands)", inp("name", "text", "Bijvoorbeeld Strength")) + fld("Naam (Engels, optioneel)", inp("nameEn")) + fld("Niveau", sel("level", [["", "Geen"]].concat(D.LEVELS.map(function (l) { return [l, l]; })))) + "</div>";
     body += '<div class="fgrp" style="margin-top:16px">' + fld("Datum", inp("date", "date")) + fld("Begin", inp("start", "time")) + fld("Eind", inp("end", "time")) + fld("Capaciteit", inp("cap", "number", "", ' inputmode="numeric" min="1"')) + "</div>";
     body += '<div class="fgrp" style="margin-top:16px">' + fld("Trainer", sel("trainer", D.trainers.sf.concat(["Trainer nodig"]))) + fld("Herhalen", sel("rep", ["Niet herhalen", "Elke week op " + DAYS[parse(S.form.date || TODAY).getDay()]])) + "</div>";
-    body += '<div class="fgrp" style="margin-top:16px">' + fld("Beschrijving", '<textarea data-f="desc" rows="3" placeholder="Wat doe je in deze les? Dit zien klanten op je boekingspagina.">' + esc(S.form.desc || "") + "</textarea>", "stack") +
-      fld("Beschrijving in het Engels", '<textarea data-f="descEn" rows="3" placeholder="Optioneel">' + esc(S.form.descEn || "") + "</textarea>", "stack") + "</div>";
+    body += '<div class="fgrp" style="margin-top:16px">' + fld("Omschrijving (Nederlands, optioneel)", '<textarea data-f="desc" rows="3" placeholder="Wat doe je in deze les? Dit zien klanten op je boekingspagina.">' + esc(S.form.desc || "") + "</textarea>", "stack") +
+      fld("Omschrijving (Engels, optioneel)", '<textarea data-f="descEn" rows="3">' + esc(S.form.descEn || "") + "</textarea>", "stack") + "</div>";
     body += foot("Zonder Engelse tekst zien Engelstalige klanten de Nederlandse. Studio Fit, Kerkstraat 12. Een vaste reeks beheer je op het web.");
     return { title: "Nieuwe groepsles", body: body, save: "save-class" };
   };

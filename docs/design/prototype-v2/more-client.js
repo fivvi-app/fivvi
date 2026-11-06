@@ -143,6 +143,8 @@
     ["Opzeggen (CP-06)", "Give notice (CP-06)"], ["Opzeggen: vaste looptijd", "Give notice: fixed term"], ["Opgezegd", "Notice given"], ["E-mailadres gewijzigd", "Email address changed"], ["Factuurgegevens klant", "Client's invoice details"], ["Account verwijderen: code", "Delete account: code"], ["Account verwijderen: enige eigenaar", "Delete account: only owner"], ["Account blijft bestaan", "Account stays"], ["Boekingslink bestaat niet (PB-09)", "Booking link doesn't exist (PB-09)"], ["Boekingslink niet meer actief (PB-09)", "Booking link no longer active (PB-09)"],
     ["Andere situaties", "Other situations"], ["Verzetten? Neem contact op met je trainer.", "Need to move it? Contact your trainer."], ["In je agenda gezet", "Added to your calendar"], ["Voorwaarden geopend", "Terms opened"], ["Opent de instellingen van je telefoon", "Opens your phone's settings"], ["Opgeslagen", "Saved"], ["Code verstuurd", "Code sent"], ["Uitnodiging geaccepteerd", "Invitation accepted"], ["Uitnodiging afgewezen", "Invitation declined"], ["Verzoek ingetrokken", "Request withdrawn"], ["Daarna via automatische incasso", "Then by direct debit"], ["Looptijd", "Term"]
   ].forEach(L);
+  L(["Geen lessen meer op deze dag.", "No more classes on this day."]);
+  I.rule(/^€ (\d+),(\d{2})$/, "€$1.$2");
   I.rule(/^Vandaag betaal je € (.+)$/, function (m, a) { return "Today you pay €" + a.replace(",", "."); });
   function appMode() { return F.PREF.plat !== "client"; }
   function fam(names, self) {
@@ -204,7 +206,7 @@
   function euro(p) { return "€ " + (/,/.test(p) ? p : p + ",00"); }
   function buyPage(state) {
     var c = C(), pf = c.payFor, o = pf.offer, ws = pf.ws === "yl" ? "Yoga Loft" : "Studio Fit", rec = o.kind === "abo" || o.kind === "plan", s = ST.filter(function (x) { return x[0] === state; })[0];
-    var b = '<div class="pad stack"><div class="card c-payres" style="--c:var(--accent)"><span>' + ic("info") + "</span><h3>" + esc(s[4][0]) + "</h3><p><b>" + esc(pf.name) + "</b> · " + esc(euro(o.price)) + " · <span>" + esc(o.cycle || "Eenmalig") + "</span></p><p>Vandaag betaal je " + esc(euro(o.price)) + "</p>";
+    var b = '<div class="pad stack"><div class="card c-payres" style="--c:var(--accent)"><span>' + ic("info") + "</span><h3>" + esc(s[4][0]) + "</h3><p><b>" + esc(pf.name) + "</b> · <span>" + esc(euro(o.price)) + "</span> · <span>" + esc(o.cycle || "Eenmalig") + "</span></p><p>Vandaag betaal je " + esc(euro(o.price)) + "</p>";
     if (rec) b += "<p><span>Daarna via automatische incasso</span></p>";
     if (o.term) b += "<p><span>Looptijd</span>: <span>" + esc(o.term) + "</span></p>";
     b += "</div>";
