@@ -225,12 +225,12 @@ The owner asked to see this process before approving [#466](https://github.com/f
 - **The client** pays on Mollie's page, and returns to *Betaald*, *Nog bezig* or *Niet gelukt*, with *Opnieuw proberen*. If the studio isn't ready, the client reads that online payment isn't available yet.
 - Mollie's pages are **sketches, labelled as such**: this prototype doesn't copy them or ask for any details.
 
-**Connecting payments comes first (decided by the owner, 6 November 2026).** Everything a client can see or buy waits until payments work; iDEAL working is enough. The owner's own setup stays open during Mollie's checks.
+**Connecting payments comes first (decided by the owner, 6 November 2026).** Everything a client can see or buy waits until payments work; iDEAL working is enough, or the owner's choice to take payments only at the studio (#606). The owner's own setup stays open during Mollie's checks.
 
 - **Locked until then:** the join link and QR poster, client invitations, booking, switching offers on and recording a payment outside Fivvi. A client who opens the link reads *{studio} start binnenkort*.
 - **Open:** classes, trainers, locations, adding clients and preparing offers.
 - **How the owner is pushed:** a checklist on the Dashboard with payments first, a banner in Fivvi Pro, a reminder email, and the reason on every locked screen. The moment and number of reminder emails are assumptions (§7 item 12).
-- A solo PT goes through the same steps, also one who takes payments their own way (owner, 6 November 2026).
+- A solo PT goes through the same steps. One who only takes cash or card can choose that instead (#606).
 - Screens: *Dashboard: eerste stappen*, *Aanmeldlink: nog niet klaar*, *Klanten: nog geen uitnodigingen*, *E-mail aan de eigenaar: koppel je betalingen*, *Link geopend: studio nog niet klaar*, *Meedoen: studio nog niet klaar*, *Vandaag: betalingen nog niet gekoppeld*.
 
 ### Betaling buiten Fivvi (#606)
@@ -241,9 +241,9 @@ The owner asked for this: some studios and PTs take cash and set up a membership
 - **A monthly payment** shows on the profile with *Betaald*. If the owner hasn't recorded it, *Aandacht nodig* and the client's profile say so, until the owner taps *Betaald*. Booking doesn't stop by itself.
 - **No automatic invoice** (owner). The owner can use *Factuur maken* on a payment when someone needs one, such as a business client. The payment stays on record, and the owner handles their own bookkeeping and tax, which the screen says. **Assumption to check with an accountant.**
 - **The renewal page** tells these clients they can pay at their studio too (owner).
-- It only works once payments are connected. Whether a cash-only studio may skip Mollie is still open (#606).
+- **Cash-only studios are allowed (owner, 6 November 2026).** On *Betalingen*, below connecting Mollie, an owner can choose *Dan kan het ook zonder Mollie*, after a confirmation. Clients can then join and book, but can't pay, renew or buy online, so they see *Betalen bij je studio*, and the owner records every payment. *Aanbod sturen* is gone for them. The owner can connect Mollie later at any time. Otherwise, recording a payment works once payments are connected.
 - A till or card terminal connected to Fivvi is for later (owner; `PRODUCT.md §53`). A studio's own pin device is just recorded as *Pin bij de studio*.
-- Screens: *Betaling buiten Fivvi vastleggen* (Trainer web and Fivvi Pro), *Klantprofiel: contante betaling nog niet vastgelegd*, *Verlengen: klant die contant betaalt*.
+- Screens: *Betaling buiten Fivvi vastleggen* (Trainer web and Fivvi Pro), *Klantprofiel: contante betaling nog niet vastgelegd*, *Verlengen: klant die contant betaalt*, *Betalingen: alleen contant of pin kiezen*, *Betalingen: studio zonder Mollie*, *Klantprofiel: studio zonder Mollie*, *Studio zonder Mollie: aanbod*, *Studio zonder Mollie: verlengen*.
 
 ## 5. Client web (ADR-026)
 
@@ -357,8 +357,8 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
 | **Trainers see the client's last workout and progress** | In the app and on the web. AI help is post-MVP (`§53`) | F044, F045 |
 | **Clients do a shared workout on their own: build it, MVP with M7** | Owner, 5 November 2026. The client logs a workout the trainer shared (F045), for example in their own gym. **Private to the client:** trainers never see it. App only | [#602](https://github.com/fivvi-app/fivvi/issues/602) |
 | **Fixed groups: not in the MVP** | A client isn't enrolled in a weekly series (owner, 6 November 2026) | [SCENARIOS.md](SCENARIOS.md) |
-| **Connecting payments comes first** | Everything clients can see or buy waits until payments work; the owner's own setup stays open (owner, 6 November 2026) | [Betalingen](#betalingen-cm-03-466-a-proposal-for-the-owner-to-click-through), [#466](https://github.com/fivvi-app/fivvi/issues/466), [#484](https://github.com/fivvi-app/fivvi/issues/484), [#482](https://github.com/fivvi-app/fivvi/issues/482) |
-| **Payments outside Fivvi: build it** | The owner records cash and similar payments on the client's profile, on the web and in Fivvi Pro. No automatic invoice; the accountant check is open | [#606](https://github.com/fivvi-app/fivvi/issues/606) |
+| **Connecting payments comes first** | Everything clients can see or buy waits until payments work, or until the owner chooses to take payments only at the studio; the owner's own setup stays open (owner, 6 November 2026) | [Betalingen](#betalingen-cm-03-466-a-proposal-for-the-owner-to-click-through), [#466](https://github.com/fivvi-app/fivvi/issues/466), [#484](https://github.com/fivvi-app/fivvi/issues/484), [#482](https://github.com/fivvi-app/fivvi/issues/482) |
+| **Payments outside Fivvi: build it** | The owner records cash and similar payments on the client's profile, on the web and in Fivvi Pro. Cash-only studios may skip Mollie. No automatic invoice; the accountant check is open | [#606](https://github.com/fivvi-app/fivvi/issues/606) |
 | **Open Gym: later** | Owner, 6 November 2026: not in the MVP, with Open Gym credits and the Open Gym booking link. The prototype hides it everywhere; the code stays for when it comes. The colour stays reserved | `PRODUCT.md §53`, [#470](https://github.com/fivvi-app/fivvi/issues/470), [#471](https://github.com/fivvi-app/fivvi/issues/471), [#472](https://github.com/fivvi-app/fivvi/issues/472) |
 | **Client web tabs** | The same four tabs as the app, *Home · Boeken · Activiteit · Profiel* (owner, 6 November 2026). The prototype still shows the earlier tabs | [#489](https://github.com/fivvi-app/fivvi/issues/489), [#497](https://github.com/fivvi-app/fivvi/issues/497) |
 

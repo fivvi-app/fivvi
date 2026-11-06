@@ -84,7 +84,7 @@
   /* renewal: suggested from a month before an agreement that stops ends, or when a credit pack runs low (owner only) */
   function renewLine(sum, a, c) {
     var r = sum.renew.filter(function (x) { return x[0] === a; })[0]; if (!r || !money(c)) return "";
-    return '<div class="w-renew">' + ic("repeat") + "<span><b>" + (a.offerSent ? "Aanbod verstuurd " + esc(a.offerSent) : "Verlengen voorgesteld") + "</b> · <span>" + (a.offerSent ? "wacht op betaling" : esc(r[1])) + "</span>" + (a.remindSent ? " · <span>" + esc(D.remindLine(a)) + "</span>" : "") + "</span>" + (a.offerSent ? btn("Opnieuw sturen", "w-dlg", { k: "ghost sm", d: { n: "offer", ag: a.id } }) : btn("Verlengen", "w-dlg", { k: "sm", d: { n: "offer", ag: a.id } })) + "</div>";
+    return '<div class="w-renew">' + ic("repeat") + "<span><b>" + (a.offerSent ? "Aanbod verstuurd " + esc(a.offerSent) : "Verlengen voorgesteld") + "</b> · <span>" + (a.offerSent ? "wacht op betaling" : esc(r[1])) + "</span>" + (a.remindSent ? " · <span>" + esc(D.remindLine(a)) + "</span>" : "") + "</span>" + (payState() === "cashonly" ? btn("Betaling vastleggen", "w-dlg", { k: "sm", d: { n: "cash" } }) : a.offerSent ? btn("Opnieuw sturen", "w-dlg", { k: "ghost sm", d: { n: "offer", ag: a.id } }) : btn("Verlengen", "w-dlg", { k: "sm", d: { n: "offer", ag: a.id } })) + "</div>";
   }
   function aboLine(a) { return "Deze week " + a.usedWeek + " van " + a.perWeek + " gebruikt" + (a.makeups ? " · " + a.makeups + (a.makeups === 1 ? " inhaalles" : " inhaallessen") : ""); }
   function statusBadge(a) { var st = STATUS[a.status]; return badge(a.status === "ending" ? cap1(a.period) : st[0], st[1], st[1] ? "" : "outline"); }
@@ -164,7 +164,7 @@
   /* ---------- pages ---------- */
   var PAGES = {};
   PAGES.myday = function () { W().scope = "me"; return dayPage(); };
-  PAGES.dashboard = function () { W().scope = "ws"; return (F.OWNER() && payState() !== "ready" ? setupCard() : "") + (F.OWNER() && payState() === "broken" ? '<div class="w-payalert bad">' + ic("warn") + "<span>Betalingen staan stil: de koppeling met Mollie werkt niet meer.</span>" + btn("Opnieuw koppelen", "w-pay-go", { k: "sm" }) + "</div>" : "") + dayPage(); };
+  PAGES.dashboard = function () { W().scope = "ws"; return (F.OWNER() && payState() !== "ready" && payState() !== "cashonly" ? setupCard() : "") + (F.OWNER() && payState() === "broken" ? '<div class="w-payalert bad">' + ic("warn") + "<span>Betalingen staan stil: de koppeling met Mollie werkt niet meer.</span>" + btn("Opnieuw koppelen", "w-pay-go", { k: "sm" }) + "</div>" : "") + dayPage(); };
   function dayPage() {
     var w = W(), mine = w.scope === "me";
     var items = mine ? F.dayItems(F.TODAY) : studioItems(F.TODAY), act = items.filter(function (i) { return !i.cancelled; });
@@ -314,7 +314,7 @@
           (a.kind === "abo" ? "<p>" + aboLine(a) + "</p>" : "<p>" + a.used + " gebruikt · " + a.planned + " gepland · <b>" + (a.total - a.used - a.planned) + " over</b> van " + a.total + "</p>") + "</div>" +
           btn(open ? "Verberg geschiedenis" : "Geschiedenis", "w-hist", { k: "outline sm", d: { id: a.id } }) + "</div>" + renewLine(sum, a, c) + (a.cash && a.next && money(c) ? '<div class="w-renew">' + ic("repeat") + "<span><b>" + esc(a.cash) + "</b> · <span>" + (a.late ? "betaling van " + esc(a.next) + " nog niet vastgelegd" : "volgende betaling " + esc(a.next)) + "</span></span>" + btn("Betaald", "w-cashdue", { k: "sm", d: { id: a.id } }) + "</div>" : "") +
           (open ? table(["Datum", "Wat", "Credits", "Door"], a.hist.map(function (x) { var sg = x[2].charAt(0); return [esc(x[0]), esc(x[1]), '<span class="w-tnum ' + (sg === "+" ? "w-plus" : sg === "−" ? "w-minus" : "w-muted") + '">' + esc(sg === "+" || sg === "−" ? x[2] : "(" + x[2] + ")") + "</span>", esc(x[3])]; })) : "") + "</div>";
-      }).join("") : '<p class="w-muted">' + esc(c.name.split(" ")[0]) + " heeft nog geen abonnement of credits.</p>", { desc: "Elke credit telt alleen voor zijn eigen soort: groep of privé.", act: money(c) ? '<div class="w-hgroup">' + btn("Betaling buiten Fivvi", "w-dlg", { k: "outline sm", dis: !payOpen(), d: { n: "cash" } }) + btn("Aanbod sturen", "w-dlg", { k: "outline sm", i: "plus", dis: !payOpen(), d: { n: "offer" } }) + "</div>" : "" });
+      }).join("") : '<p class="w-muted">' + esc(c.name.split(" ")[0]) + " heeft nog geen abonnement of credits.</p>", { desc: "Elke credit telt alleen voor zijn eigen soort: groep of privé.", act: money(c) ? '<div class="w-hgroup">' + btn("Betaling buiten Fivvi", "w-dlg", { k: "outline sm", dis: !payOpen(), d: { n: "cash" } }) + (payState() === "cashonly" ? "" : btn("Aanbod sturen", "w-dlg", { k: "outline sm", i: "plus", dis: !payOpen(), d: { n: "offer" } })) + "</div>" : "" });
       if (money(c)) h += card("Betalingen en facturen", sum.b.payments.length ? table(["Datum", "Omschrijving", "Bedrag", "Methode", "Status", "Factuur", ""], sum.b.payments.map(function (p, pi) {
         return [esc(p[0]), esc(p[1]), '<span class="w-tnum">' + esc(p[2]) + "</span>", esc(p[3]), badge(PAY[p[4]][0], PAY[p[4]][1], PAY[p[4]][1] ? "" : "outline"), p[5] ? '<button class="w-link" data-a="w-toast" data-m="Factuur gedownload">' + esc(p[5]) + "</button>" : OUTSIDE.indexOf(p[3]) >= 0 ? '<button class="w-link" data-a="w-cashinv" data-i="' + pi + '">Factuur maken</button>' : '<span class="w-muted">—</span>', p[4] === "paid" ? btn(OUTSIDE.indexOf(p[3]) >= 0 ? "Terugbetaling vastleggen" : "Terugbetalen", "w-dlg", { k: "ghost sm", d: { n: "refund", i: pi } }) : ""];
       })) : '<p class="w-muted">Nog geen betalingen.</p>', { desc: "Klanten betalen online, of jij legt een betaling buiten Fivvi vast. Een mislukte incasso staat hier als open bedrag." });
@@ -427,29 +427,31 @@
 
   /* Betalingen (CM-03, #466; a proposal for the owner to click through). Mollie's own pages are sketches: this prototype never shows or asks for anything of Mollie's. */
   function payState() { return W().pay || "ready"; }
-  function offersOpen(o) { var p = payState(); return p === "ready" || (p === "debit" && o.kind !== "abo" && o.kind !== "plan"); }
+  function offersOpen(o) { var p = payState(); return p === "ready" || p === "cashonly" || (p === "debit" && o.kind !== "abo" && o.kind !== "plan"); }
   function payLine(c, title, text) { return '<div class="w-paystat" style="--c:' + c + '"><i></i><div><b>' + title + "</b><p>" + text + "</p></div></div>"; }
   function paySteps(n) { return '<ol class="w-paysteps">' + ["Koppelen", "Mollie controleert", "iDEAL werkt", "Automatische incasso"].map(function (t, i) { return '<li class="' + (i < n ? "done" : i === n ? "now" : "") + '"><span>' + (i < n ? ic("check") : i + 1) + "</span>" + t + "</li>"; }).join("") + "</ol>"; }
   function payDemo(t, v) { return '<div class="w-paydemo"><span>Prototype</span>' + btn(t, "w-pay", { k: "ghost sm", d: { v: v } }) + "</div>"; }
   function payPage() {
     var p = payState(), n = wsName(), test = W().payTest ? '<div class="w-paytest">' + ic("warn") + "Testmodus: er gaat geen echt geld over</div>" : "", h = test;
-    if (p === "none") h += card("Betalingen", "<p>Ontvang betalingen van je klanten via Mollie. Het geld gaat rechtstreeks naar de bankrekening van " + esc(n) + ".</p>" + paySteps(0) + '<div class="w-hgroup">' + btn("Betalingen koppelen", "w-pay", { d: { v: "explain" } }) + btn("Ik heb al een Mollie-account", "w-pay", { k: "outline", d: { v: "have" } }) + "</div>");
+    if (p === "none") h += card("Betalingen", "<p>Ontvang betalingen van je klanten via Mollie. Het geld gaat rechtstreeks naar de bankrekening van " + esc(n) + ".</p>" + paySteps(0) + '<div class="w-hgroup">' + btn("Betalingen koppelen", "w-pay", { d: { v: "explain" } }) + btn("Ik heb al een Mollie-account", "w-pay", { k: "outline", d: { v: "have" } }) + "</div>" + '<p class="w-muted" style="margin-top:14px">Neem je alleen contant of pin aan? ' + '<button class="w-link" data-a="w-dlg" data-n="cashonly">Dan kan het ook zonder Mollie</button></p>');
     else if (p === "explain") h += card("Verder naar Mollie", "<p>Je gaat naar Mollie om je bedrijf te laten controleren (KvK, identiteit, bankrekening). Dat duurt meestal een paar minuten; Mollie controleert automatische incasso daarna apart, tot ongeveer 3 werkdagen.</p><p class=\"w-muted\">Fivvi vult je naam, e-mailadres, bedrijfsnaam en KvK-nummer alvast in. Koppel minstens een week voor je start.</p>" + '<div class="w-hgroup">' + btn("Verder naar Mollie", "w-pay", { d: { v: "mollie" } }) + btn("Terug", "w-pay", { k: "outline", d: { v: "none" } }) + "</div>");
     else if (p === "mollie" || p === "have") h += card("", '<div class="w-paysketch"><small>Schets: dit is het eigen scherm van Mollie, niet van Fivvi</small>' + (p === "mollie" ? "<h3>Nieuw Mollie-account</h3><p>Al ingevuld door Fivvi:</p><ul><li>" + esc(n) + "</li><li>KvK 12345678</li><li>owner@example.com</li></ul><p>Daarna vraagt Mollie, in het Nederlands:</p><ul><li>je KvK-gegevens controleren</li><li>je identiteit</li><li>je bankrekening</li></ul>" : "<h3>Inloggen bij Mollie</h3><p>Je logt in op je eigen account en keurt goed dat Fivvi namens " + esc(n) + " mag:</p><ul><li>betalingen en terugbetalingen aanmaken</li><li>klanten en machtigingen beheren</li><li>uitbetalingen en facturen lezen</li></ul>") + "</div>" + payDemo("Klaar: terug naar Fivvi", "checking"));
     else if (p === "checking") h += card("Betalingen", paySteps(1) + payLine("var(--gym)", "Mollie controleert je gegevens", "Je kunt nog geen betalingen ontvangen. Je hoeft niets te doen, tenzij Mollie je mailt.") + '<div class="w-hgroup">' + btn("Verder bij Mollie", "w-pay", { k: "outline", d: { v: "mollie" } }) + "</div>" + payDemo("Mollie is klaar met je gegevens", "debit"));
     else if (p === "debit") h += card("Betalingen", paySteps(3) + payLine("var(--gym)", "Automatische incasso wordt nog gecontroleerd", "iDEAL werkt al; abonnementen kun je aanzetten zodra dit klaar is.") + payDemo("Mollie is klaar met automatische incasso", "ready"));
     else if (p === "ready") h += card("Betalingen", paySteps(4) + payLine("var(--ok)", "Klaar om betalingen te ontvangen", "Mollie-organisatie: " + esc(n) + ". Uitbetaling: Mollie maakt je geld wekelijks over. De dag kies je in je Mollie-dashboard.") + '<div class="w-hgroup">' + btn("Naar Mollie-dashboard", "w-toast", { k: "outline", d: { m: "Mollie-dashboard geopend" } }) + btn("Ontkoppelen", "w-dlg", { k: "ghost", d: { n: "paydisc" } }) + "</div>" + payDemo("Laat de koppeling stoppen", "broken"));
+    else if (p === "cashonly") h += card("Betalingen", payLine("var(--ok)", "Klanten betalen bij jou", "Contant, met pin of per overboeking. Je legt elke betaling zelf vast op het klantprofiel. Online betalen staat uit.") + '<div class="w-hgroup">' + btn("Toch Mollie koppelen", "w-pay", { k: "outline", d: { v: "explain" } }) + "</div>");
     else if (p === "broken") h += card("Betalingen", payLine("var(--danger)", "Koppeling werkt niet meer", "Fivvi kan geen betalingen meer aanmaken. Koppel opnieuw om automatische incasso's te laten doorgaan.") + '<div class="w-hgroup">' + btn("Opnieuw koppelen", "w-pay", { d: { v: "have" } }) + "</div>");
     return h;
   }
   function payGate() {
     var p = payState(); if (p === "ready") return "";
-    var t = p === "debit" ? "Creditpakketten kun je aanzetten. Abonnementen en creditabonnementen kunnen aan zodra Mollie automatische incasso heeft gecontroleerd." : p === "broken" ? "Betalingen staan stil: de koppeling met Mollie werkt niet meer." : "Aanbod kun je aanzetten zodra betalingen zijn gekoppeld.";
+    var t = p === "cashonly" ? "Klanten betalen bij jou. Je legt elke betaling vast op het klantprofiel." : p === "debit" ? "Creditpakketten kun je aanzetten. Abonnementen en creditabonnementen kunnen aan zodra Mollie automatische incasso heeft gecontroleerd." : p === "broken" ? "Betalingen staan stil: de koppeling met Mollie werkt niet meer." : "Aanbod kun je aanzetten zodra betalingen zijn gekoppeld.";
     return '<div class="w-payalert' + (p === "broken" ? " bad" : "") + '">' + ic("warn") + "<span>" + t + "</span>" + btn("Naar Betalingen", "w-pay-go", { k: "outline sm" }) + "</div>";
   }
 
   /* Owner, 6 Nov 2026: everything clients can see or buy waits for payments; the owner's own setup stays open. iDEAL working is enough to open up. */
-  function payOpen() { var p = payState(); return p === "ready" || p === "debit"; }
+  function payOpen() { var p = payState(); return p === "ready" || p === "debit" || p === "cashonly"; }
+  function payOnline() { var p = payState(); return p === "ready" || p === "debit"; }
   function setupCard() {
     var ok = payOpen(), items = [["Betalingen koppelen", ok ? "Betalingen werken." : "Dit eerst: zonder koppeling kunnen klanten nog niet meedoen of kopen.", ok ? "done" : "now", btn(payState() === "none" ? "Koppelen" : "Bekijken", "w-pay-go", { k: "sm" })],
       ["Zet je aanbod klaar", "Wat je verkoopt, met je eigen prijzen.", "open", btn("Naar Aanbod", "w-page", { k: "outline sm", d: { v: "offers" } })]];
@@ -589,6 +591,7 @@
       b = fld("Aanbod", selF("offer", D.offerNames())) + (run ? fld("Gaat in", selF("start", [["after", "Na afloop van " + oa.name], ["now", "Direct na betaling"]])) : "") +
         '<p class="w-muted">' + esc(oc.name.split(" ")[0]) + " krijgt een e-mail met een link om te bevestigen en te betalen met iDEAL. Na de betaling maakt Fivvi de factuur." + (run ? " Na afloop: geen gat en geen overlap." : "") + "</p>";
     }
+    else if (d.n === "cashonly") { t = "Alleen contant of pin?"; b = "<p>Klanten kunnen dan niet online betalen, verlengen of iets kopen. Je legt elke betaling zelf vast op het klantprofiel. Je administratie en belasting regel je zelf. Je kunt Mollie later altijd nog koppelen.</p>"; ok = "Zo instellen"; }
     else if (d.n === "cash") { var cc = F.CLIENT[W().cid]; t = "Betaling buiten Fivvi vastleggen"; ok = "Vastleggen"; b = fld("Aanbod", selF("offer", D.offerNames())) + fld("Hoe betaald", selF("how", ["Contant", "Pin bij de studio", "Overboeking"])) + fld("Betaald op", inp("date", "date")) + '<p class="w-muted">' + esc(cc.name.split(" ")[0]) + " heeft dit bij jou betaald. Er gaat geen geld via Mollie en het gaat meteen in. Een abonnement staat daarna elke maand op dit profiel, tot je vastlegt dat het is betaald. Fivvi maakt hiervoor niet vanzelf een factuur. Je administratie en belasting regel je zelf; deze betaling blijft hier staan.</p>"; }
     else if (d.n === "paydisc") { t = "Betalingen ontkoppelen?"; b = "<p>Lopende incasso's stoppen tot je opnieuw koppelt. Klanten kunnen niets meer kopen.</p>"; ok = "Ontkoppelen"; kind = "dng"; cancel = "Terug"; }
     else if (d.n === "refund") { var pay = D.billing[W().cid].payments[d.i]; t = "Terugbetalen"; b = "<p>" + esc(pay[1]) + " · " + esc(pay[0]) + " · " + esc(pay[2]) + "</p>" + fld("Bedrag", inp("amount", "text"), OUTSIDE.indexOf(pay[3]) >= 0 ? "Een deel kan ook. Je betaalt dit zelf terug; Fivvi legt het alleen vast." : "Een deel kan ook. De klant krijgt een creditfactuur."); ok = "Terugbetalen"; kind = "dng"; cancel = "Terug"; }
@@ -726,6 +729,7 @@
     }
     else if (d.n === "offer-del") { D.offerList.splice(D.offerList.indexOf(offerById(d.id)), 1); msg = "Aanbod verwijderd"; }
     else if (d.n === "offer") { if (d.ag) D.billing[w.cid].agreements.forEach(function (x) { if (x.id === d.ag) x.offerSent = "vandaag"; }); msg = "Aanbod verstuurd aan " + F.CLIENT[w.cid].name.split(" ")[0]; }
+    else if (d.n === "cashonly") { w.pay = "cashonly"; msg = "Klanten betalen nu bij jou."; }
     else if (d.n === "cash") { D.recordOutside(w.cid, f.offer, f.how); msg = "Betaling vastgelegd."; }
     else if (d.n === "paydisc") { w.pay = "none"; msg = "Betalingen ontkoppeld"; }
     else if (d.n === "refund") { var pay = D.billing[w.cid].payments[d.i]; pay[4] = "refund"; if (OUTSIDE.indexOf(pay[3]) >= 0) msg = "Terugbetaling van " + f.amount + " vastgelegd."; else { pay[5] = (pay[5] ? pay[5] + " · " : "") + "creditfactuur F-2026-0430"; msg = "Terugbetaling van " + f.amount + " aangemaakt. De klant krijgt een creditfactuur."; } }
@@ -912,8 +916,9 @@
     r.last = r.used || r.days <= 7;
     /* the email says what was true on the day it went */
     r.mailTitle = head(r.last ? r.days : D.RENEW_DAYS);
+    r.studio = payState() === "cashonly";
     r.cta = r.offer ? "Bekijk het aanbod" : "Verlengen";
-    r.sub = r.offer ? "Je studio heeft je een aanbod gestuurd. Bekijk het om door te gaan." : r.used ? "Verleng om weer te kunnen boeken." : r.left != null ? "Nog " + r.left + " over. Verleng om door te gaan." : r.a.name + ". Verleng om door te gaan.";
+    r.sub = r.studio ? "Verlengen doe je bij je studio." : r.offer ? "Je studio heeft je een aanbod gestuurd. Bekijk het om door te gaan." : r.used ? "Verleng om weer te kunnen boeken." : r.left != null ? "Nog " + r.left + " over. Verleng om door te gaan." : r.a.name + ". Verleng om door te gaan.";
     return r;
   }
   /* the demo entries drive the real logic with the pack's own values; every panel entry starts from the sample */
@@ -929,7 +934,7 @@
   }
   function renewCard() {
     var r = clientRenew(); if (!r) return "";
-    return '<div class="card c-renew"><div class="c-renew-h"><span class="dc-ic" style="--c:var(--accent)">' + ic("repeat") + "</span><div><b>" + esc(r.title) + "</b><span>" + esc(r.sub) + "</span></div></div>" + K.btn(r.cta, { blk: true, a: "c-renew" }) + "</div>";
+    return '<div class="card c-renew"><div class="c-renew-h"><span class="dc-ic" style="--c:var(--accent)">' + ic("repeat") + "</span><div><b>" + esc(r.title) + "</b><span>" + esc(r.sub) + "</span></div></div>" + (r.studio ? "" : K.btn(r.cta, { blk: true, a: "c-renew" })) + "</div>";
   }
   function webBar(url, title) {
     return andr() ? '<div class="c-brbar"><button class="ib" data-a="c-webclose" aria-label="Sluiten">' + ic("x") + '</button><div><b>' + (title || "Verlengen") + '</b><span translate="no">' + url + "</span></div></div>"
@@ -948,7 +953,7 @@
   /* what the reminder email says */
   function mailView() {
     var r = clientRenew(); if (!r) return "";
-    return '<div class="scrim anim-fade" data-a="c-webclose"></div><div class="sheet large anim-up c-browser" role="dialog" aria-label="E-mail">' + (andr() ? '<div class="c-brbar"><button class="ib" data-a="c-webclose" aria-label="Sluiten">' + ic("x") + "</button><div><b>E-mail</b></div></div>" : '<div class="c-brbar ios"><button class="c-done" data-a="c-webclose">Klaar</button></div>') + '<div class="sbody"><div class="pad stack"><div class="card c-mail"><small>Van ' + esc(wsName()) + ' via Fivvi</small><h3>' + esc(r.mailTitle) + "</h3><p>Hoi Anna,</p><p>" + esc(r.sub) + "</p>" + K.btn(r.cta, { blk: true, a: "c-renew" }) + "<p><small>" + (r.last ? "Dit is de laatste herinnering." : r.a.kind === "pack" ? "Je krijgt nog één herinnering, als ze op zijn of uiterlijk 7 dagen voor het einde. Verleng je eerder, dan krijg je hem niet." : "Je krijgt nog één herinnering, 7 dagen voor het einde. Verleng je eerder, dan krijg je hem niet.") + "</small></p></div></div></div></div>";
+    return '<div class="scrim anim-fade" data-a="c-webclose"></div><div class="sheet large anim-up c-browser" role="dialog" aria-label="E-mail">' + (andr() ? '<div class="c-brbar"><button class="ib" data-a="c-webclose" aria-label="Sluiten">' + ic("x") + "</button><div><b>E-mail</b></div></div>" : '<div class="c-brbar ios"><button class="c-done" data-a="c-webclose">Klaar</button></div>') + '<div class="sbody"><div class="pad stack"><div class="card c-mail"><small>Van ' + esc(wsName()) + ' via Fivvi</small><h3>' + esc(r.mailTitle) + "</h3><p>Hoi Anna,</p><p>" + esc(r.sub) + "</p>" + (r.studio ? "" : K.btn(r.cta, { blk: true, a: "c-renew" })) + "<p><small>" + (r.last ? "Dit is de laatste herinnering." : r.a.kind === "pack" ? "Je krijgt nog één herinnering, als ze op zijn of uiterlijk 7 dagen voor het einde. Verleng je eerder, dan krijg je hem niet." : "Je krijgt nog één herinnering, 7 dagen voor het einde. Verleng je eerder, dan krijg je hem niet.") + "</small></p></div></div></div></div>";
   }
   /* the client's balance: tiles per kind (Fitness-style) and the agreements; shared by Profiel and the Tegoed screen */
   function tegoedParts() {
@@ -1260,6 +1265,7 @@
     if (C().web === "renew") return renewPage();
     if (C().web === "mail") return mailView();
     if ((C().webws || cws()) === "yl") return ylBrowser();
+    if (payState() === "cashonly") return payWeb("Aanbod", "fivvi.app/" + slug() + "/aanbod", K.lt("", "Aanbod", "") + '<div class="pad"><div class="card c-payres" style="--c:var(--accent)"><span>' + ic("people") + "</span><h3>Betalen bij je studio</h3><p>Bij " + esc(wsName()) + " betaal je bij de studio. Zij zetten je abonnement of credits voor je klaar.</p></div></div>");
     if (payState() !== "ready" && payState() !== "debit") return payWeb("Aanbod", "fivvi.app/" + slug() + "/aanbod", K.lt("", "Aanbod", "") + '<div class="pad"><div class="card c-payres" style="--c:var(--gym)"><span>' + ic("warn") + "</span><h3>Nog niet mogelijk</h3><p>Online betalen is bij " + esc(wsName()) + " nog niet mogelijk.</p></div></div>");
     var url = "fivvi.app/" + slug() + "/aanbod", offers = D.offerList.filter(function (o) { return o.on && offerFits(o) && o.kind !== "single" && !o.intro; });
     var bar = andr() ? '<div class="c-brbar"><button class="ib" data-a="c-webclose" aria-label="Sluiten">' + ic("x") + '</button><div><b>Aanbod</b><span translate="no">' + url + "</span></div></div>"
@@ -1437,6 +1443,9 @@
     ["E-mail aan de eigenaar: koppel je betalingen", "#466", goWeb("paymail", { pay: "none" })],
     ["Betaling buiten Fivvi vastleggen", "#606", goWeb("client", { cid: "sophie", tab: "billing", dialog: { n: "cash" }, form: { offer: "Groep 2× per week", how: "Contant", date: "2026-11-05" } })],
     ["Klantprofiel: contante betaling nog niet vastgelegd", "#606", goWeb("client", { cid: "eva", tab: "billing" })],
+    ["Betalingen: alleen contant of pin kiezen", "#606", goWeb("settings", { stab: "payments", pay: "none", dialog: { n: "cashonly" } })],
+    ["Betalingen: studio zonder Mollie", "#606", goWeb("settings", { stab: "payments", pay: "cashonly" })],
+    ["Klantprofiel: studio zonder Mollie", "#606", goWeb("client", { cid: "mark", tab: "billing", pay: "cashonly" })],
     ["Betalingen: testmodus", "#466", goWeb("settings", { stab: "payments", pay: "ready", payTest: true })],
     ["Dashboard: koppeling werkt niet meer", "#466", goWeb("dashboard", { pay: "broken" })],
     ["Aanbod: betalingen nog niet klaar", "#466", goWeb("offers", { pay: "checking" })],
@@ -1476,6 +1485,8 @@
     ["Betaling: nog bezig", "#466", goApp("app", { who: "anna", atab: "home", web: "pending", payFor: { name: "10 groepscredits" } })],
     ["Betaling: niet gelukt", "#466", goApp("app", { who: "anna", atab: "home", web: "failed", payFor: { name: "10 groepscredits" } })],
     ["Link geopend: studio nog niet klaar", "#466", function () { goApp("join", { email: "kim@example.com" })(); W().pay = "checking"; }],
+    ["Studio zonder Mollie: aanbod", "#606", goApp("app", { who: "anna", atab: "boeken", web: "offers" }, function () { W().pay = "cashonly"; })],
+    ["Studio zonder Mollie: verlengen", "#606", goApp("app", { who: "anna", atab: "home" }, function () { renewDemo("ends"); W().pay = "cashonly"; })],
     ["Betalen: nog niet mogelijk", "#466", goApp("app", { who: "anna", atab: "boeken", web: "offers" }, function () { W().pay = "checking"; })],
     ["Verlengen: stopt bijna", "#468", goApp("app", { who: "anna", atab: "home" }, function () { renewDemo("ends"); })],
     ["Verlengen: bijna op", "#468", goApp("app", { who: "anna", atab: "home" }, function () { renewDemo("low"); })],
