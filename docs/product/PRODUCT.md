@@ -1941,7 +1941,7 @@ For the Dutch market, later integrations should prioritize the systems customers
 
 ## Bring a friend
 
-A client can bring a friend to a class as a **guest**, for example 1 free visit a month, and after that the client pays 1 credit for each visit, so they train together. It can move to an earlier release if the pilot gym asks for it; it needs only the MVP's offers and credits (§90, §92).
+A client can bring a friend to a class as a **guest**, for example 1 free visit a month, and after that the client pays 1 credit for each visit, so they train together. It builds on the MVP's offers and credits (§90, §92).
 
 **Decided (owner, 6 November 2026):**
 
@@ -1951,14 +1951,24 @@ A client can bring a friend to a class as a **guest**, for example 1 free visit 
 
 **Proposals, to settle in the prototype before the spec:**
 
+- It can move to an earlier release if the pilot gym asks for it.
 - It is off by default on every offer. The limits run per month or per term, as the owner chooses on the offer, since an agreement that continues per cycle has no end date to count towards.
-- The client books the guest's spot. The guest is a name on the client's booking, with no account and no approval, so nothing changes in [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md). The same friend can come again.
+- The client books the guest's spot. The guest is a name on the client's booking, with no account and no approval. The booking rules of [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md) stay as they are: the client, who is approved, books. The same friend can come again.
 - Group classes only, with the client booked in the same class. A guest takes a normal spot and counts towards capacity. A paid visit uses a group credit, as its own line in the credit history (§92).
-- Cancelling and no-shows follow the client's own cancellation policy (§93): cancelling in time gives the free visit or the credit back; cancelling late or not showing up counts as used.
-- Fivvi warns the owner who turns this on for a membership when no member-only credit offer is switched on, because the members could then use only their free visits.
-- Offer changes apply to new agreements only (proposal, [QC15](../design/open-questions.md#qc15)), so running agreements get this at their next agreement.
+- Cancelling and no-shows follow the client's own cancellation policy, and what comes back follows §93: whether a free visit or a credit returns, and how many, is what §93 says for that agreement. A late cancel or a no-show counts as used.
+- Fivvi warns the owner who turns this on for a membership when no member-only credit offer is switched on, because clients with a membership could then use only their free visits.
+- Offer changes apply to new agreements only (proposal, [QC15](../design/open-questions.md#qc15)), so running agreements keep their terms.
 
-**Open:** the Dutch word in the UI (*introducé* is one candidate, `packages/i18n/GLOSSARY.md`), and what the privacy statement and the retention policy say about a guest's name.
+**Open:**
+
+- The Dutch word in the UI (*introducé* is one candidate, `packages/i18n/GLOSSARY.md`), and what the privacy statement and the retention policy say about a guest's name.
+- How a continuing agreement gets this, since it may never reach a next agreement.
+- Which agreement's cancellation policy applies when the client has several, and how the limits of §93 (a credit plan returns at most 2 credits a month, a membership grants a makeup instead of a return) apply to a guest visit.
+- §23: whether a guest can join a full class or the waitlist, whether a guest's cancellation moves the next person up, and what happens to the guest when the client cancels.
+- §91: whether a guest counts towards the weekly allowance or the weekly limit.
+- §92: "one credit books one session" against a visit cost the owner sets above 1 credit.
+- Capacity, Booking and Attendance in `GLOSSARY.md` are all defined in terms of clients or participants. How a guest's spot and no-show are recorded.
+- [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md): a person nobody approved now attends, which is close to its ability to keep a stranger out. Whether that needs a rule.
 
 ---
 

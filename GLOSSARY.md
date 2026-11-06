@@ -274,8 +274,8 @@ _Avoid_: deadline, notice period, cut-off (alone)
 A right to attend another class, granted under the cancellation policy, for example for a cancellation in time.
 _Avoid_: credit (a makeup is not a credit), catch-up, reschedule (that moves a session)
 
-**Guest**:
-A friend a client brings to a class under *bring a friend*, a setting on an offer (later, `PRODUCT.md §66`). A guest is not a client and not a participant. A client is never called a guest.
+**Guest** 🔜:
+A friend a client brings to a class under *bring a friend*, a setting on an offer (later, `PRODUCT.md §66`). A client is never called a guest.
 _Avoid_: visitor, plus-one, trial client
 
 **Payment provider**:
