@@ -9,8 +9,8 @@ A throwaway, clickable prototype of the new look (November 2026): Calendar-style
 | 3 | Client web (ADR-026), in the same design language as Fivvi Pro: join through the link, wait for approval, timetable, booking, waitlist, my schedule, profile and balance, a shared workout | Scherm → Klantweb |
 | 4 | Owner decisions of 5 November 2026: duo sessions (#586), class levels (#587), the workspace's own word for trainers (#588) | Index → Duosessie; Opzet → Pilatesstudio; Trainer web → Instellingen |
 | 4b | Renewing before the end: the owner gets "Verlengen" on an agreement that stops within its offer's renewal window (default 30 days, set per offer), a credit pack with 2 or fewer left, or one that ended; "Aanbod sturen" is always there (owner input for F052, #468) | Klantprofiel (Lisa, Bram, Mark), app and trainer web |
-| 4c | Connecting payments (#466): the owner's steps, what stays locked for clients, the client's payment; recording a payment outside Fivvi and studios without Mollie (#606) | Index → *Betalingen*, *Betaling*, *Betalen*, *Studio zonder Mollie* |
 | 4c | Aanbod (F052, §90): the workspace's offers by kind with an on/off switch, the three default plans (off until priced), and "Nieuw aanbod" with the fields of each kind, including the renewal window | Trainer web → Aanbod |
+| 4d | Connecting payments (#466): the owner's steps, what stays locked for clients, the client's payment; recording a payment outside Fivvi and studios without Mollie (#606) | Index → *Betalingen*, *Betaling*, *Betalen*, *Studio zonder Mollie* |
 | 5 | The client app Fivvi (§55): Home, Boeken, Activiteit, Profiel on iOS and Android, the studio switcher for a client of more than one studio, and doing a shared workout on your own (#602); joining by link, offers on the web in a browser sheet, account deletion | App → Fivvi (klant); index → Fivvi (klant-app) |
 
 **What was decided:** [DECISIONS.md](DECISIONS.md) (ADR-029). It is the record specs follow.

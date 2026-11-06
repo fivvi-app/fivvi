@@ -41,10 +41,17 @@
   function SOLO() { return !CFG().team; }
   function OWNER() { return SOLO() || PREF.role === "owner"; }
   function HAS(t) { return CFG().types.indexOf(t) >= 0; }
-  /* the payments state lives on the trainer web's side; the app only follows it */
-  function PAYST() { return (S.w && S.w.pay) || (S.proPay ? "none" : "ready"); }
-  function PAYSTUDIO() { var p = PAYST(); return p === "cashonly" || (!!(S.w && S.w.cashFirst) && p !== "ready" && p !== "debit" && p !== "broken"); }
-  function PAYLOCK() { var p = PAYST(); return !(p === "ready" || p === "debit" || p === "broken" || PAYSTUDIO()); }
+  /* The one set of rules for the payments state (#466, #606), used by the app and the web. */
+  function PAYW() { return S.w || {}; }
+  function PAYST() { return PAYW().pay || (S.proPay ? "none" : "ready"); }
+  function PAYONLINE() { var p = PAYST(); return p === "ready" || p === "debit"; }
+  function PAYSTUDIO() { var p = PAYST(); return p === "cashonly" || (!!PAYW().cashFirst && !PAYONLINE() && p !== "broken"); }
+  /* a studio that was live stays open while it reconnects: only new online sales stop */
+  function PAYOPEN() { var p = PAYST(); return PAYONLINE() || p === "broken" || !!PAYW().wasLive || PAYSTUDIO(); }
+  function PAYLOCK() { return !PAYOPEN(); }
+  function OFFEROPEN(o) { return PAYST() === "ready" || PAYSTUDIO() || (PAYST() === "debit" && o.kind !== "abo" && o.kind !== "plan"); }
+  function OFFERNAMEOPEN(n) { var o = D.offerList.filter(function (x) { return x.name === n; })[0]; return !o || OFFEROPEN(o); }
+  function OPENOFFERS() { return D.offerNames().filter(OFFERNAMEOPEN); }
   /* The session type is only worth a label when there is more than one kind; a trainer with private sessions only
      never sees "Privésessie" on every row. */
   function MIXED() { return CFG().types.length > 1; }
@@ -298,7 +305,7 @@
     body += '<div class="pad">' + (rest.length ? grp(rest.map(function (i) { return itemRow(i, TODAY, { hideWs: ws, who: ws }); }), "--inset:94px") : '<div class="empty">Geen sessies vandaag.</div>') + "</div>";
     var tom = dayItems(key(add(NOW, 1)));
     body += '<div class="pad" style="margin-top:12px">' + grp([row({ a: "agenda-day", d: { k: key(add(NOW, 1)) }, title: "Morgen", sub: tom.length + " sessies, eerste om " + tom[0].s, lead: PREF.plat === "ios" ? "" : "" })]) + "</div>";
-    if (S.proPay && OWNER()) body = '<div class="pad" style="margin-bottom:12px"><div class="banner" style="--c:var(--gym)">' + ic("warn") + "<span><b>Koppel je betalingen op het web.</b> Zonder koppeling kunnen klanten nog niet meedoen of kopen. Dit doe je op fivvi.app, in Instellingen.</span></div></div>" + body;
+    if (PAYLOCK() && OWNER()) body = '<div class="pad" style="margin-bottom:12px"><div class="banner" style="--c:var(--gym)">' + ic("warn") + "<span><b>Koppel je betalingen op het web.</b> Zonder koppeling kunnen klanten nog niet meedoen of kopen. Dit doe je op fivvi.app, in Instellingen.</span></div></div>" + body;
     return { large: true, eb: longDate(NOW), title: "Vandaag", sub: summary, body: body, add: { a: "new", label: "Nieuw" } };
   };
 
@@ -468,8 +475,8 @@
         /* payments outside Fivvi (#606, owner 6 Nov 2026): cash is often taken at the desk, so it can be recorded here too */
         if (!PAYLOCK()) bs.b.agreements.forEach(function (a) { if (a.cash && a.next) brows.push(row({ lead: '<span class="dc-ic" style="--c:' + (a.late ? "var(--danger)" : "var(--accent)") + '">' + ic(a.late ? "warn" : "repeat") + "</span>", title: esc(a.name) + ": <span>" + esc(a.cash) + "</span>", sub: a.late ? "Betaling van " + esc(a.next) + " nog niet vastgelegd" : "Volgende betaling " + esc(a.next), tr: btn("Betaald", { sm: true, a: "cash-paid", d: { id: c.id, ag: a.id } }), cls: "dc wrap" })); });
         if (!PAYLOCK()) brows.push(row({ a: "cash", d: { id: c.id }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("plus") + "</span>", title: "Betaling buiten Fivvi", sub: "Contant, pin of overboeking vastleggen", cls: "dc" }));
-        bs.renew.forEach(function (r) { var a = r[0]; brows.push(row({ lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("repeat") + "</span>", title: "Verlengen: <span>" + esc(a.name) + "</span>", sub: a.offerSent ? "Aanbod verstuurd " + esc(a.offerSent) + " · wacht op betaling" : esc(r[1]), small: esc(D.remindLine(a)), tr: a.offerSent ? '<span class="pill">Verstuurd</span>' : PAYSTUDIO() ? btn("Betaald", { sm: true, a: "cash", d: { id: c.id } }) : PAYLOCK() || PAYST() === "broken" ? "" : btn("Verlengen", { sm: true, a: "offer", d: { id: c.id, ag: a.id } }), cls: "dc wrap" })); });
-        if (!PAYLOCK() && !PAYSTUDIO() && PAYST() !== "broken") brows.push(row({ a: "offer", d: { id: c.id }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("plus") + "</span>", title: '<span style="color:var(--accent-text)">Aanbod sturen</span>', cls: "dc", chev: false }));
+        bs.renew.forEach(function (r) { var a = r[0]; brows.push(row({ lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("repeat") + "</span>", title: "Verlengen: <span>" + esc(a.name) + "</span>", sub: a.offerSent ? "Aanbod verstuurd " + esc(a.offerSent) + " · wacht op betaling" : esc(r[1]), small: esc(D.remindLine(a)), tr: a.offerSent ? '<span class="pill">Verstuurd</span>' : PAYSTUDIO() ? btn("Betaald", { sm: true, a: "cash", d: { id: c.id } }) : !PAYONLINE() || !OFFERNAMEOPEN(a.name) ? "" : btn("Verlengen", { sm: true, a: "offer", d: { id: c.id, ag: a.id } }), cls: "dc wrap" })); });
+        if (PAYONLINE()) brows.push(row({ a: "offer", d: { id: c.id }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("plus") + "</span>", title: '<span style="color:var(--accent-text)">Aanbod sturen</span>', cls: "dc", chev: false }));
       }
       body += sh("Tegoed", "", "small") + '<div class="pad">' + grp(brows, "--inset:60px") + "</div>" + (OWNER() ? foot("Fivvi stelt verlengen voor vanaf " + D.RENEW_DAYS + " dagen voor het einde, of als een creditpakket bijna op is. De klant krijgt dan een herinnering en 7 dagen voor het einde nog een, ook als je zelf een aanbod stuurt. Betalingen en facturen vind je op het web.") : "");
     }
@@ -611,7 +618,7 @@
   SHEETS["new"] = function () {
     var items = [["new-session", "priv", "Privésessie", "Een sessie met één klant."]];
     if (OWNER()) { items.push(["new-class", "group", "Groepsles", "Bij " + D.workspaces.sf.name]); if (HAS("gym")) items.push(["new-gym", "gym", "Open Gym", "Bij " + D.workspaces.sf.name]); }
-    items.push(["new-client", "", "Klant", PAYLOCK() ? "Naam en e-mailadres. De klant krijgt een uitnodiging zodra betalingen klaar zijn." : "Naam en e-mailadres. De klant krijgt een uitnodiging om in te loggen."]);
+    items.push(["new-client", "", "Klant", PAYLOCK() ? "Naam en e-mailadres. De klant krijgt een uitnodiging zodra de studio klaar is." : "Naam en e-mailadres. De klant krijgt een uitnodiging om in te loggen."]);
     var icons = { priv: "me", group: "group", gym: "door", "": "personPlus" };
     var body = grp(items.map(function (x) { return row({ a: x[0], lead: '<span class="av" style="--c:' + (x[1] ? CV[x[1]] : "var(--accent)") + ';border-radius:14px">' + ic(icons[x[1]]) + "</span>", title: x[2], sub: x[3], cls: "wrap" }); }), "--inset:68px");
     if (!SOLO()) body += foot(OWNER() ? "Groepslessen van John's Gym plant de eigenaar." : "Groepslessen van Studio Fit en John's Gym plant de eigenaar.");
@@ -630,7 +637,7 @@
   /* Send an offer: the client gets an email with a link to confirm and pay; the invoice follows the payment (§94, §96) */
   SHEETS.offer = function () {
     var f = S.form, c = CLIENT[f.client], a = f.ag ? D.billing[f.client].agreements.filter(function (x) { return x.id === f.ag; })[0] : null;
-    var body = '<div class="fgrp">' + fld("Aanbod", sel("offer", D.offerNames())) + "</div>";
+    var body = '<div class="fgrp">' + fld("Aanbod", sel("offer", OPENOFFERS())) + "</div>";
     var running = a && a.endsIn >= 0 && a.status !== "expired";
     if (running) body += '<div style="margin:16px 0 6px;font-size:13px;color:var(--label2);padding-left:4px">Gaat in</div>' + seg([["after", "Na afloop"], ["now", "Direct"]], f.start, "fset", { f: "start" });
     body += foot(esc(c.name.split(" ")[0]) + " krijgt een e-mail met een link om te bevestigen en te betalen met iDEAL. Na de betaling maakt Fivvi de factuur." + (running ? " Na afloop: het nieuwe begint als " + esc(a.name) + " eindigt, zonder gat en zonder overlap." : ""));
@@ -645,7 +652,7 @@
   SHEETS.newClient = function () {
     var body = '<div class="fgrp">' + fld("Naam", inp("name", "text", "Voor- en achternaam", " autocomplete=\"off\"")) + fld("E-mail", inp("email", "email", "naam@voorbeeld.nl")) + "</div>";
     body += '<div class="fgrp" style="margin-top:16px">' + fld("Taal voor e-mails", sel("lang", ["Nederlands", "English"])) + (WSS().length > 1 ? fld("Werkruimte", sel("ws", WSS().map(function (w) { return [w, D.workspaces[w].name]; }))) : "") + "</div>";
-    body += foot(PAYLOCK() ? "De klant krijgt een uitnodiging zodra betalingen klaar zijn." : "De klant krijgt een e-mail met een uitnodiging om in te loggen.");
+    body += foot(PAYLOCK() ? "De klant krijgt een uitnodiging zodra de studio klaar is." : "De klant krijgt een e-mail met een uitnodiging om in te loggen.");
     return { title: "Nieuwe klant", body: body, save: "save-client" };
   };
   SHEETS.newClass = function () {
@@ -969,7 +976,7 @@
     "new": function () { S.sheet = "new"; S.anim = "up"; render(); },
     "new-session": function () { S.form = Object.assign(today5(), { client: "anna", loc: D.locations[1] }); S.sheet = "newSession"; S.anim = "up"; render(); },
     "plan-for": function (d) { S.form = Object.assign(today5(), { client: d.id, date: key(add(NOW, 1)), start: "10:30", loc: D.locations[1] }); S.sheet = "newSession"; S.anim = "up"; render(); },
-    offer: function (d) { var a = d.ag ? D.billing[d.id].agreements.filter(function (x) { return x.id === d.ag; })[0] : null; S.menu = null; S.form = { client: d.id, ag: d.ag || "", offer: a ? a.name : D.offerNames()[1], start: "after" }; S.sheet = "offer"; S.anim = "up"; render(); },
+    offer: function (d) { var a = d.ag ? D.billing[d.id].agreements.filter(function (x) { return x.id === d.ag; })[0] : null; S.menu = null; S.form = { client: d.id, ag: d.ag || "", offer: a ? a.name : OPENOFFERS()[1] || OPENOFFERS()[0], start: "after" }; S.sheet = "offer"; S.anim = "up"; render(); },
     cash: function (d) { S.menu = null; S.form = { client: d.id, offer: D.offerNames()[1], how: "Contant", date: TODAY }; S.sheet = "cash"; S.anim = "up"; render(); },
     "save-cash": function () { D.recordOutside(S.form.client, S.form.offer, S.form.how, S.form.date); S.sheet = null; toast("Betaling vastgelegd."); },
     "cash-paid": function (d) { D.recordOutsidePaid(d.id, d.ag); toast("Betaling vastgelegd."); },
@@ -1281,7 +1288,7 @@
   window.addEventListener("resize", function () { if (dev) fitDev(); });
   function addClient(c) { D.clients.push(c); CLIENT[c.id] = c; }
   function addItem(k, it) { dayItems(k); DAYCACHE[k].push(it); }
-  window.FV = { get S() { return S; }, PREF: PREF, D: D, A: A, CLIENT: CLIENT, dayItems: dayItems, findItem: findItem, extra: function () { return EXTRA_WS; },
+  window.FV = { PAYST: PAYST, PAYONLINE: PAYONLINE, PAYSTUDIO: PAYSTUDIO, PAYOPEN: PAYOPEN, OFFEROPEN: OFFEROPEN, OFFERNAMEOPEN: OFFERNAMEOPEN, OPENOFFERS: OPENOFFERS, get S() { return S; }, PREF: PREF, D: D, A: A, CLIENT: CLIENT, dayItems: dayItems, findItem: findItem, extra: function () { return EXTRA_WS; },
     CV: CV, TYPE: TYPE, title: title, level: level, lvlTag: lvlTag, esc: esc, ic: ic, mins: mins, hm: hm, key: key, parse: parse, add: add, monday: monday, longDate: longDate, shortDate: shortDate,
     isoWeek: isoWeek, DAYS: DAYS, DS: DS, MONTHS: MONTHS, MS: MS, TODAY: TODAY, NOW: NOW, NOWT: NOWT, isPast: isPast, initials: initials, toast: toast, render: function () { render(); },
     OWNER: OWNER, SOLO: SOLO, HAS: HAS, MIXED: MIXED, WSS: WSS, avatar: avatar, addClient: addClient, addItem: addItem, INDEX: INDEX, kit: { row: row, grp: grp, sh: sh, lt: lt, btn: btn, seg: seg, foot: foot, avatar: avatar, rings: rings, shape: shape, SHAPE: SHAPE }, fresh: function () { fresh(); }, save: function () { save(); applyPrefs(); } };

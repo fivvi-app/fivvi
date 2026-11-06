@@ -340,7 +340,7 @@ window.FIVVI_DATA = (function () {
   /* A payment outside Fivvi (#606): the owner records it; no money moves through Mollie and no invoice is made automatically (owner, 6 Nov 2026). */
   function fmtDate(v) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ""); return m ? +m[3] + " " + MONTHS[+m[2] - 1] + " " + m[1] : "5 nov 2026"; }
   function recordOutside(cid, name, how, date) {
-    var o = offerList.filter(function (x) { return x.name === name; })[0], rec = o.kind === "abo" || o.kind === "plan", b = billing[cid] || (billing[cid] = { agreements: [], payments: [] }), a = { id: "c" + Date.now(), end: o.end || "stop", endsIn: 180, kind: o.kind, name: o.name, price: "€ " + o.price, cycle: o.cycle, since: "vandaag", period: "vanaf vandaag", status: "active", cash: how, hist: [["vandaag", o.name + " gestart", "", "Vastgelegd door de eigenaar"]] };
+    var o = offerList.filter(function (x) { return x.name === name; })[0], rec = o.kind === "abo" || o.kind === "plan", b = billing[cid] || (billing[cid] = { agreements: [], payments: [] }), a = { id: "c" + Date.now(), end: o.end || "stop", endsIn: 180, kind: o.kind, name: o.name, price: "€ " + o.price, cycle: o.cycle, since: fmtDate(date), period: rec ? "loopt door" : "geldig " + (o.valid || "3 maanden"), status: "active", cash: how, hist: [[fmtDate(date), o.name + " gestart", "", "Vastgelegd door de eigenaar"]] };
     if (rec) a.next = "5 dec";
     if (o.kind === "abo") { a.perWeek = o.perWeek || 1; a.usedWeek = 0; a.makeups = 0; } else { a.credit = o.credit; a.total = o.credits || 0; a.used = 0; a.planned = 0; }
     b.agreements.unshift(a); b.payments.unshift([fmtDate(date), o.name, "€ " + o.price + ",00", how, "paid", ""]);
