@@ -46,13 +46,18 @@ const inMinutes = (minutes) => new Date(Date.now() + minutes * 60_000).toISOStri
 
 // Asynchronous on purpose: the stand-in API runs in this process, which a synchronous spawn would block.
 const exec = (command, args, { env = {}, cwd, input = '' } = {}) =>
-  new Promise((resolve) => {
+  new Promise((resolve, reject) => {
     const child = spawn(command, args, { cwd, env, stdio: ['pipe', 'pipe', 'pipe'] });
     let stdout = '';
     let stderr = '';
     child.stdout.on('data', (chunk) => (stdout += chunk));
     child.stderr.on('data', (chunk) => (stderr += chunk));
     child.on('close', (status) => resolve({ status, stdout, stderr }));
+    // A child that exits without reading its stdin (`sh -c '…'`) can be gone before the write lands: EPIPE. That is
+    // the child's business, its status still says what happened; any other stdin error fails the test.
+    child.stdin.on('error', (error) => {
+      if (error.code !== 'EPIPE') reject(error);
+    });
     child.stdin.end(input);
   });
 // The value after `--settings`, or undefined when it is missing or is the next option (as the script reads it too).
@@ -115,6 +120,14 @@ const REAL_MAIN_CHECKOUT = dirname(
 const REAL_SETTINGS = join(REAL_MAIN_CHECKOUT, '.claude', 'settings.local.json');
 const realSettings = watch(REAL_SETTINGS);
 after(() => realSettings.assertUnchanged());
+
+describe('the exec helper', () => {
+  it('resolves with the status of a child that exits without reading its stdin', async () => {
+    // Far more than a pipe buffer holds, so the write is still going when the child is gone: EPIPE on stdin.
+    const result = await exec('sh', ['-c', 'exit 3'], { input: 'x'.repeat(8 * 1024 * 1024) });
+    assert.equal(result.status, 3);
+  });
+});
 
 describe('the suite cannot touch the real machine', () => {
   let dir;
