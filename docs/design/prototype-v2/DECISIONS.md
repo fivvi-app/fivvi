@@ -16,7 +16,7 @@ This is the record of what the owner and the agent decided while clicking throug
 
 ## 2. Platforms and visual direction
 
-Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
+Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md), amended by [ADR-031](../../decisions/ADR-031-move-pink-is-the-only-accent.md).
 
 | Platform | Decision |
 |---|---|
@@ -28,7 +28,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
 **One theme on every platform**, with the details of Apple Calendar, Fitness and Health: "Calendar calm, Fitness pops".
 
 - **Canvas:** grouped grey (`#F2F2F7`) with white cards in light, true black with `#1C1C1E` cards in dark. Inset grouped lists, radius 26 for cards and lists, inset separators.
-- **Accent:** **Move pink `#E6164A`** (text `#C8103D` in light, `#FF6482` in dark). A **black-and-white** accent is the second option. The accent is a token, so it can change in one place. Anything on an accent fill uses the on-accent colour (it flips to near-black on the white accent in dark mode).
+- **Accent:** **Move pink `#E6164A`** (text `#C8103D` in light, `#FF6482` in dark). **It is the only accent** (owner, 6 November 2026; [ADR-031](../../decisions/ADR-031-move-pink-is-the-only-accent.md)): no black-and-white or other option in the product, for now. The prototype's panel keeps its accent switch for comparing colours (owner, 6 November 2026); that's a design tool, not a product option. The accent is a token, so it can change in one place if that's ever needed. Anything on an accent fill uses the on-accent colour.
 - **Session-type colours:** private `#0088FF`, group `#CB30E0`, Open Gym `#FF8D28`; success `#34C759`, danger `#FF383C`. Workspaces have their own dot colour.
 - **Gradients stay in one hue**, never drifting to another colour (owner: "too much to the purple"). The hero card uses the session type's colour, darker at the bottom.
 - **Numbers** use a rounded face (SF Pro Rounded, `ui-rounded`) with tabular digits. Text is SF Pro on iOS, Google Sans Flex on Android, the system stack on the web.

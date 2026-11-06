@@ -31,7 +31,6 @@ It reads clearly in a busy gym: time, client, location, capacity and the next ac
 | Card | `#FFFFFF` | `#1C1C1E` |
 | Label / secondary | `#000000` / `rgba(60,60,67,.6)` | `#FFFFFF` / `rgba(235,235,245,.6)` |
 | Accent (Move pink) | `#E6164A`, text `#C8103D` | `#E6164A`, text `#FF6482` |
-| Black-and-white accent (option) | `#18181B` | `#FAFAFA` (on-accent flips to near-black) |
 | Private / group / Open Gym | `#0088FF` / `#CB30E0` / `#FF8D28` | same |
 | Success / danger | `#34C759` / `#FF383C` | same |
 
