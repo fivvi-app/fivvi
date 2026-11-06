@@ -433,7 +433,7 @@ Designed with the owner on 6 November 2026 in its own artifact, [Fivvi Website](
 - **Mollie is named** on the site (owner), with iDEAL next to it.
 - **Dutch copy says *sportschool*,** as `packages/i18n/GLOSSARY.md` asks, at `/sportscholen`; English says *gyms*.
 - **Platforms (owner):** the section shows what owners and trainers use and what clients use, each on iPhone, Android and in the browser: Fivvi Pro and the trainer web, Fivvi and the client web.
-- **Images:** real screens first. Photos are for atmosphere, without people, so nothing passes for a real customer.
+- **Images:** real screens first. Next to them an image that stands on its own beside the words, never as a background behind screens or text (owner). No people, so nothing passes for a real customer. Empty rooms and screens only were rejected (owner); the choice between objects, miniatures and numbers is open at `#beeld`.
 - **Nothing made up:** no figures, testimonials or ratings until they exist.
 
 **Assumptions, not yet confirmed by the owner:**

@@ -17,26 +17,14 @@ node docs/design/website/build-legal.cjs
 | `content.js`, `pages.js` | The words, Dutch first; a few on the design-choices page sit in `site.js` |
 | `capture.cjs` | Captures the prototype's screens, in Dutch and English, light and dark |
 | `build-legal.cjs` | Makes `legal.js` from `docs/legal`, so the legal pages show the current drafts |
-| `assets/photos/` | The photos |
+| `assets/photos/` | The images |
 
-## Photos
+## Images
 
-Generated with Codex's built-in `image_gen` tool on the owner's ChatGPT subscription. They're atmosphere only: the real screens do the explaining. No people, text or logos, so no image can pass for a real customer. The shared style:
+Generated with Codex's built-in `image_gen` tool on the owner's ChatGPT subscription, with transparent backgrounds and no people, text or logos. An image stands on its own beside the words, and is never a background behind screens or text (owner). The owner is choosing between three styles at `#beeld`; the unused ones then leave this folder.
 
-> Editorial architecture photography, 35mm, soft natural daylight, muted warm neutrals with one small accent of soft pink, calm and uncluttered, believable materials. Wide landscape. No people, no text, no logos, no watermark.
+- **Objects** (`obj-*`): *clean Apple-like product photography of one simple matte fitness object group, soft even studio light, a subtle soft contact shadow, one crisp accent colour of vivid pink #E6164A, everything else black, white or grey.*
+- **Miniatures** (`min-*`): *a miniature isometric 3D diorama on a small rounded square base, matte clay materials, soft even light, simple rounded forms, tidy and calm, palette of white, light grey and charcoal with one crisp accent colour of vivid pink #E6164A.*
+- **Numbers:** no images. The app's gradient card as a poster, in CSS.
 
-| File | Subject |
-|---|---|
-| `gym` | A small boutique training studio in a Dutch canal house: large windows, oak floor, a bench and kettlebells, an empty wall on the left |
-| `team` | A larger, tidy gym floor in a converted Dutch warehouse: squat racks, benches and a strip of turf, brick walls, steel-framed windows |
-| `pilates` | A bright white pilates studio with six wooden reformers in a neat row, pale oak floor, tall windows |
-| `yoga` | A warm yoga room with rolled mats and cork blocks stacked along an oak floor, linen curtains, late afternoon light |
-| `pt` | A quiet Dutch city park at first light: a rolled mat, a kettlebell and a water bottle on the grass beside a path |
-| `client` | A simple wooden bench by a studio door: a sports bag, a folded towel and a water bottle, soft window light |
-
-## Image styles being compared
-
-`#beeld` shows these next to the rooms above and next to screens only. The owner picks one; the others then leave this folder.
-
-- **Objects** (`obj-*`): *clean Apple-like product photography, one simple matte fitness object group centred on a plain seamless light grey #F2F2F7 background, soft even studio light, a soft contact shadow, lots of empty space, one crisp accent colour of vivid pink #E6164A, everything else black, white or grey.*
-- **In motion** (`mov-*`): *bold high-contrast black-and-white sports photography, very close crop on hands or feet only, dramatic side light on a near-black background, real texture and motion, with one thin rim of vivid pink #E6164A light as the only colour.*
+Rejected by the owner: empty rooms (they looked like stock photos) and screens only (the pages already have screens).

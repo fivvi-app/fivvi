@@ -76,7 +76,7 @@ window.COPY = (function () {
 
   var A = {
     gym: {
-      nav: ["Sportscholen", "Gyms"], who: ["Sportschool met team", "Gym with a team"], photo: "team", colour: "priv",
+      nav: ["Sportscholen", "Gyms"], who: ["Sportschool met team", "Gym with a team"], colour: "priv",
       short: ["Eén agenda voor al je trainers, en altijd zicht op wie er nog moet betalen.", "One calendar for all your trainers, and always a clear view of who still has to pay."],
       cardH: ["Sportscholen met een team", "Gyms with a team"],
       stage: { web: "web-dashboard", phone: "pro-today-gym" },
@@ -95,7 +95,7 @@ window.COPY = (function () {
       ]
     },
     studio: {
-      nav: ["Studio's", "Studios"], who: ["Studio", "Studio"], photo: "pilates", colour: "group",
+      nav: ["Studio's", "Studios"], who: ["Studio", "Studio"], colour: "group",
       short: ["Volle lessen, een nette wachtlijst en klanten die zelf boeken.", "Full classes, a tidy waitlist and clients who book themselves."],
       cardH: ["Pilates- en yogastudio's", "Pilates and yoga studios"],
       stage: { web: "web-class-pilates", phone: "pro-today-pilates" },
@@ -113,7 +113,7 @@ window.COPY = (function () {
       ]
     },
     pt: {
-      nav: ["Personal trainers", "Personal trainers"], who: ["Personal trainer", "Personal trainer"], photo: "pt", colour: "priv",
+      nav: ["Personal trainers", "Personal trainers"], who: ["Personal trainer", "Personal trainer"], colour: "priv",
       short: ["Je hele dag in je broekzak: wie er komt, wat jullie vorige keer deden en wat er nog over is.", "Your whole day in your pocket: who's coming, what you did last time and what's left."],
       cardH: ["Personal trainers", "Personal trainers"],
       stage: { phones: ["pro-today-solo", "pro-log", "pro-client"] },
@@ -131,7 +131,7 @@ window.COPY = (function () {
       ]
     },
     klanten: {
-      nav: ["Klanten", "Clients"], who: ["Klant", "Client"], photo: "client", colour: "accent",
+      nav: ["Klanten", "Clients"], who: ["Klant", "Client"], colour: "accent",
       short: ["Boek je les in een paar tikken en zie altijd wat je nog tegoed hebt.", "Book your class in a few taps and always see what's on your balance."],
       cardH: ["En hun klanten", "And their clients"],
       stage: { phones: ["app-home", "app-book", "app-credit"] },
@@ -197,7 +197,7 @@ window.COPY = (function () {
     cards: [
       [["Calendar calm, Fitness pops", "Calendar calm, Fitness pops"], ["Dezelfde taal als de app: grijs canvas, witte kaarten, één accent. De tijden en gekleurde balken komen uit Agenda, en de dag is de rode draad.", "The same language as the app: grey canvas, white cards, one accent. The times and coloured bars come from Calendar, and the day is the thread."]],
       [["Schermen eerst", "Screens first"], ["De echte schermen zijn het bewijs. Ze komen met een script uit het prototype, in NL en EN, licht en donker, dus ze blijven kloppen als het ontwerp verandert.", "The real screens are the proof. A script captures them from the prototype, in Dutch and English, light and dark, so they stay right when the design changes."]],
-      [["Foto's voor de sfeer", "Photos for atmosphere"], ["Gemaakt met je ChatGPT-abonnement via Codex. Geen mensen, tekst of logo's, dus niets lijkt op een echte klant. Echte foto's van de pilot kunnen ze later vervangen.", "Made with your ChatGPT subscription through Codex. No people, text or logos, so nothing passes for a real client. Real pilot photos can replace them later."]],
+      [["Beeld staat op zichzelf", "Images stand alone"], ["Nooit als achtergrond achter schermen of tekst. Gemaakt met je ChatGPT-abonnement via Codex, zonder mensen of logo's. Echte foto's van de pilot kunnen later bij.", "Never as a background behind screens or text. Made with your ChatGPT subscription through Codex, without people or logos. Real pilot photos can join later."]],
       [["Vier verhalen, één site", "Four stories, one site"], ["De keuze \"Ik ben\" bepaalt wat je ziet. Sportschool, studio, PT en klant krijgen elk hun eigen dag, hun eigen problemen en hun eigen woorden.", "The \"I am\" choice decides what you see. Gym, studio, PT and client each get their own day, their own problems and their own words."]],
       [["Niets verzonnen", "Nothing made up"], ["Geen getallen of klantverhalen die we niet hebben. De teksten volgen PRODUCT.md en DECISIONS.md. Bewijs van de pilot komt erbij zodra het er is.", "No numbers or testimonials we don't have. The words follow PRODUCT.md and DECISIONS.md. Proof from the pilot goes in once it exists."]],
       [["Eén gewaagd moment", "One bold moment"], ["De kop is groot, de rest is stil. Het enige dat beweegt is de boeking op de homepagina, waar je zelf ziet dat alles klopt.", "The headline is big, the rest is quiet. The only thing that moves is the booking on the homepage, where you see for yourself that it all adds up."]]

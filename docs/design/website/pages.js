@@ -110,14 +110,19 @@ window.PAGES = (function () {
     styles: {
       eye: ["Beeldstijl", "Image style"],
       h1: ["Welke beeldstijl past bij Fivvi?", "Which image style fits Fivvi?"],
-      lead: ["Vier richtingen op dezelfde kaarten. Met de knop zie je een stijl overal op de site. Zeg welke je wilt, of wat je anders wilt.", "Four directions on the same cards. The button shows a style across the whole site. Tell me which you want, or what you'd change."],
+      lead: ["Drie richtingen op dezelfde kaarten. Met de knop zie je een stijl overal op de site. Zeg welke je wilt, of wat je anders wilt.", "Three directions on the same cards. The button shows a style across the whole site. Tell me which you want, or what you'd change."],
       see: ["Bekijk op de site", "See it on the site"], on: ["Staat nu aan", "Currently on"], rec: ["Mijn advies", "My advice"],
       list: [
-        ["obj", ["Objecten", "Objects"], ["Eén object op het grijs van de app, met roze als enige kleur. Strak en rustig, net als Fivvi zelf. Er staat niemand op, dus niets lijkt op een echte klant.", "One object on the app's grey, with pink as the only colour. Crisp and calm, just like Fivvi itself. Nobody's in it, so nothing passes for a real client."]],
-        ["screens", ["Alleen schermen", "Screens only"], ["Geen foto's: Fivvi zelf is het beeld. Het eerlijkst, en het klopt altijd. Wel minder sfeer, en de pagina's lijken meer op elkaar.", "No photos: Fivvi itself is the image. The most honest, and it's always right. Less atmosphere, though, and the pages look more alike."]],
-        ["mov", ["In beweging", "In motion"], ["Zwart-wit, van dichtbij, met een randje roze. Veel energie, maar minder rustig dan de app. Handen en voeten van AI vallen hier snel op, dus dit vraagt streng nakijken.", "Black and white, close up, with a rim of pink. Lots of energy, but less calm than the app. AI hands and feet show quickly here, so this needs strict checking."]],
-        ["rooms", ["Ruimtes", "Rooms"], ["De foto's van nu: lege studio's in zacht daglicht. Warm, maar het lijkt op stockfoto's en het staat los van de app.", "The current photos: empty studios in soft daylight. Warm, but they look like stock photos and feel separate from the app."]]
-      ]
+        ["obj", ["Objecten", "Objects"], ["Eén object met roze als enige kleur, los op de pagina en nooit achter iets. Strak en rustig, net als Fivvi zelf.", "One object with pink as the only colour, standing free on the page and never behind anything. Crisp and calm, just like Fivvi itself."]],
+        ["min", ["Miniaturen", "Miniatures"], ["Een klein 3D-wereldje voor elke doelgroep: de sportschool, de studio, het park en de ingang. Speels en het blijft hangen, maar minder strak dan de app.", "A small 3D world for each audience: the gym, the studio, the park and the entrance. Playful and memorable, but less crisp than the app."]],
+        ["num", ["Cijfers", "Numbers"], ["Geen foto's, maar de gradientkaarten en ronde cijfers van de app als poster. Zonder AI, dus niets kan nep lijken. Het is ook het meest eigen aan Fivvi.", "No photos, but the app's gradient cards and rounded numbers as posters. No AI, so nothing can look fake. It's also the most Fivvi of the three."]]
+      ],
+      posters: {
+        gym: ["priv", "4", ["trainers tegelijk, één agenda", "trainers at once, one calendar"]],
+        studio: ["group", "6/6", ["Vol, en 2 op de wachtlijst", "Full, and 2 on the waitlist"]],
+        pt: ["ok", "07:30", ["Je eerste klant, en je weet al alles", "Your first client, and you know it all"]],
+        klanten: ["accent", "7", ["groepscredits over", "group credits left"]]
+      }
     },
     direction: {
       decidedH: ["Wat je hebt besloten", "What you decided"],

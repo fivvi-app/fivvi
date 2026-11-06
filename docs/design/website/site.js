@@ -4,7 +4,7 @@
   var EXTRA = ["richting", "prijzen", "demo", "support", "account-verwijderen", "privacy", "voorwaarden", "subverwerkers", "beeld"];
   var root = document.documentElement;
   var page = document.getElementById("page"), nav = document.getElementById("nav"), foot = document.getElementById("foot"), review = document.getElementById("review");
-  var S = { lang: "nl", who: "gym", kind: "pilates", demo: 0, plat: "pro", style: "rooms" };
+  var S = { lang: "nl", who: "gym", kind: "pilates", demo: 0, plat: "pro", style: "obj" };
   try { S.lang = localStorage.getItem("fivvi-site-lang") || "nl"; } catch (e) { /* storage unavailable */ }
 
   function t(x) { return x[S.lang === "en" ? 1 : 0]; }
@@ -27,19 +27,15 @@
     if (id.indexOf("web-") === 0) return '<div class="browser ' + (cls || "") + '">' + img(id, eager) + "</div>";
     return '<div class="phone ' + (id.indexOf("android") > -1 ? "android " : "") + (cls || "") + '">' + img(id, eager) + "</div>";
   }
-  /* the image-style comparison (#beeld): which photo each style uses for a subject */
-  var STYLE_KEY = { team: "gym", gym: "gym", pilates: "studio", yoga: "studio", pt: "pt", client: "client" };
-  function photoSrc(name, style) {
+  /* An audience's image stands on its own and is never a background (owner). */
+  var ART_KEY = { gym: "gym", studio: "studio", pt: "pt", klanten: "client" };
+  function art(k, style) {
     style = style || S.style;
-    return "assets/photos/" + (style === "obj" || style === "mov" ? style + "-" + STYLE_KEY[name] : name) + ".webp";
-  }
-  function photo(name, cls) { return '<img class="' + (cls || "") + '" src="' + photoSrc(name) + '" alt="" loading="lazy">'; }
-  /* a card's image: a photo, or for screens only a phone on the audience's tint */
-  function cardImage(k, style) {
-    style = style || S.style;
-    if (style !== "screens") return '<img class="ph" src="' + photoSrc(A[k].photo, style) + '" alt="" loading="lazy">';
-    var st = A[k].stage;
-    return '<div class="ph shot" style="--c:' + colour(A[k].colour) + '">' + device(st.phone || st.phones[0]) + "</div>";
+    if (style === "num") {
+      var n = P.styles.posters[k];
+      return '<div class="poster" style="--c:' + colour(n[0]) + '"><b class="num">' + n[1] + "</b><span>" + t(n[2]) + "</span></div>";
+    }
+    return '<img class="art" src="assets/photos/' + style + "-" + ART_KEY[k] + '.webp" alt="" loading="lazy">';
   }
   function colour(k) { return { priv: "var(--priv)", group: "var(--group)", ok: "var(--ok)", accent: "var(--accent)" }[k]; }
   function who(s) { return s.split("{who}").join(S.kind === "yoga" ? (S.lang === "en" ? "teacher" : "docent") : (S.lang === "en" ? "instructor" : "instructeur")); }
@@ -102,7 +98,7 @@
       '<li class="now"><span>' + t(UI.oneRow) + '</span><span class="tick">' + t(UI.oneRowD) + "</span></li></ul>" + device("web-agenda") + "</div></div></section>" +
       '<section><div class="wrap"><p class="eyebrow">' + t(UI.chainEye) + '</p><h2 class="h2">' + t(UI.chainH) + '</h2><p class="lead" style="margin-top:14px">' + t(UI.chainLead) + '</p><div class="chain" id="chain">' + chain() + "</div></div></section>" +
       '<section><div class="wrap"><p class="eyebrow">' + t(UI.forEye) + '</p><h2 class="h2">' + t(UI.forH) + '</h2><p class="lead" style="margin-top:14px">' + t(UI.forLead) + '</p><div class="cards">' +
-      ORDER.map(function (k) { return '<a class="acard" href="#' + k + '">' + cardImage(k) + "<div><h3>" + t(A[k].cardH) + "</h3><p>" + t(A[k].short) + '</p><span class="link">' + t(UI.readDay) + " →</span></div></a>"; }).join("") +
+      ORDER.map(function (k) { return '<a class="acard" href="#' + k + '">' + art(k) + "<div><h3>" + t(A[k].cardH) + "</h3><p>" + t(A[k].short) + '</p><span class="link">' + t(UI.readDay) + " →</span></div></a>"; }).join("") +
       "</div></div></section>" +
       '<section><div class="wrap"><p class="eyebrow">' + t(UI.platEye) + '</p><h2 class="h2">' + t(UI.platH) + '</h2><p class="lead" style="margin-top:14px">' + t(UI.platLead) + '</p><div class="who"><div class="seg" role="group" aria-label="' + t(UI.plat.pro.name) + " / " + t(UI.plat.client.name) + '">' + ["pro", "client"].map(function (k) { return '<button data-plat="' + k + '" aria-pressed="' + (S.plat === k) + '">' + t(UI.plat[k].name) + "</button>"; }).join("") + '</div></div><div id="devices">' + devices() + "</div>" +
       "</div></section>" + promises() + cta();
@@ -120,11 +116,10 @@
 
   function audience(k) {
     var a = A[k], isStudio = k === "studio";
-    var ph = isStudio && S.kind === "yoga" ? "yoga" : a.photo;
     var phone = isStudio ? "pro-today-" + S.kind : a.heroPhone;
     var kindSeg = isStudio ? '<div class="who"><p id="kind-l">' + t(UI.kindLabel) + '</p><div class="seg" role="group" aria-labelledby="kind-l">' + ["pilates", "yoga"].map(function (x) { return '<button data-kind="' + x + '" aria-pressed="' + (S.kind === x) + '">' + t(UI[x]) + "</button>"; }).join("") + "</div></div>" : "";
-    return '<div class="wrap hero ahero"><p class="eyebrow">' + t(a.cardH) + '</p><h1 style="margin-top:8px">' + t(a.h1) + '</h1><p class="lead">' + t(a.lead) + "</p>" + statusLine() + kindSeg +
-      '<div class="photo">' + (S.style === "screens" ? '<div class="blank" style="--c:' + colour(a.colour) + '"></div>' : '<img src="' + photoSrc(ph) + '" alt="">') + (a.heroWeb ? device(a.heroWeb, "", true) : "") + device(phone, "", true) + "</div></div>" +
+    var screens = a.heroWeb ? '<div class="swap mix">' + device(a.heroWeb, "", true) + '<div class="cell">' + device(phone, "", true) + "</div></div>" : '<div class="swap row">' + a.stage.phones.map(function (id) { return device(id, "", true); }).join("") + "</div>";
+    return '<div class="wrap hero ahero"><div class="herogrid"><div><p class="eyebrow">' + t(a.cardH) + '</p><h1 style="margin-top:8px">' + t(a.h1) + '</h1><p class="lead">' + t(a.lead) + "</p>" + statusLine() + kindSeg + '</div><div class="heroart">' + art(k) + '</div></div><div class="stage">' + screens + "</div></div>" +
       '<section style="padding-top:clamp(20px,4vw,48px)"><div class="wrap"><h2 class="h2">' + t(UI.recognise) + '</h2><ul class="pains">' + a.pains.map(function (p) { return "<li>" + t(p) + "</li>"; }).join("") + "</ul></div></section>" +
       '<section><div class="wrap"><p class="eyebrow">' + t(UI.dayEye) + '</p><p class="lead" style="margin-top:6px;color:var(--ink);font-weight:500">' + t(UI.dayLead) + '</p><div class="day">' +
       a.day.map(function (m) {
@@ -136,9 +131,7 @@
     var D = C.DIRECTION;
     return '<div class="wrap hero ahero"><p class="eyebrow">' + t(UI.direction) + '</p><h1 style="margin-top:8px">' + t(D.h1) + '</h1><p class="lead">' + t(D.lead) + '</p><p style="margin-top:14px"><a class="link" href="#beeld">' + t(P.styles.h1) + ' →</a></p><div class="dgrid">' +
       D.cards.map(function (c) { return '<div class="dcard"><h3>' + t(c[0]) + "</h3><p>" + t(c[1]) + "</p></div>"; }).join("") +
-      '</div><div class="dgrid"><div class="dcard"><h3>' + (S.lang === "en" ? "Colour" : "Kleur") + '</h3><div class="swatches"><i style="background:#F2F2F7"></i><i style="background:#FFFFFF"></i><i style="background:#000000"></i><i style="background:#1C1C1E"></i><i style="background:#E6164A"></i><i style="background:#0088FF"></i><i style="background:#CB30E0"></i><i style="background:#34C759"></i></div></div><div class="dcard"><h3>' + (S.lang === "en" ? "Type" : "Letter") + '</h3><div class="typeA">Vandaag</div><div class="typeB">07:30</div></div><div class="dcard"><h3>' + (S.lang === "en" ? "Corners and frames" : "Hoeken en lijsten") + "</h3><p>" + (S.lang === "en" ? "Radius 26 on every card, pills for every button, and iPhone, Android and laptop frames around real screens." : "Radius 26 op elke kaart, pillen voor elke knop, en iPhone-, Android- en laptoplijsten om echte schermen.") + '</p></div></div><div class="pair">' +
-      ["gym", "team", "pilates", "yoga", "pt", "client"].map(function (n) { return photo(n); }).join("") +
-      "</div></div>" + directionMore() + '<section><div class="wrap"><h2 class="h2">' + t(D.assumeH) + '</h2><ol class="olist" style="list-style:none;padding:0">' + D.assume.map(function (o) { return "<li><div><b>" + t(o[0]) + "</b><span>" + t(o[1]) + "</span></div></li>"; }).join("") + "</ol></div></section>";
+      '</div><div class="dgrid"><div class="dcard"><h3>' + (S.lang === "en" ? "Colour" : "Kleur") + '</h3><div class="swatches"><i style="background:#F2F2F7"></i><i style="background:#FFFFFF"></i><i style="background:#000000"></i><i style="background:#1C1C1E"></i><i style="background:#E6164A"></i><i style="background:#0088FF"></i><i style="background:#CB30E0"></i><i style="background:#34C759"></i></div></div><div class="dcard"><h3>' + (S.lang === "en" ? "Type" : "Letter") + '</h3><div class="typeA">Vandaag</div><div class="typeB">07:30</div></div><div class="dcard"><h3>' + (S.lang === "en" ? "Corners and frames" : "Hoeken en lijsten") + "</h3><p>" + (S.lang === "en" ? "Radius 26 on every card, pills for every button, and iPhone, Android and laptop frames around real screens." : "Radius 26 op elke kaart, pillen voor elke knop, en iPhone-, Android- en laptoplijsten om echte schermen.") + "</p></div></div></div>" + directionMore() + '<section><div class="wrap"><h2 class="h2">' + t(D.assumeH) + '</h2><ol class="olist" style="list-style:none;padding:0">' + D.assume.map(function (o) { return "<li><div><b>" + t(o[0]) + "</b><span>" + t(o[1]) + "</span></div></li>"; }).join("") + "</ol></div></section>";
   }
 
   function head(eye, h1, lead) { return '<div class="wrap hero ahero"><p class="eyebrow">' + t(eye) + '</p><h1 style="margin-top:8px">' + t(h1) + "</h1>" + (lead ? '<p class="lead">' + t(lead) + "</p>" : "") + statusLine(); }
@@ -181,7 +174,7 @@
     var X = P.styles;
     return head(X.eye, X.h1, X.lead) + X.list.map(function (o) {
       var on = S.style === o[0];
-      return '<section class="stylerow"><div class="stylehead"><div><h2>' + t(o[1]) + (o[0] === "obj" ? " <mark>" + t(X.rec) + "</mark>" : "") + "</h2><p>" + t(o[2]) + '</p></div><button class="btn ' + (on ? "tonal" : "primary") + ' small" data-style-pick="' + o[0] + '">' + t(on ? X.on : X.see) + '</button></div><div class="stylecards" data-style="' + o[0] + '">' + ORDER.map(function (k) { return '<div class="acard">' + cardImage(k, o[0]) + "<div><h3>" + t(A[k].cardH) + "</h3></div></div>"; }).join("") + "</div></section>";
+      return '<section class="stylerow"><div class="stylehead"><div><h2>' + t(o[1]) + (o[0] === "min" ? " <mark>" + t(X.rec) + "</mark>" : "") + "</h2><p>" + t(o[2]) + '</p></div><button class="btn ' + (on ? "tonal" : "primary") + ' small" data-style-pick="' + o[0] + '">' + t(on ? X.on : X.see) + '</button></div><div class="stylecards">' + ORDER.map(function (k) { return '<div class="acard">' + art(k, o[0]) + "<div><h3>" + t(A[k].cardH) + "</h3></div></div>"; }).join("") + "</div></section>";
     }).join("") + "</div>";
   }
 
@@ -199,7 +192,6 @@
   function render(keepScroll) {
     var y = window.scrollY, r = route();
     root.lang = S.lang === "en" ? "en" : "nl";
-    root.setAttribute("data-style", S.style);
     renderNav();
     var F = P.foot;
     page.innerHTML = r === "home" ? home() : r === "richting" ? direction() : r === "prijzen" ? pricing() : r === "demo" ? demo() : r === "support" ? support() : r === "account-verwijderen" ? deletion() : r === "privacy" ? legal("privacy", F.privacy) : r === "voorwaarden" ? legal("terms", F.terms) : r === "subverwerkers" ? subs() : r === "beeld" ? styles() : audience(r);
