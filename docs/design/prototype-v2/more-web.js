@@ -18,7 +18,7 @@
   document.addEventListener("input", function (e) { var t = e.target, kind = t && t.dataset && t.dataset.dz; if (!kind) return; var fl = t.closest(".dz-flow"), b = fl.querySelector('[data-dzb="' + (kind === "email" ? "send" : "del") + '"] button'); b.disabled = kind === "email" ? t.value.trim().toLowerCase() !== fl.dataset.email.toLowerCase() : !/^\d{6}$/.test(t.value.trim()); });
   A["dz-send"] = function () { var fl = document.querySelector(".dz-flow"); fl.querySelector('[data-dzb="send"]').hidden = true; fl.querySelector('[data-dz="email"]').disabled = true; fl.querySelector('[data-dzb="step2"]').hidden = false; fl.querySelector('[data-dz="code"]').focus(); };
   DLG["acc-del"] = function (d) { if (F.OWNER() && !d.flow) return { t: "Account verwijderen?", ok: "", cancel: "Klaar", b: "<p>Je bent de enige eigenaar van Studio Fit. Neem contact met ons op om je account te verwijderen.</p>" }; return { t: "Account verwijderen?", ok: "", b: window.FVW.dzFlow(D.me.email, function (l, i) { return fld(l, i.replace("<input", '<input class="w-input"')); }, function (l, a, k, dis) { return btn(l, a, { k: k === "sec" ? "outline" : k, dis: dis }); }, "dz-del-web") }; };
-  A["dz-del-web"] = function () { var w = W(); w.dialog = null; w.page = "signin"; F.toast("Je account is verwijderd."); };
+  A["dz-del-web"] = function () { var w = W(); w.dialog = null; w.q = ""; w.signCode = false; w.signEmail = ""; w.page = "signin"; F.toast("Je account is verwijderd."); };
   function CL(id) { return F.CLIENT[id] || { name: id }; }
 
   /* ---------- #483 Unused classes and the weekly limit, set per membership offer ---------- */
@@ -340,14 +340,15 @@
   L("of met je e-mailadres", "or with your email"); L("Doorgaan met Apple", "Continue with Apple"); L("Doorgaan met Google", "Continue with Google");
   PAGES.signin = function () {
     var w = W(), mark = '<div class="w-gate-mark" aria-hidden="true">F</div>';
-    if (w.signCode) return card("", mark + "<h2>Check je e-mail</h2>" + muted("We hebben een code van 6 cijfers gestuurd.") + fld("Code", '<input class="w-input" inputmode="numeric" maxlength="6" autocomplete="one-time-code">') + '<div class="w-gate-stack">' + btn("Inloggen", "w-sign-in") + btn("Andere e-mail gebruiken", "w-sign-back", { k: "ghost" }) + "</div>");
-    return card("", mark + "<h2>Inloggen bij Fivvi</h2>" + '<div class="w-gate-stack">' + btn("Doorgaan met Apple", "w-sign-in", { k: "outline" }) + btn("Doorgaan met Google", "w-sign-in", { k: "outline" }) + "</div>" + '<p class="w-gate-or">of met je e-mailadres</p>' + fld("E-mailadres", '<input class="w-input" type="email" autocomplete="email" placeholder="naam@example.com">', "Je krijgt een code van 6 cijfers per e-mail. Geen wachtwoord nodig.") + '<div class="w-gate-stack">' + btn("Stuur me een code", "w-sign-code") + "</div>");
+    if (w.signCode) return card("", mark + "<h2>Check je e-mail</h2>" + '<p class="w-muted">We hebben een code gestuurd naar <b>' + esc(w.signEmail) + "</b>.</p>" + fld("Code", '<input class="w-input" id="w-sign-code" inputmode="numeric" maxlength="6" autocomplete="one-time-code">') + '<div class="w-gate-stack">' + btn("Inloggen", "w-sign-check") + btn("Andere e-mail gebruiken", "w-sign-back", { k: "ghost" }) + "</div>");
+    return card("", mark + "<h2>Inloggen bij Fivvi</h2>" + '<div class="w-gate-stack">' + btn("Doorgaan met Apple", "w-sign-in", { k: "outline" }) + btn("Doorgaan met Google", "w-sign-in", { k: "outline" }) + "</div>" + '<p class="w-gate-or">of met je e-mailadres</p>' + fld("E-mailadres", '<input class="w-input" id="w-sign-email" type="email" autocomplete="email" placeholder="naam@example.com" value="' + esc(w.signEmail || "") + '">', "Je krijgt een code van 6 cijfers per e-mail. Geen wachtwoord nodig.") + '<div class="w-gate-stack">' + btn("Stuur me een code", "w-sign-code") + "</div>");
   };
-  L("Inloggen bij Fivvi", "Sign in to Fivvi"); L("naam@example.com", "name@example.com"); L("We hebben een code van 6 cijfers gestuurd.", "We've sent a 6-digit code."); L("Check je e-mail", "Check your email"); L("Andere e-mail gebruiken", "Use another email"); L("Uitloggen", "Sign out");
-  A["w-sign-code"] = function () { W().signCode = true; R(); };
+  L("Inloggen bij Fivvi", "Sign in to Fivvi"); L("naam@example.com", "name@example.com"); I.rule(/^We hebben een code gestuurd naar$/, "We've sent a code to"); L("Vul een geldig e-mailadres in", "Enter a valid email address"); L("Vul de code van 6 cijfers in", "Enter the 6-digit code"); L("Check je e-mail", "Check your email"); L("Andere e-mail gebruiken", "Use another email"); L("Uitloggen", "Sign out");
+  A["w-sign-code"] = function () { var v = (document.getElementById("w-sign-email").value || "").trim(); if (!/.+@.+\..+/.test(v)) return F.toast("Vul een geldig e-mailadres in", "err"); W().signEmail = v; W().signCode = true; R(); };
+  A["w-sign-check"] = function () { if (!/^\d{6}$/.test((document.getElementById("w-sign-code").value || "").trim())) return F.toast("Vul de code van 6 cijfers in", "err"); A["w-sign-in"](); };
   A["w-sign-back"] = function () { W().signCode = false; R(); };
   A["w-sign-in"] = function () { var w = W(); w.signCode = false; w.page = F.OWNER() ? "dashboard" : "myday"; R(); };
-  A["w-sign-out"] = function () { var w = W(); w.signCode = false; w.dialog = null; w.page = "signin"; R(); };
+  A["w-sign-out"] = function () { var w = W(); w.signCode = false; w.signEmail = ""; w.q = ""; w.dialog = null; w.page = "signin"; R(); };
 
   /* ---------- entries ---------- */
   var cl = F.INDEX.filter(function (g) { return g[0] === "Trainer web"; })[0][1];
