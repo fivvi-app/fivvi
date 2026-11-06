@@ -799,7 +799,7 @@
   function client() {
     var c = C();
     var lang = '<div class="gb glass c-lng" translate="no">' + ["nl", "en"].map(function (l) { return '<button class="' + (F.PREF.lang === l ? "on" : "") + '" data-a="c-lang" data-v="' + l + '" aria-pressed="' + (F.PREF.lang === l) + '">' + l.toUpperCase() + "</button>"; }).join("") + "</div>";
-    if (c.step !== "app") return '<div class="screen"><div class="nb"><span class="sp"></span>' + lang + '</div><div class="content c-body" style="padding-top:calc(var(--top) + 20px)">' + (CSTEP[c.step] || CSTEP.link)() + "</div></div>";
+    if (c.step !== "app") return '<div class="screen"><div class="nb"><span class="sp"></span>' + lang + '</div><div class="content c-body" style="padding-top:calc(var(--top) + 20px)">' + (CSTEP[c.step] || CSTEP.link)() + "</div></div>" + (c.web ? browser() : "");
     var p = CSTEP.app(), sub = c.detail || c.workout != null;
     var lead = sub ? '<button class="gb glass back" data-a="c-back" aria-label="Terug">' + ic("chevL") + "</button>" : c.tab === "rooster" ? wsSwitch() : "";
     var h = '<div class="screen root c-web"><div class="nb">' + lead + '<span class="sp"></span>' + lang + '<div class="t">' + esc(p.title) + '</div></div><div class="content c-body">' + p.body + "</div></div>";
@@ -1138,7 +1138,7 @@
       if (!c.astep) c.astep = c.step === "app" ? "app" : "welcome";
       if (c.astep !== "app") {
         var body = ASTEP[c.astep]();
-        return '<div class="screen"><div class="content c-body" style="padding-top:calc(var(--top) + 20px)">' + body + "</div></div>" + (c.dialog ? cdialog() : "");
+        return '<div class="screen"><div class="content c-body" style="padding-top:calc(var(--top) + 20px)">' + body + "</div></div>" + (c.web ? browser() : "") + (c.dialog ? cdialog() : "");
       }
       var sub = c.detail || c.workout != null || c.page || c.solo != null, p = c.selfOn && c.self ? selfView() : c.solo != null ? soloView() : c.workout != null ? workoutView() : c.detail ? detailView() : c.page === "tegoed" ? tegoedView() : ATAB[c.atab || "home"]();
       var h;
@@ -1267,7 +1267,7 @@
   function payWeb(title, url, body) { return '<div class="scrim anim-fade" data-a="c-webclose"></div><div class="sheet large anim-up c-browser" role="dialog" aria-label="' + title + '">' + webBar(url, title) + '<div class="sbody">' + body + "</div></div>"; }
   function checkoutView() {
     var c = C(), o = c.payFor || {};
-    return payWeb("Betalen", "Mollie", K.lt("", "Betalen bij Mollie", "Je rondt de betaling af op de beveiligde pagina van Mollie.") + '<div class="pad stack"><div class="card c-paysketch"><small>Schets: dit is het eigen scherm van Mollie, niet van Fivvi</small><h3>' + esc(o.name || "") + "</h3><p>" + esc(wsName()) + " · iDEAL</p></div></div>" + K.sh("Prototype: wat gebeurt er?", "", "small") + '<div class="pad stack">' + K.btn("De betaling lukt", { blk: true, a: "c-payout", d: { v: "paid" } }) + K.btn("De bank is nog bezig", { k: "tinted", blk: true, a: "c-payout", d: { v: "pending" } }) + K.btn("De betaling lukt niet", { k: "ghost", blk: true, a: "c-payout", d: { v: "failed" } }) + "</div>");
+    return payWeb("Betalen", "Mollie", K.lt("", "Betalen bij Mollie", "Je rondt de betaling af op de beveiligde pagina van Mollie.") + '<div class="pad stack"><div class="card c-paysketch"><small>Schets: dit is het eigen scherm van Mollie, niet van Fivvi</small><h3>' + esc(o.name || "") + "</h3><p>" + esc(o.ws === "yl" ? "Yoga Loft" : wsName()) + " · iDEAL</p></div></div>" + K.sh("Prototype: wat gebeurt er?", "", "small") + '<div class="pad stack">' + K.btn("De betaling lukt", { blk: true, a: "c-payout", d: { v: "paid" } }) + K.btn("De bank is nog bezig", { k: "tinted", blk: true, a: "c-payout", d: { v: "pending" } }) + K.btn("De betaling lukt niet", { k: "ghost", blk: true, a: "c-payout", d: { v: "failed" } }) + "</div>");
   }
   function payReturn() {
     var c = C(), o = c.payFor || {}, st = c.web, b;
@@ -1308,7 +1308,7 @@
   A["c-atab"] = function (d) { var c = C(); c.atab = d.v; c.detail = null; c.workout = null; c.selfOn = false; c.solo = null; leaveEdit(c); c.web = null; c.page = null; R(); };
   A["c-offers"] = function () { var cf = C().detail && cfind(C().detail); C().webws = cf ? (cf.it.ws === "yl" ? "yl" : "sf") : C().web === "renew" ? "sf" : cws(); C().web = "offers"; R(); };
   A["c-webclose"] = function () { C().web = null; R(); };
-  A["c-st"] = function (d) { C().web = "st:" + d.v; R(); };
+  A["c-st"] = function (d) { var c = C(); c.wsheet = null; c.dialog = null; c.web = "st:" + d.v; R(); };
   A["c-renew"] = function () { C().web = "renew"; R(); };
   A["c-rstart"] = function (d) { C().renewStart = d.v; R(); };
   A["c-renewpay"] = function () { var c = C(), r = clientRenew(); c.payFor = { name: r.a.name, renew: r.a.id }; c.web = "checkout"; R(); };

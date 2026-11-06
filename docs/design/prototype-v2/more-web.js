@@ -241,7 +241,7 @@
   window.FVW.moreT = T;
   L("Verplaatsen", "Reschedule"); L("Laten staan", "Keep"); L("Telt als op tijd aangevraagd.", "Counts as requested in time.");
   DLG["req-review"] = function () { return { t: "Anna vraagt deze sessie te annuleren · 5 nov, 21:40", ok: "Laten staan", cancel: "Terug", b: p("Telt als op tijd aangevraagd.") + '<div class="w-hgroup" style="margin-bottom:10px">' + btn("Verplaatsen", "w-dlg", { k: "outline sm", d: { n: "move-late" } }) + btn("Annuleren", "w-dlg", { k: "outline sm", d: { n: "cancel-priv" } }) + "</div>" + fld("Kort antwoord aan Anna", '<input class="w-input">') }; };
-  ["aanbieden", "adjust", "refund2", "agr-end", "offer-kind", "offer-full", "client-del", "client-erase", "invite-all", "keep", "imp-switch", "imp-undo", "link-new", "link-off", "link-renew", "trainer-inv", "class-new", "class-plan", "class-edit", "class-dst", "assign", "sub2", "series-trainer", "priv-trainer", "trainer-remove", "cancel-scope", "cap-low", "drag-move", "client-blocked"].forEach(function (k) { X.OWNERDLG[k] = true; });
+  ["req-decline", "aanbieden", "adjust", "refund2", "agr-end", "offer-kind", "offer-full", "client-del", "client-erase", "invite-all", "keep", "imp-switch", "imp-undo", "link-new", "link-off", "link-renew", "trainer-inv", "class-new", "class-plan", "class-edit", "class-dst", "assign", "sub2", "series-trainer", "priv-trainer", "trainer-remove", "cancel-scope", "cap-low", "drag-move", "client-blocked"].forEach(function (k) { X.OWNERDLG[k] = true; });
 
   /* ---------- #461 labels, #428 series lines, #460 and #486 on the class page: one summary page ---------- */
   L("Les op datum: alles op een rij", "Class on a date: everything together"); L("Onderdeel van: Kracht, elke dinsdag 18:00", "Part of: Strength, every Tuesday 18:00"); L("Aangepast t.o.v. de reeks: tijd, trainer", "Changed from the series: time, trainer"); L("Sarah (vervangt Mark)", "Sarah (covering for Mark)"); L("Overgenomen door Sarah", "Taken over by Sarah"); L("vervanger", "substitute"); L("(vaste trainer)", "(regular trainer)"); L("Geen trainer", "No trainer"); L("Trainer nodig", "Trainer needed"); L("Nog geen boekingen.", "No bookings yet."); L("9/12 geboekt · nog 3 plekken", "9/12 booked · 3 spots left"); L("12/12 geboekt · vol", "12/12 booked · full"); L("13/12 geboekt · vol", "13/12 booked · full"); L("via Fivvi, 3 nov", "through Fivvi, 3 Nov"); L("toegevoegd door Sarah", "added by Sarah"); L("via de wachtlijst, 4 nov", "from the waitlist, 4 Nov"); L("door Studio Fit, 2 nov, 10:12", "by Studio Fit, 2 Nov, 10:12"); L("1. Noor Bakker · sinds 3 nov, 09:12", "1. Noor Bakker · since 3 Nov, 09:12"); L("Noor van de wachtlijst halen?", "Remove Noor from the waitlist?"); L("Gesloten om 17:30.", "Closed at 17:30."); L("Daarna komt niemand meer automatisch in de les, en wie nog wacht krijgt een e-mail.", "After that nobody moves in automatically, and anyone still waiting gets an email."); L("8 aanwezig · 1 niet verschenen · 0 open", "8 present · 1 no-show · 0 open"); L("Wacht op verbinding", "Waiting for connection"); L("Abonnement", "Membership"); L("Groepscredit", "Group credit"); L("Inhaalles", "Makeup class"); L("Gestopt vanaf 1 dec", "Stopped from 1 Dec"); L("Geannuleerd op 5 nov om 10:12 door John", "Cancelled on 5 Nov at 10:12 by John"); L("· op verzoek van de klant", "· at the client's request"); L("Boekingslink kopiëren", "Copy booking link"); L("Deelnemers", "Participants"); L("Wachtlijst", "Waitlist"); L("Reeksen", "Series"); L("Elke dinsdag 18:00–19:00 · Sarah · 12 plekken", "Every Tuesday 18:00–19:00 · Sarah · 12 spots"); L("Nog geen lessen. Maak je eerste les aan.", "No classes yet. Create your first class."); L("Lessen", "Classes"); L("12 plekken", "12 spots"); L("Kost 1 groepscredit · nog 5", "Costs 1 group credit · 5 left"); L("Aanwezigheid", "Attendance");
@@ -407,14 +407,17 @@
   var VARSTART = cl.map(function (e) { return e[0]; }).indexOf(VARNAMES[0][0]);
   var SHOW = { myday: ["myday", "agenda"], mycal: ["agenda"], klass: ["agenda", "classsum"], classes: ["classes", "classsum", "classempty", "classseries"], offers: ["offers", "offerstates"], link: ["link", "posters"], me: ["me", "signin"], workouts: ["logweb"], settings: ["settings", "short"], payments: ["payments", "payout", "invoice"], client: ["client", "agreement"] };
   /* a solo PT has no classes and no team, a trainer no owner pages or dialogs */
-  var NEEDS_GROUP = ["classsum", "classempty", "classseries", "class-new", "class-plan", "class-edit", "class-dst", "assign", "sub2", "series-trainer", "cancel-scope", "add-part", "rem-part", "cap-low", "drag-move"], NEEDS_TEAM = ["assign", "sub2", "series-trainer", "priv-trainer", "conflict", "trainer-inv", "trainer-remove", "trainer-noperm"];
-  function varFits(e) {
-    var fn = e[2], dlg = fn.extra.dialog && fn.extra.dialog.n, key = dlg || fn.page;
-    if (!F.OWNER() && (X.OWNERPAGES.indexOf(fn.page) >= 0 || (dlg && X.OWNERDLG[dlg]))) return false;
-    if (!F.HAS("group") && NEEDS_GROUP.indexOf(key) >= 0) return false;
-    if (F.SOLO() && NEEDS_TEAM.indexOf(key) >= 0) return false;
+  var NEEDS_GROUP = ["classsum", "classempty", "classseries", "class-new", "class-plan", "class-edit", "class-dst", "assign", "sub2", "series-trainer", "cancel-scope", "add-part", "rem-part", "cap-low", "drag-move", "Abonnement: ongebruikte lessen en weeklimiet", "Aanbod bewerken: alle velden", "Aanbod: prijs, gearchiveerd en koppelen"];
+  var NEEDS_TEAM = ["assign", "sub2", "series-trainer", "priv-trainer", "conflict", "trainer-inv", "trainer-remove", "trainer-noperm", "Dag: je valt in"];
+  var NEEDS_OWNER = ["Aanmeldlink: net vernieuwd", "Klanten: niet uitgenodigd", "Klanten: verwijderd", "Klanten: te beoordelen"];
+  /* one list for the trainer web and Fivvi Pro: what this setup and role can actually run into */
+  window.FVW.varFits = function (key, name) {
+    if (!F.OWNER() && (X.OWNERDLG[key] || NEEDS_OWNER.indexOf(name) >= 0)) return false;
+    if (!F.HAS("group") && (NEEDS_GROUP.indexOf(key) >= 0 || NEEDS_GROUP.indexOf(name) >= 0)) return false;
+    if (F.SOLO() && (NEEDS_TEAM.indexOf(key) >= 0 || NEEDS_TEAM.indexOf(name) >= 0)) return false;
     return true;
-  }
+  };
+  function varFits(e) { var fn = e[2], dlg = fn.extra.dialog && fn.extra.dialog.n; if (!F.OWNER() && X.OWNERPAGES.indexOf(fn.page) >= 0) return false; return window.FVW.varFits(dlg || fn.page, e[0]); }
   function varList(page) {
     var from = SHOW[page] || [page], out = [];
     cl.forEach(function (e, i) { if (i >= VARSTART && from.indexOf(e[2].page) >= 0 && varFits(e)) out.push('<button class="c-chip" data-a="w-var" data-i="' + i + '">' + esc(e[0]) + "</button>"); });

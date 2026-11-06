@@ -246,6 +246,7 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .c-proto{display:grid;gap:10px;font-size:15px;color:var(--label2);border:1px dashed var(--label3);background:none}
 .c-proto b{color:var(--label)}
 .c-proto summary,.w-proto summary{cursor:pointer}
+.c-or{text-align:center;color:var(--label2);font-size:13px;margin:14px 0 2px}
 .c-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
 .c-chip{font:inherit;font-size:13px;line-height:18px;padding:8px 12px;border-radius:999px;border:1px solid var(--label3);background:none;color:var(--label);cursor:pointer;text-align:left}
 .w-proto{margin-top:16px;padding:12px 14px;border:1px dashed var(--w-border);border-radius:10px;font-size:13px;color:var(--w-mfg)}
