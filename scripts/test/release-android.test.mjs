@@ -22,10 +22,19 @@ import { createServer } from 'node:http';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, beforeEach, describe, it } from 'node:test';
+import { UNCOVERED_MESSAGE, uncovered } from './turbo-inputs.mjs';
 
 const ROOT = join(import.meta.dirname, '../..');
 const RELEASE_ANDROID = join(ROOT, 'scripts/release-android.sh');
 const PLAY_PUBLISH = join(ROOT, 'scripts/play-publish.mjs');
+
+// The files of the real app these tests read: turbo caches `//#test:root` by its `inputs`, so each must be one of them
+// (last test of the file).
+const androidReads = new Set();
+const readAndroid = (path) => {
+  androidReads.add(path);
+  return readFileSync(join(ROOT, path), 'utf8');
+};
 
 const base = mkdtempSync(join(tmpdir(), 'release-android-test-'));
 after(() => rmSync(base, { recursive: true, force: true }));
@@ -222,7 +231,7 @@ describe('E017 AC2: the upload key and the release App Bundle', () => {
   });
 
   it('E017 AC2: installs only the SDK packages the build needs, the ones compileSdk and buildToolsVersion name', () => {
-    const gradle = readFileSync(join(ROOT, 'apps/android/app/build.gradle.kts'), 'utf8');
+    const gradle = readAndroid('apps/android/app/build.gradle.kts');
     const platform = gradle.match(/compileSdk = (\d+)/)[1];
     const tools = gradle.match(/buildToolsVersion = "([^"]+)"/)[1];
     const [sdk] = lane(['sdk']);
@@ -391,9 +400,8 @@ describe('E017 AC6: the R8 mapping to Sentry under the release name the app send
   });
 
   it('E017 AC6: the release name is the one the app sends to Sentry: <application ID>@<version>+<version code>', () => {
-    const kotlin = readFileSync(
-      join(ROOT, 'apps/android/app/src/main/kotlin/app/fivvi/pro/BuildObservabilityConfig.kt'),
-      'utf8',
+    const kotlin = readAndroid(
+      'apps/android/app/src/main/kotlin/app/fivvi/pro/BuildObservabilityConfig.kt',
     );
     assert.ok(
       kotlin.includes(
@@ -406,7 +414,7 @@ describe('E017 AC6: the R8 mapping to Sentry under the release name the app send
       script,
       /release_name\(\) \{ echo "\$APPLICATION_ID@\$\(app_version\)\+\$\(build_number\)"; \}/,
     );
-    const gradle = readFileSync(join(ROOT, 'apps/android/app/build.gradle.kts'), 'utf8');
+    const gradle = readAndroid('apps/android/app/build.gradle.kts');
     assert.match(gradle, /applicationId = "app\.fivvi\.pro"/);
   });
 });
@@ -701,7 +709,7 @@ describe('E017 AC2: publishes the bundle to the Play internal testing track', ()
       imports.length > 0 && imports.every((name) => name.startsWith('node:')),
       imports.join(', '),
     );
-    const gradle = readFileSync(join(ROOT, 'apps/android/gradle/libs.versions.toml'), 'utf8');
+    const gradle = readAndroid('apps/android/gradle/libs.versions.toml');
     assert.ok(!/triplet|play-publisher|fastlane/i.test(gradle));
   });
 });
@@ -963,5 +971,12 @@ describe('E017 AC7: the Android secrets stay in the release job', () => {
       for (const name of ANDROID_SECRETS.filter((n) => n !== 'SENTRY_AUTH_TOKEN'))
         assert.ok(!text.includes(name), `${file} mentions ${name}`);
     }
+  });
+});
+
+describe('E017 #576: a change to an Android file these tests read is not served from the test cache', () => {
+  it('turbo.json lists as inputs of the root tests every file of apps/android read above', () => {
+    assert.ok(androidReads.size >= 3, [...androidReads].join(', '));
+    assert.deepEqual(uncovered([...androidReads]), [], UNCOVERED_MESSAGE);
   });
 });

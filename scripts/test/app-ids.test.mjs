@@ -2,13 +2,19 @@ import assert from 'node:assert/strict';
 import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, it } from 'node:test';
+import { UNCOVERED_MESSAGE, uncovered } from './turbo-inputs.mjs';
 
 // E017 AC8 and E002 #242: the application ID of each native app is final (it can't change after the first upload),
 // and the app's README records it. That is checked here, on Linux, not by the native builds: CI doesn't run the
 // native jobs for a README-only change (scripts/native-jobs.sh), so no native build or test may read a README.
 
 const ROOT = join(import.meta.dirname, '..', '..');
-const read = (path) => readFileSync(join(ROOT, path), 'utf8');
+// The Android files this test reads: turbo caches `//#test:root` by its `inputs`, so each must be one of them (last test).
+const androidReads = new Set();
+const read = (path) => {
+  if (path.startsWith('apps/android/')) androidReads.add(path);
+  return readFileSync(join(ROOT, path), 'utf8');
+};
 
 /** The ID a README records as final: "bundle ID `app.x` (final" (iOS) or "application ID `app.x` (final" (Android). */
 const recordedId = (readme, kind) =>
@@ -170,5 +176,12 @@ describe('E002 #242: no native build or test reads a Markdown file', () => {
         });
     }
     assert.deepEqual(reads, []);
+  });
+});
+
+describe('E017 #576: a change to an Android file these tests read is not served from the test cache', () => {
+  it('turbo.json lists as inputs of the root tests every Android file read above', () => {
+    assert.ok(androidReads.size > 2, 'the tests read the Android files');
+    assert.deepEqual(uncovered([...androidReads]), [], UNCOVERED_MESSAGE);
   });
 });
