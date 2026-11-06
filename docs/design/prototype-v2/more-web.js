@@ -245,13 +245,16 @@
   ];
   function strip(x) { return x.replace(/^\[[ x]\] /, "").replace(/^\*/, ""); }
   /* a question above the choices, where a table entry has one */
+  /* a message gets room to write in */
+  var LONG = /^(Bericht|Kort antwoord|Omschrijving)/;
   var ASK = window.FVW.moreAsk = { "cancel-priv": "Wie annuleert?", "move-late": "Wie verplaatst?" }; L("Wie annuleert?", "Who's cancelling?"); L("Wie verplaatst?", "Who's moving it?");
   T.forEach(function (t) {
     L(t[4][0], t[4][1]); t[5].forEach(function (x) { L(x[0], x[1]); }); t[6].forEach(function (x) { L(x[0], x[1]); }); L(t[7][0], t[7][1]); L(t[9][0], t[9][1]); t.slice(10).forEach(function (x) { L(strip(x[0]), strip(x[1])); });
-    DLG[t[0]] = function () { return { t: t[4][0], ok: t[7][0], kind: t[8], cancel: "Terug", b: t[5].map(function (x) { return p(esc(x[0])); }).join("") + t[6].map(function (x) { return fld(x[0], '<input class="w-input">'); }).join("") + (ASK[t[0]] ? '<p style="margin:8px 0 4px"><b>' + ASK[t[0]] + "</b></p>" : "") + t.slice(10).map(function (x) { var cb = /^\[([ x])\] /.exec(x[0]); return cb ? '<label class="w-check"><input type="checkbox"' + (cb[1] === "x" ? " checked" : "") + "> <span>" + esc(strip(x[0])) + "</span></label>" : '<label class="w-check"><input type="radio" name="o"' + (/^\*/.test(x[0]) ? " checked" : "") + "> <span>" + esc(strip(x[0])) + "</span></label>"; }).join("") }; };
+    DLG[t[0]] = function () { return { t: t[4][0], ok: t[7][0], kind: t[8], cancel: "Terug", b: t[5].map(function (x) { return p(esc(x[0])); }).join("") + t[6].map(function (x) { return fld(x[0], LONG.test(x[0]) ? '<textarea class="w-input" rows="3"></textarea>' : '<input class="w-input">'); }).join("") + (ASK[t[0]] ? '<p style="margin:8px 0 4px"><b>' + ASK[t[0]] + "</b></p>" : "") + t.slice(10).map(function (x) { var cb = /^\[([ x])\] /.exec(x[0]); return cb ? '<label class="w-check"><input type="checkbox"' + (cb[1] === "x" ? " checked" : "") + "> <span>" + esc(strip(x[0])) + "</span></label>" : '<label class="w-check"><input type="radio" name="o"' + (/^\*/.test(x[0]) ? " checked" : "") + "> <span>" + esc(strip(x[0])) + "</span></label>"; }).join("") }; };
     OK[t[0]] = function () { return t[9][0]; };
   });
   window.FVW.moreT = T;
+  window.FVW.moreLong = LONG;
   L("Verplaatsen", "Reschedule"); L("Laten staan", "Keep"); L("Telt als op tijd aangevraagd.", "Counts as requested in time.");
   DLG["req-review"] = function () { return { t: "Anna vraagt deze sessie te annuleren · 5 nov, 21:40", ok: "Laten staan", cancel: "Terug", b: p("Telt als op tijd aangevraagd.") + '<div class="w-hgroup" style="margin-bottom:10px">' + btn("Verplaatsen", "w-dlg", { k: "outline sm", d: { n: "move-late" } }) + btn("Annuleren", "w-dlg", { k: "outline sm", d: { n: "cancel-priv" } }) + "</div>" + fld("Kort antwoord aan Anna", '<input class="w-input">') }; };
   ["req-decline", "aanbieden", "adjust", "refund2", "agr-end", "offer-kind", "offer-full", "client-del", "client-erase", "invite-all", "keep", "imp-switch", "imp-undo", "link-new", "link-off", "link-renew", "trainer-inv", "class-new", "class-plan", "class-edit", "class-dst", "assign", "sub2", "series-trainer", "priv-trainer", "trainer-remove", "cancel-scope", "cap-low", "drag-move", "client-blocked"].forEach(function (k) { X.OWNERDLG[k] = true; });

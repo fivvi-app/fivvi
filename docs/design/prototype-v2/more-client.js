@@ -245,7 +245,7 @@
     L(s[4]); s[5].forEach(L); (s[6] || []).forEach(L); (s[7] || []).forEach(L); (s[8] || []).forEach(L);
     CWEB["st:" + s[0]] = function () {
       var t = TONE[s[2]], b = '<div class="pad stack"><div class="card c-payres" style="--c:' + t[1] + '"><span>' + ic(t[0]) + "</span><h3>" + esc(s[4][0]) + "</h3>" + s[5].map(function (l) { return "<p>" + esc(l[0]) + "</p>"; }).join("") + "</div>";
-      if (s[8]) b += '<div class="fgrp">' + s[8].map(function (f) { return '<label class="fld"><span>' + esc(f[0]) + '</span><input type="text"></label>'; }).join("") + "</div>";
+      if (s[8]) b += '<div class="fgrp">' + s[8].map(function (f) { return window.FVW.moreLong.test(f[0]) ? F.kit.fld(esc(f[0]), '<textarea rows="4" maxlength="300"></textarea>', "stack") : F.kit.fld(esc(f[0]), '<input type="text">'); }).join("") + "</div>";
       if (s[7]) s[7].filter(function (x) { return x[0] !== "of met je e-mailadres"; }).forEach(function (x) { b += /^Ik /.test(x[0]) ? '<label class="pro-check"><input type="checkbox"> <span>' + esc(x[0]) + "</span></label>" : '<p class="c-st-note">' + esc(x[0]) + "</p>"; });
       (s[6] || []).filter(function (x) { return appMode() || x[0] !== "QR-code scannen"; }).forEach(function (x, i) { var f = { v: target(s[0], x[0]), f: s[0] }, sso = /^Doorgaan met/.test(x[0]), or = x[0] === "Stuur me een code" && i > 0; if (or) b += '<p class="c-or">of met je e-mailadres</p>'; b += sso ? cbtn(x[0], "c-flow", { k: "sec", d: f }) : i === 0 || or ? cbtn(x[0], "c-flow", { d: f }) : K.btn(x[0], { k: "ghost", blk: true, a: "c-flow", d: f }); });
       return X.payWeb(s[4][0], s[3] || "Fivvi", b + "</div>" + fam(FAM[FAMOF[s[0]]], s[0]));

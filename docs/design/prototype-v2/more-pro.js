@@ -6,10 +6,10 @@
   T.filter(function (t) { return ON.indexOf(t[0]) >= 0; }).forEach(function (t) {
     SH["st:" + t[0]] = function () {
       var b = t[5].map(function (x) { return '<p class="pro-line">' + esc(x[0]) + "</p>"; }).join("");
-      if (t[6].length) b += '<div class="fgrp">' + t[6].map(function (x) { return K.fld(x[0], '<input type="text">'); }).join("") + "</div>";
+      if (t[6].length) b += '<div class="fgrp">' + t[6].map(function (x) { return window.FVW.moreLong.test(x[0]) ? K.fld(x[0], '<textarea rows="4"></textarea>', "stack") : K.fld(x[0], '<input type="text">'); }).join("") + "</div>";
       var ask = (window.FVW.moreAsk || {})[t[0]]; if (ask) b += '<p class="pro-line"><b>' + esc(ask) + "</b></p>";
       b += t.slice(10).map(function (x) { var cb = /^\[([ x])\] /.exec(x[0]); return '<label class="pro-check"><input type="' + (cb ? "checkbox" : "radio") + '" name="o"' + ((cb && cb[1] === "x") || /^\*/.test(x[0]) ? " checked" : "") + "> <span>" + esc(x[0].replace(/^\[[ x]\] /, "").replace(/^\*/, "")) + "</span></label>"; }).join("");
-      if (t[0] === "req-review") b = '<p class="pro-line">Telt als op tijd aangevraagd.</p><div class="fgrp">' + K.fld("Kort antwoord aan Anna", '<input type="text">') + "</div>" + K.btn("Verplaatsen", { blk: true, k: "sec", a: "pro-open", d: { v: "move-late" } }) + K.btn("Annuleren", { blk: true, k: "sec", a: "pro-open", d: { v: "cancel-priv" } }) + K.btn("Laten staan", { blk: true, a: "pro-ok", d: { m: t[9][0] } });
+      if (t[0] === "req-review") b = '<p class="pro-line">Telt als op tijd aangevraagd.</p><div class="fgrp">' + K.fld("Kort antwoord aan Anna", '<textarea rows="4"></textarea>', "stack") + "</div>" + K.btn("Verplaatsen", { blk: true, k: "sec", a: "pro-open", d: { v: "move-late" } }) + K.btn("Annuleren", { blk: true, k: "sec", a: "pro-open", d: { v: "cancel-priv" } }) + K.btn("Laten staan", { blk: true, a: "pro-ok", d: { m: t[9][0] } });
       if (t[0] !== "req-review") b += '<div style="margin-top:14px">' + K.btn(t[7][0], { blk: true, k: t[8] === "dng" ? "dng" : "pri", a: "pro-ok", d: { m: t[9] ? t[9][0] : "" } }) + "</div>";
       return { title: t[4][0], body: b };
     };
