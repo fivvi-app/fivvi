@@ -1720,7 +1720,7 @@ Based on actual usage:
 - offline resilience
 - push notifications in Fivvi and Fivvi Pro (APNs + FCM, localized), for the events that send an email today (owner, 31 October 2026)
 
-Previous-session duplication moved to the MVP (§41) on 23 September 2026, after prototype feedback. The cancellation cutoff moved to the MVP (§93) on 19 October 2026, because memberships and credits depend on it. Waitlists moved to the MVP, before the pilot, on 31 October 2026 (§23), after the commerce walkthrough: the pilot gym has a waitlist today.
+Workout reordering (§41) and bulk attendance (§43) moved to the MVP on 6 November 2026 (owner). Previous-session duplication moved to the MVP (§41) on 23 September 2026, after prototype feedback. The cancellation cutoff moved to the MVP (§93) on 19 October 2026, because memberships and credits depend on it. Waitlists moved to the MVP, before the pilot, on 31 October 2026 (§23), after the commerce walkthrough: the pilot gym has a waitlist today.
 
 All additions must work in Dutch and English.
 
