@@ -272,6 +272,8 @@ export async function addSession(
     participant?: boolean;
     trainerProfileId?: string | null;
     createdByTeamMemberId?: string | null;
+    /** Who changed it last; the planner when left out. */
+    updatedByTeamMemberId?: string | null;
     locationId?: string;
     type?: 'private' | 'group' | 'open_gym';
     groupClassId?: string | null;
@@ -316,6 +318,8 @@ export async function addSession(
         endsAt,
         capacity: options.capacity ?? (type === 'private' ? 1 : 10),
         createdByTeamMemberId: options.createdByTeamMemberId ?? null,
+        updatedByTeamMemberId:
+          options.updatedByTeamMemberId ?? options.createdByTeamMemberId ?? null,
         version: options.version ?? 1,
       })
       .returning({ id: sessions.id }),

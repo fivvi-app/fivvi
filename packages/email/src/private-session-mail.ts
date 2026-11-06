@@ -12,7 +12,7 @@ export interface PrivateSessionMailAddress {
   city: string;
 }
 
-/** What EM-11 needs; the private session routes of `packages/api` decide every field (F020). */
+/** What EM-11 (a new session) and EM-04 (a session that moved) need; the private session routes of `packages/api` decide every field (F020). */
 export interface PrivateSessionMail {
   to: { email: string; name: string };
   /** The language of the email, decided by the route (`confirmationLanguage` in `@fivvi/domain`). */
@@ -25,6 +25,11 @@ export interface PrivateSessionMail {
   location: { name: string; address: PrivateSessionMailAddress | null };
   /** The trainer's name as the account has it; `null` when the account has none (the line is left out). */
   trainerName: string | null;
+  /**
+   * Where the session was before, when the mail says it moved (EM-04, a reschedule); `startsAt` and
+   * `endsAt` are then the new time. Left out for a new session (EM-11).
+   */
+  previous?: { startsAt: Date; endsAt: Date };
   /** One key per session and version, so the same send repeated goes out once. */
   idempotencyKey: string;
 }

@@ -228,6 +228,20 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/private`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/private/post(createPrivateSession)`.
     func createPrivateSession(_ input: Operations.CreatePrivateSession.Input) async throws -> Operations.CreatePrivateSession.Output
+    /// Reschedule a private session
+    ///
+    /// Moves a private session to a new local date and start, with a length (the same rules as planning, daylight saving time included); the location stays. The Owner may move any session, a Trainer only their own (`403` otherwise). `version` is the one the person saw: if the session has been changed since, nothing is stored and the answer is `409` with the session as it is now and who changed it last. A cancelled session answers `409` too; a session that is not private or not in the workspace answers `404`. When `notify` is on and the new time is not in the past, EM-04 goes to the client after the change is committed, in the client’s email language, else the workspace’s default.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule/post(reschedulePrivateSession)`.
+    func reschedulePrivateSession(_ input: Operations.ReschedulePrivateSession.Input) async throws -> Operations.ReschedulePrivateSession.Output
+    /// A client’s upcoming sessions
+    ///
+    /// The next 5 scheduled private sessions of the client, soonest first (instants in UTC plus the workspace’s time zone, and the trainer), for any team member who may see the workspace’s clients. A session that has started, a cancelled one and one the client’s place in was cancelled are left out. A client who is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/clients/{clientId}/upcoming-sessions`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/{clientId}/upcoming-sessions/get(listClientUpcomingSessions)`.
+    func listClientUpcomingSessions(_ input: Operations.ListClientUpcomingSessions.Input) async throws -> Operations.ListClientUpcomingSessions.Output
     /// One session
     ///
     /// A session of the workspace with its location, trainer and participants, for any team member who may see the workspace’s clients. A session that is not in the workspace answers `404`.
@@ -762,6 +776,38 @@ extension APIProtocol {
             path: path,
             headers: headers,
             body: body
+        ))
+    }
+    /// Reschedule a private session
+    ///
+    /// Moves a private session to a new local date and start, with a length (the same rules as planning, daylight saving time included); the location stays. The Owner may move any session, a Trainer only their own (`403` otherwise). `version` is the one the person saw: if the session has been changed since, nothing is stored and the answer is `409` with the session as it is now and who changed it last. A cancelled session answers `409` too; a session that is not private or not in the workspace answers `404`. When `notify` is on and the new time is not in the past, EM-04 goes to the client after the change is committed, in the client’s email language, else the workspace’s default.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule/post(reschedulePrivateSession)`.
+    public func reschedulePrivateSession(
+        path: Operations.ReschedulePrivateSession.Input.Path,
+        headers: Operations.ReschedulePrivateSession.Input.Headers = .init(),
+        body: Operations.ReschedulePrivateSession.Input.Body
+    ) async throws -> Operations.ReschedulePrivateSession.Output {
+        try await reschedulePrivateSession(Operations.ReschedulePrivateSession.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// A client’s upcoming sessions
+    ///
+    /// The next 5 scheduled private sessions of the client, soonest first (instants in UTC plus the workspace’s time zone, and the trainer), for any team member who may see the workspace’s clients. A session that has started, a cancelled one and one the client’s place in was cancelled are left out. A client who is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/clients/{clientId}/upcoming-sessions`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/{clientId}/upcoming-sessions/get(listClientUpcomingSessions)`.
+    public func listClientUpcomingSessions(
+        path: Operations.ListClientUpcomingSessions.Input.Path,
+        headers: Operations.ListClientUpcomingSessions.Input.Headers = .init()
+    ) async throws -> Operations.ListClientUpcomingSessions.Output {
+        try await listClientUpcomingSessions(Operations.ListClientUpcomingSessions.Input(
+            path: path,
+            headers: headers
         ))
     }
     /// One session

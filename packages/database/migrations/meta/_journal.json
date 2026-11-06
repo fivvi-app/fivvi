@@ -169,6 +169,13 @@
       "when": 1793900199935,
       "tag": "0023_group_classes",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793915565381,
+      "tag": "0024_sessions_updated_by",
+      "breakpoints": true
     }
   ]
 }

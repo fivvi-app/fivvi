@@ -302,8 +302,17 @@ export async function runIsolationSuite(
     // it was read. Every seed of this operation therefore goes through `seed`, which forgets it;
     // a write that did not would leave the next call judged against rows that no longer exist.
     let stored: StoredRow[] | undefined;
-    const seed = async (workspaceId: string, clientId: string): Promise<Record<string, string>> => {
-      const values = (await isolationCase.seed?.(world.admin.db, { workspaceId, clientId })) ?? {};
+    const seed = async (
+      workspaceId: string,
+      clientId: string,
+      callerAccountId?: string,
+    ): Promise<Record<string, string>> => {
+      const values =
+        (await isolationCase.seed?.(world.admin.db, {
+          workspaceId,
+          clientId,
+          ...(callerAccountId ? { callerAccountId } : {}),
+        })) ?? {};
       stored = undefined;
       return values;
     };
@@ -362,14 +371,17 @@ export async function runIsolationSuite(
     for (const planned of calls) {
       // A call that deletes its record consumes it: seed a fresh one for every such call, so the
       // next actor is judged on a record that exists, not on a 404 for the one removed before.
-      // A route whose case says `reseedForEachCall` (it changes the record's version) is seeded
-      // again for each call.
+      // A route whose case says `reseedForEachCall` (it changes the record's version, or what the
+      // caller may do depends on who calls) is seeded again for each call's caller.
       if (
         planned.records &&
         (operation.method.toLowerCase() === 'delete' || isolationCase.reseedForEachCall)
       ) {
         const [workspaceId, clientId] = planned.records;
-        seeded.set(planned.records.join(' '), await seed(workspaceId, clientId));
+        seeded.set(
+          planned.records.join(' '),
+          await seed(workspaceId, clientId, planned.actor.account?.id),
+        );
       }
       const values = planned.records ? (seeded.get(planned.records.join(' ')) ?? {}) : {};
       const path = operation.path
