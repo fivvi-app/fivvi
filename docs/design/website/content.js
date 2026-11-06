@@ -34,21 +34,21 @@ window.COPY = (function () {
     say2: ["Aanwezig. Het credit is gebruikt, zonder dat iemand iets bijhoudt.", "Attended. The credit is used, and nobody had to keep track."],
     forEye: ["Voor wie", "Who it's for"],
     forH: ["Jouw dag ziet er anders uit. Fivvi ook.", "Your day looks different. So does Fivvi."],
-    forLead: ["Fivvi laat alleen zien wat jij doet. Een zelfstandig trainer ziet nooit groepslessen. Een yogastudio ziet nooit trainingsschermen.", "Fivvi only shows what you do. A solo PT never sees group classes. A yoga studio never sees a workout log."],
+    forLead: ["Fivvi laat alleen zien wat jij doet. Een zelfstandig trainer ziet nooit groepslessen. Een yogastudio ziet nooit trainingsschermen.", "Fivvi only shows what you do. An independent trainer never sees group classes. A yoga studio never sees workout screens."],
     readDay: ["Lees hun dag", "Read their day"],
     platEye: ["Overal", "Everywhere"],
     platH: ["Echt thuis op elk scherm.", "At home on every screen."],
-    platLead: ["Twee producten, elk op drie plekken. Echte apps op iPhone en Android, en dezelfde rust in je browser.", "Two products, each in three places. Real apps on iPhone and Android, and the same calm in your browser."],
+    platLead: ["De apps voor iPhone en Android komen eraan, met het glas van iOS en de stijl van Android. In je browser vind je dezelfde rust.", "The apps for iPhone and Android are coming, with iOS glass and the Android style. In your browser you'll find the same calm."],
     plat: {
-      pro: { name: ["Fivvi Pro", "Fivvi Pro"], who: ["Voor eigenaren en trainers.", "For owners and trainers."], items: [
-        ["pro-today-gym", ["Op iPhone", "On iPhone"], ["Met het glas van iOS.", "With iOS glass."]],
-        ["pro-today-android", ["Op Android", "On Android"], ["Dezelfde dag, op de manier van Android.", "The same day, the Android way."]],
-        ["web-dashboard", ["In je browser", "In your browser"], ["Voor de administratie op je laptop.", "For the admin on your laptop."], 1]
+      pro: { name: ["Eigenaren en trainers", "Owners and trainers"], items: [
+        ["pro-today-gym", ["Fivvi Pro op iPhone", "Fivvi Pro on iPhone"], ["Met het glas van iOS.", "With iOS glass."]],
+        ["pro-today-android", ["Fivvi Pro op Android", "Fivvi Pro on Android"], ["Op de manier van Android.", "The Android way."]],
+        ["web-dashboard", ["Fivvi in je browser", "Fivvi in your browser"], ["Voor de administratie op je laptop.", "For the admin on your laptop."], 1]
       ] },
-      client: { name: ["Fivvi", "Fivvi"], who: ["Voor klanten.", "For clients."], items: [
-        ["app-home", ["Op iPhone", "On iPhone"], ["Je volgende les, deze week en je tegoed.", "Your next class, this week and your balance."]],
-        ["app-android", ["Op Android", "On Android"], ["Dezelfde app, op de manier van Android.", "The same app, the Android way."]],
-        ["cw-timetable", ["In je browser", "In your browser"], ["Boeken zonder iets te installeren.", "Booking without installing anything."]]
+      client: { name: ["Klanten", "Clients"], items: [
+        ["app-home", ["Fivvi op iPhone", "Fivvi on iPhone"], ["Je volgende les, deze week en je tegoed.", "Your next class, this week and your balance."]],
+        ["app-android", ["Fivvi op Android", "Fivvi on Android"], ["Dezelfde app, op de manier van Android.", "The same app, the Android way."]],
+        ["cw-timetable", ["Fivvi in je browser", "Fivvi in your browser"], ["Boeken zonder iets te installeren.", "Booking without installing anything."]]
       ] }
     },
     promisesEye: ["Waar je op kunt rekenen", "What you can count on"],
@@ -155,14 +155,13 @@ window.COPY = (function () {
 
   var SHOTS = {
     "pro-today-gym": ["Fivvi Pro: de dag van de hele studio, met een baan per trainer", "Fivvi Pro: the whole studio's day, with a lane per trainer"],
-    "pro-today-solo": ["Fivvi Pro: de dag van een zelfstandig trainer", "Fivvi Pro: a solo personal trainer's day"],
+    "pro-today-solo": ["Fivvi Pro: de dag van een zelfstandig trainer", "Fivvi Pro: an independent trainer's day"],
     "pro-today-pilates": ["Fivvi Pro: de dag van een pilatesstudio", "Fivvi Pro: a pilates studio's day"],
     "pro-today-yoga": ["Fivvi Pro: de dag van een yogastudio", "Fivvi Pro: a yoga studio's day"],
     "pro-today-android": ["Fivvi Pro op Android: de dag van vandaag", "Fivvi Pro on Android: today's day"],
     "pro-client": ["Fivvi Pro: klantprofiel met tegoed, vorige training en voortgang", "Fivvi Pro: client profile with balance, last workout and progress"],
     "pro-session": ["Fivvi Pro: een privésessie met de tegoeden van de klant", "Fivvi Pro: a private session with the client's balance"],
     "pro-duo": ["Fivvi Pro: een duosessie met twee klanten", "Fivvi Pro: a duo session with two clients"],
-    "pro-class": ["Fivvi Pro: een groepsles met een vervanger", "Fivvi Pro: a group class with a substitute"],
     "pro-log": ["Fivvi Pro: een training bijhouden, per set", "Fivvi Pro: logging a workout, set by set"],
     "pro-share": ["Fivvi Pro: een training delen met de klant", "Fivvi Pro: sharing a workout with the client"],
     "app-android": ["Fivvi op Android: Home met de volgende les", "Fivvi on Android: Home with the next class"],
@@ -188,7 +187,6 @@ window.COPY = (function () {
     "web-client": ["Trainer web: klantprofiel met verlengen", "Trainer web: client profile with renewal"],
     "web-class": ["Trainer web: een les op datum met aanwezigheid en wachtlijst", "Trainer web: a class on a date with attendance and waitlist"],
     "web-trainers": ["Trainer web: trainers en rollen", "Trainer web: trainers and roles"],
-    "web-join": ["Trainer web: aanmeldlink en QR-code", "Trainer web: join link and QR code"],
     "web-offers": ["Trainer web: Aanbod", "Trainer web: offers"],
     "web-payments": ["Trainer web: betalingen gekoppeld", "Trainer web: payments connected"]
   };
@@ -208,7 +206,7 @@ window.COPY = (function () {
     assume: [
       [["De site beschrijft het product zoals het straks is", "The site describes the product as it will be"], ["De site gaat live voor Mollie, dus voor veel van het product. Betalingen en facturen komen met M11, trainingen, notities en delen met M7, en de apps, duosessies en meer locaties later. Daarom staat er op elke pagina dat Fivvi nu wordt gebouwd. Voor publicatie controleren we elke zin tegen wat er echt staat.", "The site goes live for Mollie, so before much of the product. Payments and invoices arrive with M11, workouts, notes and sharing with M7, and the apps, duo sessions and more locations later. So every page says Fivvi is being built now. Before publishing, we check every sentence against what really exists."]],
       [["Echte merknamen zijn uit de schermen gehaald", "Real brand names are taken out of the screens"], ["Sportscholen uit de voorbeelddata zijn alleen in de schermafbeeldingen vervangen door neutrale namen; het prototype zelf is niet gewijzigd.", "Gyms in the sample data were replaced with neutral names in the screenshots only; the prototype itself hasn't changed."]],
-      [["Eén scherm toont iets van later", "One screen shows something for later"], ["Iedereen aanwezig op de lespagina is gepland voor Release 1.1. Voor publicatie maken we die schermafbeelding opnieuw.", "Mark everyone present on the class page is planned for Release 1.1. Before publishing, we retake that screenshot."]],
+      [["Twee schermen lopen nog niet gelijk", "Two screens aren't in step yet"], ["Iedereen aanwezig op de lespagina is gepland voor Release 1.1. Het klantscherm in de browser toont ook nog de oude tabs. Voor publicatie maken we die schermafbeeldingen opnieuw.", "Mark everyone present on the class page is planned for Release 1.1. The client's browser screen also still shows the old tabs. Before publishing, we retake those screenshots."]],
       [["De voorbeelden zijn fictief", "The examples are fictional"], ["Lisa, Studio Fit en alle bedragen zijn verzonnen, net als in het prototype.", "Lisa, Studio Fit and all amounts are made up, just like in the prototype."]],
       [["De tijden zijn een verhaal", "The times are a story"], ["De klokken op de pagina's zijn een manier om te vertellen, geen functie in het product.", "The clocks on the pages are a storytelling device, not a product feature."]],
       [["De formulieren versturen niets", "The forms send nothing"], ["De demo-aanvraag is alleen een ontwerp en bewaart geen gegevens.", "The demo request is a design only and stores no data."]]

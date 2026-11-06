@@ -89,13 +89,13 @@
       '<section><div class="wrap"><p class="eyebrow">' + t(UI.forEye) + '</p><h2 class="h2">' + t(UI.forH) + '</h2><p class="lead" style="margin-top:14px">' + t(UI.forLead) + '</p><div class="cards">' +
       ORDER.map(function (k) { return '<a class="acard" href="#' + k + '">' + photo(A[k].photo, "ph") + "<div><h3>" + t(A[k].cardH) + "</h3><p>" + t(A[k].short) + '</p><span class="link">' + t(UI.readDay) + " →</span></div></a>"; }).join("") +
       "</div></div></section>" +
-      '<section><div class="wrap"><p class="eyebrow">' + t(UI.platEye) + '</p><h2 class="h2">' + t(UI.platH) + '</h2><p class="lead" style="margin-top:14px">' + t(UI.platLead) + '</p><div class="who"><div class="seg" role="group" aria-label="Fivvi Pro / Fivvi">' + ["pro", "client"].map(function (k) { return '<button data-plat="' + k + '" aria-pressed="' + (S.plat === k) + '">' + t(UI.plat[k].name) + "</button>"; }).join("") + '</div></div><div id="devices">' + devices() + "</div>" +
+      '<section><div class="wrap"><p class="eyebrow">' + t(UI.platEye) + '</p><h2 class="h2">' + t(UI.platH) + '</h2><p class="lead" style="margin-top:14px">' + t(UI.platLead) + '</p><div class="who"><div class="seg" role="group" aria-label="Eigenaren en trainers / Klanten">' + ["pro", "client"].map(function (k) { return '<button data-plat="' + k + '" aria-pressed="' + (S.plat === k) + '">' + t(UI.plat[k].name) + "</button>"; }).join("") + '</div></div><div id="devices">' + devices() + "</div>" +
       "</div></section>" + promises() + cta();
   }
 
   function devices() {
     var p = UI.plat[S.plat];
-    return '<p class="platwho">' + t(p.who) + '</p><div class="devices">' + p.items.map(function (i) { return '<figure class="' + (i[3] ? "wide" : "") + '">' + device(i[0]) + "<figcaption><b>" + t(i[1]) + "</b><span>" + t(i[2]) + "</span></figcaption></figure>"; }).join("") + "</div>";
+    return '<div class="devices">' + p.items.map(function (i) { return '<figure class="' + (i[3] ? "wide" : "") + '">' + device(i[0]) + "<figcaption><b>" + t(i[1]) + "</b><span>" + t(i[2]) + "</span></figcaption></figure>"; }).join("") + "</div>";
   }
 
   function promises() {

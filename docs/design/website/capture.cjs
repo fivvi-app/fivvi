@@ -27,7 +27,6 @@ const SHOTS = [
   ['pro-client', '0,22', 'ios', 'team'],
   ['pro-session', '0,10', 'ios', 'team'],
   ['pro-duo', '0,11', 'ios', 'team'],
-  ['pro-class', '0,13', 'ios', 'team'],
   ['pro-log', '0,25', 'ios', 'team'],
   ['pro-share', '0,28', 'ios', 'team'],
   // Fivvi, the client app
@@ -40,7 +39,7 @@ const SHOTS = [
   ['app-self', '2,35', 'ios', 'team'],
   ['app-android', '2,4', 'android', 'team'],
   // Client web
-  ['cw-timetable', '3,3', 'ios', 'team'],
+  ['cw-timetable', '3,3', 'ios', 'team', 'busiest-day'],
   ['cw-waitlist', '3,6', 'ios', 'team'],
   ['cw-waitlist-pilates', '3,6', 'ios', 'pilates'],
   ['cw-waitlist-yoga', '3,6', 'ios', 'yoga'],
@@ -56,7 +55,6 @@ const SHOTS = [
   ['web-client', '1,7', 'web', 'team'],
   ['web-class', '1,9', 'web', 'team'],
   ['web-trainers', '1,11', 'web', 'team'],
-  ['web-join', '1,12', 'web', 'team'],
   ['web-offers', '1,13', 'web', 'team'],
   ['web-payments', '1,21', 'web', 'team'],
 ];

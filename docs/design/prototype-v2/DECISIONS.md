@@ -432,6 +432,7 @@ Designed with the owner on 6 November 2026 in its own artifact, [Fivvi Website](
 - **Main button:** *Plan een demo* on every page, because workspace creation stays closed until 2.0 (owner).
 - **Mollie is named** on the site (owner), with iDEAL next to it.
 - **Dutch copy says *sportschool*,** as `packages/i18n/GLOSSARY.md` asks, at `/sportscholen`; English says *gyms*.
+- **Platforms (owner):** the section shows what owners and trainers use and what clients use, each on iPhone, Android and in the browser: Fivvi Pro and the trainer web, Fivvi and the client web.
 - **Images:** real screens first. Photos are for atmosphere, without people, so nothing passes for a real customer.
 - **Nothing made up:** no figures, testimonials or ratings until they exist.
 
