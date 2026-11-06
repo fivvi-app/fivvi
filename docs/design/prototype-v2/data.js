@@ -291,7 +291,7 @@ window.FIVVI_DATA = (function () {
     { id: "o7", kind: "pack", credit: "prive", name: "10 privésessies", price: "550", vat: "21", cycle: "Eenmalig", credits: 10, valid: "6 maanden", end: "stop", renew: 30, on: true, active: 4 },
     { id: "o8", kind: "plan", credit: "prive", name: "Privé 4 per 4 weken", price: "240", vat: "21", cycle: "Elke 4 weken", credits: 4, carry: 2, minTerm: "3 maanden", end: "continue", renew: 30, on: true, active: 2 },
     { id: "o9", kind: "plan", credit: "prive", name: "Privé 2 per maand", price: "125", vat: "21", cycle: "Elke maand", credits: 2, carry: 0, minTerm: "3 maanden", end: "continue", renew: 30, on: true, active: 1 },
-    { id: "o10", kind: "pack", credit: "gym", name: "5 Open Gym-credits", price: "40", vat: "9", cycle: "Eenmalig", credits: 5, valid: "3 maanden", end: "stop", renew: 30, memberOnly: true, on: true, active: 2 },
+    { id: "o10", kind: "pack", credit: "groep", name: "5 groepscredits", price: "40", vat: "9", cycle: "Eenmalig", credits: 5, valid: "3 maanden", end: "stop", renew: 30, memberOnly: true, on: true, active: 2 },
     { id: "o11", kind: "single", credit: "groep", name: "Losse les", price: "17,50", vat: "9", cycle: "Bij het boeken", on: false, active: 0 },
     { id: "d1", kind: "abo", name: "Abonnement", price: "", vat: "9", cycle: "Elke maand", perWeek: 2, term: "6 maanden", end: "stop", renew: 30, makeups: 2, on: false, def: true, active: 0 },
     { id: "d2", kind: "pack", credit: "groep", name: "Groepscreditpakket", price: "", vat: "9", cycle: "Eenmalig", credits: 10, valid: "3 maanden", end: "stop", renew: 30, on: false, def: true, active: 0 },
@@ -339,7 +339,6 @@ window.FIVVI_DATA = (function () {
   /* Open Gym comes later (owner, 6 Nov 2026; PRODUCT §53): the sample has none, and the code stays for when it comes */
   function noGym(l) { return l.filter(function (x) { return (x.type || x[0]) !== "gym"; }); }
   today = noGym(today); pattern = pattern.map(function (d) { return d && noGym(d); });
-  offerList = offerList.filter(function (o) { return o.credit !== "gym"; });
   return { RENEW_DAYS: RENEW_DAYS, remindLine: remindLine, offerList: offerList, offerNames: offerNames, TERMS: TERMS, LEVELS: LEVELS, levels: levels, lifts: lifts, weeks: weeks, DIFF: DIFF, spark: spark, bsum: bsum, CREDIT: CREDIT, KIND: KIND, billing: billing, setups: setups, me: me, workspaces: workspaces, locations: locations, trainers: trainers, clients: clients, notes: notes, history: history, selfLog: selfLog,
     progress: progress, tpl: tpl, descriptions: descriptions, today: today, pattern: pattern, templates: templates, library: library, upperA: upperA };
 })();

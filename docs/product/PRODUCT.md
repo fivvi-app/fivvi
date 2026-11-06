@@ -2704,7 +2704,7 @@ A new workspace starts with three ready-made offers, the **default plans** (owne
 
 ## Owner-made plans
 
-The owner can **create their own offers** from scratch (*Nieuw aanbod* / *New offer*; the UI term is to confirm, `packages/i18n/GLOSSARY.md` §4.9), next to or instead of the defaults, with the same fields as a default. Every offer is **one of the four kinds** above (membership, credit pack, credit plan or single class; the single class is proposed, [decision 9](ROADMAP.md#14-decisions)). An owner can't create a new kind, and a credit offer is of one kind, so group, private and Open Gym credits never mix (§92).
+The owner can **create their own offers** from scratch (*Nieuw aanbod* / *New offer*; the UI term is to confirm, `packages/i18n/GLOSSARY.md` §4.9), next to or instead of the defaults, with the same fields as a default. Every offer is **one of the four kinds** above (membership, credit pack, credit plan or single class; the single class is proposed, [decision 9](ROADMAP.md#14-decisions)). An owner can't create a new kind, and a credit offer is of one kind, so group and private credits never mix (§92).
 
 ---
 

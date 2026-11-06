@@ -101,7 +101,7 @@ Roles come from `PRODUCT.md §9, §50`: **Owner and Trainer** are the team roles
 | Log workouts | ✓ | ✓ own sessions | — | — |
 | Offers, prices, cancellation policy; start from the three default plans (switched off until the owner adds a price and turns one on; proposal, QC19) or make own offers (`§90`, `§93`) | ✓ | — | — | — |
 | Connect the payment provider account (decided in ADR-020; `§94`) | ✓ | — | — | — |
-| Agreements: create, end, see credit balances (`§91`, `§92`) | ✓ | 👁 credit balances of own clients ⚑ [QC12](open-questions.md#qc12) | ✓ own | — |
+| Agreements: create, end, see credit balances (`§91`, `§92`) | ✓ | 👁 credit balances of own clients [QC12](open-questions.md#qc12) | ✓ own | — |
 | Payments, invoices, refunds, payouts (`§94`–`§97`) | ✓ | — | 👁 own payments and invoices | — |
 | Buy a membership, credit pack, credit plan or single class (proposed, [decision 9](../product/ROADMAP.md#14-decisions)); pay | — | — | ✓ | ✓ single class (account created at verification) |
 | Billing details | ✓ on behalf of a client ⚑ [QC16](open-questions.md#qc16) | — | ✓ own | — |
@@ -370,7 +370,7 @@ flowchart TB
 | Mijn trainingen / My workouts | `/my/workouts` and `/my/workouts/{id}` | Signed-in client | F045, F048 |
 
 - **A client who isn't signed in** manages one booking through the tokenised link in their confirmation email (`/manage/{token}`). From there they can cancel it or sign in to see all their bookings.
-- A client can have bookings at more than one workspace (same email). *Mijn boekingen* lists them together with the workspace name on each booking. Each booking still belongs to its own workspace ⚑ [QE05](open-questions.md#qe05).
+- A client can have bookings at more than one workspace (same email). *Mijn boekingen* lists them together with the workspace name on each booking. Each booking still belongs to its own workspace [QE05](open-questions.md#qe05).
 - A trainer-created private session is not automatically a booking in CW-02/03. After the trainer explicitly shares its workout, the recap and optional client message appear in CW-05. Only the owning client can read it; the internal note stays in trainer surfaces ([QE04](open-questions.md#qe04)).
 
 ---

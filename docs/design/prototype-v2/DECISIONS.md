@@ -246,7 +246,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
 
 ## 5b. Client app Fivvi
 
-Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch (*Fivvi Pro | Fivvi (klant)*) shows it on iOS and Android, and the index group *Fivvi (klant-app)* lists its screens. It shares its state with the client web, so a booking made in one shows in the other. The owner reviewed it through comments on 5 November 2026; what is still open is under the question below and in §7.
+Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch (*Fivvi Pro | Fivvi (klant)*) shows it on iOS and Android, and the index group *Fivvi (klant-app)* lists its screens. It shares its state with the client web, so a booking made in one shows in the other. The owner reviewed it through comments on 5 November 2026; what is still open is in §7.
 
 - **Tabs as in §55:**
   - *Home*: hello, the next session or class, a **"Deze week" card**, *Tegoed* as a small line, and what's coming up. The card is motivating and uses only facts Fivvi has (owner, 5 November 2026):
