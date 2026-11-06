@@ -3,7 +3,7 @@
 The single source of truth for feature status. A status changes **in the same PR** as the code that earns it.
 
 - **Lifecycle:** `IDEA → PLANNED → DESIGNED → IN PROGRESS → IN REVIEW → IMPLEMENTED → RELEASED` (`PRODUCT.md §81`)
-- **Priority:** `Must` (MVP cannot ship without it) · `Should` (first to slip to 1.1 if dates are at risk) · `Must (proposed, decision 9)` (proposed M11 scope, `ROADMAP.md` decision 9: a `Must` only once the owner confirms it)
+- **Priority:** `Later` (not in the MVP, `PRODUCT.md §53`) · `Must` (MVP cannot ship without it) · `Should` (first to slip to 1.1 if dates are at risk) · `Must (proposed, decision 9)` (proposed M11 scope, `ROADMAP.md` decision 9: a `Must` only once the owner confirms it)
 - **Languages:** a feature is not `IMPLEMENTED` until both NL and EN work (`PRODUCT.md §82`)
 - **Platforms:** a feature with a trainer mobile surface (marked `+ iOS/Android` in the Milestone column) or a client mobile surface in the client app (marked `+ Fivvi iOS/Android`, since `ROADMAP.md` v1.31) is not `IMPLEMENTED` until web, iOS and Android all work; its iOS and Android tickets sit next to the web ticket with the same acceptance criteria (`ROADMAP.md` M8, the native track)
 - **Spec:** the *Spec* column points to the requirements in [`PRODUCT.md`](PRODUCT.md). Each feature's spec and tickets are GitHub issues (`/to-spec`, `/to-tickets`, [`docs/agents/issue-tracker.md`](../agents/issue-tracker.md)); once a spec issue exists, the ID links to it, e.g. `[F031](https://github.com/fivvi-app/fivvi/issues/<n>)`
@@ -14,7 +14,7 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | Release | Features | Released |
 |---|---|---|
-| MVP | 63 (F001–F063) + 19 engineering enablers (E001–E019); F017–F019 (more locations) and M7 (F039–F048, F051) come after go-live; trainer (Fivvi Pro) and, from M5, client (Fivvi) iOS and Android screens are built with their web features (the M8 native track) | 0 |
+| MVP | 60 (F001–F063 without F034–F036, Open Gym, later) + 19 engineering enablers (E001–E019); F017–F019 (more locations) and M7 (F039–F048, F051) come after go-live; trainer (Fivvi Pro) and, from M5, client (Fivvi) iOS and Android screens are built with their web features (the M8 native track) | 0 |
 
 **Waitlist moved to the MVP (31 October 2026, [#150](https://github.com/fivvi-app/fivvi/issues/150)):** it was a Release 1.1 candidate. The owner placed it as **F062** in **M5** (31 October 2026, `ROADMAP.md` v1.29); the rules are in `PRODUCT.md §23`.
 
@@ -84,19 +84,19 @@ The single source of truth for feature status. A status changes **in the same PR
 | F033 | Client Booking Dashboard | PLANNED | Must | M5 (+M11 commerce) (+ Fivvi iOS/Android) | F031, F062 | ⬜ | ⬜ | §15 (Client Web: my schedule with private + group; the waitlists the client is on, with the position; from M11, per workspace, the payment history and the invoice and credit-note PDFs, §96) |
 | F062 | Waitlist: group classes only; one tap to join, position shown; the first in line is booked automatically when a spot frees up (a cancellation, a removal, more capacity) with a "you're in" email; a workspace **waitlist closing time** (default 30 minutes before the class) after which nobody moves up and everyone waiting gets a "you didn't get in" email; from M11 a client who can't book is skipped; the owner and trainers see the list on the web | PLANNED | Must | M5 (+M11 commerce) (+ Fivvi iOS/Android) | F026, F028, F031, F049 | ⬜ | ⬜ | §23 (Waitlist) |
 
-### Open Gym
+### Open Gym (later, not in the MVP: owner, 6 November 2026, `PRODUCT.md §53`)
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F034 | Open Gym Slots | PLANNED | Must | M6 (+ iOS/Android) | F015, F020 | ⬜ | ⬜ | §2.7, §15, §28 |
-| F035 | Open Gym Booking: approved clients book an Open Gym slot (Open Gym credits from M11) | PLANNED | Must | M6 (+ Fivvi iOS/Android) | F034, F027, F028, F031 | ⬜ | ⬜ | §30 |
-| F036 | Open Gym Suggestions | PLANNED | **Should** | M6 | F034, F013 | ⬜ | ⬜ | §29 |
+| F034 | Open Gym Slots | PLANNED | Later | Later | F015, F020 | ⬜ | ⬜ | §2.7, §15, §28 |
+| F035 | Open Gym Booking: approved clients book an Open Gym slot (with Open Gym credits) | PLANNED | Later | Later | F034, F027, F028, F031 | ⬜ | ⬜ | §30 |
+| F036 | Open Gym Suggestions | PLANNED | Later | Later | F034, F013 | ⬜ | ⬜ | §29 |
 
 ### Sharing
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F037 | Booking Links: for approved clients only, next to the workspace's one join link | PLANNED | Must | M6 | F027, F029, F035 | ⬜ | ⬜ | §32 |
+| F037 | Booking Links: for approved clients only, next to the workspace's one join link | PLANNED | Must | M6 | F027, F029 | ⬜ | ⬜ | §32 |
 | F038 | QR Codes: the join link's QR code for the desk, and class links | PLANNED | Must | M6 | F037 | ⬜ | ⬜ | §33 |
 
 ### Workouts
@@ -128,8 +128,8 @@ Added in roadmap v1.19 (M11), before go-live; credit packs and credit plans, gro
 |---|---|---|---|---|---|---|---|---|
 | F052 | Offers and Prices | PLANNED | Must | M11 | F002, E019 | ⬜ | ⬜ | §90 (three default plans, pre-filled and switched off until the owner turns them on; the owner adds the price; owner-made offers of the four kinds; QC19 (a)–(c) on the defaults are proposals, (d)–(e) are answered) |
 | F053 | Memberships | PLANNED | Must | M11 | F052, F022, F028, F057 | ⬜ | ⬜ | §91 (weekly allowance of 1, 2 or 3 classes a week, term, terms stored; no standing spot at the pilot) |
-| F054 | Credit Packs and Plans (group, private and Open Gym) | PLANNED | Must | M11 | F052, F020, F028, F055, F057 | ⬜ | ⬜ | §92 (credit packs bought once; credit plans paid each billing cycle, with a carry-over limit; group, private and Open Gym credits never mix) |
-| F055 | Credit Balance | PLANNED | Must | M11 | F025, F026 | ⬜ | ⬜ | §92 (one balance per kind, group, private or Open Gym, per agreement; history: granted, used, returned, expired) |
+| F054 | Credit Packs and Plans (group and private) | PLANNED | Must | M11 | F052, F020, F028, F055, F057 | ⬜ | ⬜ | §92 (credit packs bought once; credit plans paid each billing cycle, with a carry-over limit; group and private credits never mix) |
+| F055 | Credit Balance | PLANNED | Must | M11 | F025, F026 | ⬜ | ⬜ | §92 (one balance per kind, group or private, per agreement; history: granted, used, returned, expired) |
 | F056 | Cancellation Policy and Makeups | PLANNED | Must | M11 | F026, F055 | ⬜ | ⬜ | §93 (cutoff, late cancellation, makeups) |
 | F057 | Recurring Payments | PLANNED | Must | M11 | E019, F059 | ⬜ | ⬜ | §94 (first payment + mandate, SEPA Direct Debit: proposal, QC06; exactly once) |
 | F058 | Single Class Purchase | PLANNED | Must (proposed, decision 9) | M11 | F031, E019, F059 | ⬜ | ⬜ | §95 |

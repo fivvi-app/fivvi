@@ -1,6 +1,6 @@
 # Fivvi
 
-The domain language of Fivvi: a platform where gyms, studios and independent trainers run their scheduling, booking, Open Gym, clients, workouts and notes. Use these terms in code, issues, specs, tests and conversation.
+The domain language of Fivvi: a platform where gyms, studios and independent trainers run their scheduling, booking, clients, workouts and notes. Use these terms in code, issues, specs, tests and conversation.
 
 This glossary says what a concept **is**, in English. How each term is worded in the Dutch and English UI, plus tone and copy rules, is in [`packages/i18n/GLOSSARY.md`](packages/i18n/GLOSSARY.md) §4. Code names and i18n keys follow the English term here. 🔜 marks a concept for a post-MVP release, listed so nobody uses the word for something else meanwhile. Requirements: `docs/product/PRODUCT.md`.
 
@@ -134,10 +134,10 @@ The maximum number of participants of a class occurrence or Open Gym slot. Booki
 One place within the capacity of a class occurrence or Open Gym slot.
 _Avoid_: place, seat, slot (that's Open Gym)
 
-**Open Gym**:
-Bookable time where clients train on their own at a location.
+**Open Gym** 🔜:
+Bookable time where clients train on their own at a location. Comes after the MVP (`PRODUCT.md §53`).
 
-**Open Gym slot**:
+**Open Gym slot** 🔜:
 One Open Gym session, with a start, end, location and capacity.
 
 **Publish**:
@@ -168,7 +168,7 @@ A client's place in a class occurrence or Open Gym slot. It is immediate: a sign
 _Avoid_: reservation, registration, sign-up, enrolment
 
 **Client timetable**:
-The workspace's timetable that only its approved clients see: the classes and Open Gym slots they can book, on the web without an app. Not public: a visitor who is not an approved client sees only a sign-in and, with the join link, a request to join.
+The workspace's timetable that only its approved clients see: the classes they can book, on the web without an app. Not public: a visitor who is not an approved client sees only a sign-in and, with the join link, a request to join.
 _Avoid_: public timetable, public booking page
 
 **Booking page**:
@@ -176,7 +176,7 @@ The web page of the **client timetable**, where approved clients book. Use *Clie
 _Avoid_: public booking page
 
 **Booking link**:
-A shareable URL for a booking scope: all, group classes, Open Gym, one class or one class date. It works only for approved clients. A **QR code** opens a link, such as the join link or a booking link.
+A shareable URL for a booking scope: all, group classes, one class or one class date. It works only for approved clients. A **QR code** opens a link, such as the join link or a booking link.
 
 **Join link**:
 The one link a workspace has for new clients to ask to join (with a QR code for the desk). The Owner can renew it; the old one then stops working. It leads to a sign-in and a join request, not to the timetable.
@@ -232,15 +232,15 @@ An agreement for a weekly allowance of group classes for a term, e.g. two classe
 _Avoid_: subscription (see *Recurring payment*), plan, pass
 
 **Credit**:
-One unit of a group, private or Open Gym credit balance. One credit books one session of its kind: a **group credit** books a group class, a **private credit** books a private session, an **Open Gym credit** books an Open Gym slot. The three kinds never mix and have no exchange rate. Combined credits, one balance for every session type, are not planned (`PRODUCT.md §53`).
+One unit of a group or private credit balance. One credit books one session of its kind: a **group credit** books a group class, a **private credit** books a private session, and later an **Open Gym credit** 🔜 books an Open Gym slot. The kinds never mix and have no exchange rate. Combined credits, one balance for every session type, are not planned (`PRODUCT.md §53`).
 _Avoid_: token, point, voucher; using it for a makeup
 
 **Credit pack**:
-An offer, and the agreement it makes, for a number of group, private or Open Gym credits bought once and valid for a period. It can be limited to once per client (an intro offer). The pilot's private training is a private credit plan, not a pack.
+An offer, and the agreement it makes, for a number of group or private credits bought once and valid for a period. It can be limited to once per client (an intro offer). The pilot's private training is a private credit plan, not a pack.
 _Avoid_: package, bundle, session pack (retired, see below)
 
 **Credit plan**:
-An offer, and the agreement it makes, for a number of group, private or Open Gym credits each billing cycle, paid by recurring payment (see *Recurring payment*), with a carry-over limit for credits left at the end of the cycle. The pilot's private training is a private credit plan.
+An offer, and the agreement it makes, for a number of group or private credits each billing cycle, paid by recurring payment (see *Recurring payment*), with a carry-over limit for credits left at the end of the cycle. The pilot's private training is a private credit plan.
 _Avoid_: subscription (see *Recurring payment*), credit subscription
 
 **Session pack** (retired):
@@ -251,7 +251,7 @@ One group class bought on its own, by a client without a membership or as an ext
 _Avoid_: drop-in, top-up
 
 **Credit balance**:
-What a client can still use under one agreement, in credits of one kind (group, private or Open Gym); a client with group and private credits sees two balances. Always explained by its history (granted, used, returned, expired), never a bare counter. A membership's makeups are tracked the same way but are not credits.
+What a client can still use under one agreement, in credits of one kind (group or private); a client with group and private credits sees two balances. Always explained by its history (granted, used, returned, expired), never a bare counter. A membership's makeups are tracked the same way but are not credits.
 _Avoid_: session balance (retired), saldo, remaining sessions
 
 **Weekly limit**:

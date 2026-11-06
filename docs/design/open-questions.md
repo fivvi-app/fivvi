@@ -1,5 +1,7 @@
 # UX questions for M0 validation
 
+> **Open Gym comes later (owner, 6 November 2026; `PRODUCT.md §53`).** Open Gym is not in the MVP. What this document says about it describes the feature for when it is built.
+
 These questions record assumptions in the [information architecture](information-architecture.md) and [six flows](README.md). None is an approved requirement. The wireframes show a proposal so the pilot owner and another trainer can react to a concrete screen. Record the answer, participant, date and affected screen IDs here after validation; then update the flow, feature spec and glossary where relevant. Product scope or permission changes require an owner decision before implementation.
 
 **Status:** Open for the M0 prototype review. The [validation script](../discovery/prototype-validation-script.md) covers the six tasks; use the questions below as follow-ups, not as a replacement for observing the tasks.
@@ -149,7 +151,7 @@ Decide whether private-session creation email (EM-11) belongs in F049/F020. `PRO
 **Resolved by owner, 22 September 2026.** A trainer saves an internal note separately from an optional client message. After explicit review and share, the client sees the workout recap and client message in *Mijn trainingen* in the signed-in profile and receives the same in a localized email. The internal note is excluded. A private session does not become a client booking in CW-02/03 solely because its workout was shared.
 
 ### QE05
-Decide whether a signed-in client sees bookings across all workspaces sharing the verified email, with per-workspace authorization on each booking (CW-02). **Partly resolved by the owner, 31 October 2026 ([ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md)):** an account is one per email, but it shows nothing of a workspace until the client is added or approved, so every booking and every screen is authorised per workspace, and the client web shows the money per workspace. Whether the *my schedule* list combines all of a client's workspaces is for the F033 spec.
+Decide whether a signed-in client sees bookings across all workspaces sharing the verified email, with per-workspace authorization on each booking (CW-02). **Partly resolved by the owner, 31 October 2026 ([ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md)):** an account is one per email, but it shows nothing of a workspace until the client is added or approved, so every booking and every screen is authorised per workspace, and the client web shows the money per workspace. Whether the *my schedule* list combines all of a client's workspaces is for the F033 spec. **Answered by the owner, 6 November 2026:** *Home* and the agenda combine every studio of a client (`prototype-v2/DECISIONS.md` §7 item 10).
 
 ### QE06
 **Resolved by the owner, 31 October 2026 ([ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md)).** Yes: a signed-in client books without any email step, and the same atomic capacity check runs. There is no verification step for anyone. (Was: decide whether an authenticated, verified client can book without a new email confirmation, PB-03/06.)
@@ -246,7 +248,7 @@ What is the "kiosk" or pay-at-the-desk option in the current app, and is it used
 
 ### QC12
 May a trainer see the credit balances of the clients they train? **Proposal:** yes, the balances of their own clients, not amounts, payments or invoices; the owner does all commerce (agreements, prices, refunds, payouts, billing details, the provider connection). With no Admin role in the MVP (resolved by the owner, 20 October 2026, see Q05) there is no one in between.
-**Answer (pilot gym owner, 31 October 2026):** The proposal stands.
+**Answer (pilot gym owner, 31 October 2026):** The proposal stands. **Confirmed by the owner, 6 November 2026.**
 
 ### QC13
 What does the pilot pay today: the subscription (per month or per year, VAT included?) and the fee per payment, and is there a separate provider fee? (The figures stay in the owner's private notes, not in the repository.) What does a weekly payout need to show? **Proposal:** record only the outcome of the comparison here (for example "cheaper / similar / more expensive per payment"), never the figures; compare with the list prices in ADR-020.

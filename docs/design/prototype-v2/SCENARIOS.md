@@ -4,7 +4,7 @@ The prototype's panel has five setups (⚙ → **Opzet**). Each is a fictional b
 
 | Setup | Business | What it runs |
 |---|---|---|
-| Gym met team | Studio Fit, 4 trainers | Private sessions, group classes, Open Gym; the owner also trains at John's Gym |
+| Gym met team | Studio Fit, 4 trainers | Private sessions and group classes; the owner also trains at John's Gym |
 | Zelfstandige PT | Sarah Personal Training | Private sessions only, at several gyms, outdoors and at clients' homes |
 | PT met small groups | Fit met Sarah | Private sessions plus groups of 3–4 in the park and at a gym |
 | Pilatesstudio | Studio Kern, 3 instructors | Reformer classes of 6 (6 reformers), mat classes of 12, private reformer sessions |
@@ -49,9 +49,9 @@ The prototype's panel has five setups (⚙ → **Opzet**). Each is a fictional b
 3. **The client picks a spot (a reformer, a mat, a bike): later.** A feature for after the MVP, possibly for several kinds of class. Stopping two classes from booking one room is admin and not a priority. Idea: [#589](https://github.com/fivvi-app/fivvi/issues/589).
 4. **The workspace's own word for trainers: build it.** Trainer, instructeur, docent or coach, chosen per workspace. Spec: [#588](https://github.com/fivvi-app/fivvi/issues/588).
 
-Still open: **fixed groups** (should a client be enrolled in a weekly series, booked every week until they stop?).
+**Fixed groups** (a client enrolled in a weekly series, booked every week until they stop) are not in the MVP (owner, 6 November 2026).
 
-## Assumptions in the prototype, to settle in the specs
+## Assumptions in the prototype, as confirmed by the owner (`DECISIONS.md` §7)
 
 - **Duo:** each client uses one of their own privécredits; the trainer plans it (clients don't book duos themselves); the client sees "Duosessie, samen met Noor" and only their own workout.
 - **Levels:** a fixed list of four, information only (a level doesn't stop anyone from booking), set on the class and changeable per date.

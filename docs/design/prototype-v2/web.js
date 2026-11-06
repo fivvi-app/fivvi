@@ -313,7 +313,7 @@
           (a.kind === "abo" ? "<p>" + aboLine(a) + "</p>" : "<p>" + a.used + " gebruikt · " + a.planned + " gepland · <b>" + (a.total - a.used - a.planned) + " over</b> van " + a.total + "</p>") + "</div>" +
           btn(open ? "Verberg geschiedenis" : "Geschiedenis", "w-hist", { k: "outline sm", d: { id: a.id } }) + "</div>" + renewLine(sum, a, c) +
           (open ? table(["Datum", "Wat", "Credits", "Door"], a.hist.map(function (x) { var sg = x[2].charAt(0); return [esc(x[0]), esc(x[1]), '<span class="w-tnum ' + (sg === "+" ? "w-plus" : sg === "−" ? "w-minus" : "w-muted") + '">' + esc(sg === "+" || sg === "−" ? x[2] : "(" + x[2] + ")") + "</span>", esc(x[3])]; })) : "") + "</div>";
-      }).join("") : '<p class="w-muted">' + esc(c.name.split(" ")[0]) + " heeft nog geen abonnement of credits.</p>", { desc: "Elke credit telt alleen voor zijn eigen soort: groep, privé of Open Gym.", act: money(c) ? btn("Aanbod sturen", "w-dlg", { k: "outline sm", i: "plus", d: { n: "offer" } }) : "" });
+      }).join("") : '<p class="w-muted">' + esc(c.name.split(" ")[0]) + " heeft nog geen abonnement of credits.</p>", { desc: "Elke credit telt alleen voor zijn eigen soort: groep of privé.", act: money(c) ? btn("Aanbod sturen", "w-dlg", { k: "outline sm", i: "plus", d: { n: "offer" } }) : "" });
       if (money(c)) h += card("Betalingen en facturen", sum.b.payments.length ? table(["Datum", "Omschrijving", "Bedrag", "Methode", "Status", "Factuur", ""], sum.b.payments.map(function (p, pi) {
         return [esc(p[0]), esc(p[1]), '<span class="w-tnum">' + esc(p[2]) + "</span>", esc(p[3]), badge(PAY[p[4]][0], PAY[p[4]][1], PAY[p[4]][1] ? "" : "outline"), p[5] ? '<button class="w-link" data-a="w-toast" data-m="Factuur gedownload">' + esc(p[5]) + "</button>" : '<span class="w-muted">—</span>', p[4] === "paid" ? btn("Terugbetalen", "w-dlg", { k: "ghost sm", d: { n: "refund", i: pi } }) : ""];
       })) : '<p class="w-muted">Nog geen betalingen.</p>', { desc: "Klanten betalen online. Een mislukte incasso staat hier als open bedrag." });
@@ -873,6 +873,7 @@
     if (kind === "offer" || kind === "offerlast") a.offerSent = "3 nov";
     if (kind === "last" || kind === "offerlast") { a.endsIn = 7; a.period = "geldig tot 12 nov 2026"; a.remindSent = "13 okt"; }
     if (kind === "low") { a.used = 6; a.remindSent = "5 nov"; }
+    if (kind === "usedup") a.used = 8;
   }
   function renewCard() {
     var r = clientRenew(); if (!r) return "";
@@ -1336,7 +1337,6 @@
     ["Klantprofiel", "TW-02", goWeb("client", { cid: "anna" })],
     ["Lessen", "TW-03", goWeb("classes")],
     ["Les op datum", "CO-01", function () { F.fresh(); F.PREF.plat = "web"; var w = W(); w.page = "klass"; var t = F.dayItems(F.TODAY).filter(function (i) { return i.type === "group"; })[0]; w.kid = t ? t.id : null; }],
-    ["Open Gym", "TW-04", goWeb("gym")],
     ["Trainingen", "TW-05", goWeb("workouts")],
     ["Trainers", "TW-06", goWeb("trainers")],
     ["Aanmeldlink en QR", "TW-07", goWeb("link")],
@@ -1361,7 +1361,7 @@
     ["Home", "F033", goApp("app", { who: "anna", atab: "home" })],
     ["Boeken", "F027", goApp("app", { who: "anna", atab: "boeken" })],
     ["Les boeken", "F031", goApp("app", { who: "anna", atab: "boeken" }, function (c) { var t = F.dayItems(F.key(F.add(F.NOW, 1))).filter(function (i) { return i.type !== "priv" && i.people.length < i.cap && !c.booked[i.id]; })[0]; c.detail = t ? t.id : null; c.day = F.key(F.add(F.NOW, 1)); })],
-    ["Geen credits: aanbod op het web", "F052", goApp("app", { who: "anna", atab: "boeken" }, function (c) { var t = timetable(F.key(F.add(F.NOW, 1))).filter(function (i) { return i.type === "gym"; })[0] || timetable(F.TODAY).filter(function (i) { return i.type === "gym"; })[0]; if (t) c.detail = t.id; else c.web = "offers"; })],
+    ["Geen credits: aanbod op het web", "F052", goApp("app", { who: "anna", atab: "boeken" }, function (c) { renewDemo("usedup"); var t = null; for (var i = 0; i < 14 && !t; i++) t = timetable(F.key(F.add(F.NOW, i))).filter(function (x) { return x.type === "group" && cState(x) === "open"; })[0]; if (t) c.detail = t.id; else c.web = "offers"; })],
     ["Activiteit", "F045", goApp("app", { who: "anna", atab: "training" })],
     ["Gedeelde training", "F045", goApp("app", { who: "anna", atab: "training", workout: 0 })],
     ["Profiel en tegoed", "F033", goApp("app", { who: "anna", atab: "profiel" })],

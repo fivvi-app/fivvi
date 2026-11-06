@@ -37,7 +37,7 @@
   /* The independent-trainer setup has one workspace with private sessions only: no group classes, no Open Gym, no team. */
   /* The business on screen: the gym (team), a solo PT, or one of the scenarios in data.js (pilates, yoga, small groups). */
   var SETUPS = D.setups, ORIG = { today: D.today, pattern: D.pattern, trainers: D.trainers.sf.slice() }, LOADED = "team";
-  function CFG() { return SETUPS[PREF.setup] || (PREF.setup === "solo" ? { team: false, multiWs: false, types: ["priv"] } : { team: true, multiWs: true, types: ["priv", "group", "gym"] }); }
+  function CFG() { return SETUPS[PREF.setup] || (PREF.setup === "solo" ? { team: false, multiWs: false, types: ["priv"] } : { team: true, multiWs: true, types: ["priv", "group"] }); }
   function SOLO() { return !CFG().team; }
   function OWNER() { return SOLO() || PREF.role === "owner"; }
   function HAS(t) { return CFG().types.indexOf(t) >= 0; }
@@ -604,7 +604,7 @@
     items.push(["new-client", "", "Klant", "Naam en e-mailadres. De klant krijgt een uitnodiging om in te loggen."]);
     var icons = { priv: "me", group: "group", gym: "door", "": "personPlus" };
     var body = grp(items.map(function (x) { return row({ a: x[0], lead: '<span class="av" style="--c:' + (x[1] ? CV[x[1]] : "var(--accent)") + ';border-radius:14px">' + ic(icons[x[1]]) + "</span>", title: x[2], sub: x[3], cls: "wrap" }); }), "--inset:68px");
-    if (!SOLO()) body += foot(OWNER() ? "Groepslessen en Open Gym van John's Gym plant de eigenaar." : "Groepslessen en Open Gym van Studio Fit en John's Gym plant de eigenaar.");
+    if (!SOLO()) body += foot(OWNER() ? "Groepslessen van John's Gym plant de eigenaar." : "Groepslessen van Studio Fit en John's Gym plant de eigenaar.");
     return { title: "Nieuw", small: true, body: body };
   };
   SHEETS.newSession = function () {
@@ -830,7 +830,7 @@
       return { t: "Je dag in ringen", h: "<p>" + (ws ? "Alles bij Studio Fit vandaag, van alle trainers." : "Jouw sessies van vandaag.") + "</p><ul class=\"legend\">" +
         li("var(--priv)", "Privé", "Privésessies die al voorbij zijn, van het totaal vandaag.") +
         li("var(--group)", "Groepslessen", "Geboekte plekken van alle groepslessen samen.") +
-        li("var(--gym)", "Open Gym", "Geboekte plekken van alle Open Gym-blokken samen.") + "</ul>", b: [["Begrepen", "close-alert", "pri"]] };
+        "</ul>", b: [["Begrepen", "close-alert", "pri"]] };
     },
     diff: function () {
       function li(e, t, d) { return '<li><i class="emo" aria-hidden="true">' + e + "</i><span><b>" + t + "</b>" + d + "</span></li>"; }
@@ -1190,7 +1190,6 @@
       ["Duosessie loggen", "nieuw", function () { fresh(); S.stacks.today = [{ n: "session", id: "s6" }]; openLogger("s6", "log", "Full body"); S.logs.s6 = S.log; findItem("s6").it.wstate = "running"; S.anim = null; }, true],
       ["Groepsles (invallen)", "TD-03", function () { fresh(); PREF.setup = "team"; S.stacks.today = [{ n: "klass", id: "s5" }]; }, true],
       ["Aanwezigheid les", "CO-05", function () { fresh(); PREF.setup = "team"; var it = findItem("s2").it; it.attDraft = null; S.stacks.today = [{ n: "klass", id: "s2" }, { n: "attendance", id: "s2" }]; }, true],
-      ["Open Gym", "TD-03", function () { fresh(); PREF.setup = "team"; S.stacks.today = [{ n: "klass", id: "s4" }]; }, true],
       ["Nieuw (+)", "TD-05", function () { fresh(); S.sheet = "new"; }],
       ["Nieuwe privésessie", "PS-04", function () { fresh(); A["new-session"](); }, true],
       ["Nieuwe groepsles", "TD-05", function () { fresh(); PREF.role = "owner"; A["new-class"](); }],

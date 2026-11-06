@@ -22,9 +22,8 @@ The first version must solve the real workflow of the pilot gym:
 - group classes
 - multiple trainers
 - class booking for approved clients, with a waitlist
-- Open Gym booking
 - client management
-- memberships, credit packs and credit plans (group, private and Open Gym credits), with a credit balance the owner and the client can trust
+- memberships, credit packs and credit plans (group and private credits), with a credit balance the owner and the client can trust
 - recurring payments and invoices (§90–§97)
 - workout/program management
 - live workout logging
@@ -154,6 +153,8 @@ Only ask when ambiguous.
 
 ## 2.7 Open Gym stays simple
 
+> **Later, not in the MVP (owner, 6 November 2026; §53).** Open Gym comes after the MVP. What this document says about it describes the feature for when it is built.
+
 No:
 
 - floors
@@ -182,7 +183,7 @@ The pilot owner won't use Fivvi in parallel with the old apps (owner, 20 October
 
 A product that only replaces the calendar, while memberships, payments and invoices stay in the old app, is not a replacement (`docs/discovery/results/interview-01.md`). So there is no parallel run and no soft launch next to the old app: everything moves at one cutover (`ROADMAP.md §7`).
 
-So the MVP covers the whole chain for the pilot's standard cases: a group membership with a weekly allowance of classes, and credits in kinds that never mix, group credits for group classes, private credits for private sessions and Open Gym credits for Open Gym, bought as a credit pack or paid monthly as a credit plan (owner, 21 and 31 October 2026; §91, §92). It also covers single classes (single classes and payouts are proposed scope, [decision 9](ROADMAP.md#14-decisions)):
+So the MVP covers the whole chain for the pilot's standard cases: a group membership with a weekly allowance of classes, and credits in kinds that never mix, group credits for group classes and private credits for private sessions, bought as a credit pack or paid monthly as a credit plan (owner, 21 and 31 October 2026; §91, §92). It also covers single classes (single classes and payouts are proposed scope, [decision 9](ROADMAP.md#14-decisions)):
 
 ```text
 agreement → booking → attendance → credit balance → payment → invoice
@@ -530,7 +531,7 @@ Can:
 - log workouts
 - add notes
 - mark attendance
-- see the credit balance of the clients they train, not amounts or invoices (proposal, [QC12](../design/open-questions.md#qc12)); the owner does all commerce
+- see the credit balance of the clients they train, not amounts or invoices (owner, 6 November 2026, [QC12](../design/open-questions.md#qc12)); the owner does all commerce
 
 ---
 
@@ -540,7 +541,7 @@ Can:
 
 - create an account and sign in with their email (§27)
 - ask to join a workspace through its join link, or accept the workspace's invitation (§26)
-- once approved: see the workspace's timetable, book group classes, book Open Gym and join the waitlist of a full class (§21–§25)
+- once approved: see the workspace's timetable, book group classes and join the waitlist of a full class (§21–§25)
 - see their own schedule: group bookings and private sessions together, clearly labelled (§15, Client Web)
 - see their memberships, credit packs, credit plans and credit balances, one per kind (§91–§92)
 - buy a single class (§95)
@@ -974,10 +975,10 @@ The waitlist is **F062**, in M5 with the booking (`ROADMAP.md` v1.29, rules in v
 
 # 25. Booking for approved clients
 
-A signed-in, approved client books group classes and Open Gym slots from the client timetable (§21).
+A signed-in, approved client books group classes from the client timetable (§21).
 
 - **Before M11 (commerce):** being an approved client of the workspace is enough.
-- **From M11:** booking needs an **active agreement that covers the class**: a membership with weekly allowance left, or credits of the matching kind (group credits for a group class, Open Gym credits for Open Gym; §91, §92). A **trial** is just an offer, for example an intro credit pack "once per client" (§90), and books like any agreement.
+- **From M11:** booking needs an **active agreement that covers the class**: a membership with weekly allowance left, or credits of the matching kind (group credits for a group class; §91, §92). A **trial** is just an offer, for example an intro credit pack "once per client" (§90), and books like any agreement.
 - An approved client **without an agreement** sees the timetable and the workspace's offers, and can't book until they have one.
 - **Private sessions** stay booked by the trainer or owner.
 - A **single class** (§95, proposed) can be bought only by a signed-in, approved client.
@@ -1058,6 +1059,8 @@ Everyone signs in with the emailed link or code: email, then the link or the 6-d
 
 # 28. Open Gym
 
+> **Later, not in the MVP (owner, 6 November 2026; §53).** This also holds for §29 to §31.
+
 Definition:
 
 ```text
@@ -1122,14 +1125,13 @@ Later support rules:
 
 Each workspace has **one join link** (§26): the way a new client asks to join. The Owner can **renew** it, and the old one then stops working.
 
-Booking links (the timetable, group classes, Open Gym, a specific class or a specific occurrence) still exist, but they **work only for approved clients** (owner, 31 October 2026, ADR-026): anyone else who opens one is sent to sign in and, with the join link, to ask to join.
+Booking links (the timetable, group classes, a specific class or a specific occurrence) still exist, but they **work only for approved clients** (owner, 31 October 2026, ADR-026): anyone else who opens one is sent to sign in and, with the join link, to ask to join.
 
 Generate:
 
 - the join link
 - all bookings
 - group classes
-- Open Gym
 - specific class
 - specific occurrence
 
@@ -1489,7 +1491,7 @@ Shows only sessions belonging to that workspace.
 
 This remains separate from personal trainer calendar.
 
-**Calendar types and filters (all calendars, §45–§48):** every calendar names each session's type in words (Private, Group, Open Gym) and can filter by type and trainer. Colour may help, but never carries meaning on its own.
+**Calendar types and filters (all calendars, §45–§48):** every calendar names each session's type in words (Private, Group) and can filter by type and trainer. Colour may help, but never carries meaning on its own.
 
 ---
 
@@ -1586,7 +1588,6 @@ Everything above **After go-live** is needed for the pilot's go-live (`ROADMAP.m
 - private sessions
 - group classes
 - recurring classes
-- Open Gym
 - attendance
 - cancellations
 
@@ -1607,7 +1608,6 @@ Everything above **After go-live** is needed for the pilot's go-live (`ROADMAP.m
 - the join link and join requests; client invitations (§26)
 - client sign-up and sign-in by email (§27)
 - group booking, immediate (§25)
-- Open Gym booking
 - the waitlist of a full class (§23)
 
 ## Sharing
@@ -1621,7 +1621,7 @@ Single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisi
 
 - offers and prices (§90)
 - memberships with a weekly allowance of group classes (§91)
-- credit packs and credit plans, group, private and Open Gym (§92)
+- credit packs and credit plans, group and private (§92)
 - credit balance per kind with its history (§92)
 - cancellation cutoff, no-shows and limited makeups (§93)
 - recurring payments through the workspace's payment provider account (decided in ADR-020; §94)
@@ -1670,6 +1670,7 @@ These follow right after go-live, in this order of need. The trainer web keeps w
 
 Do not build yet:
 
+- **Open Gym** (F034 to F036, §28 to §31), with Open Gym credits and the Open Gym booking link: postponed until after the MVP (owner, 6 November 2026). The pilot gym has no Open Gym today and no client asks for it. Where this document still names Open Gym, that applies once it is built. The session type stays in the data model
 - pricing models beyond memberships, credit packs, credit plans and single classes (for example combined credits: one balance for every session type, not planned, owner 21 October 2026; or pay-what-you-use)
 - discounts, coupons, gift cards, family or shared memberships
 - accounting integrations (Moneybird, e-Boekhouden, Exact Online)
@@ -1729,7 +1730,7 @@ The client app is a separate app, **Fivvi** (app ID `app.fivvi`, iOS and Android
 
 **At go-live (owner, 31 October 2026; it was Release 1.2, `ROADMAP.md` v1.31).** Fivvi ships at go-live next to the client web and is built beside it from M5, with iOS and Android parity. The client web stays: no client needs the app (§15).
 
-- **Scope at go-live:** what the client web does: sign in with the emailed code, join a workspace, the client timetable, booking and cancelling, the waitlist, Open Gym, my schedule, profile and the NL/EN switch; from M11 the client's memberships, credit packs and plans, balances, payment history and invoices.
+- **Scope at go-live:** what the client web does: sign in with the emailed code, join a workspace, the client timetable, booking and cancelling, the waitlist, my schedule, profile and the NL/EN switch; from M11 the client's memberships, credit packs and plans, balances, payment history and invoices.
 - **Paying** opens the web payment page in the browser; there are no payments inside the app (§53). Gym services are used outside the app, so the stores don't require in-app purchase.
 - **Notifications:** emails only at go-live; push notifications follow in Release 1.1 (§54).
 - **Distribution:** public App Store and Google Play listings in Dutch and English before go-live, with in-app account deletion (§79), the privacy label and data safety form, and a review account. Go-live doesn't wait for the store review: if Fivvi isn't approved in time, clients use the client web.
@@ -1765,7 +1766,6 @@ Features (the whole app; workout history comes with M7 and push notifications wi
 
 - upcoming bookings
 - group booking
-- Open Gym
 - cancellations
 - activity and workout history
 - doing a shared workout on your own (private to the client, #602)
@@ -2358,7 +2358,7 @@ F033 Client Booking Dashboard
 F062 Waitlist
 ```
 
-## Open Gym
+## Open Gym (later, §53)
 
 ```text
 F034 Open Gym Slots
@@ -2406,7 +2406,7 @@ F050 Trainer Booking Notifications
 ```text
 F052 Offers and Prices
 F053 Memberships
-F054 Credit Packs and Plans (group, private and Open Gym)
+F054 Credit Packs and Plans (group and private)
 F055 Credit Balance
 F056 Cancellation Policy and Makeups
 F057 Recurring Payments
@@ -2479,7 +2479,7 @@ F061 Payouts and Reconciliation
 
 ---
 
-## Phase E — Open Gym
+## Phase E — Open Gym (later, §53)
 
 40. Open Gym creation
 41. capacity
@@ -2506,7 +2506,7 @@ Phase K: single classes and payouts are proposed scope ([decision 9](ROADMAP.md#
 79. offers and prices
 80. payment provider account per workspace (decided in ADR-020)
 81. memberships with a weekly allowance of group classes
-82. credit packs and credit plans, group, private and Open Gym
+82. credit packs and credit plans, group and private
 83. credit balance per kind and its history
 84. cancellation cutoff, no-shows and makeups
 85. recurring payments
@@ -2562,7 +2562,7 @@ Built in parallel with the web, next to each web feature (`ROADMAP.md` M8, the n
 69. add group classes
 70. publish the Dutch-first client timetable and the join link
 71. verify English booking experience
-72. publish Open Gym
+72. (Open Gym: later, §53)
 73. run real sessions
 74. cutover: scheduling, booking and payments all move to Fivvi at once and every client gets the first-payment link for the new mandate; the old app stays read-only until the first full payment cycle reconciles, then it is cancelled (`ROADMAP.md §7`)
 75. observe usage
@@ -2598,7 +2598,6 @@ The MVP succeeds if:
 - clients book on the client timetable
 - Dutch users can complete everything without English
 - English users can complete everything without Dutch
-- Open Gym receives bookings
 - private workout logging replaces Word and by-hand notes
 - notes replace scattered tools
 - previous performance is easy to access
@@ -2642,7 +2641,7 @@ Strongest validation signal:
 
 ## Gym owners
 
-> Manage trainers, clients, private sessions, group classes, Open Gym, memberships, payments and invoices in one place.
+> Manage trainers, clients, private sessions, group classes, memberships, payments and invoices in one place.
 
 ## Trainers
 
@@ -2673,18 +2672,18 @@ An **offer** is what a workspace sells. MVP has four kinds (single class: propos
 | Offer | Example | Paid |
 |---|---|---|
 | **Membership** | 2 group classes a week, booked by the client, for 6 or 12 months | Recurring, usually monthly (§94) |
-| **Credit pack** (group, private or Open Gym) | 26 private credits to use within 6 months (about one session a week) | Once, up front (§94) |
-| **Credit plan** (group, private or Open Gym) | 4 group credits every month, with a carry-over limit | Recurring, every cycle (§94) |
+| **Credit pack** (group or private) | 26 private credits to use within 6 months (about one session a week) | Once, up front (§94) |
+| **Credit plan** (group or private) | 4 group credits every month, with a carry-over limit | Recurring, every cycle (§94) |
 | **Single class** (stays an offer kind any studio can switch on; the single class itself is proposed, [decision 9](ROADMAP.md#14-decisions)) | One group class, on its own or on top of a membership | At booking (§95) |
 
-The owner sets each offer's name (Dutch, optional English, as in §18), price in euros including VAT, VAT rate, term and, for a membership, how many classes a week (1, 2 or 3 at the pilot gym) and which classes it covers; for a credit pack how many credits and how long they stay valid, for a credit plan how many credits each cycle and the carry-over limit (both a validity or limit set on the offer, [QC17](../design/open-questions.md#qc17)). A credit offer is of one kind (group, private or Open Gym), never mixed (§92). A change to an offer applies to new agreements only (proposal, [QC15](../design/open-questions.md#qc15)); the defaults a new workspace starts with are in *Default plans* below.
+The owner sets each offer's name (Dutch, optional English, as in §18), price in euros including VAT, VAT rate, term and, for a membership, how many classes a week (1, 2 or 3 at the pilot gym) and which classes it covers; for a credit pack how many credits and how long they stay valid, for a credit plan how many credits each cycle and the carry-over limit (both a validity or limit set on the offer, [QC17](../design/open-questions.md#qc17)). A credit offer is of one kind (group or private), never mixed (§92). A change to an offer applies to new agreements only (proposal, [QC15](../design/open-questions.md#qc15)); the defaults a new workspace starts with are in *Default plans* below.
 
 Every offer also has these settings (product owner, 31 October 2026, for every workspace; the pilot's choice in brackets):
 
 - **Billing cycle:** every month or every 4 weeks (the pilot: every month, because 4-weekly means 13 payments a year, which the gym owner finds unfair to clients).
 - **Intro offer:** a credit pack can be limited to **once per client**, for example 2 classes valid for 2 weeks (the pilot does trials by hand and won't use it).
 - **Member-only:** an offer can be limited to clients with an active membership, for example extra group credits for a member who wants another class in a week (QC08).
-- **End of term:** the agreement either **stops** (the client chooses a new term, with a reminder and a one-tap renewal; Fivvi sends two reminders automatically, at the start of the offer's renewal window, by default 30 days before the end, the same moment it suggests renewing to the owner, and 7 days before the end (proposed timing, `DECISIONS.md` §7 item 4), also when the owner already sent an offer, and for a credit pack at 2 or fewer credits left, with a card on the client's Home and Tegoed, owner, 5 and 6 November 2026) or **continues per cycle** at the same price until the client gives notice. A continuing agreement follows Dutch consumer law: no tacit renewal for another fixed term, a first term over 12 months is presumed unreasonable, notice of at most one month on any day, and online if the client signed up online (QC07; the legal check is `ROADMAP.md §4.4`). Which setting the pilot uses is open.
+- **End of term:** the agreement either **stops** (the client chooses a new term, with a reminder and a one-tap renewal; Fivvi sends two reminders automatically, at the start of the offer's renewal window, by default 30 days before the end, the same moment it suggests renewing to the owner, and 7 days before the end, also when the owner already sent an offer, and for a credit pack at 2 or fewer credits left, with a card on the client's Home and Tegoed, owner, 5 and 6 November 2026) or **continues per cycle** at the same price until the client gives notice. A continuing agreement follows Dutch consumer law: no tacit renewal for another fixed term, a first term over 12 months is presumed unreasonable, notice of at most one month on any day, and online if the client signed up online (QC07; the legal check is `ROADMAP.md §4.4`). Which setting the pilot uses is open.
 
 **Plan changes** are not an offer setting: the pilot's own rule is **upgrades at any time and no downgrades**. Whether that becomes a setting for every workspace is not decided.
 
@@ -2705,7 +2704,7 @@ A new workspace starts with three ready-made offers, the **default plans** (owne
 
 ## Owner-made plans
 
-The owner can **create their own offers** from scratch (*Nieuw aanbod* / *New offer*; the UI term is to confirm, `packages/i18n/GLOSSARY.md` §4.9), next to or instead of the defaults, with the same fields as a default. Every offer is **one of the four kinds** above (membership, credit pack, credit plan or single class; the single class is proposed, [decision 9](ROADMAP.md#14-decisions)). An owner can't create a new kind, and a credit offer is of one kind, so group, private and Open Gym credits never mix (§92).
+The owner can **create their own offers** from scratch (*Nieuw aanbod* / *New offer*; the UI term is to confirm, `packages/i18n/GLOSSARY.md` §4.9), next to or instead of the defaults, with the same fields as a default. Every offer is **one of the four kinds** above (membership, credit pack, credit plan or single class; the single class is proposed, [decision 9](ROADMAP.md#14-decisions)). An owner can't create a new kind, and a credit offer is of one kind, so group and private credits never mix (§92).
 
 ---
 
@@ -2725,11 +2724,11 @@ A **membership** is a client's agreement for a **weekly allowance** of group cla
 
 # 92. Credits and the credit balance
 
-A **credit** is one unit of a client's credit balance. Credits come in three kinds that never mix (owner, 21 October 2026; Open Gym credits added on 31 October 2026):
+A **credit** is one unit of a client's credit balance. Credits come in two kinds that never mix (owner, 21 October 2026), and a third when Open Gym arrives (§53):
 
 - **Group credits** book group classes.
 - **Private credits** book private sessions.
-- **Open Gym credits** book Open Gym slots (§28). The pilot gym asked for these as their own kind, instead of Open Gym without credits. Whether the pilot sells any, and how, is settled in the F034 and F035 specs.
+- **Open Gym credits (later, §53)** book Open Gym slots (§28). The pilot gym asked for these as their own kind, instead of Open Gym without credits. Whether the pilot sells any, and how, is settled in the F034 and F035 specs.
 
 One credit books one session of its kind: there are no exchange rates between the kinds, and no way to pay a private session with group credits or the other way round. **Combined credits**, one balance for every session type, are not planned (§53).
 

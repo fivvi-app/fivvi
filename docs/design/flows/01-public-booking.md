@@ -1,5 +1,7 @@
 # Flow 01: Public booking on a phone
 
+> **Open Gym comes later (owner, 6 November 2026; `PRODUCT.md §53`).** Open Gym is not in the MVP. What this document says about it describes the feature for when it is built.
+
 > **Design v2 (5 November 2026, ADR-029).** The client web's look and its booking steps are decided in [prototype v2](../prototype-v2/DECISIONS.md#5-client-web-adr-026): booking and joining the waitlist from the list, always with a confirmation. Where this flow and `DECISIONS.md` disagree on the look, `DECISIONS.md` wins.
 
 > **Superseded in part (31 October 2026, [ADR-026](../../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md)).** Nothing is public any more, and there are no holds and no booking verification: a client signs in, joins the workspace by its join link or an invitation (the Owner approves), and books from the client timetable, immediately. The screens below (PB-03 to PB-08, EM-01, the hold and the account note) show the old flow and are redrawn with the F027, F029, F030 and F031 specs. The wireframes of the other flows and the information architecture still use the old names.
