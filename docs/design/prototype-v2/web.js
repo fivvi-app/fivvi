@@ -1361,7 +1361,7 @@
     ["Home", "F033", goApp("app", { who: "anna", atab: "home" })],
     ["Boeken", "F027", goApp("app", { who: "anna", atab: "boeken" })],
     ["Les boeken", "F031", goApp("app", { who: "anna", atab: "boeken" }, function (c) { var t = F.dayItems(F.key(F.add(F.NOW, 1))).filter(function (i) { return i.type !== "priv" && i.people.length < i.cap && !c.booked[i.id]; })[0]; c.detail = t ? t.id : null; c.day = F.key(F.add(F.NOW, 1)); })],
-    ["Geen credits: aanbod op het web", "F052", goApp("app", { who: "anna", atab: "boeken" }, function (c) { renewDemo("usedup"); var t = timetable(F.key(F.add(F.NOW, 1)))[0] || timetable(F.TODAY)[0]; if (t) c.detail = t.id; else c.web = "offers"; })],
+    ["Geen credits: aanbod op het web", "F052", goApp("app", { who: "anna", atab: "boeken" }, function (c) { renewDemo("usedup"); var t = null; for (var i = 0; i < 14 && !t; i++) t = timetable(F.key(F.add(F.NOW, i))).filter(function (x) { return x.type === "group" && cState(x) === "open"; })[0]; if (t) c.detail = t.id; else c.web = "offers"; })],
     ["Activiteit", "F045", goApp("app", { who: "anna", atab: "training" })],
     ["Gedeelde training", "F045", goApp("app", { who: "anna", atab: "training", workout: 0 })],
     ["Profiel en tegoed", "F033", goApp("app", { who: "anna", atab: "profiel" })],
