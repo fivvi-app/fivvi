@@ -57,6 +57,8 @@ section{padding:clamp(56px,8vw,104px) 0 0}
 .nav .links a:hover{background:var(--fill)}
 .nav .links a[aria-current="page"]{color:var(--ink);font-weight:600;background:var(--fill)}
 .signin{font-size:15px;color:var(--ink2);white-space:nowrap}
+.signin.onphone{display:none;padding:7px 12px}
+@media (max-width:480px){.bar>.signin{display:none}.signin.onphone{display:block}}
 .lang{display:flex;gap:0;background:var(--fill);padding:2px;border-radius:999px;font-size:13px;font-weight:600}
 .lang button{padding:4px 10px;border-radius:999px;color:var(--muted)}
 .lang button[aria-pressed="true"]{background:var(--card);color:var(--ink);box-shadow:0 1px 3px rgba(0,0,0,.14)}
@@ -76,7 +78,7 @@ section{padding:clamp(56px,8vw,104px) 0 0}
 
 /* hero */
 .hero{padding-top:clamp(32px,4.4vw,56px);text-align:left}
-.hero h1{font-size:clamp(50px,8.4vw,104px);line-height:.98;letter-spacing:-.042em;font-weight:700}
+.hero h1{font-size:clamp(50px,7vw,92px);line-height:.98;letter-spacing:-.042em;font-weight:700}
 .hero h1 em{font-style:normal;color:var(--muted)}
 .hero .lead{margin-top:22px}
 .who{margin-top:24px}
@@ -156,8 +158,6 @@ section{padding:clamp(56px,8vw,104px) 0 0}
 .acard{background:var(--card);border-radius:var(--r);overflow:hidden;display:flex;flex-direction:column;transition:transform .25s}
 .acard:hover{transform:translateY(-3px)}
 .acard .art{aspect-ratio:4/3;object-fit:contain;width:100%;padding:12px 0 0}
-.acard div.poster{aspect-ratio:4/3;flex:none;padding:18px;gap:4px}
-.acard .poster b{font-size:clamp(44px,5vw,64px)}
 .acard div{padding:18px 18px 20px;display:flex;flex-direction:column;gap:6px;flex:1}
 .acard h3{font-size:21px;line-height:1.15;letter-spacing:-.015em;font-weight:700}
 .acard p{color:var(--muted);font-size:15px;line-height:1.35;flex:1}
@@ -170,15 +170,8 @@ section{padding:clamp(56px,8vw,104px) 0 0}
 .ahero .lead{margin-top:18px}
 .herogrid{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,4fr);gap:clamp(20px,4vw,56px);align-items:center}
 .heroart .art{width:100%;aspect-ratio:1;object-fit:contain}
-.heroart .poster{aspect-ratio:1;border-radius:calc(var(--r)*1.4);padding:clamp(20px,3vw,34px)}
-.heroart .poster b{font-size:clamp(64px,8.6vw,124px)}
 .ahero .stage{margin-top:clamp(24px,4vw,48px)}
-@media (max-width:760px){.herogrid{grid-template-columns:1fr}.heroart{max-width:280px}}
-
-/* the numbers style: the app's gradient card as a poster */
-.poster{display:flex;flex-direction:column;justify-content:flex-end;gap:6px;color:#fff;background:linear-gradient(color-mix(in srgb,var(--c) 85%,#000),color-mix(in srgb,var(--c) 75%,#000))}
-.poster b{font-weight:800;line-height:1;letter-spacing:-.03em}
-.poster span{font-size:15px;line-height:1.25;font-weight:600}
+@media (max-width:760px){.herogrid{grid-template-columns:minmax(0,1fr)}.heroart{max-width:300px;margin:0 auto}}
 
 /* pains */
 .pains{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;margin-top:32px}
@@ -253,7 +246,7 @@ section{padding:clamp(56px,8vw,104px) 0 0}
 .stylehead p{color:var(--muted);margin-top:6px;max-width:44em;text-wrap:pretty}
 .stylecards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:18px}
 .stylecards .acard:hover{transform:none}
-.stylecards .acard>div:not(.poster){padding:12px 14px 14px}
+.stylecards .acard>div{padding:12px 14px 14px}
 .stylecards .acard h3{font-size:15px;letter-spacing:0}
 @media (max-width:760px){.stylecards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 

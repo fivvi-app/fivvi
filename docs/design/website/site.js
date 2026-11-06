@@ -4,7 +4,7 @@
   var EXTRA = ["richting", "prijzen", "demo", "support", "account-verwijderen", "privacy", "voorwaarden", "subverwerkers", "beeld"];
   var root = document.documentElement;
   var page = document.getElementById("page"), nav = document.getElementById("nav"), foot = document.getElementById("foot"), review = document.getElementById("review");
-  var S = { lang: "nl", who: "gym", kind: "pilates", demo: 0, plat: "pro", style: "obj" };
+  var S = { lang: "nl", who: "gym", kind: "pilates", demo: 0, plat: "pro", style: "mina" };
   try { S.lang = localStorage.getItem("fivvi-site-lang") || "nl"; } catch (e) { /* storage unavailable */ }
 
   function t(x) { return x[S.lang === "en" ? 1 : 0]; }
@@ -28,15 +28,11 @@
     return '<div class="phone ' + (id.indexOf("android") > -1 ? "android " : "") + (cls || "") + '">' + img(id, eager) + "</div>";
   }
   /* An audience's image stands on its own and is never a background (owner). */
-  var ART_KEY = { gym: "gym", studio: "studio", pt: "pt", klanten: "client" };
+  var ART_KEY = { gym: "gym", pt: "pt", klanten: "client" };
   function art(k, style) {
-    style = style || S.style;
-    if (style === "num") {
-      var n = P.styles.posters[k];
-      return '<div class="poster" style="--c:' + colour(n[0]) + '"><b class="num">' + n[1] + "</b><span>" + t(n[2]) + "</span></div>";
-    }
-    return '<img class="art" src="assets/photos/' + style + "-" + ART_KEY[k] + '.webp" alt="" loading="lazy">';
+    return '<img class="art" src="assets/photos/' + (style || S.style) + "-" + (ART_KEY[k] || S.kind) + '.webp" alt="" loading="lazy">';
   }
+
   function colour(k) { return { priv: "var(--priv)", group: "var(--group)", ok: "var(--ok)", accent: "var(--accent)" }[k]; }
   function who(s) { return s.split("{who}").join(S.kind === "yoga" ? (S.lang === "en" ? "teacher" : "docent") : (S.lang === "en" ? "instructor" : "instructeur")); }
 
@@ -45,6 +41,7 @@
     nav.innerHTML = '<div class="wrap"><div class="bar"><a class="mark" href="#" aria-label="Fivvi">Fivvi<i></i></a><nav class="links">' +
       ORDER.map(function (k) { return '<a href="#' + k + '"' + (r === k ? ' aria-current="page"' : "") + ">" + t(A[k].nav) + "</a>"; }).join("") +
       '<a href="#prijzen"' + (r === "prijzen" ? ' aria-current="page"' : "") + ">" + t(P.nav.pricing) + "</a>" +
+      '<span class="signin onphone">' + t(P.nav.login) + "</span>" +
       '</nav><div class="lang" role="group" aria-label="Taal / Language"><button data-lang="nl" aria-pressed="' + (S.lang === "nl") + '">NL</button><button data-lang="en" aria-pressed="' + (S.lang === "en") + '">EN</button></div><span class="signin">' + t(P.nav.login) + '</span><a class="btn primary small" href="#demo">' + t(P.nav.demo) + "</a></div></div>";
     review.innerHTML = "<b>" + t(UI.proposal) + '</b><a href="#richting">' + t(UI.openChoices) + '</a><button data-theme-toggle>' + (mode() === "dark" ? t(UI.light) : t(UI.dark)) + "</button>";
     var F = P.foot;
@@ -90,9 +87,9 @@
 
   function home() {
     var a = A[S.who];
-    return '<div class="wrap hero"><h1>' + t(UI.tagline) + '</h1><p class="lead">' + t(UI.heroLead) + "</p>" + statusLine() + '<div class="who"><p id="who-l">' + t(UI.iam) + '</p><div class="seg" role="group" aria-labelledby="who-l">' +
+    return '<div class="wrap hero"><div class="herogrid"><div><h1>' + t(UI.tagline) + '</h1><p class="lead">' + t(UI.heroLead) + "</p>" + statusLine() + '<div class="who"><p id="who-l">' + t(UI.iam) + '</p><div class="seg" role="group" aria-labelledby="who-l">' +
       ORDER.map(function (k) { return '<button data-who="' + k + '" aria-pressed="' + (S.who === k) + '">' + t(A[k].who) + "</button>"; }).join("") +
-      '</div></div><div class="herocopy" id="herocopy"><p>' + t(a.short) + '</p><a class="link" href="#' + S.who + '">' + t(UI.see) + ' →</a></div><div class="stage" id="stage">' + stage() + "</div></div>" +
+      '</div></div></div><div class="heroart" id="heroart">' + art(S.who) + '</div></div><div class="herocopy" id="herocopy"><p>' + t(a.short) + '</p><a class="link" href="#' + S.who + '">' + t(UI.see) + ' →</a></div><div class="stage" id="stage">' + stage() + "</div></div>" +
       '<section><div class="wrap"><p class="eyebrow">' + t(UI.onePlaceEye) + '</p><h2 class="h2">' + t(UI.onePlaceH) + '</h2><p class="lead" style="margin-top:14px">' + t(UI.onePlaceLead) + '</p><div class="oneplace"><ul class="scatter">' +
       UI.scattered.map(function (s) { return "<li><s>" + t(s) + '</s><span class="tick">' + t(UI.gone) + "</span></li>"; }).join("") +
       '<li class="now"><span>' + t(UI.oneRow) + '</span><span class="tick">' + t(UI.oneRowD) + "</span></li></ul>" + device("web-agenda") + "</div></div></section>" +
@@ -174,7 +171,7 @@
     var X = P.styles;
     return head(X.eye, X.h1, X.lead) + X.list.map(function (o) {
       var on = S.style === o[0];
-      return '<section class="stylerow"><div class="stylehead"><div><h2>' + t(o[1]) + (o[0] === "min" ? " <mark>" + t(X.rec) + "</mark>" : "") + "</h2><p>" + t(o[2]) + '</p></div><button class="btn ' + (on ? "tonal" : "primary") + ' small" data-style-pick="' + o[0] + '">' + t(on ? X.on : X.see) + '</button></div><div class="stylecards">' + ORDER.map(function (k) { return '<div class="acard">' + art(k, o[0]) + "<div><h3>" + t(A[k].cardH) + "</h3></div></div>"; }).join("") + "</div></section>";
+      return '<section class="stylerow"><div class="stylehead"><div><h2>' + t(o[1]) + (o[0] === "mina" ? " <mark>" + t(X.rec) + "</mark>" : "") + "</h2><p>" + t(o[2]) + '</p></div><button class="btn ' + (on ? "tonal" : "primary") + ' small" data-style-pick="' + o[0] + '">' + t(on ? X.on : X.see) + '</button></div><div class="stylecards">' + ORDER.map(function (k) { return '<div class="acard">' + art(k, o[0]) + "<div><h3>" + t(A[k].cardH) + "</h3></div></div>"; }).join("") + "</div></section>";
     }).join("") + "</div>";
   }
 
@@ -212,6 +209,7 @@
       S.who = b.dataset.who;
       document.querySelectorAll("[data-who]").forEach(function (o) { o.setAttribute("aria-pressed", o.dataset.who === S.who); });
       document.getElementById("stage").innerHTML = stage();
+      document.getElementById("heroart").innerHTML = art(S.who);
       document.getElementById("herocopy").innerHTML = "<p>" + t(A[S.who].short) + '</p><a class="link" href="#' + S.who + '">' + t(UI.see) + " →</a>";
       return;
     }

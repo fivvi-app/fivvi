@@ -21,10 +21,19 @@ node docs/design/website/build-legal.cjs
 
 ## Images
 
-Generated with Codex's built-in `image_gen` tool on the owner's ChatGPT subscription, with transparent backgrounds and no people, text or logos. An image stands on its own beside the words, and is never a background behind screens or text (owner). The owner is choosing between three styles at `#beeld`; the unused ones then leave this folder.
+A series of miniature 3D scenes, generated with Codex's built-in `image_gen` tool on the owner's ChatGPT subscription, with transparent backgrounds and no people, text or logos. An image stands on its own beside the words, and is never a background behind screens or text (owner). The owner chose miniatures over objects and number posters, and rejected empty rooms and screens only. Two colourings are compared at `#beeld` (`mina-*` light, `minb-*` pink); the unused one then leaves this folder.
 
-- **Objects** (`obj-*`): *clean Apple-like product photography of one simple matte fitness object group, soft even studio light, a subtle soft contact shadow, one crisp accent colour of vivid pink #E6164A, everything else black, white or grey.*
-- **Miniatures** (`min-*`): *a miniature isometric 3D diorama on a small rounded square base, matte clay materials, soft even light, simple rounded forms, tidy and calm, palette of white, light grey and charcoal with one crisp accent colour of vivid pink #E6164A.*
-- **Numbers:** no images. The app's gradient card as a poster, in CSS.
+To keep the series consistent, make one master, then pass it with `-i` as a style reference for the others ("match its camera angle, base shape and size, materials, lighting and colours exactly"). Always run Codex with `</dev/null`, or it can wait forever.
 
-Rejected by the owner: empty rooms (they looked like stock photos) and screens only (the pages already have screens).
+**Shared style:** a premium 3D illustration with a high-end Blender render look. A miniature cutaway scene in isometric view, seen from the front right at about 30 degrees, standing on one thick square base with softly rounded corners. Soft matte clay materials with subtle bevels, soft global illumination and gentle ambient occlusion, warm light from the upper left, small crisp details, tidy and uncluttered, charming and calm.
+
+- **Light:** warm white walls and base, pale grey, light oak wood, a little soft green from plants, with vivid pink #E6164A on two or three objects only.
+- **Pink:** tone on tone, the entire scene in tints and shades of one vivid pink hue based on #E6164A, with white highlights.
+
+| File | Scene |
+|---|---|
+| `gym` | A boutique gym room: squat rack, bench, dumbbell rack, a strip of turf with a sled, kettlebells, a steel-framed window |
+| `pilates` | A bright studio: three reformers in a row, a tall arched window, rolled mats, a pilates ring |
+| `yoga` | A warm room: four mats, cork blocks and bolsters, a paper floor lamp, a linen curtain |
+| `pt` | A corner of a Dutch city park: a tree, a gravel path, a bench, an exercise mat with a kettlebell and a water bottle |
+| `client` | The street front of a small Dutch studio: brick, a glass door, a bench with a sports bag, a Dutch bicycle |

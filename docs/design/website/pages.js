@@ -109,20 +109,13 @@ window.PAGES = (function () {
     },
     styles: {
       eye: ["Beeldstijl", "Image style"],
-      h1: ["Welke beeldstijl past bij Fivvi?", "Which image style fits Fivvi?"],
-      lead: ["Drie richtingen op dezelfde kaarten. Met de knop zie je een stijl overal op de site. Zeg welke je wilt, of wat je anders wilt.", "Three directions on the same cards. The button shows a style across the whole site. Tell me which you want, or what you'd change."],
+      h1: ["Welke miniaturen passen bij Fivvi?", "Which miniatures fit Fivvi?"],
+      lead: ["Dezelfde vijf plekken, in twee kleuren. Met de knop zie je ze overal op de site.", "The same five places, in two colourings. The button shows them across the site."],
       see: ["Bekijk op de site", "See it on the site"], on: ["Staat nu aan", "Currently on"], rec: ["Mijn advies", "My advice"],
       list: [
-        ["obj", ["Objecten", "Objects"], ["Eén object met roze als enige kleur, los op de pagina en nooit achter iets. Strak en rustig, net als Fivvi zelf.", "One object with pink as the only colour, standing free on the page and never behind anything. Crisp and calm, just like Fivvi itself."]],
-        ["min", ["Miniaturen", "Miniatures"], ["Een klein 3D-wereldje voor elke doelgroep: de sportschool, de studio, het park en de ingang. Speels en het blijft hangen, maar minder strak dan de app.", "A small 3D world for each audience: the gym, the studio, the park and the entrance. Playful and memorable, but less crisp than the app."]],
-        ["num", ["Cijfers", "Numbers"], ["Geen foto's, maar de gradientkaarten en ronde cijfers van de app als poster. Zonder AI, dus niets kan nep lijken. Het is ook het meest eigen aan Fivvi.", "No photos, but the app's gradient cards and rounded numbers as posters. No AI, so nothing can look fake. It's also the most Fivvi of the three."]]
-      ],
-      posters: {
-        gym: ["priv", "4", ["trainers tegelijk, één agenda", "trainers at once, one calendar"]],
-        studio: ["group", "6/6", ["Vol, en 2 op de wachtlijst", "Full, and 2 on the waitlist"]],
-        pt: ["ok", "07:30", ["Je eerste klant, en je weet al alles", "Your first client, and you know it all"]],
-        klanten: ["accent", "7", ["groepscredits over", "group credits left"]]
-      }
+        ["mina", ["Licht", "Light"], ["Warm wit en licht eiken, met roze als accent. Rustig, en het past bij het grijze canvas en de witte kaarten van de app. Elke plek herken je meteen.", "Warm white and light oak, with pink as the accent. Calm, and it fits the app's grey canvas and white cards. You recognise each place right away."]],
+        ["minb", ["Roze wereld", "Pink world"], ["Alles in het roze van Fivvi. Dit valt direct op en is helemaal van ons, maar het is krachtig naast de roze knoppen en je ziet minder detail.", "Everything in Fivvi's pink. It stands out right away and is entirely ours, but it's strong next to the pink buttons and shows less detail."]]
+      ]
     },
     direction: {
       decidedH: ["Wat je hebt besloten", "What you decided"],
