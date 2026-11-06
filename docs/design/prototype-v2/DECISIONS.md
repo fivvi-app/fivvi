@@ -368,7 +368,7 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
 
 ## 7. Assumptions
 
-The prototype had to choose something for these. **The owner confirmed every item here on 6 November 2026, except items 9, 12, 13 and 15, and the starting value in item 14.** A spec builds the confirmed items as written. The others are not decided, so a spec that touches them asks the owner.
+The prototype had to choose something for these. **The owner confirmed every item here on 6 November 2026, except items 9, 12, 13 and 15.** A spec builds the confirmed items as written. The others are not decided, so a spec that touches them asks the owner.
 
 1. **Trainers and balances:** trainers see their clients' credit balances, but no money (`QC12`).
 2. ***Aanbod sturen*:** it sends the client a link to confirm and pay.
@@ -401,7 +401,7 @@ The prototype had to choose something for these. **The owner confirmed every ite
     - the client adds exercises from the library only and can't create new ones.
 12. **Reminder emails to the owner** (#466): one the day after starting without finishing, and one 3 days later; none once payments work. Mollie emails the owner itself when it needs something.
 13. **A connection that breaks later** (#466): the studio stays open for its clients, who keep booking with what they have, and the join link keeps working. New online sales and renewals stop until the owner reconnects.
-14. **Weekly limit** (#483): an option on every membership offer, next to *Ongebruikte lessen*, and it shows whether unused classes expire or stay valid, because the pilot uses both a limit of 4 and expiring classes (owner, 6 November 2026). Not decided: what it starts at. For now a new offer starts with no limit and the default plan with the pilot's 4, as a proposal (#483 question 5).
+14. **Weekly limit** (#483): an option on every membership offer, next to *Ongebruikte lessen*, and it shows whether unused classes expire or stay valid, because the pilot uses both a limit of 4 and expiring classes (owner, 6 November 2026). The default plan starts at the pilot's 4 (owner, 6 November 2026, answering #483 question 5). A new offer the owner builds from scratch starts with no limit.
 15. **Screens added on 6 November 2026 from the spec text** (`more-*.js`): the screens and states the specs already described but the prototype didn't show. The copy follows the spec, shortened in places, and the spec's wording wins when they differ. The layout isn't the owner's choice until they've clicked through it. *Korte teksten* lists messages with no screen of their own.
 16. **A trainer or owner changing their own email address** (owner, 6 November 2026): the same account-level step as a client's (#497, F033, verified by a code), on *Mijn profiel* and in Fivvi Pro's *Profiel*. F005 (#173) built the address as read-only and left changing it out of scope (F001), so this has a spec of its own, [#610](https://github.com/fivvi-app/fivvi/issues/610).
 17. **Scanning a QR code in the client app** (owner, 6 November 2026): yes, as #484 has it: *QR-code scannen* on the no-studio screen, in the app only. A Fivvi join link opens the join screen; anything else, or no camera access, shows its own message.
