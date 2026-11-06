@@ -573,3 +573,8 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .w-lose li{display:flex;gap:8px;align-items:flex-start}
 .w-lose svg{flex:none;width:16px;height:16px;margin-top:2px;color:var(--danger)}
 .w-sub{margin:14px 0 0;font-size:13px;font-weight:600}
+
+.w-paydesk{display:flex;align-items:center;gap:14px;margin-top:14px;padding:12px 14px;border:1px solid var(--w-border);border-radius:12px}
+.w-paydesk>div{flex:1;min-width:0}
+.w-paydesk p{margin:2px 0 0;color:var(--w-mfg);font-size:13px}
+.w-paydesk .w-switch{flex:none}
