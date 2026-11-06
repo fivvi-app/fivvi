@@ -44,8 +44,12 @@ A later role, not in the MVP: manages the calendar, classes, bookings, clients a
 _Avoid_: administrator, manager
 
 **Trainer**:
-Runs sessions and classes, logs workouts, writes notes and marks attendance. One trainer can work in several workspaces.
+Runs sessions and classes, logs workouts, writes notes and marks attendance. One trainer can work in several workspaces. In the UI a workspace can call its trainers something else (see **Workspace's word**); the role stays Trainer.
 _Avoid_: coach, instructor, teacher, PT (as a role name)
+
+**Workspace's word**:
+What a workspace calls its trainers in every screen, email and on the QR poster: trainer, instructor, teacher or coach (the Dutch words go in `packages/i18n/GLOSSARY.md` with F068's first ticket). One choice per workspace, from this fixed list. A person who works at two workspaces sees each one's own word. It changes the wording only, never the Trainer role or its rights.
+_Avoid_: job title, trainer name
 
 **Independent trainer**:
 A trainer who runs their own workspace.
@@ -87,7 +91,7 @@ The generic word for any scheduled item: a private session, a class occurrence o
 _Avoid_: appointment, event, activity
 
 **Private session**:
-A trainer-led session for one named client, created by a trainer (an owner who trains counts as one).
+A trainer-led session for one named client, or two in a **Duo session**, created by a trainer (an owner who trains counts as one).
 _Avoid_: PT session, personal training, appointment, lesson
 
 **Class**:
@@ -149,6 +153,14 @@ A queue for a full group class occurrence. When a spot frees up (a cancellation,
 **Waitlist closing time**:
 A workspace setting, in minutes before a class starts (default 30): after it nobody moves up the waitlist and nobody can join, and everyone still waiting gets a "you didn't get in" email. Not the *cancellation cutoff*, which is in hours and is about cancelling.
 _Avoid_: cut-off, cutoff (alone: easily confused with the cancellation cutoff)
+
+**Duo session**:
+A private session with two clients and one trainer. Each client has their own credit, attendance, notes and workout. Only the trainer plans one; if one client cancels, it continues as a private session for the other.
+_Avoid_: semi-private, small group, group class
+
+**Class level**:
+How demanding a class is, from a fixed list: all levels, beginner, intermediate, advanced. Set on the series and changeable per date. It is information only: it never limits who can book.
+_Avoid_: difficulty (that belongs to an exercise in a workout), grade
 
 ### Locations
 
@@ -255,7 +267,7 @@ What a client can still use under one agreement, in credits of one kind (group o
 _Avoid_: session balance (retired), saldo, remaining sessions
 
 **Weekly limit**:
-The most bookings one client can make in a week, a workspace setting (a number, or off). The pilot uses 4, whatever the size of the membership. It also stops a client from saving up unused weekly classes and using them all at once.
+The most bookings one client can make in a week, set per membership offer (a number, or off). The pilot uses 4, whatever the size of the membership. It also stops a client from saving up unused weekly classes and using them all at once.
 _Avoid_: maximum, cap, quota
 
 **Billing cycle**:
@@ -274,6 +286,10 @@ _Avoid_: deadline, notice period, cut-off (alone)
 A right to attend another class, granted under the cancellation policy, for example for a cancellation in time.
 _Avoid_: credit (a makeup is not a credit), catch-up, reschedule (that moves a session)
 
+**Guest** 🔜:
+A friend a client brings to a class under *bring a friend*, a setting on an offer (later, `PRODUCT.md §66`). A client is never called a guest.
+_Avoid_: visitor, plus-one, trial client
+
 **Payment provider**:
 The payment company through which clients' online payments run. In Fivvi it is Mollie, as [ADR-020](docs/decisions/ADR-020-payment-provider.md) decided (Accepted, 21 October 2026), with Stripe Connect as the fallback. Who the merchant is, and that the workspace has its own account with it, is set out in `PRODUCT.md §94`.
 _Avoid_: bank
@@ -283,7 +299,7 @@ The business that sells to the client and receives the money. In Fivvi it is the
 _Avoid_: seller (alone), vendor
 
 **Payment**:
-Money collected from a client: a first payment, a recurring payment or a single class.
+Money collected from a client: a first payment, a recurring payment or a single class. A **Payment outside Fivvi** is recorded by the owner and collected by them.
 _Avoid_: transaction (outside code), charge
 
 **Recurring payment**:
@@ -317,6 +333,14 @@ _Avoid_: refund (a different thing)
 **Payout**:
 A transfer from the payment provider to the workspace, made up of payments minus refunds, chargebacks and fees.
 _Avoid_: settlement, withdrawal
+
+**Payment outside Fivvi**:
+A payment the owner took themselves (cash, card at the studio or bank transfer) and records on the client's profile. No money moves through Fivvi or Mollie, the agreement or credits start right away, and it gets no automatic invoice. It always stays on record.
+_Avoid_: manual payment, offline payment, cash sale
+
+**Studio without Mollie**:
+A workspace whose owner chose to take payments only at the studio. Clients can join and book but can't pay, buy or renew online, and the owner records every payment. The owner can connect Mollie later at any time.
+_Avoid_: cash-only account, offline studio
 
 ### Training
 
@@ -356,6 +380,10 @@ The client's last logged performance for an exercise, shown next to today's sets
 
 **Workout history**:
 All logged workouts of a client.
+
+**Own workout**:
+A workout a client does on their own from one their trainer shared, logged in the client app. It is private to the client: trainers and the owner never see it. It isn't a session: no booking, credit, attendance or note.
+_Avoid_: solo session, self-training, home workout
 
 ### Notes
 

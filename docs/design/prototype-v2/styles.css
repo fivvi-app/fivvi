@@ -666,3 +666,5 @@ input:focus,select:focus,textarea:focus{outline:none}
 .row .m b .lvl.c,.lvl.c{display:inline-flex;margin-left:7px;vertical-align:1px;color:var(--label2)}
 .row .m b .lvl.c i{display:block}
 .alert p:not(:last-of-type){margin-bottom:8px}
+.pro-line{margin:0 0 10px;color:var(--label)}
+.pro-check{display:flex;gap:8px;align-items:center;padding:8px 2px}
