@@ -534,19 +534,23 @@ window.FIVVI_I18N = (function () {
   function reEsc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
   var PHL = Object.keys(PH).sort(function (a, b) { return b.length - a.length; }).map(function (k) { return [new RegExp("(^|[^\\p{L}])" + reEsc(k) + "(?=$|[^\\p{L}])", "gu"), PH[k]]; });
 
+  /* class names the owner typed, in a list of their own that always wins: empty means "show the Dutch".
+     A class in the prototype is known by its Dutch name, as its description is; offers keep their own English. */
+  var TYPED = {}, TYPEDL = [];
+  function nameClass(nl, en) { TYPED[nl] = en || ""; TYPEDL = Object.keys(TYPED).sort(function (a, b) { return b.length - a.length; }).map(function (k) { return [new RegExp("(^|[^\\p{L}])" + reEsc(k) + "(?=$|[^\\p{L}])", "gu"), TYPED[k] || k]; }); }
+  function wholeName(nl) { return nl in TYPED ? TYPED[nl] : Object.prototype.hasOwnProperty.call(PH, nl) ? PH[nl] : ""; }
   function isEx(x) { var L = window.FIVVI_DATA && window.FIVVI_DATA.library; return !!L && L.some(function (e) { return e.n === x; }); }
   function P(s) {
     /* one pass per position: protect replaced text so "Agenda" → "Calendar" isn't touched again */
     var out = s.replace(/Bij (\S+) thuis/g, "At $1's home").replace(/Je valt in voor /g, "Covering for ").replace(/Bezig · gestart om /g, "In progress · started at "), marks = [];
-    PHL.forEach(function (p) { out = out.replace(p[0], function (m, pre) { marks.push(p[1]); return pre + "\u0001" + (marks.length - 1) + "\u0002"; }); });
+    TYPEDL.concat(PHL).forEach(function (p) { out = out.replace(p[0], function (m, pre) { marks.push(p[1]); return pre + "\u0001" + (marks.length - 1) + "\u0002"; }); });
     out = out.replace(/\u0001(\d+)\u0002/g, function (m, i) { return marks[+i]; });
     return out.replace(/(\d)\.(\d{3}),(\d{2})/g, "$1\u0003$2.$3").replace(/(\d),(\d)/g, "$1.$2").replace(/\u0003/g, ",");
   }
-  /* names the owner typed: the viewer in English sees the English one, and clearing it brings the Dutch back */
-  var TYPED = {};
   function T(s) {
     var lead = s.match(/^\s*/)[0], trail = s.match(/\s*$/)[0], core = s.trim();
     if (!core) return s;
+    if (core in TYPED) return lead + (TYPED[core] || core) + trail;
     if (PH[core]) return lead + PH[core] + trail;
     for (var i = 0; i < RULES.length; i++) { if (RULES[i][0].test(core)) return lead + core.replace(RULES[i][0], RULES[i][1]) + trail; }
     return lead + P(core) + trail;
@@ -573,5 +577,5 @@ window.FIVVI_I18N = (function () {
     root.querySelectorAll && root.querySelectorAll("input").forEach(function (i) { if (lang === "en" && /^\d+,\d+$/.test(i.value) && i.dataset.ls) i.value = i.value.replace(",", "."); });
   }
   /* the screens in more-*.js carry their English next to their Dutch */
-  return { apply: apply, T: T, add: function (nl, en) { if (!(nl in PH)) PH[nl] = en; return nl; }, name: function (nl, en) { if (en) { PH[nl] = en; TYPED[nl] = true; } else if (TYPED[nl]) { delete PH[nl]; delete TYPED[nl]; } }, rule: function (re, en) { RULES.unshift([re, en]); }, P: P };
+  return { apply: apply, T: T, add: function (nl, en) { if (!(nl in PH)) PH[nl] = en; return nl; }, nameClass: nameClass, wholeName: wholeName, rule: function (re, en) { RULES.unshift([re, en]); }, P: P };
 })();

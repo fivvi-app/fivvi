@@ -1001,7 +1001,7 @@
     },
     "save-class": function () {
       var f = S.form; if (!f.name.trim()) { bad("name", "Vul een naam in"); return; }
-      window.FIVVI_I18N.name(f.name.trim(), (f.nameEn || "").trim());
+      if ((f.nameEn || "").trim()) window.FIVVI_I18N.nameClass(f.name.trim(), f.nameEn.trim());
       var it = { id: "n" + Date.now(), ws: "sf", type: "group", s: f.start, e: f.end, title: f.name.trim(), level: f.level || "", cap: +f.cap || 10, people: [], loc: "Studio Fit, Kerkstraat 12", desc: { nl: (f.desc || "").trim(), en: (f.descEn || "").trim() } };
       dayItems(f.date); DAYCACHE[f.date].push(it); S.sheet = null; S.stacks[S.tab].push({ n: "klass", id: it.id }); S.anim = "push"; toast(f.rep === "Niet herhalen" ? "Groepsles gepland" : "Wekelijkse groepsles gepland");
     },

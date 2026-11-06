@@ -223,7 +223,7 @@
   I.rule(/^Geldig: (\d+) (maanden|week)$/, function (m, n, u) { return "Valid: " + n + (u === "week" ? " week" : " months"); });
   function buyPage(state) {
     var c = C(), pf = c.payFor, o = pf.offer, yl = pf.ws === "yl", ws = yl ? "Yoga Loft" : "Studio Fit", rec = o.kind === "abo" || o.kind === "plan", s = ST.filter(function (x) { return x[0] === state; })[0], price = euro(o.price), term = /^(\d+) maanden$/.exec(o.term || "");
-    var b = '<div class="pad stack"><div class="card c-payres" style="--c:var(--accent)"><span>' + ic("info") + "</span><h3>" + esc(s[4][0]) + "</h3><p><b>" + esc(pf.name) + "</b> · <span>" + esc(price) + "</span> · <span>" + esc(o.cycle || "Eenmalig") + "</span></p><p>Vandaag betaal je " + esc(price) + "</p>";
+    var b = '<div class="pad stack"><div class="card c-payres" style="--c:var(--accent)"><span>' + ic("info") + "</span><h3>" + esc(s[4][0]) + "</h3><p><b>" + X.offerLabel(o.nameEn === undefined ? { name: pf.name } : o) + "</b> · <span>" + esc(price) + "</span> · <span>" + esc(o.cycle || "Eenmalig") + "</span></p><p>Vandaag betaal je " + esc(price) + "</p>";
     if (rec) b += "<p>Daarna " + esc(price) + (o.cycle === "Elke 4 weken" ? " per 4 weken via automatische incasso" : " per maand via automatische incasso, op de 5e") + "</p>";
     if (term && o.end === "stop") b += "<p>Looptijd: " + term[1] + " maanden. Na 5 " + MONTHS[(F.NOW.getMonth() + +term[1]) % 12] + " stopt je abonnement. We herinneren je 30 en 7 dagen van tevoren.</p>";
     else if (term) b += "<p><span>Looptijd</span>: <span>" + esc(o.term) + "</span></p>";
