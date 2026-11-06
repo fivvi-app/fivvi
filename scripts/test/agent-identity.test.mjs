@@ -736,6 +736,86 @@ describe('scripts/agent-identity.mjs', () => {
       assert.equal(read().hooks.SessionStart.length, 1);
     });
 
+    describe('a checkout path that needs quoting', () => {
+      let spaced;
+      let spacedSettings;
+      const spacedSetup = (...args) =>
+        run(['setup', ...args], {
+          env,
+          cwd: spaced,
+          script: join(spaced, 'scripts', 'agent-identity.mjs'),
+        });
+      const hooks = () =>
+        JSON.parse(readFileSync(spacedSettings, 'utf8')).hooks?.SessionStart ?? [];
+
+      beforeEach(() => {
+        spaced = join(home, 'my checkout');
+        mkdirSync(join(spaced, 'scripts'), { recursive: true });
+        copyFileSync(SCRIPT, join(spaced, 'scripts', 'agent-identity.mjs'));
+        execFileSync('git', ['init', '--quiet', spaced], { env });
+        spacedSettings = join(home, 'spaced-settings.json');
+      });
+
+      it('setup twice leaves one hook', async () => {
+        await spacedSetup('--assignee', 'example-owner', '--settings', spacedSettings);
+        const once = readFileSync(spacedSettings, 'utf8');
+        await spacedSetup('--assignee', 'example-owner', '--settings', spacedSettings);
+        assert.equal(readFileSync(spacedSettings, 'utf8'), once);
+        assert.equal(hooks().length, 1);
+      });
+
+      it('--remove takes the hook out', async () => {
+        await spacedSetup('--assignee', 'example-owner', '--settings', spacedSettings);
+        const result = await spacedSetup('--remove', '--settings', spacedSettings);
+        assert.equal(result.status, 0, result.stderr);
+        assert.match(result.stderr, /removed/);
+        assert.deepEqual(JSON.parse(readFileSync(spacedSettings, 'utf8')), {});
+      });
+    });
+
+    describe('a script that is not in the main checkout', () => {
+      let worktree;
+      const worktreeSetup = (...args) =>
+        run(['setup', ...args], {
+          env,
+          cwd: worktree,
+          script: join(worktree, 'scripts', 'agent-identity.mjs'),
+        });
+
+      beforeEach(() => {
+        // The script is in a linked worktree only; the main checkout (where the wiring points) does not have it.
+        const identity = ['-c', 'user.name=Test', '-c', 'user.email=test@example.com'];
+        execFileSync(
+          'git',
+          ['-C', checkout, ...identity, 'commit', '--allow-empty', '--quiet', '-m', 'init'],
+          { env },
+        );
+        worktree = join(home, 'worktree');
+        execFileSync('git', ['-C', checkout, 'worktree', 'add', '--quiet', '--detach', worktree], {
+          env,
+        });
+        mkdirSync(join(worktree, 'scripts'), { recursive: true });
+        copyFileSync(SCRIPT, join(worktree, 'scripts', 'agent-identity.mjs'));
+      });
+
+      it('setup refuses and writes nothing', async () => {
+        rmSync(scriptPath());
+        const result = await worktreeSetup('--assignee', 'example-owner', '--settings', settings);
+        assert.notEqual(result.status, 0);
+        assert.match(result.stderr, /agent-identity: .*does not exist/);
+        assert.equal(existsSync(settings), false);
+        assert.equal(api.requests.length, 0);
+      });
+
+      it('--remove still works', async () => {
+        await setup('--assignee', 'example-owner', '--settings', settings);
+        rmSync(scriptPath());
+        const result = await worktreeSetup('--remove', '--settings', settings);
+        assert.equal(result.status, 0, result.stderr);
+        assert.deepEqual(read(), {});
+      });
+    });
+
     it('--remove undoes exactly what setup added', async () => {
       const before = {
         permissions: { allow: ['Bash(ls:*)'] },
@@ -961,7 +1041,7 @@ describe('scripts/agent-identity.mjs', () => {
         const { line } = await runHook(hookCommand(), env);
         assert.match(
           line,
-          /^GH_TOKEN="\$\(node .*agent-identity\.mjs token 2>\/dev\/null\)"; export GH_TOKEN="\$\{GH_TOKEN:-fivvi-claude-token-unavailable\}" GIT_ASKPASS=\/usr\/bin\/false SSH_ASKPASS=\/usr\/bin\/false GIT_TERMINAL_PROMPT=0\n$/,
+          /^GH_TOKEN="\$\(node .*agent-identity\.mjs token 2>\/dev\/null\)"; export GH_TOKEN="\$\{GH_TOKEN:-fivvi-claude-token-unavailable\}" GIT_ASKPASS=\/usr\/bin\/false SSH_ASKPASS=\/usr\/bin\/false GIT_TERMINAL_PROMPT=0 GIT_CONFIG_COUNT=4 GIT_CONFIG_KEY_0=user\.name GIT_CONFIG_VALUE_0='[^']*\[bot\]' GIT_CONFIG_KEY_1=user\.email GIT_CONFIG_VALUE_1='[^']*\[bot\]@users\.noreply\.github\.com' GIT_CONFIG_KEY_2=credential\.https:\/\/github\.com\.helper GIT_CONFIG_VALUE_2='' GIT_CONFIG_KEY_3=credential\.https:\/\/github\.com\.helper GIT_CONFIG_VALUE_3='!node .*agent-identity\.mjs git-credential'\n$/,
         );
       });
 
@@ -1056,12 +1136,12 @@ describe('scripts/agent-identity.mjs', () => {
         );
         return { ...env, ...read().env, GIT_ASKPASS: askpass, SSH_ASKPASS: askpass };
       };
-      const git = (args, input = '', { hook = true, shell = 'sh' } = {}) => {
+      const git = (args, input = '', { hook = true, shell = 'sh', extraEnv = {} } = {}) => {
         const envFile = join(home, 'session-env.sh');
         writeFileSync(envFile, '');
         const script = hook ? 'eval "$HOOK"; . "$CLAUDE_ENV_FILE"; exec git "$@"' : 'exec git "$@"';
         return exec(shell, ['-c', script, shell, '-C', checkout, ...args], {
-          env: { ...sessionEnv(), HOOK: hookCommand(), CLAUDE_ENV_FILE: envFile },
+          env: { ...sessionEnv(), ...extraEnv, HOOK: hookCommand(), CLAUDE_ENV_FILE: envFile },
           input,
         });
       };
@@ -1120,6 +1200,38 @@ describe('scripts/agent-identity.mjs', () => {
           assert.equal(result.status, 0, result.stderr);
           assert.match(result.stdout, new RegExp(`^password=${FAKE_TOKEN}$`, 'm'));
         });
+      }
+
+      for (const shell of SHELLS) {
+        for (const count of ['0', '1']) {
+          // A caller's GIT_CONFIG_COUNT beats the settings env block, so only the hook's line can hold the wiring.
+          const caller = {
+            GIT_CONFIG_COUNT: count,
+            GIT_CONFIG_KEY_0: 'user.name',
+            GIT_CONFIG_VALUE_0: 'Caller',
+          };
+
+          it(`in ${shell}, with a caller's GIT_CONFIG_COUNT=${count}, git still commits as the bot`, async () => {
+            const result = await git(['var', 'GIT_AUTHOR_IDENT'], '', { shell, extraEnv: caller });
+            assert.equal(result.status, 0, result.stderr);
+            assert.match(result.stdout, new RegExp(`^${SLUG}\\[bot\\] <${BOT_ID}\\+`));
+          });
+
+          it(`in ${shell}, with a caller's GIT_CONFIG_COUNT=${count}, git credential fill fails closed when the helper fails`, async () => {
+            rmSync(join(configDir(), 'app.json'));
+            const result = await git(['credential', 'fill'], GITHUB, { shell, extraEnv: caller });
+            assert.equal(result.status, 128, result.stderr);
+            assert.ok(!result.stdout.includes('owners-stored-login'));
+            assert.ok(!result.stdout.includes(ASKPASS_ANSWER));
+          });
+
+          it(`in ${shell}, with a caller's GIT_CONFIG_COUNT=${count}, the helper answers with the token`, async () => {
+            const result = await git(['credential', 'fill'], GITHUB, { shell, extraEnv: caller });
+            assert.equal(result.status, 0, result.stderr);
+            assert.match(result.stdout, new RegExp(`^password=${FAKE_TOKEN}$`, 'm'));
+            assert.ok(!result.stdout.includes('owners-stored-login'));
+          });
+        }
       }
 
       it("the gap, the control: in a session where the hook did not run, the caller's askpass answer does come through", async () => {

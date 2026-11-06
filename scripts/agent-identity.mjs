@@ -92,7 +92,7 @@ function readPrivateKey(app) {
     encoded = execFileSync(
       'security',
       ['find-generic-password', '-a', KEYCHAIN_ACCOUNT, '-s', String(app.keychain_service), '-w'],
-      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 15_000 },
+      { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'], timeout: 5_000 },
     ).trim();
   } catch {
     throw new Failure('could not read the App key from the Keychain');
@@ -135,7 +135,7 @@ async function mint(app, repository) {
           'X-GitHub-Api-Version': '2022-11-28',
         },
         body: JSON.stringify({ repositories: [repository] }),
-        signal: AbortSignal.timeout(15_000),
+        signal: AbortSignal.timeout(5_000),
       },
     );
   } catch {
@@ -252,36 +252,49 @@ const HOOK_MARKER = 'agent-identity.mjs token';
 
 // One line for the SessionStart env file (Claude Code sources it before each Bash command, in sh and in zsh). Its exports
 // win over a value the caller already set; the settings `env` block does not. So the line carries what must win: the
-// token (an invalid one when none can be minted, never an empty one) and, so that git has nothing to ask but the helper,
-// an askpass program that fails and no terminal prompt.
+// token (an invalid one when none can be minted, never an empty one), an askpass program that fails and no terminal
+// prompt, and the GIT_CONFIG_* entries (a caller's own GIT_CONFIG_COUNT would otherwise drop the reset of the stored login
+// and the bot as author).
 const ENV_LINE_TAIL = 'GIT_ASKPASS=/usr/bin/false SSH_ASKPASS=/usr/bin/false GIT_TERMINAL_PROMPT=0';
+
+function gitConfigEnv(values) {
+  const env = { GIT_CONFIG_COUNT: String(values.length) };
+  values.forEach((value, i) => {
+    env[`GIT_CONFIG_KEY_${i}`] = GIT_CONFIG_KEYS[i];
+    env[`GIT_CONFIG_VALUE_${i}`] = value;
+  });
+  return env;
+}
 
 function wiring({ scriptPath, slug, botId, assignee }) {
   const script = shellQuote(scriptPath);
-  const line = `GH_TOKEN="$(node ${script} token 2>/dev/null)"; export GH_TOKEN="\${GH_TOKEN:-${UNAVAILABLE_TOKEN}}" ${ENV_LINE_TAIL}`;
-  const command = `printf '%s\\n' ${shellQuote(line)} >> "$CLAUDE_ENV_FILE"`;
-  const values = [
+  const gitConfig = gitConfigEnv([
     `${slug}[bot]`,
     `${botId}+${slug}[bot]@users.noreply.github.com`,
     '',
     `!node ${script} git-credential`,
-  ];
+  ]);
+  const exports = Object.entries(gitConfig)
+    .map(([key, value]) => `${key}=${shellQuote(value)}`)
+    .join(' ');
+  const line = `GH_TOKEN="$(node ${script} token 2>/dev/null)"; export GH_TOKEN="\${GH_TOKEN:-${UNAVAILABLE_TOKEN}}" ${ENV_LINE_TAIL} ${exports}`;
+  const command = `printf '%s\\n' ${shellQuote(line)} >> "$CLAUDE_ENV_FILE"`;
   // The default for a session where the hook did not run: an invalid GH_TOKEN, and no terminal prompt. A value the
   // caller already set wins over this block, so an askpass of the caller's is not closed here, only by the hook's line.
   const env = {
     FIVVI_ASSIGNEE: assignee,
     GH_TOKEN: UNAVAILABLE_TOKEN,
     GIT_TERMINAL_PROMPT: '0',
-    GIT_CONFIG_COUNT: String(values.length),
+    ...gitConfig,
   };
-  values.forEach((value, i) => {
-    env[`GIT_CONFIG_KEY_${i}`] = GIT_CONFIG_KEYS[i];
-    env[`GIT_CONFIG_VALUE_${i}`] = value;
-  });
   return { command, env };
 }
 
-const isOurHook = (hook) => String(hook?.command ?? '').includes(HOOK_MARKER);
+// Quote-aware: a path that needs quoting splits the marker with quote marks (`'…/agent-identity.mjs'\'' token`).
+const isOurHook = (hook) =>
+  String(hook?.command ?? '')
+    .replace(/['"\\]/g, '')
+    .includes(HOOK_MARKER);
 // The env keys setup writes besides GIT_CONFIG_*.
 const OWN_ENV = ['FIVVI_ASSIGNEE', 'GH_TOKEN', 'GIT_TERMINAL_PROMPT'];
 // An earlier setup also wrote these two, empty; --remove takes them out of a wired file, only when still empty.
@@ -435,8 +448,14 @@ async function setup(args) {
   const app = readApp();
   const slug = String(app.slug || '');
   if (!slug) throw new Failure('the App config has no slug');
+  const scriptPath = join(main, 'scripts', 'agent-identity.mjs');
+  if (!existsSync(scriptPath)) {
+    throw new Failure(
+      `${scriptPath} does not exist, and the wiring would make every gh and git login fail; run setup from a checkout that has it`,
+    );
+  }
   const { command, env } = wiring({
-    scriptPath: join(main, 'scripts', 'agent-identity.mjs'),
+    scriptPath,
     slug,
     botId: await botId(slug),
     assignee,
