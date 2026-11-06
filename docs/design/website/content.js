@@ -40,15 +40,15 @@ window.COPY = (function () {
     platH: ["Echt thuis op elk scherm.", "At home on every screen."],
     platLead: ["De apps voor iPhone en Android komen eraan, met het glas van iOS en de stijl van Android. In je browser vind je dezelfde rust.", "The apps for iPhone and Android are coming, with iOS glass and the Android style. In your browser you'll find the same calm."],
     plat: {
-      pro: { name: ["Eigenaren en trainers", "Owners and trainers"], items: [
-        ["pro-today-gym", ["Fivvi Pro op iPhone", "Fivvi Pro on iPhone"], ["Met het glas van iOS.", "With iOS glass."]],
-        ["pro-today-android", ["Fivvi Pro op Android", "Fivvi Pro on Android"], ["Op de manier van Android.", "The Android way."]],
-        ["web-dashboard", ["Fivvi in je browser", "Fivvi in your browser"], ["Voor de administratie op je laptop.", "For the admin on your laptop."], 1]
+      pro: { name: ["Eigenaren en trainers", "Owners and trainers"], colour: "priv", items: [
+        ["pro-today-gym", ["Fivvi Pro op iPhone", "Fivvi Pro on iPhone"], ["Je dag, je klanten en je trainingen, altijd bij de hand.", "Your day, clients and workouts, always at hand."]],
+        ["pro-today-android", ["Fivvi Pro op Android", "Fivvi Pro on Android"], ["Alles wat de iPhone kan, op de manier van Android.", "Everything the iPhone does, the Android way."]],
+        ["web-dashboard", ["Fivvi op je laptop", "Fivvi on your laptop"], ["Aanbod, trainers, betalingen en facturen op een groot scherm, met wat aandacht nodig heeft bovenaan.", "Offers, trainers, payments and invoices on a big screen, with what needs attention at the top."], 1]
       ] },
-      client: { name: ["Klanten", "Clients"], items: [
-        ["app-home", ["Fivvi op iPhone", "Fivvi on iPhone"], ["Je volgende les, deze week en je tegoed.", "Your next class, this week and your balance."]],
+      client: { name: ["Klanten", "Clients"], colour: "group", items: [
+        ["app-home", ["Fivvi op iPhone", "Fivvi on iPhone"], ["Je volgende les, deze week en je tegoed op één scherm.", "Your next class, this week and your balance on one screen."]],
         ["app-android", ["Fivvi op Android", "Fivvi on Android"], ["Dezelfde app, op de manier van Android.", "The same app, the Android way."]],
-        ["cw-timetable", ["Fivvi in je browser", "Fivvi in your browser"], ["Boeken zonder iets te installeren.", "Booking without installing anything."]]
+        ["cw-timetable", ["Fivvi in je browser", "Fivvi in your browser"], ["Geen app nodig: boek via de link van je studio.", "No app needed: book through your studio's link."]]
       ] }
     },
     promisesEye: ["Waar je op kunt rekenen", "What you can count on"],

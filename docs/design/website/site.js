@@ -106,7 +106,7 @@
 
   function devices() {
     var p = UI.plat[S.plat];
-    return '<div class="devices">' + p.items.map(function (i) { return '<figure class="' + (i[3] ? "wide" : "") + '">' + device(i[0]) + "<figcaption><b>" + t(i[1]) + "</b><span>" + t(i[2]) + "</span></figcaption></figure>"; }).join("") + "</div>";
+    return '<div class="bento" style="--c:' + colour(p.colour) + '">' + p.items.map(function (i) { return '<article class="bcard' + (i[3] ? " wide" : "") + '"><div class="btxt"><h3>' + t(i[1]) + "</h3><p>" + t(i[2]) + '</p></div><div class="bvis">' + device(i[0]) + "</div></article>"; }).join("") + "</div>";
   }
 
   function promises() {
