@@ -47,8 +47,8 @@ const SHOTS = [
   ['pro-class-yoga', '0,1', 'ios', 'yoga', 'open-class'],
   ['web-class-pilates', '1,9', 'web', 'pilates'],
   ['web-class-yoga', '1,9', 'web', 'yoga'],
-  ['web-join-pilates', '1,12', 'web', 'pilates'],
-  ['web-join-yoga', '1,12', 'web', 'yoga'],
+  ['web-join-pilates', '1,12', 'web', 'pilates', 'poster'],
+  ['web-join-yoga', '1,12', 'web', 'yoga', 'poster'],
   // Trainer web
   ['web-dashboard', '1,0', 'web', 'team'],
   ['web-agenda', '1,3', 'web', 'team'],
@@ -71,7 +71,7 @@ const SHOTS = [
     html,body,.board,.stage,.mk{background:transparent!important}
     .dev,.dev.android,.dev.web{box-shadow:none!important}
     .mobile-fab{display:none!important}
-    .c-proto,.w-proto{display:none!important} /* the prototype's own helper box */
+    .c-proto,.w-proto,.w-paydemo{display:none!important} /* the prototype's own helper boxes */
   ` });
   const pref = (k, v) => page.click(`#panel [data-pref="${k}"][data-v="${v}"]`);
 
@@ -88,6 +88,13 @@ const SHOTS = [
       }
       await page.locator('#dev [data-a="c-day"]').nth(best).click();
       await page.waitForTimeout(150);
+    },
+    /* the join link's QR code, then its A4 poster */
+    poster: async () => {
+      await page.locator('#dev button').filter({ hasText: /^\s*QR[- ]code\s*$/ }).first().click();
+      await page.waitForTimeout(200);
+      await page.locator('#dev button').filter({ hasText: /^\s*(Afdrukken|Print)\b/ }).first().click();
+      await page.waitForTimeout(200);
     },
     'open-class': async () => {
       await page.locator('#dev').getByText(/^(Reformer Classic|Vinyasa Flow)/).first().click();

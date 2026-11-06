@@ -155,7 +155,7 @@
   function deletion() {
     var X = P.del;
     function list(c, items) { return '<ul class="' + c + '">' + items.map(function (i) { return "<li><span>" + t(i) + "</span></li>"; }).join("") + "</ul>"; }
-    return head(X.eye, X.h1, X.lead) + '<div class="delgrid"><div class="dcard"><h3>' + t(X.appH) + '</h3><ol class="olist bare" style="list-style:none;padding:0;margin-top:8px">' + X.app.map(function (s) { return "<li><div><span>" + t(s) + "</span></div></li>"; }).join("") + '</ol></div><div class="dcard"><h3>' + t(X.mailH) + "</h3><p>" + t(X.mail) + '</p></div><div class="dcard"><h3>' + t(X.goneH) + "</h3>" + list("ticks", X.gone) + '</div><div class="dcard"><h3>' + t(X.keepH) + "</h3>" + list("dots", X.keep) + '</div></div><p class="notebox">' + t(X.owner) + "</p></div>";
+    return head(X.eye, X.h1, X.lead) + '<div class="delgrid"><div class="dcard"><h3>' + t(X.appH) + '</h3><ol class="olist bare" style="list-style:none;padding:0;margin-top:8px">' + X.app.map(function (s) { return "<li><div><span>" + t(s) + "</span></div></li>"; }).join("") + '</ol></div><div class="dcard"><h3>' + t(X.goneH) + "</h3>" + list("ticks", X.gone) + '</div><div class="dcard"><h3>' + t(X.keepH) + "</h3>" + list("dots", X.keep) + '</div></div><p class="notebox">' + t(X.owner) + "</p></div>";
   }
 
   function legal(key, title) {

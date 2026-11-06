@@ -443,6 +443,7 @@ Designed with the owner on 6 November 2026 in its own artifact, [Fivvi Website](
 - **Platforms (owner):** the section shows what owners and trainers use and what clients use, each on iPhone, Android and in the browser: Fivvi Pro and the trainer web, Fivvi and the client web.
 - **Images:** real screens first. Next to them an image that stands on its own beside the words, never as a background behind screens or text (owner). No people, so nothing passes for a real customer. The images are **one series of miniature 3D scenes in a light colouring** (owner): warm white and light oak with pink as the accent, one for each audience and for pilates and yoga. On the homepage it follows the *Ik ben* switch. Empty rooms, screens only, objects, number posters and an all-pink version were tried and rejected (owner).
 - **Nothing made up:** no figures, testimonials or ratings until they exist.
+- **Deleting an account:** the page at `/account-verwijderen` and `/delete-account` is built by [#477](https://github.com/fivvi-app/fivvi/issues/477), as a sign-in page with the danger-zone steps of §6, and the site links to it. The artifact shows its words; the email route is on the help page.
 
 **Assumptions, not yet confirmed by the owner:**
 
@@ -450,7 +451,5 @@ Designed with the owner on 6 November 2026 in its own artifact, [Fivvi Website](
 2. **The demo and support:** a demo of 30 minutes online, and a reply within 1 working day to demo requests and questions.
 3. **The trade name** K&S Apps, from #151, and the addresses `support@fivvi.app` and `privacy@fivvi.app`.
 4. **A signed-in user** who opens `/` goes to their home in the app.
-
-The page for deleting an account, `/account-verwijderen` and `/delete-account`, is built by [#477](https://github.com/fivvi-app/fivvi/issues/477) as a sign-in page with the danger-zone steps of §6, and the site links to it. The artifact shows its words.
 5. **Going live before the product is ready.** The site goes live for Mollie, before M11 (payments and invoices), M7 (workouts, notes, sharing) and the store listings. So every page says Fivvi is being built with its first gym and the demo says what's ready, and each claim is checked before publishing (#611 AC19).
 
