@@ -17,6 +17,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import app.fivvi.core.R
 import app.fivvi.designtokens.Spacing
@@ -41,6 +44,23 @@ fun OfflineBanner(updatedAt: Instant, zone: ZoneId, tag: String) {
             .background(MaterialTheme.colorScheme.secondaryContainer)
             .padding(horizontal = Spacing.space4, vertical = Spacing.space2)
             .testTag(tag),
+        color = MaterialTheme.colorScheme.onSecondaryContainer,
+        style = MaterialTheme.typography.body,
+    )
+}
+
+/** "Je bent offline. Sommige gegevens zijn misschien niet actueel." at the top of a screen that has no list with a time of its own. */
+@Composable
+fun OfflineNotice(tag: String) {
+    val message = stringResource(R.string.common_offline)
+    Text(
+        text = message,
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.secondaryContainer)
+            .padding(horizontal = Spacing.space4, vertical = Spacing.space2)
+            .testTag(tag)
+            .semantics { liveRegion = LiveRegionMode.Polite },
         color = MaterialTheme.colorScheme.onSecondaryContainer,
         style = MaterialTheme.typography.body,
     )

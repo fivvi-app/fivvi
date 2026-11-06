@@ -37,6 +37,78 @@
         }
       }
     },
+    "clientNav.book" : {
+      "comment" : "Second tab of the client app: where a client books a class. A verb in the tab bar (GLOSSARY: Book / Boeken).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Book"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Boeken"
+          }
+        }
+      }
+    },
+    "clientNav.home" : {
+      "comment" : "First tab of the client app. The same word in both languages (GLOSSARY: Home).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Home"
+          }
+        }
+      }
+    },
+    "clientNav.label" : {
+      "comment" : "Accessibility label of the client app's tab bar (TalkBack).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Main navigation"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hoofdnavigatie"
+          }
+        }
+      }
+    },
+    "clientNav.profile" : {
+      "comment" : "Third tab of the client app: the client's name, email address, language and sign-out.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profile"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Profiel"
+          }
+        }
+      }
+    },
     "clients.add" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -831,6 +903,24 @@
         }
       }
     },
+    "common.offline" : {
+      "comment" : "Banner at the top of the client app while the phone has no connection. Not tied to one list, so it has no time (clients.offline names the time of a cached list).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're offline. Some information may be out of date."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je bent offline. Sommige gegevens zijn misschien niet actueel."
+          }
+        }
+      }
+    },
     "common.retry" : {
       "comment" : "Button under an error message that tries the failed action again.",
       "extractionState" : "manual",
@@ -1404,6 +1494,60 @@
         }
       }
     },
+    "noWorkspace.haveLink" : {
+      "comment" : "Second line of the no-workspace state in the client app: the join link opens in the app when it is tapped on this phone.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Got the link? Open it on this phone."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Heb je de link al? Open hem op deze telefoon."
+          }
+        }
+      }
+    },
+    "noWorkspace.teamHint" : {
+      "comment" : "Third line of the no-workspace state, only for an account that is Owner or Trainer of a workspace: points to the trainer app (Fivvi Pro).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Are you a trainer or owner? Use the Fivvi Pro app."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ben je trainer of eigenaar? Gebruik de app Fivvi Pro."
+          }
+        }
+      }
+    },
+    "noWorkspace.title" : {
+      "comment" : "Client app, Home and Boeken while the client belongs to no workspace: tells them to ask their studio for the join link. The wording is marked in GLOSSARY.md until the pilot gym owner confirms.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Ask your studio for its link."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vraag je studio om de aanmeldlink."
+          }
+        }
+      }
+    },
     "notFound.body" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1557,6 +1701,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Opgeslagen."
+          }
+        }
+      }
+    },
+    "profile.version" : {
+      "comment" : "Line at the end of the client app's Profiel with the app's version. {version} is the version number, e.g. '0.1.0'.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Version %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Versie %1$@"
           }
         }
       }

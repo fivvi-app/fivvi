@@ -11,4 +11,5 @@ fun observabilityConfigOfThisBuild() = ObservabilityConfig(
     dsn = BuildConfig.SENTRY_DSN,
     environment = BuildConfig.SENTRY_ENVIRONMENT,
     release = "${BuildConfig.APPLICATION_ID}@${BuildConfig.VERSION_NAME}+${BuildConfig.VERSION_CODE}",
+    app = "fivvi-pro",
 )

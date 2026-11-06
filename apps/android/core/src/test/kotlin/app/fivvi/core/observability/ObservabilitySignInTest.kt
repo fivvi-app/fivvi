@@ -35,7 +35,13 @@ private const val DSN = "https://public@o0.ingest.de.sentry.io/1"
  */
 @RunWith(Parameterized::class)
 class ObservabilitySignInTest(@Suppress("UNUSED_PARAMETER") tag: String, private val language: AppLanguage) {
-    private val config = ObservabilityConfig(dsn = DSN, environment = "production", release = "app.fivvi.pro@1.2.3+45")
+    private val config =
+        ObservabilityConfig(
+            dsn = DSN,
+            environment = "production",
+            release = "app.fivvi.pro@1.2.3+45",
+            app = "fivvi-pro",
+        )
     private var transport: CaptureTransport? = null
     private lateinit var defaultLocale: Locale
 
