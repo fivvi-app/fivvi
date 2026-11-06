@@ -9,11 +9,13 @@
 
 ## Context
 
-ADR-029 chose Move pink `#E6164A` as the accent, with a black-and-white accent as the alternative. The prototype also offered four other accents to compare. The foundation spec had to know how far the alternative reached: only in the tokens, or as a setting for a workspace.
+ADR-029 chose Move pink `#E6164A` as the accent, with a black-and-white accent as the alternative. The prototype also has four other accents to compare. The foundation spec had to know how far the alternative reached: only in the tokens, or as a setting for a workspace.
 
 ## Decision
 
-**Move pink is Fivvi's primary colour and only accent.** There is no black-and-white or other accent, in the tokens, as a setting or in the prototype.
+**Move pink is Fivvi's primary colour and only accent.** The product has no black-and-white or other accent, in the tokens or as a setting.
+
+The clickable prototype keeps its accent switch, so the owner can compare colours. It's a design tool and not part of the product: Move pink is what the prototype starts on, and nothing is built from the other colours.
 
 The accent stays one token, so it can change in one place if that's ever needed. Everything else in ADR-029 stands.
 

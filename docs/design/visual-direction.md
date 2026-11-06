@@ -56,4 +56,4 @@ It reads clearly in a busy gym: time, client, location, capacity and the next ac
 
 ## Where to look
 
-Every screen is in the prototype. Its panel switches iOS, Android, trainer web and client web, the language, light and dark, the role and five business setups. [`DECISIONS.md`](prototype-v2/DECISIONS.md) lists what was decided per screen and what is still open.
+Every screen is in the prototype. Its panel switches iOS, Android, trainer web and client web, the language, light and dark, the accent, the role and five business setups. [`DECISIONS.md`](prototype-v2/DECISIONS.md) lists what was decided per screen and what is still open.
