@@ -49,7 +49,6 @@ window.FIVVI_I18N = (function () {
 [/^Online betalen is bij (.+) nog niet mogelijk\.$/, "Online payment isn't available at $1 yet."],
 [/^Gelukt! (.+) is betaald\.$/, function (m, n) { return "Done! " + P(n) + " has been paid."; }],
 [/^(.+) annuleren\?$/, function (m, n) { return "Cancel " + P(n) + "?"; }],
-[/^(.+) verwijderen\?$/, function (m, n) { return "Delete " + P(n) + "?"; }],
 [/^Herinnering verstuurd (.+) · laatste uiterlijk (.+)$/, function (m, d, l) { return "Reminder sent " + P(d) + " · last one by " + P(l); }],
 [/^Herinnering verstuurd (.+)$/, function (m, d) { return "Reminder sent " + P(d); }],
 [/^Aanbod verstuurd (\d.+)$/, function (m, d) { return "Offer sent " + P(d); }],
@@ -548,8 +547,8 @@ window.FIVVI_I18N = (function () {
     /* one pass per position: protect replaced text so "Agenda" → "Calendar" isn't touched again */
     var marks = [], out = s.replace(OWN, function (m, own) { marks.push(own); return "\u0001" + (marks.length - 1) + "\u0002"; }).replace(/Bij (\S+) thuis/g, "At $1's home").replace(/Je valt in voor /g, "Covering for ").replace(/Bezig · gestart om /g, "In progress · started at ");
     TYPEDL.concat(PHL).forEach(function (p) { out = out.replace(p[0], function (m, pre) { marks.push(p[1]); return pre + "\u0001" + (marks.length - 1) + "\u0002"; }); });
-    out = out.replace(/\u0001(\d+)\u0002/g, function (m, i) { return marks[+i]; });
-    return out.replace(/(\d)\.(\d{3}),(\d{2})/g, "$1\u0003$2.$3").replace(/(\d),(\d)/g, "$1.$2").replace(/\u0003/g, ",");
+    out = out.replace(/(\d)\.(\d{3}),(\d{2})/g, "$1\u0003$2.$3").replace(/(\d),(\d)/g, "$1.$2").replace(/\u0003/g, ",");
+    return out.replace(/\u0001(\d+)\u0002/g, function (m, i) { return marks[+i]; });
   }
   function T(s) { return tr(s).replace(OWNMARK, ""); }
   function tr(s) {

@@ -66,7 +66,7 @@
   function av(n, c) { return '<span class="w-av" style="--c:' + (c || "#8E8E93") + '">' + F.initials(n) + "</span>"; }
   function bar(v, of, c) { return '<span class="w-bar" style="--c:' + c + '"><i style="width:' + (of ? Math.min(100, Math.round(v / of * 100)) : 0) + '%"></i></span>'; }
   function personName(id) { var c = F.CLIENT[id]; return c ? c.name : ["Ruben Vos", "Kim de Graaf", "Jasper Kok", "Mila Bos", "Sem Dekker", "Lotte Prins", "Finn Smits", "Zoë Meijer", "Daan Bos", "Iris Prins"][(+String(id).replace(/\D/g, "") || 0) % 10]; }
-  function desc(title) { var d = D.descriptions[title]; if (!d) return null; return D && window.FV.PREF.lang === "en" && d.en ? { t: d.en, nl: false } : { t: d.nl, nl: window.FV.PREF.lang === "en" }; }
+  function desc(title) { var d = D.descriptions[title]; if (!d || !(d.nl || d.en)) return null; return D && window.FV.PREF.lang === "en" && d.en ? { t: d.en, nl: false } : { t: d.nl, nl: window.FV.PREF.lang === "en" }; }
   function itemTitle(i) { return F.title(i); }
   function openA(i) { return i.type === "priv" ? "w-open-priv" : "w-open-class"; }
   /* ---------- billing (PRODUCT.md §90–§96) ---------- */
@@ -602,7 +602,7 @@
     else if (d.n === "wlremove") { t = "Van de wachtlijst halen?"; b = "<p>" + esc(waitNames(it)[d.i]) + " krijgt een e-mail en staat niet meer op de wachtlijst.</p>"; ok = "Verwijderen"; kind = "dng"; cancel = "Terug"; }
     else if (d.n === "renew") { t = "Link vernieuwen?"; b = "<p>De oude link en QR-code werken daarna niet meer. Hangt de QR-code ergens, vervang die dan ook.</p>"; ok = "Vernieuwen"; kind = "dng"; }
     else if (d.n === "decline") { var r = D.requests.filter(function (x) { return x.id === d.id; })[0]; t = "Verzoek afwijzen?"; b = "<p>" + esc(r.name) + " krijgt een korte e-mail en ziet niets van " + esc(wsName()) + ". Later opnieuw vragen kan.</p>"; ok = "Afwijzen"; kind = "dng"; cancel = "Terug"; }
-    else if (d.n === "offer-edit") { var oe = d.id ? offerById(d.id) : null; t = oe ? oe.name + " wijzigen" : "Nieuw aanbod"; b = offerDialog(d); ok = oe ? "Opslaan" : "Toevoegen"; }
+    else if (d.n === "offer-edit") { var oe = d.id ? offerById(d.id) : null; t = oe ? F.agrName(oe) + " wijzigen" : "Nieuw aanbod"; b = offerDialog(d); ok = oe ? "Opslaan" : "Toevoegen"; }
     else if (d.n === "offer-del") { var od = offerById(d.id); t = F.agrName(od) + " verwijderen?"; b = "<p>Klanten kunnen het niet meer kopen." + (od.active ? " De " + od.active + " lopende afspraken lopen door tot hun einde." : "") + "</p>"; ok = "Verwijderen"; kind = "dng"; cancel = "Terug"; }
     else if (d.n === "offer") {
       var oc = F.CLIENT[W().cid], oa = d.ag ? D.billing[W().cid].agreements.filter(function (x) { return x.id === d.ag; })[0] : null, run = oa && oa.endsIn >= 0 && oa.status !== "expired";

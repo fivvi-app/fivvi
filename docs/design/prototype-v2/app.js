@@ -1217,7 +1217,7 @@
       ["Vandaag", "TD-01", function () { fresh(); }],
       ["Vandaag · zelfstandige PT", "TD-01", function () { fresh(); PREF.setup = "solo"; }],
       ["Klantprofiel: contante betaling nog niet vastgelegd", "#606", function () { fresh(); PREF.setup = "team"; PREF.role = "owner"; S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "eva" }]; }],
-      ["Betaling buiten Fivvi vastleggen", "#606", function () { fresh(); PREF.setup = "team"; PREF.role = "owner"; S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "eva" }]; S.form = { client: "eva", offer: "Groep 2× per week", how: "Contant", date: TODAY }; S.sheet = "cash"; }],
+      ["Betaling buiten Fivvi vastleggen", "#606", function () { fresh(); PREF.setup = "team"; PREF.role = "owner"; S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "eva" }]; S.form = { client: "eva", offer: "o2", how: "Contant", date: TODAY }; S.sheet = "cash"; }],
       ["Vandaag: betalingen nog niet gekoppeld", "#466", function () { fresh(); PREF.setup = "team"; PREF.role = "owner"; S.proPay = true; }],
       ["Vandaag · hele studio", "TD-01", function () { fresh(); PREF.setup = "team"; PREF.role = "owner"; S.scope = "ws"; }],
       ["Agenda · Dag", "TD-04", function () { fresh(); S.tab = "agenda"; S.aview = "day"; }],
