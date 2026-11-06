@@ -12,10 +12,12 @@ describe('issue.sh', () => {
   after(() => gh.cleanup());
 
   const issueSh = (rules, ...args) => {
+    // A last argument that is an object is extra environment.
+    const extraEnv = typeof args.at(-1) === 'object' ? args.pop() : {};
     const result = spawnSync(join(SCRIPTS, 'issue.sh'), args, {
       encoding: 'utf8',
       input: 'body\n',
-      env: gh.env(rules),
+      env: { ...gh.env(rules), ...extraEnv },
     });
     return { ...result, calls: gh.calls().map((call) => call.args) };
   };
@@ -24,6 +26,27 @@ describe('issue.sh', () => {
   const viewOf = (number, names, extra = {}) => ({
     match: `^issue view ${number} `,
     out: { number, labels: labels(...names), ...extra },
+  });
+
+  describe('claim', () => {
+    const assignee = (calls) => {
+      const args = edit(calls);
+      return args[args.indexOf('--add-assignee') + 1];
+    };
+
+    it('assigns @me', () => {
+      const result = issueSh([{ match: '^issue edit ', out: '' }], 'claim', '50');
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(assignee(result.calls), '@me');
+    });
+
+    it('assigns FIVVI_ASSIGNEE instead of @me when it is set (a GitHub App cannot be assigned)', () => {
+      const result = issueSh([{ match: '^issue edit ', out: '' }], 'claim', '50', {
+        FIVVI_ASSIGNEE: 'person1',
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(assignee(result.calls), 'person1');
+    });
   });
 
   describe('update', () => {

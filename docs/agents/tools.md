@@ -37,7 +37,15 @@ Pass `-p`, `-e` and `-s` on every command that takes them; `environment list` ta
 
 ## GitHub
 
-`gh` with a repo admin token. `repos/{owner}/{repo}` is filled in by `gh` from the checkout's remote, so nothing here names the owner.
+`repos/{owner}/{repo}` is filled in by `gh` from the checkout's remote, so nothing here names the owner.
+
+**Who `gh` and `git` are.** In Claude Code, `gh` and `git` run as the GitHub App `fivvi-claude[bot]`, not as the owner: its activity (commits, PRs, comments) is distinct from the owner's. The App has no admin rights, so it reads and writes what the scripts need (issues, PRs, checks, rulesets) but cannot change repo settings. Codex, Copilot and the owner's own terminal are not touched: they keep the owner's `gh` login. Because Codex and Copilot share that login, the AI disclaimer logic in `flow.sh` stays.
+
+- **Wiring** is per checkout, in the git-ignored `.claude/settings.local.json` of the main checkout. The owner runs it once, from the main checkout: `node scripts/agent-identity.mjs setup --assignee <your GitHub login>`, and starts a new Claude Code session. It adds a `SessionStart` hook that exports a fresh `GH_TOKEN` before each Bash command, and an `env` block: `FIVVI_ASSIGNEE`, the bot as git author and committer (`GIT_CONFIG_*`, which a `-c user.email=…` still beats), and the script as git's only credential helper for `github.com` (the empty `credential.https://github.com.helper` resets the owner's stored login). `setup` keeps every other key and is idempotent. **Undo:** `node scripts/agent-identity.mjs setup --remove`, which removes exactly what `setup` added.
+- **`FIVVI_ASSIGNEE`** stands in for "who you are" in `flow.sh` (`me()`, `next`), `issue.sh claim` and `usage.mjs`: a bot cannot be assigned issues and `gh api user` is refused for an App token, so issues are assigned to the owner's login. Unset, the scripts behave as before.
+- **Fails closed.** When no token can be minted, `GH_TOKEN` is set to the invalid value `fivvi-claude-token-unavailable`, so `gh` gets a 401. An empty `GH_TOKEN` would make `gh` fall back to the owner's admin login in its keyring. `git` has no other credential source for `github.com` either, so it fails instead of using the owner's stored login. Fix the cause (`node scripts/agent-identity.mjs token` prints a one-line reason, never a key or token).
+- **The key and the config** stay outside the repo: `~/.config/fivvi-claude/app.json` (`app_id`, `slug`, `owner`, `keychain_service`, `installation_id`; plus `token.json`, a cache, mode 0600) and the private key in the login Keychain (account `fivvi-claude`, service `keychain_service`, value: the PEM in base64). Tokens last an hour, are cached and reused while more than 10 minutes remain, and are narrowed to this repository.
+- **Stays with the owner:** changing repo settings and rulesets (`scripts/github-settings.sh`, the repo's Settings pages), the App's own settings and permissions, and rotating the key: generate a new key on the App's page, replace the Keychain item, delete the old key there and delete `token.json`.
 
 | Job | Command |
 |---|---|

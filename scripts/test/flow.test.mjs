@@ -1088,6 +1088,35 @@ describe('flow.sh facts', () => {
   const gh = fakeGh();
   after(() => gh.cleanup());
 
+  const factsOfMe = (extraEnv = {}) => {
+    const result = spawnSync(join(SCRIPTS, 'flow.sh'), ['facts', '9999'], {
+      encoding: 'utf8',
+      env: {
+        ...gh.env([
+          { match: '^api user', out: { login: 'thekeyvan' } },
+          {
+            match: '^issue view 9999 ',
+            out: {
+              number: 9999,
+              title: 'T',
+              state: 'OPEN',
+              labels: labels('ready-for-agent'),
+              assignees: [],
+              body: 'x',
+              comments: [],
+              parent: null,
+              subIssues: { nodes: [] },
+              blockedBy: { nodes: [] },
+            },
+          },
+        ]),
+        ...extraEnv,
+      },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    return JSON.parse(result.stdout).me;
+  };
+
   const factsOf = (issueComments) => {
     const result = spawnSync(join(SCRIPTS, 'flow.sh'), ['facts', '9999'], {
       encoding: 'utf8',
@@ -1114,8 +1143,47 @@ describe('flow.sh facts', () => {
     return JSON.parse(result.stdout);
   };
 
+  it('FIVVI_ASSIGNEE is who you are: facts read no gh user, and `me` is that login', () => {
+    const rules = [
+      { match: '^api user', out: '', status: 1 },
+      {
+        match: '^issue view 9999 ',
+        out: {
+          number: 9999,
+          title: 'Which reminder time?',
+          state: 'OPEN',
+          labels: labels('ready-for-agent'),
+          assignees: [{ login: 'person1' }],
+          body: 'Remind clients before a session.',
+          comments: [],
+          parent: null,
+          subIssues: { nodes: [] },
+          blockedBy: { nodes: [] },
+        },
+      },
+    ];
+    const result = spawnSync(join(SCRIPTS, 'flow.sh'), ['facts', '9999'], {
+      encoding: 'utf8',
+      env: { ...gh.env(rules), FIVVI_ASSIGNEE: 'person1' },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(JSON.parse(result.stdout).me, 'person1');
+    assert.ok(
+      gh.calls().every((call) => call.args[0] !== 'api' || call.args[1] !== 'user'),
+      'gh api user was not called',
+    );
+  });
+
+  it('without FIVVI_ASSIGNEE, `me` is the login gh api user reads', () => {
+    assert.equal(factsOfMe(), 'thekeyvan');
+  });
+
+  it('an empty FIVVI_ASSIGNEE counts as unset', () => {
+    assert.equal(factsOfMe({ FIVVI_ASSIGNEE: '' }), 'thekeyvan');
+  });
+
   it('calls a question answered once the newest comment is not a triage note', () => {
-    // The agent and the owner share one GitHub account, so the note tells them apart, not the author.
+    // Codex and Copilot share the owner's GitHub account, so the note tells them apart, not the author.
     assert.equal(factsOf([]).answered, false);
     assert.equal(factsOf(comments(TRIAGE_NOTE)).answered, false);
     assert.equal(factsOf(comments(TRIAGE_NOTE, 'Two hours before.')).answered, true);
@@ -1602,7 +1670,7 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
           { match: '^pr edit ', out: '' },
           { match: '^api user', out: { login: 'thekeyvan' } },
           {
-            match: '^issue list .*--assignee @me',
+            match: `^issue list .*--assignee ${env.FIVVI_ASSIGNEE || '@me'} `,
             out: assigned.map(({ number }) => ({ number })),
           },
           { match: '^issue list .*--label spec ', out: specs },
@@ -1827,6 +1895,27 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       });
       assert.equal(result.status, 1, result.stderr);
       assert.equal(result.stdout, '#180 [F003] Add a client\n');
+    });
+
+    it('lists the issues assigned to FIVVI_ASSIGNEE, not to @me, when it is set', () => {
+      const result = run('idle', {
+        assigned: [issue(9004, 'Build it', ['ready-for-agent'])],
+        env: { FIVVI_ASSIGNEE: 'person1' },
+      });
+      assert.equal(result.status, 1, result.stderr);
+      assert.equal(result.stdout, '#9004 Build it → in-progress\n');
+      const listed = gh
+        .calls()
+        .find((call) => call.args[0] === 'issue' && call.args.includes('--assignee'));
+      assert.equal(listed.args[listed.args.indexOf('--assignee') + 1], 'person1');
+    });
+
+    it('lists the issues assigned to @me when FIVVI_ASSIGNEE is not set', () => {
+      run('idle', { assigned: [issue(9004, 'Build it', ['ready-for-agent'])] });
+      const listed = gh
+        .calls()
+        .find((call) => call.args[0] === 'issue' && call.args.includes('--assignee'));
+      assert.equal(listed.args[listed.args.indexOf('--assignee') + 1], '@me');
     });
 
     it('exits 1 and lists an issue in progress with its phase', () => {

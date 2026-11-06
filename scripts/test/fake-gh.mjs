@@ -7,6 +7,7 @@
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
+import { cleanEnv } from './clean-env.mjs';
 
 const GH = `#!/usr/bin/env node
 const { appendFileSync, readFileSync } = require('node:fs');
@@ -44,7 +45,7 @@ export function fakeGh() {
       writeFileSync(rulesFile, JSON.stringify(rules));
       writeFileSync(logFile, '');
       return {
-        ...process.env,
+        ...cleanEnv(),
         PATH: `${dir}:${process.env.PATH}`,
         FAKE_GH_RULES: rulesFile,
         FAKE_GH_LOG: logFile,

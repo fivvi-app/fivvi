@@ -15,12 +15,15 @@ import {
 import { tmpdir } from 'node:os';
 import { dirname, join } from 'node:path';
 import { after, afterEach, beforeEach, describe, it } from 'node:test';
+import { cleanEnv } from './clean-env.mjs';
 import { fakeGh } from './fake-gh.mjs';
 
 const SCRIPTS = join(import.meta.dirname, '..');
 const ROOT = join(SCRIPTS, '..');
 
 const NOREPLY = '42+octocat@users.noreply.github.com';
+// Claude Code's own GitHub identity (scripts/agent-identity.mjs): a GitHub App, whose login has [bot] in it.
+const CLAUDE_BOT = 'example-bot-app[bot] <4242+example-bot-app[bot]@users.noreply.github.com>';
 const COPILOT = 'Copilot <223556219+Copilot@users.noreply.github.com>';
 // Addresses outside the allowlist are built from parts, so this file itself passes `emails.sh files`.
 const addr = (local, domain) => `${local}@${domain}`;
@@ -94,6 +97,14 @@ describe('E002 #120 emails.sh commits (the commits of origin/main..HEAD)', () =>
   it('passes when author, committer and Co-authored-by are GitHub noreply addresses', () => {
     commitAs(repo, { message: `chore(E002): change\n\nCo-authored-by: ${COPILOT}` });
     commitAs(repo, { author: 'noreply@github.com', committer: 'noreply@github.com' });
+    const result = repo.run(['commits']);
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+  });
+
+  it('passes when the author and committer are a GitHub App bot (a [bot] login in the noreply address)', () => {
+    const bot = '4242+example-bot-app[bot]@users.noreply.github.com';
+    commitAs(repo, { author: bot, committer: bot });
+    commitAs(repo, { message: `chore(E002): change\n\nCo-authored-by: ${CLAUDE_BOT}` });
     const result = repo.run(['commits']);
     assert.equal(result.status, 0, result.stdout + result.stderr);
   });
@@ -326,7 +337,7 @@ describe('E002 #120 .githooks/commit-msg email check', () => {
     const file = join(repo.dir, 'MSG');
     writeFileSync(file, 'feat(E002): guard\n');
     const env = {
-      ...process.env,
+      ...cleanEnv(),
       HOME: repo.dir,
       GIT_CONFIG_GLOBAL: '/dev/null',
       GIT_CONFIG_NOSYSTEM: '1',
