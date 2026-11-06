@@ -81,16 +81,16 @@ window.PAGES = (function () {
     del: {
       eye: ["Account", "Account"],
       h1: ["Je account verwijderen", "Delete your account"],
-      lead: ["Dat kan altijd, voor de apps Fivvi en Fivvi Pro. Het liefst doe je het zelf in de app.", "You can do this at any time, for the Fivvi and Fivvi Pro apps. It's easiest to do it yourself in the app."],
-      appH: ["In de app", "In the app"],
-      app: [["Open Fivvi of Fivvi Pro en ga naar Profiel.", "Open Fivvi or Fivvi Pro and go to Profile."], ["Kies Account verwijderen.", "Choose Delete account."], ["Bevestig. Fivvi laat eerst zien wat er blijft bewaard.", "Confirm. Fivvi first shows what will be kept."]],
-      mailH: ["Zonder app", "Without the app"],
+      lead: ["Dat kan altijd, voor Fivvi en Fivvi Pro: in de app onder Profiel, of hier op deze pagina.", "You can do this at any time, for Fivvi and Fivvi Pro: in the app under Profile, or here on this page."],
+      appH: ["Zo werkt het", "How it works"],
+      app: [["Log in met de code die je per e-mail krijgt.", "Sign in with the code you receive by email."], ["Typ je e-mailadres om te bevestigen, en vraag een code aan.", "Type your email address to confirm, and ask for a code."], ["Vul de code in en kies Account definitief verwijderen.", "Enter the code and choose Delete account permanently."]],
+      mailH: ["Lukt het niet?", "Doesn't it work?"],
       mail: ["Mail vanaf het adres van je account naar privacy@fivvi.app met als onderwerp Account verwijderen. We doen dat binnen één maand en laten het je weten.", "Email privacy@fivvi.app from your account's address with the subject Delete account. We'll do it within one month and let you know."],
-      goneH: ["Wat er wordt verwijderd", "What gets deleted"],
-      gone: [["Je naam, e-mailadres en voorkeuren", "Your name, email address and preferences"], ["Je inloggegevens", "Your sign-in details"], ["Trainingen die je zelf hebt gedaan", "Workouts you did on your own"]],
-      keepH: ["Wat er blijft bewaard", "What is kept"],
-      keep: [["Facturen blijven bij je studio, zo lang als de wet dat vraagt.", "Invoices stay with your studio for as long as the law requires."], ["Je studio beslist over de gegevens die zij over jou bewaart, zoals je klantprofiel. Vraag het je studio, of mail ons.", "Your studio decides about the data it keeps on you, such as your client profile. Ask your studio, or email us."], ["Back-ups vervallen vanzelf binnen 30 dagen.", "Backups expire by themselves within 30 days."]],
-      owner: ["Ben je eigenaar van een studio of sportschool? Mail ons eerst, zodat je klanten en facturen goed geregeld blijven.", "Do you own a studio or gym? Email us first, so your clients and invoices stay properly handled."]
+      goneH: ["Wat er meteen wordt verwijderd", "What gets deleted right away"],
+      gone: [["Je inloggegevens", "Your sign-in details"], ["Je naam en e-mailadres", "Your name and email address"], ["Je taal", "Your language"]],
+      keepH: ["Wat er daarna gebeurt", "What happens next"],
+      keep: [["Je wordt op al je apparaten uitgelogd.", "You're signed out on every device."], ["Elke studio waar je klant bent krijgt je verzoek om je gegevens te verwijderen. Facturen bewaart de studio zo lang als de wet dat vraagt.", "Each studio where you're a client gets your request to delete your data. The studio keeps invoices for as long as the law requires."], ["Back-ups vervallen vanzelf binnen 30 dagen.", "Backups expire by themselves within 30 days."]],
+      owner: ["Ben je de enige eigenaar van een studio of sportschool? Neem dan eerst contact met ons op, zodat je klanten en facturen goed geregeld blijven.", "Are you the only owner of a studio or gym? Then contact us first, so your clients and invoices stay properly handled."]
     },
     legal: {
       draft: ["Concept. Deze tekst is nog niet nagekeken en moet nog worden bijgewerkt voor betalingen, de klant-app, de nieuwe e-maildienst en het demoformulier. Roze waarden vul jij nog in.", "Draft. This text hasn't been reviewed yet and still needs updating for payments, the client app, the new email service and the demo form. You still fill in the pink values."],

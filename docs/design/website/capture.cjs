@@ -59,9 +59,6 @@ const SHOTS = [
   ['web-payments', '1,21', 'web', 'team'],
 ];
 
-/* The public site never shows a real company's name, so the fictional data gets neutral places. */
-const NEUTRAL = [['TrainMore Zuid', 'Sportzaal Zuid'], ['TrainMore', 'Sportzaal'], ['Basic-Fit Oost', 'Gym Oost'], ['Basic-Fit', 'Gym Oost']];
-
 (async () => {
   const only = process.argv.slice(2);
   const browser = await chromium.launch();
@@ -74,6 +71,7 @@ const NEUTRAL = [['TrainMore Zuid', 'Sportzaal Zuid'], ['TrainMore', 'Sportzaal'
     html,body,.board,.stage,.mk{background:transparent!important}
     .dev,.dev.android,.dev.web{box-shadow:none!important}
     .mobile-fab{display:none!important}
+    .c-proto,.w-proto{display:none!important} /* the prototype's own helper box */
   ` });
   const pref = (k, v) => page.click(`#panel [data-pref="${k}"][data-v="${v}"]`);
 
@@ -114,15 +112,7 @@ const NEUTRAL = [['TrainMore Zuid', 'Sportzaal Zuid'], ['TrainMore', 'Sportzaal'
         await page.click(`#panel [data-go="${go}"]`);
         await page.waitForTimeout(250);
         if (step) await steps[step]();
-        await page.evaluate(async (neutral) => {
-          await document.fonts.ready;
-          const walker = document.createTreeWalker(document.getElementById('dev'), NodeFilter.SHOW_TEXT);
-          while (walker.nextNode()) {
-            let t = walker.currentNode.nodeValue;
-            for (const [a, b] of neutral) t = t.split(a).join(b);
-            walker.currentNode.nodeValue = t;
-          }
-        }, NEUTRAL);
+        await page.evaluate(() => document.fonts.ready);
         await page.locator('#dev').screenshot({ path: path.join(out, `${id}-${lang}-${mode}.png`), omitBackground: true });
       }
     }

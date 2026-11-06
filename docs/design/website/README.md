@@ -9,7 +9,7 @@ CAPTURE_OUT=/tmp/fivvi-shots node docs/design/website/capture.cjs
 node docs/design/website/build-legal.cjs
 ```
 
-`capture.cjs` writes PNGs; convert the ones the pages use to `assets/shots/<id>-<lang>-<mode>.webp` with `cwebp -q 80`. Screens come from the prototype, so they follow it. Real gym names in its sample data become neutral names in the capture only.
+`capture.cjs` writes PNGs; convert the ones the pages use to `assets/shots/<id>-<lang>-<mode>.webp` with `cwebp -q 80`. Screens come from the prototype, so they follow it.
 
 | File | What |
 |---|---|
@@ -17,7 +17,7 @@ node docs/design/website/build-legal.cjs
 | `content.js`, `pages.js` | The words, Dutch first; a few on the design-choices page sit in `site.js` |
 | `capture.cjs` | Captures the prototype's screens, in Dutch and English, light and dark |
 | `build-legal.cjs` | Makes `legal.js` from `docs/legal`, so the legal pages show the current drafts |
-| `assets/photos/` | The images |
+| `assets/scenes/` | The miniatures |
 
 ## Images
 

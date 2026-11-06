@@ -30,7 +30,7 @@
   /* An audience's image stands on its own and is never a background (owner). */
   var ART_KEY = { gym: "gym", pt: "pt", klanten: "client" };
   function art(k) {
-    return '<img class="art" src="assets/photos/' + (ART_KEY[k] || S.kind) + '.webp" alt="" loading="lazy">';
+    return '<img class="art" src="assets/scenes/' + (ART_KEY[k] || S.kind) + '.webp" alt="" loading="lazy">';
   }
 
   function colour(k) { return { priv: "var(--priv)", group: "var(--group)", ok: "var(--ok)", accent: "var(--accent)" }[k]; }

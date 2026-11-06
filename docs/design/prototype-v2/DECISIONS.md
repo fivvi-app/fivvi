@@ -450,5 +450,7 @@ Designed with the owner on 6 November 2026 in its own artifact, [Fivvi Website](
 2. **The demo and support:** a demo of 30 minutes online, and a reply within 1 working day to demo requests and questions.
 3. **The trade name** K&S Apps, from #151, and the addresses `support@fivvi.app` and `privacy@fivvi.app`.
 4. **A signed-in user** who opens `/` goes to their home in the app.
+
+The page for deleting an account, `/account-verwijderen` and `/delete-account`, is built by [#477](https://github.com/fivvi-app/fivvi/issues/477) as a sign-in page with the danger-zone steps of §6, and the site links to it. The artifact shows its words.
 5. **Going live before the product is ready.** The site goes live for Mollie, before M11 (payments and invoices), M7 (workouts, notes, sharing) and the store listings. So every page says Fivvi is being built with its first gym and the demo says what's ready, and each claim is checked before publishing (#611 AC19).
 
