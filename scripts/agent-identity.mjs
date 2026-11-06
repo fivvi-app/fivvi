@@ -6,8 +6,10 @@
 //                                10 minutes remain, scoped to this one repository
 //   git-credential get           git credential helper: the token for https://github.com, nothing for other hosts
 //   setup --assignee <login>     wire this checkout's git-ignored .claude/settings.local.json: GH_TOKEN for gh, the bot
-//                                as git author and the helper as git's only credential source for github.com
+//                                as git author and the helper as git's credential helper for github.com (git has no
+//                                askpass or terminal prompt to fall back to)
 //   setup --remove               undo exactly that
+//   setup ... --settings <path>  another settings file (the tests', for one); the only other arguments are these
 //
 // Local config, outside the repo: ~/.config/fivvi-claude/app.json (app_id, slug, keychain_service, installation_id;
 // optional: repo, the repository the token is narrowed to, default fivvi; `owner` and other keys are not read). The
@@ -222,8 +224,13 @@ async function gitCredential(operation) {
 const shellQuote = (text) =>
   /^[A-Za-z0-9_@%+=:,./-]+$/.test(text) ? text : `'${text.replaceAll("'", `'\\''`)}'`;
 
-const git = (cwd, ...args) =>
-  execFileSync('git', ['-C', cwd, ...args], { encoding: 'utf8' }).trim();
+// An inherited GIT_DIR, GIT_COMMON_DIR or GIT_WORK_TREE would make every folder look like one repository, and defeat the
+// check that setup runs from this checkout. So git is asked without them.
+const git = (cwd, ...args) => {
+  const env = { ...process.env };
+  for (const key of ['GIT_DIR', 'GIT_COMMON_DIR', 'GIT_WORK_TREE']) delete env[key];
+  return execFileSync('git', ['-C', cwd, ...args], { encoding: 'utf8', env }).trim();
+};
 
 // The main checkout: the folder that holds the shared .git, so the wiring survives the removal of a worktree.
 function mainCheckout() {
@@ -243,9 +250,15 @@ const GIT_CONFIG_KEYS = [
 ];
 const HOOK_MARKER = 'agent-identity.mjs token';
 
+// One line for the SessionStart env file (Claude Code sources it before each Bash command, in sh and in zsh). Its exports
+// win over a value the caller already set; the settings `env` block does not. So the line carries what must win: the
+// token (an invalid one when none can be minted, never an empty one) and, so that git has nothing to ask but the helper,
+// an askpass program that fails and no terminal prompt.
+const ENV_LINE_TAIL = 'GIT_ASKPASS=/usr/bin/false SSH_ASKPASS=/usr/bin/false GIT_TERMINAL_PROMPT=0';
+
 function wiring({ scriptPath, slug, botId, assignee }) {
   const script = shellQuote(scriptPath);
-  const line = `export GH_TOKEN="$(node ${script} token 2>/dev/null || echo ${UNAVAILABLE_TOKEN})"`;
+  const line = `GH_TOKEN="$(node ${script} token 2>/dev/null)"; export GH_TOKEN="\${GH_TOKEN:-${UNAVAILABLE_TOKEN}}" ${ENV_LINE_TAIL}`;
   const command = `printf '%s\\n' ${shellQuote(line)} >> "$CLAUDE_ENV_FILE"`;
   const values = [
     `${slug}[bot]`,
@@ -253,15 +266,12 @@ function wiring({ scriptPath, slug, botId, assignee }) {
     '',
     `!node ${script} git-credential`,
   ];
-  // Fail closed when the hook or the helper does not answer: an invalid GH_TOKEN (the hook's export overrides it), and
-  // no terminal prompt and no askpass program for git. An empty GIT_ASKPASS also stops git from reading core.askPass and
-  // SSH_ASKPASS; SSH_ASKPASS is emptied as well for ssh remotes.
+  // The default for a session where the hook did not run: an invalid GH_TOKEN, and no terminal prompt. A value the
+  // caller already set wins over this block, so an askpass of the caller's is not closed here, only by the hook's line.
   const env = {
     FIVVI_ASSIGNEE: assignee,
     GH_TOKEN: UNAVAILABLE_TOKEN,
     GIT_TERMINAL_PROMPT: '0',
-    GIT_ASKPASS: '',
-    SSH_ASKPASS: '',
     GIT_CONFIG_COUNT: String(values.length),
   };
   values.forEach((value, i) => {
@@ -273,14 +283,16 @@ function wiring({ scriptPath, slug, botId, assignee }) {
 
 const isOurHook = (hook) => String(hook?.command ?? '').includes(HOOK_MARKER);
 // The env keys setup writes besides GIT_CONFIG_*.
-const OWN_ENV = ['FIVVI_ASSIGNEE', 'GH_TOKEN', 'GIT_TERMINAL_PROMPT', 'GIT_ASKPASS', 'SSH_ASKPASS'];
+const OWN_ENV = ['FIVVI_ASSIGNEE', 'GH_TOKEN', 'GIT_TERMINAL_PROMPT'];
+// An earlier setup also wrote these two, empty; --remove takes them out of a wired file, only when still empty.
+const LEGACY_EMPTY_ENV = ['GIT_ASKPASS', 'SSH_ASKPASS'];
 
 const gitConfigIsOurs = (env) =>
   env.GIT_CONFIG_COUNT === String(GIT_CONFIG_KEYS.length) &&
   GIT_CONFIG_KEYS.every((key, i) => env[`GIT_CONFIG_KEY_${i}`] === key);
 
-// Only what setup added, and only from a file that is wired by it (our hook, or our GIT_CONFIG_*): a key the owner set
-// in a file that was never wired stays.
+// Only what setup added, and only from a file that is wired by it (our hook, our GIT_CONFIG_*, or our invalid GH_TOKEN):
+// a key the owner set in a file that was never wired stays. `wired` says whether anything of ours was found.
 function stripWiring(settings) {
   const out = { ...settings };
   let wired = false;
@@ -304,8 +316,11 @@ function stripWiring(settings) {
   if (out.env && typeof out.env === 'object') {
     const env = { ...out.env };
     const ours = gitConfigIsOurs(env);
-    wired ||= ours;
-    if (wired) for (const key of OWN_ENV) delete env[key];
+    wired ||= ours || env.GH_TOKEN === UNAVAILABLE_TOKEN;
+    if (wired) {
+      for (const key of OWN_ENV) delete env[key];
+      for (const key of LEGACY_EMPTY_ENV) if (env[key] === '') delete env[key];
+    }
     if (ours) {
       delete env.GIT_CONFIG_COUNT;
       GIT_CONFIG_KEYS.forEach((_, i) => {
@@ -316,13 +331,14 @@ function stripWiring(settings) {
     if (Object.keys(env).length > 0) out.env = env;
     else delete out.env;
   }
-  return out;
+  return { settings: out, wired };
 }
 
 async function botId(slug) {
+  const base = apiBase();
   let response;
   try {
-    response = await fetch(`${apiBase()}/users/${encodeURIComponent(`${slug}[bot]`)}`, {
+    response = await fetch(`${base}/users/${encodeURIComponent(`${slug}[bot]`)}`, {
       headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'fivvi-agent-identity' },
       signal: AbortSignal.timeout(15_000),
     });
@@ -335,14 +351,28 @@ async function botId(slug) {
   return data.id;
 }
 
-// The value of `--name <value>`; undefined when the option is absent. A missing value, or another option in its place,
-// is a Failure: it must never read as "absent", which would fall back to a default (the real settings file).
-function option(args, name, what) {
-  const at = args.indexOf(name);
-  if (at < 0) return undefined;
-  const value = args[at + 1];
-  if (!value || value.startsWith('--')) throw new Failure(`${name} needs ${what}`);
-  return value;
+// The arguments of setup: `--remove`, `--settings <path>` and `--assignee <login>`, nothing else. A missing value, another
+// option in its place, a repeated option and any other argument (`--settings=<path>`, a typo) are a Failure: none may
+// read as "absent", which would fall back to the default settings file.
+function parseSetupArgs(args) {
+  const parsed = { remove: false };
+  const names = { '--settings': ['settings', 'a path'], '--assignee': ['assignee', 'a value'] };
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i];
+    if (arg === '--remove') {
+      parsed.remove = true;
+    } else if (Object.hasOwn(names, arg)) {
+      const [key, what] = names[arg];
+      const value = args[i + 1];
+      if (!value || value.startsWith('--')) throw new Failure(`${arg} needs ${what}`);
+      if (key in parsed) throw new Failure(`${arg} is given twice`);
+      parsed[key] = value;
+      i++;
+    } else {
+      throw new Failure('setup takes only --remove, --settings <path> and --assignee <login>');
+    }
+  }
+  return parsed;
 }
 
 const commonDir = (cwd) => realpathSync(resolve(cwd, git(cwd, 'rev-parse', '--git-common-dir')));
@@ -351,8 +381,8 @@ const commonDir = (cwd) => realpathSync(resolve(cwd, git(cwd, 'rev-parse', '--gi
 const modeOf = (path) => (existsSync(path) ? statSync(path).mode & 0o777 : 0o644);
 
 async function setup(args) {
+  const { remove, settings: explicit, assignee } = parseSetupArgs(args);
   const main = mainCheckout();
-  const explicit = option(args, '--settings', 'a path');
   if (explicit === undefined) {
     // The default file is the main checkout's: only from a folder of this very checkout, never from anywhere else.
     let here;
@@ -379,14 +409,17 @@ async function setup(args) {
       throw new Failure(`${path} is not a JSON object; not touching it`);
     }
   }
-  const base = stripWiring(settings);
-  if (args.includes('--remove')) {
-    if (existsSync(path)) writeAtomic(path, `${JSON.stringify(base, null, 2)}\n`, modeOf(path));
-    console.error(`removed the Claude Code GitHub identity from ${path}`);
+  const { settings: base, wired } = stripWiring(settings);
+  if (remove) {
+    if (wired) {
+      writeAtomic(path, `${JSON.stringify(base, null, 2)}\n`, modeOf(path));
+      console.error(`removed the Claude Code GitHub identity from ${path}`);
+    } else {
+      console.error(`nothing to remove: ${path} was not wired by setup, and is left as it is`);
+    }
     return;
   }
-  const assignee = option(args, '--assignee', 'a value');
-  if (!assignee || !/^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/.test(assignee)) {
+  if (assignee === undefined || !/^[A-Za-z0-9](?:[A-Za-z0-9-]*[A-Za-z0-9])?$/.test(assignee)) {
     throw new Failure(
       'setup needs --assignee <your GitHub login>: the bot cannot be assigned issues',
     );
@@ -445,4 +478,16 @@ async function main() {
   }
 }
 
-if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) await main();
+// Run as a program, also through a symlink: both sides are compared as real paths.
+function isMain() {
+  try {
+    return (
+      Boolean(process.argv[1]) &&
+      realpathSync(process.argv[1]) === realpathSync(fileURLToPath(import.meta.url))
+    );
+  } catch {
+    return false;
+  }
+}
+
+if (isMain()) await main();
