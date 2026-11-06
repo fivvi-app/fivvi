@@ -1302,6 +1302,8 @@ Trainer can assign workouts/programs to individual clients.
 
 Group programming can come later.
 
+A client can do a workout the trainer shared on their own, for example in their own gym, in the client app (owner, 5 November 2026, [#602](https://github.com/fivvi-app/fivvi/issues/602), with M7). They can change values, add and remove exercises, and edit or delete a finished one at any time. **It is private to the client:** trainers and the owner never see it. It isn't a session: no booking, credit or attendance.
+
 ---
 
 # 41. Live workout logging
@@ -1526,6 +1528,7 @@ MVP client emails:
 - sign-in email (link and 6-digit code)
 - invitation to join a workspace (§26)
 - join request declined (short and neutral, §26)
+- renewal reminders for an agreement that stops (§90)
 - booking confirmation
 - on the waitlist (with the position, "Number 2 on the waitlist"), you're in (the booking confirmation, noting it came from the waitlist), you didn't get in (at the waitlist closing time) and, from M11, skipped (taken off the waitlist, with the reason) (§23)
 - cancellation
@@ -1730,7 +1733,7 @@ The client app is a separate app, **Fivvi** (app ID `app.fivvi`, iOS and Android
 - **Paying** opens the web payment page in the browser; there are no payments inside the app (§53). Gym services are used outside the app, so the stores don't require in-app purchase.
 - **Notifications:** emails only at go-live; push notifications follow in Release 1.1 (§54).
 - **Distribution:** public App Store and Google Play listings in Dutch and English before go-live, with in-app account deletion (§79), the privacy label and data safety form, and a review account. Go-live doesn't wait for the store review: if Fivvi isn't approved in time, clients use the client web.
-- **After go-live:** the client's workout history comes with M7, so the **Training** tab arrives then.
+- **After go-live:** what the client did and their workout history come with M7, so the **Activiteit** tab arrives then. It is called Activiteit, not Training, because not every studio trains with workouts (owner, 5 November 2026; [`DECISIONS.md` §5b](../design/prototype-v2/DECISIONS.md#5b-client-app-fivvi)).
 - **Joining in the app (owner, 4 November 2026, [#469](https://github.com/fivvi-app/fivvi/issues/469)):** a client joins a workspace in Fivvi through the join link or the client invitation link (`fivvi.app/j/…`, `fivvi.app/i/…`). When Fivvi is installed the link opens it (Universal Links on iOS, verified App Links on Android), otherwise the web. There is no QR scanner in the app: the desk QR code holds the join link, so the phone's camera opens it.
 
 Launch:
@@ -1745,7 +1748,7 @@ Navigation:
 ```text
 Home
 Book
-Training
+Activity
 Profile
 ```
 
@@ -1754,7 +1757,7 @@ Dutch:
 ```text
 Home
 Boeken
-Training
+Activiteit
 Profiel
 ```
 
@@ -1764,7 +1767,8 @@ Features (the whole app; workout history comes with M7 and push notifications wi
 - group booking
 - Open Gym
 - cancellations
-- workout history
+- activity and workout history
+- doing a shared workout on your own (private to the client, #602)
 - notifications
 - language switching
 
@@ -2680,7 +2684,7 @@ Every offer also has these settings (product owner, 31 October 2026, for every w
 - **Billing cycle:** every month or every 4 weeks (the pilot: every month, because 4-weekly means 13 payments a year, which the gym owner finds unfair to clients).
 - **Intro offer:** a credit pack can be limited to **once per client**, for example 2 classes valid for 2 weeks (the pilot does trials by hand and won't use it).
 - **Member-only:** an offer can be limited to clients with an active membership, for example extra group credits for a member who wants another class in a week (QC08).
-- **End of term:** the agreement either **stops** (the client chooses a new term, with a reminder and a one-tap renewal) or **continues per cycle** at the same price until the client gives notice. A continuing agreement follows Dutch consumer law: no tacit renewal for another fixed term, a first term over 12 months is presumed unreasonable, notice of at most one month on any day, and online if the client signed up online (QC07; the legal check is `ROADMAP.md §4.4`). Which setting the pilot uses is open.
+- **End of term:** the agreement either **stops** (the client chooses a new term, with a reminder and a one-tap renewal; Fivvi sends two reminders automatically, at the start of the offer's renewal window, by default 30 days before the end, the same moment it suggests renewing to the owner, and 7 days before the end (proposed timing, `DECISIONS.md` §7 item 4), also when the owner already sent an offer, and for a credit pack at 2 or fewer credits left, with a card on the client's Home and Tegoed, owner, 5 and 6 November 2026) or **continues per cycle** at the same price until the client gives notice. A continuing agreement follows Dutch consumer law: no tacit renewal for another fixed term, a first term over 12 months is presumed unreasonable, notice of at most one month on any day, and online if the client signed up online (QC07; the legal check is `ROADMAP.md §4.4`). Which setting the pilot uses is open.
 
 **Plan changes** are not an offer setting: the pilot's own rule is **upgrades at any time and no downgrades**. Whether that becomes a setting for every workspace is not decided.
 

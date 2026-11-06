@@ -10,7 +10,7 @@ Agents read the ADRs relevant to their change before starting (`WORKFLOW.md §4`
 |---|---|---|
 | [001](ADR-001-monorepo-tooling.md) | Monorepo tooling: pnpm workspaces + Turborepo, native projects in the same repo | Accepted |
 | [002](ADR-002-web-framework.md) | Web framework: Next.js (App Router) + TypeScript strict | Accepted |
-| [003](ADR-003-native-mobile-apps.md) | Mobile: native iOS (Swift + SwiftUI) and Android (Kotlin + Jetpack Compose) | Accepted (deviates from `PRODUCT.md §72`) |
+| [003](ADR-003-native-mobile-apps.md) | Mobile: native iOS (Swift + SwiftUI) and Android (Kotlin + Jetpack Compose); the iOS minimum is replaced by ADR-029 | Accepted (deviates from `PRODUCT.md §72`); iOS minimum amended by ADR-029 |
 | [004](ADR-004-api-layer.md) | API layer: REST + OpenAPI 3.1 with Hono + zod-openapi and generated clients | Accepted |
 | [005](ADR-005-database-and-orm.md) | Database & ORM: PostgreSQL (EU) + Drizzle + versioned SQL migrations | Accepted |
 | [006](ADR-006-tenant-isolation.md) | Tenant isolation: org-scoped data layer + Postgres RLS + cross-tenant tests | Accepted |
@@ -22,7 +22,7 @@ Agents read the ADRs relevant to their change before starting (`WORKFLOW.md §4`
 | [012](ADR-012-time-and-recurrence.md) | Time & recurrence: UTC `timestamptz` + IANA zones, RRULE in wall-clock time, materialized occurrences | Accepted |
 | [013](ADR-013-observability.md) | Observability: Sentry EU, uptime checks, PostHog EU cookieless | Accepted |
 | [014](ADR-014-testing.md) | Testing: Vitest, Playwright, XCTest, JUnit/Compose, Maestro | Accepted |
-| [015](ADR-015-ui-foundation.md) | UI foundation: shared design tokens, native UI per platform | Accepted |
+| [015](ADR-015-ui-foundation.md) | UI foundation: shared design tokens, native UI per platform; the look is refined by ADR-029 | Accepted |
 | [016](ADR-016-agent-merges.md) | Agents merge low-risk PRs: scripted risk, a merge gate and a ruleset on `main`; amended by ADR-021 and ADR-023 | Proposed |
 | [017](ADR-017-language-policy.md) | Language policy: interface language falls back to English; the workspace default only sets the communication language | Accepted (replaces ADR-008's locale-resolution rule) |
 | [018](ADR-018-merge-queue.md) | Merge queue: agents add low-risk PRs to the queue, the owner adds high-risk ones (until pilot setup agents also add high-risk PRs that are not owner-only, ADR-021, ADR-023); amends ADR-016; amended by ADR-021 and ADR-023 | Proposed |
@@ -36,6 +36,7 @@ Agents read the ADRs relevant to their change before starting (`WORKFLOW.md §4`
 | [026](ADR-026-clients-sign-in-and-are-approved-to-book.md) | Clients sign in and are approved to book: anyone can create an account, a client joins a workspace by its join link or an invitation and the Owner approves, nothing is public, booking is immediate (no holds, no email step), booking needs an agreement from M11; Sign in with Apple and Google planned (F063); reverses `PRODUCT.md` §23–§26 as written | Accepted |
 | [027](ADR-027-a-cron-every-5-minutes.md) | A cron every 5 minutes (Railway's minimum) for the waitlist's closing-time email; the daily work stays daily; amends ADR-010 | Proposed |
 | [028](ADR-028-transactional-email-through-lettermint.md) | Transactional email through Lettermint (Dutch, EU-only) instead of Brevo: tracking off and no `List-Unsubscribe` on transactional mail; two routes (sign-in, other), Free until pilot setup then Starter, Scaleway TEM as fallback; amends ADR-009 | Accepted |
+| [029](ADR-029-design-v2.md) | Design v2: iOS 26 with Liquid Glass, Material 3 Expressive, shadcn/ui, one Calendar-and-Fitness theme; replaces the iOS minimum of ADR-003 | Accepted |
 
 ADRs 001–015 were accepted by the owner on 22 September 2026 and written up in M0. ADR-011 was re-evaluated during the write-up and accepted in its new form (Railway) the same day. The *Alternatives considered* sections of those ADRs were reconstructed at write-up time from the roadmap rationale; they explain why the accepted choice fits, not a debate that was re-run.
 

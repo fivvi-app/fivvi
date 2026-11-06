@@ -2,6 +2,8 @@
 
 **Dashboard → Agenda (week / day by trainer / list) → open, create or move a session**
 
+> **Design v2 (5 November 2026, ADR-029).** The web uses shadcn/ui as shown in [prototype v2](../prototype-v2/DECISIONS.md#4-trainer-web): the day view has a column per trainer, and the side sheet shows *Vorige keer* (per client in a duo session). The flow below still applies.
+
 | | |
 |---|---|
 | **Actors** | Owner (primary); Trainer read-only ⚑ [Q02](../open-questions.md#q02) |

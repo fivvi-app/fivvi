@@ -41,6 +41,8 @@ A page picks its density with a `data-density` attribute on a layout element, no
 
 ## Display font
 
+> **Design v2:** `font-display` goes with [#590](https://github.com/fivvi-app/fivvi/issues/590); don't use it on new screens ([`DESIGN.md`](../../DESIGN.md)).
+
 `font-display` sets the display style's font, `font.family.display`: Bricolage Grotesque, then the system font. Use it sparingly for headings on public pages and brand moments, never for body text or form labels ([visual direction](../../docs/design/visual-direction.md)). Body text uses the system font (`font-sans`, the default).
 
 The app self-hosts the face: `apps/web/app/display-font.ts` loads it with `next/font/google`, which downloads it at build time and serves it from the app's own origin, so no request goes to a font host at runtime. next/font names the face after the font, so it matches the first family of the token stack. Don't use next/font's `className` or `variable` for it: they put next/font's metric-adjusted Arial in front of the system fallback.
