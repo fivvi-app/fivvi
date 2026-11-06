@@ -578,3 +578,17 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .w-paydesk>div{flex:1;min-width:0}
 .w-paydesk p{margin:2px 0 0;color:var(--w-mfg);font-size:13px}
 .w-paydesk .w-switch{flex:none}
+
+/* screens from the specs (more-web.js) */
+.w-kindgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0}
+.w-kind{display:grid;gap:4px;text-align:left;padding:12px;border:1px solid var(--w-border);border-radius:12px;background:var(--w-card);color:var(--w-fg);cursor:pointer;font:inherit}
+.w-kind span{color:var(--w-mfg);font-size:13px}
+.w-kind:hover{background:var(--w-muted)}
+.w-checks{display:grid;gap:6px;margin-bottom:6px;max-height:210px;overflow:auto}
+.w-check{display:flex;gap:8px;align-items:flex-start}
+.w-check small{display:block}
+.c-st-note{margin:0;text-align:center;color:var(--label2);font-size:13px}
+.w-steps{margin:0 0 12px;padding-left:20px;display:grid;gap:4px}
+.w-qrbox{display:grid;justify-items:center;gap:8px;margin-bottom:10px}
+.w-qr{width:150px;height:150px;background:#fff;padding:8px;border-radius:8px}
+.w-dialog .w-hgroup{flex-wrap:wrap}

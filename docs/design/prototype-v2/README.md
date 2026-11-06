@@ -28,5 +28,6 @@ The ⚙ panel also switches language (NL/EN), accent, light/dark, glass, role, a
 | `app.js` | The app: state, screens, logger, panel |
 | `web.js` | Trainer web and client web |
 | `i18n.js` | English on top of the Dutch screens (the real apps use `packages/i18n`) |
+| 6 | Everything the specs describe: agreements, payments, payouts, invoices, membership rules, invitations, joining, privacy, import, booking links and QR, class and trainer dialogs, every client booking and cancelling state, all emails (`more-web.js`, `more-client.js`, `more-pro.js`, `more-email.js`) | Scherm → all; E-mails |
 
 Decisions the owner made while reviewing it are listed in the commit history of this branch; they move into the design tokens, the flow docs and the specs once the prototype is final.

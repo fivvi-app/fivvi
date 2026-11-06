@@ -125,6 +125,7 @@
       ["gym", "Open Gym", "door", own && F.HAS("gym")],
       ["workouts", "Trainingen", "dumb", true],
       ["offers", "Aanbod", "repeat", own],
+      ["payments", "Betalingen", "swap", own],
       ["trainers", "Trainers", "personPlus", own && team],
       ["link", "Aanmeldlink", "link", own],
       ["settings", "Instellingen", "pencil", own]
@@ -471,7 +472,8 @@
   /* the owner's reminder while the connection isn't finished */
   PAGES.paymail = function () { return card("", '<div class="w-paymail"><small>Van Fivvi aan de eigenaar</small><h3>Nog één stap: koppel je betalingen</h3><p>Hoi, je bent er bijna. Zonder koppeling kunnen je klanten nog niet meedoen of kopen. Het duurt meestal een paar minuten; Mollie controleert automatische incasso daarna apart, tot ongeveer 3 werkdagen.</p>' + btn("Betalingen koppelen", "w-pay-go") + "</div>"); };
   PAGES.settings = function () {
-    var w = W(), t = w.stab || "general", h = tabs([["general", "Algemeen"], ["location", "Locatie"], ["booking", "Boeken en annuleren"], ["payments", "Betalingen"], ["language", "Taal"]], t, "w-stab");
+    var w = W(), t = w.stab || "general", h = tabs([["general", "Algemeen"], ["location", "Locatie"], ["booking", "Boeken en annuleren"], ["payments", "Betalingen"], ["invoices", "Facturen"], ["privacy", "Privacy"], ["language", "Taal"]], t, "w-stab");
+    if (PAGES["settings_" + t]) return h + PAGES["settings_" + t]();
     if (t === "payments") return h + payPage();
     function fl(l, inp, hint) { return '<label class="w-field"><span>' + l + "</span>" + inp + (hint ? "<small>" + hint + "</small>" : "") + "</label>"; }
     if (t === "general") h += card("Algemeen", fl("Naam", '<input class="w-input" value="' + esc(wsName()) + '">') + fl("Tijdzone", '<select class="w-input"><option>Europe/Amsterdam</option></select>'), { act: btn("Opslaan", "w-toast", { d: { m: "Opgeslagen" } }) });
@@ -510,7 +512,7 @@
   }
   PAGES.offers = function () {
     var all = D.offerList.filter(offerFits), own = all.filter(function (o) { return !o.def; }), defs = all.filter(function (o) { return o.def; });
-    var h = payGate() + '<div class="w-row-between"><p class="w-muted">Wat je verkoopt. Klanten zien alleen aanbod dat aan staat. Een wijziging geldt voor nieuwe afspraken: lopende afspraken houden hun voorwaarden.</p>' + btn("Nieuw aanbod", "w-dlg", { i: "plus", d: { n: "offer-edit" } }) + "</div>";
+    var h = payGate() + (PAGES.offerRules ? PAGES.offerRules() : "") + '<div class="w-row-between"><p class="w-muted">Wat je verkoopt. Klanten zien alleen aanbod dat aan staat. Een wijziging geldt voor nieuwe afspraken: lopende afspraken houden hun voorwaarden.</p>' + btn("Nieuw aanbod", "w-dlg", { i: "plus", d: { n: "offer-edit" } }) + "</div>";
     ["abo", "pack", "plan", "single"].forEach(function (k) { var os = own.filter(function (o) { return o.kind === k; }); if (os.length) h += '<h3 class="w-sec">' + OKIND[k][1] + '</h3><div class="w-offers">' + os.map(offerCard).join("") + "</div>"; });
     if (defs.length) h += '<h3 class="w-sec">Standaardplannen</h3><p class="w-muted" style="margin:-4px 0 10px">Elke nieuwe werkruimte begint met deze drie. Ze staan uit tot je een prijs invult; Fivvi stelt nooit een prijs voor.</p><div class="w-offers">' + defs.map(offerCard).join("") + "</div>";
     return h;
@@ -580,7 +582,8 @@
   function selF(f, opts) { return '<select class="w-input" data-wf="' + f + '">' + opts.map(function (o) { var v = Array.isArray(o) ? o[0] : o, l = Array.isArray(o) ? o[1] : o; return '<option value="' + esc(v) + '"' + (String(W().form[f]) === String(v) ? " selected" : "") + ">" + esc(l) + "</option>"; }).join("") + "</select>"; }
   function dialog() {
     var w = W(), d = w.dialog, it = w.sheet ? F.findItem(w.sheet).it : w.kid ? (F.findItem(w.kid) || {}).it : null, t, b, ok, kind = "", cancel = "Annuleren";
-    if (d.n === "cancelclass") { t = "Les annuleren?"; b = "<p>De " + it.people.length + " geboekte klanten krijgen een e-mail" + (it.waitlist ? ", ook de " + it.waitlist + " op de wachtlijst" : "") + ".</p>" + fld("Bericht voor de klanten (optioneel)", '<textarea class="w-input" data-wf="msg" rows="3" placeholder="Bijvoorbeeld de reden"></textarea>', "Komt letterlijk in de e-mail, niet vertaald."); ok = "Les annuleren"; kind = "dng"; cancel = "Terug"; }
+    if (DLG[d.n]) { var x_ = DLG[d.n](d, w); t = x_.t; b = x_.b; ok = x_.ok; kind = x_.kind || ""; cancel = x_.cancel || "Annuleren"; }
+    else if (d.n === "cancelclass") { t = "Les annuleren?"; b = "<p>De " + it.people.length + " geboekte klanten krijgen een e-mail" + (it.waitlist ? ", ook de " + it.waitlist + " op de wachtlijst" : "") + ".</p>" + fld("Bericht voor de klanten (optioneel)", '<textarea class="w-input" data-wf="msg" rows="3" placeholder="Bijvoorbeeld de reden"></textarea>', "Komt letterlijk in de e-mail, niet vertaald."); ok = "Les annuleren"; kind = "dng"; cancel = "Terug"; }
     else if (d.n === "cancelpriv") { t = "Sessie annuleren?"; b = "<p>" + esc(F.CLIENT[it.client].name.split(" ")[0]) + " krijgt een e-mail dat de sessie van " + it.s + " niet doorgaat.</p>"; ok = "Sessie annuleren"; kind = "dng"; cancel = "Terug"; }
     else if (d.n === "move") { t = "Verplaatsen"; b = fld("Datum", inp("date", "date")) + fld("Begin", inp("start", "time")) + '<p class="w-muted">' + (it.type === "priv" ? "De klant krijgt" : "Geboekte klanten krijgen") + " een e-mail met de nieuwe tijd.</p>"; ok = "Opslaan"; }
     else if (d.n === "sub") { t = "Trainer vervangen"; b = fld("Wie valt in?", selF("trainer", D.trainers.sf.filter(function (x) { return x !== who(it); }))) + '<p class="w-muted">De invaller krijgt een e-mail. Klanten zien de nieuwe naam bij de les.</p>'; ok = "Vervangen"; }
@@ -713,7 +716,8 @@
   A["w-note"] = function (d) { var t = (W().form.note || "").trim(); if (!t) { F.toast("Schrijf eerst een notitie"); return; } (D.notes[d.id] = D.notes[d.id] || []).unshift({ t: t, d: "5 nov", by: "Sarah" }); W().form.note = ""; F.toast("Notitie opgeslagen"); };
   A["w-dok"] = function () {
     var w = W(), d = w.dialog, f = w.form, it = w.sheet ? F.findItem(w.sheet).it : w.kid ? (F.findItem(w.kid) || {}).it : null, msg = "Opgeslagen";
-    if (d.n === "cancelclass" || d.n === "cancelpriv") { it.cancelled = true; msg = d.n === "cancelpriv" ? "Sessie geannuleerd" : "Les geannuleerd. Klanten krijgen een e-mail."; }
+    if (DLGOK[d.n]) { var r_ = DLGOK[d.n](f, d, w); if (r_ === false) return; msg = r_ || msg; }
+    else if (d.n === "cancelclass" || d.n === "cancelpriv") { it.cancelled = true; msg = d.n === "cancelpriv" ? "Sessie geannuleerd" : "Les geannuleerd. Klanten krijgen een e-mail."; }
     else if (d.n === "move") { var dur = F.mins(it.e) - F.mins(it.s); it.s = f.start; it.e = F.hm(F.mins(f.start) + dur); msg = "Verplaatst naar " + f.start; }
     else if (d.n === "sub") { it.trainer = f.trainer; it.subFor = true; msg = f.trainer + " valt in"; }
     else if (d.n === "editclass") { it.s = f.start; it.e = f.end; it.cap = +f.cap || it.cap; it.level = f.level || ""; }
@@ -1268,6 +1272,7 @@
     return payWeb("Betaling", "fivvi.app/pay", b + "</div>");
   }
   function browser() {
+    if (CWEB[C().web]) return CWEB[C().web]();
     if (C().web === "checkout") return checkoutView();
     if (C().web === "paid" || C().web === "pending" || C().web === "failed") return payReturn();
     if (C().web === "renew") return renewPage();
@@ -1408,7 +1413,10 @@
   /* the key of the screen on display is kept from the last render: by the next render the state already has the new screen */
   function scrollSave(dev) { var el = dev.querySelector(".w-scroll,.c-body"), s = S(); if (!el || dev.fivviS !== s) return null; (s.sm = s.sm || {})[dev.dataset.ck] = el.scrollTop; return [el.className, el.scrollTop, dev.dataset.ck || ""]; }
   function scrollRestore(dev, keep) { var k = scrollKey(), s = S(), el = keep && dev.querySelector(".w-scroll,.c-body"), m = (s.sm || {})[k]; if (el && el.className === keep[0] && m != null) el.scrollTop = m; dev.dataset.ck = k; dev.fivviS = s; }
-  window.FVW = { web: web, client: client, capp: capp, onInput: onInput, scrollSave: scrollSave, scrollRestore: scrollRestore };
+  /* registries for the screens in more-*.js: a dialog, its OK, a client web page, a page title */
+  var DLG = {}, DLGOK = {}, CWEB = {};
+  window.FVW = { web: web, client: client, capp: capp, onInput: onInput, scrollSave: scrollSave, scrollRestore: scrollRestore,
+    x: { W: W, C: C, card: card, btn: btn, table: table, badge: badge, tabs: tabs, fld: fld, inp: inp, selF: selF, av: av, PAGES: PAGES, TITLES: TITLES, DLG: DLG, DLGOK: DLGOK, CWEB: CWEB, K: K, cbtn: cbtn, intro: intro, mark: mark, wsName: wsName, slug: slug, payOpen: payOpen, payOnline: payOnline, paysAtStudio: paysAtStudio, payState: payState, payWeb: payWeb, webBar: webBar, CSTEP: CSTEP, ASTEP: ASTEP, goWeb: goWeb, goApp: goApp, goClient: goClient, timetable: timetable, cfind: cfind, shortLoc: shortLoc, cwho: cwho, dayName: dayName, R: R, renewDemo: renewDemo } };
 
   /* panel entries for rounds 2 and 3 */
   function goWeb(page, extra) { return function () { F.fresh(); F.PREF.plat = "web"; var w = W(); w.page = page; for (var k in extra || {}) w[k] = extra[k]; }; }

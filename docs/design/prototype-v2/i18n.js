@@ -570,5 +570,6 @@ window.FIVVI_I18N = (function () {
     });
     root.querySelectorAll && root.querySelectorAll("input").forEach(function (i) { if (lang === "en" && /^\d+,\d+$/.test(i.value) && i.dataset.ls) i.value = i.value.replace(",", "."); });
   }
-  return { apply: apply, T: T };
+  /* the screens in more-*.js carry their English next to their Dutch */
+  return { apply: apply, T: T, add: function (nl, en) { PH[nl] = en; return nl; }, rule: function (re, en) { RULES.unshift([re, en]); }, P: P };
 })();
