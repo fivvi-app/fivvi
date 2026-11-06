@@ -1947,7 +1947,7 @@ A client can bring a friend to a class as a **guest**, for example 1 free visit 
 
 - **It is set on the offer.** The owner sets how many free visits a client gets, what a visit costs after that, and how many paid visits are allowed.
 - **It is counted per client,** whoever they bring.
-- **A paid visit costs credits, never euros,** so it needs no payment of its own. A client on a membership has no credits from the membership and buys them from a member-only offer (§90, §92).
+- **A paid visit costs credits, never euros,** so it needs no payment of its own. A client on a membership has no credits from the membership and buys them, for example from a member-only offer (§90, §92).
 
 **Proposals, to settle in the prototype before the spec:**
 
