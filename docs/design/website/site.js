@@ -87,7 +87,9 @@
   }
 
   function cta() {
-    return '<div class="wrap"><div class="cta"><div><h2>' + t(P.cta.h) + "</h2><p>" + t(P.cta.p) + '</p></div><div class="ctabtns"><a class="btn primary" href="#demo">' + t(P.cta.b) + '</a><a class="btn tonal" href="#prijzen">' + t(P.cta.price) + "</a></div></div></div>";
+    /* the pricing page doesn't link to itself */
+    var price = route() === "prijzen" ? "" : '<a class="btn tonal" href="#prijzen">' + t(P.cta.price) + "</a>";
+    return '<div class="wrap"><div class="cta"><div><h2>' + t(P.cta.h) + "</h2><p>" + t(P.cta.p) + '</p></div><div class="ctabtns"><a class="btn primary" href="#demo">' + t(P.cta.b) + "</a>" + price + "</div></div></div>";
   }
 
   function home() {
