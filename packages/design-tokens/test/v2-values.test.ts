@@ -1,9 +1,18 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
-import { kotlinOutputs, renderOutputs, resolveTokens, swiftOutputs } from '../src/build.ts';
+import {
+  clientColours,
+  kotlinOutputs,
+  renderOutputs,
+  resolveTokens,
+  shadcnColours,
+  swiftOutputs,
+  webOutputs,
+} from '../src/build.ts';
 import { runChecks } from '../src/check.ts';
-import { contrastResults } from '../src/contrast.ts';
+import { mix } from '../src/colour.ts';
+import { contrastRatio, contrastResults } from '../src/contrast.ts';
 import { gradientProblems } from '../src/gradients.ts';
 import {
   type Mode,
@@ -240,7 +249,7 @@ describe('E020 v2 token values', () => {
       'generated',
       '.turbo',
     ]);
-    const roots = ['apps/web', 'packages/ui/src', 'apps/ios/FivviPro', 'apps/android/app/src'];
+    const roots = ['apps/web', 'packages/ui/src', 'apps/ios', 'apps/android'];
     const offenders: string[] = [];
     const scan = (dir: string) => {
       for (const entry of readdirSync(dir, { withFileTypes: true })) {
@@ -309,10 +318,10 @@ describe('E020 v2 contrast pairs', () => {
       for (const pair of source.pairs) {
         if (values[mode].get(pair.fg) !== '#FFFFFF') continue;
         expect(pair.bg, `${pair.use} (${mode})`).not.toMatch(/\.solid$/);
-        for (const unmixed of ['session', 'status']) {
-          expect(values[mode].get(pair.bg), `${pair.use} (${mode})`).not.toBe(
-            values[mode].get(`color.${unmixed}.private.solid`),
-          );
+        // ...and no pair's background has the value of any unmixed `solid` colour.
+        for (const [token, value] of values[mode]) {
+          if (!token.endsWith('.solid')) continue;
+          expect(values[mode].get(pair.bg), `${pair.use} (${mode}) on ${token}`).not.toBe(value);
         }
       }
     }
@@ -386,6 +395,123 @@ describe('E020 v2 contrast pairs', () => {
           result.pair.fg === 'color.text.secondary' || result.pair.fg === 'color.border.control',
       ),
     ).toBe(true);
+  });
+
+  it('AC3: the exception is for light mode only: dark secondary text needs 4.5:1', async () => {
+    // #6A6A70 is 3.17:1 on a card: fine in light mode under the exception, not in dark.
+    const dim = { ...source, dark: withValue(source.dark, 'color.text.secondary', '#6A6A70') };
+    const failing = (await contrastResults(dim)).filter((result) => !result.passes);
+    expect(failing.length).toBeGreaterThan(0);
+    for (const result of failing) {
+      expect(result.mode).toBe('dark');
+      expect(result.pair.kind).toBe('native-secondary-text');
+      expect(result.minimum).toBe(4.5);
+    }
+    const dimLight = {
+      ...source,
+      light: withValue(source.light, 'color.base.gray.450', '#8A8A90'),
+    };
+    const light = (await contrastResults(dimLight)).filter(
+      (result) => result.pair.kind === 'native-secondary-text' && result.mode === 'light',
+    );
+    expect(light.every((result) => result.minimum === 3)).toBe(true);
+    // ADR-032's dark value passes 4.5:1 everywhere it is declared.
+    const dark = (await contrastResults(source)).filter(
+      (result) => result.pair.kind === 'native-secondary-text' && result.mode === 'dark',
+    );
+    expect(dark.length).toBeGreaterThanOrEqual(5);
+    expect(dark.every((result) => result.ratio >= 4.5)).toBe(true);
+  });
+
+  it('AC3: danger text has text pairs, the Material error role is that text, and onError passes on it', () => {
+    for (const bg of [
+      'bg.surface',
+      'bg.canvas',
+      'bg.raised',
+      'web.trainer.card',
+      'web.trainer.background',
+    ]) {
+      const pair = source.pairs.find(
+        (p) => p.fg === 'color.status.danger.fg' && p.bg === `color.${bg}`,
+      );
+      expect(pair?.kind, `danger text on ${bg}`).toBe('text');
+    }
+    expect(
+      source.pairs.some(
+        (p) =>
+          p.fg === 'color.text.inverse' && p.bg === 'color.status.danger.fg' && p.kind === 'text',
+      ),
+    ).toBe(true);
+    // The fill that carries white text stays the 85% mix.
+    expect(declared('action.danger.fg', 'action.danger.bg')).toBe(true);
+  });
+
+  it('AC3: the destructive button text keeps 4.5:1 on its own tint and hover tint on every web background', () => {
+    // The kit's tints, read from the component so the two cannot drift apart.
+    const button = readFileSync(
+      path.join(repoRoot, 'packages/ui/src/components/button.tsx'),
+      'utf8',
+    );
+    const variant = button.match(/destructive:\s*"([^"]+)"/)?.[1] ?? '';
+    const percent = (prefix: string) =>
+      Number(variant.match(new RegExp(`(?:^|\\s)${prefix}bg-destructive/(\\d+)`))?.[1]);
+    const tints = {
+      light: [percent(''), percent('hover:')],
+      dark: [percent('dark:'), percent('dark:hover:')],
+    } as const;
+    expect([...tints.light, ...tints.dark].every(Number.isFinite)).toBe(true);
+
+    const backgrounds = {
+      light: [
+        'web.trainer.background',
+        'web.trainer.card',
+        'web.trainer.sidebar',
+        'web.trainer.muted',
+        'bg.canvas',
+        'bg.surface',
+        'bg.raised',
+      ],
+      dark: [
+        'web.trainer.background',
+        'web.trainer.card',
+        'web.trainer.sidebar',
+        'web.trainer.muted',
+        'bg.canvas',
+        'bg.surface',
+        'bg.raised',
+      ],
+    } as const;
+    for (const mode of ['light', 'dark'] as const) {
+      const text = values[mode].get('color.action.danger.text') ?? '';
+      for (const bg of backgrounds[mode]) {
+        const base = values[mode].get(`color.${bg}`) ?? '';
+        for (const amount of tints[mode]) {
+          const tint = mix(text, base, amount, 'srgb');
+          expect(contrastRatio(text, tint), `${mode} ${bg} ${amount}%`).toBeGreaterThanOrEqual(4.5);
+        }
+      }
+    }
+  });
+
+  it('AC3: the web exposes the filled danger button and a foreground that reads on --destructive', async () => {
+    const outputs = await renderOutputs(source);
+    const shadcn = outputs.get(webOutputs.shadcn) ?? '';
+    for (const name of ['bg', 'fg', 'text']) {
+      expect(shadcn).toContain(`--action-danger-${name}: var(--th-color-action-danger-${name});`);
+    }
+    for (const colours of [shadcnColours, clientColours]) {
+      expect(colours['destructive-foreground']).toBe('color.text.inverse');
+      expect(colours.destructive).toBe('color.action.danger.text');
+    }
+    for (const mode of ['light', 'dark'] as const) {
+      expect(
+        contrastRatio(
+          values[mode].get('color.text.inverse') ?? '',
+          values[mode].get('color.action.danger.text') ?? '',
+        ),
+        mode,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
   });
 
   it("AC3: the trainer web's pairs are declared, secondary text on the muted fill included", () => {

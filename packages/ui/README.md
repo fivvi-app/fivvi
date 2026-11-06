@@ -5,7 +5,7 @@ The web component kit (ADR-015, E007): [shadcn/ui](https://ui.shadcn.com/) compo
 | Path | What |
 |---|---|
 | `components.json` | shadcn configuration, as in shadcn's Next.js monorepo template |
-| `src/components/` | Components from the shadcn CLI: `Button` (variants `default` = primary, `secondary`, `ghost`, `destructive`, plus upstream's `outline` and `link`), `Input`, `Label`, `Card`, `AlertDialog` (confirmation dialog), `Dialog` (a form in a modal; no built-in close button), `DropdownMenu` (a menu button with checkable rows, for the scope switcher; see the divergences), `NativeSelect` (the browser's own select, for short lists such as a role; its chevron is an inline SVG because the kit has no icon library). **The CLI's output; never edit except for the divergences below (`Dialog`, `NativeSelect`, `DropdownMenu`)** |
+| `src/components/` | Components from the shadcn CLI: `Button` (variants `default` = primary, `secondary`, `ghost`, `destructive`, plus upstream's `outline` and `link`), `Input`, `Label`, `Card`, `AlertDialog` (confirmation dialog), `Dialog` (a form in a modal; no built-in close button), `DropdownMenu` (a menu button with checkable rows, for the scope switcher; see the divergences), `NativeSelect` (the browser's own select, for short lists such as a role; its chevron is an inline SVG because the kit has no icon library). **The CLI's output; never edit except for the divergences below (`Dialog`, `NativeSelect`, `DropdownMenu`, `Button`)** |
 | `src/styles/globals.css` | The stylesheet apps import: Tailwind, the token theme, the kit's sources, the densities, shadcn's base styles and the focus indicator |
 | `src/styles/palette-reset.css` | Drops Tailwind's default colour palette, so the only colours are the tokens |
 | `lint/` | The raw-colour guard, run by `pnpm check` |
@@ -57,7 +57,7 @@ Commit the new file in `src/components/` as the CLI wrote it. `pnpm dlx shadcn@l
 
 ## Divergences from upstream
 
-The components are the CLI's output, except for three edits (the `Dialog`, `NativeSelect` and `DropdownMenu` rows below). Apart from those, the kit differs from a fresh `shadcn init` only in its stylesheet:
+The components are the CLI's output, except for four edits (the `Dialog`, `NativeSelect`, `DropdownMenu` and `Button` rows below). Apart from those, the kit differs from a fresh `shadcn init` only in its stylesheet:
 
 | What | Why |
 |---|---|
@@ -71,6 +71,7 @@ The components are the CLI's output, except for three edits (the `Dialog`, `Nati
 | The `Dialog` overlay's upstream `bg-black/10` generates no CSS either (the palette is removed), so the overlay only blurs the page (`backdrop-blur-xs`) | Accepted for the same reasons as the `AlertDialog` overlay above |
 | `NativeSelect` draws its chevron as an inline SVG instead of upstream's `ChevronDownIcon` from `lucide-react`. **`native-select.tsx` is edited** | The kit has no icon library |
 | `DropdownMenu` is a reduced version of upstream's: the menu, trigger, content, group, item, radio group, radio item and separator only (the rest joins when a feature needs it), and the radio item's check is an inline SVG instead of upstream's `CheckIcon` from `lucide-react`. **`dropdown-menu.tsx` is written by hand** | The kit has no icon library, and only the parts the scope switcher (F012) uses are in it |
+| The `destructive` `Button` tints are 10% and hover 15% (dark 15% and 20%), not upstream's 10/20 and 20/30. **`button.tsx` is edited** | The destructive text on its own tint must keep 4.5:1 on every web background, hover included; a test in `packages/design-tokens` reads these numbers |
 | Density rules for `[data-density]` (`compact`, `touch`) in Tailwind's `base` layer, which also set `--text-sm` inside the layout | shadcn has one size scale; the densities set body text and a minimum control size per layout from the tokens, without editing the components ([densities](#densities)) |
 | No `src/lib/utils.ts` | The `radix-nova` components import `cn` from the `cn` package directly |
 
@@ -87,7 +88,7 @@ It leaves alone, on purpose:
 
 | What | Why |
 |---|---|
-| `src/components/` | Vendored shadcn components, edited only where the divergences above say so (`Dialog`, `NativeSelect`). Upstream's secondary `Button` uses `hover:bg-[color-mix(…)]`. The directory is where `components.json`'s `ui` alias resolves; a test keeps the two in step |
+| `src/components/` | Vendored shadcn components, edited only where the divergences above say so (`Dialog`, `NativeSelect`, `DropdownMenu`, `Button`). Upstream's secondary `Button` uses `hover:bg-[color-mix(…)]`. The directory is where `components.json`'s `ui` alias resolves; a test keeps the two in step |
 | Tests (`*.test.*`, `*.spec.*`, and a package's top-level `test/` and `e2e/`) | They assert on colours, such as a token's computed `rgb()`, rather than paint with them |
 | `node_modules/`, hidden directories (`.next/`), and a package's top-level build output (`dist/`, `out/`, …) | Not source |
 

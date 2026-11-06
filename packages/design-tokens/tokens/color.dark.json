@@ -139,6 +139,9 @@
         },
         "fg": {
           "$value": "{color.base.white}"
+        },
+        "text": {
+          "$value": "{color.status.danger.text}"
         }
       }
     },

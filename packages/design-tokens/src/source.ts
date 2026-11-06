@@ -17,9 +17,16 @@ export const sourceFiles = {
 /**
  * Minimum contrast per kind of pair: text 1.4.3, non-text 1.4.11 (and the focus ring, 2.4.13).
  * `native-secondary-text` is the one exception to the 4.5:1 rule (ADR-032): the native apps'
- * secondary text, which may not drop below 3:1.
+ * secondary text in light mode, which may not drop below 3:1.
  */
 export const minimumRatio = { text: 4.5, 'non-text': 3, 'native-secondary-text': 3 } as const;
+
+/**
+ * The minimum ratio of a kind of pair in a mode. The `native-secondary-text` exception is for light
+ * mode only (ADR-032): in dark mode the apps' secondary text meets 4.5:1.
+ */
+export const minimumFor = (kind: keyof typeof minimumRatio, mode: Mode): number =>
+  kind === 'native-secondary-text' && mode === 'dark' ? minimumRatio.text : minimumRatio[kind];
 
 /** The one token that may be the foreground of a `native-secondary-text` pair, and only of those. */
 export const nativeSecondaryText = 'color.text.secondary';

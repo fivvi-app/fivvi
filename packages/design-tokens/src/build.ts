@@ -32,7 +32,7 @@ const prefix = 'th';
 
 /**
  * shadcn/ui's standard colour variables and the semantic token each one takes on the trainer web
- * (`--destructive` is danger as text on a tint of itself, as the kit's destructive button uses it):
+ * (`--destructive` is danger as text on a tint of itself, as the kit's destructive button uses it; the filled danger button takes `--action-danger-bg` and `--action-danger-fg`):
  * zinc neutrals (`color.web.trainer.*`) and the accent (ADR-029). `shadcn.css` holds these.
  */
 export const shadcnColours = {
@@ -50,8 +50,8 @@ export const shadcnColours = {
   'muted-foreground': 'color.web.trainer.muted-foreground',
   accent: 'color.web.trainer.muted',
   'accent-foreground': 'color.web.trainer.foreground',
-  destructive: 'color.status.danger.fg',
-  'destructive-foreground': 'color.action.danger.fg',
+  destructive: 'color.action.danger.text',
+  'destructive-foreground': 'color.text.inverse',
   border: 'color.web.trainer.border',
   input: 'color.border.control',
   ring: 'color.border.focus',
@@ -77,8 +77,8 @@ export const clientColours: Record<keyof typeof shadcnColours, string> = {
   'muted-foreground': 'color.web.client.secondary',
   accent: 'color.action.tonal.bg',
   'accent-foreground': 'color.action.tonal.fg',
-  destructive: 'color.status.danger.fg',
-  'destructive-foreground': 'color.action.danger.fg',
+  destructive: 'color.action.danger.text',
+  'destructive-foreground': 'color.text.inverse',
   border: 'color.border.default',
   input: 'color.border.control',
   ring: 'color.border.focus',
@@ -91,9 +91,10 @@ const clientRadius = 'radius.card';
 
 /**
  * Our own theme variables for what shadcn doesn't cover: `--session-*`, `--status-*`,
- * `--accent-*` (the accent's fill, on-colour and text), `--workspace-*` and `--fill-*`.
+ * `--accent-*` (the accent's fill, on-colour and text), `--workspace-*`, `--fill-*` and
+ * `--action-danger-*` (the filled danger button: `-bg` and `-fg`; `-text` is the tinted one's).
  */
-const extraColourGroups = /^color\.(session|status|accent|workspace|fill)\./;
+const extraColourGroups = /^color\.(session|status|accent|workspace|fill|action\.danger)\./;
 
 export interface ResolvedToken {
   /** Dotted token path, e.g. `color.bg.canvas`. */

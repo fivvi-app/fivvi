@@ -16,8 +16,8 @@
   --muted-foreground: var(--th-color-web-trainer-muted-foreground);
   --accent: var(--th-color-web-trainer-muted);
   --accent-foreground: var(--th-color-web-trainer-foreground);
-  --destructive: var(--th-color-status-danger-fg);
-  --destructive-foreground: var(--th-color-action-danger-fg);
+  --destructive: var(--th-color-action-danger-text);
+  --destructive-foreground: var(--th-color-text-inverse);
   --border: var(--th-color-web-trainer-border);
   --input: var(--th-color-border-control);
   --ring: var(--th-color-border-focus);
@@ -28,6 +28,9 @@
   --accent-text: var(--th-color-accent-text);
   --accent-gradient-top: var(--th-color-accent-gradient-top);
   --accent-gradient-bottom: var(--th-color-accent-gradient-bottom);
+  --action-danger-bg: var(--th-color-action-danger-bg);
+  --action-danger-fg: var(--th-color-action-danger-fg);
+  --action-danger-text: var(--th-color-action-danger-text);
   --session-private-solid: var(--th-color-session-private-solid);
   --session-private-fg: var(--th-color-session-private-fg);
   --session-private-text: var(--th-color-session-private-text);

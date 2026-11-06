@@ -24,8 +24,8 @@ struct ClientMessage: View {
 
     private var foreground: Color {
         switch kind {
-        case .error: Tokens.Colors.statusDangerFg
-        case .success: Tokens.Colors.statusSuccessFg
+        case .error: Tokens.Colors.statusDangerText
+        case .success: Tokens.Colors.statusSuccessText
         case .info: Tokens.Colors.statusNeutralFg
         }
     }

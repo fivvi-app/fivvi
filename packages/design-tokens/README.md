@@ -77,11 +77,11 @@ Colours that need alpha exist only for the client web's glass (`color.web.glass.
 | Client web | `#6C6C70` | `#98989F` | `color.web.client.secondary` |
 | Trainer web | zinc `#71717A` | zinc `#A1A1AA` | `color.web.trainer.muted-foreground` |
 
-The native grey is the one exception to the 4.5:1 rule: it is the foreground of `native-secondary-text` pairs only (3:1, with a `reason`), and no other kind of pair may use it. Tertiary text and placeholders use the same value of their platform; there is no tertiary token. `color.fill.decorative` is for chevrons and the sheet handle and stays outside the pairs. The trainer web keeps zinc's `#71717A`; its muted fill is `#F8F8F9`, not zinc's `#F4F4F5`, because `#71717A` on `#F4F4F5` is 4.4:1 (the web ticket may settle both differently).
+The native grey is the one exception to the 4.5:1 rule: it is the foreground of `native-secondary-text` pairs only (3:1 in light mode, with a `reason`; dark mode is held to 4.5:1), and no other kind of pair may use it. Tertiary text and placeholders use the same value of their platform; there is no tertiary token. `color.fill.decorative` is for chevrons and the sheet handle and stays outside the pairs. The trainer web keeps zinc's `#71717A`; its muted fill is `#F8F8F9`, not zinc's `#F4F4F5`, because `#71717A` on `#F4F4F5` is 4.4:1 (the web ticket may settle both differently).
 
 ## Workspace colours
 
-`color.workspace.*` is a fixed set of dot colours. A workspace gets one automatically from its ID, with no setting: `workspaceColour(id)` from `@fivvi/design-tokens/workspace-colour` (the CSS variable is `--workspace-<name>`), `Tokens.workspaceColor(for:)` on iOS and `TokenColors.workspaceColor(id)` on Android. They all compute the 32-bit FNV-1a hash of the ID's UTF-8 bytes modulo the number of colours, and a test holds the three to the same numbers.
+`color.workspace.*` is a fixed set of dot colours. A workspace gets one automatically from its ID, with no setting: `workspaceColour(id)` from `@fivvi/design-tokens/workspace-colour` (the CSS variable is `--workspace-<name>`), `Tokens.workspaceColor(for:)` on iOS and `TokenColors.workspaceColor(id)` on Android. They all compute the 32-bit FNV-1a hash of the ID's UTF-8 bytes modulo the number of colours, and a test holds the TypeScript version to fixed vectors. The generated Swift and Kotlin run the same loop, but are checked only as text for the constants and the colour order; the Swift loop was run once against the same numbers, the Kotlin one never.
 
 A new colour under `color.session.*` or `color.status.*` automatically becomes a `--session-*` or `--status-*` variable and a Tailwind colour. Any other new colour for the web needs a mapping in `src/build.ts`. Every semantic colour becomes a Swift and Kotlin colour automatically; one that a Material 3 role should take needs a mapping in `src/native.ts`.
 
@@ -93,7 +93,7 @@ Add an entry to `tokens/contrast-pairs.json` for every new foreground/background
 { "fg": "color.text.secondary", "bg": "color.bg.raised", "kind": "text", "use": "Meta text in a sheet" }
 ```
 
-`fg` and `bg` are semantic colours. `kind` is `text` (4.5:1, WCAG 1.4.3), `non-text` (3:1 for icons, control outlines, focus rings and calendar bars; WCAG 1.4.11 and 2.4.13) or `native-secondary-text` (3:1, only `color.text.secondary`, needs a `reason`). `use` says where the pair appears. Glass and `color.fill.decorative` can't be in a pair. The check runs every pair in light and dark mode.
+`fg` and `bg` are semantic colours. `kind` is `text` (4.5:1, WCAG 1.4.3), `non-text` (3:1 for icons, control outlines, focus rings and calendar bars; WCAG 1.4.11 and 2.4.13) or `native-secondary-text` (3:1 in light and 4.5:1 in dark, only `color.text.secondary`, needs a `reason`). `use` says where the pair appears. Glass and `color.fill.decorative` can't be in a pair. The check runs every pair in light and dark mode.
 
 ## Checks
 

@@ -23,7 +23,7 @@ class TokenColors(
     val bgInverse: Color,
     /** The label colour, and the mode's ink for mixed colours. */
     val textPrimary: Color,
-    /** Secondary text in the native apps: the prototype's grey as one opaque value. The one exception to 4.5:1 (ADR-032): 3.3:1 on the canvas, 3.7:1 on cards, declared only as native-secondary-text pairs. Tertiary text and placeholders use it too. Web uses color.web.* instead. */
+    /** Secondary text in the native apps: the prototype's grey as one opaque value. The one exception to 4.5:1, in light mode only (ADR-032; dark is held to 4.5:1): 3.3:1 on the canvas, 3.7:1 on cards, declared only as native-secondary-text pairs. Tertiary text and placeholders use it too. Web uses color.web.* instead. */
     val textSecondary: Color,
     /** Text on bg.inverse. */
     val textInverse: Color,
@@ -59,6 +59,8 @@ class TokenColors(
     /** Destructive confirm (cancel class) with white text: the danger colour mixed with black, 85%, because the pure colour is 3.57:1 with white. iOS: role .destructive. M3: error. */
     val actionDangerBg: Color,
     val actionDangerFg: Color,
+    /** Danger as text on a tint of itself: the kit's tinted destructive button (10% light, 15% dark; hover 15% and 20%). Darker than status.danger.fg in light so the hover keeps 4.5:1 on every web background; in dark the same as status.danger.text. */
+    val actionDangerText: Color,
     /** Private sessions (PRODUCT.md section 16). Always paired with a text label; colour is never the only signal. Calendar bar/dot. */
     val sessionPrivateSolid: Color,
     /** Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; not for text on the tint (use text). */
@@ -117,7 +119,7 @@ class TokenColors(
     val statusSuccessGradientBottom: Color,
     /** Danger. */
     val statusDangerSolid: Color,
-    /** Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; not for text on the tint (use text). */
+    /** Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; for danger also text on cards, the canvas and sheets (field error messages), 4.5:1; not text on the tint (use text). */
     val statusDangerFg: Color,
     /** Text in this colour on the tint, on cards and on the canvas (prototype: the colour mixed with the ink, 42% in light, 55% in dark). 4.5:1. */
     val statusDangerText: Color,
@@ -181,6 +183,7 @@ val LightTokenColors: TokenColors = TokenColors(
     actionTonalFg = Color(0xFF000000),
     actionDangerBg = Color(0xFFD93033),
     actionDangerFg = Color(0xFFFFFFFF),
+    actionDangerText = Color(0xFFA42023),
     sessionPrivateSolid = Color(0xFF0088FF),
     sessionPrivateFg = Color(0xFF0060B7),
     sessionPrivateText = Color(0xFF00254D),
@@ -260,6 +263,7 @@ val DarkTokenColors: TokenColors = TokenColors(
     actionTonalFg = Color(0xFFFFFFFF),
     actionDangerBg = Color(0xFFD93033),
     actionDangerFg = Color(0xFFFFFFFF),
+    actionDangerText = Color(0xFFFF9F95),
     sessionPrivateSolid = Color(0xFF0088FF),
     sessionPrivateFg = Color(0xFF56A5FF),
     sessionPrivateText = Color(0xFF8AC1FF),

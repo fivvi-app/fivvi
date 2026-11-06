@@ -471,14 +471,86 @@
     {
       "fg": "color.status.danger.fg",
       "bg": "color.bg.surface",
-      "kind": "non-text",
-      "use": "Niet verschenen: glyph on a card"
+      "kind": "text",
+      "use": "Field error message on a card"
     },
     {
       "fg": "color.status.danger.fg",
       "bg": "color.bg.canvas",
-      "kind": "non-text",
-      "use": "Niet verschenen: glyph on the canvas"
+      "kind": "text",
+      "use": "Error text on the canvas"
+    },
+    {
+      "fg": "color.status.danger.fg",
+      "bg": "color.bg.raised",
+      "kind": "text",
+      "use": "Error text in a sheet"
+    },
+    {
+      "fg": "color.status.danger.fg",
+      "bg": "color.web.trainer.background",
+      "kind": "text",
+      "use": "Trainer web: error text on the page"
+    },
+    {
+      "fg": "color.status.danger.fg",
+      "bg": "color.web.trainer.card",
+      "kind": "text",
+      "use": "Trainer web: error text on a card"
+    },
+    {
+      "fg": "color.text.inverse",
+      "bg": "color.status.danger.fg",
+      "kind": "text",
+      "use": "Material onError: text on the error colour"
+    },
+    {
+      "fg": "color.action.danger.text",
+      "bg": "color.bg.canvas",
+      "kind": "text",
+      "use": "Destructive button text on the canvas"
+    },
+    {
+      "fg": "color.action.danger.text",
+      "bg": "color.bg.surface",
+      "kind": "text",
+      "use": "Destructive button text on a card"
+    },
+    {
+      "fg": "color.action.danger.text",
+      "bg": "color.bg.raised",
+      "kind": "text",
+      "use": "Destructive button text in a sheet"
+    },
+    {
+      "fg": "color.action.danger.text",
+      "bg": "color.web.trainer.background",
+      "kind": "text",
+      "use": "Destructive button text on the trainer web page"
+    },
+    {
+      "fg": "color.action.danger.text",
+      "bg": "color.web.trainer.card",
+      "kind": "text",
+      "use": "Destructive button text on a trainer web card"
+    },
+    {
+      "fg": "color.action.danger.text",
+      "bg": "color.web.trainer.sidebar",
+      "kind": "text",
+      "use": "Destructive button text in the trainer web sidebar"
+    },
+    {
+      "fg": "color.action.danger.text",
+      "bg": "color.web.trainer.muted",
+      "kind": "text",
+      "use": "Destructive button text on the trainer web muted fill"
+    },
+    {
+      "fg": "color.text.inverse",
+      "bg": "color.action.danger.text",
+      "kind": "text",
+      "use": "Text on the destructive text colour (shadcn destructive-foreground)"
     },
     {
       "fg": "color.status.danger.solid",

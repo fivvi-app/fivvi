@@ -32,7 +32,7 @@
       },
       "secondary": {
         "$value": "{color.base.gray.450}",
-        "$description": "Secondary text in the native apps: the prototype's grey as one opaque value. The one exception to 4.5:1 (ADR-032): 3.3:1 on the canvas, 3.7:1 on cards, declared only as native-secondary-text pairs. Tertiary text and placeholders use it too. Web uses color.web.* instead."
+        "$description": "Secondary text in the native apps: the prototype's grey as one opaque value. The one exception to 4.5:1, in light mode only (ADR-032; dark is held to 4.5:1): 3.3:1 on the canvas, 3.7:1 on cards, declared only as native-secondary-text pairs. Tertiary text and placeholders use it too. Web uses color.web.* instead."
       },
       "inverse": {
         "$value": "{color.base.white}",
@@ -162,6 +162,17 @@
         },
         "fg": {
           "$value": "{color.base.white}"
+        },
+        "text": {
+          "$value": {
+            "mix": {
+              "color": "{color.status.danger.solid}",
+              "with": "{color.text.primary}",
+              "amount": 72,
+              "space": "oklab"
+            }
+          },
+          "$description": "Danger as text on a tint of itself: the kit's tinted destructive button (10% light, 15% dark; hover 15% and 20%). Darker than status.danger.fg in light so the hover keeps 4.5:1 on every web background; in dark the same as status.danger.text."
         }
       }
     },
@@ -444,7 +455,7 @@
               "space": "oklab"
             }
           },
-          "$description": "Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; not for text on the tint (use text)."
+          "$description": "Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; for danger also text on cards, the canvas and sheets (field error messages), 4.5:1; not text on the tint (use text)."
         },
         "text": {
           "$value": {

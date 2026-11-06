@@ -17,7 +17,7 @@ public extension Tokens {
         public static let bgInverse = Color(light: 0x1C1C1E, dark: 0xE5E5EA)
         /// The label colour, and the mode's ink for mixed colours.
         public static let textPrimary = Color(light: 0x000000, dark: 0xFFFFFF)
-        /// Secondary text in the native apps: the prototype's grey as one opaque value. The one exception to 4.5:1 (ADR-032): 3.3:1 on the canvas, 3.7:1 on cards, declared only as native-secondary-text pairs. Tertiary text and placeholders use it too. Web uses color.web.* instead.
+        /// Secondary text in the native apps: the prototype's grey as one opaque value. The one exception to 4.5:1, in light mode only (ADR-032; dark is held to 4.5:1): 3.3:1 on the canvas, 3.7:1 on cards, declared only as native-secondary-text pairs. Tertiary text and placeholders use it too. Web uses color.web.* instead.
         public static let textSecondary = Color(light: 0x85858B, dark: 0x98989F)
         /// Text on bg.inverse.
         public static let textInverse = Color(light: 0xFFFFFF, dark: 0x000000)
@@ -53,6 +53,8 @@ public extension Tokens {
         /// Destructive confirm (cancel class) with white text: the danger colour mixed with black, 85%, because the pure colour is 3.57:1 with white. iOS: role .destructive. M3: error.
         public static let actionDangerBg = Color(light: 0xD93033, dark: 0xD93033)
         public static let actionDangerFg = Color(light: 0xFFFFFF, dark: 0xFFFFFF)
+        /// Danger as text on a tint of itself: the kit's tinted destructive button (10% light, 15% dark; hover 15% and 20%). Darker than status.danger.fg in light so the hover keeps 4.5:1 on every web background; in dark the same as status.danger.text.
+        public static let actionDangerText = Color(light: 0xA42023, dark: 0xFF9F95)
         /// Private sessions (PRODUCT.md section 16). Always paired with a text label; colour is never the only signal. Calendar bar/dot.
         public static let sessionPrivateSolid = Color(light: 0x0088FF, dark: 0x0088FF)
         /// Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; not for text on the tint (use text).
@@ -111,7 +113,7 @@ public extension Tokens {
         public static let statusSuccessGradientBottom = Color(light: 0x20873A, dark: 0x20873A)
         /// Danger.
         public static let statusDangerSolid = Color(light: 0xFF383C, dark: 0xFF383C)
-        /// Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; not for text on the tint (use text).
+        /// Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; for danger also text on cards, the canvas and sheets (field error messages), 4.5:1; not text on the tint (use text).
         public static let statusDangerFg = Color(light: 0xB72528, dark: 0xFF7269)
         /// Text in this colour on the tint, on cards and on the canvas (prototype: the colour mixed with the ink, 42% in light, 55% in dark). 4.5:1.
         public static let statusDangerText = Color(light: 0x4D0A0B, dark: 0xFF9F95)

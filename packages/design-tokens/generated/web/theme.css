@@ -27,6 +27,9 @@
   --color-accent-text: var(--accent-text);
   --color-accent-gradient-top: var(--accent-gradient-top);
   --color-accent-gradient-bottom: var(--accent-gradient-bottom);
+  --color-action-danger-bg: var(--action-danger-bg);
+  --color-action-danger-fg: var(--action-danger-fg);
+  --color-action-danger-text: var(--action-danger-text);
   --color-session-private-solid: var(--session-private-solid);
   --color-session-private-fg: var(--session-private-fg);
   --color-session-private-text: var(--session-private-text);

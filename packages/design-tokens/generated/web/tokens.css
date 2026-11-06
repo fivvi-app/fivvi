@@ -27,6 +27,7 @@
   --th-color-action-tonal-fg: #000000;
   --th-color-action-danger-bg: #d93033;
   --th-color-action-danger-fg: #ffffff;
+  --th-color-action-danger-text: #a42023;
   --th-color-session-private-solid: #0088ff;
   --th-color-session-private-fg: #0060b7;
   --th-color-session-private-text: #00254d;
@@ -235,6 +236,7 @@
     --th-color-action-tonal-fg: #ffffff;
     --th-color-action-danger-bg: #d93033;
     --th-color-action-danger-fg: #ffffff;
+    --th-color-action-danger-text: #ff9f95;
     --th-color-session-private-solid: #0088ff;
     --th-color-session-private-fg: #56a5ff;
     --th-color-session-private-text: #8ac1ff;

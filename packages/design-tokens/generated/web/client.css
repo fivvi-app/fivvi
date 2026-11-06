@@ -16,8 +16,8 @@
   --muted-foreground: var(--th-color-web-client-secondary);
   --accent: var(--th-color-action-tonal-bg);
   --accent-foreground: var(--th-color-action-tonal-fg);
-  --destructive: var(--th-color-status-danger-fg);
-  --destructive-foreground: var(--th-color-action-danger-fg);
+  --destructive: var(--th-color-action-danger-text);
+  --destructive-foreground: var(--th-color-text-inverse);
   --border: var(--th-color-border-default);
   --input: var(--th-color-border-control);
   --ring: var(--th-color-border-focus);

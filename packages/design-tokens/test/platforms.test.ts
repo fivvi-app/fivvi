@@ -116,7 +116,9 @@ describe('E007 design tokens platform mapping', () => {
     expect(light.get('secondaryContainer')).toBe(
       `LightTokenColors.${nativeName('color.action.tonal.bg')}`,
     );
-    expect(light.get('error')).toBe(`LightTokenColors.${nativeName('color.action.danger.bg')}`);
+    // Android uses the error role as text: danger as text on cards and the canvas, with its own text colour on it.
+    expect(light.get('error')).toBe(`LightTokenColors.${nativeName('color.status.danger.fg')}`);
+    expect(light.get('onError')).toBe(`LightTokenColors.${nativeName('color.text.inverse')}`);
     expect(light.get('outline')).toBe(`LightTokenColors.${nativeName('color.border.control')}`);
   });
 
