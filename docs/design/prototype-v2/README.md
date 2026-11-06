@@ -5,7 +5,7 @@ A throwaway, clickable prototype of the new look (November 2026): Calendar-style
 | Round | What | Panel |
 |---|---|---|
 | 1 | Fivvi Pro on iOS and Android: Vandaag, Agenda, Klanten, Profiel, sessions, classes, the workout logger | Scherm → iOS / Android |
-| 2 | Trainer web: dashboard, agenda (week, day per trainer, list), clients and join requests, client profile, classes with waitlist, Open Gym, workouts, trainers, join link and QR, settings | Scherm → Trainer web |
+| 2 | Trainer web: dashboard, agenda (week, day per trainer, list), clients and join requests, client profile, classes with waitlist, workouts, trainers, join link and QR, settings | Scherm → Trainer web |
 | 3 | Client web (ADR-026), in the same design language as Fivvi Pro: join through the link, wait for approval, timetable, booking, waitlist, my schedule, profile and balance, a shared workout | Scherm → Klantweb |
 | 4 | Owner decisions of 5 November 2026: duo sessions (#586), class levels (#587), the workspace's own word for trainers (#588) | Index → Duosessie; Opzet → Pilatesstudio; Trainer web → Instellingen |
 | 4b | Renewing before the end: the owner gets "Verlengen" on an agreement that stops within its offer's renewal window (default 30 days, set per offer), a credit pack with 2 or fewer left, or one that ended; "Aanbod sturen" is always there (owner input for F052, #468) | Klantprofiel (Lisa, Bram, Mark), app and trainer web |

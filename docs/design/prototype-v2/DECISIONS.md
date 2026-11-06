@@ -98,7 +98,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
 - **Attendance** as a segmented control.
 - **Duo session:** a switch between the two clients ([§6](#6-product-decisions)).
 
-### Les and Open Gym (TD-03)
+### Les (TD-03)
 
 - **Header:** the level in the eyebrow ("Groepsles · Gevorderd").
 - **Description** with *Meer / Minder*.
@@ -129,7 +129,6 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
 - **Privésessie**, with an optional *Tweede klant* that makes it a duo session.
 - **Klant:** email required (`PRODUCT.md §26`).
 - **Groepsles** (owner): with level, and a description in Dutch and English. The description is entered in the app too.
-- **Open Gym** (owner).
 - The + sheet's icons are small inside their tiles.
 
 ## 4. Trainer web
@@ -140,7 +139,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
   - per role: *Mijn dag* and *Mijn agenda* for everyone;
   - workspace pages for the owner;
   - **Aanbod** is a new owner page.
-- **+ Nieuw:** *Privésessie*, *Groepsles*, *Open Gym*, *Klant*, and below a divider *Aanbod* (owner).
+- **+ Nieuw:** *Privésessie*, *Groepsles*, *Klant*, and below a divider *Aanbod* (owner).
 - **Dashboard:**
   - KPIs and a lane per trainer;
   - *Aandacht nodig*, with billing flags: open payment, a pack running out, an abonnement ending;
@@ -221,7 +220,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
   - the date, and the gradient **next booking** card;
   - the week strip: **one dot per class you can still book** (not past, not cancelled, not full; owner, 5 November 2026), green when you're booked;
   - a cancelled class never shows in the client timetable;
-  - a filter, only when both groups and Open Gym exist;
+  - a filter by kind comes with Open Gym, later;
   - rows with the **level** icon;
   - **nothing in a list is cut off with "…"** (owner, 5 November 2026): no description in list rows (the class page shows it whole), and long names wrap to a second line;
   - **book straight from the list** (owner, 5 November 2026): each row has *Boeken*, or *Wachtlijst* on a full class, and keeps *Geboekt ✓* or *Wachtlijst #n* once done. Without a matching credit the button opens the class page, which explains. The free spots lead the small line (accent at 2 or fewer). **Booking and joining the waitlist always ask for confirmation** (owner, 5 November 2026), from the list and from the class page: class, day and time, trainer, which credit it uses and how many are left, and the free-cancellation rule. A booking plans one credit; cancelling in time gives it back. Cancelling stays on the class page, with its confirmation;
@@ -280,7 +279,7 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
   - *Tegoed*, agreements, invoices, the studio, *Taal*;
   - *Uitloggen*;
   - **Account verwijderen**, with a confirmation that says invoices stay with the studio as long as the law requires (`§79`).
-- **Renewal reminders** (owner, 5 and 6 November 2026; `PRODUCT.md §90`; the timing is a proposal, §7 item 4): the client gets **two emails** with a one-tap renewal, and a card on *Home* and *Tegoed* (*Rooster* and *Profiel* on the client web): "Je 10 groepscredits stoppen over 24 dagen" with ***Verlengen***.
+- **Renewal reminders** (owner, 5 and 6 November 2026; `PRODUCT.md §90`; details in §7 item 4): the client gets **two emails** with a one-tap renewal, and a card on *Home* and *Tegoed* (*Rooster* and *Profiel* on the client web): "Je 10 groepscredits stoppen over 24 dagen" with ***Verlengen***.
   - **The first** goes at the start of the offer's renewal window, by default 30 days before the end. **The last** goes 7 days before the end. A credit pack also gets the first at 2 or fewer credits left, and the last when it is used up, whichever comes first.
   - **They also go when the owner sent an offer.** They then point at that offer: *Je studio heeft je een aanbod gestuurd* with ***Bekijk het aanbod***. No reminder goes in the 3 days after the owner's offer or another reminder; it waits until those 3 days are over. The last still goes 7 days before the end at the latest.
   - After the client renews, no more reminders go.
@@ -320,21 +319,23 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
 | **Class levels: build them** | A level field on the class, not in the name. **In lists, only the three-bar icon after the class name**, with the word as accessible name and tooltip; "Alle niveaus" shows no icon in a list. Pages about one class show icon and word (owner, 5 November 2026) | [#587](https://github.com/fivvi-app/fivvi/issues/587) |
 | **The workspace's word for trainers: build it** | Trainer, instructeur, docent or coach, chosen in *Instellingen*, used everywhere in that workspace | [#588](https://github.com/fivvi-app/fivvi/issues/588) |
 | **Clients pick a spot: later** | A post-MVP feature, maybe for several kinds of class. Stopping double room bookings is admin and not a priority | [#589](https://github.com/fivvi-app/fivvi/issues/589) |
-| **Renew before the end** | The owner sends the renewal before an agreement that stops ends. The **window is set per offer**, default 30 days. A credit pack is also suggested at **2 or fewer** credits left. *Aanbod sturen* is always there. **Fivvi also reminds the client automatically, twice**, also when the owner sent an offer (owner, 5 and 6 November 2026; `PRODUCT.md §90`; proposed timing: the start of the window and 7 days before the end, §7 item 4), so nobody depends on the owner remembering. The offer's email goes to the client to confirm and pay with iDEAL, and the invoice follows the payment. The new agreement starts when the current one ends (no gap, no overlap) or right after payment | [#468](https://github.com/fivvi-app/fivvi/issues/468) |
+| **Renew before the end** | The owner sends the renewal before an agreement that stops ends. The **window is set per offer**, default 30 days. A credit pack is also suggested at **2 or fewer** credits left. *Aanbod sturen* is always there. **Fivvi also reminds the client automatically, twice**, also when the owner sent an offer (owner, 5 and 6 November 2026; `PRODUCT.md §90`): at the start of the window and 7 days before the end (§7 item 4), so nobody depends on the owner remembering. The offer's email goes to the client to confirm and pay with iDEAL, and the invoice follows the payment. The new agreement starts when the current one ends (no gap, no overlap) or right after payment | [#468](https://github.com/fivvi-app/fivvi/issues/468) |
 | **Offers are made on the Aanbod page** | Web, owner only, also from *+ Nieuw* | [#468](https://github.com/fivvi-app/fivvi/issues/468) |
 | **Add, change, remove everything** | Every list (class series, own exercises, templates, offers, trainers) can be added to, changed and removed from. Every removal asks for confirmation | All specs |
 | **Trainers see the client's last workout and progress** | In the app and on the web. AI help is post-MVP (`§53`) | F044, F045 |
 | **Clients do a shared workout on their own: build it, MVP with M7** | Owner, 5 November 2026. The client logs a workout the trainer shared (F045), for example in their own gym. **Private to the client:** trainers never see it. App only | [#602](https://github.com/fivvi-app/fivvi/issues/602) |
-| **Fixed groups** | Still open: should a client be enrolled in a weekly series? | [SCENARIOS.md](SCENARIOS.md) |
+| **Fixed groups: not in the MVP** | A client isn't enrolled in a weekly series (owner, 6 November 2026) | [SCENARIOS.md](SCENARIOS.md) |
+| **Open Gym: later** | Owner, 6 November 2026: not in the MVP, with Open Gym credits and the Open Gym booking link. The prototype hides it everywhere; the code stays for when it comes. The colour stays reserved | `PRODUCT.md §53`, [#470](https://github.com/fivvi-app/fivvi/issues/470), [#471](https://github.com/fivvi-app/fivvi/issues/471), [#472](https://github.com/fivvi-app/fivvi/issues/472) |
+| **Client web tabs** | The same four tabs as the app, *Home · Boeken · Activiteit · Profiel* (owner, 6 November 2026). The prototype still shows the earlier tabs | [#489](https://github.com/fivvi-app/fivvi/issues/489), [#497](https://github.com/fivvi-app/fivvi/issues/497) |
 
 ## 7. Assumptions still to confirm
 
-The prototype had to choose something for these. They are **not decided**; each spec asks the owner.
+The prototype had to choose something for these. **The owner confirmed every item here on 6 November 2026, except item 9**, so a spec builds them as written and asks only about item 9.
 
 1. **Trainers and balances:** trainers see their clients' credit balances, but no money (`QC12`).
 2. ***Aanbod sturen*:** it sends the client a link to confirm and pay.
 3. **Changing a series' time:** bookings stay, and the clients get an email.
-4. **Renewal reminders: the timing** (#468, #481). The owner decided two reminders, that they also go after the owner's offer, the card, and that a pack at 2 or fewer left gets them (6 November 2026), and asked for a logical timing. The proposal:
+4. **Renewal reminders: the timing** (#468, #481). The owner decided two reminders, that they also go after the owner's offer, the card, and that a pack at 2 or fewer left gets them, and confirmed this timing (6 November 2026):
    - 30 days before the end (the offer's window) and 7 days before it;
    - a credit pack gets the first at 2 or fewer left and the last when it is used up, if that comes earlier;
    - 3 days of quiet after the owner's offer or another reminder, but the last still goes 7 days before the end at the latest;
@@ -344,7 +345,7 @@ The prototype had to choose something for these. They are **not decided**; each 
 5. **Duo sessions:**
    - each client uses one of their own privécredits;
    - the trainer plans it, and clients don't book a duo themselves;
-   - two clients, or up to three (#586).
+   - two clients; if one cancels, it continues as a private session (#586).
 6. **Levels:**
    - a fixed list of four;
    - information only;

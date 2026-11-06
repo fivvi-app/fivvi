@@ -4,7 +4,7 @@ The prototype's panel has five setups (⚙ → **Opzet**). Each is a fictional b
 
 | Setup | Business | What it runs |
 |---|---|---|
-| Gym met team | Studio Fit, 4 trainers | Private sessions, group classes, Open Gym; the owner also trains at John's Gym |
+| Gym met team | Studio Fit, 4 trainers | Private sessions and group classes; the owner also trains at John's Gym |
 | Zelfstandige PT | Sarah Personal Training | Private sessions only, at several gyms, outdoors and at clients' homes |
 | PT met small groups | Fit met Sarah | Private sessions plus groups of 3–4 in the park and at a gym |
 | Pilatesstudio | Studio Kern, 3 instructors | Reformer classes of 6 (6 reformers), mat classes of 12, private reformer sessions |

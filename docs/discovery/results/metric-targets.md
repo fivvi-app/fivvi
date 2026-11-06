@@ -22,6 +22,8 @@ All baselines are estimates (quick questions, not a diary). At G5 the same quest
 
 ### A2. Open Gym receives bookings
 
+> **Not measured in the pilot:** Open Gym comes after the MVP (owner, 6 November 2026; `PRODUCT.md §53`).
+
 | | |
 |---|---|
 | **Baseline** | No Open Gym today, no client requests (questions 5, 21) |

@@ -250,7 +250,7 @@ window.FIVVI_I18N = (function () {
     "Reeks bijgewerkt voor alle komende lessen": "Series updated for all coming classes", "Reeks gestopt. Klanten met een boeking krijgen een e-mail.": "Series stopped. Clients with a booking get an email.",
     /* billing (GLOSSARY: abonnement = membership, creditpakket = credit pack, creditabonnement = credit plan, tegoed = balance) */
     "Abonnement en tegoed": "Membership and balance", "Tegoed en betalingen": "Balance and payments", "Tegoed": "Balance", "Betaling": "Payment", "Alles bekijken": "View all",
-    "Abonnementen en credits": "Memberships and credits", "Elke credit telt alleen voor zijn eigen soort: groep, privé of Open Gym.": "Each credit only counts for its own kind: group, private or Open Gym.",
+    "Abonnementen en credits": "Memberships and credits", "Elke credit telt alleen voor zijn eigen soort: groep of privé.": "Each credit only counts for its own kind: group or private.",
     "Aanbod sturen": "Send an offer", "De klant krijgt een link om het aanbod te bevestigen en te betalen": "The client gets a link to confirm and pay for the offer", "Betalingen en facturen": "Payments and invoices",
     "Klanten betalen online. Een mislukte incasso staat hier als open bedrag.": "Clients pay online. A failed direct debit shows here as an open amount.", "Bedragen en betalingen ziet alleen de eigenaar.": "Only the owner sees amounts and payments.",
     "Omschrijving": "Description", "Bedrag": "Amount", "Methode": "Method", "Factuur": "Invoice", "Facturen": "Invoices", "Terugbetalen": "Refund", "Factuur gedownload": "Invoice downloaded", "Verberg geschiedenis": "Hide history",
@@ -372,8 +372,8 @@ window.FIVVI_I18N = (function () {
     "Opent de route in Kaarten": "Opens the route in Maps",
     /* new */
     "Een sessie met één klant.": "A session with one client.", "Bij Studio Fit": "At Studio Fit", "Een naam is genoeg. Het e-mailadres kan later.": "A name is enough. The email address can come later.",
-    "Groepslessen en Open Gym van John's Gym plant de eigenaar.": "The owner schedules group classes and Open Gym at John's Gym.",
-    "Groepslessen en Open Gym van Studio Fit en John's Gym plant de eigenaar.": "The owner schedules group classes and Open Gym at Studio Fit and John's Gym.",
+    "Groepslessen van John's Gym plant de eigenaar.": "The owner schedules group classes at John's Gym.",
+    "Groepslessen van Studio Fit en John's Gym plant de eigenaar.": "The owner schedules group classes at Studio Fit and John's Gym.",
     "Klant toegevoegd": "Client added", "Klant": "Client", "Datum": "Date", "Begin": "Start", "Eind": "End", "Duur": "Duration", "1,5 uur": "1.5 hours", "1 uur": "1 hour", "Locatie": "Location",
     "Fivvi stelt de locatie van de vorige sessie met deze klant voor.": "Fivvi suggests the location of the last session with this client.",
     "Voor- en achternaam": "First and last name", "Optioneel": "Optional", "Een naam is genoeg. Zonder e-mailadres krijgt de klant geen e-mails.": "A name is enough. Without an email address the client gets no emails.",

@@ -1,6 +1,6 @@
 # Fivvi
 
-The domain language of Fivvi: a platform where gyms, studios and independent trainers run their scheduling, booking, Open Gym, clients, workouts and notes. Use these terms in code, issues, specs, tests and conversation.
+The domain language of Fivvi: a platform where gyms, studios and independent trainers run their scheduling, booking, clients, workouts and notes. Use these terms in code, issues, specs, tests and conversation.
 
 This glossary says what a concept **is**, in English. How each term is worded in the Dutch and English UI, plus tone and copy rules, is in [`packages/i18n/GLOSSARY.md`](packages/i18n/GLOSSARY.md) §4. Code names and i18n keys follow the English term here. 🔜 marks a concept for a post-MVP release, listed so nobody uses the word for something else meanwhile. Requirements: `docs/product/PRODUCT.md`.
 
@@ -135,7 +135,7 @@ One place within the capacity of a class occurrence or Open Gym slot.
 _Avoid_: place, seat, slot (that's Open Gym)
 
 **Open Gym**:
-Bookable time where clients train on their own at a location.
+Bookable time where clients train on their own at a location. Comes after the MVP (`PRODUCT.md §53`).
 
 **Open Gym slot**:
 One Open Gym session, with a start, end, location and capacity.
