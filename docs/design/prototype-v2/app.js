@@ -179,6 +179,7 @@
   try { var saved = JSON.parse(localStorage.getItem("fivvi-proto-v2") || "{}"); for (var pk in saved) if (pk in PREF) PREF[pk] = saved[pk]; } catch (e) { /* storage unavailable */ }
   var S;
   function fresh() {
+    var duoIt = findItem("s6"); if (duoIt) { duoIt.it.client = "lisa"; duoIt.it.duo = "eva"; duoIt.it.cancelled = false; }
     D.resetBilling();
     S = { signedIn: true, signStep: "email", email: "", code: "", tab: "today", stacks: { today: [], agenda: [], clients: [], profile: [] },
       sheet: null, alert: null, menu: null, toast: null, anim: null, scope: "me", aview: "week", aday: TODAY, q: "", exq: "",
@@ -481,8 +482,9 @@
       /* the owner renews in one tap: Fivvi suggests it from a month before an agreement stops, or when a pack runs low */
       if (OWNER()) {
         /* payments outside Fivvi (#606, owner 6 Nov 2026): cash is often taken at the desk, so it can be recorded here too */
-        if (!PAYLOCK()) bs.b.agreements.forEach(function (a) { if (a.cash && a.next) brows.push(row({ lead: '<span class="dc-ic" style="--c:' + (a.late ? "var(--danger)" : "var(--accent)") + '">' + ic(a.late ? "warn" : "repeat") + "</span>", title: esc(agrName(a)) + ": <span>" + esc(a.cash) + "</span>", sub: a.late ? "Betaling van " + esc(a.next) + " nog niet vastgelegd" : "Volgende betaling " + esc(a.next), tr: btn("Betaald", { sm: true, a: "cash-paid", d: { id: c.id, ag: a.id } }), cls: "dc wrap" })); });
-        if (!PAYLOCK()) brows.push(row({ a: "cash", d: { id: c.id }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("plus") + "</span>", title: "Betaling buiten Fivvi", sub: "Contant, pin of overboeking vastleggen", cls: "dc" }));
+        if (!PAYLOCK()) bs.b.agreements.forEach(function (a) { if (a.cash && a.next) brows.push(row({ lead: '<span class="dc-ic" style="--c:' + (a.late ? "var(--danger)" : "var(--accent)") + '">' + ic(a.late ? "warn" : "repeat") + "</span>", title: esc(agrName(a)) + ": <span>" + esc(a.cash) + "</span>", sub: a.late ? "Betaling van " + esc(a.next) + " nog niet vastgelegd" : "Volgende betaling " + esc(a.next), tr: btn("Betaald", { sm: true, dis: PAYST() === "broken", a: "cash-paid", d: { id: c.id, ag: a.id } }), cls: "dc wrap" })); });
+        if (PAYST() === "broken") brows.push(row({ lead: '<span class="dc-ic" style="--c:var(--danger)">' + ic("warn") + "</span>", title: "Betaling vastleggen kan nu niet", sub: "De koppeling met Mollie werkt niet meer. Opnieuw koppelen doe je op het web.", cls: "dc wrap" }));
+        if (!PAYLOCK() && PAYST() !== "broken") brows.push(row({ a: "cash", d: { id: c.id }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("plus") + "</span>", title: "Betaling buiten Fivvi", sub: "Contant, pin of overboeking vastleggen", cls: "dc" }));
         bs.renew.forEach(function (r) { var a = r[0]; brows.push(row({ lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("repeat") + "</span>", title: "Verlengen: <span>" + esc(agrName(a)) + "</span>", sub: a.offerSent ? "Aanbod verstuurd " + esc(a.offerSent) + " · wacht op betaling" : esc(r[1]), small: esc(D.remindLine(a)), tr: a.offerSent ? '<span class="pill">Verstuurd</span>' : PAYSTUDIO() ? btn("Betaald", { sm: true, a: "cash", d: { id: c.id } }) : !PAYONLINE() || !AGROPEN(a) ? "" : btn("Verlengen", { sm: true, a: "offer", d: { id: c.id, ag: a.id } }), cls: "dc wrap" })); });
         if (PAYONLINE()) brows.push(row({ a: "offer", d: { id: c.id }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("plus") + "</span>", title: '<span style="color:var(--accent-text)">Aanbod sturen</span>', cls: "dc", chev: false }));
       }
@@ -850,7 +852,7 @@
 
   var ALERTS = {
     signout: function () { return { t: "Uitloggen?", p: "Je kunt altijd weer inloggen met je e-mailadres.", b: [["Uitloggen", "do-signout", "pri"], ["Annuleren", "close-alert", "sec"]] }; },
-    cancelSession: function (d) { var it = findItem(d.id).it; return { t: "Sessie annuleren?", p: CLIENT[it.client].name.split(" ")[0] + " krijgt een e-mail dat de sessie van " + it.s + " niet doorgaat.", b: [["Sessie annuleren", "do-cancel", "dng"], ["Terug", "close-alert", "sec"]] }; },
+    cancelSession: function (d) { var it = findItem(d.id).it; if (it.duo) { var n1 = CLIENT[it.client].name.split(" ")[0], n2 = CLIENT[it.duo].name.split(" ")[0]; return { t: "Wie annuleer je?", p: "Annuleer je één klant, dan gaat de sessie door met de ander. Beiden krijgen een e-mail.", b: [["Alleen " + n1 + " annuleren", "do-cancel-first", "sec"], ["Alleen " + n2 + " annuleren", "do-cancel-second", "sec"], ["Hele sessie annuleren", "do-cancel", "dng"], ["Terug", "close-alert", "sec"]] }; } return { t: "Sessie annuleren?", p: CLIENT[it.client].name.split(" ")[0] + " krijgt een e-mail dat de sessie van " + it.s + " niet doorgaat.", b: [["Sessie annuleren", "do-cancel", "dng"], ["Terug", "close-alert", "sec"]] }; },
     cancelClass: function (d) { var it = findItem(d.id).it; return { t: "Les annuleren?", p: "De " + it.people.length + " geboekte klanten krijgen een e-mail. Je kunt er een bericht bij zetten op het web.", b: [["Les annuleren", "do-cancel", "dng"], ["Terug", "close-alert", "sec"]] }; },
     removeEx: function (d) { var e = S.log.ex[d.e], n = e.sets.filter(function (s) { return s.done; }).length; return { t: e.name + " verwijderen?", p: n ? e.name + " heeft " + n + (n === 1 ? " gelogde set" : " gelogde sets") + ". Toch verwijderen?" : (e.sets.length === 1 ? "De enige set van " + e.name + " gaat uit deze training." : (e.sets.length === 2 ? "Beide" : "Alle " + e.sets.length) + " sets van " + e.name + " gaan uit deze training."), b: [["Verwijderen", "do-remove-ex", "dng"], ["Terug", "close-alert", "sec"]] }; },
     removeSet: function (d) { var e = S.log.ex[d.e]; return { t: "Set " + (+d.s + 1) + " verwijderen?", p: e.name + " houdt " + (e.sets.length - 1) + (e.sets.length - 1 === 1 ? " set" : " sets") + ".", b: [["Verwijderen", "do-remove-set", "dng"], ["Terug", "close-alert", "sec"]] }; },
@@ -874,6 +876,8 @@
     if (PREF.plat === "android") b.reverse();
     return '<div class="scrim anim-fade" data-a="close-alert"></div><div class="alert anim-fade' + (a.h ? " info-alert" : "") + '" role="alertdialog" aria-label="' + esc(a.t) + '"><h3>' + esc(a.t) + "</h3>" + (a.h || "<p>" + esc(a.p) + "</p>") + '<div class="btns">' + b.map(function (x) { return btn(x[0], { k: x[2], a: x[1] }); }).join("") + "</div></div>";
   }
+  /* #586: one client of a duo cancels, and it continues as a private session for the other */
+  function cancelDuoPart(it, firstGoes) { var gone = firstGoes ? it.client : it.duo, keep = firstGoes ? it.duo : it.client; it.client = keep; it.att = (it.attD || {})[keep] || it.att || null; delete it.duo; return CLIENT[keep].name.split(" ")[0] + " leest: Je sessie gaat door, zonder " + CLIENT[gone].name.split(" ")[0] + "."; }
   function menuHTML() {
     var m = S.menu, items = m.items;
     var pos = m.pos ? "top:" + m.pos.top + "px;" + (m.pos.left != null ? "left:" + m.pos.left + "px" : "right:" + m.pos.right + "px") : "top:calc(var(--top) + 54px);right:12px";
@@ -971,7 +975,7 @@
     att: function (d) { var it = findItem(d.id).it; it.att = d.v; toast(d.v === "yes" ? CLIENT[it.client].name.split(" ")[0] + " was aanwezig" : "Genoteerd als niet verschenen"); },
     satt: function (d) { var it = findItem(d.id).it; if (it.duo) { it.attD = it.attD || {}; it.attD[d.c] = d.v || null; it.att = it.attD[it.client] && it.attD[it.duo] ? it.attD[it.client] : null; } else it.att = d.v || null; render(); },
     "att-one": function (d) { var it = findItem(d.id).it; it.attDraft[d.i] = it.attDraft[d.i] === d.v ? undefined : d.v; render(); },
-    "att-all": function (d) { var it = findItem(d.id).it; it.people.forEach(function (p, i) { it.attDraft[i] = "yes"; }); render(); },
+    "att-all": function (d) { var it = findItem(d.id).it; it.people.forEach(function (p, i) { if (!it.attDraft[i]) it.attDraft[i] = "yes"; }); render(); },
     "att-save": function (d) { var it = findItem(d.id).it; it.attMap = it.attDraft; S.stacks[S.tab].pop(); S.anim = "pop"; toast("Aanwezigheid opgeslagen"); },
     "desc-toggle": function (d) { S.showDesc[d.id] = !S.showDesc[d.id]; render(); },
     "show-all": function (d) { S.showAll[d.id] = true; render(); },
@@ -1032,6 +1036,8 @@
     "share-item": function (d) { var it = findItem(d.id).it; it.shared = true; toast("Gedeeld met " + CLIENT[it.client].name.split(" ")[0]); },
     lang: function (d) { PREF.lang = d.v; save(); applyPrefs(); toast(d.v === "en" ? "Taal: English" : "Taal: Nederlands"); },
     "close-alert": function () { S.alert = null; render(); },
+    "do-cancel-first": function () { var m = cancelDuoPart(findItem(S.alert.id).it, true); S.alert = null; toast(m); },
+    "do-cancel-second": function () { var m = cancelDuoPart(findItem(S.alert.id).it, false); S.alert = null; toast(m); },
     "do-cancel": function () { var it = findItem(S.alert.id).it; it.cancelled = true; S.alert = null; toast(it.type === "priv" ? "Sessie geannuleerd" : "Les geannuleerd"); },
     "do-signout": function () { fresh(); S.signedIn = false; S.anim = "push"; render(); },
     "do-delete": function () { S.alert = null; S.sheet = null; toast("Dit prototype verwijdert niets"); },
@@ -1225,6 +1231,7 @@
       ["Agenda · Maand", "TD-04", function () { fresh(); S.tab = "agenda"; S.aview = "month"; }],
       ["Privésessie", "TD-02", function () { fresh(); S.stacks.today = [{ n: "session", id: "s3" }]; }, true],
       ["Duosessie", "nieuw", function () { fresh(); S.stacks.today = [{ n: "session", id: "s6" }]; }, true],
+      ["Duosessie: één klant annuleren", "#586", function () { fresh(); S.stacks.today = [{ n: "session", id: "s6" }]; S.alert = { n: "cancelSession", id: "s6" }; }, true],
       ["Duosessie loggen", "nieuw", function () { fresh(); S.stacks.today = [{ n: "session", id: "s6" }]; openLogger("s6", "log", "Full body"); S.logs.s6 = S.log; findItem("s6").it.wstate = "running"; S.anim = null; }, true],
       ["Groepsles (invallen)", "TD-03", function () { fresh(); PREF.setup = "team"; S.stacks.today = [{ n: "klass", id: "s5" }]; }, true],
       ["Aanwezigheid les", "CO-05", function () { fresh(); PREF.setup = "team"; var it = findItem("s2").it; it.attDraft = null; S.stacks.today = [{ n: "klass", id: "s2" }, { n: "attendance", id: "s2" }]; }, true],
@@ -1298,7 +1305,7 @@
   function addClient(c) { D.clients.push(c); CLIENT[c.id] = c; }
   function addItem(k, it) { dayItems(k); DAYCACHE[k].push(it); }
   window.FV = { agrName: agrName, offerOpts: offerOpts, offerStart: offerStart, saveClassText: saveClassText, PAYST: PAYST, PAYONLINE: PAYONLINE, PAYSTUDIO: PAYSTUDIO, PAYOPEN: PAYOPEN, OFFEROPEN: OFFEROPEN, AGROPEN: AGROPEN, OPENOFFERS: OPENOFFERS, get S() { return S; }, PREF: PREF, D: D, A: A, CLIENT: CLIENT, dayItems: dayItems, findItem: findItem, extra: function () { return EXTRA_WS; },
-    CV: CV, TYPE: TYPE, title: title, level: level, lvlTag: lvlTag, esc: esc, ic: ic, mins: mins, hm: hm, key: key, parse: parse, add: add, monday: monday, longDate: longDate, shortDate: shortDate,
+    cancelDuoPart: cancelDuoPart, CV: CV, TYPE: TYPE, title: title, level: level, lvlTag: lvlTag, esc: esc, ic: ic, mins: mins, hm: hm, key: key, parse: parse, add: add, monday: monday, longDate: longDate, shortDate: shortDate,
     isoWeek: isoWeek, DAYS: DAYS, DS: DS, MONTHS: MONTHS, MS: MS, TODAY: TODAY, NOW: NOW, NOWT: NOWT, isPast: isPast, initials: initials, toast: toast, render: function () { render(); },
     OWNER: OWNER, SOLO: SOLO, HAS: HAS, MIXED: MIXED, WSS: WSS, avatar: avatar, addClient: addClient, addItem: addItem, INDEX: INDEX, SHEETS: SHEETS, SCREENS: SCREENS, kit: { fld: fld, inp: inp, sel: sel, row: row, grp: grp, sh: sh, lt: lt, btn: btn, seg: seg, foot: foot, avatar: avatar, rings: rings, shape: shape, SHAPE: SHAPE }, fresh: function () { fresh(); }, save: function () { save(); applyPrefs(); } };
 

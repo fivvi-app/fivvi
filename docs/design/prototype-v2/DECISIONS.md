@@ -103,7 +103,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md), amended by [ADR-031
 - **Header:** the level in the eyebrow ("Groepsles · Gevorderd").
 - **Description** with *Meer / Minder*.
 - **Booked:** n of capacity, with a bar.
-- **Attendance** per participant. *Iedereen aanwezig* in the prototype is a preview: bulk attendance is planned for Release 1.1 (`§54`), not the MVP.
+- **Attendance** per participant, with *Iedereen aanwezig*: bulk attendance is in the MVP (owner, 6 November 2026), with F025.
 - **Below:** participants, then attendance.
 - **Owner ⋯ menu:** *Boekingslink delen*; *Trainer vervangen* and *Les wijzigen* (both point to the web); *Les annuleren*.
 
@@ -114,7 +114,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md), amended by [ADR-031
   - swipe left to delete, on iOS **and Android**;
   - the set number opens a menu (remove).
 - **Exercises:** a ⋯ menu.
-- **Reordering sets and exercises is not in the MVP:** "workout reordering" is planned for Release 1.1 (`PRODUCT.md §54`). The prototype shows the drag handle and the reorder mode as a preview for after go-live.
+- **Reordering sets and exercises is in the MVP** (owner, 6 November 2026), with F043: the drag handle and the reorder mode, as the prototype shows them.
 - **Every removal asks for confirmation** (owner rule, everywhere in the product).
 - **Difficulty per exercise:**
   - shown as an **emoji only**: 😌 makkelijk, 🙂 normaal, 🥵 zwaar;
@@ -229,7 +229,7 @@ The owner asked to see this process before approving [#466](https://github.com/f
 
 - **Locked until then:** the join link and QR poster, client invitations, booking, switching offers on and recording a payment outside Fivvi. A client who opens the link reads *{studio} start binnenkort*.
 - **Open:** classes, trainers, locations, adding clients and preparing offers.
-- **How the owner is pushed:** a checklist on the Dashboard with payments first, a banner in Fivvi Pro, a reminder email, and the reason on every locked screen. The moment and number of reminder emails are assumptions (§7 item 12).
+- **How the owner is pushed:** a checklist on the Dashboard with payments first, a banner in Fivvi Pro, a reminder email, and the reason on every locked screen. The moment and number of reminder emails are in §7 item 12.
 - A solo PT goes through the same steps. One who only takes cash or card can choose that instead (#606).
 - Screens: *Dashboard: eerste stappen*, *Aanmeldlink: nog niet klaar*, *Klanten: nog geen uitnodigingen*, *E-mail aan de eigenaar: koppel je betalingen*, *Link geopend: studio nog niet klaar*, *Meedoen: studio nog niet klaar*, *Vandaag: betalingen nog niet gekoppeld*.
 
@@ -369,7 +369,7 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
 
 ## 7. Assumptions
 
-The prototype had to choose something for these. **The owner confirmed every item here on 6 November 2026, except items 9, 12, 13 and 15.** A spec builds the confirmed items as written. The others are not decided, so a spec that touches them asks the owner.
+The prototype had to choose something for these. **The owner confirmed every item here on 6 November 2026, except items 15, 18 and 19.** A spec builds the confirmed items as written. The others are not decided, so a spec that touches them asks the owner.
 
 1. **Trainers and balances:** trainers see their clients' credit balances, but no money (`QC12`).
 2. ***Aanbod sturen*:** it sends the client a link to confirm and pay.
@@ -393,19 +393,21 @@ The prototype had to choose something for these. **The owner confirmed every ite
 8. **Trainers page:**
    - a workspace may have more than one owner;
    - the handover covers the next 2 weeks.
-9. **Reordering and bulk attendance:** the prototype shows reordering sets and exercises, and *Iedereen aanwezig* on class attendance. Both are planned for Release 1.1 (`PRODUCT.md §54`: "workout reordering", "bulk attendance"), so the MVP builds without them unless the owner moves them into the MVP.
+9. **Reordering and bulk attendance:** both move into the MVP (owner, 6 November 2026): reordering sets and exercises with F043, and *Iedereen aanwezig* with F025 ([#460](https://github.com/fivvi-app/fivvi/issues/460)).
 10. **More than one studio:** *Home* and *Mijn agenda* combine every studio. QE05 left this to the F033 spec; the owner confirmed it.
 11. **Doing a shared workout on your own** (#602):
     - it is stored under the workspace whose trainer shared the workout (`organization_id`); that only the client can read it is decided (§5b);
     - it counts in *Deze week*, *Activiteit* and the weeks in a row;
     - the client starts only from a workout the trainer shared, not from an empty one (`PRODUCT.md §40`: the trainer assigns workouts); within it they add and remove exercises;
     - the client adds exercises from the library only and can't create new ones.
-12. **Reminder emails to the owner** (#466): one the day after starting without finishing, and one 3 days later; none once payments work. Mollie emails the owner itself when it needs something.
-13. **A connection that breaks later** (#466): the studio stays open for its clients, who keep booking with what they have, and the join link keeps working. New online sales and renewals stop until the owner reconnects.
+12. **Reminder emails to the owner** (#466): one the day after starting without finishing, and one 3 days later; none once payments work or the owner chooses to take payments only at the studio. Mollie emails the owner itself when it needs something.
+13. **A connection that breaks later** (#466): the studio stays open for its clients, who keep booking with what they have, and the join link keeps working. New online sales and renewals stop until the owner reconnects, and so does recording a payment outside Fivvi (#606). Prototype entry: *Klantprofiel: koppeling werkt niet meer*, on the trainer web; switch *Scherm* to iOS or Android for Fivvi Pro.
 14. **Weekly limit** (#483): an option on every membership offer, next to *Ongebruikte lessen*, and it shows whether unused classes expire or stay valid, because the pilot uses both a limit of 4 and expiring classes (owner, 6 November 2026). The default plan starts at the pilot's 4 (owner, 6 November 2026, answering #483 question 5). A new offer the owner builds from scratch starts with no limit.
 15. **Screens added on 6 November 2026 from the spec text** (`more-*.js`): the screens and states the specs already described but the prototype didn't show. The copy follows the spec, shortened in places, and the spec's wording wins when they differ. The layout isn't the owner's choice until they've clicked through it. *Korte teksten* lists messages with no screen of their own.
 16. **A trainer or owner changing their own email address** (owner, 6 November 2026): the same account-level step as a client's (#497, F033, verified by a code), on *Mijn profiel* and in Fivvi Pro's *Profiel*. F005 (#173) built the address as read-only and left changing it out of scope (F001), so this has a spec of its own, [#610](https://github.com/fivvi-app/fivvi/issues/610).
 17. **Scanning a QR code in the client app** (owner, 6 November 2026): yes, as #484 has it: *QR-code scannen* on the no-studio screen, in the app only. A Fivvi join link opens the join screen; anything else, or no camera access, shows its own message.
+18. **Cancelling one client of a duo** (#586): *Wie annuleer je?* with *Alleen Eva annuleren* and *Hele sessie annuleren*, and to the client who stays "Je sessie gaat door, zonder Eva." Prototype entry: *Duosessie: één klant annuleren*. The owner asked to click through this before it's decided.
+19. **Correcting a payment outside Fivvi** (#606): *Corrigeren* on a payment row, with the right offer, method and date and a required reason. The old line stays as *Gecorrigeerd* and points to the new one, and if the offer was wrong, the wrong agreement ends and the right one starts. Prototype entry: *Betaling buiten Fivvi corrigeren*. The owner asked to click through this before it's decided.
 
 ## 8. What this changes in existing documents
 
@@ -418,7 +420,7 @@ The prototype had to choose something for these. **The owner confirmed every ite
 | [Flow 03](../flows/03-workspace-calendar.md), the calendar on the web | shadcn/ui as in [§4](#4-trainer-web) | F014 [#458](https://github.com/fivvi-app/fivvi/issues/458) |
 | [Flow 04](../flows/04-private-session.md), private session | The session screen and forms as in [§3](#3-fivvi-pro-ios-and-android), including duo sessions | F020 [#425](https://github.com/fivvi-app/fivvi/issues/425), [#586](https://github.com/fivvi-app/fivvi/issues/586) |
 | [Flow 06](../flows/06-class-occurrence.md), a class on a date | The class screen as in [§3](#3-fivvi-pro-ios-and-android) | F021 [#427](https://github.com/fivvi-app/fivvi/issues/427), F025 [#460](https://github.com/fivvi-app/fivvi/issues/460) |
-| [Flow 05](../flows/05-live-workout-logging.md), WL-02 | Difficulty as an emoji with (i), not "the word is the answer". Compact set rows. Swipe to delete sets. Reordering stays post-MVP (`§54`) | F043, F044 specs (to write) |
+| [Flow 05](../flows/05-live-workout-logging.md), WL-02 | Difficulty as an emoji with (i), not "the word is the answer". Compact set rows. Swipe to delete sets. Reordering is in the MVP | F043, F044 specs (to write) |
 | [IA §5.2](../information-architecture.md#52-platform-conventions-both-apps) | Android "no swipe actions by default" now has one exception: swipe to delete a set in the logger (with confirmation) | F043 spec (to write) |
 | TD-05, class descriptions | Descriptions can be entered in the app's new-class form, not only on the web | F021 [#427](https://github.com/fivvi-app/fivvi/issues/427) |
 | [IA §3.2](../information-architecture.md#32-role--navigation) | New owner page *Aanbod*. Trainers page: change role, remove with a handover, withdraw an invitation | F052 [#468](https://github.com/fivvi-app/fivvi/issues/468); F003/F004 follow-up in [#590](https://github.com/fivvi-app/fivvi/issues/590) |

@@ -1325,6 +1325,7 @@ During the workout:
 - each set shows its previous value and fields for today, set by the exercise type (§38);
 - each set is prefilled (today's previous set, else last time's same set, else the target) and logged with one tap;
 - the trainer can edit a set's values directly in its row;
+- sets and exercises can be reordered (owner, 6 November 2026);
 - each exercise can get extra sets, prefilled from its last set; any unlogged set can be removed, also one from a template, and so can a whole exercise (after a confirmation when it has logged sets);
 - difficulty is asked once per exercise, under each exercise ("how was it?"), and defaults to Normal;
 - the logger shows the elapsed workout time.
@@ -1381,6 +1382,8 @@ Track:
 # 43. Attendance
 
 Statuses:
+
+On a class, *Iedereen aanwezig* marks everyone still open as attended in one action (owner, 6 November 2026).
 
 ```text
 Booked
@@ -1712,14 +1715,12 @@ Based on actual usage:
 - workout duplication
 - warm-up sets
 - supersets
-- workout reordering
 - pinned notes
 - note search
 - offline resilience
-- bulk attendance
 - push notifications in Fivvi and Fivvi Pro (APNs + FCM, localized), for the events that send an email today (owner, 31 October 2026)
 
-Previous-session duplication moved to the MVP (§41) on 23 September 2026, after prototype feedback. The cancellation cutoff moved to the MVP (§93) on 19 October 2026, because memberships and credits depend on it. Waitlists moved to the MVP, before the pilot, on 31 October 2026 (§23), after the commerce walkthrough: the pilot gym has a waitlist today.
+Workout reordering (§41) and bulk attendance (§43) moved to the MVP on 6 November 2026 (owner). Previous-session duplication moved to the MVP (§41) on 23 September 2026, after prototype feedback. The cancellation cutoff moved to the MVP (§93) on 19 October 2026, because memberships and credits depend on it. Waitlists moved to the MVP, before the pilot, on 31 October 2026 (§23), after the commerce walkthrough: the pilot gym has a waitlist today.
 
 All additions must work in Dutch and English.
 
