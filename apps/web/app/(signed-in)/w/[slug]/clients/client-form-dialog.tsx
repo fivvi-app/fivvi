@@ -119,7 +119,7 @@ export function ClientFormDialogContent({
     <DialogContent aria-describedby={description ? 'client-form-description' : undefined}>
       <form noValidate onSubmit={submit} className="grid gap-4">
         <DialogHeader>
-          <DialogTitle className="font-display">{title}</DialogTitle>
+          <DialogTitle>{title}</DialogTitle>
           {description ? (
             <DialogDescription id="client-form-description">{description}</DialogDescription>
           ) : null}

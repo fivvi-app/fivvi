@@ -1,11 +1,12 @@
 import { readdir, readFile } from 'node:fs/promises';
 import path from 'node:path';
-import { generatedDir, renderOutputs } from './build.ts';
+import { generatedDir, renderOutputs, resolveTokens } from './build.ts';
 import { contrastResults, describeFailure } from './contrast.ts';
+import { gradientProblems } from './gradients.ts';
 import { nativeDirs } from './native.ts';
-import { readTokenSource, type TokenSource, TokenSourceError } from './source.ts';
+import { modes, readTokenSource, type TokenSource, TokenSourceError } from './source.ts';
 
-export const checkNames = ['generated', 'contrast'] as const;
+export const checkNames = ['generated', 'contrast', 'gradients'] as const;
 export type CheckName = (typeof checkNames)[number];
 
 export interface CheckResult {
@@ -58,7 +59,8 @@ async function attempt<T>(step: () => Promise<T>): Promise<Outcome<T>> {
  * The guardrails of ADR-015, run by `pnpm check` (turbo):
  * - `generated`: the build regenerates every output (web, Swift, Kotlin) in memory; each committed
  *   file must match.
- * - `contrast`: every declared pair meets its WCAG minimum in light and dark mode.
+ * - `contrast`: every declared pair meets its minimum in light and dark mode.
+ * - `gradients`: each gradient has both ends and stays in one hue.
  */
 export async function runChecks(
   root: string,
@@ -96,8 +98,17 @@ export async function runChecks(
         results.push({
           name,
           problems,
-          summary: `${source.value.pairs.length} pairs meet WCAG AA in light and dark`,
+          summary: `${source.value.pairs.length} pairs meet their contrast minimum in light and dark`,
         });
+        break;
+      }
+      case 'gradients': {
+        const checked = await attempt(() => resolveTokens(source.value));
+        const problems =
+          'problems' in checked
+            ? checked.problems
+            : modes.flatMap((mode) => gradientProblems(checked.value[mode], mode));
+        results.push({ name, problems, summary: 'every gradient stays in one hue' });
         break;
       }
     }

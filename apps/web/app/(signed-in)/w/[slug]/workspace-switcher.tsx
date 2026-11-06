@@ -58,7 +58,7 @@ export function WorkspaceSwitcher({
 
   const label = t('workspaceWithRole', { name, role: roles(teamRole) });
   if (workspaces.length < 2 && !canCreateWorkspace) {
-    return <p className="font-display text-lg font-semibold">{label}</p>;
+    return <p className="text-lg font-semibold">{label}</p>;
   }
 
   function open(nextSlug: string) {
@@ -75,7 +75,7 @@ export function WorkspaceSwitcher({
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger
         disabled={!ready}
-        className="flex w-full items-center justify-between gap-2 rounded-lg text-start font-display text-lg font-semibold outline-none disabled:pointer-events-none"
+        className="flex w-full items-center justify-between gap-2 rounded-lg text-start text-lg font-semibold outline-none disabled:pointer-events-none"
       >
         <span>{label}</span>
         <svg

@@ -121,7 +121,7 @@ function tokenValue(token: string): string {
   return value;
 }
 
-/** A font stack token (`font.family.display`) as the browser computes it. */
+/** A font stack token (`font.family.text`) as the browser computes it. */
 async function tokenFontStack(page: Page, token: string): Promise<string> {
   return await page.evaluate((stack) => {
     const probe = document.createElement('span');
@@ -132,10 +132,6 @@ async function tokenFontStack(page: Page, token: string): Promise<string> {
     return computed;
   }, tokenValue(token));
 }
-
-/** The families in a computed font-family, without quotes. */
-const families = (fontFamily: string) =>
-  fontFamily.split(',').map((family) => family.trim().replaceAll(/["']/g, ''));
 
 type Density = 'compact' | 'touch';
 
@@ -167,11 +163,11 @@ test.describe('E007 web theme', () => {
     const button = page.getByRole('button', { name: copy.hello.continue });
     const input = page.getByLabel(copy.hello.firstNameLabel);
     const colours: [Locator, string, string][] = [
-      [page.locator('body'), 'background-color', 'bg.canvas'],
-      [page.locator('body'), 'color', 'text.primary'],
-      [page.locator('[data-slot="card"]'), 'background-color', 'bg.surface'],
-      [heading, 'color', 'text.primary'],
-      [page.getByText(copy.hello.description), 'color', 'text.secondary'],
+      [page.locator('body'), 'background-color', 'web.trainer.background'],
+      [page.locator('body'), 'color', 'web.trainer.foreground'],
+      [page.locator('[data-slot="card"]'), 'background-color', 'web.trainer.card'],
+      [heading, 'color', 'web.trainer.foreground'],
+      [page.getByText(copy.hello.description), 'color', 'web.trainer.muted-foreground'],
       [input, 'border-top-color', 'border.control'],
       [button, 'background-color', 'action.primary.bg'],
       [button, 'color', 'action.primary.fg'],
@@ -256,7 +252,7 @@ test.describe('E007 web theme', () => {
     }
   });
 
-  test('AC9: display heading uses the self-hosted font; no request leaves the origin for fonts', async ({
+  test('AC12: no web font is loaded and no font request leaves the page; text uses the system stack', async ({
     page,
     messages: copy,
   }) => {
@@ -276,29 +272,18 @@ test.describe('E007 web theme', () => {
           .map((font) => font.family.replaceAll(/["']/g, ''));
       });
 
-    // The display stack: the self-hosted face first, ending in the system font.
-    const display = await tokenFontStack(page, 'font.family.display');
-    await expect(heading, 'the heading has the display style').toHaveCSS('font-family', display);
-    const [face = ''] = families(display);
-    expect(face, 'the display face').toBe('Bricolage Grotesque');
-    await expect.poll(loadedFaces, { message: 'the display face is loaded' }).toContain(face);
+    // Headings and body text take the token's system stack; none of it is a web font.
+    const text = await tokenFontStack(page, 'font.family.text');
+    await expect(page.locator('body')).toHaveCSS('font-family', text);
+    await expect(heading).toHaveCSS('font-family', text);
+    expect(await loadedFaces(), 'web fonts loaded').toEqual([]);
 
-    // Body text: the token's system stack, none of it a web font.
-    const body = page.locator('body');
-    await expect(body).toHaveCSS('font-family', await tokenFontStack(page, 'font.family.text'));
-    const loaded = await loadedFaces();
-    expect(
-      families(await body.evaluate((node) => getComputedStyle(node).fontFamily)).filter((family) =>
-        loaded.includes(family),
-      ),
-      'web fonts in the body text',
-    ).toEqual([]);
-
+    // The only font or stylesheet requests are the app's own stylesheets, none to another origin.
     const origin = new URL(page.url()).origin;
     expect(
-      fontRequests.filter((url) => new URL(url).pathname.endsWith('.woff2')),
-      'the display face is served by the app',
-    ).not.toEqual([]);
+      fontRequests.filter((url) => new URL(url).pathname.match(/\.(woff2?|ttf|otf)$/)),
+      'font files requested',
+    ).toEqual([]);
     expect(
       fontRequests.filter((url) => new URL(url).origin !== origin),
       'font and stylesheet requests to another origin',

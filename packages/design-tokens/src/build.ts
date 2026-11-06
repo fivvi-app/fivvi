@@ -5,6 +5,7 @@ import type { DesignTokens } from 'style-dictionary/types';
 import { nativeInput, renderNativeOutputs } from './native.ts';
 import {
   isPalette,
+  isWebOnly,
   type Mode,
   modes,
   semanticColours,
@@ -18,6 +19,7 @@ import {
 export const webOutputs = {
   tokens: 'generated/web/tokens.css',
   shadcn: 'generated/web/shadcn.css',
+  client: 'generated/web/client.css',
   theme: 'generated/web/theme.css',
 } as const;
 
@@ -28,8 +30,39 @@ export const generatedDir = 'generated';
 /** Prefix of every token CSS variable, so they never clash with Tailwind's or shadcn's names. */
 const prefix = 'th';
 
-/** shadcn/ui's standard colour variables and the semantic token each one takes. */
+/**
+ * shadcn/ui's standard colour variables and the semantic token each one takes on the trainer web
+ * (`--destructive` is danger as text on a tint of itself, as the kit's destructive button uses it; the filled danger button takes `--action-danger-bg` and `--action-danger-fg`):
+ * zinc neutrals (`color.web.trainer.*`) and the accent (ADR-029). `shadcn.css` holds these.
+ */
 export const shadcnColours = {
+  background: 'color.web.trainer.background',
+  foreground: 'color.web.trainer.foreground',
+  card: 'color.web.trainer.card',
+  'card-foreground': 'color.web.trainer.foreground',
+  popover: 'color.web.trainer.card',
+  'popover-foreground': 'color.web.trainer.foreground',
+  primary: 'color.action.primary.bg',
+  'primary-foreground': 'color.action.primary.fg',
+  secondary: 'color.web.trainer.muted',
+  'secondary-foreground': 'color.web.trainer.foreground',
+  muted: 'color.web.trainer.muted',
+  'muted-foreground': 'color.web.trainer.muted-foreground',
+  accent: 'color.web.trainer.muted',
+  'accent-foreground': 'color.web.trainer.foreground',
+  destructive: 'color.action.danger.text',
+  'destructive-foreground': 'color.text.inverse',
+  border: 'color.web.trainer.border',
+  input: 'color.border.control',
+  ring: 'color.border.focus',
+} as const;
+
+/**
+ * The same variables on the client web: the Fivvi Pro theme (grouped grey canvas, cards, radius
+ * 26). `client.css` sets them under `[data-theme="client"]`; the client layout opts in and nothing
+ * switches theme at runtime.
+ */
+export const clientColours: Record<keyof typeof shadcnColours, string> = {
   background: 'color.bg.canvas',
   foreground: 'color.text.primary',
   card: 'color.bg.surface',
@@ -41,21 +74,27 @@ export const shadcnColours = {
   secondary: 'color.action.tonal.bg',
   'secondary-foreground': 'color.action.tonal.fg',
   muted: 'color.bg.subtle',
-  'muted-foreground': 'color.text.secondary',
+  'muted-foreground': 'color.web.client.secondary',
   accent: 'color.action.tonal.bg',
   'accent-foreground': 'color.action.tonal.fg',
-  destructive: 'color.action.danger.bg',
-  'destructive-foreground': 'color.action.danger.fg',
+  destructive: 'color.action.danger.text',
+  'destructive-foreground': 'color.text.inverse',
   border: 'color.border.default',
   input: 'color.border.control',
   ring: 'color.border.focus',
-} as const;
+};
 
-/** shadcn's `--radius`: the card radius. Tailwind's radius scale is derived from it as in shadcn. */
+/** shadcn's `--radius`: the trainer web's card radius. Tailwind's radius scale is derived from it as in shadcn. */
 const shadcnRadius = 'radius.md';
+/** The client web's `--radius`: the Fivvi Pro card. */
+const clientRadius = 'radius.card';
 
-/** Our own theme variables for what shadcn doesn't cover: `--session-*` and `--status-*`. */
-const extraColourGroups = /^color\.(session|status)\./;
+/**
+ * Our own theme variables for what shadcn doesn't cover: `--session-*`, `--status-*`,
+ * `--accent-*` (the accent's fill, on-colour and text), `--workspace-*`, `--fill-*` and
+ * `--action-danger-*` (the filled danger button: `-bg` and `-fg`; `-text` is the tinted one's).
+ */
+const extraColourGroups = /^color\.(session|status|accent|workspace|fill|action\.danger)\./;
 
 export interface ResolvedToken {
   /** Dotted token path, e.g. `color.bg.canvas`. */
@@ -157,10 +196,32 @@ function shadcnVariables(source: TokenSource, cssVar: VariableOf): [string, stri
       `var(${cssVar(token)})`,
     ]),
     ['--radius', `var(${cssVar(shadcnRadius)})`],
+    ...extraVariables(source, cssVar),
+  ];
+}
+
+function extraVariables(source: TokenSource, cssVar: VariableOf): [string, string][] {
+  return [
     ...semanticColours(source)
       .filter((token) => extraColourGroups.test(token))
       .map((token): [string, string] => [extraName(token), `var(${cssVar(token)})`]),
   ];
+}
+
+function renderClientCss(cssVar: VariableOf): string {
+  const variables = [
+    ...Object.entries(clientColours).map(([name, token]): [string, string] => [
+      `--${name}`,
+      `var(${cssVar(token)})`,
+    ]),
+    ['--radius', `var(${cssVar(clientRadius)})`],
+  ] satisfies [string, string][];
+  return `${header(webOutputs.client)}
+/* The client web's theme: the same shadcn/ui variables with the Fivvi Pro values. A client layout opts in with data-theme="client". */
+[data-theme="client"] {
+${declarations(variables, '  ')}
+}
+`;
 }
 
 function renderShadcnCss(source: TokenSource, cssVar: VariableOf): string {
@@ -186,7 +247,7 @@ ${declarations(
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
   --font-sans: var(${cssVar('font.family.text')});
-  --font-display: var(${cssVar('font.family.display')});
+  --font-numeric: var(${cssVar('font.family.numeric')});
 }
 `;
 }
@@ -196,10 +257,12 @@ export async function renderOutputs(source: TokenSource): Promise<Map<string, st
   const resolved = await resolveTokens(source);
   const cssVar = variableNames(resolved.light);
   const colours = new Set(semanticColours(source));
-  const semantic = (mode: Mode) => resolved[mode].filter((token) => colours.has(token.path));
+  const semantic = (mode: Mode) =>
+    resolved[mode].filter((token) => colours.has(token.path) && !isWebOnly(token.path));
   return new Map([
     [webOutputs.tokens, renderTokensCss(source, resolved)],
     [webOutputs.shadcn, renderShadcnCss(source, cssVar)],
+    [webOutputs.client, renderClientCss(cssVar)],
     [webOutputs.theme, renderTailwindTheme(source, cssVar)],
     ...renderNativeOutputs(
       nativeInput(source, { light: semantic('light'), dark: semantic('dark') }, resolved.light),

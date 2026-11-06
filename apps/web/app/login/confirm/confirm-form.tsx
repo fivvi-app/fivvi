@@ -78,7 +78,7 @@ export function ConfirmForm({ token, returnPath }: { token: string; returnPath: 
         {state.step === 'ready' ? (
           <>
             <CardHeader>
-              <CardTitle className="font-display">
+              <CardTitle>
                 <h1>{t('confirmTitle', { email: state.email })}</h1>
               </CardTitle>
             </CardHeader>
@@ -98,7 +98,7 @@ export function ConfirmForm({ token, returnPath }: { token: string; returnPath: 
         ) : state.step === 'invalid' ? (
           <>
             <CardHeader>
-              <CardTitle className="font-display">
+              <CardTitle>
                 <h1>{t('linkInvalidTitle')}</h1>
               </CardTitle>
               <CardDescription>{t('linkInvalidBody')}</CardDescription>

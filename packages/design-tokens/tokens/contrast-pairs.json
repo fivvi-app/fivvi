@@ -1,47 +1,124 @@
 {
-  "$description": "Foreground/background pairs that must meet WCAG 2.2 AA contrast in light and dark mode: kind \"text\" needs 4.5:1 (1.4.3), kind \"non-text\" needs 3:1 (1.4.11 and 2.4.13). `pnpm check` fails when a pair falls below its minimum.",
+  "$description": "Foreground/background pairs that must meet their contrast minimum in light and dark mode: kind \"text\" needs 4.5:1 (WCAG 1.4.3), kind \"non-text\" needs 3:1 (1.4.11 and 2.4.13). \"native-secondary-text\" is the one exception (ADR-032): 3:1, with a reason, only for color.text.secondary. `pnpm check` fails when a pair falls below its minimum.",
   "pairs": [
     {
       "fg": "color.text.primary",
       "bg": "color.bg.canvas",
       "kind": "text",
-      "use": "Body text on page"
+      "use": "Body text on the canvas"
     },
     {
       "fg": "color.text.primary",
       "bg": "color.bg.surface",
       "kind": "text",
-      "use": "Body text on card"
+      "use": "Body text on a card"
+    },
+    {
+      "fg": "color.text.primary",
+      "bg": "color.bg.raised",
+      "kind": "text",
+      "use": "Body text in a sheet"
+    },
+    {
+      "fg": "color.text.primary",
+      "bg": "color.bg.subtle",
+      "kind": "text",
+      "use": "Body text on a quiet fill"
     },
     {
       "fg": "color.text.secondary",
       "bg": "color.bg.canvas",
-      "kind": "text",
-      "use": "Meta text on page"
+      "kind": "native-secondary-text",
+      "use": "Secondary text on the canvas (native apps)",
+      "reason": "ADR-032: the native apps keep the prototype's secondary grey in light mode; 3:1 is the floor, so it can't drop further and no other pair can use it."
     },
     {
       "fg": "color.text.secondary",
       "bg": "color.bg.surface",
-      "kind": "text",
-      "use": "Meta text on card"
+      "kind": "native-secondary-text",
+      "use": "Secondary text on a card (native apps)",
+      "reason": "ADR-032: the native apps keep the prototype's secondary grey in light mode; 3:1 is the floor, so it can't drop further and no other pair can use it."
+    },
+    {
+      "fg": "color.text.secondary",
+      "bg": "color.bg.raised",
+      "kind": "native-secondary-text",
+      "use": "Secondary text in a sheet (native apps)",
+      "reason": "ADR-032: the native apps keep the prototype's secondary grey in light mode; 3:1 is the floor, so it can't drop further and no other pair can use it."
     },
     {
       "fg": "color.text.secondary",
       "bg": "color.bg.subtle",
-      "kind": "text",
-      "use": "Meta text on subtle fill"
+      "kind": "native-secondary-text",
+      "use": "Secondary text on a quiet fill (native apps)",
+      "reason": "ADR-032: the native apps keep the prototype's secondary grey in light mode; 3:1 is the floor, so it can't drop further and no other pair can use it."
     },
     {
-      "fg": "color.text.tertiary",
+      "fg": "color.text.secondary",
+      "bg": "color.action.tonal.bg",
+      "kind": "native-secondary-text",
+      "use": "Secondary text on a tonal fill (native apps)",
+      "reason": "ADR-032: the native apps keep the prototype's secondary grey in light mode; 3:1 is the floor, so it can't drop further and no other pair can use it."
+    },
+    {
+      "fg": "color.web.client.secondary",
+      "bg": "color.bg.canvas",
+      "kind": "text",
+      "use": "Secondary text on the canvas (client web)"
+    },
+    {
+      "fg": "color.web.client.secondary",
       "bg": "color.bg.surface",
       "kind": "text",
-      "use": "Placeholder in input"
+      "use": "Secondary text on a card (client web)"
+    },
+    {
+      "fg": "color.web.client.secondary",
+      "bg": "color.bg.raised",
+      "kind": "text",
+      "use": "Secondary text in a sheet (client web)"
+    },
+    {
+      "fg": "color.web.client.secondary",
+      "bg": "color.bg.subtle",
+      "kind": "text",
+      "use": "Secondary text on a quiet fill (client web)"
+    },
+    {
+      "fg": "color.web.client.secondary",
+      "bg": "color.action.tonal.bg",
+      "kind": "text",
+      "use": "Secondary text on a tonal fill (client web)"
+    },
+    {
+      "fg": "color.text.link",
+      "bg": "color.bg.canvas",
+      "kind": "text",
+      "use": "Link and text button on the canvas"
     },
     {
       "fg": "color.text.link",
       "bg": "color.bg.surface",
       "kind": "text",
-      "use": "Link / text button"
+      "use": "Link and text button on a card"
+    },
+    {
+      "fg": "color.text.link",
+      "bg": "color.bg.raised",
+      "kind": "text",
+      "use": "Link and text button in a sheet"
+    },
+    {
+      "fg": "color.text.link",
+      "bg": "color.bg.subtle",
+      "kind": "text",
+      "use": "Link and text button on a quiet fill"
+    },
+    {
+      "fg": "color.text.link",
+      "bg": "color.action.tonal.bg",
+      "kind": "text",
+      "use": "Link and text button on a tonal fill"
     },
     {
       "fg": "color.text.inverse",
@@ -59,25 +136,37 @@
       "fg": "color.action.primary.fg",
       "bg": "color.action.primary.bg-pressed",
       "kind": "text",
-      "use": "Primary button label while pressed (iOS)"
+      "use": "Primary button label while pressed"
+    },
+    {
+      "fg": "color.accent.on",
+      "bg": "color.accent.fill",
+      "kind": "text",
+      "use": "Anything on an accent fill uses the on-accent colour"
     },
     {
       "fg": "color.action.primary.bg",
       "bg": "color.bg.canvas",
       "kind": "non-text",
-      "use": "Primary button edge vs page (1.4.11)"
+      "use": "Primary button edge on the canvas"
     },
     {
       "fg": "color.action.primary.bg",
       "bg": "color.bg.surface",
       "kind": "non-text",
-      "use": "Primary button edge on card"
+      "use": "Primary button edge on a card"
+    },
+    {
+      "fg": "color.action.primary.bg",
+      "bg": "color.bg.raised",
+      "kind": "non-text",
+      "use": "Primary button edge in a sheet"
     },
     {
       "fg": "color.action.primary.bg",
       "bg": "color.bg.subtle",
       "kind": "non-text",
-      "use": "Primary button edge in card footer"
+      "use": "Primary button edge on a quiet fill"
     },
     {
       "fg": "color.action.tonal.fg",
@@ -89,13 +178,7 @@
       "fg": "color.text.primary",
       "bg": "color.action.tonal.bg",
       "kind": "text",
-      "use": "Material next-session title"
-    },
-    {
-      "fg": "color.text.secondary",
-      "bg": "color.action.tonal.bg",
-      "kind": "text",
-      "use": "Material next-session location"
+      "use": "Text on a tonal fill"
     },
     {
       "fg": "color.action.danger.fg",
@@ -107,7 +190,7 @@
       "fg": "color.border.control",
       "bg": "color.bg.surface",
       "kind": "non-text",
-      "use": "Input outline (1.4.11)"
+      "use": "Input outline"
     },
     {
       "fg": "color.border.control",
@@ -116,52 +199,466 @@
       "use": "Input outline in a sheet"
     },
     {
-      "fg": "color.text.secondary",
-      "bg": "color.bg.raised",
-      "kind": "text",
-      "use": "Meta text in a sheet"
+      "fg": "color.border.control",
+      "bg": "color.bg.canvas",
+      "kind": "non-text",
+      "use": "Input outline on the canvas"
     },
     {
       "fg": "color.border.focus",
       "bg": "color.bg.canvas",
       "kind": "non-text",
-      "use": "Focus ring (2.4.13)"
+      "use": "Focus ring on the canvas"
     },
     {
       "fg": "color.border.focus",
       "bg": "color.bg.surface",
       "kind": "non-text",
-      "use": "Focus ring on card"
+      "use": "Focus ring on a card"
+    },
+    {
+      "fg": "color.border.focus",
+      "bg": "color.bg.raised",
+      "kind": "non-text",
+      "use": "Focus ring in a sheet"
     },
     {
       "fg": "color.border.focus",
       "bg": "color.bg.subtle",
       "kind": "non-text",
-      "use": "Focus ring in card footer"
+      "use": "Focus ring on a quiet fill"
+    },
+    {
+      "fg": "color.session.private.text",
+      "bg": "color.session.private.bg",
+      "kind": "text",
+      "use": "Privé: label on its tint"
+    },
+    {
+      "fg": "color.session.private.text",
+      "bg": "color.bg.surface",
+      "kind": "text",
+      "use": "Privé: text on a card"
+    },
+    {
+      "fg": "color.session.private.text",
+      "bg": "color.bg.canvas",
+      "kind": "text",
+      "use": "Privé: text on the canvas"
+    },
+    {
+      "fg": "color.session.private.fg",
+      "bg": "color.session.private.bg",
+      "kind": "non-text",
+      "use": "Privé: glyph on its tint"
+    },
+    {
+      "fg": "color.session.private.fg",
+      "bg": "color.bg.surface",
+      "kind": "non-text",
+      "use": "Privé: glyph on a card"
+    },
+    {
+      "fg": "color.session.private.fg",
+      "bg": "color.bg.canvas",
+      "kind": "non-text",
+      "use": "Privé: glyph on the canvas"
+    },
+    {
+      "fg": "color.session.private.solid",
+      "bg": "color.bg.surface",
+      "kind": "non-text",
+      "use": "Privé: bar or dot on a card"
+    },
+    {
+      "fg": "color.session.private.solid",
+      "bg": "color.bg.canvas",
+      "kind": "non-text",
+      "use": "Privé: bar or dot on the canvas"
+    },
+    {
+      "fg": "color.session.private.on-solid",
+      "bg": "color.session.private.gradient-top",
+      "kind": "text",
+      "use": "Privé: text and glyphs on the top of its fill"
+    },
+    {
+      "fg": "color.session.private.on-solid",
+      "bg": "color.session.private.gradient-bottom",
+      "kind": "text",
+      "use": "Privé: text and glyphs on the bottom of its fill"
+    },
+    {
+      "fg": "color.session.group.text",
+      "bg": "color.session.group.bg",
+      "kind": "text",
+      "use": "Groepsles: label on its tint"
+    },
+    {
+      "fg": "color.session.group.text",
+      "bg": "color.bg.surface",
+      "kind": "text",
+      "use": "Groepsles: text on a card"
+    },
+    {
+      "fg": "color.session.group.text",
+      "bg": "color.bg.canvas",
+      "kind": "text",
+      "use": "Groepsles: text on the canvas"
+    },
+    {
+      "fg": "color.session.group.fg",
+      "bg": "color.session.group.bg",
+      "kind": "non-text",
+      "use": "Groepsles: glyph on its tint"
+    },
+    {
+      "fg": "color.session.group.fg",
+      "bg": "color.bg.surface",
+      "kind": "non-text",
+      "use": "Groepsles: glyph on a card"
+    },
+    {
+      "fg": "color.session.group.fg",
+      "bg": "color.bg.canvas",
+      "kind": "non-text",
+      "use": "Groepsles: glyph on the canvas"
+    },
+    {
+      "fg": "color.session.group.solid",
+      "bg": "color.bg.surface",
+      "kind": "non-text",
+      "use": "Groepsles: bar or dot on a card"
+    },
+    {
+      "fg": "color.session.group.solid",
+      "bg": "color.bg.canvas",
+      "kind": "non-text",
+      "use": "Groepsles: bar or dot on the canvas"
+    },
+    {
+      "fg": "color.session.group.on-solid",
+      "bg": "color.session.group.gradient-top",
+      "kind": "text",
+      "use": "Groepsles: text and glyphs on the top of its fill"
+    },
+    {
+      "fg": "color.session.group.on-solid",
+      "bg": "color.session.group.gradient-bottom",
+      "kind": "text",
+      "use": "Groepsles: text and glyphs on the bottom of its fill"
+    },
+    {
+      "fg": "color.session.open-gym.text",
+      "bg": "color.session.open-gym.bg",
+      "kind": "text",
+      "use": "Open Gym: label on its tint"
+    },
+    {
+      "fg": "color.session.open-gym.text",
+      "bg": "color.bg.surface",
+      "kind": "text",
+      "use": "Open Gym: text on a card"
+    },
+    {
+      "fg": "color.session.open-gym.text",
+      "bg": "color.bg.canvas",
+      "kind": "text",
+      "use": "Open Gym: text on the canvas"
+    },
+    {
+      "fg": "color.session.open-gym.fg",
+      "bg": "color.session.open-gym.bg",
+      "kind": "non-text",
+      "use": "Open Gym: glyph on its tint"
+    },
+    {
+      "fg": "color.session.open-gym.fg",
+      "bg": "color.bg.surface",
+      "kind": "non-text",
+      "use": "Open Gym: glyph on a card"
+    },
+    {
+      "fg": "color.session.open-gym.fg",
+      "bg": "color.bg.canvas",
+      "kind": "non-text",
+      "use": "Open Gym: glyph on the canvas"
+    },
+    {
+      "fg": "color.session.open-gym.on-solid",
+      "bg": "color.session.open-gym.gradient-top",
+      "kind": "non-text",
+      "use": "Open Gym: glyphs only on the top of its fill"
+    },
+    {
+      "fg": "color.session.open-gym.on-solid",
+      "bg": "color.session.open-gym.gradient-bottom",
+      "kind": "non-text",
+      "use": "Open Gym: glyphs only on the bottom of its fill"
+    },
+    {
+      "fg": "color.status.success.text",
+      "bg": "color.status.success.bg",
+      "kind": "text",
+      "use": "Aanwezig: label on its tint"
+    },
+    {
+      "fg": "color.status.success.text",
+      "bg": "color.bg.surface",
+      "kind": "text",
+      "use": "Aanwezig: text on a card"
+    },
+    {
+      "fg": "color.status.success.text",
+      "bg": "color.bg.canvas",
+      "kind": "text",
+      "use": "Aanwezig: text on the canvas"
     },
     {
       "fg": "color.status.success.fg",
       "bg": "color.status.success.bg",
-      "kind": "text",
-      "use": "Aanwezig chip"
+      "kind": "non-text",
+      "use": "Aanwezig: glyph on its tint"
     },
     {
-      "fg": "color.status.warning.fg",
-      "bg": "color.status.warning.bg",
+      "fg": "color.status.success.fg",
+      "bg": "color.bg.surface",
+      "kind": "non-text",
+      "use": "Aanwezig: glyph on a card"
+    },
+    {
+      "fg": "color.status.success.fg",
+      "bg": "color.bg.canvas",
+      "kind": "non-text",
+      "use": "Aanwezig: glyph on the canvas"
+    },
+    {
+      "fg": "color.status.success.on-solid",
+      "bg": "color.status.success.gradient-top",
+      "kind": "non-text",
+      "use": "Aanwezig: glyphs only on the top of its fill"
+    },
+    {
+      "fg": "color.status.success.on-solid",
+      "bg": "color.status.success.gradient-bottom",
+      "kind": "non-text",
+      "use": "Aanwezig: glyphs only on the bottom of its fill"
+    },
+    {
+      "fg": "color.status.danger.text",
+      "bg": "color.status.danger.bg",
       "kind": "text",
-      "use": "Warning chip"
+      "use": "Niet verschenen: label on its tint"
+    },
+    {
+      "fg": "color.status.danger.text",
+      "bg": "color.bg.surface",
+      "kind": "text",
+      "use": "Niet verschenen: text on a card"
+    },
+    {
+      "fg": "color.status.danger.text",
+      "bg": "color.bg.canvas",
+      "kind": "text",
+      "use": "Niet verschenen: text on the canvas"
     },
     {
       "fg": "color.status.danger.fg",
       "bg": "color.status.danger.bg",
-      "kind": "text",
-      "use": "Niet verschenen / error chip"
+      "kind": "non-text",
+      "use": "Niet verschenen: glyph on its tint"
     },
     {
       "fg": "color.status.danger.fg",
       "bg": "color.bg.surface",
       "kind": "text",
-      "use": "Field error message"
+      "use": "Field error message on a card"
+    },
+    {
+      "fg": "color.status.danger.fg",
+      "bg": "color.bg.canvas",
+      "kind": "text",
+      "use": "Error text on the canvas"
+    },
+    {
+      "fg": "color.status.danger.fg",
+      "bg": "color.bg.raised",
+      "kind": "text",
+      "use": "Error text in a sheet"
+    },
+    {
+      "fg": "color.status.danger.fg",
+      "bg": "color.web.trainer.background",
+      "kind": "text",
+      "use": "Trainer web: error text on the page"
+    },
+    {
+      "fg": "color.status.danger.fg",
+      "bg": "color.web.trainer.card",
+      "kind": "text",
+      "use": "Trainer web: error text on a card"
+    },
+    {
+      "fg": "color.text.inverse",
+      "bg": "color.status.danger.fg",
+      "kind": "text",
+      "use": "Material onError: text on the error colour"
+    },
+    {
+      "fg": "color.action.danger.text",
+      "bg": "color.bg.canvas",
+      "kind": "text",
+      "use": "Destructive button text on the canvas"
+    },
+    {
+      "fg": "color.action.danger.text",
+      "bg": "color.bg.surface",
+      "kind": "text",
+      "use": "Destructive button text on a card"
+    },
+    {
+      "fg": "color.action.danger.text",
+      "bg": "color.bg.raised",
+      "kind": "text",
+      "use": "Destructive button text in a sheet"
+    },
+    {
+      "fg": "color.action.danger.text",
+      "bg": "color.web.trainer.background",
+      "kind": "text",
+      "use": "Destructive button text on the trainer web page"
+    },
+    {
+      "fg": "color.action.danger.text",
+      "bg": "color.web.trainer.card",
+      "kind": "text",
+      "use": "Destructive button text on a trainer web card"
+    },
+    {
+      "fg": "color.action.danger.text",
+      "bg": "color.web.trainer.sidebar",
+      "kind": "text",
+      "use": "Destructive button text in the trainer web sidebar"
+    },
+    {
+      "fg": "color.action.danger.text",
+      "bg": "color.web.trainer.muted",
+      "kind": "text",
+      "use": "Destructive button text on the trainer web muted fill"
+    },
+    {
+      "fg": "color.text.inverse",
+      "bg": "color.action.danger.text",
+      "kind": "text",
+      "use": "Text on the destructive text colour (shadcn destructive-foreground)"
+    },
+    {
+      "fg": "color.status.danger.solid",
+      "bg": "color.bg.surface",
+      "kind": "non-text",
+      "use": "Niet verschenen: bar or dot on a card"
+    },
+    {
+      "fg": "color.status.danger.solid",
+      "bg": "color.bg.canvas",
+      "kind": "non-text",
+      "use": "Niet verschenen: bar or dot on the canvas"
+    },
+    {
+      "fg": "color.status.danger.on-solid",
+      "bg": "color.status.danger.gradient-top",
+      "kind": "text",
+      "use": "Niet verschenen: text and glyphs on the top of its fill"
+    },
+    {
+      "fg": "color.status.danger.on-solid",
+      "bg": "color.status.danger.gradient-bottom",
+      "kind": "text",
+      "use": "Niet verschenen: text and glyphs on the bottom of its fill"
+    },
+    {
+      "fg": "color.status.warning.text",
+      "bg": "color.status.warning.bg",
+      "kind": "text",
+      "use": "Waarschuwing: label on its tint"
+    },
+    {
+      "fg": "color.status.warning.text",
+      "bg": "color.bg.surface",
+      "kind": "text",
+      "use": "Waarschuwing: text on a card"
+    },
+    {
+      "fg": "color.status.warning.text",
+      "bg": "color.bg.canvas",
+      "kind": "text",
+      "use": "Waarschuwing: text on the canvas"
+    },
+    {
+      "fg": "color.status.warning.fg",
+      "bg": "color.status.warning.bg",
+      "kind": "non-text",
+      "use": "Waarschuwing: glyph on its tint"
+    },
+    {
+      "fg": "color.status.warning.fg",
+      "bg": "color.bg.surface",
+      "kind": "non-text",
+      "use": "Waarschuwing: glyph on a card"
+    },
+    {
+      "fg": "color.status.warning.fg",
+      "bg": "color.bg.canvas",
+      "kind": "non-text",
+      "use": "Waarschuwing: glyph on the canvas"
+    },
+    {
+      "fg": "color.status.warning.on-solid",
+      "bg": "color.status.warning.gradient-top",
+      "kind": "non-text",
+      "use": "Waarschuwing: glyphs only on the top of its fill"
+    },
+    {
+      "fg": "color.status.warning.on-solid",
+      "bg": "color.status.warning.gradient-bottom",
+      "kind": "non-text",
+      "use": "Waarschuwing: glyphs only on the bottom of its fill"
+    },
+    {
+      "fg": "color.accent.on",
+      "bg": "color.accent.gradient-top",
+      "kind": "text",
+      "use": "Accent card: text on the top of the gradient"
+    },
+    {
+      "fg": "color.accent.on",
+      "bg": "color.accent.gradient-bottom",
+      "kind": "text",
+      "use": "Accent card: text on the bottom of the gradient"
+    },
+    {
+      "fg": "color.accent.text",
+      "bg": "color.bg.canvas",
+      "kind": "text",
+      "use": "Accent text on the canvas"
+    },
+    {
+      "fg": "color.accent.text",
+      "bg": "color.bg.surface",
+      "kind": "text",
+      "use": "Accent text on a card"
+    },
+    {
+      "fg": "color.accent.text",
+      "bg": "color.bg.raised",
+      "kind": "text",
+      "use": "Accent text in a sheet"
+    },
+    {
+      "fg": "color.accent.text",
+      "bg": "color.bg.subtle",
+      "kind": "text",
+      "use": "Accent text on a quiet fill"
     },
     {
       "fg": "color.status.neutral.fg",
@@ -170,40 +667,190 @@
       "use": "Geboekt chip"
     },
     {
-      "fg": "color.session.private.fg",
-      "bg": "color.session.private.bg",
-      "kind": "text",
-      "use": "Privé label"
-    },
-    {
-      "fg": "color.session.group.fg",
-      "bg": "color.session.group.bg",
-      "kind": "text",
-      "use": "Groepsles label"
-    },
-    {
-      "fg": "color.session.open-gym.fg",
-      "bg": "color.session.open-gym.bg",
-      "kind": "text",
-      "use": "Open Gym label"
-    },
-    {
-      "fg": "color.session.private.solid",
+      "fg": "color.workspace.cyan",
       "bg": "color.bg.surface",
       "kind": "non-text",
-      "use": "Privé bar in calendar"
+      "use": "Workspace dot (cyan) on a card"
     },
     {
-      "fg": "color.session.group.solid",
-      "bg": "color.bg.surface",
+      "fg": "color.workspace.cyan",
+      "bg": "color.bg.canvas",
       "kind": "non-text",
-      "use": "Groepsles bar in calendar"
+      "use": "Workspace dot (cyan) on the canvas"
     },
     {
-      "fg": "color.session.open-gym.solid",
+      "fg": "color.workspace.brown",
       "bg": "color.bg.surface",
       "kind": "non-text",
-      "use": "Open Gym bar in calendar"
+      "use": "Workspace dot (brown) on a card"
+    },
+    {
+      "fg": "color.workspace.brown",
+      "bg": "color.bg.canvas",
+      "kind": "non-text",
+      "use": "Workspace dot (brown) on the canvas"
+    },
+    {
+      "fg": "color.workspace.indigo",
+      "bg": "color.bg.surface",
+      "kind": "non-text",
+      "use": "Workspace dot (indigo) on a card"
+    },
+    {
+      "fg": "color.workspace.indigo",
+      "bg": "color.bg.canvas",
+      "kind": "non-text",
+      "use": "Workspace dot (indigo) on the canvas"
+    },
+    {
+      "fg": "color.workspace.gold",
+      "bg": "color.bg.surface",
+      "kind": "non-text",
+      "use": "Workspace dot (gold) on a card"
+    },
+    {
+      "fg": "color.workspace.gold",
+      "bg": "color.bg.canvas",
+      "kind": "non-text",
+      "use": "Workspace dot (gold) on the canvas"
+    },
+    {
+      "fg": "color.workspace.slate",
+      "bg": "color.bg.surface",
+      "kind": "non-text",
+      "use": "Workspace dot (slate) on a card"
+    },
+    {
+      "fg": "color.workspace.slate",
+      "bg": "color.bg.canvas",
+      "kind": "non-text",
+      "use": "Workspace dot (slate) on the canvas"
+    },
+    {
+      "fg": "color.workspace.lime",
+      "bg": "color.bg.surface",
+      "kind": "non-text",
+      "use": "Workspace dot (lime) on a card"
+    },
+    {
+      "fg": "color.workspace.lime",
+      "bg": "color.bg.canvas",
+      "kind": "non-text",
+      "use": "Workspace dot (lime) on the canvas"
+    },
+    {
+      "fg": "color.web.trainer.foreground",
+      "bg": "color.web.trainer.background",
+      "kind": "text",
+      "use": "Trainer web: body text on background"
+    },
+    {
+      "fg": "color.web.trainer.foreground",
+      "bg": "color.web.trainer.card",
+      "kind": "text",
+      "use": "Trainer web: body text on card"
+    },
+    {
+      "fg": "color.web.trainer.foreground",
+      "bg": "color.web.trainer.muted",
+      "kind": "text",
+      "use": "Trainer web: body text on muted"
+    },
+    {
+      "fg": "color.web.trainer.foreground",
+      "bg": "color.web.trainer.sidebar",
+      "kind": "text",
+      "use": "Trainer web: body text on sidebar"
+    },
+    {
+      "fg": "color.web.trainer.muted-foreground",
+      "bg": "color.web.trainer.background",
+      "kind": "text",
+      "use": "Trainer web: secondary text on background"
+    },
+    {
+      "fg": "color.web.trainer.muted-foreground",
+      "bg": "color.web.trainer.card",
+      "kind": "text",
+      "use": "Trainer web: secondary text on card"
+    },
+    {
+      "fg": "color.web.trainer.muted-foreground",
+      "bg": "color.web.trainer.sidebar",
+      "kind": "text",
+      "use": "Trainer web: secondary text on sidebar"
+    },
+    {
+      "fg": "color.web.trainer.muted-foreground",
+      "bg": "color.web.trainer.muted",
+      "kind": "text",
+      "use": "Trainer web: secondary text on the muted fill"
+    },
+    {
+      "fg": "color.accent.text",
+      "bg": "color.web.trainer.background",
+      "kind": "text",
+      "use": "Trainer web: accent text on background"
+    },
+    {
+      "fg": "color.accent.text",
+      "bg": "color.web.trainer.card",
+      "kind": "text",
+      "use": "Trainer web: accent text on card"
+    },
+    {
+      "fg": "color.accent.text",
+      "bg": "color.web.trainer.sidebar",
+      "kind": "text",
+      "use": "Trainer web: accent text on sidebar"
+    },
+    {
+      "fg": "color.border.focus",
+      "bg": "color.web.trainer.background",
+      "kind": "non-text",
+      "use": "Trainer web: focus ring on background"
+    },
+    {
+      "fg": "color.border.focus",
+      "bg": "color.web.trainer.card",
+      "kind": "non-text",
+      "use": "Trainer web: focus ring on card"
+    },
+    {
+      "fg": "color.border.focus",
+      "bg": "color.web.trainer.muted",
+      "kind": "non-text",
+      "use": "Trainer web: focus ring on muted"
+    },
+    {
+      "fg": "color.border.focus",
+      "bg": "color.web.trainer.sidebar",
+      "kind": "non-text",
+      "use": "Trainer web: focus ring on sidebar"
+    },
+    {
+      "fg": "color.border.control",
+      "bg": "color.web.trainer.background",
+      "kind": "non-text",
+      "use": "Trainer web: input outline on background"
+    },
+    {
+      "fg": "color.action.primary.bg",
+      "bg": "color.web.trainer.background",
+      "kind": "non-text",
+      "use": "Trainer web: primary button edge on background"
+    },
+    {
+      "fg": "color.border.control",
+      "bg": "color.web.trainer.card",
+      "kind": "non-text",
+      "use": "Trainer web: input outline on card"
+    },
+    {
+      "fg": "color.action.primary.bg",
+      "bg": "color.web.trainer.card",
+      "kind": "non-text",
+      "use": "Trainer web: primary button edge on card"
     }
   ]
 }
