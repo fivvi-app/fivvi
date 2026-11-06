@@ -51,7 +51,7 @@ The prototype's panel has five setups (⚙ → **Opzet**). Each is a fictional b
 
 **Fixed groups** (a client enrolled in a weekly series, booked every week until they stop) are not in the MVP (owner, 6 November 2026).
 
-## Connecting payments (#466, for the owner to click through)
+## Connecting payments (#466, #606)
 
 The owner of a studio connects Mollie once, on the web, at least a week before starting:
 
@@ -61,7 +61,7 @@ The owner of a studio connects Mollie once, on the web, at least a week before s
 4. Back in Fivvi: Mollie checks the details, then direct debit (up to about 3 working days). iDEAL works before direct debit does.
 5. **Klaar:** offers can be switched on and clients can pay.
 
-Every setup is the same, a solo PT too: each has their own Mollie account, so the money goes straight to their bank account.
+Every setup is the same, a solo PT too: each has their own Mollie account, so the money goes straight to their bank account. Clients can join once iDEAL works. A studio that only takes cash or card can skip Mollie, after Fivvi says what it loses; it can connect later.
 
 ## Assumptions in the prototype, as confirmed by the owner (`DECISIONS.md` §7)
 

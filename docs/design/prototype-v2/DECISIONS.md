@@ -217,7 +217,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
 
 The owner asked to see this process before approving [#466](https://github.com/fivvi-app/fivvi/issues/466), and accepted it (6 November 2026). The panel's entries *Betalingen*, *Betaling* and *Betalen* show it; every status has a *Prototype* button that moves it on, because in real life Mollie takes minutes to days.
 
-- **Owner only**, on the web. Trainers never see it, and Fivvi Pro has no payments.
+- **Owner only**. Connecting is on the web, and Fivvi Pro only says that it needs doing. Trainers never see it.
 - **Steps:** *Betalingen koppelen*, a short explanation, Mollie's own pages, then back to Fivvi: *Mollie controleert je gegevens*, *Automatische incasso wordt nog gecontroleerd* (iDEAL already works), *Klaar om betalingen te ontvangen*.
 - **Already at Mollie:** *Ik heb al een Mollie-account* signs in and approves what Fivvi may do.
 - **Aanbod** stays off until payments work. While direct debit is in review, credit packs can go on, but memberships and credit plans can't.
@@ -242,7 +242,7 @@ The owner asked for this: some studios and PTs take cash and set up a membership
 - **No automatic invoice** (owner). The owner can use *Factuur maken* on a payment when someone needs one, such as a business client. The payment stays on record, and the owner handles their own bookkeeping and tax, which the screen says. **Assumption to check with an accountant.**
 - **The renewal page** tells these clients they can pay at their studio too (owner).
 - **A switch on *Betalingen*, off by default (owner):** *Laat klanten zien dat ze ook bij de studio kunnen betalen*. When it's on, the offers page of a studio with Mollie says *Liever contant of met pin? Dat kan ook bij je studio*. Off, so more clients pay online.
-- **Cash-only studios are allowed (owner, 6 November 2026).** On *Betalingen*, below connecting Mollie, an owner can choose *Dan kan het ook zonder Mollie*. **Fivvi says what they lose first, and again on *Betalingen* afterwards (owner):** no online paying, buying or renewing by clients; no direct debit; new clients book only once their payment is recorded; no offers with a payment link; no automatic invoices; no overview of payouts per payment. Clients can then join and book, but can't pay, renew or buy online, so they see *Betalen bij je studio*, and the owner records every payment. *Aanbod sturen* is gone for them. The owner can connect Mollie later at any time. Otherwise, recording a payment works once payments are connected.
+- **Cash-only studios are allowed (owner, 6 November 2026).** On *Betalingen*, below connecting Mollie, an owner can choose *Dan kan het ook zonder Mollie*. **Fivvi says what they lose first, and again on *Betalingen* afterwards (owner):** no online paying, buying or renewing by clients; no direct debit; new clients book only once their payment is recorded; no offers with a payment link; no automatic invoices; no overview of payouts per payment. Clients can then join and book, but can't pay, renew or buy online, so they see *Betalen bij je studio*, and the owner records every payment. *Aanbod sturen* is gone for them. The owner can connect Mollie later at any time, and the studio stays open while Mollie checks. Otherwise, recording a payment works once payments are connected.
 - A till or card terminal connected to Fivvi is for later (owner; `PRODUCT.md §53`). A studio's own pin device is just recorded as *Pin bij de studio*.
 - Screens: *Betaling buiten Fivvi vastleggen* (Trainer web and Fivvi Pro), *Klantprofiel: contante betaling nog niet vastgelegd*, *Verlengen: klant die contant betaalt*, *Aanbod: ook bij de studio betalen*, *Betalingen: alleen contant of pin kiezen*, *Betalingen: studio zonder Mollie*, *Klantprofiel: studio zonder Mollie*, *Studio zonder Mollie: aanbod*, *Studio zonder Mollie: verlengen*.
 
@@ -365,7 +365,7 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
 
 ## 7. Assumptions
 
-The prototype had to choose something for these. **The owner confirmed every item here on 6 November 2026, except items 9 and 12.** A spec builds the confirmed items as written. Items 9 and 12 are not decided, so a spec that touches them asks the owner.
+The prototype had to choose something for these. **The owner confirmed every item here on 6 November 2026, except items 9, 12 and 13.** A spec builds the confirmed items as written. Items 9, 12 and 13 are not decided, so a spec that touches them asks the owner.
 
 1. **Trainers and balances:** trainers see their clients' credit balances, but no money (`QC12`).
 2. ***Aanbod sturen*:** it sends the client a link to confirm and pay.
@@ -397,6 +397,7 @@ The prototype had to choose something for these. **The owner confirmed every ite
     - the client starts only from a workout the trainer shared, not from an empty one (`PRODUCT.md §40`: the trainer assigns workouts); within it they add and remove exercises;
     - the client adds exercises from the library only and can't create new ones.
 12. **Reminder emails to the owner** (#466): one the day after starting without finishing, and one 3 days later; none once payments work. Mollie emails the owner itself when it needs something.
+13. **A connection that breaks later** (#466): the studio stays open for its clients, who keep booking with what they have, and the join link keeps working. New online sales and renewals stop until the owner reconnects.
 
 ## 8. What this changes in existing documents
 
@@ -419,4 +420,4 @@ The prototype had to choose something for these. **The owner confirmed every ite
 | [`packages/ui`](../../../packages/ui/README.md), `font-display` | Bricolage Grotesque goes; v2 uses the system stack on the web | [#590](https://github.com/fivvi-app/fivvi/issues/590) |
 | [`PRODUCT.md §51`](../../product/PRODUCT.md#51-notifications) and [`§90`](../../product/PRODUCT.md#90-offers-and-prices), [IA §8](../information-architecture.md#8-emails), emails | The client's renewal reminders | `PRODUCT.md` (this PR); IA with F052 [#468](https://github.com/fivvi-app/fivvi/issues/468); the emails (EM-28) with F057 [#481](https://github.com/fivvi-app/fivvi/issues/481) |
 | [IA §7](../information-architecture.md#7-client-web), client web | The client web uses the app's design language ([§5](#5-client-web-adr-026)) | F027 [#489](https://github.com/fivvi-app/fivvi/issues/489), F033 [#497](https://github.com/fivvi-app/fivvi/issues/497) |
-| [`PRODUCT.md §53`](../../product/PRODUCT.md#53-explicit-mvp-exclusions) and [`§94`](../../product/PRODUCT.md#94-recurring-payments), F059 [#474](https://github.com/fivvi-app/fivvi/issues/474) | Payments come first, a studio may take payments only at the desk, and a payment outside Fivvi gets no automatic invoice | `PRODUCT.md` (this PR); the invoice spec with [#606](https://github.com/fivvi-app/fivvi/issues/606) |
+| [`PRODUCT.md §53`](../../product/PRODUCT.md#53-explicit-mvp-exclusions) [`§94`](../../product/PRODUCT.md#94-recurring-payments) and `§96`, F059 [#474](https://github.com/fivvi-app/fivvi/issues/474) | Payments come first, a studio may take payments only at the desk, and a payment outside Fivvi gets no automatic invoice | `PRODUCT.md` (this PR); the invoice spec with [#606](https://github.com/fivvi-app/fivvi/issues/606) |

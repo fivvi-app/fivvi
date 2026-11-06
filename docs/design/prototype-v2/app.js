@@ -41,6 +41,10 @@
   function SOLO() { return !CFG().team; }
   function OWNER() { return SOLO() || PREF.role === "owner"; }
   function HAS(t) { return CFG().types.indexOf(t) >= 0; }
+  /* the payments state lives on the trainer web's side; the app only follows it */
+  function PAYST() { return (S.w && S.w.pay) || (S.proPay ? "none" : "ready"); }
+  function PAYSTUDIO() { var p = PAYST(); return p === "cashonly" || (!!(S.w && S.w.cashFirst) && p !== "ready" && p !== "debit" && p !== "broken"); }
+  function PAYLOCK() { var p = PAYST(); return !(p === "ready" || p === "debit" || p === "broken" || PAYSTUDIO()); }
   /* The session type is only worth a label when there is more than one kind; a trainer with private sessions only
      never sees "Privésessie" on every row. */
   function MIXED() { return CFG().types.length > 1; }
@@ -160,6 +164,7 @@
   try { var saved = JSON.parse(localStorage.getItem("fivvi-proto-v2") || "{}"); for (var pk in saved) if (pk in PREF) PREF[pk] = saved[pk]; } catch (e) { /* storage unavailable */ }
   var S;
   function fresh() {
+    D.resetBilling();
     S = { signedIn: true, signStep: "email", email: "", code: "", tab: "today", stacks: { today: [], agenda: [], clients: [], profile: [] },
       sheet: null, alert: null, menu: null, toast: null, anim: null, scope: "me", aview: "week", aday: TODAY, q: "", exq: "",
       log: null, logs: {}, form: {}, err: {}, tabMin: false, showAll: {}, showDesc: {}, duoSel: {}, preview: false, scrollBottom: false };
@@ -461,10 +466,10 @@
       /* the owner renews in one tap: Fivvi suggests it from a month before an agreement stops, or when a pack runs low */
       if (OWNER()) {
         /* payments outside Fivvi (#606, owner 6 Nov 2026): cash is often taken at the desk, so it can be recorded here too */
-        bs.b.agreements.forEach(function (a) { if (a.cash && a.next) brows.push(row({ lead: '<span class="dc-ic" style="--c:' + (a.late ? "var(--danger)" : "var(--accent)") + '">' + ic(a.late ? "warn" : "repeat") + "</span>", title: esc(a.name) + ": <span>" + esc(a.cash) + "</span>", sub: a.late ? "Betaling van " + esc(a.next) + " nog niet vastgelegd" : "Volgende betaling " + esc(a.next), tr: btn("Betaald", { sm: true, a: "cash-paid", d: { id: c.id, ag: a.id } }), cls: "dc wrap" })); });
-        brows.push(row({ a: "cash", d: { id: c.id }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("plus") + "</span>", title: "Betaling buiten Fivvi", sub: "Contant, pin of overboeking vastleggen", cls: "dc" }));
-        bs.renew.forEach(function (r) { var a = r[0]; brows.push(row({ lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("repeat") + "</span>", title: "Verlengen: <span>" + esc(a.name) + "</span>", sub: a.offerSent ? "Aanbod verstuurd " + esc(a.offerSent) + " · wacht op betaling" : esc(r[1]), small: esc(D.remindLine(a)), tr: a.offerSent ? '<span class="pill">Verstuurd</span>' : (S.w && S.w.pay === "cashonly") ? btn("Betaald", { sm: true, a: "cash", d: { id: c.id } }) : btn("Verlengen", { sm: true, a: "offer", d: { id: c.id, ag: a.id } }), cls: "dc wrap" })); });
-        brows.push(row({ a: "offer", d: { id: c.id }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("plus") + "</span>", title: '<span style="color:var(--accent-text)">Aanbod sturen</span>', cls: "dc", chev: false }));
+        if (!PAYLOCK()) bs.b.agreements.forEach(function (a) { if (a.cash && a.next) brows.push(row({ lead: '<span class="dc-ic" style="--c:' + (a.late ? "var(--danger)" : "var(--accent)") + '">' + ic(a.late ? "warn" : "repeat") + "</span>", title: esc(a.name) + ": <span>" + esc(a.cash) + "</span>", sub: a.late ? "Betaling van " + esc(a.next) + " nog niet vastgelegd" : "Volgende betaling " + esc(a.next), tr: btn("Betaald", { sm: true, a: "cash-paid", d: { id: c.id, ag: a.id } }), cls: "dc wrap" })); });
+        if (!PAYLOCK()) brows.push(row({ a: "cash", d: { id: c.id }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("plus") + "</span>", title: "Betaling buiten Fivvi", sub: "Contant, pin of overboeking vastleggen", cls: "dc" }));
+        bs.renew.forEach(function (r) { var a = r[0]; brows.push(row({ lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("repeat") + "</span>", title: "Verlengen: <span>" + esc(a.name) + "</span>", sub: a.offerSent ? "Aanbod verstuurd " + esc(a.offerSent) + " · wacht op betaling" : esc(r[1]), small: esc(D.remindLine(a)), tr: a.offerSent ? '<span class="pill">Verstuurd</span>' : PAYSTUDIO() ? btn("Betaald", { sm: true, a: "cash", d: { id: c.id } }) : PAYLOCK() || PAYST() === "broken" ? "" : btn("Verlengen", { sm: true, a: "offer", d: { id: c.id, ag: a.id } }), cls: "dc wrap" })); });
+        if (!PAYLOCK() && !PAYSTUDIO() && PAYST() !== "broken") brows.push(row({ a: "offer", d: { id: c.id }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("plus") + "</span>", title: '<span style="color:var(--accent-text)">Aanbod sturen</span>', cls: "dc", chev: false }));
       }
       body += sh("Tegoed", "", "small") + '<div class="pad">' + grp(brows, "--inset:60px") + "</div>" + (OWNER() ? foot("Fivvi stelt verlengen voor vanaf " + D.RENEW_DAYS + " dagen voor het einde, of als een creditpakket bijna op is. De klant krijgt dan een herinnering en 7 dagen voor het einde nog een, ook als je zelf een aanbod stuurt. Betalingen en facturen vind je op het web.") : "");
     }
@@ -606,7 +611,7 @@
   SHEETS["new"] = function () {
     var items = [["new-session", "priv", "Privésessie", "Een sessie met één klant."]];
     if (OWNER()) { items.push(["new-class", "group", "Groepsles", "Bij " + D.workspaces.sf.name]); if (HAS("gym")) items.push(["new-gym", "gym", "Open Gym", "Bij " + D.workspaces.sf.name]); }
-    items.push(["new-client", "", "Klant", "Naam en e-mailadres. De klant krijgt een uitnodiging om in te loggen."]);
+    items.push(["new-client", "", "Klant", PAYLOCK() ? "Naam en e-mailadres. De klant krijgt een uitnodiging zodra betalingen klaar zijn." : "Naam en e-mailadres. De klant krijgt een uitnodiging om in te loggen."]);
     var icons = { priv: "me", group: "group", gym: "door", "": "personPlus" };
     var body = grp(items.map(function (x) { return row({ a: x[0], lead: '<span class="av" style="--c:' + (x[1] ? CV[x[1]] : "var(--accent)") + ';border-radius:14px">' + ic(icons[x[1]]) + "</span>", title: x[2], sub: x[3], cls: "wrap" }); }), "--inset:68px");
     if (!SOLO()) body += foot(OWNER() ? "Groepslessen van John's Gym plant de eigenaar." : "Groepslessen van Studio Fit en John's Gym plant de eigenaar.");
@@ -640,7 +645,7 @@
   SHEETS.newClient = function () {
     var body = '<div class="fgrp">' + fld("Naam", inp("name", "text", "Voor- en achternaam", " autocomplete=\"off\"")) + fld("E-mail", inp("email", "email", "naam@voorbeeld.nl")) + "</div>";
     body += '<div class="fgrp" style="margin-top:16px">' + fld("Taal voor e-mails", sel("lang", ["Nederlands", "English"])) + (WSS().length > 1 ? fld("Werkruimte", sel("ws", WSS().map(function (w) { return [w, D.workspaces[w].name]; }))) : "") + "</div>";
-    body += foot("De klant krijgt een e-mail met een uitnodiging om in te loggen.");
+    body += foot(PAYLOCK() ? "De klant krijgt een uitnodiging zodra betalingen klaar zijn." : "De klant krijgt een e-mail met een uitnodiging om in te loggen.");
     return { title: "Nieuwe klant", body: body, save: "save-client" };
   };
   SHEETS.newClass = function () {
@@ -966,7 +971,7 @@
     "plan-for": function (d) { S.form = Object.assign(today5(), { client: d.id, date: key(add(NOW, 1)), start: "10:30", loc: D.locations[1] }); S.sheet = "newSession"; S.anim = "up"; render(); },
     offer: function (d) { var a = d.ag ? D.billing[d.id].agreements.filter(function (x) { return x.id === d.ag; })[0] : null; S.menu = null; S.form = { client: d.id, ag: d.ag || "", offer: a ? a.name : D.offerNames()[1], start: "after" }; S.sheet = "offer"; S.anim = "up"; render(); },
     cash: function (d) { S.menu = null; S.form = { client: d.id, offer: D.offerNames()[1], how: "Contant", date: TODAY }; S.sheet = "cash"; S.anim = "up"; render(); },
-    "save-cash": function () { D.recordOutside(S.form.client, S.form.offer, S.form.how); S.sheet = null; toast("Betaling vastgelegd."); },
+    "save-cash": function () { D.recordOutside(S.form.client, S.form.offer, S.form.how, S.form.date); S.sheet = null; toast("Betaling vastgelegd."); },
     "cash-paid": function (d) { D.recordOutsidePaid(d.id, d.ag); toast("Betaling vastgelegd."); },
     "send-offer": function () { var f = S.form, c = CLIENT[f.client]; if (f.ag) D.billing[f.client].agreements.forEach(function (x) { if (x.id === f.ag) x.offerSent = "vandaag"; }); S.sheet = null; toast("Aanbod verstuurd aan " + c.name.split(" ")[0]); },
     "new-client": function () { S.form = { name: "", email: "", lang: "Nederlands", ws: "sf" }; S.sheet = "newClient"; S.anim = "up"; render(); },

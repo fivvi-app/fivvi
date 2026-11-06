@@ -2659,7 +2659,7 @@ Strongest validation signal:
 
 # Commerce (MVP)
 
-Added on 19 October 2026 after the first interview with the pilot owner (`docs/discovery/results/interview-01.md`), who can't switch without it (§2.8). The subscription model (recurring payments) and invoices arrive **together**: every payment, recurring or one-off, gets an invoice. Memberships, credit packs and credit plans (group and private; owner, 21 October 2026), recurring payments and invoices are decided; single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)). A new workspace starts with three default plans, and the owner can make their own offers (§90; owner, 21 October 2026). The commerce walkthrough of 31 October 2026 answered the questions QC01–QC19 ([`open-questions.md`](../design/open-questions.md)); what is still open is marked there, the feature specs settle it with the owner, and nothing here guesses it.
+Added on 19 October 2026 after the first interview with the pilot owner (`docs/discovery/results/interview-01.md`), who can't switch without it (§2.8). The subscription model (recurring payments) and invoices arrive **together**: every payment through Mollie, recurring or one-off, gets an invoice. Memberships, credit packs and credit plans (group and private; owner, 21 October 2026), recurring payments and invoices are decided; single classes and payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)). A new workspace starts with three default plans, and the owner can make their own offers (§90; owner, 21 October 2026). The commerce walkthrough of 31 October 2026 answered the questions QC01–QC19 ([`open-questions.md`](../design/open-questions.md)); what is still open is marked there, the feature specs settle it with the owner, and nothing here guesses it.
 
 Keep these concepts separate in the model, even where the screen combines them: a class's recurrence is not a payment schedule, a payment is not an invoice, and a missed class is not a missed payment.
 
@@ -2787,7 +2787,7 @@ A **signed-in, approved client** (§26) can buy one class: as a client without a
 
 # 96. Invoices
 
-Every payment gets an **invoice**, emailed to the client and kept on their profile and in client web.
+Every payment through Mollie gets an **invoice**, emailed to the client and kept on their profile and in client web. A payment recorded outside Fivvi gets none automatically; the owner can make one ([#606](https://github.com/fivvi-app/fivvi/issues/606)).
 
 - **Billing details:** a client can put a company name, address and VAT number on their invoices; the owner can too, on behalf of a client (proposal, [QC16](../design/open-questions.md#qc16)). Without them, the invoice uses the client's name.
 - It meets the Dutch invoice requirements (Belastingdienst): a unique number in one series per workspace without gaps (one series per workspace is a proposal, [QC10](../design/open-questions.md#qc10)), the issue date, the workspace's legal name, address, KvK and VAT number, the buyer's details, what was supplied, the amount excluding VAT, the VAT rate and amount, and the total.
