@@ -119,7 +119,7 @@
     };
   });
   /* the real buttons lead to these states too */
-  [["c-bookok", "Geboekt"], ["c-wlok", "Op de wachtlijst"], ["c-cancelok", "Geannuleerd"]].forEach(function (x) { var o = A[x[0]]; if (!o) return; A[x[0]] = function (d) { o(d); C().web = "st:" + x[1]; F.S.toast = null; R(); }; });
+  [["c-bookok", "Geboekt"], ["c-wlok", "Op de wachtlijst"], ["c-cancel-ok", "Geannuleerd"]].forEach(function (x) { var o = A[x[0]]; if (!o) return; A[x[0]] = function (d) { o(d); C().web = "st:" + x[1]; F.S.toast = null; R(); }; });
   var ap = F.INDEX.filter(function (g) { return g[0] === "Fivvi (klant-app)"; })[0][1];
   ST.forEach(function (s) { ap.push([s[0], s[1], X.goApp("app", { who: "anna", atab: "home", web: "st:" + s[0] })]); });
   /* the same states on the client web; scanning a QR code only exists in the app */
