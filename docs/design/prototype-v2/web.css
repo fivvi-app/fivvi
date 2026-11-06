@@ -146,6 +146,10 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .w-inline2{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
 .w-inline2:has(>:nth-child(2):last-child){grid-template-columns:repeat(2,minmax(0,1fr))}
 .w-inline2>.w-field{align-content:start}
+.w-sect{border-top:1px solid var(--w-border);padding-top:16px;margin-top:6px}
+.w-starts+.w-sect,.w-dialog h3+.w-sect{border-top:0;padding-top:4px;margin-top:0}
+.w-sect>h4{margin:0 0 12px;font-size:15px;font-weight:650}
+.w-sect+p.w-muted{border-top:1px solid var(--w-border);padding-top:14px;margin-top:6px}
 .w-desc{margin:12px 0 0;color:var(--w-fg)}
 
 /* lanes per trainer */
