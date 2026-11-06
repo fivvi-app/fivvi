@@ -311,7 +311,7 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 
 ### 4.9 Commerce
 
-Added with roadmap v1.19 (M11). The owner decided the commerce terms among the nine open terms on 2026-10-29 (*abonnement*, *creditpakket*, *creditabonnement*, *credit*, *tegoed*, *aanbod*, *standaardaanbod*, *Nieuw aanbod*) by choosing the standard wording. Only the commerce terms that were not part of the nine keep ⚠️ (agreement, recurring payment, mandate, payment provider, merchant, cancellation policy); they wait on the payment decisions (QC06), not on the pilot (§8). The terms added after the commerce walkthrough of 2026-10-31 (weekly limit, billing cycle, Open Gym credit) are ⚠️ until the pilot gym owner confirms the wording.
+Added with roadmap v1.19 (M11). The owner decided the commerce terms among the nine open terms on 2026-10-29 (*abonnement*, *creditpakket*, *creditabonnement*, *credit*, *tegoed*, *aanbod*, *standaardaanbod*, *Nieuw aanbod*) by choosing the standard wording. Only the commerce terms that were not part of the nine keep ⚠️ (agreement, recurring payment, mandate, payment provider, merchant, cancellation policy); they wait on the payment decisions (QC06), not on the pilot (§8). The terms added after the commerce walkthrough of 2026-10-31 (weekly limit, billing cycle, Open Gym credit) are ⚠️ until the pilot gym owner confirms the wording. *Guest* 🔜 4.0 (v0.16) is ⚠️ until the pilot gym owner confirms the wording.
 
 | EN term | NL term | Notes / forbidden alternatives |
 |---|---|---|
@@ -343,7 +343,7 @@ Added with roadmap v1.19 (M11). The owner decided the commerce terms among the n
 | payment provider | betaalprovider (de) ⚠️ | Usually name it (*Mollie*, *Stripe*) instead. |
 | merchant | verkoper (de) ⚠️ | The business that sells to the client and receives the money; in Fivvi the workspace (decided in ADR-020, Accepted 21 October 2026). Alternative to confirm: *handelaar*. Mostly internal; in the UI say *jouw sportschool* or the workspace name. ❌ *leverancier*, *vendor*. |
 | connect payments | Betalingen koppelen | The owner action that connects the workspace's Mollie account (a guided flow, `PRODUCT.md §94`). *Koppelen* is right here, unlike for *assign* (§4.1), where it is forbidden. |
-| guest 🔜 4.0 | introducé (de, introducés) ⚠️ | Later, with *bring a friend* (`PRODUCT.md §66`): a friend a client brings to a class. Alternative to confirm with the pilot gym owner. ❌ *bezoeker*, *plus-one*. A client is never a guest (see *client*, §4.1). |
+| guest 🔜 4.0 | introducé (de, introducés) ⚠️ | Later, with *bring a friend* (`PRODUCT.md §66`): a friend a client brings to a class. Candidate to confirm with the pilot gym owner. ❌ *bezoeker*, *plus-one*. A client is never a guest (see *client*, §4.1). |
 
 ---
 

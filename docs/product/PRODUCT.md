@@ -1955,8 +1955,8 @@ A client can bring a friend to a class as a **guest**, for example 1 free visit 
 - It is off by default on every offer. The limits run per month or per term, as the owner chooses on the offer, since an agreement that continues per cycle has no end date to count towards.
 - The client books the guest's spot. The guest is a name on the client's booking, with no account and no approval. The booking rules of [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md) stay as they are: the client, who is approved, books. The same friend can come again.
 - Group classes only, with the client booked in the same class. A guest takes a normal spot and counts towards capacity. A paid visit uses a group credit, as its own line in the credit history (§92).
-- Cancelling and no-shows follow the client's own cancellation policy, and what comes back follows §93: whether a free visit or a credit returns, and how many, is what §93 says for that agreement. A late cancel or a no-show counts as used.
-- Fivvi warns the owner who turns this on for a membership when no member-only credit offer is switched on, because clients with a membership could then use only their free visits.
+- Cancelling and no-shows follow the client's own cancellation policy. A credit that paid for a guest comes back as §93 says for that agreement; how a free visit comes back is left to the Open item on §93 below. A late cancel or a no-show counts as used.
+- Fivvi warns the owner who turns this on for a membership when no group credit offer is switched on that a client with a membership can buy (§90 does not stop them buying an offer that is not member-only), because those clients could then use only their free visits.
 - Offer changes apply to new agreements only (proposal, [QC15](../design/open-questions.md#qc15)), so running agreements keep their terms.
 
 **Open:**
@@ -1968,7 +1968,7 @@ A client can bring a friend to a class as a **guest**, for example 1 free visit 
 - §91: whether a guest counts towards the weekly allowance or the weekly limit.
 - §92: "one credit books one session" against a visit cost the owner sets above 1 credit.
 - Capacity, Booking and Attendance in `GLOSSARY.md` are all defined in terms of clients or participants. How a guest's spot and no-show are recorded.
-- [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md): a person nobody approved now attends, which is close to its ability to keep a stranger out. Whether that needs a rule.
+- [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md): a person nobody approved would attend, while ADR-026 lets a workspace keep a stranger out. Whether that needs a rule.
 
 ---
 
