@@ -1673,6 +1673,7 @@ Do not build yet:
 - **Open Gym** (F034 to F036, §28 to §31), with Open Gym credits and the Open Gym booking link: postponed until after the MVP (owner, 6 November 2026). The pilot gym has no Open Gym today and no client asks for it. Where this document still names Open Gym, that applies once it is built. The session type stays in the data model
 - pricing models beyond memberships, credit packs, credit plans and single classes (for example combined credits: one balance for every session type, not planned, owner 21 October 2026; or pay-what-you-use)
 - discounts, coupons, gift cards, family or shared memberships
+- bring a friend: a client bringing a guest to a class (Release 4, §66; owner, 6 November 2026)
 - accounting integrations (Moneybird, e-Boekhouden, Exact Online)
 - a till, card terminal or kiosk connected to Fivvi at the desk (the pilot doesn't use one, [QC11](../design/open-questions.md#qc11)). Recording a payment taken outside Fivvi, such as cash, is a different thing ([#606](https://github.com/fivvi-app/fivvi/issues/606))
 - payments inside the native apps (clients pay on the web; the client app opens the web payment page, owner, 31 October 2026, [QC16](../design/open-questions.md#qc16))
@@ -1930,12 +1931,34 @@ Memberships, recurring payments and invoices moved into the MVP on 19 October 20
 
 - other pricing models the pilot shows a need for (combined credits are not planned, §53)
 - discounts, coupons, gift cards, family or shared memberships
+- bring a friend (below)
 - payment reminders and dunning beyond the MVP's failed-payment handling
 - point-of-sale or kiosk payments
 - accounting integrations
 - revenue reports
 
 For the Dutch market, later integrations should prioritize the systems customers actually use locally.
+
+## Bring a friend
+
+A client can bring a friend to a class as a **guest**, for example 1 free visit a month, and after that the client pays 1 credit for each visit, so they train together. It can move to an earlier release if the pilot gym asks for it; it needs only the MVP's offers and credits (§90, §92).
+
+**Decided (owner, 6 November 2026):**
+
+- **It is set on the offer.** The owner sets how many free visits a client gets, what a visit costs after that, and how many paid visits are allowed.
+- **It is counted per client,** whoever they bring.
+- **A paid visit costs credits, never euros,** so it needs no payment of its own. A client on a membership has no credits from the membership and buys them from a member-only offer (§90, §92).
+
+**Proposals, to settle in the prototype before the spec:**
+
+- It is off by default on every offer. The limits run per month or per term, as the owner chooses on the offer, since an agreement that continues per cycle has no end date to count towards.
+- The client books the guest's spot. The guest is a name on the client's booking, with no account and no approval, so nothing changes in [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md). The same friend can come again.
+- Group classes only, with the client booked in the same class. A guest takes a normal spot and counts towards capacity. A paid visit uses a group credit, as its own line in the credit history (§92).
+- Cancelling and no-shows follow the client's own cancellation policy (§93): cancelling in time gives the free visit or the credit back; cancelling late or not showing up counts as used.
+- Fivvi warns the owner who turns this on for a membership when no member-only credit offer is switched on, because the members could then use only their free visits.
+- Offer changes apply to new agreements only (proposal, [QC15](../design/open-questions.md#qc15)), so running agreements get this at their next agreement.
+
+**Open:** the Dutch word in the UI (*introducé* is one candidate, `packages/i18n/GLOSSARY.md`), and what the privacy statement and the retention policy say about a guest's name.
 
 ---
 
