@@ -258,9 +258,9 @@ window.FIVVI_DATA = (function () {
       payments: [["1 okt 2026", "5 groepscredits", "€ 40,00", "iDEAL", "refund", "F-2026-0391 · creditfactuur F-2026-0402"]] },
     thomas: { agreements: [{ id: "a9", end: "stop", endsIn: -1, kind: "pack", credit: "groep", name: "Proefles", price: "€ 0", cycle: "Eenmalig", since: "28 okt 2026", period: "verlopen 4 nov 2026", status: "expired", total: 1, used: 1, planned: 0, hist: [["28 okt", "1 groepscredit toegekend", "+1", "Proefaanbod, 1× per klant"], ["30 okt", "Gebruikt voor Strength", "−1", "Thomas boekte"]] }], payments: [] },
     eva: { agreements: [
-      { id: "a10", cash: "Contant", end: "continue", kind: "abo", name: "Groep 2× per week", price: "€ 69", cycle: "Elke maand", since: "1 feb 2026", period: "loopt door", next: "1 dec", status: "active", perWeek: 2, usedWeek: 0, makeups: 0, hist: [["ma 2 nov", "Week begonnen: 2 lessen", "+2", "Abonnement"]] },
+      { id: "a10", cash: "Contant", late: true, end: "continue", kind: "abo", name: "Groep 2× per week", price: "€ 69", cycle: "Elke maand", since: "1 feb 2026", period: "loopt door", next: "1 nov", status: "active", perWeek: 2, usedWeek: 0, makeups: 0, hist: [["ma 2 nov", "Week begonnen: 2 lessen", "+2", "Abonnement"]] },
       { id: "a11", end: "continue", kind: "plan", credit: "prive", name: "Privé 2 per maand", price: "€ 125", cycle: "Elke maand", since: "1 feb 2026", period: "1 nov – 30 nov", next: "1 dec", status: "active", total: 2, used: 0, planned: 0, hist: [["1 nov", "2 privécredits toegekend", "+2", "Nieuwe periode"]] }],
-      payments: [["1 nov 2026", "Groep 2× per week + Privé 2 per maand", "€ 194,00", "Contant", "paid", "F-2026-0419"]] },
+      payments: [["1 okt 2026", "Groep 2× per week", "€ 69,00", "Contant", "paid", ""], ["1 nov 2026", "Privé 2 per maand", "€ 125,00", "Incasso", "paid", "F-2026-0419"]] },
     sophie: { agreements: [], payments: [] }
   };
 
@@ -306,6 +306,7 @@ window.FIVVI_DATA = (function () {
       if (a.kind === "abo") { if (a.status !== "expired") abos.push(a); }
       else if (a.status !== "expired") { var x = bal[a.credit] || (bal[a.credit] = { credit: a.credit, total: 0, used: 0, planned: 0 }); x.total += a.total; x.used += a.used; x.planned += a.planned; }
       if (a.status === "open") flags.push(["danger", "Openstaande betaling " + a.open, a.name]);
+      if (a.cash && a.late) flags.push(["danger", "Betaling van " + a.next + " nog niet vastgelegd", a.name]);
       if (a.status === "ending") flags.push(["warn", "Abonnement stopt " + a.period.replace("stopt ", ""), a.name]);
     });
     var balances = Object.keys(bal).map(function (k) { var x = bal[k]; x.left = x.total - x.used - x.planned; x.label = CREDIT[k]; return x; });
@@ -336,9 +337,21 @@ window.FIVVI_DATA = (function () {
   /* What a workspace calls its trainers (owner decision, 5 Nov 2026): one word, used everywhere in that workspace */
   var TERMS = { trainer: { nl: ["trainer", "trainers"], en: ["trainer", "trainers"] }, instructeur: { nl: ["instructeur", "instructeurs"], en: ["instructor", "instructors"] },
     docent: { nl: ["docent", "docenten"], en: ["teacher", "teachers"] }, coach: { nl: ["coach", "coaches"], en: ["coach", "coaches"] } };
+  /* A payment outside Fivvi (#606): the owner records it; no money moves through Mollie and no invoice is made automatically (owner, 6 Nov 2026). */
+  function recordOutside(cid, name, how) {
+    var o = offerList.filter(function (x) { return x.name === name; })[0], rec = o.kind === "abo" || o.kind === "plan", a = { id: "c" + Date.now(), end: o.end || "stop", endsIn: 180, kind: o.kind, name: o.name, price: "€ " + o.price, cycle: o.cycle, since: "vandaag", period: "vanaf vandaag", status: "active", cash: how, hist: [["vandaag", o.name + ": " + how.toLowerCase(), "", "Vastgelegd door de eigenaar"]] };
+    if (rec) a.next = "5 dec";
+    if (o.kind === "abo") { a.perWeek = o.perWeek || 1; a.usedWeek = 0; a.makeups = 0; } else { a.credit = o.credit; a.total = o.credits || 0; a.used = 0; a.planned = 0; }
+    billing[cid].agreements.unshift(a); billing[cid].payments.unshift(["5 nov 2026", o.name, "€ " + o.price + ",00", how, "paid", ""]);
+  }
+  function recordOutsidePaid(cid, id) {
+    var b = billing[cid], a = b.agreements.filter(function (x) { return x.id === id; })[0];
+    b.payments.unshift([a.next + " 2026", a.name, a.price + ",00", a.cash, "paid", ""]);
+    a.next = a.late ? "1 dec" : "1 jan"; a.late = false;
+  }
   /* Open Gym comes later (owner, 6 Nov 2026; PRODUCT §53): the sample has none, and the code stays for when it comes */
   function noGym(l) { return l.filter(function (x) { return (x.type || x[0]) !== "gym"; }); }
   today = noGym(today); pattern = pattern.map(function (d) { return d && noGym(d); });
-  return { RENEW_DAYS: RENEW_DAYS, remindLine: remindLine, offerList: offerList, offerNames: offerNames, TERMS: TERMS, LEVELS: LEVELS, levels: levels, lifts: lifts, weeks: weeks, DIFF: DIFF, spark: spark, bsum: bsum, CREDIT: CREDIT, KIND: KIND, billing: billing, setups: setups, me: me, workspaces: workspaces, locations: locations, trainers: trainers, clients: clients, notes: notes, history: history, selfLog: selfLog,
+  return { RENEW_DAYS: RENEW_DAYS, remindLine: remindLine, recordOutside: recordOutside, recordOutsidePaid: recordOutsidePaid, offerList: offerList, offerNames: offerNames, TERMS: TERMS, LEVELS: LEVELS, levels: levels, lifts: lifts, weeks: weeks, DIFF: DIFF, spark: spark, bsum: bsum, CREDIT: CREDIT, KIND: KIND, billing: billing, setups: setups, me: me, workspaces: workspaces, locations: locations, trainers: trainers, clients: clients, notes: notes, history: history, selfLog: selfLog,
     progress: progress, tpl: tpl, descriptions: descriptions, today: today, pattern: pattern, templates: templates, library: library, upperA: upperA };
 })();
