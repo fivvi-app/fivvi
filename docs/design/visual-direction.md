@@ -29,14 +29,16 @@ It reads clearly in a busy gym: time, client, location, capacity and the next ac
 |---|---|---|
 | Canvas | `#F2F2F7` (grouped grey) | `#000000` |
 | Card | `#FFFFFF` | `#1C1C1E` |
-| Label / secondary | `#000000` / `rgba(60,60,67,.6)` | `#FFFFFF` / `rgba(235,235,245,.6)` |
+| Label | `#000000` | `#FFFFFF` |
+| Secondary text, native apps | `#85858B` | `#98989F` |
+| Secondary text, client web | `#6C6C70` | `#98989F` |
 | Accent (Move pink) | `#E6164A`, text `#C8103D` | `#E6164A`, text `#FF6482` |
 | Private / group / Open Gym | `#0088FF` / `#CB30E0` / `#FF8D28` | same |
 | Success / danger | `#34C759` / `#FF383C` | same |
 
 - **Gradients stay in one hue.** A card in the session type's colour is darker at the bottom, with a soft highlight at the top right.
 - **Contrast:**
-  - text at least 4.5:1, icons and graphics at least 3:1, in light and dark;
+  - text at least 4.5:1, icons and graphics at least 3:1, in light and dark, with one exception: the native apps' secondary text in light mode ([ADR-032](../decisions/ADR-032-secondary-text-in-the-native-apps.md));
   - white glyphs sit on the colour mixed with black (85% → 75%);
   - coloured glyphs on tints use the colour mixed with the mode's ink (78%).
 - **On the accent,** anything uses the on-accent colour.

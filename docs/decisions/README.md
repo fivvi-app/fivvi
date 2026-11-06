@@ -36,9 +36,10 @@ Agents read the ADRs relevant to their change before starting (`WORKFLOW.md §4`
 | [026](ADR-026-clients-sign-in-and-are-approved-to-book.md) | Clients sign in and are approved to book: anyone can create an account, a client joins a workspace by its join link or an invitation and the Owner approves, nothing is public, booking is immediate (no holds, no email step), booking needs an agreement from M11; Sign in with Apple and Google planned (F063); reverses `PRODUCT.md` §23–§26 as written | Accepted |
 | [027](ADR-027-a-cron-every-5-minutes.md) | A cron every 5 minutes (Railway's minimum) for the waitlist's closing-time email; the daily work stays daily; amends ADR-010 | Proposed |
 | [028](ADR-028-transactional-email-through-lettermint.md) | Transactional email through Lettermint (Dutch, EU-only) instead of Brevo: tracking off and no `List-Unsubscribe` on transactional mail; two routes (sign-in, other), Free until pilot setup then Starter, Scaleway TEM as fallback; amends ADR-009 | Accepted |
-| [029](ADR-029-design-v2.md) | Design v2: iOS 26 with Liquid Glass, Material 3 Expressive, shadcn/ui, one Calendar-and-Fitness theme; replaces the iOS minimum of ADR-003; the accent is amended by ADR-031 | Accepted |
+| [029](ADR-029-design-v2.md) | Design v2: iOS 26 with Liquid Glass, Material 3 Expressive, shadcn/ui, one Calendar-and-Fitness theme; replaces the iOS minimum of ADR-003; the accent is amended by ADR-031 and the contrast rule by ADR-032 | Accepted |
 | [030](ADR-030-public-website.md) | The public website lives in `apps/web` at fivvi.app, statically generated | Proposed |
 | [031](ADR-031-move-pink-is-the-only-accent.md) | Move pink is the only accent; drops the black-and-white alternative of ADR-029 | Accepted |
+| [032](ADR-032-secondary-text-in-the-native-apps.md) | Secondary text in the native apps: the one exception to ADR-029's contrast rule | Accepted |
 
 ADRs 001–015 were accepted by the owner on 22 September 2026 and written up in M0. ADR-011 was re-evaluated during the write-up and accepted in its new form (Railway) the same day. The *Alternatives considered* sections of those ADRs were reconstructed at write-up time from the roadmap rationale; they explain why the accepted choice fits, not a debate that was re-run.
 

@@ -16,7 +16,7 @@ This is the record of what the owner and the agent decided while clicking throug
 
 ## 2. Platforms and visual direction
 
-Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md), amended by [ADR-031](../../decisions/ADR-031-move-pink-is-the-only-accent.md).
+Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md), amended by [ADR-031](../../decisions/ADR-031-move-pink-is-the-only-accent.md) and [ADR-032](../../decisions/ADR-032-secondary-text-in-the-native-apps.md).
 
 | Platform | Decision |
 |---|---|
@@ -34,7 +34,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md), amended by [ADR-031
 - **Numbers** use a rounded face (SF Pro Rounded, `ui-rounded`) with tabular digits. Text is SF Pro on iOS, Google Sans Flex on Android, the system stack on the web.
 - **Round controls stay round** (the + button). Buttons are pills (50 pt on iOS). Grouped buttons are equal width.
 - **Contrast in light and dark:**
-  - text at least 4.5:1, icons and graphics at least 3:1, checked on every screen;
+  - text at least 4.5:1, icons and graphics at least 3:1, checked on every screen. One exception (owner, 6 November 2026; [ADR-032](../../decisions/ADR-032-secondary-text-in-the-native-apps.md)): secondary text in light mode in the native apps stays the prototype's grey, `#85858B`, at 3.3:1 to 3.7:1. The client web uses `#6C6C70`, so it meets WCAG 2.2 AA, although this prototype shows the lighter grey there;
   - white glyphs sit on the colour mixed with black (85% at the top to 75% at the bottom);
   - coloured glyphs on tints use the colour mixed with the mode's ink (78%).
 - **Stacked buttons keep their full height** (48 pt) with 10 pt between them.
