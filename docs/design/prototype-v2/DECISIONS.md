@@ -4,10 +4,10 @@
 |---|---|
 | **Status** | Decided with the owner, 5 November 2026 |
 | **Reference** | The clickable prototype in this folder ([README](README.md)), published as the "Fivvi Prototype" artifact. Fictional data only |
-| **Scope** | Fivvi Pro and the client app Fivvi (iOS and Android), trainer web, client web |
+| **Scope** | Fivvi Pro and the client app Fivvi (iOS and Android), trainer web, client web; the public website in [§9](#9-public-website) |
 | **Replaces** | [`visual-direction.md`](../visual-direction.md) v1 (muted violet), and the parts of the flows and the IA listed in [§8](#8-what-this-changes-in-existing-documents) |
 
-This is the record of what the owner and the agent decided while clicking through the prototype. The prototype shows how each decision looks and behaves; this file says it in words. A spec or ticket with a UI follows this file and names the prototype screen it implements. Where an older document disagrees, [§8](#8-what-this-changes-in-existing-documents) lists the conflict and where it gets resolved. The prototype's assumptions are in [§7](#7-assumptions), which says which ones the owner confirmed.
+This is the record of what the owner and the agent decided while clicking through the prototype. The prototype shows how each decision looks and behaves; this file says it in words. A spec or ticket with a UI follows this file and names the prototype screen it implements. Where an older document disagrees, [§8](#8-what-this-changes-in-existing-documents) lists the conflict and where it gets resolved. The prototype's assumptions are in [§7](#7-assumptions), which says which ones the owner confirmed; the website's are in [§9](#9-public-website).
 
 ## 1. How we decide UI
 
@@ -429,3 +429,27 @@ The prototype had to choose something for these. **The owner confirmed every ite
 | [`PRODUCT.md §51`](../../product/PRODUCT.md#51-notifications) and [`§90`](../../product/PRODUCT.md#90-offers-and-prices), [IA §8](../information-architecture.md#8-emails), emails | The client's renewal reminders | `PRODUCT.md` (this PR); IA with F052 [#468](https://github.com/fivvi-app/fivvi/issues/468); the emails (EM-28) with F057 [#481](https://github.com/fivvi-app/fivvi/issues/481) |
 | [IA §7](../information-architecture.md#7-client-web), client web | The client web uses the app's design language ([§5](#5-client-web-adr-026)) | F027 [#489](https://github.com/fivvi-app/fivvi/issues/489), F033 [#497](https://github.com/fivvi-app/fivvi/issues/497) |
 | [`PRODUCT.md §53`](../../product/PRODUCT.md#53-explicit-mvp-exclusions), [`§94`](../../product/PRODUCT.md#94-recurring-payments) and [`§96`](../../product/PRODUCT.md#96-invoices), F059 [#474](https://github.com/fivvi-app/fivvi/issues/474) | Payments come first, a studio may take payments only at the desk, and a payment outside Fivvi gets no automatic invoice | `PRODUCT.md` (this PR); the invoice spec with [#606](https://github.com/fivvi-app/fivvi/issues/606) |
+
+## 9. Public website
+
+Designed with the owner on 6 November 2026 in its own artifact, [Fivvi Website](https://claude.ai/artifact/TYm2FXMAATs5cB768MTiPG) (source: [`docs/design/website`](../website/README.md)), because a public page has another layout and story than the app. It uses this prototype's real screens. The spec is [#611](https://github.com/fivvi-app/fivvi/issues/611), the build approach [ADR-030](../../decisions/ADR-030-public-website.md).
+
+- **Idea:** one working day per audience, not a feature list. Each moment is a problem the visitor recognises, and the answer is a real Fivvi screen. Gyms, studios (pilates or yoga), personal trainers and clients each get their own page.
+- **Address:** the main site is `https://fivvi.app`, Dutch at `/`, English at `/en` (owner).
+- **Timing:** sooner than Release 2.0, because Mollie needs a public website (owner).
+- **Main button:** *Plan een demo* on every page, because workspace creation stays closed until 2.0 (owner).
+- **Mollie is named** on the site (owner), with iDEAL next to it.
+- **Dutch copy says *sportschool*,** as `packages/i18n/GLOSSARY.md` asks, at `/sportscholen`; English says *gyms*.
+- **Platforms (owner):** the section shows what owners and trainers use and what clients use, each on iPhone, Android and in the browser: Fivvi Pro and the trainer web, Fivvi and the client web.
+- **Images:** real screens first. Next to them an image that stands on its own beside the words, never as a background behind screens or text (owner). No people, so nothing passes for a real customer. The images are **one series of miniature 3D scenes in a light colouring** (owner): warm white and light oak with pink as the accent, one for each audience and for pilates and yoga. On the homepage it follows the *Ik ben* switch. Empty rooms, screens only, objects, number posters and an all-pink version were tried and rejected (owner).
+- **Nothing made up:** no figures, testimonials or ratings until they exist.
+- **Deleting an account:** the page at `/account-verwijderen` and `/delete-account` is built by [#477](https://github.com/fivvi-app/fivvi/issues/477), as a sign-in page with the danger-zone steps of §6, and the site links to it. The artifact shows its words; the email route is on the help page.
+
+**Assumptions, not yet confirmed by the owner:**
+
+1. **Pricing:** free during the pilot, Mollie charges per payment, 60 days' notice before Fivvi charges (`terms` A4, `open-questions.md` Q15). Mollie asks for a price on the site.
+2. **The demo and support:** a demo of 30 minutes online, and a reply within 1 working day to demo requests and questions.
+3. **The trade name** K&S Apps, from #151, and the addresses `support@fivvi.app` and `privacy@fivvi.app`.
+4. **A signed-in user** who opens `/` goes to their home in the app.
+5. **Going live before the product is ready.** The site goes live for Mollie, before M11 (payments and invoices), M7 (workouts, notes, sharing) and the store listings. So every page says Fivvi is being built with its first gym and the demo says what's ready, and each claim is checked before publishing (#611 AC19).
+
