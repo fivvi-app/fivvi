@@ -553,3 +553,18 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .c-payres{display:grid;justify-items:center;text-align:center;gap:8px;padding:22px 18px}
 .c-payres>span{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;background:color-mix(in srgb,var(--c) 18%,transparent);color:var(--c)}
 .c-payres>span svg{width:26px;height:26px}
+
+.w-setup{list-style:none;margin:0;padding:0;display:grid;gap:10px}
+.w-setup li{display:flex;align-items:center;gap:12px;padding:10px 12px;border:1px solid var(--w-border);border-radius:12px}
+.w-setup li>div{flex:1;min-width:0}
+.w-setup li p{margin:2px 0 0;color:var(--w-mfg);font-size:13px}
+.w-setup li>span{flex:none;width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-weight:600;font-size:13px;background:var(--w-muted)}
+.w-setup li>span svg{width:14px;height:14px}
+.w-setup li.now{border-color:var(--w-fg)}
+.w-setup li.now>span{background:var(--w-fg);color:var(--w-bg)}
+.w-setup li.done>span{background:var(--ok);color:#000}
+.w-setup li.lock{opacity:.75}
+.w-paymail{display:grid;gap:8px;justify-items:start;max-width:520px}
+.w-paymail small{color:var(--w-mfg)}
+.w-paymail h3{margin:0;font-size:17px}
+.w-paymail p{margin:0}

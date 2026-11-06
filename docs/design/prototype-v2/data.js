@@ -258,9 +258,9 @@ window.FIVVI_DATA = (function () {
       payments: [["1 okt 2026", "5 groepscredits", "€ 40,00", "iDEAL", "refund", "F-2026-0391 · creditfactuur F-2026-0402"]] },
     thomas: { agreements: [{ id: "a9", end: "stop", endsIn: -1, kind: "pack", credit: "groep", name: "Proefles", price: "€ 0", cycle: "Eenmalig", since: "28 okt 2026", period: "verlopen 4 nov 2026", status: "expired", total: 1, used: 1, planned: 0, hist: [["28 okt", "1 groepscredit toegekend", "+1", "Proefaanbod, 1× per klant"], ["30 okt", "Gebruikt voor Strength", "−1", "Thomas boekte"]] }], payments: [] },
     eva: { agreements: [
-      { id: "a10", end: "continue", kind: "abo", name: "Groep 2× per week", price: "€ 69", cycle: "Elke maand", since: "1 feb 2026", period: "loopt door", next: "1 dec", status: "active", perWeek: 2, usedWeek: 0, makeups: 0, hist: [["ma 2 nov", "Week begonnen: 2 lessen", "+2", "Abonnement"]] },
+      { id: "a10", cash: "Contant", end: "continue", kind: "abo", name: "Groep 2× per week", price: "€ 69", cycle: "Elke maand", since: "1 feb 2026", period: "loopt door", next: "1 dec", status: "active", perWeek: 2, usedWeek: 0, makeups: 0, hist: [["ma 2 nov", "Week begonnen: 2 lessen", "+2", "Abonnement"]] },
       { id: "a11", end: "continue", kind: "plan", credit: "prive", name: "Privé 2 per maand", price: "€ 125", cycle: "Elke maand", since: "1 feb 2026", period: "1 nov – 30 nov", next: "1 dec", status: "active", total: 2, used: 0, planned: 0, hist: [["1 nov", "2 privécredits toegekend", "+2", "Nieuwe periode"]] }],
-      payments: [["1 nov 2026", "Groep 2× per week + Privé 2 per maand", "€ 194,00", "Incasso", "paid", "F-2026-0419"]] },
+      payments: [["1 nov 2026", "Groep 2× per week + Privé 2 per maand", "€ 194,00", "Contant", "paid", "F-2026-0419"]] },
     sophie: { agreements: [], payments: [] }
   };
 

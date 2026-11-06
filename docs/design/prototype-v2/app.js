@@ -124,6 +124,7 @@
     globe: '<circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3c2.5 2.7 3.5 5.7 3.5 9s-1 6.3-3.5 9c-2.5-2.7-3.5-5.7-3.5-9S9.5 5.7 12 3z"/>',
     out: '<path d="M14 4h4.5A1.5 1.5 0 0 1 20 5.5v13a1.5 1.5 0 0 1-1.5 1.5H14M10 8l-4 4 4 4M6 12h10"/>',
     share: '<path d="M12 3.5v11M7.5 8L12 3.5 16.5 8M5 13v6.5h14V13"/>',
+    lock: '<rect x="5.5" y="10.5" width="13" height="9" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/>',
     clock: '<circle cx="12" cy="12" r="8.5"/><path d="M12 7.5V12l3 2"/>',
     back: '<path d="M20 12H4M10 6l-6 6 6 6" stroke-width="2.1"/>',
     ext: '<path d="M14 4h6v6M20 4l-9 9M18 14v5.5a.5.5 0 0 1-.5.5h-13a.5.5 0 0 1-.5-.5v-13a.5.5 0 0 1 .5-.5H10"/>',
@@ -292,6 +293,7 @@
     body += '<div class="pad">' + (rest.length ? grp(rest.map(function (i) { return itemRow(i, TODAY, { hideWs: ws, who: ws }); }), "--inset:94px") : '<div class="empty">Geen sessies vandaag.</div>') + "</div>";
     var tom = dayItems(key(add(NOW, 1)));
     body += '<div class="pad" style="margin-top:12px">' + grp([row({ a: "agenda-day", d: { k: key(add(NOW, 1)) }, title: "Morgen", sub: tom.length + " sessies, eerste om " + tom[0].s, lead: PREF.plat === "ios" ? "" : "" })]) + "</div>";
+    if (S.proPay && OWNER()) body = '<div class="pad" style="margin-bottom:12px"><div class="banner" style="--c:var(--gym)">' + ic("warn") + "<span><b>Koppel je betalingen op het web.</b> Zonder koppeling kunnen klanten nog niet meedoen of kopen. Dit doe je op fivvi.app, in Instellingen.</span></div></div>" + body;
     return { large: true, eb: longDate(NOW), title: "Vandaag", sub: summary, body: body, add: { a: "new", label: "Nieuw" } };
   };
 
@@ -1181,6 +1183,7 @@
       ["Inloggen", "TM-01", function () { fresh(); S.signedIn = false; }],
       ["Vandaag", "TD-01", function () { fresh(); }],
       ["Vandaag · zelfstandige PT", "TD-01", function () { fresh(); PREF.setup = "solo"; }],
+      ["Vandaag: betalingen nog niet gekoppeld", "#466", function () { fresh(); PREF.setup = "team"; PREF.role = "owner"; S.proPay = true; }],
       ["Vandaag · hele studio", "TD-01", function () { fresh(); PREF.setup = "team"; PREF.role = "owner"; S.scope = "ws"; }],
       ["Agenda · Dag", "TD-04", function () { fresh(); S.tab = "agenda"; S.aview = "day"; }],
       ["Agenda · Week", "TD-04", function () { fresh(); S.tab = "agenda"; S.aview = "week"; }],
