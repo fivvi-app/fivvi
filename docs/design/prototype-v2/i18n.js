@@ -48,6 +48,8 @@ window.FIVVI_I18N = (function () {
 [/^(.+) gestart$/, function (m, n) { return P(n) + " started"; }],
 [/^Online betalen is bij (.+) nog niet mogelijk\.$/, "Online payment isn't available at $1 yet."],
 [/^Gelukt! (.+) is betaald\.$/, function (m, n) { return "Done! " + P(n) + " has been paid."; }],
+[/^(.+) annuleren\?$/, function (m, n) { return "Cancel " + P(n) + "?"; }],
+[/^(.+) verwijderen\?$/, function (m, n) { return "Delete " + P(n) + "?"; }],
 [/^Herinnering verstuurd (.+) · laatste uiterlijk (.+)$/, function (m, d, l) { return "Reminder sent " + P(d) + " · last one by " + P(l); }],
 [/^Herinnering verstuurd (.+)$/, function (m, d) { return "Reminder sent " + P(d); }],
 [/^Aanbod verstuurd (\d.+)$/, function (m, d) { return "Offer sent " + P(d); }],
@@ -540,14 +542,17 @@ window.FIVVI_I18N = (function () {
   function nameClass(nl, en) { TYPED[nl] = en || ""; TYPEDL = Object.keys(TYPED).sort(function (a, b) { return b.length - a.length; }).map(function (k) { return [new RegExp("(^|[^\\p{L}])" + reEsc(k) + "(?=$|[^\\p{L}])", "gu"), TYPED[k] || k]; }); }
   function wholeName(nl) { return nl in TYPED ? TYPED[nl] : Object.prototype.hasOwnProperty.call(PH, nl) ? PH[nl] : ""; }
   function isEx(x) { var L = window.FIVVI_DATA && window.FIVVI_DATA.library; return !!L && L.some(function (e) { return e.n === x; }); }
+  /* an offer's own English (agrName in app.js) travels between these two marks, also inside a sentence: never translated */
+  var OWN = /\uE000([^\uE001]*)\uE001/g, OWNMARK = /[\uE000\uE001]/g;
   function P(s) {
     /* one pass per position: protect replaced text so "Agenda" → "Calendar" isn't touched again */
-    var out = s.replace(/Bij (\S+) thuis/g, "At $1's home").replace(/Je valt in voor /g, "Covering for ").replace(/Bezig · gestart om /g, "In progress · started at "), marks = [];
+    var marks = [], out = s.replace(OWN, function (m, own) { marks.push(own); return "\u0001" + (marks.length - 1) + "\u0002"; }).replace(/Bij (\S+) thuis/g, "At $1's home").replace(/Je valt in voor /g, "Covering for ").replace(/Bezig · gestart om /g, "In progress · started at ");
     TYPEDL.concat(PHL).forEach(function (p) { out = out.replace(p[0], function (m, pre) { marks.push(p[1]); return pre + "\u0001" + (marks.length - 1) + "\u0002"; }); });
     out = out.replace(/\u0001(\d+)\u0002/g, function (m, i) { return marks[+i]; });
     return out.replace(/(\d)\.(\d{3}),(\d{2})/g, "$1\u0003$2.$3").replace(/(\d),(\d)/g, "$1.$2").replace(/\u0003/g, ",");
   }
-  function T(s) {
+  function T(s) { return tr(s).replace(OWNMARK, ""); }
+  function tr(s) {
     var lead = s.match(/^\s*/)[0], trail = s.match(/\s*$/)[0], core = s.trim();
     if (!core) return s;
     if (core in TYPED) return lead + (TYPED[core] || core) + trail;
