@@ -13,7 +13,7 @@
   L("Een klant kan maximaal zoveel keer per week een groepsles boeken, ook met opgespaarde lessen.", "A client can book a group class at most this many times a week, also with saved-up classes.");
   
   /* set per membership offer (owner, 6 Nov 2026), so a running agreement keeps its terms */
-  document.addEventListener("change", function (e) { var t = e.target; if (t && t.getAttribute && t.getAttribute("data-wf") === "unused") { W().form.unused = t.value; R(); } if (t && t.getAttribute && t.getAttribute("data-wf") === "kind" && W().form && W().form.tpl) { W().form.tpl = ""; R(); } });
+  document.addEventListener("change", function (e) { var t = e.target; if (t && t.getAttribute && t.getAttribute("data-wf") === "unused") { W().form.unused = t.value; R(); } });
   L("Ongebruikte lessen vervallen aan het eind van de week", "Unused classes expire at the end of the week"); L("Ongebruikte lessen blijven geldig", "Unused classes stay valid"); I.rule(/^Ongebruikte lessen blijven geldig · maximaal (\d+) per week$/, "Unused classes stay valid · at most $1 a week");
 
   /* ---------- #468 + Nieuw aanbod: first step, and the extra fields ---------- */

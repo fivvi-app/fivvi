@@ -542,6 +542,8 @@ window.FIVVI_I18N = (function () {
     out = out.replace(/\u0001(\d+)\u0002/g, function (m, i) { return marks[+i]; });
     return out.replace(/(\d)\.(\d{3}),(\d{2})/g, "$1\u0003$2.$3").replace(/(\d),(\d)/g, "$1.$2").replace(/\u0003/g, ",");
   }
+  /* names the owner typed: the viewer in English sees the English one, and clearing it brings the Dutch back */
+  var TYPED = {};
   function T(s) {
     var lead = s.match(/^\s*/)[0], trail = s.match(/\s*$/)[0], core = s.trim();
     if (!core) return s;
@@ -571,5 +573,5 @@ window.FIVVI_I18N = (function () {
     root.querySelectorAll && root.querySelectorAll("input").forEach(function (i) { if (lang === "en" && /^\d+,\d+$/.test(i.value) && i.dataset.ls) i.value = i.value.replace(",", "."); });
   }
   /* the screens in more-*.js carry their English next to their Dutch */
-  return { apply: apply, T: T, add: function (nl, en) { if (!(nl in PH)) PH[nl] = en; return nl; }, rule: function (re, en) { RULES.unshift([re, en]); }, P: P };
+  return { apply: apply, T: T, add: function (nl, en) { if (!(nl in PH)) PH[nl] = en; return nl; }, name: function (nl, en) { if (en) { PH[nl] = en; TYPED[nl] = true; } else if (TYPED[nl]) { delete PH[nl]; delete TYPED[nl]; } }, rule: function (re, en) { RULES.unshift([re, en]); }, P: P };
 })();
