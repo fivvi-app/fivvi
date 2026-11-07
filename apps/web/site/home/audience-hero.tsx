@@ -5,8 +5,8 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import { createContext, type ReactNode, useContext, useState } from 'react';
 import { type AudienceId, audiences } from './audiences';
-import { classes } from './classes';
-import { Device, Scene } from './devices';
+import { classes, switchChoice, switchTrack } from './classes';
+import { Scene, StageScreens } from './devices';
 import type { ShotId } from './screens';
 
 /** What the switch needs to know about one audience: words, and the link when its page exists. */
@@ -69,14 +69,14 @@ export function AudienceSwitch({ label }: { label: string }) {
   return (
     <fieldset className="mt-6 min-w-0">
       <legend className="mb-2.5 text-[15px] font-semibold text-muted-foreground">{label}</legend>
-      <div className="inline-flex max-w-full gap-0.5 overflow-x-auto rounded-full bg-foreground/10 p-[3px]">
+      <div className={switchTrack}>
         {views.map((view) => (
           <button
             key={view.id}
             type="button"
             aria-pressed={view.id === current}
             onClick={() => select(view.id)}
-            className="rounded-full px-4.5 py-2.5 text-[15px] font-semibold whitespace-nowrap text-secondary-foreground aria-pressed:bg-card aria-pressed:text-card-foreground aria-pressed:shadow-md dark:aria-pressed:bg-foreground dark:aria-pressed:text-background"
+            className={switchChoice}
           >
             {view.label}
           </button>
@@ -132,23 +132,15 @@ export function AudienceCopy() {
  */
 export function AudienceStage() {
   const { current, locale, alts } = useAudience();
-  const { stage } = audiences[current];
   return (
     <div className="site-stage mt-6.5">
-      {stage.kind === 'mix' ? (
-        <div key={current} className={classes('site-stage-mix', rise)}>
-          <Device id={stage.web} locale={locale} alt={alts[stage.web]} />
-          <div className="site-stage-cell">
-            <Device id={stage.phone} locale={locale} alt={alts[stage.phone]} priority />
-          </div>
-        </div>
-      ) : (
-        <div key={current} className={classes('site-stage-row', rise)}>
-          {stage.phones.map((id) => (
-            <Device key={id} id={id} locale={locale} alt={alts[id]} priority />
-          ))}
-        </div>
-      )}
+      <StageScreens
+        key={current}
+        stage={audiences[current].stage}
+        locale={locale}
+        alts={alts}
+        className={rise}
+      />
     </div>
   );
 }

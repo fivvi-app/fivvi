@@ -33,10 +33,10 @@ type PlatformItem =
   | 'clientAndroid'
   | 'clientBrowser';
 
-const container = 'mx-auto w-full max-w-295 px-[clamp(16px,4vw,40px)]';
+export const container = 'mx-auto w-full max-w-295 px-[clamp(16px,4vw,40px)]';
 
 /** The description of every screen, in the language of the page. */
-function screenAlts(locale: Locale): Record<ShotId, string> {
+export function screenAlts(locale: Locale): Record<ShotId, string> {
   const t = siteText(locale);
   return Object.fromEntries(
     SHOT_IDS.map((id) => [id, t(`site.home.screens.${shots[id].alt}`)]),

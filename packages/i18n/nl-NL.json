@@ -569,7 +569,297 @@
         "cwTimetable": "Klantweb: het rooster in de browser",
         "webDashboard": "Trainerweb: dashboard met Aandacht nodig",
         "webClassPilates": "Trainerweb: een les op datum met aanwezigheid en wachtlijst",
-        "webAgenda": "Trainerweb: de agenda per trainer"
+        "webAgenda": "Trainerweb: de agenda per trainer",
+        "proTodayYoga": "Fivvi Pro: de dag van een yogastudio",
+        "proClassPilates": "Fivvi Pro: een reformerles",
+        "proClassYoga": "Fivvi Pro: een yogales",
+        "proSession": "Fivvi Pro: een privésessie met de tegoeden van de klant",
+        "proDuo": "Fivvi Pro: een duosessie met twee klanten",
+        "proShare": "Fivvi Pro: een training delen met de klant",
+        "appConfirm": "Fivvi: een boeking bevestigen, met het credit dat het kost",
+        "appSelf": "Fivvi: een gedeelde training zelf doen",
+        "appStudios": "Fivvi: wisselen tussen twee studio's",
+        "appRenew": "Fivvi: een melding om te verlengen",
+        "cwWaitlist": "Klantweb: op de wachtlijst, met je plek",
+        "cwWaitlistPilates": "Klantweb: op de wachtlijst van een volle reformerles",
+        "cwWaitlistYoga": "Klantweb: op de wachtlijst van een volle yogales",
+        "webClassYoga": "Trainerweb: een yogales op datum",
+        "webJoinPilates": "Trainerweb: de A4-poster met de QR-code",
+        "webJoinYoga": "Trainerweb: de A4-poster met de QR-code",
+        "webClient": "Trainerweb: klantprofiel met tegoed",
+        "webClass": "Trainerweb: een les op datum met aanwezigheid en wachtlijst",
+        "webTrainers": "Trainerweb: trainers en rollen",
+        "webOffers": "Trainerweb: Aanbod",
+        "webPayments": "Trainerweb: betalingen gekoppeld"
+      }
+    },
+    "audience": {
+      "recognise": "Herken je dit?",
+      "dayEyebrow": "Een dag met Fivvi",
+      "dayLead": "Van de eerste sessie tot het einde van de dag. Elk probleem krijgt een antwoord, en dat antwoord is gewoon een scherm uit Fivvi.",
+      "gyms": {
+        "metaTitle": "Fivvi voor sportscholen met een team",
+        "eyebrow": "Sportscholen met een team",
+        "headline": "Je team, je klanten en je geld in één overzicht.",
+        "lead": "Vervang de losse agenda, de boekingsapp en de facturen met de hand door één plek waar je hele sportschool op draait.",
+        "pains": {
+          "one": "Trainers delen de inlog van een klant, of werken in hun eigen agenda.",
+          "two": "Niemand weet precies hoeveel sessies een klant nog heeft.",
+          "three": "Facturen en incasso's kosten je de avond."
+        },
+        "moments": {
+          "crew": {
+            "question": "Drie trainers tegelijk aan het werk. Wie staat waar?",
+            "answer": "Hele studio geeft elke trainer een eigen baan, en noemt je drukste moment van de dag.",
+            "ticks": {
+              "a": "Sessies naast elkaar, zonder puzzelen",
+              "b": "Groepslessen en privésessies in één overzicht"
+            }
+          },
+          "attention": {
+            "question": "Wat vraagt vandaag om aandacht?",
+            "answer": "Het dashboard zet het voor je klaar: een open betaling, een pakket dat bijna op is, een abonnement dat stopt.",
+            "ticks": {
+              "a": "Je hoeft niets te zoeken of bij te houden"
+            }
+          },
+          "team": {
+            "question": "Een nieuwe trainer. Wat mag die zien?",
+            "answer": "Trainers krijgen een eigen teamtoegang, nooit een klantaccount. Ze zien hun agenda en de tegoeden, maar geen bedragen.",
+            "ticks": {
+              "a": "Rol wijzigen: trainer of eigenaar",
+              "b": "Een nieuwe trainer uitnodigen met één knop"
+            }
+          },
+          "substitute": {
+            "question": "De les van vanavond heeft geen trainer meer.",
+            "answer": "Zet een vervanger op de les en je bent klaar. Op dezelfde pagina zie je wie er komt en wie op de wachtlijst staat.",
+            "ticks": {
+              "a": "Aanwezigheid per deelnemer",
+              "b": "Komt er een plek vrij, dan krijgt de eerste op de wachtlijst hem, met een e-mail"
+            }
+          },
+          "offers": {
+            "question": "Je prijzen staan in een spreadsheet.",
+            "answer": "Aanbod houdt al je abonnementen, creditpakketten en creditabonnementen bij elkaar. Je begint met drie kant-en-klare plannen: prijs erbij, aanzetten.",
+            "ticks": {
+              "a": "Een wijziging geldt alleen voor nieuwe abonnementen en pakketten",
+              "b": "Klanten zien alleen wat aan staat"
+            }
+          },
+          "payments": {
+            "question": "Klanten betalen te laat, en jij stuurt de herinnering.",
+            "answer": "Koppel Mollie in één begeleide stap. Klanten betalen met iDEAL, daarna gaat het maandelijks automatisch, en de factuur volgt vanzelf.",
+            "ticks": {
+              "a": "Het geld gaat rechtstreeks naar jouw rekening",
+              "b": "Klanten kunnen ook bij de studio betalen, als jij dat aanzet"
+            }
+          },
+          "renewal": {
+            "question": "Een abonnement stopt, en niemand merkte het.",
+            "answer": "Fivvi herinnert de klant zelf, twee keer, met verlengen in één tik. Jij ziet het op het klantprofiel en kunt altijd zelf een aanbod sturen.",
+            "ticks": {
+              "a": "Het tegoed van de klant: gebruikt, gepland en over"
+            }
+          }
+        }
+      },
+      "studios": {
+        "metaTitle": "Fivvi voor pilates- en yogastudio's",
+        "eyebrow": "Pilates- en yogastudio's",
+        "headline": "Je lessen zitten vol. Je hoofd niet meer.",
+        "lead": "Een rooster waar klanten zelf in boeken, credits die altijd kloppen en een wachtlijst die vanzelf loopt. In de woorden van jouw studio.",
+        "kind": {
+          "label": "Soort studio",
+          "pilates": "Pilates",
+          "yoga": "Yoga"
+        },
+        "words": {
+          "pilates": {
+            "who": "instructeur",
+            "spots": "Zes"
+          },
+          "yoga": {
+            "who": "docent",
+            "spots": "Achttien"
+          }
+        },
+        "pains": {
+          "one": "De les zit vol, en de berichtjes blijven komen.",
+          "two": "Tienrittenkaarten op papier of in een spreadsheet.",
+          "three": "Software voor sportscholen die jouw studio niet begrijpt."
+        },
+        "moments": {
+          "waitlist": {
+            "question": "{spots} plekken, en iedereen wil om half zeven.",
+            "answer": "Klanten boeken zelf vanuit het rooster. Is de les vol, dan krijgen ze de wachtlijst, met hun plek erbij.",
+            "ticks": {
+              "a": "Is de les vol, dan staat de wachtlijst klaar, met het aantal mensen erbij",
+              "b": "Niveau, locatie en wie de les geeft staan erbij"
+            }
+          },
+          "credits": {
+            "question": "Hoeveel lessen heeft ze nog op haar kaart?",
+            "answer": "Credits per soort: gebruikt, gepland en over. De klant ziet hetzelfde als jij.",
+            "ticks": {
+              "a": "Groeps- en privécredits lopen nooit door elkaar",
+              "b": "Abonnement en creditpakket, met de volgende betaling of de einddatum erbij"
+            }
+          },
+          "substitute": {
+            "question": "Je {who} belt zich ziek.",
+            "answer": "Zet een vervanger op de les. Klanten boeken gewoon door en de les blijft staan.",
+            "ticks": {
+              "a": "Op dezelfde pagina zie je wie er komt"
+            }
+          },
+          "level": {
+            "question": "Beginners in een les voor gevorderden.",
+            "answer": "Geef elke les een niveau en een beschrijving, in het Nederlands en het Engels. Zo kiest iedereen de juiste les.",
+            "ticks": {
+              "a": "Het niveau staat boven de titel",
+              "b": "Met een beschrijving van de les erbij"
+            }
+          },
+          "word": {
+            "question": "Wij zeggen geen trainer.",
+            "answer": "Kies je eigen woord: trainer, instructeur, docent of coach. Heel Fivvi praat daarna zoals jouw studio. En een yogastudio met alleen lessen ziet geen trainingsschermen.",
+            "ticks": {
+              "a": "Fivvi laat alleen zien wat jullie doen"
+            }
+          },
+          "poster": {
+            "question": "Nieuwe klant aan de balie. En nu?",
+            "answer": "Print de A4-poster met je QR-code, in twee talen. Scannen, aanmeldverzoek sturen, jij keurt goed, klaar.",
+            "ticks": {
+              "a": "Scannen, inloggen met je e-mail en wachten op goedkeuring",
+              "b": "In kleur of zwart-wit"
+            }
+          }
+        }
+      },
+      "personalTrainers": {
+        "metaTitle": "Fivvi voor personal trainers",
+        "eyebrow": "Personal trainers",
+        "headline": "Train je klant. Niet je administratie.",
+        "lead": "Alles voor je sessies op je telefoon, ook midden op de vloer. Zonder groepslessen of teamschermen die je toch niet gebruikt.",
+        "pains": {
+          "one": "Je agenda, je notities en je facturen staan overal en nergens.",
+          "two": "Je rekent uit hoeveel sessies een klant nog heeft.",
+          "three": "Na een lange dag begint de administratie nog."
+        },
+        "moments": {
+          "today": {
+            "question": "Waar moet je ook alweer zijn?",
+            "answer": "Vandaag laat in één regel je dag zien, en daaronder wie, hoe laat en waar. Werk je op meer plekken, dan zie je de route van vandaag.",
+            "ticks": {
+              "a": "Het volgende gat in je dag staat klaar om te plannen"
+            }
+          },
+          "last": {
+            "question": "Wat deden we vorige keer?",
+            "answer": "Open de klant en je ziet de laatste training, wat zwaar was, je eigen notitie en de voortgang per oefening.",
+            "ticks": {
+              "a": "Je voortgang in één grafiek, met het tegoed eronder"
+            }
+          },
+          "log": {
+            "question": "Je houdt het nog op papier bij, of helemaal niet.",
+            "answer": "Eén rij per set met de waarde van vorige keer ernaast. Vink af, en geef per oefening aan hoe zwaar het was.",
+            "ticks": {
+              "a": "De zwaarte van een oefening met één tik",
+              "b": "Een extra set toevoegen met één tik"
+            }
+          },
+          "credits": {
+            "question": "Hoeveel sessies heeft ze nog?",
+            "answer": "Geen rekenwerk: voor de sessie zie je al of het credit bijna op is, of dat er nog een betaling openstaat.",
+            "ticks": {
+              "a": "Het tegoed na de geplande sessies, voor je begint",
+              "b": "Je vorige training staat er al onder"
+            }
+          },
+          "duo": {
+            "question": "Twee vriendinnen willen samen trainen.",
+            "answer": "Een duosessie: één trainer, twee klanten, ieder met een eigen training, credit en aanwezigheid.",
+            "ticks": {
+              "a": "Schakel tussen de twee tijdens het bijhouden"
+            }
+          },
+          "share": {
+            "question": "Je klant wil weten wat ze vandaag gedaan heeft.",
+            "answer": "Deel de training met één bericht. Je klant ziet alle oefeningen en kan hem zelf nog eens doen.",
+            "ticks": {
+              "a": "Met een eigen bericht erbij",
+              "b": "Je klant krijgt het in haar profiel en per e-mail"
+            }
+          }
+        }
+      },
+      "clients": {
+        "metaTitle": "Fivvi voor klanten: boeken en je tegoed zien",
+        "eyebrow": "En hun klanten",
+        "headline": "Sporten is al moeilijk genoeg. Boeken niet.",
+        "lead": "Vraag je studio of trainer om Fivvi, en boek voortaan vanaf je telefoon. Altijd duidelijk wat je geboekt hebt en wat je nog over hebt.",
+        "pains": {
+          "one": "Een berichtje sturen om een les te boeken.",
+          "two": "Geen idee hoeveel lessen er nog op je kaart staan.",
+          "three": "Voor elke studio een andere app."
+        },
+        "moments": {
+          "book": {
+            "question": "Even een les boeken in de trein.",
+            "answer": "Open het rooster en tik op Boeken. Je hebt niet eens een app nodig: de browser is genoeg, en de app maakt het nog fijner.",
+            "ticks": {
+              "a": "Eén tik op Boeken bij elke les",
+              "b": "Per les staat erbij hoeveel plekken er nog zijn"
+            }
+          },
+          "confirm": {
+            "question": "Kost dit een credit? Hoeveel heb ik er nog?",
+            "answer": "Voor je bevestigt, zie je de les, de dag en de trainer, welk credit het kost, hoeveel je er overhoudt en tot wanneer je gratis annuleert.",
+            "ticks": {
+              "a": "Je ziet welk credit het kost en hoeveel je er overhoudt",
+              "b": "Gratis annuleren tot 12 uur voor de start"
+            }
+          },
+          "waitlist": {
+            "question": "Vol. Natuurlijk.",
+            "answer": "Zet jezelf op de wachtlijst en zie meteen de hoeveelste je bent.",
+            "ticks": {
+              "a": "Je ziet hoeveel mensen er al op de wachtlijst staan"
+            }
+          },
+          "week": {
+            "question": "Ga ik eigenlijk wel vaak genoeg?",
+            "answer": "Deze week laat zien wanneer je bent geweest en wat er nog gepland staat, plus hoeveel weken op rij je bezig bent.",
+            "ticks": {
+              "a": "Alleen feiten, geen doelen die iemand anders verzon"
+            }
+          },
+          "self": {
+            "question": "De training van je trainer, maar nu in je eigen sportschool.",
+            "answer": "Open de gedeelde training en doe hem zelf, met de gewichten van je trainer al ingevuld. Oefeningen toevoegen of weghalen mag.",
+            "ticks": {
+              "a": "De gewichten van vorige keer met je trainer staan erbij",
+              "b": "Sets afvinken en toevoegen, oefeningen weghalen"
+            }
+          },
+          "studios": {
+            "question": "Pilates hier, yoga daar.",
+            "answer": "Eén account voor al je studio's. Wissel met één tik en zie per studio je eigen tegoed.",
+            "ticks": {
+              "a": "Home en agenda combineren al je studio's"
+            }
+          },
+          "renew": {
+            "question": "Je credits zijn bijna op.",
+            "answer": "Je krijgt op tijd een seintje, en verlengt in één tik met iDEAL. Daarna is de melding weg.",
+            "ticks": {
+              "a": "Je ziet hoeveel credits je nog hebt voordat je verlengt"
+            }
+          }
+        }
       }
     },
     "footer": {

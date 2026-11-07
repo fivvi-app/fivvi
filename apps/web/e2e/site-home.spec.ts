@@ -21,14 +21,19 @@ const AUDIENCES = Object.keys(STAGES) as Audience[];
 const sitePricing: Record<Locale, string> = { 'nl-NL': '/prijzen', en: '/en/pricing' };
 
 /**
- * The requests the page itself does not make: images that come near as the page scrolls, and
- * Next.js's prefetch of the header's and footer's links to other pages of the site, which carries
- * `next-router-prefetch`. Anything else after the page has loaded would be the switch or the
- * booking sending something, a `router.refresh()` (`/?_rsc=…` without that header) included.
+ * The requests the page itself does not make: images that come near as the page scrolls, Next.js's
+ * prefetch of the header's, footer's and cards' links to other pages of the site, which carries
+ * `next-router-prefetch`, and the script chunks of the pages it prefetched (code, not data: the
+ * Studios page has a client component of its own). Anything else after the page has loaded would
+ * be the switch or the booking sending something, a `router.refresh()` (`/?_rsc=…` without that
+ * header) included.
  */
 function isImageOrPrefetch(request: Request) {
   return (
-    request.resourceType() === 'image' || request.headers()['next-router-prefetch'] !== undefined
+    request.resourceType() === 'image' ||
+    (request.resourceType() === 'script' &&
+      new URL(request.url()).pathname.startsWith('/_next/static/')) ||
+    request.headers()['next-router-prefetch'] !== undefined
   );
 }
 

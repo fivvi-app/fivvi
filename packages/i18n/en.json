@@ -569,7 +569,297 @@
         "cwTimetable": "Client web: the timetable in the browser",
         "webDashboard": "Trainer web: dashboard with what needs attention",
         "webClassPilates": "Trainer web: a class on a date with attendance and waitlist",
-        "webAgenda": "Trainer web: the calendar per trainer"
+        "webAgenda": "Trainer web: the calendar per trainer",
+        "proTodayYoga": "Fivvi Pro: a yoga studio's day",
+        "proClassPilates": "Fivvi Pro: a reformer class",
+        "proClassYoga": "Fivvi Pro: a yoga class",
+        "proSession": "Fivvi Pro: a private session with the client's balance",
+        "proDuo": "Fivvi Pro: a duo session with two clients",
+        "proShare": "Fivvi Pro: sharing a workout with the client",
+        "appConfirm": "Fivvi: confirming a booking, with the credit it uses",
+        "appSelf": "Fivvi: doing a shared workout yourself",
+        "appStudios": "Fivvi: switching between two studios",
+        "appRenew": "Fivvi: a notice to renew",
+        "cwWaitlist": "Client web: on the waitlist, with your position",
+        "cwWaitlistPilates": "Client web: on the waitlist of a full reformer class",
+        "cwWaitlistYoga": "Client web: on the waitlist of a full yoga class",
+        "webClassYoga": "Trainer web: a yoga class on a date",
+        "webJoinPilates": "Trainer web: the A4 poster with the QR code",
+        "webJoinYoga": "Trainer web: the A4 poster with the QR code",
+        "webClient": "Trainer web: client profile with balance",
+        "webClass": "Trainer web: a class on a date with attendance and waitlist",
+        "webTrainers": "Trainer web: trainers and roles",
+        "webOffers": "Trainer web: offers",
+        "webPayments": "Trainer web: payments connected"
+      }
+    },
+    "audience": {
+      "recognise": "Sound familiar?",
+      "dayEyebrow": "A day with Fivvi",
+      "dayLead": "From the first session to the end of the day. Every problem gets an answer, and that answer is simply a screen from Fivvi.",
+      "gyms": {
+        "metaTitle": "Fivvi for gyms with a team",
+        "eyebrow": "Gyms with a team",
+        "headline": "Your team, your clients and your money in one view.",
+        "lead": "Replace the separate calendar, the booking app and the handmade invoices with one place your whole gym runs on.",
+        "pains": {
+          "one": "Trainers share a client login, or work from their own calendar.",
+          "two": "Nobody knows exactly how many sessions a client has left.",
+          "three": "Invoices and direct debits eat up your evening."
+        },
+        "moments": {
+          "crew": {
+            "question": "Three trainers at work at once. Who's where?",
+            "answer": "Whole studio gives each trainer their own lane, and names the busiest moment of your day.",
+            "ticks": {
+              "a": "Sessions side by side, no puzzling",
+              "b": "Group classes and private sessions in one view"
+            }
+          },
+          "attention": {
+            "question": "What needs attention today?",
+            "answer": "The dashboard lines it up for you: an open payment, a pack running out, a membership ending.",
+            "ticks": {
+              "a": "Nothing to search or keep track of"
+            }
+          },
+          "team": {
+            "question": "A new trainer. What can they see?",
+            "answer": "Trainers get their own team access, never a client account. They see their calendar and balances, but no amounts.",
+            "ticks": {
+              "a": "Change role: trainer or owner",
+              "b": "Invite a new trainer with one button"
+            }
+          },
+          "substitute": {
+            "question": "Tonight's class has lost its trainer.",
+            "answer": "Put a substitute on the class and you're done. The same page shows who's coming and who's on the waitlist.",
+            "ticks": {
+              "a": "Attendance per participant",
+              "b": "When a spot opens up, the first on the waitlist gets it, with an email"
+            }
+          },
+          "offers": {
+            "question": "Your prices live in a spreadsheet.",
+            "answer": "Offers keeps your memberships, credit packs and credit plans together. You start with three ready-made plans: add a price, switch one on.",
+            "ticks": {
+              "a": "A change only applies to new memberships and packs",
+              "b": "Clients only see what's switched on"
+            }
+          },
+          "payments": {
+            "question": "Clients pay late, and you send the reminder.",
+            "answer": "Connect Mollie in one guided step. Clients pay with iDEAL, after that it runs monthly by itself, and the invoice follows.",
+            "ticks": {
+              "a": "The money goes straight to your account",
+              "b": "Clients can also pay at the studio, if you switch that on"
+            }
+          },
+          "renewal": {
+            "question": "A membership ends, and nobody noticed.",
+            "answer": "Fivvi reminds the client itself, twice, with one-tap renewal. You see it on the client's profile and can always send an offer yourself.",
+            "ticks": {
+              "a": "The client's balance: used, planned and left"
+            }
+          }
+        }
+      },
+      "studios": {
+        "metaTitle": "Fivvi for pilates and yoga studios",
+        "eyebrow": "Pilates and yoga studios",
+        "headline": "Your classes are full. Your head isn't.",
+        "lead": "A timetable clients book themselves, credits that always add up and a waitlist that runs by itself. In your studio's own words.",
+        "kind": {
+          "label": "Kind of studio",
+          "pilates": "Pilates",
+          "yoga": "Yoga"
+        },
+        "words": {
+          "pilates": {
+            "who": "instructor",
+            "spots": "Six"
+          },
+          "yoga": {
+            "who": "teacher",
+            "spots": "Eighteen"
+          }
+        },
+        "pains": {
+          "one": "The class is full, and the messages keep coming.",
+          "two": "Ten-class cards on paper or in a spreadsheet.",
+          "three": "Gym software that doesn't understand your studio."
+        },
+        "moments": {
+          "waitlist": {
+            "question": "{spots} spots, and everyone wants half past six.",
+            "answer": "Clients book themselves from the timetable. When the class is full, they get the waitlist, with their position shown.",
+            "ticks": {
+              "a": "When a class is full, the waitlist is ready, with the number of people on it",
+              "b": "Level, location and who teaches it are shown"
+            }
+          },
+          "credits": {
+            "question": "How many classes are left on her card?",
+            "answer": "Credits per kind: used, planned and left. The client sees the same as you.",
+            "ticks": {
+              "a": "Group and private credits never mix",
+              "b": "Membership and credit pack, with the next payment or the end date shown"
+            }
+          },
+          "substitute": {
+            "question": "Your {who} calls in sick.",
+            "answer": "Put a substitute on the class. Clients keep booking and the class stays on.",
+            "ticks": {
+              "a": "The same page shows who's coming"
+            }
+          },
+          "level": {
+            "question": "Beginners in an advanced class.",
+            "answer": "Give each class a level and a description, in Dutch and English. So everyone picks the right class.",
+            "ticks": {
+              "a": "The level sits above the title",
+              "b": "With a description of the class"
+            }
+          },
+          "word": {
+            "question": "We don't say trainer.",
+            "answer": "Choose your own word: trainer, instructor, teacher or coach. All of Fivvi then speaks like your studio. And a yoga studio with only classes sees no workout screens.",
+            "ticks": {
+              "a": "Fivvi only shows what you do"
+            }
+          },
+          "poster": {
+            "question": "A new client at the desk. Now what?",
+            "answer": "Print the A4 poster with your QR code, in two languages. Scan, send a join request, you approve, done.",
+            "ticks": {
+              "a": "Scan, sign in with your email and wait for approval",
+              "b": "In colour or black and white"
+            }
+          }
+        }
+      },
+      "personalTrainers": {
+        "metaTitle": "Fivvi for personal trainers",
+        "eyebrow": "Personal trainers",
+        "headline": "Train your client. Not your admin.",
+        "lead": "Everything for your sessions on your phone, even in the middle of the floor. Without the group classes or team screens you'd never use.",
+        "pains": {
+          "one": "Your calendar, notes and invoices are all over the place.",
+          "two": "You work out how many sessions a client has left.",
+          "three": "After a long day, the admin is still waiting."
+        },
+        "moments": {
+          "today": {
+            "question": "Where do you need to be again?",
+            "answer": "Today shows your day in one line, and below it who, when and where. Working in several places? You'll see today's route.",
+            "ticks": {
+              "a": "Your next free gap is ready to plan"
+            }
+          },
+          "last": {
+            "question": "What did we do last time?",
+            "answer": "Open the client and you see the last workout, what was hard, your own note and progress per exercise.",
+            "ticks": {
+              "a": "Your progress in one chart, with the balance below it"
+            }
+          },
+          "log": {
+            "question": "You log on paper, or not at all.",
+            "answer": "One row per set with last time's value next to it. Tick it off, and mark how hard each exercise was.",
+            "ticks": {
+              "a": "How hard an exercise was, with one tap",
+              "b": "Add an extra set with one tap"
+            }
+          },
+          "credits": {
+            "question": "How many sessions does she have left?",
+            "answer": "No sums: before the session you already see if credits are running out, or if a payment is still open.",
+            "ticks": {
+              "a": "The balance after the planned sessions, before you start",
+              "b": "Your last workout is already below it"
+            }
+          },
+          "duo": {
+            "question": "Two friends want to train together.",
+            "answer": "A duo session: one trainer, two clients, each with their own workout, credit and attendance.",
+            "ticks": {
+              "a": "Switch between the two while logging"
+            }
+          },
+          "share": {
+            "question": "Your client wants to know what she did today.",
+            "answer": "Share the workout with one message. Your client sees every exercise and can redo it on their own.",
+            "ticks": {
+              "a": "With a message of your own",
+              "b": "Your client gets it in her profile and by email"
+            }
+          }
+        }
+      },
+      "clients": {
+        "metaTitle": "Fivvi for clients: book and see your balance",
+        "eyebrow": "And their clients",
+        "headline": "Working out is hard enough. Booking isn't.",
+        "lead": "Ask your studio or trainer for Fivvi, and book from your phone from now on. Always clear what you've booked and what you have left.",
+        "pains": {
+          "one": "Sending a message to book a class.",
+          "two": "No idea how many classes are left on your card.",
+          "three": "A different app for every studio."
+        },
+        "moments": {
+          "book": {
+            "question": "Quickly book a class on the train.",
+            "answer": "Open the timetable and tap Book. You don't even need an app: the browser is enough, and the app makes it nicer.",
+            "ticks": {
+              "a": "One tap on Book at every class",
+              "b": "Every class shows how many spots are left"
+            }
+          },
+          "confirm": {
+            "question": "Does this use a credit? How many do I have?",
+            "answer": "Before you confirm, you see the class, the day and the trainer, which credit it uses, how many you'll have left and until when you can cancel for free.",
+            "ticks": {
+              "a": "You see which credit it uses and how many you keep",
+              "b": "Free cancellation up to 12 hours before the start"
+            }
+          },
+          "waitlist": {
+            "question": "Full. Of course.",
+            "answer": "Put yourself on the waitlist and see your position right away.",
+            "ticks": {
+              "a": "You see how many people are already on the waitlist"
+            }
+          },
+          "week": {
+            "question": "Am I actually going often enough?",
+            "answer": "This week shows when you went and what's still planned, plus how many weeks in a row you've kept it up.",
+            "ticks": {
+              "a": "Just facts, no goals someone else made up"
+            }
+          },
+          "self": {
+            "question": "Your trainer's workout, but now in your own gym.",
+            "answer": "Open the shared workout and do it yourself, with your trainer's weights filled in. Adding or removing exercises is fine.",
+            "ticks": {
+              "a": "Last time's weights with your trainer are shown",
+              "b": "Tick off and add sets, remove exercises"
+            }
+          },
+          "studios": {
+            "question": "Pilates here, yoga there.",
+            "answer": "One account for all your studios. Switch with one tap and see your balance per studio.",
+            "ticks": {
+              "a": "Home and calendar combine all your studios"
+            }
+          },
+          "renew": {
+            "question": "Your credits are almost gone.",
+            "answer": "You get a heads-up in time, and renew in one tap with iDEAL. After that, the notice is gone.",
+            "ticks": {
+              "a": "You see how many credits you have left before you renew"
+            }
+          }
+        }
       }
     },
     "footer": {

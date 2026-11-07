@@ -1,4 +1,5 @@
 import type { Locale } from '@fivvi/i18n';
+import type { Stage } from './audiences';
 import { classes } from './classes';
 import './devices.css';
 import {
@@ -150,5 +151,43 @@ export function Scene({
       decoding="async"
       className={classes('block w-full object-contain', className)}
     />
+  );
+}
+
+/**
+ * The screens under a headline: a laptop and a phone sharing one top and bottom edge, or three
+ * phones in a row (`devices.css`). Put it in a `.site-stage`, which is the size container. The
+ * phones load at once unless `priority` is off, the laptop's screen never does, since it is not
+ * shown at all on a phone.
+ */
+export function StageScreens({
+  stage,
+  locale,
+  alts,
+  priority = true,
+  className,
+}: {
+  stage: Stage;
+  locale: Locale;
+  alts: Record<ShotId, string>;
+  priority?: boolean;
+  className?: string;
+}) {
+  if (stage.kind === 'mix') {
+    return (
+      <div className={classes('site-stage-mix', className)}>
+        <Device id={stage.web} locale={locale} alt={alts[stage.web]} />
+        <div className="site-stage-cell">
+          <Device id={stage.phone} locale={locale} alt={alts[stage.phone]} priority={priority} />
+        </div>
+      </div>
+    );
+  }
+  return (
+    <div className={classes('site-stage-row', className)}>
+      {stage.phones.map((id) => (
+        <Device key={id} id={id} locale={locale} alt={alts[id]} priority={priority} />
+      ))}
+    </div>
   );
 }
