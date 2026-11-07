@@ -208,6 +208,10 @@
     return '<label class="fld ' + (cls || "") + (e ? " invalid" : "") + '"><span class="fl">' + label + "</span>" + input + (e ? '<small class="err" role="alert">' + ic("warn") + esc(e) + "</small>" : "") + "</label>";
   }
   function inp(f, type, ph, extra) { return '<input data-f="' + f + '" type="' + (type || "text") + '" value="' + esc(S.form[f] || "") + '" placeholder="' + esc(ph || "") + '"' + (extra || "") + ">"; }
+  /* DECISIONS.md §7 item 20: a typed place is offered next time, until the setup changes */
+  var PLACESFOR;
+  function placeOf(l, ws) { l = (l || "").trim() || D.workspaces[ws || "sf"].location; var i = D.locations.indexOf(l); if (i >= 0) D.locations.splice(i, 1); D.locations.unshift(l); return l; }
+  function whereInp() { return inp("loc", "text", "Bijvoorbeeld Vondelpark", ' list="fv-places" autocomplete="off"') + '<datalist id="fv-places">' + D.locations.map(function (l) { return '<option value="' + esc(l) + '">'; }).join("") + "</datalist>"; }
   function sel(f, opts) { return '<select data-f="' + f + '">' + opts.map(function (o) { var v = Array.isArray(o) ? o[0] : o, l = Array.isArray(o) ? o[1] : o; return '<option value="' + esc(v) + '"' + (String(S.form[f]) === String(v) ? " selected" : "") + ">" + esc(l) + "</option>"; }).join("") + "</select>"; }
   function avatar(name, c, cls) { return '<span class="av ' + (cls || "") + '" style="--c:' + (c || "#8E8E93") + '">' + initials(name) + "</span>"; }
   function wsLine(ws) { var w = D.workspaces[ws]; return '<i class="wsdot" style="--c:' + w.color + '"></i>' + w.name; }
@@ -522,7 +526,7 @@
     if (!it.cancelled && it.ws === "sf" && D.billing[cid]) bn.push(!pb ? ["var(--gym)", first + " heeft geen privécredits"] : pb.left <= 0 ? ["var(--gym)", "Laatste privécredit van " + first + ". Daarna zijn ze op."] : ["var(--priv)", "Nog " + pb.left + " " + (pb.left === 1 ? "privécredit" : "privécredits") + " over na de geplande sessies"]);
     if (bn.length) body += '<div class="pad stack" style="margin-bottom:12px">' + bn.map(function (x) { return '<div class="banner" style="--c:' + x[0] + '">' + ic(x[0] === "var(--priv)" ? "info" : "warn") + esc(x[1]) + "</div>"; }).join("") + "</div>";
     body += '<div class="pad stack">' + grp([
-      row({ lead: '<span style="color:var(--priv);display:grid">' + ic("pin") + "</span>", title: esc(it.loc), tr: '<button class="btn ghost sm" data-a="toast" data-m="Opent de route in Kaarten">' + ic("route") + "Route</button>", cls: "kv" }),
+      row({ lead: '<span style="color:var(--priv);display:grid">' + ic("pin") + "</span>", title: esc(it.loc), tr: /\d/.test(it.loc) ? '<button class="btn ghost sm" data-a="toast" data-m="Opent de route in Kaarten">' + ic("route") + "Route</button>" : "", cls: "kv" }),
       row({ lead: '<span style="color:var(--label2);display:grid">' + ic("people") + "</span>", title: D.workspaces[it.ws].name, sub: it.trainer ? esc(it.trainer) : "Jij", cls: "kv" })
     ]);
     var ws = it.wstate, tpl = it.workout;
@@ -641,8 +645,8 @@
     body += foot("Met een tweede klant wordt het een duosessie: één trainer, twee klanten, ieder met een eigen training en tegoed.");
     body += '<div class="fgrp" style="margin-top:16px">' + fld("Datum", inp("date", "date")) + fld("Begin", inp("start", "time")) + "</div>";
     body += '<div style="margin:16px 0 6px;font-size:13px;color:var(--label2);padding-left:4px">Duur</div>' + seg([["30", "30 min"], ["45", "45 min"], ["60", "1 uur"], ["90", "1,5 uur"]], String(S.form.dur), "fset", { f: "dur" });
-    body += '<div class="fgrp" style="margin-top:16px">' + fld("Locatie", sel("loc", D.locations)) + "</div>";
-    body += foot("Fivvi stelt de locatie van de vorige sessie met deze klant voor.");
+    body += '<div class="fgrp" style="margin-top:16px">' + fld("Waar?", whereInp()) + "</div>";
+    body += foot("Je vaste plek staat al ingevuld. Train je ergens anders, typ het hier: Vondelpark of Bij Anna thuis.");
     return { title: S.form.duo ? "Nieuwe duosessie" : "Nieuwe privésessie", body: body, save: "save-session" };
   };
   /* Send an offer: the client gets an email with a link to confirm and pay; the invoice follows the payment (§94, §96) */
@@ -667,12 +671,13 @@
     return { title: "Nieuwe klant", body: body, save: "save-client" };
   };
   SHEETS.newClass = function () {
+    if (S.form.loc == null) S.form.loc = D.workspaces.sf.location;
     var body = '<div class="fgrp">' + fld("Naam (Nederlands)", inp("name", "text", "Bijvoorbeeld Strength")) + fld("Naam (Engels, optioneel)", inp("nameEn")) + fld("Niveau", sel("level", [["", "Geen"]].concat(D.LEVELS.map(function (l) { return [l, l]; })))) + "</div>";
     body += '<div class="fgrp" style="margin-top:16px">' + fld("Datum", inp("date", "date")) + fld("Begin", inp("start", "time")) + fld("Eind", inp("end", "time")) + fld("Capaciteit", inp("cap", "number", "", ' inputmode="numeric" min="1"')) + "</div>";
-    body += '<div class="fgrp" style="margin-top:16px">' + fld("Trainer", sel("trainer", D.trainers.sf.concat(["Trainer nodig"]))) + fld("Herhalen", sel("rep", ["Niet herhalen", "Elke week op " + DAYS[parse(S.form.date || TODAY).getDay()]])) + "</div>";
+    body += '<div class="fgrp" style="margin-top:16px">' + fld("Waar?", whereInp()) + fld("Trainer", sel("trainer", D.trainers.sf.concat(["Trainer nodig"]))) + fld("Herhalen", sel("rep", ["Niet herhalen", "Elke week op " + DAYS[parse(S.form.date || TODAY).getDay()]])) + "</div>";
     body += '<div class="fgrp" style="margin-top:16px">' + fld("Omschrijving (Nederlands, optioneel)", '<textarea data-f="desc" rows="3" placeholder="Wat doe je in deze les? Dit zien klanten op je boekingspagina.">' + esc(S.form.desc || "") + "</textarea>", "stack") +
       fld("Omschrijving (Engels, optioneel)", '<textarea data-f="descEn" rows="3">' + esc(S.form.descEn || "") + "</textarea>", "stack") + "</div>";
-    body += foot("Zonder Engelse tekst zien Engelstalige klanten de Nederlandse. Studio Fit, Kerkstraat 12. Een vaste reeks beheer je op het web.");
+    body += foot("Zonder Engelse tekst zien Engelstalige klanten de Nederlandse. Een vaste reeks beheer je op het web.");
     return { title: "Nieuwe groepsles", body: body, save: "save-class" };
   };
   SHEETS.newGym = function () {
@@ -986,8 +991,8 @@
     week: function (d) { S.aday = key(add(parse(S.aday), 7 * d.v)); render(); },
     month: function (d) { var x = parse(S.aday); S.aday = key(new Date(x.getFullYear(), x.getMonth() + +d.v, 1)); render(); },
     "new": function () { S.sheet = "new"; S.anim = "up"; render(); },
-    "new-session": function () { S.form = Object.assign(today5(), { client: "anna", loc: D.locations[1] }); S.sheet = "newSession"; S.anim = "up"; render(); },
-    "plan-for": function (d) { S.form = Object.assign(today5(), { client: d.id, date: key(add(NOW, 1)), start: "10:30", loc: D.locations[1] }); S.sheet = "newSession"; S.anim = "up"; render(); },
+    "new-session": function () { S.form = Object.assign(today5(), { client: "anna", loc: D.workspaces.sf.location }); S.sheet = "newSession"; S.anim = "up"; render(); },
+    "plan-for": function (d) { S.form = Object.assign(today5(), { client: d.id, date: key(add(NOW, 1)), start: "10:30", loc: D.workspaces.sf.location }); S.sheet = "newSession"; S.anim = "up"; render(); },
     offer: function (d) { var a = d.ag ? D.billing[d.id].agreements.filter(function (x) { return x.id === d.ag; })[0] : null; S.menu = null; S.form = { client: d.id, ag: d.ag || "", offer: offerStart(OPENOFFERS(), a), start: "after" }; S.sheet = "offer"; S.anim = "up"; render(); },
     cash: function (d) { S.menu = null; S.form = { client: d.id, offer: offerStart(D.onOffers()), how: "Contant", date: TODAY }; S.sheet = "cash"; S.anim = "up"; render(); },
     "save-cash": function () { D.recordOutside(S.form.client, S.form.offer, S.form.how, S.form.date); S.sheet = null; toast("Betaling vastgelegd."); },
@@ -1000,7 +1005,7 @@
     "close-sheet": function () { S.sheet = null; S.err = {}; render(); },
     fset: function (d) { S.form[d.f] = d.v; render(); },
     "save-session": function () {
-      var f = S.form, it = { id: "n" + Date.now(), ws: "sf", type: "priv", s: f.start, e: hm(mins(f.start) + +f.dur), client: f.client, duo: f.duo && f.duo !== f.client ? f.duo : undefined, loc: f.loc, att: null };
+      var f = S.form, it = { id: "n" + Date.now(), ws: "sf", type: "priv", s: f.start, e: hm(mins(f.start) + +f.dur), client: f.client, duo: f.duo && f.duo !== f.client ? f.duo : undefined, loc: placeOf(f.loc), att: null };
       dayItems(f.date); DAYCACHE[f.date].push(it); S.sheet = null; S.stacks[S.tab].push({ n: "session", id: it.id }); S.anim = "push"; toast("Sessie gepland");
     },
     "save-client": function () {
@@ -1012,7 +1017,7 @@
     "save-class": function () {
       var f = S.form; if (!f.name.trim()) { bad("name", "Vul een naam in"); return; }
       saveClassText(f.name.trim(), { nameEn: f.nameEn, desc: (f.desc || "").trim(), descEn: (f.descEn || "").trim() }, false);
-      var it = { id: "n" + Date.now(), ws: "sf", type: "group", s: f.start, e: f.end, title: f.name.trim(), level: f.level || "", cap: +f.cap || 10, people: [], loc: "Studio Fit, Kerkstraat 12" };
+      var it = { id: "n" + Date.now(), ws: "sf", type: "group", s: f.start, e: f.end, title: f.name.trim(), level: f.level || "", cap: +f.cap || 10, people: [], loc: placeOf(f.loc) };
       dayItems(f.date); DAYCACHE[f.date].push(it); S.sheet = null; S.stacks[S.tab].push({ n: "klass", id: it.id }); S.anim = "push"; toast(f.rep === "Niet herhalen" ? "Groepsles gepland" : "Wekelijkse groepsles gepland");
     },
     "save-gym": function () {
@@ -1032,7 +1037,7 @@
     "menu-client": function (d) { S.menu = null; push({ n: "client", id: findItem(d.id).it.client }); },
     alert: function (d) { S.menu = null; S.alert = Object.assign({}, d); render(); },
     info: function (d) { S.alert = { n: d.n }; render(); },
-    "plan-at": function (d) { S.form = Object.assign(today5(), { client: "anna", loc: D.locations[1], start: d.s }); S.sheet = "newSession"; S.anim = "up"; render(); },
+    "plan-at": function (d) { S.form = Object.assign(today5(), { client: "anna", loc: D.workspaces.sf.location, start: d.s }); S.sheet = "newSession"; S.anim = "up"; render(); },
     "share-item": function (d) { var it = findItem(d.id).it; it.shared = true; toast("Gedeeld met " + CLIENT[it.client].name.split(" ")[0]); },
     lang: function (d) { PREF.lang = d.v; save(); applyPrefs(); toast(d.v === "en" ? "Taal: English" : "Taal: Nederlands"); },
     "close-alert": function () { S.alert = null; render(); },
@@ -1279,7 +1284,7 @@
     var sc = SETUPS[PREF.setup];
     D.workspaces.sf.name = sc ? sc.name : PREF.setup === "solo" ? "Sarah Personal Training" : "Studio Fit";
     D.workspaces.sf.location = sc ? sc.loc : PREF.setup === "solo" ? "Fitcentrum Zuid" : "Studio Fit, Kerkstraat 12";
-    D.locations = sc ? [sc.loc, "Fitcentrum Zuid", "Sportcentrum Oost", "Vondelpark (buiten)"] : PREF.setup === "solo" ? ["Fitcentrum Zuid", "Sportcentrum Oost", "Vondelpark (buiten)", "Bij de klant thuis"] : ["Studio Fit, Kerkstraat 12", "Fitcentrum Zuid", "Sportcentrum Oost", "Vondelpark (buiten)"];
+    if (PLACESFOR !== PREF.setup) PLACESFOR = PREF.setup, D.locations = sc ? [sc.loc, "Fitcentrum Zuid", "Sportcentrum Oost", "Vondelpark (buiten)"] : PREF.setup === "solo" ? ["Fitcentrum Zuid", "Sportcentrum Oost", "Vondelpark (buiten)", "Bij de klant thuis"] : ["Studio Fit, Kerkstraat 12", "Fitcentrum Zuid", "Sportcentrum Oost", "Vondelpark (buiten)"];
     loadSetup();
     if (SOLO()) S.scope = "me";
     var dark = PREF.mode === "dark" && a.fillD;
@@ -1305,7 +1310,7 @@
   function addClient(c) { D.clients.push(c); CLIENT[c.id] = c; }
   function addItem(k, it) { dayItems(k); DAYCACHE[k].push(it); }
   window.FV = { agrName: agrName, offerOpts: offerOpts, offerStart: offerStart, saveClassText: saveClassText, PAYST: PAYST, PAYONLINE: PAYONLINE, PAYSTUDIO: PAYSTUDIO, PAYOPEN: PAYOPEN, OFFEROPEN: OFFEROPEN, AGROPEN: AGROPEN, OPENOFFERS: OPENOFFERS, get S() { return S; }, PREF: PREF, D: D, A: A, CLIENT: CLIENT, dayItems: dayItems, findItem: findItem, extra: function () { return EXTRA_WS; },
-    cancelDuoPart: cancelDuoPart, CV: CV, TYPE: TYPE, title: title, level: level, lvlTag: lvlTag, esc: esc, ic: ic, mins: mins, hm: hm, key: key, parse: parse, add: add, monday: monday, longDate: longDate, shortDate: shortDate,
+    placeOf: placeOf, cancelDuoPart: cancelDuoPart, CV: CV, TYPE: TYPE, title: title, level: level, lvlTag: lvlTag, esc: esc, ic: ic, mins: mins, hm: hm, key: key, parse: parse, add: add, monday: monday, longDate: longDate, shortDate: shortDate,
     isoWeek: isoWeek, DAYS: DAYS, DS: DS, MONTHS: MONTHS, MS: MS, TODAY: TODAY, NOW: NOW, NOWT: NOWT, isPast: isPast, initials: initials, toast: toast, render: function () { render(); },
     OWNER: OWNER, SOLO: SOLO, HAS: HAS, MIXED: MIXED, WSS: WSS, avatar: avatar, addClient: addClient, addItem: addItem, INDEX: INDEX, SHEETS: SHEETS, SCREENS: SCREENS, kit: { fld: fld, inp: inp, sel: sel, row: row, grp: grp, sh: sh, lt: lt, btn: btn, seg: seg, foot: foot, avatar: avatar, rings: rings, shape: shape, SHAPE: SHAPE }, fresh: function () { fresh(); }, save: function () { save(); applyPrefs(); } };
 
