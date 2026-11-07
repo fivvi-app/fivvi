@@ -12,7 +12,8 @@
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "format:check": "biome format .",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:budgets": "E2E_BUDGETS=1 playwright test --workers=1"
   },
   "dependencies": {
     "@fivvi/api": "workspace:*",

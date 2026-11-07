@@ -1,6 +1,7 @@
 import { robotsHeader, robotsTxt } from '../site/indexing';
 import { rootMetadata } from '../site/metadata';
 import { type SitePage, sitePagePath } from '../site/routes';
+import { type CpuCalibration, calibrateCpuSlowdown } from '../test/lighthouse-cpu';
 import { expect, test } from './fixtures';
 import { type GoLiveProxy, PRODUCTION, robotsFile, startGoLiveProxy } from './go-live-proxy';
 import {
@@ -36,10 +37,14 @@ const MAX_CLS = 0.1;
  */
 const MAX_ATTEMPTS = 3;
 
-async function measure(url: string, port: number): Promise<PageAudit & { attempts: number }> {
+async function measure(
+  url: string,
+  port: number,
+  cpuSlowdownMultiplier: number,
+): Promise<PageAudit & { attempts: number }> {
   let best: PageAudit | undefined;
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
-    const audit = await auditPage(url, port);
+    const audit = await auditPage(url, port, cpuSlowdownMultiplier);
     if (!best || audit.lcpMs < best.lcpMs) best = audit;
     if (best.lcpMs < MAX_LCP_MS && best.cls < MAX_CLS) return { ...best, attempts: attempt };
   }
@@ -54,10 +59,16 @@ test.describe.configure({ mode: 'default', timeout: 120_000 });
 test.describe('F064 AC15 speed and search budgets', () => {
   let proxy: GoLiveProxy;
   const browsers = new Map<ColorScheme, BudgetBrowser>();
+  // The CPU of the emulated phone, calibrated to this host once per project (lighthouse-cpu.ts).
+  let cpu: CpuCalibration & { hostBenchmarkIndex: number };
 
   test.beforeAll(async ({ baseURL }) => {
     proxy = await startGoLiveProxy(baseURL ?? '');
     for (const scheme of SCHEMES) browsers.set(scheme, await launchBudgetBrowser(scheme));
+    const light = browsers.get('light');
+    if (!light) throw new Error('No light browser');
+    const hostBenchmarkIndex = await light.benchmarkIndex();
+    cpu = { ...calibrateCpuSlowdown(hostBenchmarkIndex), hostBenchmarkIndex };
   });
 
   test.afterAll(async () => {
@@ -128,9 +139,18 @@ test.describe('F064 AC15 speed and search budgets', () => {
         const browser = browsers.get(scheme);
         if (!browser) throw new Error(`No ${scheme} browser`);
 
-        const audit = await measure(`${proxy.origin}${path}`, browser.port);
+        const audit = await measure(`${proxy.origin}${path}`, browser.port, cpu.multiplier);
 
-        // The numbers are in the report (annotations), so a run shows the room the budget leaves.
+        // The numbers are in the report (annotations), so a run shows the room the budget leaves,
+        // and the host they were measured on.
+        testInfo.annotations.push({
+          type: `AC15 ${appLocale} ${scheme} ${path} CPU`,
+          description:
+            `host benchmarkIndex ${Math.round(cpu.hostBenchmarkIndex)} (run ${Math.round(audit.benchmarkIndex)}), ` +
+            `cpuSlowdownMultiplier ${cpu.multiplier.toFixed(2)} ` +
+            `(range ${cpu.range[0].toFixed(1)}-${cpu.range[1].toFixed(1)})` +
+            (cpu.tooSlow ? ', host too slow to emulate the target phone' : ''),
+        });
         testInfo.annotations.push({
           type: `AC15 ${appLocale} ${scheme} ${path}`,
           description:

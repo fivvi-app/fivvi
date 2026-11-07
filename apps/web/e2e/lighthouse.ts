@@ -1,19 +1,30 @@
 import { createServer } from 'node:net';
 import { chromium } from '@playwright/test';
 import lighthouse from 'lighthouse';
+import { pageFunctions } from 'lighthouse/core/lib/page-functions.js';
+import { medianOf } from '../test/lighthouse-cpu';
 
 /**
  * Lighthouse for the budget check (F064, AC15). It runs with its own defaults for a phone: the
- * Moto G Power screen and a slow 4G connection with a CPU four times slower than this machine's,
- * simulated from a trace, which makes the numbers repeatable and independent of the machine's speed.
+ * Moto G Power screen and a slow 4G connection, simulated from a trace. The network is the same on
+ * every host; the CPU slowdown is relative to the host's own speed, so the spec calibrates it to the
+ * host (`calibrateCpuSlowdown`, test/lighthouse-cpu.ts) and passes it in `auditPage`.
  */
 export type ColorScheme = 'light' | 'dark';
 
 export interface BudgetBrowser {
   /** The remote debugging port Lighthouse connects to. */
   port: number;
+  /**
+   * The host's `benchmarkIndex`, by Lighthouse's own computation (the one it reports in
+   * `lhr.environment.benchmarkIndex`), as the median of three samples taken in this browser.
+   */
+  benchmarkIndex: () => Promise<number>;
   close: () => Promise<void>;
 }
+
+/** Each sample takes a second; one disturbed by other work does not decide, the median does. */
+const BENCHMARK_SAMPLES = 3;
 
 function freePort(): Promise<number> {
   return new Promise((resolve, reject) => {
@@ -42,7 +53,22 @@ export async function launchBudgetBrowser(colorScheme: ColorScheme): Promise<Bud
       ...(colorScheme === 'dark' ? ['--blink-settings=preferredColorScheme=0'] : []),
     ],
   });
-  return { port, close: () => browser.close() };
+  return {
+    port,
+    benchmarkIndex: async () => {
+      const page = await browser.newPage();
+      try {
+        const samples: number[] = [];
+        for (let sample = 0; sample < BENCHMARK_SAMPLES; sample++) {
+          samples.push(await page.evaluate(pageFunctions.computeBenchmarkIndex));
+        }
+        return medianOf(samples);
+      } finally {
+        await page.close();
+      }
+    },
+    close: () => browser.close(),
+  };
 }
 
 /** What a budget reads from one Lighthouse run. */
@@ -50,6 +76,8 @@ export interface PageAudit {
   url: string;
   lcpMs: number;
   cls: number;
+  /** The `benchmarkIndex` Lighthouse measured on the host during this very run. */
+  benchmarkIndex: number;
   performance: number;
   seo: number;
   accessibility: number;
@@ -66,8 +94,15 @@ const IMAGE_AUDITS = ['modern-image-formats', 'uses-responsive-images', 'unsized
 /** A run takes 6 to 12 seconds; one that takes this long is a Lighthouse or a Chrome that hangs. */
 const RUN_TIMEOUT_MS = 60_000;
 
-/** Runs Lighthouse on `url` (performance, accessibility and SEO) in the browser at `port`. */
-export async function auditPage(url: string, port: number): Promise<PageAudit> {
+/**
+ * Runs Lighthouse on `url` (performance, accessibility and SEO) in the browser at `port`, with the
+ * CPU slowed down `cpuSlowdownMultiplier` times (the network keeps Lighthouse's slow 4G).
+ */
+export async function auditPage(
+  url: string,
+  port: number,
+  cpuSlowdownMultiplier: number,
+): Promise<PageAudit> {
   let timer: NodeJS.Timeout | undefined;
   const hung = new Promise<never>((_, reject) => {
     timer = setTimeout(
@@ -86,6 +121,8 @@ export async function auditPage(url: string, port: number): Promise<PageAudit> {
       output: 'json',
       logLevel: 'error',
       onlyCategories: ['performance', 'accessibility', 'seo'],
+      // Only the CPU is set: Lighthouse merges it into its mobile slow 4G profile.
+      throttling: { cpuSlowdownMultiplier },
     }),
     hung,
   ]).finally(() => clearTimeout(timer));
@@ -105,6 +142,7 @@ export async function auditPage(url: string, port: number): Promise<PageAudit> {
     url,
     lcpMs: lhr.audits['largest-contentful-paint']?.numericValue ?? Number.NaN,
     cls: lhr.audits['cumulative-layout-shift']?.numericValue ?? Number.NaN,
+    benchmarkIndex: lhr.environment.benchmarkIndex,
     performance: score('performance'),
     seo: score('seo'),
     accessibility: score('accessibility'),

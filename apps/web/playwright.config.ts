@@ -20,8 +20,15 @@ import {
 
 const ci = Boolean(process.env.CI);
 
-/** The Lighthouse budgets of the public website: a project of their own, after the rest. */
+/** The Lighthouse budgets of the public website (F064 AC15): a run of their own, `pnpm test:budgets`. */
 const BUDGET_SPEC = /site-budgets\.spec\.ts$/;
+
+/**
+ * `pnpm test:budgets` sets E2E_BUDGETS: the run is the `budgets-*` projects and nothing else. The
+ * default run (`pnpm test:e2e`) has the other projects and leaves the budgets out, so their
+ * Lighthouse runs, which want a quiet machine and a time of their own, do not lengthen it (TESTING.md §2).
+ */
+const budgets = Boolean(process.env.E2E_BUDGETS);
 
 /** The browser of a project: Desktop Chrome with the project's language (sets navigator.language and Accept-Language). */
 function localeUse(locale: Locale) {
@@ -42,10 +49,11 @@ export default defineConfig<E2EOptions>({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: ci,
-  // The CI job has 15 minutes in all (setup and build included, .github/workflows/ci.yml). The suite
-  // stops itself at 12, with the results so far and the names of the tests still running, instead of
-  // the job being cancelled without a word (turbo only prints a task's output when it ends).
-  globalTimeout: ci ? 12 * 60_000 : undefined,
+  // The CI job of the e2e tests has 15 minutes in all (setup and build included, .github/workflows/ci.yml),
+  // the one of the budgets as many. The suite stops itself earlier, at 12 minutes (10 for the budgets),
+  // with the results so far and the names of the tests still running, instead of the job being
+  // cancelled without a word (turbo only prints a task's output when it ends).
+  globalTimeout: ci ? (budgets ? 10 : 12) * 60_000 : undefined,
   // One retry in CI; a test that only passes on retry is reported as flaky (TESTING.md §8).
   retries: ci ? 1 : 0,
   reporter: ci ? [['github'], ['list'], ['html', { open: 'never' }]] : [['list']],
@@ -54,23 +62,20 @@ export default defineConfig<E2EOptions>({
     timezoneId: defaultTimeZone,
     trace: 'retain-on-first-failure',
   },
-  projects: [
-    ...locales.map((locale) => ({
-      name: locale,
-      testIgnore: BUDGET_SPEC,
-      use: localeUse(locale),
-    })),
-    // The speed budgets (F064 AC15) run after every other test, so no other test slows their
-    // measurements down: a busy machine makes a page look slower. The two languages run side by
-    // side: Lighthouse simulates the slow phone from a trace (the numbers hardly move with the
-    // load of the machine), and one after the other they would add minutes to the CI job.
-    ...locales.map((locale) => ({
-      name: `budgets-${locale}`,
-      testMatch: BUDGET_SPEC,
-      dependencies: [...locales],
-      use: localeUse(locale),
-    })),
-  ],
+  projects: budgets
+    ? // The speed budgets (F064 AC15): both languages side by side. Lighthouse simulates the slow phone
+      // from a trace, calibrated to the speed of the host (e2e/lighthouse.ts), and one language after
+      // the other would add minutes to the CI job.
+      locales.map((locale) => ({
+        name: `budgets-${locale}`,
+        testMatch: BUDGET_SPEC,
+        use: localeUse(locale),
+      }))
+    : locales.map((locale) => ({
+        name: locale,
+        testIgnore: BUDGET_SPEC,
+        use: localeUse(locale),
+      })),
   // The standalone server, as in production (Dockerfile), not `next start`, each on its own
   // migrated database (e2e/serve.ts). A second one runs the same build with a PostHog key and
   // host, which it reads at runtime, for the page view tests (E009). Both send their emails to the
