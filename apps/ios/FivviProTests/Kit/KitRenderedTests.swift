@@ -119,14 +119,13 @@ final class KitRenderedTests: XCTestCase {
         }
     }
 
-    func test_E020_AC14_aRoundControlIsRoundAndAtLeast44Points() {
+    func test_E020_AC14_aRoundControlIsACircle44PointsAcross() {
         for prominent in [false, true] {
             let size = RenderedView.fittingSize(
                 of: RoundControl(systemImage: "plus", label: sample, prominent: prominent) {}
             )
-            XCTAssertGreaterThanOrEqual(size.width, 44, "prominent \(prominent)")
-            XCTAssertGreaterThanOrEqual(size.height, 44, "prominent \(prominent)")
-            XCTAssertEqual(size.width, size.height, accuracy: 0.5, "a round control is as wide as it is high")
+            XCTAssertEqual(size.width, 44, accuracy: 0.5, "width, prominent \(prominent)")
+            XCTAssertEqual(size.height, 44, accuracy: 0.5, "height, prominent \(prominent)")
         }
     }
 

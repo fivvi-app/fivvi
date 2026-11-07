@@ -1,9 +1,15 @@
 import SwiftUI
 import FivviDesignTokens
 
+enum RoundControlMetrics {
+    /// A round control is a circle 44 pt across (the least a touch target is, HIG), on every iOS version.
+    static let diameter: CGFloat = 44
+}
+
 /// A round control (E020 AC14), such as the + button: a circle with one symbol, drawn by the system's Liquid Glass
-/// button styles, so it looks and behaves like the buttons of the navigation bar. `prominent` fills it with the accent.
-/// It is at least 44 × 44 pt. `label` is its accessible name (a catalog text).
+/// (`glassEffect`), so it looks and behaves like the buttons of the navigation bar. `prominent` tints it with the
+/// accent. It is exactly 44 × 44 pt: the system's button styles add their own padding, which was wider than high
+/// around a circle on iOS 26.2 (68 × 58 pt), so the size is set here. `label` is its accessible name (a catalog text).
 struct RoundControl: View {
     let systemImage: String
     let label: String
@@ -14,22 +20,16 @@ struct RoundControl: View {
         Button(action: action) {
             Image(systemName: systemImage)
                 .font(.system(Tokens.TextStyle.title2, weight: .semibold))
-                .frame(minWidth: 44, minHeight: 44)
+                .foregroundStyle(prominent ? Tokens.Colors.accentOn : Tokens.Colors.textPrimary)
+                .frame(width: RoundControlMetrics.diameter, height: RoundControlMetrics.diameter)
+                .glassEffect(glass, in: .circle)
         }
-        .buttonBorderShape(.circle)
-        .modifier(RoundControlStyle(prominent: prominent))
+        .buttonStyle(.plain)
+        .contentShape(.circle)
         .accessibilityLabel(label)
     }
-}
 
-private struct RoundControlStyle: ViewModifier {
-    let prominent: Bool
-
-    func body(content: Content) -> some View {
-        if prominent {
-            content.buttonStyle(.glassProminent).tint(Tokens.Colors.accentFill)
-        } else {
-            content.buttonStyle(.glass)
-        }
+    private var glass: Glass {
+        prominent ? .regular.tint(Tokens.Colors.accentFill).interactive() : .regular.interactive()
     }
 }

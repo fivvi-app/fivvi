@@ -79,7 +79,7 @@ iOS 26 draws Liquid Glass itself (E020, ADR-029). Every target's deployment targ
 | `InsetGroupedList`, `InsetGroup`, `InsetRow`, `.insetRow` | The grouped-grey canvas, its groups (radius 26, separators inset 16 pt) and their rows; a row in a `Button` or `NavigationLink` is tappable |
 | `Card` | The surface colour at radius 26 (`CardStyle.radius`) |
 | `.buttonStyle(.pill(_:))`, `PillButtonStack` | The pill button, 50 pt high (`.filled`, `.tonal`, `.destructive`); in a stack 48 pt high, equal width, 10 pt between |
-| `RoundControl` | A round 44 pt control (the + button) in the system's `.glass` or `.glassProminent` style |
+| `RoundControl` | A round control exactly 44 pt across (the + button), drawn by the system's `glassEffect` in a circle (tinted with the accent when `prominent`); the size is set in the kit because the system's button styles padded a circle to 68 × 58 pt on iOS 26.2 |
 | `NextCard`, `NextCardButton`, `NextCardIconButton` | The gradient "next" card in the accent or a session type (`NextCardTone`, which has no Open Gym), a 24 pt title and, 16 pt under the text, glass actions 48 pt high (the icon one 48 wide) |
 | `StatusPill` | A short label on a status tint (`StatusPillKind`) |
 | `FormField` | A labelled field; with an `error` it turns red, shows the warning icon and the message under it, and a screen reader reads the message after the label while the value stays what was typed |
