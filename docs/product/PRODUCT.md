@@ -2821,7 +2821,7 @@ A **signed-in, approved client** (§26) can buy one class: as a client without a
 
 # 96. Invoices
 
-Every payment through Mollie gets an **invoice**, emailed to the client and kept on their profile and in client web. A payment recorded outside Fivvi gets none automatically; the owner can make one ([#606](https://github.com/fivvi-app/fivvi/issues/606)).
+Every payment through Mollie gets an **invoice**, emailed to the client and kept on their profile and in client web. A payment recorded outside Fivvi gets none automatically, except for a client who gets invoices in a company's name; the owner can make one for anyone else ([#606](https://github.com/fivvi-app/fivvi/issues/606), owner, 7 November 2026).
 
 - **Billing details:** a client can put a company name, address and VAT number on their invoices; the owner can too, on behalf of a client (proposal, [QC16](../design/open-questions.md#qc16)). Without them, the invoice uses the client's name.
 - It meets the Dutch invoice requirements (Belastingdienst): a unique number in one series per workspace without gaps (one series per workspace is a proposal, [QC10](../design/open-questions.md#qc10)), the issue date, the workspace's legal name, address, KvK and VAT number, the buyer's details, what was supplied, the amount excluding VAT, the VAT rate and amount, and the total.
