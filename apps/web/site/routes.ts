@@ -28,7 +28,16 @@ export type SitePage = keyof typeof sitePaths;
  * files in `app/(site)/(nl)` and `app/(site)/(en)/en` (`routes.test.ts` checks both). Merging to
  * `main` deploys to production, so a link to a page that is not there is never published.
  */
-export const builtPages: readonly SitePage[] = ['home', 'pricing', 'support', 'subProcessors'];
+export const builtPages: readonly SitePage[] = [
+  'home',
+  'gyms',
+  'studios',
+  'personalTrainers',
+  'clients',
+  'pricing',
+  'support',
+  'subProcessors',
+];
 
 /**
  * Pages that exist, with their page files, but that nothing links to yet: they are not in

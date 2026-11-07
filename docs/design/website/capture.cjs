@@ -40,9 +40,9 @@ const SHOTS = [
   ['app-android', '2,4', 'android', 'team'],
   // Client web
   ['cw-timetable', '3,3', 'ios', 'team', 'busiest-day'],
-  ['cw-waitlist', '3,6', 'ios', 'team'],
-  ['cw-waitlist-pilates', '3,6', 'ios', 'pilates'],
-  ['cw-waitlist-yoga', '3,6', 'ios', 'yoga'],
+  ['cw-waitlist', '3,6', 'ios', 'team', 'join-waitlist'],
+  ['cw-waitlist-pilates', '3,6', 'ios', 'pilates', 'join-waitlist'],
+  ['cw-waitlist-yoga', '3,6', 'ios', 'yoga', 'join-waitlist'],
   ['pro-class-pilates', '0,1', 'ios', 'pilates', 'open-class'],
   ['pro-class-yoga', '0,1', 'ios', 'yoga', 'open-class'],
   ['web-class-pilates', '1,10', 'web', 'pilates'],
@@ -52,7 +52,7 @@ const SHOTS = [
   // Trainer web
   ['web-dashboard', '1,0', 'web', 'team'],
   ['web-agenda', '1,3', 'web', 'team'],
-  ['web-client', '1,8', 'web', 'team'],
+  ['web-client', '1,8', 'web', 'team', 'renewal'],
   ['web-class', '1,10', 'web', 'team'],
   ['web-trainers', '1,12', 'web', 'team'],
   ['web-offers', '1,14', 'web', 'team'],
@@ -103,6 +103,25 @@ const SHOTS = [
     'open-class': async () => {
       await page.locator('#dev').getByText(/^(Reformer Classic|Vinyasa Flow)/).first().click();
       await page.waitForTimeout(200);
+    },
+    /* a full class's waitlist after joining it: the position, and the way off the list */
+    'join-waitlist': async () => {
+      const join = page.locator('#dev button').filter({ hasText: /^\s*(Op de wachtlijst|Join the waitlist)\s*$/ });
+      await join.first().click();
+      await page.waitForTimeout(200);
+      await join.last().click(); // the dialog's button
+      await page.waitForTimeout(250);
+      await page.locator('#dev button').filter({ hasText: /^\s*(Klaar|Done)\s*$/ }).first().click();
+      await page.waitForTimeout(250);
+    },
+    /* Lisa's profile, on the balance tab, scrolled to the renewal the owner can send (*Verlengen*) */
+    renewal: async () => {
+      await page.locator('#dev').getByText(/^(Klanten|Clients)$/).first().click();
+      await page.locator('#dev').getByText('Lisa Bakker', { exact: true }).first().click();
+      await page.locator('#dev').getByText(/^(Tegoed en betalingen|Balance and payments)$/).first().click();
+      await page.waitForTimeout(150);
+      await page.locator('#dev .w-renew').first().evaluate((el) => el.scrollIntoView({ block: 'center' }));
+      await page.waitForTimeout(150);
     },
     'confirm-booking': async () => {
       await steps['busiest-day']();

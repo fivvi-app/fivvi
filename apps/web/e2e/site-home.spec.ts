@@ -1,6 +1,6 @@
 import { type Locale, locales, messages } from '@fivvi/i18n';
-import type { Request } from '@playwright/test';
 import { expect, test } from './fixtures';
+import { isImageOrPrefetch } from './site-requests';
 
 // F064, the home page (#638): the *I am* switch, the real screens, the sample booking. Both
 // languages are visited by every project, so a page never depends on the browser's language.
@@ -19,18 +19,6 @@ const STAGES: Record<Audience, { scene: string; screens: ScreenKey[] }> = {
 };
 const AUDIENCES = Object.keys(STAGES) as Audience[];
 const sitePricing: Record<Locale, string> = { 'nl-NL': '/prijzen', en: '/en/pricing' };
-
-/**
- * The requests the page itself does not make: images that come near as the page scrolls, and
- * Next.js's prefetch of the header's and footer's links to other pages of the site, which carries
- * `next-router-prefetch`. Anything else after the page has loaded would be the switch or the
- * booking sending something, a `router.refresh()` (`/?_rsc=…` without that header) included.
- */
-function isImageOrPrefetch(request: Request) {
-  return (
-    request.resourceType() === 'image' || request.headers()['next-router-prefetch'] !== undefined
-  );
-}
 
 for (const locale of locales) {
   const copy = messages[locale].site.home;

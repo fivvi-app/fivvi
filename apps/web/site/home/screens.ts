@@ -1,9 +1,10 @@
 /**
- * The images of the home page (F064): the real screens of the prototype and the miniature scenes,
+ * The images of the site's pages (F064): the real screens of the prototype and the miniature scenes,
  * as the responsive WebP files in `public/site-images`. A screen exists in Dutch and English,
  * light and dark, because its words and colours differ; the page picks the language, the browser
  * picks the mode (`prefers-color-scheme`), so the page stays static. `publish-shots.cjs` in
- * `docs/design/website` makes the files, and `screens.test.ts` fails when one is missing.
+ * `docs/design/website` makes the files, and `screens.test.ts` fails when one is missing. The home page
+ * and the four audience pages share them, and a screen is published only when a page uses it.
  */
 import type { MessageKey } from '@fivvi/i18n';
 
@@ -30,6 +31,28 @@ export const shots = {
   'web-dashboard': { device: 'browser', alt: 'webDashboard' },
   'web-class-pilates': { device: 'browser', alt: 'webClassPilates' },
   'web-agenda': { device: 'browser', alt: 'webAgenda' },
+  // The audience pages' screens (#639).
+  'pro-today-yoga': { device: 'phone', alt: 'proTodayYoga' },
+  'pro-class-pilates': { device: 'phone', alt: 'proClassPilates' },
+  'pro-class-yoga': { device: 'phone', alt: 'proClassYoga' },
+  'pro-session': { device: 'phone', alt: 'proSession' },
+  'pro-duo': { device: 'phone', alt: 'proDuo' },
+  'pro-share': { device: 'phone', alt: 'proShare' },
+  'app-confirm': { device: 'phone', alt: 'appConfirm' },
+  'app-self': { device: 'phone', alt: 'appSelf' },
+  'app-studios': { device: 'phone', alt: 'appStudios' },
+  'app-renew': { device: 'phone', alt: 'appRenew' },
+  'cw-waitlist': { device: 'phone', alt: 'cwWaitlist' },
+  'cw-waitlist-pilates': { device: 'phone', alt: 'cwWaitlistPilates' },
+  'cw-waitlist-yoga': { device: 'phone', alt: 'cwWaitlistYoga' },
+  'web-class-yoga': { device: 'browser', alt: 'webClassYoga' },
+  'web-join-pilates': { device: 'browser', alt: 'webJoinPilates' },
+  'web-join-yoga': { device: 'browser', alt: 'webJoinYoga' },
+  'web-client': { device: 'browser', alt: 'webClient' },
+  'web-class': { device: 'browser', alt: 'webClass' },
+  'web-trainers': { device: 'browser', alt: 'webTrainers' },
+  'web-offers': { device: 'browser', alt: 'webOffers' },
+  'web-payments': { device: 'browser', alt: 'webPayments' },
 } as const satisfies Record<string, { device: ShotDevice; alt: ScreenKey }>;
 
 export type ShotId = keyof typeof shots;

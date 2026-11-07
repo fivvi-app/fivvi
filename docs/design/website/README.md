@@ -9,7 +9,7 @@ CAPTURE_OUT=/tmp/fivvi-shots node docs/design/website/capture.cjs
 node docs/design/website/build-legal.cjs
 ```
 
-`capture.cjs` writes PNGs. The real site (`apps/web`) serves the ones its pages use as responsive WebP files: `node docs/design/website/publish-shots.cjs <png folder> <shot-id ...>` makes them in `apps/web/public/site-images/shots` (needs `cwebp`), and `apps/web/site/home/screens.ts` lists the ones the home page uses. The artifact's own `assets/shots/` is made by hand with `cwebp -q 80`. Screens come from the prototype, so they follow it.
+`capture.cjs` writes PNGs. The real site (`apps/web`) serves the ones its pages use as responsive WebP files: `node docs/design/website/publish-shots.cjs <png folder> <shot-id ...>` makes them in `apps/web/public/site-images/shots` (needs `cwebp`), and `apps/web/site/home/screens.ts` lists the ones the home page and the four audience pages use (publish only what a page uses). The artifact's own `assets/shots/` is made by hand with `cwebp -q 80`. Screens come from the prototype, so they follow it.
 
 | File | What |
 |---|---|

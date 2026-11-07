@@ -62,6 +62,18 @@ describe('F064 the site’s addresses (#611)', () => {
     expect(builtPages).toContain('home');
   });
 
+  it('builds the four audience pages (#639), so the header, the footer and the home page link them', () => {
+    expect(builtPages).toEqual(
+      expect.arrayContaining(['gyms', 'studios', 'personalTrainers', 'clients']),
+    );
+    expect(sitePaths.studios).toEqual({ 'nl-NL': '/studios', en: '/en/studios' });
+    expect(sitePaths.personalTrainers).toEqual({
+      'nl-NL': '/personal-trainers',
+      en: '/en/personal-trainers',
+    });
+    expect(sitePaths.clients).toEqual({ 'nl-NL': '/klanten', en: '/en/clients' });
+  });
+
   it('keeps the demo page out of the links until go-live: it exists, and nothing links to it (#648)', () => {
     expect(unlistedPages).toContain('demo');
     expect(builtPages).not.toContain('demo');

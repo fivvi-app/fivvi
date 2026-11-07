@@ -155,6 +155,21 @@ describe.each(locales)('F064 the header in %s', (locale) => {
     expect(linkTo(header, demo)?.text).toBe(escapeHtml(copy.header.demo));
   });
 
+  it('links the four audience pages by default, in the order of the header (#639)', () => {
+    const en = locale === 'en';
+    currentPath = homePath(locale);
+    const header = html(<SiteHeader locale={locale} />);
+    const audiences = en
+      ? ['/en/gyms', '/en/studios', '/en/personal-trainers', '/en/clients']
+      : ['/sportscholen', '/studios', '/personal-trainers', '/klanten'];
+
+    expect(
+      links(header).flatMap(({ href }) => (href && audiences.includes(href) ? [href] : [])),
+    ).toEqual(audiences);
+    expect(linkTo(header, audiences[0] ?? '')?.text).toBe(escapeHtml(copy.nav.gyms));
+    expect(linkTo(header, audiences[3] ?? '')?.text).toBe(escapeHtml(copy.nav.clients));
+  });
+
   it('the logo goes to the home page of the language', () => {
     const header = html(<SiteHeader locale={locale} />);
     expect(links(header).find(({ href }) => href === homePath(locale))?.text).toContain(

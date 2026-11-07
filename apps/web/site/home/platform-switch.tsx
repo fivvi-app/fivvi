@@ -2,7 +2,7 @@
 
 import type { Locale } from '@fivvi/i18n';
 import { useState } from 'react';
-import { classes } from './classes';
+import { classes, switchChoice, switchTrack } from './classes';
 import { Device } from './devices';
 import type { ShotId } from './screens';
 
@@ -49,14 +49,14 @@ export function PlatformSwitch({
     <>
       <fieldset className="mt-6 min-w-0">
         <legend className="sr-only">{label}</legend>
-        <div className="inline-flex max-w-full gap-0.5 overflow-x-auto rounded-full bg-foreground/10 p-[3px]">
+        <div className={switchTrack}>
           {groups.map(({ id, name }) => (
             <button
               key={id}
               type="button"
               aria-pressed={id === group.id}
               onClick={() => setCurrent(id)}
-              className="rounded-full px-4.5 py-2.5 text-[15px] font-semibold whitespace-nowrap text-secondary-foreground aria-pressed:bg-card aria-pressed:text-card-foreground aria-pressed:shadow-md dark:aria-pressed:bg-foreground dark:aria-pressed:text-background"
+              className={switchChoice}
             >
               {name}
             </button>
