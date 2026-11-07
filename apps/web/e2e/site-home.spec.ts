@@ -18,14 +18,18 @@ const STAGES: Record<Audience, { scene: string; screens: ScreenKey[] }> = {
   client: { scene: 'client', screens: ['appHome', 'appBook', 'appCredit'] },
 };
 const AUDIENCES = Object.keys(STAGES) as Audience[];
+const sitePricing: Record<Locale, string> = { 'nl-NL': '/prijzen', en: '/en/pricing' };
 
 /**
  * The requests the page itself does not make: images that come near as the page scrolls, and
- * Next.js's prefetch of the header's and footer's links to other pages of the site (`?_rsc=`).
- * Anything else after the page has loaded would be the switch or the booking sending something.
+ * Next.js's prefetch of the header's and footer's links to other pages of the site, which carries
+ * `next-router-prefetch`. Anything else after the page has loaded would be the switch or the
+ * booking sending something, a `router.refresh()` (`/?_rsc=…` without that header) included.
  */
 function isImageOrPrefetch(request: Request) {
-  return request.resourceType() === 'image' || new URL(request.url()).searchParams.has('_rsc');
+  return (
+    request.resourceType() === 'image' || request.headers()['next-router-prefetch'] !== undefined
+  );
 }
 
 for (const locale of locales) {
@@ -78,17 +82,30 @@ for (const locale of locales) {
     });
 
     test('shows the gym first, with its laptop and phone side by side', async ({ page }) => {
+      await page.emulateMedia({ reducedMotion: 'reduce' });
       await page.goto(HOME[locale]);
 
       await expect(page.getByRole('button', { name: copy.iAm.gym, exact: true })).toHaveAttribute(
         'aria-pressed',
         'true',
       );
+      // No animation under the measuring, and both boxes read in one go.
       const stage = page.locator('.site-stage');
-      const laptop = stage.getByRole('img', { name: copy.screens.webDashboard, exact: true });
-      const phone = stage.getByRole('img', { name: copy.screens.proTodayGym, exact: true });
-      const [l, p] = await Promise.all([laptop.boundingBox(), phone.boundingBox()]);
-      if (!l || !p) throw new Error('The screens have no box');
+      await expect(
+        stage.getByRole('img', { name: copy.screens.webDashboard, exact: true }),
+      ).toBeVisible();
+      const { l, p } = await stage.evaluate(
+        (element, names) => {
+          const box = (name: string) => {
+            const image = [...element.querySelectorAll('img')].find((img) => img.alt === name);
+            if (!image) throw new Error(`No screen named ${name}`);
+            const { y, height } = image.getBoundingClientRect();
+            return { y, height };
+          };
+          return { l: box(names.laptop), p: box(names.phone) };
+        },
+        { laptop: copy.screens.webDashboard, phone: copy.screens.proTodayGym },
+      );
       // One top edge and one bottom edge, within the phone's bezel.
       expect(Math.abs(l.y - p.y)).toBeLessThanOrEqual(8);
       expect(Math.abs(l.y + l.height - (p.y + p.height))).toBeLessThanOrEqual(8);
@@ -188,6 +205,59 @@ for (const locale of locales) {
 
       expect(requests).toEqual([]);
     });
+  });
+
+  test.describe(`F064 the header's current page in ${locale}`, () => {
+    for (const colorScheme of ['light', 'dark'] as const) {
+      test(`has a fill of its own: stronger than a hovered link and not the canvas, in ${colorScheme} mode`, async ({
+        page,
+      }) => {
+        await page.emulateMedia({ colorScheme, reducedMotion: 'reduce' });
+        await page.goto(sitePricing[locale]);
+        const header = page.getByRole('banner');
+        const current = header.getByRole('link', {
+          name: messages[locale].site.nav.pricing,
+          exact: true,
+        });
+        const signIn = header.getByRole('link', {
+          name: messages[locale].site.header.signIn,
+          exact: true,
+        });
+        await expect(current).toHaveAttribute('aria-current', 'page');
+        const fill = (locator: typeof current) =>
+          locator.evaluate((element) => getComputedStyle(element).backgroundColor);
+        /** The opacity of a computed colour: 1 when it has no alpha. */
+        const alpha = (colour: string) => Number(/\/\s*([\d.]+)/.exec(colour)?.[1] ?? 1);
+
+        await signIn.hover();
+        const hovered = await fill(signIn);
+        await page.mouse.move(0, 400);
+        const chosen = await fill(current);
+        const canvas = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+
+        expect(alpha(hovered)).toBeGreaterThan(0);
+        expect(alpha(chosen)).toBeGreaterThan(alpha(hovered));
+        expect(chosen).not.toBe(canvas);
+        expect(chosen).not.toBe('rgba(0, 0, 0, 0)');
+      });
+    }
+  });
+
+  test(`F064 AC3 the no-request check sees a refresh, and lets a link prefetch pass in ${locale}`, async ({
+    page,
+  }) => {
+    await page.goto(HOME[locale]);
+    const seen: string[] = [];
+    page.on('request', (request) => {
+      if (!isImageOrPrefetch(request)) seen.push(new URL(request.url()).search);
+    });
+
+    await page.evaluate(async () => {
+      await fetch('/?_rsc=prefetch', { headers: { 'next-router-prefetch': '1' } });
+      await fetch('/?_rsc=refresh');
+    });
+
+    expect(seen).toEqual(['?_rsc=refresh']);
   });
 
   test.describe(`F064 the home page's images in ${locale}`, () => {
