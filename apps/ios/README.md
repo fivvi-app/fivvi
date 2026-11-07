@@ -80,15 +80,15 @@ iOS 26 draws Liquid Glass itself (E020, ADR-029). Every target's deployment targ
 | `Card` | The surface colour at radius 26 (`CardStyle.radius`) |
 | `.buttonStyle(.pill(_:))`, `PillButtonStack` | The pill button, 50 pt high (`.filled`, `.tonal`, `.destructive`); in a stack 48 pt high, equal width, 10 pt between |
 | `RoundControl` | A round 44 pt control (the + button) in the system's `.glass` or `.glassProminent` style |
-| `NextCard` | The gradient "next" card in the accent or a session type (`NextCardTone`, which has no Open Gym), with glass buttons |
+| `NextCard`, `NextCardButton`, `NextCardIconButton` | The gradient "next" card in the accent or a session type (`NextCardTone`, which has no Open Gym), a 24 pt title and, 16 pt under the text, glass actions 48 pt high (the icon one 48 wide) |
 | `StatusPill` | A short label on a status tint (`StatusPillKind`) |
-| `FormField` | A labelled field; with an `error` it turns red, shows the warning icon and the message under it, and a screen reader reads the message with the field |
+| `FormField` | A labelled field; with an `error` it turns red, shows the warning icon and the message under it, and a screen reader reads the message after the label while the value stays what was typed |
 | `.toast(_:)`, `ToastMessage` | A glass capsule with an icon (a warning icon for an error) above the tab bar, gone after 3 s |
 | `LargeTitleScreen`, `LargeTitleHeader`, `DateEyebrow` | The 34 pt large title with the date in capitals above it (in the app's language, in Europe/Amsterdam) and the inline title once it has scrolled away |
 | `.fivviTabBar()` | The system tab bar, which shrinks while the content scrolls down (`tabBarMinimizeBehavior(.onScrollDown)`) |
 | `NumericFont`, `.numericFont(_:)` | SF Pro Rounded with tabular digits, for every number (AC11) |
 
-New copy needs no new kit string: a block takes its texts as parameters. `Kit/KitGallery.swift` shows them all in the system's tab bar and navigation bar, in Debug builds only (launch argument `-UITestKitGallery YES`); `KitGalleryUITests` checks them as a person sees them, in nl and en, and `KitMetricsTests`, `NumericFontTests` and `DateEyebrowTests` check their sizes, tokens and number face. The existing `Theme/` styles (44 pt actions) stay until the screens move to the kit (#629, #630).
+New copy needs no new kit string: a block takes its texts as parameters. `Kit/KitGallery.swift` shows them all in the system's tab bar and navigation bar, in Debug builds only (launch argument `-UITestKitGallery YES`); `KitGalleryUITests` (two launches, nl and en) checks the system components and the behaviour on a screen. What the blocks look like drawn, in light and dark (sizes, radius, token colours of the pixels), is checked by hosted unit tests, `KitRenderedTests`, with `RenderedView` in `FivviProTests/Support/` that lays a view out in a window of its own, so it costs no UI time. `KitMetricsTests`, `NumericFontTests` and `DateEyebrowTests` check names, the number face and the date. System glass is not drawn reliably outside a screen, so its tests check size, not pixels. The existing `Theme/` styles (44 pt actions) stay until the screens move to the kit (#629, #630).
 
 ## Language
 
@@ -180,7 +180,7 @@ Every colour comes from the design tokens. SwiftLint's custom rule `no_colour_li
 
 ## No glass imitation
 
-Liquid Glass comes from the system. SwiftLint's custom rule `no_glass_imitation` (`.swiftlint.yml`, fixture `lint/fixtures/GlassImitation.swift`) fails on `UIVisualEffectView` or `UIBlurEffect`, on a bar's appearance proxy (`UITabBar`, `UINavigationBar`), on a material behind a view or a sheet (`.background(.ultraThinMaterial)`, `.presentationBackground(.regularMaterial)`) and on `.toolbarBackground`, and names the file and line. `glassEffect`, `.glass` and `.glassProminent` are allowed.
+Liquid Glass comes from the system. SwiftLint's custom rule `no_glass_imitation` (`.swiftlint.yml`, fixture `lint/fixtures/GlassImitation.swift`) fails on `UIVisualEffectView` or `UIBlurEffect`, on a bar's appearance proxy (`UITabBar`, `UINavigationBar`, `UIToolbar` and their `…Appearance`), on any material (`.ultraThinMaterial` to `.ultraThickMaterial`) and on a bar fill (`.background(.bar)`, `.fill(.bar)`) behind a view, a bar or a sheet, and on `.toolbarBackground`, and names the file and line. `glassEffect`, `.glass` and `.glassProminent` are allowed.
 
 ## Crash reporting
 

@@ -13,6 +13,9 @@ struct GlassImitation: View {
             Text(title).background(.ultraThinMaterial) // expect: no_glass_imitation
             Text(title).background(.regularMaterial, in: Capsule()) // expect: no_glass_imitation
             Text(title).background(.thickMaterial) // expect: no_glass_imitation
+            Text(title).background(.bar) // expect: no_glass_imitation
+            Rectangle().fill(.ultraThinMaterial) // expect: no_glass_imitation
+            Rectangle().fill(.bar) // expect: no_glass_imitation
             Text(title).glassEffect(.regular, in: .capsule)
             Button(title) {}.buttonStyle(.glass)
         }
@@ -28,6 +31,12 @@ struct BlurView: UIViewRepresentable {
     }
 
     func updateUIView(_ view: UIVisualEffectView, context: Context) {} // expect: no_glass_imitation
+
+    func toolbar() {
+        let bar = UIToolbar() // expect: no_glass_imitation
+        let look = UIToolbarAppearance() // expect: no_glass_imitation
+        bar.standardAppearance = look
+    }
 
     func style() {
         let bar = UITabBarAppearance() // expect: no_glass_imitation

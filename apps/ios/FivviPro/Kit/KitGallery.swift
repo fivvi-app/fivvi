@@ -50,6 +50,7 @@ private struct KitGalleryBlocks: View {
     @State private var showsAlert = false
     @State private var toast: ToastMessage?
     @State private var name = ""
+    @State private var email = ""
     private let slot = "10:00 – 11:00"
     private let time = "12:30"
     private let clients = ["Anna de Vries", "Bram Jansen", "Chloe Smit", "Daan Bakker", "Eva Mulder", "Finn Visser"]
@@ -74,14 +75,17 @@ private struct KitGalleryBlocks: View {
             InsetGroup {
                 FormField(label: catalog[.clientsNameLabel], error: catalog[.clientsNameRequired]) {
                     TextField(catalog[.clientsNameLabel], text: $name)
+                        .accessibilityIdentifier("kit.field.invalid")
                 }
                 FormField(label: catalog[.clientsEmailLabel]) {
-                    TextField(catalog[.clientsEmailLabel], text: $name)
+                    TextField(catalog[.clientsEmailLabel], text: $email)
+                        .accessibilityIdentifier("kit.field.valid")
                 }
             }
             buttons
         }
-        .toast($toast)
+        // Long enough for a slow test runner to read it.
+        .toast($toast, duration: .seconds(6))
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button { showsAlert = true } label: { Image(systemName: "trash") }
@@ -123,8 +127,8 @@ private struct KitGalleryBlocks: View {
         NextCard(
             tone: .privateSession, caption: catalog[.clientProfileOverview], title: clients[0], subtitle: slot
         ) {
-            Button(catalog[.clientProfileEdit]) {}
-            RoundControl(systemImage: "plus", label: catalog[.clientsNewClient]) {}
+            NextCardButton(title: catalog[.clientProfileEdit]) {}
+            NextCardIconButton(systemImage: "plus", label: catalog[.clientsNewClient]) {}
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("kit.next")
@@ -149,6 +153,10 @@ private struct KitGalleryBlocks: View {
             Button(catalog[.clientsSubmit]) { toast = ToastMessage(kind: .success, text: catalog[.myProfileSaved]) }
                 .buttonStyle(.pill())
                 .accessibilityIdentifier("kit.pill")
+            HStack(spacing: Tokens.Spacing.space4) {
+                RoundControl(systemImage: "plus", label: catalog[.clientsNewClient], prominent: true) {}
+                RoundControl(systemImage: "plus", label: catalog[.clientsNewClient]) {}
+            }
             PillButtonStack {
                 Button(catalog[.clientsSubmit]) {}
                     .buttonStyle(.pill())

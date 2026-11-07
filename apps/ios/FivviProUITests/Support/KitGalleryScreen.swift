@@ -6,6 +6,8 @@ import XCTest
 struct KitGalleryScreen {
     let app: XCUIApplication
     let catalog: TestCatalog
+    /// When the app was launched.
+    let launched: Date
 
     var tabBar: XCUIElement { app.tabBars.firstMatch }
     var title: XCUIElement { app.staticTexts["largeTitle.title"] }
@@ -13,25 +15,32 @@ struct KitGalleryScreen {
     var sheetButton: XCUIElement { app.buttons["kit.sheetButton"] }
     var alertButton: XCUIElement { app.buttons["kit.alertButton"] }
     var sheet: XCUIElement { app.staticTexts["kit.sheet"] }
-    var pill: XCUIElement { app.buttons["kit.pill"] }
-    var stackFirst: XCUIElement { app.buttons["kit.stack.first"] }
     var stackSecond: XCUIElement { app.buttons["kit.stack.second"] }
-    var stackThird: XCUIElement { app.buttons["kit.stack.third"] }
+    var invalidField: XCUIElement { app.textFields["kit.field.invalid"] }
+    var validField: XCUIElement { app.textFields["kit.field.valid"] }
     var fieldError: XCUIElement { app.staticTexts["field.error"] }
     var toastText: XCUIElement { app.staticTexts["toast.text"] }
-    var toastIcon: XCUIElement { app.images["toast.icon"] }
     var scroll: XCUIElement { app.scrollViews.firstMatch }
 
-    /// Launches the Debug app on the gallery, in the test-plan configuration's language and, when given, an appearance
-    /// ("light" or "dark").
-    static func launch(appearance: String? = nil) -> KitGalleryScreen {
+    /// Launches the Debug app on the gallery, in the test-plan configuration's language.
+    static func launch() -> KitGalleryScreen {
         let app = XCUIApplication()
         let language = TestCatalog.configuredLanguage
         app.launchArguments = ["-AppleLanguages", "(\"\(language)\")", "-UITestKitGallery", "YES"]
-        if let appearance { app.launchArguments += ["-UITestAppearance", appearance] }
         app.launchEnvironment["TZ"] = "Europe/Amsterdam"
+        let launchedAt = Date.now
         ReachableLaunch.launch(app)
-        return KitGalleryScreen(app: app, catalog: TestCatalog(language))
+        return KitGalleryScreen(app: app, catalog: TestCatalog(language), launched: launchedAt)
+    }
+
+    /// What the date above the title can read: today in the app's language and Europe/Amsterdam, taken before and
+    /// after the check so a test running over midnight still passes.
+    var dates: [String] {
+        let amsterdam = TimeZone(identifier: "Europe/Amsterdam") ?? .gmt
+        let language = TestCatalog.configuredLanguage
+        let locale = Locale(identifier: language == "nl" ? "nl_NL" : "en_GB")
+        let style = Date.FormatStyle(locale: locale, timeZone: amsterdam).weekday(.wide).day().month(.wide)
+        return [launched, .now].map { $0.formatted(style) }
     }
 
     /// Scrolls the gallery up until `element` can be tapped, at most `swipes` times.

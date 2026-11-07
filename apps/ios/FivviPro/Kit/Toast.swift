@@ -30,14 +30,14 @@ struct ToastMessage: Equatable, Identifiable {
 
 /// A toast (E020 AC14): a floating glass capsule with an icon and one line, shown above the tab bar for a few seconds.
 /// The system draws the glass. VoiceOver announces the text when it appears.
-private struct ToastView: View {
+struct ToastView: View {
     let message: ToastMessage
 
     var body: some View {
         HStack(spacing: Tokens.Spacing.space2) {
             Image(systemName: message.kind.systemImage)
                 .foregroundStyle(message.kind.tint)
-                .accessibilityIdentifier("toast.icon")
+                .accessibilityHidden(true)
             Text(message.text)
                 .foregroundStyle(Tokens.Colors.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)

@@ -8,7 +8,7 @@ enum FieldErrorStyle {
 
 /// A field with its label and its error state (E020 AC14, DECISIONS.md §2): with an `error`, the field turns red (a
 /// danger tint and a red label), a warning icon and the message show under it, and a screen reader reads the message
-/// with the field. Put it in an `InsetGroup`; the field itself is any control, usually a `TextField` in the plain style.
+/// after the field's label. Put it in an `InsetGroup`; the field itself is any control, usually a `TextField` in the plain style.
 struct FormField<Field: View>: View {
     let label: String
     var error: String?
@@ -23,8 +23,8 @@ struct FormField<Field: View>: View {
                 .font(.system(Tokens.TextStyle.body))
                 .foregroundStyle(Tokens.Colors.textPrimary)
                 .frame(minHeight: 28)
-                .accessibilityLabel(label)
-                .accessibilityValue(error ?? "")
+                // The error is read with the label, so the field's value stays what the person typed.
+                .accessibilityLabel(error.map { "\(label), \($0)" } ?? label)
             if let error {
                 HStack(alignment: .firstTextBaseline, spacing: 5) {
                     Image(systemName: FieldErrorStyle.systemImage)
