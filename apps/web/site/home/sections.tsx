@@ -23,6 +23,15 @@ import { SHOT_IDS, type ShotId, shots } from './screens';
 
 type Built = readonly SitePage[];
 
+/** The six cards of the platforms band, as named in `site.home.platforms.items`. */
+type PlatformItem =
+  | 'proIphone'
+  | 'proAndroid'
+  | 'proLaptop'
+  | 'clientIphone'
+  | 'clientAndroid'
+  | 'clientBrowser';
+
 const container = 'mx-auto w-full max-w-295 px-[clamp(16px,4vw,40px)]';
 
 /** The description of every screen, in the language of the page. */
@@ -157,6 +166,7 @@ export function Chain({ locale }: { locale: Locale }) {
   const card: SampleBookingLabels = {
     title: t('site.home.chain.card.title'),
     className: t('site.home.chain.card.class'),
+    time: t('site.home.chain.card.time'),
     when: t('site.home.chain.card.when'),
     left: t('site.home.chain.card.left'),
     planned: t('site.home.chain.card.planned'),
@@ -257,15 +267,14 @@ function AudienceCard({ id, locale, built }: { id: AudienceId; locale: Locale; b
 export function Platforms({ locale }: { locale: Locale }) {
   const t = siteText(locale);
   const alts = screenAlts(locale);
-  const card = (shot: ShotId, key: string, wide = false) => ({
+  const card = (shot: ShotId, key: PlatformItem, wide = false) => ({
     shot,
-    title: t(
-      `site.home.platforms.items.${key}.title` as 'site.home.platforms.items.proIphone.title',
-    ),
-    text: t(`site.home.platforms.items.${key}.text` as 'site.home.platforms.items.proIphone.text'),
+    title: t(`site.home.platforms.items.${key}.title`),
+    text: t(`site.home.platforms.items.${key}.text`),
     alt: alts[shot],
     wide,
   });
+
   const groups: PlatformGroup[] = [
     {
       id: 'owners',

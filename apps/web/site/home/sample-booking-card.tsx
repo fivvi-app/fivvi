@@ -16,6 +16,7 @@ import {
 export interface SampleBookingLabels {
   title: string;
   className: string;
+  time: string;
   when: string;
   left: string;
   planned: string;
@@ -122,7 +123,7 @@ export function SampleBooking({
       <div className="grid gap-3.5 rounded-card bg-card p-5 min-[821px]:sticky min-[821px]:top-21 max-[820px]:order-first">
         <h3 className="text-[15px] font-semibold text-muted-foreground">{labels.title}</h3>
         <div className="grid grid-cols-[auto_4px_1fr] items-center gap-3">
-          <span className="numeric text-[17px] font-bold">18:00</span>
+          <span className="numeric text-[17px] font-bold">{labels.time}</span>
           <span aria-hidden="true" className="h-10 rounded-xs bg-session-group-solid" />
           <div>
             <b className="block leading-tight font-semibold">{labels.className}</b>
@@ -183,9 +184,11 @@ export function SampleBooking({
   );
 }
 
+/** A figure with its label: the label comes first in the HTML (a `dt` before its `dd`), the number on top. */
 function Tile({ value, label, hot = false }: { value: number; label: string; hot?: boolean }) {
   return (
     <div className="flex min-w-0 flex-col-reverse justify-end rounded-2xl bg-background p-3">
+      <dt className="text-[13px] text-muted-foreground">{label}</dt>
       <dd
         className={classes(
           'numeric text-[32px] leading-none font-extrabold',
@@ -194,7 +197,6 @@ function Tile({ value, label, hot = false }: { value: number; label: string; hot
       >
         {value}
       </dd>
-      <dt className="text-[13px] text-muted-foreground">{label}</dt>
     </div>
   );
 }

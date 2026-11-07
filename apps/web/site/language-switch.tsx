@@ -29,7 +29,10 @@ export function LanguageSwitch({
 }) {
   const pathname = usePathname();
   return (
-    <nav aria-label={label} className="flex rounded-full bg-muted p-0.5 text-[13px] font-semibold">
+    <nav
+      aria-label={label}
+      className="flex rounded-full bg-foreground/10 p-0.5 text-[13px] font-semibold"
+    >
       {options.map(({ locale, lang, short, name }) => (
         <Link
           key={locale}
@@ -39,7 +42,7 @@ export function LanguageSwitch({
           lang={lang}
           aria-label={name}
           aria-current={locale === current ? 'true' : undefined}
-          className="rounded-full px-2.5 py-1 text-muted-foreground aria-[current=true]:bg-card aria-[current=true]:text-foreground aria-[current=true]:shadow-xs"
+          className="rounded-full px-2.5 py-1 text-secondary-foreground aria-[current=true]:bg-card aria-[current=true]:text-card-foreground aria-[current=true]:shadow-xs dark:aria-[current=true]:bg-foreground dark:aria-[current=true]:text-background"
         >
           {short}
         </Link>

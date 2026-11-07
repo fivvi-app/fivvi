@@ -59,9 +59,7 @@ describe.each(locales)('F064 AC3 the home page in %s', (locale) => {
       ...Object.values(copy.audience).flatMap(({ cardTitle, short }) => [cardTitle, short]),
       copy.platforms.owners,
       copy.platforms.clients,
-      ...['proIphone', 'proAndroid', 'proLaptop'].map(
-        (key) => copy.platforms.items[key as 'proIphone'].title,
-      ),
+      ...Object.values(copy.platforms.items).flatMap(({ title, text }) => [title, text]),
       copy.cta.text,
       copy.fictional,
     ];
@@ -104,6 +102,33 @@ describe.each(locales)('F064 AC3 the home page in %s', (locale) => {
     // The confirmation and the attendance button appear only after the visitor books.
     expect(page).not.toContain(escapeHtml(copy.chain.card.confirm));
     expect(page).not.toContain(escapeHtml(copy.chain.card.attend));
+  });
+
+  it('has both groups of the platforms in the HTML, the one not chosen hidden', () => {
+    const page = html(locale);
+    const { items } = copy.platforms;
+
+    expect(page).toMatch(
+      new RegExp(
+        `<div hidden=""[^>]*>(?:(?!<div hidden).)*${escapeRegExp(escapeHtml(items.clientIphone.title))}`,
+      ),
+    );
+    expect(page).not.toMatch(
+      new RegExp(
+        `<div hidden=""[^>]*>(?:(?!<div hidden).)*${escapeRegExp(escapeHtml(items.proIphone.title))}`,
+      ),
+    );
+  });
+
+  it('writes each figure of the sample booking as a label then its number, valid in a list', () => {
+    const page = html(locale);
+    const { left, planned, used, time } = copy.chain.card;
+
+    for (const label of [left, planned, used]) {
+      expect(page).toMatch(new RegExp(`<dt[^>]*>${escapeRegExp(escapeHtml(label))}</dt><dd`));
+    }
+    expect(page).not.toMatch(/<\/dd><dt/);
+    expect(page).toContain(`>${time}</span>`);
   });
 
   it('serves the screens of the page’s language, light and dark, with a description', () => {

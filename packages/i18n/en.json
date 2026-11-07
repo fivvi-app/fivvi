@@ -455,7 +455,8 @@
           "confirmBody": "This uses 1 group credit, leaving you {left}. You can cancel for free up to 12 hours before.",
           "say0": "Lisa has {count} group credits left.",
           "say1": "Booked. One credit is planned and comes back if she cancels in time.",
-          "say2": "Attended. The credit is used, and nobody had to keep track."
+          "say2": "Attended. The credit is used, and nobody had to keep track.",
+          "time": "18:00"
         },
         "statusDone": "Done",
         "statusLive": "In progress"

@@ -76,7 +76,7 @@ export function AudienceSwitch({ label }: { label: string }) {
             type="button"
             aria-pressed={view.id === current}
             onClick={() => select(view.id)}
-            className="rounded-full px-4.5 py-2.5 text-[15px] font-semibold whitespace-nowrap text-secondary-foreground aria-pressed:bg-card aria-pressed:text-card-foreground aria-pressed:shadow-md"
+            className="rounded-full px-4.5 py-2.5 text-[15px] font-semibold whitespace-nowrap text-secondary-foreground aria-pressed:bg-card aria-pressed:text-card-foreground aria-pressed:shadow-md dark:aria-pressed:bg-foreground dark:aria-pressed:text-background"
           >
             {view.label}
           </button>
@@ -127,7 +127,8 @@ export function AudienceCopy() {
 
 /**
  * The screens of the chosen audience: a laptop and a phone sharing one top and bottom edge, or
- * three phones in a row. The first screens load at once; they are the page's largest image.
+ * three phones in a row. The phones load at once, being the page's largest image; the laptop's
+ * screen is lazy, since it is not shown at all on a phone.
  */
 export function AudienceStage() {
   const { current, locale, alts } = useAudience();

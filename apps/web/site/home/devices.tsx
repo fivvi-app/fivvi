@@ -138,7 +138,7 @@ export function Scene({
 }) {
   const sources = sceneSources(id);
   return (
-    // biome-ignore lint/performance/noImgElement: published in two sizes already (publish-shots.cjs), served as they are
+    // biome-ignore lint/performance/noImgElement: the scenes are already made in two sizes (400 and 800 px), served as they are
     <img
       src={sources[sources.length - 1]?.url}
       srcSet={srcSet(sources)}

@@ -18,7 +18,7 @@ node docs/design/website/build-legal.cjs
 | `capture.cjs` | Captures the prototype's screens, in Dutch and English, light and dark |
 | `build-legal.cjs` | Makes `legal.js` from `docs/legal`, so the legal pages show the current drafts |
 | `publish-shots.cjs` | Turns captured PNGs into the responsive WebP files of `apps/web/public/site-images/shots` |
-| `apps/web/public/site-images/scenes/` | The miniatures, in 400 and 800 px (moved from `assets/scenes/`, #638) |
+| `apps/web/public/site-images/scenes/` | The miniatures, in 400 and 800 px (moved from `assets/scenes/`, #638; `site.js` loads them from there) |
 
 ## Images
 

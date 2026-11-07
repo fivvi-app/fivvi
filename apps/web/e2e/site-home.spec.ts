@@ -84,6 +84,32 @@ for (const locale of locales) {
       expect(Math.abs(l.y + l.height - (p.y + p.height))).toBeLessThanOrEqual(8);
     });
 
+    for (const colorScheme of ['light', 'dark'] as const) {
+      test(`the chosen tab is a white pill with dark text in ${colorScheme} mode`, async ({
+        page,
+      }) => {
+        await page.emulateMedia({ colorScheme });
+        await page.goto(HOME[locale]);
+        const chosen = [
+          page.getByRole('button', { name: copy.iAm.gym, exact: true }),
+          page.getByRole('button', { name: copy.platforms.owners, exact: true }),
+          page.getByRole('link', {
+            name: messages[locale].site.language[locale === 'en' ? 'enName' : 'nlName'],
+            exact: true,
+          }),
+        ];
+
+        for (const tab of chosen) {
+          const { background, text } = await tab.evaluate((element) => ({
+            background: getComputedStyle(element).backgroundColor,
+            text: getComputedStyle(element).color,
+          }));
+          expect(background).toBe('rgb(255, 255, 255)');
+          expect(text).toBe('rgb(0, 0, 0)');
+        }
+      });
+    }
+
     test('the platforms switch goes from owners and trainers to clients', async ({ page }) => {
       await page.goto(HOME[locale]);
       const items = copy.platforms.items;
@@ -169,11 +195,14 @@ for (const locale of locales) {
           }
         });
 
+        // The platforms' other group is hidden, and its images wait: only what is shown counts.
         const images = await page.locator('main img').evaluateAll((elements) =>
-          (elements as HTMLImageElement[]).map((image) => ({
-            src: image.currentSrc,
-            loaded: image.complete && image.naturalWidth > 0,
-          })),
+          (elements as HTMLImageElement[])
+            .filter((image) => image.checkVisibility())
+            .map((image) => ({
+              src: image.currentSrc,
+              loaded: image.complete && image.naturalWidth > 0,
+            })),
         );
         expect(images.length).toBeGreaterThan(8);
         expect(images.filter(({ loaded }) => !loaded)).toEqual([]);

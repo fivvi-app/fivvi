@@ -455,7 +455,8 @@
           "confirmBody": "Dit gebruikt 1 groepscredit, daarna heb je er nog {left}. Gratis annuleren kan tot 12 uur vooraf.",
           "say0": "Lisa heeft {count} groepscredits over.",
           "say1": "Geboekt. Eén credit staat gepland en komt terug als ze op tijd annuleert.",
-          "say2": "Aanwezig. Het credit is gebruikt, zonder dat iemand iets bijhoudt."
+          "say2": "Aanwezig. Het credit is gebruikt, zonder dat iemand iets bijhoudt.",
+          "time": "18:00"
         },
         "statusDone": "Klaar",
         "statusLive": "Nu bezig"

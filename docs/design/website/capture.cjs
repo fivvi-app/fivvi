@@ -72,6 +72,10 @@ const SHOTS = [
     .dev,.dev.android,.dev.web{box-shadow:none!important}
     .mobile-fab{display:none!important}
     .c-proto,.w-proto,.w-paydemo{display:none!important} /* the prototype's own helper boxes */
+    /* Prototype bug: \`.w-list li>button{width:100%}\` also catches the waitlist's round remove button,
+       which then pushes the name to zero width, so waitlist rows show an X and no name (web.css:110).
+       Fixed here, not in the prototype, until the owner decides; the screens must show the names. */
+    .w-list.num li>button.w-icon{width:auto}
   ` });
   const pref = (k, v) => page.click(`#panel [data-pref="${k}"][data-v="${v}"]`);
 
