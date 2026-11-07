@@ -129,6 +129,42 @@ final class KitRenderedTests: XCTestCase {
         }
     }
 
+    /// At an accessibility text size the symbol grows with the text, and the circle grows with it: the symbol stays
+    /// inside the circle and the control stays round.
+    func test_E020_AC14_aRoundControlGrowsWithTheTextSizeAndStaysRound() {
+        let largest = DynamicTypeSize.accessibility5
+        let traits = UITraitCollection(preferredContentSizeCategory: .accessibilityExtraExtraExtraLarge)
+        let expected = UIFontMetrics(forTextStyle: .title2).scaledValue(for: 44, compatibleWith: traits)
+        XCTAssertGreaterThan(expected, 60, "the text size is large enough to tell a fixed 44 pt from a scaled one")
+        for prominent in [false, true] {
+            let control = RoundControl(systemImage: "plus", label: sample, prominent: prominent) {}
+            let size = RenderedView.fittingSize(of: control.environment(\.dynamicTypeSize, largest))
+            XCTAssertEqual(size.width, expected, accuracy: 1, "width, prominent \(prominent)")
+            XCTAssertEqual(size.height, size.width, accuracy: 0.5, "round, prominent \(prominent)")
+            let symbol = RenderedView.fittingSize(
+                of: Image(systemName: "plus")
+                    .font(.system(Tokens.TextStyle.title2, weight: .semibold))
+                    .environment(\.dynamicTypeSize, largest)
+            )
+            XCTAssertLessThanOrEqual(
+                max(symbol.width, symbol.height), size.width, "the symbol fits the circle, prominent \(prominent)"
+            )
+        }
+    }
+
+    /// The prominent kind is a solid accent, as the prototype draws it (`.gb.prom`): its text colour `accentOn` is only
+    /// a contrast pair with the solid fill, and a tinted glass is translucent.
+    func test_E020_AC14_aProminentRoundControlIsSolidAccent() throws {
+        for style in styles {
+            let control = RoundControl(systemImage: "plus", label: sample, prominent: true) {}.fixedSize()
+            let view = try RenderedView(control, width: 44, style: style)
+            // Off the symbol, 6 pt in from the rim along the diagonal and along the axes.
+            for point in [CGPoint(x: 7, y: 22), CGPoint(x: 37, y: 22), CGPoint(x: 22, y: 7), CGPoint(x: 22, y: 37)] {
+                assertPixel(view, at: point, is: Tokens.Colors.accentFill, style, "the prominent round control")
+            }
+        }
+    }
+
     // MARK: Status pill
 
     func test_E020_AC14_statusPillsUseTheirTintsAndTextColours() throws {

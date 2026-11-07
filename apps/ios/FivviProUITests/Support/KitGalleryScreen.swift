@@ -18,14 +18,21 @@ struct KitGalleryScreen {
     var stackSecond: XCUIElement { app.buttons["kit.stack.second"] }
     var invalidField: XCUIElement { app.textFields["kit.field.invalid"] }
     var validField: XCUIElement { app.textFields["kit.field.valid"] }
+    var roundProminent: XCUIElement { app.buttons["kit.round.prominent"] }
+    var roundRegular: XCUIElement { app.buttons["kit.round.regular"] }
+    var roundTaps: XCUIElement { app.staticTexts["kit.round.taps"] }
     var toastText: XCUIElement { app.staticTexts["toast.text"] }
     var scroll: XCUIElement { app.scrollViews.firstMatch }
+    /// The plain list of the other tab (a collection view to the accessibility tree).
+    var plainList: XCUIElement { app.collectionViews.firstMatch }
 
     /// Launches the Debug app on the gallery, in the test-plan configuration's language.
     static func launch() -> KitGalleryScreen {
         let app = XCUIApplication()
         let language = TestCatalog.configuredLanguage
-        app.launchArguments = ["-AppleLanguages", "(\"\(language)\")", "-UITestKitGallery", "YES"]
+        app.launchArguments = [
+            "-AppleLanguages", "(\"\(language)\")", "-UITestKitGallery", "YES", "-UITestAppearance", "light"
+        ]
         app.launchEnvironment["TZ"] = "Europe/Amsterdam"
         let launchedAt = Date.now
         ReachableLaunch.launch(app)
@@ -46,6 +53,23 @@ struct KitGalleryScreen {
     func scroll(to element: XCUIElement, swipes: Int = 12) {
         for _ in 0..<swipes where !(element.exists && element.isHittable) {
             scroll.swipeUp(velocity: .slow)
+        }
+    }
+
+    /// Scrolls the gallery up until `element` is in the upper half of the window, clear of the tab bar, the toast and
+    /// the keyboard at the bottom, at most `swipes` times.
+    func scroll(toUpperHalf element: XCUIElement, swipes: Int = 12) {
+        let half = app.windows.firstMatch.frame.height / 2
+        for _ in 0..<swipes where !(element.exists && element.isHittable && element.frame.midY < half) {
+            scroll.swipeUp(velocity: .slow)
+        }
+    }
+
+    /// Scrolls the gallery back down the page (the content moves down) until `element` can be tapped, at most `swipes`
+    /// times.
+    func scrollBack(to element: XCUIElement, swipes: Int = 12) {
+        for _ in 0..<swipes where !(element.exists && element.isHittable) {
+            scroll.swipeDown(velocity: .slow)
         }
     }
 }

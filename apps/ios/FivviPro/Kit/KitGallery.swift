@@ -9,6 +9,9 @@ import FivviDesignTokens
 enum KitGallery {
     static let key = "UITestKitGallery"
 
+    /// Synthetic client names.
+    static let names = ["Anna de Vries", "Bram Jansen", "Chloe Smit", "Daan Bakker", "Eva Mulder", "Finn Visser"]
+
     static func isRequested(defaults: UserDefaults = .standard) -> Bool {
         defaults.bool(forKey: key)
     }
@@ -27,14 +30,14 @@ struct KitGalleryView: View {
             Tab(catalog[.clientsTitle], systemImage: "person.2", value: Page.blocks) {
                 NavigationStack { KitGalleryBlocks(catalog: catalog) }
             }
+            // A plain list in a plain navigation stack, nothing of the kit: when the tab bar doesn't shrink on a
+            // screen of the kit, the UI test scrolls this one to tell the kit's structure from the system.
             Tab(catalog[.profileTitle], systemImage: "person.crop.circle", value: Page.other) {
                 NavigationStack {
-                    LargeTitleScreen(title: catalog[.profileTitle]) {
-                        InsetGroup(header: catalog[.myProfileDetailsTitle]) {
-                            InsetRow(title: catalog[.myProfileNameLabel], value: "Sarah")
-                            InsetRow(title: catalog[.myProfileEmailLabel], value: "sarah@example.com")
-                        }
+                    List(0..<60, id: \.self) { index in
+                        Text(KitGallery.names[index % KitGallery.names.count])
                     }
+                    .navigationTitle(catalog[.profileTitle])
                 }
             }
         }
@@ -51,9 +54,10 @@ private struct KitGalleryBlocks: View {
     @State private var toast: ToastMessage?
     @State private var name = ""
     @State private var email = ""
+    @State private var roundTaps = 0
     private let slot = "10:00 – 11:00"
     private let time = "12:30"
-    private let clients = ["Anna de Vries", "Bram Jansen", "Chloe Smit", "Daan Bakker", "Eva Mulder", "Finn Visser"]
+    private let clients = KitGallery.names
 
     var body: some View {
         LargeTitleScreen(
@@ -154,8 +158,17 @@ private struct KitGalleryBlocks: View {
                 .buttonStyle(.pill())
                 .accessibilityIdentifier("kit.pill")
             HStack(spacing: Tokens.Spacing.space4) {
+                // On a dark backdrop: a translucent control would show it through, a solid one doesn't.
                 RoundControl(systemImage: "plus", label: catalog[.clientsNewClient], prominent: true) {}
-                RoundControl(systemImage: "plus", label: catalog[.clientsNewClient]) {}
+                    .accessibilityIdentifier("kit.round.prominent")
+                    .padding(Tokens.Spacing.space2)
+                    .background(Tokens.Colors.textPrimary, in: .circle)
+                RoundControl(systemImage: "plus", label: catalog[.clientsNewClient]) { roundTaps += 1 }
+                    .accessibilityIdentifier("kit.round.regular")
+                // How often the regular one was tapped: a number, so there is no text to translate.
+                Text(verbatim: String(roundTaps))
+                    .numericFont(Tokens.TextStyle.title2)
+                    .accessibilityIdentifier("kit.round.taps")
             }
             PillButtonStack {
                 Button(catalog[.clientsSubmit]) {}
