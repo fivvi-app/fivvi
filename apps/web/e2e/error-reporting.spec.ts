@@ -12,8 +12,9 @@ test.describe('E009 web error reporting', () => {
     page.on('response', (response) => {
       if (response.request().resourceType() === 'script') scripts.push(response.url());
     });
-    await page.goto('/');
-    await expect(page.getByRole('heading', { level: 1, name: copy.hello.title })).toBeVisible();
+    // The sign-in page: a page of the app with scripts (the website's home page is static).
+    await page.goto('/login');
+    await expect(page.getByRole('heading', { level: 1, name: copy.signIn.title })).toBeVisible();
 
     const maps: string[] = [];
     for (const script of scripts.filter((url) => url.includes('/_next/static/'))) {
@@ -36,8 +37,9 @@ test.describe('E009 web error reporting', () => {
   }) => {
     const requests: string[] = [];
     page.on('request', (request) => requests.push(request.url()));
-    await page.goto('/');
-    await expect(page.getByRole('heading', { level: 1, name: copy.hello.title })).toBeVisible();
+    // The sign-in page: a page of the app with scripts (the website's home page is static).
+    await page.goto('/login');
+    await expect(page.getByRole('heading', { level: 1, name: copy.signIn.title })).toBeVisible();
 
     // An uncaught error, which would be reported if a DSN were set.
     const uncaught = page.waitForEvent('pageerror');

@@ -4,7 +4,12 @@ import { describe, expect, it } from 'vitest';
 
 const root = path.resolve(import.meta.dirname, '../../..');
 // The web source and the token CSS a page loads. Tests and docs may name what is forbidden.
-const scanned = ['apps/web/app', 'packages/ui/src', 'packages/design-tokens/generated/web'];
+const scanned = [
+  'apps/web/app',
+  'apps/web/site',
+  'packages/ui/src',
+  'packages/design-tokens/generated/web',
+];
 const sourceFile = /\.(tsx?|css|html)$/;
 const testFile = /\.(test|spec)\./;
 

@@ -158,6 +158,80 @@ describe('F001 AC13 route guard', () => {
     });
   });
 
+  // F064 AC18: the home page is the site's, and a signed-in browser goes on to the app.
+  describe('a signed-in browser that opens the site’s home page goes to its home in the app', () => {
+    const withSession = { headers: { cookie: 'better-auth.session_token=abc.def' } };
+
+    it('is redirected to /home, with the renewed sign-in session cookie', async () => {
+      const renewed = 'better-auth.session_token=abc.def; Max-Age=2592000; Path=/; HttpOnly';
+
+      const response = await guard('/', { ...SIGNED_IN, setCookies: [renewed] }, withSession)
+        .answer;
+
+      expect(response.status).toBe(307);
+      expect(response.headers.get('location')).toBe(`${ORIGIN}/home`);
+      expect(response.headers.getSetCookie()).toEqual([renewed]);
+    });
+
+    it('sets no language cookie itself: /home, where it goes, does', async () => {
+      const response = await guard('/', SIGNED_IN, withSession).answer;
+
+      expect(response.headers.getSetCookie()).toEqual([]);
+    });
+
+    it('shows the page to a browser whose sign-in session is gone, and clears its cookie', async () => {
+      const clearing = 'better-auth.session_token=; Max-Age=0; Path=/';
+
+      const response = await guard('/', { account: undefined, setCookies: [clearing] }, withSession)
+        .answer;
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('x-middleware-next')).toBe('1');
+      expect(response.headers.get('location')).toBeNull();
+      expect(response.headers.getSetCookie()).toEqual([clearing]);
+    });
+
+    it('still shows the page when the session cannot be read: the public home page does not depend on the database', async () => {
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const response = await guardRequest(new NextRequest(`${ORIGIN}/`, withSession), () =>
+        Promise.reject(new Error('database down')),
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('x-middleware-next')).toBe('1');
+      expect(response.headers.get('location')).toBeNull();
+      expect(response.headers.getSetCookie()).toEqual([]);
+      // Logged by name only: an error from the database can quote what was asked.
+      expect(error).toHaveBeenCalledOnce();
+      expect(JSON.stringify(error.mock.calls)).not.toContain('database down');
+      error.mockRestore();
+    });
+
+    it('AC16: an anonymous visitor, with no cookie at all, is not looked up and gets no cookie', async () => {
+      const { readSession, answer } = guard('/', ANONYMOUS);
+
+      const response = await answer;
+
+      expect(response.headers.get('x-middleware-next')).toBe('1');
+      expect(response.headers.getSetCookie()).toEqual([]);
+      expect(readSession).not.toHaveBeenCalled();
+    });
+
+    it.each(['/en', '/prijzen', '/en/pricing'])(
+      'does not touch another page of the site, %s, whatever cookies come with it',
+      async (path) => {
+        const { readSession, answer } = guard(path, SIGNED_IN, withSession);
+
+        const response = await answer;
+
+        expect(response.headers.get('x-middleware-next')).toBe('1');
+        expect(response.headers.get('location')).toBeNull();
+        expect(readSession).not.toHaveBeenCalled();
+      },
+    );
+  });
+
   it('fails closed: when the session cannot be read the page is not served', async () => {
     const request = new NextRequest(`${ORIGIN}/home`);
 
@@ -169,6 +243,11 @@ describe('F001 AC13 route guard', () => {
   describe('public paths need no sign-in and are not even looked up', () => {
     it.each([
       '/',
+      '/en',
+      '/prijzen',
+      '/en/pricing',
+      '/sportscholen',
+      '/en/sub-processors',
       '/login',
       '/login/confirm?token=abc',
       '/api/v1/health',
@@ -191,6 +270,17 @@ describe('F001 AC13 route guard', () => {
   describe('isPublicPath matches whole path segments only', () => {
     it.each([
       ['/', true],
+      // F064: the public website's pages, in both languages, whole paths only.
+      ['/en', true],
+      ['/sportscholen', true],
+      ['/en/gyms', true],
+      ['/prijzen', true],
+      ['/en/sub-processors', true],
+      ['/en/', false],
+      ['/en/gyms/x', false],
+      ['/english', false],
+      ['/EN', false],
+      ['/prijzen/', false],
       ['/login', true],
       ['/login/', true],
       ['/login/confirm', true],

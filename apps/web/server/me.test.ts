@@ -4,7 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { inProcessApiClient } from './api-client';
 import { loadMe } from './me';
 
-// The generated client calls the real API handler in-process (as greeting.test.ts does), with a
+// The generated client calls the real API handler in-process (as api-client.test.ts does), with a
 // fake sign-in and a stand-in transaction on which every query finds nothing: no account has a
 // team role (the API integration tests cover the workspaces it lists).
 const noRows = { from: () => ({ where: () => Promise.resolve([]) }) };

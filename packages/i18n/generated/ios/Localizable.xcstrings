@@ -849,42 +849,6 @@
         }
       }
     },
-    "hello.continue" : {
-      "comment" : "Submit button of the first-name form on the hello page. Shows hello.formGreeting with the name entered.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Continue"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Doorgaan"
-          }
-        }
-      }
-    },
-    "hello.description" : {
-      "comment" : "Line under the title of the hello page, above the first-name field.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Enter your first name and we'll greet you."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Vul je voornaam in, dan begroeten we je."
-          }
-        }
-      }
-    },
     "hello.error" : {
       "comment" : "Shown on the native hello screen when the greeting can't be loaded (no connection, or an unknown greeting). Above the common.retry button.",
       "extractionState" : "manual",
@@ -899,42 +863,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "We konden de begroeting niet laden. Probeer het opnieuw."
-          }
-        }
-      }
-    },
-    "hello.firstNameLabel" : {
-      "comment" : "Label of the first-name field on the hello page.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "First name"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Voornaam"
-          }
-        }
-      }
-    },
-    "hello.formGreeting" : {
-      "comment" : "Shown on the hello page after the first-name form is sent. {name} is the first name entered.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hi %1$@, nice to have you here."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Hoi %1$@, fijn dat je er bent."
           }
         }
       }

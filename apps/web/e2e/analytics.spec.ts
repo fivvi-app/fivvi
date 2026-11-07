@@ -33,17 +33,22 @@ test.describe('E009 page views', () => {
     await page.addInitScript(poseAsVisitor);
     const traffic = await interceptTraffic(page);
 
-    await page.goto(`/?name=${FIRST_NAME}&email=${encodeURIComponent(EMAIL)}#notes`);
-    await expect(page.getByRole('heading', { level: 1, name: copy.hello.title })).toBeVisible();
+    // The sign-in page, a page of the app (the website's pages are static and send no page view
+    // yet). Its query string and fragment hold personal data, which must never be sent.
+    await page.goto(`/login?name=${FIRST_NAME}&email=${encodeURIComponent(EMAIL)}#notes`);
+    await expect(page.getByRole('heading', { level: 1, name: copy.signIn.title })).toBeVisible();
     await expect.poll(() => traffic.events.length).toBe(1);
 
-    // Typing, clicking and submitting the form: autocapture would report each of these. The
-    // submission loads the page again, with a new name in the query string.
-    await page.getByLabel(copy.hello.firstNameLabel).fill('Bram');
-    await page.getByRole('button', { name: copy.hello.continue }).click();
-    await expect(page.getByRole('status')).toHaveText(
-      copy.hello.formGreeting.replace('{name}', 'Bram'),
-    );
+    // Typing and clicking: autocapture would report each of these. (The button waits for the page
+    // to hydrate; its request answers the same for every address, and stays on the page.)
+    await page.getByLabel(copy.signIn.emailLabel).fill('Bram');
+    await expect(page.getByRole('button', { name: copy.signIn.sendCode })).toBeEnabled();
+    await page.getByRole('button', { name: copy.signIn.sendCode }).click();
+    await expect(page.getByText(copy.signIn.errors.invalidEmail)).toBeVisible();
+
+    // A second page load, with a new name in the query string: a new page view, clean again.
+    await page.goto(`/login?name=Bram`);
+    await expect(page.getByRole('heading', { level: 1, name: copy.signIn.title })).toBeVisible();
     await expect.poll(() => traffic.events.length).toBe(2);
     await page.waitForLoadState('networkidle');
 
@@ -53,8 +58,8 @@ test.describe('E009 page views', () => {
     for (const { properties } of traffic.events) {
       expect(properties).toMatchObject({
         token: TEST_POSTHOG_KEY,
-        $current_url: `${analyticsServer.baseURL}/`,
-        $pathname: '/',
+        $current_url: `${analyticsServer.baseURL}/login`,
+        $pathname: '/login',
         $cookieless_mode: true,
       });
       for (const value of PERSONAL) expect(JSON.stringify(properties)).not.toContain(value);
@@ -83,8 +88,8 @@ test.describe('E009 page views without a key', () => {
   }) => {
     const traffic = await interceptTraffic(page);
 
-    await page.goto(`/?name=${FIRST_NAME}`);
-    await expect(page.getByRole('heading', { level: 1, name: copy.hello.title })).toBeVisible();
+    await page.goto(`/login?name=${FIRST_NAME}`);
+    await expect(page.getByRole('heading', { level: 1, name: copy.signIn.title })).toBeVisible();
     await page.waitForLoadState('networkidle');
 
     expect(traffic.posthogPaths).toEqual([]);

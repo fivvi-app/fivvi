@@ -67,7 +67,7 @@ A page picks its density with a `data-density` attribute on a layout element, no
 <div data-density="compact">{children}</div>
 ```
 
-`apps/web`'s root layout puts `touch` on `<body>`, so every page is touch unless a layout nested inside it, such as Trainer Web's, sets `compact`; the nearest layout wins. The density sets the body text size and line height: the size text inherits, and `text-sm`, the body size shadcn's components use (`Card`, `Button`, `Label`). Other size classes keep their size. It also sets the minimum height of the kit's controls; icon-only buttons get the same minimum width. It is a minimum, so a control can still be made larger with a class. The values come from the token CSS variables, so a token change applies without editing the kit. A new control that should follow the density gets its `data-slot` added to the density rule in `globals.css`.
+`apps/web`'s root layouts (the app's and the public website's) put `touch` on `<body>`, so every page is touch unless a layout nested inside it, such as Trainer Web's, sets `compact`; the nearest layout wins. The density sets the body text size and line height: the size text inherits, and `text-sm`, the body size shadcn's components use (`Card`, `Button`, `Label`). Other size classes keep their size. It also sets the minimum height of the kit's controls; icon-only buttons get the same minimum width. It is a minimum, so a control can still be made larger with a class. The values come from the token CSS variables, so a token change applies without editing the kit. A new control that should follow the density gets its `data-slot` added to the density rule in `globals.css`.
 
 ## Fonts
 
