@@ -58,9 +58,9 @@ object SegmentedChoiceRules {
     fun fits(optionCount: Int) = optionCount in 2..5
 }
 
-/** The outline of segment [index] of [count]: what the segmented choice draws and clips its content to. */
+// The outline of segment [index] of [count]: what the segmented choice draws and clips its content to.
 @Composable
-fun segmentedChoiceShape(index: Int, count: Int): Shape =
+private fun segmentedChoiceShape(index: Int, count: Int): Shape =
     SegmentedButtonDefaults.itemShape(index, count, RoundedCornerShape(PillEndRadius))
 
 /**
@@ -70,12 +70,16 @@ fun segmentedChoiceShape(index: Int, count: Int): Shape =
  *
  * The check stays at every font scale: it is the one sign of the selection that isn't colour, and the fill alone is
  * about 1.03:1 against the unselected segment in light mode. Above 150% font scale the side padding goes and the gap
- * to the check halves, to make room for it ("Nederlands" is about 136 dp wide at 200%); only the outer side of the first
- * (unless it is the selected one, whose check is there) and the last segment keeps 4 dp, and the ends of the pill have a radius of 20 dp ([PillEndRadius]) at every scale, so a
- * wrapped label (a taller segment) stays clear of the curve. The check and the label are drawn together in the label
- * slot, so the label gets the width that is left after the check: a label that is too long for that wraps (inside its
- * segment, never past its edge or its curve), where Material's own check slot, added after the label is measured, would
- * push it out of the segment and cut it off.
+ * to the check halves, to make room for it ("Nederlands" is about 136 dp wide at 200%). Only the outer side of the
+ * first segment (unless it is the selected one, whose check is there) and of the last segment keeps 4 dp. The ends of
+ * the pill have a radius of 20 dp ([PillEndRadius]) at every scale, so a wrapped label (a taller segment) stays clear
+ * of the curve.
+ *
+ * The check and the label are drawn together in the label slot, so the label gets the width that is left after the
+ * check: a label that is too long for that wraps inside its segment, where Material's own check slot, added after the
+ * label is measured, would push it out of the segment and cut it off. A wrapped label never leaves its segment's edge;
+ * at the two outer ends it keeps 4 dp from the edge and, as a rule, clear of the curve. The tip of a descender on a
+ * nearly full line can still come to within about 1 dp of the curve, in an unselected first or a last segment.
  */
 @Composable
 fun <T> SegmentedChoice(

@@ -2,6 +2,8 @@ package app.fivvi.pro.kit
 
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -65,7 +67,6 @@ import app.fivvi.core.kit.Toast
 import app.fivvi.core.kit.ToastHost
 import app.fivvi.core.kit.ToastVisuals
 import app.fivvi.core.kit.pillColors
-import app.fivvi.core.kit.segmentedChoiceShape
 import app.fivvi.core.kit.sessionColors
 import app.fivvi.core.theme.FivviFonts
 import app.fivvi.core.theme.FivviTypography
@@ -75,6 +76,7 @@ import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -84,6 +86,10 @@ import org.junit.runners.Parameterized
 // The ink of a line of Google Sans Flex: cap height above its baseline, descenders below it, in em.
 private const val CAP_HEIGHT = 0.72f
 private const val DESCENT = 0.22f
+
+// The radius of the two ends of a segmented choice (SegmentedChoice.kt). The test that reads the pixels of a wrapped row
+// pins the radius the component really draws to this; the test that lays the ink over the outline uses it for the outline.
+private val SegmentedEndRadius = 20.dp
 
 // E020 AC10 and AC14 (spec #590): the building blocks of the kit, in light and dark, in each catalog language. What a
 // person sees is checked on the pixels the component drew, with the tokens as the expected colours.
@@ -471,7 +477,8 @@ class KitComponentsTest(
     // A segment clips what it shows to its outline, and the outer corners of the first and last segment are curves.
     // `getUnclippedBoundsInRoot` ignores that clip, so the test above can't see a label the curve cuts: this one lays the
     // ink of each line of a wrapped label (cap height above the baseline to the descender below it) over the outline the
-    // segment really has, and asks that the four corners of every line are inside it.
+    // segment really has (the end radius that the next test reads off the pixels), and asks that the four corners of every
+    // line are inside it.
     @Test
     fun E020_AC10_at200PercentAWrappedLabelInTheFirstAndTheLastSegmentIsClearOfThePillsCurve() {
         // Sample labels of the long kind that wrap in a third of the row; the selected (checked) one is the middle.
@@ -480,7 +487,9 @@ class KitComponentsTest(
         compose.showKit(mode, language, fontScale = 2f, width = 328.dp) {
             val count = labels.size
             shapes.clear()
-            labels.indices.forEach { shapes += segmentedChoiceShape(it, count) }
+            labels.indices.forEach {
+                shapes += SegmentedButtonDefaults.itemShape(it, count, RoundedCornerShape(SegmentedEndRadius))
+            }
             SegmentedChoice(
                 options = labels.mapIndexed { index, text -> SegmentedOption(index, text, "choice.$index") },
                 selected = 1,
@@ -518,6 +527,91 @@ class KitComponentsTest(
             }
         }
     }
+
+    // What the segmented choice draws, read off its pixels: a wrapped row is tall (about 110 dp at 200%), and Material
+    // rounds an end by half the segment's height, 55 dp, which would cut a label's corner. The ends are 20 dp whatever the
+    // height: the outline is on the outer edge 30 dp down (outside a 55 dp curve, which has left the edge by 6 dp there),
+    // and on the diagonal from the corner the outline starts where a 20 dp curve is, 5.9 dp in each way (22.8 dp for 55 dp).
+    @Test
+    fun E020_AC10_at200PercentTheEndsOfAWrappedSegmentedChoiceAreCurvesOf20dpWhateverTheHeight() {
+        val labels = listOf("Doordeweeks lunch", "Midden", "Weekendavond")
+        compose.showKit(mode, language, fontScale = 2f, width = 328.dp) {
+            SegmentedChoice(
+                options = labels.mapIndexed { index, text -> SegmentedOption(index, text, "choice.$index") },
+                selected = 1,
+                onSelect = {},
+            )
+        }
+
+        for (index in listOf(0, labels.lastIndex)) {
+            val last = index == labels.lastIndex
+            val segment = compose.onNodeWithTag("choice.$index").getUnclippedBoundsInRoot()
+            val height = segment.bottom - segment.top
+            assertTrue("segment $index is $height high, a wrapped one", height > 90.dp)
+            val pixels = compose.onNodeWithTag("choice.$index").pixels()
+            // The segment's outer edge, mirrored for the last one: x counted from the outer edge in.
+            val outerX = { fromEdge: Int -> if (last) pixels.width - 1 - fromEdge else fromEdge }
+            val canvas = mode.tokens.bgCanvas
+            val outline = mode.tokens.borderControl
+            assertTrue("segment $index: the corner pixel is the canvas", pixels.isFilled(outerX(0), 0, canvas))
+
+            // 30 dp down, on the straight part of a 20 dp end, the outline is on the outer edge.
+            val y30 = 30.dp.px()
+            val edge = (0 until 3.dp.px()).firstOrNull { pixels[outerX(it), y30].near(outline, 0.1f) }
+            assertNotNull("segment $index: no outline on the outer edge 30 dp down (a curve of half the height)", edge)
+
+            // From the corner along the diagonal, the first pixel that is not the canvas is the outline.
+            val onTheOutline = (0 until 30.dp.px()).first { !pixels[outerX(it), it].near(canvas, 0.08f) }
+            val reach = onTheOutline / density
+            val expected = SegmentedEndRadius.value * (1 - 1 / kotlin.math.sqrt(2f))
+            assertTrue(
+                "segment $index: the outline starts $reach dp in on the diagonal, a 20 dp curve $expected dp",
+                abs(reach - expected) <= 1f,
+            )
+        }
+    }
+
+    // The outer side of the first (unselected) and the last segment keeps 4 dp clear above 150% font scale: a label whose
+    // line nearly fills the box is the one that shows it. Without the padding it is centred with less than 4 dp to the edge.
+    private fun assertOuterLabelsKeepTheirPadding(labels: List<String>, selected: Int) {
+        compose.showKit(mode, language, fontScale = 2f, width = 328.dp) {
+            SegmentedChoice(
+                options = labels.mapIndexed { index, text -> SegmentedOption(index, text, "choice.$index") },
+                selected = selected,
+                onSelect = {},
+            )
+        }
+
+        fun text(index: Int) = compose.onNode(
+            hasAnyAncestor(hasTestTag("choice.$index")) and hasText(labels[index]),
+            useUnmergedTree = true,
+        )
+        val last = labels.lastIndex
+        if (selected != 0) {
+            val first = compose.onNodeWithTag("choice.0").getUnclippedBoundsInRoot()
+            val gap = text(0).getUnclippedBoundsInRoot().left - first.left
+            assertTrue("${labels[0]} is $gap from the first segment's outer edge", gap >= 4.dp)
+            assertEquals("${labels[0]} on one line", 1, text(0).textLayout().lineCount)
+        }
+        val gap = compose.onNodeWithTag("choice.$last").getUnclippedBoundsInRoot().right -
+            text(last).getUnclippedBoundsInRoot().right
+        assertTrue("${labels[last]} is $gap from the last segment's outer edge", gap >= 4.dp)
+        assertEquals("${labels[last]} on one line", 1, text(last).textLayout().lineCount)
+    }
+
+    // The labels are sample words of 104 dp (Morning) and 81 dp (Smalle) at 200% in a segment of 109 dp: the line nearly
+    // fills the box, with the check (22 dp) and without it.
+    @Test
+    fun E020_AC10_at200PercentTheOuterLabelsKeep4dpFromTheEdgeWithTheFirstSegmentSelected() =
+        assertOuterLabelsKeepTheirPadding(listOf("Smalle", "Midden", "Morning"), selected = 0)
+
+    @Test
+    fun E020_AC10_at200PercentTheOuterLabelsKeep4dpFromTheEdgeWithTheMiddleSegmentSelected() =
+        assertOuterLabelsKeepTheirPadding(listOf("Morning", "Midden", "Morning"), selected = 1)
+
+    @Test
+    fun E020_AC10_at200PercentTheOuterLabelsKeep4dpFromTheEdgeWithTheLastSegmentSelected() =
+        assertOuterLabelsKeepTheirPadding(listOf("Morning", "Midden", "Smalle"), selected = 2)
 
     @Test
     fun E020_AC14_aFieldWithAnErrorTurnsRedAndShowsAWarningIconAndTheMessageUnderIt() {
