@@ -42,6 +42,5 @@ Only Move pink `#E6164A` (the accent, [`visual-direction.md`](../visual-directio
 
 ## Still to do
 
-- The app icons in `apps/ios` and `apps/android` still show the placeholder "F": `scripts/app-icon.mjs` generates them from one source (E017, decision 6) and will draw this mark instead.
 - The website design (`docs/design/website`) and the prototype (`docs/design/prototype-v2`) still show the text mark and the "F"; they get these files.
 - A layered iOS 26 Liquid Glass icon (Icon Composer): the mark and the spark as separate layers.
