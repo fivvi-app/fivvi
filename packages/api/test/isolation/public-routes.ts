@@ -9,6 +9,8 @@ export const PUBLIC_ROUTES: Readonly<Record<string, string>> = {
   getHello: 'The walking skeleton greeting is system data with no tenant and no personal data.',
   requestSignIn: 'The caller is not signed in yet; the answer is the same for every address.',
   exchangeSignInCode: 'The caller is not signed in yet; the emailed code is the proof.',
+  requestDemo:
+    'The caller is a visitor of the public website; it sends one email to Fivvi, stores nothing and is rate limited (F064).',
   getInvitation:
     'The caller holds only the link; it shows the workspace name, the inviter and a masked address of a valid invitation, one neutral 404 otherwise (F011).',
   acceptInvitation:

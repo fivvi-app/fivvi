@@ -212,6 +212,30 @@
       "when": "Wanneer: {date}, {start} tot {end}",
       "where": "Waar: {location}",
       "trainer": "Trainer: {trainer}"
+    },
+    "demoRequest": {
+      "subject": "Demo-aanvraag: {name}",
+      "preview": "{business}, {trainers}",
+      "intro": "Iemand vraagt een demo van Fivvi aan via de website.",
+      "nameLabel": "Naam",
+      "emailLabel": "E-mailadres",
+      "businessLabel": "Soort bedrijf",
+      "trainersLabel": "Aantal trainers",
+      "languageLabel": "Taal van de website",
+      "messageLabel": "Bericht",
+      "reply": "Antwoord binnen 1 werkdag, in de taal van de website. Schrijf naar het e-mailadres hierboven: dit bericht is niet van de aanvrager zelf.",
+      "business": {
+        "gym": "Een sportschool met een team",
+        "studio": "Een pilates- of yogastudio",
+        "personalTrainer": "Een eigen PT-bedrijf"
+      },
+      "trainers": {
+        "one": "Alleen de aanvrager",
+        "twoToFour": "2 tot 4",
+        "fiveOrMore": "5 of meer"
+      },
+      "languageNl": "Nederlands",
+      "languageEn": "Engels"
     }
   },
   "roles": {
@@ -385,6 +409,56 @@
       "vat": "Btw-nummer",
       "address": "Adres",
       "phone": "Telefoon of WhatsApp"
+    },
+    "demo": {
+      "metaTitle": "Plan een demo | Fivvi",
+      "metaDescription": "Zie in 30 minuten hoe jouw werkweek eruitziet in Fivvi.",
+      "eyebrow": "Demo",
+      "headline": "Zie Fivvi met jouw dag erin.",
+      "lead": "In 30 minuten, online. Geen verkooppraatje, gewoon je eigen werkweek in Fivvi.",
+      "steps": {
+        "tell": {
+          "title": "Je vertelt hoe het nu gaat",
+          "body": "Welke apps, lijstjes en berichtjes gebruik je vandaag?"
+        },
+        "show": {
+          "title": "We laten jouw soort bedrijf zien",
+          "body": "Sportschool, studio of personal trainer: je ziet alleen wat bij jou hoort."
+        },
+        "fit": {
+          "title": "Je weet meteen of het past",
+          "body": "En zo ja, hoe je mee kunt doen met de pilot."
+        }
+      },
+      "form": {
+        "label": "Demo aanvragen",
+        "name": "Je naam",
+        "email": "Je e-mailadres",
+        "business": "Ik heb",
+        "businessGym": "Een sportschool met een team",
+        "businessStudio": "Een pilates- of yogastudio",
+        "businessPersonalTrainer": "Een eigen PT-bedrijf",
+        "trainers": "Hoeveel trainers?",
+        "trainersOne": "Alleen ik",
+        "trainersTwoToFour": "2 tot 4",
+        "trainersFiveOrMore": "5 of meer",
+        "message": "Wat wil je vooral zien? (mag leeg)",
+        "send": "Demo aanvragen",
+        "sending": "Bezig met versturen…",
+        "note": "We gebruiken dit alleen om je te antwoorden.",
+        "privacyLink": "Lees de privacyverklaring.",
+        "sent": "Bedankt, je aanvraag is verstuurd. Je hoort binnen 1 werkdag van ons.",
+        "client": "Ben je klant van een studio? Vraag je studio of trainer om Fivvi."
+      },
+      "errors": {
+        "nameRequired": "Vul je naam in.",
+        "nameTooLong": "Je naam is te lang. Gebruik maximaal 100 tekens.",
+        "emailInvalid": "Vul een geldig e-mailadres in, bijvoorbeeld naam@example.com.",
+        "messageTooLong": "Je bericht is te lang. Gebruik maximaal 2000 tekens.",
+        "rateLimited": "Je hebt te vaak een aanvraag verstuurd. Probeer het later opnieuw, of mail ons op support@fivvi.app.",
+        "noConnection": "Je aanvraag is niet verstuurd: er is geen verbinding. Controleer je internet en probeer het opnieuw.",
+        "failed": "Je aanvraag is niet verstuurd. Probeer het later opnieuw, of mail ons op support@fivvi.app."
+      }
     }
   }
 }

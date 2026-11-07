@@ -6,6 +6,7 @@ import {
   pingDatabase,
 } from '@fivvi/database';
 import {
+  createDemoRequestSender,
   createEnvironmentSendEmail,
   createPrivateSessionSender,
   createTrainerInvitationSender,
@@ -49,6 +50,27 @@ function sendPrivateSession(...[mail]: Parameters<ReturnType<typeof createPrivat
   return privateSessionSender(mail);
 }
 
+let demoRequestSender: ReturnType<typeof createDemoRequestSender> | undefined;
+
+/**
+ * Fivvi's own address for the website's contact: where demo requests go (F064). The mailbox is
+ * created by the owner (#612); until it exists, a send may bounce.
+ */
+const SUPPORT_ADDRESS = { email: 'support@fivvi.app', name: 'Fivvi support' };
+
+/**
+ * The demo request of the public website (F064), emailed to `SUPPORT_ADDRESS` through the provider
+ * of the environment, in Dutch. Nothing goes to the visitor. Created on first use, so `next build`
+ * runs without the email settings.
+ */
+function sendDemoRequest(...[mail]: Parameters<ReturnType<typeof createDemoRequestSender>>) {
+  demoRequestSender ??= createDemoRequestSender({
+    sendEmail: createEnvironmentSendEmail(),
+    to: SUPPORT_ADDRESS,
+  });
+  return demoRequestSender(mail);
+}
+
 /** The API, served under `/api` by app/api/[[...route]]/route.ts. */
 export const apiHandler = createApiHandler({
   pingDatabase: () => pingDatabase(database()),
@@ -65,6 +87,8 @@ export const apiHandler = createApiHandler({
   sendTrainerInvitation,
   // Emails the confirmation of a private session (F020), after the session is committed.
   sendPrivateSession,
+  // Emails the website's demo requests to Fivvi's support address (F064).
+  sendDemoRequest,
   // Where "now" comes from: the expiry and the daily limit of an invitation (F011), the past of a session (F020).
   clock: { now: () => new Date() },
   // The request transaction of workspace and account routes, with its tenant context (E011).

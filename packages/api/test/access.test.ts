@@ -445,6 +445,7 @@ describe('E011 route access', () => {
       'get /v1/health': 'public',
       'get /v1/hello': 'public',
       'get /v1/invitations/{token}': 'public',
+      'post /v1/demo-requests': 'public',
       'post /v1/invitations/{token}/accept': 'public',
       'post /v1/invitations/{token}/decline': 'public',
       'get /v1/me': 'account',

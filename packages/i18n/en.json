@@ -212,6 +212,30 @@
       "when": "When: {date}, {start} to {end}",
       "where": "Where: {location}",
       "trainer": "Trainer: {trainer}"
+    },
+    "demoRequest": {
+      "subject": "Demo request: {name}",
+      "preview": "{business}, {trainers}",
+      "intro": "Someone is asking for a Fivvi demo through the website.",
+      "nameLabel": "Name",
+      "emailLabel": "Email address",
+      "businessLabel": "Kind of business",
+      "trainersLabel": "Number of trainers",
+      "languageLabel": "Website language",
+      "messageLabel": "Message",
+      "reply": "Reply within 1 working day, in the language of the website. Write to the email address above: this message is not from the requester itself.",
+      "business": {
+        "gym": "A gym with a team",
+        "studio": "A pilates or yoga studio",
+        "personalTrainer": "My own PT business"
+      },
+      "trainers": {
+        "one": "Only the requester",
+        "twoToFour": "2 to 4",
+        "fiveOrMore": "5 or more"
+      },
+      "languageNl": "Dutch",
+      "languageEn": "English"
     }
   },
   "roles": {
@@ -385,6 +409,56 @@
       "vat": "VAT number",
       "address": "Address",
       "phone": "Phone or WhatsApp"
+    },
+    "demo": {
+      "metaTitle": "Book a demo | Fivvi",
+      "metaDescription": "See your working week in Fivvi in 30 minutes.",
+      "eyebrow": "Demo",
+      "headline": "See Fivvi with your day in it.",
+      "lead": "30 minutes, online. No sales pitch, just your own working week in Fivvi.",
+      "steps": {
+        "tell": {
+          "title": "You tell us how it works now",
+          "body": "Which apps, lists and messages do you use today?"
+        },
+        "show": {
+          "title": "We show your kind of business",
+          "body": "Gym, studio or personal trainer: you only see what fits you."
+        },
+        "fit": {
+          "title": "You know right away if it fits",
+          "body": "And if so, how you can join the pilot."
+        }
+      },
+      "form": {
+        "label": "Request a demo",
+        "name": "Your name",
+        "email": "Your email address",
+        "business": "I run",
+        "businessGym": "A gym with a team",
+        "businessStudio": "A pilates or yoga studio",
+        "businessPersonalTrainer": "My own PT business",
+        "trainers": "How many trainers?",
+        "trainersOne": "Just me",
+        "trainersTwoToFour": "2 to 4",
+        "trainersFiveOrMore": "5 or more",
+        "message": "What would you most like to see? (optional)",
+        "send": "Request a demo",
+        "sending": "Sending…",
+        "note": "We only use this to reply to you.",
+        "privacyLink": "Read the privacy policy.",
+        "sent": "Thank you, your request has been sent. You'll hear from us within 1 working day.",
+        "client": "A client of a studio? Ask your studio or trainer for Fivvi."
+      },
+      "errors": {
+        "nameRequired": "Enter your name.",
+        "nameTooLong": "Your name is too long. Use at most 100 characters.",
+        "emailInvalid": "Enter a valid email address, for example name@example.com.",
+        "messageTooLong": "Your message is too long. Use at most 2000 characters.",
+        "rateLimited": "You have sent too many requests. Try again later, or email us at support@fivvi.app.",
+        "noConnection": "Your request wasn't sent: there is no connection. Check your internet and try again.",
+        "failed": "Your request wasn't sent. Try again later, or email us at support@fivvi.app."
+      }
     }
   }
 }
