@@ -3,7 +3,7 @@ import type { Metadata } from 'next';
 import { builtPages, type SitePage } from '../routes';
 import { siteText } from '../text';
 import { ContactCta } from './contact-cta';
-import { FaqList } from './faq-list';
+import { FaqHeading, FaqList } from './faq-list';
 import { InfoPage, PageHead } from './page-head';
 
 const INCLUDED = ['calendar', 'memberships', 'pro', 'client', 'workouts'] as const;
@@ -66,9 +66,7 @@ export function PricingPage({
           ))}
         </ul>
       </section>
-      <h2 className="mt-11 text-[clamp(24px,3vw,32px)] font-bold tracking-[-0.02em]">
-        {t('site.pricing.goodToKnow')}
-      </h2>
+      <FaqHeading>{t('site.pricing.goodToKnow')}</FaqHeading>
       <FaqList
         columns={3}
         items={(['payments', 'clients', 'later'] as const).map((key) => ({
@@ -83,9 +81,9 @@ export function PricingPage({
         locale={locale}
         built={built}
         copy={{
-          heading: t('site.pricing.cta.heading'),
-          text: t('site.pricing.cta.text'),
-          demo: t('site.pricing.cta.demo'),
+          heading: t('site.cta.heading'),
+          text: t('site.cta.text'),
+          demo: t('site.cta.demo'),
         }}
       />
     </InfoPage>

@@ -386,6 +386,12 @@
       "address": "Adres",
       "phone": "Telefoon of WhatsApp"
     },
+    "cta": {
+      "heading": "Hoe ziet jouw dag eruit in Fivvi?",
+      "text": "Plan een demo. We laten Fivvi zien met jouw soort bedrijf, en je weet meteen of het past.",
+      "demo": "Plan een demo",
+      "pricing": "Bekijk de prijzen"
+    },
     "pricing": {
       "metaTitle": "Prijzen | Fivvi",
       "metaDescription": "Fivvi is gratis tijdens de pilot. Geen abonnement en geen kosten per klant.",
@@ -416,12 +422,7 @@
         "question": "En als Fivvi later geld gaat kosten?",
         "answer": "Dan hoor je dat minstens 60 dagen vooraf. Je kunt dan gratis stoppen en je gegevens meenemen. Je betaalt nooit iets waar je niet eerst mee hebt ingestemd."
       },
-      "currency": "Alle bedragen zijn in euro. Omdat je Fivvi nu niets betaalt, zijn er geen betaalvoorwaarden.",
-      "cta": {
-        "heading": "Hoe ziet jouw dag eruit in Fivvi?",
-        "text": "Plan een demo. We laten Fivvi zien met jouw soort bedrijf, en je weet meteen of het past.",
-        "demo": "Plan een demo"
-      }
+      "currency": "Alle bedragen zijn in euro. Omdat je Fivvi nu niets betaalt, zijn er geen betaalvoorwaarden."
     },
     "support": {
       "metaTitle": "Hulp en contact | Fivvi",
@@ -473,12 +474,6 @@
           "question": "Waar staan mijn gegevens?",
           "answer": "De database staat in Amsterdam. Enkele diensten zijn van Amerikaanse bedrijven, met de waarborgen die de wet vraagt. Welke dat zijn, staat bij Subverwerkers. Notities zijn alleen voor trainers."
         }
-      },
-      "cta": {
-        "heading": "Hoe ziet jouw dag eruit in Fivvi?",
-        "text": "Plan een demo. We laten Fivvi zien met jouw soort bedrijf, en je weet meteen of het past.",
-        "demo": "Plan een demo",
-        "pricing": "Bekijk de prijzen"
       }
     },
     "subProcessors": {

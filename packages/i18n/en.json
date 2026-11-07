@@ -386,6 +386,12 @@
       "address": "Address",
       "phone": "Phone or WhatsApp"
     },
+    "cta": {
+      "heading": "What does your day look like in Fivvi?",
+      "text": "Book a demo. We'll show Fivvi with your kind of business, and you'll know right away if it fits.",
+      "demo": "Book a demo",
+      "pricing": "See pricing"
+    },
     "pricing": {
       "metaTitle": "Pricing | Fivvi",
       "metaDescription": "Fivvi is free during the pilot. No subscription and no fee per client.",
@@ -416,12 +422,7 @@
         "question": "And if Fivvi starts charging later?",
         "answer": "You'll hear at least 60 days in advance. You can then stop for free and take your data with you. You never pay for anything you didn't agree to first."
       },
-      "currency": "All amounts are in euros. Because you don't pay Fivvi anything right now, there are no payment terms.",
-      "cta": {
-        "heading": "What does your day look like in Fivvi?",
-        "text": "Book a demo. We'll show Fivvi with your kind of business, and you'll know right away if it fits.",
-        "demo": "Book a demo"
-      }
+      "currency": "All amounts are in euros. Because you don't pay Fivvi anything right now, there are no payment terms."
     },
     "support": {
       "metaTitle": "Help and contact | Fivvi",
@@ -473,12 +474,6 @@
           "question": "Where is my data stored?",
           "answer": "The database is in Amsterdam. Some services are from US companies, with the safeguards the law requires. They're listed under Sub-processors. Notes are for trainers only."
         }
-      },
-      "cta": {
-        "heading": "What does your day look like in Fivvi?",
-        "text": "Book a demo. We'll show Fivvi with your kind of business, and you'll know right away if it fits.",
-        "demo": "Book a demo",
-        "pricing": "See pricing"
       }
     },
     "subProcessors": {

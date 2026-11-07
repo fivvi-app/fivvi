@@ -100,10 +100,10 @@ export function SupportPage({
         locale={locale}
         built={built}
         copy={{
-          heading: t('site.support.cta.heading'),
-          text: t('site.support.cta.text'),
-          demo: t('site.support.cta.demo'),
-          pricing: t('site.support.cta.pricing'),
+          heading: t('site.cta.heading'),
+          text: t('site.cta.text'),
+          demo: t('site.cta.demo'),
+          pricing: t('site.cta.pricing'),
         }}
       />
     </InfoPage>

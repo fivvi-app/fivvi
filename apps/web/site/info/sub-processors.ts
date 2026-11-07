@@ -7,8 +7,10 @@ type Copy = (typeof messages)['en']['site']['subProcessors'];
  * company's own, the same in both languages; what it is for and where it stores come from the
  * catalog (`site.subProcessors.purpose.*`, `.region.*`).
  *
- * `docs/legal/sub-processors.md` is the full list with its legal detail; `sub-processors-page.test.tsx`
- * keeps this list in step with it. Add a service there and here in the same change. Mollie is not
+ * `docs/legal/sub-processors.md` is the full list with its legal detail. `sub-processors-page.test.tsx`
+ * compares this list with that file whenever the web tests run; a change to the legal file alone
+ * runs no web test, so it isn't caught until the next run. Add a service there and here in the same
+ * change. Mollie is not
  * in this list: it has a separate role (`site.subProcessors.mollie`).
  */
 export interface SubProcessor {

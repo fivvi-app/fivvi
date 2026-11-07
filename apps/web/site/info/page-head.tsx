@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react';
+import { StatusLine } from '../status-line';
 
 /** The width and padding of a page's content, as the home page has them. */
 export const pageWidth = 'mx-auto w-full max-w-295 px-[clamp(16px,4vw,40px)]';
@@ -28,13 +29,7 @@ export function PageHead({
       <p className="mt-4 max-w-[34em] text-[clamp(18px,1.9vw,21px)] leading-[1.38] text-muted-foreground text-pretty">
         {lead}
       </p>
-      <p className="mt-4 flex max-w-[44em] items-baseline gap-2.5 text-[15px] leading-[1.35] text-secondary-foreground">
-        <span
-          aria-hidden="true"
-          className="size-2 flex-none -translate-y-px rounded-full bg-primary"
-        />
-        {status}
-      </p>
+      <StatusLine>{status}</StatusLine>
     </>
   );
 }

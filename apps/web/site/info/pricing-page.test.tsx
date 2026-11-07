@@ -17,6 +17,9 @@ describe.each(locales)('F064 AC4 the pricing page in %s', (locale) => {
     expect(page.match(/<h1[ >]/g)).toHaveLength(1);
     expect(page).toMatch(new RegExp(`<h1[^>]*>${escapeHtml(copy.pricing.headline)}</h1>`));
     expect(page).toContain(escapeHtml(copy.pricing.lead));
+    // The catalog says it is free during the pilot: the one claim of the page.
+    expect(copy.pricing.headline).toMatch(locale === 'en' ? /free/i : /gratis/i);
+    expect(copy.pricing.headline).toMatch(/pilot/i);
     expect(page).toContain(escapeHtml(copy.pricing.price));
     expect(page).toContain(escapeHtml(copy.pricing.period));
   });
@@ -68,13 +71,13 @@ describe.each(locales)('F064 AC4 the pricing page in %s', (locale) => {
 
     const without = html(<PricingPage locale={locale} built={[]} />);
     expect(hrefs(without)).not.toContain(demo);
-    expect(without).not.toContain(escapeHtml(copy.pricing.cta.heading));
+    expect(without).not.toContain(escapeHtml(copy.cta.heading));
 
     const page = html(<PricingPage locale={locale} built={built} />);
     expect(hrefs(page)).toContain(demo);
     expect(hrefs(page)).not.toContain(pricing);
-    expect(page).toContain(escapeHtml(copy.pricing.cta.heading));
-    expect(page).toContain(escapeHtml(copy.pricing.cta.demo));
+    expect(page).toContain(escapeHtml(copy.cta.heading));
+    expect(page).toContain(escapeHtml(copy.cta.demo));
   });
 });
 

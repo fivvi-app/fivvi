@@ -18,10 +18,15 @@ const allDetails: BusinessDetails = {
   phone: '+31 6 00000000',
 };
 
-describe('F064 the role addresses', () => {
-  it('are support@ and privacy@ on fivvi.app', () => {
-    expect(supportEmail).toBe('support@fivvi.app');
-    expect(privacyEmail).toBe('privacy@fivvi.app');
+describe.each(locales)('F064 the role addresses in %s', (locale) => {
+  it('are support@ and privacy@ on fivvi.app, shown as mail links with their labels', () => {
+    const page = html(<SupportPage locale={locale} business={noDetails} />);
+
+    expect(hrefs(page)).toContain('mailto:support@fivvi.app');
+    expect(hrefs(page)).toContain('mailto:privacy@fivvi.app');
+    expect(page).toContain('>support@fivvi.app</a>');
+    expect(page).toContain('>privacy@fivvi.app</a>');
+    expect(page).toContain(escapeHtml(messages[locale].site.support.privacy));
   });
 });
 
@@ -104,7 +109,8 @@ describe.each(locales)('F064 AC8 the help page in %s', (locale) => {
   });
 
   it('AC9: says how to ask for deleting an account by email, and links to no page that does not exist', () => {
-    const page = html(<SupportPage locale={locale} business={noDetails} />);
+    // Without the other pages: a link to #641's demo page is fine once it exists, this is about deletion.
+    const page = html(<SupportPage locale={locale} business={noDetails} built={[]} />);
     const answer = t.clientFaq.deleteAccount.answer.replace('{address}', privacyEmail);
 
     expect(page).toContain(escapeHtml(t.clientFaq.deleteAccount.question));
@@ -126,7 +132,7 @@ describe.each(locales)('F064 AC8 the help page in %s', (locale) => {
       <SupportPage locale={locale} business={noDetails} built={['support', 'pricing', 'demo']} />,
     );
     expect(hrefs(page)).toEqual(expect.arrayContaining([pricing, demo]));
-    expect(page).toContain(escapeHtml(t.cta.heading));
+    expect(page).toContain(escapeHtml(copy.cta.heading));
   });
 
   it('makes no promise of a reply time until the owner confirms one (DECISIONS.md §9, assumption 2)', () => {

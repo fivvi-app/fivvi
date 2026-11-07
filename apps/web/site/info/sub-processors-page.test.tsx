@@ -29,9 +29,10 @@ function servicesInLegalFile(): string[] {
 }
 
 /**
- * Brevo was replaced by Lettermint (ADR-028). The legal file is updated by #642, which is owner-only,
- * so until then the file still says Brevo: it stands for Lettermint here. Once #642 has landed the
- * file says Lettermint, this rename does nothing, and this test can drop it.
+ * ADR-028 decided that Lettermint replaces Brevo; the cutover is #398, so the code may still use
+ * Brevo for now. The legal file is updated by #642 (owner-only) and still says Brevo here, so it
+ * stands for Lettermint, the provider the page names. Once #642 has landed the file says Lettermint,
+ * this rename does nothing, and this test can drop it.
  */
 const renamedSince: Record<string, string> = { Brevo: 'Lettermint' };
 
