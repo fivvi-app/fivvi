@@ -446,52 +446,57 @@ describe('E020 v2 contrast pairs', () => {
     expect(declared('action.danger.fg', 'action.danger.bg')).toBe(true);
   });
 
-  it('AC3: the destructive button text keeps 4.5:1 on its own tint and hover tint on every web background', () => {
-    // The kit's tints, read from the component so the two cannot drift apart.
-    const button = readFileSync(
-      path.join(repoRoot, 'packages/ui/src/components/button.tsx'),
-      'utf8',
-    );
-    const variant = button.match(/destructive:\s*"([^"]+)"/)?.[1] ?? '';
-    const percent = (prefix: string) =>
-      Number(variant.match(new RegExp(`(?:^|\\s)${prefix}bg-destructive/(\\d+)`))?.[1]);
-    const tints = {
-      light: [percent(''), percent('hover:')],
-      dark: [percent('dark:'), percent('dark:hover:')],
-    } as const;
-    expect([...tints.light, ...tints.dark].every(Number.isFinite)).toBe(true);
+  it.each([
+    ['the destructive Button', 'packages/ui/src/components/button.tsx', /destructive:\s*"([^"]+)"/],
+    ['the danger pill button', 'packages/ui/src/kit/pill-button.tsx', /danger:\s*'([^']+)'/],
+  ])(
+    'AC3: %s text keeps 4.5:1 on its own tint and hover tint on every web background',
+    (_name, file, pattern) => {
+      // The kit's tints, read from the component so the two cannot drift apart.
+      const source = readFileSync(path.join(repoRoot, file), 'utf8');
+      const variant = source.match(pattern)?.[1] ?? '';
+      const percent = (prefix: string) =>
+        Number(variant.match(new RegExp(`(?:^|\\s)${prefix}bg-destructive/(\\d+)`))?.[1]);
+      const tints = {
+        light: [percent(''), percent('hover:')],
+        dark: [percent('dark:'), percent('dark:hover:')],
+      } as const;
+      expect([...tints.light, ...tints.dark].every(Number.isFinite)).toBe(true);
 
-    const backgrounds = {
-      light: [
-        'web.trainer.background',
-        'web.trainer.card',
-        'web.trainer.sidebar',
-        'web.trainer.muted',
-        'bg.canvas',
-        'bg.surface',
-        'bg.raised',
-      ],
-      dark: [
-        'web.trainer.background',
-        'web.trainer.card',
-        'web.trainer.sidebar',
-        'web.trainer.muted',
-        'bg.canvas',
-        'bg.surface',
-        'bg.raised',
-      ],
-    } as const;
-    for (const mode of ['light', 'dark'] as const) {
-      const text = values[mode].get('color.action.danger.text') ?? '';
-      for (const bg of backgrounds[mode]) {
-        const base = values[mode].get(`color.${bg}`) ?? '';
-        for (const amount of tints[mode]) {
-          const tint = mix(text, base, amount, 'srgb');
-          expect(contrastRatio(text, tint), `${mode} ${bg} ${amount}%`).toBeGreaterThanOrEqual(4.5);
+      const backgrounds = {
+        light: [
+          'web.trainer.background',
+          'web.trainer.card',
+          'web.trainer.sidebar',
+          'web.trainer.muted',
+          'bg.canvas',
+          'bg.surface',
+          'bg.raised',
+        ],
+        dark: [
+          'web.trainer.background',
+          'web.trainer.card',
+          'web.trainer.sidebar',
+          'web.trainer.muted',
+          'bg.canvas',
+          'bg.surface',
+          'bg.raised',
+        ],
+      } as const;
+      for (const mode of ['light', 'dark'] as const) {
+        const text = values[mode].get('color.action.danger.text') ?? '';
+        for (const bg of backgrounds[mode]) {
+          const base = values[mode].get(`color.${bg}`) ?? '';
+          for (const amount of tints[mode]) {
+            const tint = mix(text, base, amount, 'srgb');
+            expect(contrastRatio(text, tint), `${mode} ${bg} ${amount}%`).toBeGreaterThanOrEqual(
+              4.5,
+            );
+          }
         }
       }
-    }
-  });
+    },
+  );
 
   it('AC3: the web exposes the filled danger button and a foreground that reads on --destructive', async () => {
     const outputs = await renderOutputs(source);

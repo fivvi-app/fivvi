@@ -121,6 +121,12 @@
       "use": "Link and text button on a tonal fill"
     },
     {
+      "fg": "color.accent.text",
+      "bg": "color.action.tonal.bg",
+      "kind": "text",
+      "use": "Tonal pill button label (accent text on the tonal fill)"
+    },
+    {
       "fg": "color.text.inverse",
       "bg": "color.bg.inverse",
       "kind": "text",
@@ -803,6 +809,18 @@
       "bg": "color.web.trainer.sidebar",
       "kind": "text",
       "use": "Trainer web: accent text on sidebar"
+    },
+    {
+      "fg": "color.accent.text",
+      "bg": "color.web.trainer.muted",
+      "kind": "text",
+      "use": "Trainer web: accent text on the muted fill (ghost pill button on hover, tonal pill button)"
+    },
+    {
+      "fg": "color.web.trainer.background",
+      "bg": "color.web.trainer.foreground",
+      "kind": "text",
+      "use": "Trainer web: toast text on the inverse of the page"
     },
     {
       "fg": "color.border.focus",

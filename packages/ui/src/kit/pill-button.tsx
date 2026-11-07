@@ -4,14 +4,15 @@ import { Slot } from 'radix-ui';
 import type { ComponentProps } from 'react';
 
 const pillButtonVariants = cva(
-  'inline-flex shrink-0 items-center justify-center gap-2 rounded-full text-[17px] font-semibold whitespace-nowrap transition-[filter] outline-none select-none hover:brightness-95 disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-5 [&_svg]:shrink-0',
+  'inline-flex shrink-0 items-center justify-center gap-2 rounded-full text-[17px] font-semibold whitespace-nowrap transition-colors outline-none select-none disabled:pointer-events-none disabled:opacity-40 [&_svg]:size-5 [&_svg]:shrink-0',
   {
     variants: {
       variant: {
-        primary: 'bg-primary text-primary-foreground',
-        tonal: 'bg-secondary text-secondary-foreground',
-        danger: 'bg-action-danger-bg text-action-danger-fg',
-        ghost: 'text-accent-text hover:bg-muted hover:brightness-100',
+        primary: 'bg-primary text-primary-foreground hover:brightness-95',
+        tonal: 'bg-secondary text-accent-text',
+        danger:
+          'bg-destructive/10 text-destructive hover:bg-destructive/15 dark:bg-destructive/15 dark:hover:bg-destructive/20',
+        ghost: 'text-accent-text hover:bg-muted',
       },
       size: {
         default: 'h-12.5 px-5.5',

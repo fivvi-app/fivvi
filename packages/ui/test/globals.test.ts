@@ -75,4 +75,18 @@ describe('E007 kit stylesheet', () => {
       /prefers-reduced-transparency:\s*reduce[\s\S]*var\(--th-color-web-glass-strong\)/,
     );
   });
+
+  it('AC14: a focus ring inside an inset list is drawn inside the clipped list, in WCAG 2.4.7 terms visible', async () => {
+    const kit = await compileKit();
+    const css = kit.build([]);
+    // The list clips its rows (rounded corners), so the 2px-offset ring of a row-filling link or
+    // button is pulled inside. The rule is unlayered and comes after the base focus rule.
+    const base = css.indexOf(':focus-visible {');
+    const inset = css.search(
+      /\[data-slot=["']?inset-list["']?\]\s+:focus-visible\s*\{[^}]*outline-offset:\s*-2px/,
+    );
+
+    expect(base, 'the base focus rule').toBeGreaterThan(-1);
+    expect(inset, 'the inset list focus rule').toBeGreaterThan(base);
+  });
 });

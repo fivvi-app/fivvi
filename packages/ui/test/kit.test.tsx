@@ -84,15 +84,26 @@ describe('E020 web kit', () => {
       expect(html(<PillButton type="submit">Boeken</PillButton>)).toContain('type="submit"');
     });
 
-    it('has tonal, danger and ghost variants on token colours', () => {
+    it('has the client web variants: tonal in accent text, danger as a tint of red, ghost', () => {
       const tonal = classesOf(html(<PillButton variant="tonal">Nee</PillButton>), 'pill-button');
       const danger = classesOf(html(<PillButton variant="danger">Weg</PillButton>), 'pill-button');
       const ghost = classesOf(html(<PillButton variant="ghost">Terug</PillButton>), 'pill-button');
 
-      expect(tonal).toEqual(expect.arrayContaining(['bg-secondary', 'text-secondary-foreground']));
+      // styles.css `.ios .btn.sec`: the quiet fill with accent text.
+      expect(tonal).toEqual(expect.arrayContaining(['bg-secondary', 'text-accent-text']));
+      expect(tonal).not.toContain('text-secondary-foreground');
+      // styles.css `.btn.dng`: a tint of the danger colour with danger text, not a filled button.
+      // The tint percentages are the destructive Button's, which a token test holds to 4.5:1.
       expect(danger).toEqual(
-        expect.arrayContaining(['bg-action-danger-bg', 'text-action-danger-fg']),
+        expect.arrayContaining([
+          'bg-destructive/10',
+          'text-destructive',
+          'dark:bg-destructive/15',
+          'hover:bg-destructive/15',
+          'dark:hover:bg-destructive/20',
+        ]),
       );
+      expect(danger).not.toContain('bg-action-danger-bg');
       expect(ghost).toContain('text-accent-text');
     });
 
@@ -245,12 +256,21 @@ describe('E020 web kit', () => {
         /<p[^>]*id="name-error"[^>]*>\s*<svg[^>]*aria-hidden="true"[\s\S]*<\/svg>\s*Vul een naam in\.\s*<\/p>/,
       );
       expect(classesOf(markup, 'id="name-error"')).toContain('text-status-danger-fg');
-      expect(classesOf(markup, 'data-slot="input"')).toEqual(
+      // The label turns red, and the input gets a solid red border with a 3px ring at 18%, in
+      // both modes (the input's own dark 50% border and 40% ring are replaced).
+      expect(classesOf(markup, 'for="name"')).toContain('text-status-danger-fg');
+      const inputClasses = classesOf(markup, 'data-slot="input"');
+      expect(inputClasses).toEqual(
         expect.arrayContaining([
           'aria-invalid:border-destructive',
-          'aria-invalid:ring-destructive',
+          'aria-invalid:ring-3',
+          'aria-invalid:ring-destructive/18',
+          'dark:aria-invalid:border-destructive',
+          'dark:aria-invalid:ring-destructive/18',
         ]),
       );
+      expect(inputClasses).not.toContain('dark:aria-invalid:border-destructive/50');
+      expect(inputClasses).not.toContain('dark:aria-invalid:ring-destructive/40');
       // The message comes after the input.
       expect(markup.indexOf('<input')).toBeLessThan(markup.indexOf('name-error"'));
     });
@@ -265,6 +285,20 @@ describe('E020 web kit', () => {
       expect(error).toContain('aria-describedby="name-error"');
     });
 
+    it('keeps the label as it is without an error', () => {
+      expect(classesOf(html(<Field id="name" label="Naam" />), 'for="name"')).not.toContain(
+        'text-status-danger-fg',
+      );
+    });
+
+    it('adds the message to the descriptions the caller gave', () => {
+      const markup = html(<Field id="name" label="Naam" error="Fout." aria-describedby="elders" />);
+      const plain = html(<Field id="name" label="Naam" aria-describedby="elders" />);
+
+      expect(markup).toContain('aria-describedby="name-error elders"');
+      expect(plain).toContain('aria-describedby="elders"');
+    });
+
     it('passes input attributes on', () => {
       const markup = html(
         <Field id="email" label="E-mail" type="email" autoComplete="email" required />,
@@ -277,23 +311,61 @@ describe('E020 web kit', () => {
   });
 
   describe('AC14: toast with a warning icon', () => {
-    it('announces politely, on the inverse colours', () => {
+    it('on the trainer web is the inverse of the page, radius 10, bottom right', () => {
       const markup = html(<Toast>Opgeslagen</Toast>);
 
       expect(markup).toContain('role="status"');
       expect(markup).toContain('Opgeslagen');
       expect(markup).not.toContain('<svg');
       expect(classesOf(markup, 'data-slot="toast"')).toEqual(
-        expect.arrayContaining(['bg-foreground', 'text-background', 'rounded-full']),
+        expect.arrayContaining([
+          'bg-foreground',
+          'text-background',
+          'rounded-[10px]',
+          'right-7',
+          'bottom-7',
+        ]),
       );
     });
 
-    it('shows a warning icon and announces at once for a warning', () => {
+    it('on the trainer web, a warning is a red fill with white text and icon, announced at once', () => {
       const markup = html(<Toast tone="warning">Niet opgeslagen</Toast>);
 
       expect(markup).toContain('role="alert"');
       expect(markup).toMatch(/<svg[^>]*aria-hidden="true"/);
       expect(markup).toContain('Niet opgeslagen');
+      const classes = classesOf(markup, 'data-slot="toast"');
+      expect(classes).toEqual(
+        expect.arrayContaining(['bg-action-danger-bg', 'text-action-danger-fg']),
+      );
+      expect(classes).not.toContain('bg-foreground');
+    });
+
+    it('on the client web is a glass pill above the tab bar, with the warning icon in danger', () => {
+      const plain = classesOf(
+        html(<Toast surface="client">Opgeslagen</Toast>),
+        'data-slot="toast"',
+      );
+      const warning = html(
+        <Toast surface="client" tone="warning">
+          Niet opgeslagen
+        </Toast>,
+      );
+
+      expect(plain).toEqual(
+        expect.arrayContaining([
+          'glass',
+          'rounded-full',
+          'text-foreground',
+          'bottom-26',
+          'left-1/2',
+          '-translate-x-1/2',
+        ]),
+      );
+      expect(plain).not.toContain('bg-foreground');
+      expect(warning).toContain('role="alert"');
+      expect(classesOf(warning, 'data-slot="toast"')).toContain('glass');
+      expect(classesOf(warning, 'aria-hidden="true"')).toContain('text-status-danger-fg');
     });
   });
 
@@ -358,6 +430,12 @@ describe('E020 web kit stylesheet', () => {
       <Field key="h" id="h" label="x" error="x" />,
       <Toast key="i">x</Toast>,
       <Toast key="j" tone="warning">
+        x
+      </Toast>,
+      <Toast key="j2" surface="client">
+        x
+      </Toast>,
+      <Toast key="j3" surface="client" tone="warning">
         x
       </Toast>,
       <ClientLayout key="k" header="x">

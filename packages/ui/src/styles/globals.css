@@ -101,3 +101,12 @@
   outline: var(--th-border-width-focus) solid var(--ring);
   outline-offset: 2px;
 }
+
+/*
+ * An inset list clips its rows to the rounded card, so the 2px-offset ring of a link or button that
+ * fills a row would be cut off on the list's edges (WCAG 2.4.7). Inside a list it is drawn inside
+ * the row. Unlayered and after the rule above, so it wins.
+ */
+[data-slot="inset-list"] :focus-visible {
+  outline-offset: -2px;
+}

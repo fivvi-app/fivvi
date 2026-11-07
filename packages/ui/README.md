@@ -43,13 +43,13 @@ A layout opts in to the client theme with `data-theme="client"` on any element: 
 | Block | What |
 |---|---|
 | `ProCard` | The card: `rounded-card` (26px), the theme's card colours, 16px padding. The shadcn `Card` stays for the trainer web |
-| `InsetList`, `InsetListItem` | Inset grouped list: rows in one rounded card, a hairline between them that starts 16px in |
-| `PillButton`, `PillButtonStack` | Pill button: 50px high, fully rounded; variants `primary` (accent), `tonal`, `danger` (filled red, white on `#D93033`) and `ghost`; `asChild` for a link. In a stack each is full width and 48px high with 10px between |
+| `InsetList`, `InsetListItem` | Inset grouped list: rows in one rounded card, a hairline between them that starts 16px in. The list clips its rows, so a stylesheet rule draws the focus ring of anything inside it 2px inside (`outline-offset: -2px`) |
+| `PillButton`, `PillButtonStack` | Pill button: 50px high, fully rounded; variants `primary` (accent), `tonal` (the quiet fill with accent text), `danger` (a tint of red with red text, the destructive `Button`'s tints) and `ghost` (accent text); the filled red `bg-action-danger-bg` is for the trainer web's dialogs; `asChild` for a link. In a stack each is full width and 48px high with 10px between |
 | `RoundButton` | A round 48px control (the + button, the header's back button) with an icon; `aria-label` is required; variants `primary`, `tonal`, `glass` |
 | `NextCard` | The gradient "next" card in the accent or a session type (`private`, `group`): one hue from the gradient tokens, with the on-colour text. Open Gym is not offered: no screen uses it yet |
 | `StatusPill` | A status or session type: its tint with the text colour that passes on it (`neutral`, `success`, `warning`, `danger`, `private`, `group`) |
-| `Field` | Label, input and hint; with an `error` the field turns red (`aria-invalid`), a warning icon and the message come under it and the input points at it (`aria-describedby`) |
-| `Toast` | On the inverse of the page colours; a `warning` toast has a warning icon and is announced at once. The icon takes the text colour |
+| `Field` | Label, input and hint; with an `error` the label and the field turn red (a solid border with a 3px ring at 18%, in light and dark), a warning icon and the message come under it, and the input points at it (`aria-invalid`, `aria-describedby`, added to the caller's) |
+| `Toast` | `surface="trainer"` (default): the inverse of the page, radius 10, bottom right; a `warning` is a red fill with white text and icon. `surface="client"`: a glass pill above the tab bar, the warning icon in the danger colour. A `warning` is announced at once (`role="alert"`) |
 | `ClientLayout` | The client web's layout: the client theme, the touch density, a sticky glass header and a column |
 
 Utilities from the stylesheet: `rounded-card` (the `radius.card` token), `glass` (the glass tokens, blurred; a solid fill with reduced transparency) and `numeric` (below).
@@ -71,7 +71,7 @@ A page picks its density with a `data-density` attribute on a layout element, no
 
 ## Fonts
 
-All text uses the system stack (`font-sans`, the default); no web font is loaded. There is no `font-display` any more (Design v2, [#590](https://github.com/fivvi-app/fivvi/issues/590)). Numbers use the rounded face with tabular digits: the `numeric` utility (the token `font.family.numeric`, `ui-rounded` first, with `tabular-nums`) for times, counts and amounts; `font-numeric tabular-nums` says the same. A test fails when a source loads a web font (`test/no-web-font.test.ts`).
+All text uses the system stack (`font-sans`, the default); no web font is loaded. There is no `font-display` any more (Design v2, [#590](https://github.com/fivvi-app/fivvi/issues/590)). Numbers use the rounded face with tabular digits: the `numeric` utility (the token `font.family.numeric`, `ui-rounded` first, with `tabular-nums`) for times, counts and amounts; `font-numeric tabular-nums` says the same. A test fails when a source loads a web font (`apps/web/test/no-web-font.test.ts`, in the web app so it reruns when the app, this package or the tokens change).
 
 ## Adding a component
 
