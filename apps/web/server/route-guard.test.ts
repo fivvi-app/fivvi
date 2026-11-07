@@ -276,6 +276,11 @@ describe('F001 AC13 route guard', () => {
       ['/en/gyms', true],
       ['/prijzen', true],
       ['/en/sub-processors', true],
+      // F064: the website's images, in whole folders; the app's own paths stay guarded.
+      ['/site-images/scenes/gym-400.webp', true],
+      ['/site-images/shots/app-home-nl-light-320.webp', true],
+      ['/site-images', true],
+      ['/site-imagesx/a.webp', false],
       ['/en/', false],
       ['/en/gyms/x', false],
       ['/english', false],

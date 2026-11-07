@@ -369,7 +369,188 @@
       "headline": "You train.",
       "headlineRest": "Fivvi handles the rest.",
       "lead": "Calendar, bookings, credits, payments and invoices in one place. Made for personal trainers, studios and gyms, and a pleasure for their clients.",
-      "status": "Fivvi is being built right now, together with our first gym. Ask in the demo what's ready."
+      "status": "Fivvi is being built right now, together with our first gym. Ask in the demo what's ready.",
+      "iAm": {
+        "label": "I am",
+        "gym": "Gym with a team",
+        "studio": "Studio",
+        "pt": "Personal trainer",
+        "client": "Client"
+      },
+      "seeFor": "See what Fivvi does for you",
+      "audience": {
+        "gym": {
+          "short": "One calendar for all your trainers, and always a clear view of who still has to pay.",
+          "cardTitle": "Gyms with a team"
+        },
+        "studio": {
+          "short": "Full classes, a tidy waitlist and clients who book themselves.",
+          "cardTitle": "Pilates and yoga studios"
+        },
+        "pt": {
+          "short": "Your whole day in your pocket: who's coming, what you did last time and what's left.",
+          "cardTitle": "Personal trainers"
+        },
+        "client": {
+          "short": "Book your class in a few taps and always see what's on your balance.",
+          "cardTitle": "And their clients"
+        }
+      },
+      "onePlace": {
+        "eyebrow": "The problem",
+        "heading": "Your business lives in five places.",
+        "lead": "Every separate tool is a place where something can go wrong. In Fivvi everything is connected, so there is nothing to retype.",
+        "calendar": "Calendar app",
+        "documents": "Word documents",
+        "invoices": "Invoices by hand",
+        "messages": "Booking by message",
+        "app": "A separate booking and payment app",
+        "inFivvi": "in Fivvi",
+        "fivvi": "Fivvi",
+        "everything": "everything in one place"
+      },
+      "chain": {
+        "eyebrow": "The difference",
+        "heading": "One booking. Everything adds up.",
+        "lead": "Try it. Book the class and watch what happens by itself.",
+        "steps": {
+          "pack": {
+            "title": "Credit pack",
+            "text": "Lisa buys 10 group credits and pays with iDEAL."
+          },
+          "payment": {
+            "title": "Payment",
+            "text": "The money goes straight to the studio, not through Fivvi."
+          },
+          "invoice": {
+            "title": "Invoice",
+            "text": "The invoice follows the payment by itself."
+          },
+          "booking": {
+            "title": "Booking",
+            "text": "She books herself, and one credit is planned."
+          },
+          "attendance": {
+            "title": "Attendance",
+            "text": "The trainer ticks her off in the app."
+          },
+          "balance": {
+            "title": "Balance",
+            "text": "Lisa and the owner see the same balance."
+          }
+        },
+        "card": {
+          "title": "Timetable · Reformer",
+          "class": "Reformer",
+          "when": "tonight · 4 spots left",
+          "left": "left",
+          "planned": "planned",
+          "used": "used",
+          "book": "Book",
+          "confirm": "Confirm booking",
+          "back": "Back",
+          "attend": "Mark attendance (trainer)",
+          "again": "Once more",
+          "confirmTitle": "Reformer, tonight 18:00.",
+          "confirmBody": "This uses 1 group credit, leaving you {left}. You can cancel for free up to 12 hours before.",
+          "say0": "Lisa has {count} group credits left.",
+          "say1": "Booked. One credit is planned and comes back if she cancels in time.",
+          "say2": "Attended. The credit is used, and nobody had to keep track."
+        },
+        "statusDone": "Done",
+        "statusLive": "In progress"
+      },
+      "forWhom": {
+        "eyebrow": "Who it's for",
+        "heading": "Your day looks different. So does Fivvi.",
+        "lead": "Fivvi only shows what you do. An independent trainer never sees group classes. A yoga studio never sees workout screens.",
+        "readDay": "Read their day"
+      },
+      "platforms": {
+        "eyebrow": "Everywhere",
+        "heading": "At home on every screen.",
+        "lead": "The apps for iPhone and Android are coming, with iOS glass and the Android style. In your browser you'll find the same calm.",
+        "owners": "Owners and trainers",
+        "clients": "Clients",
+        "items": {
+          "proIphone": {
+            "title": "Fivvi Pro on iPhone",
+            "text": "Your day, clients and workouts, always at hand."
+          },
+          "proAndroid": {
+            "title": "Fivvi Pro on Android",
+            "text": "Everything the iPhone does, the Android way."
+          },
+          "proLaptop": {
+            "title": "Fivvi on your laptop",
+            "text": "Offers, trainers, payments and invoices on a big screen, with what needs attention at the top."
+          },
+          "clientIphone": {
+            "title": "Fivvi on iPhone",
+            "text": "Your next class, this week and your balance on one screen."
+          },
+          "clientAndroid": {
+            "title": "Fivvi on Android",
+            "text": "The same app, the Android way."
+          },
+          "clientBrowser": {
+            "title": "Fivvi in your browser",
+            "text": "No app needed: book through your studio's link."
+          }
+        }
+      },
+      "promises": {
+        "eyebrow": "What you can count on",
+        "heading": "Simple, and properly done.",
+        "items": {
+          "money": {
+            "title": "The money goes straight to you",
+            "text": "You connect your own Mollie account in one guided step. Fivvi never holds client money."
+          },
+          "cash": {
+            "title": "Cash or card is fine too",
+            "text": "Record a payment outside Fivvi on the client's profile. Skipping Mollie is possible too; Fivvi first tells you what you'd miss."
+          },
+          "notes": {
+            "title": "Notes stay with the trainer",
+            "text": "Trainer notes are for trainers only. Clients don't see them."
+          },
+          "amounts": {
+            "title": "Trainers don't see amounts",
+            "text": "A trainer sees clients' balances, but no money. Owners see the amounts too."
+          },
+          "noApp": {
+            "title": "Clients don't need an app",
+            "text": "A link or QR code, their email address and a 6-digit code. No password."
+          },
+          "languages": {
+            "title": "Dutch and English",
+            "text": "Everything exists in both languages, and everyone chooses their own."
+          }
+        }
+      },
+      "cta": {
+        "heading": "What does your day look like in Fivvi?",
+        "text": "Book a demo. We'll show Fivvi with your kind of business, and you'll know right away if it fits.",
+        "pricing": "See pricing"
+      },
+      "fictional": "All examples on this site are fictional.",
+      "screens": {
+        "proTodayGym": "Fivvi Pro: the whole studio's day, with a lane per trainer",
+        "proTodaySolo": "Fivvi Pro: an independent trainer's day",
+        "proTodayPilates": "Fivvi Pro: a pilates studio's day",
+        "proTodayAndroid": "Fivvi Pro on Android: today's day",
+        "proClient": "Fivvi Pro: client profile with balance, last workout and progress",
+        "proLog": "Fivvi Pro: logging a workout, set by set",
+        "appHome": "Fivvi: Home with the next class and this week",
+        "appBook": "Fivvi: the timetable with Book on every class",
+        "appCredit": "Fivvi: profile with balance per kind",
+        "appAndroid": "Fivvi on Android: Home with the next class",
+        "cwTimetable": "Client web: the timetable in the browser",
+        "webDashboard": "Trainer web: dashboard with what needs attention",
+        "webClassPilates": "Trainer web: a class on a date with attendance and waitlist",
+        "webAgenda": "Trainer web: the calendar per trainer"
+      }
     },
     "footer": {
       "label": "Footer",

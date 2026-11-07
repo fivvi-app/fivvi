@@ -9,7 +9,7 @@ CAPTURE_OUT=/tmp/fivvi-shots node docs/design/website/capture.cjs
 node docs/design/website/build-legal.cjs
 ```
 
-`capture.cjs` writes PNGs; convert the ones the pages use to `assets/shots/<id>-<lang>-<mode>.webp` with `cwebp -q 80`. Screens come from the prototype, so they follow it.
+`capture.cjs` writes PNGs. The real site (`apps/web`) serves the ones its pages use as responsive WebP files: `node docs/design/website/publish-shots.cjs <png folder> <shot-id ...>` makes them in `apps/web/public/site-images/shots` (needs `cwebp`), and `apps/web/site/home/screens.ts` lists the ones the home page uses. The artifact's own `assets/shots/` is made by hand with `cwebp -q 80`. Screens come from the prototype, so they follow it.
 
 | File | What |
 |---|---|
@@ -17,7 +17,8 @@ node docs/design/website/build-legal.cjs
 | `content.js`, `pages.js` | The words, Dutch first; a few on the design-choices page sit in `site.js` |
 | `capture.cjs` | Captures the prototype's screens, in Dutch and English, light and dark |
 | `build-legal.cjs` | Makes `legal.js` from `docs/legal`, so the legal pages show the current drafts |
-| `assets/scenes/` | The miniatures |
+| `publish-shots.cjs` | Turns captured PNGs into the responsive WebP files of `apps/web/public/site-images/shots` |
+| `apps/web/public/site-images/scenes/` | The miniatures, in 400 and 800 px (moved from `assets/scenes/`, #638) |
 
 ## Images
 
