@@ -106,6 +106,18 @@ class GoogleSansFlexTest {
     }
 
     @Test
+    fun E020_AC11_aTabularStyleKeepsTheFaceOfItsTextSoWordsAreNotRounded() {
+        val base = FivviTypography.labelMedium
+
+        val tabular = base.tabular()
+
+        assertEquals("tnum", tabular.fontFeatureSettings)
+        assertEquals(FivviFonts.GoogleSansFlex, tabular.fontFamily)
+        assertEquals(base.fontSize, tabular.fontSize)
+        assertEquals(base.fontWeight, tabular.fontWeight)
+    }
+
+    @Test
     fun E020_AC11_theNumericStyleKeepsTheSizeAndWeightOfTheStyleItIsAppliedTo() {
         val base = FivviTypography.titleLarge
 

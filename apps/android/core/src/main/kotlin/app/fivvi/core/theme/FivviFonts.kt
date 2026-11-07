@@ -46,7 +46,15 @@ object FivviFonts {
 val FivviTypography: Typography = Typography(fontFamily = FivviFonts.GoogleSansFlex)
 
 /**
- * The style for numbers (AC11): Google Sans Flex's round axis with tabular digits, so a column of times or counts lines
- * up. Size, weight and line height stay those of the style it is applied to.
+ * Tabular digits (`tnum`), so every digit is as wide as the others and a column of counts lines up, in the face of the
+ * style it is applied to. For a count inside a word ("Vol 3/8") where the round numerals of [numeric] would also round
+ * the word.
  */
-fun TextStyle.numeric(): TextStyle = copy(fontFamily = FivviFonts.GoogleSansFlexRounded, fontFeatureSettings = "tnum")
+fun TextStyle.tabular(): TextStyle = copy(fontFeatureSettings = "tnum")
+
+/**
+ * The style for numbers on their own, such as a time or a weight (AC11): Google Sans Flex's round axis with tabular
+ * digits. Size, weight and line height stay those of the style it is applied to. The generated `Typography.numericXl`
+ * is the size and role only (its note says "+ tnum"); use `numericXl.numeric()`.
+ */
+fun TextStyle.numeric(): TextStyle = tabular().copy(fontFamily = FivviFonts.GoogleSansFlexRounded)

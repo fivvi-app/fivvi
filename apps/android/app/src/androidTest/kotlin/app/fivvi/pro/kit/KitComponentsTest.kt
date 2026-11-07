@@ -28,6 +28,7 @@ import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import app.fivvi.core.AppLanguage
@@ -59,7 +60,10 @@ import app.fivvi.core.kit.ToastHost
 import app.fivvi.core.kit.ToastVisuals
 import app.fivvi.core.kit.pillColors
 import app.fivvi.core.kit.sessionColors
+import app.fivvi.core.theme.FivviFonts
+import app.fivvi.core.theme.FivviTypography
 import app.fivvi.pro.localizedString
+import app.fivvi.pro.textLayout
 import kotlin.math.abs
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -121,8 +125,11 @@ class KitComponentsTest(
         val first = compose.onNodeWithTag("list").getUnclippedBoundsInRoot()
         assertEquals(phone, first.right - first.left)
         val rows = (0..2).map { compose.onNodeWithTag("row$it").getUnclippedBoundsInRoot() }
-        // The rows are `ListRow`s inside separate surfaces, so the surfaces are the two gaps apart.
-        assertTrue("rows are in order", rows[0].bottom <= rows[1].top && rows[1].bottom <= rows[2].top)
+        // The rows are `ListRow`s that fill separate surfaces, so the gap between two rows is the gap between surfaces.
+        for ((above, below) in rows.zipWithNext()) {
+            val gap = below.top - above.bottom
+            assertTrue("rows are $gap apart, not 2 dp", abs((gap - GroupGap).value) < 0.5f)
+        }
         assertEquals(2.dp, GroupGap)
         val fill = mode.tokens.bgSurface
         val list = compose.onNodeWithTag("list").pixels()
@@ -239,6 +246,10 @@ class KitComponentsTest(
             val colours = tokens.pillColors(tone)
             val pill = compose.onNodeWithTag("pill-$tone")
             pill.assert(hasText("Vol 3/8"))
+            // Tabular digits, but the words stay in the plain face (the round axis is for numbers on their own).
+            val style = pill.textLayout().layoutInput.style
+            assertEquals("$tone: tabular", "tnum", style.fontFeatureSettings)
+            assertEquals("$tone: plain face", FivviFonts.GoogleSansFlex, style.fontFamily)
             val pixels = pill.pixels()
             assertTrue("$tone: tint", pixels.isFilled(2.dp.px(), pixels.height / 2, colours.container))
         }
@@ -278,17 +289,31 @@ class KitComponentsTest(
         val clover = compose.onNodeWithTag("clover").pixels()
         val cookieFill = tokens.sessionColors(SessionType.Private).tint
         val cloverFill = tokens.sessionColors(SessionType.Group).tint
-        val cookieShare = cookie.filledShare(cookieFill)
-        val cloverShare = clover.filledShare(cloverFill)
-        // Neither is a square or a circle (a circle fills 78% of its square) and they differ from each other.
-        assertTrue("cookie covers $cookieShare of its square", cookieShare in 0.55f..0.85f)
-        assertTrue("clover covers $cloverShare of its square", cloverShare in 0.45f..0.85f)
-        assertTrue("the cookie is not the clover", abs(cookieShare - cloverShare) > 0.02f || cookieFill != cloverFill)
+        // The shapes themselves: neither is a square (the corner is empty) nor the plain circle that a rounded box would
+        // give. Away from the letters, a circle and the avatar disagree where the cookie's scallops and the clover's
+        // notches are; a plain circle would disagree nowhere.
         assertFalse(cookie.isFilled(0, 0, cookieFill))
         assertFalse(clover.isFilled(0, 0, cloverFill))
+        val cookieNotCircle = cookie.circleDisagreement(cookieFill)
+        val cloverNotCircle = clover.circleDisagreement(cloverFill)
+        assertTrue("the cookie differs from a circle by $cookieNotCircle", cookieNotCircle > 0.015f)
+        assertTrue("the clover differs from a circle by $cloverNotCircle", cloverNotCircle > 0.05f)
+        // A clover has four leaves, here with their tips on the diagonals and the notches on the axes: from the middle
+        // outwards, the fill reaches less far along an axis than along a diagonal (a circle reaches as far in every
+        // direction).
+        val axis = clover.reach(0f, -1f, cloverFill)
+        val diagonal = clover.reach(0.7071f, 0.7071f, cloverFill)
+        assertTrue("the clover reaches $axis along an axis and $diagonal on its diagonal", axis < diagonal * 0.9f)
+        assertNotEquals("the shapes differ", cookieNotCircle, cloverNotCircle)
         compose.onNode(hasAnyAncestor(hasTestTag("private-row")) and hasText("08:30")).assertIsDisplayed()
         compose.onNode(hasAnyAncestor(hasTestTag("private-row")) and hasText("Anna de Vries")).assertIsDisplayed()
         compose.onNode(hasAnyAncestor(hasTestTag("group-row")) and hasText("09:30")).assertIsDisplayed()
+        // The time is the prototype's: 14 sp, semibold, tabular, in the round face.
+        val timeStyle = compose.onNode(hasText("08:30")).textLayout().layoutInput.style
+        assertEquals(FivviTypography.bodyMedium.fontSize, timeStyle.fontSize)
+        assertEquals(FontWeight.SemiBold, timeStyle.fontWeight)
+        assertEquals("tnum", timeStyle.fontFeatureSettings)
+        assertEquals(FivviFonts.GoogleSansFlexRounded, timeStyle.fontFamily)
         // The time is on the right of the title.
         val title = compose.onNode(hasText("Anna de Vries")).getUnclippedBoundsInRoot()
         val time = compose.onNode(hasText("08:30")).getUnclippedBoundsInRoot()
@@ -347,6 +372,41 @@ class KitComponentsTest(
         )
         compose.onNodeWithTag("choice.en").performClick()
         assertEquals("en", chosen)
+    }
+
+    @Test
+    fun E020_AC10_segmentLabelsAreNotCutOffAtTheLargestFontScaleOnASmallPhone() {
+        compose.showKit(mode, language, fontScale = 2f, width = 320.dp) {
+            SegmentedChoice(
+                options = listOf(
+                    SegmentedOption("nl", label(R.string.settings_language_option_nl), "choice.nl"),
+                    SegmentedOption("en", label(R.string.settings_language_option_en), "choice.en"),
+                ),
+                selected = "nl",
+                onSelect = {},
+            )
+        }
+
+        for ((tag, text) in listOf(
+            "choice.nl" to label(R.string.settings_language_option_nl),
+            "choice.en" to label(R.string.settings_language_option_en),
+        )) {
+            val node = compose.onNode(hasAnyAncestor(hasTestTag(tag)) and hasText(text), useUnmergedTree = true)
+            val layout = node.textLayout()
+            // Every line is shown (the text is whole and no line is dropped) and the label stays inside its segment, so
+            // nothing is clipped at the segment's edge (within the 2 dp that the label's box may reach into its padding). A long
+            // word may wrap inside the word.
+            assertEquals("$text shows in full", text, layout.layoutInput.text.text)
+            assertFalse("$text loses lines", layout.didOverflowHeight)
+            assertEquals("$text stays whole on one line, not broken inside the word", 1, layout.lineCount)
+            val segment = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot()
+            val shown = node.getUnclippedBoundsInRoot()
+            assertTrue(
+                "$text $shown is inside its segment $segment",
+                shown.left >= segment.left - 2.dp && shown.right <= segment.right + 2.dp &&
+                    shown.top >= segment.top && shown.bottom <= segment.bottom,
+            )
+        }
     }
 
     @Test
@@ -422,15 +482,28 @@ class KitComponentsTest(
     }
 
     @Test
-    fun E020_AC14_theToastHostShowsAWarningToastFromItsVisuals() {
-        val host = SnackbarHostState()
+    fun E020_AC14_theToastHostShowsAWarningToastFromItsVisualsWithTheIcon() {
+        val warning = SnackbarHostState()
+        val plain = SnackbarHostState()
         show {
-            LaunchedEffect(Unit) { host.showSnackbar(ToastVisuals("Niet opgeslagen", warning = true)) }
-            ToastHost(host)
+            Column {
+                LaunchedEffect(Unit) { warning.showSnackbar(ToastVisuals("Niet opgeslagen", warning = true)) }
+                LaunchedEffect(Unit) { plain.showSnackbar(ToastVisuals("Opgeslagen", warning = false)) }
+                ToastHost(warning, Modifier.testTag("warning-host"))
+                ToastHost(plain, Modifier.testTag("plain-host"))
+            }
         }
 
-        compose.waitUntil(5_000) { compose.onAllNodes(hasText("Niet opgeslagen")).fetchSemanticsNodes().isNotEmpty() }
-        compose.onNode(hasText("Niet opgeslagen")).assertIsDisplayed()
+        compose.waitUntil(5_000) {
+            compose.onAllNodes(hasText("Niet opgeslagen")).fetchSemanticsNodes().isNotEmpty() &&
+                compose.onAllNodes(hasText("Opgeslagen")).fetchSemanticsNodes().isNotEmpty()
+        }
+        // The warning toast's text starts further in, behind the warning icon, and only the visuals tell them apart.
+        val warningIndent = compose.onNode(hasText("Niet opgeslagen")).getUnclippedBoundsInRoot().left -
+            compose.onNodeWithTag("warning-host").getUnclippedBoundsInRoot().left
+        val plainIndent = compose.onNode(hasText("Opgeslagen")).getUnclippedBoundsInRoot().left -
+            compose.onNodeWithTag("plain-host").getUnclippedBoundsInRoot().left
+        assertTrue("indents: warning $warningIndent, plain $plainIndent", warningIndent > plainIndent + 20.dp)
     }
 
     companion object {

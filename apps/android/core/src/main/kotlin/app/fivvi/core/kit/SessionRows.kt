@@ -27,7 +27,6 @@ import androidx.compose.ui.unit.dp
 import app.fivvi.core.theme.numeric
 import app.fivvi.core.theme.tokens
 import app.fivvi.designtokens.Spacing
-import app.fivvi.designtokens.body
 import app.fivvi.designtokens.headline
 import app.fivvi.designtokens.subhead
 
@@ -98,7 +97,8 @@ fun ListRow(
             Text(
                 trailing,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.body.numeric(),
+                // The prototype's Android time: 14, semibold, tabular and rounded.
+                style = MaterialTheme.typography.subhead.numeric().copy(fontWeight = FontWeight.SemiBold),
                 textAlign = TextAlign.End,
             )
         }

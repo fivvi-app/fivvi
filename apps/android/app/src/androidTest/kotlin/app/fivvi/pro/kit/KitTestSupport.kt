@@ -75,3 +75,38 @@ fun PixelMap.filledShare(colour: Color, tolerance: Float = 0.05f): Float {
     for (y in 0 until height) for (x in 0 until width) if (isFilled(x, y, colour, tolerance)) filled++
     return filled.toFloat() / (width * height)
 }
+
+/**
+ * The share of the pixels outside the middle (where letters sit) that disagree with the circle inscribed in this square:
+ * filled outside it, or empty inside it. The band at its rim, where anti-aliasing blends, is left out. A plain circle
+ * disagrees almost nowhere; a scalloped or notched shape does.
+ */
+fun PixelMap.circleDisagreement(colour: Color, tolerance: Float = 0.05f): Float {
+    val radius = width / 2f
+    var examined = 0
+    var disagreeing = 0
+    for (y in 0 until height) {
+        for (x in 0 until width) {
+            val distance = kotlin.math.hypot(x + 0.5f - radius, y + 0.5f - radius)
+            if (distance < radius * 0.7f || abs(distance - radius) < 2f) continue
+            examined++
+            if (isFilled(x, y, colour, tolerance) != (distance < radius)) disagreeing++
+        }
+    }
+    return disagreeing.toFloat() / examined
+}
+
+/**
+ * How far, in pixels from the middle of this square, the fill reaches in the direction ([dx], [dy]): the distance of the
+ * first pixel that is not filled, walking out from 0.65 of the radius (inside, where letters sit, is not looked at).
+ */
+fun PixelMap.reach(dx: Float, dy: Float, colour: Color): Float {
+    val middle = width / 2f
+    var distance = middle * 0.65f
+    while (distance < middle * 1.5f &&
+        isFilled((middle + dx * distance).toInt(), (middle + dy * distance).toInt(), colour)
+    ) {
+        distance += 1f
+    }
+    return distance
+}
