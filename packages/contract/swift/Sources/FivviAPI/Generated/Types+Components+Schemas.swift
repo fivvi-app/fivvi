@@ -1136,6 +1136,131 @@ extension Components {
                 case code
             }
         }
+        /// Too many demo requests from this network, or from everyone, in the last hour.
+        ///
+        /// - Remark: Generated from `#/components/schemas/DemoRequestRateLimited`.
+        public struct DemoRequestRateLimited: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/DemoRequestRateLimited/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case rateLimited = "rate_limited"
+            }
+            /// - Remark: Generated from `#/components/schemas/DemoRequestRateLimited/code`.
+            public var code: Components.Schemas.DemoRequestRateLimited.CodePayload
+            /// Creates a new `DemoRequestRateLimited`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            public init(code: Components.Schemas.DemoRequestRateLimited.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+            }
+        }
+        /// The email could not be sent. Nothing was stored; the visitor may try again later or write to the support address. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/DemoRequestUnavailable`.
+        public struct DemoRequestUnavailable: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/DemoRequestUnavailable/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case unavailable = "unavailable"
+            }
+            /// - Remark: Generated from `#/components/schemas/DemoRequestUnavailable/code`.
+            public var code: Components.Schemas.DemoRequestUnavailable.CodePayload
+            /// Creates a new `DemoRequestUnavailable`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            public init(code: Components.Schemas.DemoRequestUnavailable.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+            }
+        }
+        /// A visitor’s request for a demo. `locale` is the language of the page they used, which the answer follows.
+        ///
+        /// - Remark: Generated from `#/components/schemas/DemoRequest`.
+        public struct DemoRequest: Codable, Hashable, Sendable {
+            /// The visitor’s name: 1 to 100 characters, on one line.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DemoRequest/name`.
+            public var name: Swift.String
+            /// The address to answer. No email is sent to it by this request.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DemoRequest/email`.
+            public var email: Swift.String
+            /// The kind of business: a gym with a team, a pilates or yoga studio, or a PT.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DemoRequest/businessKind`.
+            @frozen public enum BusinessKindPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case gym = "gym"
+                case studio = "studio"
+                case personalTrainer = "personal-trainer"
+            }
+            /// The kind of business: a gym with a team, a pilates or yoga studio, or a PT.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DemoRequest/businessKind`.
+            public var businessKind: Components.Schemas.DemoRequest.BusinessKindPayload
+            /// How many trainers the business has.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DemoRequest/trainerCount`.
+            @frozen public enum TrainerCountPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case one = "one"
+                case twoToFour = "two-to-four"
+                case fiveOrMore = "five-or-more"
+            }
+            /// How many trainers the business has.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DemoRequest/trainerCount`.
+            public var trainerCount: Components.Schemas.DemoRequest.TrainerCountPayload
+            /// What the visitor would most like to see: up to 2000 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DemoRequest/message`.
+            public var message: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/DemoRequest/locale`.
+            public var locale: Components.Schemas.Locale
+            /// A honeypot: the form hides this field from people. Leave it empty or out. A request that fills it is dropped without an email, and gets the same answer as any other.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DemoRequest/website`.
+            public var website: Swift.String?
+            /// Creates a new `DemoRequest`.
+            ///
+            /// - Parameters:
+            ///   - name: The visitor’s name: 1 to 100 characters, on one line.
+            ///   - email: The address to answer. No email is sent to it by this request.
+            ///   - businessKind: The kind of business: a gym with a team, a pilates or yoga studio, or a PT.
+            ///   - trainerCount: How many trainers the business has.
+            ///   - message: What the visitor would most like to see: up to 2000 characters.
+            ///   - locale:
+            ///   - website: A honeypot: the form hides this field from people. Leave it empty or out. A request that fills it is dropped without an email, and gets the same answer as any other.
+            public init(
+                name: Swift.String,
+                email: Swift.String,
+                businessKind: Components.Schemas.DemoRequest.BusinessKindPayload,
+                trainerCount: Components.Schemas.DemoRequest.TrainerCountPayload,
+                message: Swift.String? = nil,
+                locale: Components.Schemas.Locale,
+                website: Swift.String? = nil
+            ) {
+                self.name = name
+                self.email = email
+                self.businessKind = businessKind
+                self.trainerCount = trainerCount
+                self.message = message
+                self.locale = locale
+                self.website = website
+            }
+            public enum CodingKeys: String, CodingKey {
+                case name
+                case email
+                case businessKind
+                case trainerCount
+                case message
+                case locale
+                case website
+            }
+        }
         /// A workspace: a gym or an independent trainer’s business.
         ///
         /// - Remark: Generated from `#/components/schemas/Workspace`.

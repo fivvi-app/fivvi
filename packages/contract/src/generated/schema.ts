@@ -188,6 +188,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/demo-requests": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask for a demo
+         * @description Sends one email with the answers to Fivvi’s support address. Nothing is stored and nothing about the visitor is logged; no email goes to the visitor. `400` names the invalid fields. A request that fills the `website` honeypot gets the `202` of any other and sends nothing. `429` after 5 requests from one network in an hour, or 60 from everyone. `503` when the email could not be sent.
+         */
+        post: operations["requestDemo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces": {
         parameters: {
             query?: never;
@@ -999,6 +1019,41 @@ export interface components {
             email: string;
             /** @description The 6-digit code in the email. */
             code: string;
+        };
+        /** @description Too many demo requests from this network, or from everyone, in the last hour. */
+        DemoRequestRateLimited: {
+            /** @enum {string} */
+            code: "rate_limited";
+        };
+        /** @description The email could not be sent. Nothing was stored; the visitor may try again later or write to the support address. Contains no user-facing text. */
+        DemoRequestUnavailable: {
+            /** @enum {string} */
+            code: "unavailable";
+        };
+        /** @description A visitor’s request for a demo. `locale` is the language of the page they used, which the answer follows. */
+        DemoRequest: {
+            /** @description The visitor’s name: 1 to 100 characters, on one line. */
+            name: string;
+            /**
+             * Format: email
+             * @description The address to answer. No email is sent to it by this request.
+             */
+            email: string;
+            /**
+             * @description The kind of business: a gym with a team, a pilates or yoga studio, or a PT.
+             * @enum {string}
+             */
+            businessKind: "gym" | "studio" | "personal-trainer";
+            /**
+             * @description How many trainers the business has.
+             * @enum {string}
+             */
+            trainerCount: "one" | "two-to-four" | "five-or-more";
+            /** @description What the visitor would most like to see: up to 2000 characters. */
+            message?: string;
+            locale: components["schemas"]["Locale"];
+            /** @description A honeypot: the form hides this field from people. Leave it empty or out. A request that fills it is dropped without an email, and gets the same answer as any other. */
+            website?: string;
         };
         /** @description A workspace: a gym or an independent trainer’s business. */
         Workspace: {
@@ -1933,6 +1988,64 @@ export interface operations {
                 };
                 content: {
                     "text/plain": string;
+                };
+            };
+        };
+    };
+    requestDemo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DemoRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted. The body is empty. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Too many requests. Try again later. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoRequestRateLimited"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+            /** @description The email could not be sent. */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DemoRequestUnavailable"];
                 };
             };
         };

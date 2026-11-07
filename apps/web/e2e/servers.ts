@@ -42,6 +42,13 @@ export const TEST_POSTHOG_HOST = 'https://posthog.e2e.test';
  */
 export const analyticsServer = server(port + 1000);
 
+/**
+ * Where the e2e servers send the demo requests of the website (`DEMO_REQUEST_TO`, F064): a fake
+ * mailbox on the fake Brevo server. Production sends them to the support address; every other
+ * environment logs mail to an `@example.com` address instead of sending it.
+ */
+export const DEMO_REQUEST_ADDRESS = 'support@fivvi.e2e.test';
+
 const brevoPort = port + 2000;
 
 /**

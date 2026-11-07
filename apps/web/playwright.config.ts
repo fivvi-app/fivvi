@@ -7,6 +7,7 @@ import {
   analyticsServer,
   appServer,
   brevoServer,
+  DEMO_REQUEST_ADDRESS,
   TEST_ANDROID_CERT_SHA256,
   TEST_APPLE_TEAM_ID,
   TEST_POSTHOG_HOST,
@@ -91,6 +92,8 @@ function standaloneServer(
       // A token in the developer's shell must never send e2e mail through real Lettermint; the fake Brevo
       // server keeps it until #403.
       LETTERMINT_API_TOKEN: '',
+      // The demo form's email goes to the fake mailbox, not the support address (F064).
+      DEMO_REQUEST_TO: DEMO_REQUEST_ADDRESS,
       EMAIL_FROM_ADDRESS: 'noreply@fivvi.e2e.test',
       EMAIL_FROM_NAME: 'Fivvi',
       // Closed sign-up (F001): only this domain gets an account at its first sign-in.
