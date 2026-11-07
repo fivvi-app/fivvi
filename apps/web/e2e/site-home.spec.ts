@@ -243,7 +243,6 @@ for (const locale of locales) {
         copy.forWhom.heading,
         copy.platforms.heading,
         copy.promises.heading,
-        copy.cta.heading,
       ]) {
         await expect(page.getByRole('heading', { name: heading, level: 2 })).toBeVisible();
       }

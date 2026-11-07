@@ -1,9 +1,10 @@
 import type { Locale } from '@fivvi/i18n';
-import { PillButton } from '@fivvi/ui/kit/pill-button';
 import Link from 'next/link';
 import type { ReactNode } from 'react';
+import { ContactCta } from '../info/contact-cta';
 import { linksTo } from '../navigation';
 import { builtPages, type SitePage, sitePagePath } from '../routes';
+import { StatusLine } from '../status-line';
 import { siteText } from '../text';
 import {
   AudienceArt,
@@ -111,19 +112,6 @@ export function Hero({ locale, built = builtPages }: { locale: Locale; built?: B
         <AudienceStage />
       </AudienceHero>
     </div>
-  );
-}
-
-/** The line every page carries: Fivvi is being built with its first gym (#611 AC19). */
-function StatusLine({ children }: { children: string }) {
-  return (
-    <p className="mt-4 flex max-w-[44em] items-baseline gap-2.5 text-[15px] leading-[1.35] text-secondary-foreground">
-      <span
-        aria-hidden="true"
-        className="size-2 flex-none -translate-y-px rounded-full bg-primary"
-      />
-      {children}
-    </p>
   );
 }
 
@@ -334,43 +322,23 @@ export function Promises({ locale }: { locale: Locale }) {
 }
 
 /**
- * The closing call to action. *Plan een demo* and *Bekijk de prijzen* appear once their pages
- * exist, so no button goes to a 404; the words stay.
+ * The closing call to action, the one the other pages share (`ContactCta`, `site.cta`): *Plan een
+ * demo* and *Bekijk de prijzen* appear once their pages exist, and with no demo page there is none.
  */
 export function Cta({ locale, built = builtPages }: { locale: Locale; built?: Built }) {
   const t = siteText(locale);
-  const [demo] = linksTo(['demo'], locale, built);
-  const [pricing] = linksTo(['pricing'], locale, built);
-  const buttons = demo || pricing;
   return (
-    <div className={`${container} mt-[clamp(56px,8vw,104px)]`}>
-      <div
-        className={classes(
-          'grid grid-cols-1 items-center gap-[clamp(20px,4vw,56px)] rounded-card bg-card p-[clamp(28px,5vw,64px)]',
-          buttons && 'min-[761px]:grid-cols-[minmax(0,3fr)_minmax(0,2fr)]',
-        )}
-      >
-        <div>
-          <h2 className="text-[clamp(32px,4.4vw,52px)] leading-[1.04] font-bold tracking-[-0.028em] text-balance">
-            {t('site.home.cta.heading')}
-          </h2>
-          <p className="mt-3 text-pretty text-muted-foreground">{t('site.home.cta.text')}</p>
-        </div>
-        {buttons ? (
-          <div className="grid gap-2.5">
-            {demo ? (
-              <PillButton asChild>
-                <Link href={demo.href}>{t(demo.labelKey)}</Link>
-              </PillButton>
-            ) : null}
-            {pricing ? (
-              <PillButton asChild variant="tonal">
-                <Link href={pricing.href}>{t('site.home.cta.pricing')}</Link>
-              </PillButton>
-            ) : null}
-          </div>
-        ) : null}
-      </div>
+    <div className={container}>
+      <ContactCta
+        locale={locale}
+        built={built}
+        copy={{
+          heading: t('site.cta.heading'),
+          text: t('site.cta.text'),
+          demo: t('site.cta.demo'),
+          pricing: t('site.cta.pricing'),
+        }}
+      />
       <p className="mt-5 text-sm text-muted-foreground">{t('site.home.fictional')}</p>
     </div>
   );

@@ -32,6 +32,7 @@ function links(markup: string) {
 // Expected copy is read from the catalogs, never hard-coded (TESTING.md §5.4).
 describe.each(locales)('F064 AC3 the home page in %s', (locale) => {
   const copy = messages[locale].site.home;
+  const cta = messages[locale].site.cta;
 
   it('has the whole page in the HTML, without script: every band, card and promise', () => {
     const page = html(locale);
@@ -43,7 +44,6 @@ describe.each(locales)('F064 AC3 the home page in %s', (locale) => {
       copy.forWhom.heading,
       copy.platforms.heading,
       copy.promises.heading,
-      copy.cta.heading,
     ]) {
       expect(page, heading).toMatch(
         new RegExp(`<h2[^>]*>${escapeRegExp(escapeHtml(heading))}</h2>`),
@@ -60,7 +60,6 @@ describe.each(locales)('F064 AC3 the home page in %s', (locale) => {
       copy.platforms.owners,
       copy.platforms.clients,
       ...Object.values(copy.platforms.items).flatMap(({ title, text }) => [title, text]),
-      copy.cta.text,
       copy.fictional,
     ];
     for (const text of texts) expect(page, text).toContain(escapeHtml(text));
@@ -163,7 +162,17 @@ describe.each(locales)('F064 AC3 the home page in %s', (locale) => {
     expect(links(page)).toEqual([]);
     expect(page).not.toContain(escapeHtml(copy.seeFor));
     expect(page).not.toContain(escapeHtml(copy.forWhom.readDay));
-    expect(page).not.toContain(escapeHtml(copy.cta.pricing));
+    expect(page).not.toContain(escapeHtml(cta.pricing));
+  });
+
+  it('closes with the shared call to action once there is a demo page, and not before', () => {
+    expect(html(locale, ['home'])).not.toContain(escapeHtml(cta.heading));
+    const page = html(locale, ALL_PAGES);
+
+    expect(page).toContain(escapeHtml(cta.heading));
+    expect(page).toContain(escapeHtml(cta.text));
+    expect(page).toContain(escapeHtml(copy.fictional));
+    expect(html(locale, ['home'])).toContain(escapeHtml(copy.fictional));
   });
 
   it('links the audience pages, the demo and the prices once they exist', () => {
@@ -182,10 +191,10 @@ describe.each(locales)('F064 AC3 the home page in %s', (locale) => {
       ]),
     );
     expect(links(page).find(({ href }) => href === (en ? '/en/demo' : '/demo'))?.text).toBe(
-      escapeHtml(messages[locale].site.header.demo),
+      escapeHtml(cta.demo),
     );
     expect(links(page).find(({ href }) => href === (en ? '/en/pricing' : '/prijzen'))?.text).toBe(
-      escapeHtml(copy.cta.pricing),
+      escapeHtml(cta.pricing),
     );
     // The line under the headline links the first audience's page.
     expect(links(page).find(({ text }) => text.startsWith(escapeHtml(copy.seeFor)))?.href).toBe(
