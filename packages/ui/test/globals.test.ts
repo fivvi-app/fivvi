@@ -39,4 +39,40 @@ describe('E007 kit stylesheet', () => {
       components,
     );
   });
+
+  it('AC14: makes apps that import it scan the kit blocks', async () => {
+    const kit = await compileKit();
+    const blocks = path.resolve(import.meta.dirname, '../src/kit');
+
+    expect(kit.sources.map((source) => path.resolve(source.base, source.pattern))).toContain(
+      blocks,
+    );
+  });
+
+  it('AC14: the card radius is the radius.card token, 26px, in both themes', async () => {
+    const kit = await compileKit();
+    const css = kit.build(['rounded-card']);
+
+    expect(css).toMatch(/border-radius:\s*var\(--th-radius-card\)/);
+  });
+
+  it('AC11: `numeric` is the rounded face with tabular digits, from the token', async () => {
+    const kit = await compileKit();
+    const css = kit.build(['numeric']);
+
+    expect(css).toMatch(/font-family:\s*var\(--th-font-family-numeric\)/);
+    expect(css).toMatch(/font-variant-numeric:\s*tabular-nums/);
+  });
+
+  it('AC13: `glass` is the glass tokens, and a solid fill when transparency is reduced', async () => {
+    const kit = await compileKit();
+    const css = kit.build(['glass']);
+
+    expect(css).toContain('var(--th-color-web-glass-bg)');
+    expect(css).toContain('var(--th-color-web-glass-edge)');
+    expect(css).toMatch(/backdrop-filter:\s*blur\(/);
+    expect(css).toMatch(
+      /prefers-reduced-transparency:\s*reduce[\s\S]*var\(--th-color-web-glass-strong\)/,
+    );
+  });
 });
