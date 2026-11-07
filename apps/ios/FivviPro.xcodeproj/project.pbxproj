@@ -17,6 +17,7 @@
 		E00800000000000000000077 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E00800000000000000000040 /* Localizable.xcstrings */; };
 		E00800000000000000000079 /* FivviDesignTokens in Frameworks */ = {isa = PBXBuildFile; productRef = E008000000000000000000A9 /* FivviDesignTokens */; };
 		E00900000000000000000070 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E009000000000000000000A0 /* Sentry */; };
+		E0080000000000000000007A /* routes.ts in Resources */ = {isa = PBXBuildFile; fileRef = E0080000000000000000004A /* routes.ts */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -47,6 +48,7 @@
 		E00800000000000000000047 /* FivviProTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FivviProTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E00800000000000000000048 /* FivviProUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FivviProUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E00800000000000000000049 /* FivviPro.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = FivviPro.xctestplan; sourceTree = "<group>"; };
+		E0080000000000000000004A /* routes.ts */ = {isa = PBXFileReference; lastKnownFileType = text; path = routes.ts; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -107,6 +109,7 @@
 				E00800000000000000000032 /* FivviProUITests */,
 				E00800000000000000000022 /* Config */,
 				E00800000000000000000021 /* Strings */,
+				E00800000000000000000024 /* Site */,
 				E00800000000000000000023 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -119,6 +122,15 @@
 			);
 			name = Strings;
 			path = ../../packages/i18n/generated/ios;
+			sourceTree = "<group>";
+		};
+		E00800000000000000000024 /* Site */ = {
+			isa = PBXGroup;
+			children = (
+				E0080000000000000000004A /* routes.ts */,
+			);
+			name = Site;
+			path = ../web/site;
 			sourceTree = "<group>";
 		};
 		E00800000000000000000022 /* Config */ = {
@@ -284,6 +296,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E00800000000000000000076 /* Localizable.xcstrings in Resources */,
+				E0080000000000000000007A /* routes.ts in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

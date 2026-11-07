@@ -28,6 +28,7 @@ struct FivviProApp: App {
             RootView(session: session, api: api, store: store, language: language)
                 .tint(Tokens.Colors.actionPrimaryBg)
                 .preferredColorScheme(LaunchAppearance.colorScheme())
+                .recordingOpenedLinks()
         }
     }
 }
