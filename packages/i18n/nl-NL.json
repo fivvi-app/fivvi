@@ -393,7 +393,184 @@
       "headline": "Jij traint.",
       "headlineRest": "Fivvi regelt de rest.",
       "lead": "Agenda, boekingen, credits, betalingen en facturen op één plek. Gemaakt voor personal trainers, studio's en sportscholen, en fijn voor hun klanten.",
-      "status": "Fivvi wordt nu gebouwd, samen met onze eerste sportschool. Vraag in de demo wat er al klaar is."
+      "status": "Fivvi wordt nu gebouwd, samen met onze eerste sportschool. Vraag in de demo wat er al klaar is.",
+      "iAm": {
+        "label": "Ik ben",
+        "gym": "Sportschool met team",
+        "studio": "Studio",
+        "pt": "Personal trainer",
+        "client": "Klant"
+      },
+      "seeFor": "Bekijk wat Fivvi voor jou doet",
+      "audience": {
+        "gym": {
+          "short": "Eén agenda voor al je trainers, en altijd zicht op wie er nog moet betalen.",
+          "cardTitle": "Sportscholen met een team"
+        },
+        "studio": {
+          "short": "Volle lessen, een nette wachtlijst en klanten die zelf boeken.",
+          "cardTitle": "Pilates- en yogastudio's"
+        },
+        "pt": {
+          "short": "Je hele dag in je broekzak: wie er komt, wat jullie vorige keer deden en wat er nog over is.",
+          "cardTitle": "Personal trainers"
+        },
+        "client": {
+          "short": "Boek je les in een paar tikken en zie altijd wat je nog tegoed hebt.",
+          "cardTitle": "En hun klanten"
+        }
+      },
+      "onePlace": {
+        "eyebrow": "Het probleem",
+        "heading": "Je bedrijf staat nu op vijf plekken.",
+        "lead": "Elke losse tool is een plek waar iets kan misgaan. In Fivvi hangt alles aan elkaar, dus je hoeft niets over te typen.",
+        "calendar": "Agenda-app",
+        "documents": "Word-documenten",
+        "invoices": "Facturen met de hand",
+        "messages": "Boeken via berichtjes",
+        "app": "Losse boek- en betaalapp",
+        "inFivvi": "in Fivvi",
+        "fivvi": "Fivvi",
+        "everything": "alles op één plek"
+      },
+      "chain": {
+        "eyebrow": "Het verschil",
+        "heading": "Eén boeking. Alles klopt meteen.",
+        "lead": "Probeer het maar. Boek de les hiernaast en kijk wat er vanzelf gebeurt.",
+        "steps": {
+          "pack": {
+            "title": "Creditpakket",
+            "text": "Lisa koopt 10 groepscredits en betaalt met iDEAL."
+          },
+          "payment": {
+            "title": "Betaling",
+            "text": "Het geld gaat rechtstreeks naar de studio, niet via Fivvi."
+          },
+          "invoice": {
+            "title": "Factuur",
+            "text": "De factuur volgt vanzelf op de betaling."
+          },
+          "booking": {
+            "title": "Boeking",
+            "text": "Ze boekt zelf, en één credit staat gepland."
+          },
+          "attendance": {
+            "title": "Aanwezig",
+            "text": "De trainer vinkt haar af in de app."
+          },
+          "balance": {
+            "title": "Tegoed",
+            "text": "Lisa en de eigenaar zien hetzelfde tegoed."
+          }
+        },
+        "card": {
+          "title": "Rooster · Reformer",
+          "class": "Reformer",
+          "when": "vanavond · 4 plekken vrij",
+          "left": "over",
+          "planned": "gepland",
+          "used": "gebruikt",
+          "book": "Boeken",
+          "confirm": "Boeking bevestigen",
+          "back": "Terug",
+          "attend": "Aanwezigheid registreren (trainer)",
+          "again": "Nog een keer",
+          "confirmTitle": "Reformer, vanavond 18:00.",
+          "confirmBody": "Dit gebruikt 1 groepscredit, daarna heb je er nog {left}. Gratis annuleren kan tot 12 uur vooraf.",
+          "say0": "Lisa heeft {count} groepscredits over.",
+          "say1": "Geboekt. Eén credit staat gepland en komt terug als ze op tijd annuleert.",
+          "say2": "Aanwezig. Het credit is gebruikt, zonder dat iemand iets bijhoudt.",
+          "time": "18:00"
+        },
+        "statusDone": "Klaar",
+        "statusLive": "Nu bezig"
+      },
+      "forWhom": {
+        "eyebrow": "Voor wie",
+        "heading": "Jouw dag ziet er anders uit. Fivvi ook.",
+        "lead": "Fivvi laat alleen zien wat jij doet. Een zelfstandig trainer ziet nooit groepslessen. Een yogastudio ziet nooit trainingsschermen.",
+        "readDay": "Lees hun dag"
+      },
+      "platforms": {
+        "eyebrow": "Overal",
+        "heading": "Echt thuis op elk scherm.",
+        "lead": "De apps voor iPhone en Android komen eraan, met het glas van iOS en de stijl van Android. In je browser vind je dezelfde rust.",
+        "owners": "Eigenaren en trainers",
+        "clients": "Klanten",
+        "items": {
+          "proIphone": {
+            "title": "Fivvi Pro op iPhone",
+            "text": "Je dag, je klanten en je trainingen, altijd bij de hand."
+          },
+          "proAndroid": {
+            "title": "Fivvi Pro op Android",
+            "text": "Alles wat de iPhone kan, op de manier van Android."
+          },
+          "proLaptop": {
+            "title": "Fivvi op je laptop",
+            "text": "Aanbod, trainers, betalingen en facturen op een groot scherm, met wat aandacht nodig heeft bovenaan."
+          },
+          "clientIphone": {
+            "title": "Fivvi op iPhone",
+            "text": "Je volgende les, deze week en je tegoed op één scherm."
+          },
+          "clientAndroid": {
+            "title": "Fivvi op Android",
+            "text": "Dezelfde app, op de manier van Android."
+          },
+          "clientBrowser": {
+            "title": "Fivvi in je browser",
+            "text": "Geen app nodig: boek via de link van je studio."
+          }
+        }
+      },
+      "promises": {
+        "eyebrow": "Waar je op kunt rekenen",
+        "heading": "Simpel, en netjes geregeld.",
+        "items": {
+          "money": {
+            "title": "Het geld gaat rechtstreeks naar jou",
+            "text": "Je koppelt je eigen Mollie-account in één begeleide stap. Fivvi houdt geen geld van klanten vast."
+          },
+          "cash": {
+            "title": "Contant of pin mag ook",
+            "text": "Leg een betaling buiten Fivvi vast op het klantprofiel. Geen Mollie willen kan ook; Fivvi vertelt eerst wat je dan mist."
+          },
+          "notes": {
+            "title": "Notities blijven bij de trainer",
+            "text": "Trainersnotities zijn alleen voor trainers. Klanten zien ze niet."
+          },
+          "amounts": {
+            "title": "Trainers zien geen bedragen",
+            "text": "Een trainer ziet de tegoeden van klanten, maar geen geld. Eigenaren zien ook de bedragen."
+          },
+          "noApp": {
+            "title": "Klanten hebben geen app nodig",
+            "text": "Een link of QR-code, hun e-mailadres en een code van 6 cijfers. Geen wachtwoord."
+          },
+          "languages": {
+            "title": "Nederlands en Engels",
+            "text": "Alles bestaat in beide talen, en iedereen kiest zelf."
+          }
+        }
+      },
+      "fictional": "Alle voorbeelden op deze site zijn fictief.",
+      "screens": {
+        "proTodayGym": "Fivvi Pro: de dag van de hele studio, met een baan per trainer",
+        "proTodaySolo": "Fivvi Pro: de dag van een zelfstandig trainer",
+        "proTodayPilates": "Fivvi Pro: de dag van een pilatesstudio",
+        "proTodayAndroid": "Fivvi Pro op Android: de dag van vandaag",
+        "proClient": "Fivvi Pro: klantprofiel met tegoed, vorige training en voortgang",
+        "proLog": "Fivvi Pro: een training bijhouden, per set",
+        "appHome": "Fivvi: Home met de volgende les en deze week",
+        "appBook": "Fivvi: het rooster met Boeken bij elke les",
+        "appCredit": "Fivvi: profiel met tegoed per soort",
+        "appAndroid": "Fivvi op Android: Home met de volgende les",
+        "cwTimetable": "Klantweb: het rooster in de browser",
+        "webDashboard": "Trainerweb: dashboard met Aandacht nodig",
+        "webClassPilates": "Trainerweb: een les op datum met aanwezigheid en wachtlijst",
+        "webAgenda": "Trainerweb: de agenda per trainer"
+      }
     },
     "footer": {
       "label": "Voettekst",

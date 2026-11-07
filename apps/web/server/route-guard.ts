@@ -5,6 +5,9 @@ import { type NextRequest, NextResponse } from 'next/server';
 import { localeCookie, localeCookieMaxAge } from '../i18n/config';
 import { isSitePath, siteHomePath } from '../site/routes';
 
+/** The public website's miniatures and screens (`public/site-images`, F064): images, no data. */
+const SITE_IMAGES = '/site-images';
+
 /**
  * Pages and routes that need no sign-in (AC13): the public website's pages (`site/routes.ts`, in
  * both languages), the sign-in page with its confirm step, the API (every route there decides for
@@ -14,7 +17,7 @@ import { isSitePath, siteHomePath } from '../site/routes';
  * list in step with the `(signed-in)` route group (`app/(app)/(signed-in)/layout.tsx`), which holds
  * the pages that need sign-in and show *Sign out*.
  */
-const PUBLIC_PREFIXES = [SIGN_IN_PAGE, '/book', '/api'];
+const PUBLIC_PREFIXES = [SIGN_IN_PAGE, '/book', '/api', SITE_IMAGES];
 
 /**
  * The app-link association files (E017 AC5): the phone's operating system fetches them without a

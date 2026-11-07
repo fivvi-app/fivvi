@@ -49,7 +49,7 @@ export function SiteHeader({
                 <li key={page}>
                   <NavLink
                     href={href}
-                    className="block rounded-full px-3 py-1.5 text-[15px] whitespace-nowrap text-secondary-foreground hover:bg-muted aria-[current=page]:bg-muted aria-[current=page]:font-semibold aria-[current=page]:text-foreground"
+                    className="block rounded-full px-3 py-1.5 text-[15px] whitespace-nowrap text-secondary-foreground hover:bg-foreground/10 aria-[current=page]:bg-foreground/15 aria-[current=page]:font-semibold aria-[current=page]:text-foreground dark:aria-[current=page]:bg-foreground/30"
                   >
                     {t(labelKey)}
                   </NavLink>
@@ -80,7 +80,7 @@ export function SiteHeader({
         <Link
           href={SIGN_IN_PAGE}
           prefetch={false}
-          className="rounded-full px-3 py-1.5 text-[15px] whitespace-nowrap text-secondary-foreground hover:bg-muted"
+          className="rounded-full px-3 py-1.5 text-[15px] whitespace-nowrap text-secondary-foreground hover:bg-foreground/10"
         >
           {t('site.header.signIn')}
         </Link>
