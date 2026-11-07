@@ -63,14 +63,32 @@ export interface PageAudit {
 
 const IMAGE_AUDITS = ['modern-image-formats', 'uses-responsive-images', 'unsized-images'];
 
+/** A run takes 6 to 12 seconds; one that takes this long is a Lighthouse or a Chrome that hangs. */
+const RUN_TIMEOUT_MS = 60_000;
+
 /** Runs Lighthouse on `url` (performance, accessibility and SEO) in the browser at `port`. */
 export async function auditPage(url: string, port: number): Promise<PageAudit> {
-  const result = await lighthouse(url, {
-    port,
-    output: 'json',
-    logLevel: 'error',
-    onlyCategories: ['performance', 'accessibility', 'seo'],
+  let timer: NodeJS.Timeout | undefined;
+  const hung = new Promise<never>((_, reject) => {
+    timer = setTimeout(
+      () =>
+        reject(
+          new Error(
+            `Lighthouse did not finish ${url} in ${RUN_TIMEOUT_MS / 1000} s (Chrome on port ${port})`,
+          ),
+        ),
+      RUN_TIMEOUT_MS,
+    );
   });
+  const result = await Promise.race([
+    lighthouse(url, {
+      port,
+      output: 'json',
+      logLevel: 'error',
+      onlyCategories: ['performance', 'accessibility', 'seo'],
+    }),
+    hung,
+  ]).finally(() => clearTimeout(timer));
   if (!result) throw new Error(`Lighthouse returned no result for ${url}`);
   const { lhr } = result;
   const score = (id: string) => lhr.categories[id]?.score ?? Number.NaN;

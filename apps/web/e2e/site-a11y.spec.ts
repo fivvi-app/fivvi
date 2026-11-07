@@ -1,11 +1,13 @@
-import { type Locale, locales, messages } from '@fivvi/i18n';
+import { type Locale, messages } from '@fivvi/i18n';
 import { builtPages, type SitePage, sitePagePath, unlistedPages } from '../site/routes';
 import { expectNoAxeViolations, SITE_AXE_TAGS, test } from './fixtures';
 
 // F064 AC15 (#645): axe finds nothing on a site page, in light and dark, on a laptop and on a phone,
-// in the language of the project and in the other one. It runs the rules of WCAG 2.2 A and AA and
-// axe's best practices (landmarks, headings, regions). The phone is a layout of its own: another
-// menu and one column. The page is judged after its animations settle (`expectNoAxeViolations`).
+// in both languages: each language project (`nl-NL`, `en`) checks its own language, so the pair of
+// projects covers both once (a language per project, not both in each, which only doubled the time
+// of the CI job). It runs the rules of WCAG 2.2 A and AA and axe's best practices (landmarks,
+// headings, regions). The phone is a layout of its own: another menu and one column. The page is
+// judged after its animations settle (`expectNoAxeViolations`).
 const PAGES: readonly SitePage[] = [...builtPages, ...unlistedPages];
 const SCHEMES = ['light', 'dark'] as const;
 const VIEWPORTS = {
@@ -13,24 +15,22 @@ const VIEWPORTS = {
   phone: { width: 390, height: 844 },
 } as const;
 
-for (const locale of locales) {
-  test.describe(`F064 AC15 axe on the site in ${locale}`, () => {
-    for (const [device, viewport] of Object.entries(VIEWPORTS)) {
-      for (const scheme of SCHEMES) {
-        for (const page of PAGES) {
-          test(`${page} on a ${device} in ${scheme} mode finds nothing`, async ({ page: tab }) => {
-            await tab.setViewportSize(viewport);
-            await tab.emulateMedia({ colorScheme: scheme });
-            await tab.goto(sitePagePath(page, locale));
+for (const [device, viewport] of Object.entries(VIEWPORTS)) {
+  for (const scheme of SCHEMES) {
+    test.describe(`F064 AC15 axe on the site on a ${device} in ${scheme} mode`, () => {
+      for (const page of PAGES) {
+        test(`${page} finds nothing`, async ({ page: tab, appLocale }) => {
+          await tab.setViewportSize(viewport);
+          await tab.emulateMedia({ colorScheme: scheme });
+          await tab.goto(sitePagePath(page, appLocale));
 
-            await expectNoAxeViolations(tab, `${page} in ${locale}, ${device}, ${scheme}`, {
-              tags: SITE_AXE_TAGS,
-            });
+          await expectNoAxeViolations(tab, `${page} in ${appLocale}, ${device}, ${scheme}`, {
+            tags: SITE_AXE_TAGS,
           });
-        }
+        });
       }
-    }
-  });
+    });
+  }
 }
 
 // The pages with a switch show other screens and words once the visitor chooses.

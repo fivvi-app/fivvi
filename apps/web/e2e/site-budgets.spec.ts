@@ -47,7 +47,9 @@ async function measure(url: string, port: number): Promise<PageAudit & { attempt
   return { ...best, attempts: MAX_ATTEMPTS };
 }
 
-test.describe.configure({ mode: 'default', timeout: 180_000 });
+// A page takes 6 to 12 seconds, up to three runs of it at most; a Lighthouse or Chrome that hangs
+// fails the test after two minutes (and says so) instead of eating the CI job.
+test.describe.configure({ mode: 'default', timeout: 120_000 });
 
 test.describe('F064 AC15 speed and search budgets', () => {
   let proxy: GoLiveProxy;

@@ -42,6 +42,10 @@ export default defineConfig<E2EOptions>({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: ci,
+  // The CI job has 15 minutes in all (setup and build included, .github/workflows/ci.yml). The suite
+  // stops itself at 12, with the results so far and the names of the tests still running, instead of
+  // the job being cancelled without a word (turbo only prints a task's output when it ends).
+  globalTimeout: ci ? 12 * 60_000 : undefined,
   // One retry in CI; a test that only passes on retry is reported as flaky (TESTING.md §8).
   retries: ci ? 1 : 0,
   reporter: ci ? [['github'], ['list'], ['html', { open: 'never' }]] : [['list']],
@@ -56,12 +60,14 @@ export default defineConfig<E2EOptions>({
       testIgnore: BUDGET_SPEC,
       use: localeUse(locale),
     })),
-    // The speed budgets (F064 AC15) run after every other test, one language at a time, so no
-    // other test slows their measurements down: a busy machine makes a page look slower.
-    ...locales.map((locale, index) => ({
+    // The speed budgets (F064 AC15) run after every other test, so no other test slows their
+    // measurements down: a busy machine makes a page look slower. The two languages run side by
+    // side: Lighthouse simulates the slow phone from a trace (the numbers hardly move with the
+    // load of the machine), and one after the other they would add minutes to the CI job.
+    ...locales.map((locale) => ({
       name: `budgets-${locale}`,
       testMatch: BUDGET_SPEC,
-      dependencies: [...locales, ...locales.slice(0, index).map((earlier) => `budgets-${earlier}`)],
+      dependencies: [...locales],
       use: localeUse(locale),
     })),
   ],
