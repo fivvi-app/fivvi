@@ -32,15 +32,13 @@ struct KitGalleryScreen {
     /// The plain list of the other tab (a collection view to the accessibility tree).
     var plainList: XCUIElement { app.collectionViews.firstMatch }
 
-    /// Launches the Debug app on the gallery, in the test-plan configuration's language. With a `variant` (a case of
-    /// `KitGalleryVariant` in the app) the first tab shows the kit's screen with one part left out.
-    static func launch(variant: String? = nil) -> KitGalleryScreen {
+    /// Launches the Debug app on the gallery, in the test-plan configuration's language.
+    static func launch() -> KitGalleryScreen {
         let app = XCUIApplication()
         let language = TestCatalog.configuredLanguage
         app.launchArguments = [
             "-AppleLanguages", "(\"\(language)\")", "-UITestKitGallery", "YES", "-UITestAppearance", "light"
         ]
-        if let variant { app.launchArguments += ["-UITestKitGalleryVariant", variant] }
         app.launchEnvironment["TZ"] = "Europe/Amsterdam"
         let launchedAt = Date.now
         ReachableLaunch.launch(app)
@@ -73,10 +71,12 @@ struct KitGalleryScreen {
         }
     }
 
-    /// Scrolls the gallery back down the page (the content moves down) until `element` can be tapped, at most `swipes`
+    /// Scrolls the gallery back down the page (the content moves down) until `element` is in the lower part of the
+    /// window, clear of the navigation bar at the top (a tap on a field under it lands on the bar), at most `swipes`
     /// times.
-    func scrollBack(to element: XCUIElement, swipes: Int = 12) {
-        for _ in 0..<swipes where !(element.exists && element.isHittable) {
+    func scrollBack(toLowerHalf element: XCUIElement, swipes: Int = 12) {
+        let window = app.windows.firstMatch.frame
+        for _ in 0..<swipes where !(element.exists && element.isHittable && element.frame.midY > window.height / 2) {
             scroll.swipeDown(velocity: .slow)
         }
     }

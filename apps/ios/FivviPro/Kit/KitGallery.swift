@@ -12,46 +12,13 @@ enum KitGallery {
     /// Synthetic client names.
     static let names = ["Anna de Vries", "Bram Jansen", "Chloe Smit", "Daan Bakker", "Eva Mulder", "Finn Visser"]
 
-    static let variantKey = "UITestKitGalleryVariant"
-
     static func isRequested(defaults: UserDefaults = .standard) -> Bool {
         defaults.bool(forKey: key)
     }
-
-    /// The variant of the gallery's first screen a test asked for (`-UITestKitGalleryVariant <name>`); nil is the kit's
-    /// own screen.
-    static func variant(defaults: UserDefaults = .standard) -> KitGalleryVariant? {
-        defaults.string(forKey: variantKey).flatMap(KitGalleryVariant.init(rawValue:))
-    }
-}
-
-/// The kit's screen with one part left out or done another way. When the tab bar doesn't minimise on the kit's screen
-/// (it didn't on iOS 26.2 before E020's last round), the UI test launches each of these and says which ones do, which
-/// tells what keeps the system from tracking the scroll view. Debug-only, like the gallery.
-enum KitGalleryVariant: String, CaseIterable {
-    /// None of the next four: the same rows in a scroll view, a static inline title.
-    case bare
-    /// Without the canvas behind the navigation container.
-    case noCanvas
-    /// Without the toast overlay.
-    case noToast
-    /// A static inline title instead of the one that appears once the large title has scrolled away (no scroll
-    /// observer, no toolbar items for the title).
-    case staticTitle
-    /// A static inline title, with the scroll observer that the kit's title uses, but not driving anything.
-    case observerOnly
-    /// The canvas as a `background` of the scroll view (how the kit drew it before), the rest as the kit.
-    case wrappedScrollView
-
-    var hasCanvas: Bool { self != .noCanvas && self != .bare && self != .wrappedScrollView }
-    var hasToast: Bool { self != .noToast && self != .bare }
-    var hasKitTitle: Bool { self == .noCanvas || self == .noToast || self == .wrappedScrollView }
-    var observesScroll: Bool { self == .observerOnly }
 }
 
 struct KitGalleryView: View {
     let catalog: Catalog
-    var variant: KitGalleryVariant? = KitGallery.variant()
     @State private var page = Page.blocks
 
     private enum Page: Hashable {
@@ -61,7 +28,7 @@ struct KitGalleryView: View {
     var body: some View {
         TabView(selection: $page) {
             Tab(catalog[.clientsTitle], systemImage: "person.2", value: Page.blocks) {
-                NavigationStack { KitGalleryBlocks(catalog: catalog, variant: variant) }
+                NavigationStack { KitGalleryBlocks(catalog: catalog) }
             }
             // A plain list in a plain navigation stack, nothing of the kit: when the tab bar doesn't shrink on a
             // screen of the kit, the UI test scrolls this one to tell the kit's structure from the system.
@@ -82,8 +49,6 @@ struct KitGalleryView: View {
 
 private struct KitGalleryBlocks: View {
     let catalog: Catalog
-    let variant: KitGalleryVariant?
-    @State private var observed = false
     @State private var showsSheet = false
     @State private var showsAlert = false
     @State private var toast: ToastMessage?
@@ -98,7 +63,8 @@ private struct KitGalleryBlocks: View {
     private var eyebrow: String { DateEyebrow.text(for: .now, locale: catalog.formattingLocale) }
 
     var body: some View {
-        screen.toastIf(variant?.hasToast ?? true, $toast)
+        // The toast stays long enough for a slow test runner to read it.
+        screen.toast($toast, duration: .seconds(6))
         .toolbar {
             ToolbarItem(placement: .topBarLeading) {
                 Button { showsAlert = true } label: { Image(systemName: "trash") }
@@ -132,30 +98,8 @@ private struct KitGalleryBlocks: View {
         }
     }
 
-    @ViewBuilder private var screen: some View {
-        if let variant {
-            variantList(variant)
-        } else {
-            LargeTitleScreen(title: title, eyebrow: eyebrow, subtitle: "10:00 – 17:30") { blocks }
-        }
-    }
-
-    /// The kit's screen as `LargeTitleScreen` builds it, but with the parts `variant` leaves out.
-    private func variantList(_ variant: KitGalleryVariant) -> some View {
-        InsetGroupedList {
-            LargeTitleHeader(title: title, eyebrow: eyebrow, subtitle: "10:00 – 17:30")
-        } content: {
-            blocks
-        }
-        .applying(variant.hasCanvas) { $0.fivviCanvas() }
-        .applying(variant == .wrappedScrollView) { $0.background(Tokens.Colors.bgCanvas) }
-        .applying(variant.hasKitTitle) { $0.inlineTitleOnceScrolledAway(title) }
-        .applying(!variant.hasKitTitle) { $0.navigationTitle(title).navigationBarTitleDisplayMode(.inline) }
-        .applying(variant.observesScroll) { content in
-            content.onScrollGeometryChange(for: Bool.self) { $0.contentOffset.y > 40 } action: { _, new in
-                observed = new
-            }
-        }
+    private var screen: some View {
+        LargeTitleScreen(title: title, eyebrow: eyebrow, subtitle: "10:00 – 17:30") { blocks }
     }
 
     @ViewBuilder private var blocks: some View {
@@ -181,6 +125,21 @@ private struct KitGalleryBlocks: View {
             }
         }
         buttons
+        longList
+    }
+
+    /// Enough rows to make the screen about 2.5 screens tall, as a list of clients is. The system's tab bar only
+    /// minimises once there is far enough to scroll: on iOS 26.2 a plain `ScrollView` of 28 rows of 52 pt (a screen
+    /// and a half) leaves it full, one of 30 rows lets it shrink, and a plain `List` of 18 rows leaves it full and one
+    /// of 19 shrinks it, kit or no kit. Without these rows the gallery was a screen and a half tall, which iOS 27
+    /// scrolls with a minimising bar and iOS 26.2 does not.
+    private var longList: some View {
+        InsetGroup {
+            ForEach(0..<18, id: \.self) { index in
+                InsetRow(title: clients[index % clients.count], subtitle: address(of: clients[index % clients.count]))
+                    .accessibilityIdentifier("kit.more.\(index)")
+            }
+        }
     }
 
     private func address(of client: String) -> String {
@@ -243,22 +202,6 @@ private struct KitGalleryBlocks: View {
                     .buttonStyle(.pill(.destructive))
                     .accessibilityIdentifier("kit.stack.third")
             }
-        }
-    }
-}
-
-private extension View {
-    @ViewBuilder func applying<Result: View>(_ condition: Bool, _ transform: (Self) -> Result) -> some View {
-        if condition { transform(self) } else { self }
-    }
-
-    /// A toast on this screen, or none: a variant of the gallery leaves it out. Long enough for a slow test runner to
-    /// read it.
-    @ViewBuilder func toastIf(_ shown: Bool, _ message: Binding<ToastMessage?>) -> some View {
-        if shown {
-            toast(message, duration: .seconds(6))
-        } else {
-            self
         }
     }
 }
