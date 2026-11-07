@@ -44,6 +44,7 @@ import app.fivvi.core.signin.SignInViewModel
 import app.fivvi.core.theme.FivviTheme
 import app.fivvi.pro.capabilities.WorkspaceCapabilities
 import app.fivvi.pro.clients.ClientsFlow
+import app.fivvi.pro.hello.HelloViewModel
 import app.fivvi.pro.home.HomeDestination
 import app.fivvi.pro.home.HomeScreen
 import app.fivvi.pro.home.HomeViewModel
@@ -193,6 +194,9 @@ class MainActivity : ComponentActivity() {
 
     @Composable
     private fun Home(dependencies: AppDependencies, key: String, language: AppLanguage) {
+        val hello = viewModel(key = "hello-$key-${language.tag}") {
+            HelloViewModel(dependencies.helloApi, language.apiLocale)
+        }
         // What the API lists per workspace (F004 AC10), the one helper that decides which actions show. `GET /v1/me` fills
         // it on opening and on foreground; *Klanten* and *+ Nieuwe klant* (F006, M4) show from it, and nothing else decides.
         val capabilities = viewModel(key = "capabilities-$key") { WorkspaceCapabilities(dependencies.meApi) }
@@ -211,6 +215,7 @@ class MainActivity : ComponentActivity() {
                 onWorkspaces = capabilities::replace,
             )
         }
+        val helloState by hello.state.collectAsStateWithLifecycle()
         val meState by me.state.collectAsStateWithLifecycle()
         val signingOut by me.signingOut.collectAsStateWithLifecycle()
         var showsProfile by rememberSaveable { mutableStateOf(false) }
@@ -257,8 +262,10 @@ class MainActivity : ComponentActivity() {
             return
         }
         HomeScreen(
+            helloState,
             meState,
             signingOut,
+            onRetryHello = hello::retry,
             onRetryMe = me::retry,
             onSignOut = me::signOut,
             onOpenWeb = ::openWelcomeOnTheWeb,

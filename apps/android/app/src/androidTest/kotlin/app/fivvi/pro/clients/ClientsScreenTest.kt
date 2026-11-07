@@ -22,6 +22,7 @@ import app.fivvi.core.appLanguageParameters
 import app.fivvi.core.me.FakeMeApi
 import app.fivvi.pro.AppRule
 import app.fivvi.pro.UI_TIMEOUT_MILLIS
+import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.home.FakeWorkspacesApi
 import app.fivvi.pro.home.HomeTags
 import app.fivvi.pro.localizedString
@@ -43,6 +44,7 @@ class ClientsScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
     @get:Rule
     val app = AppRule()
 
+    private val hello = FakeHelloApi().apply { answerGreeting() }
     private val me = FakeMeApi()
     private val clients = FakeClientsApi()
     private val workspaces = FakeWorkspacesApi()
@@ -52,7 +54,7 @@ class ClientsScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
     private fun launch(vararg capabilities: MeWorkspace.Capabilities) {
         me.answerAccount(capabilities = capabilities.toList().ifEmpty { MeWorkspace.Capabilities.values().toList() })
         clients.clients += listOf(anna, mark)
-        app.launch(device = listOf(language.tag), meApi = me, workspacesApi = workspaces, clientsApi = clients)
+        app.launch(hello, device = listOf(language.tag), meApi = me, workspacesApi = workspaces, clientsApi = clients)
         compose.waitUntilTagExists(HomeTags.OPEN_CLIENTS)
     }
 
@@ -119,7 +121,7 @@ class ClientsScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
     @Test
     fun test_F006_AC12_noClientsYetSaysSoAndOffersTheAction() {
         me.answerAccount()
-        app.launch(device = listOf(language.tag), meApi = me, workspacesApi = workspaces, clientsApi = clients)
+        app.launch(hello, device = listOf(language.tag), meApi = me, workspacesApi = workspaces, clientsApi = clients)
         compose.waitUntilTagExists(HomeTags.OPEN_CLIENTS)
 
         openClients()
@@ -290,7 +292,7 @@ class ClientsScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
     @Test
     fun test_F006_AC12_klantenIsHiddenWithoutClientsView() {
         me.answerAccount(capabilities = listOf(MeWorkspace.Capabilities.TRAINERS_PERIOD_VIEW))
-        app.launch(device = listOf(language.tag), meApi = me, workspacesApi = workspaces, clientsApi = clients)
+        app.launch(hello, device = listOf(language.tag), meApi = me, workspacesApi = workspaces, clientsApi = clients)
         compose.waitUntilTagExists(HomeTags.OPEN_PROFILE)
 
         compose.onNodeWithTag(HomeTags.OPEN_CLIENTS).assertDoesNotExist()

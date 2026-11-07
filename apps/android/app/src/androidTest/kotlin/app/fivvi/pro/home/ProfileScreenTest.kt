@@ -19,6 +19,7 @@ import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.pro.AppRule
 import app.fivvi.pro.UI_TIMEOUT_MILLIS
+import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.localizedString
 import app.fivvi.pro.waitUntilTagExists
 import kotlinx.coroutines.CompletableDeferred
@@ -38,11 +39,13 @@ class ProfileScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
     @get:Rule
     val app = AppRule()
 
+    private val hello = FakeHelloApi().apply { answerGreeting() }
     private val me = FakeMeApi()
     private val workspaces = FakeWorkspacesApi()
     private val trainers = FakeTrainersApi()
 
     private fun launch() = app.launch(
+        hello,
         device = listOf(language.tag),
         meApi = me,
         workspacesApi = workspaces,

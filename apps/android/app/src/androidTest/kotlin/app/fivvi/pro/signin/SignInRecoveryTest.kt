@@ -25,6 +25,7 @@ import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.signin.FakeSignInApi
 import app.fivvi.core.signin.SignInTags
 import app.fivvi.pro.AppRule
+import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.localizedString
 import app.fivvi.pro.signin.SignInSteps.Companion.ADDRESS
 import java.io.IOException
@@ -52,6 +53,7 @@ class SignInRecoveryTest(@Suppress("UNUSED_PARAMETER") tag: String, private val 
     private val steps = SignInSteps(compose, signIn, language)
 
     private fun launch() = app.launch(
+        FakeHelloApi().apply { answerGreeting() },
         device = listOf(language.tag),
         signInApi = signIn,
         meApi = me,

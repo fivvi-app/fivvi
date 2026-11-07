@@ -31,6 +31,8 @@ import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
 import app.fivvi.designtokens.title1
 import app.fivvi.designtokens.title2
+import app.fivvi.pro.hello.HelloContent
+import app.fivvi.pro.hello.HelloState
 
 /** Test tags, shared with the iOS accessibility identifiers and the Maestro flows. */
 object HomeTags {
@@ -49,14 +51,15 @@ object HomeTags {
 }
 
 /**
- * The signed-in home (a placeholder): what the API said the person gets, the address of the signed-in account and the
- * sign-out button, which a progress indicator replaces while [signingOut]. [onOpenClients] is `null` where the person
- * may not see clients.
+ * The signed-in home (a placeholder): the hello screen, the address of the signed-in account and the sign-out button,
+ * which a progress indicator replaces while [signingOut]. [onOpenClients] is `null` where the person may not see clients.
  */
 @Composable
 fun HomeScreen(
+    hello: HelloState,
     me: MeState,
     signingOut: Boolean,
+    onRetryHello: () -> Unit,
     onRetryMe: () -> Unit,
     onSignOut: () -> Unit,
     onOpenWeb: () -> Unit,
@@ -64,14 +67,14 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     onOpenClients: (() -> Unit)? = null,
 ) {
-    // One scroll for the whole screen, so the account block can't squeeze the block above it at the largest font scale.
-    // The spacers share what is left when both fit (that block centred above the account block) and give way when not.
+    // One scroll for the whole screen, so the account block can't squeeze the hello block at the largest font scale. The
+    // spacers share what is left when both fit (the hello block centred above the account block) and give way when not.
     Column(
         modifier = modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Spacer(Modifier.weight(1f))
-        Destination(me, onOpenWeb)
+        Destination(hello, me, onRetryHello, onOpenWeb)
         Spacer(Modifier.weight(1f))
         Column(
             modifier = Modifier.fillMaxWidth().padding(Spacing.space6),
@@ -130,12 +133,13 @@ fun HomeScreen(
     }
 }
 
-// The part above the account block: what the API said the person gets (F002 AC10). Until /me has answered, or when it
-// failed, there is nothing to show above the account block.
+// The part above the account block: what the API said the person gets (F002 AC10). The hello block is the placeholder of
+// the workspace's home; the other two states have nothing but their text.
 @Composable
-private fun Destination(me: MeState, onOpenWeb: () -> Unit) {
+private fun Destination(hello: HelloState, me: MeState, onRetryHello: () -> Unit, onOpenWeb: () -> Unit) {
     when (val destination = (me as? MeState.Loaded)?.destination) {
-        null -> Unit
+        // Loading or failed: /me has not said, so the hello block stays, as before F002.
+        null -> HelloContent(hello, onRetryHello)
 
         is HomeDestination.Workspace -> {
             Text(
@@ -145,6 +149,7 @@ private fun Destination(me: MeState, onOpenWeb: () -> Unit) {
                 style = MaterialTheme.typography.title1,
                 textAlign = TextAlign.Center,
             )
+            HelloContent(hello, onRetryHello)
         }
 
         HomeDestination.SetUpOnWeb -> Column(

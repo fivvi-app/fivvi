@@ -16,6 +16,7 @@ import app.fivvi.core.auth.Session
 import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.signin.FakeSignInApi
 import app.fivvi.core.signin.SignInTags
+import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.home.HomeTags
 import app.fivvi.pro.home.ProfileTags
 import app.fivvi.pro.signin.SignInSteps
@@ -34,6 +35,11 @@ class LanguageSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val 
     @get:Rule
     val app = AppRule()
 
+    // The greeting is asked again in the new language after a switch.
+    private val hello = FakeHelloApi().apply {
+        answerGreeting()
+        answerGreeting()
+    }
     private val me = FakeMeApi()
     private val other = AppLanguage.entries.first { it != phone }
 
@@ -50,7 +56,7 @@ class LanguageSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val 
         // The home reads the account on opening and Profiel reads it again when it opens.
         repeat(2) { me.answerAccount() }
         me.answerWorkspaces()
-        app.launch(device = listOf(phone.tag), meApi = me)
+        app.launch(hello, device = listOf(phone.tag), meApi = me)
         openProfile()
         compose.onNodeWithTag(ProfileTags.LANGUAGE).assertTextEquals(string(phone, R.string.profile_language))
         compose.onNodeWithTag("${ProfileTags.LANGUAGE}.${phone.tag}").assertIsSelected()
@@ -90,7 +96,7 @@ class LanguageSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val 
                 MeResponse.PreferredLocale.EN
             },
         )
-        app.launch(device = listOf(phone.tag), meApi = me)
+        app.launch(hello, device = listOf(phone.tag), meApi = me)
         compose.waitUntilTagExists(HomeTags.SIGN_OUT)
         compose.onNodeWithTag(HomeTags.SIGN_OUT).assertTextEquals(string(phone, R.string.sign_out_label))
 
@@ -109,6 +115,7 @@ class LanguageSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val 
         val signIn = FakeSignInApi()
         val store = InMemoryLanguageStore()
         app.launch(
+            hello,
             device = listOf(phone.tag),
             signInApi = signIn,
             session = Session(InMemorySessionStore()),
