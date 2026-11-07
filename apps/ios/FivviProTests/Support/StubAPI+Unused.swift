@@ -62,6 +62,10 @@ extension StubAPI {
         fatalError("The app doesn't call lookupAddress yet")
     }
 
+    func requestDemo(_ input: Operations.RequestDemo.Input) async throws -> Operations.RequestDemo.Output {
+        fatalError("The app doesn't call requestDemo: it is the website's demo form")
+    }
+
     func createTrainerInvitation(
         _ input: Operations.CreateTrainerInvitation.Input
     ) async throws -> Operations.CreateTrainerInvitation.Output {

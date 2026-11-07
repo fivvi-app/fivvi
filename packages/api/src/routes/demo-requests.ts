@@ -7,9 +7,9 @@ import { LocaleSchema } from '../schemas.ts';
 
 // The demo request of the public website (F064, spec #611, ADR-030): one email to Fivvi's own
 // support address and nothing else. Nothing is stored (the rate limit counts requests under a
-// keyed hash of the client address and keeps no answer) and nothing about the visitor is logged. No email goes to the
-// visitor, so the form cannot be used to send mail to someone else. A honeypot field and two rate
-// limits keep bots from filling the inbox.
+// keyed hash of the client address and keeps no answer) and nothing about the visitor is logged.
+// No email goes to the visitor, so the form cannot be used to send mail to someone else. A
+// honeypot field and two rate limits keep bots from filling the inbox.
 
 /** Demo requests per client IP address per hour: a person sends one, maybe two after a typo. */
 const IP_LIMIT: RateLimitRule = { max: 5, windowMinutes: 60 };
@@ -119,8 +119,10 @@ export function registerDemoRequests(app: OpenAPIHono, dependencies: ApiDependen
     if (website?.trim()) return c.body(null, 202);
 
     // After the validation: a refused request uses nothing up. The keys hold no address: the
-    // client's is a keyed hash, IPv6 grouped by /64 (`clientAddressKey`, as for sign-in), and
-    // without a usable one (local, tests) there is no per-address limit, only the one for all.
+    // client's is a keyed hash, IPv6 grouped by /64 (`clientAddressKey`, as for sign-in). Without
+    // a usable address, behind the proxy that always sets one (`NODE_ENV=production`) the request
+    // shares one bucket; elsewhere (local, tests) the key is `null`: no per-address limit, only
+    // the one for all.
     const clientKey = dependencies.clientAddressKey(c.req.raw.headers);
     const limited: string[] = [];
     if (clientKey !== null) {
