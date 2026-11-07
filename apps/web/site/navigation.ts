@@ -1,4 +1,5 @@
 import type { Locale, MessageKey } from '@fivvi/i18n';
+import type { Route } from 'next';
 import { builtPages, type SitePage, sitePagePath } from './routes';
 
 /** The catalog key of the label of every page that is linked from the header or the footer. */
@@ -41,7 +42,7 @@ export const footerColumns: readonly {
 
 export interface SiteLink {
   page: LinkedPage;
-  href: string;
+  href: Route;
   /** The catalog key of the label. */
   labelKey: (typeof labelKeys)[LinkedPage];
 }

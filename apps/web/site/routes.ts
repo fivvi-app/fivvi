@@ -1,4 +1,5 @@
 import type { Locale } from '@fivvi/i18n';
+import type { Route } from 'next';
 
 /**
  * The public website's addresses (F064, spec #611): Dutch at `/`, English under `/en`, the language
@@ -29,19 +30,15 @@ export type SitePage = keyof typeof sitePaths;
  */
 export const builtPages: readonly SitePage[] = ['home'];
 
-/** Whether the page exists yet. */
-export function isBuilt(page: SitePage): boolean {
-  return builtPages.includes(page);
-}
-
 /** The address of a page in a language. */
-export function sitePagePath(page: SitePage, locale: Locale): string {
-  return sitePaths[page][locale];
+export function sitePagePath(page: SitePage, locale: Locale): Route {
+  // The site's addresses are known here, not to the typed routes of the app.
+  return sitePaths[page][locale] as Route;
 }
 
 /** The address of the home page of a language. */
-export function siteHomePath(locale: Locale): string {
-  return sitePaths.home[locale];
+export function siteHomePath(locale: Locale): Route {
+  return sitePaths.home[locale] as Route;
 }
 
 const pageByPath = new Map<string, { page: SitePage; locale: Locale }>(
@@ -70,7 +67,7 @@ export function isSitePath(pathname: string): boolean {
  * The same page in `locale` (AC16: the language switch), or the home page of that language when
  * the address is not a known page of the site.
  */
-export function alternatePath(pathname: string | null, locale: Locale): string {
+export function alternatePath(pathname: string | null, locale: Locale): Route {
   const at = pathname === null ? undefined : sitePageAt(pathname);
   return at ? sitePagePath(at.page, locale) : siteHomePath(locale);
 }

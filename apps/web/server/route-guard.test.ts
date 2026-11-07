@@ -191,6 +191,23 @@ describe('F001 AC13 route guard', () => {
       expect(response.headers.getSetCookie()).toEqual([clearing]);
     });
 
+    it('still shows the page when the session cannot be read: the public home page does not depend on the database', async () => {
+      const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      const response = await guardRequest(new NextRequest(`${ORIGIN}/`, withSession), () =>
+        Promise.reject(new Error('database down')),
+      );
+
+      expect(response.status).toBe(200);
+      expect(response.headers.get('x-middleware-next')).toBe('1');
+      expect(response.headers.get('location')).toBeNull();
+      expect(response.headers.getSetCookie()).toEqual([]);
+      // Logged by name only: an error from the database can quote what was asked.
+      expect(error).toHaveBeenCalledOnce();
+      expect(JSON.stringify(error.mock.calls)).not.toContain('database down');
+      error.mockRestore();
+    });
+
     it('AC16: an anonymous visitor, with no cookie at all, is not looked up and gets no cookie', async () => {
       const { readSession, answer } = guard('/', ANONYMOUS);
 

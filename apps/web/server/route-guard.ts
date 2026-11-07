@@ -35,20 +35,30 @@ export function isPublicPath(pathname: string): boolean {
  * The site's Dutch home page (`/`) for a visitor who might be signed in (F064 AC18): a browser
  * with a sign-in session goes on to its home in the app (`/home`, which decides where), the page
  * itself is never rendered for it. A visitor without any cookie is anonymous: nothing is looked up
- * and nothing is set, so the page stays static and cookie-free (AC16). The other pages of the site
- * are left alone.
+ * and nothing is set, so the page stays static and cookie-free (AC16). When the session can't be
+ * read (the database is down) the page is served anyway. The other pages of the site are left alone.
  */
 async function siteHome(
   request: NextRequest,
   readSession: (headers: Headers) => Promise<SessionRead>,
 ): Promise<NextResponse> {
   if (!request.headers.get('cookie')) return NextResponse.next();
-  const { account, setCookies } = await readSession(request.headers);
-  const response = account
+  let session: SessionRead;
+  try {
+    session = await readSession(request.headers);
+  } catch (error) {
+    // The public home page does not depend on the database: when the session can't be read, the
+    // visitor gets the static page. Only the error's name is logged; it can quote what was asked.
+    console.error(
+      `Reading the session for the home page failed: ${error instanceof Error ? error.name : 'Error'}`,
+    );
+    return NextResponse.next();
+  }
+  const response = session.account
     ? NextResponse.redirect(new URL(SIGNED_IN_HOME, request.nextUrl))
     : NextResponse.next();
   // The renewed session cookie, or the one that clears a session that is gone.
-  for (const cookie of setCookies) response.headers.append('set-cookie', cookie);
+  for (const cookie of session.setCookies) response.headers.append('set-cookie', cookie);
   return response;
 }
 

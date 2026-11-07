@@ -1,6 +1,6 @@
 import type { Locale } from '@fivvi/i18n';
 import Link from 'next/link';
-import { type BusinessDetails, filledDetails, business as fivviBusiness } from './business';
+import { type BusinessDetails, filledDetails, business as fivviBusiness, shown } from './business';
 import { footerColumns, linksTo } from './navigation';
 import { builtPages, type SitePage, siteHomePath } from './routes';
 import { siteText } from './text';
@@ -21,6 +21,7 @@ export function SiteFooter({
   built?: readonly SitePage[];
 }) {
   const t = siteText(locale);
+  const tradeName = shown(business.tradeName);
   const details = filledDetails(business);
   const columns = footerColumns
     .map(({ heading, pages }) => ({ heading, links: linksTo(pages, locale, built) }))
@@ -30,16 +31,18 @@ export function SiteFooter({
       <div className="mx-auto grid w-full max-w-295 gap-7 px-[clamp(16px,4vw,40px)] sm:grid-cols-[2fr_repeat(3,1fr)]">
         <div>
           <Link
-            href={siteHomePath(locale) as never}
+            href={siteHomePath(locale)}
             prefetch={false}
             className="numeric inline-flex items-baseline text-xl font-extrabold tracking-[-0.02em] text-foreground"
           >
             {t('app.title')}
             <span aria-hidden="true" className="ml-0.5 size-[6px] rounded-full bg-primary" />
           </Link>
-          <p className="mt-2.5 leading-relaxed">
-            {t('site.footer.tradeName', { name: business.tradeName })}
-          </p>
+          {tradeName ? (
+            <p className="mt-2.5 leading-relaxed">
+              {t('site.footer.tradeName', { name: tradeName })}
+            </p>
+          ) : null}
           {details.length > 0 ? (
             <dl className="mt-1 leading-relaxed">
               {details.map(({ key, value }) => (
@@ -59,7 +62,7 @@ export function SiteFooter({
                 <ul>
                   {links.map(({ page, href, labelKey }) => (
                     <li key={page}>
-                      <Link href={href as never} className="block py-1 hover:text-foreground">
+                      <Link href={href} className="block py-1 hover:text-foreground">
                         {t(labelKey)}
                       </Link>
                     </li>

@@ -45,11 +45,16 @@ test.describe('E009 page views', () => {
     await expect(page.getByRole('button', { name: copy.signIn.sendCode })).toBeEnabled();
     await page.getByRole('button', { name: copy.signIn.sendCode }).click();
     await expect(page.getByText(copy.signIn.errors.invalidEmail)).toBeVisible();
+
+    // A second page load, with a new name in the query string: a new page view, clean again.
+    await page.goto(`/login?name=Bram`);
+    await expect(page.getByRole('heading', { level: 1, name: copy.signIn.title })).toBeVisible();
+    await expect.poll(() => traffic.events.length).toBe(2);
     await page.waitForLoadState('networkidle');
 
     // Exactly one $pageview per page load, and nothing else: no autocapture, page leave,
     // web vitals, session recording or survey events.
-    expect(traffic.events.map(({ event }) => event)).toEqual(['$pageview']);
+    expect(traffic.events.map(({ event }) => event)).toEqual(['$pageview', '$pageview']);
     for (const { properties } of traffic.events) {
       expect(properties).toMatchObject({
         token: TEST_POSTHOG_KEY,
@@ -60,7 +65,7 @@ test.describe('E009 page views', () => {
       for (const value of PERSONAL) expect(JSON.stringify(properties)).not.toContain(value);
     }
     // Only events reach PostHog: no remote config, feature flags, surveys or recorder script.
-    expect(traffic.posthogPaths).toEqual(['/e/']);
+    expect(traffic.posthogPaths).toEqual(['/e/', '/e/']);
     expect(traffic.external).toEqual([]);
     expect(traffic.pageErrors).toEqual([]);
     expect(await loadedScriptsContain(page, traffic.scripts, POSTHOG_JS)).toBe(true);
@@ -70,7 +75,7 @@ test.describe('E009 page views', () => {
     // and removes it at once (OBSERVABILITY.md §5), so storage is empty below. Any other write
     // fails here.
     const probe = 'localStorage __mplssupport__';
-    expect(storageWrites).toEqual([probe]);
+    expect(storageWrites).toEqual([probe, probe]);
     expect(await context.cookies()).toEqual([]);
     expect(await page.evaluate(() => [localStorage.length, sessionStorage.length])).toEqual([0, 0]);
   });

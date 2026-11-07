@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { business, filledDetails } from './business';
+import { business, filledDetails, shown } from './business';
 
 describe('F064 AC7 business details', () => {
   it('keeps only the details that are filled in, in the order the footer shows them', () => {
@@ -33,6 +33,13 @@ describe('F064 AC7 business details', () => {
     expect(
       filledDetails({ tradeName: 'Trade', kvk: '{{KvK-nummer}}', address: '{{adres}}' }),
     ).toEqual([]);
+  });
+
+  it('shows a value only when it is filled in, the trade name included', () => {
+    expect(shown(' Trade ')).toBe('Trade');
+    for (const missing of [undefined, '', '   ', '{{naam}}', 'K&S {{x}}']) {
+      expect(shown(missing)).toBeUndefined();
+    }
   });
 
   it('has a trade name and no placeholder in any value', () => {

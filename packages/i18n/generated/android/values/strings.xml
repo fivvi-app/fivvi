@@ -65,16 +65,8 @@
     <string name="common_loading_slow">Dit duurt langer dan normaal…</string>
     <!-- Button under an error message that tries the failed action again. -->
     <string name="common_retry">Opnieuw proberen</string>
-    <!-- Submit button of the first-name form on the hello page. Shows hello.formGreeting with the name entered. -->
-    <string name="hello_continue">Doorgaan</string>
-    <!-- Line under the title of the hello page, above the first-name field. -->
-    <string name="hello_description">Vul je voornaam in, dan begroeten we je.</string>
     <!-- Shown on the native hello screen when the greeting can't be loaded (no connection, or an unknown greeting). Above the common.retry button. -->
     <string name="hello_error">We konden de begroeting niet laden. Probeer het opnieuw.</string>
-    <!-- Label of the first-name field on the hello page. -->
-    <string name="hello_first_name_label">Voornaam</string>
-    <!-- Shown on the hello page after the first-name form is sent. {name} is the first name entered. -->
-    <string name="hello_form_greeting">Hoi %1$s, fijn dat je er bent.</string>
     <!-- Greeting above the home screen. {name} is the user's first name. -->
     <string name="hello_greeting">Hoi %1$s,</string>
     <!-- {date} is a weekday and date without year, e.g. 'dinsdag 22 september'. {time} is a 24-hour time, e.g. '18:00'. Both are formatted in code in the workspace time zone. -->

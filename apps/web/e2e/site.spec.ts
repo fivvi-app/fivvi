@@ -28,7 +28,7 @@ for (const locale of locales) {
       await expect(page.getByText(copy.home.lead)).toBeVisible();
       await expect(page.getByText(copy.home.status)).toBeVisible();
       // The hello page is gone.
-      await expect(page.getByLabel(messages[locale].hello.firstNameLabel)).toHaveCount(0);
+      await expect(page.locator('form')).toHaveCount(0);
       await context.close();
     });
 

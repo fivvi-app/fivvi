@@ -28,8 +28,6 @@ export function LanguageSwitch({
   options: readonly LanguageOption[];
 }) {
   const pathname = usePathname();
-  // The page in the current language, then the same page in each language.
-  const here = alternatePath(pathname, current);
   return (
     <nav aria-label={label} className="flex rounded-full bg-muted p-0.5 text-[13px] font-semibold">
       {options.map(({ locale, lang, short, name }) => (
@@ -37,7 +35,7 @@ export function LanguageSwitch({
           key={locale}
           // The other root layout: a full page load, and nothing to prefetch.
           prefetch={false}
-          href={(locale === current ? here : alternatePath(pathname, locale)) as never}
+          href={alternatePath(pathname, locale)}
           lang={lang}
           aria-label={name}
           aria-current={locale === current ? 'true' : undefined}

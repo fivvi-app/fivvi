@@ -24,19 +24,27 @@ export const business: BusinessDetails = {
   tradeName: 'K&S Apps',
 };
 
+/**
+ * A detail as the site may show it: trimmed, or `undefined` when it is missing, blank or still an
+ * open `{{…}}` value. Every business detail the site shows goes through this, the trade name too.
+ */
+export function shown(value: string | undefined): string | undefined {
+  const text = value?.trim();
+  return text && !text.includes('{{') ? text : undefined;
+}
+
 /** The details a footer can list, in order. Each has a label in the catalog (`site.footer.<key>`). */
 const LISTED = ['kvk', 'vat', 'address', 'phone'] as const;
 export type BusinessDetailKey = (typeof LISTED)[number];
 
 /**
- * The details that are filled in: not missing, not blank, and not an open `{{…}}` value. The
- * footer lists only these.
+ * The details that are filled in (`shown`). The footer lists only these.
  */
 export function filledDetails(
   details: BusinessDetails,
 ): { key: BusinessDetailKey; value: string }[] {
   return LISTED.flatMap((key) => {
-    const value = details[key]?.trim();
-    return value && !value.includes('{{') ? [{ key, value }] : [];
+    const value = shown(details[key]);
+    return value ? [{ key, value }] : [];
   });
 }

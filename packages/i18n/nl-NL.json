@@ -11,10 +11,6 @@
   },
   "hello": {
     "title": "Welkom bij Fivvi",
-    "description": "Vul je voornaam in, dan begroeten we je.",
-    "firstNameLabel": "Voornaam",
-    "continue": "Doorgaan",
-    "formGreeting": "Hoi {name}, fijn dat je er bent.",
     "greeting": "Hoi {name},",
     "sessionsToday": "{count, plural, one {Je hebt vandaag # sessie.} other {Je hebt vandaag # sessies.}}",
     "noSessionsToday": "Je hebt vandaag geen sessies.",
@@ -346,8 +342,8 @@
   },
   "site": {
     "meta": {
-      "homeTitle": "Fivvi: jij traint, Fivvi regelt de rest",
-      "homeDescription": "Agenda, boekingen, credits, betalingen en facturen op één plek. Gemaakt voor personal trainers, studio's en sportscholen, en fijn voor hun klanten."
+      "homeTitle": "Fivvi: software voor personal trainers, studio's en sportscholen",
+      "homeDescription": "Agenda, boekingen, credits, betalingen en facturen op één plek. Zo houd je tijd over om te trainen. Plan een demo."
     },
     "header": {
       "skipToContent": "Naar de inhoud",

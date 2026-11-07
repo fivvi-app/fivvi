@@ -60,7 +60,7 @@ describe.each(locales)('F064 AC1 the home page in %s', (locale) => {
     const page = html(<HomePage locale={locale} />);
 
     expect(page).not.toContain('{{');
-    expect(page).not.toContain(messages[locale].hello.firstNameLabel);
+    expect(page).not.toContain('first-name');
     expect(page).not.toContain('<form');
   });
 });
@@ -183,6 +183,16 @@ describe.each(locales)('F064 AC7 the footer in %s', (locale) => {
     // No page but the home page exists yet, so there are no links and no headings over none.
     expect(links(footer).map(({ href }) => href)).toEqual([homePath(locale)]);
     expect(footer).not.toContain(escapeHtml(copy.footer.legalHeading));
+  });
+
+  it('shows no trade name line when the trade name is blank or still a placeholder', () => {
+    for (const tradeName of ['', '  ', '{{naam}}']) {
+      const footer = html(<SiteFooter locale={locale} business={{ tradeName }} />);
+
+      expect(footer).not.toContain(escapeHtml(copy.footer.tradeName.replace('{name}', '')).trim());
+      expect(footer).not.toContain('{{');
+      expect(footer).not.toContain('<p');
+    }
   });
 
   it('shows every detail that is filled in, with its label', () => {

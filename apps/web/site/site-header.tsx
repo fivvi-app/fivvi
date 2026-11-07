@@ -1,3 +1,4 @@
+import { SIGN_IN_PAGE } from '@fivvi/auth/return-path';
 import type { Locale } from '@fivvi/i18n';
 import { PillButton } from '@fivvi/ui/kit/pill-button';
 import Link from 'next/link';
@@ -6,9 +7,6 @@ import { NavLink } from './nav-link';
 import { headerPages, linksTo } from './navigation';
 import { builtPages, type SitePage, siteHomePath } from './routes';
 import { siteText } from './text';
-
-/** The sign-in page of the app (`app/(app)/login`). */
-const SIGN_IN = '/login';
 
 /**
  * The header of every site page (F064): the logo, the pages of the product, the language switch,
@@ -34,7 +32,7 @@ export function SiteHeader({
       </a>
       <div className="mx-auto flex w-full max-w-295 flex-wrap items-center gap-x-4 gap-y-2 px-[clamp(16px,4vw,40px)] py-2.5">
         <Link
-          href={siteHomePath(locale) as never}
+          href={siteHomePath(locale)}
           prefetch={false}
           className="numeric mr-auto inline-flex items-baseline text-2xl font-extrabold tracking-[-0.02em]"
         >
@@ -80,7 +78,7 @@ export function SiteHeader({
         />
         {/* The sign-in page belongs to the app, which has its own root layout: a full page load. */}
         <Link
-          href={SIGN_IN as never}
+          href={SIGN_IN_PAGE}
           prefetch={false}
           className="rounded-full px-3 py-1.5 text-[15px] whitespace-nowrap text-secondary-foreground hover:bg-muted"
         >
@@ -88,7 +86,7 @@ export function SiteHeader({
         </Link>
         {demo ? (
           <PillButton asChild size="sm">
-            <Link href={demo.href as never}>{t(demo.labelKey)}</Link>
+            <Link href={demo.href}>{t(demo.labelKey)}</Link>
           </PillButton>
         ) : null}
       </div>

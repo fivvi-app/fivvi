@@ -1,11 +1,10 @@
-import { existsSync } from 'node:fs';
+import { existsSync, readdirSync } from 'node:fs';
 import path from 'node:path';
 import { locales } from '@fivvi/i18n';
 import { describe, expect, it } from 'vitest';
 import {
   alternatePath,
   builtPages,
-  isBuilt,
   isSitePath,
   siteHomePath,
   sitePageAt,
@@ -14,6 +13,15 @@ import {
 } from './routes';
 
 const appDir = path.resolve(import.meta.dirname, '../app/(site)');
+
+/** The addresses of the page files below `directory`: `/`, `/sportscholen`, `/en/gyms`. */
+function pageRoutes(directory: string, route = ''): string[] {
+  return readdirSync(directory, { withFileTypes: true }).flatMap((entry) => {
+    if (entry.isDirectory())
+      return pageRoutes(path.join(directory, entry.name), `${route}/${entry.name}`);
+    return entry.name === 'page.tsx' ? [route || '/'] : [];
+  });
+}
 
 describe('F064 the site’s addresses (#611)', () => {
   it('Dutch at / and English at /en, with the address of every page in both languages', () => {
@@ -50,7 +58,25 @@ describe('F064 the site’s addresses (#611)', () => {
       }
     }
     expect(missing).toEqual([]);
-    expect(isBuilt('home')).toBe(true);
+    expect(builtPages).toContain('home');
+  });
+
+  it('lists every page that has a page file in builtPages, so a forgotten entry never loses its links', () => {
+    const unlisted: string[] = [];
+    for (const [group, locale] of [
+      ['(nl)', 'nl-NL'],
+      ['(en)', 'en'],
+    ] as const) {
+      for (const route of pageRoutes(path.join(appDir, group))) {
+        const at = sitePageAt(route);
+        if (at?.locale !== locale)
+          unlisted.push(`${route}: not an address of the site in ${locale}`);
+        else if (!builtPages.includes(at.page)) {
+          unlisted.push(`${route}: add '${at.page}' to builtPages in site/routes.ts`);
+        }
+      }
+    }
+    expect(unlisted).toEqual([]);
   });
 
   it('knows a page by its address, in either language', () => {

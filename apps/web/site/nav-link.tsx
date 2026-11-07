@@ -1,5 +1,6 @@
 'use client';
 
+import type { Route } from 'next';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import type { ComponentProps } from 'react';
@@ -11,8 +12,8 @@ import type { ComponentProps } from 'react';
 export function NavLink({
   href,
   ...props
-}: Omit<ComponentProps<typeof Link>, 'href' | 'aria-current'> & { href: string }) {
+}: Omit<ComponentProps<typeof Link>, 'href' | 'aria-current'> & { href: Route }) {
   const current = usePathname() === href;
   // The addresses are the site's own (routes.ts), not typed routes of the app.
-  return <Link href={href as never} aria-current={current ? 'page' : undefined} {...props} />;
+  return <Link href={href} aria-current={current ? 'page' : undefined} {...props} />;
 }
