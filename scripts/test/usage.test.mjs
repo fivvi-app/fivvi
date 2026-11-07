@@ -284,9 +284,9 @@ describe('usage.mjs', () => {
   const meta = (agentType, description = 'a task') => ({ agentType, description });
   const noGh = [{ match: '.', out: '', status: 1 }];
 
-  const run = (args, rules = noGh) =>
-    spawnSync('node', [SCRIPT, ...args], { encoding: 'utf8', env: gh.env(rules) });
-  const snapshot = (dir, args = [], rules = noGh) => {
+  const run = (args, rules = noGh, env = {}) =>
+    spawnSync('node', [SCRIPT, ...args], { encoding: 'utf8', env: { ...gh.env(rules), ...env } });
+  const snapshot = (dir, args = [], rules = noGh, env = {}) => {
     const out = join(base, `snapshot-${++n}.json`);
     const done = run(
       [
@@ -302,6 +302,7 @@ describe('usage.mjs', () => {
         ...args,
       ],
       rules,
+      env,
     );
     assert.equal(done.status, 0, done.stderr);
     return { ...done, data: JSON.parse(readFileSync(out, 'utf8')), out };
@@ -889,6 +890,20 @@ describe('usage.mjs', () => {
       assert.equal(ticket.ownerComments, 5);
       assert.equal(ticket.followUpFixes, 2);
       assert.equal(ticket.reverted, true);
+    });
+
+    it('FIVVI_ASSIGNEE is the person using gh, where gh api user is not allowed (a GitHub App token)', () => {
+      const rules = prRules().map((rule) =>
+        rule.match === 'api user' ? { ...rule, out: '', status: 1 } : rule,
+      );
+      const without = snapshot(projects(agentOf()), [], rules);
+      assert.equal(without.data.tickets[0].ownerComments, 4, 'only the repository owner counts');
+      const withIt = snapshot(projects(agentOf()), [], rules, { FIVVI_ASSIGNEE: 'person1' });
+      assert.equal(withIt.data.tickets[0].ownerComments, 5);
+      assert.ok(
+        !gh.calls().some((c) => c.args[0] === 'api' && c.args[1] === 'user'),
+        'gh api user not called',
+      );
     });
 
     it('asks for the runs of a branch with a limit above the default of gh, so none are cut off', () => {

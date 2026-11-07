@@ -201,7 +201,7 @@ cmd_ready() {
 cmd_claim() {
   [ $# -eq 1 ] || usage
   is_number "$1"
-  gh issue edit "$1" --repo "$REPO" --add-assignee @me >/dev/null
+  gh issue edit "$1" --repo "$REPO" --add-assignee "${FIVVI_ASSIGNEE:-@me}" >/dev/null
   echo "🙋 claimed #$1"
 }
 

@@ -443,10 +443,15 @@ const makeGh = () => {
     try {
       // The owner is the login of the repository's owner and, when that is an organisation, of the person using gh.
       const owners = [json(['repo', 'view', '--json', 'owner']).owner.login];
-      try {
-        owners.push(json(['api', 'user']).login);
-      } catch {
-        // only the login of the repository's owner then
+      if (process.env.FIVVI_ASSIGNEE) {
+        // Claude Code runs as a GitHub App, which gh api user refuses: this is the login of the person using it.
+        owners.push(process.env.FIVVI_ASSIGNEE);
+      } else {
+        try {
+          owners.push(json(['api', 'user']).login);
+        } catch {
+          // only the login of the repository's owner then
+        }
       }
       context = {
         owners,
