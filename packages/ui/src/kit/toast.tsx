@@ -7,28 +7,25 @@ import { WarningIcon } from './icons';
 // - trainer: the inverse of the page colours, radius 10, bottom right; a warning is a red fill
 //   with white text and icon (`action.danger.bg` and `.fg` are a declared pair);
 // - client: a glass pill above the tab bar (104px), the warning icon in the danger colour.
-const toastVariants = cva(
-  'fixed z-50 flex max-w-[92%] items-center gap-2 font-semibold shadow-lg',
-  {
-    variants: {
-      surface: {
-        trainer: 'right-7 bottom-7 rounded-[10px] px-4 py-3 text-sm',
-        client:
-          'glass bottom-26 left-1/2 -translate-x-1/2 rounded-full px-4.5 py-3 text-[15px] text-foreground',
-      },
-      tone: { default: '', warning: '' },
+const toastVariants = cva('fixed z-50 flex max-w-[92%] items-center gap-2 font-semibold', {
+  variants: {
+    surface: {
+      trainer: 'right-7 bottom-7 rounded-[10px] px-4.5 py-3 text-[15px] shadow-lg',
+      client:
+        'glass bottom-26 left-1/2 -translate-x-1/2 rounded-full px-4.5 py-3 text-[15px] text-foreground',
     },
-    compoundVariants: [
-      { surface: 'trainer', tone: 'default', className: 'bg-foreground text-background' },
-      {
-        surface: 'trainer',
-        tone: 'warning',
-        className: 'bg-action-danger-bg text-action-danger-fg',
-      },
-    ],
-    defaultVariants: { surface: 'trainer', tone: 'default' },
+    tone: { default: '', warning: '' },
   },
-);
+  compoundVariants: [
+    { surface: 'trainer', tone: 'default', className: 'bg-foreground text-background' },
+    {
+      surface: 'trainer',
+      tone: 'warning',
+      className: 'bg-action-danger-bg text-action-danger-fg',
+    },
+  ],
+  defaultVariants: { surface: 'trainer', tone: 'default' },
+});
 
 /**
  * A toast. `surface` is the page it appears on: `trainer` (the default) or `client`. A `warning`

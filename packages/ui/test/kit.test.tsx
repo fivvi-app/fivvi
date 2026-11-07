@@ -322,6 +322,9 @@ describe('E020 web kit', () => {
           'bg-foreground',
           'text-background',
           'rounded-[10px]',
+          'shadow-lg',
+          'px-4.5',
+          'text-[15px]',
           'right-7',
           'bottom-7',
         ]),
@@ -363,6 +366,8 @@ describe('E020 web kit', () => {
         ]),
       );
       expect(plain).not.toContain('bg-foreground');
+      // `shadow-lg` would come after `glass` in the CSS and replace its glass shadow.
+      expect(plain).not.toContain('shadow-lg');
       expect(warning).toContain('role="alert"');
       expect(classesOf(warning, 'data-slot="toast"')).toContain('glass');
       expect(classesOf(warning, 'aria-hidden="true"')).toContain('text-status-danger-fg');
