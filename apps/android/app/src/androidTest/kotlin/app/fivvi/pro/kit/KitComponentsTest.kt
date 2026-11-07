@@ -320,6 +320,23 @@ class KitComponentsTest(
         assertTrue("the time ($time) is right of the title ($title)", time.left >= title.right)
     }
 
+    // The pixels in front of the label that differ from the segment's fill: the check, when there is one.
+    private fun inkInFrontOfTheLabel(tag: String, text: String): Int {
+        val segment = compose.onNodeWithTag(tag)
+        val labelBounds = compose.onNode(hasAnyAncestor(hasTestTag(tag)) and hasText(text), useUnmergedTree = true)
+            .getUnclippedBoundsInRoot()
+        val left = segment.getUnclippedBoundsInRoot().left
+        val pixels = segment.pixels()
+        val from = (labelBounds.left - left - 24.dp).px()
+        val to = (labelBounds.left - left - 4.dp).px()
+        val fill = pixels[from, pixels.height / 2]
+        return (from..to).sumOf { x ->
+            (pixels.height / 2 - 8.dp.px()..pixels.height / 2 + 8.dp.px()).count { y ->
+                !pixels[x, y].near(fill, 0.1f)
+            }
+        }
+    }
+
     @Test
     fun E020_AC10_aSingleChoiceIsTheSegmentedButtonWithACheckOnTheSelectedOne() {
         var chosen = "nl"
@@ -343,21 +360,6 @@ class KitComponentsTest(
         compose.onNodeWithTag("choice.en").assert(hasText(label(R.string.settings_language_option_en)))
         // The check sits in front of the label of the selected segment only: the pixels left of the label differ from the
         // segment's fill there, and in the other segment they don't.
-        fun inkInFrontOfTheLabel(tag: String, text: String): Int {
-            val segment = compose.onNodeWithTag(tag)
-            val labelBounds = compose.onNode(hasAnyAncestor(hasTestTag(tag)) and hasText(text), useUnmergedTree = true)
-                .getUnclippedBoundsInRoot()
-            val left = segment.getUnclippedBoundsInRoot().left
-            val pixels = segment.pixels()
-            val from = (labelBounds.left - left - 24.dp).px()
-            val to = (labelBounds.left - left - 4.dp).px()
-            val fill = pixels[from, pixels.height / 2]
-            return (from..to).sumOf { x ->
-                (pixels.height / 2 - 8.dp.px()..pixels.height / 2 + 8.dp.px()).count { y ->
-                    !pixels[x, y].near(fill, 0.1f)
-                }
-            }
-        }
         val checked = inkInFrontOfTheLabel("choice.nl", label(R.string.settings_language_option_nl))
         val unchecked = inkInFrontOfTheLabel("choice.en", label(R.string.settings_language_option_en))
         assertTrue(
@@ -375,8 +377,9 @@ class KitComponentsTest(
     }
 
     @Test
-    fun E020_AC10_segmentLabelsAreNotCutOffAtTheLargestFontScaleOnASmallPhone() {
-        compose.showKit(mode, language, fontScale = 2f, width = 320.dp) {
+    fun E020_AC10_atTheLargestFontScaleTheSelectedSegmentKeepsItsCheckAndTheLabelsStayWhole() {
+        // A small phone, 360 dp wide, with the screen's 16 dp margins.
+        compose.showKit(mode, language, fontScale = 2f, width = 328.dp) {
             SegmentedChoice(
                 options = listOf(
                     SegmentedOption("nl", label(R.string.settings_language_option_nl), "choice.nl"),
@@ -387,18 +390,27 @@ class KitComponentsTest(
             )
         }
 
+        // The selection is read from the segment itself, and by its check: colour is not the only sign of it.
+        compose.onNodeWithTag("choice.nl").assertIsSelected()
+        compose.onNodeWithTag("choice.en").assertIsNotSelected()
+        val checked = inkInFrontOfTheLabel("choice.nl", label(R.string.settings_language_option_nl))
+        val unchecked = inkInFrontOfTheLabel("choice.en", label(R.string.settings_language_option_en))
+        assertTrue(
+            "a check in front of the selected label: $checked pixels, the other segment $unchecked",
+            checked > 20 && unchecked == 0,
+        )
+
         for ((tag, text) in listOf(
             "choice.nl" to label(R.string.settings_language_option_nl),
             "choice.en" to label(R.string.settings_language_option_en),
         )) {
             val node = compose.onNode(hasAnyAncestor(hasTestTag(tag)) and hasText(text), useUnmergedTree = true)
             val layout = node.textLayout()
-            // Every line is shown (the text is whole and no line is dropped) and the label stays inside its segment, so
-            // nothing is clipped at the segment's edge (within the 2 dp that the label's box may reach into its padding). A long
-            // word may wrap inside the word.
+            // Every label is whole, on one line, not broken inside the word, and stays inside its segment (within the 2 dp
+            // that the label's box may reach into its padding), so nothing is clipped at the segment's edge.
             assertEquals("$text shows in full", text, layout.layoutInput.text.text)
             assertFalse("$text loses lines", layout.didOverflowHeight)
-            assertEquals("$text stays whole on one line, not broken inside the word", 1, layout.lineCount)
+            assertEquals("$text stays on one line, not broken inside the word", 1, layout.lineCount)
             val segment = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot()
             val shown = node.getUnclippedBoundsInRoot()
             assertTrue(
