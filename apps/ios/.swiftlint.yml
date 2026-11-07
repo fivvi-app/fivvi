@@ -43,6 +43,22 @@ custom_rules:
       - doccomment.field
       - string
     severity: error
+  # No imitation of Liquid Glass (E020 AC8, ADR-029): the tab bar, navigation buttons, sheets and alerts are the system's
+  # components, and a floating surface takes the system's `glassEffect`. A blur view, a material behind a bar, sheet or
+  # control, or a bar's appearance proxy is a copy of the glass, which would not follow the system. Fixture:
+  # lint/fixtures/GlassImitation.swift.
+  no_glass_imitation:
+    name: No glass imitation
+    message: Liquid Glass comes from the system's components, glassEffect and the .glass button styles, not a copy of it
+    regex: '\bUIVisualEffectView\b|\bUIBlurEffect\b|\bUI(TabBar|NavigationBar|ToolBar)(Appearance)?\b|\.(background|presentationBackground)\s*\(\s*\.(ultraThin|thin|regular|thick|ultraThick|bar)Material\b|\.(toolbarBackground|toolbarBackgroundVisibility)\s*\('
+    excluded_match_kinds:
+      - comment
+      - comment.mark
+      - comment.url
+      - doccomment
+      - doccomment.field
+      - string
+    severity: error
   # Only the Observability module talks to Sentry (E009, OBSERVABILITY.md §1 "iOS"), like Biome's noRestrictedImports for
   # @sentry/* in TypeScript: it starts the SDK and owns the scrubber. Its tests build Sentry events.
   # Fixture: lint/fixtures/DirectSentry.swift.

@@ -1,6 +1,6 @@
 # Fivvi Pro for iOS
 
-The native iOS app (ADR-003): Swift 6 with strict concurrency, SwiftUI, iOS 17 and up, iPhone. For now it has one screen, *Hello*, which proves every layer is connected (E008, spec #34). It is the template for every later iOS screen.
+The native iOS app (ADR-003): Swift 6 with strict concurrency, SwiftUI, iOS 26 and up (the system's Liquid Glass, ADR-029), iPhone. For now it has one screen, *Hello*, which proves every layer is connected (E008, spec #34). It is the template for every later iOS screen.
 
 ```bash
 scripts/bootstrap.sh --mobile   # once: checks Xcode and an iPhone simulator, installs the pinned SwiftLint
@@ -16,6 +16,7 @@ scripts/ios-device.sh nl        # the Debug app on your iPhone, in Dutch (A real
 |---|---|
 | `FivviPro.xcodeproj` | Xcode project with folder-synchronized groups: a file added to one of the folders below is in its target, no project generator. Shared scheme `FivviPro` |
 | `FivviPro/` | The app target. `App/` (entry point, root view, configuration), `Hello/` (the hello block and its view model), `Home/` (the signed-in home: *Hello* plus the account's address), `Clients/` (*Klanten*, *Klantprofiel* and *+ Nieuwe klant*, F006), `Session/` (token store, auth layer on the client), `SignIn/` (TM-01), `Language/` (interface language), `Observability/` (crash and error reporting), `Strings/` (catalog lookup), `Theme/` (styles built from the design tokens) |
+| `FivviPro/Kit/` | The building blocks every screen is made of (E020, [The kit](#the-kit)); `KitGallery.swift` is Debug-only |
 | `FivviProTests/` | Unit tests (XCTest), hosted in the app |
 | `FivviProUITests/` | UI tests (XCUITest) |
 | `FivviPro.xctestplan` | Two configurations, `nl` (region NL) and `en` (region GB), time zone Europe/Amsterdam. Text-dependent tests run in both, the locale-independent UI tests in `nl` only ([Tests](#tests); `TESTING.md §7.2`) |
@@ -66,6 +67,28 @@ The app follows the E007 design tokens (ADR-015) in light and dark mode, from th
 - **Controls** stay native SwiftUI. `Theme/PrimaryActionStyle.swift` (`.buttonStyle(.primaryAction)`) is the filled primary action in `actionPrimaryBg` / `actionPrimaryBgPressed` with an `actionPrimaryFg` label; `Theme/SecondaryActionStyle.swift` (`.buttonStyle(.secondaryAction)`) is the tonal secondary action (resend the code, change the address, sign out) in `actionTonalBg` with an `actionTonalFg` label. Both keep a 44 pt touch target.
 
 The app follows the system's light or dark mode: nothing fixes its appearance (`UIUserInterfaceStyle` is unset, which `LaunchAppearanceTests` checks). `test_E008_AC6_usesTokenColoursInLightAndDark` launches the app in light and then dark mode and compares the screen's pixels (canvas, text, the retry button's fill and label) with the token colours resolved for that mode. It sets the mode with a Debug-only launch argument (`-UITestAppearance dark`, `Theme/LaunchAppearance.swift`) rather than `XCUIDevice.appearance`, which doesn't switch every simulator: an iOS 26.5 simulator stays light.
+
+## The kit
+
+iOS 26 draws Liquid Glass itself (E020, ADR-029). Every target's deployment target is 26.0 and the project sets no `UIDesignRequiresCompatibility`, which would opt the app out of the new design (`scripts/test-ios.sh` checks both configurations, `scripts/test/app-ids.test.mjs` every target of the project). The tab bar, the navigation bar's buttons, sheets and alerts are the system's components; nothing imitates them (SwiftLint's `no_glass_imitation`, see [No glass imitation](#no-glass-imitation)). A floating surface takes `glassEffect` and a control the `.glass` button styles. `FivviDesignTokens` and the contract package keep their lower package minimums; a package minimum doesn't limit the app.
+
+`FivviPro/Kit/` holds the building blocks of the prototype (`docs/design/prototype-v2`), all built from `Tokens`. A screen uses them and never rebuilds one:
+
+| Block | What |
+|---|---|
+| `InsetGroupedList`, `InsetGroup`, `InsetRow`, `.insetRow` | The grouped-grey canvas, its groups (radius 26, separators inset 16 pt) and their rows; a row in a `Button` or `NavigationLink` is tappable |
+| `Card` | The surface colour at radius 26 (`CardStyle.radius`) |
+| `.buttonStyle(.pill(_:))`, `PillButtonStack` | The pill button, 50 pt high (`.filled`, `.tonal`, `.destructive`); in a stack 48 pt high, equal width, 10 pt between |
+| `RoundControl` | A round 44 pt control (the + button) in the system's `.glass` or `.glassProminent` style |
+| `NextCard` | The gradient "next" card in the accent or a session type (`NextCardTone`, which has no Open Gym), with glass buttons |
+| `StatusPill` | A short label on a status tint (`StatusPillKind`) |
+| `FormField` | A labelled field; with an `error` it turns red, shows the warning icon and the message under it, and a screen reader reads the message with the field |
+| `.toast(_:)`, `ToastMessage` | A glass capsule with an icon (a warning icon for an error) above the tab bar, gone after 3 s |
+| `LargeTitleScreen`, `LargeTitleHeader`, `DateEyebrow` | The 34 pt large title with the date in capitals above it (in the app's language, in Europe/Amsterdam) and the inline title once it has scrolled away |
+| `.fivviTabBar()` | The system tab bar, which shrinks while the content scrolls down (`tabBarMinimizeBehavior(.onScrollDown)`) |
+| `NumericFont`, `.numericFont(_:)` | SF Pro Rounded with tabular digits, for every number (AC11) |
+
+New copy needs no new kit string: a block takes its texts as parameters. `Kit/KitGallery.swift` shows them all in the system's tab bar and navigation bar, in Debug builds only (launch argument `-UITestKitGallery YES`); `KitGalleryUITests` checks them as a person sees them, in nl and en, and `KitMetricsTests`, `NumericFontTests` and `DateEyebrowTests` check their sizes, tokens and number face. The existing `Theme/` styles (44 pt actions) stay until the screens move to the kit (#629, #630).
 
 ## Language
 
@@ -154,6 +177,10 @@ Every user-facing string comes from `packages/i18n` (`AGENTS.md`). SwiftLint's c
 ## No hard-coded colours
 
 Every colour comes from the design tokens. SwiftLint's custom rule `no_colour_literal` (`.swiftlint.yml`) fails on a colour initialiser (`Color(red:green:blue:)`, `Color("Asset")`, `UIColor(…)`), a `#colorLiteral`, a system colour or style (`Color.red`, `UIColor.systemBackground`, `.background`) or its shorthand as an argument, value or result (`.foregroundStyle(.secondary)`, `.tint(.blue)`, `colors: [.red]`, `on ? .red : …`, `return .red`), and names the file and line. `Color.clear`, `.tint` and materials are allowed. Tests are excluded, because they resolve token colours to check the screen. Like `no_literal_text`, it can't see colours passed through variables; review those by hand.
+
+## No glass imitation
+
+Liquid Glass comes from the system. SwiftLint's custom rule `no_glass_imitation` (`.swiftlint.yml`, fixture `lint/fixtures/GlassImitation.swift`) fails on `UIVisualEffectView` or `UIBlurEffect`, on a bar's appearance proxy (`UITabBar`, `UINavigationBar`), on a material behind a view or a sheet (`.background(.ultraThinMaterial)`, `.presentationBackground(.regularMaterial)`) and on `.toolbarBackground`, and names the file and line. `glassEffect`, `.glass` and `.glassProminent` are allowed.
 
 ## Crash reporting
 
