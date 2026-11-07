@@ -138,7 +138,7 @@ describe.each(locales)('F064 the header in %s', (locale) => {
     const gyms = en ? '/en/gyms' : '/sportscholen';
     const demo = en ? '/en/demo' : '/demo';
 
-    const none = html(<SiteHeader locale={locale} built={['home']} />);
+    const none = html(<SiteHeader locale={locale} built={[]} />);
     expect(none).not.toContain(escapeHtml(copy.nav.pricing));
     expect(none).not.toContain(escapeHtml(copy.header.demo));
     expect(linkTo(none, gyms)).toBeUndefined();
@@ -168,7 +168,7 @@ describe.each(locales)('F064 AC7 the footer in %s', (locale) => {
 
   it('shows the trade name and nothing else while no other detail is filled in', () => {
     const footer = html(
-      <SiteFooter locale={locale} built={['home']} business={{ tradeName: 'Voorbeeld BV' }} />,
+      <SiteFooter locale={locale} business={{ tradeName: 'Voorbeeld BV' }} built={[]} />,
     );
 
     expect(footer).toContain(escapeHtml(copy.footer.tradeName.replace('{name}', 'Voorbeeld BV')));
@@ -182,7 +182,7 @@ describe.each(locales)('F064 AC7 the footer in %s', (locale) => {
     }
     expect(footer).not.toContain('<dl');
     expect(footer).not.toContain('{{');
-    // No page but the home page exists yet, so there are no links and no headings over none.
+    // No page exists but the home page, so there are no links and no headings over none.
     expect(links(footer).map(({ href }) => href)).toEqual([homePath(locale)]);
     expect(footer).not.toContain(escapeHtml(copy.footer.legalHeading));
   });
