@@ -16,6 +16,13 @@ final class KitMetricsTests: XCTestCase {
         XCTAssertEqual(FieldErrorStyle.systemImage, "exclamationmark.triangle.fill")
     }
 
+    func test_E020_AC14_aFieldIsOneElementWhoseLabelCarriesTheErrorAndWhoseVoiceControlNameIsShort() {
+        let label = "Naam"
+        XCTAssertEqual(FieldAccessibility.label(label, error: "Naam is verplicht"), "Naam, Naam is verplicht")
+        XCTAssertEqual(FieldAccessibility.label(label, error: nil), "Naam")
+        XCTAssertEqual(FieldAccessibility.inputLabels(label), ["Naam"])
+    }
+
     /// E020 AC6: Open Gym comes later; no kit component offers its colours.
     func test_E020_AC6_noKitComponentOffersOpenGym() {
         XCTAssertEqual(NextCardTone.allCases.count, 3)

@@ -68,11 +68,12 @@ final class KitGalleryUITests: XCTestCase {
         let catalog = screen.catalog
         XCTAssertTrue(screen.tabBar.waitUntilExists(timeout: timeout))
 
-        // The field with an error: its message shows, VoiceOver reads it after the field's label, and what the person
-        // types stays the field's value.
+        // The field with an error: VoiceOver reads the label and the message once, as the field's label (the visible
+        // texts are not elements of their own), and what the person types stays the field's value.
         screen.scroll(to: screen.invalidField)
         let message = catalog["clients.addDialog.errors.nameRequired"]
-        XCTAssertEqual(screen.fieldError.label, message)
+        XCTAssertFalse(screen.app.staticTexts[message].exists, "the message is not a second element")
+        XCTAssertFalse(screen.app.staticTexts[catalog["clients.addDialog.nameLabel"]].exists, "nor is the label")
         XCTAssertEqual(screen.invalidField.label, "\(catalog["clients.addDialog.nameLabel"]), \(message)")
         screen.invalidField.tap()
         screen.invalidField.typeText("Anna")

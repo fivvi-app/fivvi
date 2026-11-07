@@ -26,8 +26,18 @@ final class KitRenderedTests: XCTestCase {
 
     // MARK: Card and inset group
 
-    /// A point 7 pt in from a corner is outside a radius of 26 (a radius of 16 or less would draw the surface there)
-    /// and 11 pt in is inside it, so the two points tell 26 from every smaller radius.
+    /// How far along a row 1 pt under the top edge the surface starts: the rounder the corner, the further.
+    private func surfaceStart(_ view: RenderedView, _ style: UIUserInterfaceStyle) -> CGFloat? {
+        let surface = pixel(Tokens.Colors.bgSurface, style)
+        return stride(from: CGFloat(0), to: 60, by: 1.0 / 3).first { column in
+            view.colour(at: CGPoint(x: column, y: 1)).distance(to: surface) <= colourTolerance
+        }
+    }
+
+    /// A point 7 pt in from a corner is outside a radius of 26 (a radius of 24 or less would draw the surface there)
+    /// and 11 pt in is inside it, so the two points tell 26 from every smaller radius. Along the row 1 pt under the top
+    /// edge the surface starts at 20 pt (measured; 18.5 for a radius of 24, 21.5 for Android's 28), which tells 26 from
+    /// every larger one.
     private func assertRounded26(_ view: RenderedView, _ name: String, _ style: UIUserInterfaceStyle) {
         let right = view.size.width
         let bottom = view.size.height
@@ -39,6 +49,8 @@ final class KitRenderedTests: XCTestCase {
             assertPixel(view, at: outside, is: Tokens.Colors.bgCanvas, style, "\(name) outside the corner")
             assertPixel(view, at: inside, is: Tokens.Colors.bgSurface, style, "\(name) inside the corner")
         }
+        let start = surfaceStart(view, style) ?? .infinity
+        XCTAssertEqual(start, 20, accuracy: 0.8, "\(name): the surface starts 20 pt along the top row, \(mode(style))")
     }
 
     func test_E020_AC14_aCardIsRounded26() throws {
@@ -193,7 +205,8 @@ final class KitRenderedTests: XCTestCase {
         let text = try RenderedView(
             VStack(alignment: .leading, spacing: Tokens.Spacing.space1) {
                 Text(longSample).font(.system(Tokens.TextStyle.footnote, weight: .semibold)).textCase(.uppercase)
-                Text(sample).font(.system(size: NextCardMetrics.titleSize, weight: .bold))
+                // 24 pt, as a literal: the reference doesn't use the constant it checks.
+                Text(sample).font(.system(size: 24, weight: .bold))
                 Text(longSample).font(.system(Tokens.TextStyle.subhead))
             },
             width: 304

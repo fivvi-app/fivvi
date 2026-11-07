@@ -180,7 +180,7 @@ Every colour comes from the design tokens. SwiftLint's custom rule `no_colour_li
 
 ## No glass imitation
 
-Liquid Glass comes from the system. SwiftLint's custom rule `no_glass_imitation` (`.swiftlint.yml`, fixture `lint/fixtures/GlassImitation.swift`) fails on `UIVisualEffectView` or `UIBlurEffect`, on a bar's appearance proxy (`UITabBar`, `UINavigationBar`, `UIToolbar` and their `…Appearance`), on any material (`.ultraThinMaterial` to `.ultraThickMaterial`) and on a bar fill (`.background(.bar)`, `.fill(.bar)`) behind a view, a bar or a sheet, and on `.toolbarBackground`, and names the file and line. `glassEffect`, `.glass` and `.glassProminent` are allowed.
+Liquid Glass comes from the system. SwiftLint's custom rule `no_glass_imitation` (`.swiftlint.yml`, fixture `lint/fixtures/GlassImitation.swift`) fails on `UIVisualEffectView` or `UIBlurEffect`, on a bar's appearance proxy (`UIBar`, `UITabBar`, `UINavigationBar`, `UIToolbar` and their `…Appearance`, `UIBarButtonItemAppearance`, `UITabBarItemAppearance` and `.appearance()` of those items), on any material (`.ultraThinMaterial` to `.ultraThickMaterial`, `Material.thin`, `Material.bar`) and on a bar fill (`.background(.bar)`, `.fill(.bar)`, `.containerBackground(.bar, …)`, `.backgroundStyle(.bar)`) behind a view, a bar or a sheet, and on `.toolbarBackground`, and names the file and line. `glassEffect`, `.glass` and `.glassProminent` are allowed.
 
 ## Crash reporting
 

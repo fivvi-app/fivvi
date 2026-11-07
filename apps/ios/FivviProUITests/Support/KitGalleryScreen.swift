@@ -18,7 +18,6 @@ struct KitGalleryScreen {
     var stackSecond: XCUIElement { app.buttons["kit.stack.second"] }
     var invalidField: XCUIElement { app.textFields["kit.field.invalid"] }
     var validField: XCUIElement { app.textFields["kit.field.valid"] }
-    var fieldError: XCUIElement { app.staticTexts["field.error"] }
     var toastText: XCUIElement { app.staticTexts["toast.text"] }
     var scroll: XCUIElement { app.scrollViews.firstMatch }
 

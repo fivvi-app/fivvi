@@ -50,7 +50,7 @@ custom_rules:
   no_glass_imitation:
     name: No glass imitation
     message: Liquid Glass comes from the system's components, glassEffect and the .glass button styles, not a copy of it
-    regex: '\bUIVisualEffectView\b|\bUIBlurEffect\b|\bUI(TabBar|NavigationBar|Toolbar)(Appearance)?\b|\.(ultraThin|thin|regular|thick|ultraThick)Material\b|\.(background|presentationBackground|fill)\s*\(\s*\.bar\b|\.(toolbarBackground|toolbarBackgroundVisibility)\s*\('
+    regex: '\bUIVisualEffectView\b|\bUIBlurEffect\b|\bUI(Bar|TabBar|NavigationBar|Toolbar)(Appearance)?\b|\bUI(BarButtonItem|TabBarItem)(Appearance\b|\s*\.\s*appearance\b)|\.(ultraThin|thin|regular|thick|ultraThick)Material\b|\bMaterial\s*\.\s*(ultraThin|thin|regular|thick|ultraThick|bar)\b|\.(background|presentationBackground|fill|containerBackground|backgroundStyle)\s*\(\s*\.bar\b|\.(toolbarBackground|toolbarBackgroundVisibility)\s*\('
     excluded_match_kinds:
       - comment
       - comment.mark
