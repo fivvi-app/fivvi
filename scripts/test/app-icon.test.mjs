@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict';
-import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
+import { crc32 } from 'node:zlib';
 import { sourceFiles } from '@fivvi/design-tokens/source';
 import {
   coverage,
@@ -168,11 +168,10 @@ describe('E020 AC1: the path of the mark is handled exactly', () => {
 
   it('draws the traced path of docs/design/brand/fivvi-mark-white.svg, copied unchanged', () => {
     assert.equal(MARK_PATHS.length, 4);
-    // The four `d` attributes of that file, joined by a newline; this fails when the copy in the script is touched.
-    assert.equal(
-      createHash('sha256').update(MARK_PATHS.join('\n')).digest('hex'),
-      '08931331fb4fe1e8a959eb37a210cd16ec812619b78e23b5241c99419f399df2',
-    );
+    // The four `d` attributes of that file, joined by a newline: their length and CRC-32 (the number, not a secret).
+    // This fails when the copy in the script is touched.
+    const joined = MARK_PATHS.join('\n');
+    assert.deepEqual([joined.length, crc32(joined)], [2550, 2571959325]);
     for (const d of MARK_PATHS) {
       const commands = parsePath(d);
       assert.deepEqual(
