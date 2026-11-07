@@ -1,5 +1,9 @@
 package app.fivvi.pro.home
 
+import android.app.Instrumentation
+import android.content.Intent
+import android.content.IntentFilter
+import android.os.PatternMatcher
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsOff
@@ -9,7 +13,9 @@ import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
+import androidx.test.platform.app.InstrumentationRegistry
 import app.fivvi.api.models.MyWorkspace
 import app.fivvi.api.models.MyWorkspace.Role
 import app.fivvi.core.AppLanguage
@@ -17,11 +23,14 @@ import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
 import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.me.workspaceIdOf
+import app.fivvi.core.web.SiteLinks
+import app.fivvi.core.web.SitePage
 import app.fivvi.pro.AppRule
 import app.fivvi.pro.UI_TIMEOUT_MILLIS
 import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.localizedString
 import app.fivvi.pro.waitUntilTagExists
+import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -76,6 +85,60 @@ class ProfileScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
     }
 
     private fun string(id: Int, vararg args: Any) = localizedString(language, id, *args)
+
+    // The system browser is stubbed: the monitor answers a VIEW intent for this exact address and counts it, so nothing
+    // opens, and a tap that opens another address or none fails the test.
+    private fun monitorBrowser(page: SitePage): Instrumentation.ActivityMonitor {
+        val url = android.net.Uri.parse(SiteLinks.url(page, language))
+        val filter = IntentFilter(Intent.ACTION_VIEW).apply {
+            addDataScheme(url.scheme)
+            addDataAuthority(url.host, null)
+            addDataPath(url.path, PatternMatcher.PATTERN_LITERAL)
+        }
+        val instrumentation = InstrumentationRegistry.getInstrumentation()
+        return instrumentation.addMonitor(filter, Instrumentation.ActivityResult(0, null), true)
+    }
+
+    // F064 AC17 (NL, EN): Profiel has the links to the privacy policy and to help and contact; each opens the website's page
+    // in the language shown, in the browser.
+    @Test
+    fun test_F064_AC17_profileLinksToHelpAndContactAndThePrivacyPolicy() {
+        openProfileAsSarah()
+        val support = monitorBrowser(SitePage.Support)
+        val privacy = monitorBrowser(SitePage.Privacy)
+
+        compose.onNodeWithTag(ProfileTags.SUPPORT).performScrollTo()
+        compose.onNodeWithTag(ProfileTags.SUPPORT).assertTextEquals(string(R.string.profile_support))
+        compose.onNodeWithTag(ProfileTags.PRIVACY).performScrollTo()
+        compose.onNodeWithTag(ProfileTags.PRIVACY).assertTextEquals(string(R.string.profile_privacy))
+        assertEquals(0, support.hits)
+        assertEquals(0, privacy.hits)
+
+        compose.onNodeWithTag(ProfileTags.SUPPORT).performClick()
+        compose.waitForIdle()
+        assertEquals(1, support.hits)
+        assertEquals(0, privacy.hits)
+
+        compose.onNodeWithTag(ProfileTags.PRIVACY).performClick()
+        compose.waitForIdle()
+        assertEquals(1, support.hits)
+        assertEquals(1, privacy.hits)
+    }
+
+    // F064 AC17: the links are there when the lists could not be loaded, too.
+    @Test
+    fun test_F064_AC17_theLinksShowWhenTheWorkspacesCouldNotBeLoaded() {
+        me.answerAccount()
+        me.answerAccount()
+        me.workspaceAnswers += { throw IOException("offline") }
+        launch()
+        compose.waitUntilTagExists(HomeTags.OPEN_PROFILE)
+        compose.onNodeWithTag(HomeTags.OPEN_PROFILE).performClick()
+        compose.waitUntilTagExists(ProfileTags.ERROR)
+
+        compose.onNodeWithTag(ProfileTags.SUPPORT).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag(ProfileTags.PRIVACY).performScrollTo().assertIsDisplayed()
+    }
 
     @Test
     fun test_F003_AC9_profileListsWorkspacesWithRole() {

@@ -260,6 +260,8 @@
   },
   "profile": {
     "title": "Profiel",
+    "support": "Hulp en contact",
+    "privacy": "Privacyverklaring",
     "error": "Je werkruimtes konden niet worden geladen.",
     "language": "Taal",
     "trainsHere": {

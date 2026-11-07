@@ -46,6 +46,9 @@ import androidx.compose.ui.semantics.semantics
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.LanguageList
 import app.fivvi.core.R
+import app.fivvi.core.kit.InsetGroupedList
+import app.fivvi.core.kit.ListRow
+import app.fivvi.core.web.SitePage
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
 import app.fivvi.designtokens.subhead
@@ -86,6 +89,10 @@ object ProfileTags {
     const val LANGUAGE = "profile.language"
     const val LANGUAGE_ERROR = "profile.language.error"
 
+    /** The rows that open the website in the browser (F064 AC17): the privacy policy, and help and contact. */
+    const val PRIVACY = "profile.privacy"
+    const val SUPPORT = "profile.support"
+
     /**
      * Row tags end in the workspace's slug: `profile.workspace.<slug>` is the row (with more than one workspace a button,
      * selected on the current one), `profile.workspaceName.<slug>` and `profile.workspaceRole.<slug>` its two lines.
@@ -110,6 +117,8 @@ class ProfileActions(
     val currentWorkspace: UUID?,
     /** A tap on a workspace's row: with more than one workspace it switches to it; on the current one it only leaves Profiel. */
     val onSelectWorkspace: (UUID) -> Unit,
+    /** A tap on *Hulp en contact* or *Privacyverklaring* (F064 AC17): the page of the website, opened in the browser. */
+    val onOpenSitePage: (SitePage) -> Unit,
 )
 
 /**
@@ -188,6 +197,28 @@ fun ProfileScreen(state: ProfileState, editor: NameEditor?, actions: ProfileActi
                 modifier = Modifier.testTag(ProfileTags.LANGUAGE_ERROR),
                 color = MaterialTheme.colorScheme.error,
                 style = MaterialTheme.typography.body,
+            )
+        }
+        SiteLinkRows(actions.onOpenSitePage)
+    }
+}
+
+// *Hulp en contact* and *Privacyverklaring* (F064 AC17): one group of two rows that open the public website.
+@Composable
+private fun SiteLinkRows(onOpen: (SitePage) -> Unit) {
+    InsetGroupedList {
+        row {
+            ListRow(
+                title = stringResource(R.string.profile_support),
+                modifier = Modifier.testTag(ProfileTags.SUPPORT),
+                onClick = { onOpen(SitePage.Support) },
+            )
+        }
+        row {
+            ListRow(
+                title = stringResource(R.string.profile_privacy),
+                modifier = Modifier.testTag(ProfileTags.PRIVACY),
+                onClick = { onOpen(SitePage.Privacy) },
             )
         }
     }
