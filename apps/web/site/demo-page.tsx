@@ -1,7 +1,9 @@
 import type { Locale } from '@fivvi/i18n';
 import Link from 'next/link';
 import { DemoForm, type DemoFormCopy } from './demo-form';
+import { supportEmail } from './info/contact';
 import { builtPages, type SitePage, sitePagePath } from './routes';
+import { StatusLine } from './status-line';
 import { siteText } from './text';
 
 const STEPS = ['tell', 'show', 'fit'] as const;
@@ -47,9 +49,9 @@ export function DemoPage({
       nameTooLong: t('site.demo.errors.nameTooLong'),
       emailInvalid: t('site.demo.errors.emailInvalid'),
       messageTooLong: t('site.demo.errors.messageTooLong'),
-      rateLimited: t('site.demo.errors.rateLimited'),
+      rateLimited: t('site.demo.errors.rateLimited', { email: supportEmail }),
       noConnection: t('site.demo.errors.noConnection'),
-      failed: t('site.demo.errors.failed'),
+      failed: t('site.demo.errors.failed', { email: supportEmail }),
     },
   };
   const privacyHref = built.includes('privacy') ? sitePagePath('privacy', locale) : undefined;
@@ -98,18 +100,5 @@ export function DemoPage({
         )}
       </p>
     </div>
-  );
-}
-
-/** The line every page carries: Fivvi is being built with its first gym (#611 AC19). */
-function StatusLine({ children }: { children: string }) {
-  return (
-    <p className="mt-4 flex max-w-[44em] items-baseline gap-2.5 text-[15px] leading-[1.35] text-secondary-foreground">
-      <span
-        aria-hidden="true"
-        className="size-2 flex-none -translate-y-px rounded-full bg-primary"
-      />
-      {children}
-    </p>
   );
 }

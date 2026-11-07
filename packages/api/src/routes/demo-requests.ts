@@ -1,5 +1,3 @@
-import { createHash } from 'node:crypto';
-import { isIP } from 'node:net';
 import type { RateLimitRule } from '@fivvi/database';
 import { type OpenAPIHono, z } from '@hono/zod-openapi';
 import { defineRoute } from '../access.ts';
@@ -9,7 +7,7 @@ import { LocaleSchema } from '../schemas.ts';
 
 // The demo request of the public website (F064, spec #611, ADR-030): one email to Fivvi's own
 // support address and nothing else. Nothing is stored (the rate limit counts requests under a
-// hashed key and keeps no answer) and nothing about the visitor is logged. No email goes to the
+// keyed hash of the client address and keeps no answer) and nothing about the visitor is logged. No email goes to the
 // visitor, so the form cannot be used to send mail to someone else. A honeypot field and two rate
 // limits keep bots from filling the inbox.
 
@@ -17,16 +15,10 @@ import { LocaleSchema } from '../schemas.ts';
 const IP_LIMIT: RateLimitRule = { max: 5, windowMinutes: 60 };
 
 /**
- * Demo requests from everyone per hour: a backstop for a flood from many addresses (an IPv6
- * network owns millions), far above what real interest in a pilot sends.
+ * Demo requests from everyone per hour: a backstop for a flood from many addresses (a botnet),
+ * far above what real interest in a pilot sends.
  */
 const ALL_LIMIT: RateLimitRule = { max: 60, windowMinutes: 60 };
-
-/** Where the client's IP address comes from: `ENVIRONMENTS.md §7`, the same header as sign-in. */
-const CLIENT_IP_HEADER = 'x-real-ip';
-
-/** The bucket of a request with no usable client address: they all share one limit. */
-const UNKNOWN_IP = 'unknown';
 
 const NameSchema = z
   .string()
@@ -59,6 +51,7 @@ const DemoRequestSchema = z
     locale: LocaleSchema,
     website: z
       .string()
+      .max(2000)
       .optional()
       .openapi({
         description:
@@ -119,30 +112,36 @@ const requestDemoRoute = defineRoute(
   { type: 'public' },
 );
 
-/**
- * The bucket of the request's client address, from `X-Real-IP` and nothing else, as a hash so the
- * address itself is not kept. A missing or invalid value is the shared `unknown` bucket.
- */
-function clientBucket(headers: Headers): string {
-  const value = headers.get(CLIENT_IP_HEADER)?.trim();
-  const ip = value && isIP(value) !== 0 ? value : UNKNOWN_IP;
-  return createHash('sha256').update(ip).digest('hex').slice(0, 32);
-}
-
 export function registerDemoRequests(app: OpenAPIHono, dependencies: ApiDependencies) {
   app.openapi(requestDemoRoute, async (c) => {
     const { website, message, ...answers } = c.req.valid('json');
     // A bot fills every field. It gets the answer of a real request and costs nothing.
     if (website?.trim()) return c.body(null, 202);
 
-    // After the validation: a refused request uses nothing up. The keys hold no address.
-    const { allowed } = await dependencies.consumeRateLimit(
-      `demo-request:ip:${clientBucket(c.req.raw.headers)}`,
-      IP_LIMIT,
-    );
-    if (!allowed) return c.json({ code: 'rate_limited' as const }, 429);
-    const everyone = await dependencies.consumeRateLimit('demo-request:all', ALL_LIMIT);
-    if (!everyone.allowed) return c.json({ code: 'rate_limited' as const }, 429);
+    // After the validation: a refused request uses nothing up. The keys hold no address: the
+    // client's is a keyed hash, IPv6 grouped by /64 (`clientAddressKey`, as for sign-in), and
+    // without a usable one (local, tests) there is no per-address limit, only the one for all.
+    const clientKey = dependencies.clientAddressKey(c.req.raw.headers);
+    const limited: string[] = [];
+    if (clientKey !== null) {
+      const { allowed } = await dependencies.consumeRateLimit(
+        `demo-request:ip:${clientKey}`,
+        IP_LIMIT,
+      );
+      if (!allowed) limited.push('ip');
+    }
+    // A request over its own limit does not use up the one for everyone.
+    if (limited.length === 0) {
+      const everyone = await dependencies.consumeRateLimit('demo-request:all', ALL_LIMIT);
+      if (!everyone.allowed) limited.push('all');
+    }
+    // The counters of windows that have ended go (one indexed range delete), as at sign-in.
+    await dependencies.deleteExpiredRateLimits();
+    if (limited.length > 0) {
+      // Which limit and nothing else: no address, no answer.
+      console.warn(`Demo request rate-limited: ${limited.join(', ')}`);
+      return c.json({ code: 'rate_limited' as const }, 429);
+    }
 
     try {
       await dependencies.sendDemoRequest({ ...answers, message: message || null });

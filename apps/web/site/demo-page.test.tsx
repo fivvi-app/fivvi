@@ -50,7 +50,7 @@ describe.each(locales)('F064 the demo page in %s', (locale) => {
     expect(page).toContain(escapeHtml(form.send));
     expect(page).toContain(escapeHtml(form.note));
     expect(page).toContain('type="email"');
-    expect(page).toContain('autoComplete="email"'.toLowerCase().replace('c', 'C'));
+    expect(page).toContain('autoComplete="email"');
   });
 
   it('AC6: the honeypot is a field people never reach or hear', () => {
@@ -60,9 +60,17 @@ describe.each(locales)('F064 the demo page in %s', (locale) => {
       page,
     );
     expect(honeypot?.[0]).toContain('tabindex="-1"');
-    expect(honeypot?.[0]).toContain('autoComplete="off"'.toLowerCase().replace('c', 'C'));
+    expect(honeypot?.[0]).toContain('autoComplete="off"');
     // No label and no text of its own: a person never meets it.
     expect(honeypot?.[0]).not.toContain('<label');
+  });
+
+  it('promises no reply time the owner has not confirmed (DECISIONS.md §9, assumption 2)', () => {
+    const texts = [copy.demo.form.sent, messages[locale].email.demoRequest.reply];
+
+    for (const text of texts) expect(text).not.toMatch(/1 werkdag|1 working day|one working day/i);
+    // The 30 minutes of the demo are still said.
+    expect(copy.demo.lead).toMatch(/30/);
   });
 
   it('shows no error and no confirmation before anything is sent', () => {

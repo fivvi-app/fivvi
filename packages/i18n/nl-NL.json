@@ -223,7 +223,7 @@
       "trainersLabel": "Aantal trainers",
       "languageLabel": "Taal van de website",
       "messageLabel": "Bericht",
-      "reply": "Antwoord binnen 1 werkdag, in de taal van de website. Schrijf naar het e-mailadres hierboven: dit bericht is niet van de aanvrager zelf.",
+      "reply": "Antwoord in de taal van de website. Schrijf naar het e-mailadres hierboven: dit bericht is niet van de aanvrager zelf.",
       "business": {
         "gym": "Een sportschool met een team",
         "studio": "Een pilates- of yogastudio",
@@ -561,7 +561,7 @@
         "sending": "Bezig met versturen…",
         "note": "We gebruiken dit alleen om je te antwoorden.",
         "privacyLink": "Lees de privacyverklaring.",
-        "sent": "Bedankt, je aanvraag is verstuurd. Je hoort binnen 1 werkdag van ons.",
+        "sent": "Bedankt, je aanvraag is verstuurd. We nemen contact met je op.",
         "client": "Ben je klant van een studio? Vraag je studio of trainer om Fivvi."
       },
       "errors": {
@@ -569,9 +569,9 @@
         "nameTooLong": "Je naam is te lang. Gebruik maximaal 100 tekens.",
         "emailInvalid": "Vul een geldig e-mailadres in, bijvoorbeeld naam@example.com.",
         "messageTooLong": "Je bericht is te lang. Gebruik maximaal 2000 tekens.",
-        "rateLimited": "Je hebt te vaak een aanvraag verstuurd. Probeer het later opnieuw, of mail ons op support@fivvi.app.",
+        "rateLimited": "Er zijn nu te veel aanvragen verstuurd. Probeer het later opnieuw, of mail ons op {email}.",
         "noConnection": "Je aanvraag is niet verstuurd: er is geen verbinding. Controleer je internet en probeer het opnieuw.",
-        "failed": "Je aanvraag is niet verstuurd. Probeer het later opnieuw, of mail ons op support@fivvi.app."
+        "failed": "Je aanvraag is niet verstuurd. Probeer het later opnieuw, of mail ons op {email}."
       }
     }
   }

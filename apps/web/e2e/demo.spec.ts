@@ -3,11 +3,13 @@ import { messages as catalogs, formattingLocales, type Locale } from '@fivvi/i18
 import { clientIpHeaders, newAddress, newIpAddress } from './accounts';
 import { emailsTo, type ReceivedEmail } from './brevo';
 import { expect, test } from './fixtures';
+import { DEMO_REQUEST_ADDRESS } from './servers';
 
 // F064 (spec #611, ticket #641): the demo page and its form. The form posts to the real API, which
 // emails Fivvi's support address; here that email goes to the fake Brevo server
 // (e2e/fake-brevo.ts). Every test has a visitor and an IP address of its own.
-const SUPPORT = 'support@fivvi.app';
+// In production this is support@fivvi.app; the e2e servers send to a fake mailbox (servers.ts).
+const SUPPORT = DEMO_REQUEST_ADDRESS;
 const DEMO: Record<Locale, string> = { 'nl-NL': '/demo', en: '/en/demo' };
 
 /** A name no other test uses, so its email can be told apart on the shared fake server. */
@@ -45,18 +47,19 @@ test.describe('F064 the demo page and its form', () => {
     });
   }
 
-  test('the header offers Plan een demo, and it opens this page', async ({
+  test('nothing links to the page before go-live (#648), but it is there, and says noindex', async ({
     page,
     appLocale,
     messages: copy,
   }) => {
     await page.goto(appLocale === 'en' ? '/en' : '/');
+    await expect(page.getByRole('link', { name: copy.site.header.demo })).toHaveCount(0);
+    await expect(page.locator('a[href$="/demo"]')).toHaveCount(0);
 
-    const header = page.getByRole('banner');
-    await header.getByRole('link', { name: copy.site.header.demo }).click();
+    const response = await page.goto(DEMO[appLocale]);
 
-    await expect(page).toHaveURL(new RegExp(`${DEMO[appLocale]}$`));
-    await expect(page.getByRole('heading', { level: 1 })).toHaveText(copy.site.demo.headline);
+    expect(response?.status()).toBe(200);
+    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
   });
 
   test('AC5: a valid request sends one email to support in Dutch, shows the confirmation, and writes to no one else', async ({
@@ -181,7 +184,7 @@ test.describe('F064 the demo page and its form', () => {
     await page.getByRole('button', { name: form.send }).click();
 
     await expect(page.getByRole('form', { name: form.label }).getByRole('alert')).toHaveText(
-      copy.site.demo.errors.rateLimited,
+      copy.site.demo.errors.rateLimited.replace('{email}', 'support@fivvi.app'),
     );
     expect(await requestsFrom(name)).toEqual([]);
     // The form keeps what was typed, and no confirmation is shown.
@@ -206,8 +209,10 @@ test.describe('F064 the demo page and its form', () => {
     await page.getByRole('button', { name: form.send }).click();
 
     const alert = page.getByRole('form', { name: copy.site.demo.form.label }).getByRole('alert');
-    await expect(alert).toHaveText(copy.site.demo.errors.failed);
-    await expect(alert).toContainText(SUPPORT);
+    // The address to write to is the real support address, whatever mailbox this server sends to.
+    await expect(alert).toHaveText(
+      copy.site.demo.errors.failed.replace('{email}', 'support@fivvi.app'),
+    );
     await expect(page.getByRole('status')).toHaveCount(0);
     await expect(page.getByLabel(form.name)).toHaveValue(name);
   });

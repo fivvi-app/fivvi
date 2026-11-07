@@ -5,6 +5,7 @@ import { Label } from '@fivvi/ui/components/label';
 import { NativeSelect, NativeSelectOption } from '@fivvi/ui/components/native-select';
 import { Field } from '@fivvi/ui/kit/field';
 import { PillButton } from '@fivvi/ui/kit/pill-button';
+import type { Route } from 'next';
 import Link from 'next/link';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { flushSync } from 'react-dom';
@@ -54,7 +55,7 @@ export function DemoForm({
   locale: Locale;
   copy: DemoFormCopy;
   /** The privacy policy page, or `undefined` while it does not exist. */
-  privacyHref?: string;
+  privacyHref?: Route;
 }) {
   const [errors, setErrors] = useState<FieldErrors>({});
   const [failure, setFailure] = useState<'rateLimited' | 'noConnection' | 'failed' | null>(null);
@@ -187,11 +188,7 @@ export function DemoForm({
       <p className="text-sm leading-[1.4] text-muted-foreground">
         {copy.note}{' '}
         {privacyHref ? (
-          <Link
-            href={privacyHref as never}
-            prefetch={false}
-            className="underline underline-offset-2"
-          >
+          <Link href={privacyHref} prefetch={false} className="underline underline-offset-2">
             {copy.privacyLink}
           </Link>
         ) : null}

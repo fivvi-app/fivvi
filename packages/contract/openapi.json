@@ -846,6 +846,7 @@
           },
           "website": {
             "type": "string",
+            "maxLength": 2000,
             "description": "A honeypot: the form hides this field from people. Leave it empty or out. A request that fills it is dropped without an email, and gets the same answer as any other."
           }
         },

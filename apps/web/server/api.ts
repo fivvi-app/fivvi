@@ -1,7 +1,9 @@
 import { createAddressLookup, createApiHandler } from '@fivvi/api';
+import { clientAddressKey, defaultRequireClientIp } from '@fivvi/auth';
 import {
   consumeRateLimit,
   createTenantScopes,
+  deleteExpiredRateLimits,
   findSystemGreeting,
   pingDatabase,
 } from '@fivvi/database';
@@ -14,6 +16,7 @@ import {
 import { inProcessApiClient } from './api-client';
 import { auth, readAuthConfig, signUpAllowlist } from './auth';
 import { database } from './database';
+import { demoRequestRecipient } from './demo-request-recipient';
 import { errorReporter } from './error-reporter';
 import { productEvents } from './product-events';
 
@@ -53,20 +56,15 @@ function sendPrivateSession(...[mail]: Parameters<ReturnType<typeof createPrivat
 let demoRequestSender: ReturnType<typeof createDemoRequestSender> | undefined;
 
 /**
- * Fivvi's own address for the website's contact: where demo requests go (F064). The mailbox is
- * created by the owner (#612); until it exists, a send may bounce.
- */
-const SUPPORT_ADDRESS = { email: 'support@fivvi.app', name: 'Fivvi support' };
-
-/**
- * The demo request of the public website (F064), emailed to `SUPPORT_ADDRESS` through the provider
- * of the environment, in Dutch. Nothing goes to the visitor. Created on first use, so `next build`
- * runs without the email settings.
+ * The demo request of the public website (F064), emailed in Dutch to `demoRequestRecipient()`:
+ * the support address in production, an `@example.com` address (logged, not sent) elsewhere.
+ * Nothing goes to the visitor. Created on first use, so `next build` runs without the email
+ * settings. The mailbox is the owner's to create (#612).
  */
 function sendDemoRequest(...[mail]: Parameters<ReturnType<typeof createDemoRequestSender>>) {
   demoRequestSender ??= createDemoRequestSender({
     sendEmail: createEnvironmentSendEmail(),
-    to: SUPPORT_ADDRESS,
+    to: demoRequestRecipient(),
   });
   return demoRequestSender(mail);
 }
@@ -95,6 +93,14 @@ export const apiHandler = createApiHandler({
   tenantScopes: createTenantScopes(database),
   // Fixed-window counters in Postgres (the sign-in's), outside the request transaction.
   consumeRateLimit: (key, rule) => consumeRateLimit(database(), key, rule, new Date()),
+  // The client's IP address as a keyed hash, IPv6 per /64, as sign-in counts it (F064).
+  clientAddressKey: (headers) =>
+    clientAddressKey(
+      readAuthConfig(process.env).secret,
+      headers,
+      defaultRequireClientIp(process.env),
+    ),
+  deleteExpiredRateLimits: () => deleteExpiredRateLimits(database(), new Date()),
   // PDOK in the production environment, the in-memory fake elsewhere; ADDRESS_LOOKUP overrides
   // (ENVIRONMENTS.md §7). Created here, once, so its cache lives as long as the process (F015).
   addressLookup: createAddressLookup(process.env),

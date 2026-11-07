@@ -10,6 +10,7 @@ import {
   sitePageAt,
   sitePagePath,
   sitePaths,
+  unlistedPages,
 } from './routes';
 
 const appDir = path.resolve(import.meta.dirname, '../app/(site)');
@@ -48,7 +49,7 @@ describe('F064 the site’s addresses (#611)', () => {
 
   it('has a page file for every built page, in each language (so no link is a 404)', () => {
     const missing: string[] = [];
-    for (const page of builtPages) {
+    for (const page of [...builtPages, ...unlistedPages]) {
       for (const locale of locales) {
         const group = locale === 'en' ? '(en)' : '(nl)';
         const route = sitePagePath(page, locale).replace(/^\//, '');
@@ -61,6 +62,12 @@ describe('F064 the site’s addresses (#611)', () => {
     expect(builtPages).toContain('home');
   });
 
+  it('keeps the demo page out of the links until go-live: it exists, and nothing links to it (#648)', () => {
+    expect(unlistedPages).toContain('demo');
+    expect(builtPages).not.toContain('demo');
+    expect(unlistedPages.filter((page) => builtPages.includes(page))).toEqual([]);
+  });
+
   it('lists every page that has a page file in builtPages, so a forgotten entry never loses its links', () => {
     const unlisted: string[] = [];
     for (const [group, locale] of [
@@ -71,8 +78,10 @@ describe('F064 the site’s addresses (#611)', () => {
         const at = sitePageAt(route);
         if (at?.locale !== locale)
           unlisted.push(`${route}: not an address of the site in ${locale}`);
-        else if (!builtPages.includes(at.page)) {
-          unlisted.push(`${route}: add '${at.page}' to builtPages in site/routes.ts`);
+        else if (!builtPages.includes(at.page) && !unlistedPages.includes(at.page)) {
+          unlisted.push(
+            `${route}: add '${at.page}' to builtPages (or unlistedPages) in site/routes.ts`,
+          );
         }
       }
     }

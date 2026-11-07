@@ -30,6 +30,16 @@ export type SitePage = keyof typeof sitePaths;
  */
 export const builtPages: readonly SitePage[] = ['home', 'pricing', 'support', 'subProcessors'];
 
+/**
+ * Pages that exist, with their page files, but that nothing links to yet: they are not in
+ * `builtPages`, so the header, the footer and the calls to action leave them out. The demo page
+ * takes a visitor's personal data and sends it to the email provider, which the privacy policy does
+ * not cover yet (#642, #643), and its mailbox may not exist (#612). The go-live ticket (#648) moves
+ * `demo` to `builtPages`, which puts *Plan een demo* in the header and the footer and shows the
+ * call to action on the pricing and help pages.
+ */
+export const unlistedPages: readonly SitePage[] = ['demo'];
+
 /** The address of a page in a language. */
 export function sitePagePath(page: SitePage, locale: Locale): Route {
   // The site's addresses are known here, not to the typed routes of the app.

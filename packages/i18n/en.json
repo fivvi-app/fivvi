@@ -223,7 +223,7 @@
       "trainersLabel": "Number of trainers",
       "languageLabel": "Website language",
       "messageLabel": "Message",
-      "reply": "Reply within 1 working day, in the language of the website. Write to the email address above: this message is not from the requester itself.",
+      "reply": "Reply in the language of the website. Write to the email address above: this message is not from the requester itself.",
       "business": {
         "gym": "A gym with a team",
         "studio": "A pilates or yoga studio",
@@ -561,7 +561,7 @@
         "sending": "Sending…",
         "note": "We only use this to reply to you.",
         "privacyLink": "Read the privacy policy.",
-        "sent": "Thank you, your request has been sent. You'll hear from us within 1 working day.",
+        "sent": "Thank you, your request has been sent. We'll be in touch.",
         "client": "A client of a studio? Ask your studio or trainer for Fivvi."
       },
       "errors": {
@@ -569,9 +569,9 @@
         "nameTooLong": "Your name is too long. Use at most 100 characters.",
         "emailInvalid": "Enter a valid email address, for example name@example.com.",
         "messageTooLong": "Your message is too long. Use at most 2000 characters.",
-        "rateLimited": "You have sent too many requests. Try again later, or email us at support@fivvi.app.",
+        "rateLimited": "Too many requests have been sent right now. Try again later, or email us at {email}.",
         "noConnection": "Your request wasn't sent: there is no connection. Check your internet and try again.",
-        "failed": "Your request wasn't sent. Try again later, or email us at support@fivvi.app."
+        "failed": "Your request wasn't sent. Try again later, or email us at {email}."
       }
     }
   }
