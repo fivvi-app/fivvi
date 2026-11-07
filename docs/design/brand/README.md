@@ -30,7 +30,7 @@ The wordmark is heavy, rounded and leans forward, with swelling strokes: playful
 | App icon background | Pink gradient in one hue: `#FF4F7B` top right, `#E6164A`, `#B80F3A` at the bottom, with a soft light at the top right | `#2A2A2D` to `#0B0B0C` |
 | Tinted icon background | `#6E6E73` to `#3A3A3C` | |
 
-Only Move pink `#E6164A` is a design token (the accent, [`visual-direction.md`](../visual-direction.md)). The other colours belong to the logo alone: they are not tokens and are not used in the UI. Gradients stay in one hue.
+Only Move pink `#E6164A` (the accent, [`visual-direction.md`](../visual-direction.md)) and white are design tokens. The other colours belong to the logo alone: they are not tokens and are not used in the UI. Gradients stay in one hue.
 
 ## How to use it
 
