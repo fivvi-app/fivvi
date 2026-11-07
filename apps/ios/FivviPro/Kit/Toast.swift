@@ -54,19 +54,23 @@ struct ToastView: View {
 }
 
 extension View {
-    /// Shows `message` as a toast above the bottom edge until `duration` has passed, then empties the binding.
+    /// Shows `message` as a toast above the bottom edge until `duration` has passed, then empties the binding. The
+    /// toast is an overlay: it takes no room from the screen and puts nothing at the bottom edge of the screen's scroll
+    /// view, which stays the one the system tracks for the tab bar (a bottom `safeAreaInset` would).
     func toast(_ message: Binding<ToastMessage?>, duration: Duration = .seconds(3)) -> some View {
-        safeAreaInset(edge: .bottom) {
-            if let current = message.wrappedValue {
-                ToastView(message: current)
-                    .transition(.opacity)
-                    .task(id: current.id) {
-                        AccessibilityNotification.Announcement(current.text).post()
-                        try? await Task.sleep(for: duration)
-                        if !Task.isCancelled { message.wrappedValue = nil }
-                    }
+        overlay(alignment: .bottom) {
+            ZStack {
+                if let current = message.wrappedValue {
+                    ToastView(message: current)
+                        .transition(.opacity)
+                        .task(id: current.id) {
+                            AccessibilityNotification.Announcement(current.text).post()
+                            try? await Task.sleep(for: duration)
+                            if !Task.isCancelled { message.wrappedValue = nil }
+                        }
+                }
             }
+            .animation(.easeOut(duration: 0.2), value: message.wrappedValue)
         }
-        .animation(.easeOut(duration: 0.2), value: message.wrappedValue)
     }
 }

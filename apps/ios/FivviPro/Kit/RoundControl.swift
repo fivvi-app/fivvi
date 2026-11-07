@@ -8,13 +8,15 @@ enum RoundControlMetrics {
 }
 
 /// A round control for the content (E020 AC14), such as the + button: a circle with one symbol. Not for a toolbar,
-/// whose buttons the system draws itself. The regular kind is drawn by the system's Liquid Glass (`glassEffect`), so it
-/// looks and behaves like the buttons of the navigation bar; `prominent` is a solid accent circle, as the prototype
-/// draws it (`.gb.prom`), because the label colour `accentOn` is a contrast pair with the solid accent and a tinted
-/// glass is translucent. It is 44 × 44 pt at the default text size and scales with the text (`@ScaledMetric`, with the
+/// whose buttons the system draws itself (the prototype's `.gb.prom` is the navigation bar's + button, which on iOS is
+/// a system `ToolbarItem` with `.glassProminent`, not this control). The regular kind is drawn by the system's Liquid
+/// Glass (`glassEffect`), so it looks and behaves like the buttons of the navigation bar; `prominent` is a solid accent
+/// circle, because the label colour `accentOn` is a contrast pair with the solid accent and a tinted glass is
+/// translucent. It is 44 x 44 pt at the default text size and scales with the text (`@ScaledMetric`, with the
 /// symbol), and stays round: the system's button styles add their own padding, which was wider than high around a
-/// circle on iOS 26.2 (68 × 58 pt), so the size is set here. The touch shape is the circle (`contentShape` on the label); the system adds touch slop up to 44 pt, so a tap in the corner of the 44 pt square still counts. `label` is its accessible
-/// name (a catalog text).
+/// circle on iOS 26.2 (68 x 58 pt), so the size is set here. The touch shape is the circle (`contentShape` on the
+/// label); the system adds touch slop up to 44 pt, so a tap in the corner of the 44 pt square still counts. `label` is
+/// its accessible name (a catalog text).
 struct RoundControl: View {
     let systemImage: String
     let label: String

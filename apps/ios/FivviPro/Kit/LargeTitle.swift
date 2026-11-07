@@ -45,7 +45,6 @@ struct LargeTitleScreen<Content: View>: View {
     var eyebrow: String?
     var subtitle: String?
     @ViewBuilder let content: Content
-    @State private var titleScrolledAway = false
 
     var body: some View {
         InsetGroupedList {
@@ -53,21 +52,44 @@ struct LargeTitleScreen<Content: View>: View {
         } content: {
             content
         }
-        .onScrollGeometryChange(for: Bool.self) { geometry in
-            geometry.contentOffset.y + geometry.contentInsets.top > 40
-        } action: { _, scrolledAway in
-            titleScrolledAway = scrolledAway
-        }
-        .navigationTitle(title)
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar(removing: .title)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Text(title)
-                    .font(.system(Tokens.TextStyle.headline))
-                    .opacity(titleScrolledAway ? 1 : 0)
-                    .accessibilityHidden(!titleScrolledAway)
+        .fivviCanvas()
+        .inlineTitleOnceScrolledAway(title)
+    }
+}
+
+extension View {
+    /// The navigation bar shows `title` inline once the screen's scroll view has moved the large title out of sight,
+    /// and nothing before that.
+    func inlineTitleOnceScrolledAway(_ title: String) -> some View {
+        modifier(InlineTitleOnceScrolledAway(title: title))
+    }
+}
+
+private struct InlineTitleOnceScrolledAway: ViewModifier {
+    let title: String
+    @State private var scrolledAway = false
+
+    func body(content: Content) -> some View {
+        content
+            .onScrollGeometryChange(for: Bool.self) { geometry in
+                geometry.contentOffset.y + geometry.contentInsets.top > 40
+            } action: { _, scrolledAway in
+                self.scrolledAway = scrolledAway
             }
-        }
+            .navigationTitle(title)
+            .navigationBarTitleDisplayMode(.inline)
+            // The principal item takes the place of the system's inline title, so the bar shows nothing until the
+            // large title has scrolled away. (`toolbar(removing: .title)` as well left the bar with no title at all,
+            // also once scrolled away.)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text(title)
+                        .font(.system(Tokens.TextStyle.headline))
+                        .opacity(scrolledAway ? 1 : 0)
+                        // Read by VoiceOver once it shows; before that the system's own title reads the same.
+                        .accessibilityLabel(scrolledAway ? title : "")
+                        .accessibilityIdentifier("largeTitle.inline")
+                }
+            }
     }
 }

@@ -10,9 +10,11 @@ enum InsetGroupStyle {
     static let rowMinHeight: CGFloat = 52
 }
 
-/// An inset grouped list (E020 AC14, Calendar, Fitness and Health): a scrolling grouped-grey canvas holding
-/// `InsetGroup`s, the way the prototype draws lists. A screen's `LargeTitleHeader` goes in `header`, which has the
-/// full width; the groups sit in the gutters.
+/// An inset grouped list (E020 AC14, Calendar, Fitness and Health): a scroll view holding `InsetGroup`s, the way the
+/// prototype draws lists. A screen's `LargeTitleHeader` goes in `header`, which has the full width; the groups sit in
+/// the gutters. The grouped-grey canvas is behind the screen's navigation container, not on this scroll view
+/// (`fivviCanvas()`, which `LargeTitleScreen` applies): a scroll view the system tracks for the tab bar and the bars'
+/// edge effects is left as it is, with nothing wrapped around it.
 struct InsetGroupedList<Header: View, Content: View>: View {
     let header: Header
     let content: Content
@@ -33,7 +35,14 @@ struct InsetGroupedList<Header: View, Content: View>: View {
             }
             .padding(.bottom, Tokens.Spacing.space6)
         }
-        .background(Tokens.Colors.bgCanvas)
+    }
+}
+
+extension View {
+    /// The grouped-grey canvas (`bgCanvas`) behind a screen, under the bars and the content: the background of the
+    /// navigation container the screen is in. The screen's scroll view itself gets no `background`.
+    func fivviCanvas() -> some View {
+        containerBackground(Tokens.Colors.bgCanvas, for: .navigation)
     }
 }
 

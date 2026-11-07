@@ -22,17 +22,25 @@ struct KitGalleryScreen {
     var roundRegular: XCUIElement { app.buttons["kit.round.regular"] }
     var roundTaps: XCUIElement { app.staticTexts["kit.round.taps"] }
     var toastText: XCUIElement { app.staticTexts["toast.text"] }
+    /// The title the navigation bar shows inline once the large title has scrolled away: its own element, with the
+    /// title as its label only while it shows (it is transparent until then).
+    var inlineTitle: XCUIElement { app.staticTexts["largeTitle.inline"] }
+
+    /// What the inline title reads now: the title, or nothing while it doesn't show.
+    var inlineTitleLabel: String { inlineTitle.exists ? inlineTitle.label : "" }
     var scroll: XCUIElement { app.scrollViews.firstMatch }
     /// The plain list of the other tab (a collection view to the accessibility tree).
     var plainList: XCUIElement { app.collectionViews.firstMatch }
 
-    /// Launches the Debug app on the gallery, in the test-plan configuration's language.
-    static func launch() -> KitGalleryScreen {
+    /// Launches the Debug app on the gallery, in the test-plan configuration's language. With a `variant` (a case of
+    /// `KitGalleryVariant` in the app) the first tab shows the kit's screen with one part left out.
+    static func launch(variant: String? = nil) -> KitGalleryScreen {
         let app = XCUIApplication()
         let language = TestCatalog.configuredLanguage
         app.launchArguments = [
             "-AppleLanguages", "(\"\(language)\")", "-UITestKitGallery", "YES", "-UITestAppearance", "light"
         ]
+        if let variant { app.launchArguments += ["-UITestKitGalleryVariant", variant] }
         app.launchEnvironment["TZ"] = "Europe/Amsterdam"
         let launchedAt = Date.now
         ReachableLaunch.launch(app)

@@ -10,8 +10,18 @@ final class KitGalleryUITests: XCTestCase {
     /// How far (per 8-bit channel) a colour on screen may be from its token: colour conversion rounds.
     private let colourTolerance = 4
 
-    override func setUpWithError() throws {
+    /// The cases of `KitGalleryVariant` in the app, in the order the diagnosis tries them (the most telling first).
+    private let variants = ["bare", "noToast", "staticTitle", "noCanvas", "observerOnly"]
+    /// A test may take 180 s at the most (`scripts/test-ios.sh`), and a variant takes up to 35 s on a CI runner; the
+    /// diagnosis of a failed shrink test starts no variant after this long, so that its message is written in time.
+    private let diagnosisBudget: TimeInterval = 120
+    private var started = Date.now
+
+    override func setUp() async throws {
         continueAfterFailure = false
+        started = .now
+        // Only the shrink test's failure path needs more than the 120 s default, to say what it found.
+        executionTimeAllowance = 180
     }
 
     func test_E020_AC8_systemLiquidGlassComponents() throws {
@@ -30,6 +40,7 @@ final class KitGalleryUITests: XCTestCase {
             )
             // 34 pt at the default text size: a line of about 41 pt, the large title's line height.
             XCTAssertEqual(screen.title.frame.height, 41, accuracy: 2)
+            XCTAssertNotEqual(screen.inlineTitleLabel, catalog["clients.title"], "the bar shows no title yet")
         }
 
         XCTContext.runActivity(named: "The tab bar, navigation buttons, sheet and alert are the system's") { _ in
@@ -70,15 +81,23 @@ final class KitGalleryUITests: XCTestCase {
         guard let gesture = scrollDown(screen.scroll, until: { bar.isShrunk }) else {
             // Which part is at fault: the kit's screen or the system? The other tab is a plain list in a plain
             // navigation stack; if its bar shrinks there and not here, the structure of the kit is what keeps it.
-            let plainShrinks = plainListShrinksTheBar(screen, selected: profile, other: clients)
+            let plainGesture = plainListShrinksTheBar(screen, selected: profile, other: clients)
+            let plainShrinks = plainGesture != nil
             let gestures = ScrollGesture.allCases.map(\.rawValue)
+            let diagnosis = diagnoseVariants(of: screen, selected: clients, other: profile, gesture: plainGesture)
             XCTFail(
                 "the tab bar did not shrink while scrolling down the kit's screen with any gesture (\(gestures)); "
-                    + "in a plain list in the other tab it \(plainShrinks ? "did" : "did not")"
+                    + "in a plain list in the other tab it \(plainShrinks ? "did" : "did not"); "
+                    + "in the kit's screen with one part left out: \(diagnosis)"
             )
             return
         }
         XCTContext.runActivity(named: "The tab bar shrank after a \(gesture.rawValue)") { _ in }
+        // The large title is gone and the bar shows it inline (the title is its own element in the bar).
+        XCTAssertTrue(
+            Polling.until(timeout: 2, condition: { screen.inlineTitleLabel == clients }),
+            "the navigation bar shows the title once the large title has scrolled away"
+        )
 
         // And back up, until it is full again.
         var swipes = 0
@@ -91,24 +110,64 @@ final class KitGalleryUITests: XCTestCase {
 
     /// Scrolls the gallery down with each gesture in turn, a few times each, until `isShrunk` holds; returns the gesture
     /// that did it. Between gestures it scrolls back to the top, so every gesture starts from a full bar.
-    private func scrollDown(_ scroll: XCUIElement, until isShrunk: () -> Bool) -> ScrollGesture? {
-        for gesture in ScrollGesture.allCases {
-            for _ in 0..<3 {
+    private func scrollDown(
+        _ scroll: XCUIElement, gestures: [ScrollGesture] = ScrollGesture.allCases, tries: Int = 3,
+        until isShrunk: () -> Bool
+    ) -> ScrollGesture? {
+        for gesture in gestures {
+            for _ in 0..<tries {
                 gesture.scrollDown(scroll)
                 if Polling.until(timeout: 2, condition: isShrunk) { return gesture }
             }
-            for _ in 0..<6 { scroll.swipeDown(velocity: .fast) }
+            for _ in 0..<tries { scroll.swipeDown(velocity: .fast) }
         }
         return nil
     }
 
-    /// Whether the bar shrinks in the other tab, a plain list: only run to say why the test failed.
-    private func plainListShrinksTheBar(_ screen: KitGalleryScreen, selected: String, other: String) -> Bool {
-        screen.tabBar.buttons[selected].tap()
-        guard let bar = TabBarProbe.full(of: screen.tabBar, selected: selected, other: other, timeout: timeout) else {
-            return false
+    /// The gesture that shrinks the bar in the other tab, a plain list; nil when none does. Only run to say why the
+    /// test failed, so with a flick and a drag, twice each.
+    private func plainListShrinksTheBar(
+        _ screen: KitGalleryScreen, selected: String, other: String
+    ) -> ScrollGesture? {
+        // The first match a person can touch: a tab can be in the bar twice while it animates.
+        let tabs = screen.tabBar.buttons.matching(NSPredicate(format: "label == %@", selected))
+        let tab = (0..<tabs.count).map { tabs.element(boundBy: $0) }.first { $0.exists && $0.isHittable }
+        tab?.tap()
+        guard tab != nil,
+            let bar = TabBarProbe.full(of: screen.tabBar, selected: selected, other: other, timeout: timeout)
+        else { return nil }
+        return scrollDown(screen.plainList, gestures: [.flick, .drag], tries: 2, until: { bar.isShrunk })
+    }
+
+    /// For the failure message of the shrink test: launches the app once for each variant of the kit's screen (the
+    /// kit's screen with one part left out, `KitGalleryVariant` in the app) and says which of them the tab bar shrinks
+    /// on. A variant is scrolled twice with the gesture that shrank the bar in the plain list (a drag when none did),
+    /// and is not tried once the budget is spent.
+    private func diagnoseVariants(
+        of screen: KitGalleryScreen, selected: String, other: String, gesture: ScrollGesture?
+    ) -> String {
+        var shrinks: [String] = []
+        var stays: [String] = []
+        var skipped: [String] = []
+        for variant in variants {
+            guard Date.now.timeIntervalSince(started) < diagnosisBudget else {
+                skipped.append(variant)
+                continue
+            }
+            screen.app.terminate()
+            let launched = KitGalleryScreen.launch(variant: variant)
+            guard launched.tabBar.waitUntilExists(timeout: timeout),
+                let bar = TabBarProbe.full(of: launched.tabBar, selected: selected, other: other, timeout: timeout)
+            else {
+                skipped.append(variant)
+                continue
+            }
+            let shrank = scrollDown(launched.scroll, gestures: [gesture ?? .drag], tries: 2, until: { bar.isShrunk })
+            if shrank == nil { stays.append(variant) } else { shrinks.append(variant) }
         }
-        return scrollDown(screen.plainList, until: { bar.isShrunk }) != nil
+        let spent = Int(Date.now.timeIntervalSince(started))
+        return "the bar shrank with \(shrinks), not with \(stays)"
+            + (skipped.isEmpty ? "" : ", not tried: \(skipped)") + " (the test took \(spent) s)"
     }
 
     func test_E020_AC14_aFieldReadsItsErrorAndKeepsItsValueAndAToastComesAndGoes() throws {
@@ -143,8 +202,7 @@ final class KitGalleryUITests: XCTestCase {
     }
 
     /// The prominent round control is a solid accent circle as the prototype draws it (a tinted glass is translucent
-    /// and shows the canvas through it), and the regular one takes a tap on the rim of its circle but not one in the
-    /// corner of its square.
+    /// and shows the canvas through it), and the regular one takes a tap near the rim of its circle.
     private func assertTheRoundControlsAreSolidAndTakeATapNearTheRim(_ screen: KitGalleryScreen) throws {
         screen.scroll(toUpperHalf: screen.roundRegular)
         XCTAssertTrue(screen.roundProminent.isHittable, "the prominent control can be tapped")
@@ -153,6 +211,11 @@ final class KitGalleryUITests: XCTestCase {
         let colours = try ScreenColours(screen.app)
         let frame = screen.roundProminent.frame
         XCTAssertEqual(frame.width, frame.height, accuracy: 0.5, "round")
+        // The canvas is behind the screen, in the gutter next to the groups and the buttons.
+        assertColour(
+            colours.colour(at: CGPoint(x: 4, y: frame.midY)), is: RGB(Tokens.Colors.bgCanvas, in: .light),
+            "the grouped-grey canvas in the gutter"
+        )
         let accent = RGB(Tokens.Colors.accentFill, in: .light)
         for point in [
             CGPoint(x: frame.minX + 6, y: frame.midY), CGPoint(x: frame.maxX - 6, y: frame.midY),

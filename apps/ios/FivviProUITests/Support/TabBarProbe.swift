@@ -70,11 +70,11 @@ struct TabBarProbe {
         return Self.canBeHit(other) && tab >= fullTab - 1 && bar >= fullBar - 1
     }
 
-    /// The bar is there with its selected tab, and the other tab can't be touched any more (it is gone or hidden), or
-    /// the selected tab or the bar itself is narrower than it was. A full bar is none of these, and neither is a bar
-    /// that is gone.
+    /// The bar is there with its selected tab, which a person can touch, and the other tab can't be touched any more
+    /// (it is gone or hidden), or the selected tab or the bar itself is narrower than it was. A full bar is none of
+    /// these, and neither is a bar that is gone or slid off the screen.
     var isShrunk: Bool {
-        guard let tab = Self.width(of: selected), tabBar.exists else { return false }
+        guard let tab = Self.width(of: selected), tabBar.exists, Self.canBeHit(selected) else { return false }
         let bar = Self.width(of: tabBar)
         return !Self.canBeHit(other) || tab < fullTab - 1 || (bar ?? fullBar) < fullBar - 1
     }
