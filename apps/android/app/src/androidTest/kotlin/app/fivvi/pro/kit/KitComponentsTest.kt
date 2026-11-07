@@ -7,8 +7,12 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Outline
 import androidx.compose.ui.graphics.PixelMap
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -29,7 +33,9 @@ import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
@@ -59,6 +65,7 @@ import app.fivvi.core.kit.Toast
 import app.fivvi.core.kit.ToastHost
 import app.fivvi.core.kit.ToastVisuals
 import app.fivvi.core.kit.pillColors
+import app.fivvi.core.kit.segmentedChoiceShape
 import app.fivvi.core.kit.sessionColors
 import app.fivvi.core.theme.FivviFonts
 import app.fivvi.core.theme.FivviTypography
@@ -73,6 +80,10 @@ import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
+
+// The ink of a line of Google Sans Flex: cap height above its baseline, descenders below it, in em.
+private const val CAP_HEIGHT = 0.72f
+private const val DESCENT = 0.22f
 
 // E020 AC10 and AC14 (spec #590): the building blocks of the kit, in light and dark, in each catalog language. What a
 // person sees is checked on the pixels the component drew, with the tokens as the expected colours.
@@ -456,6 +467,57 @@ class KitComponentsTest(
             selected = 1,
             oneLine = false,
         )
+
+    // A segment clips what it shows to its outline, and the outer corners of the first and last segment are curves.
+    // `getUnclippedBoundsInRoot` ignores that clip, so the test above can't see a label the curve cuts: this one lays the
+    // ink of each line of a wrapped label (cap height above the baseline to the descender below it) over the outline the
+    // segment really has, and asks that the four corners of every line are inside it.
+    @Test
+    fun E020_AC10_at200PercentAWrappedLabelInTheFirstAndTheLastSegmentIsClearOfThePillsCurve() {
+        // Sample labels of the long kind that wrap in a third of the row; the selected (checked) one is the middle.
+        val labels = listOf("Doordeweeks lunch", "Midden", "Weekendavond")
+        val shapes = mutableListOf<Shape>()
+        compose.showKit(mode, language, fontScale = 2f, width = 328.dp) {
+            val count = labels.size
+            shapes.clear()
+            labels.indices.forEach { shapes += segmentedChoiceShape(it, count) }
+            SegmentedChoice(
+                options = labels.mapIndexed { index, text -> SegmentedOption(index, text, "choice.$index") },
+                selected = 1,
+                onSelect = {},
+            )
+        }
+
+        for (index in listOf(0, labels.lastIndex)) {
+            val tag = "choice.$index"
+            val segment = compose.onNodeWithTag(tag).fetchSemanticsNode()
+            val isItsLabel = hasAnyAncestor(hasTestTag(tag)) and hasText(labels[index])
+            val node = compose.onNode(isItsLabel, useUnmergedTree = true)
+            val textNode = node.fetchSemanticsNode()
+            val layout = node.textLayout()
+            assertTrue("${labels[index]} wraps", layout.lineCount > 1)
+            val size = Size(segment.size.width.toFloat(), segment.size.height.toFloat())
+            val outline = shapes[index].createOutline(size, LayoutDirection.Ltr, Density(density)) as Outline.Rounded
+            val fontSize = with(layout.layoutInput.density) { layout.layoutInput.style.fontSize.toPx() }
+            val dx = textNode.positionInRoot.x - segment.positionInRoot.x
+            val dy = textNode.positionInRoot.y - segment.positionInRoot.y
+            for (line in 0 until layout.lineCount) {
+                val top = dy + layout.getLineBaseline(line) - CAP_HEIGHT * fontSize
+                val bottom = dy + layout.getLineBaseline(line) + DESCENT * fontSize
+                val left = dx + layout.getLineLeft(line)
+                val right = dx + layout.getLineRight(line)
+                val corners = listOf(left to top, right to top, left to bottom, right to bottom)
+                for ((x, y) in corners) {
+                    val corner = Offset(x, y)
+                    assertTrue(
+                        "${labels[index]}, line $line: the ink corner $corner is outside the outline of its segment " +
+                            "${outline.roundRect}",
+                        outline.roundRect.contains(corner),
+                    )
+                }
+            }
+        }
+    }
 
     @Test
     fun E020_AC14_aFieldWithAnErrorTurnsRedAndShowsAWarningIconAndTheMessageUnderIt() {
