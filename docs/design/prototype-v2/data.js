@@ -10,7 +10,7 @@ window.FIVVI_DATA = (function () {
 
   var clients = [
     { id: "anna", ws: "sf", name: "Anna de Vries", email: "anna@example.com", lang: "Nederlands", last: "29 okt", c: "var(--priv)" },
-    { id: "mark", ws: "sf", name: "Mark Visser", email: "mark@example.com", lang: "Nederlands", last: "vandaag", c: "#34C759" },
+    { id: "mark", ws: "sf", name: "Mark Visser", email: "mark@example.com", lang: "Nederlands", last: "vandaag", c: "#34C759", company: "Visser Advies B.V." },
     { id: "lisa", ws: "sf", name: "Lisa Bakker", email: "lisa@example.com", lang: "English", last: "3 nov", c: "#FF8D28" },
     { id: "daan", ws: "sf", name: "Daan Smit", email: "daan@example.com", lang: "Nederlands", last: "2 nov", c: "#6155F5" },
     { id: "noor", ws: "sf", name: "Noor el Amrani", email: "noor@example.com", lang: "Nederlands", last: "30 okt", c: "#CB30E0" },
@@ -341,15 +341,19 @@ window.FIVVI_DATA = (function () {
     docent: { nl: ["docent", "docenten"], en: ["teacher", "teachers"] }, coach: { nl: ["coach", "coaches"], en: ["coach", "coaches"] } };
   /* A payment outside Fivvi (#606): the owner records it; no money moves through Mollie and no invoice is made automatically (owner, 6 Nov 2026). */
   function fmtDate(v) { var m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v || ""); return m ? +m[3] + " " + MONTHS[+m[2] - 1] + " " + m[1] : "5 nov 2026"; }
+  /* a client with company billing details gets the invoice at once (owner, 7 Nov 2026, #606) */
+  var invSeq = 440;
+  function companyOf(cid) { var c = clients.filter(function (x) { return x.id === cid; })[0]; return c && c.company; }
+  function invoiceIfCompany(cid, b) { if (companyOf(cid)) b.payments[0][5] = "F-2026-0" + (invSeq++); }
   function recordOutside(cid, id, how, date) {
     var o = offerList.filter(function (x) { return x.id === id; })[0], rec = o.kind === "abo" || o.kind === "plan", b = billing[cid] || (billing[cid] = { agreements: [], payments: [] }), a = { id: "c" + Date.now(), offerId: o.id, end: o.end || "stop", endsIn: 180, kind: o.kind, name: o.name, nameEn: o.nameEn, price: "€ " + o.price, cycle: o.cycle, since: fmtDate(date), period: rec ? "loopt door" : "geldig " + (o.valid || "3 maanden"), status: "active", cash: how, hist: [[fmtDate(date), o.name + " gestart", "", "Vastgelegd door de eigenaar"]] };
     if (rec) a.next = "5 dec";
     if (o.kind === "abo") { a.perWeek = o.perWeek || 1; a.usedWeek = 0; a.makeups = 0; } else { a.credit = o.credit; a.total = o.credits || 0; a.used = 0; a.planned = 0; }
-    b.agreements.unshift(a); b.payments.unshift([fmtDate(date), o.name, "€ " + o.price + ",00", how, "paid", "", o.nameEn]);
+    b.agreements.unshift(a); b.payments.unshift([fmtDate(date), o.name, "€ " + o.price + ",00", how, "paid", "", o.nameEn]); invoiceIfCompany(cid, b);
   }
   function recordOutsidePaid(cid, id) {
     var b = billing[cid], a = b.agreements.filter(function (x) { return x.id === id; })[0], p = a.next.split(" "), m = MONTHS.indexOf(p[1]);
-    b.payments.unshift([a.next + " " + (m < 10 ? 2027 : 2026), a.name, a.price + ",00", a.cash, "paid", "", a.nameEn]);
+    b.payments.unshift([a.next + " " + (m < 10 ? 2027 : 2026), a.name, a.price + ",00", a.cash, "paid", "", a.nameEn]); invoiceIfCompany(cid, b);
     a.next = p[0] + " " + MONTHS[(m + 1) % 12]; a.late = false;
   }
   /* every panel entry and "Opnieuw beginnen" starts from the sample again */
