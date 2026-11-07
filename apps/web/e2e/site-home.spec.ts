@@ -1,4 +1,5 @@
 import { type Locale, locales, messages } from '@fivvi/i18n';
+import type { Request } from '@playwright/test';
 import { expect, test } from './fixtures';
 
 // F064, the home page (#638): the *I am* switch, the real screens, the sample booking. Both
@@ -18,6 +19,15 @@ const STAGES: Record<Audience, { scene: string; screens: ScreenKey[] }> = {
 };
 const AUDIENCES = Object.keys(STAGES) as Audience[];
 
+/**
+ * The requests the page itself does not make: images that come near as the page scrolls, and
+ * Next.js's prefetch of the header's and footer's links to other pages of the site (`?_rsc=`).
+ * Anything else after the page has loaded would be the switch or the booking sending something.
+ */
+function isImageOrPrefetch(request: Request) {
+  return request.resourceType() === 'image' || new URL(request.url()).searchParams.has('_rsc');
+}
+
 for (const locale of locales) {
   const copy = messages[locale].site.home;
 
@@ -28,7 +38,7 @@ for (const locale of locales) {
       await page.goto(HOME[locale]);
       const requests: string[] = [];
       page.on('request', (request) => {
-        if (request.resourceType() !== 'image') requests.push(request.url());
+        if (!isImageOrPrefetch(request)) requests.push(request.url());
       });
 
       let previous: Audience | undefined;
@@ -131,7 +141,7 @@ for (const locale of locales) {
       await page.goto(HOME[locale]);
       const requests: string[] = [];
       page.on('request', (request) => {
-        if (request.resourceType() !== 'image') requests.push(request.url());
+        if (!isImageOrPrefetch(request)) requests.push(request.url());
       });
       const tile = (label: string) =>
         page.locator('dl > div').filter({ has: page.getByText(label, { exact: true }) });
