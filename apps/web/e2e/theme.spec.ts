@@ -290,3 +290,115 @@ test.describe('E007 web theme', () => {
     ).toEqual([]);
   });
 });
+
+test.describe('E020 web theme', () => {
+  test('AC11: numbers use the rounded face with tabular digits', async ({ page }) => {
+    await openHelloPage(page, 'light');
+    // `numeric` is what the kit's blocks put on times and counts.
+    const number = await probe(page, 'numeric', '09:30');
+
+    const rounded = await tokenFontStack(page, 'font.family.numeric');
+    expect(rounded, 'the numeric stack starts with ui-rounded').toMatch(/^ui-rounded,/);
+    await expect(number).toHaveCSS('font-family', rounded);
+    await expect(number).toHaveCSS('font-variant-numeric', 'tabular-nums');
+    // Text stays on the system stack.
+    await expect(page.locator('body')).toHaveCSS(
+      'font-family',
+      await tokenFontStack(page, 'font.family.text'),
+    );
+  });
+
+  test('AC13: trainer web is zinc, the client layout is the grouped grey canvas, radius 26 and glass', async ({
+    page,
+  }) => {
+    for (const scheme of colorSchemes) {
+      await openHelloPage(page, scheme);
+      const body = page.locator('body');
+      const card = await probe(page, 'rounded-card bg-card', 'Anna');
+      const glass = await probe(page, 'glass', 'Fivvi');
+
+      // The trainer web: zinc neutrals, radius 12, the card at radius 26 only where asked.
+      await expect(body, `trainer background in ${scheme} mode`).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.background', scheme),
+      );
+      expect(await variable(body, '--radius'), 'trainer radius').toBe(tokenValue('radius.md'));
+      expect(
+        await variable(body, '--muted-foreground'),
+        `trainer secondary in ${scheme} mode`,
+      ).toBe(schemeValue('color.web.trainer.muted-foreground', scheme));
+      await expect(card).toHaveCSS('border-radius', tokenValue('radius.card'));
+      await expectNoAxeViolations(page, `the trainer theme in ${scheme} mode`);
+
+      // The client layout opts in with data-theme="client" (the kit's ClientLayout does).
+      await body.evaluate((element) => element.setAttribute('data-theme', 'client'));
+      await expect(body, `client canvas in ${scheme} mode`).toHaveCSS(
+        'background-color',
+        tokenColour('bg.canvas', scheme),
+      );
+      await expect(body).toHaveCSS('color', tokenColour('text.primary', scheme));
+      expect(await variable(body, '--radius'), 'client radius').toBe(tokenValue('radius.card'));
+      expect(await variable(body, '--muted-foreground'), `client secondary in ${scheme} mode`).toBe(
+        schemeValue('color.web.client.secondary', scheme),
+      );
+      await expect(card).toHaveCSS('background-color', tokenColour('bg.surface', scheme));
+      await expect(card).toHaveCSS('border-radius', tokenValue('radius.card'));
+
+      // Glass: the glass token's fill, blurred.
+      await expect(glass).toHaveCSS('background-color', schemeValue('color.web.glass-bg', scheme));
+      await expect(glass).toHaveCSS('backdrop-filter', /^blur\(/);
+      await expectNoAxeViolations(page, `the client theme in ${scheme} mode`);
+    }
+  });
+
+  test('AC14: the focus ring of a row in an inset list is drawn inside the clipped list', async ({
+    page,
+  }) => {
+    await openHelloPage(page, 'light');
+    await page.evaluate(() => {
+      const list = document.createElement('ul');
+      list.dataset.slot = 'inset-list';
+      list.className = 'overflow-hidden rounded-card';
+      list.innerHTML = '<li><button id="probe-row" type="button">Anna</button></li>';
+      document.body.prepend(list);
+    });
+    await page.keyboard.press('Tab');
+    const row = page.locator('#probe-row');
+
+    await expect(row).toBeFocused();
+    await expect(row).toHaveCSS('outline-offset', '-2px');
+    await expect(row).toHaveCSS('outline-style', 'solid');
+  });
+});
+
+/** The value a colour token declares for a mode, as written in tokens.css (`#6c6c70`, `rgba(…)`). */
+function schemeValue(token: string, scheme: ColorScheme): string {
+  const value =
+    (scheme === 'dark' && declaredValue(darkCss, token)) || declaredValue(lightCss, token);
+  if (!value) throw new Error(`No ${scheme} value for ${token} in tokens.css`);
+  return value;
+}
+
+/** A custom property as the browser computes it on an element. */
+async function variable(element: Locator, name: string): Promise<string> {
+  return await element.evaluate(
+    (node, property) => getComputedStyle(node).getPropertyValue(property).trim(),
+    name,
+  );
+}
+
+/** Appends a `<div>` with the classes to the page, to read what they compute to. */
+async function probe(page: Page, classes: string, text: string): Promise<Locator> {
+  const id = `probe-${classes.replaceAll(/\W+/g, '-')}`;
+  await page.evaluate(
+    ([className, content, probeId]) => {
+      const element = document.createElement('div');
+      element.id = probeId as string;
+      element.className = className as string;
+      element.textContent = content as string;
+      document.body.append(element);
+    },
+    [classes, text, id],
+  );
+  return page.locator(`#${id}`);
+}

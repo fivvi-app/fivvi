@@ -6,10 +6,11 @@ The web component kit (ADR-015, E007): [shadcn/ui](https://ui.shadcn.com/) compo
 |---|---|
 | `components.json` | shadcn configuration, as in shadcn's Next.js monorepo template |
 | `src/components/` | Components from the shadcn CLI: `Button` (variants `default` = primary, `secondary`, `ghost`, `destructive`, plus upstream's `outline` and `link`), `Input`, `Label`, `Card`, `AlertDialog` (confirmation dialog), `Dialog` (a form in a modal; no built-in close button), `DropdownMenu` (a menu button with checkable rows, for the scope switcher; see the divergences), `NativeSelect` (the browser's own select, for short lists such as a role; its chevron is an inline SVG because the kit has no icon library). **The CLI's output; never edit except for the divergences below (`Dialog`, `NativeSelect`, `DropdownMenu`, `Button`)** |
-| `src/styles/globals.css` | The stylesheet apps import: Tailwind, the token theme, the kit's sources, the densities, shadcn's base styles and the focus indicator |
+| `src/kit/` | Our own building blocks of the Fivvi Pro look, written by hand: `ProCard`, `InsetList`, `PillButton`, `RoundButton`, `NextCard`, `StatusPill`, `Field`, `Toast` and `ClientLayout` ([the blocks](#the-blocks)). Imported as `@fivvi/ui/kit/<name>` |
+| `src/styles/globals.css` | The stylesheet apps import: Tailwind, the token theme (trainer and client), the kit's sources, the `rounded-card`, `numeric` and `glass` utilities, the densities, shadcn's base styles and the focus indicator |
 | `src/styles/palette-reset.css` | Drops Tailwind's default colour palette, so the only colours are the tokens |
 | `lint/` | The raw-colour guard, run by `pnpm check` |
-| `test/` | Unit tests of the stylesheet and the guard |
+| `test/` | Unit tests of the stylesheet, the blocks and the guard |
 
 ## Using the kit in an app
 
@@ -23,6 +24,35 @@ import { Button } from '@fivvi/ui/components/button';
 The app needs `@tailwindcss/postcss` in its PostCSS config (see `apps/web/postcss.config.mjs`) and `@fivvi/ui` in `transpilePackages`. The page follows the system light or dark setting through the token CSS; Tailwind's `dark:` variant uses the same media query.
 
 Style with shadcn's theme classes (`bg-primary`, `text-muted-foreground`, `border-input`, `ring-ring`) and our extras (`bg-session-private-bg`, `text-status-danger-fg`). There is nothing else: Tailwind's default palette (`bg-red-500`, `text-white`, `bg-black/50`) is removed, so such a class produces no CSS at all. The components carry no text of their own; every label comes from `packages/i18n`.
+
+## Themes
+
+Two themes come from the tokens in one build. Both are variables of shadcn's theme, so the same classes (`bg-card`, `text-muted-foreground`, `rounded-lg`) and the same components work in either.
+
+| Theme | Where | Look |
+|---|---|---|
+| Trainer web | The default (`:root`) | shadcn's zinc neutrals with the accent; radius 12. The muted fill is `#F8F8F9`, not zinc 100, because ADR-032 fixes `#71717A` as the secondary text and it is 4.4:1 on zinc 100 |
+| Fivvi Pro (client web) | Under `data-theme="client"` | The grouped grey canvas, white cards (`#1C1C1E` in dark), radius 26, secondary text `#6C6C70` (`#98989F` in dark), the glass header |
+
+A layout opts in to the client theme with `data-theme="client"` on any element: `ClientLayout` does it for the client web, and a page with its own root layout, such as the public website, can put it on `<body>` or on its own wrapper. The attribute only sets variables, so the element that paints the canvas needs `bg-background` (the base styles give `<body>` one). Nothing switches theme at runtime: light and dark follow the system in both. A block that needs a colour the theme does not map uses a token class (`bg-status-success-bg`), never a colour of its own.
+
+## The blocks
+
+`src/kit/` holds the building blocks the screens share (AC14). They carry no text: labels, messages and `aria-label`s come from `packages/i18n`. Each is tested in `test/kit.test.tsx`, which also fails when a class a block uses produces no CSS (a colour outside the theme is silently dropped otherwise).
+
+| Block | What |
+|---|---|
+| `ProCard` | The card: `rounded-card` (26px), the theme's card colours, 16px padding. The shadcn `Card` stays for the trainer web |
+| `InsetList`, `InsetListItem` | Inset grouped list: rows in one rounded card, a hairline between them that starts 16px in. The list clips its rows, so a stylesheet rule draws the focus ring of anything inside it 2px inside (`outline-offset: -2px`) |
+| `PillButton`, `PillButtonStack` | Pill button: 50px high, fully rounded; variants `primary` (accent), `tonal` (the quiet fill with accent text), `danger` (a tint of red with red text, the destructive `Button`'s tints) and `ghost` (accent text); the filled red `bg-action-danger-bg` is for the trainer web's dialogs; `asChild` for a link. In a stack each is full width and 48px high with 10px between |
+| `RoundButton` | A round 48px control (the + button, the header's back button) with an icon; `aria-label` is required; variants `primary`, `tonal`, `glass` |
+| `NextCard` | The gradient "next" card in the accent or a session type (`private`, `group`): one hue from the gradient tokens, with the on-colour text. Open Gym is not offered: no screen uses it yet |
+| `StatusPill` | A status or session type: its tint with the text colour that passes on it (`neutral`, `success`, `warning`, `danger`, `private`, `group`) |
+| `Field` | Label, input and hint; with an `error` the label and the field turn red (a solid border with a 3px ring at 18%, in light and dark), a warning icon and the message come under it, and the input points at it (`aria-invalid`, `aria-describedby`, added to the caller's) |
+| `Toast` | `surface="trainer"` (default): the inverse of the page, radius 10, bottom right; a `warning` is a red fill with white text and icon. `surface="client"`: a glass pill above the tab bar, the warning icon in the danger colour. A `warning` is announced at once (`role="alert"`) |
+| `ClientLayout` | The client web's layout: the client theme, the touch density, a sticky glass header and a column |
+
+Utilities from the stylesheet: `rounded-card` (the `radius.card` token), `glass` (the glass tokens, blurred; a solid fill with reduced transparency) and `numeric` (below).
 
 ## Densities
 
@@ -41,7 +71,7 @@ A page picks its density with a `data-density` attribute on a layout element, no
 
 ## Fonts
 
-All text uses the system stack (`font-sans`, the default); no web font is loaded. There is no `font-display` any more (Design v2, [#590](https://github.com/fivvi-app/fivvi/issues/590)). Numbers use the rounded face with tabular digits: `font-numeric` (the token `font.family.numeric`, `ui-rounded` first) with `tabular-nums`.
+All text uses the system stack (`font-sans`, the default); no web font is loaded. There is no `font-display` any more (Design v2, [#590](https://github.com/fivvi-app/fivvi/issues/590)). Numbers use the rounded face with tabular digits: the `numeric` utility (the token `font.family.numeric`, `ui-rounded` first, with `tabular-nums`) for times, counts and amounts; `font-numeric tabular-nums` says the same. A test fails when a source loads a web font (`apps/web/test/no-web-font.test.ts`, in the web app so it reruns when the app, this package or the tokens change).
 
 ## Adding a component
 
@@ -96,4 +126,4 @@ The generated token files live in `packages/design-tokens`, outside the guard's 
 
 ## Checks
 
-`pnpm --filter @fivvi/ui typecheck`, `lint`, `test` and `check` (the raw-colour guard); `scripts/check.sh` and CI run them through turbo. The rendered result is tested in `apps/web/e2e/theme.spec.ts`: token colours and axe in light and dark (AC5), the densities (AC6), the focus indicator on `Button` and `Input` (AC7) and the self-hosted display font (AC9).
+`pnpm --filter @fivvi/ui typecheck`, `lint`, `test` and `check` (the raw-colour guard); `scripts/check.sh` and CI run them through turbo. The rendered result is tested in `apps/web/e2e/theme.spec.ts`: token colours and axe in light and dark (AC5), the densities (AC6), the focus indicator on `Button` and `Input` (AC7), no web font and the system stack (E020 AC12), the rounded numbers (AC11) and the two themes (AC13).

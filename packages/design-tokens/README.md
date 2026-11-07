@@ -77,7 +77,7 @@ Colours that need alpha exist only for the client web's glass (`color.web.glass.
 | Client web | `#6C6C70` | `#98989F` | `color.web.client.secondary` |
 | Trainer web | zinc `#71717A` | zinc `#A1A1AA` | `color.web.trainer.muted-foreground` |
 
-The native grey is the one exception to the 4.5:1 rule: it is the foreground of `native-secondary-text` pairs only (3:1 in light mode, with a `reason`; dark mode is held to 4.5:1), and no other kind of pair may use it. Tertiary text and placeholders use the same value of their platform; there is no tertiary token. `color.fill.decorative` is for chevrons and the sheet handle and stays outside the pairs. The trainer web keeps zinc's `#71717A`; its muted fill is `#F8F8F9`, not zinc's `#F4F4F5`, because `#71717A` on `#F4F4F5` is 4.4:1 (the web ticket may settle both differently).
+The native grey is the one exception to the 4.5:1 rule: it is the foreground of `native-secondary-text` pairs only (3:1 in light mode, with a `reason`; dark mode is held to 4.5:1), and no other kind of pair may use it. Tertiary text and placeholders use the same value of their platform; there is no tertiary token. `color.fill.decorative` is for chevrons and the sheet handle and stays outside the pairs. The trainer web keeps zinc's `#71717A`; its muted fill is `#F8F8F9`, not zinc's `#F4F4F5`, because `#71717A` on `#F4F4F5` is 4.4:1 (settled in the kit, [`packages/ui`](../ui/README.md#themes): it stays).
 
 ## Workspace colours
 
