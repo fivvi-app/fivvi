@@ -81,6 +81,32 @@ for (const locale of locales) {
       expect(requests).toEqual([]);
     });
 
+    // AC15: the first screen is there at once (a fade-in would delay the largest contentful paint);
+    // the kind the visitor chooses rises into view.
+    test('shows the first kind at once and lets a chosen kind rise into view', async ({ page }) => {
+      await page.goto(PAGES.studios[locale]);
+      const panels = [
+        page.locator('main div:has(> picture > img[srcset*="/scenes/"]):visible'),
+        page.locator('.site-stage > div:visible'),
+      ];
+      for (const panel of panels) {
+        await expect(panel).toHaveCount(1);
+        await expect(panel).not.toHaveClass(/animate-in/);
+      }
+
+      await page.getByRole('button', { name: studios.kind.yoga, exact: true }).click();
+
+      await expect(page.locator('main img[srcset*="/scenes/"]:visible').first()).toHaveAttribute(
+        'srcset',
+        /\/scenes\/yoga-400/,
+      );
+      for (const panel of panels) {
+        await expect(panel).toHaveCount(1);
+        await expect(panel).toHaveClass(/motion-safe:animate-in/);
+        await expect(panel).toHaveClass(/motion-safe:fade-in/);
+      }
+    });
+
     for (const colorScheme of ['light', 'dark'] as const) {
       test(`the chosen kind is a white pill with black text in ${colorScheme} mode`, async ({
         page,
@@ -154,15 +180,22 @@ for (const locale of locales) {
           await page.goto(PAGES[id][locale]);
           await scrollThrough(page);
 
-          const images = await page.locator('main img').evaluateAll((elements) =>
-            (elements as HTMLImageElement[])
-              .filter((image) => image.checkVisibility())
-              .map((image) => ({
-                src: image.currentSrc,
-                loaded: image.complete && image.naturalWidth > 0,
-              })),
-          );
-          expect(images.filter(({ loaded }) => !loaded)).toEqual([]);
+          const shownImages = () =>
+            page.locator('main img').evaluateAll((elements) =>
+              (elements as HTMLImageElement[])
+                .filter((image) => image.checkVisibility())
+                .map((image) => ({
+                  src: image.currentSrc,
+                  loaded: image.complete && image.naturalWidth > 0,
+                })),
+            );
+          // A lazy image the scroll passed is fetched a moment later on a busy machine: wait for it.
+          await expect
+            .poll(async () => (await shownImages()).filter(({ loaded }) => !loaded), {
+              message: 'images that do not load',
+            })
+            .toEqual([]);
+          const images = await shownImages();
           const shown = images.filter(({ src }) => src.includes('/shots/'));
           expect(shown.length).toBeGreaterThan(5);
           for (const { src } of shown) {

@@ -131,6 +131,9 @@ export function Device({
  * phone, so each is half the width less the page's padding and the gap, and 300 px at most
  * elsewhere. With a looser guess (half the screen) a phone would fetch the large file where the
  * small one is sharp enough, three times in a row (AC15).
+ *
+ * Keep it in step with `.site-stage-row .site-phone` in `devices.css`: that file sets the width, this
+ * one tells the browser about it before the CSS is there, and neither can read the other.
  */
 const ROW_SIZES = '(max-width: 639px) calc((100vw - 2 * clamp(16px, 4vw, 40px) - 14px) / 2), 300px';
 

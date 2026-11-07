@@ -1,7 +1,8 @@
-import { robotsHeader } from '../site/indexing';
+import { robotsHeader, robotsTxt } from '../site/indexing';
+import { rootMetadata } from '../site/metadata';
 import { type SitePage, sitePagePath } from '../site/routes';
 import { expect, test } from './fixtures';
-import { type GoLiveProxy, startGoLiveProxy } from './go-live-proxy';
+import { type GoLiveProxy, PRODUCTION, robotsFile, startGoLiveProxy } from './go-live-proxy';
 import {
   auditPage,
   type BudgetBrowser,
@@ -14,7 +15,8 @@ import {
 // Lighthouse's phone profile (a Moto G Power on slow 4G, simulated), in light and dark, in the
 // language of the project. A page passes with a largest contentful paint under 2.5 s, a layout
 // shift under 0.1, a score of 100 for SEO and accessibility, and images that are sized, responsive
-// and in a modern format. The numbers are printed, so a run shows the room the budget leaves.
+// and in a modern format. The numbers are
+// annotations of each test, so a run shows the room the budget leaves.
 //
 // SEO is measured as it will be at go-live without turning the switch on: the e2e server says
 // `noindex`, like every environment but production until #648 (site/routes.ts, `siteIndexable`),
@@ -45,8 +47,6 @@ async function measure(url: string, port: number): Promise<PageAudit & { attempt
   return { ...best, attempts: MAX_ATTEMPTS };
 }
 
-const production = { RAILWAY_ENVIRONMENT_NAME: 'production' } as const;
-
 test.describe.configure({ mode: 'default', timeout: 180_000 });
 
 test.describe('F064 AC15 speed and search budgets', () => {
@@ -74,24 +74,35 @@ test.describe('F064 AC15 speed and search budgets', () => {
     const viaProxy = await fetch(`${proxy.origin}${path}`);
     const [directHtml, proxyHtml] = [await direct.text(), await viaProxy.text()];
 
-    // The server says noindex, in the header and in the markup.
+    // The server says noindex, in the header and in the markup (the logic is `rootMetadata(false)`).
+    expect(rootMetadata(false).robots).toEqual({ index: false, follow: false });
     expect(direct.headers.get('x-robots-tag')).toMatch(/noindex/);
-    expect(directHtml).toMatch(/<meta name="robots" content="noindex, nofollow"/);
-    // The view lets the page be indexed, and points the canonical URL at itself.
+    expect(directHtml).toContain('<meta name="robots" content="noindex, nofollow"/>');
+    // Production with the switch on sends no robots tag at all (`rootMetadata(true)` is `{}`) and no
+    // header: the view does the same, and points the canonical URL at itself.
+    expect(rootMetadata(true).robots).toBeUndefined();
     expect(viaProxy.headers.get('x-robots-tag')).toBeNull();
-    expect(proxyHtml).not.toMatch(/noindex/);
+    expect(proxyHtml).not.toMatch(/noindex|name="robots"|\\"robots\\"/);
     expect(proxyHtml).toContain(
       `<link rel="canonical" href="${proxy.origin}${path === '/' ? '/' : path}"`,
     );
-    // Nothing else is different.
+    // Nothing else is different: the server's page without its robots tag, in the head and in the
+    // data the head is built from again, is the proxy's page.
     expect(
-      proxyHtml
-        .replaceAll(proxy.origin, 'https://fivvi.app')
-        .replaceAll('index, follow', 'noindex, nofollow'),
-    ).toBe(directHtml);
+      proxyHtml.replaceAll(proxy.origin, 'https://fivvi.app'),
+      'the proxy changes nothing but the robots tag and the address',
+    ).toBe(
+      directHtml
+        .replace('<meta name="robots" content="noindex, nofollow"/>', '')
+        .replace(/\[\\"\$\\",\\"meta\\",\\"\d+\\",\{\\"name\\":\\"robots\\",[^}]*\}\],/g, ''),
+    );
     // robots.txt is the one production serves with the switch on: the site allowed, the sitemap named.
     const robots = await (await fetch(`${proxy.origin}/robots.txt`)).text();
     expect(robots).toBe(`User-Agent: *\nAllow: /\n\nSitemap: ${proxy.origin}/sitemap.xml\n`);
+    // ... written as the server writes the rules of its own `robots.ts` route: here, disallow all.
+    expect(await (await fetch(`${baseURL}/robots.txt`)).text()).toBe(
+      robotsFile(robotsTxt({}, false)),
+    );
     // The page is still the server's: the proxy adds nothing to a response that is not a page.
     const image = '/site-images/scenes/gym-400.avif';
     const [rawImage, proxiedImage] = await Promise.all([
@@ -103,11 +114,13 @@ test.describe('F064 AC15 speed and search budgets', () => {
 
   for (const scheme of SCHEMES) {
     for (const page of PAGES) {
-      test(`${page} in ${scheme} mode stays within the budgets`, async ({ appLocale }) => {
+      test(`${page} in ${scheme} mode stays within the budgets`, async ({
+        appLocale,
+      }, testInfo) => {
         const path = sitePagePath(page, appLocale);
         // The measure is only worth something when production would index this very page.
         expect(
-          robotsHeader(path, production, true),
+          robotsHeader(path, PRODUCTION, true),
           `production would not index ${path} once the switch is on`,
         ).toBeUndefined();
         const browser = browsers.get(scheme);
@@ -115,11 +128,14 @@ test.describe('F064 AC15 speed and search budgets', () => {
 
         const audit = await measure(`${proxy.origin}${path}`, browser.port);
 
-        console.log(
-          `AC15 ${appLocale} ${scheme} ${path}: LCP ${Math.round(audit.lcpMs)} ms, CLS ${audit.cls.toFixed(3)}, ` +
+        // The numbers are in the report (annotations), so a run shows the room the budget leaves.
+        testInfo.annotations.push({
+          type: `AC15 ${appLocale} ${scheme} ${path}`,
+          description:
+            `LCP ${Math.round(audit.lcpMs)} ms, CLS ${audit.cls.toFixed(3)}, ` +
             `performance ${Math.round(audit.performance * 100)}, SEO ${Math.round(audit.seo * 100)}, ` +
             `accessibility ${Math.round(audit.accessibility * 100)}, runs ${audit.attempts}`,
-        );
+        });
         // The browser follows the scheme: the screens on the page are the ones of its colouring.
         const other = scheme === 'dark' ? 'light' : 'dark';
         const screens = audit.images.filter((url) => url.includes('/site-images/shots/'));

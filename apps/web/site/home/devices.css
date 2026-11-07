@@ -45,7 +45,8 @@
     --phone-w: 100cqw;
   }
 
-  /* Three phones in a row. */
+  /* Three phones in a row. The widths here (and the phone-sized ones below) are repeated as `sizes`
+     in `ROW_SIZES` in `devices.tsx`: change one, change the other. */
   .site-stage-row {
     display: flex;
     justify-content: center;

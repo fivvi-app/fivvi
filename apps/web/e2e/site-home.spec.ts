@@ -69,6 +69,31 @@ for (const locale of locales) {
       expect(requests).toEqual([]);
     });
 
+    // AC15: the first screen is there at once (a fade-in would delay the largest contentful paint);
+    // a screen the visitor chooses rises into view. `motion-safe:` makes it still under reduced motion.
+    test('shows the first screen at once and lets a chosen audience rise into view', async ({
+      page,
+    }) => {
+      await page.goto(HOME[locale]);
+      const miniature = page.locator('main div:has(> picture > img[srcset*="/scenes/"])').first();
+      const stage = page.locator('.site-stage > div').first();
+      await expect(miniature).not.toHaveClass(/animate-in/);
+      await expect(stage).not.toHaveClass(/animate-in/);
+
+      for (const audience of AUDIENCES.slice(1)) {
+        await page.getByRole('button', { name: copy.iAm[audience], exact: true }).click();
+
+        await expect(
+          page.locator('main img[srcset*="/scenes/"]').first(),
+          audience,
+        ).toHaveAttribute('srcset', new RegExp(`/scenes/${STAGES[audience].scene}-400`));
+        await expect(miniature, `${audience} miniature`).toHaveClass(/motion-safe:animate-in/);
+        await expect(miniature, `${audience} miniature`).toHaveClass(/motion-safe:fade-in/);
+        await expect(stage, `${audience} screens`).toHaveClass(/motion-safe:animate-in/);
+        await expect(stage, `${audience} screens`).toHaveClass(/motion-safe:fade-in/);
+      }
+    });
+
     test('shows the gym first, with its laptop and phone side by side', async ({ page }) => {
       await page.emulateMedia({ reducedMotion: 'reduce' });
       await page.goto(HOME[locale]);
@@ -264,16 +289,23 @@ for (const locale of locales) {
         });
 
         // The platforms' other group is hidden, and its images wait: only what is shown counts.
-        const images = await page.locator('main img').evaluateAll((elements) =>
-          (elements as HTMLImageElement[])
-            .filter((image) => image.checkVisibility())
-            .map((image) => ({
-              src: image.currentSrc,
-              loaded: image.complete && image.naturalWidth > 0,
-            })),
-        );
+        const shownImages = () =>
+          page.locator('main img').evaluateAll((elements) =>
+            (elements as HTMLImageElement[])
+              .filter((image) => image.checkVisibility())
+              .map((image) => ({
+                src: image.currentSrc,
+                loaded: image.complete && image.naturalWidth > 0,
+              })),
+          );
+        // A lazy image the scroll passed is fetched a moment later on a busy machine: wait for it.
+        await expect
+          .poll(async () => (await shownImages()).filter(({ loaded }) => !loaded), {
+            message: 'images that do not load',
+          })
+          .toEqual([]);
+        const images = await shownImages();
         expect(images.length).toBeGreaterThan(8);
-        expect(images.filter(({ loaded }) => !loaded)).toEqual([]);
         const screens = images.filter(({ src }) => src.includes('/shots/'));
         for (const { src } of screens) {
           expect(src).toContain(`-${SHOT_LANGUAGE[locale]}-${colorScheme}-`);
