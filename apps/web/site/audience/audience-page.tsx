@@ -5,7 +5,7 @@ import { Device, Scene, StageScreens } from '../home/devices';
 import { Cta, container, Promises, screenAlts } from '../home/sections';
 import { builtPages, type SitePage } from '../routes';
 import { StatusLine } from '../status-line';
-import { siteText } from '../text';
+import { isMessageKey, siteText } from '../text';
 import {
   type AudiencePageId,
   audiencePages,
@@ -193,10 +193,13 @@ function MomentCard({
   alts: ReturnType<typeof screenAlts>;
   words: Record<string, string>;
 }) {
-  // The keys are built from the page and the moment, which the catalog test checks one by one, so
-  // the translator takes any string here.
-  const t = siteText(locale) as unknown as (key: string, values?: Record<string, string>) => string;
-  const key = `${textKey}.moments.${moment.id}`;
+  const t = siteText(locale);
+  /** A text of this moment; the key is built from the page and the moment, and checked here. */
+  const say = (part: string) => {
+    const key = `${textKey}.moments.${moment.id}.${part}`;
+    if (!isMessageKey(key)) throw new Error(`No text ${key}`);
+    return t(key, words);
+  };
   const shot = forKind(moment.shot, kind);
   const web = shot.startsWith('web-');
   return (
@@ -217,11 +220,9 @@ function MomentCard({
         />
         <div className="min-w-0">
           <h3 className="text-[clamp(23px,2.8vw,33px)] leading-[1.12] font-bold tracking-[-0.022em] text-balance">
-            {t(`${key}.question`, words)}
+            {say('question')}
           </h3>
-          <p className="mt-3.5 text-pretty text-secondary-foreground">
-            {t(`${key}.answer`, words)}
-          </p>
+          <p className="mt-3.5 text-pretty text-secondary-foreground">{say('answer')}</p>
           <ul className="mt-3.5 grid gap-2">
             {moment.ticks.map((tick) => (
               <li
@@ -232,7 +233,7 @@ function MomentCard({
                   aria-hidden="true"
                   className="mt-1.5 h-2 w-3.5 -rotate-45 border-b-2 border-l-2 border-status-success-solid"
                 />
-                {t(`${key}.ticks.${tick}`, words)}
+                {say(`ticks.${tick}`)}
               </li>
             ))}
           </ul>

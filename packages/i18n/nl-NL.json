@@ -581,12 +581,12 @@
         "appStudios": "Fivvi: wisselen tussen twee studio's",
         "appRenew": "Fivvi: een melding om te verlengen",
         "cwWaitlist": "Klantweb: op de wachtlijst, met je plek",
-        "cwWaitlistPilates": "Klantweb: op de wachtlijst van een volle reformerles",
-        "cwWaitlistYoga": "Klantweb: op de wachtlijst van een volle yogales",
+        "cwWaitlistPilates": "Klantweb: op de wachtlijst van een volle reformerles, met je plek",
+        "cwWaitlistYoga": "Klantweb: op de wachtlijst van een volle yogales, met je plek",
         "webClassYoga": "Trainerweb: een yogales op datum",
         "webJoinPilates": "Trainerweb: de A4-poster met de QR-code",
         "webJoinYoga": "Trainerweb: de A4-poster met de QR-code",
-        "webClient": "Trainerweb: klantprofiel met tegoed",
+        "webClient": "Trainerweb: klantprofiel met verlengen",
         "webClass": "Trainerweb: een les op datum met aanwezigheid en wachtlijst",
         "webTrainers": "Trainerweb: trainers en rollen",
         "webOffers": "Trainerweb: Aanbod",
@@ -613,7 +613,7 @@
             "answer": "Hele studio geeft elke trainer een eigen baan, en noemt je drukste moment van de dag.",
             "ticks": {
               "a": "Sessies naast elkaar, zonder puzzelen",
-              "b": "Groepslessen en privésessies in één overzicht"
+              "b": "Op je telefoon en op je laptop"
             }
           },
           "attention": {
@@ -628,7 +628,7 @@
             "answer": "Trainers krijgen een eigen teamtoegang, nooit een klantaccount. Ze zien hun agenda en de tegoeden, maar geen bedragen.",
             "ticks": {
               "a": "Rol wijzigen: trainer of eigenaar",
-              "b": "Een nieuwe trainer uitnodigen met één knop"
+              "b": "Vertrekt iemand? Je ziet de komende 2 weken en draagt ze over"
             }
           },
           "substitute": {
@@ -636,7 +636,7 @@
             "answer": "Zet een vervanger op de les en je bent klaar. Op dezelfde pagina zie je wie er komt en wie op de wachtlijst staat.",
             "ticks": {
               "a": "Aanwezigheid per deelnemer",
-              "b": "Komt er een plek vrij, dan krijgt de eerste op de wachtlijst hem, met een e-mail"
+              "b": "Wachtlijst op volgorde"
             }
           },
           "offers": {
@@ -652,14 +652,14 @@
             "answer": "Koppel Mollie in één begeleide stap. Klanten betalen met iDEAL, daarna gaat het maandelijks automatisch, en de factuur volgt vanzelf.",
             "ticks": {
               "a": "Het geld gaat rechtstreeks naar jouw rekening",
-              "b": "Klanten kunnen ook bij de studio betalen, als jij dat aanzet"
+              "b": "Mislukt een betaling? Jij en de klant krijgen bericht"
             }
           },
           "renewal": {
             "question": "Een abonnement stopt, en niemand merkte het.",
             "answer": "Fivvi herinnert de klant zelf, twee keer, met verlengen in één tik. Jij ziet het op het klantprofiel en kunt altijd zelf een aanbod sturen.",
             "ticks": {
-              "a": "Het tegoed van de klant: gebruikt, gepland en over"
+              "a": "Geen gat en geen overlap als het verlengt"
             }
           }
         }
@@ -694,8 +694,8 @@
             "question": "{spots} plekken, en iedereen wil om half zeven.",
             "answer": "Klanten boeken zelf vanuit het rooster. Is de les vol, dan krijgen ze de wachtlijst, met hun plek erbij.",
             "ticks": {
-              "a": "Is de les vol, dan staat de wachtlijst klaar, met het aantal mensen erbij",
-              "b": "Niveau, locatie en wie de les geeft staan erbij"
+              "a": "Boeken altijd met een bevestiging",
+              "b": "Geen berichtjes meer heen en weer"
             }
           },
           "credits": {
@@ -703,7 +703,7 @@
             "answer": "Credits per soort: gebruikt, gepland en over. De klant ziet hetzelfde als jij.",
             "ticks": {
               "a": "Groeps- en privécredits lopen nooit door elkaar",
-              "b": "Abonnement en creditpakket, met de volgende betaling of de einddatum erbij"
+              "b": "Op tijd annuleren geeft het credit terug"
             }
           },
           "substitute": {
@@ -717,8 +717,8 @@
             "question": "Beginners in een les voor gevorderden.",
             "answer": "Geef elke les een niveau en een beschrijving, in het Nederlands en het Engels. Zo kiest iedereen de juiste les.",
             "ticks": {
-              "a": "Het niveau staat boven de titel",
-              "b": "Met een beschrijving van de les erbij"
+              "a": "Beginner, gemiddeld, gevorderd of alle niveaus",
+              "b": "Per datum aan te passen"
             }
           },
           "word": {
@@ -732,7 +732,7 @@
             "question": "Nieuwe klant aan de balie. En nu?",
             "answer": "Print de A4-poster met je QR-code, in twee talen. Scannen, aanmeldverzoek sturen, jij keurt goed, klaar.",
             "ticks": {
-              "a": "Scannen, inloggen met je e-mail en wachten op goedkeuring",
+              "a": "Geen app nodig om te boeken",
               "b": "In kleur of zwart-wit"
             }
           }
@@ -760,23 +760,23 @@
             "question": "Wat deden we vorige keer?",
             "answer": "Open de klant en je ziet de laatste training, wat zwaar was, je eigen notitie en de voortgang per oefening.",
             "ticks": {
-              "a": "Je voortgang in één grafiek, met het tegoed eronder"
+              "a": "Notities zijn alleen voor jou"
             }
           },
           "log": {
             "question": "Je houdt het nog op papier bij, of helemaal niet.",
             "answer": "Eén rij per set met de waarde van vorige keer ernaast. Vink af, en geef per oefening aan hoe zwaar het was.",
             "ticks": {
-              "a": "De zwaarte van een oefening met één tik",
-              "b": "Een extra set toevoegen met één tik"
+              "a": "Gemaakt om te gebruiken met één hand",
+              "b": "Opslaan als schema voor de volgende keer"
             }
           },
           "credits": {
             "question": "Hoeveel sessies heeft ze nog?",
             "answer": "Geen rekenwerk: voor de sessie zie je al of het credit bijna op is, of dat er nog een betaling openstaat.",
             "ticks": {
-              "a": "Het tegoed na de geplande sessies, voor je begint",
-              "b": "Je vorige training staat er al onder"
+              "a": "Gebruikt, gepland en over",
+              "b": "Verlengen met één tik"
             }
           },
           "duo": {
@@ -790,8 +790,7 @@
             "question": "Je klant wil weten wat ze vandaag gedaan heeft.",
             "answer": "Deel de training met één bericht. Je klant ziet alle oefeningen en kan hem zelf nog eens doen.",
             "ticks": {
-              "a": "Met een eigen bericht erbij",
-              "b": "Je klant krijgt het in haar profiel en per e-mail"
+              "a": "Geen schermafbeeldingen meer in de chat"
             }
           }
         }
@@ -811,23 +810,21 @@
             "question": "Even een les boeken in de trein.",
             "answer": "Open het rooster en tik op Boeken. Je hebt niet eens een app nodig: de browser is genoeg, en de app maakt het nog fijner.",
             "ticks": {
-              "a": "Eén tik op Boeken bij elke les",
-              "b": "Per les staat erbij hoeveel plekken er nog zijn"
+              "a": "Inloggen met een code per e-mail, geen wachtwoord"
             }
           },
           "confirm": {
             "question": "Kost dit een credit? Hoeveel heb ik er nog?",
             "answer": "Voor je bevestigt, zie je de les, de dag en de trainer, welk credit het kost, hoeveel je er overhoudt en tot wanneer je gratis annuleert.",
             "ticks": {
-              "a": "Je ziet welk credit het kost en hoeveel je er overhoudt",
-              "b": "Gratis annuleren tot 12 uur voor de start"
+              "a": "Op tijd annuleren geeft je credit terug"
             }
           },
           "waitlist": {
             "question": "Vol. Natuurlijk.",
             "answer": "Zet jezelf op de wachtlijst en zie meteen de hoeveelste je bent.",
             "ticks": {
-              "a": "Je ziet hoeveel mensen er al op de wachtlijst staan"
+              "a": "Weer weg van de lijst kan ook"
             }
           },
           "week": {
@@ -841,8 +838,7 @@
             "question": "De training van je trainer, maar nu in je eigen sportschool.",
             "answer": "Open de gedeelde training en doe hem zelf, met de gewichten van je trainer al ingevuld. Oefeningen toevoegen of weghalen mag.",
             "ticks": {
-              "a": "De gewichten van vorige keer met je trainer staan erbij",
-              "b": "Sets afvinken en toevoegen, oefeningen weghalen"
+              "a": "Alleen jij ziet deze training"
             }
           },
           "studios": {
@@ -856,7 +852,7 @@
             "question": "Je credits zijn bijna op.",
             "answer": "Je krijgt op tijd een seintje, en verlengt in één tik met iDEAL. Daarna is de melding weg.",
             "ticks": {
-              "a": "Je ziet hoeveel credits je nog hebt voordat je verlengt"
+              "a": "Je factuur staat in je profiel"
             }
           }
         }

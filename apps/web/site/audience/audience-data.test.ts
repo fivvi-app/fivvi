@@ -163,6 +163,21 @@ describe.each(locales)('F064 the four audience pages’ words in %s', (locale: L
     expect(moments.waitlist.question).toContain('{spots}');
   });
 
+  it('keeps the owner’s own words for the chips the design approved (the claim check is #648’s)', () => {
+    if (locale !== 'nl-NL') return;
+    const { gyms, studios, personalTrainers, clients } = audience;
+
+    expect(personalTrainers.moments.last.ticks.a).toBe('Notities zijn alleen voor jou');
+    expect(clients.moments.self.ticks.a).toBe('Alleen jij ziet deze training');
+    expect(clients.moments.book.ticks.a).toBe('Inloggen met een code per e-mail, geen wachtwoord');
+    expect(clients.moments.confirm.ticks.a).toBe('Op tijd annuleren geeft je credit terug');
+    expect(studios.moments.credits.ticks.b).toBe('Op tijd annuleren geeft het credit terug');
+    expect(clients.moments.waitlist.ticks.a).toBe('Weer weg van de lijst kan ook');
+    expect(gyms.moments.team.ticks.b).toBe(
+      'Vertrekt iemand? Je ziet de komende 2 weken en draagt ze over',
+    );
+  });
+
   it('says sportschool and never a word the glossary forbids, in Dutch', () => {
     if (locale !== 'nl-NL') return;
     const text = JSON.stringify(audience);

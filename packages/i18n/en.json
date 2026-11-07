@@ -581,12 +581,12 @@
         "appStudios": "Fivvi: switching between two studios",
         "appRenew": "Fivvi: a notice to renew",
         "cwWaitlist": "Client web: on the waitlist, with your position",
-        "cwWaitlistPilates": "Client web: on the waitlist of a full reformer class",
-        "cwWaitlistYoga": "Client web: on the waitlist of a full yoga class",
+        "cwWaitlistPilates": "Client web: on the waitlist of a full reformer class, with your position",
+        "cwWaitlistYoga": "Client web: on the waitlist of a full yoga class, with your position",
         "webClassYoga": "Trainer web: a yoga class on a date",
         "webJoinPilates": "Trainer web: the A4 poster with the QR code",
         "webJoinYoga": "Trainer web: the A4 poster with the QR code",
-        "webClient": "Trainer web: client profile with balance",
+        "webClient": "Trainer web: client profile with renewal",
         "webClass": "Trainer web: a class on a date with attendance and waitlist",
         "webTrainers": "Trainer web: trainers and roles",
         "webOffers": "Trainer web: offers",
@@ -613,7 +613,7 @@
             "answer": "Whole studio gives each trainer their own lane, and names the busiest moment of your day.",
             "ticks": {
               "a": "Sessions side by side, no puzzling",
-              "b": "Group classes and private sessions in one view"
+              "b": "On your phone and your laptop"
             }
           },
           "attention": {
@@ -628,7 +628,7 @@
             "answer": "Trainers get their own team access, never a client account. They see their calendar and balances, but no amounts.",
             "ticks": {
               "a": "Change role: trainer or owner",
-              "b": "Invite a new trainer with one button"
+              "b": "Someone leaving? You see the next 2 weeks and hand them over"
             }
           },
           "substitute": {
@@ -636,7 +636,7 @@
             "answer": "Put a substitute on the class and you're done. The same page shows who's coming and who's on the waitlist.",
             "ticks": {
               "a": "Attendance per participant",
-              "b": "When a spot opens up, the first on the waitlist gets it, with an email"
+              "b": "Waitlist in order"
             }
           },
           "offers": {
@@ -652,14 +652,14 @@
             "answer": "Connect Mollie in one guided step. Clients pay with iDEAL, after that it runs monthly by itself, and the invoice follows.",
             "ticks": {
               "a": "The money goes straight to your account",
-              "b": "Clients can also pay at the studio, if you switch that on"
+              "b": "A payment fails? You and the client hear about it"
             }
           },
           "renewal": {
             "question": "A membership ends, and nobody noticed.",
             "answer": "Fivvi reminds the client itself, twice, with one-tap renewal. You see it on the client's profile and can always send an offer yourself.",
             "ticks": {
-              "a": "The client's balance: used, planned and left"
+              "a": "No gap and no overlap when it renews"
             }
           }
         }
@@ -694,8 +694,8 @@
             "question": "{spots} spots, and everyone wants half past six.",
             "answer": "Clients book themselves from the timetable. When the class is full, they get the waitlist, with their position shown.",
             "ticks": {
-              "a": "When a class is full, the waitlist is ready, with the number of people on it",
-              "b": "Level, location and who teaches it are shown"
+              "a": "Booking always asks for confirmation",
+              "b": "No more messages back and forth"
             }
           },
           "credits": {
@@ -703,7 +703,7 @@
             "answer": "Credits per kind: used, planned and left. The client sees the same as you.",
             "ticks": {
               "a": "Group and private credits never mix",
-              "b": "Membership and credit pack, with the next payment or the end date shown"
+              "b": "Cancelling in time gives the credit back"
             }
           },
           "substitute": {
@@ -717,8 +717,8 @@
             "question": "Beginners in an advanced class.",
             "answer": "Give each class a level and a description, in Dutch and English. So everyone picks the right class.",
             "ticks": {
-              "a": "The level sits above the title",
-              "b": "With a description of the class"
+              "a": "Beginner, intermediate, advanced or all levels",
+              "b": "Changeable per date"
             }
           },
           "word": {
@@ -730,9 +730,9 @@
           },
           "poster": {
             "question": "A new client at the desk. Now what?",
-            "answer": "Print the A4 poster with your QR code, in two languages. Scan, send a join request, you approve, done.",
+            "answer": "Print the A4 poster with your QR code, in two languages. Scan, sign up, you approve, done.",
             "ticks": {
-              "a": "Scan, sign in with your email and wait for approval",
+              "a": "No app needed to book",
               "b": "In colour or black and white"
             }
           }
@@ -760,23 +760,23 @@
             "question": "What did we do last time?",
             "answer": "Open the client and you see the last workout, what was hard, your own note and progress per exercise.",
             "ticks": {
-              "a": "Your progress in one chart, with the balance below it"
+              "a": "Notes are for you only"
             }
           },
           "log": {
             "question": "You log on paper, or not at all.",
             "answer": "One row per set with last time's value next to it. Tick it off, and mark how hard each exercise was.",
             "ticks": {
-              "a": "How hard an exercise was, with one tap",
-              "b": "Add an extra set with one tap"
+              "a": "Made to use with one hand",
+              "b": "Save it as a template for next time"
             }
           },
           "credits": {
             "question": "How many sessions does she have left?",
             "answer": "No sums: before the session you already see if credits are running out, or if a payment is still open.",
             "ticks": {
-              "a": "The balance after the planned sessions, before you start",
-              "b": "Your last workout is already below it"
+              "a": "Used, planned and left",
+              "b": "Renew with one tap"
             }
           },
           "duo": {
@@ -790,8 +790,7 @@
             "question": "Your client wants to know what she did today.",
             "answer": "Share the workout with one message. Your client sees every exercise and can redo it on their own.",
             "ticks": {
-              "a": "With a message of your own",
-              "b": "Your client gets it in her profile and by email"
+              "a": "No more screenshots in a chat"
             }
           }
         }
@@ -811,23 +810,21 @@
             "question": "Quickly book a class on the train.",
             "answer": "Open the timetable and tap Book. You don't even need an app: the browser is enough, and the app makes it nicer.",
             "ticks": {
-              "a": "One tap on Book at every class",
-              "b": "Every class shows how many spots are left"
+              "a": "Sign in with an emailed code, no password"
             }
           },
           "confirm": {
             "question": "Does this use a credit? How many do I have?",
             "answer": "Before you confirm, you see the class, the day and the trainer, which credit it uses, how many you'll have left and until when you can cancel for free.",
             "ticks": {
-              "a": "You see which credit it uses and how many you keep",
-              "b": "Free cancellation up to 12 hours before the start"
+              "a": "Cancelling in time gives your credit back"
             }
           },
           "waitlist": {
             "question": "Full. Of course.",
             "answer": "Put yourself on the waitlist and see your position right away.",
             "ticks": {
-              "a": "You see how many people are already on the waitlist"
+              "a": "Leaving the list is fine too"
             }
           },
           "week": {
@@ -841,8 +838,7 @@
             "question": "Your trainer's workout, but now in your own gym.",
             "answer": "Open the shared workout and do it yourself, with your trainer's weights filled in. Adding or removing exercises is fine.",
             "ticks": {
-              "a": "Last time's weights with your trainer are shown",
-              "b": "Tick off and add sets, remove exercises"
+              "a": "Only you see this workout"
             }
           },
           "studios": {
@@ -856,7 +852,7 @@
             "question": "Your credits are almost gone.",
             "answer": "You get a heads-up in time, and renew in one tap with iDEAL. After that, the notice is gone.",
             "ticks": {
-              "a": "You see how many credits you have left before you renew"
+              "a": "Your invoice is in your profile"
             }
           }
         }

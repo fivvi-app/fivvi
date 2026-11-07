@@ -1,6 +1,7 @@
 import { type Locale, locales, messages } from '@fivvi/i18n';
-import type { Page, Request } from '@playwright/test';
+import type { Page } from '@playwright/test';
 import { expect, test } from './fixtures';
+import { isImageOrPrefetch } from './site-requests';
 
 // F064 AC2, the four audience pages (#639): their problems and working day with real screens, and
 // the Studios page's switch between pilates and yoga. Both languages are visited by every
@@ -14,19 +15,6 @@ const PAGES = {
 } as const;
 type PageId = keyof typeof PAGES;
 const PAGE_IDS = Object.keys(PAGES) as PageId[];
-
-/**
- * Images that come near as the page scrolls, the prefetch of the header's links and the script
- * chunks of the pages it prefetched are not the switch's: it must send no data.
- */
-function isImageOrPrefetch(request: Request) {
-  return (
-    request.resourceType() === 'image' ||
-    (request.resourceType() === 'script' &&
-      new URL(request.url()).pathname.startsWith('/_next/static/')) ||
-    request.headers()['next-router-prefetch'] !== undefined
-  );
-}
 
 async function scrollThrough(page: Page) {
   await page.evaluate(async () => {
@@ -113,6 +101,25 @@ for (const locale of locales) {
         }
       });
     }
+
+    test('requests no yoga image until yoga is chosen', async ({ page }) => {
+      const yoga: string[] = [];
+      page.on('request', (request) => {
+        if (request.resourceType() === 'image' && /yoga/.test(new URL(request.url()).pathname)) {
+          yoga.push(request.url());
+        }
+      });
+
+      await page.goto(PAGES.studios[locale]);
+      await scrollThrough(page);
+      expect(yoga).toEqual([]);
+
+      await page.getByRole('button', { name: studios.kind.yoga, exact: true }).click();
+      await scrollThrough(page);
+      await expect.poll(() => yoga.length).toBeGreaterThan(0);
+      expect(yoga.some((url) => url.includes('/scenes/yoga-'))).toBe(true);
+      expect(yoga.some((url) => url.includes('/shots/web-class-yoga-'))).toBe(true);
+    });
 
     test('has both kinds in the HTML without JavaScript, yoga hidden', async ({
       browser,
