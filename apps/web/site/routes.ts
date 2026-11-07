@@ -49,6 +49,16 @@ export const builtPages: readonly SitePage[] = [
  */
 export const unlistedPages: readonly SitePage[] = ['demo'];
 
+/**
+ * **The one switch for search engines (F064, AC13).** While `false`, the site sends `noindex` and
+ * `robots.txt` disallows everything, in every environment, production included: merging to `main`
+ * deploys to production, and the site must not be found before every claim on it is checked. The
+ * go-live ticket (#648) flips it to `true`, which lets the `production` environment (and only that
+ * one, see `site/indexing.ts`) be indexed. Whether an environment is production is decided at
+ * run time, not here, because one Docker image serves every environment.
+ */
+export const siteIndexable: boolean = false;
+
 /** The address of a page in a language. */
 export function sitePagePath(page: SitePage, locale: Locale): Route {
   // The site's addresses are known here, not to the typed routes of the app.

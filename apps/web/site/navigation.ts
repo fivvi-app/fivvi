@@ -18,6 +18,11 @@ const labelKeys = {
 
 type LinkedPage = keyof typeof labelKeys;
 
+/** The catalog key of a page's name, for every page but the home page (the breadcrumbs, F064 AC14). */
+export function pageLabelKey(page: LinkedPage): (typeof labelKeys)[LinkedPage] {
+  return labelKeys[page];
+}
+
 /** The audiences and pricing: the header's links, and the footer's product column. */
 const productPages: readonly LinkedPage[] = [
   'gyms',

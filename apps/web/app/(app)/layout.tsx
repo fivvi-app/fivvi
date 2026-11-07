@@ -6,10 +6,12 @@ import { getLocale, getTranslations } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { PageViews } from './page-views';
 
-// Pages without their own title still get one: axe requires a <title> (WCAG 2.4.2).
+// Pages without their own title still get one: axe requires a <title> (WCAG 2.4.2). Nothing in the
+// app is for a search engine (the public website is `app/(site)`): `noindex` for the trainer web,
+// the sign-in, booking and join pages (F064 AC13). The route guard sends the same as a header.
 export async function generateMetadata(): Promise<Metadata> {
   const t = await getTranslations('app');
-  return { title: t('title') };
+  return { title: t('title'), robots: { index: false, follow: false } };
 }
 
 export default async function RootLayout({ children }: { children: ReactNode }) {

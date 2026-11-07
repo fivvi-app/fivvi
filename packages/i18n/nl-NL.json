@@ -367,7 +367,8 @@
   "site": {
     "meta": {
       "homeTitle": "Fivvi: software voor personal trainers, studio's en sportscholen",
-      "homeDescription": "Agenda, boekingen, credits, betalingen en facturen op één plek. Zo houd je tijd over om te trainen. Plan een demo."
+      "homeDescription": "Agenda, boekingen, credits, betalingen en facturen op één plek. Zo houd je tijd over om te trainen. Plan een demo.",
+      "breadcrumbHome": "Home"
     },
     "header": {
       "skipToContent": "Naar de inhoud",
@@ -598,7 +599,8 @@
       "dayEyebrow": "Een dag met Fivvi",
       "dayLead": "Van de eerste sessie tot het einde van de dag. Elk probleem krijgt een antwoord, en dat antwoord is gewoon een scherm uit Fivvi.",
       "gyms": {
-        "metaTitle": "Fivvi voor sportscholen met een team",
+        "metaTitle": "Software voor sportscholen met een team | Fivvi",
+        "metaDescription": "Eén agenda voor al je trainers, rollen die kloppen en betalingen die vanzelf gaan. Bekijk een werkdag in Fivvi.",
         "eyebrow": "Sportscholen met een team",
         "headline": "Je team, je klanten en je geld in één overzicht.",
         "lead": "Vervang de losse agenda, de boekingsapp en de facturen met de hand door één plek waar je hele sportschool op draait.",
@@ -665,7 +667,8 @@
         }
       },
       "studios": {
-        "metaTitle": "Fivvi voor pilates- en yogastudio's",
+        "metaTitle": "Boekingssysteem voor pilates- en yogastudio's | Fivvi",
+        "metaDescription": "Klanten boeken zelf, de wachtlijst loopt vanzelf en credits kloppen altijd. In de woorden van jouw studio.",
         "eyebrow": "Pilates- en yogastudio's",
         "headline": "Je lessen zitten vol. Je hoofd niet meer.",
         "lead": "Een rooster waar klanten zelf in boeken, credits die altijd kloppen en een wachtlijst die vanzelf loopt. In de woorden van jouw studio.",
@@ -739,7 +742,8 @@
         }
       },
       "personalTrainers": {
-        "metaTitle": "Fivvi voor personal trainers",
+        "metaTitle": "Software voor personal trainers: agenda en trainingen | Fivvi",
+        "metaDescription": "Je dag, je klanten, je trainingen en je credits op je telefoon. Zonder schermen die je niet gebruikt.",
         "eyebrow": "Personal trainers",
         "headline": "Train je klant. Niet je administratie.",
         "lead": "Alles voor je sessies op je telefoon, ook midden op de vloer. Zonder groepslessen of teamschermen die je toch niet gebruikt.",
@@ -796,7 +800,8 @@
         }
       },
       "clients": {
-        "metaTitle": "Fivvi voor klanten: boeken en je tegoed zien",
+        "metaTitle": "Boek je les in een paar tikken | Fivvi voor klanten",
+        "metaDescription": "Boek, zet jezelf op de wachtlijst en zie altijd wat je nog tegoed hebt. Met de app of gewoon in je browser.",
         "eyebrow": "En hun klanten",
         "headline": "Sporten is al moeilijk genoeg. Boeken niet.",
         "lead": "Vraag je studio of trainer om Fivvi, en boek voortaan vanaf je telefoon. Altijd duidelijk wat je geboekt hebt en wat je nog over hebt.",

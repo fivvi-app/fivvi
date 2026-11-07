@@ -1,6 +1,7 @@
 import type { Locale } from '@fivvi/i18n';
 import type { Metadata } from 'next';
 import { builtPages, type SitePage } from '../routes';
+import { pageCopy, pageSeo } from '../seo';
 import { siteText } from '../text';
 import { ContactCta } from './contact-cta';
 import { FaqHeading, FaqList } from './faq-list';
@@ -10,11 +11,7 @@ const INCLUDED = ['calendar', 'memberships', 'pro', 'client', 'workouts'] as con
 
 /** The title and description of the pricing page in a language (unique per page, AC12). */
 export function pricingMetadata(locale: Locale): Metadata {
-  const t = siteText(locale);
-  return {
-    title: t('site.pricing.metaTitle'),
-    description: t('site.pricing.metaDescription'),
-  };
+  return pageSeo('pricing', locale, pageCopy('pricing', locale));
 }
 
 /**
