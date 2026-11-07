@@ -22,10 +22,11 @@ const organizationId = `${siteOrigin}/#organization`;
 
 /**
  * The Organization behind Fivvi. Only what `site/business.ts` has filled in is in it: a blank detail
- * or an open `{{…}}` value leaves its property out, as it leaves it out of the footer (AC7).
+ * or an open `{{…}}` value leaves its property out, as it leaves it out of the footer (AC7). There is
+ * no `legalName`: the trade name is not the registered company name, which the owner has not confirmed
+ * (#612, #648); it comes in when `site/business.ts` has a field for it.
  */
 function organization(details: BusinessDetails): JsonLdNode & { '@type': string } {
-  const legalName = shown(details.tradeName);
   const kvk = shown(details.kvk);
   const vat = shown(details.vat);
   const address = shown(details.address);
@@ -36,7 +37,6 @@ function organization(details: BusinessDetails): JsonLdNode & { '@type': string 
     name: 'Fivvi',
     url: `${siteOrigin}/`,
     email: supportEmail,
-    ...(legalName ? { legalName } : {}),
     ...(kvk ? { identifier: { '@type': 'PropertyValue', propertyID: 'KvK', value: kvk } } : {}),
     ...(vat ? { vatID: vat } : {}),
     ...(address ? { address } : {}),
@@ -45,8 +45,9 @@ function organization(details: BusinessDetails): JsonLdNode & { '@type': string 
 }
 
 /**
- * The app. Its one price statement is the pricing page's own words: free during the pilot (`offers`,
- * `price` 0). There is no rating, review or other price, because none exists yet (`DECISIONS.md` §9,
+ * The app, on the web: the iPhone and Android apps are not in the stores yet, so they are not named
+ * here (#648 adds them with the store listings). Its one price statement is the pricing page's own
+ * words: free during the pilot (`offers`, `price` 0). There is no rating, review or other price, because none exists yet (`DECISIONS.md` §9,
  * *Nothing made up*).
  */
 function softwareApplication(locale: Locale): JsonLdNode & { '@type': string } {
@@ -55,7 +56,7 @@ function softwareApplication(locale: Locale): JsonLdNode & { '@type': string } {
     '@type': 'SoftwareApplication',
     name: 'Fivvi',
     applicationCategory: 'BusinessApplication',
-    operatingSystem: 'Web, iOS, Android',
+    operatingSystem: 'Web',
     description: t('site.meta.homeDescription'),
     url: pageUrl('home', locale),
     inLanguage: imageLanguage(locale),

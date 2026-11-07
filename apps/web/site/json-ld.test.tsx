@@ -75,6 +75,7 @@ describe.each(locales)('F064 AC14 JSON-LD in %s', (locale) => {
       '@type': 'SoftwareApplication',
       name: 'Fivvi',
       applicationCategory: 'BusinessApplication',
+      operatingSystem: 'Web',
       description: copy.meta.homeDescription,
       url: pageUrl('home', locale),
       inLanguage: locale === 'en' ? 'en' : 'nl',
@@ -110,14 +111,13 @@ describe.each(locales)('F064 AC14 JSON-LD in %s', (locale) => {
 });
 
 describe('F064 AC14 the Organization shows only what is filled in', () => {
-  it('with only the trade name: the name, the legal name, the address of the site and the support mailbox', () => {
+  it('with only the trade name: the name, the address of the site and the support mailbox, and no legal name', () => {
     const { Organization } = nodes('home', 'nl-NL', { tradeName: 'K&S Apps' });
 
     expect(Organization).toEqual({
       '@type': 'Organization',
       '@id': 'https://fivvi.app/#organization',
       name: 'Fivvi',
-      legalName: 'K&S Apps',
       url: 'https://fivvi.app/',
       email: 'support@fivvi.app',
     });
@@ -133,7 +133,6 @@ describe('F064 AC14 the Organization shows only what is filled in', () => {
     });
 
     expect(Organization).toMatchObject({
-      legalName: 'Example BV',
       vatID: 'NL000000000B01',
       identifier: { '@type': 'PropertyValue', propertyID: 'KvK', value: '12345678' },
       address: 'Voorbeeldstraat 1, 1234 AB Voorbeeldstad',
@@ -154,6 +153,16 @@ describe('F064 AC14 the Organization shows only what is filled in', () => {
       ['@id', '@type', 'email', 'name', 'url'].sort(),
     );
     expect(JSON.stringify(Organization)).not.toContain('{{');
+  });
+
+  it('never emits a legal name: the trade name is not the registered name (#612)', () => {
+    const { Organization } = nodes('home', 'en', {
+      tradeName: 'Example BV',
+      kvk: '12345678',
+    });
+
+    expect(Organization).not.toHaveProperty('legalName');
+    expect(JSON.stringify(pageJsonLd('home', 'en'))).not.toContain('legalName');
   });
 
   it('the SoftwareApplication is published by that organization', () => {
@@ -177,13 +186,16 @@ describe('F064 AC14 the script element', () => {
       <JsonLd
         page="home"
         locale="nl-NL"
-        details={{ tradeName: 'A </script><script>alert(1)</script> B' }}
+        details={{
+          tradeName: 'Example',
+          address: 'A </script><script>alert(1)</script> B',
+        }}
       />,
     );
 
     expect(markup.match(/<script/g)).toHaveLength(1);
     expect(markup.match(/<\/script>/g)).toHaveLength(1);
     const json = /^<script[^>]*>(.*)<\/script>$/s.exec(markup)?.[1] ?? '';
-    expect(JSON.parse(json)['@graph'][0].legalName).toBe('A </script><script>alert(1)</script> B');
+    expect(JSON.parse(json)['@graph'][0].address).toBe('A </script><script>alert(1)</script> B');
   });
 });
