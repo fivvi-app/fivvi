@@ -1400,6 +1400,42 @@
         }
       }
     },
+    "profile.privacy" : {
+      "comment" : "Row on the native Profile (iOS and Android, F064 AC17) that opens the privacy policy of the public website fivvi.app in the browser. Same wording as the website footer (site.footer.privacy).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacy policy"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Privacyverklaring"
+          }
+        }
+      }
+    },
+    "profile.support" : {
+      "comment" : "Row on the native Profile (iOS and Android, F064 AC17) that opens the Help and contact page of the public website fivvi.app in the browser. Same wording as the website footer (site.footer.support).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Help and contact"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Hulp en contact"
+          }
+        }
+      }
+    },
     "profile.title" : {
       "extractionState" : "manual",
       "localizations" : {
