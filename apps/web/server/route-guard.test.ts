@@ -15,10 +15,11 @@ function guard(
   path: string,
   session: SessionRead,
   init: ConstructorParameters<typeof NextRequest>[1] = {},
+  env: Record<string, string | undefined> = {},
 ) {
   const readSession = vi.fn(async () => session);
   const request = new NextRequest(`${ORIGIN}${path}`, init);
-  return { readSession, answer: guardRequest(request, readSession) };
+  return { readSession, answer: guardRequest(request, readSession, env) };
 }
 
 describe('F001 AC13 route guard', () => {
@@ -280,6 +281,12 @@ describe('F001 AC13 route guard', () => {
       ['/site-images/scenes/gym-400.webp', true],
       ['/site-images/shots/app-home-nl-light-320.webp', true],
       ['/site-images', true],
+      // F064 AC12, AC13: the generated share images, robots.txt and sitemap.xml; whole paths only.
+      ['/site-og/nl/home', true],
+      ['/site-ogx/nl/home', false],
+      ['/robots.txt', true],
+      ['/sitemap.xml', true],
+      ['/robots.txt/x', false],
       ['/site-imagesx/a.webp', false],
       ['/en/', false],
       ['/en/gyms/x', false],
@@ -312,6 +319,31 @@ describe('F001 AC13 route guard', () => {
       ['/%6Cogin', false],
     ])('%s -> %s', (path, expected) => {
       expect(isPublicPath(path)).toBe(expected);
+    });
+  });
+
+  // F064 AC13: the header that keeps a page out of search engines is decided per request, so the
+  // site's pages stay static and one build serves every environment.
+  describe('the X-Robots-Tag header', () => {
+    const PRODUCTION = { RAILWAY_ENVIRONMENT_NAME: 'production' };
+
+    it('is noindex on a public page, an app page and a redirect outside production', async () => {
+      for (const path of ['/', '/en/pricing', '/login', '/api/v1/health', '/book/pilot-gym']) {
+        const response = await guard(path, ANONYMOUS).answer;
+        expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+      }
+      const redirect = await guard('/home', ANONYMOUS, {}, { RAILWAY_ENVIRONMENT_NAME: 'pr-644' })
+        .answer;
+      expect(redirect.status).toBe(307);
+      expect(redirect.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+      const signedIn = await guard('/home', SIGNED_IN).answer;
+      expect(signedIn.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+    });
+
+    it('is noindex in production while the site is not indexable (#648)', async () => {
+      const response = await guard('/', ANONYMOUS, {}, PRODUCTION).answer;
+
+      expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow');
     });
   });
 });

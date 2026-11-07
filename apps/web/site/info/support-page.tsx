@@ -2,6 +2,7 @@ import type { Locale } from '@fivvi/i18n';
 import type { Metadata } from 'next';
 import { type BusinessDetails, filledDetails, business as fivviBusiness, shown } from '../business';
 import { builtPages, type SitePage } from '../routes';
+import { pageCopy, pageSeo } from '../seo';
 import { siteText } from '../text';
 import { privacyEmail, supportEmail } from './contact';
 import { ContactCta } from './contact-cta';
@@ -13,11 +14,7 @@ const OWNER_QUESTIONS = ['payments', 'mollie', 'devices', 'data'] as const;
 
 /** The title and description of the help page in a language (unique per page, AC12). */
 export function supportMetadata(locale: Locale): Metadata {
-  const t = siteText(locale);
-  return {
-    title: t('site.support.metaTitle'),
-    description: t('site.support.metaDescription'),
-  };
+  return pageSeo('support', locale, pageCopy('support', locale));
 }
 
 /**

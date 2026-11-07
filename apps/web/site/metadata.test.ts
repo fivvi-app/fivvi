@@ -2,11 +2,16 @@ import { locales, messages } from '@fivvi/i18n';
 import { describe, expect, it } from 'vitest';
 import { audiencePageIds } from './audience/audience-data';
 import { audienceMetadata } from './audience/audience-metadata';
-import { homeMetadata, siteRootMetadata } from './metadata';
+import { homeMetadata, rootMetadata, siteRootMetadata } from './metadata';
 
 describe('F064 until the go-live ticket (#648) every site page sends noindex', () => {
   it('the root layout of the site says noindex, nofollow', () => {
     expect(siteRootMetadata.robots).toEqual({ index: false, follow: false });
+  });
+
+  it('says noindex while the switch is off, and nothing once it is on (#648)', () => {
+    expect(rootMetadata(false).robots).toEqual({ index: false, follow: false });
+    expect(rootMetadata(true).robots).toBeUndefined();
   });
 
   it('a page’s own metadata never turns indexing back on', () => {
@@ -35,7 +40,7 @@ describe.each(locales)('F064 the audience pages’ metadata in %s', (locale) => 
       const copy = messages[locale].site.audience[page];
 
       expect(title).toBe(copy.metaTitle);
-      expect(description).toBe(copy.lead);
+      expect(description).toBe(copy.metaDescription);
       expect(robots).toBeUndefined();
       titles.add(String(title));
     }

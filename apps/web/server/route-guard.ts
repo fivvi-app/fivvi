@@ -3,10 +3,14 @@ import { loginPath, SIGN_IN_PAGE, SIGNED_IN_HOME } from '@fivvi/auth/return-path
 import { isLocale } from '@fivvi/i18n';
 import { type NextRequest, NextResponse } from 'next/server';
 import { localeCookie, localeCookieMaxAge } from '../i18n/config';
+import { robotsHeader } from '../site/indexing';
 import { isSitePath, siteHomePath } from '../site/routes';
 
 /** The public website's miniatures and screens (`public/site-images`, F064): images, no data. */
 const SITE_IMAGES = '/site-images';
+
+/** The site's Open Graph images, generated at build time (`app/site-og`, F064 AC12). */
+const SITE_SHARE_IMAGES = '/site-og';
 
 /**
  * Pages and routes that need no sign-in (AC13): the public website's pages (`site/routes.ts`, in
@@ -17,13 +21,20 @@ const SITE_IMAGES = '/site-images';
  * list in step with the `(signed-in)` route group (`app/(app)/(signed-in)/layout.tsx`), which holds
  * the pages that need sign-in and show *Sign out*.
  */
-const PUBLIC_PREFIXES = [SIGN_IN_PAGE, '/book', '/api', SITE_IMAGES];
+const PUBLIC_PREFIXES = [SIGN_IN_PAGE, '/book', '/api', SITE_IMAGES, SITE_SHARE_IMAGES];
 
 /**
- * The app-link association files (E017 AC5): the phone's operating system fetches them without a
- * session and follows no redirect. Exactly these two, not the whole `/.well-known/` folder.
+ * Files fetched without a session: the app-link association files (E017 AC5), which the phone's
+ * operating system fetches and follows no redirect for, and `robots.txt` and `sitemap.xml` for the
+ * search engines (F064 AC13). Exactly these, not the whole `/.well-known/` folder.
  */
-const PUBLIC_FILES = ['/.well-known/apple-app-site-association', '/.well-known/assetlinks.json'];
+const PUBLIC_FILES = [
+  '/.well-known/apple-app-site-association',
+  '/.well-known/assetlinks.json',
+  // What a search engine fetches (F064 AC13).
+  '/robots.txt',
+  '/sitemap.xml',
+];
 
 /** Whether `pathname` is open to anyone. Whole path segments only: `/booking` is not `/book`. */
 export function isPublicPath(pathname: string): boolean {
@@ -82,14 +93,31 @@ function withStoredLocale(request: NextRequest, stored: string | null) {
 }
 
 /**
- * The route guard (`proxy.ts`): a visitor without a valid sign-in session who asks for a page
+ * The route guard (`proxy.ts`) and the search header: the answer of `answerRequest` with the
+ * `X-Robots-Tag` header of the path (`robotsHeader`, F064 AC13). It is set here, per request, because
+ * the site's pages are static and one build serves every environment; whether this is production is
+ * read from `env` at run time.
+ */
+export async function guardRequest(
+  request: NextRequest,
+  readSession: (headers: Headers) => Promise<SessionRead>,
+  env: Readonly<Record<string, string | undefined>> = process.env,
+): Promise<NextResponse> {
+  const response = await answerRequest(request, readSession);
+  const robots = robotsHeader(request.nextUrl.pathname, env);
+  if (robots) response.headers.set('x-robots-tag', robots);
+  return response;
+}
+
+/**
+ * The route guard: a visitor without a valid sign-in session who asks for a page
  * that needs sign-in goes to `/login` with that page as the return path (AC13). Using a session
  * renews it, so the cookie the browser needs for that (AC12) goes out with the answer. A signed-in
  * browser also gets the language stored on the account as its `NEXT_LOCALE` cookie (F010).
  * Public paths are not looked at, except the site's home page, which sends a signed-in browser on to
  * the app (F064). When the session can't be read the request fails; no page is served.
  */
-export async function guardRequest(
+async function answerRequest(
   request: NextRequest,
   readSession: (headers: Headers) => Promise<SessionRead>,
 ): Promise<NextResponse> {

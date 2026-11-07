@@ -367,7 +367,8 @@
   "site": {
     "meta": {
       "homeTitle": "Fivvi: software for personal trainers, studios and gyms",
-      "homeDescription": "Calendar, bookings, credits, payments and invoices in one place, so you have time left to train. Book a demo."
+      "homeDescription": "Calendar, bookings, credits, payments and invoices in one place, so you have time left to train. Book a demo.",
+      "breadcrumbHome": "Home"
     },
     "header": {
       "skipToContent": "Skip to content",
@@ -598,7 +599,8 @@
       "dayEyebrow": "A day with Fivvi",
       "dayLead": "From the first session to the end of the day. Every problem gets an answer, and that answer is simply a screen from Fivvi.",
       "gyms": {
-        "metaTitle": "Fivvi for gyms with a team",
+        "metaTitle": "Software for gyms with a team | Fivvi",
+        "metaDescription": "One calendar for all your trainers, proper roles and payments that run by themselves. See a working day in Fivvi.",
         "eyebrow": "Gyms with a team",
         "headline": "Your team, your clients and your money in one view.",
         "lead": "Replace the separate calendar, the booking app and the handmade invoices with one place your whole gym runs on.",
@@ -665,7 +667,8 @@
         }
       },
       "studios": {
-        "metaTitle": "Fivvi for pilates and yoga studios",
+        "metaTitle": "Booking system for pilates and yoga studios | Fivvi",
+        "metaDescription": "Clients book themselves, the waitlist runs by itself and credits always add up. In your studio's own words.",
         "eyebrow": "Pilates and yoga studios",
         "headline": "Your classes are full. Your head isn't.",
         "lead": "A timetable clients book themselves, credits that always add up and a waitlist that runs by itself. In your studio's own words.",
@@ -739,7 +742,8 @@
         }
       },
       "personalTrainers": {
-        "metaTitle": "Fivvi for personal trainers",
+        "metaTitle": "Software for personal trainers: calendar and workouts | Fivvi",
+        "metaDescription": "Your day, clients, log and credits on your phone. Without screens you don't use.",
         "eyebrow": "Personal trainers",
         "headline": "Train your client. Not your admin.",
         "lead": "Everything for your sessions on your phone, even in the middle of the floor. Without the group classes or team screens you'd never use.",
@@ -796,7 +800,8 @@
         }
       },
       "clients": {
-        "metaTitle": "Fivvi for clients: book and see your balance",
+        "metaTitle": "Book your class in a few taps | Fivvi for clients",
+        "metaDescription": "Book, join the waitlist and always see your balance. With the app or just in your browser.",
         "eyebrow": "And their clients",
         "headline": "Working out is hard enough. Booking isn't.",
         "lead": "Ask your studio or trainer for Fivvi, and book from your phone from now on. Always clear what you've booked and what you have left.",

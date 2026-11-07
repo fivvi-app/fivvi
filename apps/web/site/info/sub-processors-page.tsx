@@ -1,16 +1,13 @@
 import type { Locale } from '@fivvi/i18n';
 import type { Metadata } from 'next';
+import { pageCopy, pageSeo } from '../seo';
 import { siteText } from '../text';
 import { InfoPage, PageHead } from './page-head';
 import { subProcessors } from './sub-processors';
 
 /** The title and description of the sub-processors page in a language (unique per page, AC12). */
 export function subProcessorsMetadata(locale: Locale): Metadata {
-  const t = siteText(locale);
-  return {
-    title: t('site.subProcessors.metaTitle'),
-    description: t('site.subProcessors.metaDescription'),
-  };
+  return pageSeo('subProcessors', locale, pageCopy('subProcessors', locale));
 }
 
 /**
