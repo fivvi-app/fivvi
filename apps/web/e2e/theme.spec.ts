@@ -109,9 +109,13 @@ async function expectVisibleFocusIndicator(page: Page, control: Locator, state: 
   );
 }
 
-async function openHelloPage(page: Page, colorScheme: ColorScheme): Promise<void> {
+/**
+ * The sign-in page: the app's one public page with a card, a field and a button in the trainer theme
+ * (the hello page, which these tests used until F064 gave `/` to the website, had the same).
+ */
+async function openSignInPage(page: Page, colorScheme: ColorScheme): Promise<void> {
   await page.emulateMedia({ colorScheme });
-  await page.goto('/');
+  await page.goto('/login');
 }
 
 /** A mode-independent token (`size.control.compact`) as written in tokens.css (`36px`). */
@@ -155,44 +159,48 @@ const densities: Record<
 };
 
 test.describe('E007 web theme', () => {
-  test('AC5: hello page uses token colours and passes axe in light and dark', async ({
+  test('AC5: sign-in page uses token colours and passes axe in light and dark', async ({
     page,
     messages: copy,
   }) => {
-    const heading = page.getByRole('heading', { level: 1, name: copy.hello.title });
-    const button = page.getByRole('button', { name: copy.hello.continue });
-    const input = page.getByLabel(copy.hello.firstNameLabel);
-    const colours: [Locator, string, string][] = [
-      [page.locator('body'), 'background-color', 'web.trainer.background'],
-      [page.locator('body'), 'color', 'web.trainer.foreground'],
-      [page.locator('[data-slot="card"]'), 'background-color', 'web.trainer.card'],
-      [heading, 'color', 'web.trainer.foreground'],
-      [page.getByText(copy.hello.description), 'color', 'web.trainer.muted-foreground'],
-      [input, 'border-top-color', 'border.control'],
-      [button, 'background-color', 'action.primary.bg'],
-      [button, 'color', 'action.primary.fg'],
-    ];
+    const heading = page.getByRole('heading', { level: 1, name: copy.signIn.title });
+    const button = page.getByRole('button', { name: copy.signIn.sendCode });
+    const input = page.getByLabel(copy.signIn.emailLabel);
 
     for (const scheme of colorSchemes) {
-      await openHelloPage(page, scheme);
+      await openSignInPage(page, scheme);
+      // What a card's description is made of (`CardDescription`): small, muted text.
+      const description = await probe(page, 'text-sm text-muted-foreground', 'Anna');
+      const colours: [Locator, string, string][] = [
+        [page.locator('body'), 'background-color', 'web.trainer.background'],
+        [page.locator('body'), 'color', 'web.trainer.foreground'],
+        [page.locator('[data-slot="card"]'), 'background-color', 'web.trainer.card'],
+        [heading, 'color', 'web.trainer.foreground'],
+        [description, 'color', 'web.trainer.muted-foreground'],
+        [input, 'border-top-color', 'border.control'],
+        [button, 'background-color', 'action.primary.bg'],
+        [button, 'color', 'action.primary.fg'],
+      ];
       for (const [element, property, token] of colours) {
         await expect(element, `${property} in ${scheme} mode`).toHaveCSS(
           property,
           tokenColour(token, scheme),
         );
       }
-      await expectNoAxeViolations(page, `the hello page in ${scheme} mode`);
+      await expectNoAxeViolations(page, `the sign-in page in ${scheme} mode`);
     }
   });
 
   test('AC7: focus indicator is visible on Button and Input', async ({ page, messages: copy }) => {
     const controls: [string, Locator][] = [
-      ['Input', page.getByLabel(copy.hello.firstNameLabel)],
-      ['Button', page.getByRole('button', { name: copy.hello.continue })],
+      ['Input', page.getByLabel(copy.signIn.emailLabel)],
+      ['Button', page.getByRole('button', { name: copy.signIn.sendCode })],
     ];
 
     for (const scheme of colorSchemes) {
-      await openHelloPage(page, scheme);
+      await openSignInPage(page, scheme);
+      // The button waits for the page to hydrate, and a disabled one takes no focus.
+      await expect(controls[1]?.[1] as Locator).toBeEnabled();
       for (const [name, control] of controls) {
         await expectVisibleFocusIndicator(page, control, `${name} in ${scheme} mode`);
       }
@@ -204,20 +212,20 @@ test.describe('E007 web theme', () => {
     messages: copy,
   }) => {
     const controls: [string, Locator][] = [
-      ['Input', page.getByLabel(copy.hello.firstNameLabel)],
-      ['Button', page.getByRole('button', { name: copy.hello.continue })],
+      ['Input', page.getByLabel(copy.signIn.emailLabel)],
+      ['Button', page.getByRole('button', { name: copy.signIn.sendCode })],
     ];
-    // Body text inside a Card, which sets its own (shadcn) body size.
-    const bodyText = page.getByRole('status');
     // The root layout opts every page into touch density. Trainer Web layouts (M2) opt into
-    // compact on a nested element; here the hello page's <main> stands in for one.
+    // compact on a nested element; here the sign-in page's <main> stands in for one.
     const layouts: [Density, Locator][] = [
       ['touch', page.locator('body')],
       ['compact', page.locator('main')],
     ];
 
-    await page.goto('/?name=Sam');
+    await page.goto('/login');
     await expect(page.locator('body')).toHaveAttribute('data-density', 'touch');
+    // Body text inside a Card, which sets its own (shadcn) body size.
+    const bodyText = await probeIn(page, '[data-slot="card"]', 'Anna');
     for (const [density, layout] of layouts) {
       const { body, control, bodyPx, controlPx } = densities[density];
       await layout.evaluate(
@@ -261,8 +269,8 @@ test.describe('E007 web theme', () => {
       if (['font', 'stylesheet'].includes(request.resourceType())) fontRequests.push(request.url());
     });
 
-    await openHelloPage(page, 'light');
-    const heading = page.getByRole('heading', { level: 1, name: copy.hello.title });
+    await openSignInPage(page, 'light');
+    const heading = page.getByRole('heading', { level: 1, name: copy.signIn.title });
     /** Families of the page's @font-face rules that have loaded, without quotes. */
     const loadedFaces = async () =>
       await page.evaluate(async () => {
@@ -293,7 +301,7 @@ test.describe('E007 web theme', () => {
 
 test.describe('E020 web theme', () => {
   test('AC11: numbers use the rounded face with tabular digits', async ({ page }) => {
-    await openHelloPage(page, 'light');
+    await openSignInPage(page, 'light');
     // `numeric` is what the kit's blocks put on times and counts.
     const number = await probe(page, 'numeric', '09:30');
 
@@ -312,7 +320,7 @@ test.describe('E020 web theme', () => {
     page,
   }) => {
     for (const scheme of colorSchemes) {
-      await openHelloPage(page, scheme);
+      await openSignInPage(page, scheme);
       const body = page.locator('body');
       const card = await probe(page, 'rounded-card bg-card', 'Anna');
       const glass = await probe(page, 'glass', 'Fivvi');
@@ -351,10 +359,36 @@ test.describe('E020 web theme', () => {
     }
   });
 
+  test('F064: the website is the client theme on its own body, from tokens, in light and dark', async ({
+    page,
+  }) => {
+    for (const scheme of colorSchemes) {
+      await page.emulateMedia({ colorScheme: scheme });
+      for (const path of ['/', '/en']) {
+        await page.goto(path);
+        const body = page.locator('body');
+
+        await expect(body).toHaveAttribute('data-theme', 'client');
+        await expect(body).toHaveAttribute('data-density', 'touch');
+        await expect(body, `canvas in ${scheme} mode`).toHaveCSS(
+          'background-color',
+          tokenColour('bg.canvas', scheme),
+        );
+        await expect(body).toHaveCSS('color', tokenColour('text.primary', scheme));
+        await expect(page.getByRole('banner'), `glass header in ${scheme} mode`).toHaveCSS(
+          'background-color',
+          schemeValue('color.web.glass-bg', scheme),
+        );
+        // The system stack, no web font.
+        await expect(body).toHaveCSS('font-family', await tokenFontStack(page, 'font.family.text'));
+      }
+    }
+  });
+
   test('AC14: the focus ring of a row in an inset list is drawn inside the clipped list', async ({
     page,
   }) => {
-    await openHelloPage(page, 'light');
+    await openSignInPage(page, 'light');
     await page.evaluate(() => {
       const list = document.createElement('ul');
       list.dataset.slot = 'inset-list';
@@ -385,6 +419,20 @@ async function variable(element: Locator, name: string): Promise<string> {
     (node, property) => getComputedStyle(node).getPropertyValue(property).trim(),
     name,
   );
+}
+
+/** Appends a `<p>` to the first element matching `parent`, to read the text size it inherits. */
+async function probeIn(page: Page, parent: string, text: string): Promise<Locator> {
+  await page.evaluate(
+    ([selector, content]) => {
+      const element = document.createElement('p');
+      element.id = 'probe-inherited';
+      element.textContent = content as string;
+      document.querySelector(selector as string)?.append(element);
+    },
+    [parent, text],
+  );
+  return page.locator('#probe-inherited');
 }
 
 /** Appends a `<div>` with the classes to the page, to read what they compute to. */

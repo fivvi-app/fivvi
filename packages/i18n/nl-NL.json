@@ -343,5 +343,52 @@
     },
     "newClient": "Nieuwe klant",
     "offline": "Je bent offline. Laatst bijgewerkt om {time}."
+  },
+  "site": {
+    "meta": {
+      "homeTitle": "Fivvi: jij traint, Fivvi regelt de rest",
+      "homeDescription": "Agenda, boekingen, credits, betalingen en facturen op één plek. Gemaakt voor personal trainers, studio's en sportscholen, en fijn voor hun klanten."
+    },
+    "header": {
+      "skipToContent": "Naar de inhoud",
+      "menuLabel": "Hoofdmenu",
+      "signIn": "Inloggen",
+      "demo": "Plan een demo"
+    },
+    "nav": {
+      "gyms": "Sportscholen",
+      "studios": "Studio's",
+      "personalTrainers": "Personal trainers",
+      "clients": "Klanten",
+      "pricing": "Prijzen"
+    },
+    "language": {
+      "label": "Taal / Language",
+      "nlShort": "NL",
+      "enShort": "EN",
+      "nlName": "Nederlands",
+      "enName": "English"
+    },
+    "home": {
+      "headline": "Jij traint.",
+      "headlineRest": "Fivvi regelt de rest.",
+      "lead": "Agenda, boekingen, credits, betalingen en facturen op één plek. Gemaakt voor personal trainers, studio's en sportscholen, en fijn voor hun klanten.",
+      "status": "Fivvi wordt nu gebouwd, samen met onze eerste sportschool. Vraag in de demo wat er al klaar is."
+    },
+    "footer": {
+      "label": "Voettekst",
+      "productHeading": "Product",
+      "helpHeading": "Hulp",
+      "legalHeading": "Juridisch",
+      "support": "Hulp en contact",
+      "privacy": "Privacyverklaring",
+      "terms": "Algemene voorwaarden",
+      "subProcessors": "Subverwerkers",
+      "tradeName": "{name}, handelend onder de naam Fivvi",
+      "kvk": "KvK-nummer",
+      "vat": "Btw-nummer",
+      "address": "Adres",
+      "phone": "Telefoon of WhatsApp"
+    }
   }
 }
