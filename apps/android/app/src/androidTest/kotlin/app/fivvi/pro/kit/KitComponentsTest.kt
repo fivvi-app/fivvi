@@ -376,50 +376,86 @@ class KitComponentsTest(
         assertEquals("en", chosen)
     }
 
-    @Test
-    fun E020_AC10_atTheLargestFontScaleTheSelectedSegmentKeepsItsCheckAndTheLabelsStayWhole() {
-        // A small phone, 360 dp wide, with the screen's 16 dp margins.
-        compose.showKit(mode, language, fontScale = 2f, width = 328.dp) {
+    // At 200% on a small phone: the selected segment keeps its check (colour is not the only sign of the selection),
+    // and every label is whole inside its own segment, with no tolerance: nothing reaches past the segment's edge. A label
+    // that can't fit on one line wraps; [oneLine] is for the ones that can.
+    private fun assertSegmentsAreWholeAt200Percent(width: Dp, labels: List<String>, selected: Int, oneLine: Boolean) {
+        compose.showKit(mode, language, fontScale = 2f, width = width) {
             SegmentedChoice(
-                options = listOf(
-                    SegmentedOption("nl", label(R.string.settings_language_option_nl), "choice.nl"),
-                    SegmentedOption("en", label(R.string.settings_language_option_en), "choice.en"),
-                ),
-                selected = "nl",
+                options = labels.mapIndexed { index, text -> SegmentedOption(index, text, "choice.$index") },
+                selected = selected,
                 onSelect = {},
             )
         }
 
-        // The selection is read from the segment itself, and by its check: colour is not the only sign of it.
-        compose.onNodeWithTag("choice.nl").assertIsSelected()
-        compose.onNodeWithTag("choice.en").assertIsNotSelected()
-        val checked = inkInFrontOfTheLabel("choice.nl", label(R.string.settings_language_option_nl))
-        val unchecked = inkInFrontOfTheLabel("choice.en", label(R.string.settings_language_option_en))
-        assertTrue(
-            "a check in front of the selected label: $checked pixels, the other segment $unchecked",
-            checked > 20 && unchecked == 0,
-        )
+        // The segments are as high as each other (a label that wraps doesn't leave its neighbour short) and the row is
+        // not stretched to the height of the screen.
+        val heights = labels.indices.map {
+            compose.onNodeWithTag("choice.$it").getUnclippedBoundsInRoot().let { box -> box.bottom - box.top }
+        }
+        assertTrue("segment heights differ: $heights", heights.all { abs((it - heights.first()).value) < 0.5f })
+        assertTrue("the row is ${heights.first()} high", heights.first() < 120.dp)
 
-        for ((tag, text) in listOf(
-            "choice.nl" to label(R.string.settings_language_option_nl),
-            "choice.en" to label(R.string.settings_language_option_en),
-        )) {
+        labels.forEachIndexed { index, text ->
+            val tag = "choice.$index"
+            val segmentNode = compose.onNodeWithTag(tag)
+            if (index == selected) segmentNode.assertIsSelected() else segmentNode.assertIsNotSelected()
             val node = compose.onNode(hasAnyAncestor(hasTestTag(tag)) and hasText(text), useUnmergedTree = true)
             val layout = node.textLayout()
-            // Every label is whole, on one line, not broken inside the word, and stays inside its segment (within the 2 dp
-            // that the label's box may reach into its padding), so nothing is clipped at the segment's edge.
             assertEquals("$text shows in full", text, layout.layoutInput.text.text)
             assertFalse("$text loses lines", layout.didOverflowHeight)
-            assertEquals("$text stays on one line, not broken inside the word", 1, layout.lineCount)
-            val segment = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot()
+            if (oneLine) assertEquals("$text stays on one line", 1, layout.lineCount)
+            val segment = segmentNode.getUnclippedBoundsInRoot()
             val shown = node.getUnclippedBoundsInRoot()
             assertTrue(
-                "$text $shown is inside its segment $segment",
-                shown.left >= segment.left - 2.dp && shown.right <= segment.right + 2.dp &&
-                    shown.top >= segment.top && shown.bottom <= segment.bottom,
+                "$text's right edge ${shown.right} is past its segment's ${segment.right}",
+                shown.right <= segment.right,
             )
+            assertTrue(
+                "$text's left edge ${shown.left} is before its segment's ${segment.left}",
+                shown.left >= segment.left,
+            )
+            assertTrue(
+                "$text's box $shown is not inside its segment $segment",
+                shown.top >= segment.top && shown.bottom <= segment.bottom,
+            )
+            // The check is in front of the selected label and inside the segment. (Whether the others have none is the
+            // normal-scale test's: here a label can start so near its segment's outline that the outline is in front of it.)
+            if (index == selected) {
+                val ink = inkInFrontOfTheLabel(tag, text)
+                assertTrue("$text has a check in front of it ($ink pixels)", ink > 20)
+                // The check (18 dp) and its gap (4 dp at this scale) are inside the segment, before the label.
+                assertTrue("the check starts inside the segment", shown.left - segment.left >= 22.dp)
+            }
         }
     }
+
+    @Test
+    fun E020_AC10_at200PercentOnA360dpPhoneTheLabelsAreWholeOnOneLineBesideTheCheck() =
+        assertSegmentsAreWholeAt200Percent(
+            width = 328.dp,
+            labels = listOf(label(R.string.settings_language_option_nl), label(R.string.settings_language_option_en)),
+            selected = 0,
+            oneLine = true,
+        )
+
+    @Test
+    fun E020_AC10_at200PercentOnA320dpScreenNoLabelIsCutOff() = assertSegmentsAreWholeAt200Percent(
+        width = 320.dp,
+        labels = listOf(label(R.string.settings_language_option_nl), label(R.string.settings_language_option_en)),
+        selected = 0,
+        oneLine = false,
+    )
+
+    @Test
+    fun E020_AC10_at200PercentWithThreeOptionsTheSelectedLabelIsWholeInsideItsSegment() =
+        assertSegmentsAreWholeAt200Percent(
+            width = 328.dp,
+            // Words of attendance and appearance that the catalog doesn't have yet: sample labels of the long kind.
+            labels = listOf("Aanwezig", "Afwezig", "Donker"),
+            selected = 1,
+            oneLine = false,
+        )
 
     @Test
     fun E020_AC14_aFieldWithAnErrorTurnsRedAndShowsAWarningIconAndTheMessageUnderIt() {
