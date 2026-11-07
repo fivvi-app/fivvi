@@ -15,8 +15,15 @@ object SiteLinks {
     const val BASE_URL = "https://fivvi.app"
 
     fun path(page: SitePage, language: AppLanguage): String = when (page) {
-        SitePage.Support -> if (language == AppLanguage.DUTCH) "/support" else "/en/support"
-        SitePage.Privacy -> if (language == AppLanguage.DUTCH) "/privacy" else "/en/privacy"
+        SitePage.Support -> when (language) {
+            AppLanguage.DUTCH -> "/support"
+            AppLanguage.ENGLISH -> "/en/support"
+        }
+
+        SitePage.Privacy -> when (language) {
+            AppLanguage.DUTCH -> "/privacy"
+            AppLanguage.ENGLISH -> "/en/privacy"
+        }
     }
 
     fun url(page: SitePage, language: AppLanguage): String = BASE_URL + path(page, language)

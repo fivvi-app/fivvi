@@ -74,6 +74,13 @@ describe('F064 the site’s addresses (#611)', () => {
     expect(sitePaths.clients).toEqual({ 'nl-NL': '/klanten', en: '/en/clients' });
   });
 
+  // The native apps link to these two pages and keep a copy of the addresses: `apps/android/core/.../web/SiteLinks.kt`
+  // (its test reads `site/routes.ts`) and, once #646 lands, the iOS app. A web change to them must change the apps too.
+  it('keeps the support and privacy addresses the native apps link to (F064 AC17, #647)', () => {
+    expect(sitePaths.support).toEqual({ 'nl-NL': '/support', en: '/en/support' });
+    expect(sitePaths.privacy).toEqual({ 'nl-NL': '/privacy', en: '/en/privacy' });
+  });
+
   it('keeps the demo page out of the links until go-live: it exists, and nothing links to it (#648)', () => {
     expect(unlistedPages).toContain('demo');
     expect(builtPages).not.toContain('demo');

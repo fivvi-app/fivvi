@@ -32,6 +32,7 @@ import app.fivvi.pro.localizedString
 import app.fivvi.pro.waitUntilTagExists
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
+import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -84,6 +85,9 @@ class ProfileScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         compose.waitUntilTagExists("${ProfileTags.WORKSPACE_NAME}.sarah-personal-training")
     }
 
+    private val instrumentation = InstrumentationRegistry.getInstrumentation()
+    private val monitors = mutableListOf<Instrumentation.ActivityMonitor>()
+
     private fun string(id: Int, vararg args: Any) = localizedString(language, id, *args)
 
     // The system browser is stubbed: the monitor answers a VIEW intent for this exact address and counts it, so nothing
@@ -95,8 +99,15 @@ class ProfileScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
             addDataAuthority(url.host, null)
             addDataPath(url.path, PatternMatcher.PATTERN_LITERAL)
         }
-        val instrumentation = InstrumentationRegistry.getInstrumentation()
         return instrumentation.addMonitor(filter, Instrumentation.ActivityResult(0, null), true)
+            .also(monitors::add)
+    }
+
+    // A blocking monitor left on the instrumentation would answer the next test's intents too.
+    @After
+    fun removeBrowserMonitors() {
+        monitors.forEach(instrumentation::removeMonitor)
+        monitors.clear()
     }
 
     // F064 AC17 (NL, EN): Profiel has the links to the privacy policy and to help and contact; each opens the website's page
