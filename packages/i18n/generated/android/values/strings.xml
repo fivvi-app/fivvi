@@ -111,6 +111,10 @@
     <string name="not_found_title">Pagina niet gevonden</string>
     <string name="profile_error">Je werkruimtes konden niet worden geladen.</string>
     <string name="profile_language">Taal</string>
+    <!-- Row on the native Profile (iOS and Android, F064 AC17) that opens the privacy policy of the public website fivvi.app in the browser. Same wording as the website footer (site.footer.privacy). -->
+    <string name="profile_privacy">Privacyverklaring</string>
+    <!-- Row on the native Profile (iOS and Android, F064 AC17) that opens the Help and contact page of the public website fivvi.app in the browser. Same wording as the website footer (site.footer.support). -->
+    <string name="profile_support">Hulp en contact</string>
     <string name="profile_title">Profiel</string>
     <!-- Shown next to the switch when saving failed for another reason. The switch is back as it was. -->
     <string name="profile_trains_here_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>

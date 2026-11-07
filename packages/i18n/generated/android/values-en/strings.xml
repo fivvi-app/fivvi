@@ -82,6 +82,8 @@
     <string name="not_found_title">Page not found</string>
     <string name="profile_error">Your workspaces couldn\'t be loaded.</string>
     <string name="profile_language">Language</string>
+    <string name="profile_privacy">Privacy policy</string>
+    <string name="profile_support">Help and contact</string>
     <string name="profile_title">Profile</string>
     <string name="profile_trains_here_errors_generic">Something went wrong. Try again.</string>
     <string name="profile_trains_here_errors_no_connection">No connection. Check your internet and try again.</string>

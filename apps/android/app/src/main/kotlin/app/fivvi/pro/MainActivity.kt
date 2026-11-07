@@ -42,6 +42,7 @@ import app.fivvi.core.signin.SignInActions
 import app.fivvi.core.signin.SignInScreen
 import app.fivvi.core.signin.SignInViewModel
 import app.fivvi.core.theme.FivviTheme
+import app.fivvi.core.web.SiteLinks
 import app.fivvi.pro.capabilities.WorkspaceCapabilities
 import app.fivvi.pro.clients.ClientsFlow
 import app.fivvi.pro.hello.HelloViewModel
@@ -138,10 +139,11 @@ class MainActivity : ComponentActivity() {
     }
 
     // The system browser, never a web view: creating a workspace happens on the web only (F002 AC10).
-    private fun openWelcomeOnTheWeb() {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(WebLinks.welcomeUrl(BuildConfig.API_BASE_URL)))
+    private fun openWelcomeOnTheWeb() = openOnTheWeb(WebLinks.welcomeUrl(BuildConfig.API_BASE_URL))
+
+    private fun openOnTheWeb(url: String) {
         try {
-            startActivity(intent)
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
         } catch (_: ActivityNotFoundException) {
             // A phone without a browser can't open it; there is nothing else to do here.
         }
@@ -178,6 +180,8 @@ class MainActivity : ComponentActivity() {
             onChooseLanguage = languages::choose,
             currentWorkspace = currentWorkspace,
             onSelectWorkspace = onSelectWorkspace,
+            // The page of the website in the language shown (F064 AC17), in the system browser.
+            onOpenSitePage = { openOnTheWeb(SiteLinks.url(it, language)) },
         )
         ProfileScreen(state, editor, actions)
     }

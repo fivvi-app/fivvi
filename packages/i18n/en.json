@@ -260,6 +260,8 @@
   },
   "profile": {
     "title": "Profile",
+    "support": "Help and contact",
+    "privacy": "Privacy policy",
     "error": "Your workspaces couldn't be loaded.",
     "language": "Language",
     "trainsHere": {

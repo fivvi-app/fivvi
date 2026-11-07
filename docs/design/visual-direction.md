@@ -14,6 +14,10 @@ It reads clearly in a busy gym: time, client, location, capacity and the next ac
 - **The UI only shows what exists.** A solo PT never sees group classes or Open Gym.
 - **Every list can be added to, changed and removed from**, and every removal asks for confirmation.
 
+## Logo
+
+The wordmark **fivvi**, heavy and rounded, leaning forward: its two v's slap a high five, with a pink spark and pink i dots ("Fivvi" sounds like *high five*). The app icon is the vv with the spark, white on the pink gradient; pink on near-black is the dark icon. Chosen by the owner on 7 November 2026; the files and how to use them are in [`brand/`](brand/README.md).
+
 ## Platforms
 
 | Platform | Look |
