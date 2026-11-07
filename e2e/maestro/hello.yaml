@@ -1,7 +1,8 @@
 # E008 hello screen (spec #34), against the local stack, behind the sign-in of F001: the flow signs in as the seeded
 # account through the shared sub-flow, and the signed-in home shows the hello screen. Elements are found by id: the
-# Android testTag and the iOS accessibilityIdentifier, the same on both apps (hello.greeting, hello.loading, hello.error,
-# hello.retry).
+# iOS accessibilityIdentifier (hello.greeting, hello.loading, hello.error, hello.retry). The Android home no longer
+# shows the hello screen (E020, spec #590, #625), so only iOS asserts it, until the iOS ticket (#624) removes it and
+# this flow with it. On Android the flow still signs in.
 # HELLO_TITLE, set by scripts/maestro.sh: hello.title from packages/i18n in the device language. It has no default here:
 # a flow's own env default would win over the value maestro.sh passes.
 appId: ${APP_ID}
@@ -16,10 +17,18 @@ env:
     clearState: true
 - runFlow:
     file: shared/sign-in.yaml
+- runFlow:
+    when:
+      platform: iOS
+    commands:
+      - extendedWaitUntil:
+          visible:
+            id: hello\.greeting
+          timeout: 20000
+      - assertVisible:
+          id: hello\.greeting
+          text: ${HELLO_TITLE}
 - extendedWaitUntil:
     visible:
-      id: hello\.greeting
+      id: home\.signedInAs
     timeout: 20000
-- assertVisible:
-    id: hello\.greeting
-    text: ${HELLO_TITLE}

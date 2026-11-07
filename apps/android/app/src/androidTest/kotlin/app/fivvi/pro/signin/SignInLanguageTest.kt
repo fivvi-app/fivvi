@@ -11,7 +11,6 @@ import app.fivvi.core.auth.Session
 import app.fivvi.core.signin.FakeSignInApi
 import app.fivvi.core.signin.SignInTags
 import app.fivvi.pro.AppRule
-import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.localizedString
 import app.fivvi.pro.signin.SignInSteps.Companion.ADDRESS
 import org.junit.Assert.assertEquals
@@ -30,7 +29,6 @@ class SignInLanguageTest {
     private val signIn = FakeSignInApi()
 
     private fun launch(device: List<String>, perApp: List<String> = emptyList()) = app.launch(
-        FakeHelloApi().apply { answerGreeting() },
         device = device,
         perApp = perApp,
         signInApi = signIn,

@@ -18,8 +18,6 @@ import app.fivvi.core.appLanguageParameters
 import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.pro.assertButtonFits
 import app.fivvi.pro.assertWraps
-import app.fivvi.pro.hello.HelloState
-import app.fivvi.pro.hello.HelloTags
 import app.fivvi.pro.localizedString
 import app.fivvi.pro.showAtLargestFontScale
 import org.junit.Rule
@@ -39,10 +37,8 @@ class HomeScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
     private fun show(me: MeState, signingOut: Boolean = false, height: Dp = 640.dp) =
         compose.showAtLargestFontScale(language, height = height) {
             HomeScreen(
-                HelloState.Loaded(R.string.hello_title),
                 me,
                 signingOut,
-                onRetryHello = {},
                 onRetryMe = {},
                 onSignOut = {},
                 onOpenWeb = {},
@@ -78,12 +74,12 @@ class HomeScreenLayoutTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
 
     @Test
     fun F001N_AC15_smallScreenScrollsAsOneToReachEverything() {
-        // A 320 dp high screen at 200%: the hello block and the account block don't fit together. The hello block keeps
-        // its height (it is not squeezed by the account block) and the screen scrolls to the sign-out button.
+        // A 320 dp high screen at 200%: the workspace name and the account block don't fit together. The name keeps its
+        // height (it is not squeezed by the account block) and the screen scrolls to the sign-out button.
         show(inWorkspace("a.long.address.for.a.trainer@example.com"), height = 320.dp)
 
-        compose.assertWraps(HelloTags.GREETING)
-        compose.onNodeWithTag(HelloTags.GREETING).assertIsDisplayed()
+        compose.assertWraps(HomeTags.WORKSPACE_NAME)
+        compose.onNodeWithTag(HomeTags.WORKSPACE_NAME).assertIsDisplayed()
         compose.onNodeWithTag(HomeTags.SIGN_OUT).performScrollTo().assertIsDisplayed()
         compose.assertButtonFits(HomeTags.SIGN_OUT)
     }

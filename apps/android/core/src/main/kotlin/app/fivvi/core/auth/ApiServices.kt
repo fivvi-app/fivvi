@@ -1,7 +1,6 @@
 package app.fivvi.core.auth
 
 import app.fivvi.api.apis.ClientsApi
-import app.fivvi.api.apis.HelloApi
 import app.fivvi.api.apis.MeApi
 import app.fivvi.api.apis.SignInApi
 import app.fivvi.api.apis.TrainersApi
@@ -23,7 +22,6 @@ class ApiServices(private val baseUrl: String, session: Session, private val net
     private val authenticated = plain.newBuilder().addInterceptor(AuthInterceptor(session)).withNetwork().build()
 
     private val apiClient: ApiClient by lazy { ApiClient(baseUrl, authenticated.newBuilder()) }
-    val helloApi: HelloApi by lazy { apiClient.createService(HelloApi::class.java) }
     val signInApi: SignInApi by lazy { apiClient.createService(SignInApi::class.java) }
     val meApi: MeApi by lazy { apiClient.createService(MeApi::class.java) }
     val workspacesApi: WorkspacesApi by lazy { apiClient.createService(WorkspacesApi::class.java) }

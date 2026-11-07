@@ -17,7 +17,6 @@ import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.signin.FakeSignInApi
 import app.fivvi.core.signin.SignInTags
 import app.fivvi.pro.AppRule
-import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.localizedString
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -34,7 +33,6 @@ class SignInScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val la
     @get:Rule
     val app = AppRule()
 
-    private val hello = FakeHelloApi().apply { answerGreeting() }
     private val signIn = FakeSignInApi()
     private val me = FakeMeApi()
     private val store = InMemorySessionStore()
@@ -45,7 +43,6 @@ class SignInScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val la
     private fun assertSignedInAs(address: String) = steps.assertSignedInAs(address)
 
     private fun launch() = app.launch(
-        hello,
         device = listOf(language.tag),
         signInApi = signIn,
         meApi = me,
@@ -59,7 +56,6 @@ class SignInScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val la
         compose.onNodeWithTag(SignInTags.EMAIL).assertIsDisplayed()
         assertEquals(0, me.calls)
         assertEquals(0, signIn.requests.size)
-        assertEquals(0, hello.requestedLocales.size)
     }
 
     @Test

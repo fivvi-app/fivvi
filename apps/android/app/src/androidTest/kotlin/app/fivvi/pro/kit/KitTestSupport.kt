@@ -1,5 +1,6 @@
 package app.fivvi.pro.kit
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -50,7 +51,7 @@ fun ComposeContentTestRule.showKit(
             DeviceConfigurationOverride.Locales(LocaleList(language.tag)),
     ) {
         FivviTheme(darkTheme = mode.dark) {
-            Surface(Modifier.width(width), color = MaterialTheme.colorScheme.background) { content() }
+            Surface(Modifier.width(width), color = MaterialTheme.colorScheme.background) { Box { content() } }
         }
     }
 }

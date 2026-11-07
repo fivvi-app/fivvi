@@ -5,15 +5,13 @@ import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
-import app.fivvi.pro.hello.FakeHelloApi
-import app.fivvi.pro.hello.HelloTags
-import org.junit.Assert.assertEquals
+import app.fivvi.pro.home.HomeTags
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
-// AC3 through the real activity: the OS language settings decide both the screen's resources and the API locale.
+// AC3 through the real activity: the OS language settings decide the language of the screen's resources.
 @RunWith(Parameterized::class)
 class AppLanguageUiTest(
     @Suppress("UNUSED_PARAMETER") case: String,
@@ -28,13 +26,10 @@ class AppLanguageUiTest(
     val app = AppRule()
 
     @Test
-    fun E008_AC3_screenAndApiFollowTheAppLanguage() {
-        val api = FakeHelloApi().apply { answerGreeting() }
+    fun E008_AC3_screenFollowsTheAppLanguage() {
+        app.launch(device = device, perApp = perApp)
 
-        app.launch(api, device = device, perApp = perApp)
-
-        compose.onNodeWithTag(HelloTags.GREETING).assertTextEquals(localizedString(expected, R.string.hello_title))
-        assertEquals(listOf(expected.apiLocale), api.requestedLocales)
+        compose.onNodeWithTag(HomeTags.SIGN_OUT).assertTextEquals(localizedString(expected, R.string.sign_out_label))
     }
 
     companion object {

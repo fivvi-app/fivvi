@@ -13,7 +13,6 @@ import app.fivvi.core.auth.Session
 import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.signin.FakeSignInApi
 import app.fivvi.pro.AppRule
-import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.home.HomeTags
 import app.fivvi.pro.localizedString
 import org.junit.After
@@ -42,7 +41,6 @@ class SessionRestartTest {
     fun tearDown() = KeystoreSessionStore(context).delete()
 
     private fun launch() = app.launch(
-        FakeHelloApi().apply { answerGreeting() },
         device = listOf(AppLanguage.ENGLISH.tag),
         signInApi = signIn,
         meApi = me,
