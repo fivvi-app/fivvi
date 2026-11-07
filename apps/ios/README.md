@@ -70,7 +70,7 @@ The app follows the system's light or dark mode: nothing fixes its appearance (`
 
 ## The kit
 
-iOS 26 draws Liquid Glass itself (E020, ADR-029). Every target's deployment target is 26.0 and the project sets no `UIDesignRequiresCompatibility`, which would opt the app out of the new design (`scripts/test-ios.sh` checks both configurations, `scripts/test/app-ids.test.mjs` every target of the project). The tab bar, the navigation bar's buttons, sheets and alerts are the system's components; nothing imitates them (SwiftLint's `no_glass_imitation`, see [No glass imitation](#no-glass-imitation)). A floating surface takes `glassEffect` and a control the `.glass` button styles. `FivviDesignTokens` and the contract package keep their lower package minimums; a package minimum doesn't limit the app.
+iOS 26 draws Liquid Glass itself (E020, ADR-029). Every target's deployment target is 26.0 and the project sets no `UIDesignRequiresCompatibility`, which would opt the app out of the new design (`scripts/test/app-ids.test.mjs` checks every target of every iOS project and the Info.plists and xcconfigs). The tab bar, the navigation bar's buttons, sheets and alerts are the system's components; nothing imitates them (SwiftLint's `no_glass_imitation`, see [No glass imitation](#no-glass-imitation)). A floating surface takes `glassEffect` and a control the `.glass` button styles. `FivviDesignTokens` and the contract package keep their lower package minimums; a package minimum doesn't limit the app.
 
 `FivviPro/Kit/` holds the building blocks of the prototype (`docs/design/prototype-v2`), all built from `Tokens`. A screen uses them and never rebuilds one:
 

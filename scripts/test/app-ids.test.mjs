@@ -145,7 +145,9 @@ const deploymentTargets = (pbxproj) =>
 /** What disagrees with iOS 26 and Liquid Glass as the system draws them (ADR-029). */
 const iosTargetProblems = (name, pbxproj) => {
   const targets = deploymentTargets(pbxproj);
-  const problems = targets.filter((target) => target !== '26.0').map((t) => `${name} targets iOS ${t}, not 26.0`);
+  const problems = targets
+    .filter((target) => target !== '26.0')
+    .map((t) => `${name} targets iOS ${t}, not 26.0`);
   if (targets.length === 0) problems.push(`${name} sets no IPHONEOS_DEPLOYMENT_TARGET`);
   if (/UIDesignRequiresCompatibility/.test(pbxproj))
     problems.push(`${name} sets UIDesignRequiresCompatibility, which opts out of Liquid Glass`);
@@ -153,7 +155,9 @@ const iosTargetProblems = (name, pbxproj) => {
 };
 
 describe('E020 AC7: every iOS app targets iOS 26.0 and none opts out of Liquid Glass', () => {
-  const projects = readdirSync(join(ROOT, 'apps/ios')).filter((name) => name.endsWith('.xcodeproj'));
+  const projects = readdirSync(join(ROOT, 'apps/ios')).filter((name) =>
+    name.endsWith('.xcodeproj'),
+  );
   const pbxprojOf = (project) => read(`apps/ios/${project}/project.pbxproj`);
 
   it('finds the iOS projects', () => {
@@ -161,18 +165,32 @@ describe('E020 AC7: every iOS app targets iOS 26.0 and none opts out of Liquid G
   });
 
   it('every project sets 26.0 and no compatibility flag', () => {
-    for (const project of projects) assert.deepEqual(iosTargetProblems(project, pbxprojOf(project)), []);
+    for (const project of projects)
+      assert.deepEqual(iosTargetProblems(project, pbxprojOf(project)), []);
+  });
+
+  it('no Info.plist or xcconfig of the app sets the compatibility flag', () => {
+    const configs = readdirSync(join(ROOT, 'apps/ios/Config')).filter((file) =>
+      /\.(plist|xcconfig)$/.test(file),
+    );
+    assert.ok(configs.length > 0);
+    for (const file of configs)
+      assert.doesNotMatch(read(`apps/ios/Config/${file}`), /UIDesignRequiresCompatibility/, file);
   });
 
   it('fails on another deployment target, on none, and on the compatibility flag', () => {
     const pbxproj = pbxprojOf('FivviPro.xcodeproj');
     assert.deepEqual(
-      iosTargetProblems('App', pbxproj.replace('IPHONEOS_DEPLOYMENT_TARGET = 26.0;', 'IPHONEOS_DEPLOYMENT_TARGET = 17.0;')),
+      iosTargetProblems(
+        'App',
+        pbxproj.replace('IPHONEOS_DEPLOYMENT_TARGET = 26.0;', 'IPHONEOS_DEPLOYMENT_TARGET = 17.0;'),
+      ),
       ['App targets iOS 17.0, not 26.0'],
     );
-    assert.deepEqual(iosTargetProblems('App', pbxproj.replaceAll('IPHONEOS_DEPLOYMENT_TARGET', 'OTHER')), [
-      'App sets no IPHONEOS_DEPLOYMENT_TARGET',
-    ]);
+    assert.deepEqual(
+      iosTargetProblems('App', pbxproj.replaceAll('IPHONEOS_DEPLOYMENT_TARGET', 'OTHER')),
+      ['App sets no IPHONEOS_DEPLOYMENT_TARGET'],
+    );
     assert.deepEqual(
       iosTargetProblems('App', `${pbxproj}\nINFOPLIST_KEY_UIDesignRequiresCompatibility = YES;`),
       ['App sets UIDesignRequiresCompatibility, which opts out of Liquid Glass'],

@@ -166,26 +166,6 @@ version_and_identifier() {
   return "$rc"
 }
 
-# E020 AC7: the app targets iOS 26.0 and keeps the system's Liquid Glass design: a configuration resolves a deployment
-# target of 26.0, and neither its build settings nor its Info.plist set UIDesignRequiresCompatibility, which opts an app
-# out of the new design. $1 names the configuration and $2 is its build settings. (That every target in
-# project.pbxproj says 26.0 is checked by scripts/test/app-ids.test.mjs, on Linux.)
-ios_26_target() {
-  local configuration=$1 settings=$2 target plist rc=0
-  target="$(setting_of IPHONEOS_DEPLOYMENT_TARGET "$settings")"
-  [ "$target" = 26.0 ] || { echo "E020 AC7: $configuration targets iOS '$target', not 26.0"; rc=1; }
-  if grep -q 'UIDesignRequiresCompatibility' <<<"$settings"; then
-    echo "E020 AC7: $configuration sets UIDesignRequiresCompatibility, which opts out of Liquid Glass"
-    rc=1
-  fi
-  plist="$(setting_of INFOPLIST_FILE "$settings")"
-  if plutil -extract UIDesignRequiresCompatibility raw -o - "$plist" >/dev/null 2>&1; then
-    echo "E020 AC7: $plist sets UIDesignRequiresCompatibility, which opts out of Liquid Glass"
-    rc=1
-  fi
-  return "$rc"
-}
-
 # E017 AC4: a release run passes its build number from outside (`xcodebuild CURRENT_PROJECT_VERSION=<n>`); a number other
 # than the default must come through to the Release configuration (it is CFBundleVersion).
 build_number_from_outside() {
@@ -215,10 +195,7 @@ release_configuration() {
   fi
   [ "$(plutil -extract ITSAppUsesNonExemptEncryption raw -o - "$plist" 2>/dev/null)" = false ] \
     || { echo "E017 AC1: $plist must set ITSAppUsesNonExemptEncryption to NO (HTTPS only, no own encryption)"; return 1; }
-  local rc=0
-  ios_26_target Release "$settings" || rc=1
-  version_and_identifier "$settings" || rc=1
-  return "$rc"
+  version_and_identifier "$settings"
 }
 
 # Every remote Swift package the app resolves is on this list. The app has no analytics SDK (PostHog or other): product
@@ -342,9 +319,7 @@ if [ "$MODE" != test ]; then
   debug_configuration
   production_base_url_fixtures
   release_configuration
-  debug_settings="$(build_settings Debug)"
-  ios_26_target Debug "$debug_settings"
-  version_and_identifier "$debug_settings"
+  version_and_identifier "$(build_settings Debug)"
   build_number_from_outside
   plists_in_xcode_form
   step "Swift packages (no analytics SDK)"
