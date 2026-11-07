@@ -87,9 +87,20 @@ export function shotSources(
 export const SCENES = { gym: true, pilates: true, yoga: true, pt: true, client: true } as const;
 export type SceneId = keyof typeof SCENES;
 
-/** The files of a scene, 400 and 800 px wide. */
+/** The WebP files of a scene, 400 and 800 px wide, for a browser that lacks AVIF. */
 export function sceneSources(id: SceneId): ImageSource[] {
   return [400, 800].map((width) => ({ url: `/site-images/scenes/${id}-${width}.webp`, width }));
+}
+
+/**
+ * The AVIF files of a scene, 400, 600 and 800 px wide (`publish-scenes.cjs`). A phone shows the
+ * miniature 300 px wide at a pixel ratio of about 2, so the 600 px one is the one it needs.
+ */
+export function sceneAvifSources(id: SceneId): ImageSource[] {
+  return [400, 600, 800].map((width) => ({
+    url: `/site-images/scenes/${id}-${width}.avif`,
+    width,
+  }));
 }
 
 /** A `srcset` value of sources. */

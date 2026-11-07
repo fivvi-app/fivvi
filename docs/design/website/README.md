@@ -18,7 +18,8 @@ node docs/design/website/build-legal.cjs
 | `capture.cjs` | Captures the prototype's screens, in Dutch and English, light and dark |
 | `build-legal.cjs` | Makes `legal.js` from `docs/legal`, so the legal pages show the current drafts |
 | `publish-shots.cjs` | Turns captured PNGs into the responsive WebP files of `apps/web/public/site-images/shots` |
-| `apps/web/public/site-images/scenes/` | The miniatures, in 400 and 800 px (moved from `assets/scenes/`, #638; `site.js` loads them from there) |
+| `publish-scenes.cjs` | Makes the AVIF files (400, 600 and 800 px) of the miniatures from their 800 px WebP, next to them in `apps/web/public/site-images/scenes`; needs the `sharp` that Next.js installs |
+| `apps/web/public/site-images/scenes/` | The miniatures, in 400 and 800 px WebP and 400, 600 and 800 px AVIF (moved from `assets/scenes/`, #638; `site.js` loads them from there) |
 
 ## Images
 

@@ -1,4 +1,4 @@
-import { existsSync } from 'node:fs';
+import { existsSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { locales, messages } from '@fivvi/i18n';
 import { describe, expect, it } from 'vitest';
@@ -7,6 +7,7 @@ import {
   SCENES,
   type SceneId,
   SHOT_IDS,
+  sceneAvifSources,
   sceneSources,
   shotSources,
   shots,
@@ -39,6 +40,22 @@ describe('F064 the home page’s screens and miniatures', () => {
       const sources = sceneSources(id);
       expect(sources).toHaveLength(2);
       for (const { url } of sources) expect(existsSync(fileOf(url)), url).toBe(true);
+    }
+  });
+
+  // F064 AC15: modern formats per screen size. The miniature is the largest picture on a phone's
+  // first screen, so it is AVIF in three sizes, with WebP in two for browsers that lack AVIF.
+  it('has every miniature as AVIF in three sizes, smaller than its WebP of the same width', () => {
+    for (const id of Object.keys(SCENES) as SceneId[]) {
+      const sources = sceneAvifSources(id);
+      expect(sources.map(({ width }) => width)).toEqual([400, 600, 800]);
+      for (const { url } of sources) {
+        expect(url).toMatch(/\.avif$/);
+        expect(existsSync(fileOf(url)), url).toBe(true);
+      }
+      const avif800 = statSync(fileOf(sources[2]?.url ?? '')).size;
+      const webp800 = statSync(fileOf(sceneSources(id)[1]?.url ?? '')).size;
+      expect(avif800).toBeLessThan(webp800);
     }
   });
 

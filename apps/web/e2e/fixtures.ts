@@ -141,13 +141,20 @@ interface AxeViolationSummary {
 export async function expectNoAxeViolations(
   page: Page,
   state = 'the page',
-  { settleTimeoutMs = SETTLE_TIMEOUT_MS }: { settleTimeoutMs?: number } = {},
+  {
+    settleTimeoutMs = SETTLE_TIMEOUT_MS,
+    tags = WCAG_TAGS,
+  }: {
+    settleTimeoutMs?: number;
+    /** The axe rule tags to run: WCAG 2.2 A and AA by default; the public site adds `best-practice` (F064 AC15). */
+    tags?: readonly string[];
+  } = {},
 ): Promise<void> {
   let found: AxeViolationSummary[] = [];
   for (let run = 1; run <= MAX_AXE_RUNS; run++) {
     await waitForAnimationsToSettle(page, settleTimeoutMs);
     const before = await animationActivity(page);
-    const { violations } = await new AxeBuilder({ page }).withTags(WCAG_TAGS).analyze();
+    const { violations } = await new AxeBuilder({ page }).withTags([...tags]).analyze();
     found = violations.map(({ id, impact, help, nodes }) => ({
       id,
       impact,
@@ -162,6 +169,9 @@ export async function expectNoAxeViolations(
   }
   expect(found, `axe violations on ${state}`).toEqual([]);
 }
+
+/** WCAG 2.2 A and AA and axe's best practices (landmarks, headings, regions): what the public site must pass. */
+export const SITE_AXE_TAGS: readonly string[] = [...WCAG_TAGS, 'best-practice'];
 
 export const test = base.extend<E2EOptions & E2EFixtures>({
   appLocale: ['nl-NL', { option: true }],

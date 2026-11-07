@@ -140,7 +140,9 @@ describe.each(locales)('F064 AC3 the home page in %s', (locale) => {
     expect(page).toContain('media="(prefers-color-scheme: dark)"');
     expect(page).not.toContain(`-${other}-light-`);
     // A screen always says what it shows; a miniature stands on its own.
-    for (const picture of page.match(/<picture>.*?<\/picture>/g) ?? []) {
+    for (const picture of (page.match(/<picture>.*?<\/picture>/g) ?? []).filter(
+      (candidate) => !candidate.includes('/scenes/'),
+    )) {
       expect(picture).toMatch(/alt="[^"]{10,}"/);
     }
     for (const scene of page.match(/<img[^>]*scenes[^>]*>/g) ?? [])
@@ -154,6 +156,38 @@ describe.each(locales)('F064 AC3 the home page in %s', (locale) => {
     expect(images.filter((image) => image.includes('loading="eager"')).length).toBeGreaterThan(0);
     expect(images.filter((image) => image.includes('loading="lazy"')).length).toBeGreaterThan(3);
     for (const image of images) expect(image).toMatch(/width="\d+"[^>]*height="\d+"/);
+  });
+
+  // F064 AC15: images are modern formats per screen size, with their size set.
+  it('serves every image in a modern format, in sizes of its own, with its size set', () => {
+    const page = html(locale);
+    const images = page.match(/<img[^>]*>/g) ?? [];
+
+    expect(images.length).toBeGreaterThan(3);
+    for (const image of images) {
+      expect(image).toMatch(/width="\d+"[^>]*height="\d+"/);
+      expect(image).toMatch(/srcSet="[^"]+ \d+w, [^"]+ \d+w/);
+      expect(image).toMatch(/sizes="[^"]+"/);
+      expect(image).not.toMatch(/\.(png|jpe?g|gif)\b/);
+    }
+    // The miniature is AVIF first and WebP for a browser that lacks it.
+    const scene = (page.match(/<picture>(?:(?!<\/picture>).)*\/scenes\/.*?<\/picture>/g) ?? [])[0];
+    expect(scene).toMatch(
+      /<source type="image\/avif" srcSet="[^"]*-400\.avif 400w, [^"]*-600\.avif 600w, [^"]*-800\.avif 800w"/,
+    );
+    expect(scene).toMatch(/<img[^>]*src="[^"]*-800\.webp"/);
+    expect(scene).toContain('fetchPriority="high"');
+  });
+
+  // AC15: a picture that fades in from nothing is painted, and counted as the largest contentful
+  // paint, only once the fade is over. The first miniature and the screens under it are there at once.
+  it('shows the first miniature and its screens at once, without a fade in', () => {
+    const page = html(locale);
+    const firstScreen = page.slice(0, page.indexOf('<section'));
+
+    expect(firstScreen).toContain('<picture><source type="image/avif"');
+    expect(firstScreen).toContain('site-stage');
+    expect(firstScreen).not.toContain('animate-in');
   });
 
   it('links no page that does not exist, and no button goes to a 404', () => {

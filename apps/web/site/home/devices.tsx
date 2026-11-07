@@ -6,6 +6,7 @@ import {
   type ImageSource,
   type SceneId,
   type ShotId,
+  sceneAvifSources,
   sceneSources,
   shotSources,
   shots,
@@ -75,12 +76,14 @@ export function Device({
   locale,
   alt,
   priority,
+  sizes,
   className,
 }: {
   id: ShotId;
   locale: Locale;
   alt: string;
   priority?: boolean;
+  sizes?: string;
   className?: string;
 }) {
   const { device } = shots[id];
@@ -97,6 +100,7 @@ export function Device({
           locale={locale}
           alt={alt}
           priority={priority}
+          sizes={sizes}
           className="site-browser-shot aspect-[1280/800] object-cover object-left-top"
         />
       </div>
@@ -115,6 +119,7 @@ export function Device({
         locale={locale}
         alt={alt}
         priority={priority}
+        sizes={sizes}
         className="rounded-[inherit] object-cover"
       />
     </div>
@@ -122,9 +127,18 @@ export function Device({
 }
 
 /**
- * A miniature scene. It stands on its own beside the words and is never a background behind
- * screens or text (owner, `DECISIONS.md` §9); its meaning is in the words next to it, so it has no
- * description of its own.
+ * The width a phone of the stage's row of three has, as `devices.css` sets it: two of them fit on a
+ * phone, so each is half the width less the page's padding and the gap, and 300 px at most
+ * elsewhere. With a looser guess (half the screen) a phone would fetch the large file where the
+ * small one is sharp enough, three times in a row (AC15).
+ */
+const ROW_SIZES = '(max-width: 639px) calc((100vw - 2 * clamp(16px, 4vw, 40px) - 14px) / 2), 300px';
+
+/**
+ * A miniature scene, in AVIF for the browsers that take it and WebP for the rest, in sizes for the
+ * screen. It stands on its own beside the words and is never a background behind screens or text
+ * (owner, `DECISIONS.md` §9); its meaning is in the words next to it, so it has no description of
+ * its own.
  */
 export function Scene({
   id,
@@ -139,32 +153,36 @@ export function Scene({
 }) {
   const sources = sceneSources(id);
   return (
-    // biome-ignore lint/performance/noImgElement: the scenes are already made in two sizes (400 and 800 px), served as they are
-    <img
-      src={sources[sources.length - 1]?.url}
-      srcSet={srcSet(sources)}
-      sizes={sizes}
-      alt=""
-      width={800}
-      height={800}
-      loading={priority ? 'eager' : 'lazy'}
-      decoding="async"
-      className={classes('block w-full object-contain', className)}
-    />
+    <picture>
+      <source type="image/avif" srcSet={srcSet(sceneAvifSources(id))} sizes={sizes} />
+      <img
+        src={sources[sources.length - 1]?.url}
+        srcSet={srcSet(sources)}
+        sizes={sizes}
+        alt=""
+        width={800}
+        height={800}
+        loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : undefined}
+        decoding="async"
+        className={classes('block w-full object-contain', className)}
+      />
+    </picture>
   );
 }
 
 /**
  * The screens under a headline: a laptop and a phone sharing one top and bottom edge, or three
- * phones in a row (`devices.css`). Put it in a `.site-stage`, which is the size container. The
- * phones load at once unless `priority` is off, the laptop's screen never does, since it is not
- * shown at all on a phone.
+ * phones in a row (`devices.css`). Put it in a `.site-stage`, which is the size container. They are
+ * lazy unless `priority` is set: the miniature beside the headline is the page's largest picture on
+ * a phone, and the screens under it must not compete with it for the connection (AC15, LCP). The
+ * laptop's screen is always lazy, since it is not shown at all on a phone.
  */
 export function StageScreens({
   stage,
   locale,
   alts,
-  priority = true,
+  priority = false,
   className,
 }: {
   stage: Stage;
@@ -186,7 +204,14 @@ export function StageScreens({
   return (
     <div className={classes('site-stage-row', className)}>
       {stage.phones.map((id) => (
-        <Device key={id} id={id} locale={locale} alt={alts[id]} priority={priority} />
+        <Device
+          key={id}
+          id={id}
+          locale={locale}
+          alt={alts[id]}
+          priority={priority}
+          sizes={ROW_SIZES}
+        />
       ))}
     </div>
   );

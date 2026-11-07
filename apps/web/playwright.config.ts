@@ -1,5 +1,5 @@
 import { existsSync } from 'node:fs';
-import { defaultTimeZone, formattingLocales, locales } from '@fivvi/i18n';
+import { defaultTimeZone, formattingLocales, type Locale, locales } from '@fivvi/i18n';
 import { defineConfig, devices } from '@playwright/test';
 import type { E2EOptions } from './e2e/fixtures';
 import {
@@ -20,6 +20,18 @@ import {
 
 const ci = Boolean(process.env.CI);
 
+/** The Lighthouse budgets of the public website: a project of their own, after the rest. */
+const BUDGET_SPEC = /site-budgets\.spec\.ts$/;
+
+/** The browser of a project: Desktop Chrome with the project's language (sets navigator.language and Accept-Language). */
+function localeUse(locale: Locale) {
+  return {
+    ...devices['Desktop Chrome'],
+    appLocale: locale,
+    locale: formattingLocales[locale],
+  };
+}
+
 // Local convenience: the servers' databases go on the Postgres in packages/database/.env
 // (`pnpm db:up`), unless TEST_DATABASE_URL says otherwise. CI sets TEST_DATABASE_URL.
 if (existsSync('../../packages/database/.env')) {
@@ -38,15 +50,21 @@ export default defineConfig<E2EOptions>({
     timezoneId: defaultTimeZone,
     trace: 'retain-on-first-failure',
   },
-  projects: locales.map((locale) => ({
-    name: locale,
-    use: {
-      ...devices['Desktop Chrome'],
-      appLocale: locale,
-      // Sets navigator.language and Accept-Language, like a real browser in this language.
-      locale: formattingLocales[locale],
-    },
-  })),
+  projects: [
+    ...locales.map((locale) => ({
+      name: locale,
+      testIgnore: BUDGET_SPEC,
+      use: localeUse(locale),
+    })),
+    // The speed budgets (F064 AC15) run after every other test, one language at a time, so no
+    // other test slows their measurements down: a busy machine makes a page look slower.
+    ...locales.map((locale, index) => ({
+      name: `budgets-${locale}`,
+      testMatch: BUDGET_SPEC,
+      dependencies: [...locales, ...locales.slice(0, index).map((earlier) => `budgets-${earlier}`)],
+      use: localeUse(locale),
+    })),
+  ],
   // The standalone server, as in production (Dockerfile), not `next start`, each on its own
   // migrated database (e2e/serve.ts). A second one runs the same build with a PostHog key and
   // host, which it reads at runtime, for the page view tests (E009). Both send their emails to the
