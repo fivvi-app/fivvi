@@ -385,6 +385,125 @@
       "vat": "VAT number",
       "address": "Address",
       "phone": "Phone or WhatsApp"
+    },
+    "pricing": {
+      "metaTitle": "Pricing | Fivvi",
+      "metaDescription": "Fivvi is free during the pilot. No subscription and no fee per client.",
+      "eyebrow": "Pricing",
+      "headline": "Free during the pilot.",
+      "lead": "Fivvi costs nothing right now: no subscription and no fee per client.",
+      "planName": "Fivvi",
+      "price": "€ 0",
+      "period": "during the pilot",
+      "includedLabel": "What is included",
+      "included": {
+        "calendar": "Calendar, bookings and waitlist",
+        "memberships": "Memberships, credits and invoices",
+        "pro": "Fivvi Pro for you and your trainers",
+        "client": "Fivvi for your clients",
+        "workouts": "Logging and sharing workouts, once that's ready"
+      },
+      "goodToKnow": "Good to know",
+      "payments": {
+        "question": "What does it cost to take payments?",
+        "answer": "To let clients pay online, you use your own Mollie account. Mollie charges an amount per payment, at their rates. You pay that to Mollie, not to Fivvi. If you only take cash or card, you don't need Mollie."
+      },
+      "clients": {
+        "question": "What do my clients pay?",
+        "answer": "Only what you charge. The app and the website are free for them."
+      },
+      "later": {
+        "question": "And if Fivvi starts charging later?",
+        "answer": "You'll hear at least 60 days in advance. You can then stop for free and take your data with you. You never pay for anything you didn't agree to first."
+      },
+      "currency": "All amounts are in euros. Because you don't pay Fivvi anything right now, there are no payment terms.",
+      "cta": {
+        "heading": "What does your day look like in Fivvi?",
+        "text": "Book a demo. We'll show Fivvi with your kind of business, and you'll know right away if it fits.",
+        "demo": "Book a demo"
+      }
+    },
+    "support": {
+      "metaTitle": "Help and contact | Fivvi",
+      "metaDescription": "Frequently asked questions and how to reach us.",
+      "eyebrow": "Help",
+      "headline": "Help and contact",
+      "lead": "Feel free to email us. We're happy to help.",
+      "contactHeading": "How to reach us",
+      "email": "Email",
+      "privacy": "Privacy",
+      "clientsHeading": "For clients",
+      "ownersHeading": "For owners and trainers",
+      "clientFaq": {
+        "join": {
+          "question": "How do I join my studio?",
+          "answer": "Open your studio's or trainer's link, or scan their QR code. Enter your email address, then the 6-digit code you receive. Your studio approves your request and then you can book."
+        },
+        "noCode": {
+          "question": "I don't get a code. What now?",
+          "answer": "Check your spam and your email address. A code is valid for 15 minutes. After that, just ask for a new one."
+        },
+        "cancel": {
+          "question": "How do I cancel a class?",
+          "answer": "Open the class and choose Cancel. If you're in time, you get your credit back. Your studio decides how long that's possible."
+        },
+        "invoices": {
+          "question": "Where do I find my invoices?",
+          "answer": "In Profile, under Invoices. You can download them there too."
+        },
+        "deleteAccount": {
+          "question": "How do I delete my account?",
+          "answer": "Email {address} from your account's address with the subject Delete account. We'll do it within one month and let you know."
+        }
+      },
+      "ownerFaq": {
+        "payments": {
+          "question": "How do I connect payments?",
+          "answer": "On your laptop, go to Settings, Payments, Connect payments. Mollie checks your details. iDEAL works first; automatic direct debit takes up to about 3 working days longer."
+        },
+        "mollie": {
+          "question": "Do I have to use Mollie?",
+          "answer": "No. If you only take cash or card, that's fine. Fivvi first tells you what you'd miss, and you can always connect Mollie later."
+        },
+        "devices": {
+          "question": "Which devices does Fivvi work on?",
+          "answer": "Fivvi Pro is coming for iPhone and Android. You do the admin in the browser on your laptop. Clients use the app or their browser."
+        },
+        "data": {
+          "question": "Where is my data stored?",
+          "answer": "The database is in Amsterdam. Some services are from US companies, with the safeguards the law requires. They're listed under Sub-processors. Notes are for trainers only."
+        }
+      },
+      "cta": {
+        "heading": "What does your day look like in Fivvi?",
+        "text": "Book a demo. We'll show Fivvi with your kind of business, and you'll know right away if it fits.",
+        "demo": "Book a demo",
+        "pricing": "See pricing"
+      }
+    },
+    "subProcessors": {
+      "metaTitle": "Sub-processors | Fivvi",
+      "metaDescription": "The services that process data for Fivvi, what for, and where they store it.",
+      "headline": "Sub-processors",
+      "lead": "These services process data for Fivvi. Railway, Sentry, PostHog and Cloudflare are US companies; the privacy policy explains the safeguards. When a new service is added, we tell every studio first.",
+      "listLabel": "Fivvi's sub-processors",
+      "service": "Service",
+      "purposeColumn": "What for",
+      "storage": "Stored in",
+      "purpose": {
+        "railway": "Hosting the website, apps and database",
+        "lettermint": "Emails, such as your sign-in code and confirmations",
+        "sentry": "Error reports, without names, email addresses or notes",
+        "postHog": "Statistics without cookies",
+        "turnstile": "Protecting forms against bots"
+      },
+      "region": {
+        "amsterdam": "Amsterdam",
+        "eu": "EU",
+        "worldwide": "Worldwide"
+      },
+      "mollieHeading": "Mollie has a separate role",
+      "mollie": "Mollie processes payments under its own agreement with your studio."
     }
   }
 }

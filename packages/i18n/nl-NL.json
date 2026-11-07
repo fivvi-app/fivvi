@@ -385,6 +385,125 @@
       "vat": "Btw-nummer",
       "address": "Adres",
       "phone": "Telefoon of WhatsApp"
+    },
+    "pricing": {
+      "metaTitle": "Prijzen | Fivvi",
+      "metaDescription": "Fivvi is gratis tijdens de pilot. Geen abonnement en geen kosten per klant.",
+      "eyebrow": "Prijzen",
+      "headline": "Gratis tijdens de pilot.",
+      "lead": "Fivvi kost nu niets: geen abonnement en geen kosten per klant.",
+      "planName": "Fivvi",
+      "price": "€ 0",
+      "period": "tijdens de pilot",
+      "includedLabel": "Dit zit erbij",
+      "included": {
+        "calendar": "Agenda, boekingen en wachtlijst",
+        "memberships": "Abonnementen, credits en facturen",
+        "pro": "Fivvi Pro voor jou en je trainers",
+        "client": "Fivvi voor je klanten",
+        "workouts": "Trainingen bijhouden en delen, zodra dat klaar is"
+      },
+      "goodToKnow": "Goed om te weten",
+      "payments": {
+        "question": "Wat kost het om betalingen aan te nemen?",
+        "answer": "Klanten online laten betalen doe je met een eigen Mollie-account. Mollie rekent per betaling een bedrag, volgens hun tarieven. Dat betaal je aan Mollie, niet aan Fivvi. Neem je alleen contant of met pin aan, dan heb je Mollie niet nodig."
+      },
+      "clients": {
+        "question": "Wat betalen mijn klanten?",
+        "answer": "Alleen wat jij rekent. De app en de website zijn voor hen gratis."
+      },
+      "later": {
+        "question": "En als Fivvi later geld gaat kosten?",
+        "answer": "Dan hoor je dat minstens 60 dagen vooraf. Je kunt dan gratis stoppen en je gegevens meenemen. Je betaalt nooit iets waar je niet eerst mee hebt ingestemd."
+      },
+      "currency": "Alle bedragen zijn in euro. Omdat je Fivvi nu niets betaalt, zijn er geen betaalvoorwaarden.",
+      "cta": {
+        "heading": "Hoe ziet jouw dag eruit in Fivvi?",
+        "text": "Plan een demo. We laten Fivvi zien met jouw soort bedrijf, en je weet meteen of het past.",
+        "demo": "Plan een demo"
+      }
+    },
+    "support": {
+      "metaTitle": "Hulp en contact | Fivvi",
+      "metaDescription": "Veelgestelde vragen en hoe je ons bereikt.",
+      "eyebrow": "Hulp",
+      "headline": "Hulp en contact",
+      "lead": "Mail ons gerust. We helpen je graag.",
+      "contactHeading": "Zo bereik je ons",
+      "email": "E-mail",
+      "privacy": "Privacy",
+      "clientsHeading": "Voor klanten",
+      "ownersHeading": "Voor eigenaren en trainers",
+      "clientFaq": {
+        "join": {
+          "question": "Hoe word ik klant bij mijn studio?",
+          "answer": "Open de link of scan de QR-code van je studio of trainer. Vul je e-mailadres in, en daarna de code van 6 cijfers die je krijgt. Je studio keurt je aanmeldverzoek goed en daarna kun je boeken."
+        },
+        "noCode": {
+          "question": "Ik krijg geen code. Wat nu?",
+          "answer": "Kijk in je spam en controleer je e-mailadres. Een code is 15 minuten geldig. Daarna vraag je gewoon een nieuwe aan."
+        },
+        "cancel": {
+          "question": "Hoe annuleer ik een les?",
+          "answer": "Open de les en kies Annuleren. Doe je dat op tijd, dan krijg je je credit terug. Je studio bepaalt tot wanneer dat kan."
+        },
+        "invoices": {
+          "question": "Waar vind ik mijn facturen?",
+          "answer": "In Profiel, onder Facturen. Je kunt ze daar ook downloaden."
+        },
+        "deleteAccount": {
+          "question": "Hoe verwijder ik mijn account?",
+          "answer": "Mail vanaf het adres van je account naar {address} met als onderwerp Account verwijderen. We doen dat binnen één maand en laten het je weten."
+        }
+      },
+      "ownerFaq": {
+        "payments": {
+          "question": "Hoe koppel ik betalingen?",
+          "answer": "Ga op je laptop naar Instellingen, Betalingen, Betalingen koppelen. Mollie controleert je gegevens. iDEAL werkt daarna als eerste, automatische incasso duurt tot ongeveer 3 werkdagen langer."
+        },
+        "mollie": {
+          "question": "Moet ik Mollie gebruiken?",
+          "answer": "Nee. Neem je alleen contant of met pin aan, dan kan dat ook. Fivvi vertelt eerst wat je dan mist, en je kunt Mollie later altijd nog koppelen."
+        },
+        "devices": {
+          "question": "Op welke apparaten werkt Fivvi?",
+          "answer": "Fivvi Pro komt voor iPhone en Android. De administratie doe je in de browser op je laptop. Klanten gebruiken de app of hun browser."
+        },
+        "data": {
+          "question": "Waar staan mijn gegevens?",
+          "answer": "De database staat in Amsterdam. Enkele diensten zijn van Amerikaanse bedrijven, met de waarborgen die de wet vraagt. Welke dat zijn, staat bij Subverwerkers. Notities zijn alleen voor trainers."
+        }
+      },
+      "cta": {
+        "heading": "Hoe ziet jouw dag eruit in Fivvi?",
+        "text": "Plan een demo. We laten Fivvi zien met jouw soort bedrijf, en je weet meteen of het past.",
+        "demo": "Plan een demo",
+        "pricing": "Bekijk de prijzen"
+      }
+    },
+    "subProcessors": {
+      "metaTitle": "Subverwerkers | Fivvi",
+      "metaDescription": "De diensten die gegevens voor Fivvi verwerken, waarvoor, en waar ze die bewaren.",
+      "headline": "Subverwerkers",
+      "lead": "Deze diensten verwerken gegevens voor Fivvi. Railway, Sentry, PostHog en Cloudflare zijn Amerikaanse bedrijven; de privacyverklaring legt uit welke waarborgen gelden. Komt er een nieuwe dienst bij, dan laten we dat eerst weten aan elke studio.",
+      "listLabel": "Subverwerkers van Fivvi",
+      "service": "Dienst",
+      "purposeColumn": "Waarvoor",
+      "storage": "Opslag",
+      "purpose": {
+        "railway": "Hosting van de website, de apps en de database",
+        "lettermint": "E-mails, zoals je inlogcode en bevestigingen",
+        "sentry": "Foutmeldingen, zonder namen, e-mailadressen of notities",
+        "postHog": "Statistieken zonder cookies",
+        "turnstile": "Bescherming van formulieren tegen bots"
+      },
+      "region": {
+        "amsterdam": "Amsterdam",
+        "eu": "EU",
+        "worldwide": "Wereldwijd"
+      },
+      "mollieHeading": "Mollie heeft een aparte rol",
+      "mollie": "Mollie verwerkt betalingen onder een eigen overeenkomst met je studio."
     }
   }
 }
