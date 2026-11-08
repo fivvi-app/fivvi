@@ -1,10 +1,8 @@
 # Fivvi Terms of Service
 
-> **⚠️ DRAFT — NOT LEGAL ADVICE.** Written by an AI agent, not reviewed by a lawyer. Don't publish until the open questions are answered and the text has been reviewed. This is a translation of [`terms.nl.md`](terms.nl.md); if the two differ, the Dutch text prevails.
-
 **Version 1.0 · 8 November 2026.** This is a translation of [`terms.nl.md`](terms.nl.md); if the two differ, the Dutch text prevails.
 
-Fivvi is being built right now, together with our first gym. What follows about payments, waitlists, workouts and notes applies once those parts are available.
+Fivvi is being built right now, together with our first gym. What follows about clients joining a Workspace, booking, waitlists, the client app Fivvi, payments, workouts and notes applies once those parts are available.
 
 These terms have two parts:
 
@@ -18,7 +16,7 @@ These terms have two parts:
 ### A1. Definitions
 
 - **Provider, we, us:** K&S Apps, a general partnership (*vennootschap onder firma*), trading as Fivvi, KvK 92372996, VAT number NL866022788B01, Haringbuisdijk 43, 1086 VA Amsterdam, phone +31 6 85145755, support@fivvi.app.
-- **Service:** the Fivvi platform (fivvi.app): the website, the apps Fivvi Pro (for owners and trainers) and Fivvi (for clients) for iPhone and Android, the pages where clients join a Workspace and book, and the API.
+- **Service:** the Fivvi platform (fivvi.app): the website, the app Fivvi Pro (for owners and trainers) for iPhone and Android, the API and, once available, the app Fivvi (for clients) and the pages where clients join a Workspace and book.
 - **Workspace:** the environment of a gym, studio or independent trainer within the Service.
 - **Customer, you:** the business or independent professional that creates or manages a Workspace.
 - **Users:** the owners and trainers you give access to your Workspace.
@@ -60,7 +58,7 @@ You use the Service in a normal, lawful way. In particular, you:
 
 1. Your data remains yours.
 2. You allow us to process your data as far as needed to provide the Service. We do this as a processor, under the Processor agreement.
-3. You can export your data at any time in a common format.
+3. You can have your data exported in a common format: email us and we send you the export. Once the Service has an export function of its own, you can start it yourself.
 4. After the agreement ends, you can still export for **30 days**. After that we delete your data under the Processor agreement.
 5. We make backups. Still, we recommend keeping an export yourself now and then, especially during the pilot.
 
@@ -79,7 +77,7 @@ For your clients' data you are the **controller** under the GDPR. Among other th
 1. Letting clients pay online is possible once it is available in the Service. It goes through **Mollie**. You enter into an agreement with Mollie B.V. yourself and connect your own Mollie account to your Workspace. Mollie's terms apply to paying.
 2. **You are the merchant.** Your clients' money goes from Mollie to your bank account, never through an account of ours. We don't accept money, don't hold clients' money and currently charge no commission on payments. If we ever do, A4(3) applies.
 3. Mollie charges a fee per payment, at its rates. You pay that to Mollie, not to us. All amounts are in euros.
-4. You make the agreement with your client about a membership, a credit pack or a single class yourself. You set the prices and cancellation rules, issue the invoices, handle VAT, and deal with refunds and reversals. We are not a party to that agreement.
+4. You make the agreement with your client about a membership, a credit pack or a single class yourself. You set the prices and cancellation rules, issue the invoices, handle VAT, and deal with refunds and reversals. We are not a party to that agreement. If you sell a membership or credit pack online to a consumer, you give the information about the right of withdrawal that the law requires. That right does not apply to a class or session on a fixed date (art. 6:230p of the Dutch Civil Code).
 5. An outage or decision of Mollie, such as a rejected payment or an account under review, is outside our control. We are not liable for it.
 6. You don't have to use Mollie. If you only take cash or card at the desk, you can record those payments in the Service yourself. You can always connect Mollie later.
 
@@ -113,7 +111,7 @@ We are not liable if force majeure prevents us from meeting our obligations. Exa
 ### A14. Duration and termination
 
 1. The agreement runs for an indefinite period.
-2. You can stop at any time by deleting your Workspace or emailing us.
+2. You can stop at any time by emailing us.
 3. We may terminate the agreement with **30 days'** notice. If you seriously breach these terms, for example through misuse or unlawful content, we may suspend or end your access immediately.
 4. After the end, A6(4) applies: 30 days to export, then deletion.
 
@@ -132,19 +130,24 @@ We may change these terms. We announce material changes **at least 30 days** bef
 
 ### B1. What Fivvi does for you
 
-1. Through Fivvi, in the app Fivvi or on the website, you join a gym, studio or trainer (the "studio"), book classes and other sessions, and see your bookings. Once it is available, you also pay for your membership or credit pack there and see your credits and invoices.
+1. Once it is available, you join a gym, studio or trainer (the "studio") through Fivvi, in the app Fivvi or on the website, book classes and other sessions, and see your bookings. Once paying is available, you also pay for your membership or credit pack there and see your credits and invoices.
 2. **Your appointment is with that studio, not with us.** Its rules apply, for example on prices, cancellation, no-shows and safety during training. We only provide the platform.
 
 ### B2. Account and joining a studio
+
+This applies once clients can join.
 
 1. You create an account with your email address. Use your real name and an email address that belongs to you. You sign in without a password, with a link or a code that we send to that email address. Keep your email well secured and report misuse to us immediately.
 2. You can create an account from the age of **16**. Younger children have no account of their own: a parent or guardian arranges it with the studio for them.
 3. An account on its own shows nothing of any studio. You get into a studio through its join link or QR code, or because the studio invites you. The studio decides whether to let you in. Only clients who are let in see the studio's timetable and can book.
 4. The studio can remove you as a client. You can have your account deleted at any time: email privacy@fivvi.app from the address of your account with the subject "Delete account". We do that within one month.
+5. An account is free, but you give personal data for it. You may therefore withdraw from the agreement within 14 days of creating it, without giving a reason (right of withdrawal). Email us for that as in paragraph 4. After those 14 days, too, you can always have your account deleted free of charge.
 
 ### B3. Booking
 
-1. A booking is final straight away. We hold no spot and you confirm nothing.
+This applies once booking is available.
+
+1. Once you confirm, a booking is final. We hold no spot.
 2. If a class is full, you can join the waitlist once it is available. If a spot frees up, you are booked automatically and we tell you.
 3. You can cancel until the moment the studio sets. A late cancellation or a no-show can cost you a credit under the studio's rules.
 4. You receive confirmations and later messages in the language you choose (Dutch or English).
@@ -162,7 +165,7 @@ Don't create fake accounts or fake requests, don't book in someone else's name w
 ### B6. Liability
 
 1. The studio is responsible for the training itself and for everything that happens at the gym.
-2. We are liable for damage we cause ourselves, as far as the law requires. As far as the law allows, we are not liable for indirect damage. Your mandatory rights as a consumer always remain in force.
+2. We are liable for damage we cause ourselves, as far as the law requires. Your mandatory rights as a consumer always remain in force.
 
 ### B7. Privacy
 
@@ -175,4 +178,4 @@ How we handle your data is described in our [privacy policy](https://fivvi.app/e
 
 ### B9. Changes
 
-We may update these terms. The version that applied when you booked stays in force for that booking.
+We may update these terms. We announce changes in advance by email. If you don't agree, you can have your account deleted (see B2(4)). The version that applied when you booked stays in force for that booking.

@@ -2,9 +2,9 @@
 
 **Versie 1.0 · 8 november 2026.** Deze Nederlandse tekst is leidend; de Engelse vertaling staat in [`privacy-policy.en.md`](privacy-policy.en.md).
 
-Fivvi (fivvi.app) is een platform waarmee personal trainers en sportscholen hun agenda, boekingen, klanten, abonnementen en credits, betalingen, trainingen en notities beheren. Trainers en eigenaren gebruiken Fivvi Pro (iPhone, Android) en de website, klanten gebruiken de app Fivvi of de website. In deze privacyverklaring lees je welke persoonsgegevens we verwerken, waarom, hoe lang, en welke rechten je hebt.
+Fivvi (fivvi.app) is een platform waarmee personal trainers en sportscholen hun agenda, boekingen, klanten, abonnementen en credits, betalingen, trainingen en notities beheren. Trainers en eigenaren gebruiken Fivvi Pro (iPhone, Android) en de website, klanten gebruiken straks de app Fivvi of de website. In deze privacyverklaring lees je welke persoonsgegevens we verwerken, waarom, hoe lang, en welke rechten je hebt.
 
-Fivvi wordt nu gebouwd, samen met onze eerste sportschool. Wat hieronder staat over betalingen, trainingen en notities geldt zodra die onderdelen beschikbaar zijn.
+Fivvi wordt nu gebouwd, samen met onze eerste sportschool. Wat hieronder staat over het aanmelden van klanten bij een studio (account voor klanten, aanmeldlink en QR-code, uitnodiging), boeken, de wachtlijst, de app Fivvi voor klanten, betalingen, trainingen en notities geldt zodra die onderdelen beschikbaar zijn.
 
 ## 1. Wie zijn wij?
 
@@ -43,36 +43,47 @@ Voor die gegevens geldt deze privacyverklaring.
 
 | Wat | Welke gegevens | Waarom | Grondslag (AVG) |
 |---|---|---|---|
-| **Je account en inloggen** | Naam, e-mailadres, taalvoorkeur (Nederlands of Engels), gehashte inlogcodes en -links, sessiegegevens, app- en apparaatversie. De e-mail met je inlogcode of -link sturen we ook | Zodat je kunt inloggen zonder wachtwoord en Fivvi in je eigen taal werkt | Uitvoering van de overeenkomst (art. 6 lid 1 sub b) |
-| **Beveiliging en misbruik voorkomen** | IP-adres (alleen als versleutelde waarde voor limieten per netwerk), browser- en apparaatgegevens, gehasht e-mailadres, tijdstippen | Om te voorkomen dat iemand het platform aanvalt of met nepaccounts en nepverzoeken overspoelt | Gerechtvaardigd belang: een veilige, betrouwbare dienst (art. 6 lid 1 sub f) |
+| **Je account en inloggen** | Naam, e-mailadres, taalvoorkeur (Nederlands of Engels), gehashte inlogcodes en -links, sessiegegevens, app- en apparaatversie. Bij je inlogsessie slaan we ook je IP-adres en je browsergegevens (user-agent) op, zoals ze zijn, niet versleuteld. Ze blijven bij de sessie staan: tot de sessie verloopt, 30 dagen na je laatste gebruik, of tot je uitlogt. De e-mail met je inlogcode of -link sturen we ook | Zodat je kunt inloggen zonder wachtwoord en Fivvi in je eigen taal werkt | Uitvoering van de overeenkomst (art. 6 lid 1 sub b) |
+| **Beveiliging en misbruik voorkomen** | Voor de limieten tegen misbruik een versleutelde waarde (geen leesbaar IP-adres) van je netwerk en van je e-mailadres, en tijdstippen. Die waarden gelden hooguit een uur en worden binnen 24 uur opgeruimd. Sentry en PostHog krijgen je IP-adres wel te zien als je app of browser verbinding maakt: Sentry slaat het niet op (zo hebben we het ingesteld), PostHog maakt er samen met je browsergegevens een hash van die één dag geldt, om bezoekers te tellen (cookieloos) | Om te voorkomen dat iemand het platform aanvalt of met nepaccounts en nepverzoeken overspoelt | Gerechtvaardigd belang: een veilige, betrouwbare dienst (art. 6 lid 1 sub f) |
 | **Foutmeldingen** | Technische gegevens bij een fout of crash: de pagina of route, app- en besturingssysteemversie, het apparaatmodel (niet de naam van je toestel), een pseudoniem gebruikers-ID of, zolang niemand is ingelogd, een willekeurig ID per installatie. **Geen** namen, e-mailadressen, boekings-, trainings- of notitie-inhoud | Om fouten te vinden en op te lossen | Gerechtvaardigd belang: een werkende dienst (art. 6 lid 1 sub f) |
 | **Productstatistieken** | Welke functies worden gebruikt en welke pagina's van de webapp worden geopend (het pad zonder parameters), met pseudonieme gebruikers- en workspace-ID's. Dit zijn persoonsgegevens. **Geen** namen, e-mailadressen, boekings-, trainings- of notitie-inhoud | Om Fivvi te verbeteren | Gerechtvaardigd belang: productverbetering (art. 6 lid 1 sub f) |
-| **Een demo aanvragen op de website** | Je naam, e-mailadres, het soort bedrijf (sportschool, studio of personal trainer), het aantal trainers en, als je dat invult, je bericht | Om je aanvraag te beantwoorden en een demo af te spreken | Stappen op jouw verzoek voor een overeenkomst (art. 6 lid 1 sub b) |
+| **Een demo aanvragen op de website** | Je naam, e-mailadres, het soort bedrijf (sportschool, studio of personal trainer), het aantal trainers en, als je dat invult, je bericht | Om je aanvraag te beantwoorden en een demo af te spreken | Gerechtvaardigd belang: een vraag naar een demo beantwoorden (art. 6 lid 1 sub f). Vraag je een demo aan als zelfstandige, voor jezelf, dan zijn het ook stappen op jouw verzoek voor een overeenkomst (sub b) |
 | **Vragen en privacyverzoeken per e-mail of telefoon** | Je naam, e-mailadres of telefoonnummer en wat je ons vertelt | Om je te antwoorden en je verzoek af te handelen | Gerechtvaardigd belang: vragen beantwoorden (art. 6 lid 1 sub f); wettelijke plicht bij privacyverzoeken (sub c) |
 | **Contact met studio's die Fivvi gebruiken** | Naam, e-mailadres, organisatie, berichten | Support, afspraken, belangrijke mededelingen over de dienst | Uitvoering van de overeenkomst; gerechtvaardigd belang (art. 6 lid 1 sub b en f) |
 | **Wettelijke plichten** | Contractgegevens en, als we gaan rekenen, factuurgegevens | Administratie- en bewaarplichten | Wettelijke plicht (art. 6 lid 1 sub c) |
 
-**De demo-aanvraag in detail.** Het formulier op de website stuurt je antwoorden als **één e-mail naar ons supportadres**. Wij slaan ze niet op in de database van Fivvi, we loggen niets over jou en je krijgt geen bevestigingsmail, zodat het formulier niet kan worden gebruikt om mail naar iemand anders te sturen. Een verborgen veld houdt bots tegen en een limiet per netwerk (een versleutelde waarde, geen IP-adres, voor ten hoogste een uur) voorkomt dat de inbox volloopt. Wie verwerkt de aanvraag? Onze e-maildienst **Lettermint** verstuurt de e-mail en onze mailbox bij **Zoho** ontvangt en bewaart hem. Daarnaast draait de website bij Railway (zie §5). De e-mail bewaren we in onze mailbox zolang dat nodig is om je te antwoorden en daarna hooguit 24 maanden na het laatste contact (§7). Je kunt vragen om eerder verwijdering.
+**De demo-aanvraag in detail.** Het formulier op de website stuurt je antwoorden als **één e-mail naar ons supportadres**. Wij slaan ze niet op in de database van Fivvi, we loggen niets over jou en je krijgt geen bevestigingsmail, zodat het formulier niet kan worden gebruikt om mail naar iemand anders te sturen. Een verborgen veld houdt bots tegen en een limiet per netwerk (een versleutelde waarde, geen leesbaar IP-adres, ongeveer een uur) voorkomt dat de inbox volloopt. Wie verwerkt de aanvraag? Onze e-maildienst **Lettermint** verstuurt de e-mail en onze mailbox bij **Zoho** ontvangt en bewaart hem. Daarnaast draait de website bij Railway (zie §5). De e-mail bewaren we in onze mailbox zolang dat nodig is om je te antwoorden en daarna hooguit 24 maanden na het laatste contact (§7). Je kunt vragen om eerdere verwijdering.
 
 ### 3.2 Als wij verwerken voor een studio
 
 Deze gegevens verwerken we alleen in opdracht van de studio:
 
-- **Aanmelden bij een studio:** je naam, e-mailadres en taal, je aanmeldverzoek via de link of QR-code van de studio, of de uitnodiging die de studio je stuurt, en of de studio je heeft goedgekeurd. Een account zonder studio laat niets van een studio zien.
-- **Klantgegevens en agenda:** je profiel bij die studio, je voorkeurslocatie, je boekingen en annuleringen, je plek op een wachtlijst en je aanwezigheid.
+- **Aanmelden bij een studio (zodra beschikbaar):** je naam, e-mailadres en taal, je aanmeldverzoek via de link of QR-code van de studio, of de uitnodiging die de studio je stuurt, en of de studio je heeft goedgekeurd. Een account zonder studio laat niets van een studio zien.
+- **Klantgegevens en agenda (boeken, wachtlijst en aanwezigheid zodra beschikbaar):** je profiel bij die studio, je voorkeurslocatie, je boekingen en annuleringen, je plek op een wachtlijst en je aanwezigheid.
 - **Abonnementen, credits en facturen (zodra beschikbaar):** je abonnement of creditpakket, je creditsaldo, de status van je betalingen en je facturen. De betaling zelf loopt via Mollie (§2).
 - **Trainingen (zodra beschikbaar):** oefeningen, sets, herhalingen, gewichten en hoe zwaar het was.
 - **Notities (zodra beschikbaar):** vrije aantekeningen van je trainer. Die kunnen **gezondheidsinformatie** bevatten, bijvoorbeeld over een blessure. Notities zijn standaard **alleen zichtbaar voor trainers**. Je trainer kan een notitie bewust met jou delen.
-- **E-mails van de studio via Fivvi:** uitnodigingen, bevestigingen, annuleringen en wijzigingen, meldingen over de wachtlijst en over je abonnement, in de taal die je kiest.
+- **E-mails van de studio via Fivvi (zodra beschikbaar):** uitnodigingen, bevestigingen, annuleringen en wijzigingen, meldingen over de wachtlijst en over je abonnement, in de taal die je kiest.
+
+### 3.3 Moet je gegevens geven?
+
+Sommige gegevens zijn nodig om iets te kunnen doen:
+
+- **Inloggen:** je e-mailadres. Zonder e-mailadres kunnen we geen account voor je maken en kun je niet inloggen.
+- **Bij een studio:** je naam en e-mailadres, en wat de studio verder nodig heeft om je als klant te kennen. Zonder die gegevens kan de studio je niet als klant aannemen of laten boeken.
+- **Een demo aanvragen:** je naam, e-mailadres, soort bedrijf en aantal trainers. Het bericht is vrijwillig. Zonder de verplichte velden kunnen we je aanvraag niet beantwoorden.
+- **Betalen:** wat Mollie en de studio daarvoor nodig hebben. Zonder die gegevens kun je niet online betalen.
+
+Wat je verder invult, is vrijwillig.
 
 ## 4. Cookies
 
-Fivvi gebruikt **alleen functionele cookies**, in de webapp na het inloggen. Daarvoor is geen toestemming nodig:
+Fivvi gebruikt **alleen functionele cookies**, in de webapp (ook op de inlogpagina). Daarvoor is geen toestemming nodig:
 
 - een inlogcookie, om je ingelogd te houden (30 dagen na je laatste gebruik);
 - een taalcookie, om je taalkeuze te onthouden (1 jaar);
-- een korte taalkeuze op de inlogpagina (1 dag);
-- een cookie met de laatste studio die je opende (1 jaar). Daar staat geen persoonsgegeven in.
+- een korte taalkeuze voor de taal van je inlogmail (1 dag). De taalkeuze op de inlogpagina zet dus twee cookies: deze en de taalcookie hierboven;
+- een cookie met de laatste studio die je opende (1 jaar). Daar staat alleen de naam van die studio in de webadressen in, geen andere gegevens over jou, en het blijft in je eigen browser.
 
 De openbare website (fivvi.app, de pagina's over Fivvi, prijzen, hulp en deze teksten) zet **geen cookies**, meet geen paginaweergaven en laat geen derde partij meekijken.
 
@@ -94,7 +105,7 @@ De openbare website (fivvi.app, de pagina's over Fivvi, prijzen, hulp en deze te
 - De applicatie en PostgreSQL-database draaien bij Railway in Amsterdam. Back-ups bewaren we ten hoogste 30 dagen, in de EU.
 - E-mail loopt via Lettermint, een Nederlands bedrijf dat e-mailgegevens uitsluitend in Amsterdam en Duitsland verwerkt. Onze mailbox staat bij Zoho in een Europees datacenter.
 - Foutmeldingen en productstatistieken gaan naar Sentry en PostHog, allebei in hun EU-omgeving in Frankfurt.
-- Railway, Sentry en PostHog zijn Amerikaanse bedrijven, en Railway noemt primaire verwerking in de Verenigde Staten in zijn DPA. Zoho is een internationale groep. Doorgifte buiten de EER vereist een toepasselijk waarborg, zoals het EU-VS Data Privacy Framework of standaardcontractbepalingen van de Europese Commissie. Die gelden hier.
+- Railway, Sentry en PostHog zijn Amerikaanse bedrijven, en Railway noemt primaire verwerking in de Verenigde Staten in zijn DPA. Zoho is een internationale groep. Voor doorgifte buiten de EER gebruiken we een passende waarborg, zoals het EU-VS Data Privacy Framework of standaardcontractbepalingen van de Europese Commissie. Een kopie of meer informatie over die waarborg kun je opvragen via privacy@fivvi.app.
 
 ## 7. Hoe lang bewaren we je gegevens?
 
@@ -106,6 +117,7 @@ We bewaren gegevens niet langer dan nodig. De belangrijkste termijnen:
 | Boekingen en klantgegevens bij een studio | Zolang je klant bent; standaard geanonimiseerd of ter beoordeling voorgelegd 24 maanden na je laatste activiteit. De studio kan eerder verwijderen |
 | Door de studio verwijderde gegevens | 30 dagen in de prullenbak, daarna definitief verwijderd |
 | Je account | Tot je het laat verwijderen; na 24 maanden inactiviteit krijg je een waarschuwing, 30 dagen later wordt het verwijderd |
+| Inlogsessie, met IP-adres en browsergegevens | Tot de sessie verloopt (30 dagen na je laatste gebruik) of tot je uitlogt |
 | Beveiligingsgegevens (zoals de waarden voor limieten) | 24 uur tot maximaal 30 dagen |
 | Foutmeldingen | Maximaal 90 dagen |
 | Productstatistieken | 12 maanden |

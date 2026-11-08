@@ -33,20 +33,20 @@
 
 | # | Gegevens | Termijn | Daarna | Reden | Rol |
 |---|---|---|---|---|---|
-| R1 | **Verlopen hold** (`pending_verification` → `expired`) | Hold is 10–15 min geldig; persoonsgegevens blijven **24 uur na verlopen** | Hold-rij verwijderd (naam, e-mail, taal). Een telling van verlopen holds zonder persoonsgegevens mag blijven voor misbruikcijfers | De boeking is nooit tot stand gekomen. 24 uur geeft ruimte voor "ik heb de mail niet gekregen" en misbruikanalyse | Verwerker |
+| R1 | **Vervallen** (ADR-026): er zijn geen holds meer; een boeking is direct definitief | — | — | Een client die boekt is al ingelogd en toegelaten (R4, R5) | — |
 | R2 | Magic links, 6-cijferige codes | 15 min geldig, eenmalig, **gehasht** opgeslagen | Verwijderd 24 uur na verlopen of gebruik | Alleen nodig om in te loggen | Verantwoordelijke (P1) |
 | R3 | Trainer-uitnodigingen | 7 dagen geldig | Verwijderd 30 dagen na verlopen of acceptatie | Genoeg om opnieuw te sturen of een mislukte uitnodiging uit te leggen | Verwerker |
-| R4 | **Gastboeking + gastprofiel** (bevestigd, zonder account) | Zolang de klantrelatie actief is; **geanonimiseerd 24 maanden na de laatste activiteit** (boeking, sessie of aanwezigheid) | Naam, e-mail en taal verwijderd; boekings-/aanwezigheidsrijen blijven anoniem voor bezettingscijfers | Dekt een klant die na een pauze terugkomt; 24 maanden is lang genoeg voor seizoenspatronen | Verwerker (standaard; workspace mag korter kiezen) |
+| R4 | **Klantprofiel en boekingen bij een studio** (klant met account, na goedkeuring van de studio) | Zolang de klantrelatie actief is; **geanonimiseerd 24 maanden na de laatste activiteit** (boeking, sessie of aanwezigheid) | Naam, e-mail en taal bij de studio verwijderd; boekings-/aanwezigheidsrijen blijven anoniem voor bezettingscijfers. Het account zelf volgt R10 | Dekt een klant die na een pauze terugkomt; 24 maanden is lang genoeg voor seizoenspatronen | Verwerker (standaard; workspace mag korter kiezen) |
 | R5 | Klantprofiel met trainingen en notities | Zolang de klantrelatie actief is; **reviewmelding aan de workspace 24 maanden na de laatste activiteit** | Workspace kiest "bewaren" (met reden, gelogd) of "verwijderen" (→ R6). **Geen reactie binnen 30 dagen → verwijderen** | Trainingshistorie heeft waarde voor een terugkerende klant, maar gezondheidsnotities horen niet eeuwig te blijven | Verwerker |
 | R6 | **Verwijderde klant** (door workspace of op verzoek) | **30 dagen** in de prullenbak (herstelbaar) | Definitief verwijderd: profiel, notities, trainingen, setlogs, voorkeurslocatie. Boekingen/aanwezigheid geanonimiseerd | Hersteltermijn voor vergissingen; daarna weg | Verwerker |
 | R7 | **Notities** (klant- en sessienotities) | Volgen de klant (R4–R6). Een los verwijderde notitie staat **30 dagen** in de prullenbak en wordt daarna definitief verwijderd | Weg. Geen versiegeschiedenis in de MVP | Kan gezondheidsgegevens bevatten: minimaliseren, niet opsparen | Verwerker |
 | R8 | Trainingslogs en -historie | Volgen de klant (R5–R6) | Als R6 | Onderdeel van het klantdossier | Verwerker |
 | R9 | Lidmaatschap van een trainer beëindigd | Lidmaatschap direct gedeactiveerd; de naam van de trainer blijft bij eerdere sessies staan als administratie van de workspace, zolang de sessie bestaat | Gepseudonimiseerd ("Voormalig trainer") 24 maanden na het einde van het lidmaatschap | De workspace moet weten wie een sessie gaf, maar niet voor altijd | Verwerker |
-| R10 | Gebruikersaccount (owner, trainer, klant) | Tot de gebruiker het verwijdert; **24 maanden inactief** (niet ingelogd, geen boekingen, geen lidmaatschappen) → waarschuwingsmail, 30 dagen later verwijderd | Account verwijderd; workspace-gegevens blijven bij de workspace | Accountgegevens zijn van ons (P1); geen reden om slapende accounts te houden | Verantwoordelijke (P1) |
+| R10 | Gebruikersaccount (owner, trainer, klant), met inlogsessies (IP-adres en user-agent zoals ontvangen, tot **30 dagen na het laatste gebruik** van de sessie) | Tot de gebruiker het verwijdert; **24 maanden inactief** (niet ingelogd, geen boekingen, geen lidmaatschappen) → waarschuwingsmail, 30 dagen later verwijderd | Account verwijderd; workspace-gegevens blijven bij de workspace | Accountgegevens zijn van ons (P1); geen reden om slapende accounts te houden | Verantwoordelijke (P1) |
 | R11 | **Beëindigde workspace** | Export beschikbaar tot **30 dagen** na het einde van de overeenkomst | Uit productie verwijderd **binnen 30 dagen daarna** (max. 60 dagen na het einde); back-ups vervallen volgens R16 | Verwerkersovereenkomst art. 11 | Verwerker |
 | R12 | Audit log (notitie-toegang, admin-acties) | **12 maanden** | Verwijderd | Lang genoeg om een klacht of datalek te onderzoeken | Verwerker (W10) |
 | R13 | Applicatie- en hostinglogs | **Max. 30 dagen** (of korter als het plan van de provider korter is) | Verwijderd door de provider | Debuggen. Logs bevatten geen notitie-inhoud, geen tokens en gemaskeerde e-mailadressen | Verwerker / verantwoordelijke (P3) |
-| R14 | Beveiliging / misbruik (IP, gehasht e-mailadres, rate-limit-tellers) | **24 uur** rollend; blokkadelijst **30 dagen** | Verwijderd | Hold-spam tegengaan (risico R5 in de roadmap) zonder mensen lang te volgen | Verantwoordelijke (P3) |
+| R14 | Beveiliging / misbruik (IP, gehasht e-mailadres, rate-limit-tellers) | **24 uur** rollend; blokkadelijst **30 dagen** | Verwijderd | Spam met accounts, inlogverzoeken en aanmeldverzoeken tegengaan (risico R5 in de roadmap, ADR-026) zonder mensen lang te volgen | Verantwoordelijke (P3) |
 | R15 | Foutrapporten (Sentry) | Termijn van de provider, **max. 90 dagen**; zo kort mogelijk ingesteld | Verwijderd door Sentry | Bugs oplossen. Ontdaan van persoonsgegevens | Verwerker |
 | R16 | **Back-ups** | Railway Postgres-back-ups (beschikbaarheid en retentie per plan te verifiëren in M1) + eigen dagelijkse versleutelde logische back-ups, **maximaal 30 dagen** bewaard in de EU (E016) | Vervallen automatisch volgens de ingestelde termijn | Herstel na fouten en incidenten (restore-drill in M9) | Verwerker |
 | R17 | Productanalyse (PostHog) | **12 maanden** | Verwijderd | Pilot observeren en jaar-op-jaar vergelijken | Verantwoordelijke (P4) |
@@ -60,20 +60,20 @@
 
 | # | Data | Period | Then | Reason | Role |
 |---|---|---|---|---|---|
-| R1 | **Verlopen hold** (`pending_verification` → `expired`) / **Expired hold** | Hold is valid 10–15 min; personal data is kept **24 h after expiry** | Hold row deleted (name, email, language). A count of expired holds without personal data may be kept for abuse metrics | The booking never happened. 24 h leaves room for "I didn't get the email" support and abuse analysis | Processor |
+| R1 | **Dropped** (ADR-026): there are no holds any more; a booking is final at once | — | — | A client who books is already signed in and let in (R4, R5) | — |
 | R2 | Magic links, 6-digit codes / Magic links, 6-digit codes | Valid 15 min, single use, stored **hashed** | Deleted 24 h after expiry or use | Only needed to sign in | Controller (P1) |
 | R3 | Trainer-uitnodigingen / Trainer invitations | Valid 7 days | Deleted 30 days after expiry or acceptance | Enough to resend or explain a failed invitation | Processor |
-| R4 | **Gastboeking + gastprofiel** (bevestigd, zonder account) / **Guest booking + guest profile** (confirmed, no account) | While the client relationship is active; **anonymized 24 months after the last activity** (booking, session or attendance) | Name, email and language removed; booking/attendance rows kept anonymously for occupancy counts | Covers a returning client after a break; 24 months is long enough for seasonal patterns | Processor (default; workspace may choose shorter) |
+| R4 | **Client profile and bookings at a studio** (a client with an account, approved by the studio) | While the client relationship is active; **anonymized 24 months after the last activity** (booking, session or attendance) | Name, email and language at the studio removed; booking/attendance rows kept anonymously for occupancy counts. The account itself follows R10 | Covers a returning client after a break; 24 months is long enough for seasonal patterns | Processor (default; workspace may choose shorter) |
 | R5 | Klantprofiel met trainingen en notities / Client profile with workouts and notes | While the client relationship is active; **review prompt to the workspace 24 months after the last activity** | Workspace chooses "keep" (with a reason, logged) or "delete" (→ R6). **No response in 30 days → delete** | Workout history has value for a returning client, but health notes should not stay forever | Processor |
 | R6 | **Verwijderde klant** (door workspace of op verzoek) / **Deleted client** (by the workspace or on request) | **30 days** in the trash (restorable) | Hard delete: profile, notes, workouts, set logs, preferred location. Bookings/attendance anonymized | Undo window for mistakes; after that, gone | Processor |
 | R7 | **Notities** (klant- en sessienotities) / **Notes** (client and session notes) | Follow the client (R4–R6). A single deleted note goes to the trash for **30 days**, then is hard deleted | Gone. No version history in the MVP | May contain health data: minimize, don't hoard | Processor |
 | R8 | Trainingslogs en -historie / Workout logs and history | Follow the client (R5–R6) | As R6 | Part of the client record | Processor |
 | R9 | Lidmaatschap van een trainer beëindigd / Trainer membership ended | Membership deactivated immediately; the trainer's name stays on past sessions as the workspace's record for as long as the session exists | Pseudonymized ("Former trainer") 24 months after the membership ends | The workspace needs to know who gave a session; not forever | Processor |
-| R10 | Gebruikersaccount (owner, trainer, klant) / User account (owner, trainer, client) | Until the user deletes it; **inactive 24 months** (no sign-in, no bookings, no memberships) → email warning, deleted 30 days later | Account deleted; workspace data stays with the workspace | Account data is ours (P1); no reason to keep dormant accounts | Controller (P1) |
+| R10 | Gebruikersaccount (owner, trainer, klant) / User account (owner, trainer, client), with sign-in sessions (IP address and user agent as received, up to **30 days after the session was last used**) | Until the user deletes it; **inactive 24 months** (no sign-in, no bookings, no memberships) → email warning, deleted 30 days later | Account deleted; workspace data stays with the workspace | Account data is ours (P1); no reason to keep dormant accounts | Controller (P1) |
 | R11 | **Beëindigde workspace** / **Terminated workspace** | Export available **30 days** after the end of the agreement | Deleted from production **within 30 days after that** (max. 60 days after the end); backups expire per R16 | Processor agreement art. 11 | Processor |
 | R12 | Audit log (notitie-toegang, admin-acties) / Audit log (note access, admin actions) | **12 months** | Deleted | Long enough to investigate a complaint or a breach | Processor (W10) |
 | R13 | Applicatie- en hostinglogs / Application and hosting logs | **Max 30 days** (or shorter if the provider's plan is shorter) | Deleted by the provider | Debugging. Logs contain no note content, no tokens and masked emails | Processor / controller (P3) |
-| R14 | Beveiliging / misbruik (IP, gehasht e-mailadres, rate-limit tellers) / Security and abuse (IP, hashed email, rate-limit counters) | **24 h** rolling; block-list entries **30 days** | Deleted | Stop hold spam (R5 in the roadmap risk register) without long-term tracking | Controller (P3) |
+| R14 | Beveiliging / misbruik (IP, gehasht e-mailadres, rate-limit tellers) / Security and abuse (IP, hashed email, rate-limit counters) | **24 h** rolling; block-list entries **30 days** | Deleted | Stop spam with accounts, sign-in requests and join requests (R5 in the roadmap risk register, ADR-026) without long-term tracking | Controller (P3) |
 | R15 | Foutrapporten (Sentry) / Error reports (Sentry) | Provider retention, **max 90 days**; set to the shortest available | Deleted by Sentry | Fix bugs. Scrubbed of personal data | Processor |
 | R16 | **Back-ups** / **Backups** | Railway Postgres backups (availability and retention by plan to verify in M1) + own daily encrypted logical backups kept **at most 30 days** in the EU (E016) | Expire automatically under the configured period | Recover from mistakes and incidents (restore drill at M9) | Processor |
 | R17 | Productanalyse (PostHog) / Product analytics (PostHog) | **12 months** | Deleted | Pilot observation and year-on-year comparison | Controller (P4) |
@@ -86,19 +86,11 @@
 
 ## 3. Toelichting per onderwerp / Notes per topic
 
-### 3.1 Gastboekingen en verlopen holds / Guest bookings and expired holds
+### 3.1 Holds en gastboekingen zijn vervallen / Holds and guest bookings are dropped
 
-**NL.**
+**NL.** Sinds ADR-026 (31 oktober 2026) zijn er geen holds en geen gastboekingen meer: een klant logt in, wordt door de studio toegelaten en boekt direct. Bevestigde boekingen zijn gewone boekingen van de workspace (R4).
 
-- Een hold die niet binnen 10–15 minuten via de magic link wordt bevestigd, krijgt direct de status `expired`. Dat gebeurt lazily, bij het lezen van de capaciteit (ADR-010), zodat de plek vrijkomt.
-- De dagelijkse cron verwijdert de persoonsgegevens van holds die langer dan 24 uur verlopen zijn. Een verlopen hold staat dus hoogstens ongeveer 48 uur in de database.
-- Een bevestigde gastboeking is een gewone boeking van de workspace (R4).
-
-**EN.**
-
-- A hold that isn't confirmed through the magic link within 10–15 minutes immediately gets the status `expired`. This happens lazily, when capacity is read (ADR-010), so the spot is freed.
-- The daily cron removes the personal data of holds that expired more than 24 hours ago. An expired hold therefore stays in the database for about 48 hours at most.
-- A confirmed guest booking is an ordinary workspace booking (R4).
+**EN.** Since ADR-026 (31 October 2026) there are no holds and no guest bookings: a client signs in, is let in by the studio and books at once. Confirmed bookings are ordinary workspace bookings (R4).
 
 ### 3.2 Verwijderde klanten / Deleted clients
 

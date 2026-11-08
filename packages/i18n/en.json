@@ -988,8 +988,7 @@
       },
       "region": {
         "amsterdam": "Amsterdam",
-        "eu": "EU",
-        "worldwide": "Worldwide"
+        "eu": "EU"
       },
       "mollieHeading": "Mollie has a separate role",
       "mollie": "Mollie processes payments under its own agreement with your studio."
