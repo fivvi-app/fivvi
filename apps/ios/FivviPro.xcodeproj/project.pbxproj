@@ -16,8 +16,8 @@
 		E00800000000000000000076 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E00800000000000000000040 /* Localizable.xcstrings */; };
 		E00800000000000000000077 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E00800000000000000000040 /* Localizable.xcstrings */; };
 		E00800000000000000000079 /* FivviDesignTokens in Frameworks */ = {isa = PBXBuildFile; productRef = E008000000000000000000A9 /* FivviDesignTokens */; };
-		E00900000000000000000070 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E009000000000000000000A0 /* Sentry */; };
 		E0080000000000000000007A /* routes.ts in Resources */ = {isa = PBXBuildFile; fileRef = E0080000000000000000004A /* routes.ts */; };
+		E00900000000000000000070 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E009000000000000000000A0 /* Sentry */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -124,15 +124,6 @@
 			path = ../../packages/i18n/generated/ios;
 			sourceTree = "<group>";
 		};
-		E00800000000000000000024 /* Site */ = {
-			isa = PBXGroup;
-			children = (
-				E0080000000000000000004A /* routes.ts */,
-			);
-			name = Site;
-			path = ../web/site;
-			sourceTree = "<group>";
-		};
 		E00800000000000000000022 /* Config */ = {
 			isa = PBXGroup;
 			children = (
@@ -152,6 +143,15 @@
 				E00800000000000000000048 /* FivviProUITests.xctest */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		E00800000000000000000024 /* Site */ = {
+			isa = PBXGroup;
+			children = (
+				E0080000000000000000004A /* routes.ts */,
+			);
+			name = Site;
+			path = ../web/site;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
