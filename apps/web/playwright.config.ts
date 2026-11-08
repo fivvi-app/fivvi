@@ -1,6 +1,6 @@
 import { existsSync } from 'node:fs';
 import { defaultTimeZone, formattingLocales, type Locale, locales } from '@fivvi/i18n';
-import { defineConfig, devices } from '@playwright/test';
+import { defineConfig, devices, type ReporterDescription } from '@playwright/test';
 import type { E2EOptions } from './e2e/fixtures';
 import {
   ALLOWED_SIGN_UP_DOMAIN,
@@ -13,6 +13,7 @@ import {
   TEST_POSTHOG_HOST,
   TEST_POSTHOG_KEY,
 } from './e2e/servers';
+import { budgetsTarget } from './test/budgets';
 
 // Web e2e tests (TESTING.md §2). Every spec runs once per catalog locale: one project
 // per locale, with the browser language set to it. `pnpm test:e2e` from the repo root
@@ -28,7 +29,13 @@ const BUDGET_SPEC = /site-budgets\.spec\.ts$/;
  * default run (`pnpm test:e2e`) has the other projects and leaves the budgets out, so their
  * Lighthouse runs, which want a quiet machine and a time of their own, do not lengthen it (TESTING.md §2).
  */
-const budgets = Boolean(process.env.E2E_BUDGETS);
+/**
+ * `BUDGETS_BASE_URL` (a deployed site, such as a PR's Railway preview) points the budgets at that
+ * address instead of the local build: no web server and no database start, the go-live proxy
+ * (e2e/go-live-proxy.ts) sits in front of the address. It implies the budgets run.
+ */
+const budgetsTargetUrl = budgetsTarget(process.env.BUDGETS_BASE_URL);
+const budgets = Boolean(process.env.E2E_BUDGETS) || budgetsTargetUrl !== undefined;
 
 /** The browser of a project: Desktop Chrome with the project's language (sets navigator.language and Accept-Language). */
 function localeUse(locale: Locale) {
@@ -45,6 +52,12 @@ if (existsSync('../../packages/database/.env')) {
   process.loadEnvFile('../../packages/database/.env');
 }
 
+const reporter: ReporterDescription[] = ci
+  ? [['github'], ['list'], ['html', { open: 'never' }]]
+  : [['list']];
+// The budgets end with one table of their numbers, to paste on the PR.
+if (budgets) reporter.push(['./e2e/budgets-reporter.ts']);
+
 export default defineConfig<E2EOptions>({
   testDir: './e2e',
   fullyParallel: true,
@@ -56,9 +69,9 @@ export default defineConfig<E2EOptions>({
   globalTimeout: ci ? (budgets ? 10 : 12) * 60_000 : undefined,
   // One retry in CI; a test that only passes on retry is reported as flaky (TESTING.md §8).
   retries: ci ? 1 : 0,
-  reporter: ci ? [['github'], ['list'], ['html', { open: 'never' }]] : [['list']],
+  reporter,
   use: {
-    baseURL: appServer.baseURL,
+    baseURL: budgetsTargetUrl ?? appServer.baseURL,
     timezoneId: defaultTimeZone,
     trace: 'retain-on-first-failure',
   },
@@ -80,24 +93,26 @@ export default defineConfig<E2EOptions>({
   // migrated database (e2e/serve.ts). A second one runs the same build with a PostHog key and
   // host, which it reads at runtime, for the page view tests (E009). Both send their emails to the
   // fake Brevo server (F001), which the third web server runs.
-  webServer: [
-    {
-      command: 'node e2e/fake-brevo.ts',
-      env: { PORT: String(brevoServer.port) },
-      url: brevoServer.baseURL,
-      reuseExistingServer: !ci,
-      timeout: 60_000,
-    },
-    standaloneServer(appServer, {
-      // Like production: the app-link files are served (E017 AC5).
-      APPLE_TEAM_ID: TEST_APPLE_TEAM_ID,
-      ANDROID_CERT_SHA256: TEST_ANDROID_CERT_SHA256,
-    }),
-    standaloneServer(analyticsServer, {
-      NEXT_PUBLIC_POSTHOG_KEY: TEST_POSTHOG_KEY,
-      POSTHOG_HOST: TEST_POSTHOG_HOST,
-    }),
-  ],
+  webServer: budgetsTargetUrl
+    ? []
+    : [
+        {
+          command: 'node e2e/fake-brevo.ts',
+          env: { PORT: String(brevoServer.port) },
+          url: brevoServer.baseURL,
+          reuseExistingServer: !ci,
+          timeout: 60_000,
+        },
+        standaloneServer(appServer, {
+          // Like production: the app-link files are served (E017 AC5).
+          APPLE_TEAM_ID: TEST_APPLE_TEAM_ID,
+          ANDROID_CERT_SHA256: TEST_ANDROID_CERT_SHA256,
+        }),
+        standaloneServer(analyticsServer, {
+          NEXT_PUBLIC_POSTHOG_KEY: TEST_POSTHOG_KEY,
+          POSTHOG_HOST: TEST_POSTHOG_HOST,
+        }),
+      ],
 });
 
 function standaloneServer(

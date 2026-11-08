@@ -1,6 +1,7 @@
 import { robotsHeader, robotsTxt } from '../site/indexing';
 import { rootMetadata } from '../site/metadata';
 import { type SitePage, sitePagePath } from '../site/routes';
+import { BUDGET_ROW_ANNOTATION, type BudgetRow, MAX_CLS, MAX_LCP_MS } from '../test/budgets';
 import { type CpuCalibration, calibrateCpuSlowdown } from '../test/lighthouse-cpu';
 import { expect, test } from './fixtures';
 import { type GoLiveProxy, PRODUCTION, robotsFile, startGoLiveProxy } from './go-live-proxy';
@@ -16,8 +17,11 @@ import {
 // Lighthouse's phone profile (a Moto G Power on slow 4G, simulated), in light and dark, in the
 // language of the project. A page passes with a largest contentful paint under 2.5 s, a layout
 // shift under 0.1, a score of 100 for SEO and accessibility, and images that are sized, responsive
-// and in a modern format. The numbers are
-// annotations of each test, so a run shows the room the budget leaves.
+// and in a modern format. The numbers are annotations of each test, and the reporter prints them as
+// a table at the end (e2e/budgets-reporter.ts).
+//
+// The run measures the local build, or a deployed site (`BUDGETS_BASE_URL`, playwright.config.ts: no
+// local server and no database then). The go-live proxy sits in front of either.
 //
 // SEO is measured as it will be at go-live without turning the switch on: the e2e server says
 // `noindex`, like every environment but production until #648 (site/routes.ts, `siteIndexable`),
@@ -25,10 +29,6 @@ import {
 // (e2e/go-live-proxy.ts). The switch stays off in the code.
 const PAGES: readonly SitePage[] = ['home', 'gyms', 'studios', 'personalTrainers', 'clients'];
 const SCHEMES: readonly ColorScheme[] = ['light', 'dark'];
-
-/** The budgets of AC15. */
-const MAX_LCP_MS = 2500;
-const MAX_CLS = 0.1;
 
 /**
  * A run on a busy machine is slower, never faster, so a page that is over a budget is measured again
@@ -41,15 +41,19 @@ async function measure(
   url: string,
   port: number,
   cpuSlowdownMultiplier: number,
-): Promise<PageAudit & { attempts: number }> {
+): Promise<PageAudit & { attempts: number; runsLcpMs: number[] }> {
   let best: PageAudit | undefined;
+  const runsLcpMs: number[] = [];
   for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
     const audit = await auditPage(url, port, cpuSlowdownMultiplier);
+    runsLcpMs.push(audit.lcpMs);
     if (!best || audit.lcpMs < best.lcpMs) best = audit;
-    if (best.lcpMs < MAX_LCP_MS && best.cls < MAX_CLS) return { ...best, attempts: attempt };
+    if (best.lcpMs < MAX_LCP_MS && best.cls < MAX_CLS) {
+      return { ...best, attempts: attempt, runsLcpMs };
+    }
   }
   if (!best) throw new Error(`No Lighthouse run for ${url}`);
-  return { ...best, attempts: MAX_ATTEMPTS };
+  return { ...best, attempts: MAX_ATTEMPTS, runsLcpMs };
 }
 
 // A page takes 6 to 12 seconds, up to three runs of it at most; a Lighthouse or Chrome that hangs
@@ -63,6 +67,14 @@ test.describe('F064 AC15 speed and search budgets', () => {
   let cpu: CpuCalibration & { hostBenchmarkIndex: number };
 
   test.beforeAll(async ({ baseURL }) => {
+    // A preview that is gone or still deploying answers with an error page: say so, instead of
+    // failing on whatever the first test finds in it.
+    const health = await fetch(`${baseURL}/api/v1/health`).catch(() => undefined);
+    if (!health?.ok) {
+      throw new Error(
+        `${baseURL} is not up: ${baseURL}/api/v1/health answered ${health?.status ?? 'nothing'}`,
+      );
+    }
     proxy = await startGoLiveProxy(baseURL ?? '');
     for (const scheme of SCHEMES) browsers.set(scheme, await launchBudgetBrowser(scheme));
     const light = browsers.get('light');
@@ -156,7 +168,27 @@ test.describe('F064 AC15 speed and search budgets', () => {
           description:
             `LCP ${Math.round(audit.lcpMs)} ms, CLS ${audit.cls.toFixed(3)}, ` +
             `performance ${Math.round(audit.performance * 100)}, SEO ${Math.round(audit.seo * 100)}, ` +
-            `accessibility ${Math.round(audit.accessibility * 100)}, runs ${audit.attempts}`,
+            `accessibility ${Math.round(audit.accessibility * 100)}, runs ${audit.attempts} ` +
+            `(LCP ${audit.runsLcpMs.map(Math.round).join(', ')})`,
+        });
+        // What the reporter prints at the end of the run (e2e/budgets-reporter.ts).
+        const row: BudgetRow = {
+          locale: appLocale,
+          scheme,
+          path,
+          lcpMs: audit.lcpMs,
+          cls: audit.cls,
+          seo: audit.seo,
+          accessibility: audit.accessibility,
+          imageFindings: audit.imageFindings,
+          attempts: audit.attempts,
+          runsLcpMs: audit.runsLcpMs,
+          benchmarkIndex: audit.benchmarkIndex,
+          cpuSlowdownMultiplier: cpu.multiplier,
+        };
+        testInfo.annotations.push({
+          type: BUDGET_ROW_ANNOTATION,
+          description: JSON.stringify(row),
         });
         // The browser follows the scheme: the screens on the page are the ones of its colouring.
         const other = scheme === 'dark' ? 'light' : 'dark';

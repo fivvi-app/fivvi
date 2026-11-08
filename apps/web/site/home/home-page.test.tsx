@@ -179,6 +179,28 @@ describe.each(locales)('F064 AC3 the home page in %s', (locale) => {
     expect(scene).toContain('fetchPriority="high"');
   });
 
+  // AC15: the first miniature is the page's largest picture, so it wins the network; the screens of
+  // the first screen start after it, and keep their size so nothing shifts.
+  it('gives the first miniature the network and lets the screens come after it', () => {
+    const page = html(locale);
+    const firstScreen = page.slice(0, page.indexOf('<section'));
+    const images = firstScreen.match(/<img[^>]*>/g) ?? [];
+    const scenes = images.filter((image) => image.includes('/scenes/'));
+    const screens = images.filter((image) => image.includes('/shots/'));
+
+    expect(scenes).toHaveLength(1);
+    expect(scenes[0]).toContain('fetchPriority="high"');
+    expect(scenes[0]).toContain('loading="eager"');
+    expect(screens.length).toBeGreaterThan(0);
+    for (const screen of screens) {
+      expect(screen).toContain('fetchPriority="low"');
+      expect(screen).toContain('loading="lazy"');
+      expect(screen).toMatch(/width="\d+"[^>]*height="\d+"/);
+    }
+    // Nothing else on the page asks for a high priority.
+    expect(page.match(/fetchPriority="high"/g)).toHaveLength(1);
+  });
+
   // AC15: a picture that fades in from nothing is painted, and counted as the largest contentful
   // paint, only once the fade is over. The first miniature and the screens under it are there at once.
   it('shows the first miniature and its screens at once, without a fade in', () => {

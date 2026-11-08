@@ -162,6 +162,25 @@ describe.each(locales)('F064 AC2 the audience pages in %s', (locale) => {
       expect(images.filter((image) => image.includes('loading="lazy"')).length).toBeGreaterThan(3);
     });
 
+    it('gives the first miniature the network and lets the screens come after it (AC15: largest contentful paint)', () => {
+      const markup = html(page, locale);
+      const images = markup.match(/<img[^>]*>/g) ?? [];
+      const scenes = images.filter((image) => image.includes('/scenes/'));
+      const screens = images.filter((image) => image.includes('/shots/'));
+
+      // The one the visitor sees first (the first kind, for the studios' hidden others) is high.
+      expect(scenes.filter((image) => image.includes('fetchPriority="high"'))).toHaveLength(1);
+      expect(scenes.find((image) => image.includes('fetchPriority="high"'))).toContain(
+        'loading="eager"',
+      );
+      expect(screens.length).toBeGreaterThan(0);
+      for (const screen of screens) {
+        expect(screen).toContain('fetchPriority="low"');
+        expect(screen).toContain('loading="lazy"');
+        expect(screen).toMatch(/width="\d+"[^>]*height="\d+"/);
+      }
+    });
+
     it('shows the first miniature and its screens at once, without a fade in (AC15: largest contentful paint)', () => {
       const markup = html(page, locale);
       const firstScreen = markup.slice(0, markup.indexOf('<section'));

@@ -27,8 +27,10 @@ const SIZES = {
 
 /**
  * A screen of the prototype: a picture in the language of the page, light or dark by the system
- * setting (no script), in two sizes. `alt` says what the screen shows; the first screens of a page
- * are loaded at once and the rest as they come near.
+ * setting (no script), in two sizes. `alt` says what the screen shows. Only a `priority` screen is
+ * loaded at once and with a high fetch priority; the rest are lazy and low, so even those in the
+ * first screen start after the page's miniature (AC15, LCP). Their width and height stay set, so the
+ * box is there before the file.
  */
 export function Screen({
   id,
@@ -63,6 +65,7 @@ export function Screen({
         width={width}
         height={height}
         loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : 'low'}
         decoding="async"
         className={classes('block h-full w-full', className)}
       />
