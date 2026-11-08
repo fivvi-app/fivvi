@@ -37,6 +37,15 @@ const SCHEMES: readonly ColorScheme[] = ['light', 'dark'];
  */
 const MAX_ATTEMPTS = 3;
 
+/** `promise`, or an error that names `what` when it takes more than `ms`. */
+async function within(what: string, promise: Promise<unknown>, ms = 15_000): Promise<void> {
+  let timer: NodeJS.Timeout | undefined;
+  const late = new Promise<never>((_, reject) => {
+    timer = setTimeout(() => reject(new Error(`${what} took more than ${ms / 1000} s`)), ms);
+  });
+  await Promise.race([promise, late]).finally(() => clearTimeout(timer));
+}
+
 /** Why a fetch failed, down to the DNS or network error under Node's "fetch failed". */
 function describe(error: unknown): string {
   if (!(error instanceof Error)) return String(error);
@@ -101,8 +110,17 @@ test.describe('F064 AC15 speed and search budgets', () => {
   });
 
   test.afterAll(async () => {
-    await Promise.all([...browsers.values()].map((browser) => browser.close()));
-    await proxy?.close();
+    // Each part has its own time and a name, so a teardown that hangs says what hung (the hook has
+    // 30 s by default), and the proxy is closed whatever the browsers do.
+    test.setTimeout(60_000);
+    const closing = [...browsers].map(([scheme, browser]) =>
+      within(`closing the ${scheme} browser`, browser.close()),
+    );
+    if (proxy) closing.push(within('closing the go-live proxy', proxy.close()));
+    const failed = (await Promise.allSettled(closing)).flatMap((result) =>
+      result.status === 'rejected' ? [String(result.reason)] : [],
+    );
+    if (failed.length) throw new Error(failed.join('; '));
   });
 
   // The measure is only as good as the view it measures: this one changes what production changes

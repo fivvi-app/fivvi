@@ -1,4 +1,4 @@
-import { createServer, request as httpRequest, type Server } from 'node:http';
+import { Agent, createServer, request as httpRequest, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { afterEach, describe, expect, it } from 'vitest';
 import { startGoLiveProxy, upstreamUrl } from '../e2e/go-live-proxy';
@@ -20,12 +20,27 @@ describe('F064 go-live proxy upstreamUrl', () => {
   });
 });
 
+/** The connections an HTTP server still has open. */
+function upstreamConnections(server: Server): Promise<number> {
+  return new Promise((resolve, reject) =>
+    server.getConnections((error, count) => (error ? reject(error) : resolve(count))),
+  );
+}
+
 describe('F064 go-live proxy', () => {
   const servers: Server[] = [];
   const closers: (() => Promise<void>)[] = [];
   afterEach(async () => {
     await Promise.all(closers.splice(0).map((close) => close()));
-    for (const server of servers.splice(0)) server.close();
+    await Promise.all(
+      servers.splice(0).map(
+        (server) =>
+          new Promise<void>((resolve) => {
+            server.close(() => resolve());
+            server.closeAllConnections();
+          }),
+      ),
+    );
   });
 
   /** A GET with the path exactly as given: `fetch` would tidy a `//host` path before sending it. */
@@ -58,5 +73,60 @@ describe('F064 go-live proxy', () => {
     expect(seen).toEqual([]);
     expect(await get(port, '/en')).toBe(200);
     expect(seen).toEqual(['/en']);
+  });
+
+  // The browser keeps its connections to the proxy open between pages, and the proxy keeps its own to
+  // the upstream; neither may hold up the end of the run (the afterAll hook has 30 s).
+  it('closes at once while a keep-alive connection is open, and the upstream one with it', async () => {
+    const upstream = createServer((_request, response) => {
+      response.writeHead(200, { 'content-type': 'text/plain' }).end('ok');
+    });
+    servers.push(upstream);
+    await new Promise<void>((resolve) => upstream.listen(0, '127.0.0.1', resolve));
+    const proxy = await startGoLiveProxy(
+      `http://127.0.0.1:${(upstream.address() as AddressInfo).port}`,
+    );
+    const agent = new Agent({ keepAlive: true });
+    const status = await new Promise<number | undefined>((resolve, reject) => {
+      httpRequest(
+        { agent, host: '127.0.0.1', port: Number(new URL(proxy.origin).port), path: '/en' },
+        (response) => {
+          response.resume();
+          response.on('end', () => resolve(response.statusCode));
+        },
+      )
+        .on('error', reject)
+        .end();
+    });
+    expect(status).toBe(200);
+
+    const started = Date.now();
+    await proxy.close();
+    agent.destroy();
+
+    expect(Date.now() - started).toBeLessThan(1000);
+    // Nothing of the proxy is left on the upstream: its kept-alive connection is closed too.
+    await expect.poll(() => upstreamConnections(upstream), { timeout: 1000 }).toBe(0);
+  });
+
+  it('closes at once while the upstream is still answering a request', async () => {
+    const upstream = createServer(() => {
+      // Never answers: a page that is still loading when the run ends.
+    });
+    servers.push(upstream);
+    await new Promise<void>((resolve) => upstream.listen(0, '127.0.0.1', resolve));
+    const proxy = await startGoLiveProxy(
+      `http://127.0.0.1:${(upstream.address() as AddressInfo).port}`,
+    );
+    const port = Number(new URL(proxy.origin).port);
+    const pending = get(port, '/slow').catch(() => undefined);
+    while ((await upstreamConnections(upstream)) === 0) await new Promise((r) => setTimeout(r, 10));
+
+    const started = Date.now();
+    await proxy.close();
+
+    expect(Date.now() - started).toBeLessThan(1000);
+    await expect.poll(() => upstreamConnections(upstream), { timeout: 1000 }).toBe(0);
+    await pending;
   });
 });
