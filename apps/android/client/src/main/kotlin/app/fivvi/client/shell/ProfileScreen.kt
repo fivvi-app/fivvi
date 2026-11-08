@@ -6,13 +6,11 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -29,6 +27,9 @@ import app.fivvi.client.account.AccountState
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.LanguageList
 import app.fivvi.core.R
+import app.fivvi.core.kit.InsetGroupedList
+import app.fivvi.core.kit.PillButton
+import app.fivvi.core.kit.PillButtonStyle
 import app.fivvi.core.ui.LoadError
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
@@ -84,9 +85,9 @@ fun ProfileScreen(state: AccountState, actions: ProfileActions, version: String)
             style = MaterialTheme.typography.title1,
         )
         when (state) {
-            is AccountState.Loaded -> {
-                state.name?.let { Detail(R.string.my_profile_name_label, it, ProfileTags.NAME) }
-                Detail(R.string.my_profile_email_label, state.email, ProfileTags.EMAIL)
+            is AccountState.Loaded -> InsetGroupedList {
+                state.name?.let { name -> row { Detail(R.string.my_profile_name_label, name, ProfileTags.NAME) } }
+                row { Detail(R.string.my_profile_email_label, state.email, ProfileTags.EMAIL) }
             }
 
             else -> Loading()
@@ -122,10 +123,10 @@ fun ProfileScreen(state: AccountState, actions: ProfileActions, version: String)
     }
 }
 
-// A label and its value, read out one after the other: "Naam", "Anna de Vries".
+// A label and its value, one row of the grouped list, read out one after the other: "Naam", "Anna de Vries".
 @Composable
 private fun Detail(@StringRes label: Int, value: String, tag: String) {
-    Column(Modifier.fillMaxWidth()) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.space4, vertical = Spacing.space3)) {
         Text(
             text = stringResource(label),
             style = MaterialTheme.typography.subhead,
@@ -158,10 +159,10 @@ private fun ColumnScope.SignOutButton(actions: ProfileActions) {
         )
         return
     }
-    OutlinedButton(
+    PillButton(
+        text = stringResource(R.string.sign_out_label),
         onClick = actions.onSignOut,
-        modifier = Modifier.fillMaxWidth().heightIn(min = Spacing.space12).testTag(ProfileTags.SIGN_OUT),
-    ) {
-        Text(stringResource(R.string.sign_out_label), textAlign = TextAlign.Center)
-    }
+        modifier = Modifier.fillMaxWidth().testTag(ProfileTags.SIGN_OUT),
+        style = PillButtonStyle.Tonal,
+    )
 }

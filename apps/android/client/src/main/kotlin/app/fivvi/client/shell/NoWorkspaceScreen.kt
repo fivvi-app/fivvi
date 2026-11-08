@@ -23,6 +23,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import app.fivvi.client.account.AccountState
 import app.fivvi.core.R
+import app.fivvi.core.kit.FivviCard
 import app.fivvi.core.ui.LoadError
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
@@ -63,8 +64,12 @@ fun NoWorkspaceScreen(state: AccountState, tags: NoWorkspaceTags, onRetry: () ->
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
             Line(R.string.no_workspace_title, tags.title, heading = true)
-            Line(R.string.no_workspace_have_link, tags.haveLink)
-            if (state.hasTeamRole) Line(R.string.no_workspace_team_hint, tags.teamHint)
+            FivviCard(Modifier.fillMaxWidth()) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.space4)) {
+                    Line(R.string.no_workspace_have_link, tags.haveLink)
+                    if (state.hasTeamRole) Line(R.string.no_workspace_team_hint, tags.teamHint)
+                }
+            }
         }
     }
 }
