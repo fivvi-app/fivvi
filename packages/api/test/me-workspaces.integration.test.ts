@@ -195,6 +195,8 @@ describe('F004 capabilities on GET /v1/me/workspaces', () => {
       'team.invite',
       'session.private.manage.own',
       'session.private.manage.any',
+      'class.manage',
+      'class.read',
     ]);
     expect(capabilitiesIn(gym.id)).toEqual([
       'trainers.view',
@@ -202,6 +204,7 @@ describe('F004 capabilities on GET /v1/me/workspaces', () => {
       'clients.manage',
       'location.read',
       'session.private.manage.own',
+      'class.read',
     ]);
   });
 

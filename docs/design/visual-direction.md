@@ -1,70 +1,65 @@
-# Fivvi visual direction (M0 draft)
+# Fivvi visual direction (v2)
 
-**Status:** draft for pilot validation, refined 13 October 2026 after owner feedback. This is the visual direction for the [critical flows](README.md), not a final component library. The source of truth for colours, type, spacing and contrast pairs is [`packages/design-tokens`](../../packages/design-tokens/README.md) (E007, ADR-015). This document records the reasoning, with the M0 draft values it was written for; it isn't updated when a token changes.
+**Status:** decided with the owner on 5 November 2026 in the clickable prototype ([`prototype-v2`](prototype-v2/README.md)), recorded in [ADR-029](../decisions/ADR-029-design-v2.md) and [`DECISIONS.md`](prototype-v2/DECISIONS.md). It replaces the M0 direction (a muted violet, calm and monochrome; see this file's git history). The source of truth for values stays [`packages/design-tokens`](../../packages/design-tokens/README.md) (ADR-015); the v2 values move there with the "Design v2 foundation" spec ([#590](https://github.com/fivvi-app/fivvi/issues/590)). Until then the package still holds the M0 values.
 
-## Character and hierarchy
+## Character
 
-Fivvi should read clearly in a busy gym: time, client, location, capacity, and the next action come first. The latest owner feedback asks for **calm but warmer**, superseding strict monochrome actions and icon-only type markers. White, light-grey and charcoal carry surfaces and navigation; there are no teal brand blocks or large rainbow card fills. Every session-type marker shows a small emoji plus its text label (👤 Privé, 👥 Groepsles, 🏋️ Open Gym), on a soft blue, lavender or amber chip, so colour is never the only signal. Two exceptions since the owner's 14 October round: cramped owner calendar blocks carry no emoji and show the type in words before the content (*Privé · Mark*, *Groep · Strength*, *Open Gym 1/2*; flow 03, `PRODUCT.md §48`, which supersede the emoji-only blocks of 14 October), with the legend above as the key; public booking list cards carry no chip, because the tab already names the list. A muted violet primary action adds personality. Decorative accents (👋 on Today, 💪 on the workout action) stay sparse and never replace text or essential status. Destructive actions use red and an explicit confirmation; success states may use green.
+**Calendar calm, Fitness pops.** Fivvi looks like it belongs next to Apple Calendar, Fitness and Health on the phone:
 
-**Calm light first.** The prototype starts light even on a dark OS; a deliberate Light/Dark appearance control does not persist between visits. Dark uses softened charcoal layers and off-white text, not near-black walls. Colour highlights text chips, small accents and the primary action, not large surfaces. Functional icons remain useful; session identity is readable text, also in calendar blocks, where a short label (*Privé*, *Groep*, *Open Gym*) replaces the emoji. Decorative emoji are aria-hidden and sourced from the prototype NL/EN catalogs.
+- **Calm, from Calendar:** a grouped grey canvas, white cards, inset lists, time first.
+- **Energy, from Fitness:** gradient cards, rounded numbers, sharp colour in small doses.
 
-**Fewer competing facts.** The hub is a grid of flow tiles, not seven explanatory paragraphs. Today highlights the next client and workout action; its time agenda drops repeated type/workspace words. Contact details, workspace context, attendance and trainer-only notes use deliberate, named disclosures. Booking shows class/time above the two inputs; privacy, capacity and auth warnings stay explicit. Workout results use two numeric blocks with an expandable set breakdown; client-message review remains mandatory before sharing. See the [prototype measurements](prototype/README.md#owner-feedback-refinement-13-october-2026) for before/after viewport text counts.
+It reads clearly in a busy gym: time, client, location, capacity and the next action come first.
 
-The web prototype uses restrained branded headings. Forms, calendars, and mobile app content use system text. Trainer data and notes stay legible at arm's length. The prototype's sample names and notes are fictional; note content is trainer-only by default.
+- **The UI only shows what exists.** A solo PT never sees group classes or Open Gym.
+- **Every list can be added to, changed and removed from**, and every removal asks for confirmation.
 
-## Colour and contrast
+## Logo
 
-| Role | Light | Dark | Use |
-|---|---|---|---|
-| Canvas / surface | `#F6F6F7` / `#FFFFFF` | `#242428` / `#2D2D32` | Page and card hierarchy |
-| Primary / secondary text | `#202026` / `#4D4D54` | `#E8E8ED` / `#C5C5CB` | Main copy and metadata |
-| Primary action / on action | `#595299` / white | `#C1BBEB` / `#16161B` | Muted violet main action and selected state |
-| Tonal action | `#EEEEF0` / `#202026` | `#3A3A41` / `#C8C8CD` | Neutral secondary actions and chips |
-| Destructive action | `#A3261A` / white | `#F09A8E` / `#16161B` | Cancel class confirmation |
-| Private / group / Open Gym | Soft blue / lavender / amber chips | Subdued blue / lavender / amber chips | Visible localized text; calendar edges; neutral card fills |
+The wordmark **fivvi**, heavy and rounded, leaning forward: its two v's slap a high five, with a pink spark and pink i dots ("Fivvi" sounds like *high five*). Chosen by the owner on 7 November 2026. The app icon is the **day dial**: the dial of a day with five booked hours in pink, flat layers that iOS 26 turns into Liquid Glass (chosen on 8 November 2026); Fivvi Pro adds PRO in the centre of the dial. The files and how to use them are in [`brand/`](brand/README.md).
 
-The M0 contrast check measured the foreground/background pairs used in the prototype in both appearances. All **29 pairs passed**: ordinary text and labels meet at least **4.5:1**; control outlines, focus rings, and calendar bars meet at least **3:1**. It includes primary and secondary text on the Material next-session tonal surface. The tightest checked text pair is light placeholder text on a surface at **5.70:1**. The tightest checked non-text pair is the light Open Gym calendar bar on a surface at **3.17:1**. Decorative hairlines are not used to identify controls. The pairs now live in the token package, whose `pnpm check` fails when one drops below its minimum. These are token-pair checks, not a claim that every possible rendered combination has been audited. The thresholds come from [WCAG 2.2 text contrast](https://www.w3.org/WAI/WCAG22/Understanding/contrast-minimum) and [non-text contrast](https://www.w3.org/WAI/WCAG22/Understanding/non-text-contrast).
+## Platforms
 
-## Typography
+| Platform | Look |
+|---|---|
+| iOS 26+ | Liquid Glass: glass navigation buttons, a floating glass tab bar that shrinks while scrolling, glass sheets and alerts, large titles with the date above them, SF Pro and SF Pro Rounded |
+| Android | Material 3 Expressive: top app bar, navigation bar, FAB, M3 segmented buttons (an outlined pill with a check), shaped avatars per session type, Google Sans Flex |
+| Trainer web | shadcn/ui with zinc neutrals: sidebar, top bar with search and **+ Nieuw**, tables, dialogs, side sheets |
+| Client web | A mobile website in the same design language as Fivvi Pro |
 
-| Token | Default size / line height | Use | iOS style | Material 3 style |
-|---|---:|---|---|---|
-| Display | 34 / 40 | Public entry and rare brand moments | Large Title | Headline Large |
-| Title 1 | 28 / 34 | Screen heading | Title | Headline Medium |
-| Title 2 | 22 / 28 | Sheet and section heading | Title 2 | Title Large |
-| Headline | 17 / 22 | Item title | Headline | Title Medium |
-| Body | 17 / 24 | Main text and form values | Body | Body Large |
-| Subhead / label | 15 / 20 | Supporting text / actions | Subheadline | Body Medium / Label Large |
-| Footnote / caption | 13 / 18 and 12 / 16 | Metadata / section label | Footnote / Caption | Body Small / Label Medium |
-| Numeric XL | 40 / 44 | Weight and reps while logging | Scaled large title with tabular digits | Display Small with tabular digits |
+## Colour
 
-Web body text uses the system stack. Body, secondary copy, names, time labels, row titles and controls use 400/500; 600 is reserved for genuine headings or primary numeric emphasis. Size and spacing carry hierarchy; logger numbers and targets are not reduced. Bricolage Grotesque is an optional web display accent with a system fallback; it never carries form labels. iOS uses SF Pro through semantic SwiftUI text styles and Dynamic Type; Android uses the Material 3 type roles and system font scaling. Default token sizes are references for web and native mappings, not fixed native font sizes. Web inputs stay at 16 px or above. See [Apple typography](https://developer.apple.com/design/human-interface-guidelines/typography) and [Material 3 in Compose](https://developer.android.com/develop/ui/compose/designsystems/material3).
+| Role | Light | Dark |
+|---|---|---|
+| Canvas | `#F2F2F7` (grouped grey) | `#000000` |
+| Card | `#FFFFFF` | `#1C1C1E` |
+| Label | `#000000` | `#FFFFFF` |
+| Secondary text, native apps | `#85858B` | `#98989F` |
+| Secondary text, client web | `#6C6C70` | `#98989F` |
+| Accent (Move pink) | `#E6164A`, text `#C8103D` | `#E6164A`, text `#FF6482` |
+| Private / group / Open Gym | `#0088FF` / `#CB30E0` / `#FF8D28` | same |
+| Success / danger | `#34C759` / `#FF383C` | same |
 
-## Density
+- **Gradients stay in one hue.** A card in the session type's colour is darker at the bottom, with a soft highlight at the top right.
+- **Contrast:**
+  - text at least 4.5:1, icons and graphics at least 3:1, in light and dark, with one exception: the native apps' secondary text in light mode ([ADR-032](../decisions/ADR-032-secondary-text-in-the-native-apps.md));
+  - white glyphs sit on the colour mixed with black (85% → 75%);
+  - coloured glyphs on tints use the colour mixed with the mode's ink (78%).
+- **On the accent,** anything uses the on-accent colour.
 
-*Added 23 September 2026 after owner feedback that the prototype felt too big.* One scale doesn't fit every surface, so the tokens carry two densities (`size.control`, `density.*`):
+## Type, shape and spacing
 
-| Surface | Text | Controls | Why |
-|---|---|---|---|
-| Trainer Web with a mouse or trackpad | Compact: body 14/20, subhead and label 13/18, title 22/28 | 36 px (32 px in toolbars) | A calendar day or week has to fit a laptop screen. WCAG 2.2 target size (24 × 24 px) still holds. |
-| Trainer Web on touch | Compact text | 48 px | Touch still needs finger-size targets. |
-| iOS app | Platform text styles (Body 17 pt) with Dynamic Type | 44 pt rows and buttons (HIG) | Feels like the rest of the phone; the user's text size setting still applies. |
-| Android app | Material 3 roles (bodyLarge 16/24, labelLarge 14/20) with font scaling | 48 dp targets | Matches Material 3. |
-| Public booking | Touch scale | 48 px | Mostly used on a phone after a QR scan. |
-| Workout logger | Large, on purpose | One scrolling list; set fields ≥ 44 pt/dp with 20 px values, ticks 48 pt/dp, generous row spacing | One hand, between sets; no dock covering rows. |
+- **Text:** SF Pro on iOS, Google Sans Flex on Android, the system stack on the web.
+- **Numbers:** a rounded face with tabular digits.
+- **Large titles:** 34 pt on iOS, with a 13 pt uppercase eyebrow (the date) above them.
+- **Shape:**
+  - cards and inset lists have radius 26 (iOS) and 28 (Android);
+  - buttons are pills (50 pt on iOS);
+  - round controls stay round;
+  - grouped buttons are equal width.
+- **Spacing:** a 4 px scale, 16 px phone gutters. Stacked buttons keep 48 pt with 10 pt between them.
+- **Density** stays as in M0: compact on the trainer web, platform text sizes in the apps, a large logger.
 
-Colours and contrast pairs don't change with density. E007 maps compact density to a Tailwind/shadcn size scale on web; native apps keep native controls and only take spacing and colour from the tokens.
+## Where to look
 
-## Spacing, shape, and targets
-
-- Spacing follows a 4 px scale: 4, 8, 12, 16, 20, 24, 32, 40, 48, 64. Phone gutters start at 16; wider layouts use 24.
-- Radii are 4, 8, 12, 16, 28, and full pill. iOS uses continuous corners and inset grouped lists. Material 3 maps these to its extra small through extra large shape roles.
-- Interactive targets are at least 48 pt/dp in the native interpretation; the workout logger keeps set inputs at least 44 and ticks at 48, with room between rows. Web focus is a visible 2 px ring with offset. Reduced-motion preferences suppress decorative transitions.
-- Safe areas, back navigation, sheets, tab bars, pickers, and destructive confirmations follow each platform's native controls in the product. The HTML prototype approximates these patterns to test flow and hierarchy. iOS uses a large title and back label; Android uses a top app bar, selected navigation indicator, and segmented buttons. [Apple colour guidance](https://developer.apple.com/design/human-interface-guidelines/color) and [Material 3 theming](https://developer.android.com/develop/ui/compose/designsystems/material3) guide the M1/M8 mapping.
-- The platform difference is structural: iOS Today uses a flat large-title header, client-first inset summary, joined agenda rows and a restrained violet pill action; Android uses a small app bar, a day overview inside content, time-first neutral tonal summary, separated elevated agenda cards and an anchored FAB. The app's add sheet is a grouped list on iOS and visual tiles on Android. Capability is identical. Phone frames appear only on sufficiently tall desktop screens. The logger has no dock; in short landscape its rows just scroll and stay reachable.
-
-## Tokens
-
-The M0 draft tokens moved to [`packages/design-tokens`](../../packages/design-tokens/README.md) in M1 (E007). Its README explains what it generates, its checks, and how to change a token or add a contrast pair. Native mappings feed SwiftUI semantic styles and Compose `MaterialTheme(colorScheme, typography, shapes)`; they don't replace native controls. The prototype keeps a frozen copy of the M0 values in [`prototype/tokens.css`](prototype/tokens.css).
-
-Pilot feedback may change palette, type, or spacing; such changes are made in the package. Record findings through [`docs/discovery/prototype-validation-script.md`](../discovery/prototype-validation-script.md).
+Every screen is in the prototype. Its panel switches iOS, Android, trainer web and client web, the language, light and dark, the accent, the role and five business setups. [`DECISIONS.md`](prototype-v2/DECISIONS.md) lists what was decided per screen and what is still open.

@@ -5,6 +5,7 @@ import type {
   TenantScopes,
 } from '@fivvi/database';
 import type { SignUpAllowlist } from '@fivvi/domain';
+import type { DemoRequestMail } from '@fivvi/email/demo-request-mail';
 import type { PrivateSessionMail } from '@fivvi/email/private-session-mail';
 import type { TrainerInvitationMail } from '@fivvi/email/trainer-invitation-mail';
 import type { Locale } from '@fivvi/i18n';
@@ -59,6 +60,18 @@ export interface ApiDependencies {
    */
   consumeRateLimit(key: string, rule: RateLimitRule): Promise<{ allowed: boolean }>;
   /**
+   * The rate-limit key of the request's client IP address (public routes, F064): a keyed hash of
+   * the address with IPv6 grouped by /64, as sign-in counts it, so the counter table never holds
+   * an address; `null` when there is no usable address and no proxy is in front (local, tests):
+   * no per-address limit. apps/web wires `clientAddressKey` of `@fivvi/auth`.
+   */
+  clientAddressKey(headers: Headers): string | null;
+  /**
+   * Deletes the rate-limit counters whose window has ended. A public route calls it after it
+   * counts, as sign-in does (`deleteExpiredRateLimits` of `@fivvi/database`).
+   */
+  deleteExpiredRateLimits(): Promise<void>;
+  /**
    * The address lookup by postcode and house number (F015, spec #424): PDOK in production, an
    * in-memory fake elsewhere (`createAddressLookup`, from `ADDRESS_LOOKUP`).
    */
@@ -77,6 +90,12 @@ export interface ApiDependencies {
    * committed; a failed send is reported and does not fail the request (the session is stored).
    */
   sendPrivateSession(mail: PrivateSessionMail): Promise<void>;
+  /**
+   * Emails a demo request of the public website to Fivvi's support address (F064): the template,
+   * the sending and the address are the email package's (`createDemoRequestSender`, wired by
+   * apps/web). A failed send throws; the route answers 503 and stores nothing.
+   */
+  sendDemoRequest(mail: DemoRequestMail): Promise<void>;
   /** Where "now" comes from: the expiry and the daily limit of an invitation (F011), the past of a session (F020). Tests pass a manual clock. */
   clock: { now(): Date };
   /** Reports unhandled route errors to Sentry (E009). Off without a DSN. */
@@ -104,6 +123,7 @@ export const NO_DEPENDENCIES: ApiDependencies = {
   // Nothing is sent.
   sendTrainerInvitation: () => Promise.reject(new Error('No email configured.')),
   sendPrivateSession: () => Promise.reject(new Error('No email configured.')),
+  sendDemoRequest: () => Promise.reject(new Error('No email configured.')),
   clock: { now: () => new Date() },
   tenantScopes: {
     inAccountScope: () => Promise.reject(new Error('No database configured.')),
@@ -111,6 +131,9 @@ export const NO_DEPENDENCIES: ApiDependencies = {
     inInvitationScope: () => Promise.reject(new Error('No database configured.')),
   },
   consumeRateLimit: () => Promise.reject(new Error('No database configured.')),
+  // No address is told apart, and there are no counters to clear.
+  clientAddressKey: () => null,
+  deleteExpiredRateLimits: () => Promise.resolve(),
   // The fake: no test or document build reaches PDOK.
   addressLookup: createFakeAddressLookup(),
   errorReporter,

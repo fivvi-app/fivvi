@@ -24,10 +24,8 @@ final class ProfileUITests: SignInUITestCase {
         XCTAssertEqual(open.label, catalog["profile.title"])
         try assertTouchTarget(open, on: screen)
 
-        open.tap()
-
         let title = screen.app.staticTexts["profile.workspacesTitle"]
-        XCTAssertTrue(title.waitUntilExists(timeout: timeout))
+        XCTAssertTrue(open.tap(until: title, timeout: timeout))
         XCTAssertEqual(title.label, catalog["myProfile.workspacesTitle"])
         XCTAssertEqual(screen.app.staticTexts["profile.title"].label, catalog["profile.title"])
         XCTAssertEqual(screen.app.staticTexts["profile.workspaceName.workspace-0"].label, "John's Gym")
@@ -41,11 +39,11 @@ final class ProfileUITests: SignInUITestCase {
         let catalog = TestCatalog.configured
         let (screen, server) = try launchAsSarah()
         server.setOffline(true)
-        XCTAssertTrue(screen.app.buttons["home.openProfile"].waitUntilExists(timeout: timeout))
-        screen.app.buttons["home.openProfile"].tap()
+        let open = screen.app.buttons["home.openProfile"]
+        XCTAssertTrue(open.waitUntilExists(timeout: timeout))
 
         let error = screen.app.staticTexts["profile.error"]
-        XCTAssertTrue(error.waitUntilExists(timeout: timeout))
+        XCTAssertTrue(open.tap(until: error, timeout: timeout))
         XCTAssertEqual(error.label, catalog["profile.error"])
         server.setOffline(false)
         screen.app.buttons["profile.retry"].tap()

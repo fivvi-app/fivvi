@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Fivvi Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Google+Sans+Flex:opsz,wght@6..144,400..800&family=Nunito:wght@700..900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css">
+<link rel="stylesheet" href="web.css">
+</head>
+<body>
+<div class="board">
+  <aside class="panel" id="panel" aria-label="Prototype-instellingen">
+    <div class="brand">Fivvi prototype<small>Fivvi Pro, Fivvi, trainer web en klantweb · fictieve gegevens · nu is do 5 nov, 10:05</small></div>
+    <div class="ctl"><span>Taal</span><div class="bseg"><button data-pref="lang" data-v="nl" translate="no">Nederlands</button><button data-pref="lang" data-v="en" translate="no">English</button></div></div>
+    <div class="ctl"><span>Opzet</span><div class="bseg"><button data-pref="setup" data-v="team">Gym met team</button><button data-pref="setup" data-v="solo">Zelfstandige PT</button><button data-pref="setup" data-v="small">PT met small groups</button><button data-pref="setup" data-v="pilates">Pilatesstudio</button><button data-pref="setup" data-v="yoga">Yogastudio</button></div></div>
+    <div class="ctl"><span>Scherm</span><div class="bseg"><button data-pref="plat" data-v="ios">iOS</button><button data-pref="plat" data-v="android">Android</button><button data-pref="plat" data-v="web">Trainer web</button><button data-pref="plat" data-v="client">Klantweb</button></div></div>
+    <div class="ctl"><span>App (iOS en Android)</span><div class="bseg"><button data-pref="app" data-v="pro">Fivvi Pro</button><button data-pref="app" data-v="client">Fivvi (klant)</button></div></div>
+    <div class="ctl"><span>Accent</span><div class="sw" id="sw"></div></div>
+    <div class="ctl"><span>Weergave</span><div class="bseg"><button data-pref="mode" data-v="light">Licht</button><button data-pref="mode" data-v="dark">Donker</button></div></div>
+    <div class="ctl"><span>Glas (iOS)</span><div class="bseg"><button data-pref="glass" data-v="clear">Helder</button><button data-pref="glass" data-v="regular">Normaal</button><button data-pref="glass" data-v="tinted">Getint</button></div></div>
+    <div class="ctl"><span>Rol bij Studio Fit</span><div class="bseg"><button data-pref="role" data-v="owner">Eigenaar</button><button data-pref="role" data-v="trainer">Trainer</button></div></div>
+    <button class="reset" data-reset>Opnieuw beginnen</button>
+    <p class="note">Tik door de app zoals op je telefoon. Alles wat je toevoegt of wijzigt, blijft tot je opnieuw begint. Ga direct naar een scherm:</p>
+    <div class="idx" id="idx"></div>
+  </aside>
+  <main class="stage mk" id="mk" data-mode="light"><div class="dev ios" id="dev" aria-live="polite"></div></main>
+  <button class="mobile-fab" id="mfab" aria-label="Prototype-instellingen">⚙</button>
+</div>
+<script src="data.js"></script>
+<script src="i18n.js"></script>
+<script src="app.js"></script>
+<script src="web.js"></script>
+<script src="more-email.js"></script>
+<script src="more-web.js"></script>
+<script src="more-client.js"></script>
+<script src="more-pro.js"></script>
+</body>
+</html>

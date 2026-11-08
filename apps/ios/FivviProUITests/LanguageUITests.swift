@@ -22,10 +22,8 @@ final class LanguageUITests: SignInUITestCase {
         let open = screen.app.buttons["home.openProfile"]
         XCTAssertTrue(open.waitUntilExists(timeout: timeout))
         XCTAssertEqual(open.label, TestCatalog(other)["profile.title"], "the phone's language")
-        open.tap()
-
         let choice = screen.app.buttons["profile.language.\(apiLocale(TestCatalog.configuredLanguage))"]
-        XCTAssertTrue(choice.waitUntilExists(timeout: timeout))
+        XCTAssertTrue(open.tap(until: choice, timeout: timeout))
         try assertTouchTarget(choice, on: screen)
         XCTAssertFalse(choice.isSelected)
         choice.tap()

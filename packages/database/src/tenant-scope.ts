@@ -169,6 +169,52 @@ export type InvitationEntry<T> =
   | { readonly status: 'refused' }
   | { readonly status: 'entered'; readonly value: T };
 
+/**
+ * Reads an account's own workspaces one at a time (F013, ADR-006): for each of `workspaces` the
+ * account has a team role in, sets the context to that workspace alone, hands `run` a workspace
+ * scope (a team member's, with the account's role there), and when all are read puts the account
+ * scope's context back, so the rest of the request is as it was. Results come in the order of
+ * `workspaces`.
+ *
+ * This is how the trainer's calendar reads *across* workspaces without a query that spans them:
+ * every query of `run` sees one workspace, through the same policies as a workspace route. A
+ * workspace outside the account scope's context, or where the account's team role has ended since
+ * the scope was opened, is skipped, never read. The account's team role is looked up again for
+ * each, so a client relationship alone never gets a team member's scope.
+ *
+ * When `run` throws, the error goes up and the request's transaction rolls back: the account
+ * context is not put back, and the transaction must not be used for anything else. Only a call
+ * that returns leaves the scope as it found it.
+ */
+export async function inEachWorkspace<W extends { readonly id: string }, T>(
+  scope: TenantScope,
+  workspaces: readonly W[],
+  run: (workspaceScope: WorkspaceScope, workspace: W) => Promise<T>,
+): Promise<T[]> {
+  const tx = executorOf(scope);
+  const { accountId, workspaceIds } = scope.context;
+  const results: T[] = [];
+  for (const workspace of workspaces) {
+    if (!workspaceIds.includes(workspace.id)) continue;
+    await setContext(tx, { accountId, workspaceIds: [workspace.id] });
+    const place = await findPlace(tx, accountId, workspace.id);
+    if (!place.teamRole) continue;
+    const workspaceScope = openScope<WorkspaceScope>(tx, {
+      workspaceId: workspace.id,
+      actingAs: 'team',
+      context: {
+        accountId,
+        workspaceIds: [workspace.id],
+        teamRole: place.teamRole,
+        actingAs: 'team',
+      },
+    });
+    results.push(await run(workspaceScope, workspace));
+  }
+  await setContext(tx, { accountId, workspaceIds });
+  return results;
+}
+
 /** Opens request transactions with a tenant scope. `apps/web` creates it over the app's database. */
 export interface TenantScopes {
   /** An account route: the context holds the workspaces where the account has the asked relationship. */

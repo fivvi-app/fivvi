@@ -380,3 +380,24 @@ describe('E006 server-only namespaces', () => {
     ]);
   });
 });
+
+describe('F064 the public website is server-only copy', () => {
+  const nl = { 'app.name': 'Fivvi', 'hello.title': 'Welkom', 'site.home.headline': 'Jij traint.' };
+  const en = { 'app.name': 'Fivvi', 'hello.title': 'Welcome', 'site.home.headline': 'You train.' };
+
+  it('leaves site keys out of the iOS and Android catalogs', () => {
+    const files = renderNativeCatalogs(analysisOf(nl, en));
+    for (const [file, content] of files) {
+      expect(content, file).not.toContain('traint');
+      expect(content, file).not.toContain('You train');
+      expect(content, file).not.toContain('site');
+    }
+  });
+
+  it('still checks site keys for parity', () => {
+    const analysis = analyze(catalogSet(nl, { 'app.name': 'Fivvi', 'hello.title': 'Welcome' }));
+    expect(analysis.parity).toEqual([
+      '"site.home.headline" is in nl-NL.json but missing from en.json',
+    ]);
+  });
+});

@@ -2,6 +2,7 @@ import path from 'node:path';
 import { compile } from 'tailwindcss';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
+  clientColours,
   kotlinOutputs,
   renderOutputs,
   shadcnColours,
@@ -9,6 +10,7 @@ import {
   webOutputs,
 } from '../src/build.ts';
 import {
+  isWebOnly,
   readTokenSource,
   semanticColours,
   type TokenSource,
@@ -44,7 +46,8 @@ describe('E007 design tokens build', () => {
     const swift = swiftColours(output(swiftOutputs.colors));
     const kotlin = kotlinColours(output(kotlinOutputs.colors));
     const { light, dark } = customProperties(output(webOutputs.tokens));
-    const colours = semanticColours(source);
+    // The web-only colours (zinc for the trainer web, the client web's glass) are not native.
+    const colours = semanticColours(source).filter((colour) => !isWebOnly(colour));
     expect(swift.size).toBe(colours.length);
     expect(kotlin.light.size).toBe(colours.length);
     expect(kotlin.dark.size).toBe(colours.length);
@@ -58,9 +61,10 @@ describe('E007 design tokens build', () => {
       expect(kotlin.light.get(name), `Kotlin ${colour} light`).toBe(expected.light);
       expect(kotlin.dark.get(name), `Kotlin ${colour} dark`).toBe(expected.dark);
     }
-    // M0 draft values, resolved through the palette in each mode.
-    expect(swift.get('actionPrimaryBgPressed')).toEqual({ light: '#49427F', dark: '#D2CDF2' });
-    expect(kotlin.dark.get('bgCanvas')).toBe('#242428');
+    // v2 values, resolved through the palette and the mixes in each mode.
+    expect(swift.get('actionPrimaryBgPressed')).toEqual({ light: '#B90F3A', dark: '#B90F3A' });
+    expect(swift.get('accentText')).toEqual({ light: '#C8103D', dark: '#FF6482' });
+    expect(kotlin.dark.get('bgCanvas')).toBe('#000000');
   });
 
   it('AC1: CSS variables have a light and a dark value for every semantic colour', () => {
@@ -70,14 +74,17 @@ describe('E007 design tokens build', () => {
     }
 
     const { light, dark } = customProperties(output(webOutputs.tokens));
+    // Opaque hex everywhere text sits; only the client web's glass surfaces carry alpha.
+    const glass = /^color\.web\.glass\./;
     for (const colour of colours) {
-      expect(light.get(cssName(colour)), `${colour} light`).toMatch(hex);
-      expect(dark.get(cssName(colour)), `${colour} dark`).toMatch(hex);
+      const expected = glass.test(colour) ? /^rgba\(/ : hex;
+      expect(light.get(cssName(colour)), `${colour} light`).toMatch(expected);
+      expect(dark.get(cssName(colour)), `${colour} dark`).toMatch(expected);
     }
-    // M0 draft values, resolved through the palette in each mode.
-    expect(light.get('--th-color-bg-canvas')?.toUpperCase()).toBe('#F6F6F7');
-    expect(dark.get('--th-color-bg-canvas')?.toUpperCase()).toBe('#242428');
-    expect(dark.get('--th-color-action-tonal-bg')?.toUpperCase()).toBe('#3A3A41');
+    // v2 values, resolved through the palette and the mixes in each mode.
+    expect(light.get('--th-color-bg-canvas')?.toUpperCase()).toBe('#F2F2F7');
+    expect(dark.get('--th-color-bg-canvas')?.toUpperCase()).toBe('#000000');
+    expect(dark.get('--th-color-action-tonal-bg')?.toUpperCase()).toBe('#2E2E32');
   });
 
   it('AC1: dark values follow the system setting, and apps never see the base palette', () => {
@@ -112,8 +119,29 @@ describe('E007 design tokens build', () => {
         expect(resolveVar(`--${name}`, properties[mode]), `--${name} ${mode}`).toBe(tokenValue);
       }
     }
-    expect(resolveVar('--primary', properties.dark)?.toUpperCase()).toBe('#C1BBEB');
+    expect(resolveVar('--primary', properties.dark)?.toUpperCase()).toBe('#E6164A');
+    expect(resolveVar('--background', properties.light)?.toUpperCase()).toBe('#FFFFFF');
+    expect(resolveVar('--background', properties.dark)?.toUpperCase()).toBe('#09090B');
     expect(resolveVar('--radius', properties.light)).toBe('12px');
+  });
+
+  it("AC1: the client web's theme sets the same variables to the Fivvi Pro values, under data-theme", () => {
+    const css = output(webOutputs.client);
+    const block = css.match(/\[data-theme="client"\] \{([\s\S]*?)\n\}/)?.[1] ?? '';
+    const properties = customProperties(output(webOutputs.tokens), `:root {${block}}`);
+    expect(css).not.toContain(':root');
+    expect(Object.keys(clientColours).sort()).toEqual(Object.keys(shadcnColours).sort());
+    for (const [name, token] of Object.entries(clientColours)) {
+      for (const mode of ['light', 'dark'] as const) {
+        expect(resolveVar(`--${name}`, properties[mode]), `--${name} ${mode}`).toBe(
+          resolveVar(cssName(token), properties[mode]),
+        );
+      }
+    }
+    expect(resolveVar('--background', properties.light)?.toUpperCase()).toBe('#F2F2F7');
+    expect(resolveVar('--background', properties.dark)?.toUpperCase()).toBe('#000000');
+    expect(resolveVar('--muted-foreground', properties.light)?.toUpperCase()).toBe('#6C6C70');
+    expect(resolveVar('--radius', properties.light)).toBe('26px');
   });
 
   it('AC1: session and status colours are extra theme variables in light and dark', () => {
@@ -152,11 +180,15 @@ describe('E007 design tokens build', () => {
     expect(css).toMatch(/\.font-sans \{\s*font-family: var\(--th-font-family-text\);/);
   });
 
-  it('AC9: the Tailwind theme sets font-display to the display token, body text to the text token', async () => {
+  it('AC11: the Tailwind theme sets font-numeric to the numeric token, body text to the text token, and has no display face', async () => {
     const tailwind = await compile(`${output(webOutputs.theme)}\n@tailwind utilities;`);
-    const css = tailwind.build(['font-display', 'font-sans']);
-    expect(css).toMatch(/\.font-display \{\s*font-family: var\(--th-font-family-display\);/);
+    const css = tailwind.build(['font-numeric', 'font-sans', 'font-display']);
+    expect(css).toMatch(/\.font-numeric \{\s*font-family: var\(--th-font-family-numeric\);/);
     expect(css).toMatch(/\.font-sans \{\s*font-family: var\(--th-font-family-text\);/);
+    expect(css).not.toContain('font-display');
+    expect(
+      customProperties(output(webOutputs.tokens)).light.get('--th-font-family-numeric'),
+    ).toMatch(/^ui-rounded,/);
   });
 
   it('AC1: generates spacing and radius constants for Swift and Kotlin, and Material 3 shapes', () => {
@@ -179,17 +211,17 @@ describe('E007 design tokens build', () => {
         ].map(([, name, value]) => [name, Number(value)]),
       );
 
-    // M0 draft values: the 4-based spacing scale and the M3 shape scale.
+    // The 4-based spacing scale and the M3 shape scale; the card is 26 on iOS and 28 on Android.
     const spacing = { space0: 0, space0_5: 2, space4: 16, space16: 64, gutter: 16, gutterWide: 24 };
     const radius = { none: 0, xs: 4, sm: 8, md: 12, lg: 16, xl: 28, full: 9999 };
     for (const [values, group, expected] of [
       [swiftValues, 'Spacing', spacing],
       [kotlinValues, 'Spacing', spacing],
-      [swiftValues, 'Radius', radius],
-      [kotlinValues, 'Radius', radius],
+      [swiftValues, 'Radius', { ...radius, card: 26 }],
+      [kotlinValues, 'Radius', { ...radius, card: 28 }],
     ] as const) {
       const actual = values(group);
-      expect(actual.size, group).toBe(group === 'Spacing' ? 14 : 7);
+      expect(actual.size, group).toBe(group === 'Spacing' ? 14 : 8);
       for (const [name, value] of Object.entries(expected)) {
         expect(actual.get(name), `${group}.${name}`).toBe(value);
       }

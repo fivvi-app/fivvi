@@ -39,7 +39,7 @@ final class ClientsUITests: SignInUITestCase {
     private func openClients(_ screen: SignInScreen) {
         let open = screen.app.buttons["home.openClients"]
         XCTAssertTrue(open.waitUntilExists(timeout: timeout))
-        open.tap()
+        XCTAssertTrue(open.tap(until: screen.app.descendants(matching: .any)["clients.list"], timeout: timeout))
     }
 
     /// Replaces what a text field holds.
@@ -57,10 +57,9 @@ final class ClientsUITests: SignInUITestCase {
         XCTAssertTrue(open.waitUntilExists(timeout: timeout))
         XCTAssertEqual(open.label, catalog["clients.title"])
         try assertTouchTarget(open, on: screen)
-        open.tap()
 
         // The list: every client of the workspace, with its email address.
-        XCTAssertTrue(row("Anna de Vries", in: app).waitUntilExists(timeout: timeout))
+        XCTAssertTrue(open.tap(until: row("Anna de Vries", in: app), timeout: timeout))
         XCTAssertTrue(row("Mark Jansen", in: app).exists)
         XCTAssertTrue(row("Sophie Bakker", in: app).exists)
         XCTAssertEqual(row("Anna de Vries", in: app).label, "Anna de Vries, anna@example.com")
