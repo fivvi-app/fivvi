@@ -65,16 +65,8 @@
     <string name="common_loading_slow">Dit duurt langer dan normaal…</string>
     <!-- Button under an error message that tries the failed action again. -->
     <string name="common_retry">Opnieuw proberen</string>
-    <!-- Submit button of the first-name form on the hello page. Shows hello.formGreeting with the name entered. -->
-    <string name="hello_continue">Doorgaan</string>
-    <!-- Line under the title of the hello page, above the first-name field. -->
-    <string name="hello_description">Vul je voornaam in, dan begroeten we je.</string>
     <!-- Shown on the native hello screen when the greeting can't be loaded (no connection, or an unknown greeting). Above the common.retry button. -->
     <string name="hello_error">We konden de begroeting niet laden. Probeer het opnieuw.</string>
-    <!-- Label of the first-name field on the hello page. -->
-    <string name="hello_first_name_label">Voornaam</string>
-    <!-- Shown on the hello page after the first-name form is sent. {name} is the first name entered. -->
-    <string name="hello_form_greeting">Hoi %1$s, fijn dat je er bent.</string>
     <!-- Greeting above the home screen. {name} is the user's first name. -->
     <string name="hello_greeting">Hoi %1$s,</string>
     <!-- {date} is a weekday and date without year, e.g. 'dinsdag 22 september'. {time} is a 24-hour time, e.g. '18:00'. Both are formatted in code in the workspace time zone. -->
@@ -119,6 +111,10 @@
     <string name="not_found_title">Pagina niet gevonden</string>
     <string name="profile_error">Je werkruimtes konden niet worden geladen.</string>
     <string name="profile_language">Taal</string>
+    <!-- Row on the native Profile (iOS and Android, F064 AC17) that opens the privacy policy of the public website fivvi.app in the browser. Same wording as the website footer (site.footer.privacy). -->
+    <string name="profile_privacy">Privacyverklaring</string>
+    <!-- Row on the native Profile (iOS and Android, F064 AC17) that opens the Help and contact page of the public website fivvi.app in the browser. Same wording as the website footer (site.footer.support). -->
+    <string name="profile_support">Hulp en contact</string>
     <string name="profile_title">Profiel</string>
     <!-- Shown next to the switch when saving failed for another reason. The switch is back as it was. -->
     <string name="profile_trains_here_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
@@ -161,6 +157,61 @@
     <string name="settings_language_save">Opslaan</string>
     <string name="settings_language_saved">Opgeslagen.</string>
     <string name="settings_language_title">Taal</string>
+    <!-- Label of the optional house number addition field on TW-08, e.g. "A" or "2 hoog". -->
+    <string name="settings_location_addition_label">Toevoeging</string>
+    <!-- Legend of the group of address fields on TW-08 (postcode, house number, addition, street, city). Optional: an address is all or nothing. -->
+    <string name="settings_location_address_legend">Adres</string>
+    <!-- Label of the city field on TW-08. The address lookup fills it in; the person can still type it. -->
+    <string name="settings_location_city_label">Plaats</string>
+    <!-- Under the address fields on TW-08 when some but not all of postcode, house number, street and city are filled in. -->
+    <string name="settings_location_errors_address_incomplete">Vul het hele adres in, of laat het leeg.</string>
+    <!-- Shown on TW-08 when saving failed for any other reason. Nothing was changed. -->
+    <string name="settings_location_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
+    <!-- Under the house number field on TW-08 when it is not one to five digits. -->
+    <string name="settings_location_errors_house_number_invalid">Vul een huisnummer in van 1 tot 5 cijfers.</string>
+    <!-- Under the name field on TW-08 when it is empty or only spaces. -->
+    <string name="settings_location_errors_name_required">Vul een naam in.</string>
+    <!-- Under the name field on TW-08 when the name is over 120 characters. Same wording as the too-long workspace name. -->
+    <string name="settings_location_errors_name_too_long">Deze naam is te lang. Gebruik een kortere naam.</string>
+    <!-- Shown on TW-08 when the request to save could not reach the server. Nothing was changed. -->
+    <string name="settings_location_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <!-- Under the postcode field on TW-08 when it is not a Dutch postcode (four digits, an optional space, two letters). -->
+    <string name="settings_location_errors_postcode_invalid">Vul een postcode in zoals 1234 AB.</string>
+    <!-- Under the addition, street or city field on TW-08 when the text is over its limit. -->
+    <string name="settings_location_errors_too_long">Deze tekst is te lang. Gebruik een kortere tekst.</string>
+    <!-- Help text under the heading of the location card on TW-08: every session and class takes the workspace's one location. -->
+    <string name="settings_location_help">Alle sessies en lessen vinden hier plaats.</string>
+    <!-- Label of the house number field on TW-08: one to five digits, no addition. -->
+    <string name="settings_location_house_number_label">Huisnummer</string>
+    <!-- Shown on TW-08 while the street and city are looked up from the postcode and house number. The form stays usable. -->
+    <string name="settings_location_lookup_busy">Adres opzoeken…</string>
+    <!-- Note on TW-08 under the address fields when the street and/or city were filled in by the address lookup. -->
+    <string name="settings_location_lookup_filled">Ingevuld op basis van postcode en huisnummer.</string>
+    <!-- Shown on TW-08 when the lookup knows no address for the postcode and house number. Street and city stay empty for typing. -->
+    <string name="settings_location_lookup_not_found">We vinden geen adres bij deze postcode en dit huisnummer. Vul straat en plaats zelf in.</string>
+    <!-- Shown on TW-08 when the address lookup timed out, failed or is used up for the hour. Saving a hand-typed address still works. -->
+    <string name="settings_location_lookup_unavailable">Het adres opzoeken lukt nu niet. Vul straat en plaats zelf in.</string>
+    <!-- Label of the location name field on TW-08. It is prefilled with the workspace name when the workspace is created. -->
+    <string name="settings_location_name_label">Naam</string>
+    <!-- Label of the Dutch postcode field on TW-08, written like 1234 AB. -->
+    <string name="settings_location_postcode_label">Postcode</string>
+    <!-- Button of TW-08 that saves the location. -->
+    <string name="settings_location_save">Opslaan</string>
+    <!-- Confirmation shown next to the save button on TW-08 after the location was saved. -->
+    <string name="settings_location_saved">Locatie opgeslagen.</string>
+    <!-- Label of the street field on TW-08. The address lookup fills it in; the person can still type it. -->
+    <string name="settings_location_street_label">Straat</string>
+    <!-- Heading and browser tab title of TW-08, Settings → Location (`/w/{slug}/settings/locations`, Owner only). Dutch: Locatie (GLOSSARY §4.3). -->
+    <string name="settings_location_title">Locatie</string>
+    <!-- Label of the read-only location type on TW-08 (Eigen locatie / Own location). -->
+    <string name="settings_location_type_label">Soort</string>
+    <string name="settings_location_types_client_home">Bij de klant thuis</string>
+    <string name="settings_location_types_external_gym">Externe sportschool</string>
+    <string name="settings_location_types_online">Online</string>
+    <!-- The type of the workspace's own location, shown read-only on TW-08 (GLOSSARY §4.3). The other types exist in the data model; they are not shown at go-live. -->
+    <string name="settings_location_types_organization_location">Eigen locatie</string>
+    <string name="settings_location_types_other">Anders</string>
+    <string name="settings_location_types_outdoor">Buiten</string>
     <!-- Button on the second step that goes back to the email field. -->
     <string name="sign_in_change_email">E-mailadres wijzigen</string>
     <!-- Under the heading of the second step. {email} is the address that was entered. Deliberately does not say whether an account exists (no account enumeration). -->
@@ -302,6 +353,8 @@
     <string name="workspace_nav_settings">Instellingen</string>
     <string name="workspace_nav_settings_general">Algemeen</string>
     <string name="workspace_nav_settings_language">Taal</string>
+    <!-- Navigation link to Settings → Location (TW-08). Shown to the Owner only. -->
+    <string name="workspace_nav_settings_location">Locatie</string>
     <!-- Navigation link to the Trainers page (TW-06), the team list. Shown to the Owner only. -->
     <string name="workspace_nav_trainers">Trainers</string>
     <!-- Header of the sidebar: the workspace name, then the role of the signed-in person in it, e.g. "John's Gym · Owner". {name} is the workspace name, {role} the role label. -->

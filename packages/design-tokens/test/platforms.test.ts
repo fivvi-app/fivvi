@@ -2,6 +2,7 @@ import path from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { kotlinOutputs, renderOutputs, swiftOutputs } from '../src/build.ts';
 import {
+  isWebOnly,
   readTokenSource,
   semanticColours,
   type TokenSource,
@@ -115,7 +116,9 @@ describe('E007 design tokens platform mapping', () => {
     expect(light.get('secondaryContainer')).toBe(
       `LightTokenColors.${nativeName('color.action.tonal.bg')}`,
     );
-    expect(light.get('error')).toBe(`LightTokenColors.${nativeName('color.action.danger.bg')}`);
+    // Android uses the error role as text: danger as text on cards and the canvas, with its own text colour on it.
+    expect(light.get('error')).toBe(`LightTokenColors.${nativeName('color.status.danger.fg')}`);
+    expect(light.get('onError')).toBe(`LightTokenColors.${nativeName('color.text.inverse')}`);
     expect(light.get('outline')).toBe(`LightTokenColors.${nativeName('color.border.control')}`);
   });
 
@@ -147,12 +150,17 @@ describe('E007 design tokens platform mapping', () => {
     const colors = output(swiftOutputs.colors);
     const members = [...colors.matchAll(/public static let (\w+)/g)].map(([, name]) => name);
     const adaptive = swiftColours(colors);
-    expect(members.sort()).toEqual(semanticColours(source).map(nativeName).sort());
+    expect(members.sort()).toEqual(
+      semanticColours(source)
+        .filter((colour) => !isWebOnly(colour))
+        .map(nativeName)
+        .sort(),
+    );
     expect([...adaptive.keys()].sort()).toEqual(members);
     // A colour that changes with the appearance proves the dark value is used.
     expect(adaptive.get(nativeName('color.bg.canvas'))).toEqual({
-      light: '#F6F6F7',
-      dark: '#242428',
+      light: '#F2F2F7',
+      dark: '#000000',
     });
 
     // Color(light:dark:) resolves per appearance through the system's dynamic colour providers.

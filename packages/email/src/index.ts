@@ -7,6 +7,11 @@ export {
   type LettermintRoutes,
   readEmailConfig,
 } from './config.ts';
+export type { DemoBusinessKind, DemoRequestMail, DemoTrainerCount } from './demo-request-mail.ts';
+export {
+  createDemoRequestSender,
+  type DemoRequestSenderOptions,
+} from './demo-request-sender.ts';
 export {
   createEnvironmentSendEmail,
   type EnvironmentSendEmailOptions,
@@ -45,6 +50,8 @@ export {
   type SendEmailResult,
 } from './send.ts';
 export {
+  type DemoRequestEmailProps,
+  demoRequestEmail,
   type HelloEmailProps,
   helloEmail,
   type PrivateSessionEmailProps,

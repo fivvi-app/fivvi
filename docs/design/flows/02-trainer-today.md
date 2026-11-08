@@ -1,6 +1,10 @@
 # Flow 02: Trainer "Vandaag" on mobile
 
+> **Open Gym comes later (owner, 6 November 2026; `PRODUCT.md §53`).** Open Gym is not in the MVP. What this document says about it describes the feature for when it is built.
+
 **Open the app → see my day across all workspaces → open the next session → act (start workout, attendance, note)**
+
+> **Design v2 (5 November 2026, ADR-029).** The look and layout of Vandaag are decided in [prototype v2](../prototype-v2/DECISIONS.md#vandaag-td-01): a summary line under the title, no rings, the *Mijn dag* card (to do, next free gap, route with 2+ places), *Hele studio* with a lane per trainer, and Calendar-style rows. The flow, the content and the states below still apply; where the layout differs, the prototype wins.
 
 | | |
 |---|---|

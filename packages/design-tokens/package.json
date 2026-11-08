@@ -6,8 +6,10 @@
   "exports": {
     "./tokens.css": "./generated/web/tokens.css",
     "./shadcn.css": "./generated/web/shadcn.css",
+    "./client.css": "./generated/web/client.css",
     "./theme.css": "./generated/web/theme.css",
-    "./source": "./src/source.ts"
+    "./source": "./src/source.ts",
+    "./workspace-colour": "./src/workspace-colour.ts"
   },
   "scripts": {
     "generate": "node src/cli.ts generate",

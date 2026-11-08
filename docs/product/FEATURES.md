@@ -3,7 +3,7 @@
 The single source of truth for feature status. A status changes **in the same PR** as the code that earns it.
 
 - **Lifecycle:** `IDEA → PLANNED → DESIGNED → IN PROGRESS → IN REVIEW → IMPLEMENTED → RELEASED` (`PRODUCT.md §81`)
-- **Priority:** `Must` (MVP cannot ship without it) · `Should` (first to slip to 1.1 if dates are at risk) · `Must (proposed, decision 9)` (proposed M11 scope, `ROADMAP.md` decision 9: a `Must` only once the owner confirms it)
+- **Priority:** `Later` (not in the MVP, `PRODUCT.md §53`) · `Must` (MVP cannot ship without it) · `Should` (first to slip to 1.1 if dates are at risk) · `Must (proposed, decision 9)` (proposed M11 scope, `ROADMAP.md` decision 9: a `Must` only once the owner confirms it)
 - **Languages:** a feature is not `IMPLEMENTED` until both NL and EN work (`PRODUCT.md §82`)
 - **Platforms:** a feature with a trainer mobile surface (marked `+ iOS/Android` in the Milestone column) or a client mobile surface in the client app (marked `+ Fivvi iOS/Android`, since `ROADMAP.md` v1.31) is not `IMPLEMENTED` until web, iOS and Android all work; its iOS and Android tickets sit next to the web ticket with the same acceptance criteria (`ROADMAP.md` M8, the native track)
 - **Spec:** the *Spec* column points to the requirements in [`PRODUCT.md`](PRODUCT.md). Each feature's spec and tickets are GitHub issues (`/to-spec`, `/to-tickets`, [`docs/agents/issue-tracker.md`](../agents/issue-tracker.md)); once a spec issue exists, the ID links to it, e.g. `[F031](https://github.com/fivvi-app/fivvi/issues/<n>)`
@@ -14,7 +14,7 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | Release | Features | Released |
 |---|---|---|
-| MVP | 63 (F001–F063) + 19 engineering enablers (E001–E019); F017–F019 (more locations) and M7 (F039–F048, F051) come after go-live; trainer (Fivvi Pro) and, from M5, client (Fivvi) iOS and Android screens are built with their web features (the M8 native track) | 0 |
+| MVP | 66 (F001–F069 without F034–F036, Open Gym, later) + 20 engineering enablers (E001–E020); F017–F019 (more locations) and M7 (F039–F048, F051, F069) come after go-live; trainer (Fivvi Pro) and, from M5, client (Fivvi) iOS and Android screens are built with their web features (the M8 native track) | 0 |
 
 **Waitlist moved to the MVP (31 October 2026, [#150](https://github.com/fivvi-app/fivvi/issues/150)):** it was a Release 1.1 candidate. The owner placed it as **F062** in **M5** (31 October 2026, `ROADMAP.md` v1.29); the rules are in `PRODUCT.md §23`.
 
@@ -39,6 +39,8 @@ The single source of truth for feature status. A status changes **in the same PR
 | F009 | English UI | PLANNED | Must | continuous | F007 | — | ⬜ | §2.2 |
 | [F010](https://github.com/fivvi-app/fivvi/issues/175) | Locale Preference: choose Dutch or English in the user menu and on My profile (web) and under Profiel → Taal (iOS, Android), saved on the account and followed by every browser and app; the switch on the sign-in screens; the Owner's default communication language in Settings → Language; every M2 screen complete in both languages | IMPLEMENTED | Must | M2 (+ iOS/Android; + Fivvi iOS/Android from M5) | F001, F007 | ✅ | ✅ | §3 |
 | F063 | Sign in with Apple and Google: a second way to sign in, on the web first (clients and team members), then Fivvi Pro and Fivvi (App Store guideline 4.8: Sign in with Apple when an app offers Google). Owner steps later: an Apple Services ID and a Google OAuth client | PLANNED | **Should** | M5 (web first; Fivvi Pro and Fivvi after) | F001 | ⬜ | ⬜ | §27, [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md) |
+| [F068](https://github.com/fivvi-app/fivvi/issues/588) | The workspace's word for its trainers: trainer, instructeur, docent or coach, chosen per workspace in Instellingen and used in every screen, email and the QR poster; the role stays Trainer | PLANNED | Must | M4 (+ iOS/Android; + Fivvi iOS/Android) | F002, F004, E005, E006 | ⬜ | ⬜ | §9, §3, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §6, §7 item 7 |
+| [F064](https://github.com/fivvi-app/fivvi/issues/611) | Public website at fivvi.app: homepage, a page per audience (gyms, studios, personal trainers, clients), pricing, demo request, help and contact, a link to account deletion and the legal pages, built for search engines (ADR-030) | IN PROGRESS | Must | Parallel, before #151 | E005, F007, E006, E020 | ⬜ | ⬜ | §2.2, §53, §79, §94; `DECISIONS.md` §9 |
 
 ### Trainers
 
@@ -70,6 +72,8 @@ The single source of truth for feature status. A status changes **in the same PR
 | F024 | Trainer Substitution | PLANNED | Must | M4 | F022, F023 | ⬜ | ⬜ | §19 |
 | F025 | Attendance | PLANNED | Must | M4 (+ iOS/Android) | F020, F022 | ⬜ | ⬜ | §43 |
 | F026 | Cancellations | PLANNED | Must | M4 (+ iOS/Android: cancel a session) | F020, F022, F049 | ⬜ | ⬜ | §17, §43, §51 (records time and actor for the §93 cutoff) |
+| [F066](https://github.com/fivvi-app/fivvi/issues/586) | Duo Sessions: two clients and one trainer, each with their own credit, attendance, notes and workout; only the trainer plans one; if one client cancels it continues as a private session | PLANNED | Must | M4 (+ iOS/Android); client view M5 (+ Fivvi iOS/Android); credits M11; workout logs M7 | F020, F025, F026; later stages F033, F054, F055, F043, F045 | ⬜ | ⬜ | §17, §92, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §6, §7 item 5 |
+| [F067](https://github.com/fivvi-app/fivvi/issues/587) | Class Levels: a fixed list of four levels on a class, set on the series and changeable per date; information only, with no filter and no limit on who books | PLANNED | Must | M4 (+ iOS/Android); client view M5 (+ Fivvi iOS/Android) | F021, F022; client view F027, F033 | ⬜ | ⬜ | §18, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §6, §7 item 6 |
 
 ### Booking
 
@@ -84,19 +88,19 @@ The single source of truth for feature status. A status changes **in the same PR
 | F033 | Client Booking Dashboard | PLANNED | Must | M5 (+M11 commerce) (+ Fivvi iOS/Android) | F031, F062 | ⬜ | ⬜ | §15 (Client Web: my schedule with private + group; the waitlists the client is on, with the position; from M11, per workspace, the payment history and the invoice and credit-note PDFs, §96) |
 | F062 | Waitlist: group classes only; one tap to join, position shown; the first in line is booked automatically when a spot frees up (a cancellation, a removal, more capacity) with a "you're in" email; a workspace **waitlist closing time** (default 30 minutes before the class) after which nobody moves up and everyone waiting gets a "you didn't get in" email; from M11 a client who can't book is skipped; the owner and trainers see the list on the web | PLANNED | Must | M5 (+M11 commerce) (+ Fivvi iOS/Android) | F026, F028, F031, F049 | ⬜ | ⬜ | §23 (Waitlist) |
 
-### Open Gym
+### Open Gym (later, not in the MVP: owner, 6 November 2026, `PRODUCT.md §53`)
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F034 | Open Gym Slots | PLANNED | Must | M6 (+ iOS/Android) | F015, F020 | ⬜ | ⬜ | §2.7, §15, §28 |
-| F035 | Open Gym Booking: approved clients book an Open Gym slot (Open Gym credits from M11) | PLANNED | Must | M6 (+ Fivvi iOS/Android) | F034, F027, F028, F031 | ⬜ | ⬜ | §30 |
-| F036 | Open Gym Suggestions | PLANNED | **Should** | M6 | F034, F013 | ⬜ | ⬜ | §29 |
+| F034 | Open Gym Slots | PLANNED | Later | Later | F015, F020 | ⬜ | ⬜ | §2.7, §15, §28 |
+| F035 | Open Gym Booking: approved clients book an Open Gym slot (with Open Gym credits) | PLANNED | Later | Later | F034, F027, F028, F031 | ⬜ | ⬜ | §30 |
+| F036 | Open Gym Suggestions | PLANNED | Later | Later | F034, F013 | ⬜ | ⬜ | §29 |
 
 ### Sharing
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F037 | Booking Links: for approved clients only, next to the workspace's one join link | PLANNED | Must | M6 | F027, F029, F035 | ⬜ | ⬜ | §32 |
+| F037 | Booking Links: for approved clients only, next to the workspace's one join link | PLANNED | Must | M6 | F027, F029 | ⬜ | ⬜ | §32 |
 | F038 | QR Codes: the join link's QR code for the desk, and class links | PLANNED | Must | M6 | F037 | ⬜ | ⬜ | §33 |
 
 ### Workouts
@@ -111,6 +115,7 @@ The single source of truth for feature status. A status changes **in the same PR
 | F044 | Previous Workout Display | PLANNED | Must | M7, after G4 (+ iOS/Android) | F043 | ⬜ | ⬜ | §41 |
 | F045 | Workout History | PLANNED | Must | M7, after G4 (+ iOS/Android; + Fivvi iOS/Android) | F043 | ⬜ | ⬜ | §42, §37 (shared recap) |
 | F051 | Repeat Previous Workout | PLANNED | Must | M7, after G4 (+ iOS/Android) | F043, F045 | ⬜ | ⬜ | §41 (moved from §54) |
+| [F069](https://github.com/fivvi-app/fivvi/issues/602) | Own Workouts: a client does a workout the trainer shared on their own and logs it, private to the client; app only | PLANNED | Must | M7, after G4 (+ Fivvi iOS/Android) | F039, F042, F045 | ⬜ | ⬜ | §40, §55, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §5b, §7 item 11 |
 
 ### Notes
 
@@ -128,14 +133,15 @@ Added in roadmap v1.19 (M11), before go-live; credit packs and credit plans, gro
 |---|---|---|---|---|---|---|---|---|
 | F052 | Offers and Prices | PLANNED | Must | M11 | F002, E019 | ⬜ | ⬜ | §90 (three default plans, pre-filled and switched off until the owner turns them on; the owner adds the price; owner-made offers of the four kinds; QC19 (a)–(c) on the defaults are proposals, (d)–(e) are answered) |
 | F053 | Memberships | PLANNED | Must | M11 | F052, F022, F028, F057 | ⬜ | ⬜ | §91 (weekly allowance of 1, 2 or 3 classes a week, term, terms stored; no standing spot at the pilot) |
-| F054 | Credit Packs and Plans (group, private and Open Gym) | PLANNED | Must | M11 | F052, F020, F028, F055, F057 | ⬜ | ⬜ | §92 (credit packs bought once; credit plans paid each billing cycle, with a carry-over limit; group, private and Open Gym credits never mix) |
-| F055 | Credit Balance | PLANNED | Must | M11 | F025, F026 | ⬜ | ⬜ | §92 (one balance per kind, group, private or Open Gym, per agreement; history: granted, used, returned, expired) |
+| F054 | Credit Packs and Plans (group and private) | PLANNED | Must | M11 | F052, F020, F028, F055, F057 | ⬜ | ⬜ | §92 (credit packs bought once; credit plans paid each billing cycle, with a carry-over limit; group and private credits never mix) |
+| F055 | Credit Balance | PLANNED | Must | M11 | F025, F026 | ⬜ | ⬜ | §92 (one balance per kind, group or private, per agreement; history: granted, used, returned, expired) |
 | F056 | Cancellation Policy and Makeups | PLANNED | Must | M11 | F026, F055 | ⬜ | ⬜ | §93 (cutoff, late cancellation, makeups) |
 | F057 | Recurring Payments | PLANNED | Must | M11 | E019, F059 | ⬜ | ⬜ | §94 (first payment + mandate, SEPA Direct Debit: proposal, QC06; exactly once) |
 | F058 | Single Class Purchase | PLANNED | Must (proposed, decision 9) | M11 | F031, E019, F059 | ⬜ | ⬜ | §95 |
 | F059 | Invoices and Billing Details | PLANNED | Must | M11 | F006, F052 | ⬜ | ⬜ | §96 (company details, gapless numbers, credit notes) |
 | F060 | Failed Payments and Refunds | PLANNED | Must | M11 | F057, F059 | ⬜ | ⬜ | §94 |
 | F061 | Payouts and Reconciliation | PLANNED | Must (proposed, decision 9) | M11 | F057, F060 | ⬜ | ⬜ | §97 |
+| [F065](https://github.com/fivvi-app/fivvi/issues/606) | Payments Outside Fivvi: the Owner records a payment taken at the studio or by bank transfer on the client's profile, and a studio may take payments only at the studio, without Mollie | PLANNED | Must | M11 (+ iOS/Android; + Fivvi iOS/Android) | E019, F052, F053, F054, F055, F057, F059, F060 | ⬜ | ⬜ | §53, §91, §92, §94, §96, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) *Betaling buiten Fivvi* |
 
 ### Notifications
 
@@ -171,6 +177,7 @@ These are not user-facing, so they don't need NL/EN columns. They still go throu
 | E017 | App distribution | IN PROGRESS | M2 | The hand-started Release workflow runs in the `release` environment (the owner approves, `main` only): the full iOS and Android suites in nl and en first, one version for both apps and build number = run number + a fixed offset; iOS is signed and uploaded to TestFlight, with its dSYMs to Sentry; Android's App Bundle goes to Play internal testing (the first upload by hand, as Google's API can't make an app's first release), and its R8 mapping will go to Sentry once the release build is minified. App ID `app.fivvi.pro` (*Fivvi Pro*), the icon from one source. `docs/engineering/RELEASE.md` is the runbook, the owner checklist and the store requirements for the public release (§9); the client app `app.fivvi` gets its own release lane in M5 (`ROADMAP.md` v1.31) |
 | E018 | API contract & client generation | IMPLEMENTED | M1 | `packages/api`: Hono + zod-openapi, mounted in `apps/web` under `/api`; `GET /api/v1/hello` reads `system_greetings` (#93). `packages/contract`: committed `openapi.json` (3.1) → TS (openapi-typescript + openapi-fetch), Swift (swift-openapi-generator), Kotlin (openapi-generator, retrofit2 + kotlinx.serialization); generators pinned. Drift check: `pnpm check` (Turborepo `check` task); E002 makes it a required CI check (ADR-004) |
 | E019 | Payment provider integration | PLANNED | M11 | ADR-020 (Accepted 21 October 2026: Mollie Connect for Platforms, the gym as merchant on its own Mollie account; Stripe Connect as fallback) and the questions for Mollie it lists; one guided connection step for the Owner (Mollie Client Links), test mode for previews, idempotent requests, stored webhook events processed once, replay tests |
+| [E020](https://github.com/fivvi-app/fivvi/issues/590) | Design v2 foundation | IN PROGRESS | M4 | ADR-029 in code: the v2 tokens, iOS 26 with Liquid Glass, Material 3 Expressive with Google Sans Flex, the shadcn theme, the system font on the web, and every screen already built moved to its prototype screen in light and dark, Dutch and English |
 
 ---
 
@@ -180,13 +187,13 @@ These get `F0xx` IDs when they move to `PLANNED`. Full context is in [`ROADMAP.m
 
 | Release | Candidate items |
 |---|---|
-| 1.1 | Recurring private appointments · schedule exceptions · holidays · blocked time · workout duplication · warm-up sets · supersets · workout reordering · pinned notes · note search · offline resilience · bulk attendance · *session reminder emails (suggested)* · *read-only ICS calendar feed (suggested)* · *deep links (Universal Links / App Links) so email links open the apps directly (suggested)* · push notifications in Fivvi and Fivvi Pro (APNs + FCM) |
+| 1.1 | Recurring private appointments · schedule exceptions · holidays · blocked time · workout duplication · warm-up sets · supersets · pinned notes · note search · offline resilience · *session reminder emails (suggested)* · *read-only ICS calendar feed (suggested)* · *deep links (Universal Links / App Links) so email links open the apps directly (suggested)* · push notifications in Fivvi and Fivvi Pro (APNs + FCM) |
 | 1.2 | *(moved into the MVP in v1.31: the client app Fivvi ships at go-live)* |
 | 1.3 | AI note capture (NL/EN, speech + text, trainer confirms) |
 | 1.4 | AI pre-session client briefing |
-| 2.0 | Self-serve workspace creation · persona onboarding · marketing site · help center · *platform billing (decision pending)* |
+| 2.0 | Self-serve workspace creation · persona onboarding · help center · *platform billing (decision pending)* |
 | 2.1 | Freelance improvements · gym access information |
 | 2.2 | Workspace switching · cross-workspace conflict detection · workspace-specific permissions |
 | 2.3 | Multi-location organizations |
-| 4.0 | Advanced commerce: discounts · gift cards · reminders and dunning · POS/kiosk · accounting integrations · revenue reports |
+| 4.0 | Advanced commerce: discounts · gift cards · bring a friend · reminders and dunning · POS/kiosk · accounting integrations · revenue reports |
 | 3.0 – 3.2, 5.0 – 7.0 | See roadmap themes |

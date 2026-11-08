@@ -1,9 +1,11 @@
+import { demoRequestEmail } from './demo-request.tsx';
 import { helloEmail } from './hello.tsx';
 import { privateSessionEmail } from './private-session.tsx';
 import { privateSessionMovedEmail } from './private-session-moved.tsx';
 import { signInEmail } from './sign-in.tsx';
 import { trainerInvitationEmail } from './trainer-invitation.tsx';
 
+export { type DemoRequestEmailProps, demoRequestEmail } from './demo-request.tsx';
 export { type HelloEmailProps, helloEmail } from './hello.tsx';
 export { type PrivateSessionEmailProps, privateSessionEmail } from './private-session.tsx';
 export {
@@ -23,4 +25,5 @@ export const templates = [
   trainerInvitationEmail,
   privateSessionEmail,
   privateSessionMovedEmail,
+  demoRequestEmail,
 ] as const;

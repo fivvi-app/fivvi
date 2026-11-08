@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Accepted (2026-09-22) |
+| **Status** | Accepted (2026-09-22). The look is refined by [ADR-029](ADR-029-design-v2.md) (2026-11-05) |
 | **Date** | 2026-09-22 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | ROADMAP.md §4.2, M1, M8, §10; ADR-002, ADR-003, ADR-008; E007 |

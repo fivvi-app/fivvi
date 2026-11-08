@@ -12,28 +12,30 @@
           "system-ui",
           "sans-serif"
         ],
-        "$description": "All UI text. Native apps use the platform system font (SF Pro on iOS, Roboto on Android) so Dynamic Type and font scaling work for free. No web font for body text: keeps the public booking page inside its LCP budget.",
+        "$description": "All UI text. Native apps use the platform system font (SF Pro on iOS, Google Sans Flex on Android, E020) so Dynamic Type and font scaling work for free. The web uses the system stack and loads no web font.",
         "$extensions": {
           "app.fivvi.platform": {
             "ios": "system (SF Pro)",
-            "android": "system (Roboto)"
+            "android": "Google Sans Flex"
           }
         }
       },
-      "display": {
+      "numeric": {
         "$value": [
-          "Bricolage Grotesque",
+          "ui-rounded",
+          "SF Pro Rounded",
           "-apple-system",
           "BlinkMacSystemFont",
           "Roboto",
+          "Segoe UI",
           "system-ui",
           "sans-serif"
         ],
-        "$description": "Brand voice, used sparingly: public booking page headings and the workspace name. Never for body text or form labels. Native apps keep the system font (see visual-direction.md §3).",
+        "$description": "Numbers: a rounded face with tabular digits (use font-variant-numeric: tabular-nums on the web). No web font: ui-rounded and SF Pro Rounded are system faces.",
         "$extensions": {
           "app.fivvi.platform": {
-            "ios": "system (SF Pro Display)",
-            "android": "system (Roboto)"
+            "ios": "SF Pro Rounded (.rounded design) with monospaced digits",
+            "android": "Google Sans Flex, round axis, tabular figures"
           }
         }
       }
@@ -59,18 +61,19 @@
     "$description": "Sizes are the default (100%) size in px on web, pt on iOS, sp on Android. Native apps must use the mapped platform text style so user font scaling applies; the size here is the reference, not a hard-coded value.",
     "display": {
       "$value": {
-        "fontFamily": "{font.family.display}",
+        "fontFamily": "{font.family.text}",
         "fontSize": "34px",
-        "lineHeight": "40px",
-        "fontWeight": "{font.weight.semibold}",
-        "letterSpacing": "-0.01em"
+        "lineHeight": "41px",
+        "fontWeight": "{font.weight.bold}",
+        "letterSpacing": "0.01em"
       },
       "$extensions": {
         "app.fivvi.platform": {
           "ios": "largeTitle",
           "android": "headlineLarge"
         }
-      }
+      },
+      "$description": "Large title: 34 pt on iOS, with a 13 pt uppercase eyebrow (the date) above it where the prototype has one."
     },
     "title-1": {
       "$value": {

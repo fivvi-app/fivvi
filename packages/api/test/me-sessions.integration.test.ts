@@ -13,6 +13,7 @@ import {
 } from '@fivvi/database';
 import {
   addClient,
+  addGroupClass,
   addSession,
   addTeamRole,
   createAccount,
@@ -213,9 +214,15 @@ describe('F013 the personal day and sessions through the API', () => {
       trainerProfileId: sarahGym,
       startsAt: sessionAt('11:00'),
     });
+    const krachtClass = await addGroupClass(admin.db, {
+      workspaceId: gym.id,
+      nameNl: 'Kracht',
+      nameEn: 'Strength',
+    });
     const kracht = await addSession(admin.db, {
       workspaceId: gym.id,
       type: 'group',
+      groupClassId: krachtClass.id,
       capacity: 8,
       participant: false,
       trainerProfileId: sarahGym,
@@ -224,6 +231,7 @@ describe('F013 the personal day and sessions through the API', () => {
     const krachtCancelled = await addSession(admin.db, {
       workspaceId: gym.id,
       type: 'group',
+      groupClassId: krachtClass.id,
       capacity: 8,
       participant: false,
       status: 'cancelled',
@@ -334,6 +342,95 @@ describe('F013 the personal day and sessions through the API', () => {
       expect(kracht).not.toHaveProperty('clientName');
       expect(kracht).not.toHaveProperty('location');
       expect(cancelled).toMatchObject({ type: 'group', status: 'cancelled' });
+    });
+
+    it('AC1: a class date carries its name in the viewer’s language: Kracht for Dutch, Strength for English, a Dutch-only class Dutch in both; a private session none', async () => {
+      const w = await world();
+      const sarahGym = await profileOf(w.gym.id, w.sarah.id);
+      const yoga = await addGroupClass(admin.db, { workspaceId: w.gym.id, nameNl: 'Yoga' });
+      const yogaSession = await addSession(admin.db, {
+        workspaceId: w.gym.id,
+        type: 'group',
+        groupClassId: yoga.id,
+        participant: false,
+        trainerProfileId: sarahGym,
+        startsAt: zonedTime('2026-09-22T19:00'),
+      });
+      const namesFor = async (preferredLocale: 'nl-NL' | 'en') => {
+        await admin.db
+          .update(authUsers)
+          .set({ preferredLocale })
+          .where(eq(authUsers.id, w.sarah.id));
+        const body = (await (
+          await get(api(), '/v1/me/day?date=2026-09-22', w.sarah)
+        ).json()) as DayBody;
+        return Object.fromEntries(body.items.map((item) => [item.sessionId, item.className]));
+      };
+
+      const dutch = await namesFor('nl-NL');
+      const english = await namesFor('en');
+
+      expect(dutch).toEqual({
+        [w.annaSession.id]: undefined,
+        [w.markSession.id]: undefined,
+        [w.kracht.id]: 'Kracht',
+        [w.krachtCancelled.id]: 'Kracht',
+        [yogaSession.id]: 'Yoga',
+      });
+      expect(english).toEqual({
+        [w.annaSession.id]: undefined,
+        [w.markSession.id]: undefined,
+        [w.kracht.id]: 'Strength',
+        [w.krachtCancelled.id]: 'Strength',
+        [yogaSession.id]: 'Yoga',
+      });
+    });
+
+    it('AC1: without a stored language the Accept-Language of the request decides, else English (ADR-017)', async () => {
+      const w = await world();
+      const kracht = async (headers: Record<string, string>) => {
+        const body = (await (
+          await get(api(), '/v1/me/day?date=2026-09-22', w.sarah, headers)
+        ).json()) as DayBody;
+        return body.items.find((item) => item.sessionId === w.kracht.id)?.className;
+      };
+
+      expect(await kracht({ 'accept-language': 'nl-BE,nl;q=0.9,en;q=0.5' })).toBe('Kracht');
+      expect(await kracht({ 'accept-language': 'de-DE,en-GB;q=0.8' })).toBe('Strength');
+      expect(await kracht({})).toBe('Strength');
+    });
+
+    it('AC1: a stored language beats a conflicting Accept-Language (ADR-017)', async () => {
+      const w = await world();
+      const kracht = async (preferredLocale: 'nl-NL' | 'en', acceptLanguage: string) => {
+        await admin.db
+          .update(authUsers)
+          .set({ preferredLocale })
+          .where(eq(authUsers.id, w.sarah.id));
+        const body = (await (
+          await get(api(), '/v1/me/day?date=2026-09-22', w.sarah, {
+            'accept-language': acceptLanguage,
+          })
+        ).json()) as DayBody;
+        return body.items.find((item) => item.sessionId === w.kracht.id)?.className;
+      };
+
+      expect(await kracht('nl-NL', 'en-GB,en;q=0.9')).toBe('Kracht');
+      expect(await kracht('en', 'nl-NL,nl;q=0.9')).toBe('Strength');
+    });
+
+    it('AC1: a private session has no className, whatever the language', async () => {
+      const w = await world();
+      await admin.db
+        .update(authUsers)
+        .set({ preferredLocale: 'en' })
+        .where(eq(authUsers.id, w.sarah.id));
+
+      const body = (await (await day('2026-09-22', w.sarah)).json()) as DayBody;
+
+      const [anna, mark] = body.items;
+      expect(anna).not.toHaveProperty('className');
+      expect(mark).not.toHaveProperty('className');
     });
 
     it('AC1: after Anna started, "Nu bezig"; after the last session that takes place, no next item', async () => {
@@ -571,6 +668,24 @@ describe('F013 the personal day and sessions through the API', () => {
       });
       expect(john.items).toHaveLength(1);
       expect(john.items[0]?.sessionId).toBe(w.others[1]);
+    });
+
+    it('AC1: the class name in the viewer’s language, in the range too', async () => {
+      const w = await world();
+      const range = async (preferredLocale: 'nl-NL' | 'en') => {
+        await admin.db
+          .update(authUsers)
+          .set({ preferredLocale })
+          .where(eq(authUsers.id, w.sarah.id));
+        const body = (await (
+          await sessionsOf('2026-09-22', '2026-09-22', w.sarah)
+        ).json()) as RangeBody;
+        return body.items.map((item) => item.className);
+      };
+
+      // Anna, Mark, Kracht and the cancelled Kracht, in time order; the private ones name no class.
+      expect(await range('nl-NL')).toEqual([undefined, undefined, 'Kracht', 'Kracht']);
+      expect(await range('en')).toEqual([undefined, undefined, 'Strength', 'Strength']);
     });
 
     it('lists a week and a month in time order, the range’s last day whole', async () => {
@@ -863,6 +978,7 @@ describe('F013 the personal day and sessions through the API', () => {
         'Anna de Vries',
         'Mark Jansen',
         'Kracht',
+        'Strength',
         w.sarah.email,
         w.gym.marker,
         w.own.marker,

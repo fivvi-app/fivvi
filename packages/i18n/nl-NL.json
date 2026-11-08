@@ -11,10 +11,6 @@
   },
   "hello": {
     "title": "Welkom bij Fivvi",
-    "description": "Vul je voornaam in, dan begroeten we je.",
-    "firstNameLabel": "Voornaam",
-    "continue": "Doorgaan",
-    "formGreeting": "Hoi {name}, fijn dat je er bent.",
     "greeting": "Hoi {name},",
     "sessionsToday": "{count, plural, one {Je hebt vandaag # sessie.} other {Je hebt vandaag # sessies.}}",
     "noSessionsToday": "Je hebt vandaag geen sessies.",
@@ -110,6 +106,44 @@
       "generic": "Er ging iets mis. Probeer het opnieuw."
     }
   },
+  "settingsLocation": {
+    "title": "Locatie",
+    "help": "Alle sessies en lessen vinden hier plaats.",
+    "nameLabel": "Naam",
+    "typeLabel": "Soort",
+    "addressLegend": "Adres",
+    "postcodeLabel": "Postcode",
+    "houseNumberLabel": "Huisnummer",
+    "additionLabel": "Toevoeging",
+    "streetLabel": "Straat",
+    "cityLabel": "Plaats",
+    "save": "Opslaan",
+    "saved": "Locatie opgeslagen.",
+    "lookup": {
+      "busy": "Adres opzoeken…",
+      "filled": "Ingevuld op basis van postcode en huisnummer.",
+      "notFound": "We vinden geen adres bij deze postcode en dit huisnummer. Vul straat en plaats zelf in.",
+      "unavailable": "Het adres opzoeken lukt nu niet. Vul straat en plaats zelf in."
+    },
+    "types": {
+      "organizationLocation": "Eigen locatie",
+      "externalGym": "Externe sportschool",
+      "clientHome": "Bij de klant thuis",
+      "outdoor": "Buiten",
+      "online": "Online",
+      "other": "Anders"
+    },
+    "errors": {
+      "nameRequired": "Vul een naam in.",
+      "nameTooLong": "Deze naam is te lang. Gebruik een kortere naam.",
+      "postcodeInvalid": "Vul een postcode in zoals 1234 AB.",
+      "houseNumberInvalid": "Vul een huisnummer in van 1 tot 5 cijfers.",
+      "tooLong": "Deze tekst is te lang. Gebruik een kortere tekst.",
+      "addressIncomplete": "Vul het hele adres in, of laat het leeg.",
+      "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
+      "generic": "Er ging iets mis. Probeer het opnieuw."
+    }
+  },
   "noPermission": {
     "title": "Geen toegang",
     "body": "Je hebt geen toegang tot deze pagina. Vraag de eigenaar van {workspace}."
@@ -119,6 +153,7 @@
     "settings": "Instellingen",
     "settingsGeneral": "Algemeen",
     "settingsLanguage": "Taal",
+    "settingsLocation": "Locatie",
     "workspaceWithRole": "{name} · {role}",
     "trainers": "Trainers",
     "clients": "Klanten",
@@ -185,6 +220,30 @@
       "intro": "Je privésessie bij {workspace} is verplaatst.",
       "previously": "Eerder: {date}, {start} tot {end}",
       "now": "Nieuw: {date}, {start} tot {end}"
+    },
+    "demoRequest": {
+      "subject": "Demo-aanvraag: {name}",
+      "preview": "{business}, {trainers}",
+      "intro": "Iemand vraagt een demo van Fivvi aan via de website.",
+      "nameLabel": "Naam",
+      "emailLabel": "E-mailadres",
+      "businessLabel": "Soort bedrijf",
+      "trainersLabel": "Aantal trainers",
+      "languageLabel": "Taal van de website",
+      "messageLabel": "Bericht",
+      "reply": "Antwoord in de taal van de website. Schrijf naar het e-mailadres hierboven: dit bericht is niet van de aanvrager zelf.",
+      "business": {
+        "gym": "Een sportschool met een team",
+        "studio": "Een pilates- of yogastudio",
+        "personalTrainer": "Een eigen PT-bedrijf"
+      },
+      "trainers": {
+        "one": "Alleen de aanvrager",
+        "twoToFour": "2 tot 4",
+        "fiveOrMore": "5 of meer"
+      },
+      "languageNl": "Nederlands",
+      "languageEn": "Engels"
     }
   },
   "roles": {
@@ -209,6 +268,8 @@
   },
   "profile": {
     "title": "Profiel",
+    "support": "Hulp en contact",
+    "privacy": "Privacyverklaring",
     "error": "Je werkruimtes konden niet worden geladen.",
     "language": "Taal",
     "trainsHere": {
@@ -312,5 +373,684 @@
     },
     "newClient": "Nieuwe klant",
     "offline": "Je bent offline. Laatst bijgewerkt om {time}."
+  },
+  "site": {
+    "meta": {
+      "homeTitle": "Fivvi: software voor personal trainers, studio's en sportscholen",
+      "homeDescription": "Agenda, boekingen, credits, betalingen en facturen op één plek. Zo houd je tijd over om te trainen. Plan een demo.",
+      "breadcrumbHome": "Home"
+    },
+    "header": {
+      "skipToContent": "Naar de inhoud",
+      "menuLabel": "Hoofdmenu",
+      "signIn": "Inloggen",
+      "demo": "Plan een demo"
+    },
+    "nav": {
+      "gyms": "Sportscholen",
+      "studios": "Studio's",
+      "personalTrainers": "Personal trainers",
+      "clients": "Klanten",
+      "pricing": "Prijzen"
+    },
+    "language": {
+      "label": "Taal / Language",
+      "nlShort": "NL",
+      "enShort": "EN",
+      "nlName": "Nederlands",
+      "enName": "English"
+    },
+    "home": {
+      "headline": "Jij traint.",
+      "headlineRest": "Fivvi regelt de rest.",
+      "lead": "Agenda, boekingen, credits, betalingen en facturen op één plek. Gemaakt voor personal trainers, studio's en sportscholen, en fijn voor hun klanten.",
+      "status": "Fivvi wordt nu gebouwd, samen met onze eerste sportschool. Vraag in de demo wat er al klaar is.",
+      "iAm": {
+        "label": "Ik ben",
+        "gym": "Sportschool met team",
+        "studio": "Studio",
+        "pt": "Personal trainer",
+        "client": "Klant"
+      },
+      "seeFor": "Bekijk wat Fivvi voor jou doet",
+      "audience": {
+        "gym": {
+          "short": "Eén agenda voor al je trainers, en altijd zicht op wie er nog moet betalen.",
+          "cardTitle": "Sportscholen met een team"
+        },
+        "studio": {
+          "short": "Volle lessen, een nette wachtlijst en klanten die zelf boeken.",
+          "cardTitle": "Pilates- en yogastudio's"
+        },
+        "pt": {
+          "short": "Je hele dag in je broekzak: wie er komt, wat jullie vorige keer deden en wat er nog over is.",
+          "cardTitle": "Personal trainers"
+        },
+        "client": {
+          "short": "Boek je les in een paar tikken en zie altijd wat je nog tegoed hebt.",
+          "cardTitle": "En hun klanten"
+        }
+      },
+      "onePlace": {
+        "eyebrow": "Het probleem",
+        "heading": "Je bedrijf staat nu op vijf plekken.",
+        "lead": "Elke losse tool is een plek waar iets kan misgaan. In Fivvi hangt alles aan elkaar, dus je hoeft niets over te typen.",
+        "calendar": "Agenda-app",
+        "documents": "Word-documenten",
+        "invoices": "Facturen met de hand",
+        "messages": "Boeken via berichtjes",
+        "app": "Losse boek- en betaalapp",
+        "inFivvi": "in Fivvi",
+        "fivvi": "Fivvi",
+        "everything": "alles op één plek"
+      },
+      "chain": {
+        "eyebrow": "Het verschil",
+        "heading": "Eén boeking. Alles klopt meteen.",
+        "lead": "Probeer het maar. Boek de les hiernaast en kijk wat er vanzelf gebeurt.",
+        "steps": {
+          "pack": {
+            "title": "Creditpakket",
+            "text": "Lisa koopt 10 groepscredits en betaalt met iDEAL."
+          },
+          "payment": {
+            "title": "Betaling",
+            "text": "Het geld gaat rechtstreeks naar de studio, niet via Fivvi."
+          },
+          "invoice": {
+            "title": "Factuur",
+            "text": "De factuur volgt vanzelf op de betaling."
+          },
+          "booking": {
+            "title": "Boeking",
+            "text": "Ze boekt zelf, en één credit staat gepland."
+          },
+          "attendance": {
+            "title": "Aanwezig",
+            "text": "De trainer vinkt haar af in de app."
+          },
+          "balance": {
+            "title": "Tegoed",
+            "text": "Lisa en de eigenaar zien hetzelfde tegoed."
+          }
+        },
+        "card": {
+          "title": "Rooster · Reformer",
+          "class": "Reformer",
+          "when": "vanavond · 4 plekken vrij",
+          "left": "over",
+          "planned": "gepland",
+          "used": "gebruikt",
+          "book": "Boeken",
+          "confirm": "Boeking bevestigen",
+          "back": "Terug",
+          "attend": "Aanwezigheid registreren (trainer)",
+          "again": "Nog een keer",
+          "confirmTitle": "Reformer, vanavond 18:00.",
+          "confirmBody": "Dit gebruikt 1 groepscredit, daarna heb je er nog {left}. Gratis annuleren kan tot 12 uur vooraf.",
+          "say0": "Lisa heeft {count} groepscredits over.",
+          "say1": "Geboekt. Eén credit staat gepland en komt terug als ze op tijd annuleert.",
+          "say2": "Aanwezig. Het credit is gebruikt, zonder dat iemand iets bijhoudt.",
+          "time": "18:00"
+        },
+        "statusDone": "Klaar",
+        "statusLive": "Nu bezig"
+      },
+      "forWhom": {
+        "eyebrow": "Voor wie",
+        "heading": "Jouw dag ziet er anders uit. Fivvi ook.",
+        "lead": "Fivvi laat alleen zien wat jij doet. Een zelfstandig trainer ziet nooit groepslessen. Een yogastudio ziet nooit trainingsschermen.",
+        "readDay": "Lees hun dag"
+      },
+      "platforms": {
+        "eyebrow": "Overal",
+        "heading": "Echt thuis op elk scherm.",
+        "lead": "De apps voor iPhone en Android komen eraan, met het glas van iOS en de stijl van Android. In je browser vind je dezelfde rust.",
+        "owners": "Eigenaren en trainers",
+        "clients": "Klanten",
+        "items": {
+          "proIphone": {
+            "title": "Fivvi Pro op iPhone",
+            "text": "Je dag, je klanten en je trainingen, altijd bij de hand."
+          },
+          "proAndroid": {
+            "title": "Fivvi Pro op Android",
+            "text": "Alles wat de iPhone kan, op de manier van Android."
+          },
+          "proLaptop": {
+            "title": "Fivvi op je laptop",
+            "text": "Aanbod, trainers, betalingen en facturen op een groot scherm, met wat aandacht nodig heeft bovenaan."
+          },
+          "clientIphone": {
+            "title": "Fivvi op iPhone",
+            "text": "Je volgende les, deze week en je tegoed op één scherm."
+          },
+          "clientAndroid": {
+            "title": "Fivvi op Android",
+            "text": "Dezelfde app, op de manier van Android."
+          },
+          "clientBrowser": {
+            "title": "Fivvi in je browser",
+            "text": "Geen app nodig: boek via de link van je studio."
+          }
+        }
+      },
+      "promises": {
+        "eyebrow": "Waar je op kunt rekenen",
+        "heading": "Simpel, en netjes geregeld.",
+        "items": {
+          "money": {
+            "title": "Het geld gaat rechtstreeks naar jou",
+            "text": "Je koppelt je eigen Mollie-account in één begeleide stap. Fivvi houdt geen geld van klanten vast."
+          },
+          "cash": {
+            "title": "Contant of pin mag ook",
+            "text": "Leg een betaling buiten Fivvi vast op het klantprofiel. Geen Mollie willen kan ook; Fivvi vertelt eerst wat je dan mist."
+          },
+          "notes": {
+            "title": "Notities blijven bij de trainer",
+            "text": "Trainersnotities zijn alleen voor trainers. Klanten zien ze niet."
+          },
+          "amounts": {
+            "title": "Trainers zien geen bedragen",
+            "text": "Een trainer ziet de tegoeden van klanten, maar geen geld. Eigenaren zien ook de bedragen."
+          },
+          "noApp": {
+            "title": "Klanten hebben geen app nodig",
+            "text": "Een link of QR-code, hun e-mailadres en een code van 6 cijfers. Geen wachtwoord."
+          },
+          "languages": {
+            "title": "Nederlands en Engels",
+            "text": "Alles bestaat in beide talen, en iedereen kiest zelf."
+          }
+        }
+      },
+      "fictional": "Alle voorbeelden op deze site zijn fictief.",
+      "screens": {
+        "proTodayGym": "Fivvi Pro: de dag van de hele studio, met een baan per trainer",
+        "proTodaySolo": "Fivvi Pro: de dag van een zelfstandig trainer",
+        "proTodayPilates": "Fivvi Pro: de dag van een pilatesstudio",
+        "proTodayAndroid": "Fivvi Pro op Android: de dag van vandaag",
+        "proClient": "Fivvi Pro: klantprofiel met tegoed, vorige training en voortgang",
+        "proLog": "Fivvi Pro: een training bijhouden, per set",
+        "appHome": "Fivvi: Home met de volgende les en deze week",
+        "appBook": "Fivvi: het rooster met Boeken bij elke les",
+        "appCredit": "Fivvi: profiel met tegoed per soort",
+        "appAndroid": "Fivvi op Android: Home met de volgende les",
+        "cwTimetable": "Klantweb: het rooster in de browser",
+        "webDashboard": "Trainerweb: dashboard met Aandacht nodig",
+        "webClassPilates": "Trainerweb: een les op datum met aanwezigheid en wachtlijst",
+        "webAgenda": "Trainerweb: de agenda per trainer",
+        "proTodayYoga": "Fivvi Pro: de dag van een yogastudio",
+        "proClassPilates": "Fivvi Pro: een reformerles",
+        "proClassYoga": "Fivvi Pro: een yogales",
+        "proSession": "Fivvi Pro: een privésessie met de tegoeden van de klant",
+        "proDuo": "Fivvi Pro: een duosessie met twee klanten",
+        "proShare": "Fivvi Pro: een training delen met de klant",
+        "appConfirm": "Fivvi: een boeking bevestigen, met het credit dat het kost",
+        "appSelf": "Fivvi: een gedeelde training zelf doen",
+        "appStudios": "Fivvi: wisselen tussen twee studio's",
+        "appRenew": "Fivvi: een melding om te verlengen",
+        "cwWaitlist": "Klantweb: op de wachtlijst, met je plek",
+        "cwWaitlistPilates": "Klantweb: op de wachtlijst van een volle reformerles, met je plek",
+        "cwWaitlistYoga": "Klantweb: op de wachtlijst van een volle yogales, met je plek",
+        "webClassYoga": "Trainerweb: een yogales op datum",
+        "webJoinPilates": "Trainerweb: de A4-poster met de QR-code",
+        "webJoinYoga": "Trainerweb: de A4-poster met de QR-code",
+        "webClient": "Trainerweb: klantprofiel met verlengen",
+        "webClass": "Trainerweb: een les op datum met aanwezigheid en wachtlijst",
+        "webTrainers": "Trainerweb: trainers en rollen",
+        "webOffers": "Trainerweb: Aanbod",
+        "webPayments": "Trainerweb: betalingen gekoppeld"
+      }
+    },
+    "audience": {
+      "recognise": "Herken je dit?",
+      "dayEyebrow": "Een dag met Fivvi",
+      "dayLead": "Van de eerste sessie tot het einde van de dag. Elk probleem krijgt een antwoord, en dat antwoord is gewoon een scherm uit Fivvi.",
+      "gyms": {
+        "metaTitle": "Software voor sportscholen met een team | Fivvi",
+        "metaDescription": "Eén agenda voor al je trainers, rollen die kloppen en betalingen die vanzelf gaan. Bekijk een werkdag in Fivvi.",
+        "eyebrow": "Sportscholen met een team",
+        "headline": "Je team, je klanten en je geld in één overzicht.",
+        "lead": "Vervang de losse agenda, de boekingsapp en de facturen met de hand door één plek waar je hele sportschool op draait.",
+        "pains": {
+          "one": "Trainers delen de inlog van een klant, of werken in hun eigen agenda.",
+          "two": "Niemand weet precies hoeveel sessies een klant nog heeft.",
+          "three": "Facturen en incasso's kosten je de avond."
+        },
+        "moments": {
+          "crew": {
+            "question": "Drie trainers tegelijk aan het werk. Wie staat waar?",
+            "answer": "Hele studio geeft elke trainer een eigen baan, en noemt je drukste moment van de dag.",
+            "ticks": {
+              "a": "Sessies naast elkaar, zonder puzzelen",
+              "b": "Op je telefoon en op je laptop"
+            }
+          },
+          "attention": {
+            "question": "Wat vraagt vandaag om aandacht?",
+            "answer": "Het dashboard zet het voor je klaar: een open betaling, een pakket dat bijna op is, een abonnement dat stopt.",
+            "ticks": {
+              "a": "Je hoeft niets te zoeken of bij te houden"
+            }
+          },
+          "team": {
+            "question": "Een nieuwe trainer. Wat mag die zien?",
+            "answer": "Trainers krijgen een eigen teamtoegang, nooit een klantaccount. Ze zien hun agenda en de tegoeden, maar geen bedragen.",
+            "ticks": {
+              "a": "Rol wijzigen: trainer of eigenaar",
+              "b": "Vertrekt iemand? Je ziet de komende 2 weken en draagt ze over"
+            }
+          },
+          "substitute": {
+            "question": "De les van vanavond heeft geen trainer meer.",
+            "answer": "Zet een vervanger op de les en je bent klaar. Op dezelfde pagina zie je wie er komt en wie op de wachtlijst staat.",
+            "ticks": {
+              "a": "Aanwezigheid per deelnemer",
+              "b": "Wachtlijst op volgorde"
+            }
+          },
+          "offers": {
+            "question": "Je prijzen staan in een spreadsheet.",
+            "answer": "Aanbod houdt al je abonnementen, creditpakketten en creditabonnementen bij elkaar. Je begint met drie kant-en-klare plannen: prijs erbij, aanzetten.",
+            "ticks": {
+              "a": "Een wijziging geldt alleen voor nieuwe abonnementen en pakketten",
+              "b": "Klanten zien alleen wat aan staat"
+            }
+          },
+          "payments": {
+            "question": "Klanten betalen te laat, en jij stuurt de herinnering.",
+            "answer": "Koppel Mollie in één begeleide stap. Klanten betalen met iDEAL, daarna gaat het maandelijks automatisch, en de factuur volgt vanzelf.",
+            "ticks": {
+              "a": "Het geld gaat rechtstreeks naar jouw rekening",
+              "b": "Mislukt een betaling? Jij en de klant krijgen bericht"
+            }
+          },
+          "renewal": {
+            "question": "Een abonnement stopt, en niemand merkte het.",
+            "answer": "Fivvi herinnert de klant zelf, twee keer, met verlengen in één tik. Jij ziet het op het klantprofiel en kunt altijd zelf een aanbod sturen.",
+            "ticks": {
+              "a": "Geen gat en geen overlap als het verlengt"
+            }
+          }
+        }
+      },
+      "studios": {
+        "metaTitle": "Boekingssysteem voor pilates- en yogastudio's | Fivvi",
+        "metaDescription": "Klanten boeken zelf, de wachtlijst loopt vanzelf en credits kloppen altijd. In de woorden van jouw studio.",
+        "eyebrow": "Pilates- en yogastudio's",
+        "headline": "Je lessen zitten vol. Je hoofd niet meer.",
+        "lead": "Een rooster waar klanten zelf in boeken, credits die altijd kloppen en een wachtlijst die vanzelf loopt. In de woorden van jouw studio.",
+        "kind": {
+          "label": "Soort studio",
+          "pilates": "Pilates",
+          "yoga": "Yoga"
+        },
+        "words": {
+          "pilates": {
+            "who": "instructeur",
+            "spots": "Zes"
+          },
+          "yoga": {
+            "who": "docent",
+            "spots": "Achttien"
+          }
+        },
+        "pains": {
+          "one": "De les zit vol, en de berichtjes blijven komen.",
+          "two": "Tienrittenkaarten op papier of in een spreadsheet.",
+          "three": "Software voor sportscholen die jouw studio niet begrijpt."
+        },
+        "moments": {
+          "waitlist": {
+            "question": "{spots} plekken, en iedereen wil om half zeven.",
+            "answer": "Klanten boeken zelf vanuit het rooster. Is de les vol, dan krijgen ze de wachtlijst, met hun plek erbij.",
+            "ticks": {
+              "a": "Boeken altijd met een bevestiging",
+              "b": "Geen berichtjes meer heen en weer"
+            }
+          },
+          "credits": {
+            "question": "Hoeveel lessen heeft ze nog op haar kaart?",
+            "answer": "Credits per soort: gebruikt, gepland en over. De klant ziet hetzelfde als jij.",
+            "ticks": {
+              "a": "Groeps- en privécredits lopen nooit door elkaar",
+              "b": "Op tijd annuleren geeft het credit terug"
+            }
+          },
+          "substitute": {
+            "question": "Je {who} belt zich ziek.",
+            "answer": "Zet een vervanger op de les. Klanten boeken gewoon door en de les blijft staan.",
+            "ticks": {
+              "a": "Op dezelfde pagina zie je wie er komt"
+            }
+          },
+          "level": {
+            "question": "Beginners in een les voor gevorderden.",
+            "answer": "Geef elke les een niveau en een beschrijving, in het Nederlands en het Engels. Zo kiest iedereen de juiste les.",
+            "ticks": {
+              "a": "Beginner, gemiddeld, gevorderd of alle niveaus",
+              "b": "Per datum aan te passen"
+            }
+          },
+          "word": {
+            "question": "Wij zeggen geen trainer.",
+            "answer": "Kies je eigen woord: trainer, instructeur, docent of coach. Heel Fivvi praat daarna zoals jouw studio. En een yogastudio met alleen lessen ziet geen trainingsschermen.",
+            "ticks": {
+              "a": "Fivvi laat alleen zien wat jullie doen"
+            }
+          },
+          "poster": {
+            "question": "Nieuwe klant aan de balie. En nu?",
+            "answer": "Print de A4-poster met je QR-code, in twee talen. Scannen, aanmeldverzoek sturen, jij keurt goed, klaar.",
+            "ticks": {
+              "a": "Geen app nodig om te boeken",
+              "b": "In kleur of zwart-wit"
+            }
+          }
+        }
+      },
+      "personalTrainers": {
+        "metaTitle": "Software voor personal trainers: agenda en trainingen | Fivvi",
+        "metaDescription": "Je dag, je klanten, je trainingen en je credits op je telefoon. Zonder schermen die je niet gebruikt.",
+        "eyebrow": "Personal trainers",
+        "headline": "Train je klant. Niet je administratie.",
+        "lead": "Alles voor je sessies op je telefoon, ook midden op de vloer. Zonder groepslessen of teamschermen die je toch niet gebruikt.",
+        "pains": {
+          "one": "Je agenda, je notities en je facturen staan overal en nergens.",
+          "two": "Je rekent uit hoeveel sessies een klant nog heeft.",
+          "three": "Na een lange dag begint de administratie nog."
+        },
+        "moments": {
+          "today": {
+            "question": "Waar moet je ook alweer zijn?",
+            "answer": "Vandaag laat in één regel je dag zien, en daaronder wie, hoe laat en waar. Werk je op meer plekken, dan zie je de route van vandaag.",
+            "ticks": {
+              "a": "Het volgende gat in je dag staat klaar om te plannen"
+            }
+          },
+          "last": {
+            "question": "Wat deden we vorige keer?",
+            "answer": "Open de klant en je ziet de laatste training, wat zwaar was, je eigen notitie en de voortgang per oefening.",
+            "ticks": {
+              "a": "Notities zijn alleen voor jou"
+            }
+          },
+          "log": {
+            "question": "Je houdt het nog op papier bij, of helemaal niet.",
+            "answer": "Eén rij per set met de waarde van vorige keer ernaast. Vink af, en geef per oefening aan hoe zwaar het was.",
+            "ticks": {
+              "a": "Gemaakt om te gebruiken met één hand",
+              "b": "Opslaan als schema voor de volgende keer"
+            }
+          },
+          "credits": {
+            "question": "Hoeveel sessies heeft ze nog?",
+            "answer": "Geen rekenwerk: voor de sessie zie je al of het credit bijna op is, of dat er nog een betaling openstaat.",
+            "ticks": {
+              "a": "Gebruikt, gepland en over",
+              "b": "Verlengen met één tik"
+            }
+          },
+          "duo": {
+            "question": "Twee vriendinnen willen samen trainen.",
+            "answer": "Een duosessie: één trainer, twee klanten, ieder met een eigen training, credit en aanwezigheid.",
+            "ticks": {
+              "a": "Schakel tussen de twee tijdens het bijhouden"
+            }
+          },
+          "share": {
+            "question": "Je klant wil weten wat ze vandaag gedaan heeft.",
+            "answer": "Deel de training met één bericht. Je klant ziet alle oefeningen en kan hem zelf nog eens doen.",
+            "ticks": {
+              "a": "Geen schermafbeeldingen meer in de chat"
+            }
+          }
+        }
+      },
+      "clients": {
+        "metaTitle": "Boek je les in een paar tikken | Fivvi voor klanten",
+        "metaDescription": "Boek, zet jezelf op de wachtlijst en zie altijd wat je nog tegoed hebt. Met de app of gewoon in je browser.",
+        "eyebrow": "En hun klanten",
+        "headline": "Sporten is al moeilijk genoeg. Boeken niet.",
+        "lead": "Vraag je studio of trainer om Fivvi, en boek voortaan vanaf je telefoon. Altijd duidelijk wat je geboekt hebt en wat je nog over hebt.",
+        "pains": {
+          "one": "Een berichtje sturen om een les te boeken.",
+          "two": "Geen idee hoeveel lessen er nog op je kaart staan.",
+          "three": "Voor elke studio een andere app."
+        },
+        "moments": {
+          "book": {
+            "question": "Even een les boeken in de trein.",
+            "answer": "Open het rooster en tik op Boeken. Je hebt niet eens een app nodig: de browser is genoeg, en de app maakt het nog fijner.",
+            "ticks": {
+              "a": "Inloggen met een code per e-mail, geen wachtwoord"
+            }
+          },
+          "confirm": {
+            "question": "Kost dit een credit? Hoeveel heb ik er nog?",
+            "answer": "Voor je bevestigt, zie je de les, de dag en de trainer, welk credit het kost, hoeveel je er overhoudt en tot wanneer je gratis annuleert.",
+            "ticks": {
+              "a": "Op tijd annuleren geeft je credit terug"
+            }
+          },
+          "waitlist": {
+            "question": "Vol. Natuurlijk.",
+            "answer": "Zet jezelf op de wachtlijst en zie meteen de hoeveelste je bent.",
+            "ticks": {
+              "a": "Weer weg van de lijst kan ook"
+            }
+          },
+          "week": {
+            "question": "Ga ik eigenlijk wel vaak genoeg?",
+            "answer": "Deze week laat zien wanneer je bent geweest en wat er nog gepland staat, plus hoeveel weken op rij je bezig bent.",
+            "ticks": {
+              "a": "Alleen feiten, geen doelen die iemand anders verzon"
+            }
+          },
+          "self": {
+            "question": "De training van je trainer, maar nu in je eigen sportschool.",
+            "answer": "Open de gedeelde training en doe hem zelf, met de gewichten van je trainer al ingevuld. Oefeningen toevoegen of weghalen mag.",
+            "ticks": {
+              "a": "Alleen jij ziet deze training"
+            }
+          },
+          "studios": {
+            "question": "Pilates hier, yoga daar.",
+            "answer": "Eén account voor al je studio's. Wissel met één tik en zie per studio je eigen tegoed.",
+            "ticks": {
+              "a": "Home en agenda combineren al je studio's"
+            }
+          },
+          "renew": {
+            "question": "Je credits zijn bijna op.",
+            "answer": "Je krijgt op tijd een seintje, en verlengt in één tik met iDEAL. Daarna is de melding weg.",
+            "ticks": {
+              "a": "Je factuur staat in je profiel"
+            }
+          }
+        }
+      }
+    },
+    "footer": {
+      "label": "Voettekst",
+      "productHeading": "Product",
+      "helpHeading": "Hulp",
+      "legalHeading": "Juridisch",
+      "support": "Hulp en contact",
+      "privacy": "Privacyverklaring",
+      "terms": "Algemene voorwaarden",
+      "subProcessors": "Subverwerkers",
+      "tradeName": "{name}, handelend onder de naam Fivvi",
+      "kvk": "KvK-nummer",
+      "vat": "Btw-nummer",
+      "address": "Adres",
+      "phone": "Telefoon of WhatsApp"
+    },
+    "cta": {
+      "heading": "Hoe ziet jouw dag eruit in Fivvi?",
+      "text": "Plan een demo. We laten Fivvi zien met jouw soort bedrijf, en je weet meteen of het past.",
+      "demo": "Plan een demo",
+      "pricing": "Bekijk de prijzen"
+    },
+    "pricing": {
+      "metaTitle": "Prijzen | Fivvi",
+      "metaDescription": "Fivvi is gratis tijdens de pilot. Geen abonnement en geen kosten per klant.",
+      "eyebrow": "Prijzen",
+      "headline": "Gratis tijdens de pilot.",
+      "lead": "Fivvi kost nu niets: geen abonnement en geen kosten per klant.",
+      "planName": "Fivvi",
+      "price": "€ 0",
+      "period": "tijdens de pilot",
+      "includedLabel": "Dit zit erbij",
+      "included": {
+        "calendar": "Agenda, boekingen en wachtlijst",
+        "memberships": "Abonnementen, credits en facturen",
+        "pro": "Fivvi Pro voor jou en je trainers",
+        "client": "Fivvi voor je klanten",
+        "workouts": "Trainingen bijhouden en delen, zodra dat klaar is"
+      },
+      "goodToKnow": "Goed om te weten",
+      "payments": {
+        "question": "Wat kost het om betalingen aan te nemen?",
+        "answer": "Klanten online laten betalen doe je met een eigen Mollie-account. Mollie rekent per betaling een bedrag, volgens hun tarieven. Dat betaal je aan Mollie, niet aan Fivvi. Neem je alleen contant of met pin aan, dan heb je Mollie niet nodig."
+      },
+      "clients": {
+        "question": "Wat betalen mijn klanten?",
+        "answer": "Alleen wat jij rekent. De app en de website zijn voor hen gratis."
+      },
+      "later": {
+        "question": "En als Fivvi later geld gaat kosten?",
+        "answer": "Dan hoor je dat minstens 60 dagen vooraf. Je kunt dan gratis stoppen en je gegevens meenemen. Je betaalt nooit iets waar je niet eerst mee hebt ingestemd."
+      },
+      "currency": "Alle bedragen zijn in euro. Omdat je Fivvi nu niets betaalt, zijn er geen betaalvoorwaarden."
+    },
+    "support": {
+      "metaTitle": "Hulp en contact | Fivvi",
+      "metaDescription": "Veelgestelde vragen en hoe je ons bereikt.",
+      "eyebrow": "Hulp",
+      "headline": "Hulp en contact",
+      "lead": "Mail ons gerust. We helpen je graag.",
+      "contactHeading": "Zo bereik je ons",
+      "email": "E-mail",
+      "privacy": "Privacy",
+      "clientsHeading": "Voor klanten",
+      "ownersHeading": "Voor eigenaren en trainers",
+      "clientFaq": {
+        "join": {
+          "question": "Hoe word ik klant bij mijn studio?",
+          "answer": "Open de link of scan de QR-code van je studio of trainer. Vul je e-mailadres in, en daarna de code van 6 cijfers die je krijgt. Je studio keurt je aanmeldverzoek goed en daarna kun je boeken."
+        },
+        "noCode": {
+          "question": "Ik krijg geen code. Wat nu?",
+          "answer": "Kijk in je spam en controleer je e-mailadres. Een code is 15 minuten geldig. Daarna vraag je gewoon een nieuwe aan."
+        },
+        "cancel": {
+          "question": "Hoe annuleer ik een les?",
+          "answer": "Open de les en kies Annuleren. Doe je dat op tijd, dan krijg je je credit terug. Je studio bepaalt tot wanneer dat kan."
+        },
+        "invoices": {
+          "question": "Waar vind ik mijn facturen?",
+          "answer": "In Profiel, onder Facturen. Je kunt ze daar ook downloaden."
+        },
+        "deleteAccount": {
+          "question": "Hoe verwijder ik mijn account?",
+          "answer": "Mail vanaf het adres van je account naar {address} met als onderwerp Account verwijderen. We doen dat binnen één maand en laten het je weten."
+        }
+      },
+      "ownerFaq": {
+        "payments": {
+          "question": "Hoe koppel ik betalingen?",
+          "answer": "Ga op je laptop naar Instellingen, Betalingen, Betalingen koppelen. Mollie controleert je gegevens. iDEAL werkt daarna als eerste, automatische incasso duurt tot ongeveer 3 werkdagen langer."
+        },
+        "mollie": {
+          "question": "Moet ik Mollie gebruiken?",
+          "answer": "Nee. Neem je alleen contant of met pin aan, dan kan dat ook. Fivvi vertelt eerst wat je dan mist, en je kunt Mollie later altijd nog koppelen."
+        },
+        "devices": {
+          "question": "Op welke apparaten werkt Fivvi?",
+          "answer": "Fivvi Pro komt voor iPhone en Android. De administratie doe je in de browser op je laptop. Klanten gebruiken de app of hun browser."
+        },
+        "data": {
+          "question": "Waar staan mijn gegevens?",
+          "answer": "De database staat in Amsterdam. Enkele diensten zijn van Amerikaanse bedrijven, met de waarborgen die de wet vraagt. Welke dat zijn, staat bij Subverwerkers. Notities zijn alleen voor trainers."
+        }
+      }
+    },
+    "subProcessors": {
+      "metaTitle": "Subverwerkers | Fivvi",
+      "metaDescription": "De diensten die gegevens voor Fivvi verwerken, waarvoor, en waar ze die bewaren.",
+      "headline": "Subverwerkers",
+      "lead": "Deze diensten verwerken gegevens voor Fivvi. Railway, Sentry, PostHog en Cloudflare zijn Amerikaanse bedrijven; de privacyverklaring legt uit welke waarborgen gelden. Komt er een nieuwe dienst bij, dan laten we dat eerst weten aan elke studio.",
+      "listLabel": "Subverwerkers van Fivvi",
+      "service": "Dienst",
+      "purposeColumn": "Waarvoor",
+      "storage": "Opslag",
+      "purpose": {
+        "railway": "Hosting van de website, de apps en de database",
+        "lettermint": "E-mails, zoals je inlogcode en bevestigingen",
+        "sentry": "Foutmeldingen, zonder namen, e-mailadressen of notities",
+        "postHog": "Statistieken zonder cookies",
+        "turnstile": "Bescherming van formulieren tegen bots"
+      },
+      "region": {
+        "amsterdam": "Amsterdam",
+        "eu": "EU",
+        "worldwide": "Wereldwijd"
+      },
+      "mollieHeading": "Mollie heeft een aparte rol",
+      "mollie": "Mollie verwerkt betalingen onder een eigen overeenkomst met je studio."
+    },
+    "demo": {
+      "metaTitle": "Plan een demo | Fivvi",
+      "metaDescription": "Zie in 30 minuten hoe jouw werkweek eruitziet in Fivvi.",
+      "eyebrow": "Demo",
+      "headline": "Zie Fivvi met jouw dag erin.",
+      "lead": "In 30 minuten, online. Geen verkooppraatje, gewoon je eigen werkweek in Fivvi.",
+      "steps": {
+        "tell": {
+          "title": "Je vertelt hoe het nu gaat",
+          "body": "Welke apps, lijstjes en berichtjes gebruik je vandaag?"
+        },
+        "show": {
+          "title": "We laten jouw soort bedrijf zien",
+          "body": "Sportschool, studio of personal trainer: je ziet alleen wat bij jou hoort."
+        },
+        "fit": {
+          "title": "Je weet meteen of het past",
+          "body": "En zo ja, hoe je mee kunt doen met de pilot."
+        }
+      },
+      "form": {
+        "label": "Demo aanvragen",
+        "name": "Je naam",
+        "email": "Je e-mailadres",
+        "business": "Ik heb",
+        "businessGym": "Een sportschool met een team",
+        "businessStudio": "Een pilates- of yogastudio",
+        "businessPersonalTrainer": "Een eigen PT-bedrijf",
+        "trainers": "Hoeveel trainers?",
+        "trainersOne": "Alleen ik",
+        "trainersTwoToFour": "2 tot 4",
+        "trainersFiveOrMore": "5 of meer",
+        "message": "Wat wil je vooral zien? (mag leeg)",
+        "send": "Demo aanvragen",
+        "sending": "Bezig met versturen…",
+        "note": "We gebruiken dit alleen om je te antwoorden.",
+        "privacyLink": "Lees de privacyverklaring.",
+        "sent": "Bedankt, je aanvraag is verstuurd. We nemen contact met je op.",
+        "client": "Ben je klant van een studio? Vraag je studio of trainer om Fivvi."
+      },
+      "errors": {
+        "nameRequired": "Vul je naam in.",
+        "nameTooLong": "Je naam is te lang. Gebruik maximaal 100 tekens.",
+        "emailInvalid": "Vul een geldig e-mailadres in, bijvoorbeeld naam@example.com.",
+        "messageTooLong": "Je bericht is te lang. Gebruik maximaal 2000 tekens.",
+        "rateLimited": "Er zijn nu te veel aanvragen verstuurd. Probeer het later opnieuw, of mail ons op {email}.",
+        "noConnection": "Je aanvraag is niet verstuurd: er is geen verbinding. Controleer je internet en probeer het opnieuw.",
+        "failed": "Je aanvraag is niet verstuurd. Probeer het later opnieuw, of mail ons op {email}."
+      }
+    }
   }
 }
