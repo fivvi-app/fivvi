@@ -61,4 +61,4 @@ The five are the hours at 11, 12, 3, 6 and 7 on the dial, clockwise from the top
 ## Still to do
 
 - The app icons in `apps/ios` and `apps/android` still show the placeholder "F": `scripts/app-icon.mjs` will draw the day dial B2 (issue #666).
-- The website design (`docs/design/website`) and the prototype (`docs/design/prototype-v2`) still show the text mark and the "F"; they get the wordmark and the day dial.
+- The website design (`docs/design/website`) and the public website in `apps/web` still show the text mark; they get the wordmark and the day dial favicon (issue #669). The prototype already shows the day dial.
