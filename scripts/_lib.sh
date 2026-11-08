@@ -77,6 +77,16 @@ worktree_of() {
     | awk -v b="refs/heads/$1" '/^worktree / { path = substr($0, 10) } $0 == "branch " b { print path; exit }'
 }
 
+# The worktrees under .worktrees/ that have a branch checked out, one per line: `<path>	<branch>`.
+registered_worktrees() {
+  git -C "$MAIN_ROOT" worktree list --porcelain | awk -v dir="$WORKTREES_DIR/" '
+    function emit() { if (index(path, dir) == 1 && branch != "") print path "\t" branch; path = ""; branch = "" }
+    /^worktree / { path = substr($0, 10) }
+    /^branch refs\/heads\// { branch = substr($0, 19) }
+    /^$/ { emit() }
+    END { emit() }'
+}
+
 new_worktree_path() { echo "$WORKTREES_DIR/$(echo "$1" | tr '/' '-')"; }
 
 branch_issue() { echo "$1" | sed -nE 's#^[a-z]+/([0-9]+)-.*#\1#p'; }
