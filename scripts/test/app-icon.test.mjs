@@ -553,11 +553,19 @@ describe('E017 #504: Fivvi, the client app, has the plain day dial B2 as its ico
   it('has the same adaptive layers as Fivvi Pro for now: the dial without PRO, generated from the same source', () => {
     for (const name of ['background', 'foreground', 'monochrome']) {
       const file = `drawable/ic_launcher_${name}.xml`;
-      assert.equal(text(`${CLIENT_RES}/${file}`), text(`${RES}/${file}`), `${name}: the same layer`);
+      assert.equal(
+        text(`${CLIENT_RES}/${file}`),
+        text(`${RES}/${file}`),
+        `${name}: the same layer`,
+      );
     }
     const foreground = text(`${CLIENT_RES}/drawable/ic_launcher_foreground.xml`);
     assert.equal(foreground.match(/<path\b/g).length, 6, 'the track and the five sectors');
-    assert.doesNotMatch(foreground, /#FF(?!E4E4EA|FF4F7B|C8103D)[0-9A-F]{6}/, 'only the logo colours');
+    assert.doesNotMatch(
+      foreground,
+      /#FF(?!E4E4EA|FF4F7B|C8103D)[0-9A-F]{6}/,
+      'only the logo colours',
+    );
     assert.match(foreground, /#FFFF4F7B/);
   });
 
