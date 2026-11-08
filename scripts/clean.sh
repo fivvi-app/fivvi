@@ -10,6 +10,7 @@
 #     (the branch stays); worktrees of open PRs and of branches without a PR stay
 #   - folders in .worktrees/ that are not worktrees (after `git worktree prune`)
 #   - `Fivvi <name>` simulators without their worktree, and `Fivvi parallel <pid>` simulators whose process is gone
+#     (a `Fivvi <name>` simulator only when ios_simulator recorded it for this repository; others are left for you)
 #   - Xcode DerivedData folders whose WorkspacePath (info.plist) is inside this repository and no longer exists
 #   - turbo cache entries (.turbo/cache of the main checkout) not used for 7 days; FIVVI_TURBO_CACHE_DAYS changes that
 # It ends with what it removed and roughly how much space that freed. `flow.sh finish` runs it at the end and the
@@ -60,12 +61,6 @@ removal() {
 # Records something that is left for the owner: $1 what, $2 why.
 leave() { LEFT+="- $1: $2"$'\n'; }
 
-# The path and the last PR state of a branch: `<number> <state>`; empty without a PR. Fails when gh does.
-latest_pr() {
-  gh pr list --repo "$(repo_slug)" --head "$1" --state all --json number,state \
-    --jq 'sort_by(.number) | last // empty | "\(.number) \(.state)"' </dev/null
-}
-
 clean_merged() {
   local wt="$1" branch="$2" rel="$3" pr="$4" msg size n
   if ! msg="$("$ROOT/scripts/wt.sh" "done" "$branch" --check 2>&1 >/dev/null </dev/null)"; then
@@ -113,12 +108,12 @@ clean_worktrees() {
     [ -n "$wt" ] && [ -d "$wt" ] || continue
     rel="${wt#"$MAIN_ROOT"/}"
     case "$ROOT/" in "$wt/"*) echo "kept $rel (this script runs from it)"; continue ;; esac
-    if ! line="$(latest_pr "$branch")"; then
+    if ! line="$(latest_pr_line "$branch" </dev/null)"; then
       leave "$rel ($branch)" "could not read its PR"
       continue
     fi
     if [ -z "$line" ]; then echo "kept $rel (no PR)"; continue; fi
-    read -r pr state <<<"$line"
+    read -r pr state _ <<<"$line"
     case "$state" in
       MERGED) clean_merged "$wt" "$branch" "$rel" "$pr" ;;
       CLOSED) clean_closed "$wt" "$branch" "$rel" "$pr" ;;
@@ -134,8 +129,13 @@ clean_strays() {
   for dir in "$WORKTREES_DIR"/*; do
     [ -d "$dir" ] && [ ! -L "$dir" ] || continue
     ! grep -qxF "$dir" <<<"$registered" || continue
+    ! grep -qxF "$(cd "$dir" && pwd -P)" <<<"$registered" || continue
     rel="${dir#"$MAIN_ROOT"/}"
-    if [ -d "$dir/.git" ]; then
+    # Anything with a .git (a worktree's file or a repository's folder) is never deleted, even if git does not list it.
+    if [ -f "$dir/.git" ]; then
+      leave "$rel" "has a .git but git does not list it as a worktree: git worktree repair, or remove it yourself"
+      continue
+    elif [ -e "$dir/.git" ]; then
       leave "$rel" "not a worktree of this repository, but a repository of its own"
       continue
     fi
@@ -156,12 +156,18 @@ clean_simulators() {
       ! ps -p "$pid" >/dev/null 2>&1 || continue
     else
       ! grep -qxF "$rest" <<<"$names" || continue
+      # Only a simulator this repository created (ios_simulator wrote its marker) is ours to delete.
+      if ! simulator_is_ours "$udid" "$name"; then
+        leave "simulator '$name'" "no worktree of this repository, but it was not created by Fivvi's scripts: delete it yourself if it is not needed"
+        continue
+      fi
     fi
     size=0
     [ -z "$data" ] || size="$(size_kb "$data")"
     if ! $DRY; then
       xcrun simctl shutdown "$udid" >/dev/null 2>&1 || true
       xcrun simctl delete "$udid" >/dev/null 2>&1 || { leave "simulator '$name'" "could not delete it"; continue; }
+      forget_simulator "$udid"
     fi
     removal "simulator '$name'" "$size"
   done 3< <(xcrun simctl list devices --json 2>/dev/null | jq -r \
@@ -207,7 +213,9 @@ clean_turbo() {
   removal "turbo cache: $entries $([ "$entries" = 1 ] && echo entry || echo entries) not used for $TURBO_DAYS days" "$kb" "$entries"
 }
 
-git -C "$MAIN_ROOT" fetch --prune --quiet 2>/dev/null </dev/null || true
+# A dry run changes nothing, so it does not prune remote-tracking branches either.
+if $DRY; then FETCH=(fetch --quiet); else FETCH=(fetch --prune --quiet); fi
+git -C "$MAIN_ROOT" "${FETCH[@]}" 2>/dev/null </dev/null || true
 $DRY || git -C "$MAIN_ROOT" worktree prune
 clean_worktrees
 clean_strays

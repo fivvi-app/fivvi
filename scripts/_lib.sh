@@ -71,6 +71,12 @@ repo_slug() {
   git -C "$MAIN_ROOT" remote get-url origin | sed -E 's#^(git@github\.com:|https://([^@/]+@)?github\.com/)##; s#\.git$##'
 }
 
+# The latest PR of a branch, whatever its state: `<number> <state> <head commit>`; empty without a PR. Fails when gh does.
+latest_pr_line() {
+  gh pr list --repo "$(repo_slug)" --head "$1" --state all --json number,state,headRefOid \
+    --jq 'sort_by(.number) | last // empty | "\(.number) \(.state) \(.headRefOid)"'
+}
+
 # The worktree that has <branch> checked out (.worktrees/, an editor's own folder or the main checkout); empty if none.
 worktree_of() {
   git -C "$MAIN_ROOT" worktree list --porcelain \

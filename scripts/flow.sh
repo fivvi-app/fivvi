@@ -258,11 +258,11 @@ facts_phase() {
 # the phase merged is left out. A worktree wt.sh done refuses (commits the PR lacks, uncommitted changes) is not work for
 # an agent: clean.sh reports it. Dies when a read fails.
 finished_items() {
-  local wt branch state n
+  local wt branch state n line
   while IFS=$'\t' read -r wt branch; do
     [ -n "$wt" ] || continue
-    state="$(gh pr list --repo "$REPO" --head "$branch" --state all --json number,state \
-      --jq 'sort_by(.number) | last // empty | .state')" || die "could not read the PR of $branch"
+    line="$(latest_pr_line "$branch")" || die "could not read the PR of $branch"
+    read -r _ state _ <<<"$line"
     [ "$state" = MERGED ] || continue
     "$ROOT/scripts/wt.sh" "done" "$branch" --check >/dev/null 2>&1 || continue
     n="$(branch_issue "$branch")"

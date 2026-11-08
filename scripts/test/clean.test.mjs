@@ -11,12 +11,14 @@ import {
   mkdtempSync,
   readFileSync,
   realpathSync,
+  renameSync,
   rmSync,
+  symlinkSync,
   utimesSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
-import { join } from 'node:path';
+import { dirname, join } from 'node:path';
 import { after, afterEach, beforeEach, describe, it } from 'node:test';
 import { fakeGh } from './fake-gh.mjs';
 
@@ -32,6 +34,11 @@ case "$1" in
   help) ;;
   list) cat "$SIM_STATE/devices.json" ;;
   shutdown) ;;
+  create)
+    jq --arg n "$2" --arg t "$3" --arg u "UDID-\${2// /-}" \\
+      '.devices[(.devices | keys[0])] += [{name: $n, udid: $u, state: "Shutdown", deviceTypeIdentifier: $t}]' "$SIM_STATE/devices.json" >"$SIM_STATE/devices.tmp" \\
+      && mv "$SIM_STATE/devices.tmp" "$SIM_STATE/devices.json"
+    echo "UDID-\${2// /-}" ;;
   delete)
     jq --arg u "$2" '.devices |= map_values(map(select(.udid != $u)))' "$SIM_STATE/devices.json" >"$SIM_STATE/devices.tmp" \\
       && mv "$SIM_STATE/devices.tmp" "$SIM_STATE/devices.json"
@@ -119,7 +126,11 @@ describe('#668 clean.sh', () => {
     JSON.parse(readFileSync(join(sim, 'devices.json'), 'utf8')).devices[RUNTIME].map(
       ({ name }) => name,
     );
-  const addSimulator = (name, udid = `UDID-${name.replaceAll(' ', '-')}`) => {
+  // marked: the simulator was created by the scripts of this repository (ios_simulator wrote its marker).
+  const addSimulator = (
+    name,
+    { marked = true, udid = `UDID-${name.replaceAll(' ', '-')}` } = {},
+  ) => {
     const file = join(sim, 'devices.json');
     const all = JSON.parse(readFileSync(file, 'utf8'));
     const dataPath = join(sim, 'data', udid);
@@ -127,6 +138,10 @@ describe('#668 clean.sh', () => {
     writeFileSync(join(dataPath, 'data.bin'), Buffer.alloc(1024 * 1024));
     all.devices[RUNTIME].push({ name, udid, state: 'Shutdown', dataPath });
     writeFileSync(file, JSON.stringify(all));
+    if (marked) {
+      mkdirSync(join(repo, '.work/simulators'), { recursive: true });
+      writeFileSync(join(repo, '.work/simulators', udid), `${name}\n`);
+    }
   };
   const simctlLog = () =>
     existsSync(join(sim, 'xcrun.log')) ? readFileSync(join(sim, 'xcrun.log'), 'utf8') : '';
@@ -160,6 +175,22 @@ describe('#668 clean.sh', () => {
     }
   };
 
+  // Fails closed: clean.sh never runs unless gh, xcrun and xcodebuild resolve to the fakes, so a setup that went wrong
+  // cannot reach the real simulators or GitHub of this machine (#668).
+  const assertFakesFirst = (env) => {
+    for (const [tool, dir] of [
+      ['xcrun', bin],
+      ['xcodebuild', bin],
+      ['gh', dirname(env.FAKE_GH_RULES)],
+    ]) {
+      const found = spawnSync('sh', ['-c', `command -v ${tool}`], {
+        encoding: 'utf8',
+        env,
+      }).stdout.trim();
+      assert.equal(found, join(dir, tool), `${tool} must be the fake before clean.sh runs`);
+    }
+  };
+
   const run = (args = [], env = {}, from = repo) => {
     const ghEnv = gh.env(
       Object.entries(prs).map(([branch, out]) => ({
@@ -167,17 +198,19 @@ describe('#668 clean.sh', () => {
         out: out === null ? [] : [out],
       })),
     );
+    const full = {
+      ...ghEnv,
+      PATH: `${bin}:${ghEnv.PATH}`,
+      SIM_STATE: sim,
+      HOME: home,
+      GIT_TERMINAL_PROMPT: '0',
+      ...env,
+    };
+    assertFakesFirst(full);
     return spawnSync(join(from, 'scripts/clean.sh'), args, {
       cwd: from,
       encoding: 'utf8',
-      env: {
-        ...ghEnv,
-        PATH: `${bin}:${ghEnv.PATH}`,
-        SIM_STATE: sim,
-        HOME: home,
-        GIT_TERMINAL_PROMPT: '0',
-        ...env,
-      },
+      env: full,
     });
   };
 
@@ -308,6 +341,32 @@ describe('#668 clean.sh', () => {
       assert.doesNotMatch(git(repo, 'worktree', 'list'), /feature-60-open/);
     });
 
+    it('never removes a folder with a .git file that git no longer lists, such as a renamed worktree', () => {
+      const dir = addWorktree('feature/60-open');
+      pr('feature/60-open', 'OPEN', 60);
+      const renamed = join(repo, '.worktrees/renamed');
+      renameSync(dir, renamed);
+      writeFileSync(join(renamed, 'edit.txt'), 'not committed\n');
+      const result = run();
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(exists(join(renamed, 'edit.txt')), true);
+      assert.match(
+        result.stdout,
+        /== Left for you\n(.*\n)*.*\.worktrees\/renamed.*worktree repair/,
+      );
+    });
+
+    it('does not take a live worktree for a stray when it is reached through a symlinked path', () => {
+      addWorktree('feature/60-open');
+      pr('feature/60-open', 'OPEN', 60);
+      const alias = join(base, 'alias');
+      symlinkSync(repo, alias);
+      writeFileSync(join(worktreeOf('feature/60-open'), 'edit.txt'), 'not committed\n');
+      const result = run([], {}, alias);
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(exists(join(worktreeOf('feature/60-open'), 'edit.txt')), true);
+    });
+
     it('leaves a folder that holds a repository of its own', () => {
       mkdirSync(join(repo, '.worktrees/clone'), { recursive: true });
       git(join(repo, '.worktrees/clone'), 'init', '--quiet');
@@ -318,6 +377,55 @@ describe('#668 clean.sh', () => {
   });
 
   describe('simulators', () => {
+    it('keeps a Fivvi simulator that no marker of this repository claims, and says so', () => {
+      addSimulator('Fivvi x', { marked: false });
+      const result = run();
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(devices(), ['Fivvi x']);
+      assert.doesNotMatch(simctlLog(), /^delete/m);
+      assert.match(result.stdout, /== Left for you\n(.*\n)*.*simulator 'Fivvi x'/);
+    });
+
+    it('keeps a simulator whose marker is of another name, and removes the marker of one it deletes', () => {
+      addSimulator('Fivvi feature-61-gone');
+      addSimulator('Fivvi feature-62-gone', { marked: false });
+      writeFileSync(join(repo, '.work/simulators/UDID-Fivvi-feature-62-gone'), 'Fivvi other\n');
+      const result = run();
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(devices(), ['Fivvi feature-62-gone']);
+      assert.equal(exists(join(repo, '.work/simulators/UDID-Fivvi-feature-61-gone')), false);
+    });
+
+    it('is the marker ios_simulator writes when it creates the simulator of a worktree', () => {
+      const dir = addWorktree('feature/70-sim');
+      const iphone = {
+        name: 'iPhone 17',
+        udid: 'UDID-iphone',
+        state: 'Shutdown',
+        deviceTypeIdentifier: 'type-17',
+      };
+      writeFileSync(
+        join(sim, 'devices.json'),
+        JSON.stringify({ devices: { [RUNTIME]: [iphone] } }),
+      );
+      const ghEnv = gh.env([]);
+      const result = spawnSync(
+        'bash',
+        ['-c', `source "${dir}/scripts/_lib.sh"; source "${dir}/scripts/_ios.sh"; ios_simulator`],
+        {
+          cwd: dir,
+          encoding: 'utf8',
+          env: { ...ghEnv, PATH: `${bin}:${ghEnv.PATH}`, SIM_STATE: sim, HOME: home },
+        },
+      );
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.stdout.trim().split('\n').pop(), 'UDID-Fivvi-feature-70-sim');
+      assert.equal(
+        readFileSync(join(repo, '.work/simulators/UDID-Fivvi-feature-70-sim'), 'utf8'),
+        'Fivvi feature-70-sim\n',
+      );
+    });
+
     it('deletes Fivvi simulators without their worktree and those of a run that is gone, and keeps the rest', () => {
       addWorktree('feature/60-open');
       pr('feature/60-open', 'OPEN', 60);
@@ -476,6 +584,16 @@ describe('#668 clean.sh', () => {
       assert.match(result.stdout, /^would remove .*DerivedData\/FivviPro-gone/m);
       assert.match(result.stdout, /^would remove turbo cache: 1 entry/m);
       assert.match(result.stdout, /Would free about [\d.]+ (KB|MB|GB)/);
+    });
+
+    it('does not prune remote-tracking branches', () => {
+      addWorktree('fix/55-closed', { committed: true, pushed: true });
+      git(join(base, 'origin.git'), 'branch', '-D', 'fix/55-closed');
+      assert.match(git(repo, 'branch', '-r'), /origin\/fix\/55-closed/);
+      run(['--dry-run']);
+      assert.match(git(repo, 'branch', '-r'), /origin\/fix\/55-closed/);
+      run();
+      assert.doesNotMatch(git(repo, 'branch', '-r'), /origin\/fix\/55-closed/);
     });
 
     it('still leaves the dirty and unpushed work out of the list', () => {
