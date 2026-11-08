@@ -22,6 +22,7 @@ export interface SubProcessor {
 export const subProcessors: readonly SubProcessor[] = [
   { name: 'Railway', purpose: 'railway', region: 'amsterdam' },
   { name: 'Lettermint', purpose: 'lettermint', region: 'eu' },
+  { name: 'Zoho Mail', purpose: 'zoho', region: 'eu' },
   { name: 'Sentry', purpose: 'sentry', region: 'eu' },
   { name: 'PostHog', purpose: 'postHog', region: 'eu' },
   { name: 'Cloudflare Turnstile', purpose: 'turnstile', region: 'worldwide' },

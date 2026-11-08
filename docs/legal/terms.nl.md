@@ -2,7 +2,9 @@
 
 > **⚠️ CONCEPT — GEEN JURIDISCH ADVIES.** Opgesteld door een AI-agent, niet gecontroleerd door een jurist. Niet publiceren voordat de open vragen zijn beantwoord en de tekst is getoetst. Deze Nederlandse tekst is leidend; de Engelse vertaling staat in [`terms.en.md`](terms.en.md).
 
-**Versie 0.1 (concept) · 22 september 2026**
+**Versie 1.0 · 8 november 2026.** Deze Nederlandse tekst is leidend; de Engelse vertaling staat in [`terms.en.md`](terms.en.md).
+
+Fivvi wordt nu gebouwd, samen met onze eerste sportschool. Wat hieronder staat over betalingen, wachtlijsten, trainingen en notities geldt zodra die onderdelen beschikbaar zijn.
 
 Deze voorwaarden bestaan uit twee delen:
 
@@ -15,12 +17,13 @@ Deze voorwaarden bestaan uit twee delen:
 
 ### A1. Definities
 
-- **Aanbieder, wij, ons:** {{Naam aanbieder}}, handelend onder de naam Fivvi, KvK {{KvK-nummer}}, {{adres}}.
-- **Dienst:** het platform Fivvi (fivvi.app): de website, de publieke boekingspagina's, de iOS- en Android-apps en de API.
+- **Aanbieder, wij, ons:** K&S Apps, een vennootschap onder firma, handelend onder de naam Fivvi, KvK 92372996, btw-nummer NL866022788B01, Haringbuisdijk 43, 1086 VA Amsterdam, telefoon +31 6 85145755, support@fivvi.app.
+- **Dienst:** het platform Fivvi (fivvi.app): de website, de apps Fivvi Pro (voor eigenaren en trainers) en Fivvi (voor klanten) voor iPhone en Android, de pagina's waarmee klanten zich bij een Workspace aanmelden en boeken, en de API.
 - **Workspace:** de omgeving van een sportschool, studio of zelfstandige trainer binnen de Dienst.
 - **Klant, jij, je:** de onderneming of zelfstandige die een Workspace aanmaakt of beheert.
 - **Gebruikers:** de owners en trainers die jij toegang geeft tot je Workspace.
-- **Jouw gegevens:** alle gegevens die jij, je Gebruikers of je klanten in je Workspace invoeren. Dat zijn onder andere klantgegevens, boekingen, trainingen en notities.
+- **Jouw klanten:** de mensen die bij jouw Workspace klant zijn.
+- **Jouw gegevens:** alle gegevens die jij, je Gebruikers of je klanten in je Workspace invoeren. Dat zijn onder andere klantgegevens, boekingen, abonnementen en credits, betalingen en facturen, trainingen en notities.
 - **Verwerkersovereenkomst:** de verwerkersovereenkomst tussen jou en ons, die bij deze voorwaarden hoort.
 
 ### A2. Toepasselijkheid
@@ -39,7 +42,7 @@ Deze voorwaarden bestaan uit twee delen:
 ### A4. Pilot en gratis gebruik
 
 1. De Dienst is in ontwikkeling. Tijdens de pilot- en gratis fase gebruik je de Dienst **kosteloos**.
-2. Functies kunnen in die fase veranderen, verdwijnen of tijdelijk niet werken. We geven geen garantie op beschikbaarheid (zie A8).
+2. Functies kunnen in die fase veranderen, verdwijnen of tijdelijk niet werken. We geven geen garantie op beschikbaarheid (zie A9).
 3. Gaan we later geld vragen, dan laten we je dat **ten minste 60 dagen vooraf** weten. Je mag dan kosteloos stoppen en je gegevens exporteren. Je betaalt nooit voor iets waar je niet vooraf mee hebt ingestemd.
 4. Feedback die je ons geeft, mogen we gebruiken om de Dienst te verbeteren. Daar zit geen vergoeding tegenover.
 
@@ -51,7 +54,7 @@ Je gebruikt de Dienst op een normale, rechtmatige manier. In het bijzonder:
 - b. leg je in notities niet meer gezondheidsinformatie vast dan nodig is voor de training (zie A7);
 - c. gebruik je de Dienst niet voor spam, misleiding of onrechtmatige inhoud;
 - d. probeer je niet de beveiliging te omzeilen, de Dienst te overbelasten, of de software te kopiëren of na te bouwen;
-- e. gebruik je de e-mailfuncties alleen voor berichten die bij de Dienst horen, zoals boekingen en uitnodigingen.
+- e. gebruik je de e-mailfuncties alleen voor berichten die bij de Dienst horen, zoals uitnodigingen en boekingen.
 
 ### A6. Jouw gegevens
 
@@ -71,22 +74,31 @@ Voor de gegevens van jouw klanten ben jij **verwerkingsverantwoordelijke** in de
 - d. beoordeelt of je een DPIA nodig hebt. Wij leveren daarvoor een ingevulde opzet;
 - e. de afspraken met je eigen klanten zelf regelt, zoals prijzen, annuleringsregels en aansprakelijkheid voor trainingen. Wij zijn geen partij bij die afspraken.
 
-### A8. Beschikbaarheid, onderhoud en support
+### A8. Betalingen en Mollie
+
+1. Klanten online laten betalen kan zodra dat in de Dienst beschikbaar is. Dat gaat via **Mollie**. Jij sluit zelf een overeenkomst met Mollie B.V. en koppelt je eigen Mollie-account aan je Workspace. Voor het betalen gelden de voorwaarden van Mollie.
+2. **Jij bent de handelaar.** Het geld van je klanten gaat van Mollie naar jouw bankrekening, nooit via een rekening van ons. Wij nemen geen geld aan, houden geen geld van klanten vast en rekenen op dit moment geen commissie op betalingen. Gaan we dat later wel doen, dan geldt A4 lid 3.
+3. Mollie rekent per betaling kosten, volgens haar tarieven. Die betaal je aan Mollie, niet aan ons. Alle bedragen zijn in euro.
+4. De overeenkomst met je klant over een abonnement, een creditpakket of een losse les sluit je zelf. Jij bepaalt de prijzen en annuleringsregels, geeft de facturen uit, regelt de btw en handelt terugbetalingen en terugboekingen af. Wij zijn geen partij bij die overeenkomst.
+5. Een storing of beslissing van Mollie, zoals een afgewezen betaling of een gecontroleerd account, valt buiten onze invloed. Wij zijn daarvoor niet aansprakelijk.
+6. Je hoeft Mollie niet te gebruiken. Neem je alleen contant of met pin aan, dan kun je die betalingen zelf in de Dienst vastleggen. Je kunt Mollie later altijd nog koppelen.
+
+### A9. Beschikbaarheid, onderhoud en support
 
 1. We doen ons best om de Dienst goed en veilig beschikbaar te houden, maar we garanderen geen ononderbroken werking.
 2. Gepland onderhoud doen we zo veel mogelijk buiten de drukke uren, en we melden het vooraf.
-3. Support loopt via {{supportkanaal}}. Tijdens de pilot geldt de responstijd die we met je afspreken.
+3. Support loopt via support@fivvi.app of telefonisch via +31 6 85145755. Tijdens de pilot geldt de responstijd die we met je afspreken.
 
-### A9. Wijzigingen aan de Dienst
+### A10. Wijzigingen aan de Dienst
 
 We mogen de Dienst verbeteren en veranderen. Verdwijnt een functie waar je wezenlijk op rekent, dan melden we dat vooraf. Je kunt dan kosteloos stoppen.
 
-### A10. Intellectueel eigendom
+### A11. Intellectueel eigendom
 
 1. Alle rechten op de software, het ontwerp en de inhoud van de Dienst liggen bij ons of onze licentiegevers. Jouw gegevens vallen daar niet onder.
 2. Zolang de overeenkomst loopt, krijg je een niet-exclusief, niet-overdraagbaar recht om de Dienst te gebruiken.
 
-### A11. Aansprakelijkheid
+### A12. Aansprakelijkheid
 
 1. Onze totale aansprakelijkheid voor schade door een toerekenbare tekortkoming of onrechtmatige daad is per kalenderjaar beperkt tot het bedrag dat je in de 12 maanden daarvoor aan ons hebt betaald, met een minimum van **€ {{bedrag}}**. Tijdens de gratis fase geldt alleen dat minimum.
 2. We zijn niet aansprakelijk voor indirecte schade, zoals gederfde winst, gemiste omzet en reputatieschade.
@@ -94,65 +106,73 @@ We mogen de Dienst verbeteren en veranderen. Verdwijnt een functie waar je wezen
 4. Voor schade in verband met persoonsgegevens gelden ook de afspraken in de Verwerkersovereenkomst.
 5. Meld schade zo snel mogelijk, en uiterlijk binnen 12 maanden nadat je die hebt ontdekt.
 
-### A12. Overmacht
+### A13. Overmacht
 
 We zijn niet aansprakelijk als we onze verplichtingen niet kunnen nakomen door overmacht. Voorbeelden zijn een grootschalige storing bij een hosting- of internetleverancier, stroomuitval en overheidsmaatregelen.
 
-### A13. Duur en beëindiging
+### A14. Duur en beëindiging
 
 1. De overeenkomst loopt voor onbepaalde tijd.
 2. Je kunt op elk moment stoppen door je Workspace te verwijderen of ons te mailen.
 3. Wij kunnen de overeenkomst opzeggen met een termijn van **30 dagen**. Handel je in ernstige strijd met deze voorwaarden, bijvoorbeeld bij misbruik of onrechtmatige inhoud, dan mogen we je toegang direct opschorten of beëindigen.
 4. Na het einde geldt A6 lid 4: 30 dagen exporteren, daarna verwijderen.
 
-### A14. Wijziging van deze voorwaarden
+### A15. Wijziging van deze voorwaarden
 
 We kunnen deze voorwaarden wijzigen. Wezenlijke wijzigingen melden we **ten minste 30 dagen** voordat ze ingaan. Ga je niet akkoord, dan kun je vóór die datum kosteloos stoppen.
 
-### A15. Toepasselijk recht en geschillen
+### A16. Toepasselijk recht en geschillen
 
 1. Op deze voorwaarden is Nederlands recht van toepassing.
 2. Geschillen worden voorgelegd aan de bevoegde rechter in het arrondissement {{arrondissement}}. We proberen er eerst samen uit te komen.
 
 ---
 
-## Deel B: Voorwaarden voor klanten en gasten
+## Deel B: Voorwaarden voor klanten
 
 ### B1. Wat Fivvi voor jou doet
 
-1. Via Fivvi boek je lessen, Open Gym of andere sessies bij een sportschool of trainer.
-2. **Je afspraak is met die sportschool of trainer, niet met ons.** Hun regels gelden, bijvoorbeeld over prijzen, annuleren, niet verschijnen en veiligheid tijdens de training. Wij leveren alleen het platform.
+1. Via Fivvi, in de app Fivvi of op de website, meld je je aan bij een sportschool, studio of trainer (de "studio"), boek je lessen en andere sessies en bekijk je je boekingen. Zodra het beschikbaar is, betaal je er ook je abonnement of creditpakket en zie je je credits en facturen.
+2. **Je afspraak is met die studio, niet met ons.** Haar regels gelden, bijvoorbeeld over prijzen, annuleren, niet verschijnen en veiligheid tijdens de training. Wij leveren alleen het platform.
 
-### B2. Boeken
+### B2. Account en aanmelden bij een studio
 
-1. Om te boeken geef je je naam en e-mailadres. Gebruik je echte naam en een e-mailadres dat van jou is.
-2. We houden je plek **kort vast** (10–15 minuten) en sturen je een link of code. Je boeking is pas bevestigd als je die gebruikt. Doe je dat niet op tijd, dan vervalt de reservering en komt de plek weer vrij.
-3. Een bevestiging en latere berichten ontvang je in de taal die je kiest (Nederlands of Engels).
+1. Je maakt een account met je e-mailadres. Gebruik je echte naam en een e-mailadres dat van jou is. Je logt in zonder wachtwoord, met een link of een code die we naar dat e-mailadres sturen. Houd je e-mail goed beveiligd en meld misbruik direct bij ons.
+2. Je kunt een account aanmaken vanaf **16 jaar**. Jongere kinderen hebben geen eigen account: een ouder of verzorger regelt het dan voor hen met de studio.
+3. Een account laat op zichzelf niets van een studio zien. Je komt bij een studio via haar aanmeldlink of QR-code, of doordat de studio je uitnodigt. De studio beslist of ze je toelaat. Alleen toegelaten klanten zien het rooster van de studio en kunnen boeken.
+4. De studio kan je als klant verwijderen. Je kunt je account op elk moment laten verwijderen: mail vanaf het adres van je account naar privacy@fivvi.app met als onderwerp "Account verwijderen". We doen dat binnen een maand.
 
-### B3. Account
+### B3. Boeken
 
-1. Een account is **niet verplicht**.
-2. Maak je er wel een aan, dan kun je je boekingen bekijken en beheren. Een account kun je aanmaken vanaf {{16}} jaar.
-3. Je kunt je account op elk moment verwijderen.
+1. Een boeking is direct definitief. We houden geen plek vast en je hoeft niets te bevestigen.
+2. Is een les vol, dan kun je, zodra de wachtlijst beschikbaar is, op de wachtlijst gaan. Komt er een plek vrij, dan word je automatisch ingeschreven en laten we je dat weten.
+3. Annuleren kan tot het moment dat de studio bepaalt. Een te late annulering of niet verschijnen kan volgens de regels van de studio je credit kosten.
+4. Je ontvangt bevestigingen en latere berichten in de taal die je kiest (Nederlands of Engels).
 
-### B4. Gebruiksregels
+### B4. Betalen
 
-Maak geen nepboekingen, boek niet op naam van iemand anders zonder toestemming, en probeer het systeem niet te misbruiken of te overbelasten. Bij misbruik kunnen we boekingen weigeren of annuleren, of je toegang blokkeren.
+1. Betalen aan een studio kan zodra dat beschikbaar is, via **Mollie**, bijvoorbeeld met iDEAL. Voor een abonnement kun je een machtiging voor automatische incasso geven. Voor het betalen gelden ook de voorwaarden van Mollie.
+2. Je betaling gaat naar de studio, niet naar ons. Wij nemen geen geld aan en houden geen geld van klanten vast. De studio bepaalt de prijs, geeft de factuur uit en handelt terugbetalingen af. Je betaalt geen extra kosten aan Fivvi. De app en de website zijn voor jou gratis.
+3. Heb je een vraag of klacht over een betaling, een factuur of een terugbetaling, neem dan eerst contact op met de studio.
 
-### B5. Aansprakelijkheid
+### B5. Gebruiksregels
 
-1. Voor de training zelf en voor alles wat in de sportschool gebeurt, is de sportschool of trainer verantwoordelijk.
+Maak geen nepaccounts of nepverzoeken, boek niet op naam van iemand anders zonder toestemming, en probeer het systeem niet te misbruiken of te overbelasten. Bij misbruik kunnen we je toegang blokkeren en kan de studio boekingen weigeren of annuleren.
+
+### B6. Aansprakelijkheid
+
+1. Voor de training zelf en voor alles wat in de sportschool gebeurt, is de studio verantwoordelijk.
 2. Wij zijn aansprakelijk voor schade die we zelf veroorzaken, voor zover de wet dat voorschrijft. Voor zover de wet het toestaat, zijn we niet aansprakelijk voor indirecte schade. Je rechten als consument onder dwingend recht blijven altijd gelden.
 
-### B6. Privacy
+### B7. Privacy
 
-Hoe we met je gegevens omgaan, staat in onze [privacyverklaring](privacy-policy.nl.md).
+Hoe we met je gegevens omgaan, staat in onze [privacyverklaring](https://fivvi.app/privacy).
 
-### B7. Toepasselijk recht en geschillen
+### B8. Toepasselijk recht en geschillen
 
 1. Op deze voorwaarden is Nederlands recht van toepassing. Woon je in een ander land, dan houd je de bescherming die het consumentenrecht van dat land je dwingend geeft.
-2. Heb je een klacht, mail dan eerst naar {{support-e-mailadres}}. Komen we er samen niet uit, dan kan een geschil worden voorgelegd aan de rechter die daarvoor volgens de wet bevoegd is.
+2. Heb je een klacht, mail dan eerst naar support@fivvi.app. Komen we er samen niet uit, dan kan een geschil worden voorgelegd aan de rechter die daarvoor volgens de wet bevoegd is.
 
-### B8. Wijzigingen
+### B9. Wijzigingen
 
 We kunnen deze voorwaarden aanpassen. De versie die gold toen je boekte, blijft gelden voor die boeking.

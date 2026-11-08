@@ -28,16 +28,8 @@ function servicesInLegalFile(): string[] {
   return [...new Set(names)];
 }
 
-/**
- * ADR-028 decided that Lettermint replaces Brevo; the cutover is #398, so the code may still use
- * Brevo for now. The legal file is updated by #642 (owner-only) and still says Brevo here, so it
- * stands for Lettermint, the provider the page names. Once #642 has landed the file says Lettermint,
- * this rename does nothing, and this test can drop it.
- */
-const renamedSince: Record<string, string> = { Brevo: 'Lettermint' };
-
 describe('F064 AC11 the sub-processors page stays in step with docs/legal/sub-processors.md', () => {
-  const inFile = servicesInLegalFile().map((name) => renamedSince[name] ?? name);
+  const inFile = servicesInLegalFile();
 
   it('reads the services of the legal file', () => {
     expect(inFile.length).toBeGreaterThanOrEqual(5);

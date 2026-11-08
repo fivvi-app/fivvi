@@ -982,6 +982,7 @@
       "purpose": {
         "railway": "Hosting the website, apps and database",
         "lettermint": "Emails, such as your sign-in code and confirmations",
+        "zoho": "Our own mailbox for questions, privacy requests and demo requests",
         "sentry": "Error reports, without names, email addresses or notes",
         "postHog": "Statistics without cookies",
         "turnstile": "Protecting forms against bots"

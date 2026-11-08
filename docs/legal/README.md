@@ -1,8 +1,8 @@
 # Juridisch & privacy / Legal & privacy
 
-> **⚠️ CONCEPT — GEEN JURIDISCH ADVIES.** Alle documenten in deze map zijn concepten, opgesteld door een AI-agent op basis van de productdocumentatie. Een jurist heeft ze niet gecontroleerd. Laat ze toetsen voordat er echte persoonsgegevens in het platform komen (`ROADMAP.md §4.4`). De Nederlandse tekst is leidend.
+> **⚠️ GEEN JURIDISCH ADVIES.** Deze documenten zijn opgesteld door een AI-agent op basis van de productdocumentatie. Een jurist heeft ze niet gecontroleerd. De privacyverklaring en de voorwaarden (versie 1.0, 8 november 2026) zijn de teksten voor de website; ze krijgen nu een AI-gestuurde toets en later een privacyjurist (Q13 in [`open-questions.md`](open-questions.md)). De andere documenten zijn nog concepten en moeten getoetst zijn voordat er echte persoonsgegevens in het platform komen (`ROADMAP.md §4.4`). De Nederlandse tekst is leidend.
 >
-> **⚠️ DRAFT — NOT LEGAL ADVICE.** Every document in this folder is a draft written by an AI agent from the product documentation. No lawyer has checked it. Have it reviewed before real personal data enters the platform (`ROADMAP.md §4.4`). The Dutch text prevails.
+> **⚠️ NOT LEGAL ADVICE.** These documents were written by an AI agent from the product documentation. No lawyer has checked them. The privacy policy and the terms (version 1.0, 8 November 2026) are the texts for the website; they get an AI-assisted review now and a privacy lawyer later (Q13 in [`open-questions.md`](open-questions.md)). The other documents are still drafts and must be reviewed before real personal data enters the platform (`ROADMAP.md §4.4`). The Dutch text prevails.
 
 | | |
 |---|---|
@@ -10,7 +10,7 @@
 | **Datum / Date** | 22 september 2026 |
 | **Eigenaar / Owner** | Keyvan Mahmoudi |
 | **Roadmap** | M0, §4.4 Legal and privacy preparation |
-| **Status** | Drafts complete; signatures, provider checks and publication remain open / Concepten afgerond; ondertekening, controles bij aanbieders en publicatie staan nog open |
+| **Status** | Privacy policy and terms updated to what Fivvi is now (F064, #642), with two values still open (Q7, Q14); the other drafts are unchanged; signatures and provider checks remain open / Privacyverklaring en voorwaarden bijgewerkt naar wat Fivvi nu is (F064, #642), met twee waarden die nog openstaan (Q7, Q14); de andere concepten zijn ongewijzigd; ondertekening en controles bij aanbieders staan nog open |
 | **Pull request** | [#5 — Legal and privacy drafts](https://github.com/fivvi-app/fivvi/pull/5) |
 
 ## Documenten / Documents
@@ -35,9 +35,9 @@
 
 ## Placeholders
 
-Waarden die nog niet bekend zijn staan als `{{…}}`, bijvoorbeeld `{{Naam aanbieder}}`, `{{KvK-nummer}}`, `{{adres}}`. Zie [`open-questions.md`](open-questions.md).
+Waarden die nog niet bekend zijn staan als `{{…}}`. In `privacy-policy.*` staan er geen meer. In `terms.*` staan er nog twee, die van open vragen afhangen: het bedrag in A12 (Q7) en het arrondissement in A16 (Q14). Een `{{…}}` in een gepubliceerde tekst laat de build van de website mislukken (F064, AC10). De andere documenten in deze map hebben nog `{{Naam aanbieder}}` en dergelijke; ze worden ingevuld vóór ondertekening. Zie [`open-questions.md`](open-questions.md).
 
-Values that aren't known yet appear as `{{…}}`, for example `{{Provider name}}`, `{{KvK number}}`, `{{address}}`. See [`open-questions.md`](open-questions.md).
+Values that aren't known yet appear as `{{…}}`. `privacy-policy.*` has none left. `terms.*` has two left, which depend on open questions: the amount in A12 (Q7) and the court district in A16 (Q14). A `{{…}}` in a published text fails the website build (F064, AC10). The other documents in this folder still have `{{Provider name}}` and the like; they are filled in before signing. See [`open-questions.md`](open-questions.md).
 
 ## Bronnen / Sources
 
