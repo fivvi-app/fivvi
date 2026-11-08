@@ -1,33 +1,33 @@
 # The Fivvi logo
 
-**Status:** chosen by the owner on 7 November 2026, after ten rounds of concepts. The logo is concept V2 of the tenth round, drawn with Codex's `image_gen` on the owner's ChatGPT subscription and traced to vector with potrace, without changing its shapes. [`visual-direction.md`](../visual-direction.md) places it in the visual direction.
+**Status:** the wordmark was chosen by the owner on 8 November 2026, to match the day dial app icon chosen the same day. It is concept Z2 of the thirteenth round, drawn with Codex's `image_gen` on the owner's ChatGPT subscription and traced to vector with potrace, without changing its shapes. It replaces the first wordmark of 7 November, whose two v's slapped a high five; those files are in `archive/vv/`. [`visual-direction.md`](../visual-direction.md) places the logo in the visual direction.
 
 ## The idea
 
-"Fivvi" sounds like *high five*. The two v's in the name are two pairs of raised arms that slap together at the top; the pink spark is the clap. Trainer and client, a session done: the moment Fivvi exists for, because it takes care of the rest ("Jij traint. Fivvi regelt de rest.").
+The app icon is the **day dial**: the dial of a day with five booked hours in pink, what Fivvi does (a planned day full of sessions). The wordmark **fivvi** carries the same idea: its two i dots are pink segments of exactly that dial, so the name and the icon belong together without a word of explanation.
 
-The wordmark is heavy, rounded and leans forward, with swelling strokes: playful but confident, so it works for a solo PT, a pilates studio and a gym alike.
+The letters are heavy, rounded and upright, with soft ends: friendly and confident like the first wordmark, but as calm as the icon, so it works for a solo PT, a pilates studio and a gym alike. Pink stays where it means something, as in the icon.
 
 ## Files
 
 | File | What | Where it goes |
 |---|---|---|
-| `fivvi-logo.svg` | The wordmark: black letters, pink spark and i dots | Light backgrounds: website, emails, invoices, the trainer web |
+| `fivvi-logo.svg` | The wordmark: near-black letters, the i dots as pink dial segments | Light backgrounds: website, emails, invoices, the trainer web |
 | `fivvi-logo-dark.svg` | The wordmark in white, with a lighter pink | Dark backgrounds and dark mode |
-| `fivvi-mark.svg` | The vv with the spark, in pink | Where the name is already shown, or there is no room for it |
-| `fivvi-mark-white.svg` | The same mark in white | On pink or on photos |
+| `fivvi-lockup.svg`, `-dark.svg` | The day dial next to the wordmark | Headers and footers with room for both, the App Store and store listings |
+| `fivvi-lockup-stacked.svg`, `-dark.svg` | The day dial above the wordmark | Sign-in and splash screens, posters, social images |
 | `day-dial/b2/` | **The app icon**: the day dial B2, as Icon Composer layers and previews | The client app Fivvi, see [The app icon](#the-app-icon-the-day-dial) |
 | `day-dial/b2-pro/` | **The Fivvi Pro icon**: B2 with PRO in the centre of the dial | Fivvi Pro, the app for owners and trainers |
 | `day-dial/b/` | The day dial B, kept to come back to | Nowhere yet |
 | `favicon.svg` | The day dial B2, light, with rounded corners | Browser tabs and bookmarks |
-| `fivvi-app-icon.svg`, `-dark.svg`, `-tinted.svg` | The first app icon, the vv on pink; replaced by the day dial on 8 November 2026 | Nowhere; kept for reference |
+| `archive/vv/` | The first wordmark, mark and app icon (the slapping v's, 7 November 2026), replaced on 8 November | Nowhere; kept for reference |
 
 ## Colours
 
 | Role | Light | Dark |
 |---|---|---|
-| Letters | `#111111` | `#FFFFFF` |
-| Spark and i dots | Move pink `#E6164A` | `#FF3D6E` |
+| Letters | `#1C1C1E` | `#FFFFFF` |
+| i dots (dial segments) | Move pink `#E6164A` | `#FF3D6E` |
 | App icon background | `#FFFFFF` to `#ECECF1` | `#2C2C2E` to `#0B0B0C` |
 | App icon track | `#E4E4EA` | white at 10% |
 | App icon five | Pink gradient in one hue: `#FF4F7B` at the top to `#C8103D` at the bottom | the same |
@@ -40,13 +40,13 @@ Only Move pink `#E6164A` (the accent, [`visual-direction.md`](../visual-directio
 
 - **Clear space:** keep at least the height of an i dot free around the logo.
 - **Smallest size:** the wordmark from 20 px high on a screen; the app icon reads from 29 px (a settings row); PRO in the Fivvi Pro icon reads from about 40 px, and below that the name under the icon carries it.
-- **Keep it whole:** the spark, the dots and the letters always go together, in these colours. The letters are never pink.
+- **Keep it whole:** the segment dots and the letters always go together, in these colours. The letters are never pink, and the dots are never round.
 - **Don't:** stretch, rotate, outline, add shadows or effects, set it in another font, or place it on a busy photo without a calm area.
-- **The app icon** is the day dial B2: never the wordmark or the vv in an icon shape.
+- **The app icon** is the day dial B2: never the wordmark in an icon shape. Where icon and name appear together, use a lockup.
 
 ## The app icon: the day dial
 
-On 8 November 2026 the owner chose the day dial as the app icon, drawn the way Apple draws its own icons: one object, with letters only in the Fivvi Pro version. The dial of a day with **five booked hours** in pink: what Fivvi does (a planned day full of sessions), with a quiet nod to *five* and the high five. It replaces the vv app icon; the vv wordmark stays the logo.
+On 8 November 2026 the owner chose the day dial as the app icon, drawn the way Apple draws its own icons: one object, with letters only in the Fivvi Pro version. The dial of a day with **five booked hours** in pink: what Fivvi does (a planned day full of sessions), with a quiet nod to *five* and the high five. It replaces the vv app icon.
 
 | Version | What | Files |
 |---|---|---|
