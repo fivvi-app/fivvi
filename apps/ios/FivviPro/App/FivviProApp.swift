@@ -25,10 +25,22 @@ struct FivviProApp: App {
 
     var body: some Scene {
         WindowGroup {
-            RootView(session: session, api: api, store: store, language: language)
+            root
                 .tint(Tokens.Colors.actionPrimaryBg)
                 .preferredColorScheme(LaunchAppearance.colorScheme())
                 .recordingOpenedLinks()
         }
+    }
+
+    @ViewBuilder private var root: some View {
+        #if DEBUG
+            if KitGallery.isRequested() {
+                KitGalleryView(catalog: language.catalog)
+            } else {
+                RootView(session: session, api: api, store: store, language: language)
+            }
+        #else
+            RootView(session: session, api: api, store: store, language: language)
+        #endif
     }
 }

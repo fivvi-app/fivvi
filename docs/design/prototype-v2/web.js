@@ -1175,7 +1175,7 @@
       return h;
     } finally { APP = false; }
   }
-  function brand(sm) { return '<div class="appicon c-appicon' + (sm ? " sm" : "") + '">F</div>'; }
+  function brand(sm) { return '<div class="appicon c-appicon fv-icon' + (sm ? " sm" : "") + '" role="img" aria-label="Fivvi"></div>'; }
   var ASTEP = {};
   ASTEP.welcome = function () {
     return intro(brand(), "Welkom bij Fivvi", "Boek lessen en sessies bij je studio of trainer.") +
