@@ -61,6 +61,16 @@ worktree_simulator_name() {
   [ "$dir" = "$MAIN_ROOT" ] || echo "Fivvi $(basename "$dir")"
 }
 
+# The simulators the scripts created, so clean.sh deletes only those and never one the owner made by hand (#668): a marker
+# per UDID under the main checkout's .work/simulators/, holding the name.
+remember_simulator() {
+  mkdir -p "$NOTES_DIR/simulators"
+  echo "$2" >"$NOTES_DIR/simulators/$1"
+}
+forget_simulator() { rm -f "$NOTES_DIR/simulators/$1"; }
+# Whether simulator $1 (UDID) named $2 was created by the scripts of this repository.
+simulator_is_ours() { [ "$(cat "$NOTES_DIR/simulators/$1" 2>/dev/null)" = "$2" ]; }
+
 # UDID of the simulator to test on: the one named $IOS_SIMULATOR; else this worktree's own, created as a copy of the
 # newest iPhone when missing; else (the main checkout) the newest iPhone. Empty if none.
 ios_simulator() {
@@ -70,7 +80,8 @@ ios_simulator() {
     read -r udid type runtime <<<"$(iphone_simulator "")"
     [ -n "$udid" ] || return 0
     echo "Creating simulator '$own' ($type, $runtime)" >&2
-    xcrun simctl create "$own" "$type" "$runtime" >/dev/null
+    udid="$(xcrun simctl create "$own" "$type" "$runtime")"
+    remember_simulator "$udid" "$own"
   fi
   read -r udid _ <<<"$(iphone_simulator "${IOS_SIMULATOR:-$own}")"
   echo "$udid"
@@ -209,6 +220,6 @@ delete_worktree_simulator() {
   [ -n "$name" ] && use_xcode 2>/dev/null || return 0
   for udid in $(xcrun simctl list devices --json | jq -r --arg name "$name" '.devices[][] | select(.name == $name) | .udid'); do
     xcrun simctl shutdown "$udid" >/dev/null 2>&1 || true
-    if xcrun simctl delete "$udid"; then echo "🗑  deleted simulator '$name'"; fi
+    if xcrun simctl delete "$udid"; then forget_simulator "$udid"; echo "🗑  deleted simulator '$name'"; fi
   done
 }
