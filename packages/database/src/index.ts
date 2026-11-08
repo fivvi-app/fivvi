@@ -50,6 +50,20 @@ export {
   updateClient,
 } from './repositories/clients.ts';
 export {
+  type ClassDateChanges,
+  type ClassDateUpdate,
+  createClassDate,
+  createGroupClass,
+  findGroupClass,
+  type GroupClassChanges,
+  type GroupClassView,
+  listGroupClasses,
+  type NewClassDate,
+  type NewGroupClass,
+  updateClassDate,
+  updateGroupClass,
+} from './repositories/group-classes.ts';
+export {
   findLocation,
   type LocationAddress,
   type LocationChanges,
@@ -57,12 +71,21 @@ export {
   listLocations,
   updateLocation,
 } from './repositories/locations.ts';
+export {
+  findMyNextSessionStart,
+  hasMySession,
+  listMySessions,
+  listMyTrainingWorkspaces,
+  type PersonalSessionRow,
+  type PersonalWorkspace,
+} from './repositories/personal-sessions.ts';
 export { listMyWorkspaces, type WorkspacePlace } from './repositories/places.ts';
 export {
   type AttendanceStatus,
   createPrivateSession,
   findSession,
   type NewPrivateSession,
+  type SessionGroupClassView,
   type SessionParticipantView,
   type SessionStatus,
   type SessionTrainerView,
@@ -126,6 +149,7 @@ export {
   type InvitationEntry,
   type InvitationScopeFacts,
   type InvitationScopeInput,
+  inEachWorkspace,
   type Place,
   type TeamRole,
   type TenantContext,

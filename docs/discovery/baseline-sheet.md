@@ -16,7 +16,7 @@
 
 The admin-time target (§8) compares like with like. So split admin time into:
 
-- **MVP scope (codes P, B, L, N, A, O, C):** scheduling, booking and messages about appointments, workout logging and programming, notes, attendance, Open Gym, and (since commerce moved into the MVP, `PRODUCT.md §90–§97`) invoices, payments, memberships, credit packs and credit plans (code C). The platform is meant to reduce this time.
+- **MVP scope (codes P, B, L, N, A, C; code O, Open Gym, comes after the MVP, `PRODUCT.md §53`, so record it for context only):** scheduling, booking and messages about appointments, workout logging and programming, notes, attendance, and (since commerce moved into the MVP, `PRODUCT.md §90–§97`) invoices, payments, memberships, credit packs and credit plans (code C). The platform is meant to reduce this time.
 - **Outside MVP (code X):** payroll, marketing, bookkeeping and accounting. These are excluded from the MVP (`PRODUCT.md §53`). Record them for context, but they are **not** part of the admin-time target.
 
 Training time itself (being with a client) is not admin. Admin is the time spent *around* training.

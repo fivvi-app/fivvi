@@ -1,5 +1,7 @@
 # Clickable prototype
 
+
+> **Superseded for the look (5 November 2026).** This is the M0 prototype. The current look and the decisions are in [prototype v2](../prototype-v2/README.md) and its [`DECISIONS.md`](../prototype-v2/DECISIONS.md) (ADR-029).
 Open [index.html](index.html) directly in a browser. No build, account, backend, or installation is needed. The published link is placed in the PR description. The landing page links all seven flows; `#flow1` through `#flow7` open a flow directly (also when the hash changes on an open page). *Ik ben* on the landing page switches the app between Sarah (trainer in three workspaces, owner of her own business) and John (owner of John's Gym).
 
 | Flow | Starting surface | Key interaction |

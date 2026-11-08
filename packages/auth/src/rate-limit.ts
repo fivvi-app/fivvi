@@ -101,6 +101,21 @@ function clientIp(headers: Headers | undefined, requireClientIp: boolean): strin
 }
 
 /**
+ * The key of the client's IP address for the rate limit of another public route (the demo form,
+ * F064): a keyed hash (the address cannot be read back from the counter table, nor tried without
+ * the secret), IPv6 grouped by /64 like the sign-in limits, with its own purpose. `null` for no
+ * usable address when no proxy is in front (`requireClientIp` false): no per-address limit.
+ */
+export function clientAddressKey(
+  secret: string,
+  headers: Headers,
+  requireClientIp: boolean,
+): string | null {
+  const ip = clientIp(headers, requireClientIp);
+  return ip === null ? null : hashSecretValue(secret, 'rate-limit-demo-ip', ip);
+}
+
+/**
  * The rate limits of `POST /sign-in/code/request` (AC10), in Postgres so a deploy or restart
  * doesn't reset them. They run before the endpoint, so they hold whatever the endpoint goes on
  * to do (look the address up, send an email, work in the background). A limited request gets

@@ -15,6 +15,10 @@ Each agent's `claude-tools` field is its tool allowlist in Claude Code (the gene
 | Mid | Sonnet | Sonnet | Terra | `builder` | `implement` with `tdd`: tests and code, and the fix rounds after a review |
 | Small | Haiku | Haiku | Luna | `mechanic` | CI-log digging, simple conflict resolution (unions), status and doc edits, waiting on checks |
 
+## Design
+
+A ticket with a screen builds what the owner decided in the prototype. Before building or reviewing it, read the part of [`docs/design/prototype-v2/DECISIONS.md`](../design/prototype-v2/DECISIONS.md) for that surface, and the comments on the parent spec (`gh issue view <spec> --comments`): `issue.sh show` prints only the body, and the design decisions on specs approved before the prototype are in their comments. Where a ticket and `DECISIONS.md` disagree, stop and report it. `DECISIONS.md` §7 lists the prototype's assumptions: build the ones the owner confirmed, and ask about any other, don't build it as decided. The prototype shows look and flow, never architecture.
+
 ## Loop
 
 1. `builder` builds the ticket and commits; it does **not** run `code-review`. `implement` ends with a `code-review` call; here that step belongs to the reviewer, so skip it.

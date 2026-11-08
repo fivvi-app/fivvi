@@ -1,11 +1,14 @@
 import { createAddressLookup, createApiHandler } from '@fivvi/api';
+import { clientAddressKey, defaultRequireClientIp } from '@fivvi/auth';
 import {
   consumeRateLimit,
   createTenantScopes,
+  deleteExpiredRateLimits,
   findSystemGreeting,
   pingDatabase,
 } from '@fivvi/database';
 import {
+  createDemoRequestSender,
   createEnvironmentSendEmail,
   createPrivateSessionSender,
   createTrainerInvitationSender,
@@ -13,6 +16,7 @@ import {
 import { inProcessApiClient } from './api-client';
 import { auth, readAuthConfig, signUpAllowlist } from './auth';
 import { database } from './database';
+import { demoRequestRecipient } from './demo-request-recipient';
 import { errorReporter } from './error-reporter';
 import { productEvents } from './product-events';
 
@@ -49,6 +53,22 @@ function sendPrivateSession(...[mail]: Parameters<ReturnType<typeof createPrivat
   return privateSessionSender(mail);
 }
 
+let demoRequestSender: ReturnType<typeof createDemoRequestSender> | undefined;
+
+/**
+ * The demo request of the public website (F064), emailed in Dutch to `demoRequestRecipient()`:
+ * the support address in production, an `@example.com` address (logged, not sent) elsewhere.
+ * Nothing goes to the visitor. Created on first use, so `next build` runs without the email
+ * settings. The mailbox is the owner's to create (#612).
+ */
+function sendDemoRequest(...[mail]: Parameters<ReturnType<typeof createDemoRequestSender>>) {
+  demoRequestSender ??= createDemoRequestSender({
+    sendEmail: createEnvironmentSendEmail(),
+    to: demoRequestRecipient(),
+  });
+  return demoRequestSender(mail);
+}
+
 /** The API, served under `/api` by app/api/[[...route]]/route.ts. */
 export const apiHandler = createApiHandler({
   pingDatabase: () => pingDatabase(database()),
@@ -65,12 +85,22 @@ export const apiHandler = createApiHandler({
   sendTrainerInvitation,
   // Emails the confirmation of a private session (F020), after the session is committed.
   sendPrivateSession,
+  // Emails the website's demo requests to Fivvi's support address (F064).
+  sendDemoRequest,
   // Where "now" comes from: the expiry and the daily limit of an invitation (F011), the past of a session (F020).
   clock: { now: () => new Date() },
   // The request transaction of workspace and account routes, with its tenant context (E011).
   tenantScopes: createTenantScopes(database),
   // Fixed-window counters in Postgres (the sign-in's), outside the request transaction.
   consumeRateLimit: (key, rule) => consumeRateLimit(database(), key, rule, new Date()),
+  // The client's IP address as a keyed hash, IPv6 per /64, as sign-in counts it (F064).
+  clientAddressKey: (headers) =>
+    clientAddressKey(
+      readAuthConfig(process.env).secret,
+      headers,
+      defaultRequireClientIp(process.env),
+    ),
+  deleteExpiredRateLimits: () => deleteExpiredRateLimits(database(), new Date()),
   // PDOK in the production environment, the in-memory fake elsewhere; ADDRESS_LOOKUP overrides
   // (ENVIRONMENTS.md §7). Created here, once, so its cache lives as long as the process (F015).
   addressLookup: createAddressLookup(process.env),

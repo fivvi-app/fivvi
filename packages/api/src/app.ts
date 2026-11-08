@@ -12,11 +12,14 @@ import {
 } from './errors.ts';
 import { registerAddressLookup } from './routes/address-lookup.ts';
 import { registerClients } from './routes/clients.ts';
+import { registerDemoRequests } from './routes/demo-requests.ts';
+import { registerGroupClasses } from './routes/group-classes.ts';
 import { registerHealth } from './routes/health.ts';
 import { registerHello } from './routes/hello.ts';
 import { registerInvitations } from './routes/invitations.ts';
 import { registerLocations } from './routes/locations.ts';
 import { registerMe } from './routes/me.ts';
+import { registerPersonal } from './routes/personal.ts';
 import { registerSessions } from './routes/sessions.ts';
 import { registerSignIn } from './routes/sign-in.ts';
 import { registerTeamMembers } from './routes/team-members.ts';
@@ -68,7 +71,9 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
   registerHealth(app, dependencies);
   registerHello(app, dependencies);
   registerMe(app);
+  registerPersonal(app);
   registerSignIn(app, dependencies);
+  registerDemoRequests(app, dependencies);
   registerWorkspaces(app);
   registerTeamMembers(app);
   registerTrainerInvitations(app);
@@ -77,6 +82,7 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
   registerLocations(app);
   registerAddressLookup(app);
   registerSessions(app);
+  registerGroupClasses(app);
   registerClients(app);
   return app;
 }

@@ -166,7 +166,7 @@ struct SignInView: View {
                 .fixedSize(horizontal: false, vertical: true)
             if let resent = model.resentText {
                 messageCard(
-                    resent, foreground: Tokens.Colors.statusSuccessFg, background: Tokens.Colors.statusSuccessBg,
+                    resent, foreground: Tokens.Colors.statusSuccessText, background: Tokens.Colors.statusSuccessBg,
                     id: "signIn.resent"
                 )
             }

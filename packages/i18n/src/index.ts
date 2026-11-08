@@ -12,6 +12,7 @@ export {
   type Locale,
   locales,
 } from './config.ts';
+export { pickContentLanguage } from './content-language.ts';
 export {
   type ClientCommunicationLanguageSources,
   type CommunicationLanguageSources,

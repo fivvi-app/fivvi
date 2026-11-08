@@ -2,6 +2,7 @@ import { and, asc, eq } from 'drizzle-orm';
 import {
   authUsers,
   clients,
+  groupClasses,
   sessionParticipants,
   sessions,
   teamMembers,
@@ -38,6 +39,13 @@ export interface SessionTrainerView {
   readonly name: string;
 }
 
+/** The class a class date was scheduled from, by name (F021): the viewer's language picks one. */
+export interface SessionGroupClassView {
+  readonly id: string;
+  readonly nameNl: string;
+  readonly nameEn: string | null;
+}
+
 /** A session as the team sees it: instants in UTC, the location, the trainer and who takes part. */
 export interface SessionView {
   readonly id: string;
@@ -51,6 +59,8 @@ export interface SessionView {
   readonly location: LocationView;
   /** `null` when the session has no trainer (an Open Gym, or the trainer's profile ended). */
   readonly trainer: SessionTrainerView | null;
+  /** The class of a class date (F021); `null` for the other kinds. */
+  readonly groupClass: SessionGroupClassView | null;
   /** In the order they were added. */
   readonly participants: SessionParticipantView[];
 }
@@ -88,12 +98,13 @@ export async function findSession(
       version: sessions.version,
       locationId: sessions.locationId,
       trainerProfileId: sessions.trainerProfileId,
+      groupClassId: sessions.groupClassId,
     })
     .from(sessions)
     .where(and(eq(sessions.organizationId, scope.workspaceId), eq(sessions.id, sessionId)))
     .limit(1);
   if (!row) return undefined;
-  const { locationId, trainerProfileId, ...session } = row;
+  const { locationId, trainerProfileId, groupClassId, ...session } = row;
   const location = await findLocation(scope, locationId);
   // The composite foreign key keeps the location in the workspace and not null: it is there.
   if (!location) throw new Error('The location of a session was not found.');
@@ -113,6 +124,17 @@ export async function findSession(
           and(
             eq(trainerProfiles.organizationId, scope.workspaceId),
             eq(trainerProfiles.id, trainerProfileId),
+          ),
+        )
+    : [];
+  const [groupClass] = groupClassId
+    ? await db
+        .select({ id: groupClasses.id, nameNl: groupClasses.nameNl, nameEn: groupClasses.nameEn })
+        .from(groupClasses)
+        .where(
+          and(
+            eq(groupClasses.organizationId, scope.workspaceId),
+            eq(groupClasses.id, groupClassId),
           ),
         )
     : [];
@@ -137,7 +159,13 @@ export async function findSession(
       ),
     )
     .orderBy(asc(sessionParticipants.createdAt), asc(sessionParticipants.id));
-  return { ...session, location, trainer: trainer ?? null, participants };
+  return {
+    ...session,
+    location,
+    trainer: trainer ?? null,
+    groupClass: groupClass ?? null,
+    participants,
+  };
 }
 
 /**

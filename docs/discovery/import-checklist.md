@@ -130,7 +130,7 @@ Only **from the go-live date onwards**. Past sessions are not imported (history,
 | `class_name` + `date` | **Yes** | Identifies the occurrence |
 | `client_key` | **Yes** | |
 
-**Future Open Gym slots** (if any are already announced): `date`, `start_time`, `end_time`, `location_name`, `capacity`.
+**Future Open Gym slots** (not imported while Open Gym is postponed, `PRODUCT.md §53`): `date`, `start_time`, `end_time`, `location_name`, `capacity`.
 
 **Decisions**
 
@@ -140,9 +140,9 @@ Only **from the go-live date onwards**. Past sessions are not imported (history,
 
 ### 3.4a Agreements, balances and payments — **required** (v1.19)
 
-Commerce is part of go-live (`ROADMAP.md` M11, `PRODUCT.md §90–§97`), so the active memberships, credit packs and credit plans (group, private and Open Gym credits) come along. The current booking and payment app is the source; agree in M0 what it can export (QC14 in [`open-questions.md`](../design/open-questions.md#qc14)). **Never** import or copy IBANs, card data or mandate documents: mandates stay with the payment provider (QC09).
+Commerce is part of go-live (`ROADMAP.md` M11, `PRODUCT.md §90–§97`), so the active memberships, credit packs and credit plans (group and private credits) come along. The current booking and payment app is the source; agree in M0 what it can export (QC14 in [`open-questions.md`](../design/open-questions.md#qc14)). **Never** import or copy IBANs, card data or mandate documents: mandates stay with the payment provider (QC09).
 
-**Offers** — one row per kind of membership, credit pack or credit plan sold today: `name`, `kind` (`membership` / `credit_pack` / `credit_plan`), `credit_kind` (`group` / `private` / `open_gym`, credit offers only), `price_eur` (incl. VAT), `vat_rate`, `term_months` or `validity_months`, `billing_cycle` (`month` / `4_weeks`, membership and credit plan), `classes_per_week` (membership: the weekly allowance, 1, 2 or 3 at the pilot), `credits` (pack) or `credits_per_cycle` (per billing cycle) and `carry_over_limit` (plan), `cutoff_hours`, `makeups_per_month` (membership). The credit kinds never mix, so an old offer that covers both kinds is listed as two offers (proposal, [QC14](../design/open-questions.md#qc14)). A new workspace starts with three default plans, switched off (`PRODUCT.md §90`); proposal: the import creates the pilot's real offers from these rows, an imported offer may reuse a default (the same kind and values) instead of making a second one, and every default the gym doesn't use stays switched off.
+**Offers** — one row per kind of membership, credit pack or credit plan sold today: `name`, `kind` (`membership` / `credit_pack` / `credit_plan`), `credit_kind` (`group` / `private`, credit offers only), `price_eur` (incl. VAT), `vat_rate`, `term_months` or `validity_months`, `billing_cycle` (`month` / `4_weeks`, membership and credit plan), `classes_per_week` (membership: the weekly allowance, 1, 2 or 3 at the pilot), `credits` (pack) or `credits_per_cycle` (per billing cycle) and `carry_over_limit` (plan), `cutoff_hours`, `makeups_per_month` (membership). The credit kinds never mix, so an old offer that covers both kinds is listed as two offers (proposal, [QC14](../design/open-questions.md#qc14)). A new workspace starts with three default plans, switched off (`PRODUCT.md §90`); proposal: the import creates the pilot's real offers from these rows, an imported offer may reuse a default (the same kind and values) instead of making a second one, and every default the gym doesn't use stays switched off.
 
 **Active agreements** — one row per client per agreement:
 
@@ -207,7 +207,7 @@ Not part of the §4.1 list. Notes can contain **health data** (special-category 
 
 ## 4. Format
 
-- **One Excel workbook (`.xlsx`) with one sheet per item** (`clients`, `classes`, `sessions`, `class_bookings`, `open_gym`, `workout_history`), **or one UTF-8 CSV file per item.** E015 will provide a template workbook. Until then, use the column names from §3.
+- **One Excel workbook (`.xlsx`) with one sheet per item** (`clients`, `classes`, `sessions`, `class_bookings`, `workout_history`), **or one UTF-8 CSV file per item.** E015 will provide a template workbook. Until then, use the column names from §3.
 - The first row holds the column names. After that, one record per row, with no merged cells, subtotals or colour coding that carries meaning.
 - **Dates:** `YYYY-MM-DD` (e.g. `2026-10-06`). **Times:** `HH:MM`, 24 hours, in Dutch local time. The platform converts them to UTC (ADR-012).
 - **Numbers:** whole numbers for capacity, reps and minutes. Weights may use a decimal comma or a decimal point (`62,5` or `62.5`), but one style per file.
@@ -264,7 +264,6 @@ No client data in this table. Counts and decisions only.
 | Class schedule | | ≈ ___ classes/week | | | |
 | Future private sessions | | ___ weeks | | | |
 | Future class bookings | | ___ weeks | | | |
-| Open Gym slots | | | | | |
 | Workout history | | | | | |
 | Client notes | | | | | |
 

@@ -3,6 +3,8 @@ package app.fivvi.core.me
 import app.fivvi.api.apis.MeApi
 import app.fivvi.api.models.MeResponse
 import app.fivvi.api.models.MeWorkspace
+import app.fivvi.api.models.MyDay
+import app.fivvi.api.models.MySessions
 import app.fivvi.api.models.MyWorkspace
 import app.fivvi.api.models.UpdateMeRequest
 import java.util.UUID
@@ -71,6 +73,16 @@ class FakeMeApi : MeApi {
             )
         }
     }
+
+    /** The personal day and sessions (F013) have no screen on Android yet, so no test expects them. */
+    override suspend fun getMyDay(date: String, surface: MeApi.SurfaceGetMyDay?): Response<MyDay> =
+        error("FakeMeApi.getMyDay is not expected in this test")
+
+    override suspend fun listMySessions(
+        from: String,
+        to: String,
+        surface: MeApi.SurfaceListMySessions?,
+    ): Response<MySessions> = error("FakeMeApi.listMySessions is not expected in this test")
 
     val workspaceAnswers = ArrayDeque<suspend () -> Response<List<MyWorkspace>>>()
     var workspaceCalls = 0

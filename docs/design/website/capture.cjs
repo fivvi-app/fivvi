@@ -1,0 +1,153 @@
+#!/usr/bin/env node
+/*
+ * Captures the real screens of the clickable prototype for the website design:
+ * every shot in Dutch and English, light and dark, with transparent corners.
+ *
+ *   node docs/design/website/capture.cjs [shot-id ...]
+ *
+ * Writes PNGs to the folder in $CAPTURE_OUT (default: assets/shots-png next to this file).
+ * Convert them with cwebp afterwards. Fictional data only.
+ */
+const path = require('path');
+const fs = require('fs');
+const here = __dirname;
+const root = path.resolve(here, '../../..');
+const { chromium } = require(path.join(root, 'apps/web/node_modules/@playwright/test'));
+const out = process.env.CAPTURE_OUT || path.join(here, 'assets/shots-png');
+fs.mkdirSync(out, { recursive: true });
+
+/* id, panel entry (group,index), platform, business setup */
+const SHOTS = [
+  // Fivvi Pro
+  ['pro-today-gym', '0,6', 'ios', 'team'],
+  ['pro-today-solo', '0,2', 'ios', 'solo'],
+  ['pro-today-pilates', '0,1', 'ios', 'pilates'],
+  ['pro-today-yoga', '0,1', 'ios', 'yoga'],
+  ['pro-today-android', '0,1', 'android', 'team'],
+  ['pro-client', '0,23', 'ios', 'team'],
+  ['pro-session', '0,10', 'ios', 'team'],
+  ['pro-duo', '0,11', 'ios', 'team'],
+  ['pro-log', '0,26', 'ios', 'team'],
+  ['pro-share', '0,29', 'ios', 'team'],
+  // Fivvi, the client app
+  ['app-home', '2,4', 'ios', 'team'],
+  ['app-book', '2,5', 'ios', 'team', 'busiest-day'],
+  ['app-confirm', '2,5', 'ios', 'team', 'confirm-booking'],
+  ['app-credit', '2,10', 'ios', 'team'],
+  ['app-studios', '2,14', 'ios', 'team'],
+  ['app-renew', '2,27', 'ios', 'team'],
+  ['app-self', '2,35', 'ios', 'team'],
+  ['app-android', '2,4', 'android', 'team'],
+  // Client web
+  ['cw-timetable', '3,3', 'ios', 'team', 'busiest-day'],
+  ['cw-waitlist', '3,6', 'ios', 'team', 'join-waitlist'],
+  ['cw-waitlist-pilates', '3,6', 'ios', 'pilates', 'join-waitlist'],
+  ['cw-waitlist-yoga', '3,6', 'ios', 'yoga', 'join-waitlist'],
+  ['pro-class-pilates', '0,1', 'ios', 'pilates', 'open-class'],
+  ['pro-class-yoga', '0,1', 'ios', 'yoga', 'open-class'],
+  ['web-class-pilates', '1,10', 'web', 'pilates'],
+  ['web-class-yoga', '1,10', 'web', 'yoga'],
+  ['web-join-pilates', '1,13', 'web', 'pilates', 'poster'],
+  ['web-join-yoga', '1,13', 'web', 'yoga', 'poster'],
+  // Trainer web
+  ['web-dashboard', '1,0', 'web', 'team'],
+  ['web-agenda', '1,3', 'web', 'team'],
+  ['web-client', '1,8', 'web', 'team', 'renewal'],
+  ['web-class', '1,10', 'web', 'team'],
+  ['web-trainers', '1,12', 'web', 'team'],
+  ['web-offers', '1,14', 'web', 'team'],
+  ['web-payments', '1,22', 'web', 'team'],
+];
+
+(async () => {
+  const only = process.argv.slice(2);
+  const browser = await chromium.launch();
+  const page = await browser.newPage({ viewport: { width: 1800, height: 1100 }, deviceScaleFactor: 2 });
+  const errors = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('file://' + path.join(root, 'docs/design/prototype-v2/index.html'));
+  await page.addStyleTag({ content: `
+    *,*::before,*::after{animation:none!important;transition:none!important;caret-color:transparent!important}
+    html,body,.board,.stage,.mk{background:transparent!important}
+    .dev,.dev.android,.dev.web{box-shadow:none!important}
+    .mobile-fab{display:none!important}
+    .c-proto,.w-proto,.w-paydemo{display:none!important} /* the prototype's own helper boxes */
+    /* Prototype bug: \`.w-list li>button{width:100%}\` also catches the waitlist's round remove button,
+       which then pushes the name to zero width, so waitlist rows show an X and no name (web.css:110).
+       A workaround for the screens until the prototype is fixed; the screens must show the names. */
+    .w-list.num li>button.w-icon{width:auto}
+  ` });
+  const pref = (k, v) => page.click(`#panel [data-pref="${k}"][data-v="${v}"]`);
+
+  /* The client timetable opens on today, which has no classes left: go to the fullest day. */
+  const bookButtons = () => page.locator('#dev button:not([data-a="c-atab"])').filter({ hasText: /^\s*(Boeken|Book)\s*$/ });
+  const steps = {
+    'busiest-day': async () => {
+      const days = page.locator('#dev [data-a="c-day"]');
+      let best = 0, most = -1;
+      for (let i = 0; i < await days.count(); i++) {
+        await page.locator('#dev [data-a="c-day"]').nth(i).click();
+        const n = await bookButtons().count();
+        if (n > most) { most = n; best = i; }
+      }
+      await page.locator('#dev [data-a="c-day"]').nth(best).click();
+      await page.waitForTimeout(150);
+    },
+    /* the join link's QR code, then its A4 poster */
+    poster: async () => {
+      await page.locator('#dev button').filter({ hasText: /^\s*QR[- ]code\s*$/ }).first().click();
+      await page.waitForTimeout(200);
+      await page.locator('#dev button').filter({ hasText: /^\s*(Afdrukken|Print)\b/ }).first().click();
+      await page.waitForTimeout(200);
+    },
+    'open-class': async () => {
+      await page.locator('#dev').getByText(/^(Reformer Classic|Vinyasa Flow)/).first().click();
+      await page.waitForTimeout(200);
+    },
+    /* a full class's waitlist after joining it: the position, and the way off the list */
+    'join-waitlist': async () => {
+      const join = page.locator('#dev button').filter({ hasText: /^\s*(Op de wachtlijst|Join the waitlist)\s*$/ });
+      await join.first().click();
+      await page.waitForTimeout(200);
+      await join.last().click(); // the dialog's button
+      await page.waitForTimeout(250);
+      await page.locator('#dev button').filter({ hasText: /^\s*(Klaar|Done)\s*$/ }).first().click();
+      await page.waitForTimeout(250);
+    },
+    /* Lisa's profile, on the balance tab, scrolled to the renewal the owner can send (*Verlengen*) */
+    renewal: async () => {
+      await page.locator('#dev').getByText(/^(Klanten|Clients)$/).first().click();
+      await page.locator('#dev').getByText('Lisa Bakker', { exact: true }).first().click();
+      await page.locator('#dev').getByText(/^(Tegoed en betalingen|Balance and payments)$/).first().click();
+      await page.waitForTimeout(150);
+      await page.locator('#dev .w-renew').first().evaluate((el) => el.scrollIntoView({ block: 'center' }));
+      await page.waitForTimeout(150);
+    },
+    'confirm-booking': async () => {
+      await steps['busiest-day']();
+      await bookButtons().first().click();
+      await page.waitForTimeout(200);
+    },
+  };
+
+  for (const lang of ['nl', 'en']) {
+    await pref('lang', lang);
+    for (const mode of ['light', 'dark']) {
+      await pref('mode', mode);
+      for (const [id, go, plat, setup, step] of SHOTS) {
+        if (only.length && !only.includes(id)) continue;
+        await page.click('#panel [data-reset]');
+        await pref('setup', setup);
+        await pref('plat', plat === 'web' ? 'ios' : plat);
+        await page.click(`#panel [data-go="${go}"]`);
+        await page.waitForTimeout(250);
+        if (step) await steps[step]();
+        await page.evaluate(() => document.fonts.ready);
+        await page.locator('#dev').screenshot({ path: path.join(out, `${id}-${lang}-${mode}.png`), omitBackground: true });
+      }
+    }
+  }
+  await browser.close();
+  if (errors.length) { console.error('script errors:', [...new Set(errors)]); process.exit(1); }
+  console.log('done', fs.readdirSync(out).length, 'files');
+})();

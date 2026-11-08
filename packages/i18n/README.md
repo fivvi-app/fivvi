@@ -9,7 +9,7 @@ The single source of every user-facing string (ADR-008). `nl-NL.json` and `en.js
 | `generated/ios/Localizable.xcstrings` | iOS String Catalog. **Generated, never edit** |
 | `generated/ios/InfoPlist.xcstrings` | iOS Info.plist strings: `CFBundleDisplayName` and `CFBundleName` from `app.name`, in nl and en. **Generated, never edit** |
 | `generated/android/values*/strings.xml` | Android resources (`values/` = nl-NL, `values-en/` = en). **Generated, never edit** |
-| `src/index.ts` | Runtime exports: `locales`, `defaultLocale`, `messages`, `MessageKey`, `formattingLocales`, `dateTimeFormats`, `resolveInterfaceLanguage`, `resolveCommunicationLanguage`, `resolveSignInCommunicationLanguage` |
+| `src/index.ts` | Runtime exports: `locales`, `defaultLocale`, `messages`, `MessageKey`, `formattingLocales`, `dateTimeFormats`, `resolveInterfaceLanguage`, `resolveCommunicationLanguage`, `resolveSignInCommunicationLanguage`, `pickContentLanguage` (F021: a class's name or description in the viewer's language, else Dutch; never translated) |
 | `src/tools/` | Checks and exporters (Node only) |
 | `lint/no-hard-coded-jsx-text.grit` | Biome plugin that fails on literal text in JSX |
 
@@ -19,7 +19,7 @@ The single source of every user-facing string (ADR-008). `nl-NL.json` and `en.js
 2. `pnpm --filter @fivvi/i18n generate` and commit the regenerated `generated/` files.
 3. `pnpm check` must pass.
 
-**Email copy** goes under the `email` namespace (`email.hello.subject`). It follows the same rules and checks, but the native exporters leave `email.*` out (`serverOnlyNamespaces` in `src/config.ts`), because only `packages/email` renders it.
+**Email copy** goes under the `email` namespace (`email.hello.subject`). It follows the same rules and checks, but the native exporters leave `email.*` out (`serverOnlyNamespaces` in `src/config.ts`), because only `packages/email` renders it. The same holds for the public website's copy under `site` (`site.home.headline`): only `apps/web` renders it.
 
 **Keys** are dot paths grouped by screen or feature: `hello.title`, `notFound.body`, `booking.spotsAvailable`. Every segment is lowerCamelCase (`[a-z][a-zA-Z0-9]*`) and every key has at least two segments. Name keys after the English glossary term (`GLOSSARY.md §6.3`). The same key is used on iOS (`"hello.title"`); Android turns it into snake_case (`hello_title`, `not_found_body`).
 

@@ -5,58 +5,166 @@ import SwiftUI
 public extension Tokens {
     /// Semantic colours. Every one follows the system appearance (light and dark mode).
     enum Colors {
-        /// App/page background. iOS: systemGroupedBackground role. M3: surface.
-        public static let bgCanvas = Color(light: 0xF6F6F7, dark: 0x242428)
+        /// App/page background: the grouped grey (true black in dark). iOS: systemGroupedBackground. M3: surface.
+        public static let bgCanvas = Color(light: 0xF2F2F7, dark: 0x000000)
         /// Cards, list rows, inputs. iOS: secondarySystemGroupedBackground. M3: surfaceContainerLowest.
-        public static let bgSurface = Color(light: 0xFFFFFF, dark: 0x2D2D32)
-        /// Sheets, dialogs, menus. iOS: sheet material. M3: surfaceContainerHigh.
-        public static let bgRaised = Color(light: 0xFFFFFF, dark: 0x34343A)
-        /// Quiet fills: segmented tracks, table stripes, read-only fields. M3: surfaceContainer.
-        public static let bgSubtle = Color(light: 0xEEEEF0, dark: 0x3A3A41)
+        public static let bgSurface = Color(light: 0xFFFFFF, dark: 0x1C1C1E)
+        /// Sheets, dialogs, menus, the thumb of a segmented control. M3: surfaceContainerHigh.
+        public static let bgRaised = Color(light: 0xFFFFFF, dark: 0x2C2C2E)
+        /// Quiet fills inside a card: read-only fields, table stripes. M3: surfaceContainer.
+        public static let bgSubtle = Color(light: 0xF2F2F7, dark: 0x2C2C2E)
         /// Toasts/snackbars.
-        public static let bgInverse = Color(light: 0x202026, dark: 0xDFDFE2)
-        public static let textPrimary = Color(light: 0x202026, dark: 0xE8E8ED)
-        /// Meta lines (workspace, location). Must still pass 4.5:1 on canvas and surface.
-        public static let textSecondary = Color(light: 0x4D4D54, dark: 0xC5C5CB)
-        /// Placeholders and hints. Still AA (4.5:1) on surface: placeholders are real text.
-        public static let textTertiary = Color(light: 0x66666D, dark: 0xB0B0B8)
-        public static let textInverse = Color(light: 0xF6F6F7, dark: 0x202026)
-        public static let textLink = Color(light: 0x303037, dark: 0xECECF0)
+        public static let bgInverse = Color(light: 0x1C1C1E, dark: 0xE5E5EA)
+        /// The label colour, and the mode's ink for mixed colours.
+        public static let textPrimary = Color(light: 0x000000, dark: 0xFFFFFF)
+        /// Secondary text in the native apps: the prototype's grey as one opaque value. The one exception to 4.5:1, in light mode only (ADR-032; dark is held to 4.5:1): 3.3:1 on the canvas, 3.7:1 on cards, declared only as native-secondary-text pairs. Tertiary text and placeholders use it too. Web uses color.web.* instead.
+        public static let textSecondary = Color(light: 0x85858B, dark: 0x98989F)
+        /// Text on bg.inverse.
+        public static let textInverse = Color(light: 0xFFFFFF, dark: 0x000000)
+        /// Text buttons and links: the accent as text.
+        public static let textLink = Color(light: 0xC8103D, dark: 0xFF6482)
         /// Decorative separators only (hairlines between rows). Not used for control boundaries.
-        public static let borderDefault = Color(light: 0xDFDFE2, dark: 0x484850)
+        public static let borderDefault = Color(light: 0xDCDCDD, dark: 0x3E3E41)
         /// Input and control outlines: 3:1 non-text contrast (WCAG 1.4.11).
-        public static let borderControl = Color(light: 0x85858C, dark: 0xA6A6AF)
+        public static let borderControl = Color(light: 0x85858B, dark: 0x7C7C80)
         /// Focus ring, 2px + 2px offset on web. Native uses the platform focus system.
-        public static let borderFocus = Color(light: 0x4D4D54, dark: 0xC8C8CD)
+        public static let borderFocus = Color(light: 0xC8103D, dark: 0xFF6482)
+        /// Decorative marks only: chevrons and the sheet handle (the prototype's lighter label). Outside the contrast pairs; never for text.
+        public static let fillDecorative = Color(light: 0xC4C4C7, dark: 0x5A5A5E)
+        /// Move pink as a fill. Anything on it uses color.accent.on.
+        public static let accentFill = Color(light: 0xE6164A, dark: 0xE6164A)
+        /// The on-accent colour: text and icons on an accent fill.
+        public static let accentOn = Color(light: 0xFFFFFF, dark: 0xFFFFFF)
+        /// The accent as text and icons on the canvas and cards.
+        public static let accentText = Color(light: 0xC8103D, dark: 0xFF6482)
+        /// Top of an accent gradient: the accent mixed with black, 85%.
+        public static let accentGradientTop = Color(light: 0xB90F3A, dark: 0xB90F3A)
+        /// Bottom of an accent gradient: 75%.
+        public static let accentGradientBottom = Color(light: 0x9C0B2F, dark: 0x9C0B2F)
         /// Filled buttons. iOS: app tint/accentColor. M3: primary.
-        public static let actionPrimaryBg = Color(light: 0x595299, dark: 0xC1BBEB)
-        public static let actionPrimaryBgPressed = Color(light: 0x49427F, dark: 0xD2CDF2)
+        public static let actionPrimaryBg = Color(light: 0xE6164A, dark: 0xE6164A)
+        public static let actionPrimaryBgPressed = Color(light: 0xB90F3A, dark: 0xB90F3A)
         /// M3: onPrimary.
-        public static let actionPrimaryFg = Color(light: 0xFFFFFF, dark: 0x16161B)
+        public static let actionPrimaryFg = Color(light: 0xFFFFFF, dark: 0xFFFFFF)
         /// Secondary/tonal buttons, selected chips, selected tab indicator. M3: secondaryContainer.
-        public static let actionTonalBg = Color(light: 0xEEEEF0, dark: 0x3A3A41)
+        public static let actionTonalBg = Color(light: 0xEFEFF0, dark: 0x2E2E32)
         /// M3: onSecondaryContainer.
-        public static let actionTonalFg = Color(light: 0x202026, dark: 0xC8C8CD)
-        /// Destructive confirm (cancel class). iOS: role .destructive. M3: error.
-        public static let actionDangerBg = Color(light: 0xA3261A, dark: 0xF09A8E)
-        public static let actionDangerFg = Color(light: 0xFFFFFF, dark: 0x16161B)
-        public static let statusSuccessFg = Color(light: 0x1C6437, dark: 0xC9E8D2)
-        public static let statusSuccessBg = Color(light: 0xE8F5EC, dark: 0x123F23)
-        public static let statusWarningFg = Color(light: 0x7C4F05, dark: 0xFAE3B8)
-        public static let statusWarningBg = Color(light: 0xFDF4E3, dark: 0x4A2F03)
-        public static let statusDangerFg = Color(light: 0xA3261A, dark: 0xF9D2CD)
-        public static let statusDangerBg = Color(light: 0xFDECEA, dark: 0x5E150E)
-        public static let statusNeutralFg = Color(light: 0x3B3B42, dark: 0xC8C8CD)
-        public static let statusNeutralBg = Color(light: 0xEEEEF0, dark: 0x303037)
-        /// Calendar bar/dot. 3:1 against surface.
-        public static let sessionPrivateSolid = Color(light: 0x2F62D8, dark: 0x8EADF3)
-        public static let sessionPrivateFg = Color(light: 0x1D4196, dark: 0xD2DFFB)
-        public static let sessionPrivateBg = Color(light: 0xEAF0FD, dark: 0x263147)
-        public static let sessionGroupSolid = Color(light: 0x6D4BD1, dark: 0xB7A2EE)
-        public static let sessionGroupFg = Color(light: 0x4C2FA3, dark: 0xE0D6F8)
-        public static let sessionGroupBg = Color(light: 0xF1ECFC, dark: 0x372D49)
-        public static let sessionOpenGymSolid = Color(light: 0xC98106, dark: 0xF0B54A)
-        public static let sessionOpenGymFg = Color(light: 0x7C4F05, dark: 0xFAE3B8)
-        public static let sessionOpenGymBg = Color(light: 0xFDF4E3, dark: 0x403526)
+        public static let actionTonalFg = Color(light: 0x000000, dark: 0xFFFFFF)
+        /// Destructive confirm (cancel class) with white text: the danger colour mixed with black, 85%, because the pure colour is 3.57:1 with white. iOS: role .destructive. M3: error.
+        public static let actionDangerBg = Color(light: 0xD93033, dark: 0xD93033)
+        public static let actionDangerFg = Color(light: 0xFFFFFF, dark: 0xFFFFFF)
+        /// Danger as text on a tint of itself: the kit's tinted destructive button (10% light, 15% dark; hover 15% and 20%). Darker than status.danger.fg in light so the hover keeps 4.5:1 on every web background; in dark the same as status.danger.text.
+        public static let actionDangerText = Color(light: 0xA42023, dark: 0xFF9F95)
+        /// Private sessions (PRODUCT.md section 16). Always paired with a text label; colour is never the only signal. Calendar bar/dot.
+        public static let sessionPrivateSolid = Color(light: 0x0088FF, dark: 0x0088FF)
+        /// Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; not for text on the tint (use text).
+        public static let sessionPrivateFg = Color(light: 0x0060B7, dark: 0x56A5FF)
+        /// Text in this colour on the tint, on cards and on the canvas (prototype: the colour mixed with the ink, 42% in light, 55% in dark). 4.5:1.
+        public static let sessionPrivateText = Color(light: 0x00254D, dark: 0x8AC1FF)
+        /// The tint: the colour at 15% (light) or 30% (dark) on a card.
+        public static let sessionPrivateBg = Color(light: 0xD9EDFF, dark: 0x143C62)
+        /// Glyphs on the gradient. White never sits on the unmixed colour.
+        public static let sessionPrivateOnSolid = Color(light: 0xFFFFFF, dark: 0xFFFFFF)
+        /// Top of the fill: the colour mixed with black, 85%.
+        public static let sessionPrivateGradientTop = Color(light: 0x006CCE, dark: 0x006CCE)
+        /// Bottom of the fill: 75%.
+        public static let sessionPrivateGradientBottom = Color(light: 0x005BAE, dark: 0x005BAE)
+        /// Group classes. Calendar bar/dot.
+        public static let sessionGroupSolid = Color(light: 0xCB30E0, dark: 0xCB30E0)
+        /// Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; not for text on the tint (use text).
+        public static let sessionGroupFg = Color(light: 0x911FA0, dark: 0xD96CE9)
+        /// Text in this colour on the tint, on cards and on the canvas (prototype: the colour mixed with the ink, 42% in light, 55% in dark). 4.5:1.
+        public static let sessionGroupText = Color(light: 0x3B0742, dark: 0xE79AF1)
+        /// The tint: the colour at 15% (light) or 30% (dark) on a card.
+        public static let sessionGroupBg = Color(light: 0xF7E0FA, dark: 0x512258)
+        /// Glyphs on the gradient. White never sits on the unmixed colour.
+        public static let sessionGroupOnSolid = Color(light: 0xFFFFFF, dark: 0xFFFFFF)
+        /// Top of the fill: the colour mixed with black, 85%.
+        public static let sessionGroupGradientTop = Color(light: 0xA325B4, dark: 0xA325B4)
+        /// Bottom of the fill: 75%.
+        public static let sessionGroupGradientBottom = Color(light: 0x891D98, dark: 0x891D98)
+        /// Open Gym. Decorative only: 2.3:1 on a card. Built, but no screen or kit component uses it yet.
+        public static let sessionOpenGymSolid = Color(light: 0xFF8D28, dark: 0xFF8D28)
+        /// Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; not for text on the tint (use text).
+        public static let sessionOpenGymFg = Color(light: 0xB7641A, dark: 0xFFA866)
+        /// Text in this colour on the tint, on cards and on the canvas (prototype: the colour mixed with the ink, 42% in light, 55% in dark). 4.5:1.
+        public static let sessionOpenGymText = Color(light: 0x4D2605, dark: 0xFFC396)
+        /// The tint: the colour at 15% (light) or 30% (dark) on a card.
+        public static let sessionOpenGymBg = Color(light: 0xFFEEDF, dark: 0x603E21)
+        /// Glyphs on the gradient. White never sits on the unmixed colour.
+        public static let sessionOpenGymOnSolid = Color(light: 0xFFFFFF, dark: 0xFFFFFF)
+        /// Top of the fill: the colour mixed with black, 85%.
+        public static let sessionOpenGymGradientTop = Color(light: 0xCE701E, dark: 0xCE701E)
+        /// Bottom of the fill: 75%.
+        public static let sessionOpenGymGradientBottom = Color(light: 0xAE5E18, dark: 0xAE5E18)
+        /// Success. Decorative only: 2.2:1 on a card. Never carries white text.
+        public static let statusSuccessSolid = Color(light: 0x34C759, dark: 0x34C759)
+        /// Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; not for text on the tint (use text).
+        public static let statusSuccessFg = Color(light: 0x228E3D, dark: 0x70D480)
+        /// Text in this colour on the tint, on cards and on the canvas (prototype: the colour mixed with the ink, 42% in light, 55% in dark). 4.5:1.
+        public static let statusSuccessText = Color(light: 0x083A15, dark: 0x9EE2A6)
+        /// The tint: the colour at 15% (light) or 30% (dark) on a card.
+        public static let statusSuccessBg = Color(light: 0xE1F7E6, dark: 0x234F30)
+        /// Glyphs on the gradient. White never sits on the unmixed colour.
+        public static let statusSuccessOnSolid = Color(light: 0xFFFFFF, dark: 0xFFFFFF)
+        /// Top of the fill: the colour mixed with black, 85%.
+        public static let statusSuccessGradientTop = Color(light: 0x28A046, dark: 0x28A046)
+        /// Bottom of the fill: 75%.
+        public static let statusSuccessGradientBottom = Color(light: 0x20873A, dark: 0x20873A)
+        /// Danger.
+        public static let statusDangerSolid = Color(light: 0xFF383C, dark: 0xFF383C)
+        /// Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; for danger also text on cards, the canvas and sheets (field error messages), 4.5:1; not text on the tint (use text).
+        public static let statusDangerFg = Color(light: 0xB72528, dark: 0xFF7269)
+        /// Text in this colour on the tint, on cards and on the canvas (prototype: the colour mixed with the ink, 42% in light, 55% in dark). 4.5:1.
+        public static let statusDangerText = Color(light: 0x4D0A0B, dark: 0xFF9F95)
+        /// The tint: the colour at 15% (light) or 30% (dark) on a card.
+        public static let statusDangerBg = Color(light: 0xFFE1E2, dark: 0x602427)
+        /// Glyphs on the gradient. White never sits on the unmixed colour.
+        public static let statusDangerOnSolid = Color(light: 0xFFFFFF, dark: 0xFFFFFF)
+        /// Top of the fill: the colour mixed with black, 85%.
+        public static let statusDangerGradientTop = Color(light: 0xCE2B2E, dark: 0xCE2B2E)
+        /// Bottom of the fill: 75%.
+        public static let statusDangerGradientBottom = Color(light: 0xAE2326, dark: 0xAE2326)
+        /// Warning. Decorative only: 2.3:1 on a card.
+        public static let statusWarningSolid = Color(light: 0xFF8D28, dark: 0xFF8D28)
+        /// Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; not for text on the tint (use text).
+        public static let statusWarningFg = Color(light: 0xB7641A, dark: 0xFFA866)
+        /// Text in this colour on the tint, on cards and on the canvas (prototype: the colour mixed with the ink, 42% in light, 55% in dark). 4.5:1.
+        public static let statusWarningText = Color(light: 0x4D2605, dark: 0xFFC396)
+        /// The tint: the colour at 15% (light) or 30% (dark) on a card.
+        public static let statusWarningBg = Color(light: 0xFFEEDF, dark: 0x603E21)
+        /// Glyphs on the gradient. White never sits on the unmixed colour.
+        public static let statusWarningOnSolid = Color(light: 0xFFFFFF, dark: 0xFFFFFF)
+        /// Top of the fill: the colour mixed with black, 85%.
+        public static let statusWarningGradientTop = Color(light: 0xCE701E, dark: 0xCE701E)
+        /// Bottom of the fill: 75%.
+        public static let statusWarningGradientBottom = Color(light: 0xAE5E18, dark: 0xAE5E18)
+        public static let statusNeutralFg = Color(light: 0x000000, dark: 0xFFFFFF)
+        public static let statusNeutralBg = Color(light: 0xEFEFF0, dark: 0x2E2E32)
+        /// Workspace dot colours, picked automatically from the workspace ID (workspaceColour in TypeScript, workspaceColor on native). 3:1 on cards and the canvas in both modes.
+        public static let workspaceCyan = Color(light: 0x00909A, dark: 0x00C3D0)
+        public static let workspaceBrown = Color(light: 0xAC7F5E, dark: 0xAC7F5E)
+        public static let workspaceIndigo = Color(light: 0x5E5CE6, dark: 0x5E5CE6)
+        public static let workspaceGold = Color(light: 0x9E7E00, dark: 0xFFCC00)
+        public static let workspaceSlate = Color(light: 0x848489, dark: 0x8E8E93)
+        public static let workspaceLime = Color(light: 0x669035, dark: 0x8BC34A)
+    }
+
+    /// The dot colour of a workspace, picked from its ID: the 32-bit FNV-1a hash of the ID's UTF-8
+    /// bytes, modulo the number of colours. The same function runs on every platform.
+    static func workspaceColor(for id: String) -> Color {
+        let palette: [Color] = [
+            Colors.workspaceCyan,
+            Colors.workspaceBrown,
+            Colors.workspaceIndigo,
+            Colors.workspaceGold,
+            Colors.workspaceSlate,
+            Colors.workspaceLime,
+        ]
+        var hash: UInt32 = 2166136261
+        for byte in id.utf8 {
+            hash = (hash ^ UInt32(byte)) &* 16777619
+        }
+        return palette[Int(hash % UInt32(palette.count))]
     }
 }

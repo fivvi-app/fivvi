@@ -349,6 +349,8 @@ extension Components {
                 case team_invite = "team.invite"
                 case session_private_manage_own = "session.private.manage.own"
                 case session_private_manage_any = "session.private.manage.any"
+                case class_manage = "class.manage"
+                case class_read = "class.read"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -427,6 +429,8 @@ extension Components {
                 case team_invite = "team.invite"
                 case session_private_manage_own = "session.private.manage.own"
                 case session_private_manage_any = "session.private.manage.any"
+                case class_manage = "class.manage"
+                case class_read = "class.read"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -524,6 +528,522 @@ extension Components {
                 case surface
             }
         }
+        /// The personal day of a trainer across all their workspaces.
+        ///
+        /// - Remark: Generated from `#/components/schemas/MyDay`.
+        public struct MyDay: Codable, Hashable, Sendable {
+            /// The day shown: `YYYY-MM-DD`, in `timeZone`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDay/date`.
+            public var date: Swift.String
+            /// The zone of the personal scope: `Europe/Amsterdam`. The day starts and ends on its wall clock.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDay/timeZone`.
+            public var timeZone: Swift.String
+            /// The workspaces the account trains in and the view spans. The apps show a workspace name on a row only when it is more than one.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDay/workspaceCount`.
+            public var workspaceCount: Swift.Int
+            /// The day’s items in time order, cancelled ones included.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDay/items`.
+            public var items: [Components.Schemas.PersonalSession]
+            /// - Remark: Generated from `#/components/schemas/MyDay/summary`.
+            public var summary: Components.Schemas.MyDaySummary
+            /// - Remark: Generated from `#/components/schemas/MyDay/next`.
+            public var next: Components.Schemas.MyDayNext?
+            /// - Remark: Generated from `#/components/schemas/MyDay/tomorrow`.
+            public var tomorrow: Components.Schemas.MyDayTomorrow?
+            /// The date of the next session that takes place after this day, `YYYY-MM-DD`. Only given when the day has no items; left out when there is none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDay/nextSessionDate`.
+            public var nextSessionDate: Swift.String?
+            /// Whether the account is the current trainer of any session at all, past or future. Only computed when the day is empty and no session follows, to tell a new trainer (*Je hebt nog geen sessies*) from one with nothing planned; true otherwise.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDay/hasSessions`.
+            public var hasSessions: Swift.Bool
+            /// Creates a new `MyDay`.
+            ///
+            /// - Parameters:
+            ///   - date: The day shown: `YYYY-MM-DD`, in `timeZone`.
+            ///   - timeZone: The zone of the personal scope: `Europe/Amsterdam`. The day starts and ends on its wall clock.
+            ///   - workspaceCount: The workspaces the account trains in and the view spans. The apps show a workspace name on a row only when it is more than one.
+            ///   - items: The day’s items in time order, cancelled ones included.
+            ///   - summary:
+            ///   - next:
+            ///   - tomorrow:
+            ///   - nextSessionDate: The date of the next session that takes place after this day, `YYYY-MM-DD`. Only given when the day has no items; left out when there is none.
+            ///   - hasSessions: Whether the account is the current trainer of any session at all, past or future. Only computed when the day is empty and no session follows, to tell a new trainer (*Je hebt nog geen sessies*) from one with nothing planned; true otherwise.
+            public init(
+                date: Swift.String,
+                timeZone: Swift.String,
+                workspaceCount: Swift.Int,
+                items: [Components.Schemas.PersonalSession],
+                summary: Components.Schemas.MyDaySummary,
+                next: Components.Schemas.MyDayNext? = nil,
+                tomorrow: Components.Schemas.MyDayTomorrow? = nil,
+                nextSessionDate: Swift.String? = nil,
+                hasSessions: Swift.Bool
+            ) {
+                self.date = date
+                self.timeZone = timeZone
+                self.workspaceCount = workspaceCount
+                self.items = items
+                self.summary = summary
+                self.next = next
+                self.tomorrow = tomorrow
+                self.nextSessionDate = nextSessionDate
+                self.hasSessions = hasSessions
+            }
+            public enum CodingKeys: String, CodingKey {
+                case date
+                case timeZone
+                case workspaceCount
+                case items
+                case summary
+                case next
+                case tomorrow
+                case nextSessionDate
+                case hasSessions
+            }
+        }
+        /// A session the signed-in account is the current trainer of, in one of its workspaces. `location` is where a private session takes place and is left out for the other kinds.
+        ///
+        /// - Remark: Generated from `#/components/schemas/PersonalSession`.
+        public struct PersonalSession: Codable, Hashable, Sendable {
+            /// The session ID. It opens in its own workspace: `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}` with the item’s `workspace.id`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/sessionId`.
+            public var sessionId: Swift.String
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/workspace`.
+            public var workspace: Components.Schemas.PersonalWorkspace
+            /// The kind of session, to be shown in words (*Privé*, *Groep*, *Open Gym*).
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/type`.
+            @frozen public enum _TypePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case _private = "private"
+                case group = "group"
+                case openGym = "open_gym"
+            }
+            /// The kind of session, to be shown in words (*Privé*, *Groep*, *Open Gym*).
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/type`.
+            public var _type: Components.Schemas.PersonalSession._TypePayload
+            /// Whether the session still takes place. A cancelled one stays in the list.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/status`.
+            @frozen public enum StatusPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case scheduled = "scheduled"
+                case cancelled = "cancelled"
+            }
+            /// Whether the session still takes place. A cancelled one stays in the list.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/status`.
+            public var status: Components.Schemas.PersonalSession.StatusPayload
+            /// The start, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/startsAt`.
+            public var startsAt: Foundation.Date
+            /// The end, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/endsAt`.
+            public var endsAt: Foundation.Date
+            /// The workspace’s IANA time zone, e.g. `Europe/Amsterdam` (ADR-012).
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/timeZone`.
+            public var timeZone: Swift.String
+            /// 1 for a private session.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/capacity`.
+            public var capacity: Swift.Int
+            /// The places taken (not cancelled), for a group class or Open Gym: *{booked}/{capacity} geboekt*. Left out for a private session.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/booked`.
+            public var booked: Swift.Int?
+            /// The class name in the viewer’s language, for a group class: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session and Open Gym.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/className`.
+            public var className: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/location`.
+            public var location: Components.Schemas.Location?
+            /// The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalSession/clientName`.
+            public var clientName: Swift.String?
+            /// Creates a new `PersonalSession`.
+            ///
+            /// - Parameters:
+            ///   - sessionId: The session ID. It opens in its own workspace: `GET /v1/workspaces/{workspaceId}/sessions/{sessionId}` with the item’s `workspace.id`.
+            ///   - workspace:
+            ///   - _type: The kind of session, to be shown in words (*Privé*, *Groep*, *Open Gym*).
+            ///   - status: Whether the session still takes place. A cancelled one stays in the list.
+            ///   - startsAt: The start, a UTC instant.
+            ///   - endsAt: The end, a UTC instant.
+            ///   - timeZone: The workspace’s IANA time zone, e.g. `Europe/Amsterdam` (ADR-012).
+            ///   - capacity: 1 for a private session.
+            ///   - booked: The places taken (not cancelled), for a group class or Open Gym: *{booked}/{capacity} geboekt*. Left out for a private session.
+            ///   - className: The class name in the viewer’s language, for a group class: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session and Open Gym.
+            ///   - location:
+            ///   - clientName: The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail.
+            public init(
+                sessionId: Swift.String,
+                workspace: Components.Schemas.PersonalWorkspace,
+                _type: Components.Schemas.PersonalSession._TypePayload,
+                status: Components.Schemas.PersonalSession.StatusPayload,
+                startsAt: Foundation.Date,
+                endsAt: Foundation.Date,
+                timeZone: Swift.String,
+                capacity: Swift.Int,
+                booked: Swift.Int? = nil,
+                className: Swift.String? = nil,
+                location: Components.Schemas.Location? = nil,
+                clientName: Swift.String? = nil
+            ) {
+                self.sessionId = sessionId
+                self.workspace = workspace
+                self._type = _type
+                self.status = status
+                self.startsAt = startsAt
+                self.endsAt = endsAt
+                self.timeZone = timeZone
+                self.capacity = capacity
+                self.booked = booked
+                self.className = className
+                self.location = location
+                self.clientName = clientName
+            }
+            public enum CodingKeys: String, CodingKey {
+                case sessionId
+                case workspace
+                case _type = "type"
+                case status
+                case startsAt
+                case endsAt
+                case timeZone
+                case capacity
+                case booked
+                case className
+                case location
+                case clientName
+            }
+        }
+        /// The workspace an item of the personal view is in.
+        ///
+        /// - Remark: Generated from `#/components/schemas/PersonalWorkspace`.
+        public struct PersonalWorkspace: Codable, Hashable, Sendable {
+            /// The workspace ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalWorkspace/id`.
+            public var id: Swift.String
+            /// The URL name: `/w/{slug}` on the web.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalWorkspace/slug`.
+            public var slug: Swift.String
+            /// The name shown in the product.
+            ///
+            /// - Remark: Generated from `#/components/schemas/PersonalWorkspace/name`.
+            public var name: Swift.String
+            /// Creates a new `PersonalWorkspace`.
+            ///
+            /// - Parameters:
+            ///   - id: The workspace ID.
+            ///   - slug: The URL name: `/w/{slug}` on the web.
+            ///   - name: The name shown in the product.
+            public init(
+                id: Swift.String,
+                slug: Swift.String,
+                name: Swift.String
+            ) {
+                self.id = id
+                self.slug = slug
+                self.name = name
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case slug
+                case name
+            }
+        }
+        /// A place where sessions of the workspace take place.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Location`.
+        public struct Location: Codable, Hashable, Sendable {
+            /// The location ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Location/id`.
+            public var id: Swift.String
+            /// The name sessions show, up to 120 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Location/name`.
+            public var name: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Location/type`.
+            public var _type: Components.Schemas.LocationType
+            /// - Remark: Generated from `#/components/schemas/Location/address`.
+            public var address: Components.Schemas.LocationAddress?
+            /// Whether this is the workspace’s default location, the one every new session takes.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Location/isDefault`.
+            public var isDefault: Swift.Bool
+            /// Creates a new `Location`.
+            ///
+            /// - Parameters:
+            ///   - id: The location ID.
+            ///   - name: The name sessions show, up to 120 characters.
+            ///   - _type:
+            ///   - address:
+            ///   - isDefault: Whether this is the workspace’s default location, the one every new session takes.
+            public init(
+                id: Swift.String,
+                name: Swift.String,
+                _type: Components.Schemas.LocationType,
+                address: Components.Schemas.LocationAddress? = nil,
+                isDefault: Swift.Bool
+            ) {
+                self.id = id
+                self.name = name
+                self._type = _type
+                self.address = address
+                self.isDefault = isDefault
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case name
+                case _type = "type"
+                case address
+                case isDefault
+            }
+        }
+        /// The kind of location. Every workspace has one `organization_location` (its own) at go-live; the other kinds exist in the model for later and are not written yet.
+        ///
+        /// - Remark: Generated from `#/components/schemas/LocationType`.
+        @frozen public enum LocationType: String, Codable, Hashable, Sendable, CaseIterable {
+            case organizationLocation = "organization_location"
+            case externalGym = "external_gym"
+            case clientHome = "client_home"
+            case outdoor = "outdoor"
+            case online = "online"
+            case other = "other"
+        }
+        /// The address, or `null` when the location has none.
+        ///
+        /// - Remark: Generated from `#/components/schemas/LocationAddress`.
+        public struct LocationAddress: Codable, Hashable, Sendable {
+            /// A Dutch postcode, stored as `1234 AB`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/LocationAddress/postcode`.
+            public var postcode: Swift.String
+            /// One to five digits.
+            ///
+            /// - Remark: Generated from `#/components/schemas/LocationAddress/houseNumber`.
+            public var houseNumber: Swift.String
+            /// For example `A` or `2 hoog`; `null` when there is none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/LocationAddress/houseNumberAddition`.
+            public var houseNumberAddition: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/LocationAddress/street`.
+            public var street: Swift.String
+            /// - Remark: Generated from `#/components/schemas/LocationAddress/city`.
+            public var city: Swift.String
+            /// Creates a new `LocationAddress`.
+            ///
+            /// - Parameters:
+            ///   - postcode: A Dutch postcode, stored as `1234 AB`.
+            ///   - houseNumber: One to five digits.
+            ///   - houseNumberAddition: For example `A` or `2 hoog`; `null` when there is none.
+            ///   - street:
+            ///   - city:
+            public init(
+                postcode: Swift.String,
+                houseNumber: Swift.String,
+                houseNumberAddition: Swift.String? = nil,
+                street: Swift.String,
+                city: Swift.String
+            ) {
+                self.postcode = postcode
+                self.houseNumber = houseNumber
+                self.houseNumberAddition = houseNumberAddition
+                self.street = street
+                self.city = city
+            }
+            public enum CodingKeys: String, CodingKey {
+                case postcode
+                case houseNumber
+                case houseNumberAddition
+                case street
+                case city
+            }
+        }
+        /// *4 sessies · 09:00–19:00*.
+        ///
+        /// - Remark: Generated from `#/components/schemas/MyDaySummary`.
+        public struct MyDaySummary: Codable, Hashable, Sendable {
+            /// The items of the day, cancelled ones counted.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDaySummary/count`.
+            public var count: Swift.Int
+            /// The start of the first item; left out for an empty day.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDaySummary/firstStartsAt`.
+            public var firstStartsAt: Foundation.Date?
+            /// The end of the last item; left out for an empty day.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDaySummary/lastEndsAt`.
+            public var lastEndsAt: Foundation.Date?
+            /// Creates a new `MyDaySummary`.
+            ///
+            /// - Parameters:
+            ///   - count: The items of the day, cancelled ones counted.
+            ///   - firstStartsAt: The start of the first item; left out for an empty day.
+            ///   - lastEndsAt: The end of the last item; left out for an empty day.
+            public init(
+                count: Swift.Int,
+                firstStartsAt: Foundation.Date? = nil,
+                lastEndsAt: Foundation.Date? = nil
+            ) {
+                self.count = count
+                self.firstStartsAt = firstStartsAt
+                self.lastEndsAt = lastEndsAt
+            }
+            public enum CodingKeys: String, CodingKey {
+                case count
+                case firstStartsAt
+                case lastEndsAt
+            }
+        }
+        /// *Straks* / *Nu bezig*: the first item of today that has not ended and is not cancelled. Left out when nothing is left today, and for any day but today.
+        ///
+        /// - Remark: Generated from `#/components/schemas/MyDayNext`.
+        public struct MyDayNext: Codable, Hashable, Sendable {
+            /// The item in `items`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDayNext/sessionId`.
+            public var sessionId: Swift.String
+            /// `upcoming` is *Straks*, `in_progress` is *Nu bezig*.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDayNext/state`.
+            @frozen public enum StatePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case upcoming = "upcoming"
+                case inProgress = "in_progress"
+            }
+            /// `upcoming` is *Straks*, `in_progress` is *Nu bezig*.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDayNext/state`.
+            public var state: Components.Schemas.MyDayNext.StatePayload
+            /// Minutes to the start, rounded up; 0 while it runs.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDayNext/startsInMinutes`.
+            public var startsInMinutes: Swift.Int
+            /// Creates a new `MyDayNext`.
+            ///
+            /// - Parameters:
+            ///   - sessionId: The item in `items`.
+            ///   - state: `upcoming` is *Straks*, `in_progress` is *Nu bezig*.
+            ///   - startsInMinutes: Minutes to the start, rounded up; 0 while it runs.
+            public init(
+                sessionId: Swift.String,
+                state: Components.Schemas.MyDayNext.StatePayload,
+                startsInMinutes: Swift.Int
+            ) {
+                self.sessionId = sessionId
+                self.state = state
+                self.startsInMinutes = startsInMinutes
+            }
+            public enum CodingKeys: String, CodingKey {
+                case sessionId
+                case state
+                case startsInMinutes
+            }
+        }
+        /// The footer *Morgen: 3 sessies, eerste om 07:00*. Cancelled sessions are not counted; left out when the next day has none.
+        ///
+        /// - Remark: Generated from `#/components/schemas/MyDayTomorrow`.
+        public struct MyDayTomorrow: Codable, Hashable, Sendable {
+            /// The next day: `YYYY-MM-DD`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDayTomorrow/date`.
+            public var date: Swift.String
+            /// The sessions that day that take place.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDayTomorrow/count`.
+            public var count: Swift.Int
+            /// The start of the first one.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDayTomorrow/firstStartsAt`.
+            public var firstStartsAt: Foundation.Date
+            /// Creates a new `MyDayTomorrow`.
+            ///
+            /// - Parameters:
+            ///   - date: The next day: `YYYY-MM-DD`.
+            ///   - count: The sessions that day that take place.
+            ///   - firstStartsAt: The start of the first one.
+            public init(
+                date: Swift.String,
+                count: Swift.Int,
+                firstStartsAt: Foundation.Date
+            ) {
+                self.date = date
+                self.count = count
+                self.firstStartsAt = firstStartsAt
+            }
+            public enum CodingKeys: String, CodingKey {
+                case date
+                case count
+                case firstStartsAt
+            }
+        }
+        /// The personal sessions of a trainer across all their workspaces, for a range of days.
+        ///
+        /// - Remark: Generated from `#/components/schemas/MySessions`.
+        public struct MySessions: Codable, Hashable, Sendable {
+            /// The first day: `YYYY-MM-DD`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MySessions/from`.
+            public var from: Swift.String
+            /// The last day, included: `YYYY-MM-DD`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MySessions/to`.
+            public var to: Swift.String
+            /// The zone of the personal scope: `Europe/Amsterdam`. The days follow its wall clock.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MySessions/timeZone`.
+            public var timeZone: Swift.String
+            /// The workspaces the account trains in and the view spans.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MySessions/workspaceCount`.
+            public var workspaceCount: Swift.Int
+            /// The sessions from the start of `from` to the end of `to`, in time order.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MySessions/items`.
+            public var items: [Components.Schemas.PersonalSession]
+            /// Creates a new `MySessions`.
+            ///
+            /// - Parameters:
+            ///   - from: The first day: `YYYY-MM-DD`.
+            ///   - to: The last day, included: `YYYY-MM-DD`.
+            ///   - timeZone: The zone of the personal scope: `Europe/Amsterdam`. The days follow its wall clock.
+            ///   - workspaceCount: The workspaces the account trains in and the view spans.
+            ///   - items: The sessions from the start of `from` to the end of `to`, in time order.
+            public init(
+                from: Swift.String,
+                to: Swift.String,
+                timeZone: Swift.String,
+                workspaceCount: Swift.Int,
+                items: [Components.Schemas.PersonalSession]
+            ) {
+                self.from = from
+                self.to = to
+                self.timeZone = timeZone
+                self.workspaceCount = workspaceCount
+                self.items = items
+            }
+            public enum CodingKeys: String, CodingKey {
+                case from
+                case to
+                case timeZone
+                case workspaceCount
+                case items
+            }
+        }
         /// Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019.
         ///
         /// - Remark: Generated from `#/components/schemas/SignInRequest`.
@@ -614,6 +1134,131 @@ extension Components {
             public enum CodingKeys: String, CodingKey {
                 case email
                 case code
+            }
+        }
+        /// Too many demo requests from this network, or from everyone, in the last hour.
+        ///
+        /// - Remark: Generated from `#/components/schemas/DemoRequestRateLimited`.
+        public struct DemoRequestRateLimited: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/DemoRequestRateLimited/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case rateLimited = "rate_limited"
+            }
+            /// - Remark: Generated from `#/components/schemas/DemoRequestRateLimited/code`.
+            public var code: Components.Schemas.DemoRequestRateLimited.CodePayload
+            /// Creates a new `DemoRequestRateLimited`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            public init(code: Components.Schemas.DemoRequestRateLimited.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+            }
+        }
+        /// The email could not be sent. Nothing was stored; the visitor may try again later or write to the support address. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/DemoRequestUnavailable`.
+        public struct DemoRequestUnavailable: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/DemoRequestUnavailable/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case unavailable = "unavailable"
+            }
+            /// - Remark: Generated from `#/components/schemas/DemoRequestUnavailable/code`.
+            public var code: Components.Schemas.DemoRequestUnavailable.CodePayload
+            /// Creates a new `DemoRequestUnavailable`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            public init(code: Components.Schemas.DemoRequestUnavailable.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+            }
+        }
+        /// A visitor’s request for a demo. `locale` is the language of the page they used, which the answer follows.
+        ///
+        /// - Remark: Generated from `#/components/schemas/DemoRequest`.
+        public struct DemoRequest: Codable, Hashable, Sendable {
+            /// The visitor’s name: 1 to 100 characters, on one line.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DemoRequest/name`.
+            public var name: Swift.String
+            /// The address to answer. No email is sent to it by this request.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DemoRequest/email`.
+            public var email: Swift.String
+            /// The kind of business: a gym with a team, a pilates or yoga studio, or a PT.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DemoRequest/businessKind`.
+            @frozen public enum BusinessKindPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case gym = "gym"
+                case studio = "studio"
+                case personalTrainer = "personal-trainer"
+            }
+            /// The kind of business: a gym with a team, a pilates or yoga studio, or a PT.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DemoRequest/businessKind`.
+            public var businessKind: Components.Schemas.DemoRequest.BusinessKindPayload
+            /// How many trainers the business has.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DemoRequest/trainerCount`.
+            @frozen public enum TrainerCountPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case one = "one"
+                case twoToFour = "two-to-four"
+                case fiveOrMore = "five-or-more"
+            }
+            /// How many trainers the business has.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DemoRequest/trainerCount`.
+            public var trainerCount: Components.Schemas.DemoRequest.TrainerCountPayload
+            /// What the visitor would most like to see: up to 2000 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DemoRequest/message`.
+            public var message: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/DemoRequest/locale`.
+            public var locale: Components.Schemas.Locale
+            /// A honeypot: the form hides this field from people. Leave it empty or out. A request that fills it is dropped without an email, and gets the same answer as any other.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DemoRequest/website`.
+            public var website: Swift.String?
+            /// Creates a new `DemoRequest`.
+            ///
+            /// - Parameters:
+            ///   - name: The visitor’s name: 1 to 100 characters, on one line.
+            ///   - email: The address to answer. No email is sent to it by this request.
+            ///   - businessKind: The kind of business: a gym with a team, a pilates or yoga studio, or a PT.
+            ///   - trainerCount: How many trainers the business has.
+            ///   - message: What the visitor would most like to see: up to 2000 characters.
+            ///   - locale:
+            ///   - website: A honeypot: the form hides this field from people. Leave it empty or out. A request that fills it is dropped without an email, and gets the same answer as any other.
+            public init(
+                name: Swift.String,
+                email: Swift.String,
+                businessKind: Components.Schemas.DemoRequest.BusinessKindPayload,
+                trainerCount: Components.Schemas.DemoRequest.TrainerCountPayload,
+                message: Swift.String? = nil,
+                locale: Components.Schemas.Locale,
+                website: Swift.String? = nil
+            ) {
+                self.name = name
+                self.email = email
+                self.businessKind = businessKind
+                self.trainerCount = trainerCount
+                self.message = message
+                self.locale = locale
+                self.website = website
+            }
+            public enum CodingKeys: String, CodingKey {
+                case name
+                case email
+                case businessKind
+                case trainerCount
+                case message
+                case locale
+                case website
             }
         }
         /// A workspace: a gym or an independent trainer’s business.
@@ -1110,115 +1755,6 @@ extension Components {
                 case trainsHere
             }
         }
-        /// A place where sessions of the workspace take place.
-        ///
-        /// - Remark: Generated from `#/components/schemas/Location`.
-        public struct Location: Codable, Hashable, Sendable {
-            /// The location ID.
-            ///
-            /// - Remark: Generated from `#/components/schemas/Location/id`.
-            public var id: Swift.String
-            /// The name sessions show, up to 120 characters.
-            ///
-            /// - Remark: Generated from `#/components/schemas/Location/name`.
-            public var name: Swift.String
-            /// - Remark: Generated from `#/components/schemas/Location/type`.
-            public var _type: Components.Schemas.LocationType
-            /// - Remark: Generated from `#/components/schemas/Location/address`.
-            public var address: Components.Schemas.LocationAddress?
-            /// Whether this is the workspace’s default location, the one every new session takes.
-            ///
-            /// - Remark: Generated from `#/components/schemas/Location/isDefault`.
-            public var isDefault: Swift.Bool
-            /// Creates a new `Location`.
-            ///
-            /// - Parameters:
-            ///   - id: The location ID.
-            ///   - name: The name sessions show, up to 120 characters.
-            ///   - _type:
-            ///   - address:
-            ///   - isDefault: Whether this is the workspace’s default location, the one every new session takes.
-            public init(
-                id: Swift.String,
-                name: Swift.String,
-                _type: Components.Schemas.LocationType,
-                address: Components.Schemas.LocationAddress? = nil,
-                isDefault: Swift.Bool
-            ) {
-                self.id = id
-                self.name = name
-                self._type = _type
-                self.address = address
-                self.isDefault = isDefault
-            }
-            public enum CodingKeys: String, CodingKey {
-                case id
-                case name
-                case _type = "type"
-                case address
-                case isDefault
-            }
-        }
-        /// The kind of location. Every workspace has one `organization_location` (its own) at go-live; the other kinds exist in the model for later and are not written yet.
-        ///
-        /// - Remark: Generated from `#/components/schemas/LocationType`.
-        @frozen public enum LocationType: String, Codable, Hashable, Sendable, CaseIterable {
-            case organizationLocation = "organization_location"
-            case externalGym = "external_gym"
-            case clientHome = "client_home"
-            case outdoor = "outdoor"
-            case online = "online"
-            case other = "other"
-        }
-        /// The address, or `null` when the location has none.
-        ///
-        /// - Remark: Generated from `#/components/schemas/LocationAddress`.
-        public struct LocationAddress: Codable, Hashable, Sendable {
-            /// A Dutch postcode, stored as `1234 AB`.
-            ///
-            /// - Remark: Generated from `#/components/schemas/LocationAddress/postcode`.
-            public var postcode: Swift.String
-            /// One to five digits.
-            ///
-            /// - Remark: Generated from `#/components/schemas/LocationAddress/houseNumber`.
-            public var houseNumber: Swift.String
-            /// For example `A` or `2 hoog`; `null` when there is none.
-            ///
-            /// - Remark: Generated from `#/components/schemas/LocationAddress/houseNumberAddition`.
-            public var houseNumberAddition: Swift.String?
-            /// - Remark: Generated from `#/components/schemas/LocationAddress/street`.
-            public var street: Swift.String
-            /// - Remark: Generated from `#/components/schemas/LocationAddress/city`.
-            public var city: Swift.String
-            /// Creates a new `LocationAddress`.
-            ///
-            /// - Parameters:
-            ///   - postcode: A Dutch postcode, stored as `1234 AB`.
-            ///   - houseNumber: One to five digits.
-            ///   - houseNumberAddition: For example `A` or `2 hoog`; `null` when there is none.
-            ///   - street:
-            ///   - city:
-            public init(
-                postcode: Swift.String,
-                houseNumber: Swift.String,
-                houseNumberAddition: Swift.String? = nil,
-                street: Swift.String,
-                city: Swift.String
-            ) {
-                self.postcode = postcode
-                self.houseNumber = houseNumber
-                self.houseNumberAddition = houseNumberAddition
-                self.street = street
-                self.city = city
-            }
-            public enum CodingKeys: String, CodingKey {
-                case postcode
-                case houseNumber
-                case houseNumberAddition
-                case street
-                case city
-            }
-        }
         /// Changes a location: its name, its address (a Dutch one, all or nothing; the postcode is stored as `1234 AB`), or both. `address: null` removes the address; leave `address` out to keep it as it is. The type and which location is the default never change. Other fields are ignored.
         ///
         /// - Remark: Generated from `#/components/schemas/UpdateLocationRequest`.
@@ -1421,7 +1957,7 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/Session/id`.
             public var id: Swift.String
-            /// The kind of session. Private sessions are planned here; the others come later.
+            /// The kind of session. Private sessions are planned here, class dates are a class on a date (`…/group-classes/{classId}/dates`); Open Gym comes later.
             ///
             /// - Remark: Generated from `#/components/schemas/Session/type`.
             @frozen public enum _TypePayload: String, Codable, Hashable, Sendable, CaseIterable {
@@ -1429,7 +1965,7 @@ extension Components {
                 case group = "group"
                 case openGym = "open_gym"
             }
-            /// The kind of session. Private sessions are planned here; the others come later.
+            /// The kind of session. Private sessions are planned here, class dates are a class on a date (`…/group-classes/{classId}/dates`); Open Gym comes later.
             ///
             /// - Remark: Generated from `#/components/schemas/Session/type`.
             public var _type: Components.Schemas.Session._TypePayload
@@ -1456,7 +1992,7 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/Session/timeZone`.
             public var timeZone: Swift.String
-            /// 1 for a private session.
+            /// 1 for a private session; the date’s own capacity for a class date.
             ///
             /// - Remark: Generated from `#/components/schemas/Session/capacity`.
             public var capacity: Swift.Int
@@ -1468,7 +2004,9 @@ extension Components {
             public var location: Components.Schemas.Location
             /// - Remark: Generated from `#/components/schemas/Session/trainer`.
             public var trainer: Components.Schemas.SessionTrainer?
-            /// The clients in the session, in the order they were added. One for a private session.
+            /// - Remark: Generated from `#/components/schemas/Session/groupClass`.
+            public var groupClass: Components.Schemas.SessionGroupClass?
+            /// The clients in the session, in the order they were added. One for a private session; none for a class date until bookings exist (M5).
             ///
             /// - Remark: Generated from `#/components/schemas/Session/participants`.
             public var participants: [Components.Schemas.SessionParticipant]
@@ -1476,16 +2014,17 @@ extension Components {
             ///
             /// - Parameters:
             ///   - id: The session ID.
-            ///   - _type: The kind of session. Private sessions are planned here; the others come later.
+            ///   - _type: The kind of session. Private sessions are planned here, class dates are a class on a date (`…/group-classes/{classId}/dates`); Open Gym comes later.
             ///   - status: Whether the session still takes place. A session is never deleted.
             ///   - startsAt: The start, a UTC instant.
             ///   - endsAt: The end, a UTC instant.
             ///   - timeZone: The workspace’s IANA time zone, e.g. `Europe/Amsterdam`: the instants are shown in it (ADR-012).
-            ///   - capacity: 1 for a private session.
+            ///   - capacity: 1 for a private session; the date’s own capacity for a class date.
             ///   - version: Raised by every change; a change says the version it read. Starts at 1.
             ///   - location:
             ///   - trainer:
-            ///   - participants: The clients in the session, in the order they were added. One for a private session.
+            ///   - groupClass:
+            ///   - participants: The clients in the session, in the order they were added. One for a private session; none for a class date until bookings exist (M5).
             public init(
                 id: Swift.String,
                 _type: Components.Schemas.Session._TypePayload,
@@ -1497,6 +2036,7 @@ extension Components {
                 version: Swift.Int,
                 location: Components.Schemas.Location,
                 trainer: Components.Schemas.SessionTrainer? = nil,
+                groupClass: Components.Schemas.SessionGroupClass? = nil,
                 participants: [Components.Schemas.SessionParticipant]
             ) {
                 self.id = id
@@ -1509,6 +2049,7 @@ extension Components {
                 self.version = version
                 self.location = location
                 self.trainer = trainer
+                self.groupClass = groupClass
                 self.participants = participants
             }
             public enum CodingKeys: String, CodingKey {
@@ -1522,6 +2063,7 @@ extension Components {
                 case version
                 case location
                 case trainer
+                case groupClass
                 case participants
             }
         }
@@ -1552,6 +2094,43 @@ extension Components {
             public enum CodingKeys: String, CodingKey {
                 case id
                 case name
+            }
+        }
+        /// The class of a class date (F021); left out for the other kinds.
+        ///
+        /// - Remark: Generated from `#/components/schemas/SessionGroupClass`.
+        public struct SessionGroupClass: Codable, Hashable, Sendable {
+            /// The class ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionGroupClass/id`.
+            public var id: Swift.String
+            /// The class’s Dutch name.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionGroupClass/nameNl`.
+            public var nameNl: Swift.String
+            /// The class’s English name, `null` without one. Show it to a viewer whose language is English, else the Dutch name (`pickContentLanguage`).
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionGroupClass/nameEn`.
+            public var nameEn: Swift.String?
+            /// Creates a new `SessionGroupClass`.
+            ///
+            /// - Parameters:
+            ///   - id: The class ID.
+            ///   - nameNl: The class’s Dutch name.
+            ///   - nameEn: The class’s English name, `null` without one. Show it to a viewer whose language is English, else the Dutch name (`pickContentLanguage`).
+            public init(
+                id: Swift.String,
+                nameNl: Swift.String,
+                nameEn: Swift.String? = nil
+            ) {
+                self.id = id
+                self.nameNl = nameNl
+                self.nameEn = nameEn
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case nameNl
+                case nameEn
             }
         }
         /// A client’s place in a session.
@@ -1674,6 +2253,486 @@ extension Components {
                 case durationMinutes
                 case notify
                 case surface
+            }
+        }
+        /// A class of the workspace: what it is called, who usually teaches it, how many people fit and how long it lasts. It is not a point in time; a class on a date is a `group` session.
+        ///
+        /// - Remark: Generated from `#/components/schemas/GroupClass`.
+        public struct GroupClass: Codable, Hashable, Sendable {
+            /// The class ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/GroupClass/id`.
+            public var id: Swift.String
+            /// The Dutch name: always there.
+            ///
+            /// - Remark: Generated from `#/components/schemas/GroupClass/nameNl`.
+            public var nameNl: Swift.String
+            /// The English name, `null` without one. Show it to a viewer whose language is English, else the Dutch name (`pickContentLanguage` of @fivvi/i18n).
+            ///
+            /// - Remark: Generated from `#/components/schemas/GroupClass/nameEn`.
+            public var nameEn: Swift.String?
+            /// The Dutch description, or `null`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/GroupClass/descriptionNl`.
+            public var descriptionNl: Swift.String?
+            /// The English description, or `null`: shown only to English viewers.
+            ///
+            /// - Remark: Generated from `#/components/schemas/GroupClass/descriptionEn`.
+            public var descriptionEn: Swift.String?
+            /// How many people fit: 1 to 100.
+            ///
+            /// - Remark: Generated from `#/components/schemas/GroupClass/capacity`.
+            public var capacity: Swift.Int
+            /// How long a date of the class lasts: 15 to 240 minutes in steps of 5.
+            ///
+            /// - Remark: Generated from `#/components/schemas/GroupClass/durationMinutes`.
+            public var durationMinutes: Swift.Int
+            /// - Remark: Generated from `#/components/schemas/GroupClass/defaultTrainer`.
+            public struct DefaultTrainerPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/GroupClass/defaultTrainer/value1`.
+                public var value1: Components.Schemas.SessionTrainer
+                /// The usual trainer. Left out for *Trainer nodig* (none).
+                ///
+                /// - Remark: Generated from `#/components/schemas/GroupClass/defaultTrainer/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `DefaultTrainerPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The usual trainer. Left out for *Trainer nodig* (none).
+                public init(
+                    value1: Components.Schemas.SessionTrainer,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/GroupClass/defaultTrainer`.
+            public var defaultTrainer: Components.Schemas.GroupClass.DefaultTrainerPayload?
+            /// Creates a new `GroupClass`.
+            ///
+            /// - Parameters:
+            ///   - id: The class ID.
+            ///   - nameNl: The Dutch name: always there.
+            ///   - nameEn: The English name, `null` without one. Show it to a viewer whose language is English, else the Dutch name (`pickContentLanguage` of @fivvi/i18n).
+            ///   - descriptionNl: The Dutch description, or `null`.
+            ///   - descriptionEn: The English description, or `null`: shown only to English viewers.
+            ///   - capacity: How many people fit: 1 to 100.
+            ///   - durationMinutes: How long a date of the class lasts: 15 to 240 minutes in steps of 5.
+            ///   - defaultTrainer:
+            public init(
+                id: Swift.String,
+                nameNl: Swift.String,
+                nameEn: Swift.String? = nil,
+                descriptionNl: Swift.String? = nil,
+                descriptionEn: Swift.String? = nil,
+                capacity: Swift.Int,
+                durationMinutes: Swift.Int,
+                defaultTrainer: Components.Schemas.GroupClass.DefaultTrainerPayload? = nil
+            ) {
+                self.id = id
+                self.nameNl = nameNl
+                self.nameEn = nameEn
+                self.descriptionNl = descriptionNl
+                self.descriptionEn = descriptionEn
+                self.capacity = capacity
+                self.durationMinutes = durationMinutes
+                self.defaultTrainer = defaultTrainer
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case nameNl
+                case nameEn
+                case descriptionNl
+                case descriptionEn
+                case capacity
+                case durationMinutes
+                case defaultTrainer
+            }
+        }
+        /// The class that was created, with its first date when the request had one.
+        ///
+        /// - Remark: Generated from `#/components/schemas/CreatedGroupClass`.
+        public struct CreatedGroupClass: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/CreatedGroupClass/groupClass`.
+            public var groupClass: Components.Schemas.GroupClass
+            /// - Remark: Generated from `#/components/schemas/CreatedGroupClass/firstDate`.
+            public struct FirstDatePayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/CreatedGroupClass/firstDate/value1`.
+                public var value1: Components.Schemas.Session
+                /// The first date, when the request had a `firstDate`.
+                ///
+                /// - Remark: Generated from `#/components/schemas/CreatedGroupClass/firstDate/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `FirstDatePayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The first date, when the request had a `firstDate`.
+                public init(
+                    value1: Components.Schemas.Session,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/CreatedGroupClass/firstDate`.
+            public var firstDate: Components.Schemas.CreatedGroupClass.FirstDatePayload?
+            /// Creates a new `CreatedGroupClass`.
+            ///
+            /// - Parameters:
+            ///   - groupClass:
+            ///   - firstDate:
+            public init(
+                groupClass: Components.Schemas.GroupClass,
+                firstDate: Components.Schemas.CreatedGroupClass.FirstDatePayload? = nil
+            ) {
+                self.groupClass = groupClass
+                self.firstDate = firstDate
+            }
+            public enum CodingKeys: String, CodingKey {
+                case groupClass
+                case firstDate
+            }
+        }
+        /// A class to create: the Dutch name, optionally an English one, descriptions, the usual trainer, capacity and duration, and optionally its first date.
+        ///
+        /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest`.
+        public struct CreateGroupClassRequest: Codable, Hashable, Sendable {
+            /// The Dutch name: trimmed, 1 to 80 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/nameNl`.
+            public var nameNl: Swift.String
+            /// The English name: trimmed, at most 80 characters. A blank text means none (and, in a change, clears it).
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/nameEn`.
+            public var nameEn: Swift.String?
+            /// The Dutch description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it).
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/descriptionNl`.
+            public var descriptionNl: Swift.String?
+            /// The English description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it).
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/descriptionEn`.
+            public var descriptionEn: Swift.String?
+            /// The usual trainer’s team-member ID, from `GET …/trainers`. Leave it out, or send `null`, for *Trainer nodig*. A team member who does not train in the workspace answers `404`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/trainerId`.
+            public var trainerId: Swift.String?
+            /// 1 to 100 people.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/capacity`.
+            public var capacity: Swift.Int
+            /// 15 to 240 minutes in steps of 5; any other value answers `400` on `durationMinutes`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/durationMinutes`.
+            public var durationMinutes: Swift.Int
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/firstDate`.
+            public var firstDate: Components.Schemas.FirstGroupClassDate?
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_created` event (and `class_scheduled` with a first date) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_created` event (and `class_scheduled` with a first date) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateGroupClassRequest/surface`.
+            public var surface: Components.Schemas.CreateGroupClassRequest.SurfacePayload?
+            /// Creates a new `CreateGroupClassRequest`.
+            ///
+            /// - Parameters:
+            ///   - nameNl: The Dutch name: trimmed, 1 to 80 characters.
+            ///   - nameEn: The English name: trimmed, at most 80 characters. A blank text means none (and, in a change, clears it).
+            ///   - descriptionNl: The Dutch description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it).
+            ///   - descriptionEn: The English description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it).
+            ///   - trainerId: The usual trainer’s team-member ID, from `GET …/trainers`. Leave it out, or send `null`, for *Trainer nodig*. A team member who does not train in the workspace answers `404`.
+            ///   - capacity: 1 to 100 people.
+            ///   - durationMinutes: 15 to 240 minutes in steps of 5; any other value answers `400` on `durationMinutes`.
+            ///   - firstDate:
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_created` event (and `class_scheduled` with a first date) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            public init(
+                nameNl: Swift.String,
+                nameEn: Swift.String? = nil,
+                descriptionNl: Swift.String? = nil,
+                descriptionEn: Swift.String? = nil,
+                trainerId: Swift.String? = nil,
+                capacity: Swift.Int,
+                durationMinutes: Swift.Int,
+                firstDate: Components.Schemas.FirstGroupClassDate? = nil,
+                surface: Components.Schemas.CreateGroupClassRequest.SurfacePayload? = nil
+            ) {
+                self.nameNl = nameNl
+                self.nameEn = nameEn
+                self.descriptionNl = descriptionNl
+                self.descriptionEn = descriptionEn
+                self.trainerId = trainerId
+                self.capacity = capacity
+                self.durationMinutes = durationMinutes
+                self.firstDate = firstDate
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case nameNl
+                case nameEn
+                case descriptionNl
+                case descriptionEn
+                case trainerId
+                case capacity
+                case durationMinutes
+                case firstDate
+                case surface
+            }
+        }
+        /// Puts the new class on one date in the same request (the apps’ quick create, TD-05): class and date are stored together or not at all. A refused date (`400` on `firstDate.localDate` or `firstDate.localStart`) leaves no class behind.
+        ///
+        /// - Remark: Generated from `#/components/schemas/FirstGroupClassDate`.
+        public struct FirstGroupClassDate: Codable, Hashable, Sendable {
+            /// The date in the workspace’s time zone: `YYYY-MM-DD`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FirstGroupClassDate/localDate`.
+            public var localDate: Swift.String
+            /// The start in the workspace’s time zone: `HH:mm`, 24 hours.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FirstGroupClassDate/localStart`.
+            public var localStart: Swift.String
+            /// Creates a new `FirstGroupClassDate`.
+            ///
+            /// - Parameters:
+            ///   - localDate: The date in the workspace’s time zone: `YYYY-MM-DD`.
+            ///   - localStart: The start in the workspace’s time zone: `HH:mm`, 24 hours.
+            public init(
+                localDate: Swift.String,
+                localStart: Swift.String
+            ) {
+                self.localDate = localDate
+                self.localStart = localStart
+            }
+            public enum CodingKeys: String, CodingKey {
+                case localDate
+                case localStart
+            }
+        }
+        /// Changes a class: every field left out stays as it is. Dates already planned keep their own trainer, capacity and times (they were copied when they were planned). Other fields are ignored.
+        ///
+        /// - Remark: Generated from `#/components/schemas/UpdateGroupClassRequest`.
+        public struct UpdateGroupClassRequest: Codable, Hashable, Sendable {
+            /// The new Dutch name: trimmed, 1 to 80 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassRequest/nameNl`.
+            public var nameNl: Swift.String?
+            /// The new English name: trimmed, at most 80 characters. A blank text means none (and, in a change, clears it).
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassRequest/nameEn`.
+            public var nameEn: Swift.String?
+            /// The new Dutch description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it).
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassRequest/descriptionNl`.
+            public var descriptionNl: Swift.String?
+            /// The new English description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it).
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassRequest/descriptionEn`.
+            public var descriptionEn: Swift.String?
+            /// The new usual trainer’s team-member ID; `null` makes the class *Trainer nodig*; left out keeps it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassRequest/trainerId`.
+            public var trainerId: Swift.String?
+            /// The new capacity, 1 to 100.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassRequest/capacity`.
+            public var capacity: Swift.Int?
+            /// The new duration, 15 to 240 minutes in steps of 5.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassRequest/durationMinutes`.
+            public var durationMinutes: Swift.Int?
+            /// Creates a new `UpdateGroupClassRequest`.
+            ///
+            /// - Parameters:
+            ///   - nameNl: The new Dutch name: trimmed, 1 to 80 characters.
+            ///   - nameEn: The new English name: trimmed, at most 80 characters. A blank text means none (and, in a change, clears it).
+            ///   - descriptionNl: The new Dutch description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it).
+            ///   - descriptionEn: The new English description: trimmed, at most 500 characters. A blank text means none (and, in a change, clears it).
+            ///   - trainerId: The new usual trainer’s team-member ID; `null` makes the class *Trainer nodig*; left out keeps it.
+            ///   - capacity: The new capacity, 1 to 100.
+            ///   - durationMinutes: The new duration, 15 to 240 minutes in steps of 5.
+            public init(
+                nameNl: Swift.String? = nil,
+                nameEn: Swift.String? = nil,
+                descriptionNl: Swift.String? = nil,
+                descriptionEn: Swift.String? = nil,
+                trainerId: Swift.String? = nil,
+                capacity: Swift.Int? = nil,
+                durationMinutes: Swift.Int? = nil
+            ) {
+                self.nameNl = nameNl
+                self.nameEn = nameEn
+                self.descriptionNl = descriptionNl
+                self.descriptionEn = descriptionEn
+                self.trainerId = trainerId
+                self.capacity = capacity
+                self.durationMinutes = durationMinutes
+            }
+            public enum CodingKeys: String, CodingKey {
+                case nameNl
+                case nameEn
+                case descriptionNl
+                case descriptionEn
+                case trainerId
+                case capacity
+                case durationMinutes
+            }
+        }
+        /// A class on a date: a local date and start; the end follows from the class’s duration.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest`.
+        public struct ScheduleGroupClassDateRequest: Codable, Hashable, Sendable {
+            /// The date in the workspace’s time zone: `YYYY-MM-DD`. A date that is none (30 February) answers `400` on `localDate`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/localDate`.
+            public var localDate: Swift.String
+            /// The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/localStart`.
+            public var localStart: Swift.String
+            /// The trainer of this date, a team-member ID from `GET …/trainers`. Leave it out for the class’s usual trainer; `null` plans the date as *Trainer nodig*.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/trainerId`.
+            public var trainerId: Swift.String?
+            /// The capacity of this date, 1 to 100. Leave it out for the class’s.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/capacity`.
+            public var capacity: Swift.Int?
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/surface`.
+            public var surface: Components.Schemas.ScheduleGroupClassDateRequest.SurfacePayload?
+            /// Creates a new `ScheduleGroupClassDateRequest`.
+            ///
+            /// - Parameters:
+            ///   - localDate: The date in the workspace’s time zone: `YYYY-MM-DD`. A date that is none (30 February) answers `400` on `localDate`.
+            ///   - localStart: The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first.
+            ///   - trainerId: The trainer of this date, a team-member ID from `GET …/trainers`. Leave it out for the class’s usual trainer; `null` plans the date as *Trainer nodig*.
+            ///   - capacity: The capacity of this date, 1 to 100. Leave it out for the class’s.
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            public init(
+                localDate: Swift.String,
+                localStart: Swift.String,
+                trainerId: Swift.String? = nil,
+                capacity: Swift.Int? = nil,
+                surface: Components.Schemas.ScheduleGroupClassDateRequest.SurfacePayload? = nil
+            ) {
+                self.localDate = localDate
+                self.localStart = localStart
+                self.trainerId = trainerId
+                self.capacity = capacity
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case localDate
+                case localStart
+                case trainerId
+                case capacity
+                case surface
+            }
+        }
+        /// The date was changed since the version in the request; nothing was written. `session` is the date as it is now, to show the reloaded values. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ClassDateChanged`.
+        public struct ClassDateChanged: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/ClassDateChanged/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case classDateChanged = "class_date_changed"
+            }
+            /// - Remark: Generated from `#/components/schemas/ClassDateChanged/code`.
+            public var code: Components.Schemas.ClassDateChanged.CodePayload
+            /// - Remark: Generated from `#/components/schemas/ClassDateChanged/session`.
+            public var session: Components.Schemas.Session
+            /// Creates a new `ClassDateChanged`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            ///   - session:
+            public init(
+                code: Components.Schemas.ClassDateChanged.CodePayload,
+                session: Components.Schemas.Session
+            ) {
+                self.code = code
+                self.session = session
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+                case session
+            }
+        }
+        /// Changes one date of a class (CO-04): the start, the end and the capacity, each only when given. The date stays on its day. The class itself never changes.
+        ///
+        /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest`.
+        public struct UpdateGroupClassDateRequest: Codable, Hashable, Sendable {
+            /// The version of the date the change was made from (`Session.version`). If the date changed since, the answer is `409` and nothing is written.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/version`.
+            public var version: Swift.Int
+            /// The new start, `HH:mm` in the workspace’s time zone. Leave it out to keep it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/localStart`.
+            public var localStart: Swift.String?
+            /// The new end, `HH:mm` on the same day as the start. Leave it out to keep its time of day: a start moved alone does not move the end with it, and one moved to or past the unchanged end is refused like any end. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/localEnd`.
+            public var localEnd: Swift.String?
+            /// The new capacity of this date, 1 to 100. Leave it out to keep it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/capacity`.
+            public var capacity: Swift.Int?
+            /// Creates a new `UpdateGroupClassDateRequest`.
+            ///
+            /// - Parameters:
+            ///   - version: The version of the date the change was made from (`Session.version`). If the date changed since, the answer is `409` and nothing is written.
+            ///   - localStart: The new start, `HH:mm` in the workspace’s time zone. Leave it out to keep it.
+            ///   - localEnd: The new end, `HH:mm` on the same day as the start. Leave it out to keep its time of day: a start moved alone does not move the end with it, and one moved to or past the unchanged end is refused like any end. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`.
+            ///   - capacity: The new capacity of this date, 1 to 100. Leave it out to keep it.
+            public init(
+                version: Swift.Int,
+                localStart: Swift.String? = nil,
+                localEnd: Swift.String? = nil,
+                capacity: Swift.Int? = nil
+            ) {
+                self.version = version
+                self.localStart = localStart
+                self.localEnd = localEnd
+                self.capacity = capacity
+            }
+            public enum CodingKeys: String, CodingKey {
+                case version
+                case localStart
+                case localEnd
+                case capacity
             }
         }
         /// One page of the clients of a workspace.

@@ -50,7 +50,7 @@
   },
   "radius": {
     "$type": "dimension",
-    "$description": "Mirrors the M3 shape scale. iOS applies the same values with .continuous corners.",
+    "$description": "Mirrors the M3 shape scale. iOS applies the same values with .continuous corners. Pills use full.",
     "none": {
       "$value": "0px"
     },
@@ -73,7 +73,7 @@
     },
     "md": {
       "$value": "12px",
-      "$description": "Cards, list groups (iOS inset grouped list ~10–12).",
+      "$description": "Cards and list groups on the trainer web (shadcn --radius, 12), iOS inset grouped list ~10-12.",
       "$extensions": {
         "app.fivvi.platform": {
           "android": "shapes.medium"
@@ -86,6 +86,15 @@
       "$extensions": {
         "app.fivvi.platform": {
           "android": "shapes.large"
+        }
+      }
+    },
+    "card": {
+      "$value": "26px",
+      "$description": "Cards and inset grouped lists (the v2 look). 28 on Android.",
+      "$extensions": {
+        "app.fivvi.platform": {
+          "android": "28dp"
         }
       }
     },
