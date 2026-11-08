@@ -1,13 +1,6 @@
-import {
-  createServer,
-  Agent as HttpAgent,
-  request as httpRequest,
-  type IncomingMessage,
-  type Server,
-} from 'node:http';
-import { Agent as HttpsAgent, request as httpsRequest } from 'node:https';
+import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { gunzipSync, gzipSync } from 'node:zlib';
+import { gzipSync } from 'node:zlib';
 import type { MetadataRoute } from 'next';
 import { noindexValue, robotsTxt } from '../site/indexing';
 
@@ -98,40 +91,8 @@ export function upstreamUrl(path: string, upstream: string): URL | undefined {
   return url.origin === new URL(upstream).origin ? url : undefined;
 }
 
-/**
- * One GET to the upstream with the proxy's own connections, so that closing the proxy ends them too:
- * the global `fetch` keeps its connections in a pool of the process that nothing here can close.
- * The answer is not redirected, and not compressed (gzip is asked for and undone).
- */
-function fetchUpstream(
-  target: URL,
-  agent: HttpAgent | HttpsAgent,
-): Promise<{ answer: IncomingMessage; body: Buffer }> {
-  const send = target.protocol === 'https:' ? httpsRequest : httpRequest;
-  return new Promise((resolve, reject) => {
-    send(target, { agent, headers: { 'accept-encoding': 'gzip' } }, (answer) => {
-      const chunks: Buffer[] = [];
-      answer.on('data', (chunk: Buffer) => chunks.push(chunk));
-      answer.on('error', reject);
-      answer.on('end', () => {
-        const body = Buffer.concat(chunks);
-        resolve({
-          answer,
-          body: answer.headers['content-encoding'] === 'gzip' ? gunzipSync(body) : body,
-        });
-      });
-    })
-      .on('error', reject)
-      .end();
-  });
-}
-
 /** Starts the proxy in front of `upstream` (an e2e server's address). */
 export async function startGoLiveProxy(upstream: string): Promise<GoLiveProxy> {
-  const agent =
-    new URL(upstream).protocol === 'https:'
-      ? new HttpsAgent({ keepAlive: true })
-      : new HttpAgent({ keepAlive: true });
   const server: Server = createServer(async (request, response) => {
     try {
       const origin = `http://${request.headers.host}`;
@@ -145,13 +106,16 @@ export async function startGoLiveProxy(upstream: string): Promise<GoLiveProxy> {
         response.writeHead(400, { 'content-type': 'text/plain' }).end('Not a path on the upstream');
         return;
       }
-      const { answer, body: received } = await fetchUpstream(target, agent);
-      const headers: Record<string, string | string[]> = {};
-      for (const [name, value] of Object.entries(answer.headers)) {
-        if (value !== undefined && !DROPPED_HEADERS.has(name)) headers[name] = value;
+      const answer = await fetch(target, {
+        headers: { 'accept-encoding': 'gzip' },
+        redirect: 'manual',
+      });
+      const headers: Record<string, string> = {};
+      for (const [name, value] of answer.headers) {
+        if (!DROPPED_HEADERS.has(name)) headers[name] = value;
       }
-      const type = answer.headers['content-type'] ?? '';
-      let body: Buffer | string = received;
+      const type = answer.headers.get('content-type') ?? '';
+      let body: Buffer | string = Buffer.from(await answer.arrayBuffer());
       if (/^text\/html|^application\/xml|^text\/xml/.test(type)) {
         body = body
           .toString()
@@ -165,7 +129,7 @@ export async function startGoLiveProxy(upstream: string): Promise<GoLiveProxy> {
         body = gzipSync(body);
         headers['content-encoding'] = 'gzip';
       }
-      response.writeHead(answer.statusCode ?? 502, headers).end(body);
+      response.writeHead(answer.status, headers).end(body);
     } catch (error) {
       response.writeHead(502).end(String(error));
     }
@@ -174,13 +138,10 @@ export async function startGoLiveProxy(upstream: string): Promise<GoLiveProxy> {
   const { port } = server.address() as AddressInfo;
   return {
     origin: `http://127.0.0.1:${port}`,
-    // Ends at once whatever is open: the browser's kept-alive connections to the proxy, the proxy's
-    // to the upstream and the requests still in flight (the end of a run must not wait for them).
     close: () =>
       new Promise<void>((resolve, reject) => {
         server.close((error) => (error ? reject(error) : resolve()));
         server.closeAllConnections();
-        agent.destroy();
       }),
   };
 }
