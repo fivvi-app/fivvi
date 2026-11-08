@@ -974,7 +974,7 @@
       "metaTitle": "Subverwerkers | Fivvi",
       "metaDescription": "De diensten die gegevens voor Fivvi verwerken, waarvoor, en waar ze die bewaren.",
       "headline": "Subverwerkers",
-      "lead": "Deze diensten verwerken gegevens voor Fivvi. Railway, Sentry, PostHog en Cloudflare zijn Amerikaanse bedrijven; de privacyverklaring legt uit welke waarborgen gelden. Komt er een nieuwe dienst bij, dan laten we dat eerst weten aan elke studio.",
+      "lead": "Deze diensten verwerken gegevens voor Fivvi. Railway, Sentry en PostHog zijn Amerikaanse bedrijven; de privacyverklaring legt uit welke waarborgen gelden. Komt er een nieuwe dienst bij, dan laten we dat eerst weten aan elke studio.",
       "listLabel": "Subverwerkers van Fivvi",
       "service": "Dienst",
       "purposeColumn": "Waarvoor",
@@ -984,8 +984,7 @@
         "lettermint": "E-mails, zoals je inlogcode en bevestigingen",
         "zoho": "Onze eigen mailbox voor vragen, privacyverzoeken en demo-aanvragen",
         "sentry": "Foutmeldingen, zonder namen, e-mailadressen of notities",
-        "postHog": "Statistieken zonder cookies",
-        "turnstile": "Bescherming van formulieren tegen bots"
+        "postHog": "Statistieken zonder cookies"
       },
       "region": {
         "amsterdam": "Amsterdam",

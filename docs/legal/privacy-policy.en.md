@@ -79,12 +79,11 @@ The public website (fivvi.app, the pages about Fivvi, pricing, help and these te
 - We use **no** advertising or tracking cookies.
 - Our product statistics in the web app work **without cookies**. Nothing stays behind in your browser.
 - The apps Fivvi Pro and Fivvi use no advertising or analytics SDK. They only report errors and crashes (see §3.1).
-- We are introducing **Cloudflare Turnstile** on the forms for creating an account, signing in and asking a studio for access, to stop bots. Once that is live, Turnstile looks at technical data from your browser, such as your IP address and browser type. Cloudflare also uses that data itself, as a controller, to improve its bot detection. See [Cloudflare's privacy policy](https://www.cloudflare.com/privacypolicy/).
 
 ## 5. Who do we share data with?
 
 - We **don't sell** your data or use it for advertising.
-- We use a number of service providers for hosting and the database (Railway), email (Lettermint), error reports (Sentry), product statistics (PostHog), protection against bots (Cloudflare Turnstile) and our own mailbox (Zoho). They process data only on our instructions, and we have data protection agreements with each of them. Cloudflare also uses Turnstile's signals for itself (§4). The current list, with purpose and location, is at **https://fivvi.app/en/sub-processors**.
+- We use a number of service providers for hosting and the database (Railway), email (Lettermint), error reports (Sentry), product statistics (PostHog) and our own mailbox (Zoho). They process data only on our instructions, and we have data protection agreements with each of them.. The current list, with purpose and location, is at **https://fivvi.app/en/sub-processors**.
 - **Mollie** is not a service provider of ours for your payment. Mollie works for your studio and for itself (§2).
 - A studio only sees data within its own environment. Other studios can't see that you are also their client.
 - If you get the app from the App Store or Google Play, Apple and Google process data about your download and your store account under their own terms. We receive no personal data from that.
@@ -95,7 +94,7 @@ The public website (fivvi.app, the pages about Fivvi, pricing, help and these te
 - The app and PostgreSQL database run on Railway in Amsterdam. We keep backups for 30 days at most, in the EU.
 - Email goes through Lettermint, a Dutch company that processes email data only in Amsterdam and Germany. Our mailbox is at Zoho, in a European data centre.
 - Error reports and product statistics go to Sentry and PostHog, both in their EU environment in Frankfurt.
-- Railway, Sentry, PostHog and Cloudflare are US companies, and Railway states in its DPA that primary processing takes place in the United States. Zoho is an international group. Transfers outside the EEA require an applicable safeguard, such as the EU-US Data Privacy Framework or the European Commission's standard contractual clauses. These apply here.
+- Railway, Sentry and PostHog are US companies, and Railway states in its DPA that primary processing takes place in the United States. Zoho is an international group. Transfers outside the EEA require an applicable safeguard, such as the EU-US Data Privacy Framework or the European Commission's standard contractual clauses. These apply here.
 
 ## 7. How long do we keep your data?
 

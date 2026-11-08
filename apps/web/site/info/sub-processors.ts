@@ -25,5 +25,4 @@ export const subProcessors: readonly SubProcessor[] = [
   { name: 'Zoho Mail', purpose: 'zoho', region: 'eu' },
   { name: 'Sentry', purpose: 'sentry', region: 'eu' },
   { name: 'PostHog', purpose: 'postHog', region: 'eu' },
-  { name: 'Cloudflare Turnstile', purpose: 'turnstile', region: 'worldwide' },
 ];

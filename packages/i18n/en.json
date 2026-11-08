@@ -974,7 +974,7 @@
       "metaTitle": "Sub-processors | Fivvi",
       "metaDescription": "The services that process data for Fivvi, what for, and where they store it.",
       "headline": "Sub-processors",
-      "lead": "These services process data for Fivvi. Railway, Sentry, PostHog and Cloudflare are US companies; the privacy policy explains the safeguards. When a new service is added, we tell every studio first.",
+      "lead": "These services process data for Fivvi. Railway, Sentry and PostHog are US companies; the privacy policy explains the safeguards. When a new service is added, we tell every studio first.",
       "listLabel": "Fivvi's sub-processors",
       "service": "Service",
       "purposeColumn": "What for",
@@ -984,8 +984,7 @@
         "lettermint": "Emails, such as your sign-in code and confirmations",
         "zoho": "Our own mailbox for questions, privacy requests and demo requests",
         "sentry": "Error reports, without names, email addresses or notes",
-        "postHog": "Statistics without cookies",
-        "turnstile": "Protecting forms against bots"
+        "postHog": "Statistics without cookies"
       },
       "region": {
         "amsterdam": "Amsterdam",

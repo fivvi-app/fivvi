@@ -79,12 +79,11 @@ De openbare website (fivvi.app, de pagina's over Fivvi, prijzen, hulp en deze te
 - We gebruiken **geen** advertentie- of trackingcookies.
 - Onze productstatistieken in de webapp werken **zonder cookies**. Er blijft niets in je browser achter.
 - De apps Fivvi Pro en Fivvi gebruiken geen advertentie- of analyse-SDK. Ze melden alleen fouten en crashes (zie §3.1).
-- We voeren **Cloudflare Turnstile** in op de formulieren om een account aan te maken, in te loggen en een studio om toegang te vragen, om bots tegen te houden. Zodra dat gebeurt, bekijkt Turnstile technische gegevens van je browser, zoals IP-adres en browsertype. Cloudflare gebruikt die gegevens ook zelf, als verwerkingsverantwoordelijke, om zijn botdetectie te verbeteren. Zie de [privacyverklaring van Cloudflare](https://www.cloudflare.com/privacypolicy/).
 
 ## 5. Met wie delen we gegevens?
 
 - We **verkopen** je gegevens niet en gebruiken ze niet voor advertenties.
-- We schakelen een aantal dienstverleners in voor hosting en de database (Railway), e-mail (Lettermint), foutmeldingen (Sentry), productstatistieken (PostHog), bescherming tegen bots (Cloudflare Turnstile) en onze eigen mailbox (Zoho). Ze verwerken gegevens alleen in onze opdracht en we hebben met elk van hen afspraken over gegevensbescherming. Cloudflare gebruikt de signalen van Turnstile ook voor zichzelf (§4). De actuele lijst, met doel en locatie, staat op **https://fivvi.app/subverwerkers**.
+- We schakelen een aantal dienstverleners in voor hosting en de database (Railway), e-mail (Lettermint), foutmeldingen (Sentry), productstatistieken (PostHog) en onze eigen mailbox (Zoho). Ze verwerken gegevens alleen in onze opdracht en we hebben met elk van hen afspraken over gegevensbescherming.. De actuele lijst, met doel en locatie, staat op **https://fivvi.app/subverwerkers**.
 - **Mollie** is geen dienstverlener van ons voor jouw betaling. Mollie werkt voor je studio en voor zichzelf (§2).
 - Een studio ziet alleen gegevens binnen haar eigen omgeving. Andere studio's zien niet dat je ook bij hen klant bent.
 - Haal je de app uit de App Store of Google Play, dan verwerken Apple en Google gegevens over je download en je store-account onder hun eigen voorwaarden. Wij krijgen daar geen persoonsgegevens van.
@@ -95,7 +94,7 @@ De openbare website (fivvi.app, de pagina's over Fivvi, prijzen, hulp en deze te
 - De applicatie en PostgreSQL-database draaien bij Railway in Amsterdam. Back-ups bewaren we ten hoogste 30 dagen, in de EU.
 - E-mail loopt via Lettermint, een Nederlands bedrijf dat e-mailgegevens uitsluitend in Amsterdam en Duitsland verwerkt. Onze mailbox staat bij Zoho in een Europees datacenter.
 - Foutmeldingen en productstatistieken gaan naar Sentry en PostHog, allebei in hun EU-omgeving in Frankfurt.
-- Railway, Sentry, PostHog en Cloudflare zijn Amerikaanse bedrijven, en Railway noemt primaire verwerking in de Verenigde Staten in zijn DPA. Zoho is een internationale groep. Doorgifte buiten de EER vereist een toepasselijk waarborg, zoals het EU-VS Data Privacy Framework of standaardcontractbepalingen van de Europese Commissie. Die gelden hier.
+- Railway, Sentry en PostHog zijn Amerikaanse bedrijven, en Railway noemt primaire verwerking in de Verenigde Staten in zijn DPA. Zoho is een internationale groep. Doorgifte buiten de EER vereist een toepasselijk waarborg, zoals het EU-VS Data Privacy Framework of standaardcontractbepalingen van de Europese Commissie. Die gelden hier.
 
 ## 7. Hoe lang bewaren we je gegevens?
 

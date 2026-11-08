@@ -87,7 +87,7 @@ Voor de gegevens van jouw klanten ben jij **verwerkingsverantwoordelijke** in de
 
 1. We doen ons best om de Dienst goed en veilig beschikbaar te houden, maar we garanderen geen ononderbroken werking.
 2. Gepland onderhoud doen we zo veel mogelijk buiten de drukke uren, en we melden het vooraf.
-3. Support loopt via support@fivvi.app of telefonisch via +31 6 85145755. Tijdens de pilot geldt de responstijd die we met je afspreken.
+3. Support loopt via support@fivvi.app of telefonisch via +31 6 85145755. We reageren binnen 2 werkdagen.
 
 ### A10. Wijzigingen aan de Dienst
 
@@ -100,7 +100,7 @@ We mogen de Dienst verbeteren en veranderen. Verdwijnt een functie waar je wezen
 
 ### A12. Aansprakelijkheid
 
-1. Onze totale aansprakelijkheid voor schade door een toerekenbare tekortkoming of onrechtmatige daad is per kalenderjaar beperkt tot het bedrag dat je in de 12 maanden daarvoor aan ons hebt betaald, met een minimum van **€ {{bedrag}}**. Tijdens de gratis fase geldt alleen dat minimum.
+1. Onze totale aansprakelijkheid voor schade door een toerekenbare tekortkoming of onrechtmatige daad is per kalenderjaar beperkt tot het bedrag dat je in de 12 maanden daarvoor aan ons hebt betaald, met een minimum van **€ 1.000**. Tijdens de gratis fase geldt alleen dat minimum.
 2. We zijn niet aansprakelijk voor indirecte schade, zoals gederfde winst, gemiste omzet en reputatieschade.
 3. De beperkingen in dit artikel gelden niet als de schade is veroorzaakt door opzet of bewuste roekeloosheid van ons of onze leidinggevenden.
 4. Voor schade in verband met persoonsgegevens gelden ook de afspraken in de Verwerkersovereenkomst.
@@ -124,7 +124,7 @@ We kunnen deze voorwaarden wijzigen. Wezenlijke wijzigingen melden we **ten mins
 ### A16. Toepasselijk recht en geschillen
 
 1. Op deze voorwaarden is Nederlands recht van toepassing.
-2. Geschillen worden voorgelegd aan de bevoegde rechter in het arrondissement {{arrondissement}}. We proberen er eerst samen uit te komen.
+2. Geschillen worden voorgelegd aan de bevoegde rechter in het arrondissement Amsterdam (Rechtbank Amsterdam). We proberen er eerst samen uit te komen.
 
 ---
 
