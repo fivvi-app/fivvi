@@ -197,10 +197,7 @@ describe('E020 AC1: the path data of the day dial is handled exactly', () => {
   });
 
   it('applies a transform to every point of a path, control points included', () => {
-    const moved = transformPath(
-      parsePath('M0 0 C1 0 2 1 3 3 Q1 2 3 4 Z'),
-      [2, 0, 0, -1, 1, 1],
-    );
+    const moved = transformPath(parsePath('M0 0 C1 0 2 1 3 3 Q1 2 3 4 Z'), [2, 0, 0, -1, 1, 1]);
     assert.deepEqual(moved, [['M', 1, 1], ['C', 3, 1, 5, 0, 7, -2], ['Q', 3, -1, 7, -3], ['Z']]);
   });
 
@@ -476,12 +473,11 @@ describe('E020 AC3: the Android adaptive icon is the day dial in the safe zone',
       );
     });
     // the 100 unit design on the 72 dp visible area of the layer: 0.72 dp a unit, about its middle (50, 50), moved to 54, 54
-    const scale = ANDROID_SCALE;
     drawn.forEach((commands, i) => {
       const a = original[i].flatMap((command) => command.slice(1));
       const b = commands.flatMap((command) => command.slice(1));
       for (const [k, value] of a.entries()) {
-        close(b[k], (value - 50) * scale + 54, 0.002, `sector ${i}, number ${k}`);
+        close(b[k], (value - 50) * ANDROID_SCALE + 54, 0.002, `sector ${i}, number ${k}`);
       }
     });
     // the dial keeps the proportions of the reference (34 / 50 of the visible half, as on iOS and in the Play icon):
@@ -497,8 +493,6 @@ describe('E020 AC3: the Android adaptive icon is the day dial in the safe zone',
 
   it('the track is a ring around the middle, 7.14 wide in the design', () => {
     const [track] = androidPaths(layer('foreground'));
-    const sectors = androidPaths(layer('foreground')).slice(1);
-    const scale = ANDROID_SCALE;
     const polylines = flatten(parsePath(track.d), 0.01);
 
     assert.equal(polylines.length, 2);
@@ -511,12 +505,12 @@ describe('E020 AC3: the Android adaptive icon is the day dial in the safe zone',
       );
       return Math.hypot(polyline[0][0] - 54, polyline[0][1] - 54);
     });
-    close(Math.max(...radii), 29.07 * scale, 0.01, 'outer radius');
-    close(Math.min(...radii), 21.93 * scale, 0.01, 'inner radius');
+    close(Math.max(...radii), 29.07 * ANDROID_SCALE, 0.01, 'outer radius');
+    close(Math.min(...radii), 21.93 * ANDROID_SCALE, 0.01, 'inner radius');
     // a ring, not a disc: the middle is empty
     const filled = coverage(polylines, 108);
     assert.equal(filled[54 * 108 + 54], 0);
-    assert.equal(filled[54 * 108 + 54 + Math.round(25.5 * scale)], 1);
+    assert.equal(filled[54 * 108 + 54 + Math.round(25.5 * ANDROID_SCALE)], 1);
   });
 
   it('the monochrome layer is the track and the five as one black shape with no hole where they overlap', () => {
