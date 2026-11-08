@@ -815,6 +815,66 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     assert.match(androidTests, /needs: changes\n/);
   });
 
+  it('E008 #519: the Maestro step holds both locales of the suite with margin, the job still bounds a hung run, and the chain stays under the merge queue timeout', () => {
+    const minutes = (section) => Number(section.match(/^ {4}timeout-minutes: (\d+)$/m)[1]);
+    const stepMinutes = (section, name) =>
+      Number(
+        section.match(
+          new RegExp(`- name: ${name.replace(/[()]/g, '\\$&')}\\n +timeout-minutes: (\\d+)\n`),
+        )[1],
+      );
+    const queue = Number(
+      readFileSync(join(SCRIPTS, '../.github/rulesets/main.json'), 'utf8').match(
+        /"check_response_timeout_minutes": (\d+)/,
+      )[1],
+    );
+    const maestroStep = 'Maestro flows (sign-in, anonymous and hello; nl-NL and en)';
+    const maestroStepMinutes = stepMinutes(androidMaestro, maestroStep);
+    // Run 41938461253 (PR #518, 10 flows): nl-NL 8m30s and en 8m34s of flows, 1 to 2 minutes of setup per locale, so about
+    // 20 minutes and 11 s over the 20-minute cap; on main 18, 14 and 16 minutes. The step needs at least 1.5 x 20 minutes.
+    const slowestRun = 20;
+    assert.ok(
+      maestroStepMinutes >= 1.5 * slowestRun,
+      'the Maestro step has at least 1.5 x the slowest recent run',
+    );
+    // The job holds its steps before the Maestro step (measured 3 minutes; the emulator boot alone is capped at 10), the
+    // Maestro step and the steps after it (under a minute), and stays above the step so a hung run is still bounded by
+    // the job, not by the queue.
+    assert.ok(
+      minutes(androidMaestro) >= maestroStepMinutes + 10,
+      'the job holds the step plus the setup before it and the reports after it',
+    );
+    assert.ok(minutes(androidMaestro) <= 40, 'the job still bounds a hung run');
+    // A run that nears the cap says so: the step durations step warns above two thirds of the step's own budget, and the
+    // budget it is given is the step's timeout.
+    assert.match(
+      androidMaestro,
+      new RegExp(
+        `run: scripts/step-timings\\.sh "${maestroStep.replace(/[()]/g, '\\$&')}=${maestroStepMinutes}"\n`,
+      ),
+    );
+    // Android build took 0.8 to 4.6 minutes in the last 46 runs (run 41674310293 the slowest);
+    // the job and its build step keep at least twice that, and the step fits in its job.
+    const slowestBuild = 4.6;
+    const buildStepMinutes = stepMinutes(androidBuild, 'ktlint, checks and debug build');
+    assert.ok(
+      minutes(androidBuild) >= 2 * slowestBuild,
+      'Android build keeps 2 x its slowest measured 4.6 minutes',
+    );
+    assert.ok(
+      buildStepMinutes >= 2 * slowestBuild,
+      'the build step keeps 2 x its slowest measured 4.6 minutes',
+    );
+    assert.ok(buildStepMinutes <= minutes(androidBuild), 'the build step fits in its job');
+    // Detect changes (5) + build + Maestro + the gate job (2) must end before the queue gives up on the check, and
+    // pr.sh wait must outlast it, or it gives up on a run that still passes.
+    const chain = 5 + minutes(androidBuild) + minutes(androidMaestro) + minutes(job('android'));
+    assert.ok(chain < queue, 'Android chain is under the queue timeout');
+    const pr = readFileSync(join(SCRIPTS, 'pr.sh'), 'utf8');
+    const waitNative = Number(pr.match(/^WAIT_MINUTES_NATIVE=(\d+)$/m)[1]);
+    assert.ok(waitNative > chain, 'pr.sh wait outlasts the Android chain by timeouts');
+  });
+
   it('#293: the debug app and the Maestro web server agree on the port the app has baked in', () => {
     const port = (section) => section.match(/^ {6}E2E_PORT: '(\d+)'$/m)?.[1];
     assert.ok(port(androidBuild), 'Android build sets E2E_PORT');
@@ -1050,18 +1110,28 @@ describe('android.sh setup', () => {
     for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
   });
 
-  const fakeSdk = ({ cmdlineTools = true, emulatorFindsAvds = true } = {}) => {
+  const fakeSdk = ({ cmdlineTools = true, emulatorFindsAvds = true, sdkName = 'sdk' } = {}) => {
     const base = realpathSync(mkdtempSync(join(tmpdir(), 'android-setup-')));
     dirs.push(base);
     const home = join(base, 'home');
-    const sdk = join(base, 'sdk');
+    const sdk = join(base, sdkName);
     const log = join(base, 'sdkmanager.log');
     const avdmanager = `dir="\${ANDROID_AVD_HOME:-$HOME/.android/avd}"
 while [ $# -gt 0 ]; do [ "$1" = --name ] && name="$2"; shift; done
 mkdir -p "$dir/$name.avd" && touch "$dir/$name.ini"
 printf "%s\\n" "disk.dataPartition.path=<temp>" "disk.dataPartition.size=6G" "hw.cpu.ncore=4" >"$dir/$name.avd/config.ini"`;
+    // FAKE_SDK_FAIL_ATTEMPTS=n: the first n installs leave the system image missing (a corrupt download: a half-unpacked
+    // download in .temp and .downloadIntermediates, a warning, exit status 0); FAKE_SDK_FAIL_EXIT=1 makes them exit
+    // non-zero as well. FAKE_SDK_ALWAYS_FAIL=1: every call exits 1 at once, installing nothing (offline).
     const sdkmanager = `echo "$*" >>"${log}"
+[ -z "\${FAKE_SDK_ALWAYS_FAIL:-}" ] || { echo "Error: could not fetch the repository" >&2; exit 1; }
 for arg; do case "$arg" in --sdk_root=*) root="\${arg#--sdk_root=}" ;; esac; done
+attempt=$(grep -c "system-images;" "${log}")
+for arg; do case "$arg" in --*) ;; *)
+  dir="$root/$(printf %s "$arg" | tr ';' /)"
+  case "$arg" in system-images*) [ "$attempt" -le "\${FAKE_SDK_FAIL_ATTEMPTS:-0}" ] && { mkdir -p "$root/.temp/PackageOperation01" "$root/.downloadIntermediates"; touch "$root/.temp/PackageOperation01/partial.zip" "$root/.downloadIntermediates/partial2.zip"; echo "Warning: An error occurred while preparing SDK package $arg: Error on ZipFile unknown archive." >&2; [ -z "\${FAKE_SDK_FAIL_EXIT:-}" ] || exit 1; continue; } ;; esac
+  mkdir -p "$dir" ;;
+esac; done
 case " $* " in *" cmdline-tools;latest "*)
   mkdir -p "$root/cmdline-tools/latest/bin" && printf '%s\\n' '#!/usr/bin/env bash' '${avdmanager.replaceAll("'", "'\\''")}' >"$root/cmdline-tools/latest/bin/avdmanager"
   chmod +x "$root/cmdline-tools/latest/bin/avdmanager" ;;
@@ -1094,11 +1164,14 @@ exit 0`
       ANDROID_HOME: sdk,
       JAVA_HOME: join(base, 'jdk'),
     };
-    const setup = () =>
-      spawnSync(join(SCRIPTS, 'android.sh'), ['setup'], { encoding: 'utf8', env });
+    const setup = (extraEnv = {}) =>
+      spawnSync(join(SCRIPTS, 'android.sh'), ['setup'], {
+        encoding: 'utf8',
+        env: { ...env, SDK_INSTALL_RETRY_DELAY: '0', ...extraEnv },
+      });
     const installed = () => readFileSync(log, 'utf8');
     const config = join(home, '.android/avd/fivvi.avd/config.ini');
-    return { env, setup, installed, config };
+    return { env, setup, installed, config, sdk };
   };
 
   it('creates an AVD that the emulator finds in later steps, also with XDG_CONFIG_HOME set', () => {
@@ -1168,6 +1241,85 @@ exit 0`
     assert.doesNotMatch(installed(), /system-images|emulator/);
     assert.doesNotMatch(result.stdout, /Maestro|emulator '/);
     assert.equal(spawnSync(join(SCRIPTS, 'android.sh'), ['setup', '--nope'], { env }).status, 1);
+  });
+
+  // #515: a corrupt system-image download on a hosted runner left the image missing and failed the job.
+  const imageRuns = (installed) =>
+    installed()
+      .split('\n')
+      .filter((line) => line.includes('system-images;')).length;
+
+  it('#515: installs once when nothing is missing afterwards', () => {
+    const { setup, installed } = fakeSdk();
+    const result = setup();
+
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(imageRuns(installed), 1);
+  });
+
+  it('#515: retries the install when a package is missing after it, and succeeds when a later attempt works', () => {
+    const { setup, installed, sdk } = fakeSdk();
+    const result = setup({ FAKE_SDK_FAIL_ATTEMPTS: '1' });
+
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(imageRuns(installed), 2);
+    const image = spawnSync(
+      'find',
+      [join(sdk, 'system-images'), '-type', 'd', '-name', 'google_apis'],
+      {
+        encoding: 'utf8',
+      },
+    );
+    assert.match(image.stdout, /google_apis/);
+  });
+
+  it('#515: clears the partial downloads (.temp and .downloadIntermediates) before it tries again', () => {
+    const { setup, sdk } = fakeSdk();
+    const result = setup({ FAKE_SDK_FAIL_ATTEMPTS: '1' });
+
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    const partials = spawnSync('find', [sdk, '-name', 'partial*.zip'], { encoding: 'utf8' });
+    assert.equal(partials.stdout, '');
+  });
+
+  // A laptop's sdkmanager can fail with every package installed (offline, repository fetch): nothing installed goes.
+  for (const sdkName of ['sdk', 'my sdk']) {
+    it(`#515: keeps the installed packages when sdkmanager keeps failing (SDK folder "${sdkName}")`, () => {
+      const { setup, sdk } = fakeSdk({ sdkName });
+      assert.equal(setup().status, 0);
+      const keep = join(sdk, 'platform-tools', 'adb-marker');
+      const folders = ['platform-tools', 'cmdline-tools/latest'].map((dir) => join(sdk, dir));
+      writeFileSync(keep, 'installed');
+
+      const result = setup({ FAKE_SDK_ALWAYS_FAIL: '1' });
+
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /Android SDK packages:/);
+      for (const folder of folders) assert.ok(existsSync(folder), `${folder} was removed`);
+      assert.equal(readFileSync(keep, 'utf8'), 'installed');
+      assert.ok(
+        existsSync(join(sdk, 'system-images')),
+        'the installed system image folder was removed',
+      );
+    });
+  }
+
+  it('#515: retries when sdkmanager also exits non-zero', () => {
+    const { setup, installed } = fakeSdk();
+    const result = setup({ FAKE_SDK_FAIL_ATTEMPTS: '1', FAKE_SDK_FAIL_EXIT: '1' });
+
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(imageRuns(installed), 2);
+  });
+
+  it('#515: fails naming the package after a bounded number of attempts', () => {
+    const { setup, installed } = fakeSdk();
+    const result = setup({ FAKE_SDK_FAIL_ATTEMPTS: '99' });
+
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /Android toolchain incomplete; missing:/);
+    assert.match(result.stdout, /system-images;android-\d+(\.\d+)?;google_apis;\w+/);
+    assert.equal(imageRuns(installed), 3);
   });
 
   it('installs cmdline-tools only when the SDK has none', () => {

@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import { readAppRolePassword } from '../env.ts';
+import { readAppRolePassword, readCronRolePassword } from '../env.ts';
 import { openPrivilegedDatabase } from '../privileged.ts';
 import { release } from '../release.ts';
 import { isProductionEnvironment } from '../seed.ts';
@@ -15,6 +15,7 @@ try {
     seed: values.seed,
     production: isProductionEnvironment(),
     appRolePassword: readAppRolePassword(),
+    cronRolePassword: readCronRolePassword(),
   });
 } finally {
   await close();

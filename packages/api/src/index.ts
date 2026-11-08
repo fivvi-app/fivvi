@@ -4,6 +4,17 @@ export {
   defineRoute,
   type WorkspaceEnv,
 } from './access.ts';
+export {
+  ADDRESS_LOOKUP_CACHE_MS,
+  ADDRESS_LOOKUP_TIMEOUT_MS,
+  type AddressLookup,
+  type AddressLookupResult,
+  cacheAddressLookup,
+  createAddressLookup,
+  createFakeAddressLookup,
+  createPdokAddressLookup,
+  type FoundAddress,
+} from './address-lookup/index.ts';
 export { API_BASE_PATH, createApiHandler, createApp } from './app.ts';
 export { type ApiDependencies, NO_DEPENDENCIES } from './dependencies.ts';
 export {

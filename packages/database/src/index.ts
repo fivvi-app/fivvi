@@ -1,5 +1,6 @@
 export {
   createAppDatabaseFromEnv,
+  createCronDatabase,
   createDatabase,
   type Database,
   type DatabaseClient,
@@ -28,8 +29,10 @@ export {
 export { findSystemGreeting, type SystemGreetingView } from './queries/system-greetings.ts';
 export { recordWrongSignInCode } from './queries/verifications.ts';
 export {
+  findAccountForInvitation,
   findAccountIdByEmail,
   findPreferredLocaleByEmail,
+  nameAccountIfEmpty,
   setAccountName,
   setPreferredLocale,
 } from './repositories/accounts.ts';
@@ -47,17 +50,54 @@ export {
   updateClient,
 } from './repositories/clients.ts';
 export {
+  type ClassDateChanges,
+  type ClassDateUpdate,
+  createClassDate,
+  createGroupClass,
+  findGroupClass,
+  type GroupClassChanges,
+  type GroupClassView,
+  listGroupClasses,
+  type NewClassDate,
+  type NewGroupClass,
+  updateClassDate,
+  updateGroupClass,
+} from './repositories/group-classes.ts';
+export {
+  findLocation,
   type LocationAddress,
   type LocationChanges,
   type LocationView,
   listLocations,
   updateLocation,
 } from './repositories/locations.ts';
+export {
+  findMyNextSessionStart,
+  hasMySession,
+  listMySessions,
+  listMyTrainingWorkspaces,
+  type PersonalSessionRow,
+  type PersonalWorkspace,
+} from './repositories/personal-sessions.ts';
 export { listMyWorkspaces, type WorkspacePlace } from './repositories/places.ts';
 export {
+  type AttendanceStatus,
+  createPrivateSession,
+  findSession,
+  type NewPrivateSession,
+  type SessionGroupClassView,
+  type SessionParticipantView,
+  type SessionStatus,
+  type SessionTrainerView,
+  type SessionType,
+  type SessionView,
+} from './repositories/sessions.ts';
+export {
+  addTrainerToTeam,
   changeTeamMemberRole,
   deleteTeamMember,
   findTeamMember,
+  findTeamMemberName,
   isOnTeam,
   listTeamMembers,
   lockOwners,
@@ -65,11 +105,16 @@ export {
   type TeamMemberView,
 } from './repositories/team-members.ts';
 export {
+  closeInvitation,
   countInvitationsSince,
   createTrainerInvitation,
+  findInvitation,
   findPendingInvitation,
   findPendingInvitationByEmail,
+  hasPendingInvitation,
+  type InvitationRecord,
   listPendingInvitations,
+  lockInvitation,
   lockInvitationQuota,
   type NewTrainerInvitation,
   resendInvitation,
@@ -78,10 +123,12 @@ export {
 } from './repositories/trainer-invitations.ts';
 export {
   findOwnTeamMember,
+  findTrainer,
   listTrainers,
   type OwnTeamMember,
   setTrainerProfile,
   type TrainerView,
+  type TrainerWithProfile,
 } from './repositories/trainer-profiles.ts';
 export {
   createWorkspaceWithOwner,
@@ -98,6 +145,11 @@ export {
   type AccountScopeInput,
   type ActingAs,
   createTenantScopes,
+  type InvitationAdmission,
+  type InvitationEntry,
+  type InvitationScopeFacts,
+  type InvitationScopeInput,
+  inEachWorkspace,
   type Place,
   type TeamRole,
   type TenantContext,

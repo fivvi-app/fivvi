@@ -182,14 +182,19 @@ describe('F004 roles on every workspace route', () => {
     );
     expect(ownerRoutes.map(({ name }) => name).sort()).toEqual([
       'changeTeamMemberRole',
+      'createGroupClass',
       'createTrainerInvitation',
       'deleteTrainerProfile',
       'listTeamMembers',
       'listTrainerInvitations',
+      'lookupAddress',
       'putTrainerProfile',
       'removeTeamMember',
       'renameWorkspace',
       'resendTrainerInvitation',
+      'scheduleGroupClassDate',
+      'updateGroupClass',
+      'updateGroupClassDate',
       'updateLocation',
       'withdrawTrainerInvitation',
     ]);
@@ -216,12 +221,18 @@ describe('F004 roles on every workspace route', () => {
     );
 
     // The clients (F006) are the Trainer's too: `clients.view` and `clients.manage`; so is the
-    // report of a switch to the workspace (F012), which any team member may send.
+    // report of a switch to the workspace (F012), which any team member may send, and the planning
+    // and reading of sessions (F020: `session.private.manage.own`, and `clients.view`), and reading
+    // the classes (F021: `class.read`).
     expect(trainerRoutes.map(({ name }) => name).toSorted()).toEqual([
       'addClient',
+      'createPrivateSession',
       'getClient',
+      'getGroupClass',
+      'getSession',
       'getWorkspace',
       'listClients',
+      'listGroupClasses',
       'listLocations',
       'listTrainers',
       'recordWorkspaceSwitch',
@@ -241,6 +252,11 @@ describe('F004 roles on every workspace route', () => {
       addClient: 201,
       getClient: 200,
       updateClient: 200,
+      // Past the access check: the probe body is no session, and the ID names none.
+      createPrivateSession: 400,
+      getSession: 404,
+      listGroupClasses: 200,
+      getGroupClass: 404,
     });
   });
 
@@ -255,10 +271,20 @@ describe('F004 roles on every workspace route', () => {
           })
         : undefined;
       const url = invitation ? route.url.replace(INVITATION_ID, invitation.id) : route.url;
-      // 400 for the body the probe sends is fine: the Owner got past the access check.
-      expect([200, 201, 204, 400], route.name).toContain(
-        (await call({ ...route, url }, john)).status,
-      );
+      // 400 for the body the probe sends is fine: the Owner got past the access check. So is the
+      // 422 of the address lookup alone, which the probe calls without its query (F015), and the
+      // 404 of the read of a session for the ID the probe invented.
+      const allowed =
+        route.name === 'lookupAddress'
+          ? [422]
+          : [
+              200,
+              201,
+              204,
+              400,
+              ...(['getSession', 'getGroupClass'].includes(route.name) ? [404] : []),
+            ];
+      expect(allowed, route.name).toContain((await call({ ...route, url }, john)).status);
     }
   });
 

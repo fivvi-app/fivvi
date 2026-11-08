@@ -1,5 +1,6 @@
 import type { Locale } from '@fivvi/i18n';
-import { and, asc, count, desc, eq, gte, sql } from 'drizzle-orm';
+import { and, asc, count, desc, eq, gt, gte, sql } from 'drizzle-orm';
+import type { DatabaseExecutor } from '../client.ts';
 import { trainerInvitations } from '../schema/index.ts';
 import { executorOf, type WorkspaceScope } from '../tenant-scope.ts';
 
@@ -160,4 +161,105 @@ export async function withdrawInvitation(
     .where(and(pendingOf(scope), eq(trainerInvitations.id, invitationId)))
     .returning({ id: trainerInvitations.id });
   return rows.length > 0;
+}
+
+/** An invitation as the person holding its token is judged on it: the facts the domain decides on. */
+export interface InvitationRecord {
+  readonly id: string;
+  readonly name: string;
+  /** Lower case. */
+  readonly email: string;
+  readonly status: 'pending' | 'accepted' | 'declined' | 'withdrawn';
+  readonly expiresAt: Date;
+  /** The team-member record of the Owner who invited. */
+  readonly inviterTeamMemberId: string;
+}
+
+const recordColumns = {
+  id: trainerInvitations.id,
+  name: trainerInvitations.name,
+  email: trainerInvitations.email,
+  status: trainerInvitations.status,
+  expiresAt: trainerInvitations.expiresAt,
+  inviterTeamMemberId: trainerInvitations.inviterTeamMemberId,
+};
+
+const recordOf = (scope: WorkspaceScope, invitationId: string) =>
+  executorOf(scope)
+    .select(recordColumns)
+    .from(trainerInvitations)
+    .where(
+      and(
+        eq(trainerInvitations.organizationId, scope.workspaceId),
+        eq(trainerInvitations.id, invitationId),
+      ),
+    )
+    .limit(1);
+
+/** One invitation of the scope's workspace as it is now, whatever its status; `undefined` when it is not there. */
+export async function findInvitation(
+  scope: WorkspaceScope,
+  invitationId: string,
+): Promise<InvitationRecord | undefined> {
+  const [row] = await recordOf(scope, invitationId);
+  return row;
+}
+
+/**
+ * Like `findInvitation`, and locks the invitation until the transaction ends: two accepts of one
+ * invitation wait for each other here, so the second one decides on what the first left (a closed
+ * invitation).
+ */
+export async function lockInvitation(
+  scope: WorkspaceScope,
+  invitationId: string,
+): Promise<InvitationRecord | undefined> {
+  const [row] = await recordOf(scope, invitationId).for('update');
+  return row;
+}
+
+/**
+ * Closes a pending invitation as accepted or declined; its token is used up. `false` when it was
+ * not pending (nothing changed). The caller has decided the person may.
+ */
+export async function closeInvitation(
+  scope: WorkspaceScope,
+  invitationId: string,
+  status: 'accepted' | 'declined',
+): Promise<boolean> {
+  const rows = await executorOf(scope)
+    .update(trainerInvitations)
+    .set({ status })
+    .where(and(pendingOf(scope), eq(trainerInvitations.id, invitationId)))
+    .returning({ id: trainerInvitations.id });
+  return rows.length > 0;
+}
+
+/**
+ * Whether any workspace has a pending invitation for the address (any case) that has not expired
+ * at `now` (F011): the sign-in gate lets such an address create an account. Only the yes or no
+ * leaves, and only for the address asked about: the transaction names it in its context, which
+ * is the only door of `trainer_invitations_by_email`. For the sign-in code, not for a route.
+ */
+export function hasPendingInvitation(
+  db: DatabaseExecutor,
+  email: string,
+  now: Date,
+): Promise<boolean> {
+  const address = email.trim().toLowerCase();
+  return db.transaction(async (tx) => {
+    await tx.execute(sql`select set_config('app.invitation_email', ${address}, true)`);
+    const [row] = await tx
+      .select({ id: trainerInvitations.id })
+      .from(trainerInvitations)
+      .where(
+        and(
+          eq(trainerInvitations.email, address),
+          eq(trainerInvitations.status, 'pending'),
+          gt(trainerInvitations.expiresAt, now),
+        ),
+      )
+      .limit(1);
+    return row !== undefined;
+  });
 }

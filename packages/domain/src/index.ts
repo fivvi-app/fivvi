@@ -8,8 +8,8 @@ export {
   decideNewClient,
   type NewClientDecision,
   type NewClientFacts,
-  normalizeEmail,
 } from './clients/new-client.ts';
+export { maskEmail, normalizeEmail } from './email.ts';
 export {
   ADDRESS_ADDITION_MAX_LENGTH,
   ADDRESS_TEXT_MAX_LENGTH,
@@ -21,6 +21,12 @@ export {
   decideAddress,
   normalizePostcode,
 } from './locations/address.ts';
+export {
+  type AddressLookupDecision,
+  type AddressLookupInput,
+  type AddressLookupQuery,
+  decideAddressLookup,
+} from './locations/address-lookup.ts';
 export {
   defaultLocation,
   LOCATION_NAME_MAX_LENGTH,
@@ -37,6 +43,44 @@ export {
   rolesWith,
 } from './permissions/matrix.ts';
 export {
+  decideGroupDateEdit,
+  GROUP_CLASS_LIMITS,
+  type GroupDateEditDecision,
+  type GroupDateEditFacts,
+  type GroupDateEditRefusal,
+  type ScheduleClassOnDateDecision,
+  type ScheduleClassOnDateFacts,
+  type ScheduleClassOnDateRefusal,
+  scheduleClassOnDate,
+} from './scheduling/group-class.ts';
+export {
+  decidePersonalRange,
+  mergePersonalDay,
+  orderPersonalSessions,
+  PERSONAL_RANGE_MAX_DAYS,
+  PERSONAL_TIME_ZONE,
+  type PersonalDay,
+  type PersonalRangeDecision,
+  type PersonalSessionTimes,
+} from './scheduling/personal-day.ts';
+export {
+  confirmationLanguage,
+  type PlanPrivateSessionDecision,
+  type PlanPrivateSessionFacts,
+  type PlanPrivateSessionRefusal,
+  PRIVATE_SESSION_DURATIONS,
+  planPrivateSession,
+  sendsConfirmation,
+} from './scheduling/private-session.ts';
+export {
+  addDays,
+  instantToWallClock,
+  localDateOf,
+  localDayBounds,
+  type WallClockInstant,
+  wallClockToInstant,
+} from './scheduling/zoned-time.ts';
+export {
   canChangeRole,
   canRemoveTeamMember,
   keepsAnOwner,
@@ -44,14 +88,19 @@ export {
   type TeamRole,
 } from './team/last-owner.ts';
 export {
+  decideInvitationAnswer,
   decideNewInvitation,
   INVITATION_NAME_MAX_LENGTH,
   INVITATION_VALIDITY_DAYS,
   INVITATIONS_PER_DAY,
+  type InvitationAnswerDecision,
+  type InvitationAnswerFacts,
+  type InvitationFacts,
   type InvitationLanguageSources,
   invitationExpiry,
   invitationLanguage,
   invitationQuotaSince,
+  isInvitationOpen,
   type NewInvitationDecision,
   type NewInvitationFacts,
 } from './team/trainer-invitation.ts';

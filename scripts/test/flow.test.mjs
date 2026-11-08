@@ -13,7 +13,7 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { after, before, beforeEach, describe, it } from 'node:test';
+import { after, afterEach, before, beforeEach, describe, it } from 'node:test';
 import { fakeGh } from './fake-gh.mjs';
 
 const SCRIPTS = join(import.meta.dirname, '..');
@@ -949,6 +949,138 @@ describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () 
     const result = run('finish', {});
     assert.equal(result.status, 1);
     assert.match(result.stderr, /not every branch has a merged PR/);
+  });
+});
+
+// #509: a spec closes through its tickets, so finishing a merged PR on the spec's own branch cleans up and leaves it open.
+describe('#509 flow.sh finish of a spec whose own branch was merged', () => {
+  const gh = fakeGh();
+  let base;
+  let repo;
+  const git = (...args) =>
+    execFileSync(
+      'git',
+      ['-C', repo, '-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args],
+      { encoding: 'utf8' },
+    ).trim();
+  beforeEach(() => {
+    // A checkout whose origin is a local bare repo, with the merged local branch docs/9999-adr.
+    base = realpathSync(mkdtempSync(join(tmpdir(), 'flow-finish-spec-')));
+    repo = join(base, 'repo');
+    const remote = join(base, 'remote.git');
+    execFileSync('git', ['init', '--quiet', '--bare', remote]);
+    execFileSync('git', ['init', '--quiet', '--initial-branch=main', repo]);
+    cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
+    git('add', '.');
+    git('commit', '--quiet', '-m', 'chore: base');
+    git('remote', 'add', 'origin', 'https://github.com/o/r.git');
+    git('config', `url.${remote}.insteadOf`, 'https://github.com/o/r.git');
+    git('push', '--quiet', 'origin', 'main');
+    git('branch', 'docs/9999-adr');
+    mkdirSync(join(repo, '.work/9999'), { recursive: true });
+    writeFileSync(join(repo, '.work/9999/notes.md'), 'notes');
+  });
+  afterEach(() => {
+    rmSync(base, { recursive: true, force: true });
+  });
+  after(() => gh.cleanup());
+
+  const finish = ({ labelNames, children = [] }) =>
+    spawnSync(join(repo, 'scripts/flow.sh'), ['finish', '9999'], {
+      cwd: repo,
+      encoding: 'utf8',
+      env: gh.env([
+        { match: '^api user', out: { login: 'thekeyvan' } },
+        {
+          match: '^issue view 9999 ',
+          out: {
+            number: 9999,
+            title: 'Joining by link',
+            state: 'OPEN',
+            labels: labels(...labelNames),
+            assignees: [],
+            body: '## Acceptance criteria',
+            comments: [],
+            parent: null,
+            subIssues: {
+              totalCount: children.length,
+              nodes: children.map((number) => ({ number })),
+            },
+            blockedBy: { nodes: [] },
+          },
+        },
+        ...children.map((number) => ({
+          match: `^issue view ${number} `,
+          out: {
+            number,
+            title: `ticket ${number}`,
+            state: 'OPEN',
+            labels: labels('ready-for-agent'),
+            assignees: [],
+            blockedBy: { nodes: [] },
+          },
+        })),
+        {
+          match: '^pr list .*--head docs/9999-adr',
+          out: [
+            {
+              number: 70,
+              state: 'MERGED',
+              isDraft: false,
+              reviewDecision: '',
+              statusCheckRollup: [],
+              url: 'https://github.com/o/r/pull/70',
+              createdAt: '2026-10-18T10:00:00Z',
+              headRefOid: git('rev-parse', 'docs/9999-adr'),
+            },
+          ],
+        },
+        { match: '^issue close ', out: '' },
+      ]),
+    });
+  const closed = () =>
+    gh.calls().some((call) => call.args[0] === 'issue' && call.args[1] === 'close');
+
+  it('removes the merged branch and the notes but does not close the spec, and says why', () => {
+    const result = finish({ labelNames: ['spec', 'spec-approved'], children: [9001, 9002] });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(closed(), false);
+    assert.equal(git('branch', '--list', 'docs/9999-adr'), '');
+    assert.equal(existsSync(join(repo, '.work/9999')), false);
+    assert.match(result.stdout, /#9999 stays open: a spec closes through its tickets/);
+    assert.match(result.stdout, /Phase: building/);
+    assert.doesNotMatch(result.stdout, /#9999 done/);
+  });
+
+  it('leaves a spec with sub-issues and no spec label open too', () => {
+    const result = finish({ labelNames: [], children: [9001] });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(closed(), false);
+    assert.match(result.stdout, /stays open/);
+  });
+
+  it('fails closed when the phase of the issue cannot be decided: nothing removed, nothing closed', () => {
+    writeFileSync(join(repo, 'scripts/flow-phase.jq'), 'error("boom")\n');
+    const result = finish({ labelNames: ['spec', 'spec-approved'], children: [9001] });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /could not decide whether #9999 closes through its tickets/);
+    assert.equal(closed(), false);
+    assert.notEqual(git('branch', '--list', 'docs/9999-adr'), '');
+    assert.equal(existsSync(join(repo, '.work/9999')), true);
+  });
+
+  it('still closes a ticket, a bug and a spec built as its own ticket', () => {
+    for (const labelNames of [
+      ['ready-for-agent'],
+      ['bug', 'ready-for-agent'],
+      ['spec', 'spec-approved', 'ready-for-agent'],
+    ]) {
+      git('branch', '--quiet', '-f', 'docs/9999-adr', 'main');
+      const result = finish({ labelNames });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(closed(), true, labelNames.join());
+      assert.match(result.stdout, /#9999 done/);
+    }
   });
 });
 

@@ -141,6 +141,34 @@
       "when": 1793833793610,
       "tag": "0019_trainer_invitations",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793848743845,
+      "tag": "0020_invitation_access",
+      "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1793863827582,
+      "tag": "0021_sessions",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1793869137898,
+      "tag": "0022_cron_role",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1793900199935,
+      "tag": "0023_group_classes",
+      "breakpoints": true
     }
   ]
 }

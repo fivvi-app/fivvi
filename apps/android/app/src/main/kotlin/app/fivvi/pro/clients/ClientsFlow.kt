@@ -18,7 +18,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fivvi.api.apis.ClientsApi
 import app.fivvi.api.apis.WorkspacesApi
 import app.fivvi.api.models.MeWorkspace
-import app.fivvi.pro.R
+import app.fivvi.core.R
 import app.fivvi.pro.capabilities.WorkspaceCapabilities
 import java.util.UUID
 

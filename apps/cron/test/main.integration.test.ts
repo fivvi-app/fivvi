@@ -4,7 +4,7 @@ import { sql } from 'drizzle-orm';
 import { describe, expect, it } from 'vitest';
 import { startFakeLettermintTeamApi } from './fake-lettermint-team-api.ts';
 import { startFakeSentry } from './fake-sentry.ts';
-import { runMain, SPAWN_TEST_TIMEOUT_MS } from './run-main.ts';
+import { reportedRunMs, runMain, SPAWN_TEST_TIMEOUT_MS } from './run-main.ts';
 
 // 02:55 UTC: before the first run of the day that may start a daily task.
 const NOTHING_DUE = '2026-11-04T02:55:00Z';
@@ -16,15 +16,15 @@ describe('E003 cron entrypoint', { timeout: SPAWN_TEST_TIMEOUT_MS }, () => {
     const database = await cloneTemplateDatabase();
     try {
       // Before 03:00 UTC no daily task is due, so the run only pings the database.
-      const result = await runMain({ DATABASE_URL: database.url }, { now: NOTHING_DUE });
+      const result = await runMain({ CRON_DATABASE_URL: database.cronUrl }, { now: NOTHING_DUE });
 
       expect(result.stderr).toBe('');
       expect(result.exitCode).toBe(0);
-      // The privileged connection logs its reason (E011, AC17), and never the connection.
       expect(result.stdout).toMatch(
-        /^Cron started: run [0-9a-f-]{36}\.\nPrivileged database access: daily-cron \(.+\)\.\nDatabase reachable\.\nCron finished in \d+ ms\.\n$/,
+        /^Cron started: run [0-9a-f-]{36}\.\nDatabase reachable\.\nCron finished in \d+ ms\.\n$/,
       );
-      expect(result.stdout).not.toContain(database.url);
+      // Never the connection, which holds the password.
+      expect(result.stdout).not.toContain(database.cronUrl);
     } finally {
       await database.drop();
     }
@@ -41,7 +41,7 @@ describe('E006 cron Lettermint usage alert', { timeout: SPAWN_TEST_TIMEOUT_MS },
     try {
       const result = await runMain(
         {
-          DATABASE_URL: database.url,
+          CRON_DATABASE_URL: database.cronUrl,
           SENTRY_DSN: sentry.dsn,
           LETTERMINT_TEAM_TOKEN: TEAM_TOKEN,
           LETTERMINT_TEAM_API_URL: teamApi.url,
@@ -68,7 +68,7 @@ describe('E006 cron Lettermint usage alert', { timeout: SPAWN_TEST_TIMEOUT_MS },
     try {
       const result = await runMain(
         {
-          DATABASE_URL: database.url,
+          CRON_DATABASE_URL: database.cronUrl,
           SENTRY_DSN: sentry.dsn,
           LETTERMINT_TEAM_TOKEN: TEAM_TOKEN,
           LETTERMINT_TEAM_API_URL: teamApi.url,
@@ -91,14 +91,84 @@ describe('E012 cron entrypoint', { timeout: SPAWN_TEST_TIMEOUT_MS }, () => {
   it('AC9: a run with nothing due ends within 10 seconds', async () => {
     const database = await cloneTemplateDatabase();
     try {
-      const started = performance.now();
-      const result = await runMain({ DATABASE_URL: database.url }, { now: NOTHING_DUE });
-      const seconds = (performance.now() - started) / 1000;
+      const result = await runMain({ CRON_DATABASE_URL: database.cronUrl }, { now: NOTHING_DUE });
 
       expect(result.exitCode).toBe(0);
-      expect(seconds).toBeLessThan(10);
+      // The run's own clock, not the wall-clock around the spawn: Node's start-up and the module
+      // loading depend on the runner's load (#593). A hang is still caught: `runMain` kills the
+      // process after 20 s, which gives exit code null.
+      expect(reportedRunMs(result.stdout)).toBeLessThan(10_000);
     } finally {
       await database.drop();
+    }
+  });
+
+  it('AC10: checks in to the Sentry cron monitor: in progress, then ok', async () => {
+    const database = await cloneTemplateDatabase();
+    const sentry = await startFakeSentry();
+    try {
+      const result = await runMain(
+        {
+          CRON_DATABASE_URL: database.cronUrl,
+          SENTRY_DSN: sentry.dsn,
+          RAILWAY_ENVIRONMENT_NAME: 'production',
+        },
+        { now: NOTHING_DUE },
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(sentry.checkIns.map((checkIn) => [checkIn.monitor_slug, checkIn.status])).toEqual([
+        ['cron', 'in_progress'],
+        ['cron', 'ok'],
+      ]);
+      expect(sentry.checkIns[0]).toMatchObject({
+        environment: 'production',
+        monitor_config: { schedule: { type: 'crontab', value: '*/5 * * * *' }, timezone: 'UTC' },
+      });
+      expect(sentry.events).toEqual([]);
+    } finally {
+      await Promise.all([database.drop(), sentry.close()]);
+    }
+  });
+
+  it('AC10: development runs but checks in nothing: the plan has one monitor, for production', async () => {
+    const database = await cloneTemplateDatabase();
+    const sentry = await startFakeSentry();
+    try {
+      const result = await runMain(
+        {
+          CRON_DATABASE_URL: database.cronUrl,
+          SENTRY_DSN: sentry.dsn,
+          RAILWAY_ENVIRONMENT_NAME: 'development',
+        },
+        { now: NOTHING_DUE },
+      );
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toContain('Database reachable.');
+      expect(sentry.checkIns).toEqual([]);
+    } finally {
+      await Promise.all([database.drop(), sentry.close()]);
+    }
+  });
+
+  it('AC1: a preview environment does nothing: no connection, no check-in', async () => {
+    const sentry = await startFakeSentry();
+    try {
+      // No database variable at all: a run that tried to connect would fail.
+      const result = await runMain({
+        SENTRY_DSN: sentry.dsn,
+        RAILWAY_ENVIRONMENT_NAME: 'pr-499',
+      });
+
+      expect(result.exitCode).toBe(0);
+      expect(result.stdout).toBe(
+        'Cron skipped: pr-499 is a preview environment, which runs no schedule.\n',
+      );
+      expect(sentry.checkIns).toEqual([]);
+      expect(sentry.events).toEqual([]);
+    } finally {
+      await sentry.close();
     }
   });
 
@@ -115,7 +185,10 @@ describe('E012 cron entrypoint', { timeout: SPAWN_TEST_TIMEOUT_MS }, () => {
         outcome: 'succeeded',
       });
 
-      const result = await runMain({ DATABASE_URL: database.url }, { now: EVERYTHING_DUE });
+      const result = await runMain(
+        { CRON_DATABASE_URL: database.cronUrl },
+        { now: EVERYTHING_DUE },
+      );
 
       expect(result.exitCode).toBe(0);
       const rows = await db.select().from(jobRuns);
@@ -154,7 +227,11 @@ describe('E012 cron entrypoint', { timeout: SPAWN_TEST_TIMEOUT_MS }, () => {
           for each row execute function fail_job_run_delete()`);
 
       const result = await runMain(
-        { DATABASE_URL: database.url, SENTRY_DSN: sentry.dsn },
+        {
+          CRON_DATABASE_URL: database.cronUrl,
+          SENTRY_DSN: sentry.dsn,
+          RAILWAY_ENVIRONMENT_NAME: 'production',
+        },
         { now: EVERYTHING_DUE },
       );
 
@@ -167,6 +244,8 @@ describe('E012 cron entrypoint', { timeout: SPAWN_TEST_TIMEOUT_MS }, () => {
         tags: { 'cron.task': 'job-runs-retention' },
       });
       expect(sentry.events[0]?.tags?.['cron.run_id']).toMatch(/^[0-9a-f-]{36}$/);
+      // The monitor sees a failed run too.
+      expect(sentry.checkIns.map((checkIn) => checkIn.status)).toEqual(['in_progress', 'error']);
       const failed = await db.select().from(jobRuns).where(sql`outcome = 'failed'`);
       expect(failed.map((row) => [row.taskName, row.message])).toEqual([
         ['job-runs-retention', 'failed with Error'],

@@ -14,11 +14,13 @@ import androidx.compose.ui.test.performClick
 import app.fivvi.api.models.MeWorkspace
 import app.fivvi.api.models.MyWorkspace
 import app.fivvi.api.models.MyWorkspace.Role
-import app.fivvi.pro.AppLanguage
+import app.fivvi.core.AppLanguage
+import app.fivvi.core.R
+import app.fivvi.core.appLanguageParameters
+import app.fivvi.core.me.FakeMeApi
+import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.pro.AppRule
-import app.fivvi.pro.R
 import app.fivvi.pro.UI_TIMEOUT_MILLIS
-import app.fivvi.pro.appLanguageParameters
 import app.fivvi.pro.clients.ClientsTags
 import app.fivvi.pro.clients.FakeClientsApi
 import app.fivvi.pro.clients.clientIdOf
@@ -232,7 +234,7 @@ class WorkspaceSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
         headerShows(SARAH_PT)
         compose.waitUntilTagExists(HomeTags.SIGN_OUT)
         compose.onNodeWithTag(HomeTags.SIGN_OUT).assertTextEquals(string(R.string.sign_out_label))
-        compose.onNodeWithTag(HomeTags.OPEN_PROFILE).assertTextEquals(string(R.string.my_profile_title))
+        compose.onNodeWithTag(HomeTags.OPEN_PROFILE).assertTextEquals(string(R.string.profile_title))
         assertEquals(emptyList<Any>(), me.updates)
     }
 

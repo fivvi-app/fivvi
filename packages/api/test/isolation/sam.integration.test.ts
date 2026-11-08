@@ -112,7 +112,13 @@ function callsAsSam(operations: ReadonlyMap<string, { access: XAccess }>): numbe
   let calls = 0;
   for (const [name, isolationCase] of Object.entries(ISOLATION_CASES)) {
     if (operations.get(name)?.access.type === 'account') calls += 1;
-    else calls += Object.keys(isolationCase.params ?? {}).length > 0 ? 6 : 3;
+    // A route that names a record, by a path parameter or by a body made from the seeded values.
+    else if (
+      Object.keys(isolationCase.params ?? {}).length > 0 ||
+      typeof isolationCase.body === 'function'
+    ) {
+      calls += 6;
+    } else calls += 3;
   }
   return calls;
 }

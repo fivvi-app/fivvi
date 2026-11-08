@@ -1,184 +1,140 @@
 {
-  "$description": "Base palette (tier 1). Only semantic tokens may reference it; apps never use it directly.",
+  "$description": "Base palette (tier 1). Only semantic tokens may reference it; apps never use it directly. The values are the owner-approved v2 look (ADR-029, DECISIONS.md section 2).",
   "color": {
     "base": {
       "$type": "color",
       "white": {
         "$value": "#FFFFFF"
       },
-      "neutral": {
-        "$description": "Neutral foundation with restrained pastel session chips and a muted violet primary-action accent.",
-        "25": {
-          "$value": "#F6F6F7"
-        },
-        "50": {
-          "$value": "#EEEEF0"
-        },
-        "100": {
-          "$value": "#DFDFE2"
-        },
-        "200": {
-          "$value": "#C8C8CD"
-        },
-        "300": {
-          "$value": "#B1B1B8"
-        },
-        "400": {
-          "$value": "#85858C"
-        },
-        "500": {
-          "$value": "#66666D"
-        },
-        "600": {
-          "$value": "#4D4D54"
-        },
-        "700": {
-          "$value": "#3B3B42"
-        },
-        "800": {
-          "$value": "#303037"
-        },
-        "850": {
-          "$value": "#28282F"
-        },
-        "900": {
-          "$value": "#202026"
-        },
-        "950": {
-          "$value": "#16161B"
-        }
+      "black": {
+        "$value": "#000000"
       },
-      "petrol": {
-        "$description": "Legacy exploration palette, retained as primitives only; not used for brand surfaces or actions.",
-        "50": {
-          "$value": "#E6F4F1"
+      "accent": {
+        "$description": "Move pink, the only accent (ADR-031). Defined here once; every accent colour derives from these three.",
+        "fill": {
+          "$value": "#E6164A",
+          "$description": "Fills: buttons, tab tint, badges."
         },
-        "100": {
-          "$value": "#C4E6DF"
+        "text-light": {
+          "$value": "#C8103D",
+          "$description": "Accent as text and icons on light surfaces."
         },
-        "200": {
-          "$value": "#94D2C6"
-        },
-        "300": {
-          "$value": "#5DB8A8"
-        },
-        "400": {
-          "$value": "#2E9C8B"
-        },
-        "500": {
-          "$value": "#13806F"
-        },
-        "600": {
-          "$value": "#0C6A5C"
-        },
-        "700": {
-          "$value": "#0A554A"
-        },
-        "800": {
-          "$value": "#0A433B"
-        },
-        "900": {
-          "$value": "#09332E"
+        "text-dark": {
+          "$value": "#FF6482",
+          "$description": "Accent as text and icons on dark surfaces."
         }
       },
       "blue": {
-        "50": {
-          "$value": "#EAF0FD"
-        },
-        "100": {
-          "$value": "#D2DFFB"
-        },
-        "300": {
-          "$value": "#8EADF3"
-        },
-        "500": {
-          "$value": "#2F62D8"
-        },
-        "700": {
-          "$value": "#1D4196"
-        },
-        "900": {
-          "$value": "#142B5E"
-        }
+        "$value": "#0088FF",
+        "$description": "Private sessions."
       },
-      "violet": {
-        "50": {
-          "$value": "#F1ECFC"
-        },
-        "100": {
-          "$value": "#E0D6F8"
-        },
-        "300": {
-          "$value": "#B7A2EE"
-        },
-        "500": {
-          "$value": "#6D4BD1"
-        },
-        "700": {
-          "$value": "#4C2FA3"
-        },
-        "900": {
-          "$value": "#2E1C66"
-        }
+      "purple": {
+        "$value": "#CB30E0",
+        "$description": "Group classes."
       },
-      "amber": {
-        "50": {
-          "$value": "#FDF4E3"
-        },
-        "100": {
-          "$value": "#FAE3B8"
-        },
-        "300": {
-          "$value": "#F0B54A"
-        },
-        "500": {
-          "$value": "#C98106"
-        },
-        "700": {
-          "$value": "#7C4F05"
-        },
-        "900": {
-          "$value": "#4A2F03"
-        }
+      "orange": {
+        "$value": "#FF8D28",
+        "$description": "Open Gym, and warnings."
       },
       "green": {
-        "50": {
-          "$value": "#E8F5EC"
-        },
-        "100": {
-          "$value": "#C9E8D2"
-        },
-        "300": {
-          "$value": "#7CC794"
-        },
-        "500": {
-          "$value": "#2A9150"
-        },
-        "700": {
-          "$value": "#1C6437"
-        },
-        "900": {
-          "$value": "#123F23"
-        }
+        "$value": "#34C759",
+        "$description": "Success."
       },
       "red": {
+        "$value": "#FF383C",
+        "$description": "Danger."
+      },
+      "gray": {
         "50": {
-          "$value": "#FDECEA"
+          "$value": "#F2F2F7"
+        },
+        "75": {
+          "$value": "#EBEBF5"
         },
         "100": {
-          "$value": "#F9D2CD"
+          "$value": "#E5E5EA"
         },
-        "300": {
-          "$value": "#F09A8E"
+        "400": {
+          "$value": "#98989F"
+        },
+        "450": {
+          "$value": "#85858B"
         },
         "500": {
-          "$value": "#D63A2A"
+          "$value": "#7C7C80"
+        },
+        "550": {
+          "$value": "#787880"
+        },
+        "600": {
+          "$value": "#6C6C70"
+        },
+        "650": {
+          "$value": "#545458"
         },
         "700": {
-          "$value": "#A3261A"
+          "$value": "#3C3C43"
+        },
+        "800": {
+          "$value": "#2C2C2E"
         },
         "900": {
-          "$value": "#5E150E"
+          "$value": "#1C1C1E"
+        },
+        "$description": "Grey steps of iOS' grouped look: canvas, cards, labels and separators."
+      },
+      "zinc": {
+        "50": {
+          "$value": "#FAFAFA"
+        },
+        "75": {
+          "$value": "#F8F8F9"
+        },
+        "100": {
+          "$value": "#F4F4F5"
+        },
+        "200": {
+          "$value": "#E4E4E7"
+        },
+        "400": {
+          "$value": "#A1A1AA"
+        },
+        "500": {
+          "$value": "#71717A"
+        },
+        "800": {
+          "$value": "#27272A"
+        },
+        "925": {
+          "$value": "#0F0F11"
+        },
+        "950": {
+          "$value": "#09090B"
+        },
+        "975": {
+          "$value": "#0C0C0E"
+        },
+        "$description": "shadcn/ui's zinc neutrals, for the trainer web. 75 is not in zinc: a fill between 50 and 100, light enough that zinc's 500 text reaches 4.5:1 on it (on zinc 100 it is 4.4:1)."
+      },
+      "workspace": {
+        "$description": "Hues of the workspace dots. The light values are darkened until they reach 3:1 on cards and the canvas.",
+        "cyan": {
+          "$value": "#00C3D0"
+        },
+        "brown": {
+          "$value": "#AC7F5E"
+        },
+        "indigo": {
+          "$value": "#5E5CE6"
+        },
+        "gold": {
+          "$value": "#FFCC00"
+        },
+        "slate": {
+          "$value": "#8E8E93"
+        },
+        "lime": {
+          "$value": "#8BC34A"
         }
       }
     }

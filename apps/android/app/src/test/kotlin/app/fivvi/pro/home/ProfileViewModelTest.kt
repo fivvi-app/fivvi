@@ -2,6 +2,8 @@ package app.fivvi.pro.home
 
 import app.fivvi.api.models.MyWorkspace
 import app.fivvi.api.models.MyWorkspace.Role
+import app.fivvi.core.me.FakeMeApi
+import app.fivvi.core.me.workspaceIdOf
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers

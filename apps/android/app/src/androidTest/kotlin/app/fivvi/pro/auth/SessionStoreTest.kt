@@ -4,6 +4,7 @@ import android.content.Context
 import android.security.keystore.KeyGenParameterSpec
 import android.security.keystore.KeyProperties
 import androidx.test.core.app.ApplicationProvider
+import app.fivvi.core.auth.KeystoreSessionStore
 import java.io.File
 import java.io.IOException
 import java.security.KeyStore

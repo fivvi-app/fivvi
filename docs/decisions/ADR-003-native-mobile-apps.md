@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Accepted (2026-09-22), **deviates from `PRODUCT.md §72`** |
+| **Status** | Accepted (2026-09-22), **deviates from `PRODUCT.md §72`**. The iOS minimum is **replaced by [ADR-029](ADR-029-design-v2.md)** (iOS 26, 2026-11-05) |
 | **Date** | 2026-09-22 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | PRODUCT.md §15, §55, §72; ROADMAP.md §3.1, §4.1, M8, §13 (R9, R15); ADR-004, ADR-008, ADR-014, ADR-015; E008, E017 |
@@ -40,7 +40,7 @@ Recorded on 29 October 2026 from the M0 quick questions ([`results/phone-invento
 
 | Platform | Minimum | Rule step |
 |---|---|---|
-| iOS | **iOS 17.0** | 4: no confirmed iPhone among the pilot trainers, so the default stands. iOS is still built, but gets no real-world pilot testing (R9). Plan at least one physical iPhone for device tests |
+| iOS | **iOS 17.0**, replaced by **iOS 26** in [ADR-029](ADR-029-design-v2.md) | 4: no confirmed iPhone among the pilot trainers, so the default stands. iOS is still built, but gets no real-world pilot testing (R9). Plan at least one physical iPhone for device tests |
 | Android | **Android 8.0 (API 26)** | 2: all pilot phones are at or above the default, so it is not raised |
 
 - **Platform split (estimate):** the gym owner (T1) has a Samsung S24. The other four trainers have mostly Android phones, about 3–4 years old. There may be one iPhone; it is not confirmed.

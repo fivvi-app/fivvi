@@ -13,7 +13,18 @@ export const UNLISTED_SIGN_UP_DOMAIN = 'fivvi.e2e.test';
 /** The secret of the e2e servers (`BETTER_AUTH_SECRET`): synthetic, and known to `signInWithSession`. */
 export const E2E_AUTH_SECRET = 'e2e-secret-that-is-at-least-thirty-two-characters-long';
 
-/** The app as in CI and local development: no Sentry DSN and no PostHog key. */
+/** Synthetic app-link values in the real formats (E017 AC5): neither belongs to a real account or key. */
+export const TEST_APPLE_TEAM_ID = 'ABCDE12345';
+export const TEST_ANDROID_CERT_SHA256 = Array.from({ length: 32 }, (_, i) =>
+  (i * 7 + 3).toString(16).padStart(2, '0'),
+)
+  .join(':')
+  .toUpperCase();
+
+/**
+ * The app as in CI and local development: no Sentry DSN and no PostHog key. It is the one server
+ * with the app-link values, as production has; the others have none, as previews do.
+ */
 export const appServer = server(port);
 
 /** A synthetic PostHog project key: the page view tests (E009) never reach PostHog. */
@@ -30,6 +41,13 @@ export const TEST_POSTHOG_HOST = 'https://posthog.e2e.test';
  * range of every worktree's own E2E_PORT (scripts/_lib.sh), so it never reuses another's server.
  */
 export const analyticsServer = server(port + 1000);
+
+/**
+ * Where the e2e servers send the demo requests of the website (`DEMO_REQUEST_TO`, F064): a fake
+ * mailbox on the fake Brevo server. Production sends them to the support address; every other
+ * environment logs mail to an `@example.com` address instead of sending it.
+ */
+export const DEMO_REQUEST_ADDRESS = 'support@fivvi.e2e.test';
 
 const brevoPort = port + 2000;
 

@@ -7,6 +7,11 @@ export {
   type LettermintRoutes,
   readEmailConfig,
 } from './config.ts';
+export type { DemoBusinessKind, DemoRequestMail, DemoTrainerCount } from './demo-request-mail.ts';
+export {
+  createDemoRequestSender,
+  type DemoRequestSenderOptions,
+} from './demo-request-sender.ts';
 export {
   createEnvironmentSendEmail,
   type EnvironmentSendEmailOptions,
@@ -18,6 +23,14 @@ export {
 } from './lettermint.ts';
 export { createLogTransport } from './log.ts';
 export { type CapturedEmail, createMemoryTransport, type MemoryTransport } from './memory.ts';
+export type {
+  PrivateSessionMail,
+  PrivateSessionMailAddress,
+} from './private-session-mail.ts';
+export {
+  createPrivateSessionSender,
+  type PrivateSessionSenderOptions,
+} from './private-session-sender.ts';
 export { createConfiguredTransport } from './provider.ts';
 export {
   createEmailContext,
@@ -37,8 +50,12 @@ export {
   type SendEmailResult,
 } from './send.ts';
 export {
+  type DemoRequestEmailProps,
+  demoRequestEmail,
   type HelloEmailProps,
   helloEmail,
+  type PrivateSessionEmailProps,
+  privateSessionEmail,
   type SignInEmailProps,
   signInEmail,
   type TrainerInvitationEmailProps,

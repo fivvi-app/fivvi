@@ -36,11 +36,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.Locale
+import app.fivvi.core.R
+import app.fivvi.core.ui.SlowLoadingLine
+import app.fivvi.core.ui.placeholder
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
 import app.fivvi.designtokens.footnote
 import app.fivvi.designtokens.title2
-import app.fivvi.pro.R
 
 /** Test tags, shared with the iOS accessibility identifiers and the Maestro flows; the edit form's are `clientProfile.edit.*`. */
 object ClientProfileTags {

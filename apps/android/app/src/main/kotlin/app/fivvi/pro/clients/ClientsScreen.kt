@@ -42,11 +42,15 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import app.fivvi.api.models.Client
+import app.fivvi.core.R
+import app.fivvi.core.ui.LoadError
+import app.fivvi.core.ui.OfflineBanner
+import app.fivvi.core.ui.SlowLoadingLine
+import app.fivvi.core.ui.placeholder
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
 import app.fivvi.designtokens.subhead
 import app.fivvi.designtokens.title2
-import app.fivvi.pro.R
 import java.time.Instant
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -141,7 +145,11 @@ fun ClientsScreen(
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
             )
-            if (state is ClientsState.Loaded && state.offline) Offline(state.updatedAt, workspace.zone)
+            if (state is ClientsState.Loaded &&
+                state.offline
+            ) {
+                OfflineBanner(state.updatedAt, workspace.zone, ClientsTags.OFFLINE)
+            }
             PullToRefreshBox(
                 isRefreshing = refreshing,
                 onRefresh = actions.onRefresh,
@@ -149,8 +157,16 @@ fun ClientsScreen(
             ) {
                 when (state) {
                     ClientsState.Loading -> Skeleton()
-                    ClientsState.Failed -> LoadError(actions.onRetry)
+
+                    ClientsState.Failed -> LoadError(
+                        R.string.clients_load_error,
+                        ClientsTags.ERROR,
+                        ClientsTags.RETRY,
+                        actions.onRetry,
+                    )
+
                     is ClientsState.Loaded -> Loaded(state, query, actions.onOpen)
+
                     ClientsState.NoAccess -> Unit
                 }
             }
@@ -183,24 +199,6 @@ private fun NoPermission(workspaceName: String) {
     }
 }
 
-// "Je bent offline. Laatst bijgewerkt om 08:42." above the list that was read before.
-@Composable
-private fun Offline(updatedAt: Instant, zone: ZoneId) {
-    val time = remember(updatedAt, zone) { TIME.withZone(zone).format(updatedAt) }
-    Text(
-        text = stringResource(R.string.clients_offline, time),
-        modifier = Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.secondaryContainer)
-            .padding(horizontal = Spacing.space4, vertical = Spacing.space2)
-            .testTag(ClientsTags.OFFLINE),
-        color = MaterialTheme.colorScheme.onSecondaryContainer,
-        style = MaterialTheme.typography.body,
-    )
-}
-
-private val TIME: DateTimeFormatter = DateTimeFormatter.ofPattern("HH:mm")
-
 // Skeleton rows in the shape of the list; after 10 s a line says that it takes longer than usual.
 @Composable
 private fun Skeleton() {
@@ -220,32 +218,9 @@ private fun Skeleton() {
     }
 }
 
-@Composable
-internal fun Modifier.placeholder(): Modifier =
-    background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(Spacing.space1))
-
 private const val SKELETON_ROWS = 6
 private const val NAME_SHARE = 0.5f
 private const val EMAIL_SHARE = 0.35f
-
-@Composable
-private fun LoadError(onRetry: () -> Unit) {
-    Column(
-        modifier = Modifier.fillMaxSize().padding(Spacing.space6),
-        verticalArrangement = Arrangement.spacedBy(Spacing.space4),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            text = stringResource(R.string.clients_load_error),
-            modifier = Modifier.testTag(ClientsTags.ERROR),
-            style = MaterialTheme.typography.body,
-            textAlign = TextAlign.Center,
-        )
-        Button(onClick = onRetry, modifier = Modifier.testTag(ClientsTags.RETRY)) {
-            Text(stringResource(R.string.common_retry))
-        }
-    }
-}
 
 @Composable
 private fun Loaded(state: ClientsState.Loaded, query: String, onOpen: (UUID) -> Unit) {

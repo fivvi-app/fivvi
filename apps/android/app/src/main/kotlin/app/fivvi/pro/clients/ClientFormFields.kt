@@ -34,9 +34,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import app.fivvi.api.models.Locale
+import app.fivvi.core.R
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
-import app.fivvi.pro.R
 
 /** What the fields of the add and the edit form show besides the input: the messages of the last answer of the API. */
 data class ClientFormMessages(

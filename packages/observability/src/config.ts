@@ -43,12 +43,20 @@ function configWithDsn(
   const release = env.RAILWAY_GIT_COMMIT_SHA?.trim() || undefined;
   return {
     dsn,
-    environment: toReportingEnvironment(env.RAILWAY_ENVIRONMENT_NAME?.trim()),
+    environment: readReportingEnvironment(env),
     ...(release && { release }),
   };
 }
 
-function toReportingEnvironment(railwayEnvironment: string | undefined): ReportingEnvironment {
+/**
+ * The reporting environment of a process: `production`, `development` (Railway's shared
+ * environment, or not on Railway) or `preview` (every other Railway environment, `pr-<number>`).
+ * The one place that decides it, for error reporting and for the cron job.
+ */
+export function readReportingEnvironment(
+  env: EnvironmentVariables = process.env,
+): ReportingEnvironment {
+  const railwayEnvironment = env.RAILWAY_ENVIRONMENT_NAME?.trim();
   if (railwayEnvironment === 'production') return 'production';
   // Not on Railway (local), or Railway's shared `development` environment.
   if (!railwayEnvironment || railwayEnvironment === 'development') return 'development';
@@ -77,7 +85,7 @@ export type PageViewsConfig = PostHogConfig;
 /**
  * The browser's page view settings: `NEXT_PUBLIC_POSTHOG_KEY`, set for production only, and
  * `POSTHOG_HOST` (ENVIRONMENTS.md §7). The web server reads them at request time and hands them
- * to the browser (`apps/web/app/layout.tsx`), so pass `process.env` itself: Next.js would inline
+ * to the browser (`apps/web/app/(app)/layout.tsx`), so pass `process.env` itself: Next.js would inline
  * a literal `process.env.NEXT_PUBLIC_POSTHOG_KEY` at build time.
  */
 export function readPageViewsConfig(env: EnvironmentVariables): PageViewsConfig {

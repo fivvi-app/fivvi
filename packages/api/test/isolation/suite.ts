@@ -292,7 +292,10 @@ export async function runIsolationSuite(
     }
     result.operations.push(operation.name);
     const access = operation.access as XAccess;
-    const hasRecords = Object.keys(isolationCase.params ?? {}).length > 0;
+    // A route names records by a path parameter, or by a body that is made from the seeded values (F020).
+    const hasRecords =
+      Object.keys(isolationCase.params ?? {}).length > 0 ||
+      typeof isolationCase.body === 'function';
 
     // What is stored after the last call or the seeds, so a call can start from it instead of
     // reading the tables again. Invariant: it is valid only while nothing but JavaScript ran since
@@ -329,9 +332,15 @@ export async function runIsolationSuite(
         `${operation.name}: its seed returns ${value}, which is no id or marker of a stored record; return the id of a row it made, or a \`uniqueMarker\` in one.`,
       );
     }
+    if (isolationCase.readsNoRecords && seedValues.length > 0) {
+      failures.push(
+        `${operation.name}: marked \`readsNoRecords\` but its seed returns records; a route that reads records is checked by them, so drop the flag.`,
+      );
+    }
     if (
       access.type === 'workspace' &&
       operation.method.toUpperCase() === 'GET' &&
+      !isolationCase.readsNoRecords &&
       !seedValues.some((v) => known.has(v))
     ) {
       failures.push(
@@ -353,7 +362,12 @@ export async function runIsolationSuite(
     for (const planned of calls) {
       // A call that deletes its record consumes it: seed a fresh one for every such call, so the
       // next actor is judged on a record that exists, not on a 404 for the one removed before.
-      if (planned.records && operation.method.toLowerCase() === 'delete') {
+      // A route whose case says `reseedForEachCall` (it changes the record's version) is seeded
+      // again for each call.
+      if (
+        planned.records &&
+        (operation.method.toLowerCase() === 'delete' || isolationCase.reseedForEachCall)
+      ) {
         const [workspaceId, clientId] = planned.records;
         seeded.set(planned.records.join(' '), await seed(workspaceId, clientId));
       }
@@ -385,10 +399,12 @@ export async function runIsolationSuite(
       const rows = stored ?? (await readRows(world, tables));
       const before = snapshots(rows);
       const ledger = buildLedger(rows, scenario);
+      const requestBody =
+        typeof isolationCase.body === 'function' ? isolationCase.body(values) : isolationCase.body;
       const response = await world.request(planned.actor.account, path, {
         method: operation.method,
         ...(isolationCase.query ? { query: isolationCase.query } : {}),
-        ...(isolationCase.body !== undefined ? { body: isolationCase.body } : {}),
+        ...(requestBody !== undefined ? { body: requestBody } : {}),
       });
       const text = await response.text();
       stored = await readRows(world, tables);

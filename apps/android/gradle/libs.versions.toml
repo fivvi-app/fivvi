@@ -2,6 +2,8 @@
 agp = "9.4.1"
 kotlin = "2.4.21"
 compose-bom = "2026.09.00"
+# Material 3 Expressive (E020, spec #590): the one Compose library that is not on the BOM.
+compose-material3 = "1.5.0-rc01"
 activity-compose = "1.13.0"
 lifecycle = "2.11.0"
 coroutines = "1.11.0"
@@ -20,7 +22,9 @@ androidx-activity-compose = { module = "androidx.activity:activity-compose", ver
 androidx-lifecycle-viewmodel-compose = { module = "androidx.lifecycle:lifecycle-viewmodel-compose", version.ref = "lifecycle" }
 androidx-lifecycle-runtime-compose = { module = "androidx.lifecycle:lifecycle-runtime-compose", version.ref = "lifecycle" }
 compose-bom = { module = "androidx.compose:compose-bom", version.ref = "compose-bom" }
-compose-material3 = { module = "androidx.compose.material3:material3" }
+# On the 1.5 release candidate, because Expressive needs it (owner, 6 November 2026). Take the stable 1.5 release once it
+# ships: change `compose-material3` above and nothing else. The rest of Compose stays on the BOM.
+compose-material3 = { module = "androidx.compose.material3:material3", version.ref = "compose-material3" }
 compose-ui = { module = "androidx.compose.ui:ui" }
 compose-ui-test-junit4 = { module = "androidx.compose.ui:ui-test-junit4" }
 compose-ui-test-manifest = { module = "androidx.compose.ui:ui-test-manifest" }

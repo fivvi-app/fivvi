@@ -3,7 +3,7 @@ package app.fivvi.pro.contract
 import app.fivvi.api.apis.ClientsApi
 import app.fivvi.api.infrastructure.ApiClient
 import app.fivvi.api.models.UpdateClientRequest
-import app.fivvi.pro.auth.FakeNetwork
+import app.fivvi.core.auth.FakeNetwork
 import java.util.UUID
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json

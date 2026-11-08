@@ -7,12 +7,12 @@ import app.fivvi.api.models.MeWorkspace.Capabilities.CLIENTS_PERIOD_VIEW
 import app.fivvi.api.models.MeWorkspace.Capabilities.WORKSPACE_PERIOD_MANAGE
 import app.fivvi.api.models.MeWorkspace.Role
 import app.fivvi.api.models.MyWorkspace
-import app.fivvi.pro.home.FakeMeApi
+import app.fivvi.core.me.FakeMeApi
+import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.pro.home.FakeTrainersApi
 import app.fivvi.pro.home.ProfileRole
 import app.fivvi.pro.home.ProfileState
 import app.fivvi.pro.home.ProfileViewModel
-import app.fivvi.pro.home.workspaceIdOf
 import java.io.IOException
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers

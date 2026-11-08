@@ -1,5 +1,6 @@
 package app.fivvi.pro.auth
 
+import app.fivvi.core.auth.KeystoreSessionStore
 import java.io.File
 import org.junit.Assert.assertTrue
 import org.junit.Test

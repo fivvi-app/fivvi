@@ -1,9 +1,9 @@
 package app.fivvi.pro.hello
 
 import app.fivvi.api.models.HelloResponse
-import app.fivvi.pro.AppLanguage
-import app.fivvi.pro.R
-import app.fivvi.pro.appLanguageParameters
+import app.fivvi.core.AppLanguage
+import app.fivvi.core.R
+import app.fivvi.core.appLanguageParameters
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers

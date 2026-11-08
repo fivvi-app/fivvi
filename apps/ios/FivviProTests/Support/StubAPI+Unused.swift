@@ -48,6 +48,24 @@ extension StubAPI {
         fatalError("The app doesn't call updateLocation yet")
     }
 
+    func getMyDay(_ input: Operations.GetMyDay.Input) async throws -> Operations.GetMyDay.Output {
+        fatalError("The app doesn't call getMyDay yet")
+    }
+
+    func listMySessions(
+        _ input: Operations.ListMySessions.Input
+    ) async throws -> Operations.ListMySessions.Output {
+        fatalError("The app doesn't call listMySessions yet")
+    }
+
+    func lookupAddress(_ input: Operations.LookupAddress.Input) async throws -> Operations.LookupAddress.Output {
+        fatalError("The app doesn't call lookupAddress yet")
+    }
+
+    func requestDemo(_ input: Operations.RequestDemo.Input) async throws -> Operations.RequestDemo.Output {
+        fatalError("The app doesn't call requestDemo: it is the website's demo form")
+    }
+
     func createTrainerInvitation(
         _ input: Operations.CreateTrainerInvitation.Input
     ) async throws -> Operations.CreateTrainerInvitation.Output {
@@ -70,5 +88,71 @@ extension StubAPI {
         _ input: Operations.WithdrawTrainerInvitation.Input
     ) async throws -> Operations.WithdrawTrainerInvitation.Output {
         fatalError("The app doesn't call withdrawTrainerInvitation yet")
+    }
+
+    func createPrivateSession(
+        _ input: Operations.CreatePrivateSession.Input
+    ) async throws -> Operations.CreatePrivateSession.Output {
+        fatalError("The app doesn't call createPrivateSession yet")
+    }
+
+    func getSession(
+        _ input: Operations.GetSession.Input
+    ) async throws -> Operations.GetSession.Output {
+        fatalError("The app doesn't call getSession yet")
+    }
+
+    func listGroupClasses(
+        _ input: Operations.ListGroupClasses.Input
+    ) async throws -> Operations.ListGroupClasses.Output {
+        fatalError("The app doesn't call listGroupClasses yet")
+    }
+
+    func createGroupClass(
+        _ input: Operations.CreateGroupClass.Input
+    ) async throws -> Operations.CreateGroupClass.Output {
+        fatalError("The app doesn't call createGroupClass yet")
+    }
+
+    func getGroupClass(
+        _ input: Operations.GetGroupClass.Input
+    ) async throws -> Operations.GetGroupClass.Output {
+        fatalError("The app doesn't call getGroupClass yet")
+    }
+
+    func updateGroupClass(
+        _ input: Operations.UpdateGroupClass.Input
+    ) async throws -> Operations.UpdateGroupClass.Output {
+        fatalError("The app doesn't call updateGroupClass yet")
+    }
+
+    func scheduleGroupClassDate(
+        _ input: Operations.ScheduleGroupClassDate.Input
+    ) async throws -> Operations.ScheduleGroupClassDate.Output {
+        fatalError("The app doesn't call scheduleGroupClassDate yet")
+    }
+
+    func updateGroupClassDate(
+        _ input: Operations.UpdateGroupClassDate.Input
+    ) async throws -> Operations.UpdateGroupClassDate.Output {
+        fatalError("The app doesn't call updateGroupClassDate yet")
+    }
+
+    func getInvitation(
+        _ input: Operations.GetInvitation.Input
+    ) async throws -> Operations.GetInvitation.Output {
+        fatalError("The app doesn't call getInvitation yet")
+    }
+
+    func acceptInvitation(
+        _ input: Operations.AcceptInvitation.Input
+    ) async throws -> Operations.AcceptInvitation.Output {
+        fatalError("The app doesn't call acceptInvitation yet")
+    }
+
+    func declineInvitation(
+        _ input: Operations.DeclineInvitation.Input
+    ) async throws -> Operations.DeclineInvitation.Output {
+        fatalError("The app doesn't call declineInvitation yet")
     }
 }

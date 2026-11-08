@@ -350,9 +350,10 @@ catalog_sync() {
 if [ "$MODE" != test ]; then
   step "SwiftLint"
   "$SWIFTLINT" lint --strict --quiet
-  step "SwiftLint rejects literal text, colours and direct Sentry calls (lint/fixtures)"
+  step "SwiftLint rejects literal text, colours, imitated glass and direct Sentry calls (lint/fixtures)"
   lint_fixture lint/fixtures/LiteralText.swift no_literal_text
   lint_fixture lint/fixtures/ColourLiteral.swift no_colour_literal
+  lint_fixture lint/fixtures/GlassImitation.swift no_glass_imitation
   lint_fixture lint/fixtures/DirectSentry.swift no_direct_sentry
   step "SwiftLint's rules cover the shared packages (apps/ios/Packages)"
   lint_packages

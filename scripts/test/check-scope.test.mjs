@@ -95,6 +95,8 @@ describe('#293 check.sh runs the checks a change can affect', () => {
         0o755,
       );
     write(join(repo(), 'scripts/secrets-in-tests.mjs'), 'process.exit(0);\n');
+    // Like the real .gitignore: check.sh keeps its lock and summary in .work/, which is not a change to the branch.
+    write(join(repo(), '.gitignore'), '.work/\n');
     execFileSync('git', ['init', '--quiet', '--initial-branch=main', repo()], { env: gitEnv() });
     git('add', '.');
     git('commit', '--quiet', '-m', 'chore(E002): fake repo');

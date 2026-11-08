@@ -33,7 +33,8 @@ export interface LocationChanges {
   readonly address?: LocationAddress | null;
 }
 
-const columns = {
+/** The columns of a location, for a query that joins it. */
+export const locationColumns = {
   id: locations.id,
   name: locations.name,
   type: locations.type,
@@ -45,7 +46,8 @@ const columns = {
   isDefault: locations.isDefault,
 };
 
-function toView(row: {
+/** A location row as the repositories show it. */
+export function toLocationView(row: {
   id: string;
   name: string;
   type: LocationView['type'];
@@ -68,11 +70,23 @@ function toView(row: {
 /** The workspace's locations, the default first, then by name (and ID, so the order is stable). */
 export async function listLocations(scope: WorkspaceScope): Promise<LocationView[]> {
   const rows = await executorOf(scope)
-    .select(columns)
+    .select(locationColumns)
     .from(locations)
     .where(eq(locations.organizationId, scope.workspaceId))
     .orderBy(desc(locations.isDefault), asc(locations.name), asc(locations.id));
-  return rows.map(toView);
+  return rows.map(toLocationView);
+}
+
+/** One location of the scope's workspace; `undefined` when it has no such location (RLS shows no row of another). */
+export async function findLocation(
+  scope: WorkspaceScope,
+  locationId: string,
+): Promise<LocationView | undefined> {
+  const [row] = await executorOf(scope)
+    .select(locationColumns)
+    .from(locations)
+    .where(and(eq(locations.organizationId, scope.workspaceId), eq(locations.id, locationId)));
+  return row ? toLocationView(row) : undefined;
 }
 
 /**
@@ -101,7 +115,7 @@ export async function updateLocation(
   const where = and(eq(locations.organizationId, scope.workspaceId), eq(locations.id, locationId));
   const [row] =
     Object.keys(values).length === 0
-      ? await db.select(columns).from(locations).where(where)
-      : await db.update(locations).set(values).where(where).returning(columns);
-  return row ? toView(row) : undefined;
+      ? await db.select(locationColumns).from(locations).where(where)
+      : await db.update(locations).set(values).where(where).returning(locationColumns);
+  return row ? toLocationView(row) : undefined;
 }

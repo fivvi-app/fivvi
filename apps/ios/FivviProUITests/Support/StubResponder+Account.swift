@@ -44,8 +44,10 @@ extension Responder {
     static func capabilities(ofRole role: String) -> [String] {
         role == "owner"
             ? ["workspace.manage", "team.view", "team.manage", "trainers.view", "clients.view", "clients.manage",
-               "location.read", "settings.manage", "team.invite"]
-            : ["trainers.view", "clients.view", "clients.manage", "location.read"]
+               "location.read", "settings.manage", "team.invite", "session.private.manage.own",
+               "session.private.manage.any", "class.manage", "class.read"]
+            : ["trainers.view", "clients.view", "clients.manage", "location.read", "session.private.manage.own",
+               "class.read"]
     }
 
     /// `GET /api/v1/me`'s answer for the one account.

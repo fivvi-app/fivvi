@@ -34,6 +34,9 @@ export const APP_TABLE_PRIVILEGES: Readonly<Record<string, readonly Privilege[]>
   trainer_profiles: ALL,
   locations: ALL,
   trainer_invitations: ALL,
+  group_classes: ALL,
+  sessions: ALL,
+  session_participants: ALL,
 };
 
 /**
@@ -169,13 +172,13 @@ class AppRoleError extends Error {
 }
 
 /** The error as it may leave this module: ours as it is, anything else by SQLSTATE only. */
-function safeError(error: unknown): Error {
+function safeError(error: unknown, role: string): Error {
   if (error instanceof AppRoleError) return error;
   const state = sqlState(error);
   return new AppRoleError(
     state
-      ? `The app role could not be set up (SQLSTATE ${state}).`
-      : 'The app role could not be set up (not a database error).',
+      ? `The role ${role} could not be set up (SQLSTATE ${state}).`
+      : `The role ${role} could not be set up (not a database error).`,
     isRoleRace(error),
   );
 }
@@ -185,11 +188,15 @@ function safeError(error: unknown): Error {
  * carries the query and its parameters, and a statement that sets the password must never put
  * them (or the driver's message) in a deploy log.
  */
-async function roleStatement(db: DatabaseExecutor, statement: ReturnType<typeof sql>) {
+async function runRoleStatement(
+  db: DatabaseExecutor,
+  statement: ReturnType<typeof sql>,
+  role: string,
+) {
   try {
     return await db.execute(statement);
   } catch (error) {
-    throw safeError(error);
+    throw safeError(error, role);
   }
 }
 
@@ -217,19 +224,19 @@ export async function ensureAppRole(
   const { password, role = APP_ROLE } = options;
   if (password !== undefined && !/^[\x20-\x7e]*$/.test(password)) {
     throw new Error(
-      'The app role password may only contain printable ASCII (the value is not shown).',
+      `The role ${role} password may only contain printable ASCII (the value is not shown).`,
     );
   }
   if (password !== undefined && password.length < MINIMUM_PASSWORD_LENGTH) {
     throw new Error(
-      `The app role password must be at least ${MINIMUM_PASSWORD_LENGTH} characters (the value is not shown).`,
+      `The role ${role} password must be at least ${MINIMUM_PASSWORD_LENGTH} characters (the value is not shown).`,
     );
   }
   for (let attempt = 1; ; attempt += 1) {
     try {
       return await changeRole(db, role, password);
     } catch (error) {
-      const failure = safeError(error);
+      const failure = safeError(error, role);
       if (!(failure instanceof AppRoleError && failure.raced) || attempt >= ROLE_RACE_ATTEMPTS) {
         throw failure;
       }
@@ -246,6 +253,8 @@ async function changeRole(
   role: string,
   password: string | undefined,
 ): Promise<AppRoleState> {
+  const roleStatement = (executor: DatabaseExecutor, statement: ReturnType<typeof sql>) =>
+    runRoleStatement(executor, statement, role);
   try {
     // One transaction, after the lock: concurrent callers in this database (and `ensureTestRoles`
     // when it shares the database) take turns. Given a transaction already, Drizzle nests it as a
@@ -279,7 +288,7 @@ async function changeRole(
       );
       if (remaining.rows.length) {
         throw new AppRoleError(
-          'The app role is still a member of another role after the revoke (granted by another role); remove that membership first.',
+          `The role ${role} is still a member of another role after the revoke (granted by another role); remove that membership first.`,
         );
       }
       if (password === undefined) {
@@ -297,6 +306,6 @@ async function changeRole(
       return { login: true, passwordSet: true };
     });
   } catch (error) {
-    throw safeError(error);
+    throw safeError(error, role);
   }
 }

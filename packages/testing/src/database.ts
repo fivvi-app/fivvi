@@ -1,6 +1,7 @@
 import { inject } from 'vitest';
 import {
   appRoleUrl,
+  cronRoleUrl,
   databaseUrl,
   dropDatabase,
   identifier,
@@ -29,12 +30,20 @@ export interface TestDatabase {
   url: string;
   /** Connection string as the app role (`fivvi_app`): the role RLS applies to (E011). */
   appUrl: string;
+  /** Connection string as the cron role (`fivvi_cron`): the role the cron's tasks use (E012). */
+  cronUrl: string;
   /** Drops the database, closing any connection that is still open. */
   drop(): Promise<void>;
 }
 
 function testDatabase(name: string): TestDatabase {
-  return { name, url: databaseUrl(name), appUrl: appRoleUrl(name), drop: () => dropDatabase(name) };
+  return {
+    name,
+    url: databaseUrl(name),
+    appUrl: appRoleUrl(name),
+    cronUrl: cronRoleUrl(name),
+    drop: () => dropDatabase(name),
+  };
 }
 
 function testRun() {

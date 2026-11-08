@@ -7,6 +7,9 @@ import {
   analyticsServer,
   appServer,
   brevoServer,
+  DEMO_REQUEST_ADDRESS,
+  TEST_ANDROID_CERT_SHA256,
+  TEST_APPLE_TEAM_ID,
   TEST_POSTHOG_HOST,
   TEST_POSTHOG_KEY,
 } from './e2e/servers';
@@ -56,7 +59,11 @@ export default defineConfig<E2EOptions>({
       reuseExistingServer: !ci,
       timeout: 60_000,
     },
-    standaloneServer(appServer),
+    standaloneServer(appServer, {
+      // Like production: the app-link files are served (E017 AC5).
+      APPLE_TEAM_ID: TEST_APPLE_TEAM_ID,
+      ANDROID_CERT_SHA256: TEST_ANDROID_CERT_SHA256,
+    }),
     standaloneServer(analyticsServer, {
       NEXT_PUBLIC_POSTHOG_KEY: TEST_POSTHOG_KEY,
       POSTHOG_HOST: TEST_POSTHOG_HOST,
@@ -71,6 +78,10 @@ function standaloneServer(
   return {
     command: 'node e2e/serve.ts',
     env: {
+      // Empty unless the caller sets them, whatever the developer's shell holds: like a preview,
+      // a server serves no app-link files (E017 AC5).
+      APPLE_TEAM_ID: '',
+      ANDROID_CERT_SHA256: '',
       ...env,
       E2E_DATABASE: database,
       PORT: String(port),
@@ -81,6 +92,8 @@ function standaloneServer(
       // A token in the developer's shell must never send e2e mail through real Lettermint; the fake Brevo
       // server keeps it until #403.
       LETTERMINT_API_TOKEN: '',
+      // The demo form's email goes to the fake mailbox, not the support address (F064).
+      DEMO_REQUEST_TO: DEMO_REQUEST_ADDRESS,
       EMAIL_FROM_ADDRESS: 'noreply@fivvi.e2e.test',
       EMAIL_FROM_NAME: 'Fivvi',
       // Closed sign-up (F001): only this domain gets an account at its first sign-in.
