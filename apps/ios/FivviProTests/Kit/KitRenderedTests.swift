@@ -3,6 +3,7 @@ import XCTest
 import FivviDesignTokens
 
 @testable import FivviPro
+@testable import FivviUI
 
 /// E020 AC14: the building blocks drawn, in light and dark: their sizes and the colours of their pixels, against the
 /// design tokens. Hosted in the app like the other unit tests, so none of it costs UI-test time. Texts are samples;

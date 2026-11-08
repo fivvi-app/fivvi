@@ -1,13 +1,13 @@
 import SwiftUI
 import FivviDesignTokens
 
-enum InsetGroupStyle {
+public enum InsetGroupStyle {
     /// A group's corner radius: the card radius (`radius.card`).
-    static let radius = Tokens.Radius.card
+    public static let radius = Tokens.Radius.card
     /// How far a separator is inset from the group's leading edge, so it starts under the row's text.
-    static let separatorInset = Tokens.Spacing.space4
+    public static let separatorInset = Tokens.Spacing.space4
     /// The least a row is high.
-    static let rowMinHeight: CGFloat = 52
+    public static let rowMinHeight: CGFloat = 52
 }
 
 /// An inset grouped list (E020 AC14, Calendar, Fitness and Health): a scroll view holding `InsetGroup`s, the way the
@@ -15,16 +15,16 @@ enum InsetGroupStyle {
 /// the gutters. The grouped-grey canvas is behind the screen's navigation container, not on this scroll view
 /// (`fivviCanvas()`, which `LargeTitleScreen` applies): a scroll view the system tracks for the tab bar and the bars'
 /// edge effects is left as it is, with nothing wrapped around it.
-struct InsetGroupedList<Header: View, Content: View>: View {
-    let header: Header
-    let content: Content
+public struct InsetGroupedList<Header: View, Content: View>: View {
+    public let header: Header
+    public let content: Content
 
-    init(@ViewBuilder header: () -> Header, @ViewBuilder content: () -> Content) {
+    public init(@ViewBuilder header: () -> Header, @ViewBuilder content: () -> Content) {
         self.header = header()
         self.content = content()
     }
 
-    var body: some View {
+    public var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 0) {
                 header
@@ -41,26 +41,31 @@ struct InsetGroupedList<Header: View, Content: View>: View {
 extension View {
     /// The grouped-grey canvas (`bgCanvas`) behind a screen, under the bars and the content: the background of the
     /// navigation container the screen is in. The screen's scroll view itself gets no `background`.
-    func fivviCanvas() -> some View {
+    public func fivviCanvas() -> some View {
         containerBackground(Tokens.Colors.bgCanvas, for: .navigation)
     }
 }
 
 extension InsetGroupedList where Header == EmptyView {
-    init(@ViewBuilder content: () -> Content) {
+    public init(@ViewBuilder content: () -> Content) {
         self.init(header: { EmptyView() }, content: content)
     }
 }
 
 /// One group of an `InsetGroupedList`: rows in a card of radius 26, separated by hairlines inset from the leading edge,
 /// with an optional small header above and a note below.
-struct InsetGroup<Content: View>: View {
-    var header: String?
-    var footer: String?
-    @ViewBuilder let content: Content
+public struct InsetGroup<Content: View>: View {
+    public init(header: String? = nil, footer: String? = nil, @ViewBuilder content: () -> Content) {
+        self.header = header
+        self.footer = footer
+        self.content = content()
+    }
+    public var header: String?
+    public var footer: String?
+    @ViewBuilder public let content: Content
     @Environment(\.displayScale) private var displayScale
 
-    var body: some View {
+    public var body: some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.space2) {
             if let header {
                 Text(header)
@@ -101,13 +106,19 @@ struct InsetGroup<Content: View>: View {
 
 /// A row of an `InsetGroup`: a title, an optional line under it, a value and a chevron on the trailing side. Wrap it in
 /// a `Button` or a `NavigationLink` with `.buttonStyle(.insetRow)` to make it tappable.
-struct InsetRow: View {
-    let title: String
-    var subtitle: String?
-    var value: String?
-    var showsChevron = false
+public struct InsetRow: View {
+    public init(title: String, subtitle: String? = nil, value: String? = nil, showsChevron: Bool = false) {
+        self.title = title
+        self.subtitle = subtitle
+        self.value = value
+        self.showsChevron = showsChevron
+    }
+    public let title: String
+    public var subtitle: String?
+    public var value: String?
+    public var showsChevron = false
 
-    var body: some View {
+    public var body: some View {
         HStack(spacing: Tokens.Spacing.space3) {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
@@ -141,8 +152,9 @@ struct InsetRow: View {
 }
 
 /// A tappable row: the row's fill darkens a little while it is pressed.
-struct InsetRowButtonStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
+public struct InsetRowButtonStyle: ButtonStyle {
+    public init() {}
+    public func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .background(configuration.isPressed ? Tokens.Colors.bgSubtle : Color.clear)
     }
@@ -150,5 +162,5 @@ struct InsetRowButtonStyle: ButtonStyle {
 
 extension ButtonStyle where Self == InsetRowButtonStyle {
     /// A row of an `InsetGroup` that can be tapped.
-    static var insetRow: InsetRowButtonStyle { InsetRowButtonStyle() }
+    public static var insetRow: InsetRowButtonStyle { InsetRowButtonStyle() }
 }

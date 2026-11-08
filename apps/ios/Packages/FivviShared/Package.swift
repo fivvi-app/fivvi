@@ -1,4 +1,4 @@
-// swift-tools-version: 6.0
+// swift-tools-version: 6.2
 import PackageDescription
 
 // The code both iOS apps share (E017, #500): Fivvi Pro today, the client app Fivvi next. Everything a screen of either
@@ -11,7 +11,7 @@ import PackageDescription
 // (SwiftLint's `no_direct_sentry`).
 let package = Package(
     name: "FivviShared",
-    platforms: [.iOS(.v17)],
+    platforms: [.iOS(.v26)],
     products: [
         .library(name: "FivviStrings", targets: ["FivviStrings"]),
         .library(name: "FivviSession", targets: ["FivviSession"]),

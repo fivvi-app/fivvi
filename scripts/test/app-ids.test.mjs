@@ -178,6 +178,17 @@ describe('E020 AC7: every iOS app targets iOS 26.0 and none opts out of Liquid G
       assert.doesNotMatch(read(`apps/ios/Config/${file}`), /UIDesignRequiresCompatibility/, file);
   });
 
+  it('E017 #500: the local shared packages (apps/ios/Packages) target iOS 26 like the apps', () => {
+    const packages = readdirSync(join(ROOT, 'apps/ios/Packages'));
+    assert.ok(packages.includes('FivviShared'));
+    for (const name of packages)
+      assert.match(
+        read(`apps/ios/Packages/${name}/Package.swift`),
+        /platforms: \[\.iOS\(\.v26\)\]/,
+        `${name} must set platforms: [.iOS(.v26)]`,
+      );
+  });
+
   it('fails on another deployment target, on none, and on the compatibility flag', () => {
     const pbxproj = pbxprojOf('FivviPro.xcodeproj');
     assert.deepEqual(

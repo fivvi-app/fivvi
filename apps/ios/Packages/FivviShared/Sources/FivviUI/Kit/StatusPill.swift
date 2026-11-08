@@ -1,10 +1,10 @@
 import SwiftUI
 import FivviDesignTokens
 
-enum StatusPillKind: CaseIterable {
+public enum StatusPillKind: CaseIterable, Sendable {
     case neutral, success, warning, danger
 
-    var background: Color {
+    public var background: Color {
         switch self {
         case .neutral: Tokens.Colors.statusNeutralBg
         case .success: Tokens.Colors.statusSuccessBg
@@ -14,7 +14,7 @@ enum StatusPillKind: CaseIterable {
     }
 
     /// The text colour on the tint: the status colour's own text token, never the solid colour.
-    var foreground: Color {
+    public var foreground: Color {
         switch self {
         case .neutral: Tokens.Colors.statusNeutralFg
         case .success: Tokens.Colors.statusSuccessText
@@ -25,11 +25,15 @@ enum StatusPillKind: CaseIterable {
 }
 
 /// A status pill (E020 AC14): a short label on a tint, such as *Aanwezig* or *3/8*. Digits are tabular.
-struct StatusPill: View {
-    let text: String
-    var kind: StatusPillKind = .neutral
+public struct StatusPill: View {
+    public init(text: String, kind: StatusPillKind = .neutral) {
+        self.text = text
+        self.kind = kind
+    }
+    public let text: String
+    public var kind: StatusPillKind = .neutral
 
-    var body: some View {
+    public var body: some View {
         Text(text)
             .font(.system(Tokens.TextStyle.footnote, weight: .semibold))
             .monospacedDigit()

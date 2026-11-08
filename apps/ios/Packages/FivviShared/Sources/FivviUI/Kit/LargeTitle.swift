@@ -3,12 +3,17 @@ import FivviDesignTokens
 
 /// The title of a screen (E020 AC8): the large title at 34 pt (`Tokens.TextStyle.display`) in bold, with the date in
 /// capitals above it where the prototype has one (*Vandaag*) and a line under it.
-struct LargeTitleHeader: View {
-    let title: String
-    var eyebrow: String?
-    var subtitle: String?
+public struct LargeTitleHeader: View {
+    public init(title: String, eyebrow: String? = nil, subtitle: String? = nil) {
+        self.title = title
+        self.eyebrow = eyebrow
+        self.subtitle = subtitle
+    }
+    public let title: String
+    public var eyebrow: String?
+    public var subtitle: String?
 
-    var body: some View {
+    public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
             if let eyebrow {
                 Text(eyebrow)
@@ -40,13 +45,19 @@ struct LargeTitleHeader: View {
 /// A screen that scrolls under a navigation bar, with its large title at the top (E020 AC8). Once the title has
 /// scrolled away, the bar shows it inline, as in the prototype. The bar's buttons, the tab bar and any sheet are the
 /// system's, so they are Liquid Glass without anything here drawing it.
-struct LargeTitleScreen<Content: View>: View {
-    let title: String
-    var eyebrow: String?
-    var subtitle: String?
-    @ViewBuilder let content: Content
+public struct LargeTitleScreen<Content: View>: View {
+    public init(title: String, eyebrow: String? = nil, subtitle: String? = nil, @ViewBuilder content: () -> Content) {
+        self.title = title
+        self.eyebrow = eyebrow
+        self.subtitle = subtitle
+        self.content = content()
+    }
+    public let title: String
+    public var eyebrow: String?
+    public var subtitle: String?
+    @ViewBuilder public let content: Content
 
-    var body: some View {
+    public var body: some View {
         InsetGroupedList {
             LargeTitleHeader(title: title, eyebrow: eyebrow, subtitle: subtitle)
         } content: {
@@ -60,16 +71,16 @@ struct LargeTitleScreen<Content: View>: View {
 extension View {
     /// The navigation bar shows `title` inline once the screen's scroll view has moved the large title out of sight,
     /// and nothing before that.
-    func inlineTitleOnceScrolledAway(_ title: String) -> some View {
+    public func inlineTitleOnceScrolledAway(_ title: String) -> some View {
         modifier(InlineTitleOnceScrolledAway(title: title))
     }
 }
 
 private struct InlineTitleOnceScrolledAway: ViewModifier {
-    let title: String
+    public let title: String
     @State private var scrolledAway = false
 
-    func body(content: Content) -> some View {
+    public func body(content: Content) -> some View {
         content
             .onScrollGeometryChange(for: Bool.self) { geometry in
                 geometry.contentOffset.y + geometry.contentInsets.top > 40

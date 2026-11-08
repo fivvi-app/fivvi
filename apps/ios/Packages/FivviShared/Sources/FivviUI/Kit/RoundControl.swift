@@ -1,10 +1,10 @@
 import SwiftUI
 import FivviDesignTokens
 
-enum RoundControlMetrics {
+public enum RoundControlMetrics {
     /// A round control is a circle 44 pt across at the default text size (the least a touch target is, HIG), on every
     /// iOS version. It grows with the text size, like the symbol in it.
-    static let diameter: CGFloat = 44
+    public static let diameter: CGFloat = 44
 }
 
 /// A round control for the content (E020 AC14), such as the + button: a circle with one symbol. Not for a toolbar,
@@ -17,14 +17,20 @@ enum RoundControlMetrics {
 /// circle on iOS 26.2 (68 x 58 pt), so the size is set here. The touch shape is the circle (`contentShape` on the
 /// label); the system adds touch slop up to 44 pt, so a tap in the corner of the 44 pt square still counts. `label` is
 /// its accessible name (a catalog text).
-struct RoundControl: View {
-    let systemImage: String
-    let label: String
-    var prominent = false
-    let action: () -> Void
+public struct RoundControl: View {
+    public init(systemImage: String, label: String, prominent: Bool = false, action: @escaping () -> Void) {
+        self.systemImage = systemImage
+        self.label = label
+        self.prominent = prominent
+        self.action = action
+    }
+    public let systemImage: String
+    public let label: String
+    public var prominent = false
+    public let action: () -> Void
     @ScaledMetric(relativeTo: .title2) private var diameter = RoundControlMetrics.diameter
 
-    var body: some View {
+    public var body: some View {
         Button(action: action) {
             surface
                 .contentShape(.circle)
@@ -53,7 +59,7 @@ struct RoundControl: View {
 
 /// No style of its own: the label as it is, a little dimmer while it is pressed (glass reacts by itself).
 private struct RoundControlPressStyle: ButtonStyle {
-    func makeBody(configuration: Configuration) -> some View {
+    public func makeBody(configuration: Configuration) -> some View {
         configuration.label.opacity(configuration.isPressed ? 0.8 : 1)
     }
 }

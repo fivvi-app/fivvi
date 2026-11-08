@@ -1,15 +1,15 @@
 import SwiftUI
 import FivviDesignTokens
 
-enum PillButtonMetrics {
+public enum PillButtonMetrics {
     /// A pill button is 50 pt high (DECISIONS.md §2)...
-    static let height: CGFloat = 50
+    public static let height: CGFloat = 50
     /// ...and keeps 48 pt when buttons are stacked, with 10 pt between them.
-    static let stackedHeight: CGFloat = 48
-    static let stackedSpacing: CGFloat = 10
+    public static let stackedHeight: CGFloat = 48
+    public static let stackedSpacing: CGFloat = 10
 }
 
-enum PillButtonKind {
+public enum PillButtonKind: Sendable {
     /// The screen's one main action, filled with the accent.
     case filled
     /// A secondary action, on a tonal fill, in the accent's text colour.
@@ -19,7 +19,7 @@ enum PillButtonKind {
 }
 
 private struct PillButtonStackedKey: EnvironmentKey {
-    static let defaultValue = false
+    public static let defaultValue = false
 }
 
 extension EnvironmentValues {
@@ -33,13 +33,14 @@ extension EnvironmentValues {
 /// The pill button of the kit (E020 AC14): 50 pt high, the `body` text style in semibold, fully rounded. At the
 /// accessibility text sizes the label wraps onto more lines and the pill becomes a rounded rectangle that keeps every
 /// line inside its fill. Colours come from the tokens; white text only ever sits on the accent or the danger fill.
-struct PillButtonStyle: ButtonStyle {
-    var kind: PillButtonKind = .filled
+public struct PillButtonStyle: ButtonStyle {
+    public init(kind: PillButtonKind = .filled) { self.kind = kind }
+    public var kind: PillButtonKind = .filled
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @Environment(\.isEnabled) private var isEnabled
     @Environment(\.pillButtonStacked) private var stacked
 
-    func makeBody(configuration: Configuration) -> some View {
+    public func makeBody(configuration: Configuration) -> some View {
         let shape = dynamicTypeSize.isAccessibilitySize
             ? AnyShape(RoundedRectangle(cornerRadius: Tokens.Radius.lg, style: .continuous))
             : AnyShape(Capsule(style: .continuous))
@@ -77,14 +78,15 @@ struct PillButtonStyle: ButtonStyle {
 
 extension ButtonStyle where Self == PillButtonStyle {
     /// The kit's pill button.
-    static func pill(_ kind: PillButtonKind = .filled) -> PillButtonStyle { PillButtonStyle(kind: kind) }
+    public static func pill(_ kind: PillButtonKind = .filled) -> PillButtonStyle { PillButtonStyle(kind: kind) }
 }
 
 /// Pill buttons one under the other: each as wide as the stack, 48 pt high, with 10 pt between them.
-struct PillButtonStack<Content: View>: View {
-    @ViewBuilder let content: Content
+public struct PillButtonStack<Content: View>: View {
+    public init(@ViewBuilder content: () -> Content) { self.content = content() }
+    @ViewBuilder public let content: Content
 
-    var body: some View {
+    public var body: some View {
         VStack(spacing: PillButtonMetrics.stackedSpacing) {
             content
         }

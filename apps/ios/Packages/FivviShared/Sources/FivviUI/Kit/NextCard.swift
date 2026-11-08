@@ -3,10 +3,10 @@ import FivviDesignTokens
 
 /// The colour of a `NextCard`: the accent or one session type, each a gradient that stays in one hue and text that
 /// meets the contrast minimum on both ends of it. Open Gym is not offered: no screen uses it yet (E020 AC6).
-enum NextCardTone: CaseIterable {
+public enum NextCardTone: CaseIterable, Sendable {
     case accent, privateSession, group
 
-    var gradient: [Color] {
+    public var gradient: [Color] {
         switch self {
         case .accent: [Tokens.Colors.accentGradientTop, Tokens.Colors.accentGradientBottom]
         case .privateSession: [Tokens.Colors.sessionPrivateGradientTop, Tokens.Colors.sessionPrivateGradientBottom]
@@ -14,7 +14,7 @@ enum NextCardTone: CaseIterable {
         }
     }
 
-    var text: Color {
+    public var text: Color {
         switch self {
         case .accent: Tokens.Colors.accentOn
         case .privateSession: Tokens.Colors.sessionPrivateOnSolid
@@ -23,17 +23,17 @@ enum NextCardTone: CaseIterable {
     }
 }
 
-enum NextCardMetrics {
+public enum NextCardMetrics {
     /// The actions are 48 pt high (the prototype's `.hero .gl`); the icon action is 48 pt wide as well.
-    static let actionHeight: CGFloat = 48
+    public static let actionHeight: CGFloat = 48
     /// The space above the actions.
-    static let actionsTop: CGFloat = 16
+    public static let actionsTop: CGFloat = 16
     /// The title's size at the default text size (24 pt; no text style has it), scaled with Dynamic Type.
-    static let titleSize: CGFloat = 24
+    public static let titleSize: CGFloat = 24
 }
 
 private struct NextCardToneKey: EnvironmentKey {
-    static let defaultValue = NextCardTone.accent
+    public static let defaultValue = NextCardTone.accent
 }
 
 extension EnvironmentValues {
@@ -44,10 +44,10 @@ extension EnvironmentValues {
 }
 
 private struct NextCardActionStyle: ButtonStyle {
-    let isIcon: Bool
+    public let isIcon: Bool
     @Environment(\.nextCardTone) private var tone
 
-    func makeBody(configuration: Configuration) -> some View {
+    public func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(Tokens.TextStyle.body, weight: .semibold))
             .foregroundStyle(tone.text)
@@ -60,11 +60,15 @@ private struct NextCardActionStyle: ButtonStyle {
 }
 
 /// A text action of a `NextCard`: a glass pill 48 pt high, in the card's text colour.
-struct NextCardButton: View {
-    let title: String
-    let action: () -> Void
+public struct NextCardButton: View {
+    public init(title: String, action: @escaping () -> Void) {
+        self.title = title
+        self.action = action
+    }
+    public let title: String
+    public let action: () -> Void
 
-    var body: some View {
+    public var body: some View {
         Button(action: action) {
             Text(title).fixedSize(horizontal: false, vertical: true)
         }
@@ -73,12 +77,17 @@ struct NextCardButton: View {
 }
 
 /// An icon action of a `NextCard`: a glass circle 48 pt across. `label` is its accessible name.
-struct NextCardIconButton: View {
-    let systemImage: String
-    let label: String
-    let action: () -> Void
+public struct NextCardIconButton: View {
+    public init(systemImage: String, label: String, action: @escaping () -> Void) {
+        self.systemImage = systemImage
+        self.label = label
+        self.action = action
+    }
+    public let systemImage: String
+    public let label: String
+    public let action: () -> Void
 
-    var body: some View {
+    public var body: some View {
         Button(action: action) {
             Image(systemName: systemImage)
         }
@@ -89,15 +98,24 @@ struct NextCardIconButton: View {
 
 /// The gradient "next" card (E020 AC14), such as *Volgende sessie*: a caption in capitals, a title, a line under it and,
 /// 16 pt below, the actions: `NextCardButton` and `NextCardIconButton`, glass buttons 48 pt high.
-struct NextCard<Actions: View>: View {
-    let tone: NextCardTone
-    let caption: String
-    let title: String
-    var subtitle: String?
-    @ViewBuilder let actions: Actions
+public struct NextCard<Actions: View>: View {
+    public init(
+        tone: NextCardTone, caption: String, title: String, subtitle: String? = nil, @ViewBuilder actions: () -> Actions
+    ) {
+        self.tone = tone
+        self.caption = caption
+        self.title = title
+        self.subtitle = subtitle
+        self.actions = actions()
+    }
+    public let tone: NextCardTone
+    public let caption: String
+    public let title: String
+    public var subtitle: String?
+    @ViewBuilder public let actions: Actions
     @ScaledMetric(relativeTo: .title2) private var titleSize = NextCardMetrics.titleSize
 
-    var body: some View {
+    public var body: some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.space1) {
             Text(caption)
                 .font(.system(Tokens.TextStyle.footnote, weight: .semibold))

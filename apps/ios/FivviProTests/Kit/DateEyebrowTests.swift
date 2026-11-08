@@ -1,6 +1,7 @@
 import XCTest
 
 @testable import FivviPro
+@testable import FivviUI
 
 /// E020 AC8: the date above a large title, in the language of the app and the workspace's time zone.
 final class DateEyebrowTests: XCTestCase {

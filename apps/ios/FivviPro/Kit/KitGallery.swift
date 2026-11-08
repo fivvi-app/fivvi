@@ -1,6 +1,8 @@
 #if DEBUG
 import SwiftUI
 import FivviDesignTokens
+import FivviStrings
+import FivviUI
 
 /// Debug-only: the kit's building blocks on one screen, inside the system's tab bar and navigation bar, so UI tests can
 /// check them as a person sees them (E020 AC8, AC14) and a developer can compare them with the prototype. Launch the

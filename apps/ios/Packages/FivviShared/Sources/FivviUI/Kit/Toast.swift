@@ -1,12 +1,12 @@
 import SwiftUI
 import FivviDesignTokens
 
-enum ToastKind {
+public enum ToastKind: Sendable {
     case success
     /// An error or a warning: the message comes with a warning icon.
     case warning
 
-    var systemImage: String {
+    public var systemImage: String {
         switch self {
         case .success: "checkmark.circle.fill"
         case .warning: "exclamationmark.triangle.fill"
@@ -22,18 +22,23 @@ enum ToastKind {
 }
 
 /// A message to show for a moment. A new message has a new `id`, so showing the same text twice shows it twice.
-struct ToastMessage: Equatable, Identifiable {
-    let id = UUID()
-    let kind: ToastKind
-    let text: String
+public struct ToastMessage: Equatable, Identifiable, Sendable {
+    public init(kind: ToastKind, text: String) {
+        self.kind = kind
+        self.text = text
+    }
+    public let id = UUID()
+    public let kind: ToastKind
+    public let text: String
 }
 
 /// A toast (E020 AC14): a floating glass capsule with an icon and one line, shown above the tab bar for a few seconds.
 /// The system draws the glass. VoiceOver announces the text when it appears.
-struct ToastView: View {
-    let message: ToastMessage
+public struct ToastView: View {
+    public init(message: ToastMessage) { self.message = message }
+    public let message: ToastMessage
 
-    var body: some View {
+    public var body: some View {
         HStack(spacing: Tokens.Spacing.space2) {
             Image(systemName: message.kind.systemImage)
                 .foregroundStyle(message.kind.tint)
@@ -57,7 +62,7 @@ extension View {
     /// Shows `message` as a toast above the bottom edge until `duration` has passed, then empties the binding. The
     /// toast is an overlay: it takes no room from the screen and puts nothing at the bottom edge of the screen's scroll
     /// view, which stays the one the system tracks for the tab bar (a bottom `safeAreaInset` would).
-    func toast(_ message: Binding<ToastMessage?>, duration: Duration = .seconds(3)) -> some View {
+    public func toast(_ message: Binding<ToastMessage?>, duration: Duration = .seconds(3)) -> some View {
         overlay(alignment: .bottom) {
             ZStack {
                 if let current = message.wrappedValue {

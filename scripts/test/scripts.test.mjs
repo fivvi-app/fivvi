@@ -668,6 +668,24 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     assert.match(key, /hashFiles\('apps\/ios\/.*Package\.resolved'\)/);
   });
 
+  it('E017 #500: the iOS cache key has the package graph in it, so a cache built for another one is never restored', () => {
+    // The first run of the shared-package layout restored a cache built with Sentry as a direct dependency of the app,
+    // and Xcode refused its precompiled Sentry module ("Sentry.framework/Headers/SentryEvent.h has been modified since
+    // the module file was built"): "a stale cache only costs build time" did not hold. A run saves a cache only when it
+    // passes, so the next run restored the same one. The graph is the local packages' manifests and the project file.
+    const graph =
+      "hashFiles('apps/ios/Packages/**/Package.swift', 'apps/ios/FivviPro.xcodeproj/project.pbxproj')";
+    const key = iosBuild.match(/^ +key: (ios-build-.+)$/m)?.[1] ?? '';
+    assert.ok(key.includes(`\${{ ${graph} }}`), 'the key has the package graph');
+    const restoreKeys = iosBuild
+      .match(/restore-keys: \|\n((?: +ios-build-.+\n)+)/)?.[1]
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+    for (const restoreKey of restoreKeys)
+      assert.ok(restoreKey.includes(`\${{ ${graph} }}`), `${restoreKey} has the package graph`);
+  });
+
   it('#293 AC15: the iOS cache key is new on every run, so each run saves what it built, and restores the latest one', () => {
     // An exact hit is never saved again: with a key that only changes with Package.resolved the cache would be frozen at
     // the first run's DerivedData and the second run of a PR could not get incremental.
@@ -681,9 +699,10 @@ describe('E002 #91 the native jobs in ci.yml', () => {
       .filter(Boolean);
     // biome-ignore lint/suspicious/noTemplateCurlyInString: a GitHub Actions expression, not a template
     const prefix = '${{ runner.os }}-${{ steps.xcode.outputs.version }}-';
+    const graph = `\${{ hashFiles('apps/ios/Packages/**/Package.swift', 'apps/ios/FivviPro.xcodeproj/project.pbxproj') }}-`;
     assert.deepEqual(restoreKeys, [
-      `ios-build-${prefix}\${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-`,
-      `ios-build-${prefix}`,
+      `ios-build-${prefix}${graph}\${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-`,
+      `ios-build-${prefix}${graph}`,
     ]);
     assert.ok(key.startsWith(restoreKeys[0]), 'the key starts with the first restore key');
   });

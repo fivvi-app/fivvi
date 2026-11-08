@@ -95,8 +95,8 @@ lint_fixture() {
 # E017 #500: the lint rules apply to the code both apps share (apps/ios/Packages), not only to the app target. Each fixture
 # is copied into a package target folder as a throwaway probe, and the configuration's own lint (`included:` in
 # .swiftlint.yml, no path given: SwiftLint ignores `included:` for a path it is given) must flag it: the literal-text,
-# colour and Sentry rules in FivviUI, and in FivviObservability, the one target that may import Sentry, the Sentry rule
-# must not fire (a literal text line there proves the config does lint that folder). The probes are removed on exit.
+# colour, Sentry and glass-imitation rules in FivviUI, and in FivviObservability, the one target that may import Sentry,
+# the Sentry rule must not fire (a literal text line there proves the config does lint that folder). The probes are removed on exit.
 PACKAGE_PROBES=""
 lint_packages() {
   local sources=Packages/FivviShared/Sources ui observability out rc=0
@@ -109,12 +109,14 @@ lint_packages() {
   cp lint/fixtures/LiteralText.swift "$ui/ZzProbeLiteralText.swift"
   cp lint/fixtures/ColourLiteral.swift "$ui/ZzProbeColourLiteral.swift"
   cp lint/fixtures/DirectSentry.swift "$ui/ZzProbeDirectSentry.swift"
+  cp lint/fixtures/GlassImitation.swift "$ui/ZzProbeGlassImitation.swift"
   { sed 's# // expect: .*$##' lint/fixtures/DirectSentry.swift; echo 'let probe = Text("x") // expect: no_literal_text'; } \
     >"$observability/ZzProbeSentry.swift"
   out="$("$SWIFTLINT" lint --strict --quiet 2>&1 || true)"
   fixture_lines_match "$ui/ZzProbeLiteralText.swift" no_literal_text "$out" || rc=1
   fixture_lines_match "$ui/ZzProbeColourLiteral.swift" no_colour_literal "$out" || rc=1
   fixture_lines_match "$ui/ZzProbeDirectSentry.swift" no_direct_sentry "$out" || rc=1
+  fixture_lines_match "$ui/ZzProbeGlassImitation.swift" no_glass_imitation "$out" || rc=1
   fixture_lines_match "$observability/ZzProbeSentry.swift" no_literal_text "$out" || rc=1
   if grep -F ZzProbeSentry.swift <<<"$out" | grep -q "(no_direct_sentry)"; then
     echo "SwiftLint flags the Sentry import in FivviObservability, the one target that may have it:"
