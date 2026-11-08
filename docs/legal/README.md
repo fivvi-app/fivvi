@@ -10,7 +10,7 @@
 | **Datum / Date** | 22 september 2026 |
 | **Eigenaar / Owner** | Keyvan Mahmoudi |
 | **Roadmap** | M0, §4.4 Legal and privacy preparation |
-| **Status** | Privacy policy and terms updated to what Fivvi is now (F064, #642), the other drafts changed only where Q7 and Q14 fill a value; signatures and provider checks remain open / Privacyverklaring en voorwaarden bijgewerkt naar wat Fivvi nu is (F064, #642), de andere concepten alleen waar Q7 en Q14 een waarde invullen; ondertekening en controles bij aanbieders staan nog open |
+| **Status** | Privacy policy and terms updated to what Fivvi is now (F064, #642), with two values still open (Q7, Q14); the other drafts are unchanged; signatures and provider checks remain open / Privacyverklaring en voorwaarden bijgewerkt naar wat Fivvi nu is (F064, #642), met twee waarden die nog openstaan (Q7, Q14); de andere concepten zijn ongewijzigd; ondertekening en controles bij aanbieders staan nog open |
 | **Pull request** | [#5 — Legal and privacy drafts](https://github.com/fivvi-app/fivvi/pull/5) |
 
 ## Documenten / Documents
@@ -35,9 +35,9 @@
 
 ## Placeholders
 
-Waarden die nog niet bekend zijn staan als `{{…}}`. In `privacy-policy.*` en `terms.*` staan er geen meer; een `{{…}}` in een gepubliceerde tekst laat de build van de website mislukken (F064, AC10). De verwerkersovereenkomst heeft het bedrag (art. 14) en het arrondissement (art. 15) ingevuld; de partijen en andere velden (`{{Naam aanbieder}}` en dergelijke) worden ingevuld vóór ondertekening. Zie [`open-questions.md`](open-questions.md).
+Waarden die nog niet bekend zijn staan als `{{…}}`. In `privacy-policy.*` staan er geen meer. In `terms.*` staan er nog twee, die van open vragen afhangen: het bedrag in A12 (Q7) en het arrondissement in A16 (Q14). Een `{{…}}` in een gepubliceerde tekst laat de build van de website mislukken (F064, AC10). De andere documenten in deze map hebben nog `{{Naam aanbieder}}` en dergelijke; ze worden ingevuld vóór ondertekening. Zie [`open-questions.md`](open-questions.md).
 
-Values that aren't known yet appear as `{{…}}`. `privacy-policy.*` and `terms.*` have none left; a `{{…}}` in a published text fails the website build (F064, AC10). The processor agreement has the amount (art. 14) and the court district (art. 15) filled in; the parties and other fields (`{{Provider name}}` and the like) are filled in before signing. See [`open-questions.md`](open-questions.md).
+Values that aren't known yet appear as `{{…}}`. `privacy-policy.*` has none left. `terms.*` has two left, which depend on open questions: the amount in A12 (Q7) and the court district in A16 (Q14). A `{{…}}` in a published text fails the website build (F064, AC10). The other documents in this folder still have `{{Provider name}}` and the like; they are filled in before signing. See [`open-questions.md`](open-questions.md).
 
 ## Bronnen / Sources
 

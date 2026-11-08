@@ -87,7 +87,7 @@ For your clients' data you are the **controller** under the GDPR. Among other th
 
 1. We do our best to keep the Service available and secure, but we don't guarantee uninterrupted operation.
 2. We do planned maintenance outside busy hours as far as possible, and we announce it in advance.
-3. Support runs through support@fivvi.app or by phone on +31 6 85145755. We reply within 2 working days.
+3. Support runs through support@fivvi.app or by phone on +31 6 85145755. During the pilot, the response time we agree with you applies.
 
 ### A10. Changes to the Service
 
@@ -100,7 +100,7 @@ We may improve and change the Service. If a feature you substantially rely on is
 
 ### A12. Liability
 
-1. Our total liability for damage caused by an attributable failure or a tort is limited per calendar year to the amount you paid us in the preceding 12 months, with a minimum of **€ 1,000**. During the free phase only that minimum applies.
+1. Our total liability for damage caused by an attributable failure or a tort is limited per calendar year to the amount you paid us in the preceding 12 months, with a minimum of **€ {{amount}}**. During the free phase only that minimum applies.
 2. We are not liable for indirect damage, such as lost profit, lost revenue and reputational damage.
 3. The limitations in this article don't apply if the damage was caused by intent or deliberate recklessness on the part of us or our management.
 4. For damage relating to personal data, the arrangements in the Processor agreement also apply.
@@ -124,7 +124,7 @@ We may change these terms. We announce material changes **at least 30 days** bef
 ### A16. Governing law and disputes
 
 1. Dutch law governs these terms.
-2. Disputes go to the competent court in the district of Amsterdam (the Amsterdam District Court). We first try to resolve them together.
+2. Disputes go to the competent court in the district of {{district}}. We first try to resolve them together.
 
 ---
 

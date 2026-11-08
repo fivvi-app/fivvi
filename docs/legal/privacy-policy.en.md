@@ -83,7 +83,7 @@ The public website (fivvi.app, the pages about Fivvi, pricing, help and these te
 ## 5. Who do we share data with?
 
 - We **don't sell** your data or use it for advertising.
-- We use a number of service providers for hosting and the database (Railway), email (Lettermint), error reports (Sentry), product statistics (PostHog) and our own mailbox (Zoho). They process data only on our instructions, and we have data protection agreements with each of them.. The current list, with purpose and location, is at **https://fivvi.app/en/sub-processors**.
+- We use a number of service providers for hosting and the database (Railway), email (Lettermint), error reports (Sentry), product statistics (PostHog) and our own mailbox (Zoho). They process data only on our instructions, and we have data protection agreements with each of them. The current list, with purpose and location, is at **https://fivvi.app/en/sub-processors**.
 - **Mollie** is not a service provider of ours for your payment. Mollie works for your studio and for itself (§2).
 - A studio only sees data within its own environment. Other studios can't see that you are also their client.
 - If you get the app from the App Store or Google Play, Apple and Google process data about your download and your store account under their own terms. We receive no personal data from that.

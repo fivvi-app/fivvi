@@ -145,7 +145,7 @@ Verwerker geeft Verwerkingsverantwoordelijke de informatie en hulp die zij redel
 ## Artikel 14. Aansprakelijkheid
 
 1. Voor de aansprakelijkheid van partijen onder deze overeenkomst gelden de afspraken in de Hoofdovereenkomst, met deze aanvullingen:
-   - a. de totale aansprakelijkheid van Verwerker onder deze overeenkomst is per kalenderjaar beperkt tot **€ 1.000**;
+   - a. de totale aansprakelijkheid van Verwerker onder deze overeenkomst is per kalenderjaar beperkt tot **{{bedrag}}**;
    - b. de beperking in lid a geldt niet bij opzet of bewuste roekeloosheid van Verwerker of zijn leidinggevenden.
 2. Deze overeenkomst beperkt de rechten van betrokkenen onder art. 82 AVG niet. Tussen partijen draagt ieder de schade die aan haar eigen deel van de verwerking te wijten is (art. 82(5) AVG).
 
@@ -153,7 +153,7 @@ Verwerker geeft Verwerkingsverantwoordelijke de informatie en hulp die zij redel
 
 1. Bij strijd tussen deze overeenkomst en de Hoofdovereenkomst gaat deze overeenkomst voor, voor zover het de verwerking van persoonsgegevens betreft.
 2. Wijzigingen van deze overeenkomst zijn alleen geldig als partijen ze schriftelijk overeenkomen. Een wijziging van Bijlage 3 volgt artikel 7.
-3. Op deze overeenkomst is Nederlands recht van toepassing. Geschillen worden voorgelegd aan de bevoegde rechter in het arrondissement Amsterdam (Rechtbank Amsterdam).
+3. Op deze overeenkomst is Nederlands recht van toepassing. Geschillen worden voorgelegd aan de bevoegde rechter in het arrondissement {{arrondissement}}.
 4. Deze overeenkomst is opgesteld in het Nederlands en het Engels. Bij verschil gaat de Nederlandse tekst voor.
 
 ## Ondertekening
@@ -351,7 +351,7 @@ Processor gives Controller the information and help it reasonably needs for (GDP
 ## Article 14. Liability
 
 1. The parties' liability under this agreement follows the Main Agreement, with these additions:
-   - a. Processor's total liability under this agreement is limited to **€ 1,000** per calendar year;
+   - a. Processor's total liability under this agreement is limited to **{{amount}}** per calendar year;
    - b. the limitation in (a) doesn't apply in case of intent or deliberate recklessness by Processor or its management.
 2. This agreement doesn't limit data subjects' rights under GDPR art. 82. Between the parties, each bears the damage attributable to its own part of the processing (GDPR art. 82(5)).
 
@@ -359,7 +359,7 @@ Processor gives Controller the information and help it reasonably needs for (GDP
 
 1. If this agreement conflicts with the Main Agreement, this agreement prevails as far as the processing of personal data is concerned.
 2. Changes to this agreement are valid only if the parties agree to them in writing. A change to Annex 3 follows Article 7.
-3. Dutch law governs this agreement. Disputes go to the competent court in the district of Amsterdam (the Amsterdam District Court).
+3. Dutch law governs this agreement. Disputes go to the competent court in the district of {{district}}.
 4. This agreement is drawn up in Dutch and English. If they differ, the Dutch text prevails.
 
 ## Signatures

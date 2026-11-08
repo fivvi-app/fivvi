@@ -83,7 +83,7 @@ De openbare website (fivvi.app, de pagina's over Fivvi, prijzen, hulp en deze te
 ## 5. Met wie delen we gegevens?
 
 - We **verkopen** je gegevens niet en gebruiken ze niet voor advertenties.
-- We schakelen een aantal dienstverleners in voor hosting en de database (Railway), e-mail (Lettermint), foutmeldingen (Sentry), productstatistieken (PostHog) en onze eigen mailbox (Zoho). Ze verwerken gegevens alleen in onze opdracht en we hebben met elk van hen afspraken over gegevensbescherming.. De actuele lijst, met doel en locatie, staat op **https://fivvi.app/subverwerkers**.
+- We schakelen een aantal dienstverleners in voor hosting en de database (Railway), e-mail (Lettermint), foutmeldingen (Sentry), productstatistieken (PostHog) en onze eigen mailbox (Zoho). Ze verwerken gegevens alleen in onze opdracht en we hebben met elk van hen afspraken over gegevensbescherming. De actuele lijst, met doel en locatie, staat op **https://fivvi.app/subverwerkers**.
 - **Mollie** is geen dienstverlener van ons voor jouw betaling. Mollie werkt voor je studio en voor zichzelf (§2).
 - Een studio ziet alleen gegevens binnen haar eigen omgeving. Andere studio's zien niet dat je ook bij hen klant bent.
 - Haal je de app uit de App Store of Google Play, dan verwerken Apple en Google gegevens over je download en je store-account onder hun eigen voorwaarden. Wij krijgen daar geen persoonsgegevens van.
