@@ -28,12 +28,10 @@ import { crc32, deflateSync, inflateSync } from 'node:zlib';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-/** The grid of an Android adaptive icon layer; the launcher shows the middle 66 x 66 whatever shape it cuts. */
+/** The grid of an Android adaptive icon layer; a launcher shows at most the middle 72 x 72 dp, and keeps a 66 dp circle safe from every mask. */
 const GRID = 108;
-/** The safe zone: a circle of this radius around the middle of the layer. */
-const SAFE_RADIUS = 33;
-/** The dial keeps this far (in dp) inside the safe zone, so that rounding the coordinates never crosses it. */
-const SAFE_MARGIN = 0.1;
+/** The part of the layer a launcher shows at most: its middle 72 x 72 dp (the round mask is a circle of radius 36). */
+const VISIBLE = 72;
 
 /** The size of the design: the SVGs of docs/design/brand/day-dial/b2 draw in 100 x 100 and scale to the icon. */
 const DESIGN = 100;
@@ -205,36 +203,6 @@ export function parsePath(d) {
   return commands;
 }
 
-/** The matrix [a, b, c, d, e, f] of an SVG transform list (translate and scale), the leftmost applied last. */
-export function parseTransform(transform) {
-  let matrix = [1, 0, 0, 1, 0, 0];
-  for (const [, name, list] of transform.matchAll(/(\w+)\s*\(([^)]*)\)/g)) {
-    const [a, b] = (list.match(TOKEN) ?? []).map(Number);
-    let next;
-    if (name === 'translate') next = [1, 0, 0, 1, a, b ?? 0];
-    else if (name === 'scale') next = [a, 0, 0, b ?? a, 0, 0];
-    else throw new Error(`unsupported transform ${name}`);
-    matrix = multiply(matrix, next);
-  }
-  if (transform.replace(/(\w+)\s*\(([^)]*)\)/g, '').trim() !== '')
-    throw new Error(`unsupported transform ${transform}`);
-  return matrix;
-}
-
-/** The matrix of applying `second` first and then `first`. */
-function multiply(first, second) {
-  const [a1, b1, c1, d1, e1, f1] = first;
-  const [a2, b2, c2, d2, e2, f2] = second;
-  return [
-    a1 * a2 + c1 * b2,
-    b1 * a2 + d1 * b2,
-    a1 * c2 + c1 * d2,
-    b1 * c2 + d1 * d2,
-    a1 * e2 + c1 * f2 + e1,
-    b1 * e2 + d1 * f2 + f1,
-  ];
-}
-
 /** The commands with every point (control points too, so a Bezier stays exact) moved by the matrix. */
 export function transformPath(commands, [a, b, c, d, e, f]) {
   return commands.map(([command, ...points]) => [
@@ -354,21 +322,15 @@ function verticalExtent(polylines) {
 }
 
 /**
- * The dial fitted into the safe zone of the 108 dp layer: the design scaled about its middle (50, 50), which goes to
- * the middle of the layer, so that no point (control points too: a launcher is not told the curve stays inside their
- * hull) is further from the middle than the safe zone.
+ * The dial on the visible area of the 108 dp layer: the 100 unit design scaled by 72 / 100 (0.72 dp a unit) about its
+ * middle (50, 50), which goes to the middle of the layer. As on iOS, in the Play icon and in the reference SVGs, the
+ * sectors then reach 34 / 50 of the visible half (24.5 of 36 dp), so the dial keeps its proportions with the space
+ * around it that a round, squircle or teardrop mask needs, and every point (control points too: a launcher is not told
+ * the curve stays inside their hull) stays well inside the 33 dp safe zone.
  */
 function androidDial() {
   const middle = DESIGN / 2;
-  const all = [trackCommands, ...fiveCommands];
-  const reach = Math.max(
-    ...all.flatMap((commands) =>
-      commands.flatMap(([, ...p]) =>
-        p.map((value, k) => (k % 2 === 0 ? Math.hypot(value - middle, p[k + 1] - middle) : 0)),
-      ),
-    ),
-  );
-  const scale = (SAFE_RADIUS - SAFE_MARGIN) / reach;
+  const scale = VISIBLE / DESIGN;
   const offset = GRID / 2 - middle * scale;
   const matrix = [scale, 0, 0, scale, offset, offset];
   return {

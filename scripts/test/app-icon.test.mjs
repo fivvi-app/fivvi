@@ -9,7 +9,6 @@ import {
   FIVE_PATHS,
   flatten,
   parsePath,
-  parseTransform,
   renderIcons,
   transformPath,
 } from '../app-icon.mjs';
@@ -28,6 +27,8 @@ const IOS_SET = 'apps/ios/FivviPro/Assets.xcassets/AppIcon.appiconset';
 const IOS_ICON = `${IOS_SET}/AppIcon.png`;
 const PLAY_ICON = 'apps/android/app/src/main/ic_launcher-playstore.png';
 const RES = 'apps/android/app/src/main/res';
+/** Android: the 100 unit design on the 72 dp the launcher shows of the 108 dp layer. */
+const ANDROID_SCALE = 72 / 100;
 
 const rgb = (hex) => [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16));
 const pixel = (png, x, y) => [
@@ -52,10 +53,6 @@ const near = (actual, expected, tolerance, message) =>
   );
 const close = (actual, expected, tolerance = 1e-9, message = '') =>
   assert.ok(Math.abs(actual - expected) <= tolerance, `${message} ${actual} is not ${expected}`);
-const apply = (matrix, [x, y]) => [
-  matrix[0] * x + matrix[2] * y + matrix[4],
-  matrix[1] * x + matrix[3] * y + matrix[5],
-];
 /** The coordinates of a path in the Android `pathData` form (M, L, C, Q and Z, absolute), as a flat list. */
 const androidPoints = (pathData) => parsePath(pathData).flatMap((command) => command.slice(1));
 /** The paths of an Android vector: the data, the plain fill, the gradient's ends and its colours. */
@@ -199,18 +196,10 @@ describe('E020 AC1: the path data of the day dial is handled exactly', () => {
     assert.throws(() => parsePath('M1 2 z 3 4'), /number/);
   });
 
-  it('parses transforms and applies them left to right, outermost first', () => {
-    const matrix = parseTransform('translate(10 20) scale(2)');
-    assert.deepEqual(apply(matrix, [1, 1]), [12, 22]);
-    assert.deepEqual(apply(parseTransform('scale(2) translate(10,20)'), [1, 1]), [22, 42]);
-    assert.deepEqual(apply(parseTransform('translate(5) scale(1,-1)'), [1, 2]), [6, -2]);
-    assert.throws(() => parseTransform('rotate(10)'), /transform/);
-  });
-
   it('applies a transform to every point of a path, control points included', () => {
     const moved = transformPath(
       parsePath('M0 0 C1 0 2 1 3 3 Q1 2 3 4 Z'),
-      parseTransform('translate(1 1) scale(2,-1)'),
+      [2, 0, 0, -1, 1, 1],
     );
     assert.deepEqual(moved, [['M', 1, 1], ['C', 3, 1, 5, 0, 7, -2], ['Q', 3, -1, 7, -3], ['Z']]);
   });
@@ -486,9 +475,8 @@ describe('E020 AC3: the Android adaptive icon is the day dial in the safe zone',
         original[i].map(([command]) => command),
       );
     });
-    // the first point fixes the scale (about the middle of the design, 50, 50, moved to 54, 54)
-    const scale = (drawn[0][0][1] - 54) / (original[0][0][1] - 50);
-    assert.ok(scale > 0.9 && scale < 1, `scale ${scale}`);
+    // the 100 unit design on the 72 dp visible area of the layer: 0.72 dp a unit, about its middle (50, 50), moved to 54, 54
+    const scale = ANDROID_SCALE;
     drawn.forEach((commands, i) => {
       const a = original[i].flatMap((command) => command.slice(1));
       const b = commands.flatMap((command) => command.slice(1));
@@ -496,20 +484,21 @@ describe('E020 AC3: the Android adaptive icon is the day dial in the safe zone',
         close(b[k], (value - 50) * scale + 54, 0.002, `sector ${i}, number ${k}`);
       }
     });
-    // and it fills the zone: the furthest point is within 0.2 dp of the edge
+    // the dial keeps the proportions of the reference (34 / 50 of the visible half, as on iOS and in the Play icon):
+    // the sectors reach 34 x 0.72 = 24.5 dp from the middle, their control points a little further, and the mask edge is 36 dp
     const reach = Math.max(
       ...drawn.flatMap((commands) => {
         const p = commands.flatMap((command) => command.slice(1));
         return p.filter((_, k) => k % 2 === 0).map((x, k) => Math.hypot(x - 54, p[2 * k + 1] - 54));
       }),
     );
-    assert.ok(reach > 32.7, `the furthest point is ${reach} from the middle`);
+    assert.ok(reach > 24 && reach < 26, `the furthest point is ${reach} dp from the middle`);
   });
 
   it('the track is a ring around the middle, 7.14 wide in the design', () => {
     const [track] = androidPaths(layer('foreground'));
     const sectors = androidPaths(layer('foreground')).slice(1);
-    const scale = (parsePath(sectors[0].d)[0][1] - 54) / (parsePath(FIVE_PATHS[0])[0][1] - 50);
+    const scale = ANDROID_SCALE;
     const polylines = flatten(parsePath(track.d), 0.01);
 
     assert.equal(polylines.length, 2);
