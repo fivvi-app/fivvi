@@ -32,20 +32,21 @@ The wordmark is heavy, rounded and leans forward, with swelling strokes: playful
 | App icon track | `#E4E4EA` | white at 10% |
 | App icon five | Pink gradient in one hue: `#FF4F7B` at the top to `#C8103D` at the bottom | the same |
 | Tinted icon | Background `#4A4A4E` to `#1E1E20`, the five in white | |
+| Fivvi Pro letters (PRO) | `#1C1C1E` | `#FFFFFF`, also in the tinted icon |
 
 Only Move pink `#E6164A` (the accent, [`visual-direction.md`](../visual-direction.md)) and white are design tokens. The other colours belong to the logo alone: they are not tokens and are not used in the UI. Gradients stay in one hue.
 
 ## How to use it
 
 - **Clear space:** keep at least the height of an i dot free around the logo.
-- **Smallest size:** the wordmark from 20 px high on a screen; the app icon reads from 29 px (a settings row).
+- **Smallest size:** the wordmark from 20 px high on a screen; the app icon reads from 29 px (a settings row); PRO in the Fivvi Pro icon reads from about 40 px, and below that the name under the icon carries it.
 - **Keep it whole:** the spark, the dots and the letters always go together, in these colours. The letters are never pink.
 - **Don't:** stretch, rotate, outline, add shadows or effects, set it in another font, or place it on a busy photo without a calm area.
 - **The app icon** is the day dial B2: never the wordmark or the vv in an icon shape.
 
 ## The app icon: the day dial
 
-On 8 November 2026 the owner chose the day dial as the app icon, drawn the way Apple draws its own icons: one object, no letters. The dial of a day with **five booked hours** in pink: what Fivvi does (a planned day full of sessions), with a quiet nod to *five* and the high five. It replaces the vv app icon; the vv wordmark stays the logo.
+On 8 November 2026 the owner chose the day dial as the app icon, drawn the way Apple draws its own icons: one object, with letters only in the Fivvi Pro version. The dial of a day with **five booked hours** in pink: what Fivvi does (a planned day full of sessions), with a quiet nod to *five* and the high five. It replaces the vv app icon; the vv wordmark stays the logo.
 
 | Version | What | Files |
 |---|---|---|
@@ -56,12 +57,12 @@ On 8 November 2026 the owner chose the day dial as the app icon, drawn the way A
 
 Each version has:
 
-- `layers/`: the layers for Icon Composer, 1024 × 1024, transparent and unmasked: `1-background.svg`, `2-track.svg` (B2) or `2-hours.svg` (B), and `3-five.svg`. They are flat on purpose: iOS 26 adds the Liquid Glass itself (the rim, depth, the clear look) and makes the dark and tinted icons from them, so no gloss is baked in.
-- `fivvi-day-dial-<version>-{light,dark,pink,tinted}.svg`: previews of the layers composed and masked, to look at and share.
+- `layers/`: the layers for Icon Composer, 1024 × 1024, transparent and unmasked: `1-background.svg`, `2-track.svg` (B2 and B2 Pro) or `2-hours.svg` (B), `3-five.svg`, and for B2 Pro also `4-pro.svg`. They are flat on purpose: iOS 26 adds the Liquid Glass itself (the rim, depth, the clear look) and makes the dark and tinted icons from them, so no gloss is baked in.
+- `fivvi-day-dial-<version>-{light,dark,pink,tinted}.svg`: previews of the layers composed and masked, to look at and share (B2 Pro has light, dark and tinted).
 
 The five are the hours at 11, 12, 3, 6 and 7 on the dial, clockwise from the top. The pink is the gradient of the app icon (`#FF4F7B` to `#C8103D`); white on the pink and tinted previews.
 
 ## Still to do
 
-- The app icons in `apps/ios` and `apps/android` still show the placeholder "F": `scripts/app-icon.mjs` will draw the day dial B2 (issue #666).
+- The app icons in `apps/ios` and `apps/android` still show the placeholder "F": `scripts/app-icon.mjs` will draw the day dial B2 (issue #666), and then PRO in its centre, since these are the Fivvi Pro apps (issue #672).
 - The website design (`docs/design/website`) and the public website in `apps/web` still show the text mark; they get the wordmark and the day dial favicon (issue #669). The prototype already shows the day dial.
