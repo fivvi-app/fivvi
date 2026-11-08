@@ -1,18 +1,21 @@
 #!/usr/bin/env node
-// The app icon of Fivvi Pro on both platforms, generated from one source: the Fivvi logo mark, the owner's choice of
-// 7 November 2026 (E020, #666; docs/design/brand/README.md). The mark is the traced path of
-// docs/design/brand/fivvi-mark-white.svg, the four `d` strings below copied unchanged (the owner keeps the traced
-// shapes, never a redraw). They are copied, not read from the brand folder at run time, because the root tests are
-// cached by turbo on their `inputs` (turbo.json), which do not list docs/design/brand. The colours come from
-// packages/design-tokens: Move pink (`color.action.primary.bg`) and white (`.fg`). The other stops of the gradients
-// belong to the logo alone (LOGO below), as in the brand README.
+// The app icon of Fivvi Pro on both platforms, generated from one source: the day dial B2, the owner's choice of
+// 8 November 2026 (E020, #666; the vv wordmark stays the brand logo, only the app icon is the dial). Three layers in a
+// 100 x 100 box: the background gradient, the track (a ring around the middle) and the five sectors of the dial. The
+// five `d` strings below are copied unchanged from docs/design/brand/day-dial/b2/layers/3-five.svg (the owner keeps the
+// drawn shapes, never a redraw). They are copied, not read from the brand folder at run time, because the root tests
+// are cached by turbo on their `inputs` (turbo.json), which do not list docs/design/brand. The track is a circle
+// (centre 50, 50, radius 25.5, stroke 7.14), drawn here as the ring between the radii 21.93 and 29.07. The colours are
+// the logo's own (LOGO below), not design tokens: the pink of the sectors is a gradient from #FF4F7B to #C8103D, not
+// Move pink (#E6164A), so the generator reads no token file.
 //
 //   node scripts/app-icon.mjs            write every icon file (pnpm app-icon); scripts/test/app-icon.test.mjs fails when a
 //                                        committed file differs from what the source generates
 //
 // Output (generated, never edited by hand):
 //   apps/ios/FivviPro/Assets.xcassets/AppIcon.appiconset/AppIcon{,-Dark,-Tinted}.png   1024 px, RGB without alpha
-//                                        (App Store): fivvi-app-icon.svg, fivvi-app-icon-dark.svg, fivvi-app-icon-tinted.svg
+//                                        (App Store): fivvi-day-dial-b2-{light,dark,tinted}.svg without the rounded
+//                                        clip, which iOS applies itself; with the soft shadow under the sectors
 //   apps/android/app/src/main/res/drawable/ic_launcher_{background,foreground,monochrome}.xml, vector layers
 //   apps/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml   the adaptive icon with its monochrome layer
 //   apps/android/app/src/main/ic_launcher-playstore.png                512 px, RGB (Google Play listing)
@@ -22,7 +25,6 @@ import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crc32, deflateSync, inflateSync } from 'node:zlib';
-import { readTokenSource } from '@fivvi/design-tokens/source';
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -30,79 +32,130 @@ const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..');
 const GRID = 108;
 /** The safe zone: a circle of this radius around the middle of the layer. */
 const SAFE_RADIUS = 33;
-/** The mark keeps this far (in dp) inside the safe zone, so that rounding the coordinates never crosses it. */
+/** The dial keeps this far (in dp) inside the safe zone, so that rounding the coordinates never crosses it. */
 const SAFE_MARGIN = 0.1;
 
-/** The `d` of the four paths of docs/design/brand/fivvi-mark-white.svg, copied unchanged (potrace: m, c and z only). */
-export const MARK_PATHS = [
-  `M652 1122 c-16 -2 -28 -11 -35 -25 -6 -11 -6 -5 -2 -141 1 -41 2 -47
-14 -58 19 -19 57 -15 71 7 7 11 8 13 10 95 1 23 2 51 3 61 0 23 -1 30 -8 40
--11 17 -29 24 -53 21z`,
-  `M421 1005 c-19 -3 -37 -21 -40 -40 -3 -18 2 -30 16 -43 22 -20 51
--46 62 -56 11 -11 35 -33 42 -38 9 -8 24 -10 37 -6 27 10 39 39 27 66 -1 3 -7
-10 -22 24 -56 55 -85 83 -91 87 -7 5 -22 8 -31 6z`,
-  `M877 1005 c-11 -2 -13 -4 -64 -56 -28 -28 -52 -53 -54 -56 -12 -17
--12 -40 2 -56 10 -12 19 -16 34 -16 19 0 20 1 66 45 14 13 30 29 36 34 30 29
-32 31 37 44 3 6 3 20 1 27 -5 12 -16 24 -28 31 -7 3 -8 3 -17 4 -5 0 -11 0
--13 -1z`,
-  `M754 774 c-11 -1 -18 -3 -33 -8 -22 -9 -45 -31 -54 -53 -2 -6 -4 -13
--5 -15 -1 -5 -1 -5 -3 -5 -1 1 -2 3 -2 6 -1 7 -7 22 -12 30 -5 9 -19 23 -27
-29 -26 16 -57 20 -85 11 -20 -7 -30 -13 -44 -27 -27 -29 -41 -60 -78 -179 -9
--28 -12 -38 -16 -50 -1 -4 -4 -13 -6 -19 -2 -7 -4 -15 -5 -17 0 -2 -3 -11 -5
--20 -4 -14 -7 -23 -12 -40 -1 -4 -4 -12 -5 -19 -2 -7 -4 -12 -4 -13 -2 -1 -4
-1 -4 3 0 2 -1 5 -1 7 -1 2 -3 8 -5 15 -2 6 -4 12 -5 14 -1 1 -3 8 -5 15 -2 6
--6 17 -8 25 -3 7 -7 18 -9 24 -2 6 -5 14 -6 17 -2 4 -3 7 -3 8 0 0 -1 2 -1 4
--2 4 -3 7 -8 21 -2 5 -4 10 -5 12 0 1 -3 7 -6 14 -10 25 -24 49 -37 61 -37 35
--90 41 -134 14 -45 -28 -64 -85 -45 -134 5 -12 12 -29 22 -49 2 -5 4 -9 4 -9
-0 -1 2 -4 4 -9 2 -4 6 -14 10 -22 3 -8 7 -17 9 -20 1 -3 4 -9 6 -13 1 -4 4
--10 5 -13 2 -3 5 -10 7 -14 9 -21 12 -28 18 -41 4 -8 7 -14 7 -15 0 0 4 -9 18
--39 26 -57 45 -94 58 -112 23 -32 56 -55 90 -63 18 -5 42 -5 61 0 10 3 27 9
-30 12 1 0 2 1 2 1 3 0 20 13 32 24 25 25 36 47 67 126 15 37 16 39 27 69 5 13
-12 33 16 43 8 22 28 82 39 114 10 30 22 71 29 92 5 17 17 62 19 72 2 11 4 10
-6 0 1 -13 7 -38 20 -89 3 -11 11 -38 14 -50 4 -12 12 -41 17 -55 1 -7 5 -19 7
--26 3 -8 7 -22 10 -31 3 -9 8 -25 11 -35 3 -10 7 -23 9 -28 2 -6 7 -23 12 -37
-5 -15 10 -30 11 -34 1 -4 4 -13 7 -21 3 -8 6 -16 6 -17 0 -1 2 -5 3 -8 1 -3 3
--7 3 -8 0 -1 1 -4 2 -5 0 -1 2 -5 3 -8 7 -18 18 -38 28 -50 8 -11 25 -28 33
--33 3 -2 8 -5 9 -6 5 -4 20 -10 29 -13 39 -13 81 -7 117 17 16 10 40 38 54 62
-1 2 3 6 4 8 10 18 24 45 64 126 11 23 38 76 58 117 46 93 48 97 48 125 0 51
--39 97 -89 106 -12 2 -36 1 -46 -2 -26 -8 -45 -23 -61 -49 -6 -9 -22 -41 -22
--43 0 -1 -5 -11 -10 -22 -1 -2 -4 -10 -8 -19 -3 -9 -6 -17 -7 -18 0 -2 -2 -5
--3 -7 -1 -3 -3 -6 -3 -7 -3 -7 -5 -13 -9 -23 -3 -7 -5 -13 -6 -14 -6 -13 -8
--20 -16 -39 -2 -8 -5 -14 -5 -15 -2 -2 -4 -1 -4 1 0 3 -3 21 -8 40 0 4 -2 12
--4 19 -1 7 -3 17 -5 23 -1 6 -3 15 -5 21 -1 6 -3 14 -4 19 -2 8 -4 18 -9 37
--3 13 -11 45 -13 53 0 2 -2 7 -3 11 -10 40 -18 65 -28 83 -2 5 -5 10 -6 12 -1
-1 -4 7 -8 12 -24 39 -62 58 -105 55z`,
-];
-/** The transform of the group that holds them in that file (potrace: y up, 1/3 scale). */
-export const POTRACE_TRANSFORM =
-  'scale(0.333333) translate(0.000000,1170.000000) scale(1.000000,-1.000000)';
-/** Where the group sits in the 1024 px app icons of the brand folder (fivvi-app-icon*.svg). */
-const ICON_PLACEMENT = 'translate(180.9 224.1) scale(1.5152)';
-/** The size of those SVGs. */
-const ICON_SIZE = 1024;
+/** The size of the design: the SVGs of docs/design/brand/day-dial/b2 draw in 100 x 100 and scale to the icon. */
+const DESIGN = 100;
 
-/** Colours that belong to the logo alone: not design tokens, not used in the UI (docs/design/brand/README.md). */
+/** The `d` of the five sectors of docs/design/brand/day-dial/b2/layers/3-five.svg, copied unchanged. */
+export const FIVE_PATHS = [
+  `M36.45 18.82 A34 34 0 0 1 46.14 16.22 Q48.53 16.03 48.64 18.43 L49.16 30.62 Q49.27 33.02 46.88 33.29 A17 17 0 0 0 44.34 33.97 Q42.14 34.92 41.03 32.80 L35.39 21.98 Q34.29 19.85 36.45 18.82Z`,
+  `M53.86 16.22 A34 34 0 0 1 63.55 18.82 Q65.71 19.85 64.61 21.98 L58.97 32.80 Q57.86 34.92 55.66 33.97 A17 17 0 0 0 53.12 33.29 Q50.73 33.02 50.84 30.62 L51.36 18.43 Q51.47 16.03 53.86 16.22Z`,
+  `M83.78 53.86 A34 34 0 0 1 81.18 63.55 Q80.15 65.71 78.02 64.61 L67.20 58.97 Q65.08 57.86 66.03 55.66 A17 17 0 0 0 66.71 53.12 Q66.98 50.73 69.38 50.84 L81.57 51.36 Q83.97 51.47 83.78 53.86Z`,
+  `M46.14 83.78 A34 34 0 0 1 36.45 81.18 Q34.29 80.15 35.39 78.02 L41.03 67.20 Q42.14 65.08 44.34 66.03 A17 17 0 0 0 46.88 66.71 Q49.27 66.98 49.16 69.38 L48.64 81.57 Q48.53 83.97 46.14 83.78Z`,
+  `M29.77 77.33 A34 34 0 0 1 22.67 70.23 Q21.32 68.25 23.34 66.97 L33.63 60.42 Q35.66 59.13 37.08 61.05 A17 17 0 0 0 38.95 62.92 Q40.87 64.34 39.58 66.37 L33.03 76.66 Q31.75 78.68 29.77 77.33Z`,
+];
+
+/** The track: a circle in the design, stroked; its outline is the ring between the two radii. */
+const TRACK = { centre: DESIGN / 2, radius: 25.5, width: 7.14 };
+/** The ring as path data: the outer circle clockwise on screen like the sectors, the inner one back, so that it is a ring. */
+const TRACK_PATH = (() => {
+  const { centre: c, radius, width } = TRACK;
+  const [outer, inner] = [radius + width / 2, radius - width / 2].map((r) => Number(r.toFixed(4)));
+  const circle = (r, sweep) =>
+    `M${c - r} ${c}A${r} ${r} 0 1 ${sweep} ${c + r} ${c}A${r} ${r} 0 1 ${sweep} ${c - r} ${c}Z`;
+  return `${circle(outer, 1)} ${circle(inner, 0)}`;
+})();
+
+/** The colours of the day dial: the logo's own, not design tokens (the pink here is not Move pink, #E6164A). */
 const LOGO = {
-  pinkLight: '#ff4f7b',
-  pinkDark: '#b80f3a',
-  nearBlackTop: '#2a2a2d',
-  nearBlackBottom: '#0b0b0c',
-  greyTop: '#6e6e73',
-  greyBottom: '#3a3a3c',
+  pinkTop: '#ff4f7b',
+  pinkBottom: '#c8103d',
+  trackLight: '#e4e4ea',
+  white: '#ffffff',
 };
-/** The soft light at the top right of the main icon (the radial gradient of fivvi-app-icon.svg). */
-const LIGHT = { cx: 0.88, cy: 0.08, r: 0.7, opacity: 0.3 };
+/** The three appearances: background gradient (top right to bottom left), track, the sectors and the shadow's opacity. */
+const APPEARANCES = {
+  light: {
+    background: ['#ffffff', '#ececf1'],
+    track: { colour: LOGO.trackLight, alpha: 1 },
+    five: [LOGO.pinkTop, LOGO.pinkBottom],
+    shadow: 0.1,
+  },
+  dark: {
+    background: ['#2c2c2e', '#0b0b0c'],
+    track: { colour: LOGO.white, alpha: 0x1a / 255 },
+    five: [LOGO.pinkTop, LOGO.pinkBottom],
+    shadow: 0.35,
+  },
+  tinted: {
+    background: ['#4a4a4e', '#1e1e20'],
+    track: { colour: LOGO.white, alpha: 0x1f / 255 },
+    five: [LOGO.white, LOGO.white],
+    shadow: 0.35,
+  },
+};
+/** The background gradient of the SVGs in objectBoundingBox units, from the top right to the bottom left. */
+const BACKGROUND_VECTOR = [0.8, 0, 0.2, 1];
+/** The soft shadow under the sectors: down by `dy`, a Gaussian blur of `deviation`, in design units. */
+const SHADOW = { dy: 1.2, deviation: 1.4 };
 
 // ---- SVG path data: parsing, transforms and flattening -------------------------------------------------------------
 
-const COMMAND_ARGUMENTS = { m: 2, l: 2, c: 6, z: 0 };
+const COMMAND_ARGUMENTS = { m: 2, l: 2, c: 6, q: 4, a: 7, z: 0 };
 const TOKEN = /[a-zA-Z]|[-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?/g;
 const isCommand = (token) => /^[a-zA-Z]$/.test(token);
 
 /**
- * The commands of SVG path data, as absolute ones: ['M', x, y], ['L', x, y], ['C', x1, y1, x2, y2, x, y] and ['Z'].
- * Reads what potrace writes and its relatives: m, l, c, z in both cases, with implicit repeats (after a move they are
- * lines) and compact numbers. Anything else (arcs, shorthand curves) is refused.
+ * An elliptical arc as cubic Beziers, one for every quarter turn at most (SVG 1.1, F.6.5: the end point form with the
+ * large-arc and sweep flags, turned into the centre form). Cubics keep the arc exact enough and stay one kind of curve
+ * for Android's `pathData`. No radius draws a line, the same end point nothing, and radii that are too small grow.
+ */
+function arcToCubics([x1, y1], rx, ry, degrees, large, sweep, [x2, y2]) {
+  if (x1 === x2 && y1 === y2) return [];
+  if (rx === 0 || ry === 0) return [['L', x2, y2]];
+  const [cos, sin] = [Math.cos((degrees * Math.PI) / 180), Math.sin((degrees * Math.PI) / 180)];
+  const [dx, dy] = [(x1 - x2) / 2, (y1 - y2) / 2];
+  const [px, py] = [cos * dx + sin * dy, -sin * dx + cos * dy];
+  const grow = Math.sqrt((px / Math.abs(rx)) ** 2 + (py / Math.abs(ry)) ** 2);
+  const [a, b] =
+    grow > 1 ? [Math.abs(rx) * grow, Math.abs(ry) * grow] : [Math.abs(rx), Math.abs(ry)];
+  const squares = a * a * py * py + b * b * px * px;
+  const factor =
+    (large === sweep ? -1 : 1) * Math.sqrt(Math.max(0, (a * a * b * b - squares) / squares));
+  const [cx, cy] = [(factor * a * py) / b, (-factor * b * px) / a];
+  const [centreX, centreY] = [
+    cos * cx - sin * cy + (x1 + x2) / 2,
+    sin * cx + cos * cy + (y1 + y2) / 2,
+  ];
+  const start = Math.atan2((py - cy) / b, (px - cx) / a);
+  let sweepAngle = Math.atan2((-py - cy) / b, (-px - cx) / a) - start;
+  if (!sweep && sweepAngle > 0) sweepAngle -= 2 * Math.PI;
+  if (sweep && sweepAngle < 0) sweepAngle += 2 * Math.PI;
+  const parts = Math.max(1, Math.ceil(Math.abs(sweepAngle) / (Math.PI / 2) - 1e-9));
+  const step = sweepAngle / parts;
+  const reach = (4 / 3) * Math.tan(step / 4);
+  const point = (t) => [
+    centreX + a * Math.cos(t) * cos - b * Math.sin(t) * sin,
+    centreY + a * Math.cos(t) * sin + b * Math.sin(t) * cos,
+  ];
+  const slope = (t) => [
+    -a * Math.sin(t) * cos - b * Math.cos(t) * sin,
+    -a * Math.sin(t) * sin + b * Math.cos(t) * cos,
+  ];
+  const cubics = [];
+  for (let k = 0; k < parts; k++) {
+    const [t0, t1] = [start + k * step, start + (k + 1) * step];
+    const [from, to, slope0, slope1] = [point(t0), point(t1), slope(t0), slope(t1)];
+    cubics.push([
+      'C',
+      from[0] + reach * slope0[0],
+      from[1] + reach * slope0[1],
+      to[0] - reach * slope1[0],
+      to[1] - reach * slope1[1],
+      // the last one ends exactly where the path says, whatever the rounding
+      ...(k === parts - 1 ? [x2, y2] : to),
+    ]);
+  }
+  return cubics;
+}
+
+/**
+ * The commands of SVG path data, as absolute ones: ['M', x, y], ['L', x, y], ['C', x1, y1, x2, y2, x, y],
+ * ['Q', x1, y1, x, y] and ['Z']. Reads m, l, c, q, a and z in both cases, with implicit repeats (after a move they are
+ * lines) and compact numbers; an arc comes out as cubics (flags must be separated from the numbers). Anything else
+ * (h, v, shorthand curves) is refused.
  */
 export function parsePath(d) {
   const tokens = d.match(TOKEN) ?? [];
@@ -132,17 +185,22 @@ export function parsePath(d) {
       throw new Error(`command ${command} needs ${count} numbers`);
     i += count;
     const relative = command === kind;
-    const points = numbers.map(
-      (value, k) => Number(value) + (relative ? (k % 2 === 0 ? x : y) : 0),
+    // an arc's radii, rotation and flags are never relative; only the coordinates are
+    const first = kind === 'a' ? 5 : 0;
+    const values = numbers.map(
+      (value, k) => Number(value) + (relative && k >= first ? (k % 2 === first % 2 ? x : y) : 0),
     );
     if (kind === 'm') {
-      commands.push(['M', ...points]);
-      [startX, startY] = points;
+      commands.push(['M', ...values]);
+      [startX, startY] = values;
       command = relative ? 'l' : 'L';
+    } else if (kind === 'a') {
+      const [rx, ry, degrees, large, sweep, endX, endY] = values;
+      commands.push(...arcToCubics([x, y], rx, ry, degrees, large, sweep, [endX, endY]));
     } else {
-      commands.push([kind.toUpperCase(), ...points]);
+      commands.push([kind.toUpperCase(), ...values]);
     }
-    [x, y] = points.slice(-2);
+    [x, y] = values.slice(-2);
   }
   return commands;
 }
@@ -207,7 +265,7 @@ function cubicPoints([x0, y0], [x1, y1], [x2, y2], [x3, y3], tolerance) {
   return points;
 }
 
-/** The sub-paths of absolute commands as closed polylines (the Beziers flattened to within `tolerance`). */
+/** The sub-paths of absolute commands as closed polylines (the curves flattened to within `tolerance`). */
 export function flatten(commands, tolerance = 0.05) {
   const polylines = [];
   let current = null;
@@ -221,8 +279,21 @@ export function flatten(commands, tolerance = 0.05) {
       current.push(
         ...cubicPoints(current.at(-1), [p[0], p[1]], [p[2], p[3]], [p[4], p[5]], tolerance),
       );
+    } else if (command === 'Q') {
+      // raised to a cubic: the control points a third of the way from each end to the quadratic's one
+      const [x0, y0] = current.at(-1);
+      const [qx, qy] = [p[0], p[1]];
+      current.push(
+        ...cubicPoints(
+          [x0, y0],
+          [x0 + (2 / 3) * (qx - x0), y0 + (2 / 3) * (qy - y0)],
+          [p[2] + (2 / 3) * (qx - p[2]), p[3] + (2 / 3) * (qy - p[3])],
+          [p[2], p[3]],
+          tolerance,
+        ),
+      );
     } else if (command === 'Z') {
-      // the next sub-path of potrace data starts with its own M; a drawing command after Z would restart at the start
+      // the next sub-path starts with its own M; a drawing command after Z would restart at the start
       const [start] = current;
       current = [start];
       polylines.push(current);
@@ -266,36 +337,44 @@ export function coverage(polylines, size, samples = 4) {
   return counts.map((count) => count / (samples * samples));
 }
 
-// ---- The mark in the app icons --------------------------------------------------------------------------------------
+// ---- The day dial in the app icons ----------------------------------------------------------------------------------
 
-/** The mark's sub-paths in the coordinates of the brand SVGs' icon group (y down). */
-const markCommands = MARK_PATHS.flatMap((d) =>
-  transformPath(parsePath(d), parseTransform(POTRACE_TRANSFORM)),
-);
+/** The sectors and the ring in the coordinates of the design (100 x 100, y down). */
+const fiveCommands = FIVE_PATHS.map(parsePath);
+const trackCommands = parsePath(TRACK_PATH);
 
-/** The mark as polylines in the pixels of a `size` px icon laid out like fivvi-app-icon.svg. */
-function markPolylines(size) {
-  const matrix = parseTransform(`scale(${size / ICON_SIZE}) ${ICON_PLACEMENT}`);
-  return flatten(transformPath(markCommands, matrix), 0.02);
+/** The polylines of `commands` in the pixels of a `size` px icon. */
+const inPixels = (commands, size) =>
+  flatten(transformPath(commands, [size / DESIGN, 0, 0, size / DESIGN, 0, 0]), 0.02);
+
+/** The vertical extent of polylines: an SVG gradient in objectBoundingBox units runs over the shape's own box. */
+function verticalExtent(polylines) {
+  const ys = polylines.flat().map(([, y]) => y);
+  return [Math.min(...ys), Math.max(...ys)];
 }
 
-/** The mark fitted into the safe zone of the 108 dp layer: the same shape, centred on the middle of its extent. */
-function androidMark() {
-  const points = flatten(markCommands, 0.05).flat();
-  const [xs, ys] = [points.map(([x]) => x), points.map(([, y]) => y)];
-  const [centreX, centreY] = [
-    (Math.min(...xs) + Math.max(...xs)) / 2,
-    (Math.min(...ys) + Math.max(...ys)) / 2,
-  ];
-  // control points count: the curve stays inside their hull, but a launcher is not told that
+/**
+ * The dial fitted into the safe zone of the 108 dp layer: the design scaled about its middle (50, 50), which goes to
+ * the middle of the layer, so that no point (control points too: a launcher is not told the curve stays inside their
+ * hull) is further from the middle than the safe zone.
+ */
+function androidDial() {
+  const middle = DESIGN / 2;
+  const all = [trackCommands, ...fiveCommands];
   const reach = Math.max(
-    ...markCommands.flatMap(([, ...p]) =>
-      p.map((value, k) => (k % 2 === 0 ? Math.hypot(value - centreX, p[k + 1] - centreY) : 0)),
+    ...all.flatMap((commands) =>
+      commands.flatMap(([, ...p]) =>
+        p.map((value, k) => (k % 2 === 0 ? Math.hypot(value - middle, p[k + 1] - middle) : 0)),
+      ),
     ),
   );
   const scale = (SAFE_RADIUS - SAFE_MARGIN) / reach;
-  const matrix = [scale, 0, 0, scale, GRID / 2 - centreX * scale, GRID / 2 - centreY * scale];
-  return transformPath(markCommands, matrix);
+  const offset = GRID / 2 - middle * scale;
+  const matrix = [scale, 0, 0, scale, offset, offset];
+  return {
+    track: transformPath(trackCommands, matrix),
+    five: fiveCommands.map((commands) => transformPath(commands, matrix)),
+  };
 }
 
 /** The commands as Android `pathData`, absolute, with at most three decimals. */
@@ -311,26 +390,13 @@ const pathData = (commands) =>
 
 // ---- Colours and the raster -----------------------------------------------------------------------------------------
 
-/** The token `path` of the light palette with references (`{color.base.white}`) followed, as `#rrggbb`. */
-function colour(tree, path) {
-  let value = path.split('.').reduce((node, key) => node?.[key], tree)?.$value;
-  while (typeof value === 'string' && value.startsWith('{')) {
-    value = value
-      .slice(1, -1)
-      .split('.')
-      .reduce((node, key) => node?.[key], tree)?.$value;
-  }
-  if (!/^#[0-9a-fA-F]{6}$/.test(value ?? ''))
-    throw new Error(`token ${path} is not a #rrggbb colour: ${value}`);
-  return value.toLowerCase();
-}
-
 const rgb = (hex) => [1, 3, 5].map((i) => Number.parseInt(hex.slice(i, i + 2), 16));
 const argb = (hex, alpha = 'FF') => `#${alpha}${hex.slice(1).toUpperCase()}`;
 const clamp01 = (value) => Math.min(1, Math.max(0, value));
+const mix = (from, to, share) => from.map((value, c) => value + (to[c] - value) * share);
 
 /**
- * The colour at (u, v), both 0 to 1 across the square, of an SVG linear gradient in objectBoundingBox units from
+ * The colour at (u, v), both 0 to 1 across the box, of an SVG linear gradient in objectBoundingBox units from
  * (x1, y1) to (x2, y2) with evenly spaced `stops` (hex colours).
  */
 function linearGradient([x1, y1, x2, y2], stops) {
@@ -340,34 +406,66 @@ function linearGradient([x1, y1, x2, y2], stops) {
     const t = clamp01(((u - x1) * dx + (v - y1) * dy) / (dx * dx + dy * dy));
     const position = t * (colours.length - 1);
     const index = Math.min(Math.floor(position), colours.length - 2);
-    const share = position - index;
-    return colours[index].map((from, c) => from + (colours[index + 1][c] - from) * share);
+    return mix(colours[index], colours[index + 1], position - index);
   };
 }
 
-/** The main icon's background: the pink gradient with the soft light at the top right over it. */
-function pinkBackground(pink) {
-  const gradient = linearGradient([1, 0, 0.25, 1], [LOGO.pinkLight, pink, LOGO.pinkDark]);
-  return (u, v) => {
-    const alpha = LIGHT.opacity * (1 - clamp01(Math.hypot(u - LIGHT.cx, v - LIGHT.cy) / LIGHT.r));
-    return gradient(u, v).map((value) => value + (255 - value) * alpha);
+/** `values` (size x size, row by row) blurred by a Gaussian of standard deviation `sigma` px, zero beyond the edge. */
+function blur(values, size, sigma) {
+  const radius = Math.ceil(3 * sigma);
+  const kernel = Array.from({ length: 2 * radius + 1 }, (_, k) =>
+    Math.exp(-((k - radius) ** 2) / (2 * sigma * sigma)),
+  );
+  const total = kernel.reduce((sum, weight) => sum + weight, 0);
+  const pass = (source, step, across) => {
+    const result = new Float64Array(size * size);
+    for (let line = 0; line < size; line++) {
+      for (let k = 0; k < size; k++) {
+        let sum = 0;
+        for (let w = Math.max(0, radius - k); w <= Math.min(2 * radius, radius + size - 1 - k); w++)
+          sum += kernel[w] * source[line * across + (k + w - radius) * step];
+        result[line * across + k * step] = sum / total;
+      }
+    }
+    return result;
   };
+  return pass(pass(values, 1, size), size, 1);
 }
 
-/** A `size` px square: the `background(u, v)` with the mark in `foreground` over it, anti-aliased. */
-function raster(size, background, foreground) {
-  const covered = coverage(markPolylines(size), size);
-  const to = rgb(foreground);
+/**
+ * One appearance as a `size` px square (RGB, row by row): the background gradient, the track over it, the soft shadow
+ * of the five, and each sector with its own gradient from its top to its bottom, all anti-aliased.
+ */
+function raster(size, { background, track, five, shadow }) {
+  const scale = size / DESIGN;
+  const sectors = fiveCommands.map((commands) => inPixels(commands, size));
+  const fills = sectors.map((polylines) => {
+    const [top, bottom] = verticalExtent(polylines);
+    const gradient = linearGradient([0, 0, 0, 1], five);
+    return (y) => gradient(0, (y + 0.5 - top) / (bottom - top));
+  });
+  const covered = sectors.map((polylines) => coverage(polylines, size));
+  const ring = coverage(inPixels(trackCommands, size), size);
+  const shifted = sectors
+    .flat()
+    .map((polyline) => polyline.map(([x, y]) => [x, y + SHADOW.dy * scale]));
+  const shade = blur(coverage(shifted, size), size, SHADOW.deviation * scale);
+  const gradient = linearGradient(BACKGROUND_VECTOR, background);
+  const trackColour = rgb(track.colour);
   const pixels = Buffer.alloc(size * size * 3);
   for (let y = 0; y < size; y++) {
+    const fill = fills.map((at) => at(y));
     for (let x = 0; x < size; x++) {
-      const share = covered[y * size + x];
-      const from = background((x + 0.5) / size, (y + 0.5) / size);
-      for (let channel = 0; channel < 3; channel++) {
-        pixels[(y * size + x) * 3 + channel] = Math.round(
-          from[channel] + (to[channel] - from[channel]) * share,
-        );
-      }
+      const i = y * size + x;
+      let colour = gradient((x + 0.5) / size, (y + 0.5) / size);
+      colour = mix(colour, trackColour, ring[i] * track.alpha);
+      colour = colour.map((value) => value * (1 - shade[i] * shadow));
+      covered.forEach((share, s) => {
+        if (share[i] > 0) colour = mix(colour, fill[s], share[i]);
+      });
+      colour.forEach((value, channel) => {
+        pixels[i * 3 + channel] = Math.round(value);
+      });
     }
   }
   return pixels;
@@ -425,6 +523,7 @@ export function decodePng(file) {
   return { width, height, colorType, pixels };
 }
 
+const AAPT = '\n    xmlns:aapt="http://schemas.android.com/aapt"';
 const vector = (name, body, namespaces = '') => `<?xml version="1.0" encoding="utf-8"?>
 <!-- Generated by scripts/app-icon.mjs (${name}); never edit by hand. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"${namespaces}
@@ -435,63 +534,66 @@ const vector = (name, body, namespaces = '') => `<?xml version="1.0" encoding="u
 ${body}</vector>
 `;
 
-const markVector = (name, fill, commands) =>
-  vector(
-    name,
-    `    <path
+const number = (value) => Number(value.toFixed(3));
+const plainPath = (fill, d) => `    <path
         android:fillColor="${fill}"
-        android:pathData="${pathData(commands)}" />
-`,
-  );
+        android:pathData="${d}" />
+`;
 
-/** The background layer: the pink gradient and the soft light, as the 1024 px icon has them (API 24 and up; the icon is 26+). */
-function backgroundVector(pink) {
-  const stop = (offset, colourValue) =>
-    `                <item android:offset="${offset}" android:color="${colourValue}" />\n`;
-  const full = `M0,0H${GRID}V${GRID}H0Z`;
-  const light = Math.round(LIGHT.opacity * 255)
-    .toString(16)
-    .toUpperCase();
-  return vector(
-    'background',
-    `    <path android:pathData="${full}">
+/** A path filled with a linear gradient from (x1, y1) to (x2, y2) in the layer's coordinates (API 24 and up; the icon is 26+). */
+const gradientPath = (d, [x1, y1, x2, y2], stops) => `    <path android:pathData="${d}">
         <aapt:attr name="android:fillColor">
             <gradient
                 android:type="linear"
-                android:startX="${GRID * 1}"
-                android:startY="0"
-                android:endX="${GRID * 0.25}"
-                android:endY="${GRID}">
-${stop(0, argb(LOGO.pinkLight))}${stop(0.5, argb(pink))}${stop(1, argb(LOGO.pinkDark))}            </gradient>
+                android:startX="${number(x1)}"
+                android:startY="${number(y1)}"
+                android:endX="${number(x2)}"
+                android:endY="${number(y2)}">
+${stops.map((colour, k) => `                <item android:offset="${k / (stops.length - 1)}" android:color="${argb(colour)}" />\n`).join('')}            </gradient>
         </aapt:attr>
     </path>
-    <path android:pathData="${full}">
-        <aapt:attr name="android:fillColor">
-            <gradient
-                android:type="radial"
-                android:centerX="${Number((GRID * LIGHT.cx).toFixed(3))}"
-                android:centerY="${Number((GRID * LIGHT.cy).toFixed(3))}"
-                android:gradientRadius="${Number((GRID * LIGHT.r).toFixed(3))}">
-${stop(0, argb('#ffffff', light))}${stop(1, argb('#ffffff', '00'))}            </gradient>
-        </aapt:attr>
-    </path>
-`,
-    '\n    xmlns:aapt="http://schemas.android.com/aapt"',
+`;
+
+/** The background layer: the light gradient of the 1024 px icon over the whole layer. */
+const backgroundVector = () =>
+  vector(
+    'background',
+    gradientPath(
+      `M0,0H${GRID}V${GRID}H0Z`,
+      BACKGROUND_VECTOR.map((value) => value * GRID),
+      APPEARANCES.light.background,
+    ),
+    AAPT,
+  );
+
+/** The foreground layer: the track, then each sector with its own gradient over its own height. */
+function foregroundVector({ track, five }) {
+  const { track: ring, five: stops } = APPEARANCES.light;
+  return vector(
+    'foreground',
+    plainPath(argb(ring.colour), pathData(track)) +
+      five
+        .map((commands) => {
+          const [top, bottom] = verticalExtent(flatten(commands, 0.005));
+          const x = GRID / 2;
+          return gradientPath(pathData(commands), [x, top, x, bottom], stops);
+        })
+        .join(''),
+    AAPT,
   );
 }
+
+/** The monochrome layer: the track and the five as one shape; the ring and the sectors wind the same way, so nothing cancels. */
+const monochromeVector = ({ track, five }) =>
+  vector('monochrome', plainPath('#FF000000', pathData([...track, ...five.flat()])));
 
 const appIconSet = 'apps/ios/FivviPro/Assets.xcassets/AppIcon.appiconset';
 
 /** Every icon file as a map from its path in the repo to its content (a string or a Buffer). */
-export async function renderIcons(root = ROOT) {
-  const { light } = await readTokenSource(join(root, 'packages/design-tokens'));
-  const pink = colour(light, 'color.action.primary.bg');
-  const white = colour(light, 'color.action.primary.fg');
+export function renderIcons() {
   const res = 'apps/android/app/src/main/res';
-  const mark = androidMark();
-  const main = pinkBackground(pink);
-  const png = (size, background, foreground) =>
-    encodePng(size, raster(size, background, foreground));
+  const dial = androidDial();
+  const png = (size, appearance) => encodePng(size, raster(size, appearance));
   const image = (filename, appearance) => ({
     ...(appearance && { appearances: [{ appearance: 'luminosity', value: appearance }] }),
     filename,
@@ -519,19 +621,13 @@ export async function renderIcons(root = ROOT) {
         2,
       )}\n`,
     ],
-    [`${appIconSet}/AppIcon.png`, png(1024, main, white)],
-    [
-      `${appIconSet}/AppIcon-Dark.png`,
-      png(1024, linearGradient([0, 0, 0, 1], [LOGO.nearBlackTop, LOGO.nearBlackBottom]), pink),
-    ],
-    [
-      `${appIconSet}/AppIcon-Tinted.png`,
-      png(1024, linearGradient([0, 0, 0, 1], [LOGO.greyTop, LOGO.greyBottom]), white),
-    ],
-    ['apps/android/app/src/main/ic_launcher-playstore.png', png(512, main, white)],
-    [`${res}/drawable/ic_launcher_background.xml`, backgroundVector(pink)],
-    [`${res}/drawable/ic_launcher_foreground.xml`, markVector('foreground', argb(white), mark)],
-    [`${res}/drawable/ic_launcher_monochrome.xml`, markVector('monochrome', '#FF000000', mark)],
+    [`${appIconSet}/AppIcon.png`, png(1024, APPEARANCES.light)],
+    [`${appIconSet}/AppIcon-Dark.png`, png(1024, APPEARANCES.dark)],
+    [`${appIconSet}/AppIcon-Tinted.png`, png(1024, APPEARANCES.tinted)],
+    ['apps/android/app/src/main/ic_launcher-playstore.png', png(512, APPEARANCES.light)],
+    [`${res}/drawable/ic_launcher_background.xml`, backgroundVector()],
+    [`${res}/drawable/ic_launcher_foreground.xml`, foregroundVector(dial)],
+    [`${res}/drawable/ic_launcher_monochrome.xml`, monochromeVector(dial)],
     [
       `${res}/mipmap-anydpi-v26/ic_launcher.xml`,
       `<?xml version="1.0" encoding="utf-8"?>
@@ -546,12 +642,12 @@ export async function renderIcons(root = ROOT) {
   ]);
 }
 
-async function main(argv) {
-  const files = await renderIcons();
+function main(argv) {
   if (argv.length > 0) {
     console.error('Usage: node scripts/app-icon.mjs');
     return 2;
   }
+  const files = renderIcons();
   for (const [path, content] of files) {
     mkdirSync(dirname(join(ROOT, path)), { recursive: true });
     writeFileSync(join(ROOT, path), content);
@@ -561,4 +657,4 @@ async function main(argv) {
 }
 
 if (process.argv[1] === fileURLToPath(import.meta.url))
-  process.exitCode = await main(process.argv.slice(2));
+  process.exitCode = main(process.argv.slice(2));
