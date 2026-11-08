@@ -16,7 +16,7 @@ It reads clearly in a busy gym: time, client, location, capacity and the next ac
 
 ## Logo
 
-The wordmark **fivvi**, heavy and rounded, leaning forward: its two v's slap a high five, with a pink spark and pink i dots ("Fivvi" sounds like *high five*). The app icon is the vv with the spark, white on the pink gradient; pink on near-black is the dark icon. Chosen by the owner on 7 November 2026; the files and how to use them are in [`brand/`](brand/README.md).
+The wordmark **fivvi**, heavy and rounded, leaning forward: its two v's slap a high five, with a pink spark and pink i dots ("Fivvi" sounds like *high five*). Chosen by the owner on 7 November 2026. The app icon is the **day dial**: the dial of a day with five booked hours in pink, flat layers that iOS 26 turns into Liquid Glass (chosen on 8 November 2026). The files and how to use them are in [`brand/`](brand/README.md).
 
 ## Platforms
 
