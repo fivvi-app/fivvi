@@ -76,6 +76,21 @@ export function goLiveRobotsTxt(origin: string): string {
   return robotsFile(robotsTxt(PRODUCTION, true)).replaceAll(SITE_ORIGIN, origin);
 }
 
+/**
+ * The address on the upstream a request path asks for, or `undefined` when it would leave the
+ * upstream: a path that starts with `//host/` (or `\\host`) or is a full URL resolves to another
+ * origin with `new URL(path, upstream)`, and the proxy must not fetch for whoever can reach its port.
+ */
+export function upstreamUrl(path: string, upstream: string): URL | undefined {
+  let url: URL;
+  try {
+    url = new URL(path, upstream);
+  } catch {
+    return undefined;
+  }
+  return url.origin === new URL(upstream).origin ? url : undefined;
+}
+
 /** Starts the proxy in front of `upstream` (an e2e server's address). */
 export async function startGoLiveProxy(upstream: string): Promise<GoLiveProxy> {
   const server: Server = createServer(async (request, response) => {
@@ -86,7 +101,12 @@ export async function startGoLiveProxy(upstream: string): Promise<GoLiveProxy> {
         response.writeHead(200, { 'content-type': 'text/plain' }).end(goLiveRobotsTxt(origin));
         return;
       }
-      const answer = await fetch(new URL(path, upstream), {
+      const target = upstreamUrl(path, upstream);
+      if (!target) {
+        response.writeHead(400, { 'content-type': 'text/plain' }).end('Not a path on the upstream');
+        return;
+      }
+      const answer = await fetch(target, {
         headers: { 'accept-encoding': 'gzip' },
         redirect: 'manual',
       });

@@ -27,23 +27,20 @@ const SIZES = {
 
 /**
  * A screen of the prototype: a picture in the language of the page, light or dark by the system
- * setting (no script), in two sizes. `alt` says what the screen shows. Only a `priority` screen is
- * loaded at once and with a high fetch priority; the rest are lazy and low, so even those in the
- * first screen start after the page's miniature (AC15, LCP). Their width and height stay set, so the
- * box is there before the file.
+ * setting (no script), in two sizes. `alt` says what the screen shows. A screen is always lazy and
+ * low in fetch priority, so even those in the first screen start after the page's miniature (AC15,
+ * LCP). Its width and height stay set, so the box is there before the file.
  */
 export function Screen({
   id,
   locale,
   alt,
-  priority = false,
   sizes,
   className,
 }: {
   id: ShotId;
   locale: Locale;
   alt: string;
-  priority?: boolean;
   sizes?: string;
   className?: string;
 }) {
@@ -64,8 +61,8 @@ export function Screen({
         alt={alt}
         width={width}
         height={height}
-        loading={priority ? 'eager' : 'lazy'}
-        fetchPriority={priority ? 'high' : 'low'}
+        loading="lazy"
+        fetchPriority="low"
         decoding="async"
         className={classes('block h-full w-full', className)}
       />
@@ -78,14 +75,12 @@ export function Device({
   id,
   locale,
   alt,
-  priority,
   sizes,
   className,
 }: {
   id: ShotId;
   locale: Locale;
   alt: string;
-  priority?: boolean;
   sizes?: string;
   className?: string;
 }) {
@@ -102,7 +97,6 @@ export function Device({
           id={id}
           locale={locale}
           alt={alt}
-          priority={priority}
           sizes={sizes}
           className="site-browser-shot aspect-[1280/800] object-cover object-left-top"
         />
@@ -121,7 +115,6 @@ export function Device({
         id={id}
         locale={locale}
         alt={alt}
-        priority={priority}
         sizes={sizes}
         className="rounded-[inherit] object-cover"
       />
@@ -180,21 +173,18 @@ export function Scene({
 /**
  * The screens under a headline: a laptop and a phone sharing one top and bottom edge, or three
  * phones in a row (`devices.css`). Put it in a `.site-stage`, which is the size container. They are
- * lazy unless `priority` is set: the miniature beside the headline is the page's largest picture on
- * a phone, and the screens under it must not compete with it for the connection (AC15, LCP). The
- * laptop's screen is always lazy, since it is not shown at all on a phone.
+ * all lazy: the miniature beside the headline is the page's largest picture on a phone, and the
+ * screens under it must not compete with it for the connection (AC15, LCP).
  */
 export function StageScreens({
   stage,
   locale,
   alts,
-  priority = false,
   className,
 }: {
   stage: Stage;
   locale: Locale;
   alts: Record<ShotId, string>;
-  priority?: boolean;
   className?: string;
 }) {
   if (stage.kind === 'mix') {
@@ -202,7 +192,7 @@ export function StageScreens({
       <div className={classes('site-stage-mix', className)}>
         <Device id={stage.web} locale={locale} alt={alts[stage.web]} />
         <div className="site-stage-cell">
-          <Device id={stage.phone} locale={locale} alt={alts[stage.phone]} priority={priority} />
+          <Device id={stage.phone} locale={locale} alt={alts[stage.phone]} />
         </div>
       </div>
     );
@@ -210,14 +200,7 @@ export function StageScreens({
   return (
     <div className={classes('site-stage-row', className)}>
       {stage.phones.map((id) => (
-        <Device
-          key={id}
-          id={id}
-          locale={locale}
-          alt={alts[id]}
-          priority={priority}
-          sizes={ROW_SIZES}
-        />
+        <Device key={id} id={id} locale={locale} alt={alts[id]} sizes={ROW_SIZES} />
       ))}
     </div>
   );

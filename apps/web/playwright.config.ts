@@ -28,8 +28,7 @@ const BUDGET_SPEC = /site-budgets\.spec\.ts$/;
  * `pnpm test:budgets` sets E2E_BUDGETS: the run is the `budgets-*` projects and nothing else. The
  * default run (`pnpm test:e2e`) has the other projects and leaves the budgets out, so their
  * Lighthouse runs, which want a quiet machine and a time of their own, do not lengthen it (TESTING.md §2).
- */
-/**
+ *
  * `BUDGETS_BASE_URL` (a deployed site, such as a PR's Railway preview) points the budgets at that
  * address instead of the local build: no web server and no database start, the go-live proxy
  * (e2e/go-live-proxy.ts) sits in front of the address. It implies the budgets run.
@@ -62,11 +61,11 @@ export default defineConfig<E2EOptions>({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: ci,
-  // The CI job of the e2e tests has 15 minutes in all (setup and build included, .github/workflows/ci.yml),
-  // the one of the budgets as many. The suite stops itself earlier, at 12 minutes (10 for the budgets),
-  // with the results so far and the names of the tests still running, instead of the job being
-  // cancelled without a word (turbo only prints a task's output when it ends).
-  globalTimeout: ci ? (budgets ? 10 : 12) * 60_000 : undefined,
+  // The CI job of the e2e tests has 15 minutes in all (setup and build included, .github/workflows/ci.yml).
+  // The suite stops itself earlier, at 12 minutes, with the results so far and the names of the tests
+  // still running, instead of the job being cancelled without a word (turbo only prints a task's
+  // output when it ends). The budgets are not a CI gate: they run by hand, with `--workers=1`.
+  globalTimeout: ci ? 12 * 60_000 : undefined,
   // One retry in CI; a test that only passes on retry is reported as flaky (TESTING.md §8).
   retries: ci ? 1 : 0,
   reporter,
@@ -76,9 +75,8 @@ export default defineConfig<E2EOptions>({
     trace: 'retain-on-first-failure',
   },
   projects: budgets
-    ? // The speed budgets (F064 AC15): both languages side by side. Lighthouse simulates the slow phone
-      // from a trace, calibrated to the speed of the host (e2e/lighthouse.ts), and one language after
-      // the other would add minutes to the CI job.
+    ? // The speed budgets (F064 AC15), one project per language. Lighthouse simulates the slow phone
+      // from a trace, calibrated to the speed of the host (e2e/lighthouse.ts).
       locales.map((locale) => ({
         name: `budgets-${locale}`,
         testMatch: BUDGET_SPEC,

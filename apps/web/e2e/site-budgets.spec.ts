@@ -37,6 +37,13 @@ const SCHEMES: readonly ColorScheme[] = ['light', 'dark'];
  */
 const MAX_ATTEMPTS = 3;
 
+/** Why a fetch failed, down to the DNS or network error under Node's "fetch failed". */
+function describe(error: unknown): string {
+  if (!(error instanceof Error)) return String(error);
+  const cause = error.cause instanceof Error ? `: ${error.cause.message}` : '';
+  return `${error.name} ${error.message}${cause}`;
+}
+
 async function measure(
   url: string,
   port: number,
@@ -57,11 +64,13 @@ async function measure(
 }
 
 // A page takes 6 to 12 seconds, up to three runs of it at most; a Lighthouse or Chrome that hangs
-// fails the test after two minutes (and says so) instead of eating the CI job.
+// fails the test after two minutes (and says so) instead of hanging the run.
 test.describe.configure({ mode: 'default', timeout: 120_000 });
 
 test.describe('F064 AC15 speed and search budgets', () => {
-  let proxy: GoLiveProxy;
+  // Undefined (and '') while the preview is down: `afterAll` has nothing to close then.
+  let proxy: GoLiveProxy | undefined;
+  let proxyOrigin = '';
   const browsers = new Map<ColorScheme, BudgetBrowser>();
   // The CPU of the emulated phone, calibrated to this host once per project (lighthouse-cpu.ts).
   let cpu: CpuCalibration & { hostBenchmarkIndex: number };
@@ -69,13 +78,21 @@ test.describe('F064 AC15 speed and search budgets', () => {
   test.beforeAll(async ({ baseURL }) => {
     // A preview that is gone or still deploying answers with an error page: say so, instead of
     // failing on whatever the first test finds in it.
-    const health = await fetch(`${baseURL}/api/v1/health`).catch(() => undefined);
+    let health: Response | undefined;
+    let cause: unknown;
+    try {
+      health = await fetch(`${baseURL}/api/v1/health`, { signal: AbortSignal.timeout(10_000) });
+    } catch (error) {
+      cause = error;
+    }
     if (!health?.ok) {
       throw new Error(
-        `${baseURL} is not up: ${baseURL}/api/v1/health answered ${health?.status ?? 'nothing'}`,
+        `${baseURL} is not up: ${baseURL}/api/v1/health answered ${health?.status ?? 'nothing'}${cause ? ` (${describe(cause)})` : ''}`,
+        { cause },
       );
     }
     proxy = await startGoLiveProxy(baseURL ?? '');
+    proxyOrigin = proxy.origin;
     for (const scheme of SCHEMES) browsers.set(scheme, await launchBudgetBrowser(scheme));
     const light = browsers.get('light');
     if (!light) throw new Error('No light browser');
@@ -85,7 +102,7 @@ test.describe('F064 AC15 speed and search budgets', () => {
 
   test.afterAll(async () => {
     await Promise.all([...browsers.values()].map((browser) => browser.close()));
-    await proxy.close();
+    await proxy?.close();
   });
 
   // The measure is only as good as the view it measures: this one changes what production changes
@@ -96,7 +113,7 @@ test.describe('F064 AC15 speed and search budgets', () => {
   }) => {
     const path = sitePagePath('pricing', appLocale);
     const direct = await fetch(`${baseURL}${path}`);
-    const viaProxy = await fetch(`${proxy.origin}${path}`);
+    const viaProxy = await fetch(`${proxyOrigin}${path}`);
     const [directHtml, proxyHtml] = [await direct.text(), await viaProxy.text()];
 
     // The server says noindex, in the header and in the markup (the logic is `rootMetadata(false)`).
@@ -109,12 +126,12 @@ test.describe('F064 AC15 speed and search budgets', () => {
     expect(viaProxy.headers.get('x-robots-tag')).toBeNull();
     expect(proxyHtml).not.toMatch(/noindex|name="robots"|\\"robots\\"/);
     expect(proxyHtml).toContain(
-      `<link rel="canonical" href="${proxy.origin}${path === '/' ? '/' : path}"`,
+      `<link rel="canonical" href="${proxyOrigin}${path === '/' ? '/' : path}"`,
     );
     // Nothing else is different: the server's page without its robots tag, in the head and in the
     // data the head is built from again, is the proxy's page.
     expect(
-      proxyHtml.replaceAll(proxy.origin, 'https://fivvi.app'),
+      proxyHtml.replaceAll(proxyOrigin, 'https://fivvi.app'),
       'the proxy changes nothing but the robots tag and the address',
     ).toBe(
       directHtml
@@ -122,8 +139,8 @@ test.describe('F064 AC15 speed and search budgets', () => {
         .replace(/\[\\"\$\\",\\"meta\\",\\"\d+\\",\{\\"name\\":\\"robots\\",[^}]*\}\],/g, ''),
     );
     // robots.txt is the one production serves with the switch on: the site allowed, the sitemap named.
-    const robots = await (await fetch(`${proxy.origin}/robots.txt`)).text();
-    expect(robots).toBe(`User-Agent: *\nAllow: /\n\nSitemap: ${proxy.origin}/sitemap.xml\n`);
+    const robots = await (await fetch(`${proxyOrigin}/robots.txt`)).text();
+    expect(robots).toBe(`User-Agent: *\nAllow: /\n\nSitemap: ${proxyOrigin}/sitemap.xml\n`);
     // ... written as the server writes the rules of its own `robots.ts` route: here, disallow all.
     expect(await (await fetch(`${baseURL}/robots.txt`)).text()).toBe(
       robotsFile(robotsTxt({}, false)),
@@ -132,7 +149,7 @@ test.describe('F064 AC15 speed and search budgets', () => {
     const image = '/site-images/scenes/gym-400.avif';
     const [rawImage, proxiedImage] = await Promise.all([
       fetch(`${baseURL}${image}`).then((r) => r.arrayBuffer()),
-      fetch(`${proxy.origin}${image}`).then((r) => r.arrayBuffer()),
+      fetch(`${proxyOrigin}${image}`).then((r) => r.arrayBuffer()),
     ]);
     expect(Buffer.from(proxiedImage).equals(Buffer.from(rawImage))).toBe(true);
   });
@@ -151,7 +168,7 @@ test.describe('F064 AC15 speed and search budgets', () => {
         const browser = browsers.get(scheme);
         if (!browser) throw new Error(`No ${scheme} browser`);
 
-        const audit = await measure(`${proxy.origin}${path}`, browser.port, cpu.multiplier);
+        const audit = await measure(`${proxyOrigin}${path}`, browser.port, cpu.multiplier);
 
         // The numbers are in the report (annotations), so a run shows the room the budget leaves,
         // and the host they were measured on.
