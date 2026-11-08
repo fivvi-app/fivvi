@@ -16,7 +16,8 @@ The wordmark is heavy, rounded and leans forward, with swelling strokes: playful
 | `fivvi-logo-dark.svg` | The wordmark in white, with a lighter pink | Dark backgrounds and dark mode |
 | `fivvi-mark.svg` | The vv with the spark, in pink | Where the name is already shown, or there is no room for it |
 | `fivvi-mark-white.svg` | The same mark in white | On pink or on photos |
-| `day-dial/b2/` | **The app icon**: the day dial B2, as Icon Composer layers and previews | The apps, see [The app icon](#the-app-icon-the-day-dial) |
+| `day-dial/b2/` | **The app icon**: the day dial B2, as Icon Composer layers and previews | The client app Fivvi, see [The app icon](#the-app-icon-the-day-dial) |
+| `day-dial/b2-pro/` | **The Fivvi Pro icon**: B2 with PRO in the centre of the dial | Fivvi Pro, the app for owners and trainers |
 | `day-dial/b/` | The day dial B, kept to come back to | Nowhere yet |
 | `favicon.svg` | The day dial B2, light, with rounded corners | Browser tabs and bookmarks |
 | `fivvi-app-icon.svg`, `-dark.svg`, `-tinted.svg` | The first app icon, the vv on pink; replaced by the day dial on 8 November 2026 | Nowhere; kept for reference |
@@ -50,6 +51,8 @@ On 8 November 2026 the owner chose the day dial as the app icon, drawn the way A
 |---|---|---|
 | **B2** (main) | The five hours as separate segments on one faint, continuous ring, so it never reads as a loading spinner, also at 29 px | `day-dial/b2/` |
 | **B** (kept to come back to) | The five hours among the twelve hours of the dial, the empty hours in grey | `day-dial/b/` |
+
+**Fivvi Pro** gets **B2 with PRO** in the empty centre of the dial (owner, 8 November 2026): `day-dial/b2-pro/`, with a fourth layer `4-pro.svg`. PRO is drawn as rounded strokes, `#1C1C1E` in light and white in dark and tinted. The client app **Fivvi** keeps the plain B2, so the two apps tell apart on one phone.
 
 Each version has:
 
