@@ -13,7 +13,9 @@ public enum NumericFont {
 
 extension View {
     /// Sets the view's text in the numeric face.
-    public func numericFont(_ style: Font.TextStyle = Tokens.TextStyle.body, weight: Font.Weight = .semibold) -> some View {
+    public func numericFont(
+        _ style: Font.TextStyle = Tokens.TextStyle.body, weight: Font.Weight = .semibold
+    ) -> some View {
         font(NumericFont.font(style, weight: weight))
     }
 }
