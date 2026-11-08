@@ -57,7 +57,7 @@ On 8 November 2026 the owner chose the day dial as the app icon, drawn the way A
 
 Each version has:
 
-- `layers/`: the layers for Icon Composer, 1024 × 1024, transparent and unmasked: `1-background.svg`, `2-track.svg` (B2 and B2 Pro) or `2-hours.svg` (B), `3-five.svg`, and for B2 Pro also `4-pro.svg`. They are flat on purpose, and so are the previews, with no shadow under the five (owner, 8 November 2026): iOS 26 adds the Liquid Glass itself (the rim, depth, the clear look) and makes the dark and tinted icons from them, so no gloss is baked in.
+- `layers/`: the layers for Icon Composer, 1024 × 1024, transparent and unmasked: `1-background.svg`, `2-track.svg` (B2 and B2 Pro) or `2-hours.svg` (B), `3-five.svg`, and for B2 Pro also `4-pro.svg`. They are flat on purpose: iOS 26 adds the Liquid Glass itself (the rim, depth, the clear look) and makes the dark and tinted icons from them, so no gloss is baked in.
 - `fivvi-day-dial-<version>-{light,dark,pink,tinted}.svg`: previews of the layers composed and masked, to look at and share (B2 Pro has light, dark and tinted).
 
 The five are the hours at 11, 12, 3, 6 and 7 on the dial, clockwise from the top. The pink is the gradient of the app icon (`#FF4F7B` to `#C8103D`); white on the pink and tinted previews.
