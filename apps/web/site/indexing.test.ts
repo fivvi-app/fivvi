@@ -57,6 +57,12 @@ describe('F064 AC13 the noindex header, decided per request', () => {
       '/sitemap.xml',
       '/site-images/home.webp',
       '/site-og/nl/home',
+      // The favicon files and the wordmark (#669): a search engine fetches the icon of the site.
+      '/favicon.ico',
+      '/icon.svg',
+      '/icon.png',
+      '/apple-icon.png',
+      '/site-images/brand/fivvi-logo.svg',
     ]) {
       expect(productionOpen(path)).toBeUndefined();
     }

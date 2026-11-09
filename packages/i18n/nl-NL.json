@@ -385,6 +385,9 @@
       "homeDescription": "Agenda, boekingen, credits, betalingen en facturen op één plek. Zo houd je tijd over om te trainen. Plan een demo.",
       "breadcrumbHome": "Home"
     },
+    "logo": {
+      "homeLabel": "Fivvi, naar de startpagina"
+    },
     "header": {
       "skipToContent": "Naar de inhoud",
       "menuLabel": "Hoofdmenu",

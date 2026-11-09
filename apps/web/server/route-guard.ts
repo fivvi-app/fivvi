@@ -3,6 +3,7 @@ import { loginPath, SIGN_IN_PAGE, SIGNED_IN_HOME } from '@fivvi/auth/return-path
 import { isLocale } from '@fivvi/i18n';
 import { type NextRequest, NextResponse } from 'next/server';
 import { localeCookie, localeCookieMaxAge } from '../i18n/config';
+import { ICON_FILES } from '../site/icons';
 import { robotsHeader } from '../site/indexing';
 import { isSitePath, siteHomePath } from '../site/routes';
 
@@ -28,12 +29,14 @@ const PUBLIC_PREFIXES = [SIGN_IN_PAGE, '/book', '/api', SITE_IMAGES, SITE_SHARE_
  * operating system fetches and follows no redirect for, and `robots.txt` and `sitemap.xml` for the
  * search engines (F064 AC13). Exactly these, not the whole `/.well-known/` folder.
  */
-const PUBLIC_FILES = [
+const PUBLIC_FILES: readonly string[] = [
   '/.well-known/apple-app-site-association',
   '/.well-known/assetlinks.json',
   // What a search engine fetches (F064 AC13).
   '/robots.txt',
   '/sitemap.xml',
+  // The favicon files of `app/` (#669), which a browser fetches for any page, signed in or not.
+  ...ICON_FILES,
 ];
 
 /** Whether `pathname` is open to anyone. Whole path segments only: `/booking` is not `/book`. */

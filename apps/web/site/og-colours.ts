@@ -18,8 +18,6 @@ export const ogColourTokens = {
   surface: '--th-color-bg-surface',
   text: '--th-color-text-primary',
   secondary: '--th-color-web-client-secondary',
-  accent: '--th-color-accent-fill',
-  accentText: '--th-color-accent-text',
 } as const;
 
 export type OgColours = Record<keyof typeof ogColourTokens, string>;
