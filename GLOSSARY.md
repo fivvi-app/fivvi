@@ -228,7 +228,7 @@ One of **booked** (has a confirmed booking, not marked yet), **attended**, **can
 ### Commerce
 
 **Offer**:
-Something a workspace sells: a membership, a credit pack, a credit plan or a single class, with its price, VAT rate and terms.
+Something a workspace sells, of one of four kinds: a membership, a credit pack, a credit plan or a single class pass, with its price, VAT rate and terms.
 _Avoid_: product, plan (alone; *credit plan* is a kind), package
 
 **Default plan**:
@@ -258,9 +258,9 @@ _Avoid_: subscription (see *Recurring payment*), credit subscription
 **Session pack** (retired):
 Retired on 21 October 2026. Use *Credit pack*: a private session pack is a private credit pack.
 
-**Single class** (proposed, [decision 9](docs/product/ROADMAP.md#14-decisions)):
-One group class bought on its own, by a client without a membership or as an extra on top of one.
-_Avoid_: drop-in, top-up
+**Single class pass** ([decision 9](docs/product/ROADMAP.md#14-decisions)):
+An offer kind of its own, good for one group class, by a client without a membership or as an extra on top of one. The client buys it ahead, like credits, and books the class with it; it is not paid at the booking. It is not a credit and not a credit pack. The owner sets the price; as a guideline only, not enforced, it should cost more than a class in a membership or pack, because it isn't a membership (owner, 9 November 2026).
+_Avoid_: single class (alone, the old name), single pass, drop-in, top-up, credit pack of 1
 
 **Credit balance**:
 What a client can still use under one agreement, in credits of one kind (group or private); a client with group and private credits sees two balances. Always explained by its history (granted, used, returned, expired), never a bare counter. A membership's makeups are tracked the same way but are not credits.
@@ -299,7 +299,7 @@ The business that sells to the client and receives the money. In Fivvi it is the
 _Avoid_: seller (alone), vendor
 
 **Payment**:
-Money collected from a client: a first payment, a recurring payment or a single class. A **Payment outside Fivvi** is recorded by the owner and collected by them.
+Money collected from a client: a first payment, a recurring payment or a single class pass. A **Payment outside Fivvi** is recorded by the owner and collected by them.
 _Avoid_: transaction (outside code), charge
 
 **Recurring payment**:

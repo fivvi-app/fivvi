@@ -266,9 +266,9 @@ When the owner changes any field of an offer (price, VAT rate, classes and weekd
 **Answer (pilot gym owner, 31 October 2026):** The proposal stands.
 
 ### QC16
-Does the pilot agree with these four rules? (1) The trainer and client apps never take payments; clients pay on the web. (2) A single class's spot is held while the client pays. (3) The owner can also enter billing details (company name, address, VAT number) for a client. (4) A late cancellation counts like a no-show, and a no-show uses the credit of a credit pack or plan or is lost on a membership. **Proposal:** all four as written in `PRODUCT.md §93–§96`; the merchant model behind them (the gym as merchant, payouts to the workspace) is decided in ADR-020 (Accepted, 21 October 2026), not here.
+Does the pilot agree with these four rules? (1) The trainer and client apps never take payments; clients pay on the web. (2) A single class's spot is held while the client pays (superseded 9 November 2026: a single class pass is bought ahead, so nothing is paid at the booking and there is no spot to hold). (3) The owner can also enter billing details (company name, address, VAT number) for a client. (4) A late cancellation counts like a no-show, and a no-show uses the credit of a credit pack or plan or is lost on a membership. **Proposal:** all four as written in `PRODUCT.md §93–§96`; the merchant model behind them (the gym as merchant, payouts to the workspace) is decided in ADR-020 (Accepted, 21 October 2026), not here.
 
-ADR-020 (Accepted) settles: Mollie's hosted checkout on the web, and a one-off iDEAL payment for a single class (single classes are still proposed scope, decision 9). It suggests holding the spot while the client pays; how long the hold lasts is set in the F058 spec.
+ADR-020 (Accepted) settles: Mollie's hosted checkout on the web, and a one-off iDEAL payment for a single class. It suggested holding the spot while the client pays; that no longer applies, because the single class pass is bought ahead, not paid at the booking (owner, 9 November 2026; F058 is now Single class pass).
 **Answer (pilot gym owner, 31 October 2026):** All four rules as written.
 
 **Note (31 October 2026):** the spot held in rule 2 is a payment in progress, not a booking hold: booking holds are gone ([ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md)).
@@ -291,7 +291,7 @@ The walkthrough with the pilot gym owner (29–31 October 2026) led the product 
 
 1. **Billing cycle per offer: every month or every 4 weeks.** The pilot uses **monthly** on purpose: 4-weekly means 13 payments a year, which the gym owner finds unfair to clients.
 2. **Intro offer:** a credit pack can be marked **"once per client"** (for example 2 classes valid for 2 weeks). The pilot does trials by hand over WhatsApp and will not use it.
-3. **Single class** stays an offer kind any studio can switch on (the product owner's wish; it was proposed scope under [decision 9](../product/ROADMAP.md#14-decisions)).
+3. **Single class** stays an offer kind any studio can switch on (the product owner's wish of 31 October 2026). Changed on 9 November 2026: it is the **single class pass**, bought ahead like credits and good for one group class, not paid at the booking ([decision 9](../product/ROADMAP.md#14-decisions)).
 4. **Member-only offers** (QC08).
 5. **End-of-term setting:** stop, or continue per cycle (QC07).
 6. **Weekly limit** and **unused weekly classes** settings (QC01).
@@ -317,8 +317,8 @@ Decided by the product owner in a grilling session on 31 October 2026 and record
 10. A freed spot (a cancellation in time or late, a removal, more capacity) books the first in line automatically, with a "you're in" email. A no-show frees nothing.
 11. **Waitlist closing time:** one workspace setting, in minutes before the class, default 30. After it nobody moves up or joins, the class shows full with no waitlist button, and everyone still waiting gets a "you didn't get in" email.
 12. A booking from the waitlist after the cancellation cutoff can be cancelled as if in time, outside the 2-a-month limit (QC02).
-13. From M11 nothing is reserved while waiting; at move-up a client who can't book is skipped, taken off and emailed why, and the next moves up. A client who could only book by paying for a single class can't join a waitlist.
+13. From M11 nothing is reserved while waiting; at move-up a client who can't book is skipped, taken off and emailed why, and the next moves up.
 14. Owner and trainers see the waitlist in order on the class on the web and can remove someone; no reordering, no adding.
 15. The client web shows, per workspace, the payment history (date, amount, what it was for, status) and the invoice and credit-note PDFs (M11).
 
-**Still open from these decisions:** the exact UI wording (`packages/i18n/GLOSSARY.md`, marked ⚠️); where the name is asked (account or join request); what removing a client does to their future bookings and agreements; whether a booking can still be managed by an emailed link; whether the pilot import sends invitations to the imported clients or adds them silently; how long the spot is kept while a single class is paid for (F058 spec, QC16).
+**Still open from these decisions:** the exact UI wording (`packages/i18n/GLOSSARY.md`, marked ⚠️); where the name is asked (account or join request); what removing a client does to their future bookings and agreements; whether a booking can still be managed by an emailed link; whether the pilot import sends invitations to the imported clients or adds them silently; what a cancellation does to a single class pass and how long an unused one stays valid (F058 spec).
