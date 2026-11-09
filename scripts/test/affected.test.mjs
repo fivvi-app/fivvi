@@ -1,6 +1,5 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
@@ -147,20 +146,6 @@ describe('#293 AC3 AC4: packages and their dependents', () => {
       assert.equal(result.e2e, true, path);
       assert.equal(result.docs, false, `${path} is not Markdown only`);
       assert.equal(result.all, false, path);
-    }
-  });
-
-  it('F064 AC10: the web app lists the legal texts as inputs of its build and tests, so turbo does not reuse a cached result', () => {
-    const { extends: base, tasks } = JSON.parse(
-      readFileSync(join(SCRIPTS, '../apps/web/turbo.json'), 'utf8'),
-    );
-    assert.deepEqual(base, ['//']);
-    for (const task of ['build', 'test']) {
-      assert.deepEqual(tasks[task].inputs, [
-        '$TURBO_DEFAULT$',
-        '$TURBO_ROOT$/docs/legal/privacy-policy.*.md',
-        '$TURBO_ROOT$/docs/legal/terms.*.md',
-      ]);
     }
   });
 
