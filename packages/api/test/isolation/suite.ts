@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import type { Place } from '@fivvi/database';
 import { sql } from 'drizzle-orm';
 import { buildOpenApiDocument } from '../../src/index.ts';
@@ -65,18 +66,32 @@ function clientOf(table: string, row: Record<string, unknown>): string | undefin
  * statement: one round trip and one snapshot, however many tables there are. A run is a few
  * hundred calls in a row, each waiting on the database, so the round trips decide how long it
  * takes when the machine is busy (#369).
+ *
+ * The statement is a named prepared one: Postgres plans a union of every table once per
+ * connection, not once per call. Planned again each time it took about three times as long as
+ * running it, and a planner waiting for a CPU is what a busy machine slows most (#678).
  */
 async function readRows(world: World, tables: readonly string[]): Promise<StoredRow[]> {
   if (tables.length === 0) return [];
-  const query = sql.join(
-    tables.map(
+  // The names come from the catalog, not from a request; quoted all the same.
+  const text = tables
+    .map(
       (table) =>
-        sql`select ${table}::text as t, to_jsonb(x) as row from ${sql.identifier(table)} x`,
-    ),
-    sql` union all `,
-  );
-  const { rows: found } = await world.admin.db.execute(query);
-  return (found as { t: string; row: Record<string, unknown> }[]).map(({ t, row }) => ({
+        `select '${table.replaceAll("'", "''")}'::text as t, to_jsonb(x) as row from "${table.replaceAll('"', '""')}" x`,
+    )
+    .join(' union all ');
+  // The privileged connection's pool, which `drizzle` keeps as `$client` and the pool takes a
+  // named statement from; the name holds a hash of the text, as the same name must be the same text.
+  const { $client: pool } = world.admin.db as unknown as {
+    $client: {
+      query(config: { name: string; text: string }): Promise<{
+        rows: { t: string; row: Record<string, unknown> }[];
+      }>;
+    };
+  };
+  const name = `isolation-rows-${createHash('sha256').update(text).digest('hex').slice(0, 24)}`;
+  const { rows: found } = await pool.query({ name, text });
+  return found.map(({ t, row }) => ({
     table: t,
     workspaceId: (t === 'organizations' ? row.id : row.organization_id) as string,
     row,
@@ -155,6 +170,23 @@ function snapshots(rows: StoredRow[]): Map<string, { group: RowGroup; text: stri
   return new Map(
     [...groups].map(([key, { group, lines }]) => [key, { group, text: lines.sort().join('\n') }]),
   );
+}
+
+type Snapshots = ReturnType<typeof snapshots>;
+
+/** True when both hold the same groups with the same rows: the state did not change. */
+function sameSnapshots(a: Snapshots, b: Snapshots): boolean {
+  if (a.size !== b.size) return false;
+  for (const [key, entry] of a) if (b.get(key)?.text !== entry.text) return false;
+  return true;
+}
+
+/** What is stored at one moment, and what the suite derived from it. */
+interface Stored {
+  rows: StoredRow[];
+  snaps: Snapshots;
+  /** Built when first needed, or carried over from the state before when the rows did not change. */
+  ledger?: Ledger;
 }
 
 interface PlannedCall {
@@ -301,7 +333,15 @@ export async function runIsolationSuite(
     // reading the tables again. Invariant: it is valid only while nothing but JavaScript ran since
     // it was read. Every seed of this operation therefore goes through `seed`, which forgets it;
     // a write that did not would leave the next call judged against rows that no longer exist.
-    let stored: StoredRow[] | undefined;
+    let stored: Stored | undefined;
+    const readStored = async (): Promise<Stored> => {
+      const rows = await readRows(world, tables);
+      return { rows, snaps: snapshots(rows) };
+    };
+    const ledgerOf = (state: Stored): Ledger => {
+      state.ledger ??= buildLedger(state.rows, scenario);
+      return state.ledger;
+    };
     const seed = async (workspaceId: string, clientId: string): Promise<Record<string, string>> => {
       const values = (await isolationCase.seed?.(world.admin.db, { workspaceId, clientId })) ?? {};
       stored = undefined;
@@ -325,8 +365,8 @@ export async function runIsolationSuite(
     // data) may seed nothing; a GET of a workspace must seed something it can show.
     const seedValues = [...new Set([...seeded.values()].flatMap((v) => Object.values(v)))];
     // What is stored once the seeds ran: the state the first call of the operation starts from.
-    stored = await readRows(world, tables);
-    const known = buildLedger(stored, scenario);
+    stored = await readStored();
+    const known = ledgerOf(stored);
     for (const value of seedValues.filter((v) => !known.has(v))) {
       failures.push(
         `${operation.name}: its seed returns ${value}, which is no id or marker of a stored record; return the id of a row it made, or a \`uniqueMarker\` in one.`,
@@ -396,9 +436,9 @@ export async function runIsolationSuite(
 
       // The rows after the last call (or the seeds) are the rows before this one: nothing but
       // JavaScript ran in between, so they are read again only when a seed changed them.
-      const rows = stored ?? (await readRows(world, tables));
-      const before = snapshots(rows);
-      const ledger = buildLedger(rows, scenario);
+      const beforeState = stored ?? (await readStored());
+      const before = beforeState.snaps;
+      const ledger = ledgerOf(beforeState);
       const requestBody =
         typeof isolationCase.body === 'function' ? isolationCase.body(values) : isolationCase.body;
       const response = await world.request(planned.actor.account, path, {
@@ -407,8 +447,11 @@ export async function runIsolationSuite(
         ...(requestBody !== undefined ? { body: requestBody } : {}),
       });
       const text = await response.text();
-      stored = await readRows(world, tables);
-      const after = snapshots(stored);
+      const afterState = await readStored();
+      // A call that changed nothing leaves the ledger as it was: no need to build it again.
+      if (sameSnapshots(before, afterState.snaps)) afterState.ledger = ledger;
+      stored = afterState;
+      const after = afterState.snaps;
       result.calls += 1;
 
       // 1. The status, and a refusal's body.

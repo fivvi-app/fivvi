@@ -56,7 +56,28 @@ export interface World {
   close(): Promise<void>;
 }
 
-export async function createWorld(): Promise<World> {
+/**
+ * The timeout of a test that runs the whole isolation sweep: every route, as every actor, each
+ * call a few round trips to Postgres and a read of every table (#678). Vitest's default of 30 s
+ * holds on an idle machine (the sweeps take 5 to 10 s) but not on a busy one: with the load
+ * average at 60 to 80 the slowest took 25 to 35 s, and 67 s was seen on a day with several
+ * builds at once. What slows it is the machine waiting for CPU, not the code, so the limit
+ * is sized to that: about 2.5 times the slowest run seen, to still catch a sweep that hangs.
+ * TESTING.md §5.3 has the numbers.
+ */
+export const SWEEP_TIMEOUT_MS = 180_000;
+
+export interface WorldOptions {
+  /**
+   * Record, for every tenant scope the API opens, the context Postgres holds for it (`observed`).
+   * It costs a round trip per request: a world that only runs the sweep (`runIsolationSuite`),
+   * which never reads `observed`, passes `false`. Default `true`.
+   */
+  observe?: boolean;
+}
+
+export async function createWorld(options: WorldOptions = {}): Promise<World> {
+  const observe = options.observe ?? true;
   const database = await cloneTemplateDatabase();
   const admin = createDatabase({ url: database.url, maxConnections: 2 });
   const app = createDatabase({ url: database.appUrl, maxConnections: 4 });
@@ -67,20 +88,24 @@ export async function createWorld(): Promise<World> {
   const tenantScopes: TenantScopes = {
     inAccountScope: (input, run) =>
       real.inAccountScope(input, async (scope) => {
-        observed.push({
-          kind: 'account',
-          context: scope.context,
-          stored: await readTenantContext(scope),
-        });
+        if (observe) {
+          observed.push({
+            kind: 'account',
+            context: scope.context,
+            stored: await readTenantContext(scope),
+          });
+        }
         return run(scope);
       }),
     inWorkspaceScope: (input, run) =>
       real.inWorkspaceScope(input, async (scope) => {
-        observed.push({
-          kind: 'workspace',
-          context: scope.context,
-          stored: await readTenantContext(scope),
-        });
+        if (observe) {
+          observed.push({
+            kind: 'workspace',
+            context: scope.context,
+            stored: await readTenantContext(scope),
+          });
+        }
         return run(scope);
       }),
     // The routes by an invitation's token are public, not part of the isolation suite (F011).

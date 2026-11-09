@@ -3,7 +3,7 @@ import { OpenAPIHono, z } from '@hono/zod-openapi';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineRoute, type WorkspaceEnv } from '../../src/access.ts';
 import { NOT_FOUND } from '../../src/errors.ts';
-import { createWorld, type World } from './harness.ts';
+import { createWorld, seedScenario, type World } from './harness.ts';
 import { ISOLATION_CASES, type IsolationCase } from './isolation-cases.ts';
 import { runIsolationSuite } from './suite.ts';
 
@@ -93,6 +93,29 @@ describe('E011 the suite reads the stored rows once per call', () => {
     for (const read of reads) expect(read).toContain('union all');
   });
 
+  it('plans the read once per connection: every read is the same named statement (#678)', async () => {
+    const { $client: pool } = world.admin.db as unknown as {
+      $client: { query: (...args: unknown[]) => unknown };
+    };
+    const query = pool.query.bind(pool);
+    const named: { name?: string; text?: string }[] = [];
+    vi.spyOn(pool, 'query').mockImplementation(((...args: unknown[]) => {
+      const first = args[0] as { name?: string; text?: string } | string;
+      if (typeof first !== 'string' && first.text?.includes('to_jsonb')) named.push(first);
+      return query(...args);
+    }) as never);
+
+    const result = await runIsolationSuite(world, { getMe: ISOLATION_CASES.getMe ?? {} });
+
+    expect(result.calls).toBeGreaterThan(0);
+    // Planned on every call, a union of every table costs more than running it, and it is
+    // the planner that waits for a CPU on a busy machine.
+    expect(named).toHaveLength(result.calls + 1);
+    expect(named.every((read) => read.name?.startsWith('isolation-rows-'))).toBe(true);
+    expect(new Set(named.map((read) => read.name)).size).toBe(1);
+    expect(new Set(named.map((read) => read.text)).size).toBe(1);
+  });
+
   it('reads the rows again after any seed, before the next call', async () => {
     const statements = recordStatements();
     addDeleteRoute(statements);
@@ -127,5 +150,33 @@ describe('E011 the suite reads the stored rows once per call', () => {
     }
     // Refused calls never reach the route; the ones it answered each followed a seed.
     expect(statements.filter((statement) => statement === REQUEST).length).toBeGreaterThan(0);
+  });
+});
+
+describe('E011 the harness records the tenant context only when asked (#678)', () => {
+  let observing: World;
+  let quiet: World;
+
+  beforeEach(async () => {
+    observing = await createWorld();
+    quiet = await createWorld({ observe: false });
+  });
+
+  afterEach(async () => {
+    await observing?.close();
+    await quiet?.close();
+  });
+
+  it('records one context per scope by default, and none when a world opts out', async () => {
+    for (const world of [observing, quiet]) {
+      const { ownerA, a } = await seedScenario(world);
+      expect((await world.request(ownerA, `/v1/workspaces/${a}/clients`)).status).toBe(200);
+      expect((await world.request(ownerA, '/v1/me')).status).toBe(200);
+    }
+
+    // The route and the account route each opened a scope; the opted-out world answered the same
+    // without the extra round trip of reading the context back.
+    expect(observing.observed.map((observed) => observed.kind)).toEqual(['workspace', 'account']);
+    expect(quiet.observed).toEqual([]);
   });
 });
