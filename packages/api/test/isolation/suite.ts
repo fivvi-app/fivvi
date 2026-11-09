@@ -19,7 +19,7 @@ import {
   type TokenOwner,
   type XAccess,
 } from './expectations.ts';
-import type { World } from './harness.ts';
+import { adminPool, type World } from './harness.ts';
 import type { IsolationCase } from './isolation-cases.ts';
 
 // The isolation suite (E011, AC11), as a function that returns what it found, so the test of the
@@ -82,15 +82,10 @@ async function readRows(world: World, tables: readonly string[]): Promise<Stored
     .join(' union all ');
   // The privileged connection's pool, which `drizzle` keeps as `$client` and the pool takes a
   // named statement from; the name holds a hash of the text, as the same name must be the same text.
-  const { $client: pool } = world.admin.db as unknown as {
-    $client: {
-      query(config: { name: string; text: string }): Promise<{
-        rows: { t: string; row: Record<string, unknown> }[];
-      }>;
-    };
-  };
+  const pool = adminPool(world);
   const name = `isolation-rows-${createHash('sha256').update(text).digest('hex').slice(0, 24)}`;
-  const { rows: found } = await pool.query({ name, text });
+  const { rows } = await pool.query({ name, text });
+  const found = rows as { t: string; row: Record<string, unknown> }[];
   return found.map(({ t, row }) => ({
     table: t,
     workspaceId: (t === 'organizations' ? row.id : row.organization_id) as string,

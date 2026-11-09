@@ -63,9 +63,22 @@ export interface World {
  * average at 60 to 80 the slowest took 25 to 35 s, and 67 s was seen on a day with several
  * builds at once. What slows it is the machine waiting for CPU, not the code, so the limit
  * is sized to that: about 2.5 times the slowest run seen, to still catch a sweep that hangs.
- * TESTING.md §5.3 has the numbers.
+ * TESTING.md §4.1 has the numbers.
  */
 export const SWEEP_TIMEOUT_MS = 180_000;
+
+/** What the isolation tests use of the pool under `world.admin`: the one `drizzle` keeps as `$client`. */
+export interface AdminPool {
+  query(...args: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
+}
+
+/**
+ * The pool under the privileged connection, which the `Database` type does not show. It takes a
+ * named statement (planned once per connection) and lets a test see every statement sent.
+ */
+export function adminPool(world: World): AdminPool {
+  return (world.admin.db as unknown as { $client: AdminPool }).$client;
+}
 
 export interface WorldOptions {
   /**

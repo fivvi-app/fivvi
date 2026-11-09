@@ -3,7 +3,7 @@ import { OpenAPIHono, z } from '@hono/zod-openapi';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { defineRoute, type WorkspaceEnv } from '../../src/access.ts';
 import { NOT_FOUND } from '../../src/errors.ts';
-import { createWorld, seedScenario, type World } from './harness.ts';
+import { adminPool, createWorld, seedScenario, type World } from './harness.ts';
 import { ISOLATION_CASES, type IsolationCase } from './isolation-cases.ts';
 import { runIsolationSuite } from './suite.ts';
 
@@ -63,9 +63,7 @@ describe('E011 the suite reads the stored rows once per call', () => {
   /** Every statement the suite sends, in order. The pool under the privileged connection sees them. */
   function recordStatements(): string[] {
     const statements: string[] = [];
-    const { $client: pool } = world.admin.db as unknown as {
-      $client: { query: (...args: unknown[]) => unknown };
-    };
+    const pool = adminPool(world);
     const query = pool.query.bind(pool);
     vi.spyOn(pool, 'query').mockImplementation(((...args: unknown[]) => {
       const first = args[0];
@@ -94,9 +92,7 @@ describe('E011 the suite reads the stored rows once per call', () => {
   });
 
   it('plans the read once per connection: every read is the same named statement (#678)', async () => {
-    const { $client: pool } = world.admin.db as unknown as {
-      $client: { query: (...args: unknown[]) => unknown };
-    };
+    const pool = adminPool(world);
     const query = pool.query.bind(pool);
     const named: { name?: string; text?: string }[] = [];
     vi.spyOn(pool, 'query').mockImplementation(((...args: unknown[]) => {
