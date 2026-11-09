@@ -20,7 +20,7 @@ final class Responder: @unchecked Sendable {
     var heldTrainerCalls: [@Sendable () -> Void] = []
     var storedTrainerStatus: Int?
     var holdsClientReads = false
-    var heldClientReads: [() -> Void] = []
+    var heldClientReads: [@Sendable () -> Void] = []
 
     init(_ answer: StubServer.Answer, signIn: StubServer.SignIn) {
         currentAnswer = answer
@@ -74,7 +74,7 @@ final class Responder: @unchecked Sendable {
 
     /// While true, `GET` of one client gets no answer until it is set to false (which answers the reads held).
     func holdClientReads(_ hold: Bool) {
-        let waiting: [() -> Void] = lock.withLock {
+        let waiting: [@Sendable () -> Void] = lock.withLock {
             holdsClientReads = hold
             defer { if !hold { heldClientReads = [] } }
             return hold ? [] : heldClientReads
@@ -83,7 +83,7 @@ final class Responder: @unchecked Sendable {
     }
 
     /// Keeps `answer` for later when it is the read of one client and reads are on hold; returns whether it did.
-    func holdClientRead(method: String, path: String, answer: @escaping () -> Void) -> Bool {
+    func holdClientRead(method: String, path: String, answer: @escaping @Sendable () -> Void) -> Bool {
         let isRead = method == "GET" && path.split(separator: "/").count == 6 && path.contains("/clients/")
         return lock.withLock {
             let holds = holdsClientReads && isRead
@@ -211,7 +211,9 @@ final class Responder: @unchecked Sendable {
     func answerClientRoute(
         _ connection: NWConnection, method: String, path: String, reply: (status: Int, json: [String: Any]?)
     ) {
-        let answer = { self.send(connection, status: reply.status, json: reply.json) }
+        nonisolated(unsafe) let json = reply.json  // read once, by the one closure that answers
+        let status = reply.status
+        let answer: @Sendable () -> Void = { [self] in send(connection, status: status, json: json) }
         if !holdClientRead(method: method, path: path, answer: answer) { answer() }
     }
 

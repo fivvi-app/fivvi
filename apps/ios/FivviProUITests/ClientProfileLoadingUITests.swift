@@ -29,7 +29,8 @@ final class ClientProfileLoadingUITests: SignInUITestCase {
         let loading = app.descendants(matching: .any)["clientProfile.loading"]
         XCTAssertTrue(loading.waitUntilExists(timeout: timeout), "the profile waits for its read")
 
-        // Let the screen settle, then watch it for a few seconds: the list renders no more than before.
+        // Let the screen settle (the count stays the same for a second), then watch it for three seconds: the list
+        // renders no more than twice more. Both are waits on a condition, never a sleep (`TESTING.md §1.6`).
         let renders = { (view: String) -> Int in
             let line = app.descendants(matching: .any)["uitest.renders"].label
             return line.split(separator: " ").compactMap { part -> Int? in
@@ -37,12 +38,22 @@ final class ClientProfileLoadingUITests: SignInUITestCase {
                 return pair.count == 2 && pair[0] == view ? Int(pair[1]) : nil
             }.first ?? 0
         }
-        Thread.sleep(forTimeInterval: 2)
+        var last = renders("ClientsView")
+        var since = Date()
+        let hasSettled = Polling.until(timeout: 10) {
+            let count = renders("ClientsView")
+            if count != last {
+                last = count
+                since = Date()
+            }
+            return Date().timeIntervalSince(since) >= 1
+        }
+        XCTAssertTrue(hasSettled, "the list stops rendering while the profile loads: no layout loop")
         let settled = renders("ClientsView")
-        Thread.sleep(forTimeInterval: 3)
+        let rendersAgain = Polling.until(timeout: 3) { renders("ClientsView") > settled + 2 }
+        XCTAssertFalse(rendersAgain, "and stays quiet: no layout loop")
         XCTAssertTrue(loading.exists, "still waiting")
         XCTAssertLessThan(settled, 50, "the list renders a few times while the profile loads")
-        XCTAssertLessThanOrEqual(renders("ClientsView") - settled, 2, "and stops: no layout loop")
 
         server.holdClientReads(false)
         XCTAssertTrue(app.staticTexts["clientProfile.name"].waitUntilExists(timeout: timeout))

@@ -2,8 +2,8 @@ import SwiftUI
 
 /// Counts how often the body of a screen runs, so a UI test can prove a screen doesn't render without end (#684). The
 /// UI test runs in another process: with the launch argument `-UITestCountRenders YES` (Debug only) the app shows the
-/// counts in a line with the id `uitest.renders`, `ClientsView=3 ClientProfileView=2`, which the test reads. Release
-/// builds count nothing.
+/// counts in a line with the id `uitest.renders`, `ClientsView=3`, which the test reads. Release builds count
+/// nothing.
 enum RenderProbe {
     /// Debug-only launch argument: `YES` shows the counts.
     static let key = "UITestCountRenders"
