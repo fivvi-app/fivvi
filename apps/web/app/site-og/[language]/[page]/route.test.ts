@@ -30,7 +30,7 @@ describe('F064 AC12 the Open Graph images', () => {
   it('answers 404 for an address that is not a page of the site', async () => {
     for (const params of [
       { language: 'de', page: 'home' },
-      { language: 'nl', page: 'privacy' },
+      { language: 'nl', page: 'cookies' },
       { language: 'nl', page: 'nope' },
     ]) {
       const response = await GET(new Request('https://fivvi.app/site-og/x/y'), {

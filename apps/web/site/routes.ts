@@ -36,14 +36,16 @@ export const builtPages: readonly SitePage[] = [
   'clients',
   'pricing',
   'support',
+  'privacy',
+  'terms',
   'subProcessors',
 ];
 
 /**
  * Pages that exist, with their page files, but that nothing links to yet: they are not in
  * `builtPages`, so the header, the footer and the calls to action leave them out. The demo page
- * takes a visitor's personal data and sends it to the email provider, which the privacy policy does
- * not cover yet (#642, #643), and its mailbox may not exist (#612). The go-live ticket (#648) moves
+ * takes a visitor's personal data and sends it to the email provider. The privacy policy now covers
+ * that (#642, #643), but the page also waits on its mailbox (#612). The go-live ticket (#648) moves
  * `demo` to `builtPages`, which puts *Plan een demo* in the header and the footer and shows the
  * call to action on the pricing and help pages.
  */

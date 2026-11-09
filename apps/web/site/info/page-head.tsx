@@ -5,8 +5,8 @@ import { StatusLine } from '../status-line';
 export const pageWidth = 'mx-auto w-full max-w-295 px-[clamp(16px,4vw,40px)]';
 
 /**
- * The head of the pricing, help and sub-processors pages (F064): the eyebrow, the one `h1`, the
- * lead and the status line that every page carries (#611 AC19: Fivvi is being built with its first
+ * The head of the pricing, help, sub-processors and legal pages (F064): the eyebrow, the one `h1`, the
+ * lead (the legal pages have none) and the status line that every page carries (#611 AC19: Fivvi is being built with its first
  * gym).
  */
 export function PageHead({
@@ -17,7 +17,7 @@ export function PageHead({
 }: {
   eyebrow?: string;
   headline: string;
-  lead: string;
+  lead?: string;
   status: string;
 }) {
   return (
@@ -26,9 +26,11 @@ export function PageHead({
       <h1 className="mt-2 max-w-[16em] text-[clamp(40px,5.6vw,68px)] leading-[1.02] font-bold tracking-[-0.038em] text-balance">
         {headline}
       </h1>
-      <p className="mt-4 max-w-[34em] text-[clamp(18px,1.9vw,21px)] leading-[1.38] text-muted-foreground text-pretty">
-        {lead}
-      </p>
+      {lead ? (
+        <p className="mt-4 max-w-[34em] text-[clamp(18px,1.9vw,21px)] leading-[1.38] text-muted-foreground text-pretty">
+          {lead}
+        </p>
+      ) : null}
       <StatusLine>{status}</StatusLine>
     </>
   );

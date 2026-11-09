@@ -73,3 +73,42 @@ describe('E009 the Docker image', () => {
     );
   });
 });
+
+/** Whether `.dockerignore` leaves a file in the build context: the last pattern that matches decides. */
+function inBuildContext(dockerignore, file) {
+  let included = true;
+  for (const line of dockerignore.split('\n')) {
+    const pattern = line.trim();
+    if (pattern === '' || pattern.startsWith('#')) continue;
+    const negated = pattern.startsWith('!');
+    const glob = (negated ? pattern.slice(1) : pattern).replace(/^\//, '');
+    const regex = new RegExp(
+      `^${glob
+        .split('**/')
+        .map((part) => part.replace(/[.+^${}()|[\]\\]/g, '\\$&').replace(/\*/g, '[^/]*'))
+        .join('(?:.*/)?')}(?:/.*)?$`,
+    );
+    if (regex.test(file)) included = negated;
+  }
+  return included;
+}
+
+describe('F064 AC10 the legal texts are in the Docker build context', () => {
+  const dockerignore = readFileSync(join(ROOT, '.dockerignore'), 'utf8');
+
+  it('the website renders docs/legal when it is built, so the build context has the four texts', () => {
+    for (const file of [
+      'privacy-policy.nl.md',
+      'privacy-policy.en.md',
+      'terms.nl.md',
+      'terms.en.md',
+    ]) {
+      assert.ok(inBuildContext(dockerignore, `docs/legal/${file}`), `${file} is ignored`);
+    }
+  });
+
+  it('still leaves the rest of docs out of the build context', () => {
+    assert.equal(inBuildContext(dockerignore, 'docs/product/PRODUCT.md'), false);
+    assert.equal(inBuildContext(dockerignore, 'docs/design/website/site.js'), false);
+  });
+});

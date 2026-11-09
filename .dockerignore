@@ -4,7 +4,9 @@
 .tools
 .claude
 .railway
-docs
+# The website renders docs/legal when it is built (F064, AC10); the rest of docs stays out.
+docs/*
+!docs/legal
 **/node_modules
 **/.next
 **/.turbo
