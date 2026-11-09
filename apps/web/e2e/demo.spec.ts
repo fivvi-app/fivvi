@@ -1,8 +1,8 @@
 import { randomUUID } from 'node:crypto';
 import { messages as catalogs, formattingLocales, type Locale } from '@fivvi/i18n';
 import { clientIpHeaders, newAddress, newIpAddress } from './accounts';
-import { emailsTo, type ReceivedEmail } from './lettermint';
 import { expect, test } from './fixtures';
+import { emailsTo, type ReceivedEmail } from './lettermint';
 import { DEMO_REQUEST_ADDRESS } from './servers';
 
 // F064 (spec #611, ticket #641): the demo page and its form. The form posts to the real API, which
