@@ -141,7 +141,20 @@ Dit geldt zodra klanten zich kunnen aanmelden.
 2. Je kunt een account aanmaken vanaf **16 jaar**. Jongere kinderen hebben geen eigen account: een ouder of verzorger regelt het dan voor hen met de studio.
 3. Een account laat op zichzelf niets van een studio zien. Je komt bij een studio via haar aanmeldlink of QR-code, of doordat de studio je uitnodigt. De studio beslist of ze je toelaat. Alleen toegelaten klanten zien het rooster van de studio en kunnen boeken.
 4. De studio kan je als klant verwijderen. Je kunt je account op elk moment laten verwijderen: mail vanaf het adres van je account naar privacy@fivvi.app met als onderwerp "Account verwijderen". We doen dat binnen een maand.
-5. Een account is gratis, maar je geeft er persoonsgegevens voor. Je mag daarom binnen 14 dagen nadat je het hebt gemaakt, zonder opgave van reden, afzien van de overeenkomst (herroepingsrecht). Mail ons daarvoor zoals in lid 4. Ook na die 14 dagen kun je je account altijd kosteloos laten verwijderen.
+5. Een account is gratis, maar je geeft er persoonsgegevens voor. Je mag daarom, als consument, binnen 14 dagen nadat je het account hebt gemaakt, zonder opgave van reden, afzien van de overeenkomst (herroepingsrecht).
+   - **Voorwaarden en termijn:** de termijn van 14 dagen begint op de dag dat je het account maakt. Het herroepingsrecht geldt voor een consument.
+   - **Zo oefen je het uit:** stuur ons een ondubbelzinnige verklaring dat je afziet van de overeenkomst, bijvoorbeeld per e-mail aan privacy@fivvi.app, vóór die termijn is verlopen. Je mag daarvoor het modelformulier hieronder gebruiken, maar dat hoeft niet.
+   - **Gevolg:** we verwijderen je account en je gegevens zoals in lid 4.
+   - Ook na die 14 dagen kun je je account altijd kosteloos laten verwijderen.
+
+   *Modelformulier voor herroeping (vul dit alleen in en stuur het terug als je de overeenkomst wilt herroepen):*
+   - Aan K&S Apps, Haringbuisdijk 43, 1086 VA Amsterdam, privacy@fivvi.app:
+   - Ik deel u hierbij mede dat ik mijn overeenkomst betreffende de levering van de volgende dienst herroep: het Fivvi-account.
+   - Gemaakt op:
+   - Naam consument:
+   - Adres consument:
+   - Handtekening consument (alleen wanneer dit formulier op papier wordt ingediend):
+   - Datum:
 
 ### B3. Boeken
 

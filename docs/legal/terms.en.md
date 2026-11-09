@@ -141,7 +141,20 @@ This applies once clients can join.
 2. You can create an account from the age of **16**. Younger children have no account of their own: a parent or guardian arranges it with the studio for them.
 3. An account on its own shows nothing of any studio. You get into a studio through its join link or QR code, or because the studio invites you. The studio decides whether to let you in. Only clients who are let in see the studio's timetable and can book.
 4. The studio can remove you as a client. You can have your account deleted at any time: email privacy@fivvi.app from the address of your account with the subject "Delete account". We do that within one month.
-5. An account is free, but you give personal data for it. You may therefore withdraw from the agreement within 14 days of creating it, without giving a reason (right of withdrawal). Email us for that as in paragraph 4. After those 14 days, too, you can always have your account deleted free of charge.
+5. An account is free, but you give personal data for it. As a consumer you may therefore withdraw from the agreement within 14 days of creating the account, without giving a reason (right of withdrawal).
+   - **Conditions and time limit:** the 14 days start on the day you create the account. The right of withdrawal applies to a consumer.
+   - **How to use it:** send us an unambiguous statement that you withdraw from the agreement, for example by email to privacy@fivvi.app, before that time limit has expired. You may use the model form below, but you don't have to.
+   - **Effect:** we delete your account and your data as in paragraph 4.
+   - After those 14 days, too, you can always have your account deleted free of charge.
+
+   *Model withdrawal form (complete and return this form only if you wish to withdraw from the contract):*
+   - To K&S Apps, Haringbuisdijk 43, 1086 VA Amsterdam, privacy@fivvi.app:
+   - I hereby give notice that I withdraw from my contract for the provision of the following service: the Fivvi account.
+   - Created on:
+   - Name of consumer:
+   - Address of consumer:
+   - Signature of consumer (only if this form is notified on paper):
+   - Date:
 
 ### B3. Booking
 
