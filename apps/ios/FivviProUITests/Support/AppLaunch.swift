@@ -27,13 +27,16 @@ enum AppLaunch {
     ///   - textSize: a `UIContentSizeCategory` raw value, e.g. `largestTextSize`.
     ///   - appearance: "light" or "dark", which the Debug app takes as a launch argument
     ///     (`LaunchAppearance.uiTestAppearanceKey` in the app); the simulator's own appearance when nil.
+    ///   - recordsOpenedLinks: the app opens no link but shows its address in `uitest.openedLink`
+    ///     (`OpenedLinksRecorder` in the app), so a test can read which address a tap opened.
     static func launch(
         against server: StubServer,
         session: Session,
         deviceLanguages: [String]? = nil,
         perAppLanguage: String? = nil,
         textSize: String? = nil,
-        appearance: String? = nil
+        appearance: String? = nil,
+        recordsOpenedLinks: Bool = false
     ) -> XCUIApplication {
         let app = XCUIApplication()
         let languages = deviceLanguages ?? [TestCatalog.configuredLanguage]
@@ -55,6 +58,9 @@ enum AppLaunch {
         }
         if let appearance {
             app.launchArguments += ["-UITestAppearance", appearance]
+        }
+        if recordsOpenedLinks {
+            app.launchArguments += ["-UITestRecordOpenedLinks", "YES"]
         }
         app.launchEnvironment["TZ"] = "Europe/Amsterdam"
         ReachableLaunch.launch(app)

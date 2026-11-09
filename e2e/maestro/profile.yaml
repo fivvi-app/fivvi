@@ -4,13 +4,17 @@
 #   AC1  She changes her name in the name dialog and saves; Profiel shows it, and so does the next sign-in (the name is
 #        stored on the account, which the web reads on its next load).
 #   AC4  She switches training off or on for Sarah Personal Training, and back; the switch only moves when the API accepted it.
+# F064 (spec #611):
+#   AC17 Profiel has the rows "Help and contact" and "Privacy policy" below the language list, so the flow looks for them at
+#        the end, after the name row at the top is done with. Which page a tap opens is proven in each app's own tests
+#        (the opened address), not here: the flow stays off the public website.
 # The local database is never emptied between runs (#381), so the flow starts from whatever an earlier run left: it sets the
 # name to fixed values and ends with the seeded one ("Sarah"), and it turns the switch to the other state whichever state it
 # finds, then back. Elements are found by id: the Android testTag and the iOS accessibilityIdentifier, the same on both
 # apps; the texts asserted are the person's own data, so the flow needs no catalog text. The switch is a node with a
 # checked state (Android: Role.Switch, iOS: a Toggle).
 appId: ${APP_ID}
-name: AC1 AC4 AC5 Profiel changes my name and the I also train here switch
+name: AC1 AC4 AC5 AC17 Profiel changes my name, the I also train here switch and has the help and privacy rows
 env:
   # The Android application id and the iOS bundle id.
   APP_ID: app.fivvi.pro
@@ -124,3 +128,17 @@ env:
       id: profile\.name
       text: Sarah
     timeout: 20000
+# F064 AC17: the rows that open help and contact and the privacy policy are on Profiel, below the language list, on iOS and
+# Android alike (the ids are the Android testTag and the iOS accessibilityIdentifier).
+- scrollUntilVisible:
+    element:
+      id: profile\.support
+    timeout: 20000
+- assertVisible:
+    id: profile\.support
+- scrollUntilVisible:
+    element:
+      id: profile\.privacy
+    timeout: 20000
+- assertVisible:
+    id: profile\.privacy

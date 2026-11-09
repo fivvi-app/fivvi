@@ -68,6 +68,8 @@ enum StringKey: String {
     case profileTitle = "profile.title"
     case profileError = "profile.error"
     case profileLanguage = "profile.language"
+    case profileSupport = "profile.support"
+    case profilePrivacy = "profile.privacy"
     case myProfileWorkspacesTitle = "myProfile.workspacesTitle"
     case myProfileDetailsTitle = "myProfile.detailsTitle"
     case myProfileNameLabel = "myProfile.nameLabel"
