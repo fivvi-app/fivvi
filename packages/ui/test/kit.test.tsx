@@ -4,7 +4,9 @@ import { compile } from '@tailwindcss/node';
 import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import { Button } from '../src/components/button';
 import { ClientLayout } from '../src/kit/client-layout';
+import { ErrorLine } from '../src/kit/error-line';
 import { Field } from '../src/kit/field';
 import { InsetList, InsetListItem } from '../src/kit/inset-list';
 import { NextCard } from '../src/kit/next-card';
@@ -29,6 +31,16 @@ function classesOf(markup: string, attribute: string): string[] {
 }
 
 describe('E020 web kit', () => {
+  describe('AC15: the primary button keeps its contrast when hovered', () => {
+    it('darkens its fill on hover (the pressed token, not a filter on the label) instead of fading to a lighter pink, where white text is 3.7:1', () => {
+      const classes = classesOf(html(<Button>Opslaan</Button>), 'data-slot="button"');
+
+      expect(classes).toContain('bg-primary');
+      expect(classes).toContain('hover:bg-primary-pressed');
+      expect(classes).not.toContain('hover:bg-primary/80');
+    });
+  });
+
   describe('AC14: card', () => {
     it('has the card radius and the card colours', () => {
       const classes = classesOf(html(<ProCard>Anna</ProCard>), 'data-slot="pro-card"');
@@ -235,6 +247,19 @@ describe('E020 web kit', () => {
     });
   });
 
+  describe('AC14: error line', () => {
+    it('is the warning icon and the message in the danger text, announced when it appears', () => {
+      const markup = html(<ErrorLine id="oops">Geen verbinding.</ErrorLine>);
+
+      expect(markup).toMatch(
+        /<p[^>]*id="oops"[^>]*role="alert"[^>]*>\s*<svg[^>]*aria-hidden="true"[\s\S]*<\/svg>\s*Geen verbinding\.\s*<\/p>/,
+      );
+      expect(classesOf(markup, 'data-slot="error-line"')).toEqual(
+        expect.arrayContaining(['text-status-danger-fg', 'font-semibold']),
+      );
+    });
+  });
+
   describe('AC14: field with its error state', () => {
     it('ties the label to the input', () => {
       const markup = html(<Field id="name" label="Naam" />);
@@ -273,6 +298,14 @@ describe('E020 web kit', () => {
       expect(inputClasses).not.toContain('dark:aria-invalid:ring-destructive/40');
       // The message comes after the input.
       expect(markup.indexOf('<input')).toBeLessThan(markup.indexOf('name-error"'));
+    });
+
+    it('announces the message when it appears, and not the hint', () => {
+      const error = html(<Field id="name" label="Naam" hint="Zoals op de ID." error="Fout." />);
+      const hint = html(<Field id="name" label="Naam" hint="Zoals op de ID." />);
+
+      expect(error).toMatch(/<p[^>]*id="name-error"[^>]*role="alert"/);
+      expect(hint).not.toContain('role="alert"');
     });
 
     it('has a hint, and the error replaces it', () => {

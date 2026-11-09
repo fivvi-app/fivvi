@@ -12,7 +12,7 @@ import { SignOutButton } from './sign-out-button';
 export default function SignedInLayout({ children }: { children: ReactNode }) {
   return (
     <div className="flex min-h-dvh flex-col">
-      <header className="flex justify-end p-4">
+      <header className="flex h-12 flex-none items-center justify-end border-b px-4">
         <SignOutButton />
       </header>
       {children}

@@ -2,18 +2,12 @@
 
 import { SIGNED_IN_HOME } from '@fivvi/auth/return-path';
 import { Button } from '@fivvi/ui/components/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardFooter,
-  CardHeader,
-  CardTitle,
-} from '@fivvi/ui/components/card';
-import { Input } from '@fivvi/ui/components/input';
-import { Label } from '@fivvi/ui/components/label';
+import { CardContent, CardDescription, CardHeader, CardTitle } from '@fivvi/ui/components/card';
+import { ErrorLine } from '@fivvi/ui/kit/error-line';
+import { Field } from '@fivvi/ui/kit/field';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useState } from 'react';
+import { GatePage } from '../../gate-page';
 import {
   type CreateWorkspaceResult,
   createWorkspace,
@@ -63,65 +57,39 @@ export function WelcomeForm({ askName }: { askName: boolean }) {
   const nameError = fields.name ? t(`errors.${fields.name}`) : null;
 
   return (
-    <main className="flex flex-1 items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
-        <form noValidate onSubmit={submit} className="grid gap-(--card-spacing)">
-          <CardHeader>
-            <CardTitle>
-              <h1>{t('title')}</h1>
-            </CardTitle>
-            <CardDescription>{t('description')}</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            {askName ? (
-              <div className="grid gap-2">
-                <Label htmlFor="person-name">{t('personNameLabel')}</Label>
-                <Input
-                  id="person-name"
-                  name="personName"
-                  autoComplete="name"
-                  aria-invalid={personNameError ? true : undefined}
-                  aria-describedby={personNameError ? 'person-name-error' : undefined}
-                />
-                <FieldError id="person-name-error" message={personNameError} />
-              </div>
-            ) : null}
-            <div className="grid gap-2">
-              <Label htmlFor="workspace-name">{t('workspaceNameLabel')}</Label>
-              <p id="workspace-name-hint" className="text-sm text-muted-foreground">
-                {t('workspaceNameHint')}
-              </p>
-              <Input
-                id="workspace-name"
-                name="name"
-                autoComplete="organization"
-                aria-invalid={nameError ? true : undefined}
-                aria-describedby={
-                  nameError ? 'workspace-name-hint workspace-name-error' : 'workspace-name-hint'
-                }
-              />
-              <FieldError id="workspace-name-error" message={nameError} />
-            </div>
-            <FieldError id="welcome-error" message={failure ? t(`errors.${failure}`) : null} />
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" disabled={!ready || pending}>
-              {t('submit')}
-            </Button>
-          </CardFooter>
-        </form>
-      </Card>
-    </main>
-  );
-}
-
-/** The message under a field the API refused, announced when it appears. */
-function FieldError({ id, message }: { id: string; message: string | null }) {
-  if (!message) return null;
-  return (
-    <p id={id} role="alert" className="text-status-danger-fg">
-      {message}
-    </p>
+    <GatePage>
+      <form noValidate onSubmit={submit} className="grid gap-(--card-spacing)">
+        <CardHeader>
+          <CardTitle className="text-[22px] leading-tight font-semibold">
+            <h1>{t('title')}</h1>
+          </CardTitle>
+          <CardDescription>{t('description')}</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          {askName ? (
+            <Field
+              id="person-name"
+              name="personName"
+              autoComplete="name"
+              label={t('personNameLabel')}
+              error={personNameError}
+            />
+          ) : null}
+          <Field
+            id="workspace-name"
+            name="name"
+            autoComplete="organization"
+            label={t('workspaceNameLabel')}
+            hint={t('workspaceNameHint')}
+            error={nameError}
+          />
+          {failure ? <ErrorLine id="welcome-error">{t(`errors.${failure}`)}</ErrorLine> : null}
+          <Button type="submit" disabled={!ready || pending} className="w-full">
+            {t('submit')}
+          </Button>
+        </CardContent>
+      </form>
+    </GatePage>
   );
 }
 

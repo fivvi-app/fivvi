@@ -10,6 +10,7 @@
   --popover-foreground: var(--th-color-web-trainer-foreground);
   --primary: var(--th-color-action-primary-bg);
   --primary-foreground: var(--th-color-action-primary-fg);
+  --primary-pressed: var(--th-color-action-primary-bg-pressed);
   --secondary: var(--th-color-web-trainer-muted);
   --secondary-foreground: var(--th-color-web-trainer-foreground);
   --muted: var(--th-color-web-trainer-muted);
@@ -21,6 +22,7 @@
   --border: var(--th-color-web-trainer-border);
   --input: var(--th-color-border-control);
   --ring: var(--th-color-border-focus);
+  --sidebar: var(--th-color-web-trainer-sidebar);
   --radius: var(--th-radius-md);
   --fill-decorative: var(--th-color-fill-decorative);
   --accent-fill: var(--th-color-accent-fill);

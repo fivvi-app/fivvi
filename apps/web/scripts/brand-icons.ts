@@ -12,6 +12,8 @@
 //   app/apple-icon.png                       180 px, the iOS home-screen icon: the whole square, with no
 //                                            rounded clip, which iOS applies itself (an empty corner turns black)
 //   public/site-images/brand/fivvi-logo.svg, fivvi-logo-dark.svg    the wordmarks as drawn, for the header and footer
+//   public/site-images/brand/fivvi-day-dial.svg, fivvi-day-dial-dark.svg    the plain day dial B2 as drawn (light is
+//                                            favicon.svg's mark), the sign-in mark of the trainer web below 768 px (#626)
 //
 // No dependency: next/og (satori and resvg, which already draw the share images) rasterises the SVG,
 // and the ICO is a header around the PNGs. The same input gives the same bytes.
@@ -82,6 +84,12 @@ export async function brandFiles(): Promise<Record<string, Buffer>> {
     'app/apple-icon.png': apple,
     'public/site-images/brand/fivvi-logo.svg': await brand('fivvi-logo.svg'),
     'public/site-images/brand/fivvi-logo-dark.svg': await brand('fivvi-logo-dark.svg'),
+    'public/site-images/brand/fivvi-day-dial.svg': await brand(
+      'day-dial/b2/fivvi-day-dial-b2-light.svg',
+    ),
+    'public/site-images/brand/fivvi-day-dial-dark.svg': await brand(
+      'day-dial/b2/fivvi-day-dial-b2-dark.svg',
+    ),
   };
 }
 

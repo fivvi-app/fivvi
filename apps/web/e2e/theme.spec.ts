@@ -1,6 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import type { Locator, Page } from '@playwright/test';
+import {
+  clientIpHeaders,
+  createAccount,
+  createGymWithTrainer,
+  newAddress,
+  newAllowedAddress,
+  signInWithSession,
+} from './accounts';
 import { expect, expectNoAxeViolations, test } from './fixtures';
 
 type ColorScheme = 'light' | 'dark';
@@ -450,3 +458,143 @@ async function probe(page: Page, classes: string, text: string): Promise<Locator
   );
   return page.locator(`#${id}`);
 }
+
+// E020 #626: the shell of the trainer web, as the prototype draws it (docs/design/prototype-v2,
+// *Inloggen (TW-10)*, *Dashboard (WC-01)*, the sidebar): the gate pages and the sidebar sit on the
+// sidebar fill, the section the person is on is marked, the workspace has its logo square.
+test.describe('E020 trainer web shell', () => {
+  test.beforeEach(async ({ context }) => {
+    await context.setExtraHTTPHeaders(clientIpHeaders());
+  });
+
+  test('AC15: the sign-in, no access and welcome pages sit on the sidebar fill, in light and dark', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    for (const scheme of colorSchemes) {
+      await openSignInPage(page, scheme);
+      await expect(page.locator('main'), `sign-in in ${scheme}`).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.sidebar', scheme),
+      );
+      // The card keeps the card colour on it, with the title centred under the mark.
+      await expect(page.locator('[data-slot="card"]')).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.card', scheme),
+      );
+      await expect(page.getByRole('heading', { level: 1, name: copy.signIn.title })).toHaveCSS(
+        'text-align',
+        'center',
+      );
+    }
+
+    const outsider = newAddress('outsider');
+    await createAccount(outsider);
+    await signInWithSession(context, outsider);
+    for (const scheme of colorSchemes) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.goto('/home');
+      await expect(
+        page.getByRole('heading', { level: 1, name: copy.noAccess.title }),
+      ).toBeVisible();
+      await expect(page.locator('main'), `no access in ${scheme}`).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.sidebar', scheme),
+      );
+      await expectNoAxeViolations(page, `no access in ${scheme} and ${appLocale}`);
+    }
+
+    const newcomer = newAllowedAddress('newcomer');
+    await createAccount(newcomer);
+    await signInWithSession(context, newcomer);
+    for (const scheme of colorSchemes) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.goto('/welcome');
+      await expect(page.getByRole('heading', { level: 1, name: copy.welcome.title })).toBeVisible();
+      await expect(page.locator('main'), `welcome in ${scheme}`).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.sidebar', scheme),
+      );
+      await expectNoAxeViolations(page, `welcome in ${scheme} and ${appLocale}`);
+      // A field that was refused turns red with the message under it, announced (the kit's Field).
+      await page.getByRole('button', { name: copy.welcome.submit }).click();
+      await expect(
+        page.getByRole('alert').filter({ hasText: copy.welcome.errors.workspaceNameRequired }),
+      ).toBeVisible();
+      await expect(page.getByLabel(copy.welcome.workspaceNameLabel)).toHaveAttribute(
+        'aria-invalid',
+        'true',
+      );
+      await expectNoAxeViolations(page, `welcome with an error in ${scheme} and ${appLocale}`);
+    }
+  });
+
+  test('AC15: the sidebar is the sidebar fill, marks the section the person is on and shows the workspace logo and name', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const john = newAddress('john');
+    await createAccount(john, undefined, 'John');
+    const slug = await createGymWithTrainer(john, "John's Gym", 'owner');
+    await signInWithSession(context, john);
+
+    for (const scheme of colorSchemes) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.goto(`/w/${slug}/trainers`);
+      const sidebar = page.getByRole('complementary');
+      await expect(sidebar, `sidebar in ${scheme}`).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.sidebar', scheme),
+      );
+      // The logo square: the first letters of the name on the accent.
+      const logo = sidebar.locator('[aria-hidden="true"]').filter({ hasText: 'JG' });
+      await expect(logo).toHaveCSS('background-color', tokenColour('action.primary.bg', scheme));
+      await expect(logo).toHaveCSS('color', tokenColour('action.primary.fg', scheme));
+
+      // The current section has the muted row, dark text and its icon in the accent text.
+      const nav = page.getByRole('navigation', { name: copy.workspaceNav.label });
+      const current = nav.getByRole('link', { name: copy.workspaceNav.trainers });
+      await expect(current).toHaveAttribute('aria-current', 'page');
+      await expect(current).toHaveCSS('background-color', tokenColour('web.trainer.muted', scheme));
+      await expect(current).toHaveCSS('color', tokenColour('web.trainer.foreground', scheme));
+      await expect(current.locator('svg')).toHaveCSS('color', tokenColour('accent.text', scheme));
+      const other = nav.getByRole('link', { name: copy.workspaceNav.settings, exact: true });
+      await expect(other).not.toHaveAttribute('aria-current', /.+/);
+      await expect(other).toHaveCSS('color', tokenColour('web.trainer.muted-foreground', scheme));
+      await expectNoAxeViolations(page, `the sidebar in ${scheme} and ${appLocale}`);
+    }
+  });
+
+  test('AC15: the workspace dashboard (WC-01) is a page with the workspace name, in light and dark', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const john = newAddress('john');
+    await createAccount(john, undefined, 'John');
+    const slug = await createGymWithTrainer(john, "John's Gym", 'owner');
+    await signInWithSession(context, john);
+
+    for (const scheme of colorSchemes) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.goto(`/w/${slug}`);
+      await expect(page.getByRole('heading', { level: 1, name: "John's Gym" })).toBeVisible();
+      await expect(page.getByText(copy.workspaceHome.description)).toBeVisible();
+      // The bar over the page is 60px high, as the prototype's `.w-top`.
+      const bar = page
+        .getByRole('button', { name: copy.workspaceNav.new, exact: true })
+        .locator('xpath=ancestor::div[contains(@class, "border-b")][1]');
+      expect((await bar.boundingBox())?.height).toBe(60);
+      await expect(page.locator('[data-slot="card"]')).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.card', scheme),
+      );
+      await expectNoAxeViolations(page, `the dashboard in ${scheme} and ${appLocale}`);
+    }
+  });
+});

@@ -33,7 +33,7 @@ describe.each(locales)('F012 scope switcher of the sidebar header in %s', (local
 
     expect(html).toMatch(
       new RegExp(
-        `<button[^>]*aria-haspopup="menu"[^>]*aria-expanded="false"[^>]*><span>${escapeHtml(`John's Gym · ${copy.roles.trainer}`)}</span>`,
+        `<button[^>]*aria-haspopup="menu"[^>]*aria-expanded="false"[^>]*><span[^>]*aria-hidden="true"[^>]*>[^<]*</span><span[^>]*>${escapeHtml(`John's Gym · ${copy.roles.trainer}`)}</span>`,
       ),
     );
   });

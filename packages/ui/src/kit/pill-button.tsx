@@ -8,7 +8,7 @@ const pillButtonVariants = cva(
   {
     variants: {
       variant: {
-        primary: 'bg-primary text-primary-foreground hover:brightness-95',
+        primary: 'bg-primary text-primary-foreground hover:bg-primary-pressed',
         tonal: 'bg-secondary text-accent-text',
         danger:
           'bg-destructive/10 text-destructive hover:bg-destructive/15 dark:bg-destructive/15 dark:hover:bg-destructive/20',

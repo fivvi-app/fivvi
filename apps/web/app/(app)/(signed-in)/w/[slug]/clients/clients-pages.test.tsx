@@ -9,6 +9,7 @@ import { ClientProfile } from './client-profile';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: () => {}, replace: () => {}, refresh: () => {} }),
+  usePathname: () => null,
 }));
 
 const anna: Schemas['Client'] = {
@@ -52,7 +53,7 @@ describe.each(locales)('F006 TW-01 Clients in %s', (locale) => {
     for (const capabilities of [OWNER, TRAINER]) {
       expect(frame(capabilities)).toMatch(
         new RegExp(
-          `<a[^>]*href="/w/johns-gym/clients"[^>]*>${escapeHtml(copy.workspaceNav.clients)}</a>`,
+          `<a[^>]*href="/w/johns-gym/clients"[^>]*><svg[^>]*aria-hidden="true"[^>]*>.*?</svg><span[^>]*>${escapeHtml(copy.workspaceNav.clients)}</span></a>`,
         ),
       );
     }

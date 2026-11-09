@@ -31,7 +31,7 @@ Two themes come from the tokens in one build. Both are variables of shadcn's the
 
 | Theme | Where | Look |
 |---|---|---|
-| Trainer web | The default (`:root`) | shadcn's zinc neutrals with the accent; radius 12. The muted fill is `#F8F8F9`, not zinc 100, because ADR-032 fixes `#71717A` as the secondary text and it is 4.4:1 on zinc 100 |
+| Trainer web | The default (`:root`) | shadcn's zinc neutrals with the accent; radius 12. The sidebar and the sign-in, no-access and welcome pages sit on `bg-sidebar`, a step from the page. The muted fill is `#F8F8F9`, not zinc 100, because ADR-032 fixes `#71717A` as the secondary text and it is 4.4:1 on zinc 100 |
 | Fivvi Pro (client web) | Under `data-theme="client"` | The grouped grey canvas, white cards (`#1C1C1E` in dark), radius 26, secondary text `#6C6C70` (`#98989F` in dark), the glass header |
 
 A layout opts in to the client theme with `data-theme="client"` on any element: `ClientLayout` does it for the client web, and a page with its own root layout, such as the public website, can put it on `<body>` or on its own wrapper. The attribute only sets variables, so the element that paints the canvas needs `bg-background` (the base styles give `<body>` one). Nothing switches theme at runtime: light and dark follow the system in both. A block that needs a colour the theme does not map uses a token class (`bg-status-success-bg`), never a colour of its own.
@@ -48,7 +48,8 @@ A layout opts in to the client theme with `data-theme="client"` on any element: 
 | `RoundButton` | A round 48px control (the + button, the header's back button) with an icon; `aria-label` is required; variants `primary`, `tonal`, `glass` |
 | `NextCard` | The gradient "next" card in the accent or a session type (`private`, `group`): one hue from the gradient tokens, with the on-colour text. Open Gym is not offered: no screen uses it yet |
 | `StatusPill` | A status or session type: its tint with the text colour that passes on it (`neutral`, `success`, `warning`, `danger`, `private`, `group`) |
-| `Field` | Label, input and hint; with an `error` the label and the field turn red (a solid border with a 3px ring at 18%, in light and dark), a warning icon and the message come under it, and the input points at it (`aria-invalid`, `aria-describedby`, added to the caller's) |
+| `Field` | Label, input and hint; with an `error` the label and the field turn red (a solid border with a 3px ring at 18%, in light and dark), a warning icon and the message come under it (announced when it appears, `role="alert"`), and the input points at it (`aria-invalid`, `aria-describedby`, added to the caller's) |
+| `ErrorLine` | A refusal in words: the warning icon and the message in the danger text colour, announced when it appears (`role="alert"`). `Field` shows it under its input; a screen without a field (a failed request, a link that does not work) uses it alone |
 | `Toast` | `surface="trainer"` (default): the inverse of the page, radius 10, bottom right; a `warning` is a red fill with white text and icon. `surface="client"`: a glass pill above the tab bar, the warning icon in the danger colour. A `warning` is announced at once (`role="alert"`) |
 | `ClientLayout` | The client web's layout: the client theme, the touch density, a sticky glass header and a column |
 
@@ -87,7 +88,7 @@ Commit the new file in `src/components/` as the CLI wrote it. `pnpm dlx shadcn@l
 
 ## Divergences from upstream
 
-The components are the CLI's output, except for four edits (the `Dialog`, `NativeSelect`, `DropdownMenu` and `Button` rows below). Apart from those, the kit differs from a fresh `shadcn init` only in its stylesheet:
+The components are the CLI's output, except for four edits (the `Dialog`, `NativeSelect`, `DropdownMenu` and `Button` rows below; `Button` has two). Apart from those, the kit differs from a fresh `shadcn init` only in its stylesheet:
 
 | What | Why |
 |---|---|
@@ -101,6 +102,7 @@ The components are the CLI's output, except for four edits (the `Dialog`, `Nativ
 | The `Dialog` overlay's upstream `bg-black/10` generates no CSS either (the palette is removed), so the overlay only blurs the page (`backdrop-blur-xs`) | Accepted for the same reasons as the `AlertDialog` overlay above |
 | `NativeSelect` draws its chevron as an inline SVG instead of upstream's `ChevronDownIcon` from `lucide-react`. **`native-select.tsx` is edited** | The kit has no icon library |
 | `DropdownMenu` is a reduced version of upstream's: the menu, trigger, content, group, item, radio group, radio item and separator only (the rest joins when a feature needs it), and the radio item's check is an inline SVG instead of upstream's `CheckIcon` from `lucide-react`. **`dropdown-menu.tsx` is written by hand** | The kit has no icon library, and only the parts the scope switcher (F012) uses are in it |
+| The `default` `Button` darkens its fill on hover (`hover:bg-primary-pressed`, the token `color.action.primary.bg-pressed`), not upstream's `hover:bg-primary/80`. **`button.tsx` is edited** | Fading the accent to 80% makes white text on it about 3.7:1, below 4.5:1 (an axe scan right after a click, with the pointer still on the button, fails). A `brightness` filter would darken the white label too (about 4.46:1), so only the fill changes |
 | The `destructive` `Button` tints are 10% and hover 15% (dark 15% and 20%), not upstream's 10/20 and 20/30. **`button.tsx` is edited** | The destructive text on its own tint must keep 4.5:1 on every web background, hover included; a test in `packages/design-tokens` reads these numbers |
 | Density rules for `[data-density]` (`compact`, `touch`) in Tailwind's `base` layer, which also set `--text-sm` inside the layout | shadcn has one size scale; the densities set body text and a minimum control size per layout from the tokens, without editing the components ([densities](#densities)) |
 | No `src/lib/utils.ts` | The `radix-nova` components import `cn` from the `cn` package directly |
