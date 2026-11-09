@@ -41,9 +41,9 @@ struct SignInScreen {
         ))
     }
 
-    /// Types `text` into `field` after tapping it.
+    /// Types `text` into `field` once a tap has given it keyboard focus.
     func type(_ text: String, into field: XCUIElement) {
-        field.tap()
+        field.focus()
         field.typeText(text)
     }
 

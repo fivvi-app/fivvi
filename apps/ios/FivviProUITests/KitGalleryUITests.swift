@@ -140,15 +140,20 @@ final class KitGalleryUITests: XCTestCase {
         try assertTheRoundControlsAreSolidAndTakeATapNearTheRim(screen)
 
         screen.scrollBack(toLowerHalf: screen.invalidField)
-        screen.invalidField.tap()
+        screen.invalidField.focus()
         screen.invalidField.typeText("Anna")
         XCTAssertEqual(screen.invalidField.value as? String, "Anna", "the error doesn't replace the typed text")
 
         // The toast: its text shows, and it goes away by itself.
         screen.scroll(to: screen.stackSecond)
         screen.stackSecond.tap()
-        XCTAssertTrue(screen.toastText.waitUntilExists(timeout: timeout))
-        XCTAssertEqual(screen.toastText.label, catalog["myProfile.errors.noConnection"])
+        // One read of the toast, not "it exists" and then its label: on a slow runner a read takes seconds, and the
+        // toast (6 s) can be gone between the two (#679).
+        let noConnection = catalog["myProfile.errors.noConnection"]
+        XCTAssertTrue(
+            Polling.until(timeout: timeout, condition: { screen.toastText.labelIfPresent == noConnection }),
+            "the toast shows \(noConnection), it shows \(screen.toastText.labelIfPresent ?? "nothing")"
+        )
         XCTAssertTrue(
             Polling.until(timeout: 15, condition: { !screen.toastText.exists }), "the toast goes away by itself"
         )

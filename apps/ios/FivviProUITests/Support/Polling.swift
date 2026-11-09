@@ -65,23 +65,36 @@ enum Polling {
     /// a layout change or an animation). The deadline is generous on purpose: it only ends the wait when something
     /// keeps moving for good, and a slow simulator stretches an animation far beyond the 3 s it once had (#385). A
     /// still element costs `reads - 1` intervals.
+    ///
+    /// `read` returns nil when there is nothing to read yet (the element is not there): that is not a value, it never
+    /// counts towards `reads` and ends a run of equal values. The deadline does not cut short a value that stood
+    /// still: on a slow runner one read takes seconds (XCTest waits for the app to be idle before every snapshot; a
+    /// read of the tab bar took 12 s, #679), so a deadline measured in seconds left room for one read, and one read
+    /// cannot tell a still value from a moving one. After the deadline the wait goes on while the last two reads were
+    /// equal, and stops at the first read that moved or found nothing, once it has made two reads.
     static func settled<Value: Equatable>(
         timeout: TimeInterval,
         interval: TimeInterval = 0.2,
         reads: Int = 3,
         now: () -> Date = Date.init,
         wait: (TimeInterval) -> Void = { RunLoop.current.run(until: Date().addingTimeInterval($0)) },
-        read: () -> Value
+        read: () -> Value?
     ) -> Bool {
         let deadline = now().addingTimeInterval(timeout)
         var previous: Value?
         var inARow = 0
+        var made = 0
         while true {
             let value = read()
-            inARow = value == previous ? inARow + 1 : 1
+            made += 1
+            if let value {
+                inARow = value == previous ? inARow + 1 : 1
+            } else {
+                inARow = 0
+            }
             previous = value
             if inARow >= reads { return true }
-            guard now() < deadline else { return false }
+            guard inARow >= 2 || made < 2 || now() < deadline else { return false }
             wait(interval)
         }
     }
