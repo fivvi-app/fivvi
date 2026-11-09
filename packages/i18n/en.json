@@ -411,7 +411,7 @@
     "home": {
       "headline": "You train.",
       "headlineRest": "Fivvi handles the rest.",
-      "lead": "We're building one place for calendar, bookings, credits, payments and invoices, for personal trainers, studios and gyms, and a pleasure for their clients.",
+      "lead": "We're building one place for calendar, bookings, credits, payments and invoices: made for personal trainers, studios and gyms, and a pleasure for their clients.",
       "status": "Fivvi is being built right now, together with our first gym. Ask in the demo what's ready.",
       "iAm": {
         "label": "I am",
@@ -548,23 +548,23 @@
         "heading": "Simple, and properly done.",
         "items": {
           "money": {
-            "title": "The money goes straight to you",
+            "title": "The money will go straight to you",
             "text": "You'll connect your own Mollie account in one guided step. Fivvi will never hold client money."
           },
           "cash": {
-            "title": "Cash or card is fine too",
+            "title": "Cash or card will be fine too",
             "text": "You'll be able to record a payment outside Fivvi on the client's profile. Skipping Mollie will be possible too; Fivvi will first tell you what you'd miss."
           },
           "notes": {
-            "title": "Notes stay with the trainer",
+            "title": "Notes will stay with the trainer",
             "text": "Trainer notes will be for trainers only. Clients won't see them."
           },
           "amounts": {
-            "title": "Trainers don't see amounts",
+            "title": "Trainers won't see amounts",
             "text": "A trainer will see clients' balances, but no money. Owners will see the amounts too."
           },
           "noApp": {
-            "title": "Clients don't need an app",
+            "title": "Clients won't need an app",
             "text": "Clients will join with a link or QR code, their email address and a 6-digit code. No password."
           },
           "languages": {
@@ -761,7 +761,7 @@
       },
       "personalTrainers": {
         "metaTitle": "Software for personal trainers: calendar and workouts | Fivvi",
-        "metaDescription": "We're building your day, clients, workout log and credits on your phone. Without screens you don't use.",
+        "metaDescription": "We're building your day, clients, workouts and credits on your phone. Without screens you don't use.",
         "eyebrow": "Personal trainers",
         "headline": "Train your client. Not your admin.",
         "lead": "Soon everything for your sessions on your phone, even in the middle of the floor. Without the group classes or team screens you'd never use.",
@@ -911,7 +911,7 @@
       "planName": "Fivvi",
       "price": "€ 0",
       "period": "during the pilot",
-      "includedLabel": "What is included, as it becomes ready",
+      "includedLabel": "What will be included, as we build it",
       "included": {
         "calendar": "Calendar, bookings and waitlist",
         "memberships": "Memberships, credits and invoices",

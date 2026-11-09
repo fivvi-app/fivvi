@@ -7,6 +7,8 @@
 export interface BusinessDetails {
   /** The trade name the footer shows: the company that runs Fivvi. */
   tradeName: string;
+  /** The registered name of the company, for the JSON-LD (`legalName`); the footer shows the trade name. */
+  legalName?: string;
   /** Chamber of Commerce (KvK) number. */
   kvk?: string;
   /** VAT (btw) number. */
@@ -19,11 +21,12 @@ export interface BusinessDetails {
 
 /**
  * The details of Fivvi's company, as the owner gave them (Q2): a VOF with the trade name K&S Apps.
- * The owner chose knowingly to publish the address and the phone number. The registered name is not
- * confirmed apart from the trade name, so there is no `legalName` here and none in the JSON-LD.
+ * The owner chose knowingly to publish the address and the phone number, and confirmed on
+ * 9 November 2026 that the VOF is registered as exactly "K&S Apps" (`legalName`).
  */
 export const business: BusinessDetails = {
   tradeName: 'K&S Apps',
+  legalName: 'K&S Apps',
   kvk: '92372996',
   vat: 'NL866022788B01',
   address: 'Haringbuisdijk 43, 1086 VA Amsterdam',

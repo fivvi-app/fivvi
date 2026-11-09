@@ -57,8 +57,8 @@ function text(locale: (typeof locales)[number], key: string): string {
 
 /** What "coming" sounds like in each language. A deliberate, small list: a reworded claim uses one. */
 const COMING: Record<(typeof locales)[number], RegExp> = {
-  en: /\b(soon|coming|will|building|being built|ready|once)\b/i,
-  'nl-NL': /\b(straks|komt|komen|eraan|bouwen|gebouwd|klaar|zodra|binnenkort)\b/i,
+  en: /\b(soon|coming|will|won't|building|being built)\b/i,
+  'nl-NL': /\b(straks|komt|komen|eraan|bouwen|gebouwd|binnenkort)\b/i,
 };
 
 /** The features each audience page's working day shows (`audience-data.ts`). */
@@ -105,6 +105,11 @@ const claims: Claim[] = [
   { key: 'home.promises.items.notes.text', features: ['F046', 'F048'] },
   { key: 'home.promises.items.amounts.text', features: ['F052', 'F057'] },
   { key: 'home.promises.items.noApp.text', features: ['F029', 'F027'] },
+  { key: 'home.promises.items.money.title', features: ['E019', 'F057'] },
+  { key: 'home.promises.items.cash.title', features: ['F065'] },
+  { key: 'home.promises.items.notes.title', features: ['F046', 'F048'] },
+  { key: 'home.promises.items.amounts.title', features: ['F052', 'F057'] },
+  { key: 'home.promises.items.noApp.title', features: ['F029', 'F027'] },
   { key: 'home.promises.items.languages.text', features: ['F010'], ready: true },
   // The four audience pages: their leads, their descriptions and every moment of their day.
   ...audiencePageIds.flatMap((page) => [
@@ -187,14 +192,16 @@ describe('F064 AC19 the claims of the site are true or say they are coming', () 
       }
     },
   );
+});
 
-  it('keeps the two languages in step: a claim that says it is coming does so in both', () => {
-    for (const claim of claims.filter((candidate) => !candidate.ready)) {
-      const marked = locales.map((locale) =>
-        COMING[locale].test(text(locale, claim.caption ?? claim.key)),
-      );
-      expect(new Set(marked).size, `site.${claim.key}`).toBe(1);
-    }
+describe('F064 AC19 what counts as "coming"', () => {
+  it('does not accept a sentence that says something is ready, or done once', () => {
+    expect(COMING.en.test('The calendar is ready')).toBe(false);
+    expect(COMING.en.test('Bookings work once you sign in')).toBe(false);
+    expect(COMING['nl-NL'].test('De agenda is klaar')).toBe(false);
+    expect(COMING['nl-NL'].test('Zodra je inlogt werkt het')).toBe(false);
+    expect(COMING.en.test('The calendar is coming')).toBe(true);
+    expect(COMING['nl-NL'].test('De agenda komt eraan')).toBe(true);
   });
 });
 

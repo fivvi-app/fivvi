@@ -411,7 +411,7 @@
     "home": {
       "headline": "Jij traint.",
       "headlineRest": "Fivvi regelt de rest.",
-      "lead": "We bouwen één plek voor agenda, boekingen, credits, betalingen en facturen, voor personal trainers, studio's en sportscholen, en fijn voor hun klanten.",
+      "lead": "We bouwen één plek voor agenda, boekingen, credits, betalingen en facturen: gemaakt voor personal trainers, studio's en sportscholen, en fijn voor hun klanten.",
       "status": "Fivvi wordt nu gebouwd, samen met onze eerste sportschool. Vraag in de demo wat er al klaar is.",
       "iAm": {
         "label": "Ik ben",
@@ -548,23 +548,23 @@
         "heading": "Simpel, en netjes geregeld.",
         "items": {
           "money": {
-            "title": "Het geld gaat rechtstreeks naar jou",
+            "title": "Het geld gaat straks rechtstreeks naar jou",
             "text": "Je koppelt straks je eigen Mollie-account in één begeleide stap. Fivvi houdt nooit geld van klanten vast."
           },
           "cash": {
-            "title": "Contant of pin mag ook",
+            "title": "Contant of pin mag straks ook",
             "text": "Je kunt straks een betaling buiten Fivvi vastleggen op het klantprofiel. Geen Mollie willen kan dan ook; Fivvi vertelt eerst wat je dan mist."
           },
           "notes": {
-            "title": "Notities blijven bij de trainer",
+            "title": "Notities blijven straks bij de trainer",
             "text": "Trainersnotities zijn straks alleen voor trainers. Klanten zien ze niet."
           },
           "amounts": {
-            "title": "Trainers zien geen bedragen",
+            "title": "Trainers zien straks geen bedragen",
             "text": "Een trainer ziet straks de tegoeden van klanten, maar geen geld. Eigenaren zien ook de bedragen."
           },
           "noApp": {
-            "title": "Klanten hebben geen app nodig",
+            "title": "Klanten hebben straks geen app nodig",
             "text": "Klanten doen straks mee met een link of QR-code, hun e-mailadres en een code van 6 cijfers. Geen wachtwoord."
           },
           "languages": {
@@ -761,7 +761,7 @@
       },
       "personalTrainers": {
         "metaTitle": "Software voor personal trainers: agenda en trainingen | Fivvi",
-        "metaDescription": "We bouwen je dag, je klanten, je trainingslog en je credits voor op je telefoon. Zonder schermen die je niet gebruikt.",
+        "metaDescription": "We bouwen je dag, je klanten, je trainingen en je credits op je telefoon. Zonder schermen die je niet gebruikt.",
         "eyebrow": "Personal trainers",
         "headline": "Train je klant. Niet je administratie.",
         "lead": "Straks alles voor je sessies op je telefoon, ook midden op de vloer. Zonder groepslessen of teamschermen die je toch niet gebruikt.",
@@ -911,7 +911,7 @@
       "planName": "Fivvi",
       "price": "€ 0",
       "period": "tijdens de pilot",
-      "includedLabel": "Dit zit erbij, naarmate het klaar is",
+      "includedLabel": "Dit zit erbij, naarmate we het bouwen",
       "included": {
         "calendar": "Agenda, boekingen en wachtlijst",
         "memberships": "Abonnementen, credits en facturen",
@@ -974,7 +974,7 @@
         },
         "mollie": {
           "question": "Moet ik Mollie gebruiken?",
-          "answer": "Nee. Betalingen zitten nog niet in Fivvi. Zodra ze er zijn, kan het ook met alleen contant of pin: Fivvi vertelt dan eerst wat je mist, en je kunt Mollie later altijd nog koppelen."
+          "answer": "Nee. Betalingen komen eraan en zitten nog niet in Fivvi. Straks kan het ook met alleen contant of pin: Fivvi vertelt dan eerst wat je mist, en je kunt Mollie later altijd nog koppelen."
         },
         "devices": {
           "question": "Op welke apparaten werkt Fivvi?",

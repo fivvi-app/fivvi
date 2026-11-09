@@ -45,6 +45,7 @@ describe('F064 AC7 business details', () => {
   it('has the details the owner gave (open-questions Q2, 8 November 2026), all of them shown in the footer', () => {
     expect(business).toEqual({
       tradeName: 'K&S Apps',
+      legalName: 'K&S Apps',
       kvk: '92372996',
       vat: 'NL866022788B01',
       address: 'Haringbuisdijk 43, 1086 VA Amsterdam',

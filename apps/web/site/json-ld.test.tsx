@@ -120,7 +120,7 @@ describe.each(locales)('F064 AC14 JSON-LD in %s', (locale) => {
 });
 
 describe('F064 AC7, AC14 the Organization of the site as it is published (#648)', () => {
-  it('carries the details the owner gave, and no legal name', () => {
+  it('carries the details the owner gave, and the registered name K&S Apps from site/business.ts (owner, 9 November 2026)', () => {
     const { Organization } = nodes('home', 'en');
 
     expect(Organization).toMatchObject({
@@ -129,7 +129,7 @@ describe('F064 AC7, AC14 the Organization of the site as it is published (#648)'
       address: 'Haringbuisdijk 43, 1086 VA Amsterdam',
       telephone: '+31 6 85145755',
     });
-    expect(Organization).not.toHaveProperty('legalName');
+    expect(Organization).toMatchObject({ legalName: 'K&S Apps' });
   });
 });
 
@@ -163,7 +163,7 @@ describe('F064 AC14 the Organization shows only what is filled in', () => {
     });
   });
 
-  it('leaves out a detail that is blank or still an open {{…}} value, and the legal name too', () => {
+  it('leaves out a detail that is blank or still an open {{…}} value', () => {
     const { Organization } = nodes('home', 'nl-NL', {
       tradeName: '{{trade name}}',
       kvk: '  ',
@@ -178,14 +178,19 @@ describe('F064 AC14 the Organization shows only what is filled in', () => {
     expect(JSON.stringify(Organization)).not.toContain('{{');
   });
 
-  it('never emits a legal name: the trade name is not the registered name (#612)', () => {
+  it('adds the legal name only from the business details, and only when filled in (#612)', () => {
     const { Organization } = nodes('home', 'en', {
       tradeName: 'Example BV',
-      kvk: '12345678',
+      legalName: 'Example Holding BV',
     });
 
-    expect(Organization).not.toHaveProperty('legalName');
-    expect(JSON.stringify(pageJsonLd('home', 'en'))).not.toContain('legalName');
+    expect(Organization).toMatchObject({ legalName: 'Example Holding BV' });
+    expect(nodes('home', 'en', { tradeName: 'Example BV' }).Organization).not.toHaveProperty(
+      'legalName',
+    );
+    expect(
+      nodes('home', 'en', { tradeName: 'Example BV', legalName: '{{naam}}' }).Organization,
+    ).not.toHaveProperty('legalName');
   });
 
   it('the SoftwareApplication is published by that organization', () => {

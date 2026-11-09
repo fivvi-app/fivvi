@@ -22,11 +22,12 @@ const organizationId = `${siteOrigin}/#organization`;
 
 /**
  * The Organization behind Fivvi. Only what `site/business.ts` has filled in is in it: a blank detail
- * or an open `{{…}}` value leaves its property out, as it leaves it out of the footer (AC7). There is
- * no `legalName`: the trade name is not the registered company name, which the owner has not confirmed
- * (#612, #648); it comes in when `site/business.ts` has a field for it.
+ * or an open `{{…}}` value leaves its property out, as it leaves it out of the footer (AC7). The
+ * `legalName` is the registered name of `site/business.ts`, which the owner confirmed (#612, #648);
+ * without one it is left out, never guessed from the trade name.
  */
 function organization(details: BusinessDetails): JsonLdNode & { '@type': string } {
+  const legalName = shown(details.legalName);
   const kvk = shown(details.kvk);
   const vat = shown(details.vat);
   const address = shown(details.address);
@@ -36,6 +37,7 @@ function organization(details: BusinessDetails): JsonLdNode & { '@type': string 
     '@id': organizationId,
     name: 'Fivvi',
     url: `${siteOrigin}/`,
+    ...(legalName ? { legalName } : {}),
     email: supportEmail,
     ...(kvk ? { identifier: { '@type': 'PropertyValue', propertyID: 'KvK', value: kvk } } : {}),
     ...(vat ? { vatID: vat } : {}),
@@ -46,7 +48,7 @@ function organization(details: BusinessDetails): JsonLdNode & { '@type': string 
 
 /**
  * The app, on the web: the iPhone and Android apps are not in the stores yet, so they are not named
- * here (#648 adds them with the store listings). Its one price statement is the pricing page's own
+ * here; they are added when the store listings are live. Its one price statement is the pricing page's own
  * words: free during the pilot (`offers`, `price` 0). There is no rating, review or other price, because none exists yet (`DECISIONS.md` §9,
  * *Nothing made up*).
  */
