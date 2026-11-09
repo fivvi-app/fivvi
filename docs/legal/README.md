@@ -43,7 +43,7 @@ Values that aren't known yet appear as `{{…}}`. `privacy-policy.*` and `terms.
 
 - `docs/product/PRODUCT.md` §2.4, §2.5, §25, §35–37, §53, §79
 - `docs/product/ROADMAP.md` §2 (principle 7), §4.3 (ADR table), §4.4, §10 (Privacy track), §11, §12, §13 (R11)
-- ADR-005, 009, 011 and 013 in `docs/decisions/`; Railway and Brevo decisions are reflected in `sub-processors.md`.
+- ADR-005, 009, 011, 013 and 028 in `docs/decisions/`; Railway and Lettermint decisions are reflected in `sub-processors.md`.
 - AVG/GDPR art. 4, 6, 9, 12–22, 26, 28, 32–36, 44–49; Autoriteit Persoonsgegevens, *Lijst van verwerkingen waarvoor een DPIA verplicht is* (2019); EDPB-endorsed WP29 *Guidelines on DPIA* (WP248 rev.01).
 - Provider DPAs as linked in `sub-processors.md` (checked 22 September 2026).
 

@@ -54,6 +54,47 @@ describe('F064 AC11 the sub-processors page stays in step with docs/legal/sub-pr
   });
 });
 
+const agreementFile = path.resolve(
+  import.meta.dirname,
+  '../../../../docs/legal/verwerkersovereenkomst.md',
+);
+
+/** The rows of the sub-processor tables of Annex 3, Dutch first and English second. */
+function agreementRows(): string[][] {
+  const text = readFileSync(agreementFile, 'utf8');
+  const tables = [...text.matchAll(/^\| (?:Dienst|Service) \| .*\n\|[-| ]+\|\n((?:\|.*\n?)+)/gm)];
+  return tables.map(([, body]) => (body ?? '').trim().split('\n'));
+}
+
+describe('E006 the processor agreement names the same email sub-processor as the legal file', () => {
+  it('has one sub-processor table in Dutch and one in English, with the same services', () => {
+    const [nl, en] = agreementRows();
+
+    expect(agreementRows()).toHaveLength(2);
+    expect(nl?.length).toBe(en?.length);
+    const names = (rows?: string[]) => rows?.map((row) => row.split('|')[1]?.trim());
+    expect(names(nl)).toEqual(names(en));
+  });
+
+  it('lists Lettermint in both tables, as in the legal file', () => {
+    const legal = readFileSync(legalFile, 'utf8');
+    const region =
+      'EU: infrastructuur in Amsterdam (UpCloud) en Duitsland (OVH, versleutelde back-ups)';
+    const regionEn =
+      'EU: infrastructure in Amsterdam (UpCloud) and Germany (OVH, encrypted backups)';
+    expect(legal).toContain(region);
+    expect(legal).toContain(regionEn);
+
+    const [nl, en] = agreementRows();
+    expect(nl).toContain(`| Lettermint B.V. | Transactionele e-mail | ${region} |`);
+    expect(en).toContain(`| Lettermint B.V. | Transactional email | ${regionEn} |`);
+  });
+
+  it('no longer names Brevo or Sendinblue anywhere', () => {
+    expect(readFileSync(agreementFile, 'utf8')).not.toMatch(/brevo|sendinblue/i);
+  });
+});
+
 describe.each(locales)('F064 AC11 the sub-processors page in %s', (locale) => {
   const copy = messages[locale].site;
   const t = copy.subProcessors;

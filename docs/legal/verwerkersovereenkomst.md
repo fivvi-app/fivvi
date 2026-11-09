@@ -211,7 +211,7 @@ Zie [`sub-processors.md`](sub-processors.md), versie {{versie}} van {{datum}}. V
 | Dienst | Doel | Regio |
 |---|---|---|
 | Railway Corporation | Hosting web + API, cron, PostgreSQL | Amsterdam (EU West); verwerking buiten EER volgens Railway-DPA |
-| Sendinblue SAS (Brevo) | Transactionele e-mail | EU |
+| Lettermint B.V. | Transactionele e-mail | EU: infrastructuur in Amsterdam (UpCloud) en Duitsland (OVH, versleutelde back-ups) |
 | Sentry (Functional Software, Inc.) | Foutrapportage | Frankfurt (EU) |
 | Cloudflare, Inc. (Turnstile) | Botbescherming | Wereldwijd edge-netwerk |
 
@@ -415,6 +415,6 @@ See [`sub-processors.md`](sub-processors.md), version {{version}} of {{date}}. C
 | Service | Purpose | Region |
 |---|---|---|
 | Railway Corporation | Web + API hosting, cron, PostgreSQL | Amsterdam (EU West); processing outside the EEA under Railway's DPA |
-| Sendinblue SAS (Brevo) | Transactional email | EU |
+| Lettermint B.V. | Transactional email | EU: infrastructure in Amsterdam (UpCloud) and Germany (OVH, encrypted backups) |
 | Sentry (Functional Software, Inc.) | Error reporting | Frankfurt (EU) |
 | Cloudflare, Inc. (Turnstile) | Bot protection | Global edge network |
