@@ -69,6 +69,7 @@ class ObservabilityTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
         dsn = DSN,
         environment = "production",
         release = "app.fivvi.pro@1.2.3+45",
+        app = "fivvi-pro",
     )
     private var transport: CaptureTransport? = null
     private var options: SentryAndroidOptions? = null

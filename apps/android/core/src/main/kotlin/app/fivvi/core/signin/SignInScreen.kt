@@ -43,9 +43,12 @@ import app.fivvi.core.R
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
 import app.fivvi.designtokens.title1
+import app.fivvi.designtokens.title2
 
 /** Test tags, shared with the iOS accessibility identifiers and the Maestro flows. */
 object SignInTags {
+    /** The app's name above the title, for an app that names itself on the screen (Fivvi). */
+    const val APP_NAME = "signIn.appName"
     const val TITLE = "signIn.title"
     const val NOTICE = "signIn.notice"
     const val EMAIL = "signIn.email"
@@ -79,7 +82,9 @@ class SignInActions(
 
 /**
  * TM-01: the email step and the code step. Scrolls, so text at the largest font scale wraps instead of being cut off.
- * [showsSignedOutNotice]: the API stopped accepting the token, which the screen says above the form (AC9).
+ * [showsSignedOutNotice]: the API stopped accepting the token, which the screen says above the form (AC9). [appName]
+ * is the string resource of the app's name, shown above the title by the app that names itself on this screen (Fivvi,
+ * E017); Fivvi Pro passes none.
  */
 @Composable
 fun SignInScreen(
@@ -87,6 +92,7 @@ fun SignInScreen(
     actions: SignInActions,
     modifier: Modifier = Modifier,
     showsSignedOutNotice: Boolean = false,
+    @StringRes appName: Int? = null,
 ) {
     // One call site per step for all its states, so the field keeps its focus while a request is under way.
     val busy = state is SignInState.Sending || state is SignInState.Checking || state is SignInState.Resending
@@ -100,6 +106,7 @@ fun SignInScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         val atCodeStep = state !is SignInState.EmailEntry && state !is SignInState.Sending
+        if (appName != null) AppName(appName)
         Title(if (atCodeStep) R.string.sign_in_check_email_title else R.string.sign_in_title)
         if (showsSignedOutNotice) Notice()
         if (atCodeStep) CodeStep(state, busy, actions) else EmailStep(state, busy, actions)
@@ -191,6 +198,16 @@ private fun CodeStep(state: SignInState, busy: Boolean, actions: SignInActions) 
         SecondaryButton(R.string.sign_in_resend, SignInTags.RESEND, actions.onResend)
         SecondaryButton(R.string.sign_in_change_email, SignInTags.CHANGE_EMAIL, actions.onChangeEmail)
     }
+}
+
+@Composable
+private fun AppName(@StringRes text: Int) {
+    Text(
+        text = stringResource(text),
+        modifier = Modifier.fillMaxWidth().testTag(SignInTags.APP_NAME),
+        style = MaterialTheme.typography.title2,
+        textAlign = TextAlign.Center,
+    )
 }
 
 @Composable

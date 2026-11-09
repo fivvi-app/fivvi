@@ -546,6 +546,60 @@ describe('E020 AC3: the Android adaptive icon is the day dial in the safe zone',
   });
 });
 
+describe('E017 #504: Fivvi, the client app, has the plain day dial B2 as its icon', () => {
+  const CLIENT_PLAY_ICON = 'apps/android/client/src/main/ic_launcher-playstore.png';
+  const CLIENT_RES = 'apps/android/client/src/main/res';
+
+  it('has the same adaptive layers as Fivvi Pro for now: the dial without PRO, generated from the same source', () => {
+    for (const name of ['background', 'foreground', 'monochrome']) {
+      const file = `drawable/ic_launcher_${name}.xml`;
+      assert.equal(
+        text(`${CLIENT_RES}/${file}`),
+        text(`${RES}/${file}`),
+        `${name}: the same layer`,
+      );
+    }
+    const foreground = text(`${CLIENT_RES}/drawable/ic_launcher_foreground.xml`);
+    assert.equal(foreground.match(/<path\b/g).length, 6, 'the track and the five sectors');
+    assert.doesNotMatch(
+      foreground,
+      /#FF(?!E4E4EA|FF4F7B|C8103D)[0-9A-F]{6}/,
+      'only the logo colours',
+    );
+    assert.match(foreground, /#FFFF4F7B/);
+  });
+
+  it('is an adaptive icon with a monochrome layer, and the manifest uses it', () => {
+    const icon = text(`${CLIENT_RES}/mipmap-anydpi-v26/ic_launcher.xml`);
+    for (const layer of ['background', 'foreground', 'monochrome']) {
+      assert.match(icon, new RegExp(`<${layer} android:drawable="@drawable/ic_launcher_${layer}"`));
+      assert.ok(existsSync(join(ROOT, `${CLIENT_RES}/drawable/ic_launcher_${layer}.xml`)));
+    }
+    assert.match(
+      text('apps/android/client/src/main/AndroidManifest.xml'),
+      /android:icon="@mipmap\/ic_launcher"/,
+    );
+  });
+
+  it('the Play Store icon is the 512 px light dial, the same as the one of Fivvi Pro', () => {
+    const png = decodePng(read(CLIENT_PLAY_ICON));
+
+    assert.deepEqual([png.width, png.height, png.colorType], [512, 512, 2]);
+    assert.deepEqual(read(CLIENT_PLAY_ICON), read(PLAY_ICON));
+    near(pixel(png, 510, 1), rgb('#ffffff'), 3, 'the light background at the top right');
+  });
+
+  it('is part of what the generator writes, so the generated-files test covers it', () => {
+    const files = renderIcons();
+    for (const path of [
+      CLIENT_PLAY_ICON,
+      `${CLIENT_RES}/drawable/ic_launcher_foreground.xml`,
+      `${CLIENT_RES}/mipmap-anydpi-v26/ic_launcher.xml`,
+    ])
+      assert.ok(files.has(path), path);
+  });
+});
+
 describe('E017 AC8: a change to what the icon depends on is not served from the test cache', () => {
   it('turbo.json lists as inputs of the root tests every file the icon test and the generator read', () => {
     // The generator reads no file: it has the path data and the colours in itself. So: what the test reads, and the script.

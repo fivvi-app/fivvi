@@ -7,7 +7,8 @@
     "loading": "Laden…",
     "retry": "Opnieuw proberen",
     "loadingSlow": "Dit duurt langer dan normaal…",
-    "cancel": "Annuleren"
+    "cancel": "Annuleren",
+    "offline": "Je bent offline. Sommige gegevens zijn misschien niet actueel."
   },
   "hello": {
     "title": "Welkom bij Fivvi",
@@ -271,7 +272,8 @@
         "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
         "generic": "Er ging iets mis. Probeer het opnieuw."
       }
-    }
+    },
+    "version": "Versie {version}"
   },
   "team": {
     "title": "Trainers",
@@ -365,6 +367,17 @@
     },
     "newClient": "Nieuwe klant",
     "offline": "Je bent offline. Laatst bijgewerkt om {time}."
+  },
+  "clientNav": {
+    "label": "Hoofdnavigatie",
+    "home": "Home",
+    "book": "Boeken",
+    "profile": "Profiel"
+  },
+  "noWorkspace": {
+    "title": "Vraag je studio om de aanmeldlink.",
+    "haveLink": "Heb je de link al? Open hem op deze telefoon.",
+    "teamHint": "Ben je trainer of eigenaar? Gebruik de app Fivvi Pro."
   },
   "site": {
     "meta": {

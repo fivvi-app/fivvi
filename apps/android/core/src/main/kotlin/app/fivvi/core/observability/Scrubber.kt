@@ -40,7 +40,10 @@ private val EMAIL =
 /** Replaces every email address in `text`; the rest of the message stays readable. */
 private fun maskEmails(text: String): String = text.replace(EMAIL, "[email]")
 
-internal fun scrubEvent(event: SentryEvent): SentryEvent = SentryEvent(event.timestamp).also { scrubbed ->
+/** The two tags every event carries (E017 AC10): which app it comes from and the platform. No other tag is kept. */
+private fun appTags(app: String) = mapOf("app" to app, "platform" to "android")
+
+internal fun scrubEvent(event: SentryEvent, app: String): SentryEvent = SentryEvent(event.timestamp).also { scrubbed ->
     scrubbed.eventId = event.eventId
     // Never serialised; kept for the steps the SDK takes after beforeSend.
     scrubbed.throwable = event.throwable
@@ -53,6 +56,8 @@ internal fun scrubEvent(event: SentryEvent): SentryEvent = SentryEvent(event.tim
     scrubbed.sdk = event.sdk
     scrubbed.transaction = event.transaction
     scrubbed.fingerprints = event.fingerprints
+    // Whatever tags the scope holds are replaced by the two the build names: a tag value may hold anything.
+    scrubbed.tags = appTags(app)
     scrubbed.debugMeta = event.debugMeta
     // The error's own message stays (emails masked): our errors never contain personal data or note content
     // (ADR-013), and without it an error can't be debugged. Format parameters may hold anything and are dropped.

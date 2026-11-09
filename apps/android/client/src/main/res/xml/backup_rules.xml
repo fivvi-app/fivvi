@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Auto Backup on Android 11 and lower (android:fullBackupContent). The session store holds the sign-in token, encrypted
+     with a Keystore key that never leaves the device, so it stays out of the backup (F001, AC11). -->
+<full-backup-content>
+    <exclude domain="file" path="session/" />
+</full-backup-content>

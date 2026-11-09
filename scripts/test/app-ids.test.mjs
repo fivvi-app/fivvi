@@ -138,6 +138,80 @@ describe('E017 AC8: the project uses the final ID its README records', () => {
   });
 });
 
+// E017 #504 (AC4 of #469): Fivvi, the client app, is a second application module beside Fivvi Pro, with the application ID
+// `app.fivvi` that the README records as final, and both are built on the same shared modules.
+describe('E017 #504 AC4: two Android apps, distinct IDs, shared generated sources', () => {
+  const clientGradle = read('apps/android/client/build.gradle.kts');
+  const proGradle = read('apps/android/app/build.gradle.kts');
+  const readme = read('apps/android/README.md');
+  const recordedClientId = (text) => text.match(/client app's own ID, `([^`]+)` \(final/)?.[1];
+  const clientProblems = (text, gradle) => {
+    const recorded = recordedClientId(text);
+    if (!recorded)
+      return ['apps/android/README.md records no final application ID of the client app'];
+    const id = androidProjectId(gradle);
+    return id === recorded ? [] : [`application ID '${id}' is not the recorded '${recorded}'`];
+  };
+
+  it('the client app uses the application ID its README records, and it is not the one of Fivvi Pro', () => {
+    assert.deepEqual(clientProblems(readme, clientGradle), []);
+    assert.equal(androidProjectId(clientGradle), 'app.fivvi');
+    assert.equal(androidProjectId(proGradle), 'app.fivvi.pro');
+  });
+
+  it('fails when the README records another client ID, or none', () => {
+    assert.deepEqual(
+      clientProblems(
+        readme.replace(
+          "client app's own ID, `app.fivvi` (final",
+          "client app's own ID, `app.other` (final",
+        ),
+        clientGradle,
+      ),
+      ["application ID 'app.fivvi' is not the recorded 'app.other'"],
+    );
+    assert.deepEqual(
+      clientProblems(
+        readme.replace(
+          "client app's own ID, `app.fivvi` (final",
+          "client app's own ID, `app.fivvi` (provisional",
+        ),
+        clientGradle,
+      ),
+      ['apps/android/README.md records no final application ID of the client app'],
+    );
+  });
+
+  it('both apps are built on :core, and neither copies the generated client, strings or tokens', () => {
+    for (const gradle of [clientGradle, proGradle]) {
+      assert.match(gradle, /implementation\(project\(":core"\)\)/);
+      const code = gradle
+        .split('\n')
+        .filter((line) => !/^\s*\/\//.test(line))
+        .join('\n');
+      assert.doesNotMatch(code, /packages\/(i18n|contract|design-tokens)/);
+    }
+    assert.match(read('apps/android/settings.gradle.kts'), /include\(":app", ":client", ":core"/);
+  });
+
+  it('pnpm test:android runs the unit and the Compose UI tests of every module, and the build number check of both apps', () => {
+    const script = read('scripts/android.sh');
+    // An unqualified task runs in every module that has it, so a module added later is covered; a task of :app or :client
+    // alone would leave the other app out.
+    const gradleLines = script.split('\n').filter((line) => /^\s*gradle\b/.test(line));
+    const unqualified = (task) =>
+      gradleLines.filter((line) => new RegExp(`(^|\\s)${task}(\\s|$)`).test(line.trim()));
+    assert.equal(
+      unqualified('testDebugUnitTest').length,
+      2,
+      'test and verify run testDebugUnitTest',
+    );
+    assert.equal(unqualified('connectedDebugAndroidTest').length, 1);
+    assert.match(script, /--tests app\.fivvi\.pro\.BuildInfoTest/);
+    assert.match(script, /:client:testDebugUnitTest --tests app\.fivvi\.client\.BuildInfoTest/);
+  });
+});
+
 /** The deployment targets a project.pbxproj sets, one per build configuration that sets one. */
 const deploymentTargets = (pbxproj) =>
   [...pbxproj.matchAll(/^\s*IPHONEOS_DEPLOYMENT_TARGET = ([^;\s]+);/gm)].map((match) => match[1]);
