@@ -179,7 +179,9 @@ describe('E020 AC7: every iOS app targets iOS 26.0 and none opts out of Liquid G
   });
 
   it('E017 #500: the local shared packages (apps/ios/Packages) target iOS 26 like the apps', () => {
-    const packages = readdirSync(join(ROOT, 'apps/ios/Packages'));
+    const packages = readdirSync(join(ROOT, 'apps/ios/Packages'), { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name);
     assert.ok(packages.includes('FivviShared'));
     for (const name of packages)
       assert.match(

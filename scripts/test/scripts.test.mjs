@@ -672,9 +672,11 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     // The first run of the shared-package layout restored a cache built with Sentry as a direct dependency of the app,
     // and Xcode refused its precompiled Sentry module ("Sentry.framework/Headers/SentryEvent.h has been modified since
     // the module file was built"): "a stale cache only costs build time" did not hold. A run saves a cache only when it
-    // passes, so the next run restored the same one. The graph is the local packages' manifests and the project file.
+    // passes, so the next run restored the same one. The graph is the manifests of every local package the project uses
+    // (the shared ones in apps/ios/Packages, the contract, design tokens and generated strings in packages/) and the
+    // project file.
     const graph =
-      "hashFiles('apps/ios/Packages/**/Package.swift', 'apps/ios/FivviPro.xcodeproj/project.pbxproj')";
+      "hashFiles('apps/ios/Packages/**/Package.swift', 'packages/contract/swift/Package.swift', 'packages/design-tokens/FivviDesignTokens/Package.swift', 'packages/i18n/generated/ios/Package.swift', 'apps/ios/FivviPro.xcodeproj/project.pbxproj')";
     const key = iosBuild.match(/^ +key: (ios-build-.+)$/m)?.[1] ?? '';
     assert.ok(key.includes(`\${{ ${graph} }}`), 'the key has the package graph');
     const restoreKeys = iosBuild
@@ -699,7 +701,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
       .filter(Boolean);
     // biome-ignore lint/suspicious/noTemplateCurlyInString: a GitHub Actions expression, not a template
     const prefix = '${{ runner.os }}-${{ steps.xcode.outputs.version }}-';
-    const graph = `\${{ hashFiles('apps/ios/Packages/**/Package.swift', 'apps/ios/FivviPro.xcodeproj/project.pbxproj') }}-`;
+    const graph = `\${{ hashFiles('apps/ios/Packages/**/Package.swift', 'packages/contract/swift/Package.swift', 'packages/design-tokens/FivviDesignTokens/Package.swift', 'packages/i18n/generated/ios/Package.swift', 'apps/ios/FivviPro.xcodeproj/project.pbxproj') }}-`;
     assert.deepEqual(restoreKeys, [
       `ios-build-${prefix}${graph}\${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-`,
       `ios-build-${prefix}${graph}`,

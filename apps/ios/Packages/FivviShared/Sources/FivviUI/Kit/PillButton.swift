@@ -19,7 +19,7 @@ public enum PillButtonKind: Sendable {
 }
 
 private struct PillButtonStackedKey: EnvironmentKey {
-    public static let defaultValue = false
+    static let defaultValue = false
 }
 
 extension EnvironmentValues {

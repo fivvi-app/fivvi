@@ -33,7 +33,7 @@ public enum NextCardMetrics {
 }
 
 private struct NextCardToneKey: EnvironmentKey {
-    public static let defaultValue = NextCardTone.accent
+    static let defaultValue = NextCardTone.accent
 }
 
 extension EnvironmentValues {
@@ -44,10 +44,10 @@ extension EnvironmentValues {
 }
 
 private struct NextCardActionStyle: ButtonStyle {
-    public let isIcon: Bool
+    let isIcon: Bool
     @Environment(\.nextCardTone) private var tone
 
-    public func makeBody(configuration: Configuration) -> some View {
+    func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .font(.system(Tokens.TextStyle.body, weight: .semibold))
             .foregroundStyle(tone.text)

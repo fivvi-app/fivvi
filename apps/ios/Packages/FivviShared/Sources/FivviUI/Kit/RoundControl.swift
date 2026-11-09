@@ -59,7 +59,7 @@ public struct RoundControl: View {
 
 /// No style of its own: the label as it is, a little dimmer while it is pressed (glass reacts by itself).
 private struct RoundControlPressStyle: ButtonStyle {
-    public func makeBody(configuration: Configuration) -> some View {
+    func makeBody(configuration: Configuration) -> some View {
         configuration.label.opacity(configuration.isPressed ? 0.8 : 1)
     }
 }

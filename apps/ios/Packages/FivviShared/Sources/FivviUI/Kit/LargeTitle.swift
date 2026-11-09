@@ -77,10 +77,10 @@ extension View {
 }
 
 private struct InlineTitleOnceScrolledAway: ViewModifier {
-    public let title: String
+    let title: String
     @State private var scrolledAway = false
 
-    public func body(content: Content) -> some View {
+    func body(content: Content) -> some View {
         content
             .onScrollGeometryChange(for: Bool.self) { geometry in
                 geometry.contentOffset.y + geometry.contentInsets.top > 40
