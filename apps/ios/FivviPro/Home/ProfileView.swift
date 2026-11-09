@@ -13,7 +13,10 @@ import FivviUI
 /// tapping a row switches to that workspace and returns to the first tab (F012, `onSelect`); with one workspace the row
 /// has no check and no action. *Taal* /
 /// *Language* lists the two languages with a check mark on the one shown (F010): choosing one re-renders the app at
-/// once and saves it on the account. While a save is under way the back button is hidden, which also stops the swipe.
+/// once and saves it on the account. Under it, in a group with no title, *Hulp en contact* / *Help and contact* and
+/// *Privacyverklaring* / *Privacy policy* open that page of the website in the language shown, in the system browser
+/// (F064 AC17, `ProfileView+SiteLinks.swift`). While a save is under way the back button is hidden, which also stops
+/// the swipe.
 struct ProfileView: View {
     let model: ProfileViewModel
     let language: AppLanguage
@@ -21,6 +24,8 @@ struct ProfileView: View {
     var current: String?
     /// Told the workspace the person tapped (F012); the home switches to it and goes back to the first tab.
     var onSelect: (String) -> Void = { _ in }
+    /// Opens a page of the website in the system browser (F064 AC17); the home passes its `openURL`.
+    let openLink: (URL) -> Void
 
     var body: some View {
         content
@@ -66,6 +71,7 @@ struct ProfileView: View {
                 failedSection
             }
             languageSection
+            siteLinksSection
         }
         .scrollContentBackground(.hidden)
     }

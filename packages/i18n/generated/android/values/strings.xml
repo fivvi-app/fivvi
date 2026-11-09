@@ -5,6 +5,14 @@
     <string name="app_name">Fivvi Pro</string>
     <!-- Browser tab title (HTML <title>) of web pages that don't set their own. The product name, Fivvi, the same in both languages. -->
     <string name="app_title">Fivvi</string>
+    <!-- Second tab of the client app: where a client books a class. A verb in the tab bar (GLOSSARY: Book / Boeken). -->
+    <string name="client_nav_book">Boeken</string>
+    <!-- First tab of the client app. The same word in both languages (GLOSSARY: Home). -->
+    <string name="client_nav_home">Home</string>
+    <!-- Accessibility label of the client app's tab bar (TalkBack). -->
+    <string name="client_nav_label">Hoofdnavigatie</string>
+    <!-- Third tab of the client app: the client's name, email address, language and sign-out. -->
+    <string name="client_nav_profile">Profiel</string>
     <string name="clients_add">Klant toevoegen</string>
     <string name="clients_add_dialog_cancel">Annuleren</string>
     <!-- Accessibility label of the close button (x) of the new-client form in the apps. -->
@@ -63,6 +71,8 @@
     <string name="common_loading">Laden…</string>
     <!-- Line under a loading placeholder that is still waiting after 10 seconds. -->
     <string name="common_loading_slow">Dit duurt langer dan normaal…</string>
+    <!-- Banner at the top of the client app while the phone has no connection. Not tied to one list, so it has no time (clients.offline names the time of a cached list). -->
+    <string name="common_offline">Je bent offline. Sommige gegevens zijn misschien niet actueel.</string>
     <!-- Button under an error message that tries the failed action again. -->
     <string name="common_retry">Opnieuw proberen</string>
     <!-- Shown on the native hello screen when the greeting can't be loaded (no connection, or an unknown greeting). Above the common.retry button. -->
@@ -107,6 +117,12 @@
     <string name="no_permission_body">Je hebt geen toegang tot deze pagina. Vraag de eigenaar van %1$s.</string>
     <!-- Heading of the no-permission page (information-architecture §9.5): a team member opens a page their role may not use, such as a Trainer opening Settings. -->
     <string name="no_permission_title">Geen toegang</string>
+    <!-- Second line of the no-workspace state in the client app: the join link opens in the app when it is tapped on this phone. -->
+    <string name="no_workspace_have_link">Heb je de link al? Open hem op deze telefoon.</string>
+    <!-- Third line of the no-workspace state, only for an account that is Owner or Trainer of a workspace: points to the trainer app (Fivvi Pro). -->
+    <string name="no_workspace_team_hint">Ben je trainer of eigenaar? Gebruik de app Fivvi Pro.</string>
+    <!-- Client app, Home and Boeken while the client belongs to no workspace: tells them to ask their studio for the join link. The wording is marked in GLOSSARY.md until the pilot gym owner confirms. -->
+    <string name="no_workspace_title">Vraag je studio om de aanmeldlink.</string>
     <string name="not_found_body">We kunnen deze pagina niet vinden. Controleer de link en probeer het opnieuw.</string>
     <string name="not_found_title">Pagina niet gevonden</string>
     <string name="profile_error">Je werkruimtes konden niet worden geladen.</string>
@@ -124,6 +140,8 @@
     <string name="profile_trains_here_label">Ik geef zelf ook trainingen in %1$s</string>
     <!-- Confirmation shown after the switch was saved. -->
     <string name="profile_trains_here_saved">Opgeslagen.</string>
+    <!-- Line at the end of the client app's Profiel with the app's version. {version} is the version number, e.g. '0.1.0'. -->
+    <string name="profile_version">Versie %1$s</string>
     <!-- Role label of an Owner (Eigenaar) of a workspace, shown as a plain label. -->
     <string name="roles_owner">Eigenaar</string>
     <!-- Role label of a Trainer of a workspace, shown as a plain label. -->

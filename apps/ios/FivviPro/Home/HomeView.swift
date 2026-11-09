@@ -228,7 +228,10 @@ struct HomeView: View {
     }
 
     private var profileScreen: some View {
-        ProfileView(model: profile, language: language, current: account.workspace?.id, onSelect: switchWorkspace)
+        ProfileView(
+            model: profile, language: language, current: account.workspace?.id, onSelect: switchWorkspace,
+            openLink: { openURL($0) }
+        )
     }
 
     /// A workspace was chosen in *Profiel*: back to the first tab, whose workspace is the new one (F012).

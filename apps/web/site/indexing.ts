@@ -1,6 +1,7 @@
 import { isProductionEnvironment } from '@fivvi/email';
 import { locales } from '@fivvi/i18n';
 import type { MetadataRoute } from 'next';
+import { ICON_FILES } from './icons';
 import { builtPages, type SitePage, siteIndexable, sitePageAt } from './routes';
 import { pageUrl, siteOrigin } from './seo';
 
@@ -10,7 +11,7 @@ type Env = Readonly<Record<string, string | undefined>>;
 export const noindexValue = 'noindex, nofollow';
 
 /** The files and generated images that stay findable once the site is: the crawler fetches them. */
-const OPEN_FILES = ['/robots.txt', '/sitemap.xml'];
+const OPEN_FILES: readonly string[] = ['/robots.txt', '/sitemap.xml', ...ICON_FILES];
 const OPEN_PREFIXES = ['/site-images/', '/site-og/'];
 
 /**

@@ -4,8 +4,11 @@
 #   flow.sh status <n>                      facts, phase and next step for an issue
 #   flow.sh facts <n>                       the facts as JSON (input of scripts/flow-phase.jq)
 #   flow.sh next                            your open issues with their phase, the open specs, the ready tickets, the
-#                                           approved specs to cut (Cut #n), answered needs-info questions and PRs to
-#                                           re-queue after their bug was fixed (Requeue PR #n after #bug), then
+#                                           approved specs to cut (Cut #n), answered needs-info questions, PRs to
+#                                           re-queue after their bug was fixed (Requeue PR #n after #bug) and the
+#                                           worktrees of merged PRs, also when the PR closed its issue (`Finish #n`,
+#                                           or `Clean up <branch>` for a branch without an issue; one that has
+#                                           uncommitted changes or commits the PR lacks is left to clean.sh's report), then
 #                                           what waits on the owner: specs to approve, owner-only PRs, PRs the merge
 #                                           gate refused, PRs GitHub removed from the merge queue (not those that wait
 #                                           for their bug or are to be re-queued after it, ADR-025), unanswered
@@ -29,7 +32,8 @@
 #                                           integer) sets one: then it refuses at that many (--force to override)
 #   flow.sh finish <n>                      after its PR is merged (it says so when the PR is still in
 #                                           the merge queue, or GitHub removed it): remove worktree, branches and the
-#                                           worktree's iOS simulator, close the issue, report what the spec needs next;
+#                                           worktree's iOS simulator, close the issue, report what the spec needs next,
+#                                           then run clean.sh for the rest (caches, other leftovers);
 #                                           a spec that closes through its tickets (labelled spec or with sub-issues,
 #                                           not built as its own ticket) stays open: it only cleans up, says so and
 #                                           prints the spec's phase and next step (#509)
@@ -248,6 +252,28 @@ facts_phase() {
   jq -er .phase <<<"$d"
 }
 
+# Finished work (#668): the worktrees under .worktrees/ whose branch's latest PR is merged and that wt.sh done would
+# remove, one line each: `Finish #n <branch> …` for a branch with an issue (the merged PR closed it, so it is no longer
+# among your open issues), `Clean up <branch> …` for one without. $1 is assigned_lines: an open issue it already shows in
+# the phase merged is left out. A worktree wt.sh done refuses (commits the PR lacks, uncommitted changes) is not work for
+# an agent: clean.sh reports it. Dies when a read fails.
+finished_items() {
+  local wt branch state n line
+  while IFS=$'\t' read -r wt branch; do
+    [ -n "$wt" ] || continue
+    line="$(latest_pr_line "$branch")" || die "could not read the PR of $branch"
+    read -r _ state _ <<<"$line"
+    [ "$state" = MERGED ] || continue
+    "$ROOT/scripts/wt.sh" "done" "$branch" --check >/dev/null 2>&1 || continue
+    n="$(branch_issue "$branch")"
+    if [ -z "$n" ]; then
+      echo "Clean up $branch (PR merged; worktree ${wt#"$MAIN_ROOT"/})"
+    elif ! grep -q "^$n|merged|" <<<"${1:-}"; then
+      echo "Finish #$n $branch (PR merged; worktree ${wt#"$MAIN_ROOT"/})"
+    fi
+  done < <(registered_worktrees)
+}
+
 read_specs() {
   gh issue list --repo "$REPO" --label "$SPEC_LABEL" --state open --limit 200 \
     --json number,title,body,labels,subIssuesSummary || die "could not read the open specs"
@@ -285,11 +311,12 @@ removal_items() {
 # What an agent can start without the owner: the ready tickets (scripts/issue.sh ready), the approved specs without
 # tickets that flow-phase.jq calls needs-tickets (`Cut #n`; facts are read only for such candidates, so a spec that has
 # tickets or is not approved costs no read), the needs-info questions that were answered and the PRs to re-queue after
-# their bug was fixed (`Requeue PR #n after #bug`, ADR-025). $1 is read_specs, $2 read_questions, $3 removal_items.
-# Dies when a read fails, so an empty list means nothing is ready.
+# their bug was fixed (`Requeue PR #n after #bug`, ADR-025). $1 is read_specs, $2 read_questions, $3 removal_items and
+# $4 finished_items (printed first). Dies when a read fails, so an empty list means nothing is ready.
 ready_items() {
   local ready candidates n title f phase
   ready="$("$ROOT/scripts/issue.sh" ready)" || die "could not read the ready tickets"
+  [ -z "${4:-}" ] || echo "$4"
   candidates="$(jq -r --arg approved "$APPROVED_LABEL" '.[]
     | select(([.labels[].name] | index($approved)) and .subIssuesSummary.total == 0)
     | "\(.number)\t\(.title)"' <<<"$1")" || die "could not read the open specs"
@@ -306,7 +333,7 @@ ready_items() {
 
 cmd_next() {
   [ $# -eq 0 ] || usage
-  local specs questions ready owner read_items mine n phase heads title removals
+  local specs questions ready owner read_items mine n phase heads title removals finished
   echo "== Assigned to you"
   mine="$(assigned_lines)" || exit 1
   if [ -z "$mine" ]; then echo "(none)"; fi
@@ -320,7 +347,8 @@ cmd_next() {
   # Read first, then print: a failed read is an error, never "(none)".
   questions="$(read_questions)" || exit 1
   removals="$(removal_items)" || exit 1
-  ready="$(ready_items "$specs" "$questions" "$removals")" || exit 1
+  finished="$(finished_items "$mine")" || exit 1
+  ready="$(ready_items "$specs" "$questions" "$removals" "$finished")" || exit 1
   grep . <<<"$ready" || echo "(none)"
   echo "== Waiting on the owner"
   owner="$(owner_items "$specs" "$questions" "$removals")" || exit 1
@@ -353,7 +381,7 @@ removal_reported() {
 
 # The scan of `idle`: the first line is `work` or `idle`, then the lines that explain it. Dies when a read fails.
 idle_scan() {
-  local specs questions ready mine owner removals work='' n phase heads title
+  local specs questions ready mine owner removals finished work='' n phase heads title
   mine="$(assigned_lines)" || exit 1
   while IFS='|' read -r n phase heads title; do
     [ -n "$n" ] || continue
@@ -364,7 +392,8 @@ idle_scan() {
   specs="$(read_specs)" || exit 1
   questions="$(read_questions)" || exit 1
   removals="$(removal_items)" || exit 1
-  ready="$(ready_items "$specs" "$questions" "$removals")" || exit 1
+  finished="$(finished_items "$mine")" || exit 1
+  ready="$(ready_items "$specs" "$questions" "$removals" "$finished")" || exit 1
   work+="$ready"
   if grep -q . <<<"$work"; then
     echo work
@@ -660,6 +689,12 @@ cmd_finish() {
     "$ROOT/scripts/issue.sh" close "$n" --comment "Done in $pr."
     rm -rf "${NOTES_DIR:?}/$n"
     echo "✅ #$n done"
+  fi
+
+  # Everything else finished work leaves behind (#668). clean.sh calls finish itself, hence the guard; its failure does
+  # not undo a finish that worked.
+  if [ -z "${FIVVI_CLEANING:-}" ]; then
+    "$ROOT/scripts/clean.sh" || echo "warning: clean.sh failed; run scripts/clean.sh again" >&2
   fi
 
   parent="$(jq -r '.parent.number // empty' <<<"$f")"

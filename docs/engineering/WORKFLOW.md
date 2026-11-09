@@ -68,7 +68,7 @@ Tickets that aren't agent-ready and bugs go through `triage`; bugs also through 
 
 ## 5. Cleanup checklist (after merge)
 
-`scripts/flow.sh finish <n>`, from the **main checkout**, checks that the PR is merged and the local branch holds nothing more, then removes the worktree, the local and remote branch and the ticket's notes, updates `main`, closes the issue if the PR didn't, and reports what the spec needs next.
+`scripts/flow.sh finish <n>`, from the **main checkout**, checks that the PR is merged and the local branch holds nothing more, then removes the worktree, the local and remote branch and the ticket's notes, updates `main`, closes the issue if the PR didn't, and reports what the spec needs next. It ends with `scripts/clean.sh`, which also removes the worktrees of other merged PRs (and of closed PRs whose branch is pushed), folders in `.worktrees/` that are no worktree, simulators and Xcode DerivedData folders of worktrees that are gone, and turbo cache entries unused for 7 days; it never touches uncommitted or unpushed work (it lists that under "Left for you"), and `--dry-run` shows what it would remove. The Factory runs it at the start of every run, and `flow.sh next` lists a merged worktree as work (`Finish #n`, `Clean up <branch>`), so cleanup does not depend on anyone remembering.
 
 Also make sure that:
 
@@ -96,7 +96,7 @@ From `PRODUCT.md §86`, extended for native apps. A user-facing feature is **not
 - [ ] Spec issue up to date with what was built (ACs, languages, platforms)
 - [ ] Feature registry status updated
 - [ ] Acceptance criteria pass
-- [ ] Cleanup (§5) completed after merge
+- [ ] Cleanup (§5) completed after merge: `flow.sh finish` ran and `scripts/clean.sh` left no worktree, simulator or build output of the change behind
 
 ## 7. CI and required checks
 

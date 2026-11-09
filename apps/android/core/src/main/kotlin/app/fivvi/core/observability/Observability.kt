@@ -11,9 +11,11 @@ import io.sentry.protocol.User
 
 /**
  * Where crash reports go and how they are labelled (OBSERVABILITY.md §1 "Android"). Each app builds it from its own
- * build configuration: the DSN and environment of the build type, and `<application ID>@<version>+<version code>`.
+ * build configuration: the DSN and environment of the build type, `<application ID>@<version>+<version code>`, and the
+ * name of the app (`fivvi-pro`, `fivvi`), which every event carries as its `app` tag next to `platform: android`
+ * (E017 AC10).
  */
-data class ObservabilityConfig(val dsn: String, val environment: String, val release: String)
+data class ObservabilityConfig(val dsn: String, val environment: String, val release: String, val app: String)
 
 /**
  * Crash and error reporting to Sentry (E009, ADR-013). The only code that calls the Sentry SDK: ktlint's
@@ -66,7 +68,7 @@ object Observability {
         options.isAttachScreenshot = false
         options.isAttachViewHierarchy = false
         options.isSendClientReports = false
-        options.beforeSend = SentryOptions.BeforeSendCallback { event, _ -> scrubEvent(event) }
+        options.beforeSend = SentryOptions.BeforeSendCallback { event, _ -> scrubEvent(event, config.app) }
         options.beforeBreadcrumb =
             SentryOptions.BeforeBreadcrumbCallback { breadcrumb, _ -> scrubBreadcrumb(breadcrumb) }
     }

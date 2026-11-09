@@ -116,12 +116,7 @@ export function AudiencePage({
         </div>
         <div className="site-stage mt-6.5">
           {perKind((kind) => (
-            <StageScreens
-              stage={forKind(data.stage, kind)}
-              locale={locale}
-              alts={alts}
-              priority={kind === 'pilates'}
-            />
+            <StageScreens stage={forKind(data.stage, kind)} locale={locale} alts={alts} />
           ))}
         </div>
       </div>

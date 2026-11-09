@@ -18,7 +18,7 @@ dependencyResolutionManagement {
 
 rootProject.name = "fivvi"
 
-// Fivvi Pro (app/); the code both Android apps share (core/); the generated API client (packages/contract/kotlin); the
+// Fivvi Pro (app/); Fivvi, the client app (client/); the code both Android apps share (core/); the generated API client (packages/contract/kotlin); the
 // generated design tokens (packages/design-tokens/kotlin); the ktlint rules with their fixtures (lint/).
-include(":app", ":core", ":api", ":design-tokens", ":lint-rules")
+include(":app", ":client", ":core", ":api", ":design-tokens", ":lint-rules")
 project(":lint-rules").projectDir = file("lint")

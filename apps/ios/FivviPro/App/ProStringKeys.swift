@@ -11,6 +11,8 @@ extension StringKey {
     static let profileTitle = StringKey("profile.title")
     static let profileError = StringKey("profile.error")
     static let profileLanguage = StringKey("profile.language")
+    static let profileSupport = StringKey("profile.support")
+    static let profilePrivacy = StringKey("profile.privacy")
     static let myProfileWorkspacesTitle = StringKey("myProfile.workspacesTitle")
     static let myProfileDetailsTitle = StringKey("myProfile.detailsTitle")
     static let myProfileNameLabel = StringKey("myProfile.nameLabel")

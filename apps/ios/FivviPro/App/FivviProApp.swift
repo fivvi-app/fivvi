@@ -37,6 +37,9 @@ struct FivviProApp: App {
             root
                 .tint(Tokens.Colors.actionPrimaryBg)
                 .preferredColorScheme(LaunchAppearance.colorScheme())
+            #if DEBUG
+                .recordingOpenedLinks()
+            #endif
         }
     }
 
