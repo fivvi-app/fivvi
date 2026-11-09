@@ -18,11 +18,23 @@ describe('F064 AC10 the legal texts are inputs of the web build and tests (turbo
     expect(turbo.extends).toEqual(['//']);
   });
 
-  it.each(['build', 'test'])('lists the privacy policy and the terms as inputs of %s', (task) => {
-    expect(turbo.tasks?.[task]?.inputs).toEqual([
-      '$TURBO_DEFAULT$',
-      '$TURBO_ROOT$/docs/legal/privacy-policy.*.md',
-      '$TURBO_ROOT$/docs/legal/terms.*.md',
+  const legal = [
+    '$TURBO_DEFAULT$',
+    '$TURBO_ROOT$/docs/legal/privacy-policy.*.md',
+    '$TURBO_ROOT$/docs/legal/terms.*.md',
+  ];
+
+  it('lists the privacy policy and the terms as inputs of the build', () => {
+    expect(turbo.tasks?.build?.inputs).toEqual(legal);
+  });
+
+  // #697: the tests also read the sub-processors list, the registry of features and the brand files.
+  it('lists them, and the other files of docs/ the tests read, as inputs of the tests', () => {
+    expect(turbo.tasks?.test?.inputs).toEqual([
+      ...legal,
+      '$TURBO_ROOT$/docs/legal/sub-processors.md',
+      '$TURBO_ROOT$/docs/product/FEATURES.md',
+      '$TURBO_ROOT$/docs/design/brand/**',
     ]);
   });
 });

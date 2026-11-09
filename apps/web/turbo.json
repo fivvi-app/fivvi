@@ -13,7 +13,10 @@
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/docs/legal/privacy-policy.*.md",
-        "$TURBO_ROOT$/docs/legal/terms.*.md"
+        "$TURBO_ROOT$/docs/legal/terms.*.md",
+        "$TURBO_ROOT$/docs/legal/sub-processors.md",
+        "$TURBO_ROOT$/docs/product/FEATURES.md",
+        "$TURBO_ROOT$/docs/design/brand/**"
       ]
     }
   }
