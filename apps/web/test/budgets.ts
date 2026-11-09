@@ -120,3 +120,23 @@ export function summarizeBudgets({
   }
   return lines.join('\n');
 }
+
+/**
+ * Which of the two consistent states a budgets target is in, from what it serves: the
+ * `X-Robots-Tag` of a site page and its `robots.txt`. A server that is not production (the local
+ * build, every preview) says `noindex` and disallows everything; production sends no header and
+ * allows the site. A target that is neither, or half of each, is `inconsistent`, and the spec fails
+ * on it instead of measuring a view that no environment serves. `expected` holds the two files as
+ * the site writes them (`robotsFile(robotsTxt(...))`).
+ */
+export function serverEnvironment(
+  observed: { robotsTag: string | null; robotsTxt: string },
+  expected: { nonProduction: string; production: string },
+): 'non-production' | 'production' | 'inconsistent' {
+  if (observed.robotsTag === null) {
+    return observed.robotsTxt === expected.production ? 'production' : 'inconsistent';
+  }
+  return /noindex/.test(observed.robotsTag) && observed.robotsTxt === expected.nonProduction
+    ? 'non-production'
+    : 'inconsistent';
+}
