@@ -22,6 +22,8 @@ The letters are heavy, rounded and upright, with soft ends: friendly and confide
 | `favicon.svg` | The day dial B2, light, with rounded corners | Browser tabs and bookmarks |
 | `archive/vv/` | The first wordmark, mark and app icon (the slapping v's, 7 November 2026), replaced on 8 November | Nowhere; kept for reference |
 
+**On the website** (issue #669): the public website (`apps/web`) and its design (`docs/design/website`) show the wordmark and serve the day dial favicon (issue #669). `pnpm --filter @fivvi/web brand-icons` makes the files of `apps/web` from `fivvi-logo.svg`, `fivvi-logo-dark.svg` and `favicon.svg`: the favicon as `app/icon.svg` (unchanged), `app/favicon.ico` (32 and 48 px), `app/icon.png` (192 px) and `app/apple-icon.png` (180 px, without the rounded corners, which iOS makes itself), and the wordmarks under `public/site-images/brand/`.
+
 ## Colours
 
 | Role | Light | Dark |
@@ -65,4 +67,3 @@ The five are the hours at 11, 12, 3, 6 and 7 on the dial, clockwise from the top
 ## Still to do
 
 - The app icons in `apps/ios` and `apps/android` still show the placeholder "F": `scripts/app-icon.mjs` will draw the day dial B2 (issue #666), and then PRO in its centre, since these are the Fivvi Pro apps (issue #672).
-- The website design (`docs/design/website`) and the public website in `apps/web` still show the text mark; they get the wordmark and the day dial favicon (issue #669). The prototype already shows the day dial.

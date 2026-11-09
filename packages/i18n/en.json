@@ -372,6 +372,9 @@
       "homeDescription": "Calendar, bookings, credits, payments and invoices in one place, so you have time left to train. Book a demo.",
       "breadcrumbHome": "Home"
     },
+    "logo": {
+      "homeLabel": "Fivvi, go to the home page"
+    },
     "header": {
       "skipToContent": "Skip to content",
       "menuLabel": "Main menu",

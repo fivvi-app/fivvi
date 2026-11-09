@@ -172,9 +172,8 @@ describe.each(locales)('F064 the header in %s', (locale) => {
 
   it('the logo goes to the home page of the language', () => {
     const header = html(<SiteHeader locale={locale} />);
-    expect(links(header).find(({ href }) => href === homePath(locale))?.text).toContain(
-      escapeHtml(messages[locale].app.title),
-    );
+    expect(header).toContain(escapeHtml(messages[locale].site.logo.homeLabel));
+    expect(linkTo(header, homePath(locale))).toBeDefined();
   });
 });
 
@@ -208,7 +207,7 @@ describe.each(locales)('F064 AC7 the footer in %s', (locale) => {
 
       expect(footer).not.toContain(escapeHtml(copy.footer.tradeName.replace('{name}', '')).trim());
       expect(footer).not.toContain('{{');
-      expect(footer).not.toContain('<p');
+      expect(footer).not.toMatch(/<p[ >]/);
     }
   });
 

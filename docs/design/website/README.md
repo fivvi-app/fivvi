@@ -19,6 +19,7 @@ node docs/design/website/build-legal.cjs
 | `build-legal.cjs` | Makes `legal.js` from `docs/legal`, so the legal pages show the current drafts |
 | `publish-shots.cjs` | Turns captured PNGs into the responsive WebP files of `apps/web/public/site-images/shots` |
 | `publish-scenes.cjs` | Makes the AVIF files (400, 600 and 800 px) of the miniatures from their 800 px WebP, next to them in `apps/web/public/site-images/scenes`; needs the `sharp` that Next.js installs |
+| `apps/web/public/site-images/brand/` | The wordmark `fivvi-logo.svg` and `fivvi-logo-dark.svg` of [`../brand`](../brand/README.md), copied unchanged by `pnpm --filter @fivvi/web brand-icons` (#669); the header and footer of `site.js` load them from there, light or dark with the theme, so the artifact matches the site |
 | `apps/web/public/site-images/scenes/` | The miniatures, in 400 and 800 px WebP and 400, 600 and 800 px AVIF (moved from `assets/scenes/`, #638; `site.js` loads them from there) |
 
 ## Images

@@ -287,6 +287,13 @@ describe('F001 AC13 route guard', () => {
       ['/robots.txt', true],
       ['/sitemap.xml', true],
       ['/robots.txt/x', false],
+      // F064 AC (#669): the favicon files (`app/icon.svg` and the others), fetched without a cookie.
+      ['/favicon.ico', true],
+      ['/icon.svg', true],
+      ['/icon.png', true],
+      ['/apple-icon.png', true],
+      ['/icon.svg/x', false],
+      ['/apple-icon', false],
       ['/site-imagesx/a.webp', false],
       ['/en/', false],
       ['/en/gyms/x', false],

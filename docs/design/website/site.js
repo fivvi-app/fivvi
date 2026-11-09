@@ -33,12 +33,20 @@
     return '<img class="art" src="../../../apps/web/public/site-images/scenes/' + (ART_KEY[k] || S.kind) + '-800.webp" alt="" loading="lazy">';
   }
 
+  /* The brand's wordmark, the same files the site serves (docs/design/brand): letters #1C1C1E in light, white in dark, the i dots in pink, as drawn. The theme decides which of the two shows (site.css). The label is the site's (site.logo.homeLabel). */
+  function wordmark(h) {
+    var base = "../../../apps/web/public/site-images/brand/fivvi-logo", w = Math.round(h * 1178 / 459);
+    var alt = S.lang === "en" ? "Fivvi, go to the home page" : "Fivvi, naar de startpagina";
+    return '<img class="logo logo-light" src="' + base + '.svg" width="' + w + '" height="' + h + '" alt="' + alt + '">' +
+      '<img class="logo logo-dark" src="' + base + '-dark.svg" width="' + w + '" height="' + h + '" alt="" aria-hidden="true">';
+  }
+
   function colour(k) { return { priv: "var(--priv)", group: "var(--group)", ok: "var(--ok)", accent: "var(--accent)" }[k]; }
   function who(s) { return s.split("{who}").join(S.kind === "yoga" ? (S.lang === "en" ? "teacher" : "docent") : (S.lang === "en" ? "instructor" : "instructeur")); }
 
   function renderNav() {
     var r = route();
-    nav.innerHTML = '<div class="wrap"><div class="bar"><a class="mark" href="#" aria-label="Fivvi">Fivvi<i></i></a><nav class="links">' +
+    nav.innerHTML = '<div class="wrap"><div class="bar"><a class="mark" href="#">' + wordmark(28) + '</a><nav class="links">' +
       ORDER.map(function (k) { return '<a href="#' + k + '"' + (r === k ? ' aria-current="page"' : "") + ">" + t(A[k].nav) + "</a>"; }).join("") +
       '<a href="#prijzen"' + (r === "prijzen" ? ' aria-current="page"' : "") + ">" + t(P.nav.pricing) + "</a>" +
       '<span class="signin onphone">' + t(P.nav.login) + "</span>" +
@@ -46,7 +54,7 @@
     review.innerHTML = "<b>" + t(UI.proposal) + '</b><a href="#richting">' + t(UI.openChoices) + '</a><button data-theme-toggle>' + (mode() === "dark" ? t(UI.light) : t(UI.dark)) + "</button>";
     var F = P.foot;
     function col(h, items) { return "<div><h2>" + t(h) + "</h2>" + items.map(function (i) { return '<a href="#' + i[0] + '">' + t(i[1]) + "</a>"; }).join("") + "</div>"; }
-    foot.innerHTML = '<div class="wrap"><div class="fcols"><div class="fbrand"><a class="mark" href="#">Fivvi<i></i></a><p>' + t(P.biz.name) + "<br>KvK " + marks(P.biz.lines[0][1]) + " · " + (S.lang === "en" ? "VAT " : "Btw ") + marks(P.biz.lines[1][1]) + "<br>" + marks(P.biz.lines[2][1]) + "</p></div>" +
+    foot.innerHTML = '<div class="wrap"><div class="fcols"><div class="fbrand"><a class="mark" href="#">' + wordmark(24) + '</a><p>' + t(P.biz.name) + "<br>KvK " + marks(P.biz.lines[0][1]) + " · " + (S.lang === "en" ? "VAT " : "Btw ") + marks(P.biz.lines[1][1]) + "<br>" + marks(P.biz.lines[2][1]) + "</p></div>" +
       col(F.product, ORDER.map(function (k) { return [k, A[k].nav]; }).concat([["prijzen", P.nav.pricing]])) +
       col(F.help, [["demo", P.nav.demo], ["support", F.support], ["account-verwijderen", F.del]]) +
       col(F.legal, [["privacy", F.privacy], ["voorwaarden", F.terms], ["privacy", F.cookies], ["subverwerkers", F.sub]]) +
