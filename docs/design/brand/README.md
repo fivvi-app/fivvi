@@ -20,7 +20,7 @@ The letters are heavy, rounded and upright, with soft ends: friendly and confide
 | `day-dial/b2-pro/` | **The Fivvi Pro icon**: B2 with PRO in the centre of the dial | Fivvi Pro, the app for owners and trainers |
 | `day-dial/b/` | The day dial B, kept to come back to | Nowhere yet |
 | `favicon.svg` | The day dial B2, light, with rounded corners | Browser tabs and bookmarks |
-| `fivvi-logo.svg` and `day-dial/b2/` | **The trainer web sign-in** (owner, 9 November 2026, #626): the wordmark on large screens, 768 px and wider, where the trainer web puts its sidebar beside the content; the plain day dial B2 below that | `/inloggen` and `/sign-in` of the trainer web |
+| `fivvi-logo.svg`, `fivvi-logo-dark.svg` and `day-dial/b2/` (`fivvi-day-dial-b2-light.svg`, `-dark.svg`) | **The trainer web sign-in** (owner, 9 November 2026, #626): the wordmark on large screens, 768 px and wider, where the trainer web puts its sidebar beside the content; the plain day dial B2 below that | `/inloggen` and `/sign-in` of the trainer web |
 | `archive/vv/` | The first wordmark, mark and app icon (the slapping v's, 7 November 2026), replaced on 8 November | Nowhere; kept for reference |
 
 **On the website** (issue #669): the public website (`apps/web`) and its design (`docs/design/website`) show the wordmark and serve the day dial favicon. `pnpm --filter @fivvi/web brand-icons` makes the files of `apps/web` from `fivvi-logo.svg`, `fivvi-logo-dark.svg` and `favicon.svg`: the favicon as `app/icon.svg` (unchanged), `app/favicon.ico` (32 and 48 px), `app/icon.png` (192 px) and `app/apple-icon.png` (180 px, without the rounded corners, which iOS makes itself), and the wordmarks under `public/site-images/brand/`.

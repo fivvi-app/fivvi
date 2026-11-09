@@ -259,7 +259,7 @@ _Avoid_: subscription (see *Recurring payment*), credit subscription
 Retired on 21 October 2026. Use *Credit pack*: a private session pack is a private credit pack.
 
 **Single class pass** ([decision 9](docs/product/ROADMAP.md#14-decisions)):
-An offer kind of its own, good for one group class, by a client without a membership or as an extra on top of one. The client buys it ahead, like credits, and books the class with it; it is not paid at the booking. It is not a credit and not a credit pack. The owner sets the price; as a guideline only, not enforced, it should cost more than a class in a membership or pack, because it isn't a membership (owner, 9 November 2026). An unused pass is never refunded, and credits are used before a pass: membership, then group credits, then the pass (owner, 9 November 2026).
+An offer kind of its own, good for one group class, by a client without a membership or as an extra on top of one. The client buys it ahead, like credits, and books the class with it; it is not paid at the booking. It is not a credit and not a credit pack. The owner sets the price; as a guideline only, not enforced, it should cost more than a class in a membership or pack, because it isn't a membership (owner, 9 November 2026).
 _Avoid_: single class (alone, the old name), single pass, drop-in, top-up, credit pack of 1
 
 **Credit balance**:

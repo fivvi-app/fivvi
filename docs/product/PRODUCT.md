@@ -856,7 +856,7 @@ Sarah is merely the assigned trainer.
 
 Trainer substitution therefore does not affect the class or bookings.
 
-**Removing a trainer (owner, 9 November 2026, F023).** The owner removing a trainer hands over what that trainer has in the **next 2 weeks** to a chosen trainer, who takes all of it. Sessions after those 2 weeks are **not cancelled**: classes and private sessions get *Trainer nodig* and show in the owner's *Aandacht nodig*, where the owner assigns them later. With *Niemand* chosen, the next 2 weeks behave as before (classes get *Trainer nodig*, private sessions are cancelled with an email to the client) and the sessions after them get *Trainer nodig*.
+**Removing a trainer (owner, 9 November 2026, F023).** The owner removing a trainer hands over what that trainer has in the **next 2 weeks** to the trainer the owner chooses for private sessions and for classes (each choice can also be *Niemand*). Sessions after those 2 weeks are **not cancelled**: classes and private sessions get *Trainer nodig* and show in the owner's *Aandacht nodig*, where the owner assigns them later. With *Niemand* chosen, the next 2 weeks behave as before (classes get *Trainer nodig*, private sessions are cancelled with an email to the client) and the sessions after them get *Trainer nodig*.
 
 ---
 
@@ -1384,7 +1384,7 @@ Track:
 
 Statuses:
 
-On a class, *Iedereen aanwezig* marks everyone still open as attended in one action (owner, 6 November 2026). Offline it joins the offline queue like a single tap, as **one queued request** (owner, 9 November 2026, F025); if the sync rejects it, the marks revert and the app shows the message.
+On a class, *Iedereen aanwezig* marks everyone still open as attended in one action (owner, 6 November 2026). Offline it joins the offline queue like a single tap, as **one queued request** (owner, 9 November 2026, F025); if the sync rejects it, the marks revert and the app shows the same message as for a rejected single tap.
 
 ```text
 Booked
