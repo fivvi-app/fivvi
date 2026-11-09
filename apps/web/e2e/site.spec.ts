@@ -41,29 +41,33 @@ for (const locale of locales) {
       });
     }
 
-    test('AC7: the footer shows the trade name and no empty or placeholder detail', async ({
+    test('AC7: the footer shows the trade name, KvK and VAT number, address and phone, and no placeholder', async ({
       page,
     }) => {
       await page.goto(HOME[locale]);
 
       const footer = page.getByRole('contentinfo');
       await expect(footer).toContainText(copy.footer.tradeName.replace('{name}', 'K&S Apps'));
-      for (const label of [
-        copy.footer.kvk,
-        copy.footer.vat,
-        copy.footer.address,
-        copy.footer.phone,
-      ]) {
-        await expect(footer).not.toContainText(label);
+      for (const [label, value] of [
+        [copy.footer.kvk, '92372996'],
+        [copy.footer.vat, 'NL866022788B01'],
+        [copy.footer.address, 'Haringbuisdijk 43, 1086 VA Amsterdam'],
+        [copy.footer.phone, '+31 6 85145755'],
+      ] as const) {
+        await expect(footer).toContainText(label);
+        await expect(footer).toContainText(value);
       }
       await expect(footer).not.toContainText('{{');
     });
 
-    test('until go-live every page sends noindex', async ({ page }) => {
-      await page.goto(HOME[locale]);
+    // AC13: the markup of the site carries no `robots` tag; the header does the work per
+    // environment (`site/indexing.ts`), and this e2e server is not production.
+    test('a page of the site sends noindex in the header here, as every environment but production does', async ({
+      request,
+    }) => {
+      const response = await request.get(HOME[locale]);
 
-      await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
-      await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /nofollow/);
+      expect(response.headers()['x-robots-tag']).toBe('noindex, nofollow');
     });
 
     test('AC16: sets no cookie and nothing in the browser, and the sign-in link goes to /login', async ({

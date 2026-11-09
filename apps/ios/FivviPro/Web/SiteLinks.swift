@@ -8,7 +8,7 @@ enum SitePage: CaseIterable {
 
 /// The public website's addresses (F064, spec #611), the one place the app knows them: the base URL and the path of each
 /// page in each language. The website owns the paths (`apps/web/site/routes.ts`); `SiteLinksTests` fails when they
-/// drift. The privacy page is built by #643, so until then its address answers 404. Android keeps the same addresses in
+/// drift. Both pages are live on the website (the privacy policy by #643). Android keeps the same addresses in
 /// `SiteLinks.kt` of its `core/`; the client app Fivvi (#503) takes this file into a shared package when it needs it.
 enum SiteLinks {
     static let baseURL = "https://fivvi.app"

@@ -63,13 +63,14 @@ export function pageCopy(page: SitePage, locale: Locale): { title: string; descr
 /**
  * The search and sharing metadata of a page (AC12): title and description, the canonical URL,
  * `hreflang` for Dutch, English and `x-default` (Dutch), and the Open Graph card with an image of
- * its own. A page that is not in `builtPages` yet (the demo page) also says `noindex`, whatever
- * `siteIndexable` says: nothing links to it, and the sitemap leaves it out.
+ * its own. A page that is not in `built` (`builtPages`; none is left out now) also says `noindex`,
+ * whatever `siteIndexable` says: nothing links to it, and the sitemap leaves it out.
  */
 export function pageSeo(
   page: SitePage,
   locale: Locale,
   { title, description }: { title: string; description: string },
+  built: readonly SitePage[] = builtPages,
 ): Metadata {
   const url = pageUrl(page, locale);
   const images = [
@@ -100,6 +101,6 @@ export function pageSeo(
       images,
     },
     twitter: { card: 'summary_large_image', title, description, images },
-    ...(builtPages.includes(page) ? {} : { robots: { index: false, follow: false } }),
+    ...(built.includes(page) ? {} : { robots: { index: false, follow: false } }),
   };
 }

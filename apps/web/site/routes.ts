@@ -35,6 +35,7 @@ export const builtPages: readonly SitePage[] = [
   'personalTrainers',
   'clients',
   'pricing',
+  'demo',
   'support',
   'privacy',
   'terms',
@@ -42,24 +43,26 @@ export const builtPages: readonly SitePage[] = [
 ];
 
 /**
- * Pages that exist, with their page files, but that nothing links to yet: they are not in
- * `builtPages`, so the header, the footer and the calls to action leave them out. The demo page
- * takes a visitor's personal data and sends it to the email provider. The privacy policy now covers
- * that (#642, #643), but the page also waits on its mailbox (#612). The go-live ticket (#648) moves
- * `demo` to `builtPages`, which puts *Plan een demo* in the header and the footer and shows the
- * call to action on the pricing and help pages.
+ * Pages that exist, with their page files, but that nothing links to: they are not in `builtPages`,
+ * so the header, the footer and the calls to action leave them out, the sitemap lists no address
+ * of theirs and every response for them says `noindex` (`site/indexing.ts`, `site/seo.ts`). A page
+ * waits here while something it needs is missing. None does now: the demo page took this place
+ * until go-live (#648), when its form was covered by the privacy policy (#642, #643) and
+ * `support@fivvi.app` received mail (#612); it is in `builtPages` since, which puts *Plan een demo*
+ * in the header and the footer and shows the call to action on the pricing and help pages.
  */
-export const unlistedPages: readonly SitePage[] = ['demo'];
+export const unlistedPages: readonly SitePage[] = [];
 
 /**
  * **The one switch for search engines (F064, AC13).** While `false`, the site sends `noindex` and
  * `robots.txt` disallows everything, in every environment, production included: merging to `main`
  * deploys to production, and the site must not be found before every claim on it is checked. The
- * go-live ticket (#648) flips it to `true`, which lets the `production` environment (and only that
- * one, see `site/indexing.ts`) be indexed. Whether an environment is production is decided at
- * run time, not here, because one Docker image serves every environment.
+ * go-live ticket (#648) flipped it to `true` once the claims were checked (the table is in that
+ * ticket): only the `production` environment (and no other, see `site/indexing.ts`) can be
+ * indexed. Whether an environment is production is decided at run time, not here, because one
+ * Docker image serves every environment.
  */
-export const siteIndexable: boolean = false;
+export const siteIndexable: boolean = true;
 
 /** The address of a page in a language. */
 export function sitePagePath(page: SitePage, locale: Locale): Route {

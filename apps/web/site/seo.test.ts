@@ -71,16 +71,23 @@ describe.each(locales)('F064 AC12 the search metadata of a page in %s', (locale)
   });
 });
 
-describe('F064 AC12 a page that is not built yet is not found by a search engine', () => {
-  it('sends noindex for a page that is in unlistedPages, and nothing for a built one', () => {
+describe('F064 AC12 a page that is not built is not found by a search engine', () => {
+  it('sends noindex for a page that is not in the built list, and nothing for a built one', () => {
+    const withoutDemo = builtPages.filter((page) => page !== 'demo');
+
     for (const locale of locales) {
-      expect(pageSeo('demo', locale, { title: 't', description: 'd' }).robots).toEqual({
-        index: false,
-        follow: false,
-      });
-      expect(demoMetadata(locale).robots).toEqual({ index: false, follow: false });
+      expect(pageSeo('demo', locale, { title: 't', description: 'd' }, withoutDemo).robots).toEqual(
+        { index: false, follow: false },
+      );
       expect(pageSeo('home', locale, { title: 't', description: 'd' }).robots).toBeUndefined();
       expect(homeMetadata(locale).robots).toBeUndefined();
+    }
+  });
+
+  it('since go-live (#648) the demo page is built, so its own metadata sends no noindex either', () => {
+    for (const locale of locales) {
+      expect(pageSeo('demo', locale, { title: 't', description: 'd' }).robots).toBeUndefined();
+      expect(demoMetadata(locale).robots).toBeUndefined();
     }
   });
 });
