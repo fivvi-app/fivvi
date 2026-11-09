@@ -5,6 +5,7 @@ import {
   budgetsTarget,
   MAX_CLS,
   MAX_LCP_MS,
+  serverEnvironment,
   summarizeBudgets,
 } from './budgets';
 
@@ -120,5 +121,44 @@ describe('F064 summarizeBudgets', () => {
 
   it('names the local build when there is no address', () => {
     expect(summarizeBudgets({ target: undefined, rows: [row()] })).toContain('the local build');
+  });
+});
+
+// F064 AC15: the target of a budgets run is a server that is not production (the local build, a
+// preview) or production itself, and it must be one of the two in full: a mix is a broken target.
+describe('F064 serverEnvironment', () => {
+  const expected = {
+    nonProduction: 'User-Agent: *\nDisallow: /\n\n',
+    production: 'User-Agent: *\nAllow: /\n\nSitemap: https://fivvi.app/sitemap.xml\n',
+  };
+
+  it('knows a server that is not production: noindex in the header, everything disallowed', () => {
+    expect(
+      serverEnvironment(
+        { robotsTag: 'noindex, nofollow', robotsTxt: expected.nonProduction },
+        expected,
+      ),
+    ).toBe('non-production');
+  });
+
+  it('knows production: no header, the site allowed and the sitemap named', () => {
+    expect(serverEnvironment({ robotsTag: null, robotsTxt: expected.production }, expected)).toBe(
+      'production',
+    );
+  });
+
+  it.each([
+    ['noindex in the header, robots.txt of production', 'noindex, nofollow', 'production'],
+    ['no header, robots.txt that disallows everything', null, 'nonProduction'],
+    [
+      'a header that is not noindex, robots.txt of a server that is not production',
+      'nofollow',
+      'nonProduction',
+    ],
+    ['no header, a robots.txt that is neither', null, 'other'],
+    ['noindex in the header, a robots.txt that is neither', 'noindex', 'other'],
+  ] as const)('refuses a mix: %s', (_name, robotsTag, file) => {
+    const robotsTxt = file === 'other' ? 'User-Agent: *\nAllow: /\n' : expected[file];
+    expect(serverEnvironment({ robotsTag, robotsTxt }, expected)).toBe('inconsistent');
   });
 });

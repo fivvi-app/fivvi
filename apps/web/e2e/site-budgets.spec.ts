@@ -1,7 +1,13 @@
 import { robotsHeader, robotsTxt } from '../site/indexing';
 import { rootMetadata } from '../site/metadata';
 import { type SitePage, sitePagePath } from '../site/routes';
-import { BUDGET_ROW_ANNOTATION, type BudgetRow, MAX_CLS, MAX_LCP_MS } from '../test/budgets';
+import {
+  BUDGET_ROW_ANNOTATION,
+  type BudgetRow,
+  MAX_CLS,
+  MAX_LCP_MS,
+  serverEnvironment,
+} from '../test/budgets';
 import { type CpuCalibration, calibrateCpuSlowdown } from '../test/lighthouse-cpu';
 import { expect, test } from './fixtures';
 import { type GoLiveProxy, PRODUCTION, robotsFile, startGoLiveProxy } from './go-live-proxy';
@@ -25,7 +31,9 @@ import {
 //
 // SEO is measured as production serves it: the e2e server says `noindex` in a header and disallows
 // everything in robots.txt, like every environment but production (site/indexing.ts), and the proxy
-// in front of it shows what production sends (e2e/go-live-proxy.ts).
+// in front of it shows what production sends (e2e/go-live-proxy.ts). The target can also be
+// production itself, which sends that already; the proxy changes nothing then. Either way the
+// target must be one of the two consistent states in full (`serverEnvironment`), never a mix.
 const PAGES: readonly SitePage[] = ['home', 'gyms', 'studios', 'personalTrainers', 'clients'];
 const SCHEMES: readonly ColorScheme[] = ['light', 'dark'];
 
@@ -133,10 +141,33 @@ test.describe('F064 AC15 speed and search budgets', () => {
     const viaProxy = await fetch(`${proxyOrigin}${path}`);
     const [directHtml, proxyHtml] = [await direct.text(), await viaProxy.text()];
 
-    // The server says noindex in the header, as every environment but production does. The markup
-    // of the site has no robots tag in any environment (`rootMetadata(true)` is `{}`).
+    // The target is in one of two states, decided by what it serves (header and robots.txt
+    // together): a server that is not production says noindex in the header and disallows
+    // everything, production sends no header and allows the site with its sitemap. A mix of the two
+    // is not an environment, and fails here.
+    const expectedRobots = {
+      nonProduction: robotsFile(robotsTxt({})),
+      production: robotsFile(robotsTxt(PRODUCTION, true)),
+    };
+    const directRobots = await (await fetch(`${baseURL}/robots.txt`)).text();
+    const environment = serverEnvironment(
+      { robotsTag: direct.headers.get('x-robots-tag'), robotsTxt: directRobots },
+      expectedRobots,
+    );
+    expect(
+      environment,
+      `${baseURL} is neither a server that is not production (noindex, robots.txt that disallows everything) nor production (no header, robots.txt that allows the site); it sent x-robots-tag ${JSON.stringify(direct.headers.get('x-robots-tag'))} and robots.txt ${JSON.stringify(directRobots)}`,
+    ).not.toBe('inconsistent');
+    // The markup of the site has no robots tag in any environment (`rootMetadata(true)` is `{}`).
     expect(rootMetadata(true).robots).toBeUndefined();
-    expect(direct.headers.get('x-robots-tag')).toMatch(/noindex/);
+    if (environment === 'production') {
+      expect(direct.headers.get('x-robots-tag')).toBeNull();
+      expect(directRobots).toBe(expectedRobots.production);
+    } else {
+      expect(direct.headers.get('x-robots-tag')).toMatch(/noindex/);
+      // ... written as the server writes the rules of its own `robots.ts` route: disallow all.
+      expect(directRobots).toBe(expectedRobots.nonProduction);
+    }
     expect(directHtml).not.toMatch(/name="robots"|\\"robots\\"/);
     // Production sends no header: the view does the same, and points the canonical URL at itself.
     expect(viaProxy.headers.get('x-robots-tag')).toBeNull();
@@ -144,7 +175,8 @@ test.describe('F064 AC15 speed and search budgets', () => {
     expect(proxyHtml).toContain(
       `<link rel="canonical" href="${proxyOrigin}${path === '/' ? '/' : path}"`,
     );
-    // Nothing else is different: the server's page is the proxy's page, but for the address.
+    // Nothing else is different: the server's page is the proxy's page, but for the address (the
+    // markup of production already says https://fivvi.app, which the proxy turns into its own).
     expect(
       proxyHtml.replaceAll(proxyOrigin, 'https://fivvi.app'),
       'the proxy changes nothing but the address',
@@ -152,8 +184,6 @@ test.describe('F064 AC15 speed and search budgets', () => {
     // robots.txt is the one production serves: the site allowed, the sitemap named.
     const robots = await (await fetch(`${proxyOrigin}/robots.txt`)).text();
     expect(robots).toBe(`User-Agent: *\nAllow: /\n\nSitemap: ${proxyOrigin}/sitemap.xml\n`);
-    // ... written as the server writes the rules of its own `robots.ts` route: here, disallow all.
-    expect(await (await fetch(`${baseURL}/robots.txt`)).text()).toBe(robotsFile(robotsTxt({})));
     // The page is still the server's: the proxy adds nothing to a response that is not a page.
     const image = '/site-images/scenes/gym-400.avif';
     const [rawImage, proxiedImage] = await Promise.all([
