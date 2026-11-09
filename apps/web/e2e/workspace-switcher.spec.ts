@@ -1,4 +1,4 @@
-import type { Page } from '@playwright/test';
+import type { BrowserContext, Page } from '@playwright/test';
 import {
   clientIpHeaders,
   createAccount,
@@ -38,6 +38,19 @@ test.describe('F012 the scope switcher on the web', () => {
     const personalSlug = await createGymWithTrainer(sarah, PERSONAL, 'owner');
     return { john, sarah, tom, gymSlug, personalSlug };
   }
+
+  /**
+   * The page remembers a workspace in a cookie from its own script, after it has hydrated and not
+   * with the server-rendered page, so a heading on screen does not mean the browser remembers it
+   * yet. Wait for it before going home, as a person's next click would (#693).
+   */
+  const expectRemembered = (context: BrowserContext, slug: string) =>
+    expect
+      .poll(
+        async () =>
+          (await context.cookies()).find(({ name }) => name === 'fivvi_last_workspace')?.value,
+      )
+      .toBe(slug);
 
   const switcher = (page: Page, label: string) => page.getByRole('button', { name: label });
 
@@ -192,6 +205,7 @@ test.describe('F012 the scope switcher on the web', () => {
     await expect(page.getByRole('link', { name: copy.workspaceNav.clients })).toBeVisible();
 
     // The browser remembers it, whatever the way back in.
+    await expectRemembered(context, personalSlug);
     await page.goto('/home');
     await expect(page).toHaveURL(`/w/${personalSlug}`);
     await page.goto('/welcome');
@@ -210,6 +224,7 @@ test.describe('F012 the scope switcher on the web', () => {
     await signInWithSession(context, sarah);
     await page.goto(`/w/${personalSlug}`);
     await expect(page.getByRole('heading', { level: 1, name: PERSONAL })).toBeVisible();
+    await expectRemembered(context, personalSlug);
     await page.goto('/home');
     await expect(page).toHaveURL(`/w/${personalSlug}`);
 
