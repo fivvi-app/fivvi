@@ -28,7 +28,7 @@ import {
   internalServerErrorResponse,
   validationErrorResponse,
 } from '../errors.ts';
-import { LocationSchema } from './locations.ts';
+import { LocationAddressSchema, LocationSchema } from './locations.ts';
 
 // The personal read model of a trainer (F013, spec #457): every session the signed-in account is the
 // current trainer of, across all its workspaces, for *Mijn dag* / *Vandaag* and *Mijn agenda* /
@@ -163,6 +163,15 @@ export const PersonalSessionSchema = z
       '`location` is where a private session takes place and is left out for the other kinds.',
   });
 
+const MyDayPlaceSchema = z
+  .object({
+    name: z.string().openapi({ description: 'The location’s name.' }),
+    address: LocationAddressSchema.optional().openapi({
+      description: 'The location’s address; left out when it has none.',
+    }),
+  })
+  .openapi('MyDayPlace', { description: 'A place on the route of the day: a location.' });
+
 export const MyDaySchema = z
   .object({
     date: z.string().openapi({ description: 'The day shown: `YYYY-MM-DD`, in `timeZone`.' }),
@@ -187,6 +196,14 @@ export const MyDaySchema = z
           .number()
           .int()
           .openapi({ description: 'The items of the day, cancelled ones counted.' }),
+        done: z
+          .number()
+          .int()
+          .openapi({
+            description:
+              'How many of the day’s items took place and have ended (`endsAt` at or before now): ' +
+              '*2 klaar*. A cancelled item is never done; 0 on a day still to come.',
+          }),
         firstStartsAt: z.iso.datetime().optional().openapi({
           description: 'The start of the first item; left out for an empty day.',
         }),
@@ -194,7 +211,9 @@ export const MyDaySchema = z
           description: 'The end of the last item; left out for an empty day.',
         }),
       })
-      .openapi('MyDaySummary', { description: '*4 sessies · 09:00–19:00*.' }),
+      .openapi('MyDaySummary', {
+        description: '*4 sessies · 09:00–19:00*, and how many of them are done.',
+      }),
     next: z
       .object({
         sessionId: z.uuid().openapi({ description: 'The item in `items`.' }),
@@ -210,6 +229,30 @@ export const MyDaySchema = z
         description:
           '*Straks* / *Nu bezig*: the first item of today that has not ended and is not cancelled. ' +
           'Left out when nothing is left today, and for any day but today.',
+      }),
+    freeGap: z
+      .object({
+        startsAt: z.iso.datetime().openapi({ description: 'The start of the gap, a UTC instant.' }),
+        endsAt: z.iso.datetime().openapi({ description: 'The end of the gap, a UTC instant.' }),
+      })
+      .optional()
+      .openapi('MyDayFreeGap', {
+        description:
+          'The next free gap of the *Mijn dag* card (*Plannen*): the first stretch of 30 minutes ' +
+          'or more without a session that takes place, from now to the end of the day’s last ' +
+          'such session. A cancelled session leaves its time free. Only for today; left out ' +
+          'when there is none (also after the last session) and for any other date.',
+      }),
+    placesAhead: z
+      .array(MyDayPlaceSchema)
+      .optional()
+      .openapi({
+        description:
+          '*Route vandaag*: the places of the sessions that take place and have not ended, in ' +
+          'time order, the same place twice in a row listed once. A session’s place is its ' +
+          'location; a class takes place at its workspace’s one location. Only for today (an ' +
+          'empty list when nothing is left); left out for any other date. The apps show the ' +
+          'route only when it holds 2 or more places.',
       }),
     tomorrow: z
       .object({
@@ -273,9 +316,9 @@ const getMyDayRoute = defineRoute(
     summary: 'My day: the sessions of one day across my workspaces',
     description:
       'Everything the signed-in account is the current trainer of on one day, in all the ' +
-      'workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary, the ' +
-      'tomorrow line, the date of the next session when the day is empty and the number of ' +
-      'workspaces. Each workspace is read on its own; the answer is merged here. An account that ' +
+      'workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary (with ' +
+      'the number done), for today the next free gap and the places still ahead, the tomorrow ' +
+      'line, the date of the next session when the day is empty and the number of workspaces. Each workspace is read on its own; the answer is merged here. An account that ' +
       'trains in no workspace (an Owner who does not train, a client account) gets an empty answer, ' +
       'not `403`. The day is a date in Dutch time; times are UTC instants, to be shown in Dutch time.',
     security: SIGNED_IN,
@@ -326,6 +369,7 @@ interface PersonalItem extends PersonalSessionTimes {
   readonly capacity: number;
   readonly booked: number;
   readonly location: PersonalSessionRow['location'];
+  readonly placeId: string;
   readonly clientName: string | null;
   readonly className: string | null;
 }
@@ -346,6 +390,7 @@ function toItem(
     capacity: row.capacity,
     booked: row.booked,
     location: row.location,
+    placeId: row.location.id,
     clientName: row.clientName,
     className:
       row.classNameNl === null
@@ -373,6 +418,16 @@ function shown(item: PersonalItem) {
         }
       : { booked: item.booked, ...(className === null ? {} : { className }) }),
   };
+}
+
+/** The route of the day as places: name and, when it has one, address, for each place ID in order. */
+function placesOf(placeIds: readonly string[], items: readonly PersonalItem[]) {
+  return placeIds.flatMap((placeId) => {
+    const location = items.find((item) => item.placeId === placeId)?.location;
+    return location
+      ? [{ name: location.name, ...(location.address ? { address: location.address } : {}) }]
+      : [];
+  });
 }
 
 /** A refusal of the typed input, in the shape of the contract's validation error. */
@@ -484,6 +539,7 @@ export function registerPersonal(app: OpenAPIHono) {
         items: merged.items.map(shown),
         summary: {
           count: merged.summary.count,
+          done: merged.summary.done,
           ...(merged.summary.firstStartsAt
             ? { firstStartsAt: merged.summary.firstStartsAt.toISOString() }
             : {}),
@@ -503,6 +559,15 @@ export function registerPersonal(app: OpenAPIHono) {
               },
             }
           : {}),
+        ...(merged.freeGap
+          ? {
+              freeGap: {
+                startsAt: merged.freeGap.startsAt.toISOString(),
+                endsAt: merged.freeGap.endsAt.toISOString(),
+              },
+            }
+          : {}),
+        ...(merged.placesAhead ? { placesAhead: placesOf(merged.placesAhead, merged.items) } : {}),
         ...(merged.tomorrow
           ? {
               tomorrow: {

@@ -43,7 +43,7 @@ interface MeApi {
     /**
      * GET v1/me/day
      * My day: the sessions of one day across my workspaces
-     * Everything the signed-in account is the current trainer of on one day, in all the workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary, the tomorrow line, the date of the next session when the day is empty and the number of workspaces. Each workspace is read on its own; the answer is merged here. An account that trains in no workspace (an Owner who does not train, a client account) gets an empty answer, not &#x60;403&#x60;. The day is a date in Dutch time; times are UTC instants, to be shown in Dutch time.
+     * Everything the signed-in account is the current trainer of on one day, in all the workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary (with the number done), for today the next free gap and the places still ahead, the tomorrow line, the date of the next session when the day is empty and the number of workspaces. Each workspace is read on its own; the answer is merged here. An account that trains in no workspace (an Owner who does not train, a client account) gets an empty answer, not &#x60;403&#x60;. The day is a date in Dutch time; times are UTC instants, to be shown in Dutch time.
      * Responses:
      *  - 200: The day.
      *  - 400: The request did not match the contract.

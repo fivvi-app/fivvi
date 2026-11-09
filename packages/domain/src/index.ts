@@ -57,6 +57,7 @@ export {
   decidePersonalRange,
   mergePersonalDay,
   orderPersonalSessions,
+  PERSONAL_FREE_GAP_MINUTES,
   PERSONAL_RANGE_MAX_DAYS,
   PERSONAL_TIME_ZONE,
   type PersonalDay,

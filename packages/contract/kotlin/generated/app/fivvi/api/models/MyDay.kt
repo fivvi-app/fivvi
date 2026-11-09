@@ -23,7 +23,9 @@
 
 package app.fivvi.api.models
 
+import app.fivvi.api.models.MyDayFreeGap
 import app.fivvi.api.models.MyDayNext
+import app.fivvi.api.models.MyDayPlace
 import app.fivvi.api.models.MyDaySummary
 import app.fivvi.api.models.MyDayTomorrow
 import app.fivvi.api.models.PersonalSession
@@ -42,6 +44,8 @@ import kotlinx.serialization.Contextual
  * @param summary 
  * @param hasSessions Whether the account is the current trainer of any session at all, past or future. Only computed when the day is empty and no session follows, to tell a new trainer (*Je hebt nog geen sessies*) from one with nothing planned; true otherwise.
  * @param next 
+ * @param freeGap 
+ * @param placesAhead *Route vandaag*: the places of the sessions that take place and have not ended, in time order, the same place twice in a row listed once. A session’s place is its location; a class takes place at its workspace’s one location. Only for today (an empty list when nothing is left); left out for any other date. The apps show the route only when it holds 2 or more places.
  * @param tomorrow 
  * @param nextSessionDate The date of the next session that takes place after this day, `YYYY-MM-DD`. Only given when the day has no items; left out when there is none.
  */
@@ -74,6 +78,13 @@ data class MyDay (
 
     @SerialName(value = "next")
     val next: MyDayNext? = null,
+
+    @SerialName(value = "freeGap")
+    val freeGap: MyDayFreeGap? = null,
+
+    /* *Route vandaag*: the places of the sessions that take place and have not ended, in time order, the same place twice in a row listed once. A session’s place is its location; a class takes place at its workspace’s one location. Only for today (an empty list when nothing is left); left out for any other date. The apps show the route only when it holds 2 or more places. */
+    @SerialName(value = "placesAhead")
+    val placesAhead: kotlin.collections.List<MyDayPlace>? = null,
 
     @SerialName(value = "tomorrow")
     val tomorrow: MyDayTomorrow? = null,

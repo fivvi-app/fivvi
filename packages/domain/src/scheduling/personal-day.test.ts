@@ -62,6 +62,7 @@ describe('F013 the personal day', () => {
     // "4 sessies · 09:00–19:00": the cancelled class counts, and its end closes the range.
     expect(day.summary).toEqual({
       count: 4,
+      done: 0,
       firstStartsAt: zonedTime('2026-09-22T09:00'),
       lastEndsAt: zonedTime('2026-09-22T19:00'),
     });
@@ -181,7 +182,12 @@ describe('F013 empty states and the tomorrow line', () => {
     const day = mergePersonalDay([[], []], NOW, AMSTERDAM);
 
     expect(day.items).toEqual([]);
-    expect(day.summary).toEqual({ count: 0, firstStartsAt: null, lastEndsAt: null });
+    expect(day.summary).toEqual({
+      count: 0,
+      done: 0,
+      firstStartsAt: null,
+      lastEndsAt: null,
+    });
     expect(day.next).toBeNull();
     expect(day.tomorrow).toBeNull();
   });
@@ -357,5 +363,248 @@ describe('F013 the range of the week and month views', () => {
       outcome: 'refused',
       reason: 'to-before-from',
     });
+  });
+});
+
+// TD-01 (tickets #524, #525): the three facts the summary line and the *Mijn dag* card show, so the
+// apps count and pick nothing themselves. Sarah's Tuesday, 22 September 2026, summer time.
+
+describe('TD-01: the done count leaves cancelled items out', () => {
+  const day = [
+    item(GYM, 'Cancelled', '2026-09-22T08:00', '2026-09-22T09:00', 'cancelled'),
+    item(PT, 'Anna', '2026-09-22T09:00', '2026-09-22T10:00'),
+    item(GYM, 'Mark', '2026-09-22T10:30', '2026-09-22T11:30'),
+  ];
+
+  it('counts the items that take place and have ended', () => {
+    expect(mergePersonalDay([day], zonedTime('2026-09-22T10:05'), AMSTERDAM).summary.done).toBe(1);
+    expect(mergePersonalDay([day], zonedTime('2026-09-22T08:00'), AMSTERDAM).summary.done).toBe(0);
+  });
+
+  it('counts an item that ends at this very minute, and not one that still runs', () => {
+    expect(mergePersonalDay([day], zonedTime('2026-09-22T10:00'), AMSTERDAM).summary.done).toBe(1);
+    expect(mergePersonalDay([day], zonedTime('2026-09-22T09:59'), AMSTERDAM).summary.done).toBe(0);
+  });
+
+  it('never counts a cancelled item, however long ago it was', () => {
+    const evening = mergePersonalDay([day], zonedTime('2026-09-22T23:00'), AMSTERDAM);
+
+    expect(evening.summary.done).toBe(2);
+    expect(evening.summary.count).toBe(3);
+  });
+
+  it('counts a past day whole and a coming day not at all', () => {
+    expect(
+      mergePersonalDay([day], zonedTime('2026-09-23T08:00'), AMSTERDAM, { date: '2026-09-22' })
+        .summary.done,
+    ).toBe(2);
+    expect(
+      mergePersonalDay([day], zonedTime('2026-09-21T20:00'), AMSTERDAM, { date: '2026-09-22' })
+        .summary.done,
+    ).toBe(0);
+  });
+});
+
+describe('TD-01: the next free gap of 30 minutes or more', () => {
+  const NOW = zonedTime('2026-09-22T08:35');
+  const sessions = [
+    item(PT, 'Anna', '2026-09-22T09:00', '2026-09-22T10:00'),
+    item(GYM, 'Mark', '2026-09-22T11:00', '2026-09-22T12:00'),
+  ];
+
+  it('is the first stretch of 30 minutes or more between now and the last session', () => {
+    const { freeGap } = mergePersonalDay([sessions], NOW, AMSTERDAM);
+
+    // 08:35–09:00 is 25 minutes: too short. 10:00–11:00 is the gap (08:00–09:00 UTC).
+    expect(freeGap).toEqual({
+      startsAt: zonedTime('2026-09-22T10:00'),
+      endsAt: zonedTime('2026-09-22T11:00'),
+    });
+    expect(freeGap?.startsAt.toISOString()).toBe('2026-09-22T08:00:00.000Z');
+    expect(freeGap?.endsAt.toISOString()).toBe('2026-09-22T09:00:00.000Z');
+  });
+
+  it('starts now when the time before the first session is long enough', () => {
+    const { freeGap } = mergePersonalDay([sessions], zonedTime('2026-09-22T08:00'), AMSTERDAM);
+
+    expect(freeGap).toEqual({
+      startsAt: zonedTime('2026-09-22T08:00'),
+      endsAt: zonedTime('2026-09-22T09:00'),
+    });
+  });
+
+  it('takes exactly 30 minutes, and not 29', () => {
+    const exact = mergePersonalDay([sessions], zonedTime('2026-09-22T08:30'), AMSTERDAM);
+    const short = mergePersonalDay([sessions], zonedTime('2026-09-22T08:31'), AMSTERDAM);
+
+    expect(exact.freeGap?.startsAt).toEqual(zonedTime('2026-09-22T08:30'));
+    expect(short.freeGap?.startsAt).toEqual(zonedTime('2026-09-22T10:00'));
+  });
+
+  it('is none when only 20 minutes lie between the sessions', () => {
+    const tight = [
+      item(PT, 'Anna', '2026-09-22T09:00', '2026-09-22T10:00'),
+      item(GYM, 'Mark', '2026-09-22T10:20', '2026-09-22T11:00'),
+    ];
+
+    expect(mergePersonalDay([tight], NOW, AMSTERDAM).freeGap).toBeNull();
+  });
+
+  it('is none after the last session, and none for an empty day', () => {
+    expect(
+      mergePersonalDay([sessions], zonedTime('2026-09-22T12:00'), AMSTERDAM).freeGap,
+    ).toBeNull();
+    expect(
+      mergePersonalDay([sessions], zonedTime('2026-09-22T15:00'), AMSTERDAM).freeGap,
+    ).toBeNull();
+    expect(mergePersonalDay([[]], NOW, AMSTERDAM).freeGap).toBeNull();
+  });
+
+  it('is none while a session runs and the next one follows at once', () => {
+    const back = [
+      item(PT, 'Anna', '2026-09-22T09:00', '2026-09-22T10:00'),
+      item(GYM, 'Mark', '2026-09-22T10:00', '2026-09-22T11:00'),
+    ];
+
+    expect(mergePersonalDay([back], zonedTime('2026-09-22T09:30'), AMSTERDAM).freeGap).toBeNull();
+  });
+
+  it('starts at the end of the running session when the gap follows it', () => {
+    const { freeGap } = mergePersonalDay([sessions], zonedTime('2026-09-22T09:30'), AMSTERDAM);
+
+    expect(freeGap).toEqual({
+      startsAt: zonedTime('2026-09-22T10:00'),
+      endsAt: zonedTime('2026-09-22T11:00'),
+    });
+  });
+
+  it('reads overlapping sessions as one block', () => {
+    const overlapping = [
+      item(PT, 'Long', '2026-09-22T09:00', '2026-09-22T12:00'),
+      item(GYM, 'Inside', '2026-09-22T10:00', '2026-09-22T11:00'),
+      item(GYM, 'After', '2026-09-22T12:15', '2026-09-22T13:00'),
+      item(GYM, 'Last', '2026-09-22T14:00', '2026-09-22T15:00'),
+    ];
+
+    expect(mergePersonalDay([overlapping], NOW, AMSTERDAM).freeGap).toEqual({
+      startsAt: zonedTime('2026-09-22T13:00'),
+      endsAt: zonedTime('2026-09-22T14:00'),
+    });
+  });
+
+  it('lets a cancelled session leave its time free', () => {
+    const withCancelled = [
+      item(PT, 'Anna', '2026-09-22T09:00', '2026-09-22T10:00'),
+      item(GYM, 'Gone', '2026-09-22T10:00', '2026-09-22T11:00', 'cancelled'),
+      item(GYM, 'Mark', '2026-09-22T11:00', '2026-09-22T12:00'),
+    ];
+
+    expect(mergePersonalDay([withCancelled], NOW, AMSTERDAM).freeGap).toEqual({
+      startsAt: zonedTime('2026-09-22T10:00'),
+      endsAt: zonedTime('2026-09-22T11:00'),
+    });
+  });
+
+  it('belongs to today only: any other date leaves it out', () => {
+    expect(
+      mergePersonalDay([sessions], zonedTime('2026-09-21T20:00'), AMSTERDAM, {
+        date: '2026-09-22',
+      }).freeGap,
+    ).toBeNull();
+    expect(
+      mergePersonalDay([sessions], zonedTime('2026-09-23T08:00'), AMSTERDAM, {
+        date: '2026-09-22',
+      }).freeGap,
+    ).toBeNull();
+  });
+
+  it('measures the gap in elapsed time across the change to winter time on 25 October', () => {
+    // 02:00–03:00 happens twice that night: wall clock 01:30 to 03:30 holds three hours.
+    const night = [
+      item(GYM, 'Early', '2026-10-25T01:00', '2026-10-25T01:30'),
+      item(GYM, 'Dawn', '2026-10-25T03:30', '2026-10-25T04:30'),
+    ];
+    const now = new Date('2026-10-24T22:45:00.000Z');
+
+    const { freeGap } = mergePersonalDay([night], now, AMSTERDAM);
+
+    expect(freeGap?.startsAt.toISOString()).toBe('2026-10-24T23:30:00.000Z');
+    expect(freeGap?.endsAt.toISOString()).toBe('2026-10-25T02:30:00.000Z');
+  });
+});
+
+describe('TD-01: the places still ahead, each once in a row', () => {
+  const NOW = zonedTime('2026-09-22T08:35');
+  const PARK = 'park';
+  const JOHNS_GYM = 'johns-gym-location';
+
+  function at(
+    place: string,
+    label: string,
+    start: string,
+    end: string,
+    status: Item['status'] = 'scheduled',
+  ): Item & { readonly placeId: string } {
+    return { ...item(place === PARK ? PT : GYM, label, start, end, status), placeId: place };
+  }
+
+  it('lists the park, John’s Gym, the park for a private session, two classes and a private session', () => {
+    const day = [
+      at(PARK, 'Anna', '2026-09-22T09:00', '2026-09-22T10:00'),
+      at(JOHNS_GYM, 'Kracht', '2026-09-22T11:00', '2026-09-22T12:00'),
+      at(JOHNS_GYM, 'Mobility', '2026-09-22T12:00', '2026-09-22T13:00'),
+      at(PARK, 'Mark', '2026-09-22T15:00', '2026-09-22T16:00'),
+    ];
+
+    expect(mergePersonalDay([day], NOW, AMSTERDAM).placesAhead).toEqual([PARK, JOHNS_GYM, PARK]);
+  });
+
+  it('lists a place once when every remaining session is there', () => {
+    const day = [
+      at(JOHNS_GYM, 'Kracht', '2026-09-22T11:00', '2026-09-22T12:00'),
+      at(JOHNS_GYM, 'Mobility', '2026-09-22T13:00', '2026-09-22T14:00'),
+    ];
+
+    expect(mergePersonalDay([day], NOW, AMSTERDAM).placesAhead).toEqual([JOHNS_GYM]);
+  });
+
+  it('adds no place for a cancelled session or one that has ended', () => {
+    const day = [
+      at(PARK, 'Done', '2026-09-22T07:00', '2026-09-22T08:00'),
+      at(PARK, 'Gone', '2026-09-22T09:00', '2026-09-22T10:00', 'cancelled'),
+      at(JOHNS_GYM, 'Kracht', '2026-09-22T11:00', '2026-09-22T12:00'),
+    ];
+
+    expect(mergePersonalDay([day], NOW, AMSTERDAM).placesAhead).toEqual([JOHNS_GYM]);
+  });
+
+  it('keeps the place of a session that is running now', () => {
+    const day = [
+      at(PARK, 'Running', '2026-09-22T08:00', '2026-09-22T09:00'),
+      at(JOHNS_GYM, 'Kracht', '2026-09-22T11:00', '2026-09-22T12:00'),
+    ];
+
+    expect(mergePersonalDay([day], NOW, AMSTERDAM).placesAhead).toEqual([PARK, JOHNS_GYM]);
+  });
+
+  it('is an empty list when nothing is left today, and left out for any other date', () => {
+    const day = [at(PARK, 'Anna', '2026-09-22T09:00', '2026-09-22T10:00')];
+
+    expect(mergePersonalDay([day], zonedTime('2026-09-22T18:00'), AMSTERDAM).placesAhead).toEqual(
+      [],
+    );
+    expect(
+      mergePersonalDay([day], zonedTime('2026-09-21T20:00'), AMSTERDAM, { date: '2026-09-22' })
+        .placesAhead,
+    ).toBeNull();
+  });
+
+  it('skips an item that names no place', () => {
+    const day = [
+      item(PT, 'No place', '2026-09-22T09:00', '2026-09-22T10:00'),
+      at(PARK, 'Anna', '2026-09-22T11:00', '2026-09-22T12:00'),
+    ];
+
+    expect(mergePersonalDay([day], NOW, AMSTERDAM).placesAhead).toEqual([PARK]);
   });
 });

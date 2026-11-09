@@ -18,6 +18,11 @@ export interface PersonalSessionTimes {
   readonly startsAt: Date;
   readonly endsAt: Date;
   readonly status: 'scheduled' | 'cancelled';
+  /**
+   * Where the session takes place: the ID of its location. The same ID is the same place; an item
+   * without one (a caller that has no places) adds nothing to `placesAhead`.
+   */
+  readonly placeId?: string;
 }
 
 export interface PersonalDay<T extends PersonalSessionTimes> {
@@ -31,6 +36,11 @@ export interface PersonalDay<T extends PersonalSessionTimes> {
    */
   readonly summary: {
     readonly count: number;
+    /**
+     * "2 klaar": the items of the day that take place and have ended (`endsAt` ≤ now). A cancelled
+     * item is never done.
+     */
+    readonly done: number;
     readonly firstStartsAt: Date | null;
     readonly lastEndsAt: Date | null;
   };
@@ -44,6 +54,19 @@ export interface PersonalDay<T extends PersonalSessionTimes> {
     readonly state: 'upcoming' | 'in-progress';
     readonly startsInMinutes: number;
   } | null;
+  /**
+   * The next free gap of the *Mijn dag* card, for today only: the first stretch of at least
+   * `PERSONAL_FREE_GAP_MINUTES` without a session that takes place, from `now` to the end of the
+   * day's last such session. `null` when there is none (also after the last session) and for any
+   * day but today. A cancelled session leaves its time free.
+   */
+  readonly freeGap: { readonly startsAt: Date; readonly endsAt: Date } | null;
+  /**
+   * *Route vandaag*, for today only: the places (`placeId`) of the sessions that take place and
+   * have not ended, in time order, the same place twice in a row listed once. `[]` when nothing is
+   * left, `null` for any day but today. The apps show the route only with 2 or more.
+   */
+  readonly placesAhead: string[] | null;
   /**
    * The footer "Morgen: 3 sessies, eerste om 07:00": the sessions of the next day that take place
    * (a cancelled one is nothing to prepare for), `null` when there are none.
@@ -70,6 +93,33 @@ export function orderPersonalSessions<T extends PersonalSessionTimes>(items: rea
 }
 
 const MINUTE_MS = 60_000;
+
+/** A free gap is worth showing from this length. */
+export const PERSONAL_FREE_GAP_MINUTES = 30;
+
+/** The first stretch of `PERSONAL_FREE_GAP_MINUTES` or more from `now` that no session in `ahead` fills. */
+function firstFreeGap(
+  ahead: readonly PersonalSessionTimes[],
+  now: Date,
+): { startsAt: Date; endsAt: Date } | null {
+  let free = now;
+  for (const session of ahead) {
+    if (session.startsAt.getTime() - free.getTime() >= PERSONAL_FREE_GAP_MINUTES * MINUTE_MS) {
+      return { startsAt: free, endsAt: session.startsAt };
+    }
+    if (session.endsAt > free) free = session.endsAt;
+  }
+  return null;
+}
+
+/** The places in order, each once in a row; an item without a place adds none. */
+function routeOf(ahead: readonly PersonalSessionTimes[]): string[] {
+  const places: string[] = [];
+  for (const { placeId } of ahead) {
+    if (placeId !== undefined && places[places.length - 1] !== placeId) places.push(placeId);
+  }
+  return places;
+}
 
 /**
  * Merges the items of a trainer's workspaces into the personal day. `itemsPerWorkspace` may hold
@@ -111,11 +161,18 @@ export function mergePersonalDay<T extends PersonalSessionTimes>(
       ? items.find((item) => item.status === 'scheduled' && item.endsAt > now)
       : undefined;
   const tomorrowFirst = tomorrowItems[0];
+  // The sessions that take place and have not ended: the ones the rest of today is made of.
+  const ahead = items.filter((item) => item.status === 'scheduled' && item.endsAt > now);
 
   return {
     date,
     items,
-    summary: { count: items.length, firstStartsAt: first?.startsAt ?? null, lastEndsAt },
+    summary: {
+      count: items.length,
+      done: items.filter((item) => item.status === 'scheduled' && item.endsAt <= now).length,
+      firstStartsAt: first?.startsAt ?? null,
+      lastEndsAt,
+    },
     next: upcoming
       ? {
           sessionId: upcoming.sessionId,
@@ -126,6 +183,8 @@ export function mergePersonalDay<T extends PersonalSessionTimes>(
               : Math.ceil((upcoming.startsAt.getTime() - now.getTime()) / MINUTE_MS),
         }
       : null,
+    freeGap: date === today ? firstFreeGap(ahead, now) : null,
+    placesAhead: date === today ? routeOf(ahead) : null,
     tomorrow: tomorrowFirst
       ? { date: nextDate, count: tomorrowItems.length, firstStartsAt: tomorrowFirst.startsAt }
       : null,
