@@ -42,6 +42,22 @@ describe('F064 AC7 business details', () => {
     }
   });
 
+  it('has the details the owner gave (open-questions Q2, 8 November 2026), all of them shown in the footer', () => {
+    expect(business).toEqual({
+      tradeName: 'K&S Apps',
+      kvk: '92372996',
+      vat: 'NL866022788B01',
+      address: 'Haringbuisdijk 43, 1086 VA Amsterdam',
+      phone: '+31 6 85145755',
+    });
+    expect(filledDetails(business).map((detail) => detail.key)).toEqual([
+      'kvk',
+      'vat',
+      'address',
+      'phone',
+    ]);
+  });
+
   it('has a trade name and no placeholder in any value', () => {
     expect(business.tradeName.trim()).not.toBe('');
     for (const value of Object.values(business)) {

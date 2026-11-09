@@ -4,9 +4,9 @@ import { audiencePageIds } from './audience/audience-data';
 import { audienceMetadata } from './audience/audience-metadata';
 import { homeMetadata, rootMetadata, siteRootMetadata } from './metadata';
 
-describe('F064 until the go-live ticket (#648) every site page sends noindex', () => {
-  it('the root layout of the site says noindex, nofollow', () => {
-    expect(siteRootMetadata.robots).toEqual({ index: false, follow: false });
+describe('F064 since the go-live ticket (#648) the markup of the site sends no robots tag', () => {
+  it('the root layout of the site says nothing: the header decides, per environment (AC13)', () => {
+    expect(siteRootMetadata.robots).toBeUndefined();
   });
 
   it('says noindex while the switch is off, and nothing once it is on (#648)', () => {

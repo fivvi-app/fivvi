@@ -14,9 +14,12 @@ describe('F064 AC13 /robots.txt', () => {
     expect(robots()).toEqual({ rules: { userAgent: '*', disallow: '/' } });
   });
 
-  it('disallows all in production too, until the site is indexable (#648)', () => {
+  it('allows the site in production and names the sitemap, now that the site is indexable (#648)', () => {
     vi.stubEnv('RAILWAY_ENVIRONMENT_NAME', 'production');
 
-    expect(robots()).toEqual({ rules: { userAgent: '*', disallow: '/' } });
+    expect(robots()).toEqual({
+      rules: { userAgent: '*', allow: '/' },
+      sitemap: 'https://fivvi.app/sitemap.xml',
+    });
   });
 });

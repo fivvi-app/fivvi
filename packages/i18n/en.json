@@ -382,7 +382,7 @@
   "site": {
     "meta": {
       "homeTitle": "Fivvi: software for personal trainers, studios and gyms",
-      "homeDescription": "Calendar, bookings, credits, payments and invoices in one place, so you have time left to train. Book a demo.",
+      "homeDescription": "Fivvi is being built with its first gym: calendar, bookings, credits, payments and invoices in one place. Book a demo to see what's ready.",
       "breadcrumbHome": "Home"
     },
     "logo": {
@@ -411,7 +411,7 @@
     "home": {
       "headline": "You train.",
       "headlineRest": "Fivvi handles the rest.",
-      "lead": "Calendar, bookings, credits, payments and invoices in one place. Made for personal trainers, studios and gyms, and a pleasure for their clients.",
+      "lead": "We're building one place for calendar, bookings, credits, payments and invoices, for personal trainers, studios and gyms, and a pleasure for their clients.",
       "status": "Fivvi is being built right now, together with our first gym. Ask in the demo what's ready.",
       "iAm": {
         "label": "I am",
@@ -423,26 +423,26 @@
       "seeFor": "See what Fivvi does for you",
       "audience": {
         "gym": {
-          "short": "One calendar for all your trainers, and always a clear view of who still has to pay.",
+          "short": "Soon one calendar for all your trainers, and always a clear view of who still has to pay.",
           "cardTitle": "Gyms with a team"
         },
         "studio": {
-          "short": "Full classes, a tidy waitlist and clients who book themselves.",
+          "short": "Soon full classes, a tidy waitlist and clients who book themselves.",
           "cardTitle": "Pilates and yoga studios"
         },
         "pt": {
-          "short": "Your whole day in your pocket: who's coming, what you did last time and what's left.",
+          "short": "Soon your whole day fits in your pocket: who's coming, what you did last time and what's left.",
           "cardTitle": "Personal trainers"
         },
         "client": {
-          "short": "Book your class in a few taps and always see what's on your balance.",
+          "short": "Soon you book your class in a few taps and always see what's on your balance.",
           "cardTitle": "And their clients"
         }
       },
       "onePlace": {
         "eyebrow": "The problem",
         "heading": "Your business lives in five places.",
-        "lead": "Every separate tool is a place where something can go wrong. In Fivvi everything is connected, so there is nothing to retype.",
+        "lead": "Every separate tool is a place where something can go wrong. In Fivvi everything will be connected, so there will be nothing to retype.",
         "calendar": "Calendar app",
         "documents": "Word documents",
         "invoices": "Invoices by hand",
@@ -450,12 +450,12 @@
         "app": "A separate booking and payment app",
         "inFivvi": "in Fivvi",
         "fivvi": "Fivvi",
-        "everything": "everything in one place"
+        "everything": "everything in one place, soon"
       },
       "chain": {
         "eyebrow": "The difference",
         "heading": "One booking. Everything adds up.",
-        "lead": "Try it. Book the class and watch what happens by itself.",
+        "lead": "Try the sample. It shows how we're building it: book the class and watch what happens by itself.",
         "steps": {
           "pack": {
             "title": "Credit pack",
@@ -507,13 +507,13 @@
       "forWhom": {
         "eyebrow": "Who it's for",
         "heading": "Your day looks different. So does Fivvi.",
-        "lead": "Fivvi only shows what you do. An independent trainer never sees group classes. A yoga studio never sees workout screens.",
+        "lead": "We're building Fivvi to show only what you do. An independent trainer never sees group classes. A yoga studio never sees workout screens.",
         "readDay": "Read their day"
       },
       "platforms": {
         "eyebrow": "Everywhere",
         "heading": "At home on every screen.",
-        "lead": "The apps for iPhone and Android are coming, with iOS glass and the Android style. In your browser you'll find the same calm.",
+        "lead": "These screens show what we're building. The apps for iPhone and Android are coming, with iOS glass and the Android style, and in your browser you'll find the same calm.",
         "owners": "Owners and trainers",
         "clients": "Clients",
         "items": {
@@ -549,23 +549,23 @@
         "items": {
           "money": {
             "title": "The money goes straight to you",
-            "text": "You connect your own Mollie account in one guided step. Fivvi never holds client money."
+            "text": "You'll connect your own Mollie account in one guided step. Fivvi will never hold client money."
           },
           "cash": {
             "title": "Cash or card is fine too",
-            "text": "Record a payment outside Fivvi on the client's profile. Skipping Mollie is possible too; Fivvi first tells you what you'd miss."
+            "text": "You'll be able to record a payment outside Fivvi on the client's profile. Skipping Mollie will be possible too; Fivvi will first tell you what you'd miss."
           },
           "notes": {
             "title": "Notes stay with the trainer",
-            "text": "Trainer notes are for trainers only. Clients don't see them."
+            "text": "Trainer notes will be for trainers only. Clients won't see them."
           },
           "amounts": {
             "title": "Trainers don't see amounts",
-            "text": "A trainer sees clients' balances, but no money. Owners see the amounts too."
+            "text": "A trainer will see clients' balances, but no money. Owners will see the amounts too."
           },
           "noApp": {
             "title": "Clients don't need an app",
-            "text": "A link or QR code, their email address and a 6-digit code. No password."
+            "text": "Clients will join with a link or QR code, their email address and a 6-digit code. No password."
           },
           "languages": {
             "title": "Dutch and English",
@@ -615,13 +615,13 @@
     "audience": {
       "recognise": "Sound familiar?",
       "dayEyebrow": "A day with Fivvi",
-      "dayLead": "From the first session to the end of the day. Every problem gets an answer, and that answer is simply a screen from Fivvi.",
+      "dayLead": "A working day as we're building it. Every problem gets an answer, and that answer is a screen from our design. Most of it is still coming; the demo shows what's ready.",
       "gyms": {
         "metaTitle": "Software for gyms with a team | Fivvi",
-        "metaDescription": "One calendar for all your trainers, proper roles and payments that run by themselves. See a working day in Fivvi.",
+        "metaDescription": "We're building one calendar for all your trainers, proper roles and payments that run by themselves. See a working day in Fivvi.",
         "eyebrow": "Gyms with a team",
         "headline": "Your team, your clients and your money in one view.",
-        "lead": "Replace the separate calendar, the booking app and the handmade invoices with one place your whole gym runs on.",
+        "lead": "Soon you can replace the separate calendar, the booking app and the handmade invoices with one place your whole gym runs on.",
         "pains": {
           "one": "Trainers share a client login, or work from their own calendar.",
           "two": "Nobody knows exactly how many sessions a client has left.",
@@ -686,10 +686,10 @@
       },
       "studios": {
         "metaTitle": "Booking system for pilates and yoga studios | Fivvi",
-        "metaDescription": "Clients book themselves, the waitlist runs by itself and credits always add up. In your studio's own words.",
+        "metaDescription": "We're building a timetable clients book themselves, a waitlist that runs by itself and credits that always add up. In your studio's own words.",
         "eyebrow": "Pilates and yoga studios",
         "headline": "Your classes are full. Your head isn't.",
-        "lead": "A timetable clients book themselves, credits that always add up and a waitlist that runs by itself. In your studio's own words.",
+        "lead": "We're building a timetable clients book themselves, credits that always add up and a waitlist that runs by itself. In your studio's own words.",
         "kind": {
           "label": "Kind of studio",
           "pilates": "Pilates",
@@ -761,10 +761,10 @@
       },
       "personalTrainers": {
         "metaTitle": "Software for personal trainers: calendar and workouts | Fivvi",
-        "metaDescription": "Your day, clients, log and credits on your phone. Without screens you don't use.",
+        "metaDescription": "We're building your day, clients, workout log and credits on your phone. Without screens you don't use.",
         "eyebrow": "Personal trainers",
         "headline": "Train your client. Not your admin.",
-        "lead": "Everything for your sessions on your phone, even in the middle of the floor. Without the group classes or team screens you'd never use.",
+        "lead": "Soon everything for your sessions on your phone, even in the middle of the floor. Without the group classes or team screens you'd never use.",
         "pains": {
           "one": "Your calendar, notes and invoices are all over the place.",
           "two": "You work out how many sessions a client has left.",
@@ -819,10 +819,10 @@
       },
       "clients": {
         "metaTitle": "Book your class in a few taps | Fivvi for clients",
-        "metaDescription": "Book, join the waitlist and always see your balance. With the app or just in your browser.",
+        "metaDescription": "Soon you can book, join the waitlist and always see your balance, with the app or just in your browser.",
         "eyebrow": "And their clients",
         "headline": "Working out is hard enough. Booking isn't.",
-        "lead": "Ask your studio or trainer for Fivvi, and book from your phone from now on. Always clear what you've booked and what you have left.",
+        "lead": "Soon you can ask your studio or trainer for Fivvi, and book from your phone from then on. Always clear what you've booked and what you have left.",
         "pains": {
           "one": "Sending a message to book a class.",
           "two": "No idea how many classes are left on your card.",
@@ -911,7 +911,7 @@
       "planName": "Fivvi",
       "price": "€ 0",
       "period": "during the pilot",
-      "includedLabel": "What is included",
+      "includedLabel": "What is included, as it becomes ready",
       "included": {
         "calendar": "Calendar, bookings and waitlist",
         "memberships": "Memberships, credits and invoices",
@@ -922,11 +922,11 @@
       "goodToKnow": "Good to know",
       "payments": {
         "question": "What does it cost to take payments?",
-        "answer": "To let clients pay online, you use your own Mollie account. Mollie charges an amount per payment, at their rates. You pay that to Mollie, not to Fivvi. If you only take cash or card, you don't need Mollie."
+        "answer": "Online payments are coming. To let clients pay online, you'll use your own Mollie account. Mollie charges an amount per payment, at their rates. You'll pay that to Mollie, not to Fivvi. If you only take cash or card, you won't need Mollie."
       },
       "clients": {
         "question": "What do my clients pay?",
-        "answer": "Only what you charge. The app and the website are free for them."
+        "answer": "Only what you charge. The app and the website will be free for them."
       },
       "later": {
         "question": "And if Fivvi starts charging later?",
@@ -939,7 +939,7 @@
       "metaDescription": "Frequently asked questions and how to reach us.",
       "eyebrow": "Help",
       "headline": "Help and contact",
-      "lead": "Feel free to email us. We're happy to help.",
+      "lead": "Feel free to email us. We're happy to help, and we reply within 2 working days.",
       "contactHeading": "How to reach us",
       "email": "Email",
       "privacy": "Privacy",
@@ -948,7 +948,7 @@
       "clientFaq": {
         "join": {
           "question": "How do I join my studio?",
-          "answer": "Open your studio's or trainer's link, or scan their QR code. Enter your email address, then the 6-digit code you receive. Your studio approves your request and then you can book."
+          "answer": "This is coming. Your studio or trainer will give you a link or a QR code. Open it, enter your email address, then the 6-digit code you receive. Your studio approves your request and then you can book."
         },
         "noCode": {
           "question": "I don't get a code. What now?",
@@ -956,11 +956,11 @@
         },
         "cancel": {
           "question": "How do I cancel a class?",
-          "answer": "Open the class and choose Cancel. If you're in time, you get your credit back. Your studio decides how long that's possible."
+          "answer": "Cancelling is coming. You'll open the class and choose Cancel. If you're in time, you'll get your credit back. Your studio decides how long that's possible."
         },
         "invoices": {
           "question": "Where do I find my invoices?",
-          "answer": "In Profile, under Invoices. You can download them there too."
+          "answer": "Invoices are coming. You'll find them in Profile, under Invoices, and you'll be able to download them there too."
         },
         "deleteAccount": {
           "question": "How do I delete my account?",
@@ -970,19 +970,19 @@
       "ownerFaq": {
         "payments": {
           "question": "How do I connect payments?",
-          "answer": "On your laptop, go to Settings, Payments, Connect payments. Mollie checks your details. iDEAL works first; automatic direct debit takes up to about 3 working days longer."
+          "answer": "Connecting payments is coming. You'll go to Settings, Payments, Connect payments on your laptop. Mollie checks your details. iDEAL will work first; automatic direct debit takes up to about 3 working days longer."
         },
         "mollie": {
           "question": "Do I have to use Mollie?",
-          "answer": "No. If you only take cash or card, that's fine. Fivvi first tells you what you'd miss, and you can always connect Mollie later."
+          "answer": "No. Payments are not in Fivvi yet. Once they are, taking only cash or card will be fine: Fivvi will first tell you what you'd miss, and you can connect Mollie later."
         },
         "devices": {
           "question": "Which devices does Fivvi work on?",
-          "answer": "Fivvi Pro is coming for iPhone and Android. You do the admin in the browser on your laptop. Clients use the app or their browser."
+          "answer": "Fivvi Pro is coming for iPhone and Android. You do the admin in the browser on your laptop, where the first parts are ready. Clients will use the app or their browser."
         },
         "data": {
           "question": "Where is my data stored?",
-          "answer": "The database is in Amsterdam. Some services are from US companies, with the safeguards the law requires. They're listed under Sub-processors. Notes are for trainers only."
+          "answer": "The database is in Amsterdam. Some services are from US companies, with the safeguards the law requires. They're listed under Sub-processors. Notes will be for trainers only."
         }
       }
     },
@@ -1021,10 +1021,10 @@
     },
     "demo": {
       "metaTitle": "Book a demo | Fivvi",
-      "metaDescription": "See your working week in Fivvi in 30 minutes.",
+      "metaDescription": "See what's ready in Fivvi, and how your working week will look, in 30 minutes.",
       "eyebrow": "Demo",
       "headline": "See Fivvi with your day in it.",
-      "lead": "30 minutes, online. No sales pitch, just your own working week in Fivvi.",
+      "lead": "30 minutes, online. No sales pitch: we show what's ready and how your own working week will look in Fivvi.",
       "steps": {
         "tell": {
           "title": "You tell us how it works now",

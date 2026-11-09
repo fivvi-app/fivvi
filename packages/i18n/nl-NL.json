@@ -382,7 +382,7 @@
   "site": {
     "meta": {
       "homeTitle": "Fivvi: software voor personal trainers, studio's en sportscholen",
-      "homeDescription": "Agenda, boekingen, credits, betalingen en facturen op één plek. Zo houd je tijd over om te trainen. Plan een demo.",
+      "homeDescription": "Fivvi wordt gebouwd met een eerste sportschool: agenda, boekingen, credits, betalingen en facturen op één plek. Plan een demo en zie wat al klaar is.",
       "breadcrumbHome": "Home"
     },
     "logo": {
@@ -411,7 +411,7 @@
     "home": {
       "headline": "Jij traint.",
       "headlineRest": "Fivvi regelt de rest.",
-      "lead": "Agenda, boekingen, credits, betalingen en facturen op één plek. Gemaakt voor personal trainers, studio's en sportscholen, en fijn voor hun klanten.",
+      "lead": "We bouwen één plek voor agenda, boekingen, credits, betalingen en facturen, voor personal trainers, studio's en sportscholen, en fijn voor hun klanten.",
       "status": "Fivvi wordt nu gebouwd, samen met onze eerste sportschool. Vraag in de demo wat er al klaar is.",
       "iAm": {
         "label": "Ik ben",
@@ -423,26 +423,26 @@
       "seeFor": "Bekijk wat Fivvi voor jou doet",
       "audience": {
         "gym": {
-          "short": "Eén agenda voor al je trainers, en altijd zicht op wie er nog moet betalen.",
+          "short": "Straks één agenda voor al je trainers, en altijd zicht op wie er nog moet betalen.",
           "cardTitle": "Sportscholen met een team"
         },
         "studio": {
-          "short": "Volle lessen, een nette wachtlijst en klanten die zelf boeken.",
+          "short": "Straks volle lessen, een nette wachtlijst en klanten die zelf boeken.",
           "cardTitle": "Pilates- en yogastudio's"
         },
         "pt": {
-          "short": "Je hele dag in je broekzak: wie er komt, wat jullie vorige keer deden en wat er nog over is.",
+          "short": "Straks heb je je hele dag in je broekzak: wie er komt, wat jullie vorige keer deden en wat er nog over is.",
           "cardTitle": "Personal trainers"
         },
         "client": {
-          "short": "Boek je les in een paar tikken en zie altijd wat je nog tegoed hebt.",
+          "short": "Straks boek je je les in een paar tikken en zie je altijd wat je nog tegoed hebt.",
           "cardTitle": "En hun klanten"
         }
       },
       "onePlace": {
         "eyebrow": "Het probleem",
         "heading": "Je bedrijf staat nu op vijf plekken.",
-        "lead": "Elke losse tool is een plek waar iets kan misgaan. In Fivvi hangt alles aan elkaar, dus je hoeft niets over te typen.",
+        "lead": "Elke losse tool is een plek waar iets kan misgaan. In Fivvi hangt straks alles aan elkaar, dus hoef je niets over te typen.",
         "calendar": "Agenda-app",
         "documents": "Word-documenten",
         "invoices": "Facturen met de hand",
@@ -450,12 +450,12 @@
         "app": "Losse boek- en betaalapp",
         "inFivvi": "in Fivvi",
         "fivvi": "Fivvi",
-        "everything": "alles op één plek"
+        "everything": "straks alles op één plek"
       },
       "chain": {
         "eyebrow": "Het verschil",
         "heading": "Eén boeking. Alles klopt meteen.",
-        "lead": "Probeer het maar. Boek de les hiernaast en kijk wat er vanzelf gebeurt.",
+        "lead": "Probeer het voorbeeld. Zo bouwen we het: boek de les hiernaast en kijk wat er vanzelf gebeurt.",
         "steps": {
           "pack": {
             "title": "Creditpakket",
@@ -507,13 +507,13 @@
       "forWhom": {
         "eyebrow": "Voor wie",
         "heading": "Jouw dag ziet er anders uit. Fivvi ook.",
-        "lead": "Fivvi laat alleen zien wat jij doet. Een zelfstandig trainer ziet nooit groepslessen. Een yogastudio ziet nooit trainingsschermen.",
+        "lead": "We bouwen Fivvi zo dat het alleen laat zien wat jij doet. Een zelfstandig trainer ziet nooit groepslessen. Een yogastudio ziet nooit trainingsschermen.",
         "readDay": "Lees hun dag"
       },
       "platforms": {
         "eyebrow": "Overal",
         "heading": "Echt thuis op elk scherm.",
-        "lead": "De apps voor iPhone en Android komen eraan, met het glas van iOS en de stijl van Android. In je browser vind je dezelfde rust.",
+        "lead": "Deze schermen laten zien wat we bouwen. De apps voor iPhone en Android komen eraan, met het glas van iOS en de stijl van Android. In je browser vind je dezelfde rust.",
         "owners": "Eigenaren en trainers",
         "clients": "Klanten",
         "items": {
@@ -549,23 +549,23 @@
         "items": {
           "money": {
             "title": "Het geld gaat rechtstreeks naar jou",
-            "text": "Je koppelt je eigen Mollie-account in één begeleide stap. Fivvi houdt geen geld van klanten vast."
+            "text": "Je koppelt straks je eigen Mollie-account in één begeleide stap. Fivvi houdt nooit geld van klanten vast."
           },
           "cash": {
             "title": "Contant of pin mag ook",
-            "text": "Leg een betaling buiten Fivvi vast op het klantprofiel. Geen Mollie willen kan ook; Fivvi vertelt eerst wat je dan mist."
+            "text": "Je kunt straks een betaling buiten Fivvi vastleggen op het klantprofiel. Geen Mollie willen kan dan ook; Fivvi vertelt eerst wat je dan mist."
           },
           "notes": {
             "title": "Notities blijven bij de trainer",
-            "text": "Trainersnotities zijn alleen voor trainers. Klanten zien ze niet."
+            "text": "Trainersnotities zijn straks alleen voor trainers. Klanten zien ze niet."
           },
           "amounts": {
             "title": "Trainers zien geen bedragen",
-            "text": "Een trainer ziet de tegoeden van klanten, maar geen geld. Eigenaren zien ook de bedragen."
+            "text": "Een trainer ziet straks de tegoeden van klanten, maar geen geld. Eigenaren zien ook de bedragen."
           },
           "noApp": {
             "title": "Klanten hebben geen app nodig",
-            "text": "Een link of QR-code, hun e-mailadres en een code van 6 cijfers. Geen wachtwoord."
+            "text": "Klanten doen straks mee met een link of QR-code, hun e-mailadres en een code van 6 cijfers. Geen wachtwoord."
           },
           "languages": {
             "title": "Nederlands en Engels",
@@ -615,13 +615,13 @@
     "audience": {
       "recognise": "Herken je dit?",
       "dayEyebrow": "Een dag met Fivvi",
-      "dayLead": "Van de eerste sessie tot het einde van de dag. Elk probleem krijgt een antwoord, en dat antwoord is gewoon een scherm uit Fivvi.",
+      "dayLead": "Een werkdag zoals we die aan het bouwen zijn. Elk probleem krijgt een antwoord, en dat antwoord is een scherm uit ons ontwerp. Het meeste moet nog komen; de demo laat zien wat al klaar is.",
       "gyms": {
         "metaTitle": "Software voor sportscholen met een team | Fivvi",
-        "metaDescription": "Eén agenda voor al je trainers, rollen die kloppen en betalingen die vanzelf gaan. Bekijk een werkdag in Fivvi.",
+        "metaDescription": "We bouwen één agenda voor al je trainers, rollen die kloppen en betalingen die vanzelf gaan. Bekijk een werkdag in Fivvi.",
         "eyebrow": "Sportscholen met een team",
         "headline": "Je team, je klanten en je geld in één overzicht.",
-        "lead": "Vervang de losse agenda, de boekingsapp en de facturen met de hand door één plek waar je hele sportschool op draait.",
+        "lead": "Straks vervang je de losse agenda, de boekingsapp en de facturen met de hand door één plek waar je hele sportschool op draait.",
         "pains": {
           "one": "Trainers delen de inlog van een klant, of werken in hun eigen agenda.",
           "two": "Niemand weet precies hoeveel sessies een klant nog heeft.",
@@ -686,10 +686,10 @@
       },
       "studios": {
         "metaTitle": "Boekingssysteem voor pilates- en yogastudio's | Fivvi",
-        "metaDescription": "Klanten boeken zelf, de wachtlijst loopt vanzelf en credits kloppen altijd. In de woorden van jouw studio.",
+        "metaDescription": "We bouwen een rooster waar klanten zelf in boeken, een wachtlijst die vanzelf loopt en credits die altijd kloppen. In de woorden van jouw studio.",
         "eyebrow": "Pilates- en yogastudio's",
         "headline": "Je lessen zitten vol. Je hoofd niet meer.",
-        "lead": "Een rooster waar klanten zelf in boeken, credits die altijd kloppen en een wachtlijst die vanzelf loopt. In de woorden van jouw studio.",
+        "lead": "We bouwen een rooster waar klanten zelf in boeken, credits die altijd kloppen en een wachtlijst die vanzelf loopt. In de woorden van jouw studio.",
         "kind": {
           "label": "Soort studio",
           "pilates": "Pilates",
@@ -761,10 +761,10 @@
       },
       "personalTrainers": {
         "metaTitle": "Software voor personal trainers: agenda en trainingen | Fivvi",
-        "metaDescription": "Je dag, je klanten, je trainingen en je credits op je telefoon. Zonder schermen die je niet gebruikt.",
+        "metaDescription": "We bouwen je dag, je klanten, je trainingslog en je credits voor op je telefoon. Zonder schermen die je niet gebruikt.",
         "eyebrow": "Personal trainers",
         "headline": "Train je klant. Niet je administratie.",
-        "lead": "Alles voor je sessies op je telefoon, ook midden op de vloer. Zonder groepslessen of teamschermen die je toch niet gebruikt.",
+        "lead": "Straks alles voor je sessies op je telefoon, ook midden op de vloer. Zonder groepslessen of teamschermen die je toch niet gebruikt.",
         "pains": {
           "one": "Je agenda, je notities en je facturen staan overal en nergens.",
           "two": "Je rekent uit hoeveel sessies een klant nog heeft.",
@@ -819,10 +819,10 @@
       },
       "clients": {
         "metaTitle": "Boek je les in een paar tikken | Fivvi voor klanten",
-        "metaDescription": "Boek, zet jezelf op de wachtlijst en zie altijd wat je nog tegoed hebt. Met de app of gewoon in je browser.",
+        "metaDescription": "Straks boek je, zet je jezelf op de wachtlijst en zie je altijd wat je nog tegoed hebt. Met de app of gewoon in je browser.",
         "eyebrow": "En hun klanten",
         "headline": "Sporten is al moeilijk genoeg. Boeken niet.",
-        "lead": "Vraag je studio of trainer om Fivvi, en boek voortaan vanaf je telefoon. Altijd duidelijk wat je geboekt hebt en wat je nog over hebt.",
+        "lead": "Straks vraag je je studio of trainer om Fivvi, en boek je voortaan vanaf je telefoon. Altijd duidelijk wat je geboekt hebt en wat je nog over hebt.",
         "pains": {
           "one": "Een berichtje sturen om een les te boeken.",
           "two": "Geen idee hoeveel lessen er nog op je kaart staan.",
@@ -911,7 +911,7 @@
       "planName": "Fivvi",
       "price": "€ 0",
       "period": "tijdens de pilot",
-      "includedLabel": "Dit zit erbij",
+      "includedLabel": "Dit zit erbij, naarmate het klaar is",
       "included": {
         "calendar": "Agenda, boekingen en wachtlijst",
         "memberships": "Abonnementen, credits en facturen",
@@ -922,11 +922,11 @@
       "goodToKnow": "Goed om te weten",
       "payments": {
         "question": "Wat kost het om betalingen aan te nemen?",
-        "answer": "Klanten online laten betalen doe je met een eigen Mollie-account. Mollie rekent per betaling een bedrag, volgens hun tarieven. Dat betaal je aan Mollie, niet aan Fivvi. Neem je alleen contant of met pin aan, dan heb je Mollie niet nodig."
+        "answer": "Online betalen komt eraan. Klanten online laten betalen doe je straks met een eigen Mollie-account. Mollie rekent per betaling een bedrag, volgens hun tarieven. Dat betaal je aan Mollie, niet aan Fivvi. Neem je alleen contant of met pin aan, dan heb je Mollie niet nodig."
       },
       "clients": {
         "question": "Wat betalen mijn klanten?",
-        "answer": "Alleen wat jij rekent. De app en de website zijn voor hen gratis."
+        "answer": "Alleen wat jij rekent. De app en de website zijn voor hen straks gratis."
       },
       "later": {
         "question": "En als Fivvi later geld gaat kosten?",
@@ -939,7 +939,7 @@
       "metaDescription": "Veelgestelde vragen en hoe je ons bereikt.",
       "eyebrow": "Hulp",
       "headline": "Hulp en contact",
-      "lead": "Mail ons gerust. We helpen je graag.",
+      "lead": "Mail ons gerust. We helpen je graag en antwoorden binnen 2 werkdagen.",
       "contactHeading": "Zo bereik je ons",
       "email": "E-mail",
       "privacy": "Privacy",
@@ -948,7 +948,7 @@
       "clientFaq": {
         "join": {
           "question": "Hoe word ik klant bij mijn studio?",
-          "answer": "Open de link of scan de QR-code van je studio of trainer. Vul je e-mailadres in, en daarna de code van 6 cijfers die je krijgt. Je studio keurt je aanmeldverzoek goed en daarna kun je boeken."
+          "answer": "Dit komt eraan. Je studio of trainer geeft je een link of QR-code. Open die, vul je e-mailadres in, en daarna de code van 6 cijfers die je krijgt. Je studio keurt je aanmeldverzoek goed en daarna kun je boeken."
         },
         "noCode": {
           "question": "Ik krijg geen code. Wat nu?",
@@ -956,11 +956,11 @@
         },
         "cancel": {
           "question": "Hoe annuleer ik een les?",
-          "answer": "Open de les en kies Annuleren. Doe je dat op tijd, dan krijg je je credit terug. Je studio bepaalt tot wanneer dat kan."
+          "answer": "Annuleren komt eraan. Je opent de les en kiest Annuleren. Doe je dat op tijd, dan krijg je je credit terug. Je studio bepaalt tot wanneer dat kan."
         },
         "invoices": {
           "question": "Waar vind ik mijn facturen?",
-          "answer": "In Profiel, onder Facturen. Je kunt ze daar ook downloaden."
+          "answer": "Facturen komen eraan. Je vindt ze straks in Profiel, onder Facturen, en kunt ze daar ook downloaden."
         },
         "deleteAccount": {
           "question": "Hoe verwijder ik mijn account?",
@@ -970,19 +970,19 @@
       "ownerFaq": {
         "payments": {
           "question": "Hoe koppel ik betalingen?",
-          "answer": "Ga op je laptop naar Instellingen, Betalingen, Betalingen koppelen. Mollie controleert je gegevens. iDEAL werkt daarna als eerste, automatische incasso duurt tot ongeveer 3 werkdagen langer."
+          "answer": "Betalingen koppelen komt eraan. Je gaat dan op je laptop naar Instellingen, Betalingen, Betalingen koppelen. Mollie controleert je gegevens. iDEAL werkt daarna als eerste, automatische incasso duurt tot ongeveer 3 werkdagen langer."
         },
         "mollie": {
           "question": "Moet ik Mollie gebruiken?",
-          "answer": "Nee. Neem je alleen contant of met pin aan, dan kan dat ook. Fivvi vertelt eerst wat je dan mist, en je kunt Mollie later altijd nog koppelen."
+          "answer": "Nee. Betalingen zitten nog niet in Fivvi. Zodra ze er zijn, kan het ook met alleen contant of pin: Fivvi vertelt dan eerst wat je mist, en je kunt Mollie later altijd nog koppelen."
         },
         "devices": {
           "question": "Op welke apparaten werkt Fivvi?",
-          "answer": "Fivvi Pro komt voor iPhone en Android. De administratie doe je in de browser op je laptop. Klanten gebruiken de app of hun browser."
+          "answer": "Fivvi Pro komt voor iPhone en Android. De administratie doe je in de browser op je laptop, waar de eerste onderdelen al klaar zijn. Klanten gebruiken straks de app of hun browser."
         },
         "data": {
           "question": "Waar staan mijn gegevens?",
-          "answer": "De database staat in Amsterdam. Enkele diensten zijn van Amerikaanse bedrijven, met de waarborgen die de wet vraagt. Welke dat zijn, staat bij Subverwerkers. Notities zijn alleen voor trainers."
+          "answer": "De database staat in Amsterdam. Enkele diensten zijn van Amerikaanse bedrijven, met de waarborgen die de wet vraagt. Welke dat zijn, staat bij Subverwerkers. Notities zijn straks alleen voor trainers."
         }
       }
     },
@@ -1021,10 +1021,10 @@
     },
     "demo": {
       "metaTitle": "Plan een demo | Fivvi",
-      "metaDescription": "Zie in 30 minuten hoe jouw werkweek eruitziet in Fivvi.",
+      "metaDescription": "Zie in 30 minuten wat er al klaar is in Fivvi en hoe jouw werkweek er straks uitziet.",
       "eyebrow": "Demo",
       "headline": "Zie Fivvi met jouw dag erin.",
-      "lead": "In 30 minuten, online. Geen verkooppraatje, gewoon je eigen werkweek in Fivvi.",
+      "lead": "In 30 minuten, online. Geen verkooppraatje: we laten zien wat al klaar is en hoe jouw eigen werkweek er straks uitziet in Fivvi.",
       "steps": {
         "tell": {
           "title": "Je vertelt hoe het nu gaat",

@@ -59,7 +59,7 @@ let demoRequestSender: ReturnType<typeof createDemoRequestSender> | undefined;
  * The demo request of the public website (F064), emailed in Dutch to `demoRequestRecipient()`:
  * the support address in production, an `@example.com` address (logged, not sent) elsewhere.
  * Nothing goes to the visitor. Created on first use, so `next build` runs without the email
- * settings. The mailbox is the owner's to create (#612).
+ * settings. The mailbox is an alias of the owner's Zoho mailbox (Q2).
  */
 function sendDemoRequest(...[mail]: Parameters<ReturnType<typeof createDemoRequestSender>>) {
   demoRequestSender ??= createDemoRequestSender({

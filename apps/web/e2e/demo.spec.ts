@@ -11,6 +11,8 @@ import { DEMO_REQUEST_ADDRESS } from './servers';
 // In production this is support@fivvi.app; the e2e servers send to a fake mailbox (servers.ts).
 const SUPPORT = DEMO_REQUEST_ADDRESS;
 const DEMO: Record<Locale, string> = { 'nl-NL': '/demo', en: '/en/demo' };
+const PRICING: Record<Locale, string> = { 'nl-NL': '/prijzen', en: '/en/pricing' };
+const SUPPORT_PAGE: Record<Locale, string> = { 'nl-NL': '/support', en: '/en/support' };
 
 /** A name no other test uses, so its email can be told apart on the shared fake server. */
 const newName = () => `Anna ${randomUUID().slice(0, 8)}`;
@@ -47,19 +49,23 @@ test.describe('F064 the demo page and its form', () => {
     });
   }
 
-  test('nothing links to the page before go-live (#648), but it is there, and says noindex', async ({
+  test('since go-live (#648) the header, the pricing page and the help page link to it, and it sends no robots tag of its own', async ({
     page,
     appLocale,
     messages: copy,
   }) => {
     await page.goto(appLocale === 'en' ? '/en' : '/');
-    await expect(page.getByRole('link', { name: copy.site.header.demo })).toHaveCount(0);
-    await expect(page.locator('a[href$="/demo"]')).toHaveCount(0);
+    const link = page.getByRole('link', { name: copy.site.header.demo }).first();
+    await expect(link).toHaveAttribute('href', DEMO[appLocale]);
+    for (const path of [PRICING[appLocale], SUPPORT_PAGE[appLocale]]) {
+      await page.goto(path);
+      await expect(page.locator('main a[href$="/demo"]').first()).toBeVisible();
+    }
 
     const response = await page.goto(DEMO[appLocale]);
 
     expect(response?.status()).toBe(200);
-    await expect(page.locator('meta[name="robots"]')).toHaveAttribute('content', /noindex/);
+    await expect(page.locator('meta[name="robots"]')).toHaveCount(0);
   });
 
   test('AC5: a valid request sends one email to support in Dutch, shows the confirmation, and writes to no one else', async ({

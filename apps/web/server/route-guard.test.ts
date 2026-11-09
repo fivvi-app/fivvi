@@ -347,10 +347,25 @@ describe('F001 AC13 route guard', () => {
       expect(signedIn.headers.get('x-robots-tag')).toBe('noindex, nofollow');
     });
 
-    it('is noindex in production while the site is not indexable (#648)', async () => {
-      const response = await guard('/', ANONYMOUS, {}, PRODUCTION).answer;
+    it('is absent on a page of the site in production, now that the site is indexable (#648)', async () => {
+      for (const path of ['/', '/en/pricing', '/demo', '/robots.txt']) {
+        const response = await guard(path, ANONYMOUS, {}, PRODUCTION).answer;
 
-      expect(response.headers.get('x-robots-tag')).toBe('noindex, nofollow');
+        expect(response.headers.get('x-robots-tag'), path).toBeNull();
+      }
+    });
+
+    it('is noindex on the app, sign-in, booking and join pages and the API in production too (AC13)', async () => {
+      for (const path of ['/login', '/book/pilot-gym', '/join/abc', '/api/v1/health']) {
+        const response = await guard(path, ANONYMOUS, {}, PRODUCTION).answer;
+
+        expect(response.headers.get('x-robots-tag'), path).toBe('noindex, nofollow');
+      }
+      for (const path of ['/home', '/w/pilot-gym']) {
+        const response = await guard(path, SIGNED_IN, {}, PRODUCTION).answer;
+
+        expect(response.headers.get('x-robots-tag'), path).toBe('noindex, nofollow');
+      }
     });
   });
 });

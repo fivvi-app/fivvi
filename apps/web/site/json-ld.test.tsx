@@ -88,6 +88,15 @@ describe.each(locales)('F064 AC14 JSON-LD in %s', (locale) => {
     });
   });
 
+  it('the 0 EUR offer is the price the pricing page shows, and the OS stays Web until the store listings are live (#648)', () => {
+    const { SoftwareApplication } = nodes('home', locale);
+
+    expect(copy.pricing.price.replace(/[^0-9.,]/g, '')).toBe('0');
+    expect(copy.pricing.price).toContain('€');
+    expect(SoftwareApplication?.offers).toMatchObject({ price: '0', priceCurrency: 'EUR' });
+    expect(SoftwareApplication?.operatingSystem).toBe('Web');
+  });
+
   it('never claims a rating, a review or a price beyond the free pilot', () => {
     for (const page of everyPage) {
       const json = JSON.stringify(pageJsonLd(page, locale));
@@ -107,6 +116,20 @@ describe.each(locales)('F064 AC14 JSON-LD in %s', (locale) => {
         expect(url === 'https://schema.org' || url.startsWith('https://fivvi.app')).toBe(true);
       }
     }
+  });
+});
+
+describe('F064 AC7, AC14 the Organization of the site as it is published (#648)', () => {
+  it('carries the details the owner gave, and no legal name', () => {
+    const { Organization } = nodes('home', 'en');
+
+    expect(Organization).toMatchObject({
+      identifier: { '@type': 'PropertyValue', propertyID: 'KvK', value: '92372996' },
+      vatID: 'NL866022788B01',
+      address: 'Haringbuisdijk 43, 1086 VA Amsterdam',
+      telephone: '+31 6 85145755',
+    });
+    expect(Organization).not.toHaveProperty('legalName');
   });
 });
 
