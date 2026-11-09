@@ -856,6 +856,8 @@ Sarah is merely the assigned trainer.
 
 Trainer substitution therefore does not affect the class or bookings.
 
+**Removing a trainer (owner, 9 November 2026, F023).** The owner removing a trainer hands over what that trainer has in the **next 2 weeks** to a chosen trainer, who takes all of it. Sessions after those 2 weeks are **not cancelled**: classes and private sessions get *Trainer nodig* and show in the owner's *Aandacht nodig*, where the owner assigns them later. With *Niemand* chosen, the next 2 weeks behave as before (classes get *Trainer nodig*, private sessions are cancelled with an email to the client) and the sessions after them get *Trainer nodig*.
+
 ---
 
 # 20. Recurring classes
@@ -977,7 +979,7 @@ The waitlist is **F062**, in M5 with the booking (`ROADMAP.md` v1.29, rules in v
 A signed-in, approved client books group classes from the client timetable (§21).
 
 - **Before M11 (commerce):** being an approved client of the workspace is enough.
-- **From M11:** booking needs an **active agreement that covers the class**: a membership with weekly allowance left, credits of the matching kind (group credits for a group class; §91, §92) or an unused single class pass (§95). A **trial** is just an offer, for example an intro credit pack "once per client" (§90), and books like any agreement.
+- **From M11:** booking needs an **active agreement that covers the class**: a membership with weekly allowance left, credits of the matching kind (group credits for a group class; §91, §92) or an unused single class pass (§95), used in that order: membership, then group credits, then the pass. A **trial** is just an offer, for example an intro credit pack "once per client" (§90), and books like any agreement.
 - An approved client **without an agreement** sees the timetable and the workspace's offers, and can't book until they have one.
 - **Private sessions** stay booked by the trainer or owner.
 - A **single class pass** (§95) can be bought only by a signed-in, approved client.
@@ -1382,7 +1384,7 @@ Track:
 
 Statuses:
 
-On a class, *Iedereen aanwezig* marks everyone still open as attended in one action (owner, 6 November 2026).
+On a class, *Iedereen aanwezig* marks everyone still open as attended in one action (owner, 6 November 2026). Offline it joins the offline queue like a single tap, as **one queued request** (owner, 9 November 2026, F025); if the sync rejects it, the marks revert and the app shows the message.
 
 ```text
 Booked
@@ -2801,7 +2803,7 @@ The pilot gym's values, which the defaults start with (§90): a cutoff of **12 h
 Payments run through a **payment provider**. [ADR-020](../decisions/ADR-020-payment-provider.md) (Accepted by the owner, 21 October 2026) decides on **Mollie Connect for Platforms**, with Stripe Connect as the fallback (see [`ROADMAP.md` decision 14](ROADMAP.md#14-decisions)). **Merchant model (decided in ADR-020):** each workspace connects its own Mollie account, so the gym is the merchant: client money goes from the provider to the gym's bank account and never through an account of Fivvi. The provider pays out to the gym weekly (the gym sets the day in its own Mollie dashboard); the pilot wants weekly payouts. The gym pays the provider's fee per payment; passing a payment-method surcharge on to clients is often not allowed in the Netherlands and is part of the legal check (`ROADMAP.md §4.4`, [QC13](../design/open-questions.md#qc13)).
 
 - **Connecting payments comes first (owner, 6 November 2026).** Everything a client can see or buy (the join link and QR poster, invitations, booking, offers) waits until payments work; iDEAL working is enough. An owner who only takes cash or card can choose that instead, and then records every payment ([#606](https://github.com/fivvi-app/fivvi/issues/606)). The owner's own setup stays open during Mollie's checks.
-- **A broken connection doesn't stop the studio (owner, 9 November 2026).** If the Mollie connection breaks later, the owner can still record a payment outside Fivvi, and clients keep booking with what they have. Only what needs Mollie itself stops: online checkout (new sales and renewals) and direct debits, until the owner reconnects.
+- **A broken connection doesn't stop the studio (owner, 9 November 2026).** If the Mollie connection breaks later, the owner can still record a payment outside Fivvi, and clients keep booking with what they have. Only what needs Mollie itself stops: online checkout (new sales and renewals), direct debits and new mandates, until the owner reconnects. A deliberate *Ontkoppelen* (disconnect) by the owner is treated the same way (owner, 9 November 2026): Fivvi keeps working and only what needs Mollie stops. The payments-first lock above applies only to a workspace that has never set up payments.
 - **Connecting payments is one guided step, and only the Owner does it** (trainers never; decision 13 and ADR-020). In Fivvi the owner chooses *Betalingen koppelen* / *Connect payments*. Fivvi creates a pre-filled Mollie account (name, email, company, KvK) and opens Mollie's onboarding in Dutch. The owner finishes Mollie's own checks (KvK, ID, owners, bank verification) and returns to Fivvi connected. An owner who already has a Mollie account just logs in and approves. Mollie reviews SEPA Direct Debit separately (it aims for 3 business days), so payments switch on only when Mollie reports that the account can receive them; until then Fivvi shows the status in plain words.
 
 - **First payment:** the client pays online (iDEAL first; proposal, [QC06](../design/open-questions.md#qc06)) when confirming a membership, a credit pack or a credit plan, or buying a single class pass (§95, paid once). For a membership or a credit plan, that payment also gives the **mandate** for later collections (proposal, [QC06](../design/open-questions.md#qc06)). A credit pack and a single class pass are paid once and need no mandate.
@@ -2820,7 +2822,10 @@ A **single class pass** is an offer kind of its own (§90), good for **one group
 - **Bought ahead.** A **signed-in, approved client** (§26) buys it online, as a client without a membership or as a client with a membership who wants an extra class this week. It is paid once, up front (§94), and gets an invoice (§96), like credits.
 - **Booked with the pass.** The client then books a group class from the client timetable (§21) with the pass, like any booking. Nothing is paid at the booking: there is no payment in progress, no spot kept while someone pays (there are no booking holds, §24), and no exception for the waitlist (§23).
 - **The owner sets the price.** As a guideline only, not enforced, it should cost more than a class in a membership or pack, because it isn't a membership. Buying one never changes what a membership includes.
-- **Open, for the F058 spec:** what a cancellation or a no-show does to the pass (§93); how long an unused pass stays valid; how it shows next to the balances (§92); whether a pass is an agreement (`GLOSSARY.md`, *Agreement*); the order of use when a client has a membership allowance, credits and a pass (which is used first); and whether the owner can also record a pass as a payment outside Fivvi (F065). Whether the pilot gym sells single class passes is not known.
+- **An unused pass is never refunded (owner, 9 November 2026).** The client can't ask for a refund and Fivvi never refunds one by itself. The owner's manual refund of a payment (§94, F060) is unchanged.
+- **The order of use (owner, 9 November 2026).** What covers a class is used in this order: the membership's weekly allowance, then group credits, then a single class pass. Credits are used before a pass.
+- **Open, for the F058 spec:** what a cancellation or a no-show does to the pass (§93); how long an unused pass stays valid; how it shows next to the balances (§92); whether a pass is an agreement (`GLOSSARY.md`, *Agreement*); and whether the owner can also record a pass as a payment outside Fivvi (F065). Whether the pilot gym sells single class passes is not known.
+- **Later, parked (owner, 9 November 2026):** the pass may need an exception to how a client joins a gym (§26), so that someone can try a gym without being approved first. Not decided and not built: for now only a signed-in, approved client buys a pass.
 
 ---
 
