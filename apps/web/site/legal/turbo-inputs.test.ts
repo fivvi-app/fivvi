@@ -34,7 +34,7 @@ describe('F064 AC10 the legal texts are inputs of the web build and tests (turbo
       ...legal,
       '$TURBO_ROOT$/docs/legal/sub-processors.md',
       '$TURBO_ROOT$/docs/product/FEATURES.md',
-      '$TURBO_ROOT$/docs/design/brand/**',
+      '$TURBO_ROOT$/docs/design/brand/*.svg',
     ]);
   });
 });

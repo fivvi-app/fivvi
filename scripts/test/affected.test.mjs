@@ -165,6 +165,14 @@ describe('#293 AC3 AC4: packages and their dependents', () => {
     assert.equal(decide(['docs/legal/sub-processors.md']).root, false);
   });
 
+  it('#697: the brand SVGs run the web tests; the README and the archive of the brand folder stay documentation', () => {
+    assert.deepEqual(decide(['docs/design/brand/favicon.svg']).packages, ['@fivvi/web']);
+    for (const path of ['docs/design/brand/README.md', 'docs/design/brand/archive/old-logo.svg']) {
+      assert.deepEqual(decide([path]).packages, [], path);
+    }
+    assert.equal(decide(['docs/design/brand/README.md']).docs, true);
+  });
+
   it('F064 AC10: the other texts of docs/legal stay documentation', () => {
     for (const path of ['docs/legal/open-questions.md', 'docs/legal/README.md']) {
       const result = decide([path]);
@@ -205,7 +213,7 @@ describe('#293 AC3 AC4: packages and their dependents', () => {
       const files = filesUnder(reference);
       assert.ok(
         files.some((file) => decide([file]).packages.includes('@fivvi/web')),
-        `${reference} is read by the web app, but no change to it affects @fivvi/web: add it to INPUT_OF_PACKAGE in scripts/affected.mjs`,
+        `${reference} is read by the web app, but no change to it affects @fivvi/web: add it to DOCS_INPUT_OF_PACKAGE in scripts/affected.mjs and to the test inputs of apps/web/turbo.json`,
       );
     }
   });
