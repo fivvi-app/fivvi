@@ -1,0 +1,47 @@
+import Observation
+
+/// Whether the app is signed in, which decides the screen it opens on (F001 AC13).
+@MainActor
+@Observable
+public final class Session {
+    public enum State: Equatable {
+        /// No token. `afterRejection` is true when the API stopped accepting the token, so the sign-in screen says so.
+        case signedOut(afterRejection: Bool)
+        case signedIn
+    }
+
+    public private(set) var state: State
+    private let store: any SessionStore
+    private let onSignedOut: () -> Void
+
+    /// The app opens signed in when the store holds a token, otherwise signed out; it makes no authenticated call to
+    /// find out (AC13). `onSignedOut` runs on every sign-out, whether the person signed out or the API rejected the
+    /// token; the app clears the error-reporting user with it (AC3, #266).
+    public init(store: any SessionStore, onSignedOut: @escaping () -> Void = {}) {
+        self.store = store
+        self.onSignedOut = onSignedOut
+        state = store.token == nil ? .signedOut(afterRejection: false) : .signedIn
+    }
+
+    /// The token is stored: show the signed-in home.
+    public func signedIn() {
+        state = .signedIn
+    }
+
+    /// The person signed out: the token is gone, show the sign-in screen. `afterRejection` is true when the API
+    /// refused the token of the sign-out call itself, so the sign-in screen says so, as for any refused token. Does
+    /// nothing when the app is already signed out, e.g. because the API rejected the token in the same moment (then
+    /// the notice stays).
+    public func signedOut(afterRejection: Bool = false) {
+        guard state == .signedIn else { return }
+        state = .signedOut(afterRejection: afterRejection)
+        onSignedOut()
+    }
+
+    /// The API no longer accepts the token (expired, or the sign-in session ended elsewhere): the token is gone,
+    /// show the sign-in screen with the notice.
+    public func tokenRejected() {
+        state = .signedOut(afterRejection: true)
+        onSignedOut()
+    }
+}

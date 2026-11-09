@@ -1,4 +1,5 @@
 import FivviAPI
+import FivviStrings
 
 typealias ClientLocale = Components.Schemas.Locale
 

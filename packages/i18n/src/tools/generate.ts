@@ -4,7 +4,13 @@ import { locales, serverOnlyNamespaces } from '../config.ts';
 import { type Analysis, analyze } from './analyze.ts';
 import { androidValuesDir, renderStringsXml } from './android.ts';
 import { type CatalogSet, readCatalogSet } from './catalog.ts';
-import { infoPlistKeys, renderInfoPlistXcstrings, renderXcstrings } from './xcstrings.ts';
+import {
+  infoPlistKeys,
+  renderInfoPlistXcstrings,
+  renderStringCatalogsAccessor,
+  renderStringCatalogsPackage,
+  renderXcstrings,
+} from './xcstrings.ts';
 
 /** Committed output, relative to the package root. E008 wires these into the apps. */
 export const generatedDir = 'generated';
@@ -42,6 +48,8 @@ export function renderNativeCatalogs(fullAnalysis: Analysis): Map<string, string
   const files = new Map<string, string>();
   files.set(`${generatedDir}/ios/Localizable.xcstrings`, renderXcstrings(analysis));
   files.set(`${generatedDir}/ios/InfoPlist.xcstrings`, renderInfoPlistXcstrings(analysis));
+  files.set(`${generatedDir}/ios/FivviStringCatalogs.swift`, renderStringCatalogsAccessor());
+  files.set(`${generatedDir}/ios/Package.swift`, renderStringCatalogsPackage());
   for (const locale of locales) {
     files.set(
       `${generatedDir}/android/${androidValuesDir[locale]}/strings.xml`,

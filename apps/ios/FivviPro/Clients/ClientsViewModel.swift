@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import FivviAPI
+import FivviStrings
 
 /// *Klanten* / *Clients* (TM-02): the workspace's clients from `GET /api/v1/workspaces/{id}/clients` through the
 /// generated client (F006 AC6, AC12). The server sorts them by name, searches them (part of a name or an email address,

@@ -2,6 +2,8 @@ import FivviAPI
 import XCTest
 
 @testable import FivviPro
+@testable import FivviStrings
+@testable import FivviLanguage
 
 /// The one helper that answers "may I show this action here?" (F004, spec #172): from the capabilities the API lists
 /// per workspace in `GET /api/v1/me`, never from the role name. The test plan runs every test in nl and en

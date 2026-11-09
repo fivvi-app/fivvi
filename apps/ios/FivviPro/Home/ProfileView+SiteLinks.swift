@@ -1,5 +1,7 @@
 import SwiftUI
+import FivviAPI
 import FivviDesignTokens
+import FivviStrings
 
 /// A row of *Profiel* that opens a page of the website (F064 AC17): its test id, its text and the address.
 struct SiteLinkRow: Equatable, Identifiable {

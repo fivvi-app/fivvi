@@ -1,5 +1,7 @@
 import SwiftUI
 import FivviDesignTokens
+import FivviStrings
+import FivviUI
 
 /// The sheet that changes the person's name on *Profiel* (TM-04, F005 AC1): *Annuleren* and *Opslaan* in the bar on top, so
 /// the keyboard never covers them, and the field below. Nothing is checked here: the API's refusal words the field

@@ -668,6 +668,26 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     assert.match(key, /hashFiles\('apps\/ios\/.*Package\.resolved'\)/);
   });
 
+  it('E017 #500: the iOS cache key has the package graph in it, so a cache built for another one is never restored', () => {
+    // The first run of the shared-package layout restored a cache built with Sentry as a direct dependency of the app,
+    // and Xcode refused its precompiled Sentry module ("Sentry.framework/Headers/SentryEvent.h has been modified since
+    // the module file was built"): "a stale cache only costs build time" did not hold. A run saves a cache only when it
+    // passes, so the next run restored the same one. The graph is the manifests of every local package the project uses
+    // (the shared ones in apps/ios/Packages, the contract, design tokens and generated strings in packages/) and the
+    // project file.
+    const graph =
+      "hashFiles('apps/ios/Packages/**/Package.swift', 'packages/contract/swift/Package.swift', 'packages/design-tokens/FivviDesignTokens/Package.swift', 'packages/i18n/generated/ios/Package.swift', 'apps/ios/FivviPro.xcodeproj/project.pbxproj')";
+    const key = iosBuild.match(/^ +key: (ios-build-.+)$/m)?.[1] ?? '';
+    assert.ok(key.includes(`\${{ ${graph} }}`), 'the key has the package graph');
+    const restoreKeys = iosBuild
+      .match(/restore-keys: \|\n((?: +ios-build-.+\n)+)/)?.[1]
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+    for (const restoreKey of restoreKeys)
+      assert.ok(restoreKey.includes(`\${{ ${graph} }}`), `${restoreKey} has the package graph`);
+  });
+
   it('#293 AC15: the iOS cache key is new on every run, so each run saves what it built, and restores the latest one', () => {
     // An exact hit is never saved again: with a key that only changes with Package.resolved the cache would be frozen at
     // the first run's DerivedData and the second run of a PR could not get incremental.
@@ -681,9 +701,10 @@ describe('E002 #91 the native jobs in ci.yml', () => {
       .filter(Boolean);
     // biome-ignore lint/suspicious/noTemplateCurlyInString: a GitHub Actions expression, not a template
     const prefix = '${{ runner.os }}-${{ steps.xcode.outputs.version }}-';
+    const graph = `\${{ hashFiles('apps/ios/Packages/**/Package.swift', 'packages/contract/swift/Package.swift', 'packages/design-tokens/FivviDesignTokens/Package.swift', 'packages/i18n/generated/ios/Package.swift', 'apps/ios/FivviPro.xcodeproj/project.pbxproj') }}-`;
     assert.deepEqual(restoreKeys, [
-      `ios-build-${prefix}\${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-`,
-      `ios-build-${prefix}`,
+      `ios-build-${prefix}${graph}\${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-`,
+      `ios-build-${prefix}${graph}`,
     ]);
     assert.ok(key.startsWith(restoreKeys[0]), 'the key starts with the first restore key');
   });
@@ -1828,12 +1849,23 @@ setInterval(() => {}, 1000);\n`,
     const swiftlint = readFileSync(join(SCRIPTS, '_ios.sh'), 'utf8').match(
       /^SWIFTLINT_VERSION=(\S+)/m,
     )[1];
-    // SwiftLint flags exactly the fixture lines marked `// expect: <rule>`, as the real rules must.
+    // The folders of the shared package that the lint probe of test-ios.sh (E017 #500) drops its files into.
+    for (const target of ['FivviUI', 'FivviObservability']) {
+      const folder = join(repo, 'apps/ios/Packages/FivviShared/Sources', target);
+      mkdirSync(folder, { recursive: true });
+      writeFileSync(join(folder, '.gitkeep'), ''); // git keeps no empty folder, and a worktree is made from a commit
+    }
+    // SwiftLint flags exactly the fixture lines marked `// expect: <rule>`, as the real rules must: in the files it is
+    // given, or, given none, in the files of the configuration's `included:` that the probe uses (Packages).
     script(
       join(repo, `apps/ios/.build/swiftlint-${swiftlint}/swiftlint`),
-      `for arg; do case "$arg" in *.swift)
-  grep -n '// expect: [a-z_]*$' "$arg" | while IFS=: read -r line text; do echo "$arg:$line:1: error: (\${text##*expect: })"; done
-  exit 2 ;; esac; done`,
+      `files=""
+for arg; do case "$arg" in *.swift) files="$files $arg" ;; esac; done
+[ -n "$files" ] || files="$(find Packages -name '*.swift')"
+for file in $files; do
+  grep -n '// expect: [a-z_]*$' "$file" | while IFS=: read -r line text; do echo "$file:$line:1: error: (\${text##*expect: })"; done
+done
+[ -z "$files" ] || exit 2`,
     );
     script(
       join(repo, 'apps/android/gradlew'),

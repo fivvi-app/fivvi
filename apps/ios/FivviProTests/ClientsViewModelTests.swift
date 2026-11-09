@@ -2,6 +2,8 @@ import FivviAPI
 import XCTest
 
 @testable import FivviPro
+@testable import FivviStrings
+@testable import FivviLanguage
 
 /// *Klanten* / *Clients* (TM-02, F006 AC6 and AC12): the workspace's clients from `GET /workspaces/{id}/clients`
 /// through the generated client, searched on the server, in pages, kept on screen when a refresh fails. The test plan

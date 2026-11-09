@@ -2,6 +2,8 @@ import FivviAPI
 import XCTest
 
 @testable import FivviPro
+@testable import FivviStrings
+@testable import FivviLanguage
 
 /// The hello screen's states. The test plan runs every test in nl and en (FivviPro.xctestplan).
 @MainActor

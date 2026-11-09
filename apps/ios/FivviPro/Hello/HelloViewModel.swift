@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import FivviAPI
+import FivviStrings
 
 /// The hello screen: asks the API for the greeting in the interface language and shows it from the catalog.
 /// The template for every later screen: one view model, a few states, the generated client's `APIProtocol` as its seam.

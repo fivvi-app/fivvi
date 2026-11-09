@@ -2,6 +2,7 @@ import FivviAPI
 import XCTest
 
 @testable import FivviPro
+@testable import FivviStrings
 
 /// F064 AC17 (spec #611, ticket #646): the two rows on *Profiel*, *Hulp en contact* and *Privacyverklaring*, in the
 /// order of the prototype, worded from the catalog and pointing at the page of the website in the language shown.

@@ -338,7 +338,11 @@ jobs:
       # DerivedData, with the compiled Swift packages (sentry-cocoa takes minutes to build), and the packages
       # themselves. Keyed by Package.resolved, the Xcode version, the runner OS and the run: every run saves what it
       # built (an exact hit is never saved again, so a key without the run would freeze the cache at the first
-      # build) and restores the newest one through the restore keys, the same Package.resolved first. A stale cache
+      # build) and restores the newest one through the restore keys, the same Package.resolved first. The package
+      # graph is in the key too (the manifests of all local packages, in apps/ios/Packages and in packages/, and the
+      # project file): a cache built for another graph
+      # (Sentry a direct dependency of the app, not of FivviShared) made Xcode refuse its precompiled Sentry module in
+      # the first run of the shared packages (#500), and a failed run saves nothing. Within one graph a stale cache
       # only costs build time and never changes a result. A PR can read its own caches and main's; main's are
       # written by the pushes that change native paths, so a PR's first run is warm once main has run it. The
       # manifest of the sources' modification times (scripts/ios-mtimes.mjs) is part of it. The index store is left
@@ -353,10 +357,10 @@ jobs:
             apps/ios/.build/source-mtimes.json
             !apps/ios/.build/DerivedData/Logs
             !apps/ios/.build/DerivedData/Index.noindex
-          key: ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          key: ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('apps/ios/Packages/**/Package.swift', 'packages/contract/swift/Package.swift', 'packages/design-tokens/FivviDesignTokens/Package.swift', 'packages/i18n/generated/ios/Package.swift', 'apps/ios/FivviPro.xcodeproj/project.pbxproj') }}-${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-${{ github.run_id }}-${{ github.run_attempt }}
           restore-keys: |
-            ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-
-            ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-
+            ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('apps/ios/Packages/**/Package.swift', 'packages/contract/swift/Package.swift', 'packages/design-tokens/FivviDesignTokens/Package.swift', 'packages/i18n/generated/ios/Package.swift', 'apps/ios/FivviPro.xcodeproj/project.pbxproj') }}-${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-
+            ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('apps/ios/Packages/**/Package.swift', 'packages/contract/swift/Package.swift', 'packages/design-tokens/FivviDesignTokens/Package.swift', 'packages/i18n/generated/ios/Package.swift', 'apps/ios/FivviPro.xcodeproj/project.pbxproj') }}-
 
       # Xcode decides what to compile by the modification time of the inputs, and a checkout gives every file the
       # time of the checkout: the restored DerivedData above was thrown away by a build that found every source "changed"

@@ -1,6 +1,10 @@
 import SwiftUI
 import FivviAPI
 import FivviDesignTokens
+import FivviStrings
+import FivviSession
+import FivviLanguage
+import FivviUI
 
 /// The signed-in home, a placeholder until the tab bar arrives. `GET /api/v1/me` decides what it shows (F002 AC10): the
 /// workspace's name with the hello block, the text to set a workspace up on the web with a button that opens trainer

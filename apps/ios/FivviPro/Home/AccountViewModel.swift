@@ -1,13 +1,13 @@
 import Foundation
 import Observation
 import FivviAPI
+import FivviLanguage
+import FivviSession
+import FivviStrings
 
 /// The signed-in account shown on the home: asks `GET /api/v1/me` through the generated client, which sends the bearer
 /// token (`AuthMiddleware`). A `401` is the middleware's business: it signs the app out. It also signs the person out
 /// on request (`signOut()`, F001 AC10).
-/// Takes the stored preference a `GET /api/v1/me` answered (`AppLanguage.startRead()`).
-typealias StoredLocaleHandler = (_ stored: Components.Schemas.Locale?) -> Void
-
 @MainActor
 @Observable
 final class AccountViewModel {

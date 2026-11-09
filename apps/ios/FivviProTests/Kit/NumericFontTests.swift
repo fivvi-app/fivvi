@@ -4,6 +4,7 @@ import XCTest
 import FivviDesignTokens
 
 @testable import FivviPro
+@testable import FivviUI
 
 /// E020 AC11: numbers are set in the rounded face with tabular digits (SF Pro Rounded on iOS).
 @MainActor
