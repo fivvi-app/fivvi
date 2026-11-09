@@ -9,10 +9,28 @@ import { siteText } from '../text';
 export const legalDocuments = ['privacy', 'terms'] as const;
 export type LegalDocument = (typeof legalDocuments)[number];
 
+/**
+ * The texts of `docs/legal` that have a page of the site: the file's base name (`privacy-policy.nl.md`
+ * is `privacy-policy` in Dutch) and the page it is. One table for the files the pages read and the
+ * files a link may point to.
+ */
+const pageOfBaseName = {
+  'privacy-policy': 'privacy',
+  terms: 'terms',
+  'sub-processors': 'subProcessors',
+} as const;
+type BaseName = keyof typeof pageOfBaseName;
+type LegalLinkPage = (typeof pageOfBaseName)[BaseName];
+
+const baseNameOfDocument = {
+  privacy: 'privacy-policy',
+  terms: 'terms',
+} as const satisfies Record<LegalDocument, BaseName>;
+
 /** The file of a text in `docs/legal`: one per language (`privacy-policy.nl.md`, `terms.en.md`). */
 export function legalFile(document: LegalDocument, locale: Locale): string {
   const language = locale === 'en' ? 'en' : 'nl';
-  return `${document === 'privacy' ? 'privacy-policy' : 'terms'}.${language}.md`;
+  return `${baseNameOfDocument[document]}.${language}.md`;
 }
 
 /**
@@ -28,7 +46,8 @@ const legalDirectory = path.resolve(process.cwd(), '../../docs/legal');
  * the file and what it found, so whoever breaks the build knows what to finish.
  */
 export function checkLegalText(markdown: string, file: string): void {
-  const open = markdown.match(/\{\{[^}]*\}\}/);
+  // Any `{{`, closed or not: `{{Adres}` is as unfinished as `{{Adres}}`.
+  const open = markdown.match(/\{\{[^\n]{0,40}/);
   if (open) {
     throw new Error(`${file} still has an open value, ${open[0]}; fill it in before publishing`);
   }
@@ -38,17 +57,13 @@ export function checkLegalText(markdown: string, file: string): void {
 }
 
 /** What a relative link of a legal text may point to: another text of `docs/legal` with a page. */
-function pageOfFile(
-  href: string,
-): { page: 'privacy' | 'terms' | 'subProcessors'; locale?: Locale } | undefined {
-  const match = /^(privacy-policy|terms|sub-processors)(?:\.(nl|en))?\.md$/.exec(href);
-  if (!match) return undefined;
-  const page = (
-    { 'privacy-policy': 'privacy', terms: 'terms', 'sub-processors': 'subProcessors' } as const
-  )[match[1] as 'privacy-policy' | 'terms' | 'sub-processors'];
-  const language = match[2];
+function pageOfFile(href: string): { page: LegalLinkPage; locale?: Locale } | undefined {
+  const match = /^([a-z-]+)(?:\.(nl|en))?\.md$/.exec(href);
+  const baseName = match?.[1];
+  if (!baseName || !Object.hasOwn(pageOfBaseName, baseName)) return undefined;
+  const language = match?.[2];
   return {
-    page,
+    page: pageOfBaseName[baseName as BaseName],
     ...(language ? { locale: language === 'en' ? ('en' as const) : ('nl-NL' as const) } : {}),
   };
 }

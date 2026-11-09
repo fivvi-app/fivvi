@@ -30,6 +30,14 @@ describe('F064 AC10 an unfinished legal text fails the build', () => {
     );
   });
 
+  it('refuses an open value that is not closed, such as {{Adres}', () => {
+    const text = `${clean}\nOur address is {{Adres} and more.\n`;
+
+    expect(() => checkLegalText(text, 'privacy-policy.en.md')).toThrow(
+      /privacy-policy\.en\.md.*\{\{/s,
+    );
+  });
+
   it.each([
     ['Dutch', '> **⚠️ GEEN JURIDISCH ADVIES.** Een jurist heeft dit niet gecontroleerd.'],
     ['English', '> **⚠️ NOT LEGAL ADVICE.** No lawyer has checked this.'],
