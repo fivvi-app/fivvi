@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { type Locale, locales, messages } from '@fivvi/i18n';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -67,16 +67,17 @@ function agreementRows(): string[][] {
 }
 
 describe('E006 the processor agreement names the same email sub-processor as the legal file', () => {
-  it('has one sub-processor table in Dutch and one in English, with the same services', () => {
-    const [nl, en] = agreementRows();
+  it('AC2: has one sub-processor table in Dutch and one in English, with the same services', () => {
+    const tables = agreementRows();
+    const [nl, en] = tables;
 
-    expect(agreementRows()).toHaveLength(2);
+    expect(tables).toHaveLength(2);
     expect(nl?.length).toBe(en?.length);
     const names = (rows?: string[]) => rows?.map((row) => row.split('|')[1]?.trim());
     expect(names(nl)).toEqual(names(en));
   });
 
-  it('lists Lettermint in both tables, as in the legal file', () => {
+  it('AC1: lists Lettermint in both tables, as in the legal file', () => {
     const legal = readFileSync(legalFile, 'utf8');
     const region =
       'EU: infrastructuur in Amsterdam (UpCloud) en Duitsland (OVH, versleutelde back-ups)';
@@ -90,8 +91,17 @@ describe('E006 the processor agreement names the same email sub-processor as the
     expect(en).toContain(`| Lettermint B.V. | Transactional email | ${regionEn} |`);
   });
 
-  it('no longer names Brevo or Sendinblue anywhere', () => {
+  it('AC3: no longer names Brevo or Sendinblue anywhere', () => {
     expect(readFileSync(agreementFile, 'utf8')).not.toMatch(/brevo|sendinblue/i);
+  });
+
+  it('AC3: only the dated records of the replacement still name Brevo in docs/legal', () => {
+    const legalDir = path.dirname(agreementFile);
+    const files = readdirSync(legalDir).filter((name) => name.endsWith('.md'));
+    const naming = files.filter((name) =>
+      /brevo|sendinblue/i.test(readFileSync(path.join(legalDir, name), 'utf8')),
+    );
+    expect(naming).toEqual(['open-questions.md', 'sub-processors.md']);
   });
 });
 

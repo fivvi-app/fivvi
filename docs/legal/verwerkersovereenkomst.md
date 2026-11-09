@@ -5,8 +5,8 @@
 
 | | |
 |---|---|
-| **Versie / Version** | 0.4 · 28 oktober 2026 / 28 October 2026 |
-| **Wijzigingen / Changes** | 0.4 (28 oktober 2026 / 28 October 2026): maatregel T12 / measure T12 volgt de nieuwe regels voor agents (ADR-023): kernregels en juridische zaken blijven bij de eigenaar, tooling en betaalcode (in de testmodus) en de overige wijzigingen worden gemerged zonder de eigenaar tot de livegang met echte persoonsgegevens, statusupdates altijd zonder de eigenaar / follows the new agent rules (ADR-023). 0.3 (24 oktober 2026 / 24 October 2026): T12 herschreven / reworded (ADR-021). |
+| **Versie / Version** | 0.5 · 9 november 2026 / 9 November 2026 |
+| **Wijzigingen / Changes** | 0.5 (9 november 2026 / 9 November 2026): Bijlage 3: Lettermint als e-mailsubverwerker (ADR-028) / Annex 3: Lettermint as the email sub-processor (ADR-028). 0.4 (28 oktober 2026 / 28 October 2026): maatregel T12 / measure T12 volgt de nieuwe regels voor agents (ADR-023): kernregels en juridische zaken blijven bij de eigenaar, tooling en betaalcode (in de testmodus) en de overige wijzigingen worden gemerged zonder de eigenaar tot de livegang met echte persoonsgegevens, statusupdates altijd zonder de eigenaar / follows the new agent rules (ADR-023). 0.3 (24 oktober 2026 / 24 October 2026): T12 herschreven / reworded (ADR-021). |
 | **Gebruik / Use** | Eerst met de pilotgym, vóór de import van echte gegevens (`ROADMAP.md §4.4`); later met elke workspace. / First with the pilot gym, before real data is imported; later with every workspace. |
 | **AVG / GDPR** | Art. 28(3)(a)–(h), 28(2), 28(4), 32–36 |
 
