@@ -228,7 +228,7 @@ One of **booked** (has a confirmed booking, not marked yet), **attended**, **can
 ### Commerce
 
 **Offer**:
-Something a workspace sells: a membership, a credit pack, a credit plan or a single class, with its price, VAT rate and terms.
+Something a workspace sells, of one of three kinds: a membership, a credit pack or a credit plan, with its price, VAT rate and terms. A single pass is a credit pack, not a fourth kind.
 _Avoid_: product, plan (alone; *credit plan* is a kind), package
 
 **Default plan**:
@@ -248,7 +248,7 @@ One unit of a group or private credit balance. One credit books one session of i
 _Avoid_: token, point, voucher; using it for a makeup
 
 **Credit pack**:
-An offer, and the agreement it makes, for a number of group or private credits bought once and valid for a period. It can be limited to once per client (an intro offer). The pilot's private training is a private credit plan, not a pack.
+An offer, and the agreement it makes, for a number of group or private credits bought once and valid for a period. It can be limited to once per client (an intro offer). A pack of one group credit is a **single pass** (below). The pilot's private training is a private credit plan, not a pack.
 _Avoid_: package, bundle, session pack (retired, see below)
 
 **Credit plan**:
@@ -258,9 +258,9 @@ _Avoid_: subscription (see *Recurring payment*), credit subscription
 **Session pack** (retired):
 Retired on 21 October 2026. Use *Credit pack*: a private session pack is a private credit pack.
 
-**Single class** (proposed, [decision 9](docs/product/ROADMAP.md#14-decisions)):
-One group class bought on its own, by a client without a membership or as an extra on top of one.
-_Avoid_: drop-in, top-up
+**Single pass**:
+A credit pack of one group credit, sold and bought like any credit pack, then booked with that credit (owner, 7 November 2026: clients just buy credits, even for a single pass). There is no separate single-class purchase at booking. A studio that wants to sell one makes a pack of 1 (owner-made offer, or a pack with that size).
+_Avoid_: single class (retired; F058 is superseded), drop-in, top-up
 
 **Credit balance**:
 What a client can still use under one agreement, in credits of one kind (group or private); a client with group and private credits sees two balances. Always explained by its history (granted, used, returned, expired), never a bare counter. A membership's makeups are tracked the same way but are not credits.
@@ -299,7 +299,7 @@ The business that sells to the client and receives the money. In Fivvi it is the
 _Avoid_: seller (alone), vendor
 
 **Payment**:
-Money collected from a client: a first payment, a recurring payment or a single class. A **Payment outside Fivvi** is recorded by the owner and collected by them.
+Money collected from a client: a first payment (a membership, a credit pack, including a single pass, or a credit plan) or a recurring payment. A **Payment outside Fivvi** is recorded by the owner and collected by them.
 _Avoid_: transaction (outside code), charge
 
 **Recurring payment**:
