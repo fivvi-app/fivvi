@@ -15,7 +15,7 @@ import {
 } from 'node:fs';
 import { createServer } from 'node:net';
 import { tmpdir } from 'node:os';
-import { basename, join } from 'node:path';
+import { basename, dirname, join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
 import { SOURCE_PATHS } from '../ios-mtimes.mjs';
@@ -668,6 +668,26 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     assert.match(key, /hashFiles\('apps\/ios\/.*Package\.resolved'\)/);
   });
 
+  it('E017 #500: the iOS cache key has the package graph in it, so a cache built for another one is never restored', () => {
+    // The first run of the shared-package layout restored a cache built with Sentry as a direct dependency of the app,
+    // and Xcode refused its precompiled Sentry module ("Sentry.framework/Headers/SentryEvent.h has been modified since
+    // the module file was built"): "a stale cache only costs build time" did not hold. A run saves a cache only when it
+    // passes, so the next run restored the same one. The graph is the manifests of every local package the project uses
+    // (the shared ones in apps/ios/Packages, the contract, design tokens and generated strings in packages/) and the
+    // project file.
+    const graph =
+      "hashFiles('apps/ios/Packages/**/Package.swift', 'packages/contract/swift/Package.swift', 'packages/design-tokens/FivviDesignTokens/Package.swift', 'packages/i18n/generated/ios/Package.swift', 'apps/ios/FivviPro.xcodeproj/project.pbxproj')";
+    const key = iosBuild.match(/^ +key: (ios-build-.+)$/m)?.[1] ?? '';
+    assert.ok(key.includes(`\${{ ${graph} }}`), 'the key has the package graph');
+    const restoreKeys = iosBuild
+      .match(/restore-keys: \|\n((?: +ios-build-.+\n)+)/)?.[1]
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean);
+    for (const restoreKey of restoreKeys)
+      assert.ok(restoreKey.includes(`\${{ ${graph} }}`), `${restoreKey} has the package graph`);
+  });
+
   it('#293 AC15: the iOS cache key is new on every run, so each run saves what it built, and restores the latest one', () => {
     // An exact hit is never saved again: with a key that only changes with Package.resolved the cache would be frozen at
     // the first run's DerivedData and the second run of a PR could not get incremental.
@@ -681,9 +701,10 @@ describe('E002 #91 the native jobs in ci.yml', () => {
       .filter(Boolean);
     // biome-ignore lint/suspicious/noTemplateCurlyInString: a GitHub Actions expression, not a template
     const prefix = '${{ runner.os }}-${{ steps.xcode.outputs.version }}-';
+    const graph = `\${{ hashFiles('apps/ios/Packages/**/Package.swift', 'packages/contract/swift/Package.swift', 'packages/design-tokens/FivviDesignTokens/Package.swift', 'packages/i18n/generated/ios/Package.swift', 'apps/ios/FivviPro.xcodeproj/project.pbxproj') }}-`;
     assert.deepEqual(restoreKeys, [
-      `ios-build-${prefix}\${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-`,
-      `ios-build-${prefix}`,
+      `ios-build-${prefix}${graph}\${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-`,
+      `ios-build-${prefix}${graph}`,
     ]);
     assert.ok(key.startsWith(restoreKeys[0]), 'the key starts with the first restore key');
   });
@@ -742,16 +763,41 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     assert.match(iosBuild, /if: failure\(\)[\s\S]*apps\/ios\/\.build\/build-for-testing\.log/);
   });
 
-  it('E002 #305: the iOS test job leaves room above a healthy run, and the chain stays under the merge queue timeout', () => {
+  it('E002 #305 #393: the iOS timeouts fit the measured jobs, the deadline sits inside the tests job, and the chain stays under the merge queue timeout', () => {
     const minutes = (section) => Number(section.match(/^ {4}timeout-minutes: (\d+)$/m)[1]);
     const queue = Number(
       readFileSync(join(SCRIPTS, '../.github/rulesets/main.json'), 'utf8').match(
         /"check_response_timeout_minutes": (\d+)/,
       )[1],
     );
-    assert.ok(minutes(iosTests) >= 22, 'a healthy run takes up to 16 minutes, with the settle');
-    // Detect changes (5) + build + tests + the report job (2) must end before the queue gives up on the check.
-    assert.ok(5 + minutes(iosBuild) + minutes(iosTests) + 2 < queue, 'under the queue timeout');
+    const script = readFileSync(join(SCRIPTS, 'test-ios.sh'), 'utf8');
+    const deadline = Number(script.match(/^TEST_DEADLINE=\$\{IOS_TEST_DEADLINE:-(\d+)\}$/m)[1]);
+    const grace = Number(
+      script.match(/^TEST_DEADLINE_GRACE=\$\{IOS_TEST_DEADLINE_GRACE:-(\d+)\}$/m)[1],
+    );
+    // Measured on the 10 last green runs that ran iOS (#393): the longest "iOS build" took 322 s; outside the deadline a
+    // tests job spent at most 245 s on the simulator boot and settle, 33 s on its other steps, and 15 s uploading the
+    // results of a failed run; after the grace of a run that hit the deadline, the reports and the cleanup took 17 s more
+    // (job 125842050556: the deadline error at 10:08:53, the step over at 10:10:10, 77 s = 60 s grace + 17 s).
+    const longestBuild = 322;
+    const longestOverhead = 245 + 33 + 15 + 17;
+    assert.ok(deadline >= 1300, 'the deadline is at least 1300 s (#393)');
+    assert.ok(
+      minutes(iosBuild) * 60 >= 2 * longestBuild,
+      'the build timeout is at least twice the longest build',
+    );
+    assert.ok(
+      minutes(iosTests) * 60 >= deadline + grace + longestOverhead + 120,
+      'the tests timeout holds the deadline, the grace, the overhead outside the deadline and 2 minutes',
+    );
+    // Detect changes (5) + build + tests + the gate job (2) must end before the queue gives up on the check.
+    const chain = 5 + minutes(iosBuild) + minutes(iosTests) + minutes(job('ios'));
+    assert.ok(chain <= 57, 'the chain is at most 57 minutes');
+    assert.ok(chain < queue, 'under the queue timeout');
+    // pr.sh wait must outlast the chain, or it gives up on a run that still passes.
+    const pr = readFileSync(join(SCRIPTS, 'pr.sh'), 'utf8');
+    const waitNative = Number(pr.match(/^WAIT_MINUTES_NATIVE=(\d+)$/m)[1]);
+    assert.ok(waitNative > chain, 'pr.sh wait outlasts the longest native chain by timeouts');
   });
 
   it('E002 #242: the iOS jobs run on macos-15 with an Xcode that image has, and say why in a comment', () => {
@@ -788,6 +834,66 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     assert.doesNotMatch(androidTests, /maestro\.sh|test:maestro/);
     // The tests job does not wait for the build: it runs next to it and builds what it tests.
     assert.match(androidTests, /needs: changes\n/);
+  });
+
+  it('E008 #519: the Maestro step holds both locales of the suite with margin, the job still bounds a hung run, and the chain stays under the merge queue timeout', () => {
+    const minutes = (section) => Number(section.match(/^ {4}timeout-minutes: (\d+)$/m)[1]);
+    const stepMinutes = (section, name) =>
+      Number(
+        section.match(
+          new RegExp(`- name: ${name.replace(/[()]/g, '\\$&')}\\n +timeout-minutes: (\\d+)\n`),
+        )[1],
+      );
+    const queue = Number(
+      readFileSync(join(SCRIPTS, '../.github/rulesets/main.json'), 'utf8').match(
+        /"check_response_timeout_minutes": (\d+)/,
+      )[1],
+    );
+    const maestroStep = 'Maestro flows (sign-in, anonymous and hello; nl-NL and en)';
+    const maestroStepMinutes = stepMinutes(androidMaestro, maestroStep);
+    // Run 41938461253 (PR #518, 10 flows): nl-NL 8m30s and en 8m34s of flows, 1 to 2 minutes of setup per locale, so about
+    // 20 minutes and 11 s over the 20-minute cap; on main 18, 14 and 16 minutes. The step needs at least 1.5 x 20 minutes.
+    const slowestRun = 20;
+    assert.ok(
+      maestroStepMinutes >= 1.5 * slowestRun,
+      'the Maestro step has at least 1.5 x the slowest recent run',
+    );
+    // The job holds its steps before the Maestro step (measured 3 minutes; the emulator boot alone is capped at 10), the
+    // Maestro step and the steps after it (under a minute), and stays above the step so a hung run is still bounded by
+    // the job, not by the queue.
+    assert.ok(
+      minutes(androidMaestro) >= maestroStepMinutes + 10,
+      'the job holds the step plus the setup before it and the reports after it',
+    );
+    assert.ok(minutes(androidMaestro) <= 40, 'the job still bounds a hung run');
+    // A run that nears the cap says so: the step durations step warns above two thirds of the step's own budget, and the
+    // budget it is given is the step's timeout.
+    assert.match(
+      androidMaestro,
+      new RegExp(
+        `run: scripts/step-timings\\.sh "${maestroStep.replace(/[()]/g, '\\$&')}=${maestroStepMinutes}"\n`,
+      ),
+    );
+    // Android build took 0.8 to 4.6 minutes in the last 46 runs (run 41674310293 the slowest);
+    // the job and its build step keep at least twice that, and the step fits in its job.
+    const slowestBuild = 4.6;
+    const buildStepMinutes = stepMinutes(androidBuild, 'ktlint, checks and debug build');
+    assert.ok(
+      minutes(androidBuild) >= 2 * slowestBuild,
+      'Android build keeps 2 x its slowest measured 4.6 minutes',
+    );
+    assert.ok(
+      buildStepMinutes >= 2 * slowestBuild,
+      'the build step keeps 2 x its slowest measured 4.6 minutes',
+    );
+    assert.ok(buildStepMinutes <= minutes(androidBuild), 'the build step fits in its job');
+    // Detect changes (5) + build + Maestro + the gate job (2) must end before the queue gives up on the check, and
+    // pr.sh wait must outlast it, or it gives up on a run that still passes.
+    const chain = 5 + minutes(androidBuild) + minutes(androidMaestro) + minutes(job('android'));
+    assert.ok(chain < queue, 'Android chain is under the queue timeout');
+    const pr = readFileSync(join(SCRIPTS, 'pr.sh'), 'utf8');
+    const waitNative = Number(pr.match(/^WAIT_MINUTES_NATIVE=(\d+)$/m)[1]);
+    assert.ok(waitNative > chain, 'pr.sh wait outlasts the Android chain by timeouts');
   });
 
   it('#293: the debug app and the Maestro web server agree on the port the app has baked in', () => {
@@ -847,8 +953,22 @@ describe('E002 #91 the native jobs in ci.yml', () => {
         section.includes(`if: always() && needs.changes.outputs.${native} == 'true'`),
         `${gate} runs after its parts, also when one failed`,
       );
-      assert.match(section, /RESULTS: \$\{\{ join\(needs\.\*\.result, ' '\) \}\}/);
-      assert.match(section, new RegExp(`run: scripts/native-gate\\.sh ${name} true \\$RESULTS\n`));
+      if (native === 'android') {
+        assert.match(section, /RESULTS: \$\{\{ join\(needs\.\*\.result, ' '\) \}\}/);
+        assert.match(
+          section,
+          new RegExp(`run: scripts/native-gate\\.sh ${name} true \\$RESULTS\n`),
+        );
+      } else {
+        // iOS (#413): scripts/ios-parts.sh turns a cancelled part that no runner picked up into "unacquired" and passes
+        // the other results on; the gate reads the run's jobs, so it needs actions: read, and it works without them.
+        assert.match(section, /^ {6}actions: read/m);
+        assert.match(section, /BUILD: \$\{\{ needs\.ios-build\.result \}\}/);
+        assert.match(section, /TESTS: \$\{\{ needs\.ios-tests\.result \}\}/);
+        assert.match(section, /GH_TOKEN: \$\{\{ github\.token \}\}/);
+        assert.match(section, /scripts\/ios-parts\.sh "\$BUILD" "\$TESTS"/);
+        assert.match(section, /scripts\/native-gate\.sh iOS true "\$\{PARTS\[@\]\}"/);
+      }
     }
   });
 
@@ -1011,18 +1131,28 @@ describe('android.sh setup', () => {
     for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
   });
 
-  const fakeSdk = ({ cmdlineTools = true, emulatorFindsAvds = true } = {}) => {
+  const fakeSdk = ({ cmdlineTools = true, emulatorFindsAvds = true, sdkName = 'sdk' } = {}) => {
     const base = realpathSync(mkdtempSync(join(tmpdir(), 'android-setup-')));
     dirs.push(base);
     const home = join(base, 'home');
-    const sdk = join(base, 'sdk');
+    const sdk = join(base, sdkName);
     const log = join(base, 'sdkmanager.log');
     const avdmanager = `dir="\${ANDROID_AVD_HOME:-$HOME/.android/avd}"
 while [ $# -gt 0 ]; do [ "$1" = --name ] && name="$2"; shift; done
 mkdir -p "$dir/$name.avd" && touch "$dir/$name.ini"
 printf "%s\\n" "disk.dataPartition.path=<temp>" "disk.dataPartition.size=6G" "hw.cpu.ncore=4" >"$dir/$name.avd/config.ini"`;
+    // FAKE_SDK_FAIL_ATTEMPTS=n: the first n installs leave the system image missing (a corrupt download: a half-unpacked
+    // download in .temp and .downloadIntermediates, a warning, exit status 0); FAKE_SDK_FAIL_EXIT=1 makes them exit
+    // non-zero as well. FAKE_SDK_ALWAYS_FAIL=1: every call exits 1 at once, installing nothing (offline).
     const sdkmanager = `echo "$*" >>"${log}"
+[ -z "\${FAKE_SDK_ALWAYS_FAIL:-}" ] || { echo "Error: could not fetch the repository" >&2; exit 1; }
 for arg; do case "$arg" in --sdk_root=*) root="\${arg#--sdk_root=}" ;; esac; done
+attempt=$(grep -c "system-images;" "${log}")
+for arg; do case "$arg" in --*) ;; *)
+  dir="$root/$(printf %s "$arg" | tr ';' /)"
+  case "$arg" in system-images*) [ "$attempt" -le "\${FAKE_SDK_FAIL_ATTEMPTS:-0}" ] && { mkdir -p "$root/.temp/PackageOperation01" "$root/.downloadIntermediates"; touch "$root/.temp/PackageOperation01/partial.zip" "$root/.downloadIntermediates/partial2.zip"; echo "Warning: An error occurred while preparing SDK package $arg: Error on ZipFile unknown archive." >&2; [ -z "\${FAKE_SDK_FAIL_EXIT:-}" ] || exit 1; continue; } ;; esac
+  mkdir -p "$dir" ;;
+esac; done
 case " $* " in *" cmdline-tools;latest "*)
   mkdir -p "$root/cmdline-tools/latest/bin" && printf '%s\\n' '#!/usr/bin/env bash' '${avdmanager.replaceAll("'", "'\\''")}' >"$root/cmdline-tools/latest/bin/avdmanager"
   chmod +x "$root/cmdline-tools/latest/bin/avdmanager" ;;
@@ -1055,11 +1185,14 @@ exit 0`
       ANDROID_HOME: sdk,
       JAVA_HOME: join(base, 'jdk'),
     };
-    const setup = () =>
-      spawnSync(join(SCRIPTS, 'android.sh'), ['setup'], { encoding: 'utf8', env });
+    const setup = (extraEnv = {}) =>
+      spawnSync(join(SCRIPTS, 'android.sh'), ['setup'], {
+        encoding: 'utf8',
+        env: { ...env, SDK_INSTALL_RETRY_DELAY: '0', ...extraEnv },
+      });
     const installed = () => readFileSync(log, 'utf8');
     const config = join(home, '.android/avd/fivvi.avd/config.ini');
-    return { env, setup, installed, config };
+    return { env, setup, installed, config, sdk };
   };
 
   it('creates an AVD that the emulator finds in later steps, also with XDG_CONFIG_HOME set', () => {
@@ -1129,6 +1262,85 @@ exit 0`
     assert.doesNotMatch(installed(), /system-images|emulator/);
     assert.doesNotMatch(result.stdout, /Maestro|emulator '/);
     assert.equal(spawnSync(join(SCRIPTS, 'android.sh'), ['setup', '--nope'], { env }).status, 1);
+  });
+
+  // #515: a corrupt system-image download on a hosted runner left the image missing and failed the job.
+  const imageRuns = (installed) =>
+    installed()
+      .split('\n')
+      .filter((line) => line.includes('system-images;')).length;
+
+  it('#515: installs once when nothing is missing afterwards', () => {
+    const { setup, installed } = fakeSdk();
+    const result = setup();
+
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(imageRuns(installed), 1);
+  });
+
+  it('#515: retries the install when a package is missing after it, and succeeds when a later attempt works', () => {
+    const { setup, installed, sdk } = fakeSdk();
+    const result = setup({ FAKE_SDK_FAIL_ATTEMPTS: '1' });
+
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(imageRuns(installed), 2);
+    const image = spawnSync(
+      'find',
+      [join(sdk, 'system-images'), '-type', 'd', '-name', 'google_apis'],
+      {
+        encoding: 'utf8',
+      },
+    );
+    assert.match(image.stdout, /google_apis/);
+  });
+
+  it('#515: clears the partial downloads (.temp and .downloadIntermediates) before it tries again', () => {
+    const { setup, sdk } = fakeSdk();
+    const result = setup({ FAKE_SDK_FAIL_ATTEMPTS: '1' });
+
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    const partials = spawnSync('find', [sdk, '-name', 'partial*.zip'], { encoding: 'utf8' });
+    assert.equal(partials.stdout, '');
+  });
+
+  // A laptop's sdkmanager can fail with every package installed (offline, repository fetch): nothing installed goes.
+  for (const sdkName of ['sdk', 'my sdk']) {
+    it(`#515: keeps the installed packages when sdkmanager keeps failing (SDK folder "${sdkName}")`, () => {
+      const { setup, sdk } = fakeSdk({ sdkName });
+      assert.equal(setup().status, 0);
+      const keep = join(sdk, 'platform-tools', 'adb-marker');
+      const folders = ['platform-tools', 'cmdline-tools/latest'].map((dir) => join(sdk, dir));
+      writeFileSync(keep, 'installed');
+
+      const result = setup({ FAKE_SDK_ALWAYS_FAIL: '1' });
+
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /Android SDK packages:/);
+      for (const folder of folders) assert.ok(existsSync(folder), `${folder} was removed`);
+      assert.equal(readFileSync(keep, 'utf8'), 'installed');
+      assert.ok(
+        existsSync(join(sdk, 'system-images')),
+        'the installed system image folder was removed',
+      );
+    });
+  }
+
+  it('#515: retries when sdkmanager also exits non-zero', () => {
+    const { setup, installed } = fakeSdk();
+    const result = setup({ FAKE_SDK_FAIL_ATTEMPTS: '1', FAKE_SDK_FAIL_EXIT: '1' });
+
+    assert.equal(result.status, 0, result.stdout + result.stderr);
+    assert.equal(imageRuns(installed), 2);
+  });
+
+  it('#515: fails naming the package after a bounded number of attempts', () => {
+    const { setup, installed } = fakeSdk();
+    const result = setup({ FAKE_SDK_FAIL_ATTEMPTS: '99' });
+
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /Android toolchain incomplete; missing:/);
+    assert.match(result.stdout, /system-images;android-\d+(\.\d+)?;google_apis;\w+/);
+    assert.equal(imageRuns(installed), 3);
   });
 
   it('installs cmdline-tools only when the SDK has none', () => {
@@ -1637,12 +1849,23 @@ setInterval(() => {}, 1000);\n`,
     const swiftlint = readFileSync(join(SCRIPTS, '_ios.sh'), 'utf8').match(
       /^SWIFTLINT_VERSION=(\S+)/m,
     )[1];
-    // SwiftLint flags exactly the fixture lines marked `// expect: <rule>`, as the real rules must.
+    // The folders of the shared package that the lint probe of test-ios.sh (E017 #500) drops its files into.
+    for (const target of ['FivviUI', 'FivviObservability']) {
+      const folder = join(repo, 'apps/ios/Packages/FivviShared/Sources', target);
+      mkdirSync(folder, { recursive: true });
+      writeFileSync(join(folder, '.gitkeep'), ''); // git keeps no empty folder, and a worktree is made from a commit
+    }
+    // SwiftLint flags exactly the fixture lines marked `// expect: <rule>`, as the real rules must: in the files it is
+    // given, or, given none, in the files of the configuration's `included:` that the probe uses (Packages).
     script(
       join(repo, `apps/ios/.build/swiftlint-${swiftlint}/swiftlint`),
-      `for arg; do case "$arg" in *.swift)
-  grep -n '// expect: [a-z_]*$' "$arg" | while IFS=: read -r line text; do echo "$arg:$line:1: error: (\${text##*expect: })"; done
-  exit 2 ;; esac; done`,
+      `files=""
+for arg; do case "$arg" in *.swift) files="$files $arg" ;; esac; done
+[ -n "$files" ] || files="$(find Packages -name '*.swift')"
+for file in $files; do
+  grep -n '// expect: [a-z_]*$' "$file" | while IFS=: read -r line text; do echo "$file:$line:1: error: (\${text##*expect: })"; done
+done
+[ -z "$files" ] || exit 2`,
     );
     script(
       join(repo, 'apps/android/gradlew'),
@@ -1735,7 +1958,12 @@ exit 0`,
 if [ "$FAKE_PLIST_FORM" = other ]; then sed 1d "\${@: -1}"; else cat "\${@: -1}"; fi`,
     );
     script(join(bin, 'java'), 'echo "openjdk version \\"21\\"" >&2');
-    for (const tool of ['sleep', 'docker']) script(join(bin, tool), 'exit 0');
+    script(join(bin, 'docker'), 'exit 0');
+    // No real waiting; a sleep of exactly 7 s (SETTINGS_WRITE_WAIT in the #584 tests) is logged, to see where the run waits.
+    script(
+      join(bin, 'sleep'),
+      `[ "$*" != 7 ] || echo "settings-write-wait" >>"${state}/calls.log"`,
+    );
     // FAKE_CLEAR (maestro.sh's db:reset-rate-limits): fail-after-first fails every clear but the first, flaky only the second.
     script(
       join(bin, 'pnpm'),
@@ -1858,6 +2086,18 @@ case "$*" in
     esac
     echo "restarting adbd as root" ;;
   "reconnect offline") [ "$FAKE_ADB_RECONNECT" = useless ] || echo 0 >"${state}/offline-left" ;;
+  # FAKE_EMULATOR_LOST=died|hung (#584) with FAKE_EMULATOR_LOST_SWITCHES="<n> ...": the framework restart of the n-th language
+  # switch (counted over the whole run) takes the emulator with it: died, the process exits and adb sees no device; hung,
+  # the process keeps running but never boots again. Either way adb has no device until a new emulator is launched.
+  "shell setprop persist.sys.locale"*)
+    n=$(( $(cat "${state}/switches" 2>/dev/null || echo 0) + 1 )); echo "$n" >"${state}/switches"
+    echo "adb-switch $n" >>"${state}/calls.log"
+    for lost in $FAKE_EMULATOR_LOST_SWITCHES; do
+      [ "$lost" = "$n" ] || continue
+      rm -f "${state}/booted"
+      [ "$FAKE_EMULATOR_LOST" != died ] || kill "$(cat "${state}/pid")"
+    done
+    [ -z "$FAKE_ADB_OFFLINE" ] || echo "$FAKE_ADB_OFFLINE" >"${state}/offline-left" ;;
   "shell setprop"*) [ -z "$FAKE_ADB_OFFLINE" ] || echo "$FAKE_ADB_OFFLINE" >"${state}/offline-left" ;;
   "shell pm path android") echo package:/system/framework/framework-res.apk ;;
   "shell getprop sys.boot_completed") [ -e "${state}/booted" ] && echo 1 || exit 1 ;;
@@ -1865,7 +2105,8 @@ case "$*" in
   "shell settings get global hide_error_dialogs") echo null ;;
   # As the real one: "OK" at once, and the emulator exits a moment later (0.3 s here), not before the command returns.
   # FAKE_STOP=hang (#373): the emulator ignores it and keeps running.
-  "emu kill") [ "$FAKE_STOP" = hang ] || (/bin/sleep 0.3; rm -f "${state}/booted"; kill "$(cat "${state}/pid")") </dev/null >/dev/null 2>&1 & ;;
+  # Without a device it does nothing, as the real one (error: no devices/emulators found).
+  "emu kill") [ "$FAKE_STOP" = hang ] || ! [ -e "${state}/booted" ] || (/bin/sleep 0.3; rm -f "${state}/booted"; kill "$(cat "${state}/pid")") </dev/null >/dev/null 2>&1 & ;;
 esac
 exit 0`,
     );
@@ -1874,7 +2115,9 @@ exit 0`,
       `case "$1" in
   -list-avds) echo fivvi ;;
   -accel-check) ;;
-  *) echo $$ >"${state}/pid"; touch "${state}/booted"; exec /bin/sleep 60 ;;
+  *) echo "$*" >>"${state}/emulator.log"; echo $$ >"${state}/pid";
+     # FAKE_STALE_PID (#584): whether that process, an emulator of another start, is gone by the time this one launches.
+     [ -z "$FAKE_STALE_PID" ] || { kill -0 "$FAKE_STALE_PID" 2>/dev/null && echo alive || echo gone; } >>"${state}/stale.log"; touch "${state}/booted"; exec /bin/sleep 60 ;;
 esac`,
     );
     mkdirSync(join(base, 'jdk'));
@@ -3756,6 +3999,236 @@ esac`,
     });
   });
 
+  // #584: CI run 42015816516: after the nl-NL flows the framework restart of the switch to en took the emulator with it (no
+  // device for 300 s, no emulator process left), and the run failed before any en flow. The switch now relaunches the emulator
+  // once, cold, sets it up again and repeats the switch.
+  describe('#584: the emulator does not come back from the framework restart of a language switch', () => {
+    const calls = (fake) => fake.log('calls');
+    const flows = (fake) =>
+      calls(fake)
+        .filter(isFlow)
+        .map((call) => call.match(/android-(\S+)\.xml/)[1]);
+    const launches = (fake) => fake.log('emulator');
+    const lost = (mode, switches) => ({
+      FAKE_EMULATOR_LOST: mode,
+      FAKE_EMULATOR_LOST_SWITCHES: switches,
+      LOCALE_BOOT_TIMEOUT: '4',
+      STALE_EMULATOR_WAIT: '1',
+      DEVICE_STABLE_PROBES: '2',
+    });
+
+    for (const mode of ['died', 'hung']) {
+      it(`relaunches the emulator once, cold, and runs both locales when it ${mode} at the switch to en`, async () => {
+        const fake = checkout();
+
+        const run = await fake.run('scripts/maestro.sh', ['android'], lost(mode, '2'));
+
+        assert.equal(run.status, 0, run.output);
+        assert.match(
+          run.output,
+          /the emulator did not come back after the language switch; relaunching it once, cold/,
+        );
+        assert.equal(run.output.match(/relaunching it once/g).length, 1, run.output);
+        assert.equal(launches(fake).length, 2, launches(fake).join('\n'));
+        assert.match(launches(fake)[1], /(^| )-no-snapshot( |$)/, 'a cold boot');
+        // Each flow run once: nl-NL on the first emulator, en on the relaunched one, after the switch was repeated.
+        assert.deepEqual(flows(fake), ['nl-NL', 'en']);
+        const steps = calls(fake)
+          .filter((call) => /^adb-(switch|root) /.test(call) || isFlow(call))
+          .map((call) => (isFlow(call) ? `flow ${call.match(/android-(\S+)\.xml/)[1]}` : call));
+        assert.deepEqual(steps, [
+          'adb-root 1',
+          'adb-switch 1',
+          'flow nl-NL',
+          'adb-switch 2',
+          'adb-root 2',
+          'adb-switch 3',
+          'flow en',
+        ]);
+        const { pid, booted } = fake.emulator();
+        assert.ok(!booted && !running(pid), 'the relaunched emulator is stopped at the end');
+        assert.ok(fake.log('adb').filter((call) => call === 'emu kill').length >= 1);
+      });
+    }
+
+    it('also recovers an emulator that another process started (CI boots it in a step of its own)', async () => {
+      const fake = checkout({ emulatorRunning: true });
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], lost('hung', '2'));
+
+      assert.equal(run.status, 0, run.output);
+      assert.equal(launches(fake).length, 1, 'only the relaunch started an emulator');
+      assert.deepEqual(flows(fake), ['nl-NL', 'en']);
+      const { pid, booted } = fake.emulator();
+      assert.ok(!booted && !running(pid), 'the relaunched emulator is stopped at the end');
+    });
+
+    it('ends the hung emulator of another process through its pid file before it relaunches, and removes the file', async () => {
+      const fake = checkout({ emulatorRunning: true });
+      const pidFile = join(dirname(fake.repo), 'other-emulator.pid');
+      // What `android.sh emulator` leaves: a process of its own whose pid is in the pid file. It is named as an emulator.
+      const other = spawn('/bin/bash', ['-c', 'exec -a emulator-other /bin/sleep 60'], {
+        detached: true,
+        stdio: 'ignore',
+      });
+      other.unref();
+      pids.push(other.pid);
+      writeFileSync(pidFile, `${other.pid}\n`);
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        ...lost('hung', '2'),
+        EMULATOR_PID_FILE: pidFile,
+        FAKE_STALE_PID: String(other.pid),
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.ok(!running(other.pid), 'the hung emulator is gone');
+      assert.deepEqual(fake.log('stale'), ['gone'], 'it was gone before the relaunch started');
+      assert.deepEqual(flows(fake), ['nl-NL', 'en']);
+    });
+
+    it('leaves a process alone that a stale pid file names when it is not an emulator', async () => {
+      const fake = checkout({ emulatorRunning: true });
+      const pidFile = join(dirname(fake.repo), 'other-emulator.pid');
+      const bystander = spawn('/bin/sleep', ['60'], { detached: true, stdio: 'ignore' });
+      bystander.unref();
+      pids.push(bystander.pid);
+      writeFileSync(pidFile, `${bystander.pid}\n`);
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        ...lost('hung', '2'),
+        EMULATOR_PID_FILE: pidFile,
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.ok(running(bystander.pid), 'a pid that was reused is not killed');
+      assert.deepEqual(flows(fake), ['nl-NL', 'en']);
+    });
+
+    it('restores the language and the error dialog setting on the relaunched emulator it did not boot first, waits for the settings write, then stops it', async () => {
+      const fake = checkout({ emulatorRunning: true });
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        ...lost('hung', '2'),
+        SETTINGS_WRITE_WAIT: '7',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      const all = calls(fake);
+      const lastFlow = all.findLastIndex(isFlow);
+      const ownLanguage = all.findIndex((call) =>
+        call.includes('setprop persist.sys.locale en-US;'),
+      );
+      const restored = all.lastIndexOf('adb shell settings delete global hide_error_dialogs');
+      const stopped = all.lastIndexOf('adb emu kill');
+      const waited = all.lastIndexOf('settings-write-wait');
+      assert.ok(
+        lastFlow >= 0 && ownLanguage > lastFlow && restored > ownLanguage && stopped > restored,
+        `language and setting back on the relaunched emulator, then it is stopped:\n${all.join('\n')}`,
+      );
+      assert.ok(
+        waited > restored && waited < stopped,
+        `the emulator is not stopped before Android has written the setting:\n${all.join('\n')}`,
+      );
+      assert.equal(launches(fake).length, 1);
+    });
+
+    it('restores nothing, and waits for nothing, on a device that is gone after the relaunch failed', async () => {
+      const fake = checkout({ emulatorRunning: true });
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        ...lost('died', '2 3'),
+        SETTINGS_WRITE_WAIT: '7',
+        DEVICE_READY_TIMEOUT: '3',
+      });
+
+      assert.notEqual(run.status, 0, run.output);
+      const all = calls(fake);
+      const lastFlow = all.findLastIndex(isFlow);
+      assert.ok(
+        !all.slice(lastFlow).some((call) => call.includes('setprop persist.sys.locale en-US;')),
+        `no language restore on a gone device:\n${all.join('\n')}`,
+      );
+      assert.ok(!all.some((call) => call.startsWith('adb shell settings delete')));
+      assert.ok(!all.includes('settings-write-wait'));
+      const { pid, booted } = fake.emulator();
+      assert.ok(!booted && !running(pid), 'the relaunched emulator is stopped at the end');
+    });
+
+    it('does not restore anything on a relaunched emulator the script booted itself', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        ...lost('died', '2'),
+        SETTINGS_WRITE_WAIT: '7',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.ok(!calls(fake).some((call) => call.startsWith('adb shell settings delete')));
+      assert.ok(!calls(fake).some((call) => call.includes('setprop persist.sys.locale en-US;')));
+      assert.ok(!calls(fake).includes('settings-write-wait'));
+    });
+
+    it('recovers at the switch to nl-NL, before the first flow, as well', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], lost('died', '1'));
+
+      assert.equal(run.status, 0, run.output);
+      assert.equal(launches(fake).length, 2);
+      assert.deepEqual(flows(fake), ['nl-NL', 'en']);
+    });
+
+    it('installs the APK again on the relaunched emulator, with the error dialogs hidden', async () => {
+      const fake = checkout();
+      const apk = join(fake.repo, 'app-debug.apk');
+      writeFileSync(apk, 'apk');
+
+      const run = await fake.run(
+        'scripts/maestro.sh',
+        ['android', '--apk', apk],
+        lost('died', '2'),
+      );
+
+      assert.equal(run.status, 0, run.output);
+      assert.deepEqual(
+        calls(fake).filter((call) => call.startsWith('adb install ')),
+        [`adb install -r -t ${apk}`, `adb install -r -t ${apk}`],
+      );
+      assert.equal(
+        calls(fake).filter((call) => call === 'adb shell settings put global hide_error_dialogs 1')
+          .length,
+        2,
+      );
+    });
+
+    it('relaunches only once: a second loss fails the run, with no flow of the second locale', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], lost('died', '2 3'));
+
+      assert.notEqual(run.status, 0, run.output);
+      assert.match(
+        run.output,
+        /the emulator did not come back after the language switch to en, even after it was relaunched/,
+      );
+      assert.equal(launches(fake).length, 2, 'one relaunch, no more');
+      assert.deepEqual(flows(fake), ['nl-NL']);
+      const { pid, booted } = fake.emulator();
+      assert.ok(!booted && !running(pid), 'the relaunched emulator is stopped at the end');
+    });
+
+    it('does not relaunch when the emulator comes back from the switch', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], lost('died', ''));
+
+      assert.equal(run.status, 0, run.output);
+      assert.doesNotMatch(run.output, /relaunching/);
+      assert.equal(launches(fake).length, 1);
+    });
+  });
+
   it('AC4: KEEP_DEVICE=1 leaves the emulator and the Gradle daemons pnpm test:android started running', async () => {
     const fake = checkout();
 
@@ -5054,5 +5527,37 @@ describe('wt.sh done', () => {
     assert.equal(git(repo, 'ls-remote', '--heads', 'origin', 'feature/57-hold'), '');
     assert.deepEqual(simulators(), ['SHARED']);
     assert.match(result.stdout, /deleted simulator 'Fivvi feature-57-hold'/);
+  });
+});
+
+describe('#413 the iOS gate says when no hosted runner picked a part up, and has no fallback runner', () => {
+  const ci = readFileSync(join(SCRIPTS, '../.github/workflows/ci.yml'), 'utf8');
+  const workflow = readFileSync(join(SCRIPTS, '../docs/engineering/WORKFLOW.md'), 'utf8');
+
+  it('has no fallback job, no workflow_dispatch input to force one, and no runner pool other than macos-15', () => {
+    const code = ci.replace(/^ *#.*$/gm, ''); // the comments say why the retry was dropped
+    assert.doesNotMatch(code, /macos-15-intel|ios_retry|ios-retry/);
+    assert.doesNotMatch(code, /^ {2}workflow_dispatch:\n +inputs:/m);
+    assert.deepEqual(
+      [...code.matchAll(/runs-on: (macos-[\w-]+)/g)].map((m) => m[1]),
+      ['macos-15', 'macos-15'],
+    );
+  });
+
+  it('keeps the job set of the iOS parts: a build and a matrix of tests, with their names', () => {
+    assert.match(ci, /^ {2}ios-build:\n {4}name: iOS build$/m);
+    assert.match(ci, /^ {2}ios-tests:\n {4}name: iOS tests \(\$\{\{ matrix\.locale \}\}\)$/m);
+    assert.doesNotMatch(ci, /^ {2}ios-(tests-|parts)/m);
+  });
+
+  it('describes the no-runner message and re-queuing in ci.yml and WORKFLOW.md', () => {
+    for (const [file, text] of [
+      ['ci.yml', ci],
+      ['WORKFLOW.md', workflow],
+    ]) {
+      assert.match(text, /no hosted runner picked/i, file);
+      assert.match(text, /re-queu/i, file);
+      assert.match(text, /#413/, file);
+    }
   });
 });

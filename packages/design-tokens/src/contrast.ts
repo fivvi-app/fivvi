@@ -1,5 +1,6 @@
 import { resolveTokens } from './build.ts';
-import { type ContrastPair, type Mode, minimumRatio, modes, type TokenSource } from './source.ts';
+import { parseHex } from './colour.ts';
+import { type ContrastPair, type Mode, minimumFor, modes, type TokenSource } from './source.ts';
 
 export interface ContrastResult {
   pair: ContrastPair;
@@ -10,12 +11,9 @@ export interface ContrastResult {
 }
 
 function relativeLuminance(colour: string): number {
-  const channels = colour.match(/^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i)?.slice(1);
-  if (!channels) throw new Error(`${colour} is not an opaque #rrggbb colour`);
-  const [r = 0, g = 0, b = 0] = channels.map((hex) => {
-    const c = Number.parseInt(hex, 16) / 255;
-    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  });
+  const [r = 0, g = 0, b = 0] = parseHex(colour).map((c) =>
+    c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4,
+  );
   return 0.2126 * r + 0.7152 * g + 0.0722 * b;
 }
 
@@ -38,7 +36,7 @@ export async function contrastResults(source: TokenSource): Promise<ContrastResu
         return token.value;
       };
       const ratio = contrastRatio(value(pair.fg), value(pair.bg));
-      const minimum = minimumRatio[pair.kind];
+      const minimum = minimumFor(pair.kind, mode);
       return { pair, mode, ratio, minimum, passes: ratio >= minimum };
     }),
   );

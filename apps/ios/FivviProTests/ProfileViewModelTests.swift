@@ -2,6 +2,8 @@ import FivviAPI
 import XCTest
 
 @testable import FivviPro
+@testable import FivviStrings
+@testable import FivviLanguage
 
 /// *Profiel* (TM-04): the workspaces the person is on the team of, with their role, from `GET /api/v1/me/workspaces`
 /// (F003 AC9). The test plan runs every test in nl and en (FivviPro.xctestplan).

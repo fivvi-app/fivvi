@@ -1,6 +1,6 @@
 # Releasing the native apps
 
-How a build of **Fivvi Pro** (`apps/ios`, `apps/android`, app ID `app.fivvi.pro`) gets to testers, what the owner does and approves, and what the stores require before a public release (E017, [spec #169](https://github.com/fivvi-app/fivvi/issues/169)). Native apps have no over-the-air updates ([`ROADMAP.md`](../product/ROADMAP.md) R15): every fix for a tester is a new build, so building and shipping one is a single, repeatable step.
+How a build of **Fivvi Pro** (`apps/ios`, `apps/android`, app ID `app.fivvi.pro`) gets to testers, what the owner does and approves, and what the stores require before a public release (E017, [spec #169](https://github.com/fivvi-app/fivvi/issues/169)). Native apps have no over-the-air updates ([`ROADMAP.md`](../product/ROADMAP.md) R15): every fix for a tester is a new build, so building and shipping one is a single, repeatable step. The client app **Fivvi** (`app.fivvi`) gets its own lane in M5; its store records and owner steps are in §8.
 
 Status: the `release` environment, the secret scripts and this document are in place ([#189](https://github.com/fivvi-app/fivvi/issues/189)), and so are the iOS lane to TestFlight ([#190](https://github.com/fivvi-app/fivvi/issues/190)) and the Android lane to Play internal testing ([#191](https://github.com/fivvi-app/fivvi/issues/191)), both in `.github/workflows/release.yml`. They have not run for real yet: the first approved run is the owner check ([#192](https://github.com/fivvi-app/fivvi/issues/192)). Where this document and the spec differ, the spec issue wins until the lanes are built; then fix this document.
 
@@ -39,7 +39,7 @@ Renew by running the same command again; it replaces the value. The Apple Distri
 The lanes are one GitHub Actions workflow, **Release** (`.github/workflows/release.yml`), started by hand (`workflow_dispatch`) from `main`. It holds the iOS lane ([#190](https://github.com/fivvi-app/fivvi/issues/190)) and the Android lane ([#191](https://github.com/fivvi-app/fivvi/issues/191)); a platform can be released alone, and Android can be built without publishing (the workflow's inputs, below).
 
 1. Start it from the Actions tab (*Release › Run workflow*, branch `main`), or with `gh workflow run release.yml --ref main`. An agent may do this too. A run started from any other branch, or by anything but a person, stops in its first step with nothing built or uploaded, and the `release` environment doesn't deploy from another branch either.
-2. **Prepare** gives the run its build number (below). The native suites of both platforms then run on that commit, in Dutch and in English ([`TESTING.md §7`](TESTING.md#7-where-tests-run)), without any secret: **iOS tests** (`pnpm test:ios`, a macOS runner) and **Android tests** (`pnpm test:android` and `pnpm test:maestro`, a Linux runner with the emulator). The release jobs need both, so when either suite fails the run stops there: no release job starts, and nothing is signed or uploaded, for either platform.
+2. **Prepare** gives the run its build number (below). The native suites of both platforms then run on that commit, in Dutch and in English ([`TESTING.md §7`](TESTING.md#7-where-tests-run)), without any secret: **iOS tests** (`pnpm test:ios`, on the macOS runner `macos-15` with Xcode 26.3, the image CI tests the app on) and **Android tests** (`pnpm test:android` and `pnpm test:maestro`, a Linux runner with the emulator). The release jobs need both, so when either suite fails the run stops there: no release job starts, and nothing is signed or uploaded, for either platform. A last job, **macOS runners**, runs whatever happened and says when an iOS job got no hosted runner (§6).
 3. **You approve.** When the tests have passed, the **iOS release** and **Android release** jobs wait in the `release` environment. GitHub emails you and shows *Review deployments*; check that the commit is the one you mean to ship and that the build number is the one you expect (it is in the run's summary), then approve (one approval covers both jobs). Nothing signs or uploads before that, and no secret is readable before it.
 4. The job then installs the Apple Distribution certificate into a keychain made for this run and the App Store profile where Xcode finds it, archives the Release configuration (the production address, the shared version, the run's build number) with `xcodebuild`, uploads the dSYMs to the Sentry `ios` project under the release name the app sends (`app.fivvi.pro@<version>+<build>`), and exports and uploads the build to App Store Connect with the API key. The keychain and the key files are deleted at the end, whatever failed. No fastlane and no Ruby: `scripts/release-ios.sh` runs `xcodebuild`, `security` and `sentry-cli` (the version pinned in `pnpm-lock.yaml`).
 5. Testers get it from the TestFlight app, usually within minutes: App Store Connect first processes the build and emails you when it is done. The build is then available to the internal testers with no further step.
@@ -77,6 +77,7 @@ Look at the error in the run's log first, then at App Store Connect (*TestFlight
 | The lane fails at signing | Certificate or profile expired, or the profile doesn't match the bundle ID | Renew in Apple's developer site and run `release-secrets.sh ios` again; re-run the lane |
 | App Store Connect: *bundle version already used* or Play: *version code already used* | A build number that isn't higher than an earlier upload | Start a new run: every run gets a higher number (a re-run of a run is refused for this reason). If a build was uploaded by hand with a higher number, the offset in `scripts/release.sh` has to be raised (a PR). Renaming or replacing `release.yml` restarts the run number at 1, so raise the offset in the same PR |
 | The run stops in its first step: *a release run starts from main* or *attempt 2 of the run* | The run was started from another branch, or is a re-run | Start a new run from `main` |
+| The run fails with *iOS tests* (or *iOS release*) cancelled, and the error says *no GitHub-hosted macOS runner* | GitHub's hosted macOS capacity: no runner picked the job up (cancelled after about 15 minutes), so nothing was built, signed or uploaded | Start a new Release run (not Re-run); if it repeats, look at githubstatus.com. Ignore the message for *iOS release* if you cancelled the run yourself while it waited for your approval. After *iOS release*, an Android build of that run may already be out: leave Android off in the new run |
 | The run stops after the tests, before *iOS release* | A native suite failed (the run says which) | Fix it on `main` and start a new run; the test results of the iOS suite are an artifact of the run |
 | *The provisioning profile is for … not for …* or *a development or ad hoc profile* | The profile in `IOS_PROVISIONING_PROFILE` is not an App Store profile for `app.fivvi.pro` | Create the right one in Apple's developer site and run `release-secrets.sh ios` again |
 | Signing fails with *no identity* or the import fails | The certificate is not an Apple Distribution certificate, or its password is wrong | Export the certificate again as a `.p12` and run `release-secrets.sh ios` again |
@@ -133,6 +134,21 @@ Only the owner does these. Agents never do them or ask for the secrets. Each ste
 |---|---|---|
 | ☑ | `scripts/github-settings.sh apply` | The `release` environment with your approval and `main`-only deployments |
 | ☑ | Create a Sentry organisation auth token for symbol uploads (`org:ci`: releases and debug files; it carries the organisation and the region, which `sentry-cli` needs here), run `scripts/release-secrets.sh sentry` | Symbolicated crashes from tester builds |
+
+**Fivvi (`app.fivvi`)**
+
+The client app's store records exist ([#447](https://github.com/fivvi-app/fivvi/issues/447)); its release lane comes in M5 ([`ROADMAP.md`](../product/ROADMAP.md) M8).
+
+| | Step | Unlocks |
+|---|---|---|
+| ☑ | Register the App ID `app.fivvi` and create the App Store Connect app *Fivvi* (name free, primary language Dutch, an SKU) | The bundle ID and the store name |
+| ☑ | Create the TestFlight internal group and add yourself | Installing on your iPhone |
+| ☐ | Create the App Store provisioning profile for `app.fivvi` and put it in the release secrets (with the lane ticket) | Signing in the Fivvi iOS lane |
+| ☑ | Create the app *Fivvi* in Play Console (name free, default language Dutch, free, an app) | The store name |
+| ☑ | Use the existing internal testers list on Fivvi's internal testing track | Installing from the internal-test link |
+| ☑ | Give the release service account the same release rights on Fivvi as on Fivvi Pro | The lane can publish Fivvi to internal testing |
+| ☐ | Decide whether Fivvi reuses Fivvi Pro's upload key or gets its own (the lane ticket) | The upload key the Fivvi lane signs with |
+| ☐ | Upload Fivvi's first App Bundle by hand and roll it out to internal testing, as for Fivvi Pro above | The package name `app.fivvi` and every later release through the API |
 
 ## 9. Store requirements for the public release
 

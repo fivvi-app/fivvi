@@ -29,7 +29,7 @@ Products a Dutch gym or PT studio could choose instead of Fivvi, and what we lea
 |---|---|---|
 | Member app | Branded member app for iOS and Android: book classes, buy or upgrade a membership, buy credits and products | Client web and the client app Fivvi in the MVP (buying on the web). Trainer apps in parallel from M2 |
 | Leads | Booking widget for trial lessons, automatic lead follow-up | Public booking page and QR codes (M5, M6); no lead follow-up planned |
-| Bookings | Waiting lists, credits, no-shows, bring a friend | Credits (group, private and Open Gym, never mixed), cutoff, makeups (M11); waitlists moved to the MVP on 31 October 2026 |
+| Bookings | Waiting lists, credits, no-shows, bring a friend | Credits (group and private, never mixed), cutoff, makeups (M11); waitlists moved to the MVP on 31 October 2026 |
 | Finance | "Closed-loop finance": automated payments, invoices, reminders and follow-up; flexible payment methods | Recurring payments and invoices together, failed-payment handling, payouts (proposed) (M11); reminders and dunning beyond that in Release 4 (`PRODUCT.md §66`) |
 | Business clients | Company accounts that bill business ride passes or memberships | Billing details with a company name on invoices (`PRODUCT.md §96`); no separate company accounts |
 | Selling | In-app shop for merchandise and products; discount codes | Excluded from the MVP (`PRODUCT.md §53`: discounts); no shop planned |
@@ -53,7 +53,7 @@ Products a Dutch gym or PT studio could choose instead of Fivvi, and what we lea
 **What we take from Huppa** (the owner likes it):
 
 - **Company billing** confirms the pilot's need for invoices in a company's name (`PRODUCT.md §96`).
-- **Members buy and upgrade themselves** in the app: in our MVP clients confirm agreements and (proposed) buy single classes on the web (`PRODUCT.md §91, §95`); keep that path as short as Huppa's.
+- **Members buy and upgrade themselves** in the app: in our MVP clients confirm agreements and buy credits or a single class pass, ahead, on the web (`PRODUCT.md §92, §95`); keep that path as short as Huppa's.
 - **Trial lessons** as a first booking: candidate for the booking page (M5) or 1.1.
 - **One all-inclusive price** is a clear message for platform pricing when decision 16 comes up.
 

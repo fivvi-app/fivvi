@@ -5,22 +5,78 @@
     <string name="app_name">Fivvi Pro</string>
     <!-- Browser tab title (HTML <title>) of web pages that don't set their own. The product name, Fivvi, the same in both languages. -->
     <string name="app_title">Fivvi</string>
+    <!-- Second tab of the client app: where a client books a class. A verb in the tab bar (GLOSSARY: Book / Boeken). -->
+    <string name="client_nav_book">Boeken</string>
+    <!-- First tab of the client app. The same word in both languages (GLOSSARY: Home). -->
+    <string name="client_nav_home">Home</string>
+    <!-- Accessibility label of the client app's tab bar (TalkBack). -->
+    <string name="client_nav_label">Hoofdnavigatie</string>
+    <!-- Third tab of the client app: the client's name, email address, language and sign-out. -->
+    <string name="client_nav_profile">Profiel</string>
+    <string name="clients_add">Klant toevoegen</string>
+    <string name="clients_add_dialog_cancel">Annuleren</string>
+    <!-- Accessibility label of the close button (x) of the new-client form in the apps. -->
+    <string name="clients_add_dialog_close">Sluiten</string>
+    <string name="clients_add_dialog_description">Vul een naam en een e-mailadres in. De taal kan later.</string>
+    <string name="clients_add_dialog_email_label">E-mailadres</string>
+    <string name="clients_add_dialog_errors_email_invalid">Vul een geldig e-mailadres in.</string>
+    <string name="clients_add_dialog_errors_email_required">Vul een e-mailadres in.</string>
+    <string name="clients_add_dialog_errors_name_required">Vul een naam in.</string>
+    <string name="clients_add_dialog_errors_name_too_long">Deze naam is te lang. Gebruik maximaal 120 tekens.</string>
+    <string name="clients_add_dialog_errors_not_saved">Niet opgeslagen. Controleer je verbinding en probeer het opnieuw.</string>
+    <string name="clients_add_dialog_exists">%1$s gebruikt dit e-mailadres al.</string>
+    <string name="clients_add_dialog_locale_default">Standaard (%1$s)</string>
+    <string name="clients_add_dialog_locale_en">English</string>
+    <string name="clients_add_dialog_locale_label">Taal voor e-mails</string>
+    <string name="clients_add_dialog_locale_nl">Nederlands</string>
+    <string name="clients_add_dialog_name_label">Naam</string>
+    <string name="clients_add_dialog_open_existing">%1$s openen</string>
+    <string name="clients_add_dialog_other_email">Ander e-mailadres</string>
+    <string name="clients_add_dialog_submit">Toevoegen</string>
+    <string name="clients_add_dialog_title">Klant toevoegen</string>
+    <string name="clients_empty">Nog geen klanten. Voeg je eerste klant toe.</string>
+    <string name="clients_language_names_en">Engels</string>
+    <string name="clients_language_names_nl">Nederlands</string>
+    <string name="clients_list_label">Klanten</string>
+    <string name="clients_load_error">Er ging iets mis bij het laden.</string>
+    <string name="clients_loading">Klanten laden…</string>
+    <!-- Primary action of the native clients list (New client): opens the full-screen form that adds a client. Shown only to people who may manage clients. -->
+    <string name="clients_new_client">Nieuwe klant</string>
+    <string name="clients_no_results">Geen klanten gevonden.</string>
+    <!-- Banner above the cached clients list in the apps while there is no connection. {time} is a 24-hour time, e.g. '08:42', formatted in code in the workspace time zone. -->
+    <string name="clients_offline">Je bent offline. Laatst bijgewerkt om %1$s.</string>
+    <string name="clients_partial">%1$s van %2$s klanten getoond. Zoek om de rest te vinden.</string>
+    <string name="clients_profile_added">%1$s is toegevoegd.</string>
+    <!-- Accessibility label of the back button of the client profile in the apps. -->
+    <string name="clients_profile_back">Terug</string>
+    <!-- Button on the client profile that opens the edit form for the overview (name, email address, language for emails). -->
+    <string name="clients_profile_edit">Bewerken</string>
+    <!-- Title of the form that edits a client in the apps. -->
+    <string name="clients_profile_edit_title">Klant bewerken</string>
+    <string name="clients_profile_email_label">E-mailadres</string>
+    <string name="clients_profile_locale_label">Taal voor e-mails</string>
+    <string name="clients_profile_name_label">Naam</string>
+    <string name="clients_profile_overview">Overzicht</string>
+    <!-- Button that saves the edited client. -->
+    <string name="clients_profile_save">Opslaan</string>
+    <!-- Brief confirmation (snackbar) after the edited client was saved. -->
+    <string name="clients_profile_saved">Opgeslagen.</string>
+    <string name="clients_profile_title">Klantprofiel</string>
+    <string name="clients_search_placeholder">Zoek klant…</string>
+    <!-- Title of the clients list (TM-02, TW-01) and the label of the way in to it. -->
+    <string name="clients_title">Klanten</string>
     <!-- Button that leaves a form or dialog without saving, e.g. the native full-screen dialog that changes the person's name. -->
     <string name="common_cancel">Annuleren</string>
     <!-- Accessibility label of the progress indicator while a screen loads (read by VoiceOver and TalkBack). -->
     <string name="common_loading">Laden…</string>
+    <!-- Line under a loading placeholder that is still waiting after 10 seconds. -->
+    <string name="common_loading_slow">Dit duurt langer dan normaal…</string>
+    <!-- Banner at the top of the client app while the phone has no connection. Not tied to one list, so it has no time (clients.offline names the time of a cached list). -->
+    <string name="common_offline">Je bent offline. Sommige gegevens zijn misschien niet actueel.</string>
     <!-- Button under an error message that tries the failed action again. -->
     <string name="common_retry">Opnieuw proberen</string>
-    <!-- Submit button of the first-name form on the hello page. Shows hello.formGreeting with the name entered. -->
-    <string name="hello_continue">Doorgaan</string>
-    <!-- Line under the title of the hello page, above the first-name field. -->
-    <string name="hello_description">Vul je voornaam in, dan begroeten we je.</string>
     <!-- Shown on the native hello screen when the greeting can't be loaded (no connection, or an unknown greeting). Above the common.retry button. -->
     <string name="hello_error">We konden de begroeting niet laden. Probeer het opnieuw.</string>
-    <!-- Label of the first-name field on the hello page. -->
-    <string name="hello_first_name_label">Voornaam</string>
-    <!-- Shown on the hello page after the first-name form is sent. {name} is the first name entered. -->
-    <string name="hello_form_greeting">Hoi %1$s, fijn dat je er bent.</string>
     <!-- Greeting above the home screen. {name} is the user's first name. -->
     <string name="hello_greeting">Hoi %1$s,</string>
     <!-- {date} is a weekday and date without year, e.g. 'dinsdag 22 september'. {time} is a 24-hour time, e.g. '18:00'. Both are formatted in code in the workspace time zone. -->
@@ -61,10 +117,20 @@
     <string name="no_permission_body">Je hebt geen toegang tot deze pagina. Vraag de eigenaar van %1$s.</string>
     <!-- Heading of the no-permission page (information-architecture §9.5): a team member opens a page their role may not use, such as a Trainer opening Settings. -->
     <string name="no_permission_title">Geen toegang</string>
+    <!-- Second line of the no-workspace state in the client app: the join link opens in the app when it is tapped on this phone. -->
+    <string name="no_workspace_have_link">Heb je de link al? Open hem op deze telefoon.</string>
+    <!-- Third line of the no-workspace state, only for an account that is Owner or Trainer of a workspace: points to the trainer app (Fivvi Pro). -->
+    <string name="no_workspace_team_hint">Ben je trainer of eigenaar? Gebruik de app Fivvi Pro.</string>
+    <!-- Client app, Home and Boeken while the client belongs to no workspace: tells them to ask their studio for the join link. The wording is marked in GLOSSARY.md until the pilot gym owner confirms. -->
+    <string name="no_workspace_title">Vraag je studio om de aanmeldlink.</string>
     <string name="not_found_body">We kunnen deze pagina niet vinden. Controleer de link en probeer het opnieuw.</string>
     <string name="not_found_title">Pagina niet gevonden</string>
     <string name="profile_error">Je werkruimtes konden niet worden geladen.</string>
     <string name="profile_language">Taal</string>
+    <!-- Row on the native Profile (iOS and Android, F064 AC17) that opens the privacy policy of the public website fivvi.app in the browser. Same wording as the website footer (site.footer.privacy). -->
+    <string name="profile_privacy">Privacyverklaring</string>
+    <!-- Row on the native Profile (iOS and Android, F064 AC17) that opens the Help and contact page of the public website fivvi.app in the browser. Same wording as the website footer (site.footer.support). -->
+    <string name="profile_support">Hulp en contact</string>
     <string name="profile_title">Profiel</string>
     <!-- Shown next to the switch when saving failed for another reason. The switch is back as it was. -->
     <string name="profile_trains_here_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
@@ -74,6 +140,8 @@
     <string name="profile_trains_here_label">Ik geef zelf ook trainingen in %1$s</string>
     <!-- Confirmation shown after the switch was saved. -->
     <string name="profile_trains_here_saved">Opgeslagen.</string>
+    <!-- Line at the end of the client app's Profiel with the app's version. {version} is the version number, e.g. '0.1.0'. -->
+    <string name="profile_version">Versie %1$s</string>
     <!-- Role label of an Owner (Eigenaar) of a workspace, shown as a plain label. -->
     <string name="roles_owner">Eigenaar</string>
     <!-- Role label of a Trainer of a workspace, shown as a plain label. -->
@@ -107,6 +175,61 @@
     <string name="settings_language_save">Opslaan</string>
     <string name="settings_language_saved">Opgeslagen.</string>
     <string name="settings_language_title">Taal</string>
+    <!-- Label of the optional house number addition field on TW-08, e.g. "A" or "2 hoog". -->
+    <string name="settings_location_addition_label">Toevoeging</string>
+    <!-- Legend of the group of address fields on TW-08 (postcode, house number, addition, street, city). Optional: an address is all or nothing. -->
+    <string name="settings_location_address_legend">Adres</string>
+    <!-- Label of the city field on TW-08. The address lookup fills it in; the person can still type it. -->
+    <string name="settings_location_city_label">Plaats</string>
+    <!-- Under the address fields on TW-08 when some but not all of postcode, house number, street and city are filled in. -->
+    <string name="settings_location_errors_address_incomplete">Vul het hele adres in, of laat het leeg.</string>
+    <!-- Shown on TW-08 when saving failed for any other reason. Nothing was changed. -->
+    <string name="settings_location_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
+    <!-- Under the house number field on TW-08 when it is not one to five digits. -->
+    <string name="settings_location_errors_house_number_invalid">Vul een huisnummer in van 1 tot 5 cijfers.</string>
+    <!-- Under the name field on TW-08 when it is empty or only spaces. -->
+    <string name="settings_location_errors_name_required">Vul een naam in.</string>
+    <!-- Under the name field on TW-08 when the name is over 120 characters. Same wording as the too-long workspace name. -->
+    <string name="settings_location_errors_name_too_long">Deze naam is te lang. Gebruik een kortere naam.</string>
+    <!-- Shown on TW-08 when the request to save could not reach the server. Nothing was changed. -->
+    <string name="settings_location_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <!-- Under the postcode field on TW-08 when it is not a Dutch postcode (four digits, an optional space, two letters). -->
+    <string name="settings_location_errors_postcode_invalid">Vul een postcode in zoals 1234 AB.</string>
+    <!-- Under the addition, street or city field on TW-08 when the text is over its limit. -->
+    <string name="settings_location_errors_too_long">Deze tekst is te lang. Gebruik een kortere tekst.</string>
+    <!-- Help text under the heading of the location card on TW-08: every session and class takes the workspace's one location. -->
+    <string name="settings_location_help">Alle sessies en lessen vinden hier plaats.</string>
+    <!-- Label of the house number field on TW-08: one to five digits, no addition. -->
+    <string name="settings_location_house_number_label">Huisnummer</string>
+    <!-- Shown on TW-08 while the street and city are looked up from the postcode and house number. The form stays usable. -->
+    <string name="settings_location_lookup_busy">Adres opzoeken…</string>
+    <!-- Note on TW-08 under the address fields when the street and/or city were filled in by the address lookup. -->
+    <string name="settings_location_lookup_filled">Ingevuld op basis van postcode en huisnummer.</string>
+    <!-- Shown on TW-08 when the lookup knows no address for the postcode and house number. Street and city stay empty for typing. -->
+    <string name="settings_location_lookup_not_found">We vinden geen adres bij deze postcode en dit huisnummer. Vul straat en plaats zelf in.</string>
+    <!-- Shown on TW-08 when the address lookup timed out, failed or is used up for the hour. Saving a hand-typed address still works. -->
+    <string name="settings_location_lookup_unavailable">Het adres opzoeken lukt nu niet. Vul straat en plaats zelf in.</string>
+    <!-- Label of the location name field on TW-08. It is prefilled with the workspace name when the workspace is created. -->
+    <string name="settings_location_name_label">Naam</string>
+    <!-- Label of the Dutch postcode field on TW-08, written like 1234 AB. -->
+    <string name="settings_location_postcode_label">Postcode</string>
+    <!-- Button of TW-08 that saves the location. -->
+    <string name="settings_location_save">Opslaan</string>
+    <!-- Confirmation shown next to the save button on TW-08 after the location was saved. -->
+    <string name="settings_location_saved">Locatie opgeslagen.</string>
+    <!-- Label of the street field on TW-08. The address lookup fills it in; the person can still type it. -->
+    <string name="settings_location_street_label">Straat</string>
+    <!-- Heading and browser tab title of TW-08, Settings → Location (`/w/{slug}/settings/locations`, Owner only). Dutch: Locatie (GLOSSARY §4.3). -->
+    <string name="settings_location_title">Locatie</string>
+    <!-- Label of the read-only location type on TW-08 (Eigen locatie / Own location). -->
+    <string name="settings_location_type_label">Soort</string>
+    <string name="settings_location_types_client_home">Bij de klant thuis</string>
+    <string name="settings_location_types_external_gym">Externe sportschool</string>
+    <string name="settings_location_types_online">Online</string>
+    <!-- The type of the workspace's own location, shown read-only on TW-08 (GLOSSARY §4.3). The other types exist in the data model; they are not shown at go-live. -->
+    <string name="settings_location_types_organization_location">Eigen locatie</string>
+    <string name="settings_location_types_other">Anders</string>
+    <string name="settings_location_types_outdoor">Buiten</string>
     <!-- Button on the second step that goes back to the email field. -->
     <string name="sign_in_change_email">E-mailadres wijzigen</string>
     <!-- Under the heading of the second step. {email} is the address that was entered. Deliberately does not say whether an account exists (no account enumeration). -->
@@ -238,14 +361,22 @@
     <string name="welcome_workspace_name_label">Naam van je sportschool of bedrijf</string>
     <!-- Line under the workspace name on the placeholder home of a workspace, until the owner dashboard and the trainer's day arrive. -->
     <string name="workspace_home_description">Hier komt binnenkort het overzicht van je sportschool of bedrijf.</string>
+    <string name="workspace_nav_clients">Klanten</string>
     <!-- Accessible name of the navigation of a workspace's pages, read by screen readers. -->
     <string name="workspace_nav_label">Hoofdnavigatie</string>
+    <string name="workspace_nav_new">Nieuw</string>
+    <string name="workspace_nav_new_client">Klant</string>
+    <string name="workspace_nav_new_menu">Nieuw maken</string>
     <!-- Navigation link to Settings (Instellingen). Shown to the Owner only (GLOSSARY §4.8). -->
     <string name="workspace_nav_settings">Instellingen</string>
     <string name="workspace_nav_settings_general">Algemeen</string>
     <string name="workspace_nav_settings_language">Taal</string>
+    <!-- Navigation link to Settings → Location (TW-08). Shown to the Owner only. -->
+    <string name="workspace_nav_settings_location">Locatie</string>
     <!-- Navigation link to the Trainers page (TW-06), the team list. Shown to the Owner only. -->
     <string name="workspace_nav_trainers">Trainers</string>
     <!-- Header of the sidebar: the workspace name, then the role of the signed-in person in it, e.g. "John's Gym · Owner". {name} is the workspace name, {role} the role label. -->
     <string name="workspace_nav_workspace_with_role">%1$s · %2$s</string>
+    <!-- Last row of the scope switcher, only for accounts that may set up a workspace (the sign-up allowlist): opens the form to create another workspace. The + belongs to the label. -->
+    <string name="workspace_switcher_new_workspace">+ Nieuwe werkruimte</string>
 </resources>

@@ -4,7 +4,12 @@ import { analyze } from './analyze.ts';
 import { renderStringsXml } from './android.ts';
 import { CatalogError, renderNativeCatalogs } from './generate.ts';
 import { catalogSet } from './testing.ts';
-import { renderInfoPlistXcstrings, renderXcstrings } from './xcstrings.ts';
+import {
+  renderInfoPlistXcstrings,
+  renderStringCatalogsAccessor,
+  renderStringCatalogsPackage,
+  renderXcstrings,
+} from './xcstrings.ts';
 
 type FlatMessages = Record<string, string>;
 
@@ -332,12 +337,40 @@ describe('E008 iOS InfoPlist String Catalog exporter', () => {
     expect([...files.keys()]).toEqual([
       'generated/ios/Localizable.xcstrings',
       'generated/ios/InfoPlist.xcstrings',
+      'generated/ios/FivviStringCatalogs.swift',
+      'generated/ios/Package.swift',
       'generated/android/values/strings.xml',
       'generated/android/values-en/strings.xml',
     ]);
     expect(files.get('generated/ios/InfoPlist.xcstrings')).toBe(
       renderInfoPlistXcstrings(analysisOf(nl, en)),
     );
+  });
+
+  // E017 #500: the generated iOS catalogs are a Swift package, `FivviStringCatalogs`, which both iOS apps' shared code
+  // depends on. The generator writes the package manifest and the one Swift file that hands the resource bundle on
+  // (`Bundle.module` exists only inside the package) next to the catalogs.
+  describe('#500: the catalogs are the Swift package FivviStringCatalogs', () => {
+    const files = renderNativeCatalogs(analysisOf(nl, en));
+
+    it('writes the Swift file that exposes the package resource bundle', () => {
+      const swift = files.get('generated/ios/FivviStringCatalogs.swift');
+      expect(swift).toBe(renderStringCatalogsAccessor());
+      expect(swift).toContain('public enum FivviStringCatalogs');
+      expect(swift).toContain('public static let bundle = Bundle.module');
+    });
+
+    it('writes the manifest: Localizable.xcstrings is the package resource, InfoPlist.xcstrings is not', () => {
+      const manifest = files.get('generated/ios/Package.swift');
+      expect(manifest).toBe(renderStringCatalogsPackage());
+      expect(manifest).toContain('defaultLocalization: "nl"');
+      expect(manifest).toContain('platforms: [.iOS(.v17)],');
+      expect(manifest).toContain('.library(name: "FivviStringCatalogs"');
+      expect(manifest).toContain('path: "."');
+      expect(manifest).toContain('sources: ["FivviStringCatalogs.swift"]');
+      expect(manifest).toContain('resources: [.process("Localizable.xcstrings")]');
+      expect(manifest).toContain('exclude: ["InfoPlist.xcstrings"]');
+    });
   });
 
   it('refuses to render the native catalogs without app.name', () => {
@@ -365,9 +398,11 @@ describe('E006 server-only namespaces', () => {
 
   it('leaves email keys out of the iOS and Android catalogs', () => {
     const files = renderNativeCatalogs(analysisOf(nl, en));
-    expect(files.size).toBe(4);
+    expect(files.size).toBe(6);
     for (const [file, content] of files) {
-      if (!file.endsWith('InfoPlist.xcstrings')) expect(content, file).toContain('Wel');
+      if (!file.endsWith('InfoPlist.xcstrings') && !file.endsWith('.swift')) {
+        expect(content, file).toContain('Wel');
+      }
       expect(content, file).not.toContain('Test');
       expect(content, file).not.toContain('email');
     }
@@ -377,6 +412,27 @@ describe('E006 server-only namespaces', () => {
     const analysis = analyze(catalogSet(nl, { 'app.name': 'Fivvi', 'hello.title': 'Welcome' }));
     expect(analysis.parity).toEqual([
       '"email.hello.subject" is in nl-NL.json but missing from en.json',
+    ]);
+  });
+});
+
+describe('F064 the public website is server-only copy', () => {
+  const nl = { 'app.name': 'Fivvi', 'hello.title': 'Welkom', 'site.home.headline': 'Jij traint.' };
+  const en = { 'app.name': 'Fivvi', 'hello.title': 'Welcome', 'site.home.headline': 'You train.' };
+
+  it('leaves site keys out of the iOS and Android catalogs', () => {
+    const files = renderNativeCatalogs(analysisOf(nl, en));
+    for (const [file, content] of files) {
+      expect(content, file).not.toContain('traint');
+      expect(content, file).not.toContain('You train');
+      expect(content, file).not.toContain('site');
+    }
+  });
+
+  it('still checks site keys for parity', () => {
+    const analysis = analyze(catalogSet(nl, { 'app.name': 'Fivvi', 'hello.title': 'Welcome' }));
+    expect(analysis.parity).toEqual([
+      '"site.home.headline" is in nl-NL.json but missing from en.json',
     ]);
   });
 });

@@ -4,7 +4,10 @@
   "private": true,
   "type": "module",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./demo-request-mail": "./src/demo-request-mail.ts",
+    "./private-session-mail": "./src/private-session-mail.ts",
+    "./trainer-invitation-mail": "./src/trainer-invitation-mail.ts"
   },
   "scripts": {
     "preview": "tsx watch --clear-screen=false scripts/preview.ts",

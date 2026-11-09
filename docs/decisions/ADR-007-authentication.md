@@ -27,6 +27,8 @@ The spec rules out passwords, phone numbers and SMS in MVP; clients use an **ema
 
 > **Note (19 October 2026):** the native spike's timing moved from M1 to M8, alongside the iOS and Android apps (`ROADMAP.md` M8), during F001 shaping. This is a scheduling change, not a reversal: the decisions above (Better Auth, email + 6-digit code, bearer tokens for native) stand unchanged.
 
+> **Note (4 November 2026):** the client app Fivvi brings deep links forward from Release 1.1, for the join and invitation links only ([#469](https://github.com/fivvi-app/fivvi/issues/469)). Sign-in stays the emailed link and code, so the decision stands.
+
 ## Consequences
 
 - **Positive:** no third-party user store: user data stays in our EU database, under our tenant and privacy rules.
@@ -34,7 +36,7 @@ The spec rules out passwords, phone numbers and SMS in MVP; clients use an **ema
 - **Positive:** the 6-digit code covers native sign-in and scanner-consumed links with one mechanism.
 - **Negative:** we own the security of the auth flows (rate limits, token hygiene, enumeration). Covered by the token tests in `TESTING.md §3` and the M9 security review.
 - **Negative:** Better Auth is a younger library; the native bearer flow is the least proven part, hence the M8 spike (moved from M1, see the dated note above).
-- **Follow-ups:** M8 spike (moved from M1); F001 in M2; deep links in 1.1.
+- **Follow-ups:** M8 spike (moved from M1); F001 in M2; deep links in 1.1 (the join and invitation links in Fivvi earlier, see the note of 4 November 2026).
 
 ## Alternatives considered
 

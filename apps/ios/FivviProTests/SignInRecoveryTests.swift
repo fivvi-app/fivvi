@@ -2,6 +2,8 @@ import FivviAPI
 import XCTest
 
 @testable import FivviPro
+@testable import FivviSignIn
+@testable import FivviStrings
 
 /// TM-01's code step when something goes wrong or the person changes their mind: a new email, another address, a lost
 /// connection, and what a screen reader is told.

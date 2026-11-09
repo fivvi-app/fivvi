@@ -16,10 +16,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import app.fivvi.core.R
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
 import app.fivvi.designtokens.title1
-import app.fivvi.pro.R
 
 /** Test tags, shared with the iOS accessibility identifiers and the Maestro flows. */
 object HelloTags {

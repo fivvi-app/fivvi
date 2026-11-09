@@ -18,7 +18,8 @@ dependencies {
     ktlint(project(":lint-rules"))
 }
 
-val ktlintSources = listOf("app/src/**/*.kt", "lint/src/**/*.kt", "**/*.kts", "!**/build/**")
+val ktlintSources =
+    listOf("app/src/**/*.kt", "client/src/**/*.kt", "core/src/**/*.kt", "lint/src/**/*.kt", "**/*.kts", "!**/build/**")
 
 // AC8 and AC6 (spec #34), E009: the same ktlint, rules and wiring as ktlintCheck must fail on the hard-coded text and
 // colour fixtures and on Sentry outside the observability module, naming the file and every line, and accept the other
@@ -70,3 +71,8 @@ tasks.register<JavaExec>("ktlintFormat") {
     jvmArgs("--add-opens=java.base/java.lang=ALL-UNNAMED")
     args = listOf("--relative", "--format") + ktlintSources
 }
+
+// What both application modules share (version, build number, base URL and Sentry DSN per build type, release checks), as
+// `extra` properties and tasks of each. Applied from here, not by each module's own script: Android lint (lintVital in the
+// release bundle) fails on a module script that calls apply(from = ...).
+listOf(":app", ":client").forEach { project(it).apply(from = file("gradle/app-build.gradle.kts")) }

@@ -1,5 +1,6 @@
 import { parseSignUpAllowlist } from '@fivvi/auth';
 import {
+  consumeRateLimit,
   createDatabase,
   createTenantScopes,
   type DatabaseClient,
@@ -15,6 +16,12 @@ import {
   readTenantContext,
   type StoredContext,
 } from '@fivvi/database/testing';
+import {
+  createMemoryTransport,
+  createPrivateSessionSender,
+  createSendEmail,
+  createTrainerInvitationSender,
+} from '@fivvi/email';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import type { OpenAPIHono } from '@hono/zod-openapi';
 import { createApp, NO_DEPENDENCIES } from '../../src/index.ts';
@@ -49,7 +56,41 @@ export interface World {
   close(): Promise<void>;
 }
 
-export async function createWorld(): Promise<World> {
+/**
+ * The timeout of a test that runs the whole isolation sweep: every route, as every actor, each
+ * call a few round trips to Postgres and a read of every table (#678). Vitest's default of 30 s
+ * holds on an idle machine (the sweeps take 5 to 10 s) but not on a busy one: with the load
+ * average at 60 to 80 the slowest took 25 to 35 s, and 67 s was seen on a day with several
+ * builds at once. What slows it is the machine waiting for CPU, not the code, so the limit
+ * is sized to that: about 2.5 times the slowest run seen, to still catch a sweep that hangs.
+ * TESTING.md §4.1 has the numbers.
+ */
+export const SWEEP_TIMEOUT_MS = 180_000;
+
+/** What the isolation tests use of the pool under `world.admin`: the one `drizzle` keeps as `$client`. */
+export interface AdminPool {
+  query(...args: unknown[]): Promise<{ rows: Record<string, unknown>[] }>;
+}
+
+/**
+ * The pool under the privileged connection, which the `Database` type does not show. It takes a
+ * named statement (planned once per connection) and lets a test see every statement sent.
+ */
+export function adminPool(world: World): AdminPool {
+  return (world.admin.db as unknown as { $client: AdminPool }).$client;
+}
+
+export interface WorldOptions {
+  /**
+   * Record, for every tenant scope the API opens, the context Postgres holds for it (`observed`).
+   * It costs a round trip per request: a world that only runs the sweep (`runIsolationSuite`),
+   * which never reads `observed`, passes `false`. Default `true`.
+   */
+  observe?: boolean;
+}
+
+export async function createWorld(options: WorldOptions = {}): Promise<World> {
+  const observe = options.observe ?? true;
   const database = await cloneTemplateDatabase();
   const admin = createDatabase({ url: database.url, maxConnections: 2 });
   const app = createDatabase({ url: database.appUrl, maxConnections: 4 });
@@ -60,28 +101,51 @@ export async function createWorld(): Promise<World> {
   const tenantScopes: TenantScopes = {
     inAccountScope: (input, run) =>
       real.inAccountScope(input, async (scope) => {
-        observed.push({
-          kind: 'account',
-          context: scope.context,
-          stored: await readTenantContext(scope),
-        });
+        if (observe) {
+          observed.push({
+            kind: 'account',
+            context: scope.context,
+            stored: await readTenantContext(scope),
+          });
+        }
         return run(scope);
       }),
     inWorkspaceScope: (input, run) =>
       real.inWorkspaceScope(input, async (scope) => {
-        observed.push({
-          kind: 'workspace',
-          context: scope.context,
-          stored: await readTenantContext(scope),
-        });
+        if (observe) {
+          observed.push({
+            kind: 'workspace',
+            context: scope.context,
+            stored: await readTenantContext(scope),
+          });
+        }
         return run(scope);
       }),
+    // The routes by an invitation's token are public, not part of the isolation suite (F011).
+    inInvitationScope: (input, run) => real.inInvitationScope(input, run),
   };
   const api = createApp({
     ...NO_DEPENDENCIES,
     tenantScopes,
-    // The test accounts are `<id>@example.com`: all of them may sign up, so the rule "no team role"
-    // is what refuses a route that creates a workspace, not the allowlist.
+    // The lookup limit of the address route (F015), over the app connection like production.
+    consumeRateLimit: (key, rule) => consumeRateLimit(app.db, key, rule, new Date()),
+    // The trainer invitation routes email EM-09 (F011): into memory, never out.
+    sendTrainerInvitation: createTrainerInvitationSender({
+      sendEmail: createSendEmail({
+        transport: createMemoryTransport(),
+        sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+      }),
+      appBaseUrl: () => 'https://fivvi.example.test',
+    }),
+    // The session routes email EM-11 (F020): into memory, never out.
+    sendPrivateSession: createPrivateSessionSender({
+      sendEmail: createSendEmail({
+        transport: createMemoryTransport(),
+        sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+      }),
+    }),
+    // The test accounts are `<id>@example.com`: every harness account is on the allowlist, so the
+    // route that creates a workspace succeeds for every signed-in caller, team roles or not (F012).
     signUpAllowlist: parseSignUpAllowlist('@example.com'),
     findSignedInAccount: (headers) => {
       const id = headers.get('x-test-account');

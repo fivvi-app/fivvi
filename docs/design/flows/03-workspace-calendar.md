@@ -1,6 +1,10 @@
 # Flow 03: Workspace calendar on web (owner view)
 
+> **Open Gym comes later (owner, 6 November 2026; `PRODUCT.md §53`).** Open Gym is not in the MVP. What this document says about it describes the feature for when it is built.
+
 **Dashboard → Agenda (week / day by trainer / list) → open, create or move a session**
+
+> **Design v2 (5 November 2026, ADR-029).** The web uses shadcn/ui as shown in [prototype v2](../prototype-v2/DECISIONS.md#4-trainer-web): the day view has a column per trainer, and the side sheet shows *Vorige keer* (per client in a duo session). The flow below still applies.
 
 | | |
 |---|---|

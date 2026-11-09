@@ -5,7 +5,7 @@ import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { defineRoute, type WorkspaceEnv } from '../../src/access.ts';
 import { toValidationError } from '../../src/errors.ts';
-import { createWorld, type World } from './harness.ts';
+import { createWorld, SWEEP_TIMEOUT_MS, type World } from './harness.ts';
 import { ISOLATION_CASES, type IsolationCase } from './isolation-cases.ts';
 import { runIsolationSuite } from './suite.ts';
 
@@ -112,7 +112,16 @@ function registerLeakyRoutes(world: World) {
   });
   // Changes rows on a read: the suite must notice A's rows are not what they were.
   app.openapi(defineRoute(route('/probe/writing-get', 'probeWritingGet'), team), async (c) =>
-    c.json({ client: (await createClient(c.get('scope'), { name: 'Probe client' })) ?? null }, 200),
+    c.json(
+      {
+        client:
+          (await createClient(c.get('scope'), {
+            name: 'Probe client',
+            email: `${crypto.randomUUID()}@example.com`,
+          })) ?? null,
+      },
+      200,
+    ),
   );
   // Reads the too-strict table, listed by a case whose seed returns nothing to look for.
   for (const operationId of ['probeUnseeded', 'probeUnknownSeed']) {
@@ -135,7 +144,7 @@ describe('E011 the suite can fail', () => {
   let world: World;
 
   beforeAll(async () => {
-    world = await createWorld();
+    world = await createWorld({ observe: false });
     await createProbeTables(world);
     registerLeakyRoutes(world);
   });
@@ -144,102 +153,154 @@ describe('E011 the suite can fail', () => {
     await world?.close();
   });
 
-  it('AC16: the suite fails on a leaky probe route and an unprotected probe table', async () => {
-    const result = await runIsolationSuite(world, { ...ISOLATION_CASES, ...SELF_TEST_CASES });
+  it(
+    'AC16: the suite fails on a leaky probe route and an unprotected probe table',
+    async () => {
+      const result = await runIsolationSuite(world, { ...ISOLATION_CASES, ...SELF_TEST_CASES });
 
-    const failuresOf = (operation: string) =>
-      result.failures.filter((failure) => failure.startsWith(`${operation} as `));
-    // The suite reports a failure...
-    expect(result.failures.length).toBeGreaterThan(0);
-    // ...for the route that reads a business table without the request context: B's people are
-    // handed A's clients, and A's people B's...
-    expect(failuresOf('probeLeakyClients')).toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/^probeLeakyClients as B’s owner in B: the response holds .* of A\b/),
-        expect.stringMatching(/^probeLeakyClients as A’s owner in A: the response holds .* of B\b/),
-      ]),
-    );
-    // ...for the table with no policy, where a forgotten filter leaks too...
-    expect(failuresOf(`probeNotes_${UNPROTECTED}`)).toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/as B’s owner in B: the response holds .* of A\b/),
-      ]),
-    );
-    // ...for a read that changes rows...
-    expect(failuresOf('probeWritingGet')).toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/^probeWritingGet as A’s owner in A: rows of A changed/),
-      ]),
-    );
-    // ...for a route that leaks only the text of a note, found by the marker in it...
-    expect(failuresOf('probeLeakyBodies')).toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/^probeLeakyBodies as A’s owner in A: the response holds .* of B\b/),
-        expect.stringMatching(/^probeLeakyBodies as B’s owner in B: the response holds .* of A\b/),
-      ]),
-    );
-    // ...for a policy that matches nothing: the listing is empty, and the suite says what is
-    // missing from it...
-    expect(failuresOf(`probeNotes_${STRICT}`)).toEqual(
-      expect.arrayContaining([
-        expect.stringMatching(/as A’s owner in A: the response lacks .* of A\b/),
-        expect.stringMatching(/as B’s trainer in B: the response lacks .* of B\b/),
-      ]),
-    );
-    // ...for a case that seeds nothing over the same too-strict policy: no listing could tell,
-    // so the suite reports the case, not a response...
-    expect(failuresOf('probeUnseeded')).toEqual([]);
-    expect(result.failures).toContain(
-      'probeUnseeded: a read of a workspace whose seed returns no record the suite can look for, so a policy that is too strict would pass; seed an id or a marker.',
-    );
-    // ...for a seed that returns something no stored row holds...
-    expect(result.failures.filter((f) => f.startsWith('probeUnknownSeed: '))).toEqual([
-      expect.stringMatching(
-        /^probeUnknownSeed: its seed returns note-0badc0de, which is no id or marker/,
-      ),
-      expect.stringMatching(
-        /^probeUnknownSeed: a read of a workspace whose seed returns no record/,
-      ),
-    ]);
-    // ...and for nothing else: the same route over a table with the policy is clean, and so is
-    // every other route of the suite.
-    expect(failuresOf(`probeNotes_${PROTECTED}`)).toEqual([]);
-    const others = result.failures.filter(
-      (failure) =>
-        !failure.startsWith('probeLeakyClients as ') &&
-        !failure.startsWith('probeLeakyBodies as ') &&
-        !failure.startsWith(`probeNotes_${STRICT} as `) &&
-        !failure.startsWith('probeWritingGet as ') &&
-        !failure.startsWith('probeUnseeded: ') &&
-        !failure.startsWith('probeUnknownSeed: ') &&
-        !failure.startsWith(`probeNotes_${UNPROTECTED} as `),
-    );
-    expect(others).toEqual([]);
-  });
+      const failuresOf = (operation: string) =>
+        result.failures.filter((failure) => failure.startsWith(`${operation} as `));
+      // The suite reports a failure...
+      expect(result.failures.length).toBeGreaterThan(0);
+      // ...for the route that reads a business table without the request context: B's people are
+      // handed A's clients, and A's people B's...
+      expect(failuresOf('probeLeakyClients')).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(
+            /^probeLeakyClients as B’s owner in B: the response holds .* of A\b/,
+          ),
+          expect.stringMatching(
+            /^probeLeakyClients as A’s owner in A: the response holds .* of B\b/,
+          ),
+        ]),
+      );
+      // ...for the table with no policy, where a forgotten filter leaks too...
+      expect(failuresOf(`probeNotes_${UNPROTECTED}`)).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/as B’s owner in B: the response holds .* of A\b/),
+        ]),
+      );
+      // ...for a read that changes rows...
+      expect(failuresOf('probeWritingGet')).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/^probeWritingGet as A’s owner in A: rows of A changed/),
+        ]),
+      );
+      // ...for a route that leaks only the text of a note, found by the marker in it...
+      expect(failuresOf('probeLeakyBodies')).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(
+            /^probeLeakyBodies as A’s owner in A: the response holds .* of B\b/,
+          ),
+          expect.stringMatching(
+            /^probeLeakyBodies as B’s owner in B: the response holds .* of A\b/,
+          ),
+        ]),
+      );
+      // ...for a policy that matches nothing: the listing is empty, and the suite says what is
+      // missing from it...
+      expect(failuresOf(`probeNotes_${STRICT}`)).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(/as A’s owner in A: the response lacks .* of A\b/),
+          expect.stringMatching(/as B’s trainer in B: the response lacks .* of B\b/),
+        ]),
+      );
+      // ...for a case that seeds nothing over the same too-strict policy: no listing could tell,
+      // so the suite reports the case, not a response...
+      expect(failuresOf('probeUnseeded')).toEqual([]);
+      expect(result.failures).toContain(
+        'probeUnseeded: a read of a workspace whose seed returns no record the suite can look for, so a policy that is too strict would pass; seed an id or a marker.',
+      );
+      // ...for a seed that returns something no stored row holds...
+      expect(result.failures.filter((f) => f.startsWith('probeUnknownSeed: '))).toEqual([
+        expect.stringMatching(
+          /^probeUnknownSeed: its seed returns note-0badc0de, which is no id or marker/,
+        ),
+        expect.stringMatching(
+          /^probeUnknownSeed: a read of a workspace whose seed returns no record/,
+        ),
+      ]);
+      // ...and for nothing else: the same route over a table with the policy is clean, and so is
+      // every other route of the suite.
+      expect(failuresOf(`probeNotes_${PROTECTED}`)).toEqual([]);
+      const others = result.failures.filter(
+        (failure) =>
+          !failure.startsWith('probeLeakyClients as ') &&
+          !failure.startsWith('probeLeakyBodies as ') &&
+          !failure.startsWith(`probeNotes_${STRICT} as `) &&
+          !failure.startsWith('probeWritingGet as ') &&
+          !failure.startsWith('probeUnseeded: ') &&
+          !failure.startsWith('probeUnknownSeed: ') &&
+          !failure.startsWith(`probeNotes_${UNPROTECTED} as `),
+      );
+      expect(others).toEqual([]);
+    },
+    SWEEP_TIMEOUT_MS,
+  );
 });
 
 describe('E011 the suite cannot go quiet', () => {
   let world: World;
 
   beforeAll(async () => {
-    world = await createWorld();
+    world = await createWorld({ observe: false });
   });
 
   afterAll(async () => {
     await world?.close();
   });
 
-  it('AC16: a filter that lets no call through for an operation is a failure, not a green run', async () => {
-    const result = await runIsolationSuite(world, ISOLATION_CASES, { only: () => false });
+  it(
+    'AC16: a filter that lets no call through for an operation is a failure, not a green run',
+    async () => {
+      const result = await runIsolationSuite(world, ISOLATION_CASES, { only: () => false });
 
-    expect(result.calls).toBe(0);
-    const silent = result.failures.filter((failure) => failure.includes('no call left'));
-    expect(silent.length).toBe(result.operations.length);
-    expect(silent).toContain(
-      'getMe: no call left for the actors `only` accepts, so nothing of it was tested.',
-    );
-    expect(result.operations.every((name) => silent.some((f) => f.startsWith(`${name}: `)))).toBe(
-      true,
-    );
+      expect(result.calls).toBe(0);
+      const silent = result.failures.filter((failure) => failure.includes('no call left'));
+      expect(silent.length).toBe(result.operations.length);
+      expect(silent).toContain(
+        'getMe: no call left for the actors `only` accepts, so nothing of it was tested.',
+      );
+      expect(result.operations.every((name) => silent.some((f) => f.startsWith(`${name}: `)))).toBe(
+        true,
+      );
+    },
+    SWEEP_TIMEOUT_MS,
+  );
+});
+
+describe('F015 the suite and a read that reads no record', () => {
+  let world: World;
+
+  beforeAll(async () => {
+    world = await createWorld({ observe: false });
   });
+
+  afterAll(async () => {
+    await world?.close();
+  });
+
+  it(
+    '`readsNoRecords` excuses a read with no seed from showing a record, and nothing else',
+    async () => {
+      const result = await runIsolationSuite(world, {
+        ...ISOLATION_CASES,
+        // Unseeded and flagged: no failure for the missing record...
+        probeOwner: { readsNoRecords: true },
+        // ...but a flagged case that does seed records is reported, not excused.
+        probeTeam: { readsNoRecords: true, seed: seedWorkspace },
+        // ...and an unflagged read with no seed is still a failure.
+        getWorkspace: {},
+      });
+
+      expect(result.failures.filter((f) => f.startsWith('probeOwner'))).toEqual([]);
+      expect(result.failures.filter((f) => f.startsWith('probeTeam'))).toEqual([
+        'probeTeam: marked `readsNoRecords` but its seed returns records; a route that reads records is checked by them, so drop the flag.',
+      ]);
+      expect(result.failures).toContain(
+        'getWorkspace: a read of a workspace whose seed returns no record the suite can look for, so a policy that is too strict would pass; seed an id or a marker.',
+      );
+    },
+    SWEEP_TIMEOUT_MS,
+  );
 });

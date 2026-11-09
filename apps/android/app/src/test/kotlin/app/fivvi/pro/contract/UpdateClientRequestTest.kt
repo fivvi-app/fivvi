@@ -3,7 +3,7 @@ package app.fivvi.pro.contract
 import app.fivvi.api.apis.ClientsApi
 import app.fivvi.api.infrastructure.ApiClient
 import app.fivvi.api.models.UpdateClientRequest
-import app.fivvi.pro.auth.FakeNetwork
+import app.fivvi.core.auth.FakeNetwork
 import java.util.UUID
 import kotlinx.coroutines.runBlocking
 import kotlinx.serialization.json.Json
@@ -17,10 +17,12 @@ import org.junit.Test
 
 // F006 AC7: the edit body of `PATCH /clients/{id}` as the generated Kotlin client writes it. The generated Json has
 // `explicitNulls = false` (#371), so a field the app did not set is left out, as the Swift client does. The contract
-// reads a field left out as "keep", and clears only with `clearEmail` / `clearEmailLocale`, never with a `null`. The
-// request goes through the real generated Retrofit service, with a fake network as the last interceptor.
+// reads a field left out as "keep", and resets the language only with `clearEmailLocale`, never with a `null`. The
+// email address has no clear flag: every client has one (spec #174, decision 5). The request goes through the real
+// generated Retrofit service, with a fake network as the last interceptor.
 class UpdateClientRequestTest {
-    private val network = FakeNetwork(json = """{"id":"$CLIENT","name":"Anna","email":null,"emailLocale":null}""")
+    private val network =
+        FakeNetwork(json = """{"id":"$CLIENT","name":"Anna","email":"anna@example.com","emailLocale":null}""")
 
     private val clientsApi: ClientsApi =
         ApiClient("https://example.com/api/", OkHttpClient.Builder().addInterceptor(network))
@@ -48,19 +50,18 @@ class UpdateClientRequestTest {
         assertEquals("""{"name":"Anna Visser"}""", network.bodies.single())
         // ... which the contract reads as "keep": no value and no clear flag.
         assertEquals("Anna Visser", body.value("name")?.toString()?.trim('"'))
-        for (field in listOf("email", "clearEmail", "emailLocale", "clearEmailLocale")) {
+        for (field in listOf("email", "emailLocale", "clearEmailLocale")) {
             assertEquals(field, null, body.value(field))
         }
     }
 
     @Test
-    fun F006_AC7_clearingTheEmailIsTheClearFlagAndNoEmail() {
-        val body = sent(UpdateClientRequest(clearEmail = true))
+    fun F006_AC7_theEmailAddressHasNoClearFlag() {
+        val fields = UpdateClientRequest::class.java.declaredFields
+            .filterNot { java.lang.reflect.Modifier.isStatic(it.modifiers) }
+            .map { it.name }
 
-        assertEquals("true", body.value("clearEmail")?.toString())
-        for (field in listOf("name", "email", "emailLocale", "clearEmailLocale")) {
-            assertEquals(field, null, body.value(field))
-        }
+        assertEquals(setOf("name", "email", "emailLocale", "clearEmailLocale"), fields.toSet())
     }
 
     @Test
@@ -68,7 +69,7 @@ class UpdateClientRequestTest {
         val body = sent(UpdateClientRequest(clearEmailLocale = true))
 
         assertEquals("true", body.value("clearEmailLocale")?.toString())
-        for (field in listOf("name", "email", "emailLocale", "clearEmail")) {
+        for (field in listOf("name", "email", "emailLocale")) {
             assertEquals(field, null, body.value(field))
         }
     }
@@ -81,7 +82,7 @@ class UpdateClientRequestTest {
 
         assertEquals("\"anna@example.com\"", body.value("email")?.toString())
         assertEquals("\"nl-NL\"", body.value("emailLocale")?.toString())
-        for (field in listOf("name", "clearEmail", "clearEmailLocale")) {
+        for (field in listOf("name", "clearEmailLocale")) {
             assertEquals(field, null, body.value(field))
         }
     }

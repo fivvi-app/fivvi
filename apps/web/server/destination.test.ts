@@ -38,17 +38,23 @@ describe('F002 where the signed-in home sends a person', () => {
     expect(pathOf(destination)).toBe('/w/johns-gym');
   });
 
-  it('a workspace wins over the right to create one (the API never says both)', () => {
+  it('F012: a workspace wins over the right to create one: an allowlisted account that has a workspace never sees the first-run screen', () => {
     expect(destinationOf({ canCreateWorkspace: true, workspaces: [gym] })).toEqual({
       to: 'workspace',
       slug: 'johns-gym',
     });
   });
 
-  it('with several workspaces it goes to the first, until F012 remembers the last one used', () => {
+  it('with several workspaces it goes to the first by name', () => {
     expect(destinationOf({ canCreateWorkspace: false, workspaces: [gym, studio] })).toEqual({
       to: 'workspace',
       slug: 'johns-gym',
     });
+  });
+
+  it('F012 AC4: with several workspaces it goes to the remembered one (the rule itself is tested in start-workspace.test.ts)', () => {
+    expect(
+      destinationOf({ canCreateWorkspace: false, workspaces: [gym, studio] }, 'studio-zuid'),
+    ).toEqual({ to: 'workspace', slug: 'studio-zuid' });
   });
 });

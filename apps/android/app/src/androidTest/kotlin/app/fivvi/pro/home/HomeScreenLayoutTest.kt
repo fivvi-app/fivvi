@@ -12,9 +12,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import app.fivvi.pro.AppLanguage
-import app.fivvi.pro.R
-import app.fivvi.pro.appLanguageParameters
+import app.fivvi.core.AppLanguage
+import app.fivvi.core.R
+import app.fivvi.core.appLanguageParameters
+import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.pro.assertButtonFits
 import app.fivvi.pro.assertWraps
 import app.fivvi.pro.hello.HelloState

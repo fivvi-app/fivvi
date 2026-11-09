@@ -56,9 +56,10 @@ export const MeResponseSchema = z
     }),
     canCreateWorkspace: z.boolean().openapi({
       description:
-        'Whether the account may set up a workspace: it is on the sign-up allowlist and has no ' +
-        'team role in any workspace yet. The web and the apps show the first-run screen or the ' +
-        'no-access page from this, never from rules of their own.',
+        'Whether the account may set up a workspace: it is on the sign-up allowlist, whether or ' +
+        'not it has a workspace already. With no workspace, the first-run screen shows when this ' +
+        'is true and the no-access page when it is false. The web and the apps never decide this ' +
+        'by rules of their own.',
     }),
     workspaces: z.array(MeWorkspaceSchema).openapi({
       description:
@@ -98,7 +99,8 @@ const meRoute = defineRoute(
       'cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). ' +
       'A request with an `Authorization` header is judged by that token alone, never by a cookie. ' +
       'It also tells where the person goes after sign-in: the workspaces they have a team role ' +
-      'in, and whether they may set one up (`canCreateWorkspace`).',
+      'in, and whether they may set one up (`canCreateWorkspace`: on the sign-up allowlist, also ' +
+      'when they have a workspace already).',
     security: [{ cookieAuth: [] }, { bearerAuth: [] }],
     responses: {
       200: {
@@ -224,11 +226,10 @@ export function registerMe(app: OpenAPIHono) {
     const workspaces = (await listTeamWorkspaces(c.get('scope'))).map(
       ({ trainsHere: _trainsHere, ...workspace }) => withCapabilities(workspace),
     );
-    // The rule is in packages/domain: whoever listed workspaces has a team role.
+    // The rule is in packages/domain: the sign-up allowlist, whatever workspaces the account has.
     const mayCreate = canCreateWorkspace({
       email,
       signUpAllowlist: c.get('dependencies').signUpAllowlist,
-      hasTeamRole: workspaces.length > 0,
     });
     return {
       id,

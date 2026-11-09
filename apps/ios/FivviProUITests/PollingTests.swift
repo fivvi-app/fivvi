@@ -150,4 +150,128 @@ final class PollingTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(elapsed, 30)
         XCTAssertLessThan(elapsed, 30.2, "it stopped at the deadline, not a read later")
     }
+
+    // `Polling.acting`: an action (a tap) whose result is waited for, done again when it had none (#596).
+
+    func test_E008_anActionWhoseResultComesIsDoneOnce() {
+        let clock = Clock()
+        var done = 0
+
+        let reached = Polling.acting(
+            timeout: 10, now: { clock.now }, wait: clock.wait,
+            action: { done += 1 },
+            canRepeat: { true },
+            report: { _, _ in },
+            until: { done == 1 }
+        )
+
+        XCTAssertTrue(reached)
+        XCTAssertEqual(done, 1)
+    }
+
+    /// A tap that a slow simulator dropped (the screen on show did not change for the whole wait): a person would tap
+    /// again, so the second try is the same tap, after the first one's full wait.
+    func test_E008_anActionWithoutResultIsDoneAgainAfterTheWholeWait() {
+        let clock = Clock()
+        var done = 0
+
+        let reached = Polling.acting(
+            timeout: 10, interval: 1, now: { clock.now }, wait: clock.wait,
+            action: { done += 1 },
+            canRepeat: { true },
+            report: { _, _ in },
+            until: { done == 2 }
+        )
+
+        XCTAssertTrue(reached)
+        XCTAssertEqual(done, 2)
+        XCTAssertGreaterThanOrEqual(clock.now.timeIntervalSince1970, 10, "the first try had its whole timeout")
+    }
+
+    func test_E008_anActionIsNotDoneAgainWhenItCannotBeRepeated() {
+        let clock = Clock()
+        var done = 0
+
+        let reached = Polling.acting(
+            timeout: 10, interval: 1, now: { clock.now }, wait: clock.wait,
+            action: { done += 1 },
+            canRepeat: { false },
+            report: { _, _ in },
+            until: { false }
+        )
+
+        XCTAssertFalse(reached)
+        XCTAssertEqual(done, 1, "the button is gone: a second tap would hit something else")
+    }
+
+    func test_E008_anActionThatNeverHasAResultStopsAtTheAttemptsAndFails() {
+        let clock = Clock()
+        var done = 0
+
+        let reached = Polling.acting(
+            attempts: 2, timeout: 10, interval: 1, now: { clock.now }, wait: clock.wait,
+            action: { done += 1 },
+            canRepeat: { true },
+            report: { _, _ in },
+            until: { false }
+        )
+
+        XCTAssertFalse(reached)
+        XCTAssertEqual(done, 2)
+        XCTAssertGreaterThanOrEqual(clock.now.timeIntervalSince1970, 20)
+    }
+
+    /// A tap that only works on the second try is a flaky test (`TESTING.md §8`): the repeat is reported, just before it.
+    func test_E008_aRepeatedActionIsReportedOnceBeforeTheRepeat() {
+        let clock = Clock()
+        var events: [String] = []
+
+        let reached = Polling.acting(
+            attempts: 2, timeout: 10, interval: 1, now: { clock.now }, wait: clock.wait,
+            action: { events.append("action") },
+            canRepeat: { true },
+            report: { attempt, total in events.append("report \(attempt) of \(total)") },
+            until: { events.filter { $0 == "action" }.count == 2 }
+        )
+
+        XCTAssertTrue(reached)
+        XCTAssertEqual(events, ["action", "report 2 of 2", "action"])
+    }
+
+    func test_E008_nothingIsReportedWhenTheFirstTryWorks() {
+        let clock = Clock()
+        var reports = 0
+
+        _ = Polling.acting(
+            timeout: 10, now: { clock.now }, wait: clock.wait,
+            action: {},
+            canRepeat: { true },
+            report: { _, _ in reports += 1 },
+            until: { true }
+        )
+
+        XCTAssertEqual(reports, 0)
+    }
+
+    func test_E008_nothingIsReportedWhenTheActionCannotBeRepeated() {
+        let clock = Clock()
+        var reports = 0
+
+        _ = Polling.acting(
+            timeout: 10, interval: 1, now: { clock.now }, wait: clock.wait,
+            action: {},
+            canRepeat: { false },
+            report: { _, _ in reports += 1 },
+            until: { false }
+        )
+
+        XCTAssertEqual(reports, 0, "no second tap, so nothing to report")
+    }
+
+    func test_E008_warningNamesTheTapForCI() {
+        XCTAssertEqual(
+            Polling.warning(identifier: "home.clients", attempt: 2, of: 2),
+            "::warning::flaky: tap on home.clients had no effect, tapping again (tap 2 of 2)"
+        )
+    }
 }

@@ -5,6 +5,7 @@ import Network
 final class Responder: @unchecked Sendable {
     let lock = NSLock()
     let signIn: StubServer.SignIn
+    let clientRoutes: StubClientRoutes
     var currentAnswer: StubServer.Answer
     var received: [StubServer.Request] = []
     var held: [(connection: NWConnection, locale: String?)] = []
@@ -22,6 +23,7 @@ final class Responder: @unchecked Sendable {
     init(_ answer: StubServer.Answer, signIn: StubServer.SignIn) {
         currentAnswer = answer
         self.signIn = signIn
+        clientRoutes = StubClientRoutes(empty: signIn.hasNoClients)
         storedLocale = signIn.preferredLocale
         storedName = signIn.name
     }
@@ -143,7 +145,8 @@ final class Responder: @unchecked Sendable {
         let method = line.first ?? ""
         let request = line.dropFirst().first.flatMap { URLComponents(string: $0) }
         let path = request?.path ?? ""
-        let locale = request?.queryItems?.first { $0.name == "locale" }?.value
+        let query = Dictionary(request?.queryItems?.map { ($0.name, $0.value ?? "") } ?? [], uniquingKeysWith: { $1 })
+        let locale = query["locale"]
         let json = (try? JSONSerialization.jsonObject(with: body)) as? [String: Any] ?? [:]
         let authorization = Self.header("authorization", in: head)
         let stringFields = json.compactMapValues { $0 as? String }
@@ -177,8 +180,17 @@ final class Responder: @unchecked Sendable {
                 connection, method: method, path: path, authorization: authorization, fields: stringFields
             )
         default:
-            send(connection, status: 404, json: nil)
+            let reply = clientReply(method: method, path: path, query: query, body: json, authorization: authorization)
+            send(connection, status: reply.status, json: reply.json)
         }
+    }
+
+    /// The client routes (F006) for a signed-in caller; any other path is unknown.
+    func clientReply(
+        method: String, path: String, query: [String: String], body: [String: Any], authorization: String?
+    ) -> (status: Int, json: [String: Any]?) {
+        guard authorization == "Bearer \(signIn.token)" else { return (path.contains("/clients") ? 401 : 404, nil) }
+        return clientRoutes.respond(method: method, path: path, query: query, body: body) ?? (404, nil)
     }
 
     func respond(_ connection: NWConnection, locale: String?, with answer: StubServer.Answer) {

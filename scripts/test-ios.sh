@@ -1,7 +1,8 @@
 #!/usr/bin/env bash
 # The iOS app's checks, the same steps as the `iOS` CI job (E008). `pnpm test:ios` runs this.
 #
-#   test-ios.sh   SwiftLint and its fixtures (literal text, colours, direct Sentry calls), the Debug and Release
+#   test-ios.sh   SwiftLint and its fixtures (literal text, colours, direct Sentry calls, also in apps/ios/Packages, the
+#                 code both apps share), the Debug and Release
 #                 configurations (Release's API address over HTTPS and not a placeholder, its Sentry DSN in the EU
 #                 region, no export compliance question, the version both apps share, the final bundle ID, Info.plists
 #                 in Xcode's form), the Swift package
@@ -70,19 +71,62 @@ use_xcode || die "Xcode not found — run scripts/bootstrap.sh --mobile"
 cd "$IOS_DIR"
 
 # Every line of a fixture marked `// expect: <rule>` must fail SwiftLint with that rule, naming the file and line; no
-# other line may fail with it.
-lint_fixture() {
-  local fixture=$1 rule=$2 out expected actual
-  if out="$("$SWIFTLINT" lint --strict --quiet "$fixture" 2>&1)"; then
-    echo "SwiftLint passed $fixture, which breaks $rule"
-    return 1
-  fi
+# other line may fail with it. `lint_fixture` lints the fixture by path; `fixture_lines_match` compares a fixture with the
+# output of a lint run that may cover more files.
+fixture_lines_match() {
+  local fixture=$1 rule=$2 out=$3 expected actual
   expected="$(grep -n "// expect: $rule\$" "$fixture" | cut -d: -f1)"
   actual="$(grep "($rule)" <<<"$out" | grep -oE "$(basename "$fixture"):[0-9]+" | cut -d: -f2 | sort -nu)"
   [ "$expected" = "$actual" ] && return
   echo "$fixture: expected $rule on lines $(echo "$expected" | xargs), got $(echo "$actual" | xargs):"
   echo "$out"
   return 1
+}
+
+lint_fixture() {
+  local fixture=$1 rule=$2 out
+  if out="$("$SWIFTLINT" lint --strict --quiet "$fixture" 2>&1)"; then
+    echo "SwiftLint passed $fixture, which breaks $rule"
+    return 1
+  fi
+  fixture_lines_match "$fixture" "$rule" "$out"
+}
+
+# E017 #500: the lint rules apply to the code both apps share (apps/ios/Packages), not only to the app target. Each fixture
+# is copied into a package target folder as a throwaway probe, and the configuration's own lint (`included:` in
+# .swiftlint.yml, no path given: SwiftLint ignores `included:` for a path it is given) must flag it: the literal-text,
+# colour, Sentry and glass-imitation rules in FivviUI, and in FivviObservability, the one target that may import Sentry,
+# the Sentry rule must not fire (a literal text line there proves the config does lint that folder). The probes are removed on exit.
+PACKAGE_PROBES=""
+lint_packages() {
+  local sources=Packages/FivviShared/Sources ui observability out rc=0
+  ui="$sources/FivviUI"
+  observability="$sources/FivviObservability"
+  [ -d "$ui" ] && [ -d "$observability" ] || { echo "$ui and $observability must exist"; return 1; }
+  PACKAGE_PROBES="$ui/ZzProbe*.swift $observability/ZzProbe*.swift"
+  # shellcheck disable=SC2016 # expanded when the trap runs
+  on_exit 'rm -f $PACKAGE_PROBES'
+  cp lint/fixtures/LiteralText.swift "$ui/ZzProbeLiteralText.swift"
+  cp lint/fixtures/ColourLiteral.swift "$ui/ZzProbeColourLiteral.swift"
+  cp lint/fixtures/DirectSentry.swift "$ui/ZzProbeDirectSentry.swift"
+  cp lint/fixtures/GlassImitation.swift "$ui/ZzProbeGlassImitation.swift"
+  { sed 's# // expect: .*$##' lint/fixtures/DirectSentry.swift; echo 'let probe = Text("x") // expect: no_literal_text'; } \
+    >"$observability/ZzProbeSentry.swift"
+  out="$("$SWIFTLINT" lint --strict --quiet 2>&1 || true)"
+  fixture_lines_match "$ui/ZzProbeLiteralText.swift" no_literal_text "$out" || rc=1
+  fixture_lines_match "$ui/ZzProbeColourLiteral.swift" no_colour_literal "$out" || rc=1
+  fixture_lines_match "$ui/ZzProbeDirectSentry.swift" no_direct_sentry "$out" || rc=1
+  fixture_lines_match "$ui/ZzProbeGlassImitation.swift" no_glass_imitation "$out" || rc=1
+  fixture_lines_match "$observability/ZzProbeSentry.swift" no_literal_text "$out" || rc=1
+  if grep -F ZzProbeSentry.swift <<<"$out" | grep -q "(no_direct_sentry)"; then
+    echo "SwiftLint flags the Sentry import in FivviObservability, the one target that may have it:"
+    echo "$out"
+    rc=1
+  fi
+  # shellcheck disable=SC2086 # the probe paths, split on purpose
+  rm -f $PACKAGE_PROBES
+  ON_EXIT=""
+  return "$rc"
 }
 
 # Debug's committed defaults are the local dev server and no Sentry DSN, so Debug builds, tests and CI send nothing to
@@ -308,10 +352,13 @@ catalog_sync() {
 if [ "$MODE" != test ]; then
   step "SwiftLint"
   "$SWIFTLINT" lint --strict --quiet
-  step "SwiftLint rejects literal text, colours and direct Sentry calls (lint/fixtures)"
+  step "SwiftLint rejects literal text, colours, imitated glass and direct Sentry calls (lint/fixtures)"
   lint_fixture lint/fixtures/LiteralText.swift no_literal_text
   lint_fixture lint/fixtures/ColourLiteral.swift no_colour_literal
+  lint_fixture lint/fixtures/GlassImitation.swift no_glass_imitation
   lint_fixture lint/fixtures/DirectSentry.swift no_direct_sentry
+  step "SwiftLint's rules cover the shared packages (apps/ios/Packages)"
+  lint_packages
   step "Every UI test runs in at least one test-plan configuration"
   test_plan_coverage
   step "Debug and Release configurations"
@@ -364,10 +411,13 @@ TEST_ALLOWANCE_MAX=180
 # bootstraps) or between tests is not one, so a run that is still going after this many seconds is interrupted (#305).
 # SIGINT is meant to let xcodebuild wind down and write its result bundle; that is not verified (a local try with
 # Xcode 27.1 left no bundle and xcodebuild still running after 90 s), so after the grace it is killed and the run
-# fails either way, with or without a bundle. A healthy run takes 10-16 minutes with the
-# simulator settle; the CI job's own timeout (25 minutes) stays above the deadline plus the grace, the reports and
-# the upload. IOS_TEST_DEADLINE and IOS_TEST_DEADLINE_GRACE override them (the tests of this script use short ones).
-TEST_DEADLINE=${IOS_TEST_DEADLINE:-1080}
+# fails either way, with or without a bundle. The deadline counts from the launch of xcodebuild, after the simulator
+# boot and settle. A healthy run takes 11-17 minutes of xcodebuild (#393: up to 1032 s; the CI step, with the settle,
+# up to 1252 s); the CI job's own timeout (38 minutes = 2280 s) stays above the deadline (1790 s) plus the grace (60 s)
+# and the 310 s the job spends outside the deadline (boot and settle, other steps, the reports and the upload), with
+# 120 s to spare. IOS_TEST_DEADLINE and IOS_TEST_DEADLINE_GRACE override them (the tests of
+# this script use short ones).
+TEST_DEADLINE=${IOS_TEST_DEADLINE:-1790}
 TEST_DEADLINE_GRACE=${IOS_TEST_DEADLINE_GRACE:-60}
 
 run_tests() {

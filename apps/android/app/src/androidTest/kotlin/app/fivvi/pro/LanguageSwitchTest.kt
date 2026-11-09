@@ -7,15 +7,19 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import app.fivvi.api.models.MeResponse
 import app.fivvi.api.models.UpdateMeRequest
-import app.fivvi.pro.auth.InMemorySessionStore
-import app.fivvi.pro.auth.Session
+import app.fivvi.core.AppLanguage
+import app.fivvi.core.InMemoryLanguageStore
+import app.fivvi.core.R
+import app.fivvi.core.appLanguageParameters
+import app.fivvi.core.auth.InMemorySessionStore
+import app.fivvi.core.auth.Session
+import app.fivvi.core.me.FakeMeApi
+import app.fivvi.core.signin.FakeSignInApi
+import app.fivvi.core.signin.SignInTags
 import app.fivvi.pro.hello.FakeHelloApi
-import app.fivvi.pro.home.FakeMeApi
 import app.fivvi.pro.home.HomeTags
 import app.fivvi.pro.home.ProfileTags
-import app.fivvi.pro.signin.FakeSignInApi
 import app.fivvi.pro.signin.SignInSteps
-import app.fivvi.pro.signin.SignInTags
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -61,7 +65,7 @@ class LanguageSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val 
 
         compose.waitUntil(UI_TIMEOUT_MILLIS) { me.updates.isNotEmpty() }
         compose.onNodeWithTag(ProfileTags.LANGUAGE).assertTextEquals(string(other, R.string.profile_language))
-        compose.onNodeWithTag(ProfileTags.TITLE).assertTextEquals(string(other, R.string.my_profile_title))
+        compose.onNodeWithTag(ProfileTags.TITLE).assertTextEquals(string(other, R.string.profile_title))
         compose.onNodeWithTag("${ProfileTags.LANGUAGE}.${other.tag}").assertIsSelected()
         assertEquals(
             listOf(

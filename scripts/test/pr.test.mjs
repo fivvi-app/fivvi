@@ -1384,6 +1384,139 @@ describe('pr.sh create: which local check runs before the push', () => {
     assert.deepEqual(result.checks, []);
   });
 
+  // #509: a spec closes through its tickets (flow.sh complete, issue.sh close), so a PR on its own branch refers to it.
+  describe('#509: the issue reference of a PR on the branch of a spec', () => {
+    const view = (labels, subIssues = 0) => ({
+      match: '^issue view 57 .*--json labels',
+      out: {
+        labels: labels.map((name) => ({ name })),
+        subIssues: {
+          totalCount: subIssues,
+          nodes: Array.from({ length: subIssues }, (_, i) => ({ number: 100 + i })),
+        },
+      },
+    });
+    const createWith = (rule, { existing = false, body, args = [] } = {}) => {
+      const result = spawnSync(
+        join(repo, 'scripts/pr.sh'),
+        ['create', '--no-check', ...(body === undefined ? [] : ['--body-file', '-']), ...args],
+        {
+          cwd: repo,
+          encoding: 'utf8',
+          input: body ?? '',
+          env: gh.env([
+            rule,
+            { match: '^pr list ', out: existing ? [{ number: 60 }] : [] },
+            { match: '^issue view 57 ', out: { title: 'Hold a spot' } },
+            { match: '^pr create ', out: 'https://github.com/example/fivvi/pull/60' },
+            { match: '^pr edit ', out: '' },
+            { match: '^pr view 60 ', out: { url: 'https://github.com/example/fivvi/pull/60' } },
+          ]),
+        },
+      );
+      const arg = (name) => {
+        const call = gh.calls().find((c) => c.args[0] === 'pr' && c.args[1] === name);
+        return call?.args[call.args.indexOf('--body') + 1];
+      };
+      return { ...result, created: arg('create'), edited: arg('edit') };
+    };
+
+    it('writes Refs #n instead of Closes #n for a labelled spec', () => {
+      const result = createWith(view(['spec', 'spec-approved']), { body: '## Summary\n\nADR.' });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.created, '## Summary\n\nADR.\n\nRefs #57');
+    });
+
+    it('writes Refs #n for an issue with sub-issues and no spec label', () => {
+      const result = createWith(view([], 2), { body: 'Body.' });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.created, 'Body.\n\nRefs #57');
+    });
+
+    it('writes Refs #n when --body-file replaces the body of an open PR, and keeps a Refs already there', () => {
+      const first = createWith(view(['spec']), { existing: true, body: 'Body.' });
+      assert.equal(first.status, 0, first.stderr);
+      assert.equal(first.edited, 'Body.\n\nRefs #57');
+      const again = createWith(view(['spec']), { existing: true, body: 'Body.\n\nRefs #57' });
+      assert.equal(again.status, 0, again.stderr);
+      assert.equal(again.edited, 'Body.\n\nRefs #57');
+    });
+
+    it('refuses a body that closes the spec, naming Refs, before it pushes anything', () => {
+      for (const keyword of [
+        'Closes #57',
+        'fixes #57',
+        'RESOLVES #57',
+        'Fixed #57',
+        'Closes: #57',
+        'close #57',
+        'Resolved #57',
+        'closed #57',
+        'fix #57',
+        'resolve #57',
+        'Closes example/fivvi#57',
+        'fixes: example/fivvi#57',
+        'Closes https://github.com/example/fivvi/issues/57',
+      ]) {
+        const result = createWith(view(['spec']), { body: `Body.\n\n${keyword}` });
+        assert.equal(result.status, 1, keyword);
+        assert.match(
+          result.stderr,
+          /spec #57 closes through its tickets, not a PR: write Refs #57/,
+        );
+        assert.equal(result.created, undefined, keyword);
+      }
+      for (const body of [
+        'Closes #570 and Refs #57',
+        'Closes other/repo#57 and Refs #57',
+        'disclose #57',
+      ]) {
+        const other = createWith(view(['spec']), { body });
+        assert.equal(other.status, 0, `${body}: ${other.stderr}`);
+      }
+    });
+
+    it('adds no second Closes to a ticket whose body closes it in any form GitHub knows', () => {
+      for (const keyword of [
+        'Fixed #57',
+        'Closes: #57',
+        'close #57',
+        'Resolved #57',
+        'Closes example/fivvi#57',
+      ]) {
+        const body = `Body.\n\n${keyword}`;
+        const result = createWith(view(['ready-for-agent']), { body });
+        assert.equal(result.status, 0, result.stderr);
+        assert.equal(result.created, body, keyword);
+      }
+    });
+
+    it('still writes Closes #n for a ticket, a bug and a spec built as its own ticket', () => {
+      for (const rule of [
+        view(['ready-for-agent']),
+        view(['bug', 'ready-for-agent']),
+        view(['spec', 'spec-approved', 'ready-for-agent']),
+        { match: '^issue view 57 .*--json labels', out: { title: 'Hold a spot' } },
+      ]) {
+        const result = createWith(rule, { body: 'Body.' });
+        assert.equal(result.status, 0, result.stderr);
+        assert.equal(result.created, 'Body.\n\nCloses #57', JSON.stringify(rule.out));
+      }
+    });
+
+    it('a spec with sub-issues is not its own ticket even when ready-for-agent', () => {
+      const result = createWith(view(['spec', 'ready-for-agent'], 3), { body: 'Body.' });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.created, 'Body.\n\nRefs #57');
+    });
+
+    it('a new PR without --body-file gets Refs #n alone for a spec', () => {
+      const result = createWith(view(['spec']));
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.created, 'Refs #57');
+    });
+  });
+
   // #292 AC12: owner-only edits do not ride along in a ticket PR; the builder moves them to a PR of their own.
   describe('#292: names the owner-only reasons of a ticket PR after the push', () => {
     const riskRules = (files, ticketLabels = []) => [
@@ -1664,15 +1797,15 @@ describe('E002 #107 pr.sh ship', () => {
     assert.ok(!result.calls.some((call) => /^pr ready/.test(call)));
   });
 
-  it('E002 #107 AC2: waits up to 45 minutes when iOS or Android run, 20 otherwise', () => {
+  it('E002 #107 AC2: waits up to 60 minutes when iOS or Android run, 20 otherwise', () => {
     const native = ship();
-    assert.match(native.stdout, /up to 45 min/);
+    assert.match(native.stdout, /up to 60 min/);
     const rollup = ['Detect changes', 'Checks (Linux)', 'E2E (Linux)'].map((name) =>
       checkRun(name),
     );
     const linux = ship({ ci: checks(['Detect changes', 'Checks (Linux)', 'E2E (Linux)']), rollup });
     assert.match(linux.stdout, /up to 20 min/);
-    assert.doesNotMatch(linux.stdout, /up to 45 min/);
+    assert.doesNotMatch(linux.stdout, /up to 60 min/);
   });
 
   it('E002 #107 AC2: keeps the 20-minute wait when the native jobs are skipped, as they are in most PRs', () => {
@@ -1683,7 +1816,57 @@ describe('E002 #107 pr.sh ship', () => {
     const result = ship({ ci });
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /up to 20 min/);
-    assert.doesNotMatch(result.stdout, /up to 45 min/);
+    assert.doesNotMatch(result.stdout, /up to 60 min/);
+  });
+
+  describe('E002 #416 the limit rises on the native parts, not only on the gate', () => {
+    const base = checks(['Detect changes', 'Checks (Linux)', 'E2E (Linux)']);
+    const limit = (result, job) => {
+      const line = result.stdout.match(new RegExp(`${job} run: waiting up to (\\d+) min`));
+      return line && Number(line[1]);
+    };
+
+    it('AC1: raises the limit when only a part such as iOS build is pending, before the gate is listed', () => {
+      const result = ship({ ci: [...base, ...checks(['iOS build'], 'pending')] });
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /waiting up to 20 min for CI on/);
+      assert.ok(limit(result, 'iOS') > 20, result.stdout);
+    });
+
+    it('AC1: also raises it for iOS tests (nl) and Android Maestro, and names the job', () => {
+      const ios = ship({ ci: [...base, ...checks(['iOS tests (nl)'], 'pending')] });
+      assert.ok(limit(ios, 'iOS') > 20, ios.stdout);
+      const android = ship({ ci: [...base, ...checks(['Android Maestro'], 'pending')] });
+      assert.ok(limit(android, 'Android') > 20, android.stdout);
+      assert.equal(limit(android, 'iOS'), null);
+    });
+
+    it('AC1: still raises it for the gate itself', () => {
+      const result = ship({ ci: [...base, ...checks(['Android'])] });
+      assert.ok(limit(result, 'Android') > 20, result.stdout);
+    });
+
+    it('AC2: keeps the 20-minute wait when every native part is skipping', () => {
+      const ci = [
+        ...base,
+        ...checks(['iOS', 'iOS build', 'iOS tests (nl)', 'Android', 'Android Maestro'], 'skipping'),
+      ];
+      const result = ship({ ci });
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /waiting up to 20 min for CI on/);
+      assert.doesNotMatch(result.stdout, /iOS run|Android run/);
+    });
+
+    it('AC3: a name that only contains the word does not count', () => {
+      const ci = [
+        ...base,
+        ...checks(['Checks (iOS-free)', 'Android-free', 'Not iOS build'], 'pending'),
+      ];
+      const result = ship({ ci });
+      assert.equal(result.status, 0, result.stderr);
+      assert.doesNotMatch(result.stdout, /iOS run|Android run/);
+      assert.match(result.stdout, /waiting up to 20 min for CI on/);
+    });
   });
 
   it('E002 #107 AC2: lets --timeout choose the wait', () => {

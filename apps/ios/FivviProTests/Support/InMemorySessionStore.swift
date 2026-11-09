@@ -1,6 +1,7 @@
 import Foundation
 
 @testable import FivviPro
+@testable import FivviSession
 
 /// A `SessionStore` that keeps the token in memory, for tests of everything but the Keychain itself.
 final class InMemorySessionStore: SessionStore, @unchecked Sendable {

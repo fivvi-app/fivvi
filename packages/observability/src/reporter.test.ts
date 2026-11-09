@@ -93,4 +93,92 @@ describe('E009 error reporter', () => {
       'Error',
     ]);
   });
+
+  it('E012 AC5: tags an error with the cron task and run, and drops every other tag', async () => {
+    const transport = createCaptureTransport();
+    const reporter = createErrorReporter({ env: ENV, transport });
+
+    reporter.captureError(new Error('Job failed'), {
+      tags: {
+        'cron.task': 'lettermint-usage',
+        'cron.run_id': '3f2e1d0c-9b8a-4765-8432-10fedcba9876',
+        client_name: 'Anna',
+      },
+    });
+    await reporter.flush();
+
+    expect(transport.events[0]?.tags).toEqual({
+      'cron.task': 'lettermint-usage',
+      'cron.run_id': '3f2e1d0c-9b8a-4765-8432-10fedcba9876',
+    });
+  });
+
+  describe('E012 AC10 cron monitor check-ins', () => {
+    const monitor = {
+      slug: 'cron',
+      crontab: '*/5 * * * *',
+      checkinMargin: 5,
+      maxRuntime: 4,
+      timezone: 'UTC',
+    };
+
+    it('sends the check-in in progress, then ok with its duration, under one check-in ID', async () => {
+      const transport = createCaptureTransport();
+      const reporter = createErrorReporter({ env: ENV, transport });
+
+      const checkIn = reporter.startCheckIn(monitor);
+      checkIn.finish('ok');
+      await reporter.flush();
+
+      expect(transport.itemTypes).toEqual(['check_in', 'check_in']);
+      const [started, finished] = transport.checkIns;
+      expect(started).toMatchObject({
+        monitor_slug: 'cron',
+        status: 'in_progress',
+        environment: 'preview',
+        release: SHA,
+        monitor_config: {
+          schedule: { type: 'crontab', value: '*/5 * * * *' },
+          checkin_margin: 5,
+          max_runtime: 4,
+          timezone: 'UTC',
+        },
+      });
+      expect(finished).toMatchObject({ monitor_slug: 'cron', status: 'ok' });
+      expect(finished?.check_in_id).toBe(started?.check_in_id);
+      expect(typeof finished?.duration).toBe('number');
+    });
+
+    it('sends error when the run failed', async () => {
+      const transport = createCaptureTransport();
+      const reporter = createErrorReporter({ env: ENV, transport });
+
+      reporter.startCheckIn(monitor).finish('error');
+      await reporter.flush();
+
+      expect(transport.checkIns.map((checkIn) => checkIn.status)).toEqual(['in_progress', 'error']);
+    });
+
+    it('sends only the last status once, however often finish is called', async () => {
+      const transport = createCaptureTransport();
+      const reporter = createErrorReporter({ env: ENV, transport });
+
+      const checkIn = reporter.startCheckIn(monitor);
+      checkIn.finish('ok');
+      checkIn.finish('error');
+      await reporter.flush();
+
+      expect(transport.checkIns.map((sent) => sent.status)).toEqual(['in_progress', 'ok']);
+    });
+
+    it('sends nothing without a DSN', async () => {
+      const transport = createCaptureTransport();
+      const reporter = createErrorReporter({ env: {}, transport });
+
+      reporter.startCheckIn(monitor).finish('ok');
+
+      expect(await reporter.flush()).toBe(true);
+      expect(transport.itemTypes).toEqual([]);
+    });
+  });
 });

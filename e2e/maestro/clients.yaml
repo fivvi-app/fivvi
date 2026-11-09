@@ -1,0 +1,148 @@
+# F006 native Klanten (spec #174, AC1 and AC12), against the local stack: John (the seeded owner@example.com) opens
+# Klanten of John's Gym, sees the seeded synthetic clients (AC15), searches by part of a name, adds a client with only a
+# name and an email address (AC1: the profile opens and the language for emails is the workspace default, named), is
+# offered Anna instead of a second client when he adds her address (AC3), and edits the new client in the overview (AC7).
+# The sign-in is the shared sub-flow. Elements are found by id: the Android testTag and the iOS accessibilityIdentifier,
+# the same on both apps (clients.*, clients.add.*, clientProfile.*, clientProfile.edit.*; the row ids end in the
+# client's ID, so rows are found by their text). Text is matched where the Text carries the id; a button's label sits on
+# a child in the Compose tree, so buttons are found by id alone. The language line is checked by what both languages
+# share, "Nederlands" or "Dutch": scripts/maestro.sh passes no client texts, and the exact wording is proven in the
+# Compose tests in both languages. The run adds clients to the seeded database in each locale, and every client needs an
+# email address that is new to the workspace (the same one answers 409, AC3), so the flow adds an address of its own for
+# each run: the time is in it. The flow's own client is Tess, who sorts after the seeded Sophie, so the list starts with
+# the seeded clients however many runs there were: Anna, Lisa (the client account of the personal calendar, F013), Mark
+# and Sophie. Lisa sits between Anna and Mark, so on a small phone Mark and Sophie can sit lower than the first screen:
+# the flow scrolls to them instead of expecting them there. The database is never emptied between runs (#381): after
+# this change start from a fresh one once, as the clients of the old flow (Carla Bos-Smit, sorting before Mark) push
+# Mark and Sophie off the screen.
+appId: ${APP_ID}
+name: AC1 AC12 Klanten list, search, add, profile and edit
+env:
+  # The Android application id and the iOS bundle id.
+  APP_ID: app.fivvi.pro
+  # John: seeded, the Owner of John's Gym (packages/database/src/seed.ts).
+  EMAIL: owner@example.com
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: shared/sign-in.yaml
+# AC12: Klanten lists the clients of the workspace, as the web does.
+- extendedWaitUntil:
+    visible:
+      id: home\.openClients
+    timeout: 20000
+- tapOn:
+    id: home\.openClients
+- extendedWaitUntil:
+    visible:
+      id: clients\.list
+    timeout: 20000
+- extendedWaitUntil:
+    visible: .*Anna de Vries.*
+    timeout: 20000
+- scrollUntilVisible:
+    element: .*Mark Jansen.*
+- scrollUntilVisible:
+    element: .*Sophie Bakker.*
+# AC6 and AC12: the search finds part of a name (case does not matter).
+- tapOn:
+    id: clients\.search
+- inputText: VRIE
+- extendedWaitUntil:
+    notVisible: .*Sophie Bakker.*
+    timeout: 20000
+- assertVisible: .*Anna de Vries.*
+- assertNotVisible: .*Mark Jansen.*
+- eraseText: 4
+- extendedWaitUntil:
+    visible: .*Anna de Vries.*
+    timeout: 20000
+- scrollUntilVisible:
+    element: .*Sophie Bakker.*
+# The keyboard of the search field would cover the primary action.
+- hideKeyboard
+# AC1: a name and an email address are needed; the profile opens, and the language for emails is the workspace default
+# (named).
+- evalScript: ${output.tessEmail = 'tess.' + Date.now() + '@example.com'}
+- tapOn:
+    id: clients\.add
+- extendedWaitUntil:
+    visible:
+      id: clients\.add\.name
+    timeout: 20000
+- tapOn:
+    id: clients\.add\.name
+- inputText: Tess Bos
+- tapOn:
+    id: clients\.add\.email
+- inputText: ${output.tessEmail}
+- tapOn:
+    id: clients\.add\.submit
+- extendedWaitUntil:
+    visible:
+      id: clientProfile\.title
+      text: Tess Bos
+    timeout: 20000
+- assertVisible:
+    id: clientProfile\.name
+    text: Tess Bos
+- assertVisible:
+    id: clientProfile\.email
+    text: ${output.tessEmail}
+- assertVisible:
+    id: clientProfile\.language
+    text: .*(Nederlands|Dutch).*
+# AC7: the overview edits the name and shows the change.
+- tapOn:
+    id: clientProfile\.edit
+- extendedWaitUntil:
+    visible:
+      id: clientProfile\.edit\.name
+    timeout: 20000
+- tapOn:
+    id: clientProfile\.edit\.name
+- eraseText: 20
+- inputText: Tess Bos-Smit
+- tapOn:
+    id: clientProfile\.edit\.save
+- extendedWaitUntil:
+    visible:
+      id: clientProfile\.title
+      text: Tess Bos-Smit
+    timeout: 20000
+# AC3: the address of Anna offers Anna instead of a second client.
+- tapOn:
+    id: clientProfile\.back
+- extendedWaitUntil:
+    visible:
+      id: clients\.add
+    timeout: 20000
+- tapOn:
+    id: clients\.add
+- extendedWaitUntil:
+    visible:
+      id: clients\.add\.name
+    timeout: 20000
+- tapOn:
+    id: clients\.add\.name
+- inputText: Anna
+- tapOn:
+    id: clients\.add\.email
+- inputText: Anna@Example.com
+- tapOn:
+    id: clients\.add\.submit
+- extendedWaitUntil:
+    visible:
+      id: clients\.add\.duplicate
+    timeout: 20000
+- tapOn:
+    id: clients\.add\.openExisting
+- extendedWaitUntil:
+    visible:
+      id: clientProfile\.title
+      text: Anna de Vries
+    timeout: 20000
+- assertVisible:
+    id: clientProfile\.email
+    text: anna@example.com

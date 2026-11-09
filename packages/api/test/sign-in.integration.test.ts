@@ -229,10 +229,18 @@ describe('F001 sign in with the emailed code through the API', () => {
     allowlist = parseSignUpAllowlist(undefined);
     await client.db.delete(authVerifications);
     await client.db.delete(authRateLimits);
-    // Accounts that first sign-ins created: only the seeded accounts stay (John and Sarah).
+    // Accounts that first sign-ins created: only the seeded accounts stay (John, Sarah, Tom, Lisa and Mike).
     await client.db
       .delete(authUsers)
-      .where(notInArray(authUsers.email, ['owner@example.com', 'trainer@example.com']));
+      .where(
+        notInArray(authUsers.email, [
+          'owner@example.com',
+          'trainer@example.com',
+          'tom@example.com',
+          'lisa@example.com',
+          'mike@example.com',
+        ]),
+      );
     await resetTrainerAccount();
   });
 
@@ -886,7 +894,7 @@ describe('F001 sign in with the emailed code through the API', () => {
       expect(transport.sent).toEqual([]);
       // No account, and no verification that a code could be entered for.
       expect(await client.db.$count(authUsers, eq(authUsers.email, 'nobody@example.com'))).toBe(0);
-      expect(await client.db.$count(authUsers)).toBe(2);
+      expect(await client.db.$count(authUsers)).toBe(5);
       expect(await verifications()).toEqual([]);
     });
 
@@ -921,7 +929,7 @@ describe('F001 sign in with the emailed code through the API', () => {
       }
 
       expect(transport.sent).toEqual([]);
-      expect(await client.db.$count(authUsers)).toBe(2);
+      expect(await client.db.$count(authUsers)).toBe(5);
     });
 
     it('AC8: with no allowlist at all, sign-up is closed even for example.com', async () => {

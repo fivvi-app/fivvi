@@ -2,10 +2,8 @@ package app.fivvi.pro
 
 import android.content.ActivityNotFoundException
 import android.content.Context
-import android.content.ContextWrapper
 import android.content.Intent
 import android.content.res.Configuration
-import android.content.res.Resources
 import android.net.Uri
 import android.os.Bundle
 import android.os.LocaleList
@@ -16,7 +14,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -25,28 +22,33 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import app.fivvi.api.models.MeWorkspace
+import app.fivvi.core.AppLanguage
+import app.fivvi.core.LanguageViewModel
+import app.fivvi.core.observability.Observability
+import app.fivvi.core.signin.SignInActions
+import app.fivvi.core.signin.SignInScreen
+import app.fivvi.core.signin.SignInViewModel
+import app.fivvi.core.theme.FivviTheme
+import app.fivvi.core.ui.Localized
+import app.fivvi.core.ui.OnForeground
+import app.fivvi.core.web.SiteLinks
 import app.fivvi.pro.capabilities.WorkspaceCapabilities
+import app.fivvi.pro.clients.ClientsFlow
 import app.fivvi.pro.hello.HelloViewModel
+import app.fivvi.pro.home.HomeDestination
 import app.fivvi.pro.home.HomeScreen
 import app.fivvi.pro.home.HomeViewModel
+import app.fivvi.pro.home.MeState
 import app.fivvi.pro.home.ProfileActions
 import app.fivvi.pro.home.ProfileScreen
 import app.fivvi.pro.home.ProfileViewModel
 import app.fivvi.pro.home.WebLinks
-import app.fivvi.pro.observability.Observability
-import app.fivvi.pro.signin.SignInActions
-import app.fivvi.pro.signin.SignInScreen
-import app.fivvi.pro.signin.SignInViewModel
-import app.fivvi.pro.theme.FivviTheme
+import java.util.UUID
 
 class MainActivity : ComponentActivity() {
     // The resources follow the resolved language, not Android's own match: an unsupported device language would
@@ -80,27 +82,6 @@ class MainActivity : ComponentActivity() {
         }
     }
 
-    // The screens read their strings from the context that follows the language, so a switch re-renders in place:
-    // no restart, and what was typed stays in the view models.
-    @Composable
-    private fun Localized(language: AppLanguage, content: @Composable () -> Unit) {
-        val configuration = remember(language) {
-            Configuration(resources.configuration).apply { setLocales(LocaleList(language.locale)) }
-        }
-        val localized = remember(language) {
-            val resources = createConfigurationContext(configuration).resources
-            object : ContextWrapper(this) {
-                override fun getResources(): Resources = resources
-            }
-        }
-        CompositionLocalProvider(
-            LocalContext provides localized,
-            LocalConfiguration provides configuration,
-            LocalResources provides localized.resources,
-            content = content,
-        )
-    }
-
     // The view models belong to one sign-in (the key holds its generation), so the next one starts fresh. The sign-in
     // view model outlives a language switch, so the address typed stays; its email follows the language shown (AC4).
     @Composable
@@ -131,10 +112,11 @@ class MainActivity : ComponentActivity() {
     }
 
     // The system browser, never a web view: creating a workspace happens on the web only (F002 AC10).
-    private fun openWelcomeOnTheWeb() {
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(WebLinks.welcomeUrl(BuildConfig.API_BASE_URL)))
+    private fun openWelcomeOnTheWeb() = openOnTheWeb(WebLinks.welcomeUrl(BuildConfig.API_BASE_URL))
+
+    private fun openOnTheWeb(url: String) {
         try {
-            startActivity(intent)
+            startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
         } catch (_: ActivityNotFoundException) {
             // A phone without a browser can't open it; there is nothing else to do here.
         }
@@ -143,7 +125,14 @@ class MainActivity : ComponentActivity() {
     // Profiel (TM-04): opened from the home; it reads the name, the email address and the workspaces on opening and on
     // foreground (F003 AC9, F005).
     @Composable
-    private fun Profile(dependencies: AppDependencies, key: String, opening: Int, languages: LanguageViewModel) {
+    private fun Profile(
+        dependencies: AppDependencies,
+        key: String,
+        opening: Int,
+        languages: LanguageViewModel,
+        currentWorkspace: UUID?,
+        onSelectWorkspace: (UUID) -> Unit,
+    ) {
         val profile = viewModel(key = "profile-$key-$opening") {
             ProfileViewModel(dependencies.meApi, dependencies.trainersApi)
         }
@@ -162,18 +151,12 @@ class MainActivity : ComponentActivity() {
             language = language,
             languageSaveFailed = saveFailed,
             onChooseLanguage = languages::choose,
+            currentWorkspace = currentWorkspace,
+            onSelectWorkspace = onSelectWorkspace,
+            // The page of the website in the language shown (F064 AC17), in the system browser.
+            onOpenSitePage = { openOnTheWeb(SiteLinks.url(it, language)) },
         )
         ProfileScreen(state, editor, actions)
-    }
-
-    // Runs [action] each time the app comes back to the foreground, not at the start that composing this already covers
-    // (the observer is told the current state when it is added).
-    @Composable
-    private fun OnForeground(action: () -> Unit) {
-        var first by remember { mutableStateOf(true) }
-        LifecycleEventEffect(Lifecycle.Event.ON_START) {
-            if (first) first = false else action()
-        }
     }
 
     @Composable
@@ -182,7 +165,7 @@ class MainActivity : ComponentActivity() {
             HelloViewModel(dependencies.helloApi, language.apiLocale)
         }
         // What the API lists per workspace (F004 AC10), the one helper that decides which actions show. `GET /v1/me` fills
-        // it on opening and on foreground; no screen guards an action yet (F006's *+ Nieuwe klant*, M4, is the first).
+        // it on opening and on foreground; *Klanten* and *+ Nieuwe klant* (F006, M4) show from it, and nothing else decides.
         val capabilities = viewModel(key = "capabilities-$key") { WorkspaceCapabilities(dependencies.meApi) }
         val languages = viewModel(key = "language-$key") {
             LanguageViewModel(dependencies.meApi, dependencies.languagePreference, capabilities::replace)
@@ -192,6 +175,7 @@ class MainActivity : ComponentActivity() {
                 dependencies.meApi,
                 dependencies.workspacesApi,
                 dependencies.session,
+                dependencies.currentWorkspace,
                 dependencies::signOutApi,
                 onAccount = Observability::setUser,
                 onPreferredLocale = languages::onStored,
@@ -202,6 +186,11 @@ class MainActivity : ComponentActivity() {
         val meState by me.state.collectAsStateWithLifecycle()
         val signingOut by me.signingOut.collectAsStateWithLifecycle()
         var showsProfile by rememberSaveable { mutableStateOf(false) }
+        var showsClients by rememberSaveable { mutableStateOf(false) }
+        val shown = (meState as? MeState.Loaded)?.destination as? HomeDestination.Workspace
+        val allowed by capabilities.capabilities.collectAsStateWithLifecycle()
+        // Klanten (TM-02) of the workspace shown: only while the API lists `clients.view` there (F004 AC10).
+        val mayViewClients = shown != null && allowed.mayShow(shown.id, MeWorkspace.Capabilities.CLIENTS_PERIOD_VIEW)
         // Each opening of Profiel gets a new view model, so it reads the list again (F003 AC9).
         var profileOpenings by rememberSaveable { mutableIntStateOf(0) }
 
@@ -210,9 +199,33 @@ class MainActivity : ComponentActivity() {
         // On foreground the stored language is read again: a change made elsewhere is adopted (F010 AC2).
         OnForeground(languages::refresh)
 
+        if (showsClients && shown != null) {
+            ClientsFlow(
+                dependencies.clientsApi,
+                dependencies.workspacesApi,
+                capabilities,
+                shown.id,
+                shown.name,
+                sessionKey = key,
+                onClose = { showsClients = false },
+            )
+            return
+        }
         if (showsProfile) {
             BackHandler { showsProfile = false }
-            Profile(dependencies, key, profileOpenings, languages)
+            Profile(
+                dependencies,
+                key,
+                profileOpenings,
+                languages,
+                currentWorkspace = shown?.id,
+                // A tap on another workspace switches to it; either way the app is back on the first tab (F012 AC6).
+                onSelectWorkspace = { id ->
+                    showsProfile = false
+                    showsClients = false
+                    me.switchWorkspace(id)
+                },
+            )
             return
         }
         HomeScreen(
@@ -227,6 +240,7 @@ class MainActivity : ComponentActivity() {
                 profileOpenings++
                 showsProfile = true
             },
+            onOpenClients = if (mayViewClients) ({ showsClients = true }) else null,
         )
     }
 }

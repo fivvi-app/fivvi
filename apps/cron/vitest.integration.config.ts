@@ -6,5 +6,8 @@ if (existsSync('../../packages/database/.env')) {
   process.loadEnvFile('../../packages/database/.env');
 }
 
-// Runs the job entrypoint against a real Postgres (TESTING.md §5.3).
-export default integrationConfig();
+// Runs the runner and the job entrypoint against a real Postgres (TESTING.md §5.3). The global
+// setup migrates one template database per run; test files clone it.
+export default integrationConfig({
+  test: { globalSetup: ['./test/global-setup.ts'] },
+});

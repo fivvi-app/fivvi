@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { CLIENT_NAME_MAX_LENGTH, decideNewClient, normalizeEmail } from './new-client.ts';
+import { normalizeEmail } from '../email.ts';
+import { CLIENT_NAME_MAX_LENGTH, decideNewClient } from './new-client.ts';
 
 describe('F006 AC2: an email address is stored lower case', () => {
   it('lowers the case and drops the spaces around it', () => {
@@ -13,10 +14,6 @@ describe('F006 AC2: an email address is stored lower case', () => {
 });
 
 describe('F006 AC3, AC4: whether a new client is added, and to which account it is linked', () => {
-  it('adds a client without an email address, linked to nothing', () => {
-    expect(decideNewClient({})).toEqual({ outcome: 'add', accountId: null });
-  });
-
   it('adds a client with an email address nobody in the workspace uses and no account has', () => {
     expect(decideNewClient({ email: 'anna@example.com' })).toEqual({
       outcome: 'add',
@@ -61,12 +58,5 @@ describe('F006 AC3, AC4: whether a new client is added, and to which account it 
         clientOfAccount: { id: 'by-account' },
       }),
     ).toEqual({ outcome: 'duplicate', clientId: 'by-email' });
-  });
-
-  it('never links a client without an email address, whatever else it is told', () => {
-    expect(decideNewClient({ accountId: 'account-anna' })).toEqual({
-      outcome: 'add',
-      accountId: null,
-    });
   });
 });

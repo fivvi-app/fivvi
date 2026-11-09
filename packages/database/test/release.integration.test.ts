@@ -121,10 +121,10 @@ describe('E011 app role in the release step', () => {
       expect(await appGrants(client.db)).toEqual(grants);
       expect(grants).toEqual(
         Object.fromEntries(
-          Object.entries(APP_TABLE_PRIVILEGES).map(([table, privileges]) => [
-            table,
-            [...privileges].sort(),
-          ]),
+          // A table with an empty list is one the app role must not touch (`job_runs`, E012).
+          Object.entries(APP_TABLE_PRIVILEGES)
+            .filter(([, privileges]) => privileges.length > 0)
+            .map(([table, privileges]) => [table, [...privileges].sort()]),
         ),
       );
 

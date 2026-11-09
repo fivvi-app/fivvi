@@ -44,9 +44,9 @@ export interface CallFacts {
   /** What identifies the caller itself (account id, email, marker): a response may always show it. */
   self?: readonly string[];
   /**
-   * The route creates the caller's workspace (F002, `IsolationCase.createsWorkspace`): its business
-   * rule refuses an account that has a team role in any workspace (`403`, not a matter of access),
-   * and a call that succeeds adds one workspace of the caller's own.
+   * The route creates the caller's workspace (F002, `IsolationCase.createsWorkspace`): every
+   * signed-in account of the harness's allowlist may, whatever team roles it has (F012), and a
+   * call that succeeds adds one workspace of the caller's own.
    */
   createsWorkspace?: boolean;
 }
@@ -70,10 +70,7 @@ export function expectedCall(facts: CallFacts): ExpectedCall {
   const { access } = facts;
   if (access.type === 'public') return { status: 'success' };
   if (!facts.signedIn) return { status: 401 };
-  if (access.type === 'account') {
-    const hasTeamRole = Object.values(facts.places).some((place) => place.teamRole);
-    return facts.createsWorkspace && hasTeamRole ? { status: 403 } : { status: 'success' };
-  }
+  if (access.type === 'account') return { status: 'success' };
 
   const place = facts.places[facts.workspaceId];
   if (!place?.teamRole && !place?.clientId) return { status: 404 };

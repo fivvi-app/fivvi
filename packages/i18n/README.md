@@ -6,10 +6,11 @@ The single source of every user-facing string (ADR-008). `nl-NL.json` and `en.js
 |---|---|
 | `nl-NL.json`, `en.json` | The catalogs. Dutch is the source language (`defaultLocale`); it is not the fallback for unsupported languages |
 | `comments.json` | Optional translator context per key (`"hello.greeting": "…"`), passed on to both native catalogs |
-| `generated/ios/Localizable.xcstrings` | iOS String Catalog. **Generated, never edit** |
+| `generated/ios/Localizable.xcstrings` | iOS String Catalog, the resource of the Swift package `FivviStringCatalogs` (E017). **Generated, never edit** |
+| `generated/ios/Package.swift`, `generated/ios/FivviStringCatalogs.swift` | The Swift package manifest and the file that exposes its resource bundle (`FivviStringCatalogs.bundle`). **Generated, never edit** |
 | `generated/ios/InfoPlist.xcstrings` | iOS Info.plist strings: `CFBundleDisplayName` and `CFBundleName` from `app.name`, in nl and en. **Generated, never edit** |
 | `generated/android/values*/strings.xml` | Android resources (`values/` = nl-NL, `values-en/` = en). **Generated, never edit** |
-| `src/index.ts` | Runtime exports: `locales`, `defaultLocale`, `messages`, `MessageKey`, `formattingLocales`, `dateTimeFormats`, `resolveInterfaceLanguage`, `resolveCommunicationLanguage`, `resolveSignInCommunicationLanguage` |
+| `src/index.ts` | Runtime exports: `locales`, `defaultLocale`, `messages`, `MessageKey`, `formattingLocales`, `dateTimeFormats`, `resolveInterfaceLanguage`, `resolveCommunicationLanguage`, `resolveSignInCommunicationLanguage`, `pickContentLanguage` (F021: a class's name or description in the viewer's language, else Dutch; never translated) |
 | `src/tools/` | Checks and exporters (Node only) |
 | `lint/no-hard-coded-jsx-text.grit` | Biome plugin that fails on literal text in JSX |
 
@@ -19,7 +20,7 @@ The single source of every user-facing string (ADR-008). `nl-NL.json` and `en.js
 2. `pnpm --filter @fivvi/i18n generate` and commit the regenerated `generated/` files.
 3. `pnpm check` must pass.
 
-**Email copy** goes under the `email` namespace (`email.hello.subject`). It follows the same rules and checks, but the native exporters leave `email.*` out (`serverOnlyNamespaces` in `src/config.ts`), because only `packages/email` renders it.
+**Email copy** goes under the `email` namespace (`email.hello.subject`). It follows the same rules and checks, but the native exporters leave `email.*` out (`serverOnlyNamespaces` in `src/config.ts`), because only `packages/email` renders it. The same holds for the public website's copy under `site` (`site.home.headline`): only `apps/web` renders it.
 
 **Keys** are dot paths grouped by screen or feature: `hello.title`, `notFound.body`, `booking.spotsAvailable`. Every segment is lowerCamelCase (`[a-z][a-zA-Z0-9]*`) and every key has at least two segments. Name keys after the English glossary term (`GLOSSARY.md §6.3`). The same key is used on iOS (`"hello.title"`); Android turns it into snake_case (`hello_title`, `not_found_body`).
 
@@ -70,7 +71,7 @@ The `no-hard-coded-jsx-text` Biome plugin (registered in `apps/web/biome.json`) 
 
 ## Native apps (E008)
 
-- **iOS:** add `generated/ios/Localizable.xcstrings` and `generated/ios/InfoPlist.xcstrings` to the app target by reference, with `nl` as the development region. Keys are marked `extractionState: manual`, so Xcode keeps them. The display name under the app icon comes from `app.name` through `InfoPlist.xcstrings`; the generator fails when `app.name` is missing. `InfoPlist.xcstrings` also has every other localizable key of the app's Info.plist (`CFBundleName`, from `app.name` too): Xcode's string catalog sync adds a missing one on a build and rewrites the file, which `pnpm test:ios` fails on ([`apps/ios/README.md`](../../apps/ios/README.md#layout)).
+- **iOS:** depend on the local Swift package `generated/ios` (`FivviStringCatalogs`, which has `Localizable.xcstrings` as its resource; the shared package `apps/ios/Packages/FivviShared` does) and add `generated/ios/InfoPlist.xcstrings` to the app target by reference, with `nl` as the development region. Keys are marked `extractionState: manual`, so Xcode keeps them. The display name under the app icon comes from `app.name` through `InfoPlist.xcstrings`; the generator fails when `app.name` is missing. `InfoPlist.xcstrings` also has every other localizable key of the app's Info.plist (`CFBundleName`, from `app.name` too): Xcode's string catalog sync adds a missing one on a build and rewrites the file, which `pnpm test:ios` fails on ([`apps/ios/README.md`](../../apps/ios/README.md#layout)).
 - **Android:** add `packages/i18n/generated/android` as a resource directory (`sourceSets.main.res.srcDirs`). The app label is `@string/app_name`.
 - No hard-coded strings: on iOS, SwiftLint's `no_literal_text` rule rejects a string literal in `Text`, `Button`, `Label` and similar views ([`apps/ios/README.md`](../../apps/ios/README.md#no-hard-coded-text)); on Android, ktlint's `fivvi:no-literal-text` rule rejects one in a Compose `Text` ([`apps/android/README.md`](../../apps/android/README.md#rules)).
 - Both pick the interface language themselves, from the OS per-app language and the raw preferred-language list, as `resolveInterfaceLanguage()` does (see [Locales](#locales)). The bundle's resolved language can't be the input: it falls back to the Dutch source resources.

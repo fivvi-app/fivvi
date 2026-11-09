@@ -2,6 +2,7 @@ import { execFile } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const MAIN = fileURLToPath(new URL('../src/main.ts', import.meta.url));
+const FAKE_DATE = fileURLToPath(new URL('./fake-date.ts', import.meta.url));
 
 /**
  * Starting Node and loading the database package takes 3–5 s on a busy CI runner, more
@@ -11,6 +12,22 @@ const MAIN = fileURLToPath(new URL('../src/main.ts', import.meta.url));
 const MAIN_TIMEOUT_MS = 20_000;
 export const SPAWN_TEST_TIMEOUT_MS = 30_000;
 
+/**
+ * How long the run took, in milliseconds, as the process reports it on its finish line. The
+ * clock starts after Node has started and the modules are loaded, so it measures the run (ping,
+ * tasks, close) and not the start-up, which a busy CI runner stretches to 3-10 s (#593).
+ */
+export function reportedRunMs(stdout: string): number {
+  const match = /^Cron finished in (\d+) ms\.$/m.exec(stdout);
+  if (!match) throw new Error(`No finish line in the output of the run:\n${stdout}`);
+  return Number(match[1]);
+}
+
+export interface RunMainOptions {
+  /** An ISO instant the process takes for "now" (`test/fake-date.ts`). Default: the real time. */
+  now?: string;
+}
+
 export interface MainResult {
   exitCode: number | null;
   stdout: string;
@@ -18,12 +35,19 @@ export interface MainResult {
 }
 
 /** Runs the cron entrypoint in its own Node process, as Railway does, with only `env`. */
-export function runMain(env: Record<string, string>): Promise<MainResult> {
+export function runMain(
+  env: Record<string, string>,
+  { now }: RunMainOptions = {},
+): Promise<MainResult> {
+  const args = now ? ['--import', FAKE_DATE, MAIN] : [MAIN];
   return new Promise((resolve) => {
     execFile(
       process.execPath,
-      [MAIN],
-      { env: { PATH: process.env.PATH ?? '', TZ: 'UTC', ...env }, timeout: MAIN_TIMEOUT_MS },
+      args,
+      {
+        env: { PATH: process.env.PATH ?? '', TZ: 'UTC', ...(now && { FAKE_NOW: now }), ...env },
+        timeout: MAIN_TIMEOUT_MS,
+      },
       (error, stdout, stderr) => {
         // `null` when the process was killed (timeout), so a hang never passes as exit 1.
         const exitCode = error ? (typeof error.code === 'number' ? error.code : null) : 0;

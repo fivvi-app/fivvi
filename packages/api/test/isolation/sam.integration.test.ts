@@ -10,7 +10,7 @@ import {
   type RecordKind,
   type XAccess,
 } from './expectations.ts';
-import { clientsOf, createWorld, type World } from './harness.ts';
+import { clientsOf, createWorld, SWEEP_TIMEOUT_MS, type World } from './harness.ts';
 import { ISOLATION_CASES } from './isolation-cases.ts';
 import { runIsolationSuite } from './suite.ts';
 
@@ -112,7 +112,13 @@ function callsAsSam(operations: ReadonlyMap<string, { access: XAccess }>): numbe
   let calls = 0;
   for (const [name, isolationCase] of Object.entries(ISOLATION_CASES)) {
     if (operations.get(name)?.access.type === 'account') calls += 1;
-    else calls += Object.keys(isolationCase.params ?? {}).length > 0 ? 6 : 3;
+    // A route that names a record, by a path parameter or by a body made from the seeded values.
+    else if (
+      Object.keys(isolationCase.params ?? {}).length > 0 ||
+      typeof isolationCase.body === 'function'
+    ) {
+      calls += 6;
+    } else calls += 3;
   }
   return calls;
 }
@@ -378,16 +384,20 @@ describe('AC12: after Sam’s trainer role in A ends', () => {
     ).toEqual([ended.b]);
   });
 
-  it('AC12: every route answers Sam by his places as they are now', async () => {
-    const result = await runIsolationSuite(state.world, ISOLATION_CASES, {
-      scenario: ended,
-      only: (actor) => actor === sam(),
-    });
+  it(
+    'AC12: every route answers Sam by his places as they are now',
+    async () => {
+      const result = await runIsolationSuite(state.world, ISOLATION_CASES, {
+        scenario: ended,
+        only: (actor) => actor === sam(),
+      });
 
-    expect(result.failures).toEqual([]);
-    expect(result.operations.toSorted()).toEqual(Object.keys(ISOLATION_CASES).toSorted());
-    expect(result.calls).toBe(callsAsSam(state.operations));
-  });
+      expect(result.failures).toEqual([]);
+      expect(result.operations.toSorted()).toEqual(Object.keys(ISOLATION_CASES).toSorted());
+      expect(result.calls).toBe(callsAsSam(state.operations));
+    },
+    SWEEP_TIMEOUT_MS,
+  );
 });
 
 describe('AC12: every route, called as Sam', () => {
@@ -398,15 +408,19 @@ describe('AC12: every route, called as Sam', () => {
     await state.world?.close();
   });
 
-  it('AC12: gets the status his place gives, sees no other workspace’s data and changes only what he may', async () => {
-    const { s, world } = state;
-    const result = await runIsolationSuite(world, ISOLATION_CASES, {
-      scenario: s,
-      only: (actor) => actor === s.actors.sam,
-    });
+  it(
+    'AC12: gets the status his place gives, sees no other workspace’s data and changes only what he may',
+    async () => {
+      const { s, world } = state;
+      const result = await runIsolationSuite(world, ISOLATION_CASES, {
+        scenario: s,
+        only: (actor) => actor === s.actors.sam,
+      });
 
-    expect(result.failures).toEqual([]);
-    expect(result.operations.toSorted()).toEqual(Object.keys(ISOLATION_CASES).toSorted());
-    expect(result.calls).toBe(callsAsSam(state.operations));
-  });
+      expect(result.failures).toEqual([]);
+      expect(result.operations.toSorted()).toEqual(Object.keys(ISOLATION_CASES).toSorted());
+      expect(result.calls).toBe(callsAsSam(state.operations));
+    },
+    SWEEP_TIMEOUT_MS,
+  );
 });

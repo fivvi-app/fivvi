@@ -1,11 +1,17 @@
 import { randomBytes } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import type { DatabaseExecutor } from '../client.ts';
+import { FIXTURE_INVITATION_VALIDITY_MS } from '../invitation-validity.ts';
 import {
   authUsers,
   clients,
+  groupClasses,
+  locations,
   organizations,
+  sessionParticipants,
+  sessions,
   teamMembers,
+  trainerInvitations,
   trainerProfiles,
 } from '../schema/index.ts';
 
@@ -32,10 +38,14 @@ function first<T>(rows: T[], what: string): T {
   return row;
 }
 
-/** A workspace whose name and slug are one unique marker, in the defaults of a new workspace. */
+/**
+ * A workspace whose name and slug are one unique marker, in the defaults of a new workspace. It
+ * has its one location (F015), named with the same marker and without an address, as the API
+ * makes it; a test of the location itself leaves it out with `location: false`.
+ */
 export async function createWorkspace(
   db: Executor,
-  options: { label?: string } = {},
+  options: { label?: string; location?: boolean } = {},
 ): Promise<{ id: string; marker: string }> {
   const marker = uniqueMarker(options.label ?? 'workspace');
   const row = first(
@@ -45,6 +55,14 @@ export async function createWorkspace(
       .returning({ id: organizations.id }),
     'workspace',
   );
+  if (options.location !== false) {
+    await db.insert(locations).values({
+      organizationId: row.id,
+      name: marker,
+      type: 'organization_location',
+      isDefault: true,
+    });
+  }
   return { id: row.id, marker };
 }
 
@@ -134,7 +152,7 @@ export async function endTeamRole(
 
 /**
  * A client of a workspace, linked to an account or (a quick-added client) to none. Its name is a
- * unique marker unless the test gives one; it has no email address unless the test gives one.
+ * unique marker unless the test gives one; its email address is a unique marker at example.com unless the test gives one (every client has one).
  */
 export async function addClient(
   db: Executor,
@@ -153,10 +171,162 @@ export async function addClient(
         organizationId: options.workspaceId,
         accountId: options.accountId ?? null,
         name: options.name ?? uniqueMarker('client'),
-        email: options.email ?? null,
+        email: options.email ?? `${uniqueMarker('client')}@example.com`,
         emailLocale: options.emailLocale ?? null,
       })
       .returning({ id: clients.id, name: clients.name }),
     'client',
   );
+}
+
+/**
+ * A trainer invitation of a workspace (F011), sent by a team member of it. Pending, for a unique
+ * `@example.com` address, valid for 7 days from now, with a token hash of no real token, unless
+ * the test says otherwise.
+ */
+export async function addTrainerInvitation(
+  db: Executor,
+  options: {
+    workspaceId: string;
+    inviterTeamMemberId: string;
+    name?: string;
+    email?: string;
+    emailLocale?: 'nl-NL' | 'en';
+    status?: 'pending' | 'accepted' | 'declined' | 'withdrawn';
+    tokenHash?: string;
+    expiresAt?: Date;
+    createdAt?: Date;
+  },
+): Promise<{ id: string; name: string; email: string }> {
+  return first(
+    await db
+      .insert(trainerInvitations)
+      .values({
+        organizationId: options.workspaceId,
+        inviterTeamMemberId: options.inviterTeamMemberId,
+        name: options.name ?? uniqueMarker('invitee'),
+        email: options.email ?? `${uniqueMarker('invitee')}@example.com`,
+        emailLocale: options.emailLocale ?? null,
+        status: options.status ?? 'pending',
+        tokenHash: options.tokenHash ?? uniqueMarker('token-hash'),
+        expiresAt: options.expiresAt ?? new Date(Date.now() + FIXTURE_INVITATION_VALIDITY_MS),
+        ...(options.createdAt ? { createdAt: options.createdAt } : {}),
+      })
+      .returning({
+        id: trainerInvitations.id,
+        name: trainerInvitations.name,
+        email: trainerInvitations.email,
+      }),
+    'trainer invitation',
+  );
+}
+
+/**
+ * A group class of a workspace (F021): "Kracht", 8 places, 60 minutes, no usual trainer, with a
+ * Dutch name that carries a unique marker, unless the test says otherwise.
+ */
+export async function addGroupClass(
+  db: Pick<DatabaseExecutor, 'insert'>,
+  options: {
+    workspaceId: string;
+    nameNl?: string;
+    nameEn?: string | null;
+    descriptionNl?: string | null;
+    descriptionEn?: string | null;
+    defaultTrainerProfileId?: string | null;
+    capacity?: number;
+    durationMinutes?: number;
+  },
+): Promise<{ id: string; nameNl: string }> {
+  return first(
+    await db
+      .insert(groupClasses)
+      .values({
+        organizationId: options.workspaceId,
+        nameNl: options.nameNl ?? uniqueMarker('kracht'),
+        nameEn: options.nameEn ?? null,
+        descriptionNl: options.descriptionNl ?? null,
+        descriptionEn: options.descriptionEn ?? null,
+        defaultTrainerProfileId: options.defaultTrainerProfileId ?? null,
+        capacity: options.capacity ?? 8,
+        durationMinutes: options.durationMinutes ?? 60,
+      })
+      .returning({ id: groupClasses.id, nameNl: groupClasses.nameNl }),
+    'group class',
+  );
+}
+
+/**
+ * A private session of a workspace (F020) with one participant, a client of it. Unless the test
+ * says otherwise: at the workspace's default location, for the given trainer profile (none when
+ * not given), planned by nobody, an hour long, starting at the given instant (default: a week
+ * from now), `scheduled`, version 1, with the client `booked`. A test that needs the client
+ * gives one (`clientId`); a group or Open Gym session passes `participant: false`. A group
+ * session (F021) is a class on a date: it points at `groupClassId`, or at a class made for it.
+ */
+export async function addSession(
+  db: Pick<DatabaseExecutor, 'insert' | 'select'>,
+  options: {
+    workspaceId: string;
+    clientId?: string;
+    participant?: boolean;
+    trainerProfileId?: string | null;
+    createdByTeamMemberId?: string | null;
+    locationId?: string;
+    type?: 'private' | 'group' | 'open_gym';
+    groupClassId?: string | null;
+    status?: 'scheduled' | 'cancelled';
+    startsAt?: Date;
+    durationMinutes?: number;
+    capacity?: number;
+    version?: number;
+  },
+): Promise<{ id: string; startsAt: Date; endsAt: Date; locationId: string }> {
+  const locationId =
+    options.locationId ??
+    first(
+      await db
+        .select({ id: locations.id })
+        .from(locations)
+        .where(
+          and(eq(locations.organizationId, options.workspaceId), eq(locations.isDefault, true)),
+        ),
+      'default location',
+    ).id;
+  const type = options.type ?? 'private';
+  const groupClassId =
+    options.groupClassId === undefined
+      ? type === 'group'
+        ? (await addGroupClass(db, { workspaceId: options.workspaceId })).id
+        : null
+      : options.groupClassId;
+  const startsAt = options.startsAt ?? new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+  const endsAt = new Date(startsAt.getTime() + (options.durationMinutes ?? 60) * 60_000);
+  const session = first(
+    await db
+      .insert(sessions)
+      .values({
+        organizationId: options.workspaceId,
+        type,
+        status: options.status ?? 'scheduled',
+        trainerProfileId: options.trainerProfileId ?? null,
+        locationId,
+        groupClassId,
+        startsAt,
+        endsAt,
+        capacity: options.capacity ?? (type === 'private' ? 1 : 10),
+        createdByTeamMemberId: options.createdByTeamMemberId ?? null,
+        version: options.version ?? 1,
+      })
+      .returning({ id: sessions.id }),
+    'session',
+  );
+  if (options.participant !== false) {
+    await db.insert(sessionParticipants).values({
+      organizationId: options.workspaceId,
+      sessionId: session.id,
+      clientId: options.clientId ?? (await addClient(db, { workspaceId: options.workspaceId })).id,
+    });
+  }
+  return { id: session.id, startsAt, endsAt, locationId };
 }

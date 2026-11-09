@@ -5,7 +5,10 @@
 #   pr.sh create [--title <t>] [--body-file <f|->] [--ready] [--full] [--no-check]
 #                                                 check, push, then open a draft PR (or update the open one, changing only
 #                                                 what you pass); a new PR's title defaults to the issue title, its body
-#                                                 gets "Closes #<issue>". Every push runs scripts/check.sh, the checks the
+#                                                 gets "Closes #<issue>", or "Refs #<issue>" for a spec that closes through
+#                                                 its tickets (labelled spec or with sub-issues, and not built as its
+#                                                 own ticket; flow.sh status says when it is complete); a body that
+#                                                 closes such a spec is refused (#509). Every push runs scripts/check.sh, the checks the
 #                                                 change can affect (#293); --full runs check.sh --all, everything
 #   pr.sh ready                                   mark the draft ready for review, only when for the head commit every
 #                                                 CI check passed (the merge gate's rule), the clean review is recorded
@@ -16,7 +19,7 @@
 #                                                 prints the step durations of the native jobs (iOS, Android) that ran
 #   pr.sh status                                  state, review, checks and open threads
 #   pr.sh wait [--timeout <minutes>]              wait for CI: exit 0 passed, 1 failed, 2 still running at the timeout
-#                                                 (default 20 minutes, 45 once an iOS or Android check exists)
+#                                                 (default 20 minutes, 60 once an iOS or Android check exists)
 #   pr.sh threads                                 open review threads with their ids
 #   pr.sh reply <thread-id> (--body <md>|--body-file <f|->) [--resolve]
 #   pr.sh smoke [--timeout <minutes>]             smoke-check the Railway preview and record the result for the PR's head
@@ -74,9 +77,11 @@ RAILWAY_SERVICE="web"
 # the PR touches no watch pattern (the status is then green, but there is no preview).
 PREVIEW_CHECK="$RAILWAY_PROJECT_NAME - $RAILWAY_SERVICE"
 PREVIEW_SKIPPED="No deployment needed"
-# How long wait waits for CI, in minutes: the cold iOS run took 24.5 min, so the jobs of the native apps get longer.
+# How long wait waits for CI, in minutes. The native jobs get longer: a passing iOS run can take, by the timeouts in
+# ci.yml (the "iOS tests" comment), Detect changes 5 + iOS build 12 + iOS tests 38 + the gate job 2 = 57 min, and Android
+# the same by its own (5 + 20 + 30 + 2); 60 outlasts both, so wait does not give up on a run that still passes.
 WAIT_MINUTES=20
-WAIT_MINUTES_NATIVE=45
+WAIT_MINUTES_NATIVE=60
 # The gates are the required checks iOS and Android; their parts (iOS build, iOS tests (nl), Android Maestro, ...) start with the
 # same word (#293).
 NATIVE_JOBS=(iOS Android)
@@ -120,6 +125,25 @@ report_owner_only() {
   echo "   change, that PR goes first and this one waits on it. See docs/agents/build.md, Owner-only edits."
 }
 
+# Whether issue $1 closes through its tickets rather than through a PR (#509); the rule is closes_through_tickets in
+# scripts/closing.jq, which scripts/flow-phase.jq shares. Dies when the issue can't be read: a spec must never get
+# "Closes" by mistake. A missing field counts as none.
+issue_closes_through_tickets() {
+  local out
+  out="$(gh issue view "$1" --repo "$REPO" --json labels,subIssues)" || die "could not read issue #$1"
+  jq -e -L "$ROOT/scripts" 'include "closing";
+    {labels: [.labels[]?.name],
+     children: [range(0; (.subIssues.totalCount // (.subIssues.nodes // [] | length) // 0))]}
+    | closes_through_tickets' <<<"$out" >/dev/null
+}
+
+# Whether the text on stdin closes issue $1 when its PR merges: every keyword GitHub knows (close, closes, closed, fix,
+# fixes, fixed, resolve, resolves, resolved; any case; an optional colon) before #n, <owner>/<repo>#n or the issue URL.
+body_closes_issue() {
+  local repo_re="${REPO//./[.]}"
+  grep -qiE "(^|[^[:alnum:]])(close[sd]?|fix(e[sd])?|resolve[sd]?):?[[:space:]]+(${repo_re}#|https://github[.]com/${repo_re}/issues/|#)$1([^0-9]|$)"
+}
+
 cmd_create() {
   local title="" body="" body_set=false draft=true check=true full=false issue existing
   while [ $# -gt 0 ]; do
@@ -143,8 +167,15 @@ cmd_create() {
     [ -n "$issue" ] || die "branch has no issue number: pass --title"
     title="$(gh issue view "$issue" --repo "$REPO" --json title --jq .title)"
   fi
-  if [ -n "$issue" ] && ! grep -qiE "^(closes|fixes|resolves) #$issue([^0-9]|$)" <<<"$body"; then
-    body="${body:+$body$'\n\n'}Closes #$issue"
+  if [ -n "$issue" ] && { [ -z "$existing" ] || $body_set; }; then
+    if issue_closes_through_tickets "$issue"; then
+      # A spec closes through its tickets (flow.sh status: complete, then issue.sh close), never through a PR (#509).
+      ! body_closes_issue "$issue" <<<"$body" \
+        || die "spec #$issue closes through its tickets, not a PR: write Refs #$issue"
+      grep -qiE "(^|[^[:alnum:]])refs #$issue([^0-9]|$)" <<<"$body" || body="${body:+$body$'\n\n'}Refs #$issue"
+    elif ! body_closes_issue "$issue" <<<"$body"; then
+      body="${body:+$body$'\n\n'}Closes #$issue"
+    fi
   fi
 
   if $check; then
@@ -273,8 +304,10 @@ cmd_status() {
 
 # Waits for the CI workflow run of the PR's head commit (.github/workflows/ci.yml), not for whatever checks exist yet:
 # right after a push, the jobs behind "Detect changes" don't exist, so "nothing pending" is not "passed". The timeout is
-# $WAIT_MINUTES, or $WAIT_MINUTES_NATIVE once a native job (iOS, Android) is among the checks and not skipped (they are
-# required checks, so they exist, skipped, in most PRs); --timeout fixes it.
+# $WAIT_MINUTES, or $WAIT_MINUTES_NATIVE once a native check is among the checks and not skipped: the gate (iOS, Android)
+# or one of its parts, a name that starts with the gate and a space (iOS build, iOS tests (nl), Android Maestro). The
+# parts are listed while they run, the gate only once they are all done (#416). The gates are required checks, so they
+# exist, skipped, in most PRs; --timeout fixes the limit.
 cmd_wait() {
   local timeout="" limit="$WAIT_MINUTES" pr head start run checks failed native job
   while [ $# -gt 0 ]; do
@@ -297,7 +330,7 @@ cmd_wait() {
     if [ -z "$timeout" ] && [ "$limit" -lt "$WAIT_MINUTES_NATIVE" ]; then
       native=""
       for job in "${NATIVE_JOBS[@]}"; do
-        ! jq -e --arg job "$job" 'any(.[]?; .name == $job and .bucket != "skipping")' <<<"${checks:-[]}" >/dev/null 2>&1 || native="${native:+$native, }$job"
+        ! jq -e --arg job "$job" 'any(.[]?; (.name == $job or (.name | startswith($job + " "))) and .bucket != "skipping")' <<<"${checks:-[]}" >/dev/null 2>&1 || native="${native:+$native, }$job"
       done
       if [ -n "$native" ]; then
         limit="$WAIT_MINUTES_NATIVE"

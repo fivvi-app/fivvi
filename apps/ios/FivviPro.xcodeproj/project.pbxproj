@@ -11,12 +11,17 @@
 		E00800000000000000000071 /* FivviDesignTokens in Frameworks */ = {isa = PBXBuildFile; productRef = E008000000000000000000A1 /* FivviDesignTokens */; };
 		E00800000000000000000072 /* OpenAPIRuntime in Frameworks */ = {isa = PBXBuildFile; productRef = E008000000000000000000A2 /* OpenAPIRuntime */; };
 		E00800000000000000000073 /* OpenAPIURLSession in Frameworks */ = {isa = PBXBuildFile; productRef = E008000000000000000000A3 /* OpenAPIURLSession */; };
-		E00800000000000000000074 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E00800000000000000000040 /* Localizable.xcstrings */; };
 		E00800000000000000000075 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E00800000000000000000041 /* InfoPlist.xcstrings */; };
 		E00800000000000000000076 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E00800000000000000000040 /* Localizable.xcstrings */; };
 		E00800000000000000000077 /* Localizable.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = E00800000000000000000040 /* Localizable.xcstrings */; };
 		E00800000000000000000079 /* FivviDesignTokens in Frameworks */ = {isa = PBXBuildFile; productRef = E008000000000000000000A9 /* FivviDesignTokens */; };
-		E00900000000000000000070 /* Sentry in Frameworks */ = {isa = PBXBuildFile; productRef = E009000000000000000000A0 /* Sentry */; };
+		E01700000000000000000100 /* FivviStrings in Frameworks */ = {isa = PBXBuildFile; productRef = E017000000000000000000A0 /* FivviStrings */; };
+		E01700000000000000000101 /* FivviSession in Frameworks */ = {isa = PBXBuildFile; productRef = E017000000000000000000A1 /* FivviSession */; };
+		E01700000000000000000102 /* FivviLanguage in Frameworks */ = {isa = PBXBuildFile; productRef = E017000000000000000000A2 /* FivviLanguage */; };
+		E01700000000000000000103 /* FivviUI in Frameworks */ = {isa = PBXBuildFile; productRef = E017000000000000000000A3 /* FivviUI */; };
+		E01700000000000000000104 /* FivviSignIn in Frameworks */ = {isa = PBXBuildFile; productRef = E017000000000000000000A4 /* FivviSignIn */; };
+		E01700000000000000000105 /* FivviObservability in Frameworks */ = {isa = PBXBuildFile; productRef = E017000000000000000000A5 /* FivviObservability */; };
+		E0080000000000000000007A /* routes.ts in Resources */ = {isa = PBXBuildFile; fileRef = E0080000000000000000004A /* routes.ts */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -47,6 +52,7 @@
 		E00800000000000000000047 /* FivviProTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FivviProTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E00800000000000000000048 /* FivviProUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = FivviProUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		E00800000000000000000049 /* FivviPro.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = FivviPro.xctestplan; sourceTree = "<group>"; };
+		E0080000000000000000004A /* routes.ts */ = {isa = PBXFileReference; lastKnownFileType = text; path = routes.ts; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -76,7 +82,12 @@
 				E00800000000000000000071 /* FivviDesignTokens in Frameworks */,
 				E00800000000000000000072 /* OpenAPIRuntime in Frameworks */,
 				E00800000000000000000073 /* OpenAPIURLSession in Frameworks */,
-				E00900000000000000000070 /* Sentry in Frameworks */,
+				E01700000000000000000100 /* FivviStrings in Frameworks */,
+				E01700000000000000000101 /* FivviSession in Frameworks */,
+				E01700000000000000000102 /* FivviLanguage in Frameworks */,
+				E01700000000000000000103 /* FivviUI in Frameworks */,
+				E01700000000000000000104 /* FivviSignIn in Frameworks */,
+				E01700000000000000000105 /* FivviObservability in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -107,6 +118,7 @@
 				E00800000000000000000032 /* FivviProUITests */,
 				E00800000000000000000022 /* Config */,
 				E00800000000000000000021 /* Strings */,
+				E00800000000000000000024 /* Site */,
 				E00800000000000000000023 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -142,6 +154,15 @@
 			name = Products;
 			sourceTree = "<group>";
 		};
+		E00800000000000000000024 /* Site */ = {
+			isa = PBXGroup;
+			children = (
+				E0080000000000000000004A /* routes.ts */,
+			);
+			name = Site;
+			path = ../web/site;
+			sourceTree = "<group>";
+		};
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
@@ -166,7 +187,12 @@
 				E008000000000000000000A1 /* FivviDesignTokens */,
 				E008000000000000000000A2 /* OpenAPIRuntime */,
 				E008000000000000000000A3 /* OpenAPIURLSession */,
-				E009000000000000000000A0 /* Sentry */,
+				E017000000000000000000A0 /* FivviStrings */,
+				E017000000000000000000A1 /* FivviSession */,
+				E017000000000000000000A2 /* FivviLanguage */,
+				E017000000000000000000A3 /* FivviUI */,
+				E017000000000000000000A4 /* FivviSignIn */,
+				E017000000000000000000A5 /* FivviObservability */,
 			);
 			productName = FivviPro;
 			productReference = E00800000000000000000046 /* FivviPro.app */;
@@ -255,7 +281,7 @@
 				E00800000000000000000091 /* XCLocalSwiftPackageReference "../../packages/design-tokens/FivviDesignTokens" */,
 				E00800000000000000000092 /* XCRemoteSwiftPackageReference "swift-openapi-runtime" */,
 				E00800000000000000000093 /* XCRemoteSwiftPackageReference "swift-openapi-urlsession" */,
-				E00900000000000000000090 /* XCRemoteSwiftPackageReference "sentry-cocoa" */,
+				E01700000000000000000090 /* XCLocalSwiftPackageReference "Packages/FivviShared" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = E00800000000000000000023 /* Products */;
@@ -274,7 +300,6 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				E00800000000000000000074 /* Localizable.xcstrings in Resources */,
 				E00800000000000000000075 /* InfoPlist.xcstrings in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -284,6 +309,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				E00800000000000000000076 /* Localizable.xcstrings in Resources */,
+				E0080000000000000000007A /* routes.ts in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -351,7 +377,7 @@
 					"DEBUG=1",
 					"$(inherited)",
 				);
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				SDKROOT = iphoneos;
@@ -374,7 +400,7 @@
 				ENABLE_NS_ASSERTIONS = NO;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
 				ENABLE_USER_SCRIPT_SANDBOXING = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				IPHONEOS_DEPLOYMENT_TARGET = 26.0;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
@@ -521,6 +547,10 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../../packages/design-tokens/FivviDesignTokens;
 		};
+		E01700000000000000000090 /* XCLocalSwiftPackageReference "Packages/FivviShared" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = Packages/FivviShared;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCRemoteSwiftPackageReference section */
@@ -538,14 +568,6 @@
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 1.3.1;
-			};
-		};
-		E00900000000000000000090 /* XCRemoteSwiftPackageReference "sentry-cocoa" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/getsentry/sentry-cocoa";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 9.30.2;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
@@ -576,10 +598,35 @@
 			package = E00800000000000000000091 /* XCLocalSwiftPackageReference "../../packages/design-tokens/FivviDesignTokens" */;
 			productName = FivviDesignTokens;
 		};
-		E009000000000000000000A0 /* Sentry */ = {
+		E017000000000000000000A0 /* FivviStrings */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = E00900000000000000000090 /* XCRemoteSwiftPackageReference "sentry-cocoa" */;
-			productName = Sentry;
+			package = E01700000000000000000090 /* XCLocalSwiftPackageReference "Packages/FivviShared" */;
+			productName = FivviStrings;
+		};
+		E017000000000000000000A1 /* FivviSession */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E01700000000000000000090 /* XCLocalSwiftPackageReference "Packages/FivviShared" */;
+			productName = FivviSession;
+		};
+		E017000000000000000000A2 /* FivviLanguage */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E01700000000000000000090 /* XCLocalSwiftPackageReference "Packages/FivviShared" */;
+			productName = FivviLanguage;
+		};
+		E017000000000000000000A3 /* FivviUI */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E01700000000000000000090 /* XCLocalSwiftPackageReference "Packages/FivviShared" */;
+			productName = FivviUI;
+		};
+		E017000000000000000000A4 /* FivviSignIn */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E01700000000000000000090 /* XCLocalSwiftPackageReference "Packages/FivviShared" */;
+			productName = FivviSignIn;
+		};
+		E017000000000000000000A5 /* FivviObservability */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = E01700000000000000000090 /* XCLocalSwiftPackageReference "Packages/FivviShared" */;
+			productName = FivviObservability;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

@@ -5,20 +5,28 @@ import { runMain, SPAWN_TEST_TIMEOUT_MS } from './run-main.ts';
 const SHA = '1111111111111111111111111111111111111111';
 
 describe('E003 cron entrypoint', { timeout: SPAWN_TEST_TIMEOUT_MS }, () => {
-  it('exits 1 with a clear message when DATABASE_URL is missing', async () => {
+  it('exits 1 with a clear message when CRON_DATABASE_URL is missing', async () => {
     const result = await runMain({});
 
     expect(result.exitCode).toBe(1);
-    expect(result.stdout).toContain('Daily cron started.');
-    expect(result.stderr).toContain('Daily cron failed: DATABASE_URL is not set');
+    expect(result.stdout).toContain('Cron started: run ');
+    expect(result.stderr).toContain('Cron failed: CRON_DATABASE_URL is not set');
+  });
+
+  it('E012 AC7: does not fall back to the privileged DATABASE_URL', async () => {
+    const result = await runMain({ DATABASE_URL: 'postgres://owner:hunter2@127.0.0.1:1/none' });
+
+    expect(result.exitCode).toBe(1);
+    expect(result.stderr).toContain('Cron failed: CRON_DATABASE_URL is not set');
+    expect(result.stdout + result.stderr).not.toContain('hunter2');
   });
 
   it('exits 1 without printing the password when Postgres is unreachable', async () => {
     // Port 1 on localhost refuses connections immediately.
-    const result = await runMain({ DATABASE_URL: 'postgres://app:hunter2@127.0.0.1:1/none' });
+    const result = await runMain({ CRON_DATABASE_URL: 'postgres://app:hunter2@127.0.0.1:1/none' });
 
     expect(result.exitCode).toBe(1);
-    expect(result.stderr).toContain('Daily cron failed:');
+    expect(result.stderr).toContain('Cron failed:');
     expect(result.stdout + result.stderr).not.toContain('hunter2');
   });
 });
@@ -28,7 +36,7 @@ describe('E009 cron error reporting', { timeout: SPAWN_TEST_TIMEOUT_MS }, () => 
     const sentry = await startFakeSentry();
     try {
       const result = await runMain({
-        DATABASE_URL: 'postgres://postgres:hunter2@127.0.0.1:1/none',
+        CRON_DATABASE_URL: 'postgres://postgres:hunter2@127.0.0.1:1/none',
         SENTRY_DSN: sentry.dsn,
         RAILWAY_ENVIRONMENT_NAME: 'production',
         RAILWAY_GIT_COMMIT_SHA: SHA,
@@ -50,6 +58,8 @@ describe('E009 cron error reporting', { timeout: SPAWN_TEST_TIMEOUT_MS }, () => 
         },
       });
       expect(JSON.stringify(sentry.events)).not.toContain('hunter2');
+      // A run that crashes before its tasks is a failed run to the monitor as well.
+      expect(sentry.checkIns.map((checkIn) => checkIn.status)).toEqual(['in_progress', 'error']);
     } finally {
       await sentry.close();
     }

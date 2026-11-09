@@ -93,6 +93,8 @@ actor StubAPI: APIProtocol {
     private var meAnswer = MeAnswer.unauthorized
     private var myWorkspacesAnswer = MyWorkspacesAnswer.workspaces([])
     private var updateMeAnswer = UpdateMeAnswer.accepted
+    /// The clients of the workspace and what the client routes answer (F006).
+    let clients = StubClients()
     private var goneWorkspaces: Set<String> = []
     private var workspaceStatus: Int?
     private(set) var requestedLocales: [Components.Schemas.Locale?] = []
@@ -319,8 +321,8 @@ extension StubAPI {
             return .notFound(.init(body: .json(.init(code: .notFound))))
         }
         return .ok(.init(body: .json(.init(
-            id: input.path.workspaceId, name: "Workspace", slug: "workspace", defaultLocale: .nlNL,
-            timeZone: "Europe/Amsterdam"
+            id: input.path.workspaceId, name: "Workspace", slug: "workspace",
+            defaultLocale: clients.workspaceDefaultLocale, timeZone: clients.workspaceTimeZone
         ))))
     }
 

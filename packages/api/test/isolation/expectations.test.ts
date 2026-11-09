@@ -85,7 +85,7 @@ describe('the expected answer of a route, from its access and the caller’s pla
   });
 });
 
-describe('a route that creates the caller’s workspace (F002)', () => {
+describe('a route that creates the caller’s workspace (F002, F012)', () => {
   const creates = (rest: Partial<CallFacts> = {}) =>
     call(
       { type: 'account', workspaces: 'team' },
@@ -96,22 +96,22 @@ describe('a route that creates the caller’s workspace (F002)', () => {
     ['anonymous', { signedIn: false }, 401],
     ['an account with no place anywhere', { places: {} }, 'success'],
     ['a client with no team role', { places: { a: { clientId: 'c1' } } }, 'success'],
-    ['an owner', { places: { a: { teamRole: 'owner' } } }, 403],
-    ['a trainer', { places: { a: { teamRole: 'trainer' } } }, 403],
+    ['an owner', { places: { a: { teamRole: 'owner' } } }, 'success'],
+    ['a trainer', { places: { a: { teamRole: 'trainer' } } }, 'success'],
     [
       'a trainer in one workspace and a client in another',
       {
         places: { a: { clientId: 'c1' }, b: { teamRole: 'trainer' } },
       },
-      403,
+      'success',
     ],
   ] as const)('%s', (_name, facts, status) => {
     expect(expectedCall(creates(facts as Partial<CallFacts>)).status).toBe(status);
   });
 
-  it('may add one workspace of its own, only when it succeeds', () => {
+  it('may add one workspace of its own, only when it succeeds, whatever team roles the caller has (F012)', () => {
     expect(mayAddWorkspace(creates({ places: {} }))).toBe(true);
-    expect(mayAddWorkspace(creates({ places: { a: { teamRole: 'owner' } } }))).toBe(false);
+    expect(mayAddWorkspace(creates({ places: { a: { teamRole: 'owner' } } }))).toBe(true);
     expect(mayAddWorkspace(creates({ signedIn: false }))).toBe(false);
   });
 

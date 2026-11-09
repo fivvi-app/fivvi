@@ -1,6 +1,7 @@
 import XCTest
 
 @testable import FivviPro
+@testable import FivviObservability
 
 /// E017 #265, serving E017's AC6 (a crash from a TestFlight build shows a symbolicated stack in Sentry): the hidden
 /// crash for the Sentry check (#192) fires in TestFlight builds only. The crash handler is injected, so no test

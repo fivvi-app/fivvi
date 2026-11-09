@@ -1,13 +1,13 @@
 import Foundation
 import Observation
 import FivviAPI
+import FivviLanguage
+import FivviSession
+import FivviStrings
 
 /// The signed-in account shown on the home: asks `GET /api/v1/me` through the generated client, which sends the bearer
 /// token (`AuthMiddleware`). A `401` is the middleware's business: it signs the app out. It also signs the person out
 /// on request (`signOut()`, F001 AC10).
-/// Takes the stored preference a `GET /api/v1/me` answered (`AppLanguage.startRead()`).
-typealias StoredLocaleHandler = (_ stored: Components.Schemas.Locale?) -> Void
-
 @MainActor
 @Observable
 final class AccountViewModel {
@@ -34,8 +34,13 @@ final class AccountViewModel {
     private(set) var destination: Destination?
     /// A sign-out is under way: the home shows it and ignores another tap.
     private(set) var isSigningOut = false
+    /// The workspace the home shows (its ID, name and default communication language), or nil while there is none.
+    /// Screens of a workspace (Clients, F006) are built for it.
+    var workspace: CurrentWorkspace? { workspaces.current }
     /// What the account may do in each workspace, from the same answer; the app's one helper for showing actions.
     let capabilities = WorkspaceCapabilities()
+    /// The current workspace and the last one used on this phone (F012).
+    private let workspaces: CurrentWorkspaceStore
     private let api: any APIProtocol
     private let store: any SessionStore
     private let clock: any Clock<Duration>
@@ -55,7 +60,8 @@ final class AccountViewModel {
         signOutTimeout: Duration = .seconds(10),
         onAccount: @escaping (_ id: String) -> Void,
         onSignedOut: @escaping (_ afterRejection: Bool) -> Void,
-        onPreferredLocale: @escaping () -> StoredLocaleHandler = { { _ in } }
+        onPreferredLocale: @escaping () -> StoredLocaleHandler = { { _ in } },
+        workspaces: CurrentWorkspaceStore = CurrentWorkspaceStore()
     ) {
         self.api = api
         self.store = store
@@ -64,12 +70,14 @@ final class AccountViewModel {
         self.onAccount = onAccount
         self.onSignedOut = onSignedOut
         self.onPreferredLocale = onPreferredLocale
+        self.workspaces = workspaces
         capabilities.reload = { [weak self] in await self?.refresh() }
     }
 
     func load() async {
         state = .loading
         destination = nil
+        workspaces.close()
         do {
             try await fetch()
         } catch {
@@ -95,22 +103,40 @@ final class AccountViewModel {
         let (destination, current) = try await destination(of: account)
         state = .loaded(email: account.email)
         self.destination = destination
-        capabilities.replace(with: account.workspaces, current: current)
+        if let current { workspaces.open(current) } else { workspaces.close() }
+        capabilities.replace(with: account.workspaces, current: current?.id)
         // An answer that arrives after the sign-out (the token is gone) or once the screen has gone (its task is
         // cancelled) must not set the account that was just cleared as the error-reporting user (#266).
         if !Task.isCancelled, store.token != nil { onAccount(account.id) }
     }
 
-    /// With more than one workspace (F012) the last one used will decide; until then the first one the API still lets
-    /// the person into is the home. A `404` for a workspace means the team access is gone (F003 AC6): the next one is
+    /// Switches the app to the workspace `id` (F012, *Profiel* → *Mijn werkruimtes*): it is remembered on this phone and
+    /// read again as the current one, so every screen of a workspace follows. Nothing goes to the server. An `id` the
+    /// API did not list for the person does nothing.
+    func switchWorkspace(to id: String) async {
+        guard id != workspace?.id, capabilities.knows(id) else { return }
+        workspaces.remember(id)
+        await load()
+    }
+
+    /// The last workspace used on this phone decides (`StartWorkspace`), otherwise the first one the API lists (sorted by name); the first
+    /// one in that order the API still lets the person into is the home. A `404` for a workspace means the team access is gone (F003 AC6): the next one is
     /// tried, and with none left the no-access text shows. Any other failure is a failure of the screen, not a verdict.
-    /// Also tells which workspace that is (its ID), the one the capabilities are read for.
+    /// Also tells which workspace that is, the one the capabilities are read for.
     private func destination(
         of account: Components.Schemas.MeResponse
-    ) async throws -> (Destination, workspaceID: String?) {
-        for workspace in account.workspaces {
+    ) async throws -> (Destination, workspace: CurrentWorkspace?) {
+        for workspace in StartWorkspace.order(account.workspaces, remembered: workspaces.rememberedID) {
             switch try await api.getWorkspace(.init(path: .init(workspaceId: workspace.id))) {
-            case .ok: return (.workspace(name: workspace.name), workspace.id)
+            case let .ok(found):
+                let details = try found.body.json
+                return (
+                    .workspace(name: workspace.name),
+                    CurrentWorkspace(
+                        id: workspace.id, name: workspace.name, defaultLocale: details.defaultLocale,
+                        timeZone: TimeZone(identifier: details.timeZone) ?? CurrentWorkspace.defaultTimeZone
+                    )
+                )
             case .notFound: continue
             default: throw URLError(.badServerResponse)
             }
@@ -154,6 +180,19 @@ final class AccountViewModel {
             })
         }
     }
+}
+
+/// The workspace the app is showing: what its screens are built for.
+struct CurrentWorkspace: Equatable, Sendable {
+    let id: String
+    let name: String
+    /// The workspace's default communication language: the language of a client's emails until one is chosen (ADR-017).
+    let defaultLocale: Components.Schemas.Locale
+    /// The workspace's time zone: times the app shows for it (the age of an offline list) are in it.
+    let timeZone: TimeZone
+
+    /// Europe/Amsterdam, the default of a workspace (`AGENTS.md`).
+    static let defaultTimeZone = TimeZone(identifier: "Europe/Amsterdam") ?? .current
 }
 
 /// Resumes its continuation with the first answer only and cancels the timer; the request, if it lost, goes on.

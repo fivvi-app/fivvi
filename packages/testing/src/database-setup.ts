@@ -2,6 +2,8 @@ import type { TestProject } from 'vitest/node';
 import {
   APP_ROLE_NAME,
   APP_ROLE_TEST_PASSWORD,
+  CRON_ROLE_NAME,
+  CRON_ROLE_TEST_PASSWORD,
   databaseUrl,
   identifier,
   newRunId,
@@ -91,32 +93,27 @@ export function isRoleRace(error: unknown): boolean {
 }
 
 /**
- * Makes sure the two roles of E011 exist on the test server, idempotently (`TESTING.md §5.3`):
+ * Makes sure the roles exist on the test server, idempotently (`TESTING.md §5.3`):
  *
  * - the **privileged role** is the user of the test server's URL. It creates the databases, owns
  *   the tables and runs the migrations, like the release step's user in a real environment;
  * - the **app role** `fivvi_app` logs in with a fake password, is no superuser and cannot bypass
  *   RLS. The migration creates it without a login (so a migrated database always has it); this
- *   gives it the login. Its table privileges come from `runMigrations`, per database.
+ *   gives it the login. Its table privileges come from `runMigrations`, per database;
+ * - the **cron role** `fivvi_cron` (E012) is set up the same way, with its own fake password.
  *
  * Parallel global setups (one per package) may call this at the same moment, so it holds an
  * advisory lock for the length of one transaction. A release step in a test database has its own
  * lock space and may change the role at the same moment; that race is retried.
  */
 export async function ensureTestRoles(): Promise<void> {
-  const role = identifier(APP_ROLE_NAME);
-  const password = APP_ROLE_TEST_PASSWORD.replaceAll("'", "''");
   for (let attempt = 1; ; attempt += 1) {
     try {
       await onServer(
         'BEGIN',
         { text: 'select pg_advisory_xact_lock($1)', values: [ROLE_LOCK] },
-        `DO $$ BEGIN
-           IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${APP_ROLE_NAME}') THEN
-             CREATE ROLE ${role};
-           END IF;
-         END $$`,
-        `ALTER ROLE ${role} WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT PASSWORD '${password}'`,
+        ...roleStatements(APP_ROLE_NAME, APP_ROLE_TEST_PASSWORD),
+        ...roleStatements(CRON_ROLE_NAME, CRON_ROLE_TEST_PASSWORD),
         'COMMIT',
       );
       return;
@@ -125,6 +122,19 @@ export async function ensureTestRoles(): Promise<void> {
       await new Promise((resolve) => setTimeout(resolve, attempt * 10 + Math.random() * 30));
     }
   }
+}
+
+/** Creates a role if it is missing and gives it a login, a fake password and no privilege beyond that. */
+function roleStatements(roleName: string, password: string): string[] {
+  const role = identifier(roleName);
+  return [
+    `DO $$ BEGIN
+       IF NOT EXISTS (SELECT FROM pg_roles WHERE rolname = '${roleName}') THEN
+         CREATE ROLE ${role};
+       END IF;
+     END $$`,
+    `ALTER ROLE ${role} WITH LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS NOINHERIT PASSWORD '${password.replaceAll("'", "''")}'`,
+  ];
 }
 
 /** Drops the template and every database created in this run, even ones a test forgot. */

@@ -1,4 +1,4 @@
-// Usage: node src/cli.ts generate | check [generated|contrast]… [--root <dir>]
+// Usage: node src/cli.ts generate | check [generated|contrast|gradients]… [--root <dir>]
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { writeOutputs } from './build.ts';
@@ -6,7 +6,8 @@ import { type CheckName, checkNames, runChecks } from './check.ts';
 import { readTokenSource, TokenSourceError } from './source.ts';
 
 const packageRoot = path.resolve(import.meta.dirname, '..');
-const usage = 'Usage: node src/cli.ts generate | check [generated|contrast]… [--root <dir>]';
+const usage =
+  'Usage: node src/cli.ts generate | check [generated|contrast|gradients]… [--root <dir>]';
 
 async function main(argv: string[]): Promise<number> {
   const { values, positionals } = parseArgs({

@@ -750,7 +750,7 @@ describe('E017 AC4: one build number per run, from the run', () => {
 describe('E017 AC6: the release name the app sends', () => {
   it('E017 AC6: the lane builds it the way ErrorReporting.swift does: <bundle ID>@<version>+<build>', () => {
     const swift = readFileSync(
-      join(ROOT, 'apps/ios/FivviPro/Observability/ErrorReporting.swift'),
+      join(ROOT, 'apps/ios/Packages/FivviShared/Sources/FivviObservability/ErrorReporting.swift'),
       'utf8',
     );
     assert.match(swift, /release = "\\\(bundleID\)@\\\(version\)\+\\\(build\)"/);
@@ -849,5 +849,133 @@ describe('E017 AC7: secrets stay in the release job', () => {
     );
     assert.deepEqual(environment.deployment_branches, ['main']);
     assert.equal(environment.can_admins_bypass, false);
+  });
+});
+
+describe('#437 E017: a job that got no hosted macOS runner is named as that', () => {
+  const NO_TESTS =
+    'iOS tests got no GitHub-hosted macOS runner; nothing was built or uploaded; start a new Release run (not Re-run)';
+  const NO_RELEASE =
+    'iOS release got no GitHub-hosted macOS runner (if nobody cancelled the run); nothing was signed or uploaded for iOS; start a new Release run (not Re-run)';
+
+  it('iOS tests=unacquired: the error says no runner and to start a new run, and the run fails', () => {
+    const result = run(RELEASE, ['runners', 'iOS tests=unacquired', 'iOS release=skipped']);
+    assert.equal(result.status, 1, result.stderr);
+    assert.ok(result.stdout.split('\n').includes(`::error::${NO_TESTS}`), result.stdout);
+    assert.ok(!/iOS release got no/.test(result.stdout));
+  });
+
+  it('iOS release=unacquired: the error says nothing was signed and that Android may be out', () => {
+    const result = run(RELEASE, ['runners', 'iOS tests=success', 'iOS release=unacquired']);
+    assert.equal(result.status, 1, result.stderr);
+    const line = result.stdout.split('\n').find((l) => l.startsWith('::error::'));
+    assert.ok(line.startsWith(`::error::${NO_RELEASE}`), line);
+    assert.match(
+      line.slice(`::error::${NO_RELEASE}`.length),
+      /^; an Android build .* may already be out.*leave Android off$/,
+    );
+    assert.ok(!/iOS tests got no/.test(result.stdout));
+  });
+
+  it('both unacquired: both are named, and the run fails', () => {
+    const result = run(RELEASE, ['runners', 'iOS tests=unacquired', 'iOS release=unacquired']);
+    assert.equal(result.status, 1);
+    assert.equal(result.stdout.split('\n').filter((l) => l.startsWith('::error::')).length, 2);
+  });
+
+  it('the same sentence goes into the step summary, when GITHUB_STEP_SUMMARY is set', () => {
+    const summary = join(work, 'summary.md');
+    writeFileSync(summary, 'Build number 107\n');
+    run(RELEASE, ['runners', 'iOS tests=unacquired'], { GITHUB_STEP_SUMMARY: summary });
+    assert.equal(readFileSync(summary, 'utf8'), `Build number 107\n${NO_TESTS}\n`);
+    run(RELEASE, ['runners', 'iOS release=unacquired'], { GITHUB_STEP_SUMMARY: summary });
+    assert.ok(readFileSync(summary, 'utf8').includes(`${NO_RELEASE}; `));
+  });
+
+  it('works without GITHUB_STEP_SUMMARY', () => {
+    const result = run(RELEASE, ['runners', 'iOS tests=unacquired']);
+    assert.equal(result.status, 1);
+    assert.equal(result.stderr, '');
+  });
+
+  it('a timeout or a test failure on a runner gets no runner message, and exits 0', () => {
+    const summary = join(work, 'summary.md');
+    writeFileSync(summary, '');
+    for (const parts of [
+      ['iOS tests=cancelled', 'iOS release=skipped'],
+      ['iOS tests=failure', 'iOS release=skipped'],
+      ['iOS tests=success', 'iOS release=failure'],
+      ['iOS tests=success', 'iOS release=success'],
+    ]) {
+      const result = run(RELEASE, ['runners', ...parts], { GITHUB_STEP_SUMMARY: summary });
+      assert.equal(result.status, 0, `${parts}: ${result.stderr}`);
+      assert.ok(!/::error::|got no/.test(result.stdout + result.stderr), parts.join(' '));
+    }
+    assert.equal(readFileSync(summary, 'utf8'), '');
+  });
+
+  it('bare results (the jobs could not be read) make no claim about a runner', () => {
+    const result = run(RELEASE, ['runners', 'cancelled', 'cancelled']);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout.split('\n').filter(Boolean).length, 1);
+    assert.ok(!/::error::|got no|runner was|no runner/i.test(result.stdout));
+  });
+
+  it('refuses no parts', () => {
+    const result = run(RELEASE, ['runners']);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /release\.sh runners/);
+  });
+});
+
+describe('#437 E017: the iOS jobs run on the image and Xcode that CI tests the app on', () => {
+  const ci = readFileSync(join(WORKFLOWS, 'ci.yml'), 'utf8');
+  const ciJob = ci.slice(ci.indexOf('\n  ios-build:\n'));
+  const field = (text, pattern) => text.match(pattern)?.[1];
+
+  it('ios-tests and ios have the runs-on and the DEVELOPER_DIR of the ios-build job of ci.yml', () => {
+    const runsOn = field(ciJob, /^ {4}runs-on: (macos-\d+)$/m);
+    const developerDir = field(ciJob, /^ {6}DEVELOPER_DIR: (\S+)$/m);
+    assert.match(runsOn, /^macos-\d+$/);
+    assert.match(developerDir, /^\/Applications\/Xcode_[\d.]+\.app\/Contents\/Developer$/);
+    const { 'ios-tests': tests, ios } = jobs();
+    for (const [name, job] of [
+      ['ios-tests', tests],
+      ['ios', ios],
+    ]) {
+      assert.equal(field(job, /^ {4}runs-on: (\S+)$/m), runsOn, `${name} runs-on`);
+      assert.equal(
+        field(job, /^ {6}DEVELOPER_DIR: (\S+)$/m),
+        developerDir,
+        `${name} DEVELOPER_DIR`,
+      );
+    }
+  });
+
+  it('the runners job runs last whatever happened, reads the run and holds no secret', () => {
+    const { runners } = jobs();
+    assert.ok(runners, 'a job `runners`');
+    assert.match(runners, /^ {4}needs: \[ios-tests, ios\]$/m);
+    assert.match(runners, /^ {4}if: always\(\)$/m);
+    assert.match(runners, /^ {4}runs-on: ubuntu-\d+\.\d+$/m);
+    assert.match(runners, /^ {4}timeout-minutes: 5$/m);
+    assert.match(runners, /^ {6}contents: read$/m);
+    assert.match(runners, /^ {6}actions: read/m);
+    assert.ok(!/^ {6}[a-z-]+: write/m.test(runners), 'no write permission');
+    assert.ok(!runners.includes('secrets.'));
+    assert.ok(!/^ {4}environment:/m.test(runners));
+    assert.match(runners, /scripts\/ios-parts\.sh job "iOS tests"/);
+    assert.match(runners, /scripts\/ios-parts\.sh job "iOS release"/);
+    assert.match(runners, /scripts\/release\.sh runners/);
+    assert.match(runners, /needs\.ios-tests\.result/);
+    assert.match(runners, /needs\.ios\.result/);
+    assert.match(runners, /GH_TOKEN: \$\{\{ github\.token \}\}/);
+    assert.match(runners, /persist-credentials: false/);
+  });
+
+  it('the names the job looks for are the names of the iOS jobs', () => {
+    const { 'ios-tests': tests, ios } = jobs();
+    assert.match(tests, /^ {4}name: iOS tests$/m);
+    assert.match(ios, /^ {4}name: iOS release$/m);
   });
 });

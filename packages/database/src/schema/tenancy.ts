@@ -55,8 +55,9 @@ export const teamMembers = businessTable(
  * whose email address belongs to an account is linked to it (`PRODUCT.md §2.9`). At most one
  * client relationship per account and workspace, and one client per email address and workspace.
  *
- * `email` is lower case (the API stores it so, the check holds the line) and may be empty: two
- * clients without one may share a name. `email_locale` is the language for emails the team set;
+ * `email` is required (every client has one, spec #174 decision 5, 2 November 2026) and lower
+ * case (the API stores it so, the check holds the line): two clients with different addresses
+ * may share a name. `email_locale` is the language for emails the team set;
  * empty follows the workspace default (ADR-017).
  */
 export const clients = businessTable(
@@ -64,24 +65,19 @@ export const clients = businessTable(
   {
     accountId: uuid('account_id').references(() => authUsers.id),
     name: text('name').notNull(),
-    email: text('email'),
+    email: text('email').notNull(),
     emailLocale: text('email_locale').$type<Locale>(),
     ...timestamps(),
   },
   (table) => [
     unique('clients_organization_id_account_id_unique').on(table.organizationId, table.accountId),
-    uniqueIndex('clients_organization_id_email_unique')
-      .on(table.organizationId, table.email)
-      .where(sql`${table.email} IS NOT NULL`),
+    uniqueIndex('clients_organization_id_email_unique').on(table.organizationId, table.email),
     index('clients_account_id_idx').on(table.accountId),
     check(
       'clients_name_valid',
       sql`btrim(${table.name}) <> '' AND char_length(${table.name}) <= 120`,
     ),
-    check(
-      'clients_email_lowercase',
-      sql`${table.email} IS NULL OR ${table.email} = lower(${table.email})`,
-    ),
+    check('clients_email_lowercase', sql`${table.email} = lower(${table.email})`),
     check(
       'clients_email_locale_supported',
       sql`${table.emailLocale} IS NULL OR ${table.emailLocale} IN ('nl-NL', 'en')`,

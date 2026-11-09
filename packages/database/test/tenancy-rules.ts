@@ -6,6 +6,7 @@ import type { TenancyRules } from './conventions.ts';
  */
 export const NON_BUSINESS_TABLES: Record<string, string> = {
   system_greetings: 'System data read by every workspace and the public hello slice (M1).',
+  job_runs: 'Run history of the cron tasks, platform data of the cron job (E012, ADR-027).',
   // Sign-in tables (F001): an account is global and shared by every workspace of its person.
   auth_identities: 'Sign-in identity of a global account (F001, ADR-007).',
   auth_rate_limits: 'Sign-in rate limit counters, keyed by hashes, not by workspace (F001).',
@@ -21,6 +22,9 @@ export const DEFINER_FUNCTIONS: string[] = [];
 export const EXTRA_POLICIES: Record<string, string[]> = {
   clients: ['clients_own_account'],
   team_members: ['team_members_own_account'],
+  // The narrow read-only doors of a person with an invitation (F011): by the hash of the link's
+  // token, and by the address the sign-in gate asks about. See migration 0020.
+  trainer_invitations: ['trainer_invitations_by_token', 'trainer_invitations_by_email'],
 };
 
 export const RULES: TenancyRules = {

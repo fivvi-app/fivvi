@@ -7,23 +7,21 @@ import app.fivvi.api.apis.SignInApi
 import app.fivvi.api.apis.WorkspacesApi
 import app.fivvi.api.models.MeResponse
 import app.fivvi.api.models.MeWorkspace
-import app.fivvi.pro.auth.Session
+import app.fivvi.core.auth.Session
+import app.fivvi.core.auth.SignOut
+import app.fivvi.pro.workspace.CurrentWorkspace
+import app.fivvi.pro.workspace.StartWorkspace
 import java.io.IOException
 import java.net.HttpURLConnection.HTTP_NOT_FOUND
-import java.net.HttpURLConnection.HTTP_UNAUTHORIZED
 import java.util.UUID
 import kotlin.time.Duration
-import kotlin.time.Duration.Companion.seconds
 import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.SerializationException
 
 sealed interface MeState {
@@ -65,25 +63,32 @@ sealed interface HomeDestination {
  * user (F001 AC2, #266) unless the sign-in has ended meanwhile; [Session] clears it again on sign-out.
  * [onPreferredLocale] is told the account's stored language at the same time (F010 AC2, AC5), and [onWorkspaces] its
  * workspaces with their capabilities (F004 AC10: the app's one helper for which actions show).
+ *
+ * The workspace shown is the one used last on this device while the person is still on its team, otherwise the first the
+ * API lists ([StartWorkspace], F012 AC5, AC7); whichever it opens, it remembers in [current]; [switchWorkspace] changes it (AC6).
  */
 class HomeViewModel(
     private val api: MeApi,
     private val workspaceApi: WorkspacesApi,
     private val session: Session,
+    private val current: CurrentWorkspace,
     private val signOutApi: (token: String) -> SignInApi,
     private val onAccount: (id: String) -> Unit,
     private val io: CoroutineDispatcher = Dispatchers.IO,
-    private val signOutTimeout: Duration = SIGN_OUT_TIMEOUT,
+    private val signOutTimeout: Duration = SignOut.TIMEOUT,
     private val onPreferredLocale: (MeResponse.PreferredLocale?) -> Unit = {},
     private val onWorkspaces: (List<MeWorkspace>) -> Unit = {},
 ) : ViewModel() {
     private val _state = MutableStateFlow<MeState>(MeState.Loading)
     val state: StateFlow<MeState> = _state.asStateFlow()
-    private val _signingOut = MutableStateFlow(false)
+    private val signOut = SignOut(session, signOutApi, viewModelScope, io, signOutTimeout)
 
     /** A sign-out is under way: the home shows it and ignores another tap. */
-    val signingOut: StateFlow<Boolean> = _signingOut.asStateFlow()
+    val signingOut: StateFlow<Boolean> = signOut.signingOut
     private var loading: Job? = null
+
+    // The workspaces the last answer of `GET /v1/me` listed: a switch goes only to one of them.
+    private var listed: List<MeWorkspace> = emptyList()
 
     // The sign-in this screen belongs to (see MainActivity: one view model per generation).
     private val generation = session.state.value.generation
@@ -93,6 +98,18 @@ class HomeViewModel(
     }
 
     fun retry() = load()
+
+    /**
+     * Profiel's switch (F012 AC6): [id] becomes the workspace shown and the one remembered on this device, and the account
+     * is read again, so the capabilities are those of the API's latest answer. A workspace the last answer didn't list,
+     * and the one already shown, change nothing. Nothing goes to the server.
+     */
+    fun switchWorkspace(id: UUID) {
+        val shown = (_state.value as? MeState.Loaded)?.destination as? HomeDestination.Workspace
+        if (shown?.id == id || listed.none { it.id == id }) return
+        current.remember(id)
+        load()
+    }
 
     /**
      * The app is in the foreground again. A 404 for the workspace being shown means the person is no longer on its team
@@ -113,23 +130,8 @@ class HomeViewModel(
         }
     }
 
-    /**
-     * Ends this phone's sign-in session. The token is deleted first, so a phone that is switched off or an app that is
-     * killed meanwhile opens signed out; the request goes out with a copy of it, through the generated client. Then the
-     * sign-in screen is shown, whatever the answer and also without a connection (the server's session ends by itself
-     * after 30 days without use). A connection that hangs is not waited for longer than the timeout; the request goes
-     * on in the background. A 401 that arrives within the wait shows the notice of a refused token.
-     */
-    fun signOut() {
-        if (_signingOut.value) return
-        _signingOut.value = true
-        viewModelScope.launch {
-            val token = withContext(io) { session.detachToken() }
-            val refused = token != null && requestSignOut(token)
-            _signingOut.value = false
-            session.signedOut(afterRejection = refused)
-        }
-    }
+    /** Ends this phone's sign-in session ([SignOut], F001 AC10). */
+    fun signOut() = signOut.start()
 
     private fun load() {
         loading?.cancel()
@@ -147,6 +149,7 @@ class HomeViewModel(
         }
         val account = response.body()?.takeIf { response.isSuccessful }
         return account?.let {
+            listed = it.workspaces
             onWorkspaces(it.workspaces)
             if (stillSignedIn()) {
                 onAccount(it.id.toString())
@@ -156,33 +159,18 @@ class HomeViewModel(
         } ?: MeState.Failed
     }
 
-    // The first workspace for now; "last workspace used" comes with F012.
-    private fun destination(account: MeResponse): HomeDestination = when {
-        account.workspaces.isNotEmpty() -> account.workspaces.first().let { HomeDestination.Workspace(it.name, it.id) }
-        account.canCreateWorkspace -> HomeDestination.SetUpOnWeb
-        else -> HomeDestination.NoAccess
+    private fun destination(account: MeResponse): HomeDestination {
+        val start = StartWorkspace.pick(account.workspaces, current.remembered.value)
+        // Every workspace the app opens is the one reopened next time, also the one it fell back to after a removal (AC7).
+        if (start != null && current.remembered.value != start.id) current.remember(start.id)
+        return when {
+            start != null -> HomeDestination.Workspace(start.name, start.id)
+            account.canCreateWorkspace -> HomeDestination.SetUpOnWeb
+            else -> HomeDestination.NoAccess
+        }
     }
 
     // An answer that arrives after the sign-out must not set the account that has just been cleared as the error-reporting
     // user (#266): this view model outlives the sign-out in the activity's store.
     private fun stillSignedIn(): Boolean = session.state.value.let { it.signedIn && it.generation == generation }
-
-    // Whether the API refused [token]; false when it said anything else, did not answer or the wait ran out. The request
-    // is its own coroutine, so giving up on the wait doesn't cancel it.
-    private suspend fun requestSignOut(token: String): Boolean {
-        val request = viewModelScope.async(io) {
-            try {
-                signOutApi(token).signOut().code() == HTTP_UNAUTHORIZED
-            } catch (_: IOException) {
-                false
-            } catch (_: SerializationException) {
-                false
-            }
-        }
-        return withTimeoutOrNull(signOutTimeout) { request.await() } ?: false
-    }
-
-    private companion object {
-        val SIGN_OUT_TIMEOUT = 10.seconds
-    }
 }

@@ -56,6 +56,12 @@ export const APP_ROLE_NAME = 'fivvi_app';
  */
 export const APP_ROLE_TEST_PASSWORD = 'fake-app-role-password-for-tests';
 
+/** The database role of the cron's tasks (E012). The release step finishes it in a real environment. */
+export const CRON_ROLE_NAME = 'fivvi_cron';
+
+/** The password of the cron role on the test server: obviously fake, like the app role's. */
+export const CRON_ROLE_TEST_PASSWORD = 'fake-cron-role-password-for-tests';
+
 /**
  * The connection string for `name` on the test server as the app role: no superuser, no
  * `BYPASSRLS`, no ownership (E011). Everything that proves RLS connects with this.
@@ -64,6 +70,17 @@ export function appRoleUrl(name: string): string {
   const url = new URL(databaseUrl(name));
   url.username = APP_ROLE_NAME;
   url.password = APP_ROLE_TEST_PASSWORD;
+  return url.toString();
+}
+
+/**
+ * The connection string for `name` on the test server as the cron role: no superuser, no
+ * `BYPASSRLS`, no ownership, and a table privilege only where a task declared one (E012).
+ */
+export function cronRoleUrl(name: string): string {
+  const url = new URL(databaseUrl(name));
+  url.username = CRON_ROLE_NAME;
+  url.password = CRON_ROLE_TEST_PASSWORD;
   return url.toString();
 }
 

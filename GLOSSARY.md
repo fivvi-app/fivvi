@@ -1,6 +1,6 @@
 # Fivvi
 
-The domain language of Fivvi: a platform where gyms, studios and independent trainers run their scheduling, booking, Open Gym, clients, workouts and notes. Use these terms in code, issues, specs, tests and conversation.
+The domain language of Fivvi: a platform where gyms, studios and independent trainers run their scheduling, booking, clients, workouts and notes. Use these terms in code, issues, specs, tests and conversation.
 
 This glossary says what a concept **is**, in English. How each term is worded in the Dutch and English UI, plus tone and copy rules, is in [`packages/i18n/GLOSSARY.md`](packages/i18n/GLOSSARY.md) §4. Code names and i18n keys follow the English term here. 🔜 marks a concept for a post-MVP release, listed so nobody uses the word for something else meanwhile. Requirements: `docs/product/PRODUCT.md`.
 
@@ -44,8 +44,12 @@ A later role, not in the MVP: manages the calendar, classes, bookings, clients a
 _Avoid_: administrator, manager
 
 **Trainer**:
-Runs sessions and classes, logs workouts, writes notes and marks attendance. One trainer can work in several workspaces.
+Runs sessions and classes, logs workouts, writes notes and marks attendance. One trainer can work in several workspaces. In the UI a workspace can call its trainers something else (see **Workspace's word**); the role stays Trainer.
 _Avoid_: coach, instructor, teacher, PT (as a role name)
+
+**Workspace's word**:
+What a workspace calls its trainers in every screen, email and on the QR poster: trainer, instructor, teacher or coach (the Dutch words go in `packages/i18n/GLOSSARY.md` with F068's first ticket). One choice per workspace, from this fixed list. A person who works at two workspaces sees each one's own word. It changes the wording only, never the Trainer role or its rights.
+_Avoid_: job title, trainer name
 
 **Independent trainer**:
 A trainer who runs their own workspace.
@@ -87,7 +91,7 @@ The generic word for any scheduled item: a private session, a class occurrence o
 _Avoid_: appointment, event, activity
 
 **Private session**:
-A trainer-led session for one named client, created by a trainer (an owner who trains counts as one).
+A trainer-led session for one named client, or two in a **Duo session**, created by a trainer (an owner who trains counts as one).
 _Avoid_: PT session, personal training, appointment, lesson
 
 **Class**:
@@ -134,10 +138,10 @@ The maximum number of participants of a class occurrence or Open Gym slot. Booki
 One place within the capacity of a class occurrence or Open Gym slot.
 _Avoid_: place, seat, slot (that's Open Gym)
 
-**Open Gym**:
-Bookable time where clients train on their own at a location.
+**Open Gym** 🔜:
+Bookable time where clients train on their own at a location. Comes after the MVP (`PRODUCT.md §53`).
 
-**Open Gym slot**:
+**Open Gym slot** 🔜:
 One Open Gym session, with a start, end, location and capacity.
 
 **Publish**:
@@ -149,6 +153,14 @@ A queue for a full group class occurrence. When a spot frees up (a cancellation,
 **Waitlist closing time**:
 A workspace setting, in minutes before a class starts (default 30): after it nobody moves up the waitlist and nobody can join, and everyone still waiting gets a "you didn't get in" email. Not the *cancellation cutoff*, which is in hours and is about cancelling.
 _Avoid_: cut-off, cutoff (alone: easily confused with the cancellation cutoff)
+
+**Duo session**:
+A private session with two clients and one trainer. Each client has their own credit, attendance, notes and workout. Only the trainer plans one; if one client cancels, it continues as a private session for the other.
+_Avoid_: semi-private, small group, group class
+
+**Class level**:
+How demanding a class is, from a fixed list: all levels, beginner, intermediate, advanced. Set on the series and changeable per date. It is information only: it never limits who can book.
+_Avoid_: difficulty (that belongs to an exercise in a workout), grade
 
 ### Locations
 
@@ -168,7 +180,7 @@ A client's place in a class occurrence or Open Gym slot. It is immediate: a sign
 _Avoid_: reservation, registration, sign-up, enrolment
 
 **Client timetable**:
-The workspace's timetable that only its approved clients see: the classes and Open Gym slots they can book, on the web without an app. Not public: a visitor who is not an approved client sees only a sign-in and, with the join link, a request to join.
+The workspace's timetable that only its approved clients see: the classes they can book, on the web without an app. Not public: a visitor who is not an approved client sees only a sign-in and, with the join link, a request to join.
 _Avoid_: public timetable, public booking page
 
 **Booking page**:
@@ -176,7 +188,7 @@ The web page of the **client timetable**, where approved clients book. Use *Clie
 _Avoid_: public booking page
 
 **Booking link**:
-A shareable URL for a booking scope: all, group classes, Open Gym, one class or one class date. It works only for approved clients. A **QR code** opens a link, such as the join link or a booking link.
+A shareable URL for a booking scope: all, group classes, one class or one class date. It works only for approved clients. A **QR code** opens a link, such as the join link or a booking link.
 
 **Join link**:
 The one link a workspace has for new clients to ask to join (with a QR code for the desk). The Owner can renew it; the old one then stops working. It leads to a sign-in and a join request, not to the timetable.
@@ -216,7 +228,7 @@ One of **booked** (has a confirmed booking, not marked yet), **attended**, **can
 ### Commerce
 
 **Offer**:
-Something a workspace sells: a membership, a credit pack, a credit plan or a single class, with its price, VAT rate and terms.
+Something a workspace sells, of one of four kinds: a membership, a credit pack, a credit plan or a single class pass, with its price, VAT rate and terms.
 _Avoid_: product, plan (alone; *credit plan* is a kind), package
 
 **Default plan**:
@@ -232,30 +244,30 @@ An agreement for a weekly allowance of group classes for a term, e.g. two classe
 _Avoid_: subscription (see *Recurring payment*), plan, pass
 
 **Credit**:
-One unit of a group, private or Open Gym credit balance. One credit books one session of its kind: a **group credit** books a group class, a **private credit** books a private session, an **Open Gym credit** books an Open Gym slot. The three kinds never mix and have no exchange rate. Combined credits, one balance for every session type, are not planned (`PRODUCT.md §53`).
+One unit of a group or private credit balance. One credit books one session of its kind: a **group credit** books a group class, a **private credit** books a private session, and later an **Open Gym credit** 🔜 books an Open Gym slot. The kinds never mix and have no exchange rate. Combined credits, one balance for every session type, are not planned (`PRODUCT.md §53`).
 _Avoid_: token, point, voucher; using it for a makeup
 
 **Credit pack**:
-An offer, and the agreement it makes, for a number of group, private or Open Gym credits bought once and valid for a period. It can be limited to once per client (an intro offer). The pilot's private training is a private credit plan, not a pack.
+An offer, and the agreement it makes, for a number of group or private credits bought once and valid for a period. It can be limited to once per client (an intro offer). The pilot's private training is a private credit plan, not a pack.
 _Avoid_: package, bundle, session pack (retired, see below)
 
 **Credit plan**:
-An offer, and the agreement it makes, for a number of group, private or Open Gym credits each billing cycle, paid by recurring payment (see *Recurring payment*), with a carry-over limit for credits left at the end of the cycle. The pilot's private training is a private credit plan.
+An offer, and the agreement it makes, for a number of group or private credits each billing cycle, paid by recurring payment (see *Recurring payment*), with a carry-over limit for credits left at the end of the cycle. The pilot's private training is a private credit plan.
 _Avoid_: subscription (see *Recurring payment*), credit subscription
 
 **Session pack** (retired):
 Retired on 21 October 2026. Use *Credit pack*: a private session pack is a private credit pack.
 
-**Single class** (proposed, [decision 9](docs/product/ROADMAP.md#14-decisions)):
-One group class bought on its own, by a client without a membership or as an extra on top of one.
-_Avoid_: drop-in, top-up
+**Single class pass** ([decision 9](docs/product/ROADMAP.md#14-decisions)):
+An offer kind of its own, good for one group class, by a client without a membership or as an extra on top of one. The client buys it ahead, like credits, and books the class with it; it is not paid at the booking. It is not a credit and not a credit pack. The owner sets the price; as a guideline only, not enforced, it should cost more than a class in a membership or pack, because it isn't a membership (owner, 9 November 2026).
+_Avoid_: single class (alone, the old name), single pass, drop-in, top-up, credit pack of 1
 
 **Credit balance**:
-What a client can still use under one agreement, in credits of one kind (group, private or Open Gym); a client with group and private credits sees two balances. Always explained by its history (granted, used, returned, expired), never a bare counter. A membership's makeups are tracked the same way but are not credits.
+What a client can still use under one agreement, in credits of one kind (group or private); a client with group and private credits sees two balances. Always explained by its history (granted, used, returned, expired), never a bare counter. A membership's makeups are tracked the same way but are not credits.
 _Avoid_: session balance (retired), saldo, remaining sessions
 
 **Weekly limit**:
-The most bookings one client can make in a week, a workspace setting (a number, or off). The pilot uses 4, whatever the size of the membership. It also stops a client from saving up unused weekly classes and using them all at once.
+The most bookings one client can make in a week, set per membership offer (a number, or off). The pilot uses 4, whatever the size of the membership. It also stops a client from saving up unused weekly classes and using them all at once.
 _Avoid_: maximum, cap, quota
 
 **Billing cycle**:
@@ -274,6 +286,10 @@ _Avoid_: deadline, notice period, cut-off (alone)
 A right to attend another class, granted under the cancellation policy, for example for a cancellation in time.
 _Avoid_: credit (a makeup is not a credit), catch-up, reschedule (that moves a session)
 
+**Guest** 🔜:
+A friend a client brings to a class under *bring a friend*, a setting on an offer (later, `PRODUCT.md §66`). A client is never called a guest.
+_Avoid_: visitor, plus-one, trial client
+
 **Payment provider**:
 The payment company through which clients' online payments run. In Fivvi it is Mollie, as [ADR-020](docs/decisions/ADR-020-payment-provider.md) decided (Accepted, 21 October 2026), with Stripe Connect as the fallback. Who the merchant is, and that the workspace has its own account with it, is set out in `PRODUCT.md §94`.
 _Avoid_: bank
@@ -283,7 +299,7 @@ The business that sells to the client and receives the money. In Fivvi it is the
 _Avoid_: seller (alone), vendor
 
 **Payment**:
-Money collected from a client: a first payment, a recurring payment or a single class.
+Money collected from a client: a first payment, a recurring payment or a single class pass. A **Payment outside Fivvi** is recorded by the owner and collected by them.
 _Avoid_: transaction (outside code), charge
 
 **Recurring payment**:
@@ -317,6 +333,14 @@ _Avoid_: refund (a different thing)
 **Payout**:
 A transfer from the payment provider to the workspace, made up of payments minus refunds, chargebacks and fees.
 _Avoid_: settlement, withdrawal
+
+**Payment outside Fivvi**:
+A payment the owner took themselves (cash, card at the studio or bank transfer) and records on the client's profile. No money moves through Fivvi or Mollie, the agreement or credits start right away, and it gets no automatic invoice. It always stays on record.
+_Avoid_: manual payment, offline payment, cash sale
+
+**Studio without Mollie**:
+A workspace whose owner chose to take payments only at the studio. Clients can join and book but can't pay, buy or renew online, and the owner records every payment. The owner can connect Mollie later at any time.
+_Avoid_: cash-only account, offline studio
 
 ### Training
 
@@ -356,6 +380,10 @@ The client's last logged performance for an exercise, shown next to today's sets
 
 **Workout history**:
 All logged workouts of a client.
+
+**Own workout**:
+A workout a client does on their own from one their trainer shared, logged in the client app. It is private to the client: trainers and the owner never see it. It isn't a session: no booking, credit, attendance or note.
+_Avoid_: solo session, self-training, home workout
 
 ### Notes
 

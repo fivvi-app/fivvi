@@ -2,6 +2,8 @@ import FivviAPI
 import XCTest
 
 @testable import FivviPro
+@testable import FivviStrings
+@testable import FivviLanguage
 
 /// The one helper that answers "may I show this action here?" (F004, spec #172): from the capabilities the API lists
 /// per workspace in `GET /api/v1/me`, never from the role name. The test plan runs every test in nl and en
@@ -114,6 +116,32 @@ final class WorkspaceCapabilitiesTests: XCTestCase {
         await account.refresh()
         XCTAssertEqual(account.destination, .workspace(name: "Sarah Personal Training"))
         XCTAssertTrue(account.capabilities.allows(.team_manage), "the next workspace is the current one")
+    }
+
+    func test_F006_AC1_theHomeKnowsTheWorkspaceItsDefaultLanguageForClientEmailsAndItsTimeZone() async {
+        let api = StubAPI()
+        api.clients.workspaceDefaultLocale = .en
+        api.clients.workspaceTimeZone = "Europe/Lisbon"
+        await answerAsSarah(api)
+        let account = account(api)
+        XCTAssertNil(account.workspace)
+
+        await account.load()
+
+        XCTAssertEqual(
+            account.workspace,
+            CurrentWorkspace(
+                id: johnsGym, name: "John's Gym", defaultLocale: .en,
+                timeZone: TimeZone(identifier: "Europe/Lisbon") ?? .current
+            ),
+            "its ID, name, default language and time zone"
+        )
+        await api.removeFromTeam(of: johnsGym)
+        await account.refresh()
+        XCTAssertEqual(account.workspace?.id, sarahTraining, "the next workspace is the current one")
+        await api.answerMe(with: .account(email: "trainer@example.com"))
+        await account.refresh()
+        XCTAssertNil(account.workspace, "no workspace, no clients")
     }
 
     func test_F004_AC10_aFailedRefreshKeepsTheCachedCapabilities() async {

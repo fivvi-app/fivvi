@@ -33,10 +33,12 @@ object Radius {
     val xs: Dp = 4.dp
     /** Chips, small tags, inputs. */
     val sm: Dp = 8.dp
-    /** Cards, list groups (iOS inset grouped list ~10–12). */
+    /** Cards and list groups on the trainer web (shadcn --radius, 12), iOS inset grouped list ~10-12. */
     val md: Dp = 12.dp
     /** Prominent cards (next-up session), large buttons in the logger. */
     val lg: Dp = 16.dp
+    /** Cards and inset grouped lists (the v2 look). 28 on Android. */
+    val card: Dp = 28.dp
     /** Bottom sheets and dialogs (top corners). */
     val xl: Dp = 28.dp
     /** Pills: M3 buttons, status chips, avatars. */

@@ -1,5 +1,7 @@
 # UX questions for M0 validation
 
+> **Open Gym comes later (owner, 6 November 2026; `PRODUCT.md §53`).** Open Gym is not in the MVP. What this document says about it describes the feature for when it is built.
+
 These questions record assumptions in the [information architecture](information-architecture.md) and [six flows](README.md). None is an approved requirement. The wireframes show a proposal so the pilot owner and another trainer can react to a concrete screen. Record the answer, participant, date and affected screen IDs here after validation; then update the flow, feature spec and glossary where relevant. Product scope or permission changes require an owner decision before implementation.
 
 **Status:** Open for the M0 prototype review. The [validation script](../discovery/prototype-validation-script.md) covers the six tasks; use the questions below as follow-ups, not as a replacement for observing the tasks.
@@ -149,7 +151,7 @@ Decide whether private-session creation email (EM-11) belongs in F049/F020. `PRO
 **Resolved by owner, 22 September 2026.** A trainer saves an internal note separately from an optional client message. After explicit review and share, the client sees the workout recap and client message in *Mijn trainingen* in the signed-in profile and receives the same in a localized email. The internal note is excluded. A private session does not become a client booking in CW-02/03 solely because its workout was shared.
 
 ### QE05
-Decide whether a signed-in client sees bookings across all workspaces sharing the verified email, with per-workspace authorization on each booking (CW-02). **Partly resolved by the owner, 31 October 2026 ([ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md)):** an account is one per email, but it shows nothing of a workspace until the client is added or approved, so every booking and every screen is authorised per workspace, and the client web shows the money per workspace. Whether the *my schedule* list combines all of a client's workspaces is for the F033 spec.
+Decide whether a signed-in client sees bookings across all workspaces sharing the verified email, with per-workspace authorization on each booking (CW-02). **Partly resolved by the owner, 31 October 2026 ([ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md)):** an account is one per email, but it shows nothing of a workspace until the client is added or approved, so every booking and every screen is authorised per workspace, and the client web shows the money per workspace. Whether the *my schedule* list combines all of a client's workspaces is for the F033 spec. **Answered by the owner, 6 November 2026:** *Home* and the agenda combine every studio of a client (`prototype-v2/DECISIONS.md` §7 item 10).
 
 ### QE06
 **Resolved by the owner, 31 October 2026 ([ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md)).** Yes: a signed-in client books without any email step, and the same atomic capacity check runs. There is no verification step for anyone. (Was: decide whether an authenticated, verified client can book without a new email confirmation, PB-03/06.)
@@ -188,7 +190,7 @@ Commerce moved into the MVP after interview 01 with the pilot owner (19 October 
 Does a fixed-weekday membership keep a spot in the chosen classes for its whole term, or does the client book each week within what the membership allows? **Proposal:** a standing spot in the chosen weekly classes, counted against capacity; the client cancels single occurrences (`PRODUCT.md §91`).
 **Answer (pilot gym owner and product owner, 31 October 2026):** No fixed days and no standing spot. A membership gives a number of group classes **per week** (1, 2 or 3) and the client books each class themself whenever a spot is free; many keep the same day and time out of habit. The pilot's membership is therefore a **weekly allowance** membership (`PRODUCT.md §91`), not a fixed-weekday one. This replaces the first in-chat answer ("a standing spot"), which was given before the gym owner answered.
 
-**Decision (product owner, 31 October 2026):** two workspace settings, for every studio. A **weekly limit**: the most bookings one client can make in a week, or off; the pilot uses 4 whatever the membership size, so a client can catch up (hardly anyone trains more than 4 times). **Unused weekly classes**: they expire at the end of the week (the pilot's choice) or stay valid until the agreement ends; Fivvi handles both automatically, and the weekly limit stops a client from saving them up and using them all at once.
+**Changed (owner, 6 November 2026):** both are now set per membership offer, not per workspace (`PRODUCT.md §91`). **Decision (product owner, 31 October 2026):** two workspace settings, for every studio. A **weekly limit**: the most bookings one client can make in a week, or off; the pilot uses 4 whatever the membership size, so a client can catch up (hardly anyone trains more than 4 times). **Unused weekly classes**: they expire at the end of the week (the pilot's choice) or stay valid until the agreement ends; Fivvi handles both automatically, and the weekly limit stops a client from saving them up and using them all at once.
 
 ### QC02
 What is the cancellation cutoff (12 or 24 hours mentioned), and is it the same for every offer and for private sessions? Does a cancellation in time return the credit of a credit pack or plan, and does the workspace's own cancellation? **Proposal:** one cutoff per offer, default 24 hours for private sessions and 12 for classes; a cancellation in time and a cancellation by the workspace return the credit (`§93`).
@@ -246,7 +248,7 @@ What is the "kiosk" or pay-at-the-desk option in the current app, and is it used
 
 ### QC12
 May a trainer see the credit balances of the clients they train? **Proposal:** yes, the balances of their own clients, not amounts, payments or invoices; the owner does all commerce (agreements, prices, refunds, payouts, billing details, the provider connection). With no Admin role in the MVP (resolved by the owner, 20 October 2026, see Q05) there is no one in between.
-**Answer (pilot gym owner, 31 October 2026):** The proposal stands.
+**Answer (pilot gym owner, 31 October 2026):** The proposal stands. **Confirmed by the owner, 6 November 2026.**
 
 ### QC13
 What does the pilot pay today: the subscription (per month or per year, VAT included?) and the fee per payment, and is there a separate provider fee? (The figures stay in the owner's private notes, not in the repository.) What does a weekly payout need to show? **Proposal:** record only the outcome of the comparison here (for example "cheaper / similar / more expensive per payment"), never the figures; compare with the list prices in ADR-020.
@@ -264,9 +266,9 @@ When the owner changes any field of an offer (price, VAT rate, classes and weekd
 **Answer (pilot gym owner, 31 October 2026):** The proposal stands.
 
 ### QC16
-Does the pilot agree with these four rules? (1) The trainer and client apps never take payments; clients pay on the web. (2) A single class's spot is held while the client pays. (3) The owner can also enter billing details (company name, address, VAT number) for a client. (4) A late cancellation counts like a no-show, and a no-show uses the credit of a credit pack or plan or is lost on a membership. **Proposal:** all four as written in `PRODUCT.md §93–§96`; the merchant model behind them (the gym as merchant, payouts to the workspace) is decided in ADR-020 (Accepted, 21 October 2026), not here.
+Does the pilot agree with these four rules? (1) The trainer and client apps never take payments; clients pay on the web. (2) A single class's spot is held while the client pays (superseded 9 November 2026: a single class pass is bought ahead, so nothing is paid at the booking and there is no spot to hold). (3) The owner can also enter billing details (company name, address, VAT number) for a client. (4) A late cancellation counts like a no-show, and a no-show uses the credit of a credit pack or plan or is lost on a membership. **Proposal:** all four as written in `PRODUCT.md §93–§96`; the merchant model behind them (the gym as merchant, payouts to the workspace) is decided in ADR-020 (Accepted, 21 October 2026), not here.
 
-ADR-020 (Accepted) settles: Mollie's hosted checkout on the web, and a one-off iDEAL payment for a single class (single classes are still proposed scope, decision 9). It suggests holding the spot while the client pays; how long the hold lasts is set in the F058 spec.
+ADR-020 (Accepted) settles: Mollie's hosted checkout on the web, and a one-off iDEAL payment for a single class. It suggested holding the spot while the client pays; that no longer applies, because the single class pass is bought ahead, not paid at the booking (owner, 9 November 2026; F058 is now Single class pass).
 **Answer (pilot gym owner, 31 October 2026):** All four rules as written.
 
 **Note (31 October 2026):** the spot held in rule 2 is a payment in progress, not a booking hold: booking holds are gone ([ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md)).
@@ -289,7 +291,7 @@ The walkthrough with the pilot gym owner (29–31 October 2026) led the product 
 
 1. **Billing cycle per offer: every month or every 4 weeks.** The pilot uses **monthly** on purpose: 4-weekly means 13 payments a year, which the gym owner finds unfair to clients.
 2. **Intro offer:** a credit pack can be marked **"once per client"** (for example 2 classes valid for 2 weeks). The pilot does trials by hand over WhatsApp and will not use it.
-3. **Single class** stays an offer kind any studio can switch on (the product owner's wish; it was proposed scope under [decision 9](../product/ROADMAP.md#14-decisions)).
+3. **Single class** stays an offer kind any studio can switch on (the product owner's wish of 31 October 2026). Changed on 9 November 2026: it is the **single class pass**, bought ahead like credits and good for one group class, not paid at the booking ([decision 9](../product/ROADMAP.md#14-decisions)).
 4. **Member-only offers** (QC08).
 5. **End-of-term setting:** stop, or continue per cycle (QC07).
 6. **Weekly limit** and **unused weekly classes** settings (QC01).
@@ -301,7 +303,7 @@ The walkthrough with the pilot gym owner (29–31 October 2026) led the product 
 
 ## Product-owner decisions: clients sign in and are approved to book (31 October 2026)
 
-Decided by the product owner in a grilling session on 31 October 2026 and recorded in [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md) and [ADR-027](../decisions/ADR-027-a-cron-every-5-minutes.md) (both Proposed), `PRODUCT.md §2.3–§2.4, §21–§27, §51` and `ROADMAP.md` v1.30. They resolve Q10, Q12, QE06 and QE17, replace the account rule of Q16 and partly resolve QE05 (see above).
+Decided by the product owner in a grilling session on 31 October 2026 and recorded in [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md) and [ADR-027](../decisions/ADR-027-a-cron-every-5-minutes.md) (ADR-026 accepted on 4 November 2026, ADR-027 Proposed), `PRODUCT.md §2.3–§2.4, §21–§27, §51` and `ROADMAP.md` v1.30. They resolve Q10, Q12, QE06 and QE17, replace the account rule of Q16 and partly resolve QE05 (see above).
 
 1. Anyone can create an account (email now; Apple and Google later as F063). An account on its own shows nothing of any workspace.
 2. A client gets in when the workspace adds them (an invitation email) or when the Owner approves their join request, made through the workspace's join link or QR code. No workspace search, at least for the beginning.
@@ -315,8 +317,8 @@ Decided by the product owner in a grilling session on 31 October 2026 and record
 10. A freed spot (a cancellation in time or late, a removal, more capacity) books the first in line automatically, with a "you're in" email. A no-show frees nothing.
 11. **Waitlist closing time:** one workspace setting, in minutes before the class, default 30. After it nobody moves up or joins, the class shows full with no waitlist button, and everyone still waiting gets a "you didn't get in" email.
 12. A booking from the waitlist after the cancellation cutoff can be cancelled as if in time, outside the 2-a-month limit (QC02).
-13. From M11 nothing is reserved while waiting; at move-up a client who can't book is skipped, taken off and emailed why, and the next moves up. A client who could only book by paying for a single class can't join a waitlist.
+13. From M11 nothing is reserved while waiting; at move-up a client who can't book is skipped, taken off and emailed why, and the next moves up.
 14. Owner and trainers see the waitlist in order on the class on the web and can remove someone; no reordering, no adding.
 15. The client web shows, per workspace, the payment history (date, amount, what it was for, status) and the invoice and credit-note PDFs (M11).
 
-**Still open from these decisions:** the exact UI wording (`packages/i18n/GLOSSARY.md`, marked ⚠️); where the name is asked (account or join request); what removing a client does to their future bookings and agreements; whether a booking can still be managed by an emailed link; whether the pilot import sends invitations to the imported clients or adds them silently; how long the spot is kept while a single class is paid for (F058 spec, QC16).
+**Still open from these decisions:** the exact UI wording (`packages/i18n/GLOSSARY.md`, marked ⚠️); where the name is asked (account or join request); what removing a client does to their future bookings and agreements; whether a booking can still be managed by an emailed link; whether the pilot import sends invitations to the imported clients or adds them silently; what a cancellation does to a single class pass and how long an unused one stays valid (F058 spec).

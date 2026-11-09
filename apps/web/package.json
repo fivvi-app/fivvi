@@ -12,7 +12,9 @@
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
     "format:check": "biome format .",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "brand-icons": "node scripts/brand-icons.ts",
+    "test:budgets": "E2E_BUDGETS=1 playwright test --workers=1"
   },
   "dependencies": {
     "@fivvi/api": "workspace:*",
@@ -23,6 +25,7 @@
     "@fivvi/i18n": "workspace:*",
     "@fivvi/observability": "workspace:*",
     "@fivvi/ui": "workspace:*",
+    "marked": "catalog:",
     "next": "catalog:",
     "next-intl": "catalog:",
     "react": "catalog:",
@@ -39,6 +42,7 @@
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
     "drizzle-orm": "catalog:",
+    "lighthouse": "catalog:",
     "typescript": "catalog:",
     "vitest": "catalog:"
   }

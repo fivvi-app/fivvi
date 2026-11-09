@@ -1,8 +1,12 @@
+import { eq } from 'drizzle-orm';
 import type { DatabaseExecutor } from '../client.ts';
-import { organizations } from '../schema/index.ts';
+import { locations, organizations, sessionParticipants, trainerProfiles } from '../schema/index.ts';
 import {
   addClient,
+  addGroupClass,
+  addSession,
   addTeamRole,
+  addTrainerInvitation,
   addTrainerProfile,
   createAccount,
   uniqueMarker,
@@ -65,6 +69,79 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
         role: 'owner',
       });
       return addTrainerProfile(db, { workspaceId, teamMemberId: teamMember.id });
+    },
+  },
+  // A second location, not the default (the default is the workspace's own, made with it).
+  locations: {
+    scopeColumn: 'organization_id',
+    create: async (db, workspaceId) => {
+      const [row] = await db
+        .insert(locations)
+        .values({ organizationId: workspaceId, name: uniqueMarker('location'), type: 'other' })
+        .returning({ id: locations.id });
+      if (!row) throw new Error('location was not created.');
+      return row;
+    },
+  },
+  // Sent by an Owner of the same workspace, who is made for it.
+  trainer_invitations: {
+    scopeColumn: 'organization_id',
+    create: async (db, workspaceId) => {
+      const inviter = await addTeamRole(db, {
+        workspaceId,
+        accountId: (await createAccount(db, { label: 'inviter' })).id,
+        role: 'owner',
+      });
+      return addTrainerInvitation(db, { workspaceId, inviterTeamMemberId: inviter.id });
+    },
+  },
+  // A class with no usual trainer (the trainer profile is its own row, covered by `trainer_profiles`).
+  group_classes: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addGroupClass(db, { workspaceId }),
+  },
+  // A private session with a trainer of the workspace, planned by an Owner of it, and its one client.
+  sessions: {
+    scopeColumn: 'organization_id',
+    create: async (db, workspaceId) => {
+      const trainer = await addTeamRole(db, {
+        workspaceId,
+        accountId: (await createAccount(db, { label: 'session-trainer' })).id,
+      });
+      const [profile] = await db
+        .select({ id: trainerProfiles.id })
+        .from(trainerProfiles)
+        .where(eq(trainerProfiles.teamMemberId, trainer.id));
+      return addSession(db, {
+        workspaceId,
+        trainerProfileId: profile?.id ?? null,
+        createdByTeamMemberId: trainer.id,
+      });
+    },
+  },
+  // The place of a client in a session, both made for the workspace.
+  session_participants: {
+    scopeColumn: 'organization_id',
+    create: async (db, workspaceId) => {
+      // Inserts only, as every factory does: the RLS suite runs them under contexts that see no row,
+      // so a lookup of the default location would fail before the policy refuses the insert.
+      const [location] = await db
+        .insert(locations)
+        .values({ organizationId: workspaceId, name: uniqueMarker('location'), type: 'other' })
+        .returning({ id: locations.id });
+      if (!location) throw new Error('location was not created.');
+      const session = await addSession(db, {
+        workspaceId,
+        locationId: location.id,
+        participant: false,
+      });
+      const client = await addClient(db, { workspaceId });
+      const [row] = await db
+        .insert(sessionParticipants)
+        .values({ organizationId: workspaceId, sessionId: session.id, clientId: client.id })
+        .returning({ id: sessionParticipants.id });
+      if (!row) throw new Error('session participant was not created.');
+      return row;
     },
   },
 };

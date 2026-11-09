@@ -25,8 +25,8 @@ initBrowserErrorReporting({ env: { NEXT_PUBLIC_SENTRY_DSN: process.env.NEXT_PUBL
 // scripts/publish-source-maps.ts, after `next build`: upload (with SENTRY_AUTH_TOKEN), then delete
 await publishSourceMaps({ buildDir: '.next' });
 
-// app/layout.tsx reads NEXT_PUBLIC_POSTHOG_KEY and POSTHOG_HOST at request time;
-// app/page-views.tsx, per path:
+// app/(app)/layout.tsx reads NEXT_PUBLIC_POSTHOG_KEY and POSTHOG_HOST at request time;
+// app/(app)/page-views.tsx, per path:
 const { key, host } = readPageViewsConfig(process.env);
 if (key) void capturePageView({ key, host }); // loads posthog-js on the first call
 

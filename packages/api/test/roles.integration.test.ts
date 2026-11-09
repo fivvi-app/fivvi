@@ -4,12 +4,24 @@ import {
   createDatabase,
   createTenantScopes,
   type DatabaseClient,
+  locations,
   organizations,
   type SignedInAccount,
   teamMembers,
 } from '@fivvi/database';
-import { addClient, addTeamRole, createAccount, createWorkspace } from '@fivvi/database/testing';
+import {
+  addClient,
+  addTeamRole,
+  addTrainerInvitation,
+  createAccount,
+  createWorkspace,
+} from '@fivvi/database/testing';
 import { capabilitiesOf, ROLES } from '@fivvi/domain';
+import {
+  createMemoryTransport,
+  createSendEmail,
+  createTrainerInvitationSender,
+} from '@fivvi/email';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
@@ -26,6 +38,8 @@ const contract = JSON.parse(
 );
 
 const ANY_ID = '0197c0de-0000-7000-8000-0000000000e1';
+// Stands for an invitation the test makes before the call that names it (F011).
+const INVITATION_ID = '0197c0de-0000-7000-8000-0000000000e2';
 
 describe('F004 roles on every workspace route', () => {
   let database: TestDatabase;
@@ -62,6 +76,14 @@ describe('F004 roles on every workspace route', () => {
         return row satisfies SignedInAccount | undefined;
       },
       tenantScopes: createTenantScopes(() => app.db),
+      // The trainer invitation routes email EM-09 (F011): into memory, never out.
+      sendTrainerInvitation: createTrainerInvitationSender({
+        sendEmail: createSendEmail({
+          transport: createMemoryTransport(),
+          sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+        }),
+        appBaseUrl: () => 'https://fivvi.example.test',
+      }),
     });
 
   async function world() {
@@ -71,7 +93,11 @@ describe('F004 roles on every workspace route', () => {
     const sarah = await createAccount(admin.db, { label: 'sarah' });
     const mike = await createAccount(admin.db, { label: 'mike' });
     const anna = await createAccount(admin.db, { label: 'anna' });
-    await addTeamRole(admin.db, { workspaceId: gym.id, accountId: john.id, role: 'owner' });
+    const johnRole = await addTeamRole(admin.db, {
+      workspaceId: gym.id,
+      accountId: john.id,
+      role: 'owner',
+    });
     const sarahRole = await addTeamRole(admin.db, {
       workspaceId: gym.id,
       accountId: sarah.id,
@@ -79,11 +105,31 @@ describe('F004 roles on every workspace route', () => {
     });
     await addTeamRole(admin.db, { workspaceId: other.id, accountId: mike.id, role: 'owner' });
     const annaClient = await addClient(admin.db, { workspaceId: gym.id, accountId: anna.id });
-    return { gym, other, john, sarah, mike, anna, sarahRole, annaClient };
+    const [location] = await admin.db
+      .select({ id: locations.id })
+      .from(locations)
+      .where(eq(locations.organizationId, gym.id));
+    return {
+      gym,
+      other,
+      john,
+      johnRole,
+      sarah,
+      mike,
+      anna,
+      sarahRole,
+      annaClient,
+      locationId: location?.id,
+    };
   }
 
   /** Every workspace operation of the contract, with a path that names John's Gym. */
-  function workspaceCalls(workspaceId: string, teamMemberId: string, clientId = ANY_ID) {
+  function workspaceCalls(
+    workspaceId: string,
+    teamMemberId: string,
+    clientId = ANY_ID,
+    locationId = ANY_ID,
+  ) {
     return describeOperations(contract)
       .filter(({ access }) => access?.type === 'workspace')
       .map(({ name, method, path, access }) => ({
@@ -94,6 +140,8 @@ describe('F004 roles on every workspace route', () => {
           .replace('{workspaceId}', workspaceId)
           .replace('{teamMemberId}', teamMemberId)
           .replace('{clientId}', clientId)
+          .replace('{locationId}', locationId)
+          .replace('{invitationId}', INVITATION_ID)
           .replace(/\{[^}]+\}/g, ANY_ID),
       }));
   }
@@ -105,7 +153,10 @@ describe('F004 roles on every workspace route', () => {
         'content-type': 'application/json',
         ...(who ? { 'x-test-account': who.id } : {}),
       },
-      body: method === 'GET' || method === 'DELETE' ? undefined : JSON.stringify({ name: 'x' }),
+      body:
+        method === 'GET' || method === 'DELETE'
+          ? undefined
+          : JSON.stringify({ name: 'x', email: `${crypto.randomUUID()}@example.com` }),
     });
 
   it('AC7: a role elsewhere gives 404, a client relationship 403; anonymous 401', async () => {
@@ -131,11 +182,21 @@ describe('F004 roles on every workspace route', () => {
     );
     expect(ownerRoutes.map(({ name }) => name).sort()).toEqual([
       'changeTeamMemberRole',
+      'createGroupClass',
+      'createTrainerInvitation',
       'deleteTrainerProfile',
       'listTeamMembers',
+      'listTrainerInvitations',
+      'lookupAddress',
       'putTrainerProfile',
       'removeTeamMember',
       'renameWorkspace',
+      'resendTrainerInvitation',
+      'scheduleGroupClassDate',
+      'updateGroupClass',
+      'updateGroupClassDate',
+      'updateLocation',
+      'withdrawTrainerInvitation',
     ]);
 
     for (const route of ownerRoutes) {
@@ -159,13 +220,22 @@ describe('F004 roles on every workspace route', () => {
         access?.type === 'workspace' && (access.roles as readonly string[]).includes('trainer'),
     );
 
-    // The clients (F006) are the Trainer's too: `clients.view` and `clients.manage`.
+    // The clients (F006) are the Trainer's too: `clients.view` and `clients.manage`; so is the
+    // report of a switch to the workspace (F012), which any team member may send, and the planning
+    // and reading of sessions (F020: `session.private.manage.own`, and `clients.view`), and reading
+    // the classes (F021: `class.read`).
     expect(trainerRoutes.map(({ name }) => name).toSorted()).toEqual([
       'addClient',
+      'createPrivateSession',
       'getClient',
+      'getGroupClass',
+      'getSession',
       'getWorkspace',
       'listClients',
+      'listGroupClasses',
+      'listLocations',
       'listTrainers',
+      'recordWorkspaceSwitch',
       'updateClient',
     ]);
     const statuses = Object.fromEntries(
@@ -176,18 +246,45 @@ describe('F004 roles on every workspace route', () => {
     expect(statuses).toEqual({
       getWorkspace: 200,
       listClients: 200,
+      listLocations: 200,
       listTrainers: 200,
+      recordWorkspaceSwitch: 204,
       addClient: 201,
       getClient: 200,
       updateClient: 200,
+      // Past the access check: the probe body is no session, and the ID names none.
+      createPrivateSession: 400,
+      getSession: 404,
+      listGroupClasses: 200,
+      getGroupClass: 404,
     });
   });
 
   it('AC3: Owner is admitted to every workspace route', async () => {
-    const { gym, john, sarahRole, annaClient } = await world();
-    for (const route of workspaceCalls(gym.id, sarahRole.id, annaClient.id)) {
-      // 400 for the body the probe sends is fine: the Owner got past the access check.
-      expect([200, 201, 204, 400], route.name).toContain((await call(route, john)).status);
+    const { gym, john, johnRole, sarahRole, annaClient, locationId } = await world();
+    for (const route of workspaceCalls(gym.id, sarahRole.id, annaClient.id, locationId)) {
+      // A call that names an invitation gets a pending one of its own (a withdrawal closes it).
+      const invitation = route.url.includes(INVITATION_ID)
+        ? await addTrainerInvitation(admin.db, {
+            workspaceId: gym.id,
+            inviterTeamMemberId: johnRole.id,
+          })
+        : undefined;
+      const url = invitation ? route.url.replace(INVITATION_ID, invitation.id) : route.url;
+      // 400 for the body the probe sends is fine: the Owner got past the access check. So is the
+      // 422 of the address lookup alone, which the probe calls without its query (F015), and the
+      // 404 of the read of a session for the ID the probe invented.
+      const allowed =
+        route.name === 'lookupAddress'
+          ? [422]
+          : [
+              200,
+              201,
+              204,
+              400,
+              ...(['getSession', 'getGroupClass'].includes(route.name) ? [404] : []),
+            ];
+      expect(allowed, route.name).toContain((await call({ ...route, url }, john)).status);
     }
   });
 

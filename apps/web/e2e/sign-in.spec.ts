@@ -94,11 +94,16 @@ test.describe('F001 sign in on TW-10', () => {
     await page.goto('/w/pilot-gym/calendar?view=week');
     await expect(page).toHaveURL(/\/login\?returnTo=%2Fw%2Fpilot-gym%2Fcalendar%3Fview%3Dweek$/);
 
-    // The public pages and routes need no sign-in: the sign-in page, the hello page, the health
-    // check and the hello route.
-    await page.goto('/');
-    await expect(page).toHaveURL(`${baseURL}/`);
-    await expect(page.getByRole('heading', { level: 1, name: copy.hello.title })).toBeVisible();
+    // The public pages and routes need no sign-in: the website's pages, the sign-in page, the
+    // health check and the hello route.
+    for (const path of ['/', '/en']) {
+      await page.goto(path);
+      await expect(page).toHaveURL(`${baseURL}${path}`);
+      await expect(page.getByRole('heading', { level: 1 })).toBeVisible();
+    }
+    await page.goto('/login');
+    await expect(page).toHaveURL(`${baseURL}/login`);
+    await expect(page.getByRole('heading', { level: 1, name: copy.signIn.title })).toBeVisible();
     expect((await request.get('/api/v1/health')).status()).toBe(200);
     expect((await request.get(`/api/v1/hello?locale=${appLocale}`)).status()).toBe(200);
     // The public booking pages are not built yet (F037+); the guard leaves their paths open: the

@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import type { DatabaseExecutor } from './client.ts';
+import { findAccountFacts, findInvitationByToken } from './repositories/invitation-access.ts';
 import { findPlace, findWorkspaceIdsOf } from './repositories/places.ts';
 import type { teamRole } from './schema/index.ts';
 
@@ -85,12 +86,19 @@ function openScope<S extends TenantScope>(
  */
 export async function setContext(
   tx: DatabaseExecutor,
-  context: { accountId: string; workspaceIds: readonly string[]; clientId?: string },
+  context: {
+    accountId: string;
+    workspaceIds: readonly string[];
+    clientId?: string;
+    /** The hash of an invitation's token: the door of `trainer_invitations_by_token` (F011). */
+    invitationTokenHash?: string;
+  },
 ): Promise<void> {
   await tx.execute(
     sql`select set_config('app.account_id', ${context.accountId}, true),
                set_config('app.workspace_ids', ${context.workspaceIds.join(',')}, true),
-               set_config('app.client_id', ${context.clientId ?? ''}, true)`,
+               set_config('app.client_id', ${context.clientId ?? ''}, true),
+               set_config('app.invitation_token_hash', ${context.invitationTokenHash ?? ''}, true)`,
   );
 }
 
@@ -123,6 +131,90 @@ export type WorkspaceEntry<T> =
   | { readonly status: 'refused' }
   | { readonly status: 'entered'; readonly value: T };
 
+/** What `admit` of an invitation scope is told: the invitation as it is, and the signed-in account's address. */
+export interface InvitationScopeFacts {
+  readonly invitation: {
+    readonly status: 'pending' | 'accepted' | 'declined' | 'withdrawn';
+    readonly expiresAt: Date;
+    /** The address the invitation went to, lower case. */
+    readonly email: string;
+  };
+  /** The signed-in account's address and whether it is verified; absent without an account. */
+  readonly account?: { readonly email: string; readonly emailVerified: boolean };
+}
+
+/** What `admit` decides: `enter` (set the workspace and run), `closed` (no longer valid for anyone) or `refused` (open, but not for this caller). */
+export type InvitationAdmission = 'enter' | 'closed' | 'refused';
+
+export interface InvitationScopeInput {
+  /** The hash of the token in the invitation's link, never the token. */
+  readonly tokenHash: string;
+  /** The signed-in account, when there is one: accepting and declining need it, the read does not. */
+  readonly accountId?: string;
+  /**
+   * Decides from the invitation and the account whether the route runs. Called once the token
+   * is known; the workspace is set in the context only after it answers `enter`.
+   */
+  readonly admit: (facts: InvitationScopeFacts) => InvitationAdmission;
+}
+
+/**
+ * How a request by an invitation's token ended: `unknown` (no invitation has this token hash),
+ * `closed` or `refused` (what `admit` answered, or a signed-in account that is gone), or
+ * `entered`, with what `run` returned. In the first three the workspace was never set in a context.
+ */
+export type InvitationEntry<T> =
+  | { readonly status: 'unknown' }
+  | { readonly status: 'closed' }
+  | { readonly status: 'refused' }
+  | { readonly status: 'entered'; readonly value: T };
+
+/**
+ * Reads an account's own workspaces one at a time (F013, ADR-006): for each of `workspaces` the
+ * account has a team role in, sets the context to that workspace alone, hands `run` a workspace
+ * scope (a team member's, with the account's role there), and when all are read puts the account
+ * scope's context back, so the rest of the request is as it was. Results come in the order of
+ * `workspaces`.
+ *
+ * This is how the trainer's calendar reads *across* workspaces without a query that spans them:
+ * every query of `run` sees one workspace, through the same policies as a workspace route. A
+ * workspace outside the account scope's context, or where the account's team role has ended since
+ * the scope was opened, is skipped, never read. The account's team role is looked up again for
+ * each, so a client relationship alone never gets a team member's scope.
+ *
+ * When `run` throws, the error goes up and the request's transaction rolls back: the account
+ * context is not put back, and the transaction must not be used for anything else. Only a call
+ * that returns leaves the scope as it found it.
+ */
+export async function inEachWorkspace<W extends { readonly id: string }, T>(
+  scope: TenantScope,
+  workspaces: readonly W[],
+  run: (workspaceScope: WorkspaceScope, workspace: W) => Promise<T>,
+): Promise<T[]> {
+  const tx = executorOf(scope);
+  const { accountId, workspaceIds } = scope.context;
+  const results: T[] = [];
+  for (const workspace of workspaces) {
+    if (!workspaceIds.includes(workspace.id)) continue;
+    await setContext(tx, { accountId, workspaceIds: [workspace.id] });
+    const place = await findPlace(tx, accountId, workspace.id);
+    if (!place.teamRole) continue;
+    const workspaceScope = openScope<WorkspaceScope>(tx, {
+      workspaceId: workspace.id,
+      actingAs: 'team',
+      context: {
+        accountId,
+        workspaceIds: [workspace.id],
+        teamRole: place.teamRole,
+        actingAs: 'team',
+      },
+    });
+    results.push(await run(workspaceScope, workspace));
+  }
+  await setContext(tx, { accountId, workspaceIds });
+  return results;
+}
+
 /** Opens request transactions with a tenant scope. `apps/web` creates it over the app's database. */
 export interface TenantScopes {
   /** An account route: the context holds the workspaces where the account has the asked relationship. */
@@ -136,6 +228,20 @@ export interface TenantScopes {
     input: WorkspaceScopeInput,
     run: (scope: WorkspaceScope) => Promise<T>,
   ): Promise<WorkspaceEntry<T>>;
+  /**
+   * A route by an invitation's token (F011): the caller is not on the team, perhaps not even
+   * signed in, and holds only the link. Finds the invitation by the token's hash (any status) and
+   * the account's address, asks `admit` (what a closed or foreign invitation means is the
+   * domain's to say), and only after `enter` sets the invitation's workspace in the context, as
+   * `inWorkspaceScope` does. A caller that is not admitted never gets the workspace. `run` gets
+   * the invitation's ID with the scope and must decide again once it has locked the invitation,
+   * before it writes. Without an account the transaction is read-only. Commits when `run`
+   * returns, rolls back when it throws.
+   */
+  inInvitationScope<T>(
+    input: InvitationScopeInput,
+    run: (scope: WorkspaceScope, invitationId: string) => Promise<T>,
+  ): Promise<InvitationEntry<T>>;
 }
 
 /** The request-transaction openers over `database` (called per request, so it may be lazy). */
@@ -143,6 +249,7 @@ export function createTenantScopes(database: () => DatabaseExecutor): TenantScop
   return {
     inAccountScope: (input, run) => inAccountScope(database(), input, run),
     inWorkspaceScope: (input, run) => inWorkspaceScope(database(), input, run),
+    inInvitationScope: (input, run) => inInvitationScope(database(), input, run),
   };
 }
 
@@ -196,4 +303,39 @@ function inWorkspaceScope<T>(
     });
     return { status: 'entered', value: await run(scope) };
   });
+}
+
+function inInvitationScope<T>(
+  db: DatabaseExecutor,
+  input: InvitationScopeInput,
+  run: (scope: WorkspaceScope, invitationId: string) => Promise<T>,
+): Promise<InvitationEntry<T>> {
+  // Anonymous callers only read: the invitation page changes nothing.
+  const config = input.accountId ? undefined : ({ accessMode: 'read only' } as const);
+  return db.transaction(async (tx): Promise<InvitationEntry<T>> => {
+    const accountId = input.accountId ?? '';
+    // First only the token: the policy shows the one invitation it belongs to.
+    await setContext(tx, { accountId, workspaceIds: [], invitationTokenHash: input.tokenHash });
+    const invitation = await findInvitationByToken(tx, input.tokenHash);
+    if (!invitation) return { status: 'unknown' };
+    const account = input.accountId ? await findAccountFacts(tx, input.accountId) : undefined;
+    if (input.accountId && !account) return { status: 'closed' };
+    const admission = input.admit({
+      invitation: {
+        status: invitation.status,
+        expiresAt: invitation.expiresAt,
+        email: invitation.email,
+      },
+      ...(account ? { account } : {}),
+    });
+    if (admission !== 'enter') return { status: admission };
+    // Admitted: the workspace instead of the token, from here the standard policies apply.
+    await setContext(tx, { accountId, workspaceIds: [invitation.workspaceId] });
+    const scope = openScope<WorkspaceScope>(tx, {
+      workspaceId: invitation.workspaceId,
+      actingAs: 'team',
+      context: { accountId, workspaceIds: [invitation.workspaceId], actingAs: 'team' },
+    });
+    return { status: 'entered', value: await run(scope, invitation.id) };
+  }, config);
 }

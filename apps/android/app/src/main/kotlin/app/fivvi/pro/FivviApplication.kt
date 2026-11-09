@@ -2,15 +2,22 @@ package app.fivvi.pro
 
 import android.app.Application
 import android.content.Context
+import app.fivvi.api.apis.ClientsApi
 import app.fivvi.api.apis.HelloApi
 import app.fivvi.api.apis.MeApi
 import app.fivvi.api.apis.SignInApi
 import app.fivvi.api.apis.TrainersApi
 import app.fivvi.api.apis.WorkspacesApi
-import app.fivvi.pro.auth.ApiServices
-import app.fivvi.pro.auth.KeystoreSessionStore
-import app.fivvi.pro.auth.Session
-import app.fivvi.pro.observability.Observability
+import app.fivvi.core.LanguagePreference
+import app.fivvi.core.LanguageSettings
+import app.fivvi.core.SharedPreferencesLanguageStore
+import app.fivvi.core.SystemLanguageSettings
+import app.fivvi.core.auth.ApiServices
+import app.fivvi.core.auth.KeystoreSessionStore
+import app.fivvi.core.auth.Session
+import app.fivvi.core.observability.Observability
+import app.fivvi.pro.workspace.CurrentWorkspace
+import app.fivvi.pro.workspace.SharedPreferencesLastWorkspaceStore
 
 /** What the screens depend on. Instrumented tests replace it before an activity starts. */
 interface AppDependencies {
@@ -18,12 +25,16 @@ interface AppDependencies {
     val signInApi: SignInApi
     val meApi: MeApi
     val workspacesApi: WorkspacesApi
+    val clientsApi: ClientsApi
     val trainersApi: TrainersApi
     val session: Session
     val languageSettings: LanguageSettings
 
     /** The language shown and kept (F010). */
     val languagePreference: LanguagePreference
+
+    /** The workspace used last on this device, kept across sign-outs (F012). */
+    val currentWorkspace: CurrentWorkspace
 
     /** The sign-in API for the one sign-out request that carries [token] (AC10). */
     fun signOutApi(token: String): SignInApi
@@ -41,11 +52,15 @@ class DefaultAppDependencies(context: Context) : AppDependencies {
     override val signInApi: SignInApi get() = services.signInApi
     override val meApi: MeApi get() = services.meApi
     override val workspacesApi: WorkspacesApi get() = services.workspacesApi
+    override val clientsApi: ClientsApi get() = services.clientsApi
     override val trainersApi: TrainersApi get() = services.trainersApi
     override fun signOutApi(token: String): SignInApi = services.signOutApi(token)
     override val languageSettings: LanguageSettings = SystemLanguageSettings(context)
     override val languagePreference: LanguagePreference by lazy {
         LanguagePreference(SharedPreferencesLanguageStore(context), languageSettings)
+    }
+    override val currentWorkspace: CurrentWorkspace by lazy {
+        CurrentWorkspace(SharedPreferencesLastWorkspaceStore(context))
     }
 }
 
@@ -54,7 +69,7 @@ class FivviApplication : Application() {
 
     override fun onCreate() {
         super.onCreate()
-        Observability.start(this)
+        Observability.start(this, observabilityConfigOfThisBuild())
         dependencies = DefaultAppDependencies(this)
     }
 }

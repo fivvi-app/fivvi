@@ -2,6 +2,7 @@ import FivviAPI
 import XCTest
 
 @testable import FivviPro
+@testable import FivviStrings
 
 /// The signed-in home's account line: `GET /api/v1/me` through the generated client's `APIProtocol`.
 @MainActor

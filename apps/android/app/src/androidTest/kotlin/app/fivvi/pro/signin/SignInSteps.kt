@@ -8,8 +8,10 @@ import androidx.compose.ui.test.junit4.ComposeTestRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performTextInput
-import app.fivvi.pro.AppLanguage
-import app.fivvi.pro.R
+import app.fivvi.core.AppLanguage
+import app.fivvi.core.R
+import app.fivvi.core.signin.FakeSignInApi
+import app.fivvi.core.signin.SignInTags
 import app.fivvi.pro.home.HomeTags
 import app.fivvi.pro.localizedString
 import app.fivvi.pro.waitUntilTagExists
