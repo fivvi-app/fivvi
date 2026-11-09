@@ -7,6 +7,8 @@ import type { Kind } from './audience-data';
 interface KindState {
   current: Kind;
   select: (kind: Kind) => void;
+  /** Whether the visitor has chosen: only a change rises into view, not the page's first screen. */
+  rises: boolean;
 }
 
 const KindContext = createContext<KindState | undefined>(undefined);
@@ -23,8 +25,13 @@ function useKind(): KindState {
  * nothing is requested. The parts of the page that depend on it are `KindPanel`s.
  */
 export function KindProvider({ children }: { children: ReactNode }) {
-  const [current, select] = useState<Kind>('pilates');
-  return <KindContext value={{ current, select }}>{children}</KindContext>;
+  const [current, setCurrent] = useState<Kind>('pilates');
+  const [rises, setRises] = useState(false);
+  const select = (kind: Kind) => {
+    setRises(true);
+    setCurrent(kind);
+  };
+  return <KindContext value={{ current, select, rises }}>{children}</KindContext>;
 }
 
 /** The buttons of the switch, named by `label` (*Soort studio*). */
@@ -70,12 +77,15 @@ export function KindPanel({
   className?: string;
   children: ReactNode;
 }) {
-  const { current } = useKind();
+  const { current, rises } = useKind();
   return (
     <div
       hidden={kind !== current}
       className={classes(
-        'motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-3 motion-safe:duration-500',
+        // Not on the page's first screen: its miniature is the largest picture, and one that fades
+        // in from nothing is counted by the browser only when the fade is over (AC15, LCP).
+        rises &&
+          'motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-3 motion-safe:duration-500',
         className,
       )}
     >

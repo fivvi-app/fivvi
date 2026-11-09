@@ -24,7 +24,13 @@ export function SubProcessorsPage({ locale }: { locale: Locale }) {
         lead={t('site.subProcessors.lead')}
         status={t('site.home.status')}
       />
-      <div className="mt-7 overflow-x-auto rounded-card bg-card">
+      {/* It scrolls sideways on a phone: a region with a name, which a keyboard can focus. */}
+      <section
+        aria-label={t('site.subProcessors.listLabel')}
+        // biome-ignore lint/a11y/noNoninteractiveTabindex: a scrollable region must be reachable by keyboard (axe: scrollable-region-focusable)
+        tabIndex={0}
+        className="mt-7 overflow-x-auto rounded-card bg-card"
+      >
         <table className="w-full border-collapse text-[15px] leading-snug">
           <caption className="sr-only">{t('site.subProcessors.listLabel')}</caption>
           <thead>
@@ -59,7 +65,7 @@ export function SubProcessorsPage({ locale }: { locale: Locale }) {
             ))}
           </tbody>
         </table>
-      </div>
+      </section>
       <section aria-labelledby="mollie" className="mt-3.5 max-w-[60em] rounded-card bg-card p-5.5">
         <h2 id="mollie" className="text-[17px] font-semibold">
           {t('site.subProcessors.mollieHeading')}

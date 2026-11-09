@@ -145,13 +145,48 @@ describe.each(locales)('F064 AC2 the audience pages in %s', (locale) => {
       expect(markup).toContain('media="(prefers-color-scheme: dark)"');
       expect(markup).toMatch(new RegExp(`-${language}-dark-(320|640|1280)\\.webp`));
       expect(markup).not.toContain(`-${other}-light-`);
-      for (const picture of markup.match(/<picture>.*?<\/picture>/g) ?? []) {
+      for (const picture of (markup.match(/<picture>.*?<\/picture>/g) ?? []).filter(
+        (candidate) => !candidate.includes('/scenes/'),
+      )) {
         expect(picture).toMatch(/alt="[^"]{10,}"/);
       }
       const images = markup.match(/<img[^>]*>/g) ?? [];
-      for (const image of images) expect(image).toMatch(/width="\d+"[^>]*height="\d+"/);
+      for (const image of images) {
+        // F064 AC15: its size is set, it has sizes of its own, and it is not a PNG or a JPEG.
+        expect(image).toMatch(/width="\d+"[^>]*height="\d+"/);
+        expect(image).toMatch(/srcSet="[^"]+ \d+w, [^"]+ \d+w/);
+        expect(image).not.toMatch(/\.(png|jpe?g|gif)\b/);
+      }
+      expect(markup).toMatch(/<source type="image\/avif" srcSet="[^"]*-600\.avif 600w/);
       expect(images.filter((image) => image.includes('loading="eager"')).length).toBeGreaterThan(0);
       expect(images.filter((image) => image.includes('loading="lazy"')).length).toBeGreaterThan(3);
+    });
+
+    it('gives the first miniature the network and lets the screens come after it (AC15: largest contentful paint)', () => {
+      const markup = html(page, locale);
+      const images = markup.match(/<img[^>]*>/g) ?? [];
+      const scenes = images.filter((image) => image.includes('/scenes/'));
+      const screens = images.filter((image) => image.includes('/shots/'));
+
+      // The one the visitor sees first (the first kind, for the studios' hidden others) is high.
+      expect(scenes.filter((image) => image.includes('fetchPriority="high"'))).toHaveLength(1);
+      expect(scenes.find((image) => image.includes('fetchPriority="high"'))).toContain(
+        'loading="eager"',
+      );
+      expect(screens.length).toBeGreaterThan(0);
+      for (const screen of screens) {
+        expect(screen).toContain('fetchPriority="low"');
+        expect(screen).toContain('loading="lazy"');
+        expect(screen).toMatch(/width="\d+"[^>]*height="\d+"/);
+      }
+    });
+
+    it('shows the first miniature and its screens at once, without a fade in (AC15: largest contentful paint)', () => {
+      const markup = html(page, locale);
+      const firstScreen = markup.slice(0, markup.indexOf('<section'));
+
+      expect(firstScreen).toContain('<picture><source type="image/avif"');
+      expect(firstScreen).not.toContain('animate-in');
     });
 
     it('closes with the promises and the shared call to action once there is a demo page', () => {

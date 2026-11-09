@@ -93,6 +93,16 @@ describe.each(locales)('F064 AC11 the sub-processors page in %s', (locale) => {
     }
   });
 
+  // AC15: the table scrolls sideways on a phone, so a keyboard must be able to reach it, and a screen
+  // reader must hear what it is (axe: scrollable-region-focusable).
+  it('puts the table that scrolls in a labelled region a keyboard can focus', () => {
+    const page = html(<SubProcessorsPage locale={locale} />);
+    const region = page.match(/<section[^>]*overflow-x-auto[^>]*>/)?.[0] ?? '';
+
+    expect(region).toContain('tabindex="0"');
+    expect(region).toContain(`aria-label="${escapeHtml(t.listLabel)}"`);
+  });
+
   it('names Mollie in a separate role, not in the table', () => {
     const page = html(<SubProcessorsPage locale={locale} />);
     const table = page.match(/<table.*<\/table>/s)?.[0] ?? '';
