@@ -17,7 +17,7 @@ export function isProductionEnvironment(env: Env = process.env): boolean {
 
 /**
  * `EMAIL_SEND_EXAMPLE_DOMAIN=1`: outside production, `@example.com` mail goes through the provider like
- * any other address. Set only by the Maestro run (`scripts/maestro.sh`), whose Brevo is a fake
+ * any other address. Set only by the Maestro run (`scripts/maestro.sh`), whose Lettermint is a fake
  * server it reads the sign-in codes from. Only the value `1` turns it on.
  */
 function sendsExampleDomain(env: Env): boolean {
@@ -49,12 +49,11 @@ export interface EnvironmentSendEmailOptions {
  * - **Outside production**, mail to an `@example.com` address is written to the server log,
  *   code and link included, so agents can sign in on a preview without an inbox. Mail to any
  *   other address goes through the provider. `EMAIL_SEND_EXAMPLE_DOMAIN=1` sends `@example.com`
- *   mail through it too, for e2e runs with a fake Brevo server.
+ *   mail through it too, for e2e runs with a fake Lettermint server.
  *
- * The provider is Lettermint as soon as `LETTERMINT_API_TOKEN` is set (with
- * `LETTERMINT_ROUTE_SIGN_IN`, `LETTERMINT_ROUTE_MAIL`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME`),
- * otherwise Brevo (`BREVO_API_KEY`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME` and, for e2e runs with
- * a fake Brevo server, `BREVO_API_URL`). Outside production the variables may be missing while
+ * The provider is Lettermint (`LETTERMINT_API_TOKEN`, `LETTERMINT_ROUTE_SIGN_IN`,
+ * `LETTERMINT_ROUTE_MAIL`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME` and, for e2e runs with a fake
+ * Lettermint server, `LETTERMINT_API_URL`). Outside production the variables may be missing while
  * only `@example.com` mail is sent; production without them throws.
  */
 export function createEnvironmentSendEmail(options: EnvironmentSendEmailOptions = {}): SendEmail {

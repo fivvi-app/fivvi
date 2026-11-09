@@ -767,7 +767,7 @@ jobs:
           name: android-maestro-apk
           path: apps/android/build/maestro
 
-      # Postgres (migrated and seeded), the fake Brevo server and the web server, then every flow in nl-NL and en, with the
+      # Postgres (migrated and seeded), the fake Lettermint server and the web server, then every flow in nl-NL and en, with the
       # app of "Android build" (nothing is built here).
       # Both locales run one after the other: run 41938461253 (10 flows) took 19 min 47 s on a slow runner, 14 to 18
       # minutes on main. The 30 minutes are 1.5 x the slowest run (#519); the "Step durations" step shows how close a run

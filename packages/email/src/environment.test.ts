@@ -1,11 +1,12 @@
 import { describe, expect, it, vi } from 'vitest';
-import { brevoApiUrl } from './brevo.ts';
-import { readEmailConfig } from './config.ts';
 import { createEnvironmentSendEmail, isProductionEnvironment } from './environment.ts';
+import { lettermintApiUrl } from './lettermint.ts';
 import { signInEmail } from './templates/sign-in.tsx';
 
-const brevoEnv = {
-  BREVO_API_KEY: 'xkeysib-test-not-a-real-key',
+const lettermintEnv = {
+  LETTERMINT_API_TOKEN: 'lm-test-not-a-real-token',
+  LETTERMINT_ROUTE_SIGN_IN: 'sign-in-route',
+  LETTERMINT_ROUTE_MAIL: 'mail-route',
   EMAIL_FROM_ADDRESS: 'noreply@fivvi.app',
   EMAIL_FROM_NAME: 'Fivvi',
 };
@@ -20,8 +21,8 @@ function setup(env: Record<string, string>) {
   const fetch = (input: string | URL | Request, init: RequestInit = {}) => {
     requests.push({ url: String(input), body: JSON.parse(String(init.body)) });
     return Promise.resolve(
-      new Response(JSON.stringify({ messageId: '<1@brevo>' }), {
-        status: 201,
+      new Response(JSON.stringify({ message_id: 'msg-1', status: 'pending' }), {
+        status: 202,
         headers: { 'content-type': 'application/json' },
       }),
     );
@@ -43,9 +44,9 @@ describe('F001 which transport sends an email', () => {
     ['development', { RAILWAY_ENVIRONMENT_NAME: 'development' }],
     ['a preview', { RAILWAY_ENVIRONMENT_NAME: 'pr-130' }],
   ])(
-    'AC15: @example.com goes to the log outside production (%s), code and link included, never to Brevo',
+    'AC15: @example.com goes to the log outside production (%s), code and link included, never to Lettermint',
     async (_name, extra) => {
-      const { requests, logged, send } = setup({ ...brevoEnv, ...extra });
+      const { requests, logged, send } = setup({ ...lettermintEnv, ...extra });
 
       await send('owner@example.com');
 
@@ -57,21 +58,21 @@ describe('F001 which transport sends an email', () => {
     },
   );
 
-  it('AC15: outside production, other addresses still go to Brevo', async () => {
+  it('AC15: outside production, other addresses still go to Lettermint', async () => {
     const { requests, logged, send } = setup({
-      ...brevoEnv,
+      ...lettermintEnv,
       RAILWAY_ENVIRONMENT_NAME: 'development',
     });
 
     await send('anna@gym.test');
 
     expect(logged).toEqual([]);
-    expect(requests.map((r) => r.url)).toEqual([brevoApiUrl]);
+    expect(requests.map((r) => r.url)).toEqual([lettermintApiUrl]);
   });
 
-  it('AC15: production always sends through Brevo, @example.com too, and logs nothing', async () => {
+  it('AC15: production always sends through Lettermint, @example.com too, and logs nothing', async () => {
     const { requests, logged, send } = setup({
-      ...brevoEnv,
+      ...lettermintEnv,
       RAILWAY_ENVIRONMENT_NAME: 'production',
     });
     const consoleOutput = [vi.spyOn(console, 'log'), vi.spyOn(console, 'info')];
@@ -83,17 +84,17 @@ describe('F001 which transport sends an email', () => {
     for (const spy of consoleOutput) expect(spy).not.toHaveBeenCalled();
   });
 
-  it('F001: EMAIL_SEND_EXAMPLE_DOMAIN=1 sends @example.com mail through Brevo outside production, never to the log', async () => {
+  it('F001: EMAIL_SEND_EXAMPLE_DOMAIN=1 sends @example.com mail through Lettermint outside production, never to the log', async () => {
     const { requests, logged, send } = setup({
-      ...brevoEnv,
-      BREVO_API_URL: 'http://localhost:4010/v3/smtp/email',
+      ...lettermintEnv,
+      LETTERMINT_API_URL: 'http://localhost:4010/v1/send',
       EMAIL_SEND_EXAMPLE_DOMAIN: '1',
     });
 
     await send('owner@example.com');
 
     expect(logged).toEqual([]);
-    expect(requests.map((r) => r.url)).toEqual(['http://localhost:4010/v3/smtp/email']);
+    expect(requests.map((r) => r.url)).toEqual(['http://localhost:4010/v1/send']);
   });
 
   it.each([
@@ -104,7 +105,7 @@ describe('F001 which transport sends an email', () => {
   ])(
     'F001: EMAIL_SEND_EXAMPLE_DOMAIN %s leaves @example.com mail in the log',
     async (_name, extra) => {
-      const { requests, logged, send } = setup({ ...brevoEnv, ...extra });
+      const { requests, logged, send } = setup({ ...lettermintEnv, ...extra });
 
       await send('owner@example.com');
 
@@ -113,18 +114,18 @@ describe('F001 which transport sends an email', () => {
     },
   );
 
-  it('F001: EMAIL_SEND_EXAMPLE_DOMAIN=1 without Brevo settings fails when an @example.com email is sent', async () => {
+  it('F001: EMAIL_SEND_EXAMPLE_DOMAIN=1 without Lettermint settings fails when an @example.com email is sent', async () => {
     const { logged, send } = setup({ EMAIL_SEND_EXAMPLE_DOMAIN: '1' });
 
     await expect(send('owner@example.com')).rejects.toMatchObject({
-      cause: expect.objectContaining({ message: expect.stringMatching(/BREVO_API_KEY/) }),
+      cause: expect.objectContaining({ message: expect.stringMatching(/LETTERMINT_API_TOKEN/) }),
     });
     expect(logged).toEqual([]);
   });
 
-  it('F001: production is unchanged by EMAIL_SEND_EXAMPLE_DOMAIN: it sends through Brevo and logs nothing', async () => {
+  it('F001: production is unchanged by EMAIL_SEND_EXAMPLE_DOMAIN: it sends through Lettermint and logs nothing', async () => {
     const { requests, logged, send } = setup({
-      ...brevoEnv,
+      ...lettermintEnv,
       RAILWAY_ENVIRONMENT_NAME: 'production',
       EMAIL_SEND_EXAMPLE_DOMAIN: '1',
     });
@@ -136,7 +137,7 @@ describe('F001 which transport sends an email', () => {
   });
 
   it('AC15: an @example.com lookalike is not the log: only the exact domain is', async () => {
-    const { requests, logged, send } = setup({ ...brevoEnv });
+    const { requests, logged, send } = setup({ ...lettermintEnv });
 
     await send('anna@example.com.test');
     await send('example.com@gym.test');
@@ -145,25 +146,32 @@ describe('F001 which transport sends an email', () => {
     expect(requests).toHaveLength(2);
   });
 
-  it('sends through BREVO_API_URL when it is set, so e2e can use a fake Brevo server', async () => {
+  it('sends through LETTERMINT_API_URL when it is set, so e2e can use a fake Lettermint server', async () => {
     const { requests, send } = setup({
-      ...brevoEnv,
-      BREVO_API_URL: 'http://localhost:4010/v3/smtp/email',
+      ...lettermintEnv,
+      LETTERMINT_API_URL: 'http://localhost:4010/v1/send',
     });
 
     await send('anna@gym.test');
 
-    expect(requests.map((r) => r.url)).toEqual(['http://localhost:4010/v3/smtp/email']);
+    expect(requests.map((r) => r.url)).toEqual(['http://localhost:4010/v1/send']);
   });
 
-  it('outside production, example.com mail needs no Brevo settings at all', async () => {
+  it('outside production, example.com mail needs no email settings at all', async () => {
     const { logged, send } = setup({});
     await send('owner@example.com');
     expect(logged).toHaveLength(1);
   });
 
-  it('production without Brevo settings fails at once, never falls back to the log', () => {
-    expect(() => setup({ RAILWAY_ENVIRONMENT_NAME: 'production' })).toThrow(/BREVO_API_KEY/);
+  it('production without Lettermint settings fails at once, never falls back to the log', () => {
+    expect(() => setup({ RAILWAY_ENVIRONMENT_NAME: 'production' })).toThrow(/LETTERMINT_API_TOKEN/);
+  });
+
+  it('E006 #403: production with a sender and routes but no token fails at once', () => {
+    const { LETTERMINT_API_TOKEN: _token, ...withoutToken } = lettermintEnv;
+    expect(() => setup({ ...withoutToken, RAILWAY_ENVIRONMENT_NAME: 'production' })).toThrow(
+      /^LETTERMINT_API_TOKEN is not set/,
+    );
   });
 
   it("knows production only by Railway's environment name", () => {
@@ -172,103 +180,35 @@ describe('F001 which transport sends an email', () => {
     expect(isProductionEnvironment({ NODE_ENV: 'production' })).toBe(false);
   });
 
-  it('reads an optional Brevo API address from the environment', () => {
-    expect(readEmailConfig(brevoEnv).brevoApiUrl).toBeUndefined();
-    expect(
-      readEmailConfig({ ...brevoEnv, BREVO_API_URL: ' http://localhost:4010/x ' }).brevoApiUrl,
-    ).toBe('http://localhost:4010/x');
-    expect(() => readEmailConfig({ ...brevoEnv, BREVO_API_URL: 'nope' })).toThrow(
-      'BREVO_API_URL is not a URL.',
-    );
+  it('sends on the sign-in route, with the sign-in template as its tag', async () => {
+    const { requests, logged, send } = setup({
+      ...lettermintEnv,
+      RAILWAY_ENVIRONMENT_NAME: 'production',
+    });
+
+    await send('anna@gym.test');
+
+    expect(logged).toEqual([]);
+    expect(requests.map((r) => [r.url, r.body.route, r.body.tag])).toEqual([
+      [lettermintApiUrl, 'sign-in-route', 'sign-in'],
+    ]);
   });
 
-  describe('with LETTERMINT_API_TOKEN set', () => {
-    const lettermintEnv = {
-      LETTERMINT_API_TOKEN: 'lm-test-not-a-real-token',
-      LETTERMINT_ROUTE_SIGN_IN: 'sign-in-route',
-      LETTERMINT_ROUTE_MAIL: 'mail-route',
-      EMAIL_FROM_ADDRESS: 'noreply@fivvi.app',
-      EMAIL_FROM_NAME: 'Fivvi',
-    };
-
-    it('sends through Lettermint instead of Brevo, on the sign-in route', async () => {
-      const { requests, logged, send } = setup({
-        ...brevoEnv,
+  it('production with a missing route fails at once', () => {
+    expect(() =>
+      setup({
         ...lettermintEnv,
+        LETTERMINT_ROUTE_SIGN_IN: '',
         RAILWAY_ENVIRONMENT_NAME: 'production',
-      });
+      }),
+    ).toThrow(/LETTERMINT_ROUTE_SIGN_IN/);
+  });
 
-      await send('anna@gym.test');
+  it('outside production, a missing route fails when a real address is sent to', async () => {
+    const { send } = setup({ LETTERMINT_API_TOKEN: 'lm-test-not-a-real-token' });
 
-      expect(logged).toEqual([]);
-      expect(requests.map((r) => [r.url, r.body.route, r.body.tag])).toEqual([
-        ['https://api.lettermint.co/v1/send', 'sign-in-route', 'sign-in'],
-      ]);
-    });
-
-    it('works without any Brevo variable', async () => {
-      const { requests, send } = setup({
-        ...lettermintEnv,
-        RAILWAY_ENVIRONMENT_NAME: 'production',
-      });
-
-      await send('owner@example.com');
-
-      expect(requests).toHaveLength(1);
-    });
-
-    it('sends through LETTERMINT_API_URL when it is set', async () => {
-      const { requests, send } = setup({
-        ...lettermintEnv,
-        LETTERMINT_API_URL: 'http://localhost:4010/v1/send',
-      });
-
-      await send('anna@gym.test');
-
-      expect(requests.map((r) => r.url)).toEqual(['http://localhost:4010/v1/send']);
-    });
-
-    it('still logs @example.com mail outside production, never sending it', async () => {
-      const { requests, logged, send } = setup({
-        ...lettermintEnv,
-        RAILWAY_ENVIRONMENT_NAME: 'pr-130',
-      });
-
-      await send('owner@example.com');
-
-      expect(requests).toEqual([]);
-      expect(logged).toHaveLength(1);
-      expect(logged[0]).toContain('482915');
-    });
-
-    it('production sends @example.com mail too and logs nothing', async () => {
-      const { requests, logged, send } = setup({
-        ...lettermintEnv,
-        RAILWAY_ENVIRONMENT_NAME: 'production',
-      });
-
-      await send('owner@example.com');
-
-      expect(requests).toHaveLength(1);
-      expect(logged).toEqual([]);
-    });
-
-    it('production with a missing route fails at once', () => {
-      expect(() =>
-        setup({
-          ...lettermintEnv,
-          LETTERMINT_ROUTE_SIGN_IN: '',
-          RAILWAY_ENVIRONMENT_NAME: 'production',
-        }),
-      ).toThrow(/LETTERMINT_ROUTE_SIGN_IN/);
-    });
-
-    it('outside production, a missing route fails when a real address is sent to', async () => {
-      const { send } = setup({ LETTERMINT_API_TOKEN: 'lm-test-not-a-real-token' });
-
-      await expect(send('anna@gym.test')).rejects.toMatchObject({
-        cause: expect.objectContaining({ message: expect.stringMatching(/LETTERMINT_ROUTE_/) }),
-      });
+    await expect(send('anna@gym.test')).rejects.toMatchObject({
+      cause: expect.objectContaining({ message: expect.stringMatching(/LETTERMINT_ROUTE_/) }),
     });
   });
 });

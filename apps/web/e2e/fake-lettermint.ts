@@ -1,13 +1,13 @@
 import { createServer } from 'node:http';
-import type { ReceivedEmail } from './brevo';
+import type { ReceivedEmail } from './lettermint';
 
-// The fake Brevo server (F001), a Playwright web server (playwright.config.ts). The app posts its
-// emails here like it would to Brevo's `POST /v3/smtp/email`; the specs read them back with
-// `GET /emails?to=<address>` (e2e/brevo.ts). Emails are kept in memory until the server stops,
+// The fake Lettermint server (F001, E006), a Playwright web server (playwright.config.ts). The app
+// posts its emails here like it would to Lettermint's `POST /v1/send`; the specs read them back with
+// `GET /emails?to=<address>` (e2e/lettermint.ts). Emails are kept in memory until the server stops,
 // so every spec uses an address of its own.
 
 const port = Number(process.env.PORT);
-if (!port) throw new Error('Set PORT to the port of the fake Brevo server.');
+if (!port) throw new Error('Set PORT to the port of the fake Lettermint server.');
 
 const received: ReceivedEmail[] = [];
 
@@ -18,20 +18,23 @@ createServer(async (request, response) => {
     response.end(JSON.stringify(body));
   };
 
-  if (request.method === 'POST' && url.pathname === '/v3/smtp/email') {
+  if (request.method === 'POST' && url.pathname === '/v1/send') {
+    if (!request.headers['x-lettermint-token']) {
+      return json(401, { message: 'Missing x-lettermint-token.' });
+    }
     const body = JSON.parse(await readBody(request)) as {
-      to: { email: string }[];
+      to: string[];
       subject: string;
-      textContent: string;
-      htmlContent: string;
+      text: string;
+      html: string;
     };
     received.push({
-      to: body.to[0]?.email ?? '',
+      to: addressOf(body.to[0] ?? ''),
       subject: body.subject,
-      text: body.textContent,
-      html: body.htmlContent,
+      text: body.text,
+      html: body.html,
     });
-    return json(201, { messageId: `<fake-${received.length}@brevo.e2e.test>` });
+    return json(202, { message_id: `fake-${received.length}`, status: 'pending' });
   }
   if (request.method === 'GET' && url.pathname === '/emails') {
     const to = url.searchParams.get('to')?.toLowerCase();
@@ -44,6 +47,11 @@ createServer(async (request, response) => {
   if (request.method === 'GET' && url.pathname === '/') return json(200, { status: 'ok' });
   return json(404, { message: 'not found' });
 }).listen(port, 'localhost');
+
+/** The address of `Name <address>` or of a bare address, as the transport formats them. */
+function addressOf(recipient: string): string {
+  return /<([^>]+)>\s*$/.exec(recipient)?.[1] ?? recipient;
+}
 
 async function readBody(request: AsyncIterable<Buffer>): Promise<string> {
   const chunks: Buffer[] = [];

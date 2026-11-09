@@ -60,7 +60,7 @@ The code step of the sign-in page (`/login`, `apps/web/app/(app)/login`) calls t
 
 ## Configuration
 
-`BETTER_AUTH_SECRET` (at least 32 characters, a secret per environment), `BETTER_AUTH_URL` (the public address) and `SIGN_UP_ALLOWED_EMAILS` (who may sign up): [`ENVIRONMENTS.md §7`](../../docs/engineering/ENVIRONMENTS.md#7-variables). Emails go through `createEnvironmentSendEmail()` in `packages/email`: to the server log for `@example.com` outside production, otherwise Brevo.
+`BETTER_AUTH_SECRET` (at least 32 characters, a secret per environment), `BETTER_AUTH_URL` (the public address) and `SIGN_UP_ALLOWED_EMAILS` (who may sign up): [`ENVIRONMENTS.md §7`](../../docs/engineering/ENVIRONMENTS.md#7-variables). Emails go through `createEnvironmentSendEmail()` in `packages/email`: to the server log for `@example.com` outside production, otherwise Lettermint (ADR-028).
 
 ## Tests
 

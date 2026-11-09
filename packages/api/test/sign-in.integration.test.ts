@@ -520,7 +520,7 @@ describe('F001 sign in with the emailed code through the API', () => {
         emailTransport: {
           name: 'failing',
           send: (email) =>
-            Promise.reject(new Error(`Brevo rejected ${email.text} for ${email.to.email}`)),
+            Promise.reject(new Error(`Lettermint rejected ${email.text} for ${email.to.email}`)),
         },
       });
       await requestCode('owner@example.com', 'en', { server: failing, returnTo });
@@ -986,7 +986,7 @@ describe('F001 sign in with the emailed code through the API', () => {
         const failing = authAt({
           emailTransport: {
             name: 'failing',
-            send: () => Promise.reject(new Error(`Brevo rejected ${SECRET_ADDRESS}`)),
+            send: () => Promise.reject(new Error(`Lettermint rejected ${SECRET_ADDRESS}`)),
           },
         });
 
@@ -1026,7 +1026,7 @@ describe('F001 sign in with the emailed code through the API', () => {
         const log = spyOnLog();
         const server = authAt({
           overrides: {
-            sendEmail: () => Promise.reject(new Error('Brevo is down')),
+            sendEmail: () => Promise.reject(new Error('Lettermint is down')),
             reportError: () => {
               throw new Error(`Sentry is down for ${SECRET_ADDRESS}`);
             },

@@ -1,0 +1,20 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/docs/legal/privacy-policy.*.md",
+        "$TURBO_ROOT$/docs/legal/terms.*.md"
+      ]
+    },
+    "test": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/docs/legal/privacy-policy.*.md",
+        "$TURBO_ROOT$/docs/legal/terms.*.md"
+      ]
+    }
+  }
+}

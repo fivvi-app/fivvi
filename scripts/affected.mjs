@@ -58,6 +58,11 @@ const MARKDOWN_READ_BY_TESTS = [
 // affects the root tests, which compare the two.
 const INPUT_OF_PACKAGE = new Map([['compose.yaml', '@fivvi/database']]);
 
+// Markdown that is the input of a package, not documentation: the web app renders the privacy policy and the terms when
+// it is built (F064, AC10), so an open value in one must fail the web build and tests here, not on Railway after the
+// merge. apps/web/turbo.json lists them as inputs of its build and tests, for the cache.
+const MARKDOWN_INPUT_OF_PACKAGE = [[/^docs\/legal\/(privacy-policy|terms)\.(nl|en)\.md$/, WEB]];
+
 const isMarkdown = (path) => /\.md$/.test(path);
 
 /** The packages of the workspace at `root`: [{name, dir, scripts, dependencies}], from pnpm-workspace.yaml. */
@@ -169,6 +174,12 @@ export function plan({ paths, packages, force = false }) {
   let root = false;
   let code = false;
   for (const path of changed) {
+    const input = MARKDOWN_INPUT_OF_PACKAGE.find(([pattern]) => pattern.test(path));
+    if (input && byName.has(input[1])) {
+      code = true;
+      touched.add(input[1]);
+      continue;
+    }
     if (isMarkdown(path) && !MARKDOWN_READ_BY_TESTS.some((pattern) => pattern.test(path))) continue;
     code = true;
     const pkg = !isMarkdown(path) ? packageOf(path, packages) : undefined;
