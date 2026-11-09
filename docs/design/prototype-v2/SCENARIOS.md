@@ -22,7 +22,7 @@ The prototype's panel has five setups (⚙ → **Opzet**). Each is a fictional b
 | Several sessions at the same time | Gym (4 trainers), pilates | ✅ | Calendar shows them side by side (prototype: lanes and day columns per trainer) |
 | Class description, Dutch and English | All with classes | ✅ | §18 |
 | Substitute a trainer | Gym, pilates, yoga | ✅ | F024, CO-02 |
-| Memberships, credit packs (a single pass is a pack of 1), credit plans | Yoga drop-ins, pilates packs, gym | ✅ | §90–§92, §95 (from M11) |
+| Memberships, credit packs, credit plans, single class passes | Yoga drop-ins, pilates packs, gym | ✅ | §90–§92, §95, F058 (from M11) |
 | Cancellation window | All with classes | ✅ | §93 |
 | Clients join by link and are approved | All | ✅ | ADR-026 |
 | Workout logging | Gym, PT, small groups | ✅ | §41 (private sessions; unused by yoga, which is fine) |
@@ -32,7 +32,7 @@ The prototype's panel has five setups (⚙ → **Opzet**). Each is a fictional b
 | **Class level** (beginner, advanced) | Pilates, yoga | 📌 | Owner: build it. Prototype: a level field on the class (Alle niveaus, Beginner, Gemiddeld, Gevorderd), shown as three bars and the word in every list and on the class page |
 | **Choosing a spot or a machine** (reformer 3, mat by the window) | Pilates, spinning, yoga | ❌ | Rooms and resources are MVP exclusions (§53). Owner: the client picking their own spot is a feature to keep for after the MVP; stopping double room bookings is admin, not a priority |
 | **Two classes needing the same room** | Pilates, yoga, gym | ❌ | Rooms are excluded (§53); nothing stops two reformer classes at the same time. Today the owner avoids it by hand |
-| **Workshop with its own price** | Yoga | 🟡 | A single pass (a credit pack of 1) with its own offer may cover it; a different price per class is not described |
+| **Workshop with its own price** | Yoga | 🟡 | A single class pass (F058) with its own offer may cover it; a different price per class is not described |
 | **Instructor or teacher instead of trainer** | Pilates, yoga | 📌 | Owner: build it. Prototype: Instellingen → Algemeen → Woordkeuze (trainer, instructeur, docent, coach); the whole workspace then uses that word. Pilates opens as *instructeur*, yoga as *docent* |
 | **Mat or equipment rental** | Yoga | ❌ | Not in the MVP; usually free or paid at the desk |
 

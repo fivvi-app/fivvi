@@ -53,7 +53,7 @@ Products a Dutch gym or PT studio could choose instead of Fivvi, and what we lea
 **What we take from Huppa** (the owner likes it):
 
 - **Company billing** confirms the pilot's need for invoices in a company's name (`PRODUCT.md §96`).
-- **Members buy and upgrade themselves** in the app: in our MVP clients confirm agreements and buy credits, a single pass (a pack of 1) included, on the web (`PRODUCT.md §92, §95`); keep that path as short as Huppa's.
+- **Members buy and upgrade themselves** in the app: in our MVP clients confirm agreements and buy credits or a single class pass, ahead, on the web (`PRODUCT.md §92, §95`); keep that path as short as Huppa's.
 - **Trial lessons** as a first booking: candidate for the booking page (M5) or 1.1.
 - **One all-inclusive price** is a clear message for platform pricing when decision 16 comes up.
 

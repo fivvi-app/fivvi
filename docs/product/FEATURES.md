@@ -2,8 +2,8 @@
 
 The single source of truth for feature status. A status changes **in the same PR** as the code that earns it.
 
-- **Lifecycle:** `IDEA → PLANNED → DESIGNED → IN PROGRESS → IN REVIEW → IMPLEMENTED → RELEASED` (`PRODUCT.md §81`); `SUPERSEDED` for a feature the owner replaced by another and closed as not planned (it keeps its ID and row, and is not counted)
-- **Priority:** `Later` (not in the MVP, `PRODUCT.md §53`) · `Must` (MVP cannot ship without it) · `Should` (first to slip to 1.1 if dates are at risk) · `Must (proposed, decision 9)` (proposed M11 scope, `ROADMAP.md` decision 9: a `Must` only once the owner confirms it) · `—` (superseded, not planned)
+- **Lifecycle:** `IDEA → PLANNED → DESIGNED → IN PROGRESS → IN REVIEW → IMPLEMENTED → RELEASED` (`PRODUCT.md §81`)
+- **Priority:** `Later` (not in the MVP, `PRODUCT.md §53`) · `Must` (MVP cannot ship without it) · `Should` (first to slip to 1.1 if dates are at risk) · `Must (proposed, decision 9)` (proposed M11 scope, `ROADMAP.md` decision 9: a `Must` only once the owner confirms it)
 - **Languages:** a feature is not `IMPLEMENTED` until both NL and EN work (`PRODUCT.md §82`)
 - **Platforms:** a feature with a trainer mobile surface (marked `+ iOS/Android` in the Milestone column) or a client mobile surface in the client app (marked `+ Fivvi iOS/Android`, since `ROADMAP.md` v1.31) is not `IMPLEMENTED` until web, iOS and Android all work; its iOS and Android tickets sit next to the web ticket with the same acceptance criteria (`ROADMAP.md` M8, the native track)
 - **Spec:** the *Spec* column points to the requirements in [`PRODUCT.md`](PRODUCT.md). Each feature's spec and tickets are GitHub issues (`/to-spec`, `/to-tickets`, [`docs/agents/issue-tracker.md`](../agents/issue-tracker.md)); once a spec issue exists, the ID links to it, e.g. `[F031](https://github.com/fivvi-app/fivvi/issues/<n>)`
@@ -14,11 +14,11 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | Release | Features | Released |
 |---|---|---|
-| MVP | 65 (F001–F069 without F034–F036, Open Gym, later, and F058, superseded) + 20 engineering enablers (E001–E020); F017–F019 (more locations) and M7 (F039–F048, F051, F069) come after go-live; trainer (Fivvi Pro) and, from M5, client (Fivvi) iOS and Android screens are built with their web features (the M8 native track) | 0 |
+| MVP | 66 (F001–F069 without F034–F036, Open Gym, later) + 20 engineering enablers (E001–E020); F017–F019 (more locations) and M7 (F039–F048, F051, F069) come after go-live; trainer (Fivvi Pro) and, from M5, client (Fivvi) iOS and Android screens are built with their web features (the M8 native track) | 0 |
 
 **Waitlist moved to the MVP (31 October 2026, [#150](https://github.com/fivvi-app/fivvi/issues/150)):** it was a Release 1.1 candidate. The owner placed it as **F062** in **M5** (31 October 2026, `ROADMAP.md` v1.29); the rules are in `PRODUCT.md §23`.
 
-**A single pass is a credit pack of 1 (owner, 7 November 2026, confirmed 9 November 2026):** "Clients just buy credits! Even for single pass." **F058 Single Class Purchase** is superseded by **F054** credit packs and closed as not planned ([#495](https://github.com/fivvi-app/fivvi/issues/495)): there is no separate single-class purchase at booking, and the offer kinds are three (`PRODUCT.md §90`, `ROADMAP.md` decision 9).
+**The single class is a single class pass (owner, 9 November 2026):** **F058** is renamed from Single Class Purchase to **Single class pass** and reopened ([#495](https://github.com/fivvi-app/fivvi/issues/495)). It is an offer kind of its own (four kinds), bought ahead like credits and good for one group class, not paid at the booking and not a credit pack (`PRODUCT.md §90`, §95, `ROADMAP.md` decision 9).
 
 **Clients sign in and are approved to book (31 October 2026, [ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md), `ROADMAP.md` v1.30):** the anonymous booking with a hold and a magic link is gone. F027–F032, F035, F037 and F038 are reshaped (the IDs stay), F062's rules are the owner's of that day, and **F063 Sign in with Apple and Google** is new. The cron job runs every 5 minutes for the waitlist's closing-time email ([ADR-027](../decisions/ADR-027-a-cron-every-5-minutes.md)).
 
@@ -129,17 +129,17 @@ The single source of truth for feature status. A status changes **in the same PR
 
 ### Commerce
 
-Added in roadmap v1.19 (M11), before go-live; credit packs and credit plans, group and private, followed in v1.21 (owner, 21 October 2026). The subscription model and invoices ship together. Payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)); a single pass is a credit pack of 1 (F054).
+Added in roadmap v1.19 (M11), before go-live; credit packs and credit plans, group and private, followed in v1.21 (owner, 21 October 2026). The subscription model and invoices ship together. The single class pass (F058) is an offer kind of its own, bought ahead; payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)).
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F052 | Offers and Prices | PLANNED | Must | M11 | F002, E019 | ⬜ | ⬜ | §90 (three default plans, pre-filled and switched off until the owner turns them on; the owner adds the price; owner-made offers of the three kinds; QC19 (a)–(c) on the defaults are proposals, (d)–(e) are answered) |
+| F052 | Offers and Prices | PLANNED | Must | M11 | F002, E019 | ⬜ | ⬜ | §90 (three default plans, pre-filled and switched off until the owner turns them on; the owner adds the price; owner-made offers of the four kinds; QC19 (a)–(c) on the defaults are proposals, (d)–(e) are answered) |
 | F053 | Memberships | PLANNED | Must | M11 | F052, F022, F028, F057 | ⬜ | ⬜ | §91 (weekly allowance of 1, 2 or 3 classes a week, term, terms stored; no standing spot at the pilot) |
-| F054 | Credit Packs and Plans (group and private) | PLANNED | Must | M11 | F052, F020, F028, F055, F057 | ⬜ | ⬜ | §92 (credit packs bought once, a single pass being a pack of 1; credit plans paid each billing cycle, with a carry-over limit; group and private credits never mix) |
+| F054 | Credit Packs and Plans (group and private) | PLANNED | Must | M11 | F052, F020, F028, F055, F057 | ⬜ | ⬜ | §92 (credit packs bought once; credit plans paid each billing cycle, with a carry-over limit; group and private credits never mix) |
 | F055 | Credit Balance | PLANNED | Must | M11 | F025, F026 | ⬜ | ⬜ | §92 (one balance per kind, group or private, per agreement; history: granted, used, returned, expired) |
 | F056 | Cancellation Policy and Makeups | PLANNED | Must | M11 | F026, F055 | ⬜ | ⬜ | §93 (cutoff, late cancellation, makeups) |
 | F057 | Recurring Payments | PLANNED | Must | M11 | E019, F059 | ⬜ | ⬜ | §94 (first payment + mandate, SEPA Direct Debit: proposal, QC06; exactly once) |
-| F058 | Single Class Purchase | SUPERSEDED | — | — | — | — | — | §95 (superseded by F054 credit packs, 7 Nov 2026: a single pass is a credit pack of 1; [#495](https://github.com/fivvi-app/fivvi/issues/495) closed, not planned) |
+| [F058](https://github.com/fivvi-app/fivvi/issues/495) | Single class pass | PLANNED | Must | M11 | F052, F031, E019, F059 | ⬜ | ⬜ | §95 (an offer kind of its own, bought ahead like credits, good for one group class; the owner sets the price, with a guideline that it costs more than a class in a membership or pack; cancellation and validity of an unused pass are open) |
 | F059 | Invoices and Billing Details | PLANNED | Must | M11 | F006, F052 | ⬜ | ⬜ | §96 (company details, gapless numbers, credit notes) |
 | F060 | Failed Payments and Refunds | PLANNED | Must | M11 | F057, F059 | ⬜ | ⬜ | §94 |
 | F061 | Payouts and Reconciliation | PLANNED | Must (proposed, decision 9) | M11 | F057, F060 | ⬜ | ⬜ | §97 |
