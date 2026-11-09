@@ -134,6 +134,15 @@ describe('E007 design tokens build', () => {
     expect(output(webOutputs.theme)).toContain('--color-sidebar: var(--sidebar);');
   });
 
+  it('E020 #626: --primary-pressed is the primary button fill under the pointer, a utility for hover:bg-primary-pressed', () => {
+    const properties = customProperties(output(webOutputs.tokens), output(webOutputs.shadcn));
+
+    expect(shadcnColours['primary-pressed']).toBe('color.action.primary.bg-pressed');
+    expect(resolveVar('--primary-pressed', properties.light)?.toUpperCase()).toBe('#B90F3A');
+    expect(output(webOutputs.theme)).toContain('--color-primary-pressed: var(--primary-pressed);');
+    expect(output(webOutputs.client)).toContain('--primary-pressed:');
+  });
+
   it("AC1: the client web's theme sets the same variables to the Fivvi Pro values, under data-theme", () => {
     const css = output(webOutputs.client);
     const block = css.match(/\[data-theme="client"\] \{([\s\S]*?)\n\}/)?.[1] ?? '';

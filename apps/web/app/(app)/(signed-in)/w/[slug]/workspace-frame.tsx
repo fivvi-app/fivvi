@@ -108,7 +108,7 @@ export function WorkspaceFrame({
             slug={slug}
             defaultLocale={quickAdd.defaultLocale}
           >
-            <div className="flex h-14 flex-none items-center justify-end border-b px-6">
+            <div className="flex h-15 flex-none items-center justify-end border-b px-6">
               <NewMenu />
             </div>
             {children}

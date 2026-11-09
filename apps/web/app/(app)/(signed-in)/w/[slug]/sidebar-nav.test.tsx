@@ -22,13 +22,16 @@ const items = [
   },
 ] as const;
 
-/** The links of the rendered navigation that are marked as the current page, by their text. */
+/**
+ * The links of the rendered navigation that carry `aria-current`, as `text=value`: `page` for the
+ * page itself, `true` for a section that holds it.
+ */
 function current(html: string): string[] {
   return [
     ...html.matchAll(
-      /<a[^>]*aria-current="page"[^>]*>(?:<svg.*?<\/svg>)?<span[^>]*>([^<]*)<\/span>/g,
+      /<a[^>]*aria-current="(page|true)"[^>]*>(?:<svg.*?<\/svg>)?<span[^>]*>([^<]*)<\/span>/g,
     ),
-  ].map(([, text]) => text ?? '');
+  ].map(([, value, text]) => `${text ?? ''}=${value ?? ''}`);
 }
 
 // E020 #626: the sidebar shows where the person is (the prototype's `.on` row).
@@ -37,24 +40,24 @@ describe('E020 sidebar navigation', () => {
     pathname = '/w/johns-gym/clients';
     const html = render('nl-NL', <SidebarNav label={label} items={items} />);
 
-    expect(current(html)).toEqual(['Klanten']);
+    expect(current(html)).toEqual(['Klanten=page']);
     expect(html).toContain(`aria-label="${label}"`);
   });
 
-  it('keeps a section current on its sub-pages', () => {
+  it('keeps a section current on its sub-pages, but not as the page itself', () => {
     pathname = '/w/johns-gym/clients/abc';
 
     expect(current(render('nl-NL', <SidebarNav label={label} items={items} />))).toEqual([
-      'Klanten',
+      'Klanten=true',
     ]);
   });
 
-  it('marks both Settings and the settings page the person is on', () => {
+  it('marks the section as holding the page, and the settings page the person is on as the page', () => {
     pathname = '/w/johns-gym/settings/language';
 
     expect(current(render('nl-NL', <SidebarNav label={label} items={items} />))).toEqual([
-      'Instellingen',
-      'Taal',
+      'Instellingen=true',
+      'Taal=page',
     ]);
   });
 

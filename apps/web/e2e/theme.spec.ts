@@ -585,6 +585,11 @@ test.describe('E020 trainer web shell', () => {
       await page.goto(`/w/${slug}`);
       await expect(page.getByRole('heading', { level: 1, name: "John's Gym" })).toBeVisible();
       await expect(page.getByText(copy.workspaceHome.description)).toBeVisible();
+      // The bar over the page is 60px high, as the prototype's `.w-top`.
+      const bar = page
+        .getByRole('button', { name: copy.workspaceNav.new, exact: true })
+        .locator('xpath=ancestor::div[contains(@class, "border-b")][1]');
+      expect((await bar.boundingBox())?.height).toBe(60);
       await expect(page.locator('[data-slot="card"]')).toHaveCSS(
         'background-color',
         tokenColour('web.trainer.card', scheme),

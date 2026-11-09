@@ -10,6 +10,7 @@
   --popover-foreground: var(--th-color-web-trainer-foreground);
   --primary: var(--th-color-action-primary-bg);
   --primary-foreground: var(--th-color-action-primary-fg);
+  --primary-pressed: var(--th-color-action-primary-bg-pressed);
   --secondary: var(--th-color-web-trainer-muted);
   --secondary-foreground: var(--th-color-web-trainer-foreground);
   --muted: var(--th-color-web-trainer-muted);

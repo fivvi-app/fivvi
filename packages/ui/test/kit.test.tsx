@@ -6,6 +6,7 @@ import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { Button } from '../src/components/button';
 import { ClientLayout } from '../src/kit/client-layout';
+import { ErrorLine } from '../src/kit/error-line';
 import { Field } from '../src/kit/field';
 import { InsetList, InsetListItem } from '../src/kit/inset-list';
 import { NextCard } from '../src/kit/next-card';
@@ -31,11 +32,11 @@ function classesOf(markup: string, attribute: string): string[] {
 
 describe('E020 web kit', () => {
   describe('AC15: the primary button keeps its contrast when hovered', () => {
-    it('darkens on hover instead of fading to a lighter pink, where white text is 3.7:1', () => {
+    it('darkens its fill on hover (the pressed token, not a filter on the label) instead of fading to a lighter pink, where white text is 3.7:1', () => {
       const classes = classesOf(html(<Button>Opslaan</Button>), 'data-slot="button"');
 
       expect(classes).toContain('bg-primary');
-      expect(classes).toContain('hover:brightness-95');
+      expect(classes).toContain('hover:bg-primary-pressed');
       expect(classes).not.toContain('hover:bg-primary/80');
     });
   });
@@ -242,6 +243,19 @@ describe('E020 web kit', () => {
     it('is neutral by default and keeps digits aligned', () => {
       expect(classesOf(html(<StatusPill>3/5</StatusPill>), 'status-pill')).toEqual(
         expect.arrayContaining(['bg-status-neutral-bg', 'tabular-nums']),
+      );
+    });
+  });
+
+  describe('AC14: error line', () => {
+    it('is the warning icon and the message in the danger text, announced when it appears', () => {
+      const markup = html(<ErrorLine id="oops">Geen verbinding.</ErrorLine>);
+
+      expect(markup).toMatch(
+        /<p[^>]*id="oops"[^>]*role="alert"[^>]*>\s*<svg[^>]*aria-hidden="true"[\s\S]*<\/svg>\s*Geen verbinding\.\s*<\/p>/,
+      );
+      expect(classesOf(markup, 'data-slot="error-line"')).toEqual(
+        expect.arrayContaining(['text-status-danger-fg', 'font-semibold']),
       );
     });
   });

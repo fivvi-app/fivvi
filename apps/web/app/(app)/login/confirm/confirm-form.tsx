@@ -1,17 +1,12 @@
 'use client';
 
 import { Button } from '@fivvi/ui/components/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@fivvi/ui/components/card';
-import { WarningIcon } from '@fivvi/ui/kit/icons';
+import { CardContent, CardDescription, CardHeader, CardTitle } from '@fivvi/ui/components/card';
+import { ErrorLine } from '@fivvi/ui/kit/error-line';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import { GatePage } from '../../gate-page';
 import { SignInMark } from '../sign-in-mark';
 import { confirmLink, type LinkErrorKey, previewLink } from './link-client';
 
@@ -67,67 +62,56 @@ export function ConfirmForm({ token, returnPath }: { token: string; returnPath: 
 
   if (state.step === 'checking') {
     return (
-      <main className="flex min-h-dvh items-center justify-center bg-sidebar p-6">
-        <p role="status">{t('confirmChecking')}</p>
-      </main>
+      <GatePage standalone>
+        <CardContent>
+          <p role="status" className="text-center">
+            {t('confirmChecking')}
+          </p>
+        </CardContent>
+      </GatePage>
     );
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center bg-sidebar p-6">
-      <Card className="w-full max-w-100 shadow-xs [--card-spacing:--spacing(5)]">
-        {state.step === 'ready' ? (
-          <>
-            <CardHeader className="justify-items-center gap-3 text-center">
-              <SignInMark />
-              <CardTitle className="text-[22px] leading-tight font-semibold">
-                <h1>{t('confirmTitle', { email: state.email })}</h1>
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="grid gap-4">
-              {error ? <ErrorMessage message={t(`errors.${error}`)} /> : null}
-              <Button type="button" disabled={pending} onClick={signIn} className="w-full">
-                {t('confirmSubmit')}
-              </Button>
-            </CardContent>
-          </>
-        ) : state.step === 'invalid' ? (
-          <>
-            <CardHeader className="justify-items-center gap-3 text-center">
-              <SignInMark />
-              <CardTitle className="text-[22px] leading-tight font-semibold">
-                <h1>{t('linkInvalidTitle')}</h1>
-              </CardTitle>
-              <CardDescription>{t('linkInvalidBody')}</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Button asChild className="w-full">
-                <Link href="/login">{t('linkInvalidBack')}</Link>
-              </Button>
-            </CardContent>
-          </>
-        ) : (
+    <GatePage standalone>
+      {state.step === 'ready' ? (
+        <>
+          <CardHeader className="justify-items-center gap-3 text-center">
+            <SignInMark />
+            <CardTitle className="text-[22px] leading-tight font-semibold">
+              <h1>{t('confirmTitle', { email: state.email })}</h1>
+            </CardTitle>
+          </CardHeader>
           <CardContent className="grid gap-4">
-            <ErrorMessage message={t(`errors.${state.error}`)} />
-            <Button type="button" onClick={() => setAttempt((n) => n + 1)} className="w-full">
-              {common('retry')}
+            {error ? <ErrorLine>{t(`errors.${error}`)}</ErrorLine> : null}
+            <Button type="button" disabled={pending} onClick={signIn} className="w-full">
+              {t('confirmSubmit')}
             </Button>
           </CardContent>
-        )}
-      </Card>
-    </main>
-  );
-}
-
-/** A refusal in words, with the warning icon, announced when it appears. */
-function ErrorMessage({ message }: { message: string }) {
-  return (
-    <p
-      role="alert"
-      className="flex items-center gap-1.5 text-[13px] font-semibold text-status-danger-fg"
-    >
-      <WarningIcon className="size-3.5 shrink-0" />
-      {message}
-    </p>
+        </>
+      ) : state.step === 'invalid' ? (
+        <>
+          <CardHeader className="justify-items-center gap-3 text-center">
+            <SignInMark />
+            <CardTitle className="text-[22px] leading-tight font-semibold">
+              <h1>{t('linkInvalidTitle')}</h1>
+            </CardTitle>
+            <CardDescription>{t('linkInvalidBody')}</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button asChild className="w-full">
+              <Link href="/login">{t('linkInvalidBack')}</Link>
+            </Button>
+          </CardContent>
+        </>
+      ) : (
+        <CardContent className="grid gap-4">
+          <ErrorLine>{t(`errors.${state.error}`)}</ErrorLine>
+          <Button type="button" onClick={() => setAttempt((n) => n + 1)} className="w-full">
+            {common('retry')}
+          </Button>
+        </CardContent>
+      )}
+    </GatePage>
   );
 }

@@ -2,17 +2,12 @@
 
 import { SIGNED_IN_HOME } from '@fivvi/auth/return-path';
 import { Button } from '@fivvi/ui/components/button';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@fivvi/ui/components/card';
+import { CardContent, CardDescription, CardHeader, CardTitle } from '@fivvi/ui/components/card';
+import { ErrorLine } from '@fivvi/ui/kit/error-line';
 import { Field } from '@fivvi/ui/kit/field';
-import { WarningIcon } from '@fivvi/ui/kit/icons';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useState } from 'react';
+import { GatePage } from '../../gate-page';
 import {
   type CreateWorkspaceResult,
   createWorkspace,
@@ -62,50 +57,39 @@ export function WelcomeForm({ askName }: { askName: boolean }) {
   const nameError = fields.name ? t(`errors.${fields.name}`) : null;
 
   return (
-    <main className="flex flex-1 items-center justify-center bg-sidebar p-6">
-      <Card className="w-full max-w-100 shadow-xs [--card-spacing:--spacing(5)]">
-        <form noValidate onSubmit={submit} className="grid gap-(--card-spacing)">
-          <CardHeader>
-            <CardTitle className="text-[22px] leading-tight font-semibold">
-              <h1>{t('title')}</h1>
-            </CardTitle>
-            <CardDescription>{t('description')}</CardDescription>
-          </CardHeader>
-          <CardContent className="grid gap-4">
-            {askName ? (
-              <Field
-                id="person-name"
-                name="personName"
-                autoComplete="name"
-                label={t('personNameLabel')}
-                error={personNameError}
-              />
-            ) : null}
+    <GatePage>
+      <form noValidate onSubmit={submit} className="grid gap-(--card-spacing)">
+        <CardHeader>
+          <CardTitle className="text-[22px] leading-tight font-semibold">
+            <h1>{t('title')}</h1>
+          </CardTitle>
+          <CardDescription>{t('description')}</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4">
+          {askName ? (
             <Field
-              id="workspace-name"
-              name="name"
-              autoComplete="organization"
-              label={t('workspaceNameLabel')}
-              hint={t('workspaceNameHint')}
-              error={nameError}
+              id="person-name"
+              name="personName"
+              autoComplete="name"
+              label={t('personNameLabel')}
+              error={personNameError}
             />
-            {failure ? (
-              <p
-                id="welcome-error"
-                role="alert"
-                className="flex items-center gap-1.5 text-[13px] font-semibold text-status-danger-fg"
-              >
-                <WarningIcon className="size-3.5 shrink-0" />
-                {t(`errors.${failure}`)}
-              </p>
-            ) : null}
-            <Button type="submit" disabled={!ready || pending} className="w-full">
-              {t('submit')}
-            </Button>
-          </CardContent>
-        </form>
-      </Card>
-    </main>
+          ) : null}
+          <Field
+            id="workspace-name"
+            name="name"
+            autoComplete="organization"
+            label={t('workspaceNameLabel')}
+            hint={t('workspaceNameHint')}
+            error={nameError}
+          />
+          {failure ? <ErrorLine id="welcome-error">{t(`errors.${failure}`)}</ErrorLine> : null}
+          <Button type="submit" disabled={!ready || pending} className="w-full">
+            {t('submit')}
+          </Button>
+        </CardContent>
+      </form>
+    </GatePage>
   );
 }
 

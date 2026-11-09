@@ -35,7 +35,7 @@ export type NavItem = {
 };
 
 const link =
-  'flex items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground aria-[current=page]:bg-muted aria-[current=page]:text-foreground';
+  'flex items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground aria-[current]:bg-muted aria-[current]:text-foreground';
 
 /** Whether `pathname` is `base` or a page below it. */
 function within(pathname: string | null, base: string): boolean {
@@ -51,7 +51,9 @@ function within(pathname: string | null, base: string): boolean {
  */
 export function SidebarNav({ label, items }: { label: string; items: readonly NavItem[] }) {
   const pathname = usePathname();
-  const current = (base: string) => (within(pathname, base) ? ('page' as const) : undefined);
+  // `page` only on the page the link goes to; `true` on a link whose section holds the page.
+  const current = (href: string, base = href) =>
+    pathname === href ? ('page' as const) : within(pathname, base) ? ('true' as const) : undefined;
 
   return (
     <nav aria-label={label}>
@@ -60,8 +62,8 @@ export function SidebarNav({ label, items }: { label: string; items: readonly Na
           <div key={item.href} className="grid gap-px">
             <Link
               href={item.href as Route}
-              aria-current={current(item.base ?? item.href)}
-              className={`${link} h-8.5 aria-[current=page]:[&>svg]:text-accent-text`}
+              aria-current={current(item.href, item.base)}
+              className={`${link} h-8.5 aria-[current]:[&>svg]:text-accent-text`}
             >
               <svg
                 viewBox="0 0 24 24"

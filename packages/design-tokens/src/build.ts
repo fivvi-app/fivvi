@@ -44,6 +44,8 @@ export const shadcnColours = {
   'popover-foreground': 'color.web.trainer.foreground',
   primary: 'color.action.primary.bg',
   'primary-foreground': 'color.action.primary.fg',
+  // The fill of a primary button under the pointer: darkens the fill only, so the label keeps its contrast.
+  'primary-pressed': 'color.action.primary.bg-pressed',
   secondary: 'color.web.trainer.muted',
   'secondary-foreground': 'color.web.trainer.foreground',
   muted: 'color.web.trainer.muted',
@@ -73,6 +75,7 @@ export const clientColours: Record<keyof typeof shadcnColours, string> = {
   'popover-foreground': 'color.text.primary',
   primary: 'color.action.primary.bg',
   'primary-foreground': 'color.action.primary.fg',
+  'primary-pressed': 'color.action.primary.bg-pressed',
   secondary: 'color.action.tonal.bg',
   'secondary-foreground': 'color.action.tonal.fg',
   muted: 'color.bg.subtle',

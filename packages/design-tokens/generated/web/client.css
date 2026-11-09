@@ -10,6 +10,7 @@
   --popover-foreground: var(--th-color-text-primary);
   --primary: var(--th-color-action-primary-bg);
   --primary-foreground: var(--th-color-action-primary-fg);
+  --primary-pressed: var(--th-color-action-primary-bg-pressed);
   --secondary: var(--th-color-action-tonal-bg);
   --secondary-foreground: var(--th-color-action-tonal-fg);
   --muted: var(--th-color-bg-subtle);
