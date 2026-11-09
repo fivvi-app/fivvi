@@ -86,13 +86,18 @@ final class KitGalleryUITests: XCTestCase {
             "the navigation bar shows the title once the large title has scrolled away"
         )
 
-        // And back up, until it is full again.
+        // And back up, until it is full again and stays full: the bar is full at one read and not at the next while
+        // it grows back (#679: a read right after the wait said full, the one after it said not), so the wait is for
+        // three full reads in a row, and what it saw is what the test asserts, not a read made after it.
         var swipes = 0
-        while !Polling.until(timeout: 2, condition: { bar.isFull }), swipes < 10 {
+        var grown = false
+        while !grown {
+            grown = Polling.settled(timeout: 2) { bar.isFull ? true : nil }
+            guard !grown, swipes < 10 else { break }
             screen.scroll.swipeDown(velocity: .fast)
             swipes += 1
         }
-        XCTAssertTrue(bar.isFull, "the tab bar grows back when scrolling up")
+        XCTAssertTrue(grown, "the tab bar grows back when scrolling up")
     }
 
     /// Scrolls the gallery down with each gesture in turn, a few times each, until `isShrunk` holds; returns the gesture

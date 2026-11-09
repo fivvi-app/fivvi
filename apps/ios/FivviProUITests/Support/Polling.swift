@@ -60,18 +60,19 @@ enum Polling {
         "::warning::flaky: tap on \(identifier) had no effect, tapping again (tap \(attempt) of \(attempts))"
     }
 
-    /// Whether the value `read` returns stayed the same for `reads` reads in a row within `timeout` seconds, reading
-    /// every `interval` seconds; reads once more at the deadline. For an element that moves into place (a frame during
-    /// a layout change or an animation). The deadline is generous on purpose: it only ends the wait when something
-    /// keeps moving for good, and a slow simulator stretches an animation far beyond the 3 s it once had (#385). A
-    /// still element costs `reads - 1` intervals.
+    /// Whether the value `read` returns stayed the same for `reads` reads in a row, reading every `interval` seconds
+    /// until the deadline of `timeout` seconds (and beyond it, below). For an element that moves into place (a frame
+    /// during a layout change or an animation). The deadline is generous on purpose: it only ends the wait when
+    /// something keeps moving for good, and a slow simulator stretches an animation far beyond the 3 s it once had
+    /// (#385). A still element costs `reads - 1` intervals.
     ///
     /// `read` returns nil when there is nothing to read yet (the element is not there): that is not a value, it never
     /// counts towards `reads` and ends a run of equal values. The deadline does not cut short a value that stood
     /// still: on a slow runner one read takes seconds (XCTest waits for the app to be idle before every snapshot; a
     /// read of the tab bar took 12 s, #679), so a deadline measured in seconds left room for one read, and one read
-    /// cannot tell a still value from a moving one. After the deadline the wait goes on while the last two reads were
-    /// equal, and stops at the first read that moved or found nothing, once it has made two reads.
+    /// cannot tell a still value from a moving one. Past the deadline the wait goes on while the last two reads were
+    /// equal (the value stood still, `reads` equal reads may follow) and returns false at the first read that moved or
+    /// found nothing, once it has made two reads.
     static func settled<Value: Equatable>(
         timeout: TimeInterval,
         interval: TimeInterval = 0.2,

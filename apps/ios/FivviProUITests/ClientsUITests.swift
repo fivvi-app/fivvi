@@ -116,6 +116,9 @@ final class ClientsUITests: SignInUITestCase {
         add.tap()
         let name = app.textFields["clients.add.name"]
         XCTAssertTrue(name.waitUntilExists(timeout: timeout))
+        XCTAssertTrue(
+            Polling.until(timeout: timeout) { name.hasKeyboardFocus }, "the name field has focus when the dialog opens"
+        )
         XCTAssertEqual(app.buttons["clients.add.submit"].label, catalog["clients.addDialog.submit"])
         XCTAssertEqual(
             app.buttons["clients.add.language.default"].label,

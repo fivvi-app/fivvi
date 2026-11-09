@@ -14,14 +14,16 @@ extension XCUIElement {
     func tap(until reached: XCUIElement, timeout: TimeInterval) -> Bool {
         Polling.acting(
             timeout: timeout, action: { tap() }, canRepeat: { exists && isHittable },
-            report: { attempt, attempts in
-                // Named after what the tap was on, so CI's list of flaky tests says which button to look at.
-                XCTContext.runActivity(
-                    named: Polling.warning(identifier: identifier, attempt: attempt, of: attempts)
-                ) { _ in }
-            },
-            until: { reached.exists }
+            report: reportRepeatedTap, until: { reached.exists }
         )
+    }
+
+    /// Leaves the `::warning::flaky` activity of a repeated tap in the test's result, named after what the tap was on, so
+    /// CI's list of flaky tests says which element to look at.
+    private func reportRepeatedTap(_ attempt: Int, _ attempts: Int) {
+        XCTContext.runActivity(
+            named: Polling.warning(identifier: identifier, attempt: attempt, of: attempts)
+        ) { _ in }
     }
 
     /// The label, read in one snapshot; nil when the element is not there (or went while it was read).
@@ -43,12 +45,7 @@ extension XCUIElement {
     func focus(timeout: TimeInterval = 10, file: StaticString = #filePath, line: UInt = #line) {
         let focused = Polling.acting(
             timeout: timeout, action: { tap() }, canRepeat: { exists && isHittable },
-            report: { attempt, attempts in
-                XCTContext.runActivity(
-                    named: Polling.warning(identifier: identifier, attempt: attempt, of: attempts)
-                ) { _ in }
-            },
-            until: { hasKeyboardFocus }
+            report: reportRepeatedTap, until: { hasKeyboardFocus }
         )
         XCTAssertTrue(focused, "\(identifier) has no keyboard focus after a tap", file: file, line: line)
     }
