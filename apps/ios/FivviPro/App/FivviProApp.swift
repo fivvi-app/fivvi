@@ -39,6 +39,7 @@ struct FivviProApp: App {
                 .preferredColorScheme(LaunchAppearance.colorScheme())
             #if DEBUG
                 .recordingOpenedLinks()
+                .showingRenderCounts()
             #endif
         }
     }

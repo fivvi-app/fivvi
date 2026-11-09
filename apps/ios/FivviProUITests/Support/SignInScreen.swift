@@ -34,11 +34,13 @@ struct SignInScreen {
         deviceLanguages: [String]? = nil,
         perAppLanguage: String? = nil,
         textSize: String? = nil,
-        recordsOpenedLinks: Bool = false
+        recordsOpenedLinks: Bool = false,
+        countsRenders: Bool = false
     ) -> SignInScreen {
         SignInScreen(app: AppLaunch.launch(
             against: server, session: session, deviceLanguages: deviceLanguages, perAppLanguage: perAppLanguage,
-            textSize: textSize, recordsOpenedLinks: recordsOpenedLinks
+            textSize: textSize, recordsOpenedLinks: recordsOpenedLinks,
+            countsRenders: countsRenders
         ))
     }
 
