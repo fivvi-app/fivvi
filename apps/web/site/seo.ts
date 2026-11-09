@@ -46,6 +46,8 @@ const copyKeys = {
   pricing: ['site.pricing.metaTitle', 'site.pricing.metaDescription'],
   support: ['site.support.metaTitle', 'site.support.metaDescription'],
   subProcessors: ['site.subProcessors.metaTitle', 'site.subProcessors.metaDescription'],
+  privacy: ['site.privacy.metaTitle', 'site.privacy.metaDescription'],
+  terms: ['site.terms.metaTitle', 'site.terms.metaDescription'],
   demo: ['site.demo.metaTitle', 'site.demo.metaDescription'],
 } as const satisfies Partial<Record<SitePage, readonly [MessageKey, MessageKey]>>;
 const copyOf: Partial<Record<SitePage, readonly [MessageKey, MessageKey]>> = copyKeys;

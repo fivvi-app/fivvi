@@ -25,6 +25,7 @@
     "@fivvi/i18n": "workspace:*",
     "@fivvi/observability": "workspace:*",
     "@fivvi/ui": "workspace:*",
+    "marked": "catalog:",
     "next": "catalog:",
     "next-intl": "catalog:",
     "react": "catalog:",

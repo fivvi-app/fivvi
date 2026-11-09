@@ -93,7 +93,7 @@ describe('F064 AC12 every page’s title and description are its own', () => {
       ...(['gyms', 'studios', 'personalTrainers', 'clients'] as const).map(
         (key) => [copy.audience[key].metaTitle, copy.audience[key].metaDescription] as const,
       ),
-      ...(['pricing', 'support', 'subProcessors', 'demo'] as const).map(
+      ...(['pricing', 'support', 'privacy', 'terms', 'subProcessors', 'demo'] as const).map(
         (key) => [copy[key].metaTitle, copy[key].metaDescription] as const,
       ),
     ];
@@ -115,6 +115,7 @@ describe.each(locales)('F064 AC12 the copy of every page with a page file in %s'
   });
 
   it('refuses a page that has none', () => {
-    expect(() => pageCopy('privacy', locale)).toThrow(/privacy/);
+    // Every page of the site has its copy now; a page that is not in the table has none.
+    expect(() => pageCopy('imaginary' as SitePage, locale)).toThrow(/imaginary/);
   });
 });

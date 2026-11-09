@@ -72,6 +72,18 @@ const PAGES: Record<string, PageSpec> = {
     listed: true,
     breadcrumb: (s) => s.footer.support,
   },
+  privacy: {
+    paths: { 'nl-NL': '/privacy', en: '/en/privacy' },
+    copy: (s) => ({ title: s.privacy.metaTitle, description: s.privacy.metaDescription }),
+    listed: true,
+    breadcrumb: (s) => s.footer.privacy,
+  },
+  terms: {
+    paths: { 'nl-NL': '/voorwaarden', en: '/en/terms' },
+    copy: (s) => ({ title: s.terms.metaTitle, description: s.terms.metaDescription }),
+    listed: true,
+    breadcrumb: (s) => s.footer.terms,
+  },
   subProcessors: {
     paths: { 'nl-NL': '/subverwerkers', en: '/en/sub-processors' },
     copy: (s) => ({

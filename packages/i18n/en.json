@@ -986,6 +986,16 @@
         }
       }
     },
+    "privacy": {
+      "metaTitle": "Privacy policy | Fivvi",
+      "metaDescription": "Which personal data Fivvi processes, why, for how long, and which rights you have.",
+      "headline": "Privacy policy"
+    },
+    "terms": {
+      "metaTitle": "Terms of service | Fivvi",
+      "metaDescription": "The terms for using Fivvi.",
+      "headline": "Terms of service"
+    },
     "subProcessors": {
       "metaTitle": "Sub-processors | Fivvi",
       "metaDescription": "The services that process data for Fivvi, what for, and where they store it.",

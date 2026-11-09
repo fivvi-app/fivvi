@@ -986,6 +986,16 @@
         }
       }
     },
+    "privacy": {
+      "metaTitle": "Privacyverklaring | Fivvi",
+      "metaDescription": "Welke persoonsgegevens Fivvi verwerkt, waarom, hoelang en welke rechten je hebt.",
+      "headline": "Privacyverklaring"
+    },
+    "terms": {
+      "metaTitle": "Algemene voorwaarden | Fivvi",
+      "metaDescription": "De voorwaarden voor het gebruik van Fivvi.",
+      "headline": "Algemene voorwaarden"
+    },
     "subProcessors": {
       "metaTitle": "Subverwerkers | Fivvi",
       "metaDescription": "De diensten die gegevens voor Fivvi verwerken, waarvoor, en waar ze die bewaren.",

@@ -38,6 +38,8 @@ catalog:
   hono: ^4.13.8
   # Performance and SEO budgets of the public website (F064, AC15): apps/web e2e only.
   lighthouse: ^13.6.0
+  # Renders the legal texts of docs/legal to HTML at build time (F064, AC10): apps/web only.
+  marked: ^15.0.12
   next: 16.4.1
   next-intl: ^4.14.6
   openapi-fetch: ^0.17.0
