@@ -24,10 +24,10 @@ usage() { usage_of "$0"; }
 # side that leaves both clients as they are builds nothing new, and one that should have changed them fails the contract
 # drift check in Checks (Linux) (#293). Shared
 # files (.github/workflows/ci.yml, scripts/_lib.sh, this list) don't run them on their own. Android also runs the
-# Maestro flows in e2e/maestro, which read their sign-in code from the fake Brevo server (apps/web/e2e/fake-brevo.ts)
+# Maestro flows in e2e/maestro, which read their sign-in code from the fake Lettermint server (apps/web/e2e/fake-lettermint.ts)
 # out of the sign-in email (EM-08, packages/email/src/templates/sign-in.tsx).
 IOS_PATHS='^(apps/ios|packages/contract/swift|packages/i18n/generated/ios|packages/design-tokens/FivviDesignTokens)/|^apps/Version\.xcconfig$|^scripts/(test-ios|_ios)\.sh$|^scripts/ios-mtimes\.mjs$'
-ANDROID_PATHS='^(apps/android|packages/contract/kotlin|packages/i18n/generated/android|packages/design-tokens/kotlin|e2e/maestro)/|^apps/Version\.xcconfig$|^apps/web/e2e/fake-brevo\.ts$|^packages/email/src/templates/sign-in\.tsx$|^packages/email/src/environment\.ts$|^packages/database/src/(scripts/)?reset-rate-limits\.ts$|^scripts/(android|_android|maestro)\.sh$'
+ANDROID_PATHS='^(apps/android|packages/contract/kotlin|packages/i18n/generated/android|packages/design-tokens/kotlin|e2e/maestro)/|^apps/Version\.xcconfig$|^apps/web/e2e/fake-lettermint\.ts$|^packages/email/src/templates/sign-in\.tsx$|^packages/email/src/environment\.ts$|^packages/database/src/(scripts/)?reset-rate-limits\.ts$|^scripts/(android|_android|maestro)\.sh$'
 
 EVENT=""
 FORCE=false

@@ -39,7 +39,7 @@ export interface EmailSendErrorOptions {
   retryable: boolean;
   /** HTTP status, when the provider answered. */
   status?: number;
-  /** The provider's error code, e.g. Brevo's `unauthorized`. */
+  /** The provider's error code, e.g. Lettermint's `unauthorized`. */
   code?: string;
   /** The provider's error message. Kept out of `message`, because it may name the recipient. */
   detail?: string;

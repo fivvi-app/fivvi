@@ -1,9 +1,8 @@
-// Sends the hello test email through the configured provider (G1 check, E006): Lettermint when
-// LETTERMINT_API_TOKEN is set, otherwise Brevo.
+// Sends the hello test email through Lettermint (G1 check, E006, ADR-028).
 // Usage: pnpm email:send-test --to you@example.com [--locale nl-NL|en] [--name Anna]
 //        [--time-zone Europe/Amsterdam]
-// Reads the variables of the provider (see the README) from the environment or from
-// packages/email/.env. Never prints the API key or token.
+// Reads the Lettermint variables (see the README) from the environment or from
+// packages/email/.env. Never prints the token.
 import { parseArgs } from 'node:util';
 import { defaultLocale, defaultTimeZone, isLocale, locales } from '@fivvi/i18n';
 import {
@@ -39,7 +38,6 @@ try {
   console.error((error as Error).message);
   process.exit(1);
 }
-const provider = config.lettermint ? 'Lettermint' : 'Brevo';
 const sendEmail = createSendEmail({
   transport: createConfiguredTransport(config),
   sender: config.sender,
@@ -58,12 +56,12 @@ try {
   });
   console.log(
     `Sent "${helloEmail.id}" (${values.locale}) to ${values.to} in ${result.attempts} attempt(s). ` +
-      `${provider} message id: ${result.messageId ?? '(none: an earlier attempt was accepted)'}`,
+      `Lettermint message id: ${result.messageId ?? '(none: an earlier attempt was accepted)'}`,
   );
 } catch (error) {
   if (error instanceof EmailSendError) {
     console.error(`Send failed after ${error.attempts} attempt(s): ${error.message}`);
-    if (error.detail) console.error(`${provider} says: ${error.detail}`);
+    if (error.detail) console.error(`Lettermint says: ${error.detail}`);
     process.exitCode = 1;
   } else {
     throw error;

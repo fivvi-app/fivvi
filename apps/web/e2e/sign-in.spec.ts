@@ -7,12 +7,12 @@ import {
   sessionExpiries,
   setSessionExpiry,
 } from './accounts';
-import { emailsTo, signInCode, signInLink, waitForEmail, waitForEmails } from './brevo';
 import { expect, expectNoAxeViolations, test } from './fixtures';
+import { emailsTo, signInCode, signInLink, waitForEmail, waitForEmails } from './lettermint';
 import { signInWithCode } from './sign-in-page';
 
 // F001, TW-10 `/login`: the email step, then the code step on the same screen. Copy comes from
-// the catalogs. The emails go to the fake Brevo server (e2e/fake-brevo.ts), which the specs read
+// the catalogs. The emails go to the fake Lettermint server (e2e/fake-lettermint.ts), which the specs read
 // the code from; every spec has an address of its own.
 const REQUESTED_QUERY = 'from=bookmark';
 

@@ -27,8 +27,8 @@ import { productEvents } from './product-events';
 let invitationSender: ReturnType<typeof createTrainerInvitationSender> | undefined;
 
 /**
- * EM-09, the trainer invitation (F011): sent through the provider of the environment (Lettermint,
- * Brevo, or the log for `@example.com` outside production), linking to the invitation page of
+ * EM-09, the trainer invitation (F011): sent through the provider of the environment (Lettermint
+ * or the log for `@example.com` outside production), linking to the invitation page of
  * this app. Created on first use, so `next build` runs without the email settings.
  */
 function sendTrainerInvitation(
@@ -45,7 +45,7 @@ let privateSessionSender: ReturnType<typeof createPrivateSessionSender> | undefi
 
 /**
  * EM-11, the confirmation of a private session (F020): sent through the provider of the environment
- * (Lettermint, Brevo, or the log for `@example.com` outside production). Created on first use, so
+ * (Lettermint or the log for `@example.com` outside production). Created on first use, so
  * `next build` runs without the email settings.
  */
 function sendPrivateSession(...[mail]: Parameters<ReturnType<typeof createPrivateSessionSender>>) {

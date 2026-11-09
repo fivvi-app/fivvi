@@ -231,7 +231,7 @@ describe('#293 AC8 AC13: the e2e decision and the reason of every skip', () => {
   it('AC8: e2e runs when the web app changed, or a package it depends on', () => {
     for (const path of [
       'apps/web/src/app/page.tsx',
-      'apps/web/e2e/fake-brevo.ts',
+      'apps/web/e2e/fake-lettermint.ts',
       'packages/api/src/x.ts',
       'packages/i18n/en.json',
     ]) {

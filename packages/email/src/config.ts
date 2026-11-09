@@ -20,84 +20,52 @@ export interface LettermintRoutes {
   mail: string;
 }
 
-/** Sends through Brevo (ADR-009): used while `LETTERMINT_API_TOKEN` is not set. */
-export interface BrevoEmailConfig {
-  /** The From address and name. Brevo only sends from a verified sender. */
-  sender: EmailAddress;
-  /** Brevo API key (`xkeysib-…`). A secret: never log it. */
-  brevoApiKey: string;
-  /**
-   * Where to send the requests instead of Brevo's own API, from `BREVO_API_URL`. Set by e2e
-   * runs that point it at a fake Brevo server; absent everywhere else.
-   */
-  brevoApiUrl?: string;
-  lettermint?: undefined;
-}
-
-/** Sends through Lettermint (ADR-028): used as soon as `LETTERMINT_API_TOKEN` is set. */
-export interface LettermintEmailConfig {
+/** The email settings (ADR-028): where to send from and how to reach Lettermint. */
+export interface EmailConfig {
   /** The From address and name. Lettermint only sends from a verified domain. */
   sender: EmailAddress;
   lettermint: LettermintConfig;
-  brevoApiKey?: undefined;
-  brevoApiUrl?: undefined;
 }
-
-export type EmailConfig = BrevoEmailConfig | LettermintEmailConfig;
 
 // Deliberately loose: the provider validates the address; this only catches a wrong variable.
 const EMAIL = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Reads the email settings from the environment. With `LETTERMINT_API_TOKEN` set, email goes
- * through Lettermint and needs both route variables; without it, through Brevo (ADR-028).
- * The sender lives in config, not code, because it changes when the own domain arrives.
- * Error messages never include the token or the API key.
+ * Reads the email settings from the environment (ADR-028): the Lettermint token and both route
+ * variables, and the sender. The sender lives in config, not code, because it changes when the own
+ * domain arrives. Error messages never include the token.
  */
 export function readEmailConfig(
   env: Readonly<Record<string, string | undefined>> = process.env,
 ): EmailConfig {
-  const lettermintToken = env.LETTERMINT_API_TOKEN?.trim();
-  const brevoApiKey = env.BREVO_API_KEY?.trim();
+  const apiToken = env.LETTERMINT_API_TOKEN?.trim();
   const routeSignIn = env.LETTERMINT_ROUTE_SIGN_IN?.trim();
   const routeMail = env.LETTERMINT_ROUTE_MAIL?.trim();
   const address = env.EMAIL_FROM_ADDRESS?.trim();
   const name = env.EMAIL_FROM_NAME?.trim();
-  // The sender variables are the same for both providers; each provider adds its own list in front.
-  const senderMissing = [!address && 'EMAIL_FROM_ADDRESS', !name && 'EMAIL_FROM_NAME'];
 
-  if (lettermintToken) {
-    if (!routeSignIn || !routeMail || !address || !name) {
-      throw notSet([
-        !routeSignIn && 'LETTERMINT_ROUTE_SIGN_IN',
-        !routeMail && 'LETTERMINT_ROUTE_MAIL',
-        ...senderMissing,
-      ]);
-    }
-    const sender = senderOf(address, name);
-    const apiUrl = env.LETTERMINT_API_URL?.trim();
-    if (apiUrl && !URL.canParse(apiUrl)) {
-      throw new Error('LETTERMINT_API_URL is not a URL.');
-    }
-    return {
-      sender,
-      lettermint: {
-        apiToken: lettermintToken,
-        routes: { signIn: routeSignIn, mail: routeMail },
-        ...(apiUrl && { apiUrl }),
-      },
-    };
-  }
-
-  if (!brevoApiKey || !address || !name) {
-    throw notSet([!brevoApiKey && 'BREVO_API_KEY', ...senderMissing]);
+  if (!apiToken || !routeSignIn || !routeMail || !address || !name) {
+    throw notSet([
+      !apiToken && 'LETTERMINT_API_TOKEN',
+      !routeSignIn && 'LETTERMINT_ROUTE_SIGN_IN',
+      !routeMail && 'LETTERMINT_ROUTE_MAIL',
+      !address && 'EMAIL_FROM_ADDRESS',
+      !name && 'EMAIL_FROM_NAME',
+    ]);
   }
   const sender = senderOf(address, name);
-  const brevoApiUrl = env.BREVO_API_URL?.trim();
-  if (brevoApiUrl && !URL.canParse(brevoApiUrl)) {
-    throw new Error('BREVO_API_URL is not a URL.');
+  const apiUrl = env.LETTERMINT_API_URL?.trim();
+  if (apiUrl && !URL.canParse(apiUrl)) {
+    throw new Error('LETTERMINT_API_URL is not a URL.');
   }
-  return { sender, brevoApiKey, ...(brevoApiUrl && { brevoApiUrl }) };
+  return {
+    sender,
+    lettermint: {
+      apiToken,
+      routes: { signIn: routeSignIn, mail: routeMail },
+      ...(apiUrl && { apiUrl }),
+    },
+  };
 }
 
 function notSet(names: (string | false)[]): Error {

@@ -6,8 +6,8 @@ import {
   ALLOWED_SIGN_UP_DOMAIN,
   analyticsServer,
   appServer,
-  brevoServer,
   DEMO_REQUEST_ADDRESS,
+  lettermintServer,
   TEST_ANDROID_CERT_SHA256,
   TEST_APPLE_TEAM_ID,
   TEST_POSTHOG_HOST,
@@ -90,14 +90,14 @@ export default defineConfig<E2EOptions>({
   // The standalone server, as in production (Dockerfile), not `next start`, each on its own
   // migrated database (e2e/serve.ts). A second one runs the same build with a PostHog key and
   // host, which it reads at runtime, for the page view tests (E009). Both send their emails to the
-  // fake Brevo server (F001), which the third web server runs.
+  // fake Lettermint server (F001), which the third web server runs.
   webServer: budgetsTargetUrl
     ? []
     : [
         {
-          command: 'node e2e/fake-brevo.ts',
-          env: { PORT: String(brevoServer.port) },
-          url: brevoServer.baseURL,
+          command: 'node e2e/fake-lettermint.ts',
+          env: { PORT: String(lettermintServer.port) },
+          url: lettermintServer.baseURL,
           reuseExistingServer: !ci,
           timeout: 60_000,
         },
@@ -128,12 +128,12 @@ function standaloneServer(
       E2E_DATABASE: database,
       PORT: String(port),
       HOSTNAME: 'localhost',
-      // Synthetic: the fake Brevo server accepts any key, and `.test` never resolves.
-      BREVO_API_URL: brevoServer.apiUrl,
-      BREVO_API_KEY: 'e2e-synthetic-brevo-key',
-      // A token in the developer's shell must never send e2e mail through real Lettermint; the fake Brevo
-      // server keeps it until #403.
-      LETTERMINT_API_TOKEN: '',
+      // Synthetic: the fake Lettermint server accepts any token, and `.test` never resolves. The
+      // address is set explicitly, so a token in the developer's shell never reaches real Lettermint.
+      LETTERMINT_API_URL: lettermintServer.apiUrl,
+      LETTERMINT_API_TOKEN: 'e2e-synthetic-lettermint-token',
+      LETTERMINT_ROUTE_SIGN_IN: 'e2e-sign-in',
+      LETTERMINT_ROUTE_MAIL: 'e2e-mail',
       // The demo form's email goes to the fake mailbox, not the support address (F064).
       DEMO_REQUEST_TO: DEMO_REQUEST_ADDRESS,
       EMAIL_FROM_ADDRESS: 'noreply@fivvi.e2e.test',
