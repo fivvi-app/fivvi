@@ -134,6 +134,29 @@ describe('#293 AC3 AC4: packages and their dependents', () => {
     assert.equal(result.all, false);
   });
 
+  it('F064 AC10: a published legal text is an input of the web app, which renders it when it is built', () => {
+    for (const path of [
+      'docs/legal/privacy-policy.nl.md',
+      'docs/legal/privacy-policy.en.md',
+      'docs/legal/terms.nl.md',
+      'docs/legal/terms.en.md',
+    ]) {
+      const result = decide([path]);
+      assert.deepEqual(result.packages, ['@fivvi/web'], path);
+      assert.equal(result.e2e, true, path);
+      assert.equal(result.docs, false, `${path} is not Markdown only`);
+      assert.equal(result.all, false, path);
+    }
+  });
+
+  it('F064 AC10: the other texts of docs/legal stay documentation', () => {
+    for (const path of ['docs/legal/sub-processors.md', 'docs/legal/open-questions.md']) {
+      const result = decide([path]);
+      assert.deepEqual(result.packages, [], path);
+      assert.equal(result.docs, true, path);
+    }
+  });
+
   it('dependents are followed through a chain: tokens -> ui -> web', () => {
     const result = decide(['packages/design-tokens/src/colours.ts']);
     assert.deepEqual(result.packages, ['@fivvi/web', '@fivvi/design-tokens', '@fivvi/ui']);
