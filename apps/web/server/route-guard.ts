@@ -3,7 +3,8 @@ import { loginPath, SIGN_IN_PAGE, SIGNED_IN_HOME } from '@fivvi/auth/return-path
 import { isLocale } from '@fivvi/i18n';
 import { type NextRequest, NextResponse } from 'next/server';
 import { localeCookie, localeCookieMaxAge } from '../i18n/config';
-import { ICON_FILES, robotsHeader } from '../site/indexing';
+import { ICON_FILES } from '../site/icons';
+import { robotsHeader } from '../site/indexing';
 import { isSitePath, siteHomePath } from '../site/routes';
 
 /** The public website's miniatures and screens (`public/site-images`, F064): images, no data. */

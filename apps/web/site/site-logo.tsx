@@ -22,7 +22,8 @@ const sizes = { header: 28, footer: 24 } as const;
  * The logo as a link to the home page of the language (F064, #669). The picture shows the white
  * wordmark when the visitor's system is dark (the site's one dark-mode switch is
  * `prefers-color-scheme`, as in the design tokens) and the light one otherwise. Width and height
- * are set, so the page does not shift while the image loads. The link's padding is the logo's clear
+ * are set in the markup and in the style, which fixes the box (a box that follows the drawing's
+ * ratio would move by a fraction of a pixel when the image arrives). The link's padding is the logo's clear
  * space: the brand asks for at least the height of an i dot (a fifth of the logo's height) free all
  * around, and 6 px is more than that at both sizes. Its accessible name is the image's alt text,
  * from the catalog.
@@ -39,6 +40,7 @@ export function SiteLogo({ locale, place }: { locale: Locale; place: keyof typeo
           alt={siteText(locale)('site.logo.homeLabel')}
           width={width}
           height={height}
+          style={{ width, height, maxWidth: 'none' }}
           className="block"
         />
       </picture>

@@ -56,14 +56,49 @@ test.describe('F064 #669 the wordmark on every site page', () => {
   }
 
   for (const scheme of SCHEMES) {
-    test(`the wordmark does not move the page in ${scheme} mode`, async ({ page, appLocale }) => {
+    test(`the wordmark does not move the page when it arrives, in ${scheme} mode`, async ({
+      page,
+      appLocale,
+      messages,
+    }) => {
+      // The wordmark is held back while the page is laid out, then let through: whatever moves when
+      // it arrives (a header that grows, a menu pushed aside) is a layout shift.
+      let release: () => void = () => {};
+      const held = new Promise<void>((resolve) => {
+        release = resolve;
+      });
+      await page.route('**/site-images/brand/*.svg', async (route) => {
+        await held;
+        await route.continue();
+      });
       await page.emulateMedia({ colorScheme: scheme });
-      await page.goto(sitePagePath('home', appLocale));
-      const logo = page.getByRole('banner').getByRole('img').first();
-      const before = await logo.boundingBox();
+      await page.goto(sitePagePath('home', appLocale), { waitUntil: 'domcontentloaded' });
+      const header = page.getByRole('banner');
+      const logo = header.getByRole('img').first();
+      const footer = page.getByRole('contentinfo');
+      const home = { name: messages.site.logo.homeLabel };
+      const layout = async () => ({
+        // The space the logo takes: without width and height it is the link's padding alone.
+        headerLogo: await header.getByRole('link', home).boundingBox(),
+        footerLogo: await footer.getByRole('link', home).boundingBox(),
+        header: await header.boundingBox(),
+        navigation: await header
+          .getByRole('navigation', { name: messages.site.header.menuLabel })
+          .boundingBox(),
+        main: await page.locator('main').boundingBox(),
+      });
+
+      const before = await layout();
+      expect(await logo.evaluate((element) => (element as HTMLImageElement).complete)).toBe(false);
+      // The space is there before the image is: at least the logo's height, besides its padding.
+      for (const logo of [before.headerLogo, before.footerLogo]) {
+        expect(logo?.height).toBeGreaterThanOrEqual(20);
+        expect(logo?.width).toBeGreaterThan(20);
+      }
+      release();
       await expect(logo).toHaveJSProperty('complete', true);
 
-      expect(await logo.boundingBox()).toEqual(before);
+      expect(await layout()).toEqual(before);
     });
   }
 });

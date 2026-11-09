@@ -172,8 +172,11 @@ describe.each(locales)('F064 the header in %s', (locale) => {
 
   it('the logo goes to the home page of the language', () => {
     const header = html(<SiteHeader locale={locale} />);
-    expect(header).toContain(escapeHtml(messages[locale].site.logo.homeLabel));
-    expect(linkTo(header, homePath(locale))).toBeDefined();
+    const logo = [...header.matchAll(/<a ([^>]*)>(.*?)<\/a>/g)].find(([, attributes = '']) =>
+      attributes.includes(`href="${homePath(locale)}"`),
+    );
+
+    expect(logo?.[2]).toContain(`alt="${escapeHtml(messages[locale].site.logo.homeLabel)}"`);
   });
 });
 

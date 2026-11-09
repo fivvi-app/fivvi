@@ -1,6 +1,7 @@
 import { isProductionEnvironment } from '@fivvi/email';
 import { locales } from '@fivvi/i18n';
 import type { MetadataRoute } from 'next';
+import { ICON_FILES } from './icons';
 import { builtPages, type SitePage, siteIndexable, sitePageAt } from './routes';
 import { pageUrl, siteOrigin } from './seo';
 
@@ -8,17 +9,6 @@ type Env = Readonly<Record<string, string | undefined>>;
 
 /** The value of the `X-Robots-Tag` header, and the same as the `robots` meta tag says. */
 export const noindexValue = 'noindex, nofollow';
-
-/**
- * The icon files of `app/` (#669): the favicon in each format a browser, an iPhone's home screen or
- * a search engine asks for. They are fetched without a session and say nothing about a page.
- */
-export const ICON_FILES: readonly string[] = [
-  '/favicon.ico',
-  '/icon.svg',
-  '/icon.png',
-  '/apple-icon.png',
-];
 
 /** The files and generated images that stay findable once the site is: the crawler fetches them. */
 const OPEN_FILES: readonly string[] = ['/robots.txt', '/sitemap.xml', ...ICON_FILES];

@@ -22,7 +22,7 @@ The letters are heavy, rounded and upright, with soft ends: friendly and confide
 | `favicon.svg` | The day dial B2, light, with rounded corners | Browser tabs and bookmarks |
 | `archive/vv/` | The first wordmark, mark and app icon (the slapping v's, 7 November 2026), replaced on 8 November | Nowhere; kept for reference |
 
-**On the website** (issue #669): the public website (`apps/web`) and its design (`docs/design/website`) show the wordmark and serve the day dial favicon (issue #669). `pnpm --filter @fivvi/web brand-icons` makes the files of `apps/web` from `fivvi-logo.svg`, `fivvi-logo-dark.svg` and `favicon.svg`: the favicon as `app/icon.svg` (unchanged), `app/favicon.ico` (32 and 48 px), `app/icon.png` (192 px) and `app/apple-icon.png` (180 px, without the rounded corners, which iOS makes itself), and the wordmarks under `public/site-images/brand/`.
+**On the website** (issue #669): the public website (`apps/web`) and its design (`docs/design/website`) show the wordmark and serve the day dial favicon. `pnpm --filter @fivvi/web brand-icons` makes the files of `apps/web` from `fivvi-logo.svg`, `fivvi-logo-dark.svg` and `favicon.svg`: the favicon as `app/icon.svg` (unchanged), `app/favicon.ico` (32 and 48 px), `app/icon.png` (192 px) and `app/apple-icon.png` (180 px, without the rounded corners, which iOS makes itself), and the wordmarks under `public/site-images/brand/`.
 
 ## Colours
 

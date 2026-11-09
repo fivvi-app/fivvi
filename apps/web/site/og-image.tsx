@@ -25,9 +25,8 @@ export function readWordmark(svg: Buffer = readFileSync(wordmarkFile)): string {
 }
 
 /**
- * The share image of a page (F064 AC12): the site's look (the warm canvas, a white card, the pink
- * accent) with the wordmark, the page's title and the address, and nothing else. No screen, no person and no
- * figure, so nothing in it can pass for real data. It is drawn with `next/og`, which supports only
+ * The share image of a page (F064 AC12): the site's look (the warm canvas and a white card) with the
+ * wordmark, the page's title and the address, and nothing else. No screen, no person and no figure, so nothing in it can pass for real data. It is drawn with `next/og`, which supports only
  * a part of CSS (flex layouts and inline styles).
  */
 export function OgImage({
