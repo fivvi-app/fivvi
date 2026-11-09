@@ -25,15 +25,29 @@ use_xcode() {
   xcode_ok
 }
 
+# Downloads SwiftLint, riding out a GitHub outage (#686: HTTP 504 on every try of `curl --retry 3`, which waits only a few
+# seconds in all): SWIFTLINT_TRIES tries, with a growing wait between them (5, 10, 20, 30, 40 s: 105 s), and a log line
+# for each failed try with curl's reason.
+SWIFTLINT_TRIES=6
 install_swiftlint() {
   [ -x "$SWIFTLINT" ] && return
-  local dir zip
+  local dir zip try=1 wait=5 reason
   dir="$(dirname "$SWIFTLINT")"
   zip="$dir.zip.partial"
   mkdir -p "$(dirname "$dir")"
-  curl -fsSL --retry 3 -o "$zip" \
-    "https://github.com/realm/SwiftLint/releases/download/$SWIFTLINT_VERSION/portable_swiftlint.zip" \
-    || { rm -f "$zip"; return 1; }
+  until reason="$(curl -fsSL -o "$zip" \
+    "https://github.com/realm/SwiftLint/releases/download/$SWIFTLINT_VERSION/portable_swiftlint.zip" 2>&1)"; do
+    if [ "$try" -ge "$SWIFTLINT_TRIES" ]; then
+      echo "SwiftLint download: try $try of $SWIFTLINT_TRIES failed (${reason:-curl failed})" >&2
+      rm -f "$zip"
+      echo "could not download SwiftLint $SWIFTLINT_VERSION after $SWIFTLINT_TRIES tries" >&2
+      return 1
+    fi
+    echo "SwiftLint download: try $try of $SWIFTLINT_TRIES failed (${reason:-curl failed}); waiting $wait s" >&2
+    sleep "$wait"
+    try=$((try + 1))
+    wait=$((wait < 20 ? wait * 2 : wait + 10))
+  done
   if ! echo "$SWIFTLINT_SHA256  $zip" | shasum -a 256 -c --status; then
     rm -f "$zip"
     echo "the SwiftLint $SWIFTLINT_VERSION download doesn't match its SHA-256" >&2
