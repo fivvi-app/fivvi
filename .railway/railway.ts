@@ -84,7 +84,7 @@ export default defineRailway((ctx) => {
       PORT: '3000',
       // Transactional email (E006, packages/email). Values are set in the dashboard, never
       // here: production gets the production Lettermint token (ADR-028), development (and so
-      // previews) a separate one. Production without the token fails at start.
+      // previews) a separate one. Production without the token throws on the first email (`readEmailConfig`).
       // The route slugs differ per environment (the owner creates them in Lettermint).
       LETTERMINT_API_TOKEN: preserve(),
       LETTERMINT_ROUTE_SIGN_IN: preserve(),

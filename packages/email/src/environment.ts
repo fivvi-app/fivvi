@@ -51,7 +51,7 @@ export interface EnvironmentSendEmailOptions {
  *   other address goes through the provider. `EMAIL_SEND_EXAMPLE_DOMAIN=1` sends `@example.com`
  *   mail through it too, for e2e runs with a fake Lettermint server.
  *
- *  * The provider is Lettermint (`LETTERMINT_API_TOKEN`, `LETTERMINT_ROUTE_SIGN_IN`,
+ * The provider is Lettermint (`LETTERMINT_API_TOKEN`, `LETTERMINT_ROUTE_SIGN_IN`,
  * `LETTERMINT_ROUTE_MAIL`, `EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME` and, for e2e runs with a fake
  * Lettermint server, `LETTERMINT_API_URL`). Outside production the variables may be missing while
  * only `@example.com` mail is sent; production without them throws.
