@@ -5,13 +5,14 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@fivvi/ui/components/card';
+import { WarningIcon } from '@fivvi/ui/kit/icons';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import { SignInMark } from '../sign-in-mark';
 import { confirmLink, type LinkErrorKey, previewLink } from './link-client';
 
 type State =
@@ -66,64 +67,67 @@ export function ConfirmForm({ token, returnPath }: { token: string; returnPath: 
 
   if (state.step === 'checking') {
     return (
-      <main className="flex min-h-dvh items-center justify-center p-4">
+      <main className="flex min-h-dvh items-center justify-center bg-sidebar p-6">
         <p role="status">{t('confirmChecking')}</p>
       </main>
     );
   }
 
   return (
-    <main className="flex min-h-dvh items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
+    <main className="flex min-h-dvh items-center justify-center bg-sidebar p-6">
+      <Card className="w-full max-w-100 shadow-xs [--card-spacing:--spacing(5)]">
         {state.step === 'ready' ? (
           <>
-            <CardHeader>
-              <CardTitle>
+            <CardHeader className="justify-items-center gap-3 text-center">
+              <SignInMark />
+              <CardTitle className="text-[22px] leading-tight font-semibold">
                 <h1>{t('confirmTitle', { email: state.email })}</h1>
               </CardTitle>
             </CardHeader>
-            {error ? (
-              <CardContent>
-                <p role="alert" className="text-status-danger-fg">
-                  {t(`errors.${error}`)}
-                </p>
-              </CardContent>
-            ) : null}
-            <CardFooter>
-              <Button type="button" disabled={pending} onClick={signIn}>
+            <CardContent className="grid gap-4">
+              {error ? <ErrorMessage message={t(`errors.${error}`)} /> : null}
+              <Button type="button" disabled={pending} onClick={signIn} className="w-full">
                 {t('confirmSubmit')}
               </Button>
-            </CardFooter>
+            </CardContent>
           </>
         ) : state.step === 'invalid' ? (
           <>
-            <CardHeader>
-              <CardTitle>
+            <CardHeader className="justify-items-center gap-3 text-center">
+              <SignInMark />
+              <CardTitle className="text-[22px] leading-tight font-semibold">
                 <h1>{t('linkInvalidTitle')}</h1>
               </CardTitle>
               <CardDescription>{t('linkInvalidBody')}</CardDescription>
             </CardHeader>
-            <CardFooter>
-              <Button asChild>
+            <CardContent>
+              <Button asChild className="w-full">
                 <Link href="/login">{t('linkInvalidBack')}</Link>
               </Button>
-            </CardFooter>
+            </CardContent>
           </>
         ) : (
-          <>
-            <CardContent>
-              <p role="alert" className="text-status-danger-fg">
-                {t(`errors.${state.error}`)}
-              </p>
-            </CardContent>
-            <CardFooter>
-              <Button type="button" onClick={() => setAttempt((n) => n + 1)}>
-                {common('retry')}
-              </Button>
-            </CardFooter>
-          </>
+          <CardContent className="grid gap-4">
+            <ErrorMessage message={t(`errors.${state.error}`)} />
+            <Button type="button" onClick={() => setAttempt((n) => n + 1)} className="w-full">
+              {common('retry')}
+            </Button>
+          </CardContent>
         )}
       </Card>
     </main>
+  );
+}
+
+/** A refusal in words, with the warning icon, announced when it appears. */
+function ErrorMessage({ message }: { message: string }) {
+  return (
+    <p
+      role="alert"
+      className="flex items-center gap-1.5 text-[13px] font-semibold text-status-danger-fg"
+    >
+      <WarningIcon className="size-3.5 shrink-0" />
+      {message}
+    </p>
   );
 }

@@ -9,10 +9,10 @@ import { useTranslations } from 'next-intl';
 export function NoAccess() {
   const t = useTranslations('noAccess');
   return (
-    <main className="flex flex-1 items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
+    <main className="flex flex-1 items-center justify-center bg-sidebar p-6">
+      <Card className="w-full max-w-100 shadow-xs [--card-spacing:--spacing(5)]">
         <CardHeader>
-          <CardTitle>
+          <CardTitle className="text-[22px] leading-tight font-semibold">
             <h1>{t('title')}</h1>
           </CardTitle>
           <CardDescription>{t('body')}</CardDescription>

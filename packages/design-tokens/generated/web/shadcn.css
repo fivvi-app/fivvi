@@ -21,6 +21,7 @@
   --border: var(--th-color-web-trainer-border);
   --input: var(--th-color-border-control);
   --ring: var(--th-color-border-focus);
+  --sidebar: var(--th-color-web-trainer-sidebar);
   --radius: var(--th-radius-md);
   --fill-decorative: var(--th-color-fill-decorative);
   --accent-fill: var(--th-color-accent-fill);

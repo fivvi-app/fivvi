@@ -7,7 +7,7 @@ import { WarningIcon } from './icons';
 /**
  * A labelled text field with its error state: the label and the field turn red, a warning icon and the message
  * come under it, and the input points at the message (`aria-invalid`, `aria-describedby`). A hint
- * shows while there is no error. The texts come from `packages/i18n`.
+ * shows while there is no error. The message is announced when it appears (`role="alert"`). The texts come from `packages/i18n`.
  */
 export function Field({
   id,
@@ -47,6 +47,7 @@ export function Field({
       {error ? (
         <p
           id={messageId}
+          role="alert"
           className="flex items-center gap-1.5 text-[13px] font-semibold text-status-danger-fg"
         >
           <WarningIcon className="size-3.5 shrink-0" />

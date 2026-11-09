@@ -125,6 +125,15 @@ describe('E007 design tokens build', () => {
     expect(resolveVar('--radius', properties.light)).toBe('12px');
   });
 
+  it("E020 #626: shadcn's --sidebar is the trainer web's sidebar fill, a subtle step from the page in light and dark", () => {
+    const properties = customProperties(output(webOutputs.tokens), output(webOutputs.shadcn));
+
+    expect(shadcnColours.sidebar).toBe('color.web.trainer.sidebar');
+    expect(resolveVar('--sidebar', properties.light)?.toUpperCase()).toBe('#FAFAFA');
+    expect(resolveVar('--sidebar', properties.dark)?.toUpperCase()).toBe('#0C0C0E');
+    expect(output(webOutputs.theme)).toContain('--color-sidebar: var(--sidebar);');
+  });
+
   it("AC1: the client web's theme sets the same variables to the Fivvi Pro values, under data-theme", () => {
     const css = output(webOutputs.client);
     const block = css.match(/\[data-theme="client"\] \{([\s\S]*?)\n\}/)?.[1] ?? '';

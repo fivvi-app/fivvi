@@ -6,12 +6,11 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@fivvi/ui/components/card';
-import { Input } from '@fivvi/ui/components/input';
-import { Label } from '@fivvi/ui/components/label';
+import { Field } from '@fivvi/ui/kit/field';
+import { WarningIcon } from '@fivvi/ui/kit/icons';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useState } from 'react';
 import {
@@ -63,65 +62,50 @@ export function WelcomeForm({ askName }: { askName: boolean }) {
   const nameError = fields.name ? t(`errors.${fields.name}`) : null;
 
   return (
-    <main className="flex flex-1 items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
+    <main className="flex flex-1 items-center justify-center bg-sidebar p-6">
+      <Card className="w-full max-w-100 shadow-xs [--card-spacing:--spacing(5)]">
         <form noValidate onSubmit={submit} className="grid gap-(--card-spacing)">
           <CardHeader>
-            <CardTitle>
+            <CardTitle className="text-[22px] leading-tight font-semibold">
               <h1>{t('title')}</h1>
             </CardTitle>
             <CardDescription>{t('description')}</CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4">
             {askName ? (
-              <div className="grid gap-2">
-                <Label htmlFor="person-name">{t('personNameLabel')}</Label>
-                <Input
-                  id="person-name"
-                  name="personName"
-                  autoComplete="name"
-                  aria-invalid={personNameError ? true : undefined}
-                  aria-describedby={personNameError ? 'person-name-error' : undefined}
-                />
-                <FieldError id="person-name-error" message={personNameError} />
-              </div>
-            ) : null}
-            <div className="grid gap-2">
-              <Label htmlFor="workspace-name">{t('workspaceNameLabel')}</Label>
-              <p id="workspace-name-hint" className="text-sm text-muted-foreground">
-                {t('workspaceNameHint')}
-              </p>
-              <Input
-                id="workspace-name"
-                name="name"
-                autoComplete="organization"
-                aria-invalid={nameError ? true : undefined}
-                aria-describedby={
-                  nameError ? 'workspace-name-hint workspace-name-error' : 'workspace-name-hint'
-                }
+              <Field
+                id="person-name"
+                name="personName"
+                autoComplete="name"
+                label={t('personNameLabel')}
+                error={personNameError}
               />
-              <FieldError id="workspace-name-error" message={nameError} />
-            </div>
-            <FieldError id="welcome-error" message={failure ? t(`errors.${failure}`) : null} />
-          </CardContent>
-          <CardFooter>
-            <Button type="submit" disabled={!ready || pending}>
+            ) : null}
+            <Field
+              id="workspace-name"
+              name="name"
+              autoComplete="organization"
+              label={t('workspaceNameLabel')}
+              hint={t('workspaceNameHint')}
+              error={nameError}
+            />
+            {failure ? (
+              <p
+                id="welcome-error"
+                role="alert"
+                className="flex items-center gap-1.5 text-[13px] font-semibold text-status-danger-fg"
+              >
+                <WarningIcon className="size-3.5 shrink-0" />
+                {t(`errors.${failure}`)}
+              </p>
+            ) : null}
+            <Button type="submit" disabled={!ready || pending} className="w-full">
               {t('submit')}
             </Button>
-          </CardFooter>
+          </CardContent>
         </form>
       </Card>
     </main>
-  );
-}
-
-/** The message under a field the API refused, announced when it appears. */
-function FieldError({ id, message }: { id: string; message: string | null }) {
-  if (!message) return null;
-  return (
-    <p id={id} role="alert" className="text-status-danger-fg">
-      {message}
-    </p>
   );
 }
 

@@ -1,12 +1,12 @@
 import type { Schemas } from '@fivvi/contract';
 import type { Locale } from '@fivvi/i18n';
-import type { Route } from 'next';
-import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import type { ComponentProps, ReactNode } from 'react';
 import { AddClientProvider } from './clients/add-client-dialog';
 import { NewMenu } from './new-menu';
+import { type NavItem, SidebarNav } from './sidebar-nav';
 import { UserMenu } from './user-menu';
+import { initials } from './workspace-initials';
 import { WorkspaceSwitcher } from './workspace-switcher';
 
 /**
@@ -49,9 +49,31 @@ export function WorkspaceFrame({
   children: ReactNode;
 }) {
   const t = useTranslations('workspaceNav');
+  const items: NavItem[] = [];
+  if (capabilities.includes('clients.view')) {
+    items.push({ href: `/w/${slug}/clients`, label: t('clients'), icon: 'clients' });
+  }
+  if (capabilities.includes('team.view')) {
+    items.push({ href: `/w/${slug}/trainers`, label: t('trainers'), icon: 'trainers' });
+  }
+  if (capabilities.includes('workspace.manage')) {
+    items.push({
+      href: `/w/${slug}/settings/general`,
+      base: `/w/${slug}/settings`,
+      label: t('settings'),
+      icon: 'settings',
+      children: [
+        { href: `/w/${slug}/settings/general`, label: t('settingsGeneral') },
+        { href: `/w/${slug}/settings/language`, label: t('settingsLanguage') },
+        ...(capabilities.includes('settings.manage')
+          ? [{ href: `/w/${slug}/settings/locations`, label: t('settingsLocation') }]
+          : []),
+      ],
+    });
+  }
   return (
     <div className="flex flex-1 flex-col md:flex-row">
-      <aside className="grid content-start gap-4 border-b p-4 md:w-56 md:border-r md:border-b-0">
+      <aside className="flex flex-col gap-1 border-b bg-sidebar px-2.5 py-3 md:w-60 md:shrink-0 md:border-r md:border-b-0">
         <WorkspaceSwitcher
           name={name}
           slug={slug}
@@ -59,59 +81,34 @@ export function WorkspaceFrame({
           workspaces={workspaces}
           canCreateWorkspace={canCreateWorkspace}
         />
-        <nav aria-label={t('label')}>
-          <div className="grid gap-1">
-            {capabilities.includes('clients.view') ? (
-              <Link href={`/w/${slug}/clients` as Route} className="underline">
-                {t('clients')}
-              </Link>
-            ) : null}
-            {capabilities.includes('team.view') ? (
-              <Link href={`/w/${slug}/trainers` as Route} className="underline">
-                {t('trainers')}
-              </Link>
-            ) : null}
-            {capabilities.includes('workspace.manage') ? (
-              <>
-                <Link href={`/w/${slug}/settings/general` as Route} className="underline">
-                  {t('settings')}
-                </Link>
-                <ul className="grid gap-1 ps-4">
-                  <li>
-                    <Link href={`/w/${slug}/settings/general` as Route} className="underline">
-                      {t('settingsGeneral')}
-                    </Link>
-                  </li>
-                  <li>
-                    <Link href={`/w/${slug}/settings/language` as Route} className="underline">
-                      {t('settingsLanguage')}
-                    </Link>
-                  </li>
-                  {capabilities.includes('settings.manage') ? (
-                    <li>
-                      <Link href={`/w/${slug}/settings/locations` as Route} className="underline">
-                        {t('settingsLocation')}
-                      </Link>
-                    </li>
-                  ) : null}
-                </ul>
-              </>
-            ) : null}
-          </div>
-        </nav>
-        <UserMenu />
-        {personName ? (
-          <footer className="text-sm text-muted-foreground">{personName}</footer>
-        ) : null}
+        <SidebarNav label={t('label')} items={items} />
+        <div className="mt-auto flex items-center gap-2.5 border-t px-2 pt-2.5">
+          {personName ? (
+            <>
+              <span
+                aria-hidden="true"
+                className="grid size-7 flex-none place-items-center rounded-full bg-primary text-[11px] font-bold text-primary-foreground"
+              >
+                {initials(personName)}
+              </span>
+              <footer className="min-w-0 flex-1 truncate text-[13px] font-semibold">
+                {personName}
+              </footer>
+            </>
+          ) : (
+            <span className="flex-1" />
+          )}
+          <UserMenu />
+        </div>
       </aside>
-      <div className="flex flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         {quickAdd ? (
           <AddClientProvider
             workspaceId={quickAdd.workspaceId}
             slug={slug}
             defaultLocale={quickAdd.defaultLocale}
           >
-            <div className="flex justify-end border-b p-2">
+            <div className="flex h-14 flex-none items-center justify-end border-b px-6">
               <NewMenu />
             </div>
             {children}

@@ -21,5 +21,6 @@
   --border: var(--th-color-border-default);
   --input: var(--th-color-border-control);
   --ring: var(--th-color-border-focus);
+  --sidebar: var(--th-color-bg-canvas);
   --radius: var(--th-radius-card);
 }

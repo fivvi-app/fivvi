@@ -4,6 +4,7 @@ import { compile } from '@tailwindcss/node';
 import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
+import { Button } from '../src/components/button';
 import { ClientLayout } from '../src/kit/client-layout';
 import { Field } from '../src/kit/field';
 import { InsetList, InsetListItem } from '../src/kit/inset-list';
@@ -29,6 +30,16 @@ function classesOf(markup: string, attribute: string): string[] {
 }
 
 describe('E020 web kit', () => {
+  describe('AC15: the primary button keeps its contrast when hovered', () => {
+    it('darkens on hover instead of fading to a lighter pink, where white text is 3.7:1', () => {
+      const classes = classesOf(html(<Button>Opslaan</Button>), 'data-slot="button"');
+
+      expect(classes).toContain('bg-primary');
+      expect(classes).toContain('hover:brightness-95');
+      expect(classes).not.toContain('hover:bg-primary/80');
+    });
+  });
+
   describe('AC14: card', () => {
     it('has the card radius and the card colours', () => {
       const classes = classesOf(html(<ProCard>Anna</ProCard>), 'data-slot="pro-card"');
@@ -273,6 +284,14 @@ describe('E020 web kit', () => {
       expect(inputClasses).not.toContain('dark:aria-invalid:ring-destructive/40');
       // The message comes after the input.
       expect(markup.indexOf('<input')).toBeLessThan(markup.indexOf('name-error"'));
+    });
+
+    it('announces the message when it appears, and not the hint', () => {
+      const error = html(<Field id="name" label="Naam" hint="Zoals op de ID." error="Fout." />);
+      const hint = html(<Field id="name" label="Naam" hint="Zoals op de ID." />);
+
+      expect(error).toMatch(/<p[^>]*id="name-error"[^>]*role="alert"/);
+      expect(hint).not.toContain('role="alert"');
     });
 
     it('has a hint, and the error replaces it', () => {

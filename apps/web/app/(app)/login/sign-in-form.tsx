@@ -7,16 +7,15 @@ import {
   Card,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@fivvi/ui/components/card';
-import { Input } from '@fivvi/ui/components/input';
-import { Label } from '@fivvi/ui/components/label';
+import { Field } from '@fivvi/ui/kit/field';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { LanguageSwitch } from './language-switch';
 import { requestCode, type SignInErrorKey, verifyCode } from './sign-in-client';
+import { SignInMark } from './sign-in-mark';
 
 /**
  * TW-10: the email step, then the code step on the same screen. `locale` is the language of the
@@ -91,88 +90,90 @@ export function SignInForm({ locale, returnPath }: { locale: Locale; returnPath?
   const disabled = !ready || pending;
 
   return (
-    <main className="flex min-h-dvh flex-col items-center justify-center gap-2 p-4">
-      <div className="flex w-full max-w-sm justify-end">
+    <main className="flex min-h-dvh flex-col items-center justify-center gap-3 bg-sidebar p-6">
+      <div className="flex w-full max-w-100 justify-end">
         <LanguageSwitch />
       </div>
-      <Card className="w-full max-w-sm">
+      <Card className="w-full max-w-100 shadow-xs [--card-spacing:--spacing(5)]">
         {step === 'email' ? (
           <form noValidate onSubmit={sendEmail} className="grid gap-(--card-spacing)">
-            <CardHeader>
-              <CardTitle>
+            <CardHeader className="justify-items-center gap-3 text-center">
+              <SignInMark />
+              <CardTitle className="text-[22px] leading-tight font-semibold">
                 <h1>{t('title')}</h1>
               </CardTitle>
             </CardHeader>
-            <CardContent className="grid gap-2">
-              <Label htmlFor="email">{t('emailLabel')}</Label>
-              <Input
+            <CardContent className="grid gap-4">
+              <Field
                 id="email"
                 name="email"
                 type="email"
                 autoComplete="email"
                 defaultValue={email}
-                aria-invalid={error ? true : undefined}
-                aria-describedby={error ? 'sign-in-error' : undefined}
+                label={t('emailLabel')}
+                error={errorMessage}
               />
-              <FieldError message={errorMessage} />
+              <div className="grid gap-2">
+                <Button type="submit" disabled={disabled} className="w-full">
+                  {t('sendCode')}
+                </Button>
+              </div>
             </CardContent>
-            <CardFooter>
-              <Button type="submit" disabled={disabled}>
-                {t('sendCode')}
-              </Button>
-            </CardFooter>
           </form>
         ) : (
           <form noValidate onSubmit={signIn} className="grid gap-(--card-spacing)">
-            <CardHeader>
-              <CardTitle>
+            <CardHeader className="justify-items-center gap-3 text-center">
+              <SignInMark />
+              <CardTitle className="text-[22px] leading-tight font-semibold">
                 <h1>{t('checkEmailTitle')}</h1>
               </CardTitle>
               <CardDescription>{t('checkEmailBody', { email })}</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-2">
-              <Label htmlFor="code">{t('codeLabel')}</Label>
-              <p id="code-help" className="text-sm text-muted-foreground">
-                {t('codeHelp')}
-              </p>
-              <Input
+            <CardContent className="grid gap-4">
+              <Field
                 id="code"
                 name="code"
                 ref={codeField}
                 inputMode="numeric"
                 autoComplete="one-time-code"
                 maxLength={6}
-                aria-invalid={error ? true : undefined}
-                aria-describedby={error ? 'code-help sign-in-error' : 'code-help'}
+                label={t('codeLabel')}
+                hint={t('codeHelp')}
+                error={errorMessage}
               />
-              <FieldError message={errorMessage} />
-              {resent ? <p role="status">{t('resent', { email })}</p> : null}
+              {resent ? (
+                <p role="status" className="text-center text-sm text-muted-foreground">
+                  {t('resent', { email })}
+                </p>
+              ) : null}
+              <div className="grid gap-2">
+                <Button type="submit" disabled={disabled} className="w-full">
+                  {t('submitCode')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={disabled}
+                  onClick={sendNewEmail}
+                  className="w-full"
+                >
+                  {t('resend')}
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={disabled}
+                  onClick={changeEmail}
+                  className="w-full"
+                >
+                  {t('changeEmail')}
+                </Button>
+              </div>
             </CardContent>
-            <CardFooter className="flex-wrap gap-2">
-              <Button type="submit" disabled={disabled}>
-                {t('submitCode')}
-              </Button>
-              <Button type="button" variant="ghost" disabled={disabled} onClick={sendNewEmail}>
-                {t('resend')}
-              </Button>
-              <Button type="button" variant="ghost" disabled={disabled} onClick={changeEmail}>
-                {t('changeEmail')}
-              </Button>
-            </CardFooter>
           </form>
         )}
       </Card>
     </main>
-  );
-}
-
-/** The message under a field that was refused, announced when it appears. */
-function FieldError({ message }: { message: string | null }) {
-  if (!message) return null;
-  return (
-    <p id="sign-in-error" role="alert" className="text-status-danger-fg">
-      {message}
-    </p>
   );
 }
 
