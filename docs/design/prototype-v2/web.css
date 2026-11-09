@@ -144,6 +144,29 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .w-input.sm{width:72px}
 .w-inline{display:flex;align-items:center;gap:8px;color:var(--w-mfg)}
 .w-inline2{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+.w-inline2:has(>:nth-child(2):last-child){grid-template-columns:repeat(2,minmax(0,1fr))}
+.w-inline2>.w-field{align-content:start}
+.dz{margin:26px 0 8px;padding:14px 16px;border:1px solid color-mix(in srgb,var(--danger) 60%,transparent);border-radius:12px}
+.dz h3{margin:0 0 10px;font-size:15px;font-weight:650;color:color-mix(in oklab,var(--danger) 85%,var(--ev-ink))}
+.dz-row{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+.dz-row>div{flex:1 1 200px;min-width:0}
+.dz-row p{margin:2px 0 0;font-size:13px;line-height:18px;opacity:.72}
+.dz-flow{display:grid;gap:12px}
+.dz-flow p{margin:0}
+.dz-flow [data-dzb="step2"]{display:grid;gap:12px}
+.dz-flow [hidden],.dz-flow [data-dzb="step2"][hidden]{display:none}
+.w-gate{flex:1;display:grid;place-items:center;padding:24px;background:var(--w-side);min-height:0;overflow:auto}
+.w-gate-box{width:100%;max-width:400px}
+.w-gate h2{margin:12px 0 14px;font-size:22px;text-align:center}
+.w-gate .w-muted{text-align:center}
+.w-gate-mark{width:48px;height:48px;margin:4px auto 0;display:grid;place-items:center;border-radius:13px;background:var(--accent);color:var(--on-accent);font-size:24px;font-weight:700}
+.w-gate-stack{display:grid;gap:8px}
+.w-gate-stack .w-btn{justify-content:center;width:100%}
+.w-gate-or{padding:14px 0 10px;margin:0;text-align:center;font-size:13px;color:var(--w-mfg)}
+.w-sect{border-top:1px solid var(--w-border);padding-top:16px;margin-top:6px}
+.w-starts+.w-sect,.w-dialog h3+.w-sect{border-top:0;padding-top:4px;margin-top:0}
+.w-sect>h4{margin:0 0 12px;font-size:15px;font-weight:650}
+.w-sect+p.w-muted{border-top:1px solid var(--w-border);padding-top:14px;margin-top:6px}
 .w-desc{margin:12px 0 0;color:var(--w-fg)}
 
 /* lanes per trainer */
@@ -245,6 +268,14 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .c-wait svg{width:36px;height:36px}
 .c-proto{display:grid;gap:10px;font-size:15px;color:var(--label2);border:1px dashed var(--label3);background:none}
 .c-proto b{color:var(--label)}
+.c-proto summary,.w-proto summary{cursor:pointer}
+.c-or{text-align:center;color:var(--label2);font-size:13px;margin:14px 0 2px}
+.c-chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+.c-chip{font:inherit;font-size:13px;line-height:18px;padding:8px 12px;border-radius:999px;border:1px solid var(--label3);background:none;color:var(--label);cursor:pointer;text-align:left}
+.w-proto{margin-top:16px;padding:12px 14px;border:1px dashed var(--w-border);border-radius:10px;font-size:13px;color:var(--w-mfg)}
+.w-proto b{color:var(--w-fg)}
+.w-proto .c-chip{border-color:var(--w-border);color:var(--w-fg)}
+.pro-tap{width:100%;text-align:left;font:inherit;cursor:pointer}
 .c-wk{grid-template-columns:repeat(7,1fr);padding:2px 8px 0}
 .c-row .m small{display:-webkit-box;-webkit-line-clamp:1;-webkit-box-orient:vertical;overflow:hidden;white-space:normal}
 .c-pill{display:inline-flex;align-items:center;gap:3px}
@@ -578,3 +609,18 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .w-paydesk>div{flex:1;min-width:0}
 .w-paydesk p{margin:2px 0 0;color:var(--w-mfg);font-size:13px}
 .w-paydesk .w-switch{flex:none}
+
+/* screens from the specs (more-web.js) */
+.w-kindgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:6px 0}
+.w-kind{display:grid;gap:4px;text-align:left;padding:12px;border:1px solid var(--w-border);border-radius:12px;background:var(--w-card);color:var(--w-fg);cursor:pointer;font:inherit}
+.w-kind span{color:var(--w-mfg);font-size:13px}
+.w-kind:hover{background:var(--w-muted)}
+.w-checks{display:grid;gap:6px;margin-bottom:6px;max-height:210px;overflow:auto}
+.w-check{display:flex;gap:8px;align-items:flex-start}
+.w-check small{display:block}
+.c-st-note{margin:0;text-align:center;color:var(--label2);font-size:13px}
+.w-steps{margin:0 0 12px;padding-left:20px;display:grid;gap:4px}
+.w-qrbox{display:grid;justify-items:center;gap:8px;margin-bottom:10px}
+.w-qr{width:150px;height:150px;background:#fff;padding:8px;border-radius:8px}
+.w-dialog .w-hgroup{flex-wrap:wrap}
+.w-user{border:0;background:none;width:100%;text-align:left;cursor:pointer;color:inherit;font:inherit}

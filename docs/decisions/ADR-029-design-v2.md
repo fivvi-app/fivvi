@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Accepted (2026-11-05). **Replaces** the iOS minimum in ADR-003; **refines** the look of ADR-015 |
+| **Status** | Accepted (2026-11-05). **Replaces** the iOS minimum in ADR-003; **refines** the look of ADR-015; the black-and-white alternative is dropped by [ADR-031](ADR-031-move-pink-is-the-only-accent.md); the contrast rule has one exception in [ADR-032](ADR-032-secondary-text-in-the-native-apps.md) |
 | **Date** | 2026-11-05 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | ADR-003, ADR-015, ADR-026; [`docs/design/prototype-v2/DECISIONS.md`](../design/prototype-v2/DECISIONS.md); E007, E008, E017 |
@@ -16,6 +16,10 @@ On 5 November 2026 the owner and the agent settled the look in a clickable proto
 The latest iOS design, Liquid Glass, needs **iOS 26**. ADR-003 set the minimum at iOS 17.0. That rule had no confirmed iPhone among the pilot trainers behind it, so raising the minimum costs no pilot user today.
 
 ## Decision
+
+> **Amended by [ADR-031](ADR-031-move-pink-is-the-only-accent.md) (6 November 2026):** Move pink is the only accent. The black-and-white alternative below no longer applies.
+
+> **Amended by [ADR-032](ADR-032-secondary-text-in-the-native-apps.md) (6 November 2026):** the native apps' secondary text in light mode is the one exception to the contrast rule below.
 
 - **iOS: minimum iOS 26**, with Liquid Glass:
   - glass navigation buttons;

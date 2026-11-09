@@ -3,7 +3,7 @@
 // `outs` (a list) answers its first call with the first entry, the second with the second, and then repeats the last:
 // for a state that changes during a command (a PR that is removed from the merge queue, then queued). `--jq` is
 // applied with jq like gh does. Every call is logged, with the content of an `--input` file and, for `secret set`, the
-// value piped to its stdin.
+// value piped to its stdin. The directory also holds an `xcrun` and an `xcodebuild` that always fail.
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -38,6 +38,11 @@ export function fakeGh() {
   const dir = mkdtempSync(join(tmpdir(), 'fake-gh-'));
   writeFileSync(join(dir, 'gh'), GH);
   chmodSync(join(dir, 'gh'), 0o755);
+  // A machine without Xcode, so a script under test (clean.sh) never touches the real simulators of this Mac (#668).
+  for (const tool of ['xcrun', 'xcodebuild']) {
+    writeFileSync(join(dir, tool), '#!/bin/sh\nexit 1\n');
+    chmodSync(join(dir, tool), 0o755);
+  }
   const rulesFile = join(dir, 'rules.json');
   const logFile = join(dir, 'calls.log');
   return {

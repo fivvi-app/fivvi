@@ -37,7 +37,8 @@ window.FIVVI_I18N = (function () {
 [/^Mollie-organisatie: (.+)\. Uitbetaling: Mollie maakt je geld wekelijks over\. De dag kies je in je Mollie-dashboard\.$/, "Mollie organisation: $1. Payouts: Mollie pays you weekly. You choose the day in your Mollie dashboard."],
 [/^Je logt in op je eigen account en keurt goed dat Fivvi namens (.+) mag:$/, "You sign in to your own account and approve that Fivvi may, for $1:"],
 [/^(.+) start binnenkort$/, "$1 is starting soon"],
-[/^(.+) heeft dit bij jou betaald\. Er gaat geen geld via Mollie en het gaat meteen in\. Een abonnement staat daarna elke maand op dit profiel, tot je vastlegt dat het is betaald\. Fivvi maakt hiervoor niet vanzelf een factuur\. Je administratie en belasting regel je zelf; deze betaling blijft hier staan\.$/, "$1 paid you for this directly. No money goes through Mollie and it starts right away. A membership then shows on this profile every month, until you record that it's paid. Fivvi doesn't make an invoice for this by itself. Your bookkeeping and tax are yours to handle; this payment stays on record here."],
+[/^(.+) heeft dit volledig bij jou betaald\. Er gaat geen geld via Mollie en het gaat meteen in\. Een abonnement staat daarna elke maand op dit profiel, tot je vastlegt dat het is betaald\. Fivvi maakt hiervoor niet vanzelf een factuur\. Je administratie en belasting regel je zelf; deze betaling blijft hier staan\.$/, "$1 paid you for this in full, directly. No money goes through Mollie and it starts right away. A membership then shows on this profile every month, until you record that it's paid. Fivvi doesn't make an invoice for this by itself. Your bookkeeping and tax are yours to handle; this payment stays on record here."],
+[/^(.+) heeft dit volledig bij jou betaald\. Er gaat geen geld via Mollie en het gaat meteen in\. Een abonnement staat daarna elke maand op dit profiel, tot je vastlegt dat het is betaald\. (.+) krijgt facturen op naam van (.+), dus Fivvi maakt de factuur\. Je administratie en belasting regel je zelf; deze betaling blijft hier staan\.$/, "$1 paid you for this in full, directly. No money goes through Mollie and it starts right away. A membership then shows on this profile every month, until you record that it's paid. $2 gets invoices in the name of $3, so Fivvi makes the invoice. Your bookkeeping and tax are yours to handle; this payment stays on record here."],
 [/^Betaling van (.+) nog niet vastgelegd$/, function (m, d) { return "Payment of " + P(d) + " not recorded yet"; }],
 [/^betaling van (.+) nog niet vastgelegd$/, function (m, d) { return "payment of " + P(d) + " not recorded yet"; }],
 [/^Terugbetaling van (.+) vastgelegd\.$/, "Refund of $1 recorded."],
@@ -48,6 +49,7 @@ window.FIVVI_I18N = (function () {
 [/^(.+) gestart$/, function (m, n) { return P(n) + " started"; }],
 [/^Online betalen is bij (.+) nog niet mogelijk\.$/, "Online payment isn't available at $1 yet."],
 [/^Gelukt! (.+) is betaald\.$/, function (m, n) { return "Done! " + P(n) + " has been paid."; }],
+[/^(.+) annuleren\?$/, function (m, n) { return "Cancel " + P(n) + "?"; }],
 [/^Herinnering verstuurd (.+) · laatste uiterlijk (.+)$/, function (m, d, l) { return "Reminder sent " + P(d) + " · last one by " + P(l); }],
 [/^Herinnering verstuurd (.+)$/, function (m, d) { return "Reminder sent " + P(d); }],
 [/^Aanbod verstuurd (\d.+)$/, function (m, d) { return "Offer sent " + P(d); }],
@@ -105,7 +107,7 @@ window.FIVVI_I18N = (function () {
 [/^(\S+) krijgt een e-mail met een link om te bevestigen en te betalen met iDEAL\. Na de betaling maakt Fivvi de factuur\.( Na afloop: het nieuwe begint als (.+) eindigt, zonder gat en zonder overlap\.| Na afloop: geen gat en geen overlap\.)?$/, function (m, n, x, a) { return n + " gets an email with a link to confirm and pay with iDEAL. Fivvi makes the invoice after the payment." + (x ? (a ? " When it ends: the new one starts when " + P(a) + " ends, with no gap and no overlap." : " When it ends: no gap and no overlap.") : ""); }],
 [/^(\d+) gebruikt · (\d+) gepland · van (\d+)$/, "$1 used · $2 planned · of $3"],
 [/^van (\d+) deze periode$/, "of $1 this period"],
-[/^Je traint samen met (.+)\. Je trainer houdt ieders training apart bij\.$/, "You train together with $1. Your trainer keeps a separate record of each workout."],
+[/^Nieuwe regel: (.+)$/, function (m, d) { return "New line: " + P(d); }], [/^Alleen (\S+) annuleren$/, "Cancel $1 only"], [/^Alleen (\S+)$/, "$1 only"], [/^(\S+) leest: Je sessie gaat door, zonder (\S+)\.$/, "$1 reads: Your session is going ahead, without $2."], [/^Je traint samen met (.+)\. Je trainer houdt ieders training apart bij\.$/, "You train together with $1. Your trainer keeps a separate record of each workout."],
 [/^Met (\S+) · samen met (\S+)$/, "With $1 · together with $2"],
 [/^Vorige keer · (\S+)$/, "Last time · $1"],
 [/^Niveau: (.+)$/, function (m, l) { return "Level: " + ({ "Alle niveaus": "All levels", "Beginner": "Beginner", "Gemiddeld": "Intermediate", "Gevorderd": "Advanced" })[l]; }],
@@ -273,7 +275,7 @@ window.FIVVI_I18N = (function () {
     "Betaald": "Paid", "Mislukt": "Failed", "Terugbetaald": "Refunded", "Geen": "None", "Incasso": "Direct debit", "Eenmalig": "Once", "Elke 4 weken": "Every 4 weeks", "Elke maand": "Every month",
     "Abonnement": "Membership", "Creditabonnement": "Credit plan", "Creditpakket": "Credit pack", "Groepscredits": "Group credits", "Privécredits": "Private credits", "Open Gym-credits": "Open Gym credits",
     "groepscredits": "group credits", "groepscredit": "group credit", "privécredits": "private credits", "privécredit": "private credit", "Open Gym-credit": "Open Gym credit", "privésessies": "private sessions",
-    "gebruikt": "used", "gepland": "planned", "over": "left", "deze periode": "this period", "sinds": "since", "volgende betaling": "next payment", "geldig tot": "valid until", "loopt door": "ongoing", "stopt": "ends", "verlopen": "expired",
+    "gebruikt": "used", "gepland": "planned", "over": "left", "deze periode": "this period", "sinds": "since", "volgende betaling": "next payment", "geldig tot": "valid until", "tot 28 feb 2027": "until 28 Feb 2027", "loopt door": "ongoing", "stopt": "ends", "verlopen": "expired",
     "inhaallessen": "makeup classes", "inhaalles": "makeup class", "Geen actief aanbod": "No active offer", "Geen abonnement of credits": "No membership or credits", "Betalingen en facturen vind je op het web.": "Payments and invoices are on the web.",
     "Stuur een aanbod vanaf het web.": "Send an offer from the web.", "toegekend": "granted", "meegenomen": "carried over", "Uit vorige periode (max. 2)": "From the previous period (max. 2)", "Nieuwe periode": "New period", "Gebruikt voor": "Used for",
     "Gepland:": "Planned:", "Creditpakket gekocht": "Credit pack bought", "Teruggegeven: op tijd afgezegd": "Returned: cancelled in time", "Annuleringsbeleid": "Cancellation policy", "Week begonnen:": "Week started:", "lessen": "classes", "les": "class", "boekte": "booked",
@@ -298,7 +300,7 @@ window.FIVVI_I18N = (function () {
     "Links naar een les": "Links to a class", "Meedoen via de link": "Join through the link", "Mensen die via je aanmeldlink willen meedoen. Pas na goedkeuring zien ze je rooster.": "People who want to join through your join link. They see your timetable only after approval.",
     "Mijn agenda": "My schedule", "Naam": "Name", "Nieuw blok": "New block", "Nieuwe les": "New class", "Nieuwe link gemaakt. De oude werkt niet meer.": "New link created. The old one no longer works.", "Nieuwe notitie": "New note",
     "Nog invullen": "To record", "Nog vandaag": "Still today", "Oefening": "Exercise", "Ook": "Also", "Op de wachtlijst": "Join the waitlist", "Opent het afdrukvenster": "Opens the print dialog", "Opent het bewerkformulier": "Opens the edit form",
-    "Opent het bijhouden van de training (WL-06)": "Opens workout logging (WL-06)", "Opent het formulier voor een eigen oefening": "Opens the form for a custom exercise", "Overzicht": "Overview", "Persoonlijk": "Personal", "Plekken": "Spots",
+    "Opent het bijhouden van de training (WL-06)": "Opens workout logging (WL-06)", "Opent het formulier voor een eigen oefening": "Opens the form for a custom exercise", "Overzicht": "Overview", "Persoonlijk": "Personal", "Plekken": "Spots", "Plekken vrij": "Spots left",
     "Profiel en tegoed": "Profile and balance", "Publiceren": "Publish", "QR-code downloaden": "Download QR code", "QR-code gedownload": "QR code downloaded", "QR-code voor de balie": "QR code for the desk", "Rol": "Role", "Rooster": "Timetable",
     "Schema's": "Templates", "Sessies vandaag": "Sessions today", "Sessie": "Session", "Soort": "Type", "Spieren": "Muscles", "Standaardtaal voor e-mails": "Default language for emails", "Status": "Status", "Taal van de uitnodiging": "Language of the invitation",
     "Toevoegen": "Add", "Trainer uitnodigen": "Invite trainer", "Trainer volgt nog": "Trainer to be announced", "Trainer web": "Trainer web", "Training bijhouden": "Log workout", "Uitnodiging versturen": "Send invitation",
@@ -435,7 +437,7 @@ window.FIVVI_I18N = (function () {
     "borst": "chest", "schouders": "shoulders", "rug": "back", "benen": "legs", "billen": "glutes", "armen": "arms", "conditie": "conditioning", "(buiten)": "(outdoors)",
     "Upper A · 29 okt": "Upper A · 29 Oct",
     /* duo sessions, class levels, the word for trainers (5 Nov 2026) */
-    "Duosessie": "Duo session", "Nieuwe duosessie": "New duo session", "Duosessie gepland": "Duo session scheduled", "Tweede klant": "Second client", "Tweede klant (duo)": "Second client (duo)", "Geen": "None",
+    "Duosessie": "Duo session", "Betaling buiten Fivvi corrigeren": "Correct a payment outside Fivvi", "Betaling corrigeren": "Correct a payment", "Corrigeren": "Correct", "Gecorrigeerd": "Corrected", "Betaling gecorrigeerd.": "Payment corrected.", "Reden": "Reason", "Vul een reden in": "Enter a reason", "Bijvoorbeeld: verkeerd aanbod gekozen": "For example: chose the wrong offer", "Bijvoorbeeld: verkeerde klant of verkeerd aanbod": "For example: wrong client or wrong offer", "De oude regel blijft staan als Gecorrigeerd en wijst naar de nieuwe. Klopt de klant of het aanbod niet, dan stopt de verkeerde overeenkomst en start de juiste.": "The old line stays as Corrected and points to the new one. If the client or the offer was wrong, the wrong agreement ends and the right one starts.", "Betaling buiten Fivvi: klant met factuur op bedrijfsnaam": "Payment outside Fivvi: client invoiced in a company's name", "Factuurgegevens: ik reken geen btw": "Invoice details: I don't charge VAT", "Factuur zonder btw": "Invoice without VAT", "De oude regel blijft staan als Gecorrigeerd en wijst naar de nieuwe. Klopt het aanbod niet, dan stopt de verkeerde overeenkomst en start de juiste.": "The old line stays as Corrected and points to the new one. If the offer was wrong, the wrong agreement ends and the right one starts.", "Duosessie: één klant annuleren": "Duo session: cancel one client", "Klantprofiel: koppeling werkt niet meer": "Client profile: connection stopped working", "Online betalen en incasso's staan stil: de koppeling met Mollie werkt niet meer. Betalingen buiten Fivvi leg je gewoon vast.": "Online payments and direct debits are on hold: the connection with Mollie stopped working. You can still record payments outside Fivvi.", "Online betalen staat stil": "Online payments are on hold", "De koppeling met Mollie werkt niet meer. Opnieuw koppelen doe je op het web. Betalingen buiten Fivvi leg je gewoon vast.": "The connection with Mollie stopped working. You reconnect on the web. You can still record payments outside Fivvi.", "gestopt": "stopped", "Wie annuleer je?": "Who are you cancelling?", "Annuleer je één klant, dan gaat de sessie door met de ander. Beiden krijgen een e-mail.": "Cancel one client and the session goes ahead with the other. Both get an email.", "Annuleren voor": "Cancel for", "Hele sessie": "The whole session", "Hele sessie annuleren": "Cancel the whole session", "Nieuwe duosessie": "New duo session", "Duosessie gepland": "Duo session scheduled", "Tweede klant": "Second client", "Tweede klant (duo)": "Second client (duo)", "Geen": "None",
     "Met een tweede klant wordt het een duosessie: één trainer, twee klanten, ieder met een eigen training en tegoed.": "With a second client it becomes a duo session: one trainer, two clients, each with their own workout and balance.",
     "je logt per klant": "you log per client", "Samen met": "Together with", "Klanten": "Clients",
     "Niveau": "Level", "Alle niveaus": "All levels", "Beginner": "Beginner", "Gemiddeld": "Intermediate", "Gevorderd": "Advanced",
@@ -446,7 +448,7 @@ window.FIVVI_I18N = (function () {
     /* offers (F052) */
     "Abonnementen": "Memberships", "Losse les": "Single class", "Privé 2 per maand": "Private 2 a month", "Creditpakketten": "Credit packs", "Creditabonnementen": "Credit plans", "Losse lessen": "Single classes", "Standaardplannen": "Default plans",
     "Creditabonnement": "Credit plan", "Nieuw aanbod": "New offer", "Prijs nodig": "Price needed", "Nog niet verkocht": "Not sold yet", "Klanten zien het niet": "Clients don't see it",
-    "Naam in het Engels": "Name in English", "Prijs incl. btw (€)": "Price incl. VAT (€)", "Btw": "VAT", "Lessen per week": "Classes a week", "Looptijd": "Term", "Betalen": "Payment",
+    "Naam (Nederlands)": "Name (Dutch)", "Naam (Engels, optioneel)": "Name (English, optional)", "Omschrijving (Nederlands, optioneel)": "Description (Dutch, optional)", "Omschrijving (Engels, optioneel)": "Description (English, optional)", "Prijs incl. btw (€)": "Price incl. VAT (€)", "Btw": "VAT", "Lessen per week": "Classes a week", "Looptijd": "Term", "Betalen": "Payment",
     "Soort credits": "Kind of credits", "Aantal credits": "Number of credits", "Credits per periode": "Credits per period", "Geldig": "Valid", "Meenemen naar de volgende periode (max.)": "Carry over to the next period (max.)", "Minimale looptijd": "Minimum term",
     "Eén keer per klant (proefaanbod)": "Once per client (intro offer)", "Alleen voor klanten met een abonnement": "Only for clients with a membership", "Aan het einde": "At the end", "Verlengen voorstellen": "Suggest renewal",
     "Stopt: de klant kiest een nieuwe looptijd": "Stops: the client chooses a new term", "Loopt per maand door tot de klant opzegt": "Continues monthly until the client cancels",
@@ -468,7 +470,7 @@ window.FIVVI_I18N = (function () {
     "Uitnodiging intrekken?": "Withdraw invitation?", "Uitnodiging ingetrokken": "Invitation withdrawn", "Uitnodiging opnieuw verstuurd": "Invitation sent again", "Naam en e-mailadres beheert ieder zelf, in het eigen profiel.": "Everyone manages their own name and email, in their own profile.",
     /* client app Fivvi (§55) */
     "Welkom bij Fivvi": "Welcome to Fivvi", "Boek lessen en sessies bij je studio of trainer.": "Book classes and sessions with your studio or trainer.", "Nog geen studio": "No studio yet",
-    "Open de link van je studio of trainer, of scan hun QR-code met de camera van je telefoon. Fivvi opent dan vanzelf.": "Open your studio's or trainer's link, or scan their QR code with your phone's camera. Fivvi then opens by itself.",
+    "Open de link van je studio of trainer, of scan hun QR-code.": "Open your studio's or trainer's link, or scan their QR code.",
     "Link openen": "Open link", "Je volgende sessie": "Your next session", "Binnenkort": "Coming up", "Nog niets gepland.": "Nothing planned yet.", "Aanbod bekijken": "View offers", "Home": "Home",
     "Als je trainer een training met je deelt, staat die hier.": "When your trainer shares a workout with you, it shows up here.", "Kies wat bij je past. Je betaalt met iDEAL.": "Choose what suits you. You pay with iDEAL.", "Kiezen": "Choose", "Betalingen en facturen staan in Profiel.": "Payments and invoices are in Profile.", "Deze week": "This week", "× geweest": "× so far", "× gepland": "× planned", "nog 1 gepland": "1 more planned", "niets meer gepland": "nothing else planned", "🔥 5 weken op rij": "🔥 5 weeks in a row", "keer in november": "times in November", "Zo vaak was je er deze maand": "How often you went this month", "Activiteit": "Activity", "Hier zie je de lessen en sessies waar je bent geweest.": "Here you see the classes and sessions you went to.", "November": "November", "keer geweest": "times", "Op rij": "In a row", "weken achter elkaar": "weeks in a row", "Recent": "Recent", "Wat je trainer met je deelt, open je hier met alle details.": "What your trainer shares with you opens here with all the details.", "Nog geen abonnement of credits.": "No membership or credits yet.", "Eerst een abonnement nodig": "Needs a membership first",
     "Na de betaling krijg je de factuur per e-mail en kun je meteen boeken.": "After paying you get the invoice by email and can book right away.", "Studio": "Studio", "Account verwijderen": "Delete account", "Account verwijderen?": "Delete account?",
@@ -534,17 +536,26 @@ window.FIVVI_I18N = (function () {
   function reEsc(s) { return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"); }
   var PHL = Object.keys(PH).sort(function (a, b) { return b.length - a.length; }).map(function (k) { return [new RegExp("(^|[^\\p{L}])" + reEsc(k) + "(?=$|[^\\p{L}])", "gu"), PH[k]]; });
 
+  /* class names the owner typed, in a list of their own that always wins: empty means "show the Dutch".
+     A class in the prototype is known by its Dutch name, as its description is; offers keep their own English. */
+  var TYPED = {}, TYPEDL = [];
+  function nameClass(nl, en) { TYPED[nl] = en || ""; TYPEDL = Object.keys(TYPED).sort(function (a, b) { return b.length - a.length; }).map(function (k) { return [new RegExp("(^|[^\\p{L}])" + reEsc(k) + "(?=$|[^\\p{L}])", "gu"), TYPED[k] || k]; }); }
+  function wholeName(nl) { return nl in TYPED ? TYPED[nl] : Object.prototype.hasOwnProperty.call(PH, nl) ? PH[nl] : ""; }
   function isEx(x) { var L = window.FIVVI_DATA && window.FIVVI_DATA.library; return !!L && L.some(function (e) { return e.n === x; }); }
+  /* an offer's own English (agrName in app.js) travels between these two marks, also inside a sentence: never translated */
+  var OWN = /\uE000([^\uE001]*)\uE001/g, OWNMARK = /[\uE000\uE001]/g;
   function P(s) {
     /* one pass per position: protect replaced text so "Agenda" → "Calendar" isn't touched again */
-    var out = s.replace(/Bij (\S+) thuis/g, "At $1's home").replace(/Je valt in voor /g, "Covering for ").replace(/Bezig · gestart om /g, "In progress · started at "), marks = [];
-    PHL.forEach(function (p) { out = out.replace(p[0], function (m, pre) { marks.push(p[1]); return pre + "\u0001" + (marks.length - 1) + "\u0002"; }); });
-    out = out.replace(/\u0001(\d+)\u0002/g, function (m, i) { return marks[+i]; });
-    return out.replace(/(\d),(\d)/g, "$1.$2");
+    var marks = [], out = s.replace(OWN, function (m, own) { marks.push(own); return "\u0001" + (marks.length - 1) + "\u0002"; }).replace(/Bij (\S+) thuis/g, "At $1's home").replace(/Je valt in voor /g, "Covering for ").replace(/Bezig · gestart om /g, "In progress · started at ");
+    TYPEDL.concat(PHL).forEach(function (p) { out = out.replace(p[0], function (m, pre) { marks.push(p[1]); return pre + "\u0001" + (marks.length - 1) + "\u0002"; }); });
+    out = out.replace(/(\d)\.(\d{3}),(\d{2})/g, "$1\u0003$2.$3").replace(/(\d),(\d)/g, "$1.$2").replace(/\u0003/g, ",");
+    return out.replace(/\u0001(\d+)\u0002/g, function (m, i) { return marks[+i]; });
   }
-  function T(s) {
+  function T(s) { return tr(s).replace(OWNMARK, ""); }
+  function tr(s) {
     var lead = s.match(/^\s*/)[0], trail = s.match(/\s*$/)[0], core = s.trim();
     if (!core) return s;
+    if (core in TYPED) return lead + (TYPED[core] || core) + trail;
     if (PH[core]) return lead + PH[core] + trail;
     for (var i = 0; i < RULES.length; i++) { if (RULES[i][0].test(core)) return lead + core.replace(RULES[i][0], RULES[i][1]) + trail; }
     return lead + P(core) + trail;
@@ -570,5 +581,6 @@ window.FIVVI_I18N = (function () {
     });
     root.querySelectorAll && root.querySelectorAll("input").forEach(function (i) { if (lang === "en" && /^\d+,\d+$/.test(i.value) && i.dataset.ls) i.value = i.value.replace(",", "."); });
   }
-  return { apply: apply, T: T };
+  /* the screens in more-*.js carry their English next to their Dutch */
+  return { apply: apply, T: T, add: function (nl, en) { if (!(nl in PH)) PH[nl] = en; return nl; }, nameClass: nameClass, wholeName: wholeName, rule: function (re, en) { RULES.unshift([re, en]); }, P: P };
 })();

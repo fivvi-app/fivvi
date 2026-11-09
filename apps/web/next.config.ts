@@ -22,6 +22,9 @@ const nextConfig: NextConfig = {
     RAILWAY_GIT_COMMIT_SHA: process.env.RAILWAY_GIT_COMMIT_SHA ?? '',
   },
   typedRoutes: true,
+  // The app and the public website have a root layout each (F064, ADR-030), so an address that
+  // matches no page has no layout to render its 404 in: `app/global-not-found.tsx` is that page.
+  experimental: { globalNotFound: true },
   // A self-contained Node server in .next/standalone for the Docker image (E003, ADR-011).
   output: 'standalone',
   // Trace files from the monorepo root, so workspace packages end up in the standalone output.

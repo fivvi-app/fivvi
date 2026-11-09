@@ -7,6 +7,7 @@ The locked design system, and how design decisions are made. Design tools and sk
 | What | Where |
 |---|---|
 | The look of every screen, and what the owner decided | [The clickable prototype](docs/design/prototype-v2/README.md) and its [`DECISIONS.md`](docs/design/prototype-v2/DECISIONS.md) |
+| The public website's look and words | The [Fivvi Website design](docs/design/website/README.md), with the decisions in `DECISIONS.md` §9 |
 | Colours, type scale, spacing, radii, motion, densities, contrast pairs | [`packages/design-tokens`](packages/design-tokens/README.md) (DTCG JSON in `tokens/`, built by Style Dictionary). Its outputs are generated and never edited. **It still holds the M0 values until the Design v2 foundation ([#590](https://github.com/fivvi-app/fivvi/issues/590)) lands** |
 | Why the values are what they are | [`docs/design/visual-direction.md`](docs/design/visual-direction.md) |
 | Platforms, and shared tokens with native controls | [ADR-029](docs/decisions/ADR-029-design-v2.md) and [ADR-015](docs/decisions/ADR-015-ui-foundation.md) |
@@ -18,7 +19,7 @@ The locked design system, and how design decisions are made. Design tools and sk
 **Calendar calm, Fitness pops.** Fivvi looks like it belongs next to Apple Calendar, Fitness and Health, and reads clearly in a busy gym: time, client, location, capacity and the next action come first.
 
 - **Calm:** a grouped grey canvas, white cards, inset lists, true black in dark mode.
-- **Energy:** gradient cards in one hue, rounded numbers, sharp colour in small doses, with **Move pink** as the accent and a black-and-white accent as the alternative.
+- **Energy:** gradient cards in one hue, rounded numbers, sharp colour in small doses, with **Move pink** as the only accent.
 - The session type is shown in words, never by colour alone. Light and dark follow the system setting.
 - The UI only shows what exists: a solo PT never sees group classes or Open Gym. Every list can be added to, changed and removed from, and every removal asks for confirmation.
 
@@ -43,7 +44,7 @@ Where the design matters, the owner decides by **talking it over in the clickabl
 **How:**
 
 1. **Build the proposal in [`docs/design/prototype-v2`](docs/design/prototype-v2/README.md).** It is plain HTML, CSS and JavaScript with no build step. Follow the existing parts: the app components in `app.js`, the web pages in `web.js`, the English layer in `i18n.js`. Use fictional data only. Every screen works in Dutch and English, light and dark, and every business setup it applies to. When a screen should look different for a role or a setup, show each version.
-2. **Check it before showing it**, in a browser across the panel's screen index: no script errors, no Dutch left in English, no overflow, contrast of 4.5:1 for text and 3:1 for icons, buttons that aren't squashed, and nothing in a list cut off with "…".
+2. **Check it before showing it**, in a browser across the panel's screen index: no script errors, no Dutch left in English, no overflow, contrast of 4.5:1 for text and 3:1 for icons (the one exception is in [ADR-032](docs/decisions/ADR-032-secondary-text-in-the-native-apps.md)), buttons that aren't squashed, and nothing in a list cut off with "…".
 3. **Publish it** to the "Fivvi Prototype" artifact, and ask the owner to click through it.
 4. **Act on every comment:** change the prototype, republish, and reply in the comment's thread. Leave resolving to the owner. When something can't be decided from the docs, ask, and put the assumption on screen.
 5. **Record each decision** in `DECISIONS.md`, with the screen and where it lands: an existing spec gets a comment; a new product decision gets a placeholder spec (`spec` + `needs-triage`); a conflict with an older doc goes in its §8 and gets a short note in that doc. **Update the existing doc rather than adding a new one** (owner, 5 November 2026).

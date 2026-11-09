@@ -282,7 +282,7 @@ flowchart TD
 - **Two big buttons per person** with text labels (`§43`: *Aanwezig*, *Niet verschenen*). Tapping the selected one again returns to *Geboekt*.
 - Enabled from 30 minutes before the start ⚑ [Q38](../open-questions.md#q38); before that: *Aanwezigheid kun je invullen vanaf {time}.*
 - Each tap **saves immediately** (queued when offline, synced later, as in WL-07). There's no *Opslaan* button to forget.
-- *Iedereen aanwezig* (bulk attendance) is a Release 1.1 item, so it's deliberately missing.
+- *Iedereen aanwezig* (bulk attendance) is in the MVP (owner, 6 November 2026): it marks everyone still open as attended.
 - The summary line updates live and is announced politely to screen readers.
 
 | Element | NL | EN |

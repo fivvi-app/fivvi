@@ -4,7 +4,7 @@ This is the **single wording source** for every user-facing string on every surf
 
 What each concept **is** lives in the domain glossary, [`GLOSSARY.md`](../../GLOSSARY.md) at the repo root (English canonical terms, definitions, words to avoid). This file says how those terms are **worded** in nl-NL and en.
 
-- **Status:** v0.15, started in M0 (`ROADMAP.md §4.2`). The owner decided the nine open terms on 2026-10-29 by choosing the standard Dutch wording, and on the same day the wording of *single class* and *client*. Terms marked ⚠️ are still open (see [§8 Open questions](#8-open-questions)); v0.14 adds the join link, join request and waitlist closing time terms of ADR-026 as ⚠️.
+- **Status:** v0.16, started in M0 (`ROADMAP.md §4.2`). The owner decided the nine open terms on 2026-10-29 by choosing the standard Dutch wording, and on the same day the wording of *single class* and *client*. Terms marked ⚠️ are still open (see [§8 Open questions](#8-open-questions)); v0.14 adds the join link, join request and waitlist closing time terms of ADR-026 as ⚠️; v0.16 adds *guest / introducé* 🔜 as ⚠️.
 - **Scope:** UI strings, emails, notifications, validation messages, empty states, the client timetable and join pages and QR posters. Legal documents (privacy policy, terms, verwerkersovereenkomst) follow their own register and are out of scope.
 - **Catalogs:** `packages/i18n/nl-NL.json` and `packages/i18n/en.json` (ICU MessageFormat, ADR-008). Native catalogs (`.xcstrings`, `strings.xml`) are generated from them and are never edited by hand.
 - **Precedence:** `PRODUCT.md` owns requirements. This file owns terminology, tone and copy style. Where it deliberately differs from example copy in `PRODUCT.md`, [§7](#7-deviations-from-productmd-example-copy) lists why.
@@ -311,7 +311,7 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 
 ### 4.9 Commerce
 
-Added with roadmap v1.19 (M11). The owner decided the commerce terms among the nine open terms on 2026-10-29 (*abonnement*, *creditpakket*, *creditabonnement*, *credit*, *tegoed*, *aanbod*, *standaardaanbod*, *Nieuw aanbod*) by choosing the standard wording. Only the commerce terms that were not part of the nine keep ⚠️ (agreement, recurring payment, mandate, payment provider, merchant, cancellation policy); they wait on the payment decisions (QC06), not on the pilot (§8). The terms added after the commerce walkthrough of 2026-10-31 (weekly limit, billing cycle, Open Gym credit) are ⚠️ until the pilot gym owner confirms the wording.
+Added with roadmap v1.19 (M11). The owner decided the commerce terms among the nine open terms on 2026-10-29 (*abonnement*, *creditpakket*, *creditabonnement*, *credit*, *tegoed*, *aanbod*, *standaardaanbod*, *Nieuw aanbod*) by choosing the standard wording. Only the commerce terms that were not part of the nine keep ⚠️ (agreement, recurring payment, mandate, payment provider, merchant, cancellation policy); they wait on the payment decisions (QC06), not on the pilot (§8). The terms added after the commerce walkthrough of 2026-10-31 (weekly limit, billing cycle, Open Gym credit) are ⚠️ until the pilot gym owner confirms the wording. *Guest* 🔜 4.0 (v0.16) is ⚠️ until the pilot gym owner confirms the wording.
 
 | EN term | NL term | Notes / forbidden alternatives |
 |---|---|---|
@@ -343,6 +343,7 @@ Added with roadmap v1.19 (M11). The owner decided the commerce terms among the n
 | payment provider | betaalprovider (de) ⚠️ | Usually name it (*Mollie*, *Stripe*) instead. |
 | merchant | verkoper (de) ⚠️ | The business that sells to the client and receives the money; in Fivvi the workspace (decided in ADR-020, Accepted 21 October 2026). Alternative to confirm: *handelaar*. Mostly internal; in the UI say *jouw sportschool* or the workspace name. ❌ *leverancier*, *vendor*. |
 | connect payments | Betalingen koppelen | The owner action that connects the workspace's Mollie account (a guided flow, `PRODUCT.md §94`). *Koppelen* is right here, unlike for *assign* (§4.1), where it is forbidden. |
+| guest 🔜 4.0 | introducé (de, introducés) ⚠️ | Later, with *bring a friend* (`PRODUCT.md §66`): a friend a client brings to a class. Candidate to confirm with the pilot gym owner. ❌ *bezoeker*, *plus-one*. A client is never a guest (see *client*, §4.1). |
 
 ---
 
@@ -512,6 +513,8 @@ Marked ⚠️ in §4.4 and §5.2 since v0.14 (ADR-026, 31 October 2026), waiting
 
 Still marked ⚠️ in §4.9 and not decided: the three terms added after the commerce walkthrough of 2026-10-31 (*weekly limit / weeklimiet*, *billing cycle / betaalperiode* and *Open Gym credit / Open Gym-credit*, which wait on the pilot gym owner's confirmation), and *agreement / overeenkomst*, *recurring payment / automatische incasso*, *mandate / machtiging*, *payment provider / betaalprovider*, *merchant / verkoper* and *cancellation policy / annuleringsbeleid*. The three new terms wait on the pilot gym owner; the six payment terms wait on the payment decisions (QC06), not on the pilot.
 
+Also marked ⚠️ in §4.9 since v0.16: *guest / introducé* 🔜 4.0 (bring a friend, `PRODUCT.md §66`), a candidate that waits on the pilot gym owner. The Dutch word is not decided (`PRODUCT.md §66`, **Open**).
+
 ---
 
 ## 9. Changelog
@@ -533,3 +536,4 @@ Still marked ⚠️ in §4.9 and not decided: the three terms added after the co
 | 2026-10-31 | 0.13 | Commerce walkthrough with the pilot gym ([#150](https://github.com/fivvi-app/fivvi/issues/150)): new §4.9 terms *weekly limit* (*weeklimiet*), *billing cycle* (*betaalperiode*) and *Open Gym credit* (*Open Gym-credit*), all ⚠️ until the pilot gym owner confirms the wording (§8); *credit* now has three kinds that never mix; *credit plan* grants credits each billing cycle; *waitlist* is in the MVP (no longer 🔜 1.1). |
 | 2026-10-31 | 0.14 | Clients sign in and are approved to book (roadmap v1.30, ADR-026): §4.4 is now *Booking, joining and sign-in*; new terms *join link* (*aanmeldlink*), *join request* (*aanmeldverzoek*, with *Goedkeuren / Afwijzen* and *Wachten op de studio*) and *waitlist closing time* (a sentence, *De wachtlijst sluit 30 minuten voor de les.*), all ⚠️ until the pilot gym owner confirms (§8); *hold* and its statuses are retired (no holds, no email step); *booking page* is the client timetable, not public; *account* is open to anyone; *name* is no longer a booking field; *magic link* is only the sign-in link; new ⚠️ messages for an account with no workspace, a join request waiting, the waitlist position and closing time; the waitlist emails are listed on the *waitlist* row. |
 | 2026-10-31 | 0.15 | The client app at go-live (roadmap v1.31): the brand rule says the client app is *Fivvi* (it was "of Release 1.2"), and the *Home* row is no longer marked 🔜 1.2. Terminology is unchanged. |
+| 2026-11-06 | 0.16 | Bring a friend, parked in Release 4.0 (roadmap v1.37, `PRODUCT.md §66`): §4.9 adds *guest* (*introducé*) 🔜 4.0 as ⚠️. *Guest* is back with a new meaning only, a friend a client brings to a class; a client is still never a guest, so the 0.6 change and the *client* row stand. |

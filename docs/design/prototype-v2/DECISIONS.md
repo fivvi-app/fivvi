@@ -4,10 +4,10 @@
 |---|---|
 | **Status** | Decided with the owner, 5 November 2026 |
 | **Reference** | The clickable prototype in this folder ([README](README.md)), published as the "Fivvi Prototype" artifact. Fictional data only |
-| **Scope** | Fivvi Pro and the client app Fivvi (iOS and Android), trainer web, client web |
+| **Scope** | Fivvi Pro and the client app Fivvi (iOS and Android), trainer web, client web; the public website in [§9](#9-public-website) |
 | **Replaces** | [`visual-direction.md`](../visual-direction.md) v1 (muted violet), and the parts of the flows and the IA listed in [§8](#8-what-this-changes-in-existing-documents) |
 
-This is the record of what the owner and the agent decided while clicking through the prototype. The prototype shows how each decision looks and behaves; this file says it in words. A spec or ticket with a UI follows this file and names the prototype screen it implements. Where an older document disagrees, [§8](#8-what-this-changes-in-existing-documents) lists the conflict and where it gets resolved. The prototype's assumptions are in [§7](#7-assumptions), which says which ones the owner confirmed.
+This is the record of what the owner and the agent decided while clicking through the prototype. The prototype shows how each decision looks and behaves; this file says it in words. A spec or ticket with a UI follows this file and names the prototype screen it implements. Where an older document disagrees, [§8](#8-what-this-changes-in-existing-documents) lists the conflict and where it gets resolved. The prototype's assumptions are in [§7](#7-assumptions), which says which ones the owner confirmed; the website's are in [§9](#9-public-website).
 
 ## 1. How we decide UI
 
@@ -16,7 +16,7 @@ This is the record of what the owner and the agent decided while clicking throug
 
 ## 2. Platforms and visual direction
 
-Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
+Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md), amended by [ADR-031](../../decisions/ADR-031-move-pink-is-the-only-accent.md) and [ADR-032](../../decisions/ADR-032-secondary-text-in-the-native-apps.md).
 
 | Platform | Decision |
 |---|---|
@@ -28,13 +28,14 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
 **One theme on every platform**, with the details of Apple Calendar, Fitness and Health: "Calendar calm, Fitness pops".
 
 - **Canvas:** grouped grey (`#F2F2F7`) with white cards in light, true black with `#1C1C1E` cards in dark. Inset grouped lists, radius 26 for cards and lists, inset separators.
-- **Accent:** **Move pink `#E6164A`** (text `#C8103D` in light, `#FF6482` in dark). A **black-and-white** accent is the second option. The accent is a token, so it can change in one place. Anything on an accent fill uses the on-accent colour (it flips to near-black on the white accent in dark mode).
+- **Accent:** **Move pink `#E6164A`** (text `#C8103D` in light, `#FF6482` in dark). **It is the only accent** (owner, 6 November 2026; [ADR-031](../../decisions/ADR-031-move-pink-is-the-only-accent.md)): no black-and-white or other option in the product, for now. The prototype's panel keeps its accent switch for comparing colours (owner, 6 November 2026); that's a design tool, not a product option. The accent is a token, so it can change in one place if that's ever needed. Anything on an accent fill uses the on-accent colour.
+- **Logo and app icon:** the wordmark **fivvi** whose i dots are pink segments of the day dial (owner, 8 November 2026; it replaces the slapping v's of 7 November), and the **day dial** as the app icon: the dial of a day with five booked hours in pink (owner, 8 November 2026). Fivvi Pro adds **PRO** in the centre of the dial; the client app Fivvi keeps the plain dial (owner, 8 November 2026). The Fivvi Pro sign-in screens show the Pro icon and the client web the plain day dial, instead of the placeholder "F". Files and rules: [`brand/`](../brand/README.md).
 - **Session-type colours:** private `#0088FF`, group `#CB30E0`, Open Gym `#FF8D28`; success `#34C759`, danger `#FF383C`. Workspaces have their own dot colour.
 - **Gradients stay in one hue**, never drifting to another colour (owner: "too much to the purple"). The hero card uses the session type's colour, darker at the bottom.
 - **Numbers** use a rounded face (SF Pro Rounded, `ui-rounded`) with tabular digits. Text is SF Pro on iOS, Google Sans Flex on Android, the system stack on the web.
 - **Round controls stay round** (the + button). Buttons are pills (50 pt on iOS). Grouped buttons are equal width.
 - **Contrast in light and dark:**
-  - text at least 4.5:1, icons and graphics at least 3:1, checked on every screen;
+  - text at least 4.5:1, icons and graphics at least 3:1, checked on every screen. One exception (owner, 6 November 2026; [ADR-032](../../decisions/ADR-032-secondary-text-in-the-native-apps.md)): secondary text in light mode in the native apps stays the prototype's grey, `#85858B`, at 3.3:1 to 3.7:1. The client web uses `#6C6C70`, so it meets WCAG 2.2 AA, although this prototype shows the lighter grey there;
   - white glyphs sit on the colour mixed with black (85% at the top to 75% at the bottom);
   - coloured glyphs on tints use the colour mixed with the mode's ink (78%).
 - **Stacked buttons keep their full height** (48 pt) with 10 pt between them.
@@ -103,7 +104,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
 - **Header:** the level in the eyebrow ("Groepsles · Gevorderd").
 - **Description** with *Meer / Minder*.
 - **Booked:** n of capacity, with a bar.
-- **Attendance** per participant. *Iedereen aanwezig* in the prototype is a preview: bulk attendance is planned for Release 1.1 (`§54`), not the MVP.
+- **Attendance** per participant, with *Iedereen aanwezig*: bulk attendance is in the MVP (owner, 6 November 2026), with F025.
 - **Below:** participants, then attendance.
 - **Owner ⋯ menu:** *Boekingslink delen*; *Trainer vervangen* and *Les wijzigen* (both point to the web); *Les annuleren*.
 
@@ -114,7 +115,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
   - swipe left to delete, on iOS **and Android**;
   - the set number opens a menu (remove).
 - **Exercises:** a ⋯ menu.
-- **Reordering sets and exercises is not in the MVP:** "workout reordering" is planned for Release 1.1 (`PRODUCT.md §54`). The prototype shows the drag handle and the reorder mode as a preview for after go-live.
+- **Reordering sets and exercises is in the MVP** (owner, 6 November 2026), with F043: the drag handle and the reorder mode, as the prototype shows them.
 - **Every removal asks for confirmation** (owner rule, everywhere in the product).
 - **Difficulty per exercise:**
   - shown as an **emoji only**: 😌 makkelijk, 🙂 normaal, 🥵 zwaar;
@@ -211,7 +212,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md).
 - **Aanmeldlink:**
   - link, QR, renew;
   - **a bilingual A4 poster** with the gym's (or PT's) name, the QR and the steps, in colour or black and white.
-- **Instellingen:** *Algemeen* (with *Woordkeuze*), *Locatie*, *Boeken en annuleren*, *Betalingen*, *Taal*.
+- **Instellingen:** *Algemeen* (with *Woordkeuze*), *Locatie*, *Boeken en annuleren*, *Betalingen*, *Facturen*, *Privacy*, *Taal*.
 
 ### Betalingen (CM-03, #466)
 
@@ -229,7 +230,7 @@ The owner asked to see this process before approving [#466](https://github.com/f
 
 - **Locked until then:** the join link and QR poster, client invitations, booking, switching offers on and recording a payment outside Fivvi. A client who opens the link reads *{studio} start binnenkort*.
 - **Open:** classes, trainers, locations, adding clients and preparing offers.
-- **How the owner is pushed:** a checklist on the Dashboard with payments first, a banner in Fivvi Pro, a reminder email, and the reason on every locked screen. The moment and number of reminder emails are assumptions (§7 item 12).
+- **How the owner is pushed:** a checklist on the Dashboard with payments first, a banner in Fivvi Pro, a reminder email, and the reason on every locked screen. The moment and number of reminder emails are in §7 item 12.
 - A solo PT goes through the same steps. One who only takes cash or card can choose that instead (#606).
 - Screens: *Dashboard: eerste stappen*, *Aanmeldlink: nog niet klaar*, *Klanten: nog geen uitnodigingen*, *E-mail aan de eigenaar: koppel je betalingen*, *Link geopend: studio nog niet klaar*, *Meedoen: studio nog niet klaar*, *Vandaag: betalingen nog niet gekoppeld*.
 
@@ -239,11 +240,12 @@ The owner asked for this: some studios and PTs take cash and set up a membership
 
 - On the client's profile, on the web and in Fivvi Pro (owner only), the owner records which offer, how it was paid (*Contant*, *Pin bij de studio*, *Overboeking*) and when. No money goes through Fivvi or Mollie, and it starts right away.
 - **A monthly payment** shows on the profile with *Betaald*. If the owner hasn't recorded it, *Aandacht nodig* and the client's profile say so, until the owner taps *Betaald*. Booking doesn't stop by itself.
-- **No automatic invoice** (owner). The owner can use *Factuur maken* on a payment when someone needs one, such as a business client. The payment stays on record, and the owner handles their own bookkeeping and tax, which the screen says. **Assumption to check with an accountant.**
+- **No automatic invoice** (owner). The owner can use *Factuur maken* on a payment when someone needs one, such as a business client. The payment stays on record, and the owner handles their own bookkeeping and tax, which the screen says. **Decided without an accountant (owner, 7 November 2026):** a private person needs no invoice. A client with *Factuur op naam van een bedrijf* on gets one automatically when the owner records the payment, as a business must be invoiced.
 - **The renewal page** tells these clients they can pay at their studio too (owner).
 - **A switch on *Betalingen*, off by default (owner):** *Laat klanten zien dat ze ook bij de studio kunnen betalen*. When it's on, the offers page of a studio with Mollie says *Liever contant of met pin? Dat kan ook bij je studio*. Off, so more clients pay online.
-- **Cash-only studios are allowed (owner, 6 November 2026).** On *Betalingen*, below connecting Mollie, an owner can choose *Dan kan het ook zonder Mollie*. **Fivvi says what they lose first, and again on *Betalingen* afterwards (owner):** no online paying, buying or renewing by clients; no direct debit; new clients book only once their payment is recorded; no offers with a payment link; no automatic invoices; no overview of payouts per payment. Clients can then join and book, but can't pay, renew or buy online, so they see *Betalen bij je studio*, and the owner records every payment. *Aanbod sturen* is gone for them. The owner can connect Mollie later at any time, and the studio stays open while Mollie checks. Otherwise, recording a payment works once payments are connected.
+- **Cash-only studios are allowed (owner, 6 November 2026).** On *Betalingen*, below connecting Mollie, an owner can choose *Dan kan het ook zonder Mollie*. **Fivvi says what they lose first, and again on *Betalingen* afterwards (owner):** no online paying, buying or renewing by clients; no direct debit; new clients book only once their payment is recorded; no offers with a payment link; no automatic invoices; no overview of payouts per payment. Clients can then join and book, but can't pay, renew or buy online, so they see *Betalen bij je studio*, and the owner records every payment. *Aanbod sturen* is gone for them. The owner can connect Mollie later at any time, and the studio stays open while Mollie checks. Otherwise, recording a payment works once payments are connected, and keeps working when the Mollie connection breaks: only what goes through Mollie stops (owner, 7 November 2026; replaces the 6 November answer on #606).
 - A till or card terminal connected to Fivvi is for later (owner; `PRODUCT.md §53`). A studio's own pin device is just recorded as *Pin bij de studio*.
+- **Fivvi isn't anyone's accountant (owner, 7 November 2026).** The payment list downloads a month of payments, refunds and corrections as a CSV for the owner's bookkeeper, saying it isn't a cashbook or a VAT return. A correction can also move a payment to the right client; credits already used stay used. An offer's VAT rate is *21 %* or *9 %* (*0 %* goes), and a workspace on the small-business scheme or an exempt club turns on *Ik reken geen btw*. Fivvi never says which rate applies. Small changes in the accepted screens: a *Klant* field in *Betaling buiten Fivvi corrigeren*, *Downloaden (CSV)* on the payment list, the company-invoice sentence in the record dialog, and the sixth loss reads "automatic invoices only for clients who get them in a company's name". Prototype entries: *Betaling buiten Fivvi: klant met factuur op bedrijfsnaam*, *Factuurgegevens: ik reken geen btw*, *Factuur zonder btw*; the rest shows in the existing *Betalingen* and *Studio zonder Mollie* entries.
 - Screens: *Betaling buiten Fivvi vastleggen* (Trainer web and Fivvi Pro), *Klantprofiel: contante betaling nog niet vastgelegd*, *Verlengen: klant die contant betaalt*, *Aanbod: ook bij de studio betalen*, *Betalingen: alleen contant of pin kiezen*, *Betalingen: studio zonder Mollie*, *Klantprofiel: studio zonder Mollie*, *Studio zonder Mollie: aanbod*, *Studio zonder Mollie: verlengen*.
 
 ## 5. Client web (ADR-026)
@@ -302,7 +304,7 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
   - Android uses the navigation bar and the M3 segmented button;
   - Android rows use the shaped avatar per session type, as in Fivvi Pro.
 - **Signing in:** the emailed 6-digit code.
-  - Without a studio: "Nog geen studio". The studio's link or QR code opens Fivvi; there is no scanner in the app (#469).
+  - Without a studio: "Nog geen studio". The studio's link opens Fivvi, or the app scans their QR code with *QR-code scannen* (#484; owner, 6 November 2026).
   - The link opens the join request, then waiting, then approved.
 - **Paying happens on the web** (`§53`, QC16):
   - *Aanbod bekijken* opens the studio's offer page in a browser sheet (Safari view or Custom Tab), with the address shown;
@@ -354,10 +356,14 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
 | **Clients pick a spot: later** | A post-MVP feature, maybe for several kinds of class. Stopping double room bookings is admin and not a priority | [#589](https://github.com/fivvi-app/fivvi/issues/589) |
 | **Renew before the end** | The owner sends the renewal before an agreement that stops ends. The **window is set per offer**, default 30 days. A credit pack is also suggested at **2 or fewer** credits left. *Aanbod sturen* is always there. **Fivvi also reminds the client automatically, twice**, also when the owner sent an offer (owner, 5 and 6 November 2026; `PRODUCT.md §90`): at the start of the window and 7 days before the end (§7 item 4), so nobody depends on the owner remembering. The offer's email goes to the client to confirm and pay with iDEAL, and the invoice follows the payment. The new agreement starts when the current one ends (no gap, no overlap) or right after payment | [#468](https://github.com/fivvi-app/fivvi/issues/468) |
 | **Offers are made on the Aanbod page** | Web, owner only, also from *+ Nieuw* | [#468](https://github.com/fivvi-app/fivvi/issues/468) |
-| **Add, change, remove everything** | Every list (class series, own exercises, templates, offers, trainers) can be added to, changed and removed from. Every removal asks for confirmation | All specs |
+| **Add, change, remove everything** | Every list (class series, own exercises, templates, offers, trainers) can be added to, changed and removed from; for a trainer, changing means the role. Every removal asks for confirmation | All specs |
 | **Trainers see the client's last workout and progress** | In the app and on the web. AI help is post-MVP (`§53`) | F044, F045 |
 | **Clients do a shared workout on their own: build it, MVP with M7** | Owner, 5 November 2026. The client logs a workout the trainer shared (F045), for example in their own gym. **Private to the client:** trainers never see it. App only | [#602](https://github.com/fivvi-app/fivvi/issues/602) |
 | **Fixed groups: not in the MVP** | A client isn't enrolled in a weekly series (owner, 6 November 2026) | [SCENARIOS.md](SCENARIOS.md) |
+| **Unused classes and the weekly limit sit in the membership offer** | Owner, 6 November 2026: the owner always sees them there, and a running agreement keeps its terms. This replaces the two workspace settings of 31 October 2026. The client sees the rule on the offer | [#483](https://github.com/fivvi-app/fivvi/issues/483), `PRODUCT.md §91` |
+| **Deleting an account is a danger zone** | Owner, 6 November 2026, like GitHub: a red-outlined *Gevarenzone* at the bottom of the profile. Deleting asks to type your email address, then the emailed code, and only then the button works. The only owner of a workspace is still refused | [#477](https://github.com/fivvi-app/fivvi/issues/477) |
+| **An owner doesn't edit a trainer's details** | Owner, 6 November 2026: a trainer's name and email belong to their own account, so the owner changes roles, removes people, and resends or withdraws invitations; a mistyped address is fixed by withdrawing and inviting again. There's no editing an invitation's address and no name per studio | F005 [#173](https://github.com/fivvi-app/fivvi/issues/173) |
+| **Offer and class forms name each language** | Owner, 6 November 2026: *Naam (Nederlands)* and *Naam (Engels, optioneel)* on offers, classes and series, and the same for *Omschrijving*, in both UI languages. The default plan you start from stays highlighted, and tapping it again clears the form. These long forms read in titled sections with a line between them: offers have *Naam en omschrijving*, *Prijs*, *Wat de klant krijgt*, *Regels* and *Einde en verlengen*; classes have *Naam en omschrijving*, *De les* and *Wanneer* | [#468](https://github.com/fivvi-app/fivvi/issues/468), [#427](https://github.com/fivvi-app/fivvi/issues/427) |
 | **Connecting payments comes first** | Everything clients can see or buy waits until payments work, or until the owner chooses to take payments only at the studio; the owner's own setup stays open (owner, 6 November 2026) | [Betalingen](#betalingen-cm-03-466), [#466](https://github.com/fivvi-app/fivvi/issues/466), [#484](https://github.com/fivvi-app/fivvi/issues/484), [#482](https://github.com/fivvi-app/fivvi/issues/482) |
 | **Payments outside Fivvi: build it** | The owner records cash and similar payments on the client's profile, on the web and in Fivvi Pro. Cash-only studios may skip Mollie. No automatic invoice; the accountant check is open | [#606](https://github.com/fivvi-app/fivvi/issues/606) |
 | **Open Gym: later** | Owner, 6 November 2026: not in the MVP, with Open Gym credits and the Open Gym booking link. The prototype hides it everywhere; the code stays for when it comes. The colour stays reserved | `PRODUCT.md §53`, [#470](https://github.com/fivvi-app/fivvi/issues/470), [#471](https://github.com/fivvi-app/fivvi/issues/471), [#472](https://github.com/fivvi-app/fivvi/issues/472) |
@@ -365,7 +371,7 @@ Prototyped on 5 November 2026 from `PRODUCT.md §55`. The panel's **App** switch
 
 ## 7. Assumptions
 
-The prototype had to choose something for these. **The owner confirmed every item here on 6 November 2026, except items 9, 12 and 13.** A spec builds the confirmed items as written. Items 9, 12 and 13 are not decided, so a spec that touches them asks the owner.
+The prototype had to choose something for these. **The owner confirmed every item here on 6 November 2026, except part of item 15.** A spec builds the confirmed items as written. The others are not decided, so a spec that touches them asks the owner.
 
 1. **Trainers and balances:** trainers see their clients' credit balances, but no money (`QC12`).
 2. ***Aanbod sturen*:** it sends the client a link to confirm and pay.
@@ -389,15 +395,22 @@ The prototype had to choose something for these. **The owner confirmed every ite
 8. **Trainers page:**
    - a workspace may have more than one owner;
    - the handover covers the next 2 weeks.
-9. **Reordering and bulk attendance:** the prototype shows reordering sets and exercises, and *Iedereen aanwezig* on class attendance. Both are planned for Release 1.1 (`PRODUCT.md §54`: "workout reordering", "bulk attendance"), so the MVP builds without them unless the owner moves them into the MVP.
+9. **Reordering and bulk attendance:** both move into the MVP (owner, 6 November 2026): reordering sets and exercises with F043, and *Iedereen aanwezig* with F025 ([#460](https://github.com/fivvi-app/fivvi/issues/460)).
 10. **More than one studio:** *Home* and *Mijn agenda* combine every studio. QE05 left this to the F033 spec; the owner confirmed it.
 11. **Doing a shared workout on your own** (#602):
     - it is stored under the workspace whose trainer shared the workout (`organization_id`); that only the client can read it is decided (§5b);
     - it counts in *Deze week*, *Activiteit* and the weeks in a row;
     - the client starts only from a workout the trainer shared, not from an empty one (`PRODUCT.md §40`: the trainer assigns workouts); within it they add and remove exercises;
     - the client adds exercises from the library only and can't create new ones.
-12. **Reminder emails to the owner** (#466): one the day after starting without finishing, and one 3 days later; none once payments work. Mollie emails the owner itself when it needs something.
-13. **A connection that breaks later** (#466): the studio stays open for its clients, who keep booking with what they have, and the join link keeps working. New online sales and renewals stop until the owner reconnects.
+12. **Reminder emails to the owner** (#466): one the day after starting without finishing, and one 3 days later; none once payments work or the owner chooses to take payments only at the studio. Mollie emails the owner itself when it needs something.
+13. **A connection that breaks later** (#466): the studio stays open for its clients, who keep booking with what they have, and the join link keeps working. New online sales and renewals stop until the owner reconnects, and so does recording a payment outside Fivvi (#606). Prototype entry: *Klantprofiel: koppeling werkt niet meer*, on the trainer web; switch *Scherm* to iOS or Android for Fivvi Pro.
+14. **Weekly limit** (#483): an option on every membership offer, next to *Ongebruikte lessen*, and it shows whether unused classes expire or stay valid, because the pilot uses both a limit of 4 and expiring classes (owner, 6 November 2026). The default plan starts at the pilot's 4 (owner, 6 November 2026, answering #483 question 5). A new offer the owner builds from scratch starts with no limit.
+15. **Screens added on 6 November 2026 from the spec text** (`more-*.js`): the screens and states the specs already described but the prototype didn't show. The copy follows the spec, shortened in places, and the spec's wording wins when they differ. The layout isn't the owner's choice until they've clicked through it. *Korte teksten* lists messages with no screen of their own. The owner clicked through and accepted (6 November 2026): *Inloggen (TW-10)*, *Mijn profiel (TW-09)*, the *Locatie* entries, *Mijn profiel: e-mailadres wijzigen*, *Profiel: e-mailadres wijzigen*, *Betalingenlijst: studio zonder Mollie* and *Facturen: studio zonder Mollie*. The rest of this group is still theirs to click through.
+16. **A trainer or owner changing their own email address** (owner, 6 November 2026): the same account-level step as a client's (#497, F033, verified by a code), on *Mijn profiel* and in Fivvi Pro's *Profiel*. F005 (#173) built the address as read-only and left changing it out of scope (F001), so this has a spec of its own, [#610](https://github.com/fivvi-app/fivvi/issues/610).
+17. **Scanning a QR code in the client app** (owner, 6 November 2026): yes, as #484 has it: *QR-code scannen* on the no-studio screen, in the app only. A Fivvi join link opens the join screen; anything else, or no camera access, shows its own message.
+18. **Cancelling one client of a duo** (#586): *Wie annuleer je?* with *Alleen Eva annuleren* and *Hele sessie annuleren*, and to the client who stays "Je sessie gaat door, zonder Eva." Prototype entry: *Duosessie: één klant annuleren*. The owner clicked through it and accepted it (6 November 2026).
+19. **Correcting a payment outside Fivvi** (#606): *Corrigeren* on a payment row, with the right offer, method and date and a required reason. The old line stays as *Gecorrigeerd* and points to the new one, and if the offer was wrong, the wrong agreement ends and the right one starts. Prototype entry: *Betaling buiten Fivvi corrigeren*. The owner clicked through it and accepted it (6 November 2026).
+20. **Where a session or class takes place** (owner, 7 November 2026): after a PT training in a park came up, the owner looked at letting any session or class say where, and chose to go live with one place per workspace, as decided on 20 October 2026 (`ROADMAP.md` decision 12), and improve it after go-live.
 
 ## 8. What this changes in existing documents
 
@@ -410,7 +423,7 @@ The prototype had to choose something for these. **The owner confirmed every ite
 | [Flow 03](../flows/03-workspace-calendar.md), the calendar on the web | shadcn/ui as in [§4](#4-trainer-web) | F014 [#458](https://github.com/fivvi-app/fivvi/issues/458) |
 | [Flow 04](../flows/04-private-session.md), private session | The session screen and forms as in [§3](#3-fivvi-pro-ios-and-android), including duo sessions | F020 [#425](https://github.com/fivvi-app/fivvi/issues/425), [#586](https://github.com/fivvi-app/fivvi/issues/586) |
 | [Flow 06](../flows/06-class-occurrence.md), a class on a date | The class screen as in [§3](#3-fivvi-pro-ios-and-android) | F021 [#427](https://github.com/fivvi-app/fivvi/issues/427), F025 [#460](https://github.com/fivvi-app/fivvi/issues/460) |
-| [Flow 05](../flows/05-live-workout-logging.md), WL-02 | Difficulty as an emoji with (i), not "the word is the answer". Compact set rows. Swipe to delete sets. Reordering stays post-MVP (`§54`) | F043, F044 specs (to write) |
+| [Flow 05](../flows/05-live-workout-logging.md), WL-02 | Difficulty as an emoji with (i), not "the word is the answer". Compact set rows. Swipe to delete sets. Reordering is in the MVP | F043, F044 specs (to write) |
 | [IA §5.2](../information-architecture.md#52-platform-conventions-both-apps) | Android "no swipe actions by default" now has one exception: swipe to delete a set in the logger (with confirmation) | F043 spec (to write) |
 | TD-05, class descriptions | Descriptions can be entered in the app's new-class form, not only on the web | F021 [#427](https://github.com/fivvi-app/fivvi/issues/427) |
 | [IA §3.2](../information-architecture.md#32-role--navigation) | New owner page *Aanbod*. Trainers page: change role, remove with a handover, withdraw an invitation | F052 [#468](https://github.com/fivvi-app/fivvi/issues/468); F003/F004 follow-up in [#590](https://github.com/fivvi-app/fivvi/issues/590) |
@@ -421,3 +434,27 @@ The prototype had to choose something for these. **The owner confirmed every ite
 | [`PRODUCT.md §51`](../../product/PRODUCT.md#51-notifications) and [`§90`](../../product/PRODUCT.md#90-offers-and-prices), [IA §8](../information-architecture.md#8-emails), emails | The client's renewal reminders | `PRODUCT.md` (this PR); IA with F052 [#468](https://github.com/fivvi-app/fivvi/issues/468); the emails (EM-28) with F057 [#481](https://github.com/fivvi-app/fivvi/issues/481) |
 | [IA §7](../information-architecture.md#7-client-web), client web | The client web uses the app's design language ([§5](#5-client-web-adr-026)) | F027 [#489](https://github.com/fivvi-app/fivvi/issues/489), F033 [#497](https://github.com/fivvi-app/fivvi/issues/497) |
 | [`PRODUCT.md §53`](../../product/PRODUCT.md#53-explicit-mvp-exclusions), [`§94`](../../product/PRODUCT.md#94-recurring-payments) and [`§96`](../../product/PRODUCT.md#96-invoices), F059 [#474](https://github.com/fivvi-app/fivvi/issues/474) | Payments come first, a studio may take payments only at the desk, and a payment outside Fivvi gets no automatic invoice | `PRODUCT.md` (this PR); the invoice spec with [#606](https://github.com/fivvi-app/fivvi/issues/606) |
+
+## 9. Public website
+
+Designed with the owner on 6 November 2026 in its own artifact, [Fivvi Website](https://claude.ai/artifact/TYm2FXMAATs5cB768MTiPG) (source: [`docs/design/website`](../website/README.md)), because a public page has another layout and story than the app. It uses this prototype's real screens. The spec is [#611](https://github.com/fivvi-app/fivvi/issues/611), the build approach [ADR-030](../../decisions/ADR-030-public-website.md).
+
+- **Idea:** one working day per audience, not a feature list. Each moment is a problem the visitor recognises, and the answer is a real Fivvi screen. Gyms, studios (pilates or yoga), personal trainers and clients each get their own page.
+- **Address:** the main site is `https://fivvi.app`, Dutch at `/`, English at `/en` (owner).
+- **Timing:** sooner than Release 2.0, because Mollie needs a public website (owner).
+- **Main button:** *Plan een demo* on every page, because workspace creation stays closed until 2.0 (owner).
+- **Mollie is named** on the site (owner), with iDEAL next to it.
+- **Dutch copy says *sportschool*,** as `packages/i18n/GLOSSARY.md` asks, at `/sportscholen`; English says *gyms*.
+- **Platforms (owner):** the section shows what owners and trainers use and what clients use, each on iPhone, Android and in the browser: Fivvi Pro and the trainer web, Fivvi and the client web.
+- **Images:** real screens first. Next to them an image that stands on its own beside the words, never as a background behind screens or text (owner). No people, so nothing passes for a real customer. The images are **one series of miniature 3D scenes in a light colouring** (owner): warm white and light oak with pink as the accent, one for each audience and for pilates and yoga. On the homepage it follows the *Ik ben* switch. Empty rooms, screens only, objects, number posters and an all-pink version were tried and rejected (owner).
+- **Nothing made up:** no figures, testimonials or ratings until they exist.
+- **Deleting an account:** the page at `/account-verwijderen` and `/delete-account` is built by [#477](https://github.com/fivvi-app/fivvi/issues/477), as a sign-in page with the danger-zone steps of §6, and the site links to it. The artifact shows its words; the email route is on the help page.
+
+**Assumptions, not yet confirmed by the owner:**
+
+1. **Pricing:** free during the pilot, Mollie charges per payment, 60 days' notice before Fivvi charges (`terms` A4, `open-questions.md` Q15). Mollie asks for a price on the site.
+2. **The demo and support:** a demo of 30 minutes online, and a reply within 1 working day to demo requests and questions.
+3. **The trade name** K&S Apps, from #151, and the addresses `support@fivvi.app` and `privacy@fivvi.app`.
+4. **A signed-in user** who opens `/` goes to their home in the app.
+5. **Going live before the product is ready.** The site goes live for Mollie, before M11 (payments and invoices), M7 (workouts, notes, sharing) and the store listings. So every page says Fivvi is being built with its first gym and the demo says what's ready, and each claim is checked before publishing (#611 AC19).
+

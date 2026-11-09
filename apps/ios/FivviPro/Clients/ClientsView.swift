@@ -219,7 +219,7 @@ struct ClientsView: View {
                 }
                 Spacer()
                 Image(systemName: "chevron.right")
-                    .foregroundStyle(Tokens.Colors.textTertiary)
+                    .foregroundStyle(Tokens.Colors.fillDecorative)
                     .accessibilityHidden(true)
             }
             .frame(minHeight: 44)

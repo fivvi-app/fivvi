@@ -1,0 +1,83 @@
+/*
+ * The geometry of the home page's device frames and screens (F064). Colours, rings and shadows are
+ * Tailwind classes on the elements (token colours only); this file holds only the sizes that
+ * depend on each other.
+ */
+
+/* The same order Tailwind declares, so this file does not change which layer wins. In a layer, the
+   utilities on an element (`[--phone-w:…]`) override these defaults. */
+@layer theme, base, components, utilities;
+
+@layer components {
+  /* A phone: its width is `--phone-w`, set by where it stands; the corners follow the width. */
+  .site-phone {
+    --phone-w: 300px;
+    width: var(--phone-w);
+    aspect-ratio: 393 / 852;
+    border-radius: calc(var(--phone-w) * 0.1425);
+  }
+  .site-phone[data-android] {
+    border-radius: calc(var(--phone-w) * 0.1018);
+  }
+
+  /*
+   * A laptop and a phone sharing one top and one bottom edge. The laptop's width is the stage's
+   * minus the gap and the phone, so that both have the same height: 1.2883 = 1 + (800/1280) /
+   * (852/393), and 6.47px is the phone's bezel and padding. The stage is a size container.
+   */
+  .site-stage {
+    container-type: inline-size;
+  }
+  .site-stage-mix {
+    display: grid;
+    grid-template-columns: calc((100cqw - 32px - 6.47px) / 1.2883) minmax(0, 1fr);
+    gap: 32px;
+    align-items: stretch;
+  }
+  .site-stage-mix .site-browser-shot {
+    height: 100%;
+  }
+  .site-stage-cell {
+    container-type: inline-size;
+    padding: 6px;
+  }
+  .site-stage-cell .site-phone {
+    --phone-w: 100cqw;
+  }
+
+  /* Three phones in a row. The widths here (and the phone-sized ones below) are repeated as `sizes`
+     in `ROW_SIZES` in `devices.tsx`: change one, change the other. */
+  .site-stage-row {
+    display: flex;
+    justify-content: center;
+    gap: clamp(14px, 3.4vw, 44px);
+    padding: 6px 0;
+  }
+  .site-stage-row .site-phone {
+    --phone-w: clamp(150px, 25cqw, 300px);
+  }
+
+  /* On a phone only the phone is shown, or two of the three. */
+  @media (max-width: 639px) {
+    .site-stage-mix {
+      display: flex;
+      justify-content: center;
+    }
+    .site-stage-mix .site-browser {
+      display: none;
+    }
+    .site-stage-mix .site-stage-cell {
+      container-type: normal;
+      padding: 6px 0;
+    }
+    .site-stage-mix .site-phone {
+      --phone-w: min(72vw, 280px);
+    }
+    .site-stage-row .site-phone {
+      --phone-w: calc((100vw - 2 * clamp(16px, 4vw, 40px) - 14px) / 2);
+    }
+    .site-stage-row .site-phone:nth-child(3) {
+      display: none;
+    }
+  }
+}

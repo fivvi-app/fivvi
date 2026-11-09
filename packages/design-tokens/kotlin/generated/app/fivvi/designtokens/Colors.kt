@@ -11,22 +11,23 @@ import androidx.compose.ui.graphics.Color
  */
 @Immutable
 class TokenColors(
-    /** App/page background. iOS: systemGroupedBackground role. M3: surface. */
+    /** App/page background: the grouped grey (true black in dark). iOS: systemGroupedBackground. M3: surface. */
     val bgCanvas: Color,
     /** Cards, list rows, inputs. iOS: secondarySystemGroupedBackground. M3: surfaceContainerLowest. */
     val bgSurface: Color,
-    /** Sheets, dialogs, menus. iOS: sheet material. M3: surfaceContainerHigh. */
+    /** Sheets, dialogs, menus, the thumb of a segmented control. M3: surfaceContainerHigh. */
     val bgRaised: Color,
-    /** Quiet fills: segmented tracks, table stripes, read-only fields. M3: surfaceContainer. */
+    /** Quiet fills inside a card: read-only fields, table stripes. M3: surfaceContainer. */
     val bgSubtle: Color,
     /** Toasts/snackbars. */
     val bgInverse: Color,
+    /** The label colour, and the mode's ink for mixed colours. */
     val textPrimary: Color,
-    /** Meta lines (workspace, location). Must still pass 4.5:1 on canvas and surface. */
+    /** Secondary text in the native apps: the prototype's grey as one opaque value. The one exception to 4.5:1, in light mode only (ADR-032; dark is held to 4.5:1): 3.3:1 on the canvas, 3.7:1 on cards, declared only as native-secondary-text pairs. Tertiary text and placeholders use it too. Web uses color.web.* instead. */
     val textSecondary: Color,
-    /** Placeholders and hints. Still AA (4.5:1) on surface: placeholders are real text. */
-    val textTertiary: Color,
+    /** Text on bg.inverse. */
     val textInverse: Color,
+    /** Text buttons and links: the accent as text. */
     val textLink: Color,
     /** Decorative separators only (hairlines between rows). Not used for control boundaries. */
     val borderDefault: Color,
@@ -34,6 +35,18 @@ class TokenColors(
     val borderControl: Color,
     /** Focus ring, 2px + 2px offset on web. Native uses the platform focus system. */
     val borderFocus: Color,
+    /** Decorative marks only: chevrons and the sheet handle (the prototype's lighter label). Outside the contrast pairs; never for text. */
+    val fillDecorative: Color,
+    /** Move pink as a fill. Anything on it uses color.accent.on. */
+    val accentFill: Color,
+    /** The on-accent colour: text and icons on an accent fill. */
+    val accentOn: Color,
+    /** The accent as text and icons on the canvas and cards. */
+    val accentText: Color,
+    /** Top of an accent gradient: the accent mixed with black, 85%. */
+    val accentGradientTop: Color,
+    /** Bottom of an accent gradient: 75%. */
+    val accentGradientBottom: Color,
     /** Filled buttons. iOS: app tint/accentColor. M3: primary. */
     val actionPrimaryBg: Color,
     val actionPrimaryBgPressed: Color,
@@ -43,107 +56,282 @@ class TokenColors(
     val actionTonalBg: Color,
     /** M3: onSecondaryContainer. */
     val actionTonalFg: Color,
-    /** Destructive confirm (cancel class). iOS: role .destructive. M3: error. */
+    /** Destructive confirm (cancel class) with white text: the danger colour mixed with black, 85%, because the pure colour is 3.57:1 with white. iOS: role .destructive. M3: error. */
     val actionDangerBg: Color,
     val actionDangerFg: Color,
+    /** Danger as text on a tint of itself: the kit's tinted destructive button (10% light, 15% dark; hover 15% and 20%). Darker than status.danger.fg in light so the hover keeps 4.5:1 on every web background; in dark the same as status.danger.text. */
+    val actionDangerText: Color,
+    /** Private sessions (PRODUCT.md section 16). Always paired with a text label; colour is never the only signal. Calendar bar/dot. */
+    val sessionPrivateSolid: Color,
+    /** Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; not for text on the tint (use text). */
+    val sessionPrivateFg: Color,
+    /** Text in this colour on the tint, on cards and on the canvas (prototype: the colour mixed with the ink, 42% in light, 55% in dark). 4.5:1. */
+    val sessionPrivateText: Color,
+    /** The tint: the colour at 15% (light) or 30% (dark) on a card. */
+    val sessionPrivateBg: Color,
+    /** Glyphs on the gradient. White never sits on the unmixed colour. */
+    val sessionPrivateOnSolid: Color,
+    /** Top of the fill: the colour mixed with black, 85%. */
+    val sessionPrivateGradientTop: Color,
+    /** Bottom of the fill: 75%. */
+    val sessionPrivateGradientBottom: Color,
+    /** Group classes. Calendar bar/dot. */
+    val sessionGroupSolid: Color,
+    /** Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; not for text on the tint (use text). */
+    val sessionGroupFg: Color,
+    /** Text in this colour on the tint, on cards and on the canvas (prototype: the colour mixed with the ink, 42% in light, 55% in dark). 4.5:1. */
+    val sessionGroupText: Color,
+    /** The tint: the colour at 15% (light) or 30% (dark) on a card. */
+    val sessionGroupBg: Color,
+    /** Glyphs on the gradient. White never sits on the unmixed colour. */
+    val sessionGroupOnSolid: Color,
+    /** Top of the fill: the colour mixed with black, 85%. */
+    val sessionGroupGradientTop: Color,
+    /** Bottom of the fill: 75%. */
+    val sessionGroupGradientBottom: Color,
+    /** Open Gym. Decorative only: 2.3:1 on a card. Built, but no screen or kit component uses it yet. */
+    val sessionOpenGymSolid: Color,
+    /** Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; not for text on the tint (use text). */
+    val sessionOpenGymFg: Color,
+    /** Text in this colour on the tint, on cards and on the canvas (prototype: the colour mixed with the ink, 42% in light, 55% in dark). 4.5:1. */
+    val sessionOpenGymText: Color,
+    /** The tint: the colour at 15% (light) or 30% (dark) on a card. */
+    val sessionOpenGymBg: Color,
+    /** Glyphs on the gradient. White never sits on the unmixed colour. */
+    val sessionOpenGymOnSolid: Color,
+    /** Top of the fill: the colour mixed with black, 85%. */
+    val sessionOpenGymGradientTop: Color,
+    /** Bottom of the fill: 75%. */
+    val sessionOpenGymGradientBottom: Color,
+    /** Success. Decorative only: 2.2:1 on a card. Never carries white text. */
+    val statusSuccessSolid: Color,
+    /** Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; not for text on the tint (use text). */
     val statusSuccessFg: Color,
+    /** Text in this colour on the tint, on cards and on the canvas (prototype: the colour mixed with the ink, 42% in light, 55% in dark). 4.5:1. */
+    val statusSuccessText: Color,
+    /** The tint: the colour at 15% (light) or 30% (dark) on a card. */
     val statusSuccessBg: Color,
-    val statusWarningFg: Color,
-    val statusWarningBg: Color,
+    /** Glyphs on the gradient. White never sits on the unmixed colour. */
+    val statusSuccessOnSolid: Color,
+    /** Top of the fill: the colour mixed with black, 85%. */
+    val statusSuccessGradientTop: Color,
+    /** Bottom of the fill: 75%. */
+    val statusSuccessGradientBottom: Color,
+    /** Danger. */
+    val statusDangerSolid: Color,
+    /** Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; for danger also text on cards, the canvas and sheets (field error messages), 4.5:1; not text on the tint (use text). */
     val statusDangerFg: Color,
+    /** Text in this colour on the tint, on cards and on the canvas (prototype: the colour mixed with the ink, 42% in light, 55% in dark). 4.5:1. */
+    val statusDangerText: Color,
+    /** The tint: the colour at 15% (light) or 30% (dark) on a card. */
     val statusDangerBg: Color,
+    /** Glyphs on the gradient. White never sits on the unmixed colour. */
+    val statusDangerOnSolid: Color,
+    /** Top of the fill: the colour mixed with black, 85%. */
+    val statusDangerGradientTop: Color,
+    /** Bottom of the fill: 75%. */
+    val statusDangerGradientBottom: Color,
+    /** Warning. Decorative only: 2.3:1 on a card. */
+    val statusWarningSolid: Color,
+    /** Glyphs and icons on the tint, on cards and on the canvas: the colour mixed with the mode's ink, 78%. 3:1 for graphics; not for text on the tint (use text). */
+    val statusWarningFg: Color,
+    /** Text in this colour on the tint, on cards and on the canvas (prototype: the colour mixed with the ink, 42% in light, 55% in dark). 4.5:1. */
+    val statusWarningText: Color,
+    /** The tint: the colour at 15% (light) or 30% (dark) on a card. */
+    val statusWarningBg: Color,
+    /** Glyphs on the gradient. White never sits on the unmixed colour. */
+    val statusWarningOnSolid: Color,
+    /** Top of the fill: the colour mixed with black, 85%. */
+    val statusWarningGradientTop: Color,
+    /** Bottom of the fill: 75%. */
+    val statusWarningGradientBottom: Color,
     val statusNeutralFg: Color,
     val statusNeutralBg: Color,
-    /** Calendar bar/dot. 3:1 against surface. */
-    val sessionPrivateSolid: Color,
-    val sessionPrivateFg: Color,
-    val sessionPrivateBg: Color,
-    val sessionGroupSolid: Color,
-    val sessionGroupFg: Color,
-    val sessionGroupBg: Color,
-    val sessionOpenGymSolid: Color,
-    val sessionOpenGymFg: Color,
-    val sessionOpenGymBg: Color,
+    /** Workspace dot colours, picked automatically from the workspace ID (workspaceColour in TypeScript, workspaceColor on native). 3:1 on cards and the canvas in both modes. */
+    val workspaceCyan: Color,
+    val workspaceBrown: Color,
+    val workspaceIndigo: Color,
+    val workspaceGold: Color,
+    val workspaceSlate: Color,
+    val workspaceLime: Color,
 )
 
 /** The semantic colours in light mode. */
 val LightTokenColors: TokenColors = TokenColors(
-    bgCanvas = Color(0xFFF6F6F7),
+    bgCanvas = Color(0xFFF2F2F7),
     bgSurface = Color(0xFFFFFFFF),
     bgRaised = Color(0xFFFFFFFF),
-    bgSubtle = Color(0xFFEEEEF0),
-    bgInverse = Color(0xFF202026),
-    textPrimary = Color(0xFF202026),
-    textSecondary = Color(0xFF4D4D54),
-    textTertiary = Color(0xFF66666D),
-    textInverse = Color(0xFFF6F6F7),
-    textLink = Color(0xFF303037),
-    borderDefault = Color(0xFFDFDFE2),
-    borderControl = Color(0xFF85858C),
-    borderFocus = Color(0xFF4D4D54),
-    actionPrimaryBg = Color(0xFF595299),
-    actionPrimaryBgPressed = Color(0xFF49427F),
+    bgSubtle = Color(0xFFF2F2F7),
+    bgInverse = Color(0xFF1C1C1E),
+    textPrimary = Color(0xFF000000),
+    textSecondary = Color(0xFF85858B),
+    textInverse = Color(0xFFFFFFFF),
+    textLink = Color(0xFFC8103D),
+    borderDefault = Color(0xFFDCDCDD),
+    borderControl = Color(0xFF85858B),
+    borderFocus = Color(0xFFC8103D),
+    fillDecorative = Color(0xFFC4C4C7),
+    accentFill = Color(0xFFE6164A),
+    accentOn = Color(0xFFFFFFFF),
+    accentText = Color(0xFFC8103D),
+    accentGradientTop = Color(0xFFB90F3A),
+    accentGradientBottom = Color(0xFF9C0B2F),
+    actionPrimaryBg = Color(0xFFE6164A),
+    actionPrimaryBgPressed = Color(0xFFB90F3A),
     actionPrimaryFg = Color(0xFFFFFFFF),
-    actionTonalBg = Color(0xFFEEEEF0),
-    actionTonalFg = Color(0xFF202026),
-    actionDangerBg = Color(0xFFA3261A),
+    actionTonalBg = Color(0xFFEFEFF0),
+    actionTonalFg = Color(0xFF000000),
+    actionDangerBg = Color(0xFFD93033),
     actionDangerFg = Color(0xFFFFFFFF),
-    statusSuccessFg = Color(0xFF1C6437),
-    statusSuccessBg = Color(0xFFE8F5EC),
-    statusWarningFg = Color(0xFF7C4F05),
-    statusWarningBg = Color(0xFFFDF4E3),
-    statusDangerFg = Color(0xFFA3261A),
-    statusDangerBg = Color(0xFFFDECEA),
-    statusNeutralFg = Color(0xFF3B3B42),
-    statusNeutralBg = Color(0xFFEEEEF0),
-    sessionPrivateSolid = Color(0xFF2F62D8),
-    sessionPrivateFg = Color(0xFF1D4196),
-    sessionPrivateBg = Color(0xFFEAF0FD),
-    sessionGroupSolid = Color(0xFF6D4BD1),
-    sessionGroupFg = Color(0xFF4C2FA3),
-    sessionGroupBg = Color(0xFFF1ECFC),
-    sessionOpenGymSolid = Color(0xFFC98106),
-    sessionOpenGymFg = Color(0xFF7C4F05),
-    sessionOpenGymBg = Color(0xFFFDF4E3),
+    actionDangerText = Color(0xFFA42023),
+    sessionPrivateSolid = Color(0xFF0088FF),
+    sessionPrivateFg = Color(0xFF0060B7),
+    sessionPrivateText = Color(0xFF00254D),
+    sessionPrivateBg = Color(0xFFD9EDFF),
+    sessionPrivateOnSolid = Color(0xFFFFFFFF),
+    sessionPrivateGradientTop = Color(0xFF006CCE),
+    sessionPrivateGradientBottom = Color(0xFF005BAE),
+    sessionGroupSolid = Color(0xFFCB30E0),
+    sessionGroupFg = Color(0xFF911FA0),
+    sessionGroupText = Color(0xFF3B0742),
+    sessionGroupBg = Color(0xFFF7E0FA),
+    sessionGroupOnSolid = Color(0xFFFFFFFF),
+    sessionGroupGradientTop = Color(0xFFA325B4),
+    sessionGroupGradientBottom = Color(0xFF891D98),
+    sessionOpenGymSolid = Color(0xFFFF8D28),
+    sessionOpenGymFg = Color(0xFFB7641A),
+    sessionOpenGymText = Color(0xFF4D2605),
+    sessionOpenGymBg = Color(0xFFFFEEDF),
+    sessionOpenGymOnSolid = Color(0xFFFFFFFF),
+    sessionOpenGymGradientTop = Color(0xFFCE701E),
+    sessionOpenGymGradientBottom = Color(0xFFAE5E18),
+    statusSuccessSolid = Color(0xFF34C759),
+    statusSuccessFg = Color(0xFF228E3D),
+    statusSuccessText = Color(0xFF083A15),
+    statusSuccessBg = Color(0xFFE1F7E6),
+    statusSuccessOnSolid = Color(0xFFFFFFFF),
+    statusSuccessGradientTop = Color(0xFF28A046),
+    statusSuccessGradientBottom = Color(0xFF20873A),
+    statusDangerSolid = Color(0xFFFF383C),
+    statusDangerFg = Color(0xFFB72528),
+    statusDangerText = Color(0xFF4D0A0B),
+    statusDangerBg = Color(0xFFFFE1E2),
+    statusDangerOnSolid = Color(0xFFFFFFFF),
+    statusDangerGradientTop = Color(0xFFCE2B2E),
+    statusDangerGradientBottom = Color(0xFFAE2326),
+    statusWarningSolid = Color(0xFFFF8D28),
+    statusWarningFg = Color(0xFFB7641A),
+    statusWarningText = Color(0xFF4D2605),
+    statusWarningBg = Color(0xFFFFEEDF),
+    statusWarningOnSolid = Color(0xFFFFFFFF),
+    statusWarningGradientTop = Color(0xFFCE701E),
+    statusWarningGradientBottom = Color(0xFFAE5E18),
+    statusNeutralFg = Color(0xFF000000),
+    statusNeutralBg = Color(0xFFEFEFF0),
+    workspaceCyan = Color(0xFF00909A),
+    workspaceBrown = Color(0xFFAC7F5E),
+    workspaceIndigo = Color(0xFF5E5CE6),
+    workspaceGold = Color(0xFF9E7E00),
+    workspaceSlate = Color(0xFF848489),
+    workspaceLime = Color(0xFF669035),
 )
 
 /** The semantic colours in dark mode. */
 val DarkTokenColors: TokenColors = TokenColors(
-    bgCanvas = Color(0xFF242428),
-    bgSurface = Color(0xFF2D2D32),
-    bgRaised = Color(0xFF34343A),
-    bgSubtle = Color(0xFF3A3A41),
-    bgInverse = Color(0xFFDFDFE2),
-    textPrimary = Color(0xFFE8E8ED),
-    textSecondary = Color(0xFFC5C5CB),
-    textTertiary = Color(0xFFB0B0B8),
-    textInverse = Color(0xFF202026),
-    textLink = Color(0xFFECECF0),
-    borderDefault = Color(0xFF484850),
-    borderControl = Color(0xFFA6A6AF),
-    borderFocus = Color(0xFFC8C8CD),
-    actionPrimaryBg = Color(0xFFC1BBEB),
-    actionPrimaryBgPressed = Color(0xFFD2CDF2),
-    actionPrimaryFg = Color(0xFF16161B),
-    actionTonalBg = Color(0xFF3A3A41),
-    actionTonalFg = Color(0xFFC8C8CD),
-    actionDangerBg = Color(0xFFF09A8E),
-    actionDangerFg = Color(0xFF16161B),
-    statusSuccessFg = Color(0xFFC9E8D2),
-    statusSuccessBg = Color(0xFF123F23),
-    statusWarningFg = Color(0xFFFAE3B8),
-    statusWarningBg = Color(0xFF4A2F03),
-    statusDangerFg = Color(0xFFF9D2CD),
-    statusDangerBg = Color(0xFF5E150E),
-    statusNeutralFg = Color(0xFFC8C8CD),
-    statusNeutralBg = Color(0xFF303037),
-    sessionPrivateSolid = Color(0xFF8EADF3),
-    sessionPrivateFg = Color(0xFFD2DFFB),
-    sessionPrivateBg = Color(0xFF263147),
-    sessionGroupSolid = Color(0xFFB7A2EE),
-    sessionGroupFg = Color(0xFFE0D6F8),
-    sessionGroupBg = Color(0xFF372D49),
-    sessionOpenGymSolid = Color(0xFFF0B54A),
-    sessionOpenGymFg = Color(0xFFFAE3B8),
-    sessionOpenGymBg = Color(0xFF403526),
+    bgCanvas = Color(0xFF000000),
+    bgSurface = Color(0xFF1C1C1E),
+    bgRaised = Color(0xFF2C2C2E),
+    bgSubtle = Color(0xFF2C2C2E),
+    bgInverse = Color(0xFFE5E5EA),
+    textPrimary = Color(0xFFFFFFFF),
+    textSecondary = Color(0xFF98989F),
+    textInverse = Color(0xFF000000),
+    textLink = Color(0xFFFF6482),
+    borderDefault = Color(0xFF3E3E41),
+    borderControl = Color(0xFF7C7C80),
+    borderFocus = Color(0xFFFF6482),
+    fillDecorative = Color(0xFF5A5A5E),
+    accentFill = Color(0xFFE6164A),
+    accentOn = Color(0xFFFFFFFF),
+    accentText = Color(0xFFFF6482),
+    accentGradientTop = Color(0xFFB90F3A),
+    accentGradientBottom = Color(0xFF9C0B2F),
+    actionPrimaryBg = Color(0xFFE6164A),
+    actionPrimaryBgPressed = Color(0xFFB90F3A),
+    actionPrimaryFg = Color(0xFFFFFFFF),
+    actionTonalBg = Color(0xFF2E2E32),
+    actionTonalFg = Color(0xFFFFFFFF),
+    actionDangerBg = Color(0xFFD93033),
+    actionDangerFg = Color(0xFFFFFFFF),
+    actionDangerText = Color(0xFFFF9F95),
+    sessionPrivateSolid = Color(0xFF0088FF),
+    sessionPrivateFg = Color(0xFF56A5FF),
+    sessionPrivateText = Color(0xFF8AC1FF),
+    sessionPrivateBg = Color(0xFF143C62),
+    sessionPrivateOnSolid = Color(0xFFFFFFFF),
+    sessionPrivateGradientTop = Color(0xFF006CCE),
+    sessionPrivateGradientBottom = Color(0xFF005BAE),
+    sessionGroupSolid = Color(0xFFCB30E0),
+    sessionGroupFg = Color(0xFFD96CE9),
+    sessionGroupText = Color(0xFFE79AF1),
+    sessionGroupBg = Color(0xFF512258),
+    sessionGroupOnSolid = Color(0xFFFFFFFF),
+    sessionGroupGradientTop = Color(0xFFA325B4),
+    sessionGroupGradientBottom = Color(0xFF891D98),
+    sessionOpenGymSolid = Color(0xFFFF8D28),
+    sessionOpenGymFg = Color(0xFFFFA866),
+    sessionOpenGymText = Color(0xFFFFC396),
+    sessionOpenGymBg = Color(0xFF603E21),
+    sessionOpenGymOnSolid = Color(0xFFFFFFFF),
+    sessionOpenGymGradientTop = Color(0xFFCE701E),
+    sessionOpenGymGradientBottom = Color(0xFFAE5E18),
+    statusSuccessSolid = Color(0xFF34C759),
+    statusSuccessFg = Color(0xFF70D480),
+    statusSuccessText = Color(0xFF9EE2A6),
+    statusSuccessBg = Color(0xFF234F30),
+    statusSuccessOnSolid = Color(0xFFFFFFFF),
+    statusSuccessGradientTop = Color(0xFF28A046),
+    statusSuccessGradientBottom = Color(0xFF20873A),
+    statusDangerSolid = Color(0xFFFF383C),
+    statusDangerFg = Color(0xFFFF7269),
+    statusDangerText = Color(0xFFFF9F95),
+    statusDangerBg = Color(0xFF602427),
+    statusDangerOnSolid = Color(0xFFFFFFFF),
+    statusDangerGradientTop = Color(0xFFCE2B2E),
+    statusDangerGradientBottom = Color(0xFFAE2326),
+    statusWarningSolid = Color(0xFFFF8D28),
+    statusWarningFg = Color(0xFFFFA866),
+    statusWarningText = Color(0xFFFFC396),
+    statusWarningBg = Color(0xFF603E21),
+    statusWarningOnSolid = Color(0xFFFFFFFF),
+    statusWarningGradientTop = Color(0xFFCE701E),
+    statusWarningGradientBottom = Color(0xFFAE5E18),
+    statusNeutralFg = Color(0xFFFFFFFF),
+    statusNeutralBg = Color(0xFF2E2E32),
+    workspaceCyan = Color(0xFF00C3D0),
+    workspaceBrown = Color(0xFFAC7F5E),
+    workspaceIndigo = Color(0xFF5E5CE6),
+    workspaceGold = Color(0xFFFFCC00),
+    workspaceSlate = Color(0xFF8E8E93),
+    workspaceLime = Color(0xFF8BC34A),
 )
+
+/**
+ * The dot colour of a workspace, picked from its ID: the 32-bit FNV-1a hash of the ID's UTF-8
+ * bytes, modulo the number of colours. The same function runs on every platform.
+ */
+fun TokenColors.workspaceColor(id: String): Color {
+    val palette = listOf(
+        workspaceCyan,
+        workspaceBrown,
+        workspaceIndigo,
+        workspaceGold,
+        workspaceSlate,
+        workspaceLime,
+    )
+    var hash = 2166136261u
+    for (byte in id.encodeToByteArray()) {
+        hash = (hash xor byte.toUByte().toUInt()) * 16777619u
+    }
+    return palette[(hash % palette.size.toUInt()).toInt()]
+}

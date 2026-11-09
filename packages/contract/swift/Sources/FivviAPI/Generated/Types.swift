@@ -81,6 +81,13 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `POST /v1/sign-out`.
     /// - Remark: Generated from `#/paths//v1/sign-out/post(signOut)`.
     func signOut(_ input: Operations.SignOut.Input) async throws -> Operations.SignOut.Output
+    /// Ask for a demo
+    ///
+    /// Sends one email with the answers to Fivvi’s support address. Nothing is stored and nothing about the visitor is logged; no email goes to the visitor. `400` names the invalid fields. A request that fills the `website` honeypot gets the `202` of any other and sends nothing. `429` after 5 requests from one network in an hour, or 60 from everyone. `503` when the email could not be sent.
+    ///
+    /// - Remark: HTTP `POST /v1/demo-requests`.
+    /// - Remark: Generated from `#/paths//v1/demo-requests/post(requestDemo)`.
+    func requestDemo(_ input: Operations.RequestDemo.Input) async throws -> Operations.RequestDemo.Output
     /// Create the caller’s workspace
     ///
     /// Creates a workspace and makes the caller its Owner, in one transaction: the workspace (Dutch as its default language, `Europe/Amsterdam`, a slug made from its name, with a number added when taken), the Owner’s team role with a trainer profile (the creator trains in the workspace they set up) and, when given, the account’s name. Only an account on the sign-up allowlist may, also when it has a workspace already: anyone else gets `403` and nothing is created.
@@ -434,6 +441,21 @@ extension APIProtocol {
     /// - Remark: Generated from `#/paths//v1/sign-out/post(signOut)`.
     public func signOut(headers: Operations.SignOut.Input.Headers = .init()) async throws -> Operations.SignOut.Output {
         try await signOut(Operations.SignOut.Input(headers: headers))
+    }
+    /// Ask for a demo
+    ///
+    /// Sends one email with the answers to Fivvi’s support address. Nothing is stored and nothing about the visitor is logged; no email goes to the visitor. `400` names the invalid fields. A request that fills the `website` honeypot gets the `202` of any other and sends nothing. `429` after 5 requests from one network in an hour, or 60 from everyone. `503` when the email could not be sent.
+    ///
+    /// - Remark: HTTP `POST /v1/demo-requests`.
+    /// - Remark: Generated from `#/paths//v1/demo-requests/post(requestDemo)`.
+    public func requestDemo(
+        headers: Operations.RequestDemo.Input.Headers = .init(),
+        body: Operations.RequestDemo.Input.Body
+    ) async throws -> Operations.RequestDemo.Output {
+        try await requestDemo(Operations.RequestDemo.Input(
+            headers: headers,
+            body: body
+        ))
     }
     /// Create the caller’s workspace
     ///

@@ -9,10 +9,46 @@
 @import "./palette-reset.css";
 @import "@fivvi/design-tokens/tokens.css";
 @import "@fivvi/design-tokens/shadcn.css";
+@import "@fivvi/design-tokens/client.css";
 @import "@fivvi/design-tokens/theme.css";
 
 /* The app's own files are found automatically; the kit's components live outside the app. */
 @source "../components";
+@source "../kit";
+
+/*
+ * The card radius of the Fivvi Pro look (`radius.card`, 26px): `rounded-card`. It is the same in
+ * both themes; the shadcn `rounded-*` scale follows `--radius`, which the client theme sets to it.
+ */
+@theme inline {
+  --radius-card: var(--th-radius-card);
+}
+
+/*
+ * Numbers use the rounded face with tabular digits (AC11): `numeric`, for times, counts and
+ * amounts. The face is the token `font.family.numeric`, `ui-rounded` first; no web font.
+ */
+@utility numeric {
+  font-family: var(--th-font-family-numeric);
+  font-variant-numeric: tabular-nums;
+}
+
+/*
+ * Glass: a translucent, blurred surface for a header or a round control over scrolling content.
+ * The colours are the glass tokens of the active mode. They are not part of any contrast pair, so
+ * text on glass sits on the page behind it, and with reduced transparency glass becomes the
+ * strong, nearly opaque fill.
+ */
+@utility glass {
+  background-color: var(--th-color-web-glass-bg);
+  backdrop-filter: blur(14px) saturate(190%);
+  border: 0.5px solid var(--th-color-web-glass-edge);
+  box-shadow: 0 8px 24px var(--th-color-web-glass-shadow);
+  @media (prefers-reduced-transparency: reduce) {
+    background-color: var(--th-color-web-glass-strong);
+    backdrop-filter: none;
+  }
+}
 
 /*
  * Densities (AC6): a layout sets `data-density="compact"` (Trainer Web on a desktop pointer) or
@@ -64,4 +100,13 @@
 :focus-visible {
   outline: var(--th-border-width-focus) solid var(--ring);
   outline-offset: 2px;
+}
+
+/*
+ * An inset list clips its rows to the rounded card, so the 2px-offset ring of a link or button that
+ * fills a row would be cut off on the list's edges (WCAG 2.4.7). Inside a list it is drawn inside
+ * the row. Unlayered and after the rule above, so it wins.
+ */
+[data-slot="inset-list"] :focus-visible {
+  outline-offset: -2px;
 }

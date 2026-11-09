@@ -109,9 +109,13 @@ async function expectVisibleFocusIndicator(page: Page, control: Locator, state: 
   );
 }
 
-async function openHelloPage(page: Page, colorScheme: ColorScheme): Promise<void> {
+/**
+ * The sign-in page: the app's one public page with a card, a field and a button in the trainer theme
+ * (the hello page, which these tests used until F064 gave `/` to the website, had the same).
+ */
+async function openSignInPage(page: Page, colorScheme: ColorScheme): Promise<void> {
   await page.emulateMedia({ colorScheme });
-  await page.goto('/');
+  await page.goto('/login');
 }
 
 /** A mode-independent token (`size.control.compact`) as written in tokens.css (`36px`). */
@@ -121,7 +125,7 @@ function tokenValue(token: string): string {
   return value;
 }
 
-/** A font stack token (`font.family.display`) as the browser computes it. */
+/** A font stack token (`font.family.text`) as the browser computes it. */
 async function tokenFontStack(page: Page, token: string): Promise<string> {
   return await page.evaluate((stack) => {
     const probe = document.createElement('span');
@@ -132,10 +136,6 @@ async function tokenFontStack(page: Page, token: string): Promise<string> {
     return computed;
   }, tokenValue(token));
 }
-
-/** The families in a computed font-family, without quotes. */
-const families = (fontFamily: string) =>
-  fontFamily.split(',').map((family) => family.trim().replaceAll(/["']/g, ''));
 
 type Density = 'compact' | 'touch';
 
@@ -159,44 +159,48 @@ const densities: Record<
 };
 
 test.describe('E007 web theme', () => {
-  test('AC5: hello page uses token colours and passes axe in light and dark', async ({
+  test('AC5: sign-in page uses token colours and passes axe in light and dark', async ({
     page,
     messages: copy,
   }) => {
-    const heading = page.getByRole('heading', { level: 1, name: copy.hello.title });
-    const button = page.getByRole('button', { name: copy.hello.continue });
-    const input = page.getByLabel(copy.hello.firstNameLabel);
-    const colours: [Locator, string, string][] = [
-      [page.locator('body'), 'background-color', 'bg.canvas'],
-      [page.locator('body'), 'color', 'text.primary'],
-      [page.locator('[data-slot="card"]'), 'background-color', 'bg.surface'],
-      [heading, 'color', 'text.primary'],
-      [page.getByText(copy.hello.description), 'color', 'text.secondary'],
-      [input, 'border-top-color', 'border.control'],
-      [button, 'background-color', 'action.primary.bg'],
-      [button, 'color', 'action.primary.fg'],
-    ];
+    const heading = page.getByRole('heading', { level: 1, name: copy.signIn.title });
+    const button = page.getByRole('button', { name: copy.signIn.sendCode });
+    const input = page.getByLabel(copy.signIn.emailLabel);
 
     for (const scheme of colorSchemes) {
-      await openHelloPage(page, scheme);
+      await openSignInPage(page, scheme);
+      // What a card's description is made of (`CardDescription`): small, muted text.
+      const description = await probe(page, 'text-sm text-muted-foreground', 'Anna');
+      const colours: [Locator, string, string][] = [
+        [page.locator('body'), 'background-color', 'web.trainer.background'],
+        [page.locator('body'), 'color', 'web.trainer.foreground'],
+        [page.locator('[data-slot="card"]'), 'background-color', 'web.trainer.card'],
+        [heading, 'color', 'web.trainer.foreground'],
+        [description, 'color', 'web.trainer.muted-foreground'],
+        [input, 'border-top-color', 'border.control'],
+        [button, 'background-color', 'action.primary.bg'],
+        [button, 'color', 'action.primary.fg'],
+      ];
       for (const [element, property, token] of colours) {
         await expect(element, `${property} in ${scheme} mode`).toHaveCSS(
           property,
           tokenColour(token, scheme),
         );
       }
-      await expectNoAxeViolations(page, `the hello page in ${scheme} mode`);
+      await expectNoAxeViolations(page, `the sign-in page in ${scheme} mode`);
     }
   });
 
   test('AC7: focus indicator is visible on Button and Input', async ({ page, messages: copy }) => {
     const controls: [string, Locator][] = [
-      ['Input', page.getByLabel(copy.hello.firstNameLabel)],
-      ['Button', page.getByRole('button', { name: copy.hello.continue })],
+      ['Input', page.getByLabel(copy.signIn.emailLabel)],
+      ['Button', page.getByRole('button', { name: copy.signIn.sendCode })],
     ];
 
     for (const scheme of colorSchemes) {
-      await openHelloPage(page, scheme);
+      await openSignInPage(page, scheme);
+      // The button waits for the page to hydrate, and a disabled one takes no focus.
+      await expect(controls[1]?.[1] as Locator).toBeEnabled();
       for (const [name, control] of controls) {
         await expectVisibleFocusIndicator(page, control, `${name} in ${scheme} mode`);
       }
@@ -208,20 +212,20 @@ test.describe('E007 web theme', () => {
     messages: copy,
   }) => {
     const controls: [string, Locator][] = [
-      ['Input', page.getByLabel(copy.hello.firstNameLabel)],
-      ['Button', page.getByRole('button', { name: copy.hello.continue })],
+      ['Input', page.getByLabel(copy.signIn.emailLabel)],
+      ['Button', page.getByRole('button', { name: copy.signIn.sendCode })],
     ];
-    // Body text inside a Card, which sets its own (shadcn) body size.
-    const bodyText = page.getByRole('status');
     // The root layout opts every page into touch density. Trainer Web layouts (M2) opt into
-    // compact on a nested element; here the hello page's <main> stands in for one.
+    // compact on a nested element; here the sign-in page's <main> stands in for one.
     const layouts: [Density, Locator][] = [
       ['touch', page.locator('body')],
       ['compact', page.locator('main')],
     ];
 
-    await page.goto('/?name=Sam');
+    await page.goto('/login');
     await expect(page.locator('body')).toHaveAttribute('data-density', 'touch');
+    // Body text inside a Card, which sets its own (shadcn) body size.
+    const bodyText = await probeIn(page, '[data-slot="card"]', 'Anna');
     for (const [density, layout] of layouts) {
       const { body, control, bodyPx, controlPx } = densities[density];
       await layout.evaluate(
@@ -256,7 +260,7 @@ test.describe('E007 web theme', () => {
     }
   });
 
-  test('AC9: display heading uses the self-hosted font; no request leaves the origin for fonts', async ({
+  test('AC12: no web font is loaded and no font request leaves the page; text uses the system stack', async ({
     page,
     messages: copy,
   }) => {
@@ -265,8 +269,8 @@ test.describe('E007 web theme', () => {
       if (['font', 'stylesheet'].includes(request.resourceType())) fontRequests.push(request.url());
     });
 
-    await openHelloPage(page, 'light');
-    const heading = page.getByRole('heading', { level: 1, name: copy.hello.title });
+    await openSignInPage(page, 'light');
+    const heading = page.getByRole('heading', { level: 1, name: copy.signIn.title });
     /** Families of the page's @font-face rules that have loaded, without quotes. */
     const loadedFaces = async () =>
       await page.evaluate(async () => {
@@ -276,32 +280,173 @@ test.describe('E007 web theme', () => {
           .map((font) => font.family.replaceAll(/["']/g, ''));
       });
 
-    // The display stack: the self-hosted face first, ending in the system font.
-    const display = await tokenFontStack(page, 'font.family.display');
-    await expect(heading, 'the heading has the display style').toHaveCSS('font-family', display);
-    const [face = ''] = families(display);
-    expect(face, 'the display face').toBe('Bricolage Grotesque');
-    await expect.poll(loadedFaces, { message: 'the display face is loaded' }).toContain(face);
+    // Headings and body text take the token's system stack; none of it is a web font.
+    const text = await tokenFontStack(page, 'font.family.text');
+    await expect(page.locator('body')).toHaveCSS('font-family', text);
+    await expect(heading).toHaveCSS('font-family', text);
+    expect(await loadedFaces(), 'web fonts loaded').toEqual([]);
 
-    // Body text: the token's system stack, none of it a web font.
-    const body = page.locator('body');
-    await expect(body).toHaveCSS('font-family', await tokenFontStack(page, 'font.family.text'));
-    const loaded = await loadedFaces();
-    expect(
-      families(await body.evaluate((node) => getComputedStyle(node).fontFamily)).filter((family) =>
-        loaded.includes(family),
-      ),
-      'web fonts in the body text',
-    ).toEqual([]);
-
+    // The only font or stylesheet requests are the app's own stylesheets, none to another origin.
     const origin = new URL(page.url()).origin;
     expect(
-      fontRequests.filter((url) => new URL(url).pathname.endsWith('.woff2')),
-      'the display face is served by the app',
-    ).not.toEqual([]);
+      fontRequests.filter((url) => new URL(url).pathname.match(/\.(woff2?|ttf|otf)$/)),
+      'font files requested',
+    ).toEqual([]);
     expect(
       fontRequests.filter((url) => new URL(url).origin !== origin),
       'font and stylesheet requests to another origin',
     ).toEqual([]);
   });
 });
+
+test.describe('E020 web theme', () => {
+  test('AC11: numbers use the rounded face with tabular digits', async ({ page }) => {
+    await openSignInPage(page, 'light');
+    // `numeric` is what the kit's blocks put on times and counts.
+    const number = await probe(page, 'numeric', '09:30');
+
+    const rounded = await tokenFontStack(page, 'font.family.numeric');
+    expect(rounded, 'the numeric stack starts with ui-rounded').toMatch(/^ui-rounded,/);
+    await expect(number).toHaveCSS('font-family', rounded);
+    await expect(number).toHaveCSS('font-variant-numeric', 'tabular-nums');
+    // Text stays on the system stack.
+    await expect(page.locator('body')).toHaveCSS(
+      'font-family',
+      await tokenFontStack(page, 'font.family.text'),
+    );
+  });
+
+  test('AC13: trainer web is zinc, the client layout is the grouped grey canvas, radius 26 and glass', async ({
+    page,
+  }) => {
+    for (const scheme of colorSchemes) {
+      await openSignInPage(page, scheme);
+      const body = page.locator('body');
+      const card = await probe(page, 'rounded-card bg-card', 'Anna');
+      const glass = await probe(page, 'glass', 'Fivvi');
+
+      // The trainer web: zinc neutrals, radius 12, the card at radius 26 only where asked.
+      await expect(body, `trainer background in ${scheme} mode`).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.background', scheme),
+      );
+      expect(await variable(body, '--radius'), 'trainer radius').toBe(tokenValue('radius.md'));
+      expect(
+        await variable(body, '--muted-foreground'),
+        `trainer secondary in ${scheme} mode`,
+      ).toBe(schemeValue('color.web.trainer.muted-foreground', scheme));
+      await expect(card).toHaveCSS('border-radius', tokenValue('radius.card'));
+      await expectNoAxeViolations(page, `the trainer theme in ${scheme} mode`);
+
+      // The client layout opts in with data-theme="client" (the kit's ClientLayout does).
+      await body.evaluate((element) => element.setAttribute('data-theme', 'client'));
+      await expect(body, `client canvas in ${scheme} mode`).toHaveCSS(
+        'background-color',
+        tokenColour('bg.canvas', scheme),
+      );
+      await expect(body).toHaveCSS('color', tokenColour('text.primary', scheme));
+      expect(await variable(body, '--radius'), 'client radius').toBe(tokenValue('radius.card'));
+      expect(await variable(body, '--muted-foreground'), `client secondary in ${scheme} mode`).toBe(
+        schemeValue('color.web.client.secondary', scheme),
+      );
+      await expect(card).toHaveCSS('background-color', tokenColour('bg.surface', scheme));
+      await expect(card).toHaveCSS('border-radius', tokenValue('radius.card'));
+
+      // Glass: the glass token's fill, blurred.
+      await expect(glass).toHaveCSS('background-color', schemeValue('color.web.glass-bg', scheme));
+      await expect(glass).toHaveCSS('backdrop-filter', /^blur\(/);
+      await expectNoAxeViolations(page, `the client theme in ${scheme} mode`);
+    }
+  });
+
+  test('F064: the website is the client theme on its own body, from tokens, in light and dark', async ({
+    page,
+  }) => {
+    for (const scheme of colorSchemes) {
+      await page.emulateMedia({ colorScheme: scheme });
+      for (const path of ['/', '/en']) {
+        await page.goto(path);
+        const body = page.locator('body');
+
+        await expect(body).toHaveAttribute('data-theme', 'client');
+        await expect(body).toHaveAttribute('data-density', 'touch');
+        await expect(body, `canvas in ${scheme} mode`).toHaveCSS(
+          'background-color',
+          tokenColour('bg.canvas', scheme),
+        );
+        await expect(body).toHaveCSS('color', tokenColour('text.primary', scheme));
+        await expect(page.getByRole('banner'), `glass header in ${scheme} mode`).toHaveCSS(
+          'background-color',
+          schemeValue('color.web.glass-bg', scheme),
+        );
+        // The system stack, no web font.
+        await expect(body).toHaveCSS('font-family', await tokenFontStack(page, 'font.family.text'));
+      }
+    }
+  });
+
+  test('AC14: the focus ring of a row in an inset list is drawn inside the clipped list', async ({
+    page,
+  }) => {
+    await openSignInPage(page, 'light');
+    await page.evaluate(() => {
+      const list = document.createElement('ul');
+      list.dataset.slot = 'inset-list';
+      list.className = 'overflow-hidden rounded-card';
+      list.innerHTML = '<li><button id="probe-row" type="button">Anna</button></li>';
+      document.body.prepend(list);
+    });
+    await page.keyboard.press('Tab');
+    const row = page.locator('#probe-row');
+
+    await expect(row).toBeFocused();
+    await expect(row).toHaveCSS('outline-offset', '-2px');
+    await expect(row).toHaveCSS('outline-style', 'solid');
+  });
+});
+
+/** The value a colour token declares for a mode, as written in tokens.css (`#6c6c70`, `rgba(…)`). */
+function schemeValue(token: string, scheme: ColorScheme): string {
+  const value =
+    (scheme === 'dark' && declaredValue(darkCss, token)) || declaredValue(lightCss, token);
+  if (!value) throw new Error(`No ${scheme} value for ${token} in tokens.css`);
+  return value;
+}
+
+/** A custom property as the browser computes it on an element. */
+async function variable(element: Locator, name: string): Promise<string> {
+  return await element.evaluate(
+    (node, property) => getComputedStyle(node).getPropertyValue(property).trim(),
+    name,
+  );
+}
+
+/** Appends a `<p>` to the first element matching `parent`, to read the text size it inherits. */
+async function probeIn(page: Page, parent: string, text: string): Promise<Locator> {
+  await page.evaluate(
+    ([selector, content]) => {
+      const element = document.createElement('p');
+      element.id = 'probe-inherited';
+      element.textContent = content as string;
+      document.querySelector(selector as string)?.append(element);
+    },
+    [parent, text],
+  );
+  return page.locator('#probe-inherited');
+}
+
+/** Appends a `<div>` with the classes to the page, to read what they compute to. */
+async function probe(page: Page, classes: string, text: string): Promise<Locator> {
+  const id = `probe-${classes.replaceAll(/\W+/g, '-')}`;
+  await page.evaluate(
+    ([className, content, probeId]) => {
+      const element = document.createElement('div');
+      element.id = probeId as string;
+      element.className = className as string;
+      element.textContent = content as string;
+      document.body.append(element);
+    },
+    [classes, text, id],
+  );
+  return page.locator(`#${id}`);
+}

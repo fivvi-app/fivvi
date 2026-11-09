@@ -29,10 +29,12 @@ public extension Tokens {
         public static let xs: CGFloat = 4
         /// Chips, small tags, inputs.
         public static let sm: CGFloat = 8
-        /// Cards, list groups (iOS inset grouped list ~10–12).
+        /// Cards and list groups on the trainer web (shadcn --radius, 12), iOS inset grouped list ~10-12.
         public static let md: CGFloat = 12
         /// Prominent cards (next-up session), large buttons in the logger.
         public static let lg: CGFloat = 16
+        /// Cards and inset grouped lists (the v2 look). 28 on Android.
+        public static let card: CGFloat = 26
         /// Bottom sheets and dialogs (top corners).
         public static let xl: CGFloat = 28
         /// Pills: M3 buttons, status chips, avatars.
