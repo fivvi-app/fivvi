@@ -418,6 +418,27 @@
     "haveLink": "Heb je de link al? Open hem op deze telefoon.",
     "teamHint": "Ben je trainer of eigenaar? Gebruik de app Fivvi Pro."
   },
+  "offers": {
+    "summary": {
+      "classesPerWeek": "{count, plural, one {# les per week} other {# lessen per week}}",
+      "months": "{count, plural, one {# maand} other {# maanden}}",
+      "weeks": "{count, plural, one {# week} other {# weken}}",
+      "days": "{count, plural, one {# dag} other {# dagen}}",
+      "groupCredits": "{count, plural, one {# groepscredit} other {# groepscredits}}",
+      "privateCredits": "{count, plural, one {# privécredit} other {# privécredits}}",
+      "creditsEveryMonth": "{credits} per maand",
+      "creditsEveryFourWeeks": "{credits} per 4 weken",
+      "validFor": "{duration} geldig",
+      "minimumTerm": "minimaal {duration}",
+      "pricePerMonth": "{amount} per maand",
+      "pricePerFourWeeks": "{amount} per 4 weken",
+      "singleClass": "1 groepsles"
+    },
+    "cancellation": {
+      "upTo": "{count, plural, one {Je kunt tot # uur van tevoren gratis annuleren.} other {Je kunt tot # uur van tevoren gratis annuleren.}}",
+      "untilStart": "Je kunt tot de start gratis annuleren."
+    }
+  },
   "site": {
     "meta": {
       "homeTitle": "Fivvi: software voor personal trainers, studio's en sportscholen",
