@@ -712,12 +712,12 @@ cmd_finish() {
 
 # The run lock (spec #292, scheduled runs). One line: the time it was taken or last refreshed (ISO-8601 UTC), who took it
 # and the run id that acquire printed (`<time> <user@host> pid <n> run <id>`); refresh and release must be given that id,
-# so a run never renews or frees the lock of another. Written to a temporary file and linked into place (`ln` fails when
-# the lock exists), so a second run never sees a half-written lock and only one of two racing runs wins. An expired lock,
-# and the lock a refresh replaces, is first seized: renamed to a name of this run alone (only one run can win a rename),
-# and its line compared with the line that was read. A run that seized a different lock (another run was faster) puts it
-# back with `ln` and loses. Known limit (ADR-023): in the milliseconds between a wrong seize and the put-back a third run
-# could take the free lock; it needs three runs within a few milliseconds, 3 hours after a crash.
+# so a run never renews or frees the lock of another. The lock is written to a temporary file and renamed into place, so
+# a reader never sees a half-written lock or a missing one while it is replaced. Every change (acquire, a takeover of an
+# expired lock, refresh, release) reads the lock, decides and writes inside one critical section, guarded by a kernel lock
+# (flock) on a file next to the lock (`<lock>.mutex`), so of racing runs exactly one wins and a refresh and a takeover
+# never both succeed (#1250). The kernel frees that lock when its holder exits or dies, so it is never stale, never
+# broken by hand, and the mutex file that stays behind is harmless. Needs perl (on macOS and Linux by default).
 LOCK_TTL=$((3 * 3600))
 lock_file() { echo "${FIVVI_RUN_LOCK:-$NOTES_DIR/factory.lock}"; }
 
@@ -755,18 +755,18 @@ lock_require_own() {
     || die "the run lock is held by another run ($file; it records $([ -n "$LOCK_RUN" ] && echo "run $LOCK_RUN" || echo "no run id")): not touching it"
 }
 
-# Renames the lock to a name of this run alone and succeeds only when it is the lock whose line is $1. When it was
-# another lock (another run replaced it after it was read), puts that one back and fails. Leaves the seized file in
-# $LOCK_SEIZED for the caller to remove.
-lock_seize() {
-  local file expected="$1"
-  file="$(lock_file)"
-  LOCK_SEIZED="$file.seized.$$"
-  mv "$file" "$LOCK_SEIZED" 2>/dev/null || return 1
-  if [ "$(head -n 1 "$LOCK_SEIZED")" = "$expected" ]; then return 0; fi
-  ln "$LOCK_SEIZED" "$file" 2>/dev/null || true
-  rm -f "$LOCK_SEIZED"
-  return 1
+# Takes the mutex of the lock file $1: an exclusive kernel lock (flock, through perl, which macOS and Linux both have) on
+# the file `<lock>.mutex`, held on file descriptor 9 until this script exits. Waits up to FIVVI_LOCK_WAIT seconds
+# (default 30) for the run that holds it. The kernel frees the lock when its holder exits or dies, however it dies, so
+# nothing is ever stale and nothing is ever broken by hand; the mutex file itself stays, empty but for the pid of its
+# last holder (informational), and is never removed, because removing a lock file lets a second run lock a new one.
+lock_mutex_take() {
+  local mutex="$1.mutex" wait="${FIVVI_LOCK_WAIT:-30}"
+  mkdir -p "$(dirname "$1")"
+  exec 9>>"$mutex" || die "cannot open the run lock mutex $mutex"
+  perl -MFcntl=:flock -e 'open(my $f, "<&=", 9) or exit 2; alarm $ARGV[0]; flock($f, LOCK_EX) or exit 1' "$wait" \
+    || die "the run lock is busy: $mutex is held by pid $(head -n 1 "$mutex" 2>/dev/null || echo unknown); try again once that run is done"
+  echo "$$" >"$mutex"
 }
 
 cmd_lock() {
@@ -786,6 +786,7 @@ cmd_lock() {
         expired) echo "run lock: expired, last set $(lock_age_text "$LOCK_AGE") ago ($file); the next run takes it over" ;;
       esac ;;
     acquire)
+      lock_mutex_take "$file"
       lock_read
       [ "$LOCK_STATE" != live ] \
         || die "another factory run is live: its lock was taken or refreshed $(lock_age_text "$LOCK_AGE") ago and expires 3h after that ($file). Report it and stop; claim nothing"
@@ -794,41 +795,23 @@ cmd_lock() {
       tmp="$(mktemp "$file.XXXXXX")"
       run="$(od -An -N8 -tx1 /dev/urandom | tr -d ' \n')"
       printf '%s %s@%s pid %s run %s\n' "$now" "${USER:-unknown}" "$(hostname -s 2>/dev/null || echo host)" "$$" "$run" >"$tmp"
+      mv -f "$tmp" "$file"
       if [ "$LOCK_STATE" = expired ]; then
-        if ! lock_seize "$LOCK_LINE"; then
-          rm -f "$tmp"
-          die "another factory run took the lock just now ($file). Report it and stop; claim nothing"
-        fi
-        rm -f "$LOCK_SEIZED"
         echo "run lock: the previous one expired ($(lock_age_text "$LOCK_AGE") old); taking over"
       fi
-      if ! ln "$tmp" "$file" 2>/dev/null; then
-        rm -f "$tmp"
-        die "another factory run took the lock just now ($file). Report it and stop; claim nothing"
-      fi
-      rm -f "$tmp"
       echo "run lock acquired ($file)"
       echo "run id: $run" ;;
     refresh)
+      lock_mutex_take "$file"
       lock_read
       lock_require_own "$file" "${2:-}" refresh
       now="$(jq -rn --argjson e "$(now_epoch)" '$e | todate')"
       tmp="$(mktemp "$file.XXXXXX")"
       { printf '%s ' "$now"; cut -d' ' -f2- <<<"$LOCK_LINE"; } >"$tmp"
-      # Seize the lock that was read and link the new one in its place: if another run took the lock over in between,
-      # the refresh fails instead of overwriting theirs.
-      if ! lock_seize "$LOCK_LINE"; then
-        rm -f "$tmp"
-        die "the run lock was taken by another run just now ($file): stop, claim nothing, do not release"
-      fi
-      rm -f "$LOCK_SEIZED"
-      if ! ln "$tmp" "$file" 2>/dev/null; then
-        rm -f "$tmp"
-        die "the run lock was taken by another run just now ($file): stop, claim nothing, do not release"
-      fi
-      rm -f "$tmp"
+      mv -f "$tmp" "$file"
       echo "run lock refreshed ($file)" ;;
     release)
+      lock_mutex_take "$file"
       if [ -e "$file" ]; then
         lock_read
         lock_require_own "$file" "${2:-}" release
