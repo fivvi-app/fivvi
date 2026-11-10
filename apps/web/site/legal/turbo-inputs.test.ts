@@ -28,11 +28,12 @@ describe('F064 AC10 the legal texts are inputs of the web build and tests (turbo
     expect(turbo.tasks?.build?.inputs).toEqual(legal);
   });
 
-  // #697: the tests also read the sub-processors list, the registry of features and the brand files.
+  // #697: the tests also read the sub-processors list, the processor agreement, the registry of features and the brand files.
   it('lists them, and the other files of docs/ the tests read, as inputs of the tests', () => {
     expect(turbo.tasks?.test?.inputs).toEqual([
       ...legal,
       '$TURBO_ROOT$/docs/legal/sub-processors.md',
+      '$TURBO_ROOT$/docs/legal/verwerkersovereenkomst.md',
       '$TURBO_ROOT$/docs/product/FEATURES.md',
       '$TURBO_ROOT$/docs/design/brand/*.svg',
     ]);

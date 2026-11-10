@@ -60,14 +60,14 @@ const INPUT_OF_PACKAGE = new Map([['compose.yaml', '@fivvi/database']]);
 
 // Files of docs/ that are the input of a package's tests or build, not documentation: the web app renders the privacy
 // policy and the terms when it is built (F064, AC10), so an open value in one must fail the web build and tests here,
-// not on Railway after the merge; its tests read the sub-processors list (F064 AC11), the registry of features (the
-// claims of the site) and the SVG files at the top of docs/design/brand (the icons, the Open Graph image) (#697). To
-// add one: a pattern here, and the same file in the "inputs" of the task in apps/web/turbo.json (the cache).
+// not on Railway after the merge; its tests read the sub-processors list (F064 AC11), the processor agreement (E006),
+// the registry of features (the claims of the site) and the SVG files at the top of docs/design/brand (the icons, the
+// Open Graph image) (#697). To add one: a pattern here, and the same file in the "inputs" of the task in apps/web/turbo.json (the cache).
 // scripts/test/affected.test.mjs scans apps/web for the files of docs/ its code reads and fails when one is missing
 // here.
 const DOCS_INPUT_OF_PACKAGE = [
   [/^docs\/legal\/(privacy-policy|terms)\.(nl|en)\.md$/, WEB],
-  [/^docs\/legal\/sub-processors\.md$/, WEB],
+  [/^docs\/legal\/(sub-processors|verwerkersovereenkomst)\.md$/, WEB],
   [/^docs\/product\/FEATURES\.md$/, WEB],
   [/^docs\/design\/brand\/[^/]+\.svg$/, WEB],
 ];

@@ -150,8 +150,12 @@ describe('#293 AC3 AC4: packages and their dependents', () => {
     }
   });
 
-  it('#697: the sub-processors list and the registry are inputs of the web tests, which read them', () => {
-    for (const path of ['docs/legal/sub-processors.md', 'docs/product/FEATURES.md']) {
+  it('#697: the sub-processors list, the processor agreement and the registry are inputs of the web tests, which read them', () => {
+    for (const path of [
+      'docs/legal/sub-processors.md',
+      'docs/legal/verwerkersovereenkomst.md',
+      'docs/product/FEATURES.md',
+    ]) {
       const result = decide([path]);
       assert.deepEqual(result.packages, ['@fivvi/web'], path);
       assert.equal(result.e2e, true, path);
@@ -163,6 +167,7 @@ describe('#293 AC3 AC4: packages and their dependents', () => {
   it('#697: the registry is still read by the root tests too', () => {
     assert.equal(decide(['docs/product/FEATURES.md']).root, true);
     assert.equal(decide(['docs/legal/sub-processors.md']).root, false);
+    assert.equal(decide(['docs/legal/verwerkersovereenkomst.md']).root, false);
   });
 
   it('#697: the brand SVGs run the web tests; the README and the archive of the brand folder stay documentation', () => {
