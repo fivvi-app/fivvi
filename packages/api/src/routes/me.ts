@@ -1,7 +1,9 @@
 import {
+  findBookingEmails,
   listTeamWorkspaces,
   type SignedInAccount,
   setAccountName,
+  setBookingEmails,
   setPreferredLocale,
 } from '@fivvi/database';
 import {
@@ -55,6 +57,12 @@ export const MeResponseSchema = z
     }),
     preferredLocale: z.enum(locales).nullable().openapi({
       description: 'The language stored on the account; null until one is stored.',
+    }),
+    bookingEmails: z.boolean().openapi({
+      description:
+        'Whether the person gets an email when a client books or cancels a class they teach ' +
+        '(F050). On for every account until they switch it off. It belongs to the account, so it ' +
+        'is the same in every workspace.',
     }),
     canCreateWorkspace: z.boolean().openapi({
       description:
@@ -142,6 +150,15 @@ const UpdateMeRequestSchema = z
           'The language to store on the account, for its screens and emails: `nl-NL` or `en`. ' +
           'Any other value, a browser’s `nl-BE` included, is refused with `400`.',
       }),
+    bookingEmails: z
+      .boolean()
+      .optional()
+      .openapi({
+        description:
+          'Whether to get an email when a client books or cancels a class the person teaches: ' +
+          '`true` or `false`, stored on the account and the same in every workspace. Anything ' +
+          'that is not a boolean answers `400` with a field error.',
+      }),
     surface: z
       .enum(['ios', 'android'])
       .optional()
@@ -167,9 +184,10 @@ const updateMeRoute = defineRoute(
     description:
       'Stores the language the person chose (`preferredLocale`), so every browser and app of the ' +
       'account shows it from its next load, and the name they gave themselves (`name`), one per ' +
-      'account, shown in every workspace they are on. Answers with the account, as ' +
-      '`GET /v1/me` does. A language other than `nl-NL` or `en`, or a name that is empty, blank ' +
-      'or over 80 characters, answers `400` and nothing changes.',
+      'account, shown in every workspace they are on, and whether they get the emails about bookings ' +
+      'in their classes (`bookingEmails`, on until switched off), also one per account. Answers with the account, as ' +
+      '`GET /v1/me` does. A language other than `nl-NL` or `en`, a name that is empty, blank ' +
+      'or over 80 characters, or a `bookingEmails` that is not a boolean, answers `400` and nothing changes.',
     security: SIGNED_IN,
     request: {
       body: {
@@ -344,6 +362,7 @@ export function registerMe(app: OpenAPIHono) {
       email,
       name: name === '' ? null : name,
       preferredLocale,
+      bookingEmails: await findBookingEmails(c.get('scope')),
       canCreateWorkspace: mayCreate,
       workspaces,
     };
@@ -359,13 +378,15 @@ export function registerMe(app: OpenAPIHono) {
     );
   });
   me.openapi(updateMeRoute, async (c) => {
-    const { name, preferredLocale, surface } = c.req.valid('json');
+    const { name, preferredLocale, bookingEmails, surface } = c.req.valid('json');
     let account = c.get('account');
     // No product event for a name, and nothing of it in a log: it is personal data (F005).
     if (name !== undefined) {
       await setAccountName(c.get('scope'), name);
       account = { ...account, name };
     }
+    // No product event for the switch either: it is the person's own inbox setting (F050).
+    if (bookingEmails !== undefined) await setBookingEmails(c.get('scope'), bookingEmails);
     if (preferredLocale !== undefined) {
       await setPreferredLocale(c.get('scope'), preferredLocale);
       account = { ...account, preferredLocale };
