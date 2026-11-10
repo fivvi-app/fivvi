@@ -19,6 +19,8 @@ import type { Context } from 'hono';
 import { type AccessEnv, defineRoute } from '../access.ts';
 import {
   answerValidationFailure,
+  INVALID_OR_EXPIRED_CODE,
+  InvalidCodeSchema,
   internalServerErrorResponse,
   validationErrorResponse,
 } from '../errors.ts';
@@ -187,6 +189,112 @@ const updateMeRoute = defineRoute(
   { type: 'account', workspaces: 'team' },
 );
 
+const RequestEmailChangeSchema = z
+  .object({
+    newEmail: z
+      .string()
+      .trim()
+      .toLowerCase()
+      .pipe(z.email())
+      .openapi({
+        description:
+          'The new address, trimmed and stored in lower case. Not an address, or the account’s ' +
+          'own current one, answers `400` with a field error on `newEmail`.',
+      }),
+  })
+  .openapi('RequestEmailChange', {
+    description: 'The address to send the confirmation code to.',
+  });
+
+const ConfirmEmailChangeSchema = z
+  .object({
+    code: z
+      .string()
+      .trim()
+      .min(1)
+      .max(32)
+      .openapi({ description: 'The 6-digit code in the email sent to the new address.' }),
+    surface: z
+      .enum(['ios', 'android'])
+      .optional()
+      .openapi({
+        description:
+          'The app that sends the request: `ios` or `android`. A request with a bearer token ' +
+          'records the `email_changed` event with this surface; without it nothing is recorded. ' +
+          'The web does not send it, and a request without a bearer token ignores it.',
+      }),
+  })
+  .openapi('ConfirmEmailChange', {
+    description: 'The code that confirms the new address.',
+  });
+
+const requestEmailChangeRoute = defineRoute(
+  {
+    method: 'post',
+    path: '/v1/me/email/change',
+    operationId: 'requestEmailChange',
+    tags: ['me'],
+    summary: 'Ask for a code to change the signed-in account’s email address',
+    description:
+      'Sends a 6-digit code to the new address (EM-34), in the account’s language. The address ' +
+      'does not change until `POST /v1/me/email/confirm` accepts the code. The answer is `202` ' +
+      'for every valid address, one that already has an account, and a request over the rate ' +
+      'limits (3 in 15 minutes per account and per address, 20 an hour per network, as for ' +
+      'sign-in), so it never says who has an account; only a free address under the limits gets ' +
+      'an email. A new request replaces the earlier code. It acts on the signed-in account ' +
+      'alone: no route changes anyone else’s address.',
+    security: SIGNED_IN,
+    request: {
+      body: {
+        required: true,
+        content: { 'application/json': { schema: RequestEmailChangeSchema } },
+      },
+    },
+    responses: {
+      202: { description: 'Accepted. The body is empty.' },
+      400: validationErrorResponse,
+      500: internalServerErrorResponse,
+    },
+  },
+  { type: 'account', workspaces: 'team' },
+);
+
+const confirmEmailChangeRoute = defineRoute(
+  {
+    method: 'post',
+    path: '/v1/me/email/confirm',
+    operationId: 'confirmEmailChange',
+    tags: ['me'],
+    summary: 'Confirm the code and change the signed-in account’s email address',
+    description:
+      'With the right code the account’s address becomes the one the code was sent to, in every ' +
+      'workspace at once, and every open sign-in session stays signed in. The sign-in codes and ' +
+      'links sent to the old address stop working. Answers with the account, as `GET /v1/me` ' +
+      'does. A wrong, used, replaced or expired code, five wrong codes, an address that has an ' +
+      'account by now and a network over its limit all answer `422` and nothing changes.',
+    security: SIGNED_IN,
+    request: {
+      body: {
+        required: true,
+        content: { 'application/json': { schema: ConfirmEmailChangeSchema } },
+      },
+    },
+    responses: {
+      200: {
+        description: 'The account with its new address.',
+        content: { 'application/json': { schema: MeResponseSchema } },
+      },
+      400: validationErrorResponse,
+      422: {
+        description: 'The code was not accepted.',
+        content: { 'application/json': { schema: InvalidCodeSchema } },
+      },
+      500: internalServerErrorResponse,
+    },
+  },
+  { type: 'account', workspaces: 'team' },
+);
+
 const listMyWorkspacesRoute = defineRoute(
   {
     method: 'get',
@@ -274,6 +382,50 @@ export function registerMe(app: OpenAPIHono) {
       }
     }
     return c.json(await meOf(c, account), 200);
+  });
+  me.openapi(requestEmailChangeRoute, async (c) => {
+    const { newEmail } = c.req.valid('json');
+    const account = c.get('account');
+    // Her own address is no change: a field error, and nothing is sent (the address is hers).
+    if (newEmail === account.email) {
+      return c.json(
+        {
+          code: 'validation_failed' as const,
+          issues: [{ path: 'newEmail', code: 'same_as_current' }],
+        },
+        400,
+      );
+    }
+    await c.get('dependencies').requestEmailChange({
+      accountId: account.id,
+      newEmail,
+      headers: c.req.raw.headers,
+    });
+    return c.body(null, 202);
+  });
+  me.openapi(confirmEmailChangeRoute, async (c) => {
+    const { code, surface } = c.req.valid('json');
+    const account = c.get('account');
+    const dependencies = c.get('dependencies');
+    const changed = await dependencies.confirmEmailChange({
+      accountId: account.id,
+      code,
+      headers: c.req.raw.headers,
+    });
+    if (!changed) return c.json(INVALID_OR_EXPIRED_CODE, 422);
+    // The surface only, never an address, the code or the name (OBSERVABILITY.md §4). The web
+    // sends no bearer token; an app names its surface, and one that names none records nothing.
+    const appSurface = c.req.header('authorization') ? surface : 'web';
+    if (appSurface !== undefined) {
+      c.get('afterCommit')(() =>
+        dependencies.productEvents.track({
+          event: 'email_changed',
+          distinctId: account.id,
+          properties: { surface: appSurface },
+        }),
+      );
+    }
+    return c.json(await meOf(c, { ...account, email: changed.email }), 200);
   });
   app.route('/', me);
 }

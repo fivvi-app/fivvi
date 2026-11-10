@@ -40,6 +40,25 @@ export interface ApiDependencies {
     code: string;
     headers: Headers;
   }): Promise<string | undefined>;
+  /**
+   * Asks for the code that confirms a new email address of the signed-in account (F005, spec
+   * #610): `@fivvi/auth`'s `requestEmailChange`. The same outcome for every address, over a rate
+   * limit or not; the email follows after the answer. `newEmail` is trimmed and lower case.
+   */
+  requestEmailChange(input: {
+    accountId: string;
+    newEmail: string;
+    headers: Headers;
+  }): Promise<void>;
+  /**
+   * Confirms that code and changes the account's address; `undefined` for every failure.
+   * `@fivvi/auth`'s `confirmEmailChange`.
+   */
+  confirmEmailChange(input: {
+    accountId: string;
+    code: string;
+    headers: Headers;
+  }): Promise<{ email: string } | undefined>;
   /** Ends the sign-in session of the request's bearer token; `false` without a valid one. */
   signOutBearer(headers: Headers): Promise<boolean>;
   /**
@@ -120,6 +139,8 @@ export const NO_DEPENDENCIES: ApiDependencies = {
   requestSignIn: () => Promise.resolve(),
   exchangeSignInCode: () => Promise.resolve(undefined),
   signOutBearer: () => Promise.resolve(false),
+  requestEmailChange: () => Promise.resolve(),
+  confirmEmailChange: () => Promise.resolve(undefined),
   // Nothing is sent.
   sendTrainerInvitation: () => Promise.reject(new Error('No email configured.')),
   sendPrivateSession: () => Promise.reject(new Error('No email configured.')),

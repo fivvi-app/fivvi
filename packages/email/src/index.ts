@@ -49,6 +49,8 @@ export {
 export {
   type DemoRequestEmailProps,
   demoRequestEmail,
+  type EmailChangeCodeEmailProps,
+  emailChangeCodeEmail,
   type HelloEmailProps,
   helloEmail,
   type PrivateSessionEmailProps,

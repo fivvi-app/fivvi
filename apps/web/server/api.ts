@@ -79,6 +79,9 @@ export const apiHandler = createApiHandler({
   requestSignIn: (input) => auth().requestSignIn(input),
   exchangeSignInCode: (input) => auth().exchangeSignInCode(input),
   signOutBearer: (headers) => auth().signOutBearer(headers),
+  // Changing one's own email address with a code sent to the new one (F005, spec #610).
+  requestEmailChange: (input) => auth().requestEmailChange(input),
+  confirmEmailChange: (input) => auth().confirmEmailChange(input),
   // Who may create a workspace builds on who may sign up (F002): the allowlist sign-in parsed.
   signUpAllowlist: { allows: (email) => signUpAllowlist().allows(email) },
   // Emails the trainer invitation (F011).

@@ -78,7 +78,7 @@ export const REQUEST_PATH = '/sign-in/code/request';
 const IDENTIFIER_PREFIX = 'sign-in:';
 
 /** `sign-in:<email>`: one verification per address, so a new request replaces the old one. */
-const identifierFor = (email: string) => `${IDENTIFIER_PREFIX}${email}`;
+export const identifierFor = (email: string) => `${IDENTIFIER_PREFIX}${email}`;
 
 /** The endpoints (under `/api/auth`) of the confirm step: what the link is for, and the button. */
 const LINK_PREVIEW_ENDPOINT = '/sign-in/link/preview';
@@ -95,12 +95,33 @@ const emailOf = (identifier: string) =>
  * The row of `auth_verifications` as the plugin reads it: Better Auth's types lack the plugin's
  * own columns, which are optional here because they are read from untyped storage.
  */
-type Verification = NonNullable<
+export type Verification = NonNullable<
   Awaited<ReturnType<GenericEndpointContext['context']['internalAdapter']['findVerificationValue']>>
 > & { codeHash?: unknown; locale?: unknown; failedAttempts?: unknown };
 
+/**
+ * The newest verification of `identifier` if it can still be used: not expired by the injected
+ * clock and under the wrong-code limit. There is no unique index on the identifier (a request
+ * replaces by delete and insert), so two parallel requests can leave two rows: the newest one
+ * is the verification, for the code and for the link. Shared with the email change, which keeps
+ * its codes in the same table.
+ */
+export async function findLiveVerification(
+  ctx: GenericEndpointContext,
+  identifier: string,
+  clock: Clock,
+): Promise<Verification | null> {
+  const verification: Verification | null =
+    await ctx.context.internalAdapter.findVerificationValue(identifier);
+  if (!verification) return null;
+  if (verification.expiresAt.getTime() <= clock.now().getTime()) return null;
+  const { failedAttempts } = verification;
+  if (typeof failedAttempts === 'number' && failedAttempts >= MAX_WRONG_CODES) return null;
+  return verification;
+}
+
 /** One answer for a wrong, expired, used or never issued code: no message says which. */
-const rejectedCode = () =>
+export const rejectedCode = () =>
   new APIError('UNAUTHORIZED', {
     code: 'INVALID_OR_EXPIRED_CODE',
     message: 'The code is incorrect or has expired.',
@@ -151,24 +172,8 @@ export function signInWithEmail({
     return signUpAllowlist.allows(email) || (await isInvitedEmail(email, clock.now()));
   }
 
-  /**
-   * The newest verification of `identifier` if it can still be used: not expired by the injected
-   * clock and under the wrong-code limit. There is no unique index on the identifier (a request
-   * replaces by delete and insert), so two parallel requests can leave two rows: the newest one
-   * is the verification, for the code and for the link.
-   */
-  async function findLiveVerification(
-    ctx: GenericEndpointContext,
-    identifier: string,
-  ): Promise<Verification | null> {
-    const verification: Verification | null =
-      await ctx.context.internalAdapter.findVerificationValue(identifier);
-    if (!verification) return null;
-    if (verification.expiresAt.getTime() <= clock.now().getTime()) return null;
-    const { failedAttempts } = verification;
-    if (typeof failedAttempts === 'number' && failedAttempts >= MAX_WRONG_CODES) return null;
-    return verification;
-  }
+  const findLive = (ctx: GenericEndpointContext, identifier: string) =>
+    findLiveVerification(ctx, identifier, clock);
 
   /** The live verification a link token belongs to, found by the hash of the token, with its address. */
   async function findLinkVerification(ctx: GenericEndpointContext, token: string) {
@@ -179,7 +184,7 @@ export function signInWithEmail({
     const email = row ? emailOf(row.identifier) : undefined;
     if (!row || !email) return null;
     // A replaced link is not the newest verification of its address any more.
-    const verification = await findLiveVerification(ctx, row.identifier);
+    const verification = await findLive(ctx, row.identifier);
     return verification?.id === row.id ? { verification, email } : null;
   }
 
@@ -381,7 +386,7 @@ export function signInWithEmail({
         },
         async (ctx) => {
           const { email, code } = ctx.body;
-          const verification = await findLiveVerification(ctx, identifierFor(email));
+          const verification = await findLive(ctx, identifierFor(email));
           if (!verification) throw rejectedCode();
           const stored = verification.codeHash;
           if (
