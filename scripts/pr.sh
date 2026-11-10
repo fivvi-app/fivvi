@@ -80,10 +80,10 @@ PREVIEW_SKIPPED="No deployment needed"
 # How long wait waits for CI, in minutes. The native jobs get longer: a passing iOS run can take, by the timeouts in
 # ci.yml (the "iOS tests" comment), Detect changes 5 + iOS build 12 + iOS tests 38 + the gate job 2 = 57 min, and Android
 # the same by its own (5 + 20 + 30 + 2). When no runner takes the iOS build or a test pass (#1268), each is tried once
-# more and each try may wait 15 min for a runner: 119 min (the comment above ios-build-retry); 130 outlasts all, so wait
+# more and each try may wait 15 min for a runner: 142 min (the comment above ios-build-retry); 155 outlasts all, so wait
 # does not give up on a run that still passes.
 WAIT_MINUTES=20
-WAIT_MINUTES_NATIVE=130
+WAIT_MINUTES_NATIVE=155
 # The gates are the required checks iOS and Android; their parts (iOS build, iOS tests (nl), Android Maestro, ...) start with the
 # same word (#293).
 NATIVE_JOBS=(iOS Android)

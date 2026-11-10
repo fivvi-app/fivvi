@@ -320,7 +320,7 @@ jobs:
     # The longest build of the last 10 green runs took 322 s (5.4 min), so 12 minutes is 2.2 times that (#393).
     # Detect changes (5) + this (12) + iOS tests (38) + the report job (2) = 57, under the merge queue's check
     # timeout (ADR-018). If no runner takes this job, GitHub cancels it after 15 minutes and ios-build-retry builds once
-    # more (see there for the longest chain, 119, and the queue's 125).
+    # more (see there for the longest chain, 142, and the queue's 150).
     timeout-minutes: 12
     permissions:
       contents: read
@@ -411,10 +411,11 @@ jobs:
   # and `needs.<job>.result` is `abandoned`. This builds once more, with the same steps (a test compares them), and the
   # tests start from whichever build succeeded; a run that somebody cancelled is not retried. A test pass that got no
   # runner is retried too (ios-tests-plan, ios-tests-retry below), and only that language, from the bundle that already
-  # exists. Every retry may itself queue for a runner for 15 minutes. The longest chain by the timeouts is therefore
-  # Detect changes 5 + (15 wait + 15 wait + 12 build) + (15 wait + 2 plan + 15 wait + 38 tests) + the gate 2 = 119
-  # minutes, so the merge queue's check timeout is 125 (ADR-018), applied with `scripts/github-settings.sh apply`, and
-  # `pr.sh wait` gives a native run 130.
+  # exists. Every retry may itself queue for a runner for 15 minutes, and ios-tests-plan waits for the whole ios-tests
+  # matrix, so the other language may run its full 38 minutes before the plan starts. The longest chain by the timeouts
+  # is therefore Detect changes 5 + (15 wait + 15 wait + 12 build) + (38 tests + 2 plan + 15 wait + 38 tests) + the gate
+  # 2 = 142 minutes, so the merge queue's check timeout is 150 (ADR-018), applied with
+  # `scripts/github-settings.sh apply`, and `pr.sh wait` gives a native run 155.
   ios-build-retry:
     name: iOS build (retry)
     needs: [changes, ios-build]
@@ -700,7 +701,7 @@ jobs:
     if: needs.changes.outputs.android == 'true'
     runs-on: ubuntu-24.04
     # Measured 0.8 to 4.6 minutes in the last 46 runs (the slowest: run 41674310293): 12 is
-    # 2.6 x that and keeps the Android chain under the merge queue's 60 (#519).
+    # 2.6 x that and keeps the Android chain under the merge queue's check timeout (150, ADR-018; #519).
     timeout-minutes: 12
     permissions:
       contents: read
