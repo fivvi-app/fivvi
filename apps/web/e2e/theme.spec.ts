@@ -864,4 +864,42 @@ test.describe('E020 trainer web: Trainers and Instellingen', () => {
       await expectNoAxeViolations(page, `Location with a refusal in ${scheme} and ${appLocale}`);
     }
   });
+
+  // AC15 (#590): the trainer web is the compact density, as the prototype draws it
+  // (`.w-input{height:36px}`, 14px text), not the touch density of the public and client pages.
+  test('AC15: the trainer web runs at the compact density: controls 36px, body text 14px', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    const john = newAddress('john');
+    const sarah = newAddress('sarah');
+    await createAccount(john, undefined, 'John');
+    await createAccount(sarah, undefined, 'Sarah');
+    const slug = await createGymWithTrainer(john, "John's Gym", 'owner');
+    await joinTeam(sarah, slug, 'trainer');
+    await signInWithSession(context, john);
+
+    // Trainers: the role menu and the Remove button, and the text of a row.
+    await page.goto(`/w/${slug}/trainers`);
+    await expect(page.getByRole('heading', { level: 1, name: copy.team.title })).toBeVisible();
+    await expect(page.getByLabel(copy.team.roleMenu.replace('{name}', 'Sarah'))).toHaveCSS(
+      'height',
+      '36px',
+    );
+    await expect(page.getByRole('button', { name: copy.team.remove })).toHaveCSS('height', '36px');
+    await expect(page.getByRole('table').getByRole('cell').first()).toHaveCSS('font-size', '14px');
+
+    // General: the Input, the Save Button, and the text of the card.
+    await page.goto(`/w/${slug}/settings/general`);
+    await expect(
+      page.getByRole('heading', { level: 2, name: copy.settingsGeneral.title }),
+    ).toBeVisible();
+    await expect(page.getByLabel(copy.settingsGeneral.nameLabel)).toHaveCSS('height', '36px');
+    await expect(page.getByRole('button', { name: copy.settingsGeneral.save })).toHaveCSS(
+      'height',
+      '36px',
+    );
+    await expect(page.locator('[data-slot="card"] label').first()).toHaveCSS('font-size', '14px');
+  });
 });

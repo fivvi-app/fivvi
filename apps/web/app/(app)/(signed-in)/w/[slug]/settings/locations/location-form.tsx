@@ -13,11 +13,11 @@ import {
 } from '@fivvi/ui/components/card';
 import { ErrorLine } from '@fivvi/ui/kit/error-line';
 import { Field } from '@fivvi/ui/kit/field';
-import { PageShell } from '@fivvi/ui/kit/page-shell';
 import { SuccessLine } from '@fivvi/ui/kit/success-line';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { SettingsPage } from '../settings-page';
 import { clearLookupFilled, type FilledAddress, fillFromLookup } from './fill-from-lookup';
 import {
   type AddressQuery,
@@ -83,7 +83,6 @@ export function LocationForm({
   address: Location['address'];
 }) {
   const t = useTranslations('settingsLocation');
-  const tNav = useTranslations('workspaceNav');
   const router = useRouter();
   const [values, setValues] = useState({
     name,
@@ -208,8 +207,7 @@ export function LocationForm({
   const failureMessage = failure ? t(`errors.${failure}`) : null;
 
   return (
-    <PageShell>
-      <h1 className="text-xl font-semibold tracking-tight">{tNav('settings')}</h1>
+    <SettingsPage>
       <Card>
         <form noValidate onSubmit={submit} className="grid gap-(--card-spacing)">
           <CardHeader>
@@ -309,6 +307,6 @@ export function LocationForm({
           </CardContent>
         </form>
       </Card>
-    </PageShell>
+    </SettingsPage>
   );
 }

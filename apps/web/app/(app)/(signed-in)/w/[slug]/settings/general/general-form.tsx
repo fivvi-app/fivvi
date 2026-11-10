@@ -12,11 +12,11 @@ import {
 } from '@fivvi/ui/components/card';
 import { ErrorLine } from '@fivvi/ui/kit/error-line';
 import { Field } from '@fivvi/ui/kit/field';
-import { PageShell } from '@fivvi/ui/kit/page-shell';
 import { SuccessLine } from '@fivvi/ui/kit/success-line';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useState } from 'react';
+import { SettingsPage } from '../settings-page';
 import { type NameErrorKey, renameWorkspace } from './rename-workspace-client';
 
 /**
@@ -37,7 +37,6 @@ export function GeneralForm({
   timeZone: string;
 }) {
   const t = useTranslations('settingsGeneral');
-  const tNav = useTranslations('workspaceNav');
   const router = useRouter();
   const [error, setError] = useState<NameErrorKey | null>(null);
   const [failure, setFailure] = useState<'noConnection' | 'generic' | null>(null);
@@ -71,8 +70,7 @@ export function GeneralForm({
   const failureMessage = failure ? t(`errors.${failure}`) : null;
 
   return (
-    <PageShell>
-      <h1 className="text-xl font-semibold tracking-tight">{tNav('settings')}</h1>
+    <SettingsPage>
       <Card>
         <form noValidate onSubmit={submit} className="grid gap-(--card-spacing)">
           <CardHeader>
@@ -110,6 +108,6 @@ export function GeneralForm({
           </CardContent>
         </form>
       </Card>
-    </PageShell>
+    </SettingsPage>
   );
 }

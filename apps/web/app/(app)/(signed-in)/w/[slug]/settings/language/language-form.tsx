@@ -12,11 +12,11 @@ import {
   CardTitle,
 } from '@fivvi/ui/components/card';
 import { ErrorLine } from '@fivvi/ui/kit/error-line';
-import { PageShell } from '@fivvi/ui/kit/page-shell';
 import { SuccessLine } from '@fivvi/ui/kit/success-line';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useState } from 'react';
+import { SettingsPage } from '../settings-page';
 import { setDefaultLocale } from './default-locale-client';
 
 /** The two options, always written in their own language (`packages/i18n/GLOSSARY.md` §4.8). */
@@ -38,7 +38,6 @@ export function LanguageForm({
   defaultLocale: Locale;
 }) {
   const t = useTranslations('settingsLanguage');
-  const tNav = useTranslations('workspaceNav');
   const router = useRouter();
   const [failure, setFailure] = useState<'noConnection' | 'generic' | null>(null);
   const [saved, setSaved] = useState(false);
@@ -70,8 +69,7 @@ export function LanguageForm({
   const failureMessage = failure ? t(`errors.${failure}`) : null;
 
   return (
-    <PageShell>
-      <h1 className="text-xl font-semibold tracking-tight">{tNav('settings')}</h1>
+    <SettingsPage>
       <Card>
         <form noValidate onSubmit={submit} className="grid gap-(--card-spacing)">
           <CardHeader>
@@ -108,6 +106,6 @@ export function LanguageForm({
           </CardContent>
         </form>
       </Card>
-    </PageShell>
+    </SettingsPage>
   );
 }
