@@ -1,5 +1,13 @@
 import { createAddressLookup, createApiHandler } from '@fivvi/api';
-import { clientAddressKey, defaultRequireClientIp } from '@fivvi/auth';
+import {
+  clientAddressKey,
+  createPublicRequestLimits,
+  createTurnstileVerifier,
+  defaultRequireClientIp,
+  type PublicRequestLimits,
+  readTurnstileSecret,
+  type TurnstileVerifier,
+} from '@fivvi/auth';
 import {
   consumeRateLimit,
   createTenantScopes,
@@ -23,6 +31,40 @@ import { productEvents } from './product-events';
 // packages/api with the real dependencies. Routes, validation and the contract live in
 // packages/api; this file only wires in the database and observability.
 // Unhandled route errors go to the shared error reporter (Sentry when SENTRY_DSN is set, E009).
+
+let turnstile: TurnstileVerifier | undefined;
+
+/**
+ * The bot check of the public forms (E013): Cloudflare's siteverify with `TURNSTILE_SECRET_KEY`
+ * (Cloudflare's test keys outside production). Created on first use, so `next build` runs without
+ * the variable. A Cloudflare that does not answer is reported to Sentry once a minute at most.
+ */
+function verifyTurnstile(...[token, headers]: Parameters<TurnstileVerifier['verify']>) {
+  turnstile ??= createTurnstileVerifier({
+    secret: readTurnstileSecret(process.env),
+    reportNoAnswer: (error) => errorReporter.captureError(error, { level: 'warning' }),
+    clock: { now: () => new Date() },
+  });
+  return turnstile.verify(token, headers);
+}
+
+let limits: PublicRequestLimits | undefined;
+
+/**
+ * The counters of join requests and booking churn (E013), over the rate-limit table. Created on
+ * first use, so `next build` runs without a database or a secret.
+ */
+function publicRequestLimits(): PublicRequestLimits {
+  limits ??= createPublicRequestLimits({
+    db: database(),
+    secret: readAuthConfig(process.env).secret,
+    clock: { now: () => new Date() },
+    // One line per limited request: the rule, never an address.
+    log: (line) => console.warn(line),
+    requireClientIp: defaultRequireClientIp(process.env),
+  });
+  return limits;
+}
 
 let invitationSender: ReturnType<typeof createTrainerInvitationSender> | undefined;
 
@@ -104,6 +146,13 @@ export const apiHandler = createApiHandler({
       defaultRequireClientIp(process.env),
     ),
   deleteExpiredRateLimits: () => deleteExpiredRateLimits(database(), new Date()),
+  // The public request guard (E013): the bot check and the join-request and booking-churn counters.
+  verifyTurnstile,
+  publicRequestLimits: {
+    joinRequestFromIp: (headers) => publicRequestLimits().joinRequestFromIp(headers),
+    joinRequestFromAccount: (accountId) => publicRequestLimits().joinRequestFromAccount(accountId),
+    bookingAction: (accountId) => publicRequestLimits().bookingAction(accountId),
+  },
   // PDOK in the production environment, the in-memory fake elsewhere; ADDRESS_LOOKUP overrides
   // (ENVIRONMENTS.md §7). Created here, once, so its cache lives as long as the process (F015).
   addressLookup: createAddressLookup(process.env),

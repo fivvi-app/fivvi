@@ -119,4 +119,20 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     locale: property.enum(['nl-NL', 'en']),
     surface: property.enum(['web', 'ios', 'android']),
   },
+  // E013: a public request was refused by one of the guard's rules (spec #467). The rule and the
+  // platform only; the distinct ID is random for each event (`anonymousDistinctId()`), so nothing
+  // leads to the account. No email address, IP address, account ID or workspace name, nothing that
+  // would tell whether an account or a workspace exists.
+  public_request_refused: {
+    rule: property.enum([
+      'turnstile_failed',
+      'turnstile_no_answer',
+      'join_request_ip',
+      'join_request_account',
+      'join_request_pending',
+      'join_requests_capped',
+      'booking_churn',
+    ]),
+    platform: property.enum(['web', 'ios', 'android']),
+  },
 });

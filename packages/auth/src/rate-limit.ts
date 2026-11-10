@@ -71,7 +71,10 @@ export interface SignInRateLimitOptions {
   requireClientIp: boolean;
 }
 
-type LimitName =
+export type LimitName =
+  | 'join-ip'
+  | 'join-account'
+  | 'booking-account'
   | 'address'
   | 'ip'
   | 'token-ip'
@@ -81,7 +84,7 @@ type LimitName =
   | 'change-confirm-ip';
 
 /** Counts the request under `<name>:<keyed hash of value>`; true when it is over the rule. */
-async function isOverLimit(
+export async function isOverLimit(
   { db, secret }: Pick<SignInRateLimitOptions, 'db' | 'secret'>,
   name: LimitName,
   value: string,
@@ -100,11 +103,22 @@ async function isOverLimit(
  * checked first because Better Auth's `getIP` answers 127.0.0.1 for a missing or invalid one
  * outside production, which would put every such request in one bucket.
  */
-function clientIp(headers: Headers | undefined, requireClientIp: boolean): string | null {
+export function clientIp(headers: Headers | undefined, requireClientIp: boolean): string | null {
   const value = headers?.get(CLIENT_IP_HEADER)?.trim();
   const ip =
     headers && value && isIP(value) !== 0 ? getIP(headers, { advanced: clientIpOptions }) : null;
   return ip ?? (requireClientIp ? UNKNOWN_IP : null);
+}
+
+/**
+ * The client's IP address exactly as the proxy sent it, or `null` when the request has no usable
+ * one (no proxy header, not an IP address, several): for Cloudflare's `remoteip`, which is
+ * optional. Unlike the rate-limit keys it is not grouped: an IPv6 address stays the client's own,
+ * not the /64 network address that sign-in counts it under.
+ */
+export function usableClientIp(headers: Headers): string | null {
+  const value = headers.get(CLIENT_IP_HEADER)?.trim();
+  return value && isIP(value) !== 0 ? value : null;
 }
 
 /**

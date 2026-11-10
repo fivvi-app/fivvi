@@ -62,9 +62,13 @@ The code step of the sign-in page (`/login`, `apps/web/app/(app)/login`) calls t
 
 `auth_rate_limits` (the sign-in rate limits, `src/rate-limit.ts`) is not an auth model either: one row per limit key with a counter and the end of its window. It has no `organization_id` because it holds no business data, only keyed hashes of an email address or an IP address and counters, and is listed in `NON_BUSINESS_TABLES` (`packages/database/test/database.integration.test.ts`).
 
+## The public request guard (E013, spec #467)
+
+The parts of the guard that the public routes of M5 call, with `packages/api/src/public-request-guard.ts` on top: `src/turnstile.ts` (`createTurnstileVerifier`: Cloudflare's siteverify with a 3-second timeout, answering `pass`, `fail` or `no_answer`; `turnstileAllows` is how a caller fails open or closed; a Cloudflare that does not answer is reported to Sentry once a minute) and `src/public-request-limits.ts` (join requests per IP address and per account, booking churn per account, in `auth_rate_limits` under keyed hashes). Tests: `src/turnstile.test.ts`, `test/public-request-limits.integration.test.ts`.
+
 ## Configuration
 
-`BETTER_AUTH_SECRET` (at least 32 characters, a secret per environment), `BETTER_AUTH_URL` (the public address) and `SIGN_UP_ALLOWED_EMAILS` (who may sign up): [`ENVIRONMENTS.md §7`](../../docs/engineering/ENVIRONMENTS.md#7-variables). Emails go through `createEnvironmentSendEmail()` in `packages/email`: to the server log for `@example.com` outside production, otherwise Lettermint (ADR-028).
+`BETTER_AUTH_SECRET` (at least 32 characters, a secret per environment), `BETTER_AUTH_URL` (the public address), `SIGN_UP_ALLOWED_EMAILS` (who may sign up) and `TURNSTILE_SECRET_KEY` (the Turnstile check; required in production, a Cloudflare test key elsewhere): [`ENVIRONMENTS.md §7`](../../docs/engineering/ENVIRONMENTS.md#7-variables). Emails go through `createEnvironmentSendEmail()` in `packages/email`: to the server log for `@example.com` outside production, otherwise Lettermint (ADR-028).
 
 ## Tests
 
