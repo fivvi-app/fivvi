@@ -187,5 +187,11 @@
   "offers.summary.pricePerFourWeeks": "Price of an offer billed every 4 weeks. {amount} is the amount including VAT.",
   "offers.summary.singleClass": "Part of the summary of a single class pass: what it is good for.",
   "offers.cancellation.upTo": "The cancellation rule as clients read it, for a cutoff of one hour or more. # is the number of hours.",
-  "offers.cancellation.untilStart": "The cancellation rule as clients read it, for a cutoff of 0 hours."
+  "offers.cancellation.untilStart": "The cancellation rule as clients read it, for a cutoff of 0 hours.",
+  "email.privateSessionMoved.subject": "Subject of EM-04, the email that tells the client a private session moved. {oldDate} and {newDate} are the day and time before and after, each built with email.privateSessionMoved.dateTime, e.g. 'donderdag 24 september om 09:00'. Says 'sessie' here, as the spec words it; the UI says 'privésessie'.",
+  "email.privateSessionMoved.dateTime": "A weekday, date and time inside the subject and the preview of EM-04. {date} is the weekday and date without year, e.g. 'donderdag 24 september'; {time} the start time, e.g. '09:00'.",
+  "email.privateSessionMoved.preview": "Preview text that inbox lists show next to the subject of EM-04. {newDate} is the new day and time, built with email.privateSessionMoved.dateTime.",
+  "email.privateSessionMoved.intro": "First sentence of EM-04. {workspace} is the name of the workspace (the gym) where the session is planned.",
+  "email.privateSessionMoved.previously": "Line of EM-04 with the time before the move. {date} is the weekday and date with year, e.g. 'donderdag 24 september 2026'; {start} and {end} are the start and end time.",
+  "email.privateSessionMoved.now": "Line of EM-04 with the new time. {date} is the weekday and date with year; {start} and {end} are the start and end time."
 }

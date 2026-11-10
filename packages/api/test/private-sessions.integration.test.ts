@@ -31,7 +31,7 @@ import {
 } from '@fivvi/observability';
 import { dstTransitions, manualClock, zonedTime } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
-import { asc, eq } from 'drizzle-orm';
+import { asc, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { type ApiDependencies, createApp, NO_DEPENDENCIES } from '../src/index.ts';
 import { privateSessionEmailKey } from '../src/sessions/email-key.ts';
@@ -961,6 +961,563 @@ describe('F020 plan a private session', () => {
     });
   });
 
+  // Rescheduling (#443): Sarah's session with Anna, Thursday 24 September 2026, 09:00 to 10:00.
+  describe('F020 reschedule a private session', () => {
+    const reschedule = (
+      server: ReturnType<typeof setup>['server'],
+      workspaceId: string,
+      sessionId: string,
+      who: { id: string } | undefined,
+      body: unknown,
+      headers?: Record<string, string>,
+    ) =>
+      call(
+        server,
+        'POST',
+        `/v1/workspaces/${workspaceId}/sessions/${sessionId}/reschedule`,
+        who,
+        body,
+        headers,
+      );
+
+    /** Friday 25 September 2026, 10:00 for an hour, seen at version 1, by default. */
+    const move = (body: Record<string, unknown> = {}) => ({
+      localDate: '2026-09-25',
+      localStart: '10:00',
+      durationMinutes: 60,
+      notify: true,
+      version: 1,
+      ...body,
+    });
+
+    interface RescheduledBody {
+      session: SessionBody;
+      past: boolean;
+      repeatedStart: boolean;
+      changeEmail: boolean;
+    }
+
+    /** Sarah's session with the client (Anna by default), planned without an email. */
+    async function sarahsSession(
+      people: Awaited<ReturnType<typeof world>>,
+      options: {
+        clientId?: string;
+        type?: 'private' | 'group';
+        status?: 'scheduled' | 'cancelled';
+      } = {},
+    ) {
+      const [profile] = await admin.db
+        .select({ id: trainerProfiles.id })
+        .from(trainerProfiles)
+        .where(eq(trainerProfiles.teamMemberId, people.sarahRole.id));
+      return addSession(admin.db, {
+        workspaceId: people.gym.id,
+        clientId: options.clientId ?? people.anna.id,
+        trainerProfileId: profile?.id ?? null,
+        createdByTeamMemberId: people.sarahRole.id,
+        startsAt: new Date('2026-09-24T07:00:00.000Z'),
+        ...(options.type ? { type: options.type } : {}),
+        ...(options.status ? { status: options.status } : {}),
+      });
+    }
+
+    const storedSession = async (id: string) =>
+      (await admin.db.select().from(sessions).where(eq(sessions.id, id)))[0];
+
+    it('AC6: reschedule keeps the location; EM-04 only when asked', async () => {
+      const people = await world();
+      const { gym, sarah, sarahRole, anna } = people;
+      const { server, transport } = setup();
+      const session = await sarahsSession(people);
+
+      const response = await reschedule(server, gym.id, session.id, sarah, move());
+
+      expect(response.status).toBe(200);
+      const moved = (await response.json()) as RescheduledBody;
+      expect(moved).toEqual({
+        session: {
+          id: session.id,
+          type: 'private',
+          status: 'scheduled',
+          startsAt: '2026-09-25T08:00:00.000Z',
+          endsAt: '2026-09-25T09:00:00.000Z',
+          timeZone: 'Europe/Amsterdam',
+          capacity: 1,
+          version: 2,
+          // The location is the one it had.
+          location: expect.objectContaining({ id: session.locationId, name: gym.marker }),
+          trainer: { id: sarahRole.id, name: 'Sarah' },
+          participants: [{ clientId: anna.id, name: 'Anna de Vries', attendanceStatus: 'booked' }],
+        },
+        past: false,
+        repeatedStart: false,
+        changeEmail: true,
+      });
+      expect(await storedSession(session.id)).toMatchObject({
+        startsAt: new Date('2026-09-25T08:00:00.000Z'),
+        endsAt: new Date('2026-09-25T09:00:00.000Z'),
+        locationId: session.locationId,
+        version: 2,
+        updatedByTeamMemberId: sarahRole.id,
+      });
+      // EM-04 went to Anna, in Dutch, with the old and the new date and time, the place and the trainer.
+      expect(transport.sent).toHaveLength(1);
+      expect(transport.sent[0]).toMatchObject({
+        to: { email: 'anna@example.com', name: 'Anna de Vries' },
+        locale: 'nl-NL',
+        template: 'private-session-moved',
+        subject:
+          'Wijziging: je sessie op donderdag 24 september om 09:00 is verplaatst naar vrijdag 25 september om 10:00',
+        idempotencyKey: privateSessionEmailKey(session.id, 2),
+      });
+      expect(transport.sent[0]?.text).toContain(
+        'Eerder: donderdag 24 september 2026, 09:00 tot 10:00',
+      );
+      expect(transport.sent[0]?.text).toContain(
+        'Nieuw: vrijdag 25 september 2026, 10:00 tot 11:00',
+      );
+      expect(transport.sent[0]?.text).toContain(`Waar: ${gym.marker}`);
+      expect(transport.sent[0]?.text).toContain('Trainer: Sarah');
+    });
+
+    it('AC6: without notify the session moves and nothing is sent', async () => {
+      const people = await world();
+      const { server, transport } = setup();
+      const session = await sarahsSession(people);
+
+      const response = await reschedule(
+        server,
+        people.gym.id,
+        session.id,
+        people.sarah,
+        move({ notify: false }),
+      );
+
+      expect(response.status).toBe(200);
+      expect(((await response.json()) as RescheduledBody).changeEmail).toBe(false);
+      expect((await storedSession(session.id))?.version).toBe(2);
+      expect(transport.sent).toEqual([]);
+    });
+
+    it('AC6: EM-04 follows the client’s email language, then the workspace default', async () => {
+      const people = await world({ defaultLocale: 'en' });
+      const { gym, sarah, mark } = people;
+      const { server, transport } = setup();
+      const undecided = await addClient(admin.db, {
+        workspaceId: gym.id,
+        email: 'sophie@example.com',
+      });
+      const forMark = await sarahsSession(people, { clientId: mark.id });
+      const forAnna = await sarahsSession(people);
+      const forUndecided = await sarahsSession(people, { clientId: undecided.id });
+
+      for (const session of [forMark, forAnna, forUndecided]) {
+        await reschedule(server, gym.id, session.id, sarah, move());
+      }
+
+      expect(transport.sent.map(({ to, locale }) => [to.email, locale])).toEqual([
+        ['mark@example.com', 'en'],
+        ['anna@example.com', 'nl-NL'],
+        ['sophie@example.com', 'en'],
+      ]);
+      expect(transport.sent[0]?.subject).toBe(
+        'Change: your session on Thursday 24 September at 09:00 has moved to Friday 25 September at 10:00',
+      );
+    });
+
+    it('a new time in the past is saved with a warning and never emailed, even when asked', async () => {
+      const people = await world();
+      const { server, transport } = setup();
+      const session = await sarahsSession(people);
+
+      const response = await reschedule(
+        server,
+        people.gym.id,
+        session.id,
+        people.sarah,
+        move({ localDate: '2026-09-16' }),
+      );
+
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({ past: true, changeEmail: false });
+      expect((await storedSession(session.id))?.startsAt).toEqual(
+        new Date('2026-09-16T08:00:00.000Z'),
+      );
+      expect(transport.sent).toEqual([]);
+    });
+
+    it('AC4: the same daylight saving rules as planning: a skipped time is refused, a repeated one takes the first', async () => {
+      const people = await world();
+      const { gym, sarah } = people;
+      const { server } = setup();
+      const session = await sarahsSession(people);
+
+      const skipped = await reschedule(
+        server,
+        gym.id,
+        session.id,
+        sarah,
+        move({ localDate: '2027-03-28', localStart: '02:30' }),
+      );
+      expect(skipped.status).toBe(400);
+      expect(await skipped.json()).toEqual({
+        code: 'validation_failed',
+        issues: [{ path: 'localStart', code: 'time_does_not_exist' }],
+      });
+      expect((await storedSession(session.id))?.version).toBe(1);
+
+      const repeated = await reschedule(
+        server,
+        gym.id,
+        session.id,
+        sarah,
+        move({ localDate: '2026-10-25', localStart: '02:30' }),
+      );
+      expect(repeated.status).toBe(200);
+      const body = (await repeated.json()) as RescheduledBody;
+      expect(body.repeatedStart).toBe(true);
+      expect(body.session.startsAt).toBe('2026-10-25T00:30:00.000Z');
+    });
+
+    it('refuses an invalid duration, date or time with the field, and a body without a version', async () => {
+      const people = await world();
+      const { server, transport } = setup();
+      const session = await sarahsSession(people);
+      const refused = async (body: Record<string, unknown>) => {
+        const response = await reschedule(server, people.gym.id, session.id, people.sarah, body);
+        return [
+          response.status,
+          ((await response.json()) as { issues: { path: string }[] }).issues[0]?.path,
+        ];
+      };
+
+      expect(await refused(move({ durationMinutes: 7 }))).toEqual([400, 'durationMinutes']);
+      expect(await refused(move({ localDate: '2026-02-30' }))).toEqual([400, 'localDate']);
+      expect(await refused(move({ localStart: '25:00' }))).toEqual([400, 'localStart']);
+      expect(await refused({ ...move(), version: undefined })).toEqual([400, 'version']);
+      expect(await refused(move({ version: 0 }))).toEqual([400, 'version']);
+      expect((await storedSession(session.id))?.version).toBe(1);
+      expect(transport.sent).toEqual([]);
+    });
+
+    it('AC7: another trainer cannot reschedule; Owner can', async () => {
+      const people = await world();
+      const { gym, john, tom, sarah } = people;
+      const { server, transport } = setup();
+      const session = await sarahsSession(people);
+
+      // Tom (Trainer) may read Sarah's session, but not move it, however valid or stale his request.
+      expect((await read(server, gym.id, session.id, tom)).status).toBe(200);
+      for (const body of [move(), move({ version: 9, localStart: '25:00' })]) {
+        const refused = await reschedule(server, gym.id, session.id, tom, body);
+        expect(refused.status).toBe(403);
+        expect(await refused.json()).toEqual({ code: 'forbidden' });
+      }
+      expect(await storedSession(session.id)).toMatchObject({ version: 1 });
+      expect(transport.sent).toEqual([]);
+
+      // John (Owner) moves it, and his own, and Sarah's again at the new version.
+      const byJohn = await reschedule(server, gym.id, session.id, john, move());
+      expect(byJohn.status).toBe(200);
+      expect(
+        (
+          await reschedule(
+            server,
+            gym.id,
+            session.id,
+            sarah,
+            move({ version: 2, localStart: '11:00' }),
+          )
+        ).status,
+      ).toBe(200);
+      expect(transport.sent).toHaveLength(2);
+    });
+
+    it('AC7: John reschedules a session whose trainer is gone; a Trainer cannot', async () => {
+      const people = await world();
+      const { gym, john, sarah } = people;
+      const { server } = setup();
+      const session = await sarahsSession(people);
+      await admin.db
+        .delete(trainerProfiles)
+        .where(eq(trainerProfiles.teamMemberId, people.sarahRole.id));
+
+      expect((await reschedule(server, gym.id, session.id, sarah, move())).status).toBe(403);
+      expect((await reschedule(server, gym.id, session.id, john, move())).status).toBe(200);
+    });
+
+    it('AC8: a stale version answers 409 with the current values and who changed it last', async () => {
+      const people = await world();
+      const { gym, john, sarah, sarahRole } = people;
+      const { server, transport } = setup();
+      const session = await sarahsSession(people);
+      // Sarah and John both open the session at version 1; John saves first.
+      const byJohn = await reschedule(
+        server,
+        gym.id,
+        session.id,
+        john,
+        move({ localStart: '14:00', notify: false }),
+      );
+      const current = ((await byJohn.json()) as RescheduledBody).session;
+
+      const stale = await reschedule(server, gym.id, session.id, sarah, move());
+
+      expect(stale.status).toBe(409);
+      expect(await stale.json()).toEqual({
+        code: 'session_changed',
+        changedBy: { name: 'John' },
+        session: current,
+      });
+      expect(current).toMatchObject({
+        version: 2,
+        startsAt: '2026-09-25T12:00:00.000Z',
+        trainer: { id: sarahRole.id },
+      });
+      // Nothing of Sarah's save was stored or sent.
+      expect(await storedSession(session.id)).toMatchObject({
+        version: 2,
+        startsAt: new Date('2026-09-25T12:00:00.000Z'),
+      });
+      expect(transport.sent).toEqual([]);
+      // With the reloaded version she can save.
+      expect(
+        (await reschedule(server, gym.id, session.id, sarah, move({ version: 2 }))).status,
+      ).toBe(200);
+    });
+
+    it('AC8: two saves from the same version at the same moment: one 200, one 409, one email', async () => {
+      const people = await world();
+      const { gym, john, sarah } = people;
+      const { server, transport } = setup();
+      const session = await sarahsSession(people);
+
+      const [byJohn, bySarah] = await Promise.all([
+        reschedule(server, gym.id, session.id, john, move({ localStart: '14:00' })),
+        reschedule(server, gym.id, session.id, sarah, move({ localStart: '15:00' })),
+      ]);
+
+      expect([byJohn.status, bySarah.status].sort()).toEqual([200, 409]);
+      const loser = byJohn.status === 409 ? byJohn : bySarah;
+      const winner = byJohn.status === 409 ? 'Sarah' : 'John';
+      expect(await loser.json()).toMatchObject({
+        code: 'session_changed',
+        changedBy: { name: winner },
+        session: { version: 2 },
+      });
+      expect((await storedSession(session.id))?.version).toBe(2);
+      expect(transport.sent).toHaveLength(1);
+    });
+
+    it('a cancelled session is not rescheduled (409), and a session that is not private is not found', async () => {
+      const people = await world();
+      const { gym, john } = people;
+      const { server, transport } = setup();
+      const cancelled = await sarahsSession(people, { status: 'cancelled' });
+      const group = await sarahsSession(people, { type: 'group' });
+
+      const refused = await reschedule(server, gym.id, cancelled.id, john, move());
+      expect(refused.status).toBe(409);
+      expect(await refused.json()).toMatchObject({
+        code: 'session_cancelled',
+        session: { id: cancelled.id, status: 'cancelled' },
+      });
+      expect((await reschedule(server, gym.id, group.id, john, move())).status).toBe(404);
+      expect((await reschedule(server, gym.id, crypto.randomUUID(), john, move())).status).toBe(
+        404,
+      );
+      expect((await storedSession(cancelled.id))?.version).toBe(1);
+      expect(transport.sent).toEqual([]);
+    });
+
+    it('a session cancelled while the save waits answers session_cancelled, not session_changed', async () => {
+      const people = await world();
+      const { server, transport } = setup();
+      const session = await sarahsSession(people);
+      let answer: Promise<Response> | undefined;
+      let waited = false;
+
+      // Another transaction cancels the session (F026 will) and holds its row; the save reads
+      // version 1 (the cancel is not committed, so it sees a scheduled session), waits on the
+      // row's lock, and matches nothing once the cancel has committed. The wait is proved by a
+      // backend that this very transaction blocks, so no other test's locks count.
+      await admin.db.transaction(async (tx) => {
+        await tx
+          .update(sessions)
+          .set({ status: 'cancelled', version: 2 })
+          .where(eq(sessions.id, session.id));
+        answer = Promise.resolve(
+          reschedule(server, people.gym.id, session.id, people.sarah, move()),
+        );
+        for (let tries = 0; tries < 200 && !waited; tries++) {
+          const { rows } = await tx.execute(
+            sql`select 1 from pg_stat_activity where pg_backend_pid() = any(pg_blocking_pids(pid))`,
+          );
+          waited = rows.length > 0;
+          if (!waited) await new Promise((resolve) => setTimeout(resolve, 25));
+        }
+      });
+      const response = await answer;
+
+      // Without the wait, the save would have read the cancelled session and been refused by the
+      // rules, never reaching the re-read after the lost update.
+      expect(waited).toBe(true);
+
+      expect(response?.status).toBe(409);
+      expect(await response?.json()).toMatchObject({
+        code: 'session_cancelled',
+        session: { id: session.id, status: 'cancelled', version: 2 },
+      });
+      expect(transport.sent).toEqual([]);
+    });
+
+    it('a failing send does not fail the request or undo the move', async () => {
+      const people = await world();
+      const errors: unknown[] = [];
+      const errorReporter: ErrorReporter = {
+        ...createErrorReporter({ env: {} }),
+        captureError: (error) => {
+          errors.push(error);
+        },
+      };
+      const transport = createMemoryTransport();
+      transport.failNext(new EmailSendError('provider down', { retryable: false }));
+      const { server } = setup({
+        errorReporter,
+        sendPrivateSession: createPrivateSessionSender({
+          sendEmail: createSendEmail({
+            transport,
+            sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+          }),
+        }),
+      });
+      const session = await sarahsSession(people);
+      const log = vi.spyOn(console, 'error').mockImplementation(() => undefined);
+
+      const response = await reschedule(server, people.gym.id, session.id, people.sarah, move());
+
+      expect(response.status).toBe(200);
+      expect((await storedSession(session.id))?.version).toBe(2);
+      expect(errors).toHaveLength(1);
+      log.mockRestore();
+    });
+
+    it('AC11: Mike gets 404, anonymous 401, Anna’s own account 403, and nothing changes', async () => {
+      const people = await world();
+      const { gym, mike, annaAccount } = people;
+      const { server, transport } = setup();
+      const session = await sarahsSession(people);
+
+      const asMike = await reschedule(server, gym.id, session.id, mike, move());
+      const anonymous = await reschedule(server, gym.id, session.id, undefined, move());
+      const asAnna = await reschedule(server, gym.id, session.id, annaAccount, move());
+
+      expect([asMike.status, anonymous.status, asAnna.status]).toEqual([404, 401, 403]);
+      expect(await asMike.json()).toEqual({ code: 'not_found' });
+      expect(await anonymous.json()).toEqual({ code: 'not_signed_in' });
+      expect(await asAnna.json()).toEqual({ code: 'forbidden' });
+      expect(await storedSession(session.id)).toMatchObject({ version: 1 });
+      expect(transport.sent).toEqual([]);
+    });
+
+    it('AC11: a session of another workspace is 404 in the caller’s own workspace path', async () => {
+      const people = await world();
+      const { server } = setup();
+      const theirs = await addSession(admin.db, {
+        workspaceId: people.other.id,
+        clientId: people.otherClient.id,
+      });
+
+      const response = await reschedule(server, people.gym.id, theirs.id, people.john, move());
+
+      expect(response.status).toBe(404);
+      expect((await storedSession(theirs.id))?.version).toBe(1);
+    });
+
+    describe('AC14: the rescheduled event', () => {
+      it('AC14: private_session_rescheduled has the workspace ID and the surface only; a refusal, a conflict or an invalid body records nothing', async () => {
+        const lines: string[] = [];
+        const logs = (['error', 'log', 'warn', 'info'] as const).map((level) =>
+          vi
+            .spyOn(console, level)
+            .mockImplementation(
+              (...args: unknown[]) => void lines.push(args.map(String).join(' ')),
+            ),
+        );
+        const posthog = createProductEventCaptureTransport();
+        const productEvents = createProductEvents({
+          env: { POSTHOG_KEY: 'phc_test', POSTHOG_HOST: 'https://posthog.example.test' },
+          transport: posthog,
+          errorReporter: createErrorReporter({ env: {} }),
+        });
+        const people = await world();
+        const { gym, sarah, tom } = people;
+        const { server } = setup({ productEvents });
+        const session = await sarahsSession(people);
+
+        await reschedule(server, gym.id, session.id, tom, move()); // 403
+        await reschedule(server, gym.id, session.id, sarah, {}); // 400
+        await reschedule(
+          server,
+          gym.id,
+          session.id,
+          sarah,
+          move({ localDate: '2027-03-28', localStart: '02:30' }),
+        ); // 400
+        await reschedule(server, gym.id, session.id, sarah, move({ version: 5 })); // 409
+        await reschedule(server, gym.id, crypto.randomUUID(), sarah, move()); // 404
+        expect(posthog.events).toEqual([]);
+
+        // The web sends no bearer token; an app names its surface; a bearer token without one records nothing.
+        await reschedule(server, gym.id, session.id, sarah, move({ notify: false }));
+        await reschedule(
+          server,
+          gym.id,
+          session.id,
+          sarah,
+          move({ version: 2, localStart: '11:00', surface: 'android', notify: false }),
+          { authorization: 'Bearer synthetic-token' },
+        );
+        await reschedule(
+          server,
+          gym.id,
+          session.id,
+          sarah,
+          move({ version: 3, localStart: '12:00', notify: false }),
+          { authorization: 'Bearer synthetic-token' },
+        );
+
+        expect(posthog.events.map(({ event }) => event)).toEqual([
+          'private_session_rescheduled',
+          'private_session_rescheduled',
+        ]);
+        expect(
+          posthog.events.map((event) =>
+            Object.fromEntries(
+              Object.entries(event.properties ?? {}).filter(([key]) => !key.startsWith('$')),
+            ),
+          ),
+        ).toEqual([
+          { workspace_id: gym.id, surface: 'web' },
+          { workspace_id: gym.id, surface: 'android' },
+        ]);
+        expect(posthog.events[0]?.distinct_id).toBe(sarah.id);
+        const sent = JSON.stringify([posthog.events, lines]);
+        for (const personal of [
+          'Anna de Vries',
+          'anna@example.com',
+          sarah.email,
+          session.id,
+          '2026-09-25',
+          '08:00',
+        ]) {
+          expect(sent).not.toContain(personal);
+        }
+        for (const log of logs) log.mockRestore();
+      });
+    });
+  });
+
   it('AC13: the routes are in the committed contract with x-access for the team', () => {
     const create = contract.paths['/v1/workspaces/{workspaceId}/sessions/private'].post;
     const readOne = contract.paths['/v1/workspaces/{workspaceId}/sessions/{sessionId}'].get;
@@ -979,6 +1536,36 @@ describe('F020 plan a private session', () => {
       roles: ['owner', 'trainer'],
       client: 'none',
     });
+    const move =
+      contract.paths['/v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule'].post;
+    const upcoming =
+      contract.paths['/v1/workspaces/{workspaceId}/clients/{clientId}/upcoming-sessions'].get;
+    expect(move.operationId).toBe('reschedulePrivateSession');
+    expect(upcoming.operationId).toBe('listClientUpcomingSessions');
+    expect(move['x-access']).toEqual({
+      type: 'workspace',
+      capability: 'session.private.manage.own',
+      roles: ['owner', 'trainer'],
+      client: 'none',
+    });
+    expect(upcoming['x-access']).toEqual({
+      type: 'workspace',
+      capability: 'clients.view',
+      roles: ['owner', 'trainer'],
+      client: 'none',
+    });
+    expect(Object.keys(move.responses)).toEqual(
+      expect.arrayContaining(['200', '400', '401', '403', '404', '409']),
+    );
+    expect(Object.keys(upcoming.responses)).toEqual(
+      expect.arrayContaining(['200', '401', '403', '404']),
+    );
+    // The 409 shows the current session and who changed it last, by name only.
+    expect(Object.keys(contract.components.schemas.SessionConflict.properties)).toEqual([
+      'code',
+      'session',
+      'changedBy',
+    ]);
     expect(Object.keys(create.responses)).toEqual(
       expect.arrayContaining(['201', '400', '401', '403', '404']),
     );

@@ -42,6 +42,9 @@ export const attendanceStatus = pgEnum('attendance_status', [
  *   blocked by their sessions. Reassigning is the Owner's call (F026 follow-up).
  * - `created_by_team_member_id` is who planned it, cleared the same way when that team member is
  *   removed.
+ * - `updated_by_team_member_id` is who changed a private session last: the planner at first, then
+ *   whoever reschedules it (AC8: a stale save is told who changed the session meanwhile). Group
+ *   dates don't set it. Cleared the same way when that team member is removed.
  * - `group_class_id` is the class of a group session (F021: required for `type = group`, a check)
  *   and empty for the other kinds. The date keeps its own trainer, capacity, start and end.
  * - `series_id` is empty here; recurring series (F022) point it at their series without a
@@ -66,6 +69,7 @@ export const sessions = businessTable(
     groupClassId: uuid('group_class_id'),
     version: integer('version').notNull().default(1),
     createdByTeamMemberId: uuid('created_by_team_member_id'),
+    updatedByTeamMemberId: uuid('updated_by_team_member_id'),
     ...timestamps(),
   },
   (table) => [
@@ -105,6 +109,11 @@ export const sessions = businessTable(
       columns: [table.organizationId, table.createdByTeamMemberId],
       foreignColumns: [teamMembers.organizationId, teamMembers.id],
     }),
+    foreignKey({
+      name: 'sessions_updated_by_fk',
+      columns: [table.organizationId, table.updatedByTeamMemberId],
+      foreignColumns: [teamMembers.organizationId, teamMembers.id],
+    }),
     check('sessions_ends_after_starts', sql`${table.endsAt} > ${table.startsAt}`),
     check('sessions_capacity_positive', sql`${table.capacity} >= 1`),
     check('sessions_version_positive', sql`${table.version} >= 1`),
@@ -141,7 +150,7 @@ export const sessionParticipants = businessTable(
   },
   (table) => [
     unique('session_participants_session_id_client_id_unique').on(table.sessionId, table.clientId),
-    // A client's upcoming sessions (F020 later ticket, TW-02 / TM-03).
+    // A client's upcoming sessions (F020, TW-02 / TM-03).
     index('session_participants_organization_id_client_id_idx').on(
       table.organizationId,
       table.clientId,
