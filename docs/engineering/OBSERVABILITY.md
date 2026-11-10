@@ -1,6 +1,6 @@
 # Observability
 
-What Fivvi reports about itself, and what it never sends ([ADR-013](../decisions/ADR-013-observability.md), spec [#32](https://github.com/fivvi-app/fivvi/issues/32)). Errors go to **Sentry (EU region)**, product events and page views to **PostHog (EU Cloud)**. This document covers error reporting for the API, the cron job and the web app (server and browser), server product events (§4), the web app's page views (§5) and how to tell that the cron runs and what it did (§6). Per native app:
+What Fivvi reports about itself, and what it never sends ([ADR-013](../decisions/ADR-013-observability.md), spec [#32](https://github.com/fivvi-app/fivvi/issues/32)). Errors go to **Sentry (EU region)**, product events and page views to **PostHog (EU Cloud)**. This document covers error reporting for the API, the cron job and the web app (server and browser), server product events (§4), the web app's page views (§5) how to tell that the cron runs and what it did (§6) and the alerts the runbooks start from (§7). Per native app:
 
 - Android: crash reporting, §1 "Android".
 - iOS: crash reporting, §1 "iOS".
@@ -273,3 +273,19 @@ Sentry's documentation says that every plan includes one cron monitor ([docs.sen
 Owner setup, once, in Sentry (project `cron`): open the monitor `cron` after its first check-in and make sure an alert goes to the owner (its issue alerts follow the project's alert rules). Until then the **failed-run alert** is the signal: an `error` event with the tag `cron.task` or `cron.run_id` for every failed task or run. A missed run produces no event, which is what the monitor adds; without its alert, read `job_runs` (§6.2) when something seems off.
 
 What the monitor does not see: a run that checks in `ok` while a daily task was skipped, or a task that does nothing. `job_runs` shows those.
+
+## 7. Alerts
+
+The alerts the [runbooks](RUNBOOKS.md) start from (E016). Every one of them is set in a provider's dashboard by the owner, because none of these settings can be kept in `.railway/railway.ts` ([ENVIRONMENTS.md §3](ENVIRONMENTS.md#3-infrastructure-as-code)); this table is their record. **Every alert goes to the owner, by email, and to nobody else**: there is no on-call rota or status page for the pilot, so an alert at night waits until the owner reads it. Agents receive no alert and have no login at these providers ([tools.md](../agents/tools.md#what-needs-the-owner)). An alert holds no personal data (a monitor's URL, a route template, a task name, a run id).
+
+| Alert | What sets it off | Where it is set | Who receives it | Runbook |
+|---|---|---|---|---|
+| UptimeRobot `GET /api/v1/health` | The production address does not answer `200` for the check every 5 minutes (it answers `503` when Postgres is unreachable) | UptimeRobot, free plan (the owner, #47); the monitors are in [ENVIRONMENTS.md §1](ENVIRONMENTS.md#1-environments) | The owner, by email | [Incident response](RUNBOOKS.md#1-incident-response) |
+| UptimeRobot `/` | The web app at the production address does not answer successfully, every 5 minutes | UptimeRobot, same account | The owner, by email | [Incident response](RUNBOOKS.md#1-incident-response) |
+| Sentry: a failed `cron` task or run | An `error` event in the Sentry project `cron` with the tag `cron.task` or `cron.run_id` (§6.1), once per failed task or run | Sentry, project `cron`, Alerts: the project's issue alert rule (the owner) | The owner, by email | [Incident response](RUNBOOKS.md#1-incident-response), reading `job_runs` (§6.2) |
+| Sentry: the cron monitor `cron` | A run that **fails**, is **missed** (no check-in within the margin of 5 minutes) or **times out** (more than 4 minutes). Production only (§6.3) | Sentry, project `cron`, the monitor `cron` (created by the first check-in): the owner adds the alert once, §6.3 | The owner, by email | [Incident response](RUNBOOKS.md#1-incident-response) |
+| Sentry: a new error in `web` | An error from the API, a page render or the browser in the Sentry project `web` (§1) | Sentry, project `web`, Alerts: an issue alert on new issues (the owner confirms it exists and writes the date below) | The owner, by email | [Incident response](RUNBOOKS.md#1-incident-response) |
+| Sentry: Lettermint usage | The daily `cron` task reports a warning to the project `cron` at 70% or more of the plan's included email volume ([ENVIRONMENTS.md §7](ENVIRONMENTS.md#7-variables), `LETTERMINT_TEAM_TOKEN`) | The task is code; the project's alert rules decide whether a warning is mailed | The owner, if the project's rules cover warnings; otherwise it is only in Sentry | [Incident response](RUNBOOKS.md#1-incident-response), severity 2 |
+| Railway usage (spending) alert | The workspace's spend passes the limit set in the workspace ([ENVIRONMENTS.md §9](ENVIRONMENTS.md#9-costs)) | Railway dashboard, the workspace's usage settings (the owner) | The owner, by email | [Incident response](RUNBOOKS.md#1-incident-response), severity 2; close stale PRs |
+
+**Check them.** When an alert is added or its address changes, the owner updates the row. Once a quarter, together with the retention settings ([RUNBOOKS.md, runbook 9](RUNBOOKS.md#9-provider-retention-settings)), the owner sends or triggers a test alert from each provider and writes here the date: UptimeRobot, Sentry `cron`, Sentry `web`, Railway usage. Last checked: not yet checked.
