@@ -333,6 +333,8 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
         'iOS build',
         'iOS build (retry)',
         'iOS tests (${{ matrix.locale }})',
+        'iOS tests (retry plan)',
+        'iOS tests (${{ matrix.locale }}) (retry)',
         'Android build',
         'Android tests',
         'Android Maestro',
@@ -372,7 +374,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       assert.equal(steps('ios-build-retry'), steps('ios-build'));
     });
 
-    it('lets the tests start from either build, and the gate read all three', () => {
+    it('lets the tests start from either build, and the gate read every part', () => {
       const tests = job('ios-tests');
       assert.match(tests, /^ {4}needs: \[ios-build, ios-build-retry\]$/m);
       const condition = field('ios-tests', /^ {4}if: (.+)$/m);
@@ -380,9 +382,52 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       assert.match(condition, /needs\.ios-build\.result == 'success'/);
       assert.match(condition, /needs\.ios-build-retry\.result == 'success'/);
       const gate = job('ios');
-      assert.match(gate, /^ {4}needs: \[changes, ios-build, ios-build-retry, ios-tests\]$/m);
+      assert.match(
+        gate,
+        /^ {4}needs: \[changes, ios-build, ios-build-retry, ios-tests, ios-tests-plan, ios-tests-retry\]$/m,
+      );
       assert.match(gate, /RETRY: \$\{\{ needs\.ios-build-retry\.result \}\}/);
       assert.match(gate, /scripts\/ios-parts\.sh "\$BUILD" "\$TESTS" "\$RETRY"/);
+    });
+
+    // A test pass that no runner took is tried once more, from the bundle that is already built, and only that language.
+    it('plans the retry of a test pass: only after the tests did not succeed, unless the run was cancelled', () => {
+      const plan = job('ios-tests-plan');
+      assert.match(plan, /^ {4}name: iOS tests \(retry plan\)$/m);
+      assert.match(plan, /^ {4}needs: ios-tests$/m);
+      assert.match(plan, /^ {4}runs-on: ubuntu-24\.04$/m);
+      const condition = field('ios-tests-plan', /^ {4}if: (.+)$/m);
+      assert.match(condition, /!cancelled\(\)/);
+      assert.match(condition, /needs\.ios-tests\.result != 'success'/);
+      assert.match(condition, /needs\.ios-tests\.result != 'skipped'/);
+      assert.match(plan, /actions: read/);
+      assert.match(plan, /scripts\/ios-parts\.sh retry-locales "\$TESTS"/);
+      assert.match(plan, /TESTS: \$\{\{ needs\.ios-tests\.result \}\}/);
+      assert.match(plan, /locales=\$\(/);
+      assert.match(plan, /locales: \$\{\{ steps\.\w+\.outputs\.locales \}\}/);
+    });
+
+    it('runs the retried languages from the existing bundle, with the steps of the first try', () => {
+      const retry = job('ios-tests-retry');
+      assert.match(retry, /^ {4}name: iOS tests \(\$\{\{ matrix\.locale \}\}\) \(retry\)$/m);
+      assert.match(retry, /^ {4}needs: ios-tests-plan$/m);
+      const condition = field('ios-tests-retry', /^ {4}if: (.+)$/m);
+      assert.match(condition, /!cancelled\(\)/);
+      assert.match(condition, /needs\.ios-tests-plan\.outputs\.locales != '\[\]'/);
+      assert.match(
+        retry,
+        /locale: \$\{\{ fromJSON\(needs\.ios-tests-plan\.outputs\.locales \|\| '\["nl"\]'\) \}\}/,
+      );
+      assert.match(retry, /fail-fast: false/);
+      assert.doesNotMatch(retry, /test-ios\.sh build|ios-build/, 'it does not build again');
+      for (const pattern of [
+        /^ {4}runs-on: (\S+)$/m,
+        /^ {4}timeout-minutes: (\d+)$/m,
+        /^ {6}DEVELOPER_DIR: (\S+)$/m,
+      ]) {
+        assert.equal(field('ios-tests-retry', pattern), field('ios-tests', pattern), `${pattern}`);
+      }
+      assert.equal(steps('ios-tests-retry'), steps('ios-tests'));
     });
   });
 
@@ -842,10 +887,25 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     const chain = 5 + minutes(iosBuild) + minutes(iosTests) + minutes(job('ios'));
     assert.ok(chain <= 57, 'the chain is at most 57 minutes');
     assert.ok(chain < queue, 'under the queue timeout');
-    // pr.sh wait must outlast the chain, or it gives up on a run that still passes.
+    // #1268: a job that no runner takes is cancelled by GitHub after 15 minutes and tried once more, and the retry may
+    // queue for a runner as long. The longest passing chain is that in both stages: Detect changes, the build (15 + 15 +
+    // 12), the tests (15 + the plan + 15 + 38) and the gate. The queue's timeout and what pr.sh waits must outlast it.
+    const noRunnerWait = 15;
+    const retriedChain =
+      5 +
+      (noRunnerWait + noRunnerWait + minutes(iosBuildRetry)) +
+      (noRunnerWait +
+        minutes(job('ios-tests-plan')) +
+        noRunnerWait +
+        minutes(job('ios-tests-retry'))) +
+      minutes(job('ios'));
+    assert.equal(retriedChain, 119, 'the numbers in ci.yml, WORKFLOW.md and ADR-018 say 119');
+    assert.ok(retriedChain < queue, 'the retried chain is under the queue timeout');
+    // pr.sh wait must outlast the chains, or it gives up on a run that still passes.
     const pr = readFileSync(join(SCRIPTS, 'pr.sh'), 'utf8');
     const waitNative = Number(pr.match(/^WAIT_MINUTES_NATIVE=(\d+)$/m)[1]);
     assert.ok(waitNative > chain, 'pr.sh wait outlasts the longest native chain by timeouts');
+    assert.ok(waitNative > retriedChain, 'pr.sh wait outlasts the chain with both retries');
   });
 
   it('E002 #242: the iOS jobs run on macos-15 with an Xcode that image has, and say why in a comment', () => {
@@ -989,7 +1049,11 @@ describe('E002 #91 the native jobs in ci.yml', () => {
 
   it('#293 AC17: the required checks iOS and Android are gates that need their parts and report the combined result', () => {
     for (const [gate, native, needs] of [
-      ['ios', 'ios', '[changes, ios-build, ios-build-retry, ios-tests]'],
+      [
+        'ios',
+        'ios',
+        '[changes, ios-build, ios-build-retry, ios-tests, ios-tests-plan, ios-tests-retry]',
+      ],
       ['android', 'android', '[changes, android-build, android-tests, android-maestro]'],
     ]) {
       const section = job(gate);
@@ -1084,7 +1148,8 @@ describe('E002 #290 upload-artifact skips hidden folders unless include-hidden-f
     const ios = uploads.filter((upload) =>
       upload.paths.includes('apps/ios/.build/TestResults-*.xcresult'),
     );
-    assert.deepEqual(ios.map((upload) => upload.file).sort(), ['ci.yml', 'release.yml']);
+    // ci.yml twice: the tests job and its retry (#1268).
+    assert.deepEqual(ios.map((upload) => upload.file).sort(), ['ci.yml', 'ci.yml', 'release.yml']);
     for (const upload of ios)
       assert.match(upload.step, /^ +include-hidden-files: true$/m, upload.file);
     // release.yml uploads the build log with the results; ci.yml has its build job upload it, and the test bundle (#293).
@@ -5593,15 +5658,19 @@ describe('#413 the iOS gate says when no hosted runner picked a part up, and has
     assert.doesNotMatch(code, /^ {2}workflow_dispatch:\n +inputs:/m);
     assert.deepEqual(
       [...code.matchAll(/runs-on: (macos-[\w-]+)/g)].map((m) => m[1]),
-      // ios-build, its retry on the same image (#1268) and ios-tests
-      ['macos-15', 'macos-15', 'macos-15'],
+      // ios-build, its retry on the same image (#1268), ios-tests and its retry
+      ['macos-15', 'macos-15', 'macos-15', 'macos-15'],
     );
   });
 
   it('keeps the job set of the iOS parts: a build and a matrix of tests, with their names', () => {
     assert.match(ci, /^ {2}ios-build:\n {4}name: iOS build$/m);
     assert.match(ci, /^ {2}ios-tests:\n {4}name: iOS tests \(\$\{\{ matrix\.locale \}\}\)$/m);
-    assert.doesNotMatch(ci, /^ {2}ios-(tests-|parts)/m);
+    // The only other parts are the retries of #1268: the plan of the test retry and the retry itself.
+    assert.deepEqual(
+      [...ci.matchAll(/^ {2}(ios-(?:tests-|parts)[\w-]*):$/gm)].map((m) => m[1]),
+      ['ios-tests-plan', 'ios-tests-retry'],
+    );
   });
 
   it('describes the no-runner message and re-queuing in ci.yml and WORKFLOW.md', () => {

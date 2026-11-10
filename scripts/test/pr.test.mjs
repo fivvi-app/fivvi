@@ -1797,15 +1797,15 @@ describe('E002 #107 pr.sh ship', () => {
     assert.ok(!result.calls.some((call) => /^pr ready/.test(call)));
   });
 
-  it('E002 #107 AC2: waits up to 60 minutes when iOS or Android run, 20 otherwise', () => {
+  it('E002 #107 AC2: waits up to 130 minutes when iOS or Android run, 20 otherwise', () => {
     const native = ship();
-    assert.match(native.stdout, /up to 60 min/);
+    assert.match(native.stdout, /up to 130 min/);
     const rollup = ['Detect changes', 'Checks (Linux)', 'E2E (Linux)'].map((name) =>
       checkRun(name),
     );
     const linux = ship({ ci: checks(['Detect changes', 'Checks (Linux)', 'E2E (Linux)']), rollup });
     assert.match(linux.stdout, /up to 20 min/);
-    assert.doesNotMatch(linux.stdout, /up to 60 min/);
+    assert.doesNotMatch(linux.stdout, /up to 130 min/);
   });
 
   it('E002 #107 AC2: keeps the 20-minute wait when the native jobs are skipped, as they are in most PRs', () => {
@@ -1816,7 +1816,7 @@ describe('E002 #107 pr.sh ship', () => {
     const result = ship({ ci });
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /up to 20 min/);
-    assert.doesNotMatch(result.stdout, /up to 60 min/);
+    assert.doesNotMatch(result.stdout, /up to 130 min/);
   });
 
   describe('E002 #416 the limit rises on the native parts, not only on the gate', () => {
