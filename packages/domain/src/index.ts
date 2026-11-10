@@ -94,6 +94,25 @@ export {
   type Role,
   rolesWith,
 } from './permissions/matrix.ts';
+export { renderPrivacyInventory } from './privacy/inventory.ts';
+export {
+  declaredTable,
+  PRIVACY_REGISTRY,
+  type PrivacyDeclaration,
+  type PrivacyDeletion,
+  type PrivacySubject,
+  tablesMissingFromRegistry,
+  tablesNotInSchema,
+} from './privacy/registry.ts';
+export {
+  describeRetention,
+  isRetentionOver,
+  RETENTION,
+  RETENTION_BASIS,
+  type RetentionKey,
+  type RetentionPeriod,
+  retentionEndsAt,
+} from './privacy/retention.ts';
 export {
   decideGroupDateEdit,
   GROUP_CLASS_LIMITS,
