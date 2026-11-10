@@ -5,6 +5,9 @@ import {
   type PlanPrivateSessionFacts,
   PRIVATE_SESSION_DURATIONS,
   planPrivateSession,
+  type ReschedulePrivateSessionFacts,
+  reschedulePrivateSession,
+  sendsChangeNotice,
   sendsConfirmation,
 } from './private-session.ts';
 
@@ -233,5 +236,169 @@ describe('F020 the confirmation email (EM-11)', () => {
 
   it('skips a language that is no catalog language', () => {
     expect(confirmationLanguage({ clientEmailLocale: 'fr', workspaceDefault: 'en' })).toBe('en');
+  });
+});
+
+// Rescheduling (#443): Sarah's session with Anna is on Thursday 24 September 2026 at 09:00 for 60 minutes.
+function rescheduleFacts(
+  overrides: Partial<ReschedulePrivateSessionFacts> = {},
+): ReschedulePrivateSessionFacts {
+  return {
+    actor: { role: 'trainer', teamMemberId: SARAH },
+    session: {
+      trainerTeamMemberId: SARAH,
+      status: 'scheduled',
+      version: 1,
+    },
+    expectedVersion: 1,
+    // Friday 25 September 2026, 10:00.
+    localDate: '2026-09-25',
+    localStart: '10:00',
+    durationMinutes: 60,
+    timeZone: 'Europe/Amsterdam',
+    now: NOW,
+    ...overrides,
+  };
+}
+
+describe('F020 reschedule a private session', () => {
+  it('AC6: Sarah moves her session to Friday 10:00: 08:00 to 09:00 UTC', () => {
+    expect(reschedulePrivateSession(rescheduleFacts())).toEqual({
+      outcome: 'rescheduled',
+      startsAt: new Date('2026-09-25T08:00:00.000Z'),
+      endsAt: new Date('2026-09-25T09:00:00.000Z'),
+      past: false,
+      repeatedStart: false,
+    });
+  });
+
+  describe('AC7: who may reschedule', () => {
+    it('Sarah (Trainer) reschedules her own session', () => {
+      expect(reschedulePrivateSession(rescheduleFacts())).toMatchObject({
+        outcome: 'rescheduled',
+      });
+    });
+
+    it('Tom (Trainer) cannot reschedule Sarah’s session', () => {
+      expect(
+        reschedulePrivateSession(
+          rescheduleFacts({ actor: { role: 'trainer', teamMemberId: TOM } }),
+        ),
+      ).toEqual({ outcome: 'refused', reason: 'not-allowed' });
+    });
+
+    it('John (Owner) reschedules a session of any trainer, and one without a trainer', () => {
+      const owner = { role: 'owner', teamMemberId: JOHN } as const;
+      expect(reschedulePrivateSession(rescheduleFacts({ actor: owner }))).toMatchObject({
+        outcome: 'rescheduled',
+      });
+      const session = { ...rescheduleFacts().session, trainerTeamMemberId: null };
+      expect(reschedulePrivateSession(rescheduleFacts({ actor: owner, session }))).toMatchObject({
+        outcome: 'rescheduled',
+      });
+    });
+
+    it('a Trainer cannot reschedule a session that has no trainer', () => {
+      const session = { ...rescheduleFacts().session, trainerTeamMemberId: null };
+      expect(reschedulePrivateSession(rescheduleFacts({ session }))).toEqual({
+        outcome: 'refused',
+        reason: 'not-allowed',
+      });
+    });
+
+    it('answers "not allowed" before it looks at the rest, the version included', () => {
+      expect(
+        reschedulePrivateSession(
+          rescheduleFacts({
+            actor: { role: 'trainer', teamMemberId: TOM },
+            expectedVersion: 99,
+            localStart: 'x',
+          }),
+        ),
+      ).toEqual({ outcome: 'refused', reason: 'not-allowed' });
+    });
+  });
+
+  describe('AC8: the version', () => {
+    it('a version other than the current one is stale', () => {
+      for (const expectedVersion of [0, 2, 7]) {
+        expect(reschedulePrivateSession(rescheduleFacts({ expectedVersion }))).toEqual({
+          outcome: 'refused',
+          reason: 'stale-version',
+        });
+      }
+    });
+
+    it('is checked against the version the session has now', () => {
+      const session = { ...rescheduleFacts().session, version: 4 };
+      expect(
+        reschedulePrivateSession(rescheduleFacts({ session, expectedVersion: 4 })),
+      ).toMatchObject({ outcome: 'rescheduled' });
+      expect(reschedulePrivateSession(rescheduleFacts({ session, expectedVersion: 1 }))).toEqual({
+        outcome: 'refused',
+        reason: 'stale-version',
+      });
+    });
+  });
+
+  it('a cancelled session is not rescheduled', () => {
+    const session = { ...rescheduleFacts().session, status: 'cancelled' as const };
+    expect(reschedulePrivateSession(rescheduleFacts({ session }))).toEqual({
+      outcome: 'refused',
+      reason: 'not-scheduled',
+    });
+  });
+
+  describe('the same rules as planning', () => {
+    it('AC4: refuses 28 March 2027 at 02:30, takes the first 02:30 on 25 October 2026, ends past midnight', () => {
+      expect(
+        reschedulePrivateSession(rescheduleFacts({ localDate: '2027-03-28', localStart: '02:30' })),
+      ).toEqual({ outcome: 'refused', reason: 'time-does-not-exist' });
+      expect(
+        reschedulePrivateSession(rescheduleFacts({ localDate: '2026-10-25', localStart: '02:30' })),
+      ).toMatchObject({
+        startsAt: new Date('2026-10-25T00:30:00.000Z'),
+        repeatedStart: true,
+      });
+      expect(
+        reschedulePrivateSession(rescheduleFacts({ localStart: '23:30', durationMinutes: 90 })),
+      ).toMatchObject({
+        startsAt: zonedTime('2026-09-25T23:30'),
+        endsAt: zonedTime('2026-09-26T01:00'),
+      });
+    });
+
+    it('refuses a duration outside 15 to 240 in steps of 5, a date and a time that are none', () => {
+      expect(reschedulePrivateSession(rescheduleFacts({ durationMinutes: 7 }))).toEqual({
+        outcome: 'refused',
+        reason: 'invalid-duration',
+      });
+      expect(reschedulePrivateSession(rescheduleFacts({ localDate: '2026-02-30' }))).toEqual({
+        outcome: 'refused',
+        reason: 'invalid-date',
+      });
+      expect(reschedulePrivateSession(rescheduleFacts({ localStart: '25:00' }))).toEqual({
+        outcome: 'refused',
+        reason: 'invalid-time',
+      });
+    });
+
+    it('AC5 (reschedule): a new time in the past is allowed and marked as past', () => {
+      expect(reschedulePrivateSession(rescheduleFacts({ localDate: '2026-09-16' }))).toMatchObject({
+        outcome: 'rescheduled',
+        past: true,
+      });
+    });
+  });
+});
+
+describe('F020 the change email (EM-04)', () => {
+  it('AC6: goes out when asked for and the new time is in the future', () => {
+    expect(sendsChangeNotice({ notify: true, past: false })).toBe(true);
+    expect(sendsChangeNotice({ notify: false, past: false })).toBe(false);
+  });
+
+  it('never goes out for a new time in the past, even when asked for', () => {
+    expect(sendsChangeNotice({ notify: true, past: true })).toBe(false);
   });
 });

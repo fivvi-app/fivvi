@@ -268,6 +268,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MeResponse/preferredLocale`.
             public var preferredLocale: Components.Schemas.MeResponse.PreferredLocalePayload?
+            /// Whether the person gets an email when a client books or cancels a class they teach (F050). On for every account until they switch it off. It belongs to the account, so it is the same in every workspace.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeResponse/bookingEmails`.
+            public var bookingEmails: Swift.Bool
             /// Whether the account may set up a workspace: it is on the sign-up allowlist, whether or not it has a workspace already. With no workspace, the first-run screen shows when this is true and the no-access page when it is false. The web and the apps never decide this by rules of their own.
             ///
             /// - Remark: Generated from `#/components/schemas/MeResponse/canCreateWorkspace`.
@@ -283,6 +287,7 @@ extension Components {
             ///   - email: The address the account signs in with.
             ///   - name: The person’s own name; null until one is given (TW-11 asks for it).
             ///   - preferredLocale: The language stored on the account; null until one is stored.
+            ///   - bookingEmails: Whether the person gets an email when a client books or cancels a class they teach (F050). On for every account until they switch it off. It belongs to the account, so it is the same in every workspace.
             ///   - canCreateWorkspace: Whether the account may set up a workspace: it is on the sign-up allowlist, whether or not it has a workspace already. With no workspace, the first-run screen shows when this is true and the no-access page when it is false. The web and the apps never decide this by rules of their own.
             ///   - workspaces: The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed.
             public init(
@@ -290,6 +295,7 @@ extension Components {
                 email: Swift.String,
                 name: Swift.String? = nil,
                 preferredLocale: Components.Schemas.MeResponse.PreferredLocalePayload? = nil,
+                bookingEmails: Swift.Bool,
                 canCreateWorkspace: Swift.Bool,
                 workspaces: [Components.Schemas.MeWorkspace]
             ) {
@@ -297,6 +303,7 @@ extension Components {
                 self.email = email
                 self.name = name
                 self.preferredLocale = preferredLocale
+                self.bookingEmails = bookingEmails
                 self.canCreateWorkspace = canCreateWorkspace
                 self.workspaces = workspaces
             }
@@ -305,6 +312,7 @@ extension Components {
                 case email
                 case name
                 case preferredLocale
+                case bookingEmails
                 case canCreateWorkspace
                 case workspaces
             }
@@ -496,6 +504,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateMeRequest/preferredLocale`.
             public var preferredLocale: Components.Schemas.UpdateMeRequest.PreferredLocalePayload?
+            /// Whether to get an email when a client books or cancels a class the person teaches: `true` or `false`, stored on the account and the same in every workspace. Anything that is not a boolean answers `400` with a field error.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateMeRequest/bookingEmails`.
+            public var bookingEmails: Swift.Bool?
             /// The app that sends the request: `ios` or `android`. A request with a bearer token that changes `preferredLocale` records the `language_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateMeRequest/surface`.
@@ -512,19 +524,99 @@ extension Components {
             /// - Parameters:
             ///   - name: The person’s own name, as shown in every workspace they are on: trimmed, at least one and at most 80 characters. Empty, blank or longer answers `400` with a field error.
             ///   - preferredLocale: The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`.
+            ///   - bookingEmails: Whether to get an email when a client books or cancels a class the person teaches: `true` or `false`, stored on the account and the same in every workspace. Anything that is not a boolean answers `400` with a field error.
             ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token that changes `preferredLocale` records the `language_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             public init(
                 name: Swift.String? = nil,
                 preferredLocale: Components.Schemas.UpdateMeRequest.PreferredLocalePayload? = nil,
+                bookingEmails: Swift.Bool? = nil,
                 surface: Components.Schemas.UpdateMeRequest.SurfacePayload? = nil
             ) {
                 self.name = name
                 self.preferredLocale = preferredLocale
+                self.bookingEmails = bookingEmails
                 self.surface = surface
             }
             public enum CodingKeys: String, CodingKey {
                 case name
                 case preferredLocale
+                case bookingEmails
+                case surface
+            }
+        }
+        /// The address to send the confirmation code to.
+        ///
+        /// - Remark: Generated from `#/components/schemas/RequestEmailChange`.
+        public struct RequestEmailChange: Codable, Hashable, Sendable {
+            /// The new address, trimmed and stored in lower case. Not an address, or the account’s own current one, answers `400` with a field error on `newEmail`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/RequestEmailChange/newEmail`.
+            public var newEmail: Swift.String
+            /// Creates a new `RequestEmailChange`.
+            ///
+            /// - Parameters:
+            ///   - newEmail: The new address, trimmed and stored in lower case. Not an address, or the account’s own current one, answers `400` with a field error on `newEmail`.
+            public init(newEmail: Swift.String) {
+                self.newEmail = newEmail
+            }
+            public enum CodingKeys: String, CodingKey {
+                case newEmail
+            }
+        }
+        /// The code is wrong, used, replaced, expired or out of attempts, or the address it was sent for has an account by now; nothing says which. Nothing changed. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/InvalidCode`.
+        public struct InvalidCode: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/InvalidCode/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case invalidOrExpiredCode = "invalid_or_expired_code"
+            }
+            /// - Remark: Generated from `#/components/schemas/InvalidCode/code`.
+            public var code: Components.Schemas.InvalidCode.CodePayload
+            /// Creates a new `InvalidCode`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            public init(code: Components.Schemas.InvalidCode.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+            }
+        }
+        /// The code that confirms the new address.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ConfirmEmailChange`.
+        public struct ConfirmEmailChange: Codable, Hashable, Sendable {
+            /// The 6-digit code in the email sent to the new address.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ConfirmEmailChange/code`.
+            public var code: Swift.String
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `email_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ConfirmEmailChange/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `email_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ConfirmEmailChange/surface`.
+            public var surface: Components.Schemas.ConfirmEmailChange.SurfacePayload?
+            /// Creates a new `ConfirmEmailChange`.
+            ///
+            /// - Parameters:
+            ///   - code: The 6-digit code in the email sent to the new address.
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `email_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            public init(
+                code: Swift.String,
+                surface: Components.Schemas.ConfirmEmailChange.SurfacePayload? = nil
+            ) {
+                self.code = code
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
                 case surface
             }
         }
@@ -2253,6 +2345,258 @@ extension Components {
                 case durationMinutes
                 case notify
                 case surface
+            }
+        }
+        /// The private session after it moved, with what the trainer should be told.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionResult`.
+        public struct ReschedulePrivateSessionResult: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionResult/session`.
+            public var session: Components.Schemas.Session
+            /// The new time is before now: it was saved, and no email goes out.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionResult/past`.
+            public var past: Swift.Bool
+            /// The new start happens twice because the clocks went back; the first (summer time) was taken.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionResult/repeatedStart`.
+            public var repeatedStart: Swift.Bool
+            /// Whether the change (EM-04) goes to the client: it was asked for and the new time is not in the past. It is sent after the answer is decided; a failure is reported to error tracking and does not undo the change.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionResult/changeEmail`.
+            public var changeEmail: Swift.Bool
+            /// Creates a new `ReschedulePrivateSessionResult`.
+            ///
+            /// - Parameters:
+            ///   - session:
+            ///   - past: The new time is before now: it was saved, and no email goes out.
+            ///   - repeatedStart: The new start happens twice because the clocks went back; the first (summer time) was taken.
+            ///   - changeEmail: Whether the change (EM-04) goes to the client: it was asked for and the new time is not in the past. It is sent after the answer is decided; a failure is reported to error tracking and does not undo the change.
+            public init(
+                session: Components.Schemas.Session,
+                past: Swift.Bool,
+                repeatedStart: Swift.Bool,
+                changeEmail: Swift.Bool
+            ) {
+                self.session = session
+                self.past = past
+                self.repeatedStart = repeatedStart
+                self.changeEmail = changeEmail
+            }
+            public enum CodingKeys: String, CodingKey {
+                case session
+                case past
+                case repeatedStart
+                case changeEmail
+            }
+        }
+        /// The change was refused because of the session’s state; nothing was stored. Holds the session as it is now, so the form can show its values.
+        ///
+        /// - Remark: Generated from `#/components/schemas/SessionConflict`.
+        public struct SessionConflict: Codable, Hashable, Sendable {
+            /// `session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionConflict/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case sessionChanged = "session_changed"
+                case sessionCancelled = "session_cancelled"
+            }
+            /// `session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionConflict/code`.
+            public var code: Components.Schemas.SessionConflict.CodePayload
+            /// - Remark: Generated from `#/components/schemas/SessionConflict/session`.
+            public var session: Components.Schemas.Session
+            /// Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionConflict/changedBy`.
+            public struct ChangedByPayload: Codable, Hashable, Sendable {
+                /// The account’s name.
+                ///
+                /// - Remark: Generated from `#/components/schemas/SessionConflict/changedBy/name`.
+                public var name: Swift.String
+                /// Creates a new `ChangedByPayload`.
+                ///
+                /// - Parameters:
+                ///   - name: The account’s name.
+                public init(name: Swift.String) {
+                    self.name = name
+                }
+                public enum CodingKeys: String, CodingKey {
+                    case name
+                }
+            }
+            /// Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionConflict/changedBy`.
+            public var changedBy: Components.Schemas.SessionConflict.ChangedByPayload?
+            /// Creates a new `SessionConflict`.
+            ///
+            /// - Parameters:
+            ///   - code: `session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is.
+            ///   - session:
+            ///   - changedBy: Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name.
+            public init(
+                code: Components.Schemas.SessionConflict.CodePayload,
+                session: Components.Schemas.Session,
+                changedBy: Components.Schemas.SessionConflict.ChangedByPayload? = nil
+            ) {
+                self.code = code
+                self.session = session
+                self.changedBy = changedBy
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+                case session
+                case changedBy
+            }
+        }
+        /// A new local date, start and length for a private session, and the version the person saw.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRequest`.
+        public struct ReschedulePrivateSessionRequest: Codable, Hashable, Sendable {
+            /// The date in the workspace’s time zone: `YYYY-MM-DD`. A date that is none (30 February) answers `400` on `localDate`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRequest/localDate`.
+            public var localDate: Swift.String
+            /// The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRequest/localStart`.
+            public var localStart: Swift.String
+            /// The length in minutes: 15 to 240 in steps of 5. Any other value answers `400` on `durationMinutes`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRequest/durationMinutes`.
+            public var durationMinutes: Swift.Int
+            /// Whether to email the client the change (EM-04). Not sent when the new time is in the past, whatever this says.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRequest/notify`.
+            public var notify: Swift.Bool
+            /// The `version` of the session the person saw. If the session has been changed since, nothing is stored and the answer is `409` with the session as it is now.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRequest/version`.
+            public var version: Swift.Int
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_rescheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_rescheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRequest/surface`.
+            public var surface: Components.Schemas.ReschedulePrivateSessionRequest.SurfacePayload?
+            /// Creates a new `ReschedulePrivateSessionRequest`.
+            ///
+            /// - Parameters:
+            ///   - localDate: The date in the workspace’s time zone: `YYYY-MM-DD`. A date that is none (30 February) answers `400` on `localDate`.
+            ///   - localStart: The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first.
+            ///   - durationMinutes: The length in minutes: 15 to 240 in steps of 5. Any other value answers `400` on `durationMinutes`.
+            ///   - notify: Whether to email the client the change (EM-04). Not sent when the new time is in the past, whatever this says.
+            ///   - version: The `version` of the session the person saw. If the session has been changed since, nothing is stored and the answer is `409` with the session as it is now.
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_rescheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            public init(
+                localDate: Swift.String,
+                localStart: Swift.String,
+                durationMinutes: Swift.Int,
+                notify: Swift.Bool,
+                version: Swift.Int,
+                surface: Components.Schemas.ReschedulePrivateSessionRequest.SurfacePayload? = nil
+            ) {
+                self.localDate = localDate
+                self.localStart = localStart
+                self.durationMinutes = durationMinutes
+                self.notify = notify
+                self.version = version
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case localDate
+                case localStart
+                case durationMinutes
+                case notify
+                case version
+                case surface
+            }
+        }
+        /// A client’s upcoming private sessions, for their profile (TW-02, TM-03).
+        ///
+        /// - Remark: Generated from `#/components/schemas/UpcomingSessions`.
+        public struct UpcomingSessions: Codable, Hashable, Sendable {
+            /// The client ID the sessions are of.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpcomingSessions/clientId`.
+            public var clientId: Swift.String
+            /// The workspace’s IANA time zone, e.g. `Europe/Amsterdam` (ADR-012).
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpcomingSessions/timeZone`.
+            public var timeZone: Swift.String
+            /// The next sessions, soonest first: at most 5. Empty for a client without any.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpcomingSessions/sessions`.
+            public var sessions: [Components.Schemas.UpcomingSession]
+            /// Creates a new `UpcomingSessions`.
+            ///
+            /// - Parameters:
+            ///   - clientId: The client ID the sessions are of.
+            ///   - timeZone: The workspace’s IANA time zone, e.g. `Europe/Amsterdam` (ADR-012).
+            ///   - sessions: The next sessions, soonest first: at most 5. Empty for a client without any.
+            public init(
+                clientId: Swift.String,
+                timeZone: Swift.String,
+                sessions: [Components.Schemas.UpcomingSession]
+            ) {
+                self.clientId = clientId
+                self.timeZone = timeZone
+                self.sessions = sessions
+            }
+            public enum CodingKeys: String, CodingKey {
+                case clientId
+                case timeZone
+                case sessions
+            }
+        }
+        /// A client’s coming private session.
+        ///
+        /// - Remark: Generated from `#/components/schemas/UpcomingSession`.
+        public struct UpcomingSession: Codable, Hashable, Sendable {
+            /// The session ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpcomingSession/id`.
+            public var id: Swift.String
+            /// The start, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpcomingSession/startsAt`.
+            public var startsAt: Foundation.Date
+            /// The end, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpcomingSession/endsAt`.
+            public var endsAt: Foundation.Date
+            /// - Remark: Generated from `#/components/schemas/UpcomingSession/trainer`.
+            public var trainer: Components.Schemas.SessionTrainer?
+            /// Creates a new `UpcomingSession`.
+            ///
+            /// - Parameters:
+            ///   - id: The session ID.
+            ///   - startsAt: The start, a UTC instant.
+            ///   - endsAt: The end, a UTC instant.
+            ///   - trainer:
+            public init(
+                id: Swift.String,
+                startsAt: Foundation.Date,
+                endsAt: Foundation.Date,
+                trainer: Components.Schemas.SessionTrainer? = nil
+            ) {
+                self.id = id
+                self.startsAt = startsAt
+                self.endsAt = endsAt
+                self.trainer = trainer
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case startsAt
+                case endsAt
+                case trainer
             }
         }
         /// A class of the workspace: what it is called, who usually teaches it, how many people fit and how long it lasts. It is not a point in time; a class on a date is a `group` session.

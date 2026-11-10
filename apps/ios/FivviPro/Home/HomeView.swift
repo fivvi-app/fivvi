@@ -16,6 +16,8 @@ struct HomeView: View {
     /// The screens above the home; emptying the path returns to it (switching workspace resets the stack, F012).
     private enum Route: Hashable {
         case clients, profile
+        /// A client's profile (TM-03), opened from the list, after an addition or by ID.
+        case client(ClientRoute)
     }
 
     @Environment(\.openURL) private var openURL
@@ -62,6 +64,7 @@ struct HomeView: View {
                     switch route {
                     case .clients: clientsScreen
                     case .profile: profileScreen
+                    case let .client(route): clientProfileScreen(route)
                     }
                 }
         }
@@ -210,12 +213,6 @@ struct HomeView: View {
         }
     }
 
-    @ViewBuilder private var clientsScreen: some View {
-        if let clients {
-            ClientsView(model: clients, language: language, capabilities: account.capabilities)
-        }
-    }
-
     /// *Profiel* (TM-04): the person's workspaces with their role.
     private var profileLink: some View {
         NavigationLink(value: Route.profile) {
@@ -285,6 +282,32 @@ struct HomeView: View {
                 .buttonStyle(.primaryAction)
                 .accessibilityIdentifier("home.retry")
             }
+        }
+    }
+}
+
+/// The screens *Klanten* opens, which the home's stack owns (#684).
+extension HomeView {
+    @ViewBuilder private var clientsScreen: some View {
+        if let clients {
+            ClientsView(
+                model: clients, language: language, capabilities: account.capabilities,
+                onOpen: { path.append(.client($0)) }
+            )
+        }
+    }
+
+    /// *Klantprofiel* (TM-03). Opening another client from its edit form replaces this profile, not stacks on it.
+    @ViewBuilder private func clientProfileScreen(_ route: ClientRoute) -> some View {
+        if let clients {
+            ClientProfileScreen(
+                model: clients, route: route, language: language, capabilities: account.capabilities,
+                onOpenExisting: { id in
+                    guard let last = path.indices.last else { return }
+                    path[last] = .client(ClientRoute(id: id))
+                }
+            )
+            .id(route.id)
         }
     }
 }

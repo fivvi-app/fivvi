@@ -20,10 +20,12 @@ export function LanguageRow() {
     <Card>
       <CardHeader>
         <CardTitle>
-          <h2 id="language-row-title">{profile('language')}</h2>
+          <h2 id="language-row-title" className="text-[15px] font-semibold">
+            {profile('language')}
+          </h2>
         </CardTitle>
       </CardHeader>
-      <div className="grid gap-1 px-6 pb-6">
+      <div className="grid gap-1 px-(--card-spacing)">
         <LanguageOptions labelledBy="language-row-title" disabled={!ready} />
       </div>
     </Card>

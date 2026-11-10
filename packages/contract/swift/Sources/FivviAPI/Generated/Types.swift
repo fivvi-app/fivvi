@@ -34,7 +34,7 @@ public protocol APIProtocol: Sendable {
     func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output
     /// Change the signed-in account
     ///
-    /// Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load, and the name they gave themselves (`name`), one per account, shown in every workspace they are on. Answers with the account, as `GET /v1/me` does. A language other than `nl-NL` or `en`, or a name that is empty, blank or over 80 characters, answers `400` and nothing changes.
+    /// Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load, and the name they gave themselves (`name`), one per account, shown in every workspace they are on, and whether they get the emails about bookings in their classes (`bookingEmails`, on until switched off), also one per account. Answers with the account, as `GET /v1/me` does. A language other than `nl-NL` or `en`, a name that is empty, blank or over 80 characters, or a `bookingEmails` that is not a boolean, answers `400` and nothing changes.
     ///
     /// - Remark: HTTP `PATCH /v1/me`.
     /// - Remark: Generated from `#/paths//v1/me/patch(updateMe)`.
@@ -46,6 +46,20 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `GET /v1/me/workspaces`.
     /// - Remark: Generated from `#/paths//v1/me/workspaces/get(listMyWorkspaces)`.
     func listMyWorkspaces(_ input: Operations.ListMyWorkspaces.Input) async throws -> Operations.ListMyWorkspaces.Output
+    /// Ask for a code to change the signed-in account’s email address
+    ///
+    /// Sends a 6-digit code to the new address (EM-34), in the account’s language. The address does not change until `POST /v1/me/email/confirm` accepts the code. The answer is `202` for every valid address, one that already has an account, and a request over the rate limits (3 in 15 minutes per account and per address, 20 an hour per network, as for sign-in), so it never says who has an account; only a free address under the limits gets an email. A new request replaces the earlier code. It acts on the signed-in account alone: no route changes anyone else’s address.
+    ///
+    /// - Remark: HTTP `POST /v1/me/email/change`.
+    /// - Remark: Generated from `#/paths//v1/me/email/change/post(requestEmailChange)`.
+    func requestEmailChange(_ input: Operations.RequestEmailChange.Input) async throws -> Operations.RequestEmailChange.Output
+    /// Confirm the code and change the signed-in account’s email address
+    ///
+    /// With the right code the account’s address becomes the one the code was sent to, in every workspace at once, and every open sign-in session stays signed in. The sign-in codes and links sent to the old address stop working. Answers with the account, as `GET /v1/me` does. A wrong, used, replaced or expired code, five wrong codes, an address that has an account by now and a network over its limit all answer `422` and nothing changes.
+    ///
+    /// - Remark: HTTP `POST /v1/me/email/confirm`.
+    /// - Remark: Generated from `#/paths//v1/me/email/confirm/post(confirmEmailChange)`.
+    func confirmEmailChange(_ input: Operations.ConfirmEmailChange.Input) async throws -> Operations.ConfirmEmailChange.Output
     /// My day: the sessions of one day across my workspaces
     ///
     /// Everything the signed-in account is the current trainer of on one day, in all the workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary, the tomorrow line, the date of the next session when the day is empty and the number of workspaces. Each workspace is read on its own; the answer is merged here. An account that trains in no workspace (an Owner who does not train, a client account) gets an empty answer, not `403`. The day is a date in Dutch time; times are UTC instants, to be shown in Dutch time.
@@ -235,6 +249,20 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/private`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/private/post(createPrivateSession)`.
     func createPrivateSession(_ input: Operations.CreatePrivateSession.Input) async throws -> Operations.CreatePrivateSession.Output
+    /// Reschedule a private session
+    ///
+    /// Moves a private session to a new local date and start, with a length (the same rules as planning, daylight saving time included); the location stays. The Owner may move any session, a Trainer only their own (`403` otherwise). `version` is the one the person saw: if the session has been changed since, nothing is stored and the answer is `409` with the session as it is now and who changed it last. A cancelled session answers `409` too; a session that is not private or not in the workspace answers `404`. When `notify` is on and the new time is not in the past, EM-04 goes to the client after the change is committed, in the client’s email language, else the workspace’s default.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule/post(reschedulePrivateSession)`.
+    func reschedulePrivateSession(_ input: Operations.ReschedulePrivateSession.Input) async throws -> Operations.ReschedulePrivateSession.Output
+    /// A client’s upcoming sessions
+    ///
+    /// The next 5 scheduled private sessions of the client, soonest first (instants in UTC plus the workspace’s time zone, and the trainer), for any team member who may see the workspace’s clients. A session that has started, a cancelled one and one the client’s place in was cancelled are left out. A client who is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/clients/{clientId}/upcoming-sessions`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/{clientId}/upcoming-sessions/get(listClientUpcomingSessions)`.
+    func listClientUpcomingSessions(_ input: Operations.ListClientUpcomingSessions.Input) async throws -> Operations.ListClientUpcomingSessions.Output
     /// One session
     ///
     /// A session of the workspace with its location, trainer and participants, for any team member who may see the workspace’s clients. A session that is not in the workspace answers `404`.
@@ -351,7 +379,7 @@ extension APIProtocol {
     }
     /// Change the signed-in account
     ///
-    /// Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load, and the name they gave themselves (`name`), one per account, shown in every workspace they are on. Answers with the account, as `GET /v1/me` does. A language other than `nl-NL` or `en`, or a name that is empty, blank or over 80 characters, answers `400` and nothing changes.
+    /// Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load, and the name they gave themselves (`name`), one per account, shown in every workspace they are on, and whether they get the emails about bookings in their classes (`bookingEmails`, on until switched off), also one per account. Answers with the account, as `GET /v1/me` does. A language other than `nl-NL` or `en`, a name that is empty, blank or over 80 characters, or a `bookingEmails` that is not a boolean, answers `400` and nothing changes.
     ///
     /// - Remark: HTTP `PATCH /v1/me`.
     /// - Remark: Generated from `#/paths//v1/me/patch(updateMe)`.
@@ -372,6 +400,36 @@ extension APIProtocol {
     /// - Remark: Generated from `#/paths//v1/me/workspaces/get(listMyWorkspaces)`.
     public func listMyWorkspaces(headers: Operations.ListMyWorkspaces.Input.Headers = .init()) async throws -> Operations.ListMyWorkspaces.Output {
         try await listMyWorkspaces(Operations.ListMyWorkspaces.Input(headers: headers))
+    }
+    /// Ask for a code to change the signed-in account’s email address
+    ///
+    /// Sends a 6-digit code to the new address (EM-34), in the account’s language. The address does not change until `POST /v1/me/email/confirm` accepts the code. The answer is `202` for every valid address, one that already has an account, and a request over the rate limits (3 in 15 minutes per account and per address, 20 an hour per network, as for sign-in), so it never says who has an account; only a free address under the limits gets an email. A new request replaces the earlier code. It acts on the signed-in account alone: no route changes anyone else’s address.
+    ///
+    /// - Remark: HTTP `POST /v1/me/email/change`.
+    /// - Remark: Generated from `#/paths//v1/me/email/change/post(requestEmailChange)`.
+    public func requestEmailChange(
+        headers: Operations.RequestEmailChange.Input.Headers = .init(),
+        body: Operations.RequestEmailChange.Input.Body
+    ) async throws -> Operations.RequestEmailChange.Output {
+        try await requestEmailChange(Operations.RequestEmailChange.Input(
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Confirm the code and change the signed-in account’s email address
+    ///
+    /// With the right code the account’s address becomes the one the code was sent to, in every workspace at once, and every open sign-in session stays signed in. The sign-in codes and links sent to the old address stop working. Answers with the account, as `GET /v1/me` does. A wrong, used, replaced or expired code, five wrong codes, an address that has an account by now and a network over its limit all answer `422` and nothing changes.
+    ///
+    /// - Remark: HTTP `POST /v1/me/email/confirm`.
+    /// - Remark: Generated from `#/paths//v1/me/email/confirm/post(confirmEmailChange)`.
+    public func confirmEmailChange(
+        headers: Operations.ConfirmEmailChange.Input.Headers = .init(),
+        body: Operations.ConfirmEmailChange.Input.Body
+    ) async throws -> Operations.ConfirmEmailChange.Output {
+        try await confirmEmailChange(Operations.ConfirmEmailChange.Input(
+            headers: headers,
+            body: body
+        ))
     }
     /// My day: the sessions of one day across my workspaces
     ///
@@ -784,6 +842,38 @@ extension APIProtocol {
             path: path,
             headers: headers,
             body: body
+        ))
+    }
+    /// Reschedule a private session
+    ///
+    /// Moves a private session to a new local date and start, with a length (the same rules as planning, daylight saving time included); the location stays. The Owner may move any session, a Trainer only their own (`403` otherwise). `version` is the one the person saw: if the session has been changed since, nothing is stored and the answer is `409` with the session as it is now and who changed it last. A cancelled session answers `409` too; a session that is not private or not in the workspace answers `404`. When `notify` is on and the new time is not in the past, EM-04 goes to the client after the change is committed, in the client’s email language, else the workspace’s default.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule/post(reschedulePrivateSession)`.
+    public func reschedulePrivateSession(
+        path: Operations.ReschedulePrivateSession.Input.Path,
+        headers: Operations.ReschedulePrivateSession.Input.Headers = .init(),
+        body: Operations.ReschedulePrivateSession.Input.Body
+    ) async throws -> Operations.ReschedulePrivateSession.Output {
+        try await reschedulePrivateSession(Operations.ReschedulePrivateSession.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// A client’s upcoming sessions
+    ///
+    /// The next 5 scheduled private sessions of the client, soonest first (instants in UTC plus the workspace’s time zone, and the trainer), for any team member who may see the workspace’s clients. A session that has started, a cancelled one and one the client’s place in was cancelled are left out. A client who is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/clients/{clientId}/upcoming-sessions`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/{clientId}/upcoming-sessions/get(listClientUpcomingSessions)`.
+    public func listClientUpcomingSessions(
+        path: Operations.ListClientUpcomingSessions.Input.Path,
+        headers: Operations.ListClientUpcomingSessions.Input.Headers = .init()
+    ) async throws -> Operations.ListClientUpcomingSessions.Output {
+        try await listClientUpcomingSessions(Operations.ListClientUpcomingSessions.Input(
+            path: path,
+            headers: headers
         ))
     }
     /// One session

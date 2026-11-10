@@ -159,10 +159,46 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
     // The two buttons are one group, named by the heading.
     expect(html).toMatch(
       new RegExp(
-        `<h2 id="([^"]+)">${escapeHtml(copy.profile.language)}</h2>[\\s\\S]*<fieldset[^>]*aria-labelledby="\\1"`,
+        `<h2 id="([^"]+)"[^>]*>${escapeHtml(copy.profile.language)}</h2>[\\s\\S]*<fieldset[^>]*aria-labelledby="\\1"`,
       ),
     );
     expect(html).not.toContain('role="alert"');
+  });
+
+  // E020 #627: the look of TW-09 (docs/design/prototype-v2, *Mijn profiel (TW-09)*).
+  it('E020 AC15: the page has the trainer web’s padding and three cards, each with a 15 px heading', () => {
+    const html = render(
+      locale,
+      <MyProfile name="John" email="john@example.com" workspaces={[johnsGym]} />,
+    );
+
+    expect(html).toMatch(/<main[^>]*px-6[^>]*pt-5[^>]*pb-10/);
+    expect(html.match(/data-slot="card"/g)).toHaveLength(3);
+    expect(html.match(/<h2[^>]*text-\[15px\][^>]*font-semibold/g)).toHaveLength(3);
+  });
+
+  it('E020 AC15: the name is a kit field, labelled', () => {
+    const html = render(
+      locale,
+      <MyProfile name="Sarah" email="sarah@example.com" workspaces={[]} />,
+    );
+
+    expect(html).toMatch(
+      new RegExp(
+        `data-slot="field"[^>]*><label[^>]*for="person-name"[^>]*>${escapeHtml(copy.myProfile.nameLabel)}</label><input[^>]*id="person-name"`,
+      ),
+    );
+  });
+
+  it('E020 AC15: the role of each workspace is a status pill', () => {
+    const html = render(
+      locale,
+      <MyProfile name="John" email="john@example.com" workspaces={[johnsGym]} />,
+    );
+
+    expect(html).toMatch(
+      new RegExp(`<span[^>]*data-slot="status-pill"[^>]*>${escapeHtml(copy.roles.owner)}</span>`),
+    );
   });
 
   it('the switch talks about training, never about profiles', () => {

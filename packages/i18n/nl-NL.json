@@ -198,6 +198,13 @@
       "validity": "De code en de inloglink werken {minutes, plural, one {# minuut} other {# minuten}}.",
       "ignore": "Heb je dit niet aangevraagd? Dan kun je deze e-mail negeren."
     },
+    "emailChangeCode": {
+      "subject": "Je code om je e-mailadres te wijzigen",
+      "preview": "Gebruik code {code} om je nieuwe e-mailadres voor Fivvi te bevestigen.",
+      "intro": "Gebruik deze code om je nieuwe e-mailadres voor Fivvi te bevestigen:",
+      "validity": "De code werkt {minutes, plural, one {# minuut} other {# minuten}}. Met dit e-mailadres log je daarna in bij Fivvi.",
+      "ignore": "Heb je dit niet aangevraagd? Dan kun je deze e-mail negeren. Er verandert niets."
+    },
     "trainerInvitation": {
       "subject": "{inviter} nodigt je uit voor {workspace}",
       "preview": "Je bent uitgenodigd om trainer te worden bij {workspace}.",
@@ -213,6 +220,14 @@
       "when": "Wanneer: {date}, {start} tot {end}",
       "where": "Waar: {location}",
       "trainer": "Trainer: {trainer}"
+    },
+    "privateSessionMoved": {
+      "subject": "Wijziging: je sessie op {oldDate} is verplaatst naar {newDate}",
+      "dateTime": "{date} om {time}",
+      "preview": "Je privésessie is verplaatst naar {newDate}.",
+      "intro": "Je privésessie bij {workspace} is verplaatst.",
+      "previously": "Eerder: {date}, {start} tot {end}",
+      "now": "Nieuw: {date}, {start} tot {end}"
     },
     "demoRequest": {
       "subject": "Demo-aanvraag: {name}",

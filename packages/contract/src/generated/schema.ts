@@ -63,7 +63,7 @@ export interface paths {
         head?: never;
         /**
          * Change the signed-in account
-         * @description Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load, and the name they gave themselves (`name`), one per account, shown in every workspace they are on. Answers with the account, as `GET /v1/me` does. A language other than `nl-NL` or `en`, or a name that is empty, blank or over 80 characters, answers `400` and nothing changes.
+         * @description Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load, and the name they gave themselves (`name`), one per account, shown in every workspace they are on, and whether they get the emails about bookings in their classes (`bookingEmails`, on until switched off), also one per account. Answers with the account, as `GET /v1/me` does. A language other than `nl-NL` or `en`, a name that is empty, blank or over 80 characters, or a `bookingEmails` that is not a boolean, answers `400` and nothing changes.
          */
         patch: operations["updateMe"];
         trace?: never;
@@ -82,6 +82,46 @@ export interface paths {
         get: operations["listMyWorkspaces"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/email/change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask for a code to change the signed-in account’s email address
+         * @description Sends a 6-digit code to the new address (EM-34), in the account’s language. The address does not change until `POST /v1/me/email/confirm` accepts the code. The answer is `202` for every valid address, one that already has an account, and a request over the rate limits (3 in 15 minutes per account and per address, 20 an hour per network, as for sign-in), so it never says who has an account; only a free address under the limits gets an email. A new request replaces the earlier code. It acts on the signed-in account alone: no route changes anyone else’s address.
+         */
+        post: operations["requestEmailChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/email/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm the code and change the signed-in account’s email address
+         * @description With the right code the account’s address becomes the one the code was sent to, in every workspace at once, and every open sign-in session stays signed in. The sign-in codes and links sent to the old address stop working. Answers with the account, as `GET /v1/me` does. A wrong, used, replaced or expired code, five wrong codes, an address that has an account by now and a network over its limit all answer `422` and nothing changes.
+         */
+        post: operations["confirmEmailChange"];
         delete?: never;
         options?: never;
         head?: never;
@@ -564,6 +604,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Reschedule a private session
+         * @description Moves a private session to a new local date and start, with a length (the same rules as planning, daylight saving time included); the location stays. The Owner may move any session, a Trainer only their own (`403` otherwise). `version` is the one the person saw: if the session has been changed since, nothing is stored and the answer is `409` with the session as it is now and who changed it last. A cancelled session answers `409` too; a session that is not private or not in the workspace answers `404`. When `notify` is on and the new time is not in the past, EM-04 goes to the client after the change is committed, in the client’s email language, else the workspace’s default.
+         */
+        post: operations["reschedulePrivateSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/clients/{clientId}/upcoming-sessions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * A client’s upcoming sessions
+         * @description The next 5 scheduled private sessions of the client, soonest first (instants in UTC plus the workspace’s time zone, and the trainer), for any team member who may see the workspace’s clients. A session that has started, a cancelled one and one the client’s place in was cancelled are left out. A client who is not in the workspace answers `404`.
+         */
+        get: operations["listClientUpcomingSessions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{workspaceId}/sessions/{sessionId}": {
         parameters: {
             query?: never;
@@ -778,6 +858,8 @@ export interface components {
              * @enum {string|null}
              */
             preferredLocale: "nl-NL" | "en" | null;
+            /** @description Whether the person gets an email when a client books or cancels a class they teach (F050). On for every account until they switch it off. It belongs to the account, so it is the same in every workspace. */
+            bookingEmails: boolean;
             /** @description Whether the account may set up a workspace: it is on the sign-up allowlist, whether or not it has a workspace already. With no workspace, the first-run screen shows when this is true and the no-access page when it is false. The web and the apps never decide this by rules of their own. */
             canCreateWorkspace: boolean;
             /** @description The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed. */
@@ -832,8 +914,30 @@ export interface components {
              * @enum {string}
              */
             preferredLocale?: "nl-NL" | "en";
+            /** @description Whether to get an email when a client books or cancels a class the person teaches: `true` or `false`, stored on the account and the same in every workspace. Anything that is not a boolean answers `400` with a field error. */
+            bookingEmails?: boolean;
             /**
              * @description The app that sends the request: `ios` or `android`. A request with a bearer token that changes `preferredLocale` records the `language_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+             * @enum {string}
+             */
+            surface?: "ios" | "android";
+        };
+        /** @description The address to send the confirmation code to. */
+        RequestEmailChange: {
+            /** @description The new address, trimmed and stored in lower case. Not an address, or the account’s own current one, answers `400` with a field error on `newEmail`. */
+            newEmail: string;
+        };
+        /** @description The code is wrong, used, replaced, expired or out of attempts, or the address it was sent for has an account by now; nothing says which. Nothing changed. Contains no user-facing text. */
+        InvalidCode: {
+            /** @enum {string} */
+            code: "invalid_or_expired_code";
+        };
+        /** @description The code that confirms the new address. */
+        ConfirmEmailChange: {
+            /** @description The 6-digit code in the email sent to the new address. */
+            code: string;
+            /**
+             * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `email_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
              * @enum {string}
              */
             surface?: "ios" | "android";
@@ -1364,6 +1468,79 @@ export interface components {
              */
             surface?: "ios" | "android";
         };
+        /** @description The private session after it moved, with what the trainer should be told. */
+        ReschedulePrivateSessionResult: {
+            session: components["schemas"]["Session"];
+            /** @description The new time is before now: it was saved, and no email goes out. */
+            past: boolean;
+            /** @description The new start happens twice because the clocks went back; the first (summer time) was taken. */
+            repeatedStart: boolean;
+            /** @description Whether the change (EM-04) goes to the client: it was asked for and the new time is not in the past. It is sent after the answer is decided; a failure is reported to error tracking and does not undo the change. */
+            changeEmail: boolean;
+        };
+        /** @description The change was refused because of the session’s state; nothing was stored. Holds the session as it is now, so the form can show its values. */
+        SessionConflict: {
+            /**
+             * @description `session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is.
+             * @enum {string}
+             */
+            code: "session_changed" | "session_cancelled";
+            session: components["schemas"]["Session"];
+            /** @description Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name. */
+            changedBy?: {
+                /** @description The account’s name. */
+                name: string;
+            };
+        };
+        /** @description A new local date, start and length for a private session, and the version the person saw. */
+        ReschedulePrivateSessionRequest: {
+            /** @description The date in the workspace’s time zone: `YYYY-MM-DD`. A date that is none (30 February) answers `400` on `localDate`. */
+            localDate: string;
+            /** @description The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first. */
+            localStart: string;
+            /** @description The length in minutes: 15 to 240 in steps of 5. Any other value answers `400` on `durationMinutes`. */
+            durationMinutes: number;
+            /** @description Whether to email the client the change (EM-04). Not sent when the new time is in the past, whatever this says. */
+            notify: boolean;
+            /** @description The `version` of the session the person saw. If the session has been changed since, nothing is stored and the answer is `409` with the session as it is now. */
+            version: number;
+            /**
+             * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_rescheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+             * @enum {string}
+             */
+            surface?: "ios" | "android";
+        };
+        /** @description A client’s upcoming private sessions, for their profile (TW-02, TM-03). */
+        UpcomingSessions: {
+            /**
+             * Format: uuid
+             * @description The client ID the sessions are of.
+             */
+            clientId: string;
+            /** @description The workspace’s IANA time zone, e.g. `Europe/Amsterdam` (ADR-012). */
+            timeZone: string;
+            /** @description The next sessions, soonest first: at most 5. Empty for a client without any. */
+            sessions: components["schemas"]["UpcomingSession"][];
+        };
+        /** @description A client’s coming private session. */
+        UpcomingSession: {
+            /**
+             * Format: uuid
+             * @description The session ID.
+             */
+            id: string;
+            /**
+             * Format: date-time
+             * @description The start, a UTC instant.
+             */
+            startsAt: string;
+            /**
+             * Format: date-time
+             * @description The end, a UTC instant.
+             */
+            endsAt: string;
+            trainer?: components["schemas"]["SessionTrainer"];
+        };
         /** @description A class of the workspace: what it is called, who usually teaches it, how many people fit and how long it lasts. It is not a point in time; a class on a date is a `group` session. */
         GroupClass: {
             /**
@@ -1746,6 +1923,115 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    requestEmailChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestEmailChange"];
+            };
+        };
+        responses: {
+            /** @description Accepted. The body is empty. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    confirmEmailChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmEmailChange"];
+            };
+        };
+        responses: {
+            /** @description The account with its new address. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeResponse"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The code was not accepted. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvalidCode"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */
@@ -3488,6 +3774,159 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PlannedPrivateSession"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    reschedulePrivateSession: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The session ID. */
+                sessionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReschedulePrivateSessionRequest"];
+            };
+        };
+        responses: {
+            /** @description The session was moved. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReschedulePrivateSessionResult"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description The session was changed after the `version` sent, or it is cancelled. Nothing was stored. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SessionConflict"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    listClientUpcomingSessions: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The client ID. */
+                clientId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The upcoming sessions, possibly none. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UpcomingSessions"];
                 };
             };
             /** @description The request did not match the contract. */

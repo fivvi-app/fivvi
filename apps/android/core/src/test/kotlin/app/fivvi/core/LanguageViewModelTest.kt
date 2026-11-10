@@ -36,6 +36,7 @@ class LanguageViewModelTest {
         email = "owner@example.com",
         name = "Owner",
         preferredLocale = locale,
+        bookingEmails = true,
         canCreateWorkspace = false,
         workspaces = emptyList(),
     )

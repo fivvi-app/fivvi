@@ -84,12 +84,70 @@ describe.each(locales)('F006 TW-01 Clients in %s', (locale) => {
 
     expect(html).toMatch(new RegExp(`<h1[^>]*>${escapeHtml(copy.clients.title)}</h1>`));
     expect(html).toMatch(
-      /<a[^>]*href="\/w\/johns-gym\/clients\/c1"[^>]*><span[^>]*>Anna de Vries<\/span><span class="sr-only">, <\/span><span[^>]*>anna@example\.com<\/span><\/a>/,
+      /<a[^>]*href="\/w\/johns-gym\/clients\/c1"[^>]*>(?:<span[^>]*data-slot="avatar"[^>]*><\/span>)?<span[^>]*>Anna de Vries<\/span><span class="sr-only">, <\/span><span[^>]*>anna@example\.com<\/span>(?:<svg.*?<\/svg>)?<\/a>/,
     );
     expect(html).toMatch(
-      /<a[^>]*href="\/w\/johns-gym\/clients\/c2"[^>]*><span[^>]*>Mark Jansen<\/span><span class="sr-only">, <\/span><span[^>]*>mark@example\.com<\/span><\/a>/,
+      /<a[^>]*href="\/w\/johns-gym\/clients\/c2"[^>]*>(?:<span[^>]*data-slot="avatar"[^>]*><\/span>)?<span[^>]*>Mark Jansen<\/span><span class="sr-only">, <\/span><span[^>]*>mark@example\.com<\/span>(?:<svg.*?<\/svg>)?<\/a>/,
     );
     expect(html).toContain(`placeholder="${escapeHtml(copy.clients.searchPlaceholder)}"`);
+  });
+
+  // E020 #627: the look of TW-01 (docs/design/prototype-v2, *Klanten (TW-01)*).
+  it('E020 AC15: the clients are the rows of one card, each with an avatar and a chevron, the name over the address', () => {
+    const html = list([anna, mark]);
+
+    // One card holds the list; its rows are separated by a hairline.
+    expect(html).toMatch(/<div[^>]*data-slot="card"[^>]*>(?:(?!<\/ul>).)*<ul[^>]*aria-label/s);
+    expect(html.match(/<li[^>]*border-b/g)).toHaveLength(2);
+    // The avatar carries the initials in an attribute (no text for screen readers), hidden from them.
+    expect(html).toMatch(/<span[^>]*data-slot="avatar"[^>]*data-initials="AD"/);
+    expect(html).toMatch(/<span[^>]*data-slot="avatar"[^>]*data-initials="MJ"/);
+    expect(html).not.toMatch(/>AD</);
+    // The end of a row is a chevron, drawn and hidden from screen readers.
+    const row = html.match(/<a[^>]*href="\/w\/johns-gym\/clients\/c1"[^>]*>.*?<\/a>/s)?.[0] ?? '';
+    expect(row).toMatch(/<svg[^>]*aria-hidden="true"[^>]*><path d="m9 6 6 6-6 6"><\/path>/);
+    // The name is the strong line, the address the quiet one.
+    expect(row).toMatch(/<span[^>]*font-semibold[^>]*>Anna de Vries<\/span>/);
+    expect(row).toMatch(/<span[^>]*text-muted-foreground[^>]*>anna@example\.com<\/span>/);
+  });
+
+  it('E020 AC15: the page has the trainer web’s padding, the title and the add action in one row, and a search field with its icon', () => {
+    const frameHtml = render(
+      locale,
+      <WorkspaceFrame
+        name="John's Gym"
+        slug="johns-gym"
+        teamRole="owner"
+        workspaces={[]}
+        canCreateWorkspace={false}
+        capabilities={OWNER}
+        personName={null}
+        quickAdd={{ workspaceId: 'w1', defaultLocale: 'nl-NL' }}
+      >
+        <ClientList workspaceId="w1" slug="johns-gym" initial={{ items: [anna], total: 1 }} />
+      </WorkspaceFrame>,
+    );
+
+    expect(frameHtml).toMatch(/<main[^>]*px-6[^>]*pt-5[^>]*pb-10/);
+    expect(frameHtml).toMatch(
+      new RegExp(
+        `<h1[^>]*>${escapeHtml(copy.clients.title)}</h1><button[^>]*type="button"[^>]*><svg[^>]*aria-hidden="true"[^>]*>.*?</svg>${escapeHtml(copy.clients.add)}</button>`,
+        's',
+      ),
+    );
+    expect(frameHtml).toMatch(
+      /<svg[^>]*aria-hidden="true"[^>]*><circle cx="11" cy="11" r="7"><\/circle>.*?<input[^>]*type="search"/s,
+    );
+  });
+
+  it('E020 AC15: the empty list is the message in a card, not a list', () => {
+    // The add action needs the quick-add provider, the error and the slow load a running page:
+    // they are in the e2e suite (clients.spec.ts, theme.spec.ts).
+    const html = list([]);
+
+    expect(html).toMatch(/data-slot="card"[^>]*>.*?<p>/s);
+    expect(html).toContain(escapeHtml(copy.clients.empty));
+    expect(html).not.toContain('<ul');
   });
 
   it('shows the empty state with its one action when the workspace has no clients', () => {
@@ -161,6 +219,32 @@ describe.each(locales)('F006 TW-01 Clients in %s', (locale) => {
     expect(profile(anna, false, 'nl-NL', false)).not.toMatch(edit);
     // The overview stays for a person who may only view.
     expect(profile(anna, false, 'nl-NL', false)).toContain(escapeHtml('anna@example.com'));
+  });
+
+  // E020 #627: the look of TW-02 (docs/design/prototype-v2, *Klantprofiel (TW-02)*).
+  it('E020 AC15: the header is the large avatar, the name and Edit; the overview is a card of labelled details', () => {
+    const html = profile(anna);
+
+    // The avatar before the name, with the initials in an attribute only.
+    expect(html).toMatch(
+      /<span[^>]*data-slot="avatar"[^>]*data-initials="AD"[^>]*>.*?<h1[^>]*>Anna de Vries<\/h1>.*?<button[^>]*>/s,
+    );
+    expect(html).toMatch(/<span[^>]*data-slot="avatar"[^>]*size-14/);
+    expect(html).not.toMatch(/>AD</);
+    // The overview is in a card, its details a two-column list, label over from value.
+    expect(html).toMatch(/data-slot="card"[^>]*>.*?<h2[^>]*>/s);
+    expect(html).toMatch(/<dl[^>]*grid-cols-\[auto_1fr\]/);
+    expect(html.match(/<dt[^>]*>/g)).toHaveLength(3);
+    // The address is shown once, so the page has one place that says it.
+    expect(html.match(/anna@example\.com/g)).toHaveLength(1);
+  });
+
+  it('E020 AC15: the confirmation after an add is a status in the success tint', () => {
+    const html = profile(anna, true);
+
+    expect(html).toMatch(
+      /<p[^>]*role="status"[^>]*bg-status-success-bg[^>]*text-status-success-text/,
+    );
   });
 
   it('no placeholder tabs: the profile has the overview only', () => {

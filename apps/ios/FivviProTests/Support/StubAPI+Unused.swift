@@ -48,6 +48,18 @@ extension StubAPI {
         fatalError("The app doesn't call updateLocation yet")
     }
 
+    func requestEmailChange(
+        _ input: Operations.RequestEmailChange.Input
+    ) async throws -> Operations.RequestEmailChange.Output {
+        fatalError("The app doesn't call requestEmailChange yet")
+    }
+
+    func confirmEmailChange(
+        _ input: Operations.ConfirmEmailChange.Input
+    ) async throws -> Operations.ConfirmEmailChange.Output {
+        fatalError("The app doesn't call confirmEmailChange yet")
+    }
+
     func getMyDay(_ input: Operations.GetMyDay.Input) async throws -> Operations.GetMyDay.Output {
         fatalError("The app doesn't call getMyDay yet")
     }
@@ -100,6 +112,18 @@ extension StubAPI {
         _ input: Operations.GetSession.Input
     ) async throws -> Operations.GetSession.Output {
         fatalError("The app doesn't call getSession yet")
+    }
+
+    func reschedulePrivateSession(
+        _ input: Operations.ReschedulePrivateSession.Input
+    ) async throws -> Operations.ReschedulePrivateSession.Output {
+        fatalError("The app doesn't call reschedulePrivateSession yet")
+    }
+
+    func listClientUpcomingSessions(
+        _ input: Operations.ListClientUpcomingSessions.Input
+    ) async throws -> Operations.ListClientUpcomingSessions.Output {
+        fatalError("The app doesn't call listClientUpcomingSessions yet")
     }
 
     func listGroupClasses(

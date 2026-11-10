@@ -356,6 +356,7 @@ describe('F001N native sign-in through the API', () => {
         email: 'owner@example.com',
         name: 'Owner',
         preferredLocale: 'nl-NL',
+        bookingEmails: true,
         canCreateWorkspace: false,
         workspaces: [
           {

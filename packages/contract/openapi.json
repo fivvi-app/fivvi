@@ -201,6 +201,10 @@
             ],
             "description": "The language stored on the account; null until one is stored."
           },
+          "bookingEmails": {
+            "type": "boolean",
+            "description": "Whether the person gets an email when a client books or cancels a class they teach (F050). On for every account until they switch it off. It belongs to the account, so it is the same in every workspace."
+          },
           "canCreateWorkspace": {
             "type": "boolean",
             "description": "Whether the account may set up a workspace: it is on the sign-up allowlist, whether or not it has a workspace already. With no workspace, the first-run screen shows when this is true and the no-access page when it is false. The web and the apps never decide this by rules of their own."
@@ -218,6 +222,7 @@
           "email",
           "name",
           "preferredLocale",
+          "bookingEmails",
           "canCreateWorkspace",
           "workspaces"
         ],
@@ -357,6 +362,10 @@
             ],
             "description": "The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`."
           },
+          "bookingEmails": {
+            "type": "boolean",
+            "description": "Whether to get an email when a client books or cancels a class the person teaches: `true` or `false`, stored on the account and the same in every workspace. Anything that is not a boolean answers `400` with a field error."
+          },
           "surface": {
             "type": "string",
             "enum": [
@@ -367,6 +376,57 @@
           }
         },
         "description": "What to change on the signed-in account. Fields left out stay as they are."
+      },
+      "RequestEmailChange": {
+        "type": "object",
+        "properties": {
+          "newEmail": {
+            "type": "string",
+            "description": "The new address, trimmed and stored in lower case. Not an address, or the account’s own current one, answers `400` with a field error on `newEmail`."
+          }
+        },
+        "required": [
+          "newEmail"
+        ],
+        "description": "The address to send the confirmation code to."
+      },
+      "InvalidCode": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "invalid_or_expired_code"
+            ]
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "description": "The code is wrong, used, replaced, expired or out of attempts, or the address it was sent for has an account by now; nothing says which. Nothing changed. Contains no user-facing text."
+      },
+      "ConfirmEmailChange": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "description": "The 6-digit code in the email sent to the new address."
+          },
+          "surface": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android"
+            ],
+            "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the `email_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it."
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "description": "The code that confirms the new address."
       },
       "MyDay": {
         "type": "object",
@@ -1525,6 +1585,167 @@
         ],
         "description": "A private session to plan: one client, one trainer, a local date, start and length."
       },
+      "ReschedulePrivateSessionResult": {
+        "type": "object",
+        "properties": {
+          "session": {
+            "$ref": "#/components/schemas/Session"
+          },
+          "past": {
+            "type": "boolean",
+            "description": "The new time is before now: it was saved, and no email goes out."
+          },
+          "repeatedStart": {
+            "type": "boolean",
+            "description": "The new start happens twice because the clocks went back; the first (summer time) was taken."
+          },
+          "changeEmail": {
+            "type": "boolean",
+            "description": "Whether the change (EM-04) goes to the client: it was asked for and the new time is not in the past. It is sent after the answer is decided; a failure is reported to error tracking and does not undo the change."
+          }
+        },
+        "required": [
+          "session",
+          "past",
+          "repeatedStart",
+          "changeEmail"
+        ],
+        "description": "The private session after it moved, with what the trainer should be told."
+      },
+      "SessionConflict": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "session_changed",
+              "session_cancelled"
+            ],
+            "description": "`session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is."
+          },
+          "session": {
+            "$ref": "#/components/schemas/Session"
+          },
+          "changedBy": {
+            "type": "object",
+            "properties": {
+              "name": {
+                "type": "string",
+                "description": "The account’s name."
+              }
+            },
+            "required": [
+              "name"
+            ],
+            "description": "Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name."
+          }
+        },
+        "required": [
+          "code",
+          "session"
+        ],
+        "description": "The change was refused because of the session’s state; nothing was stored. Holds the session as it is now, so the form can show its values."
+      },
+      "ReschedulePrivateSessionRequest": {
+        "type": "object",
+        "properties": {
+          "localDate": {
+            "type": "string",
+            "pattern": "^\\d{4}-\\d{2}-\\d{2}$",
+            "description": "The date in the workspace’s time zone: `YYYY-MM-DD`. A date that is none (30 February) answers `400` on `localDate`."
+          },
+          "localStart": {
+            "type": "string",
+            "pattern": "^\\d{2}:\\d{2}$",
+            "description": "The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first."
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "description": "The length in minutes: 15 to 240 in steps of 5. Any other value answers `400` on `durationMinutes`."
+          },
+          "notify": {
+            "type": "boolean",
+            "description": "Whether to email the client the change (EM-04). Not sent when the new time is in the past, whatever this says."
+          },
+          "version": {
+            "type": "integer",
+            "minimum": 1,
+            "description": "The `version` of the session the person saw. If the session has been changed since, nothing is stored and the answer is `409` with the session as it is now."
+          },
+          "surface": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android"
+            ],
+            "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_rescheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it."
+          }
+        },
+        "required": [
+          "localDate",
+          "localStart",
+          "durationMinutes",
+          "notify",
+          "version"
+        ],
+        "description": "A new local date, start and length for a private session, and the version the person saw."
+      },
+      "UpcomingSessions": {
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The client ID the sessions are of."
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "The workspace’s IANA time zone, e.g. `Europe/Amsterdam` (ADR-012)."
+          },
+          "sessions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/UpcomingSession"
+            },
+            "description": "The next sessions, soonest first: at most 5. Empty for a client without any."
+          }
+        },
+        "required": [
+          "clientId",
+          "timeZone",
+          "sessions"
+        ],
+        "description": "A client’s upcoming private sessions, for their profile (TW-02, TM-03)."
+      },
+      "UpcomingSession": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The session ID."
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The start, a UTC instant."
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The end, a UTC instant."
+          },
+          "trainer": {
+            "$ref": "#/components/schemas/SessionTrainer"
+          }
+        },
+        "required": [
+          "id",
+          "startsAt",
+          "endsAt"
+        ],
+        "description": "A client’s coming private session."
+      },
       "GroupClass": {
         "type": "object",
         "properties": {
@@ -2146,7 +2367,7 @@
           "me"
         ],
         "summary": "Change the signed-in account",
-        "description": "Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load, and the name they gave themselves (`name`), one per account, shown in every workspace they are on. Answers with the account, as `GET /v1/me` does. A language other than `nl-NL` or `en`, or a name that is empty, blank or over 80 characters, answers `400` and nothing changes.",
+        "description": "Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load, and the name they gave themselves (`name`), one per account, shown in every workspace they are on, and whether they get the emails about bookings in their classes (`bookingEmails`, on until switched off), also one per account. Answers with the account, as `GET /v1/me` does. A language other than `nl-NL` or `en`, a name that is empty, blank or over 80 characters, or a `bookingEmails` that is not a boolean, answers `400` and nothing changes.",
         "security": [
           {
             "cookieAuth": []
@@ -2254,6 +2475,159 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/email/change": {
+      "post": {
+        "operationId": "requestEmailChange",
+        "tags": [
+          "me"
+        ],
+        "summary": "Ask for a code to change the signed-in account’s email address",
+        "description": "Sends a 6-digit code to the new address (EM-34), in the account’s language. The address does not change until `POST /v1/me/email/confirm` accepts the code. The answer is `202` for every valid address, one that already has an account, and a request over the rate limits (3 in 15 minutes per account and per address, 20 an hour per network, as for sign-in), so it never says who has an account; only a free address under the limits gets an email. A new request replaces the earlier code. It acts on the signed-in account alone: no route changes anyone else’s address.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "account",
+          "workspaces": "team"
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestEmailChange"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted. The body is empty."
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/email/confirm": {
+      "post": {
+        "operationId": "confirmEmailChange",
+        "tags": [
+          "me"
+        ],
+        "summary": "Confirm the code and change the signed-in account’s email address",
+        "description": "With the right code the account’s address becomes the one the code was sent to, in every workspace at once, and every open sign-in session stays signed in. The sign-in codes and links sent to the old address stop working. Answers with the account, as `GET /v1/me` does. A wrong, used, replaced or expired code, five wrong codes, an address that has an account by now and a network over its limit all answer `422` and nothing changes.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "account",
+          "workspaces": "team"
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmEmailChange"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The account with its new address.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The code was not accepted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidCode"
                 }
               }
             }
@@ -4901,6 +5275,254 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PlannedPrivateSession"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule": {
+      "post": {
+        "operationId": "reschedulePrivateSession",
+        "tags": [
+          "sessions"
+        ],
+        "summary": "Reschedule a private session",
+        "description": "Moves a private session to a new local date and start, with a length (the same rules as planning, daylight saving time included); the location stays. The Owner may move any session, a Trainer only their own (`403` otherwise). `version` is the one the person saw: if the session has been changed since, nothing is stored and the answer is `409` with the session as it is now and who changed it last. A cancelled session answers `409` too; a session that is not private or not in the workspace answers `404`. When `notify` is on and the new time is not in the past, EM-04 goes to the client after the change is committed, in the client’s email language, else the workspace’s default.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "session.private.manage.own",
+          "roles": [
+            "owner",
+            "trainer"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The session ID."
+            },
+            "required": true,
+            "description": "The session ID.",
+            "name": "sessionId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReschedulePrivateSessionRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The session was moved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReschedulePrivateSessionResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The session was changed after the `version` sent, or it is cancelled. Nothing was stored.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SessionConflict"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/clients/{clientId}/upcoming-sessions": {
+      "get": {
+        "operationId": "listClientUpcomingSessions",
+        "tags": [
+          "sessions"
+        ],
+        "summary": "A client’s upcoming sessions",
+        "description": "The next 5 scheduled private sessions of the client, soonest first (instants in UTC plus the workspace’s time zone, and the trainer), for any team member who may see the workspace’s clients. A session that has started, a cancelled one and one the client’s place in was cancelled are left out. A client who is not in the workspace answers `404`.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "clients.view",
+          "roles": [
+            "owner",
+            "trainer"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The client ID."
+            },
+            "required": true,
+            "description": "The client ID.",
+            "name": "clientId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The upcoming sessions, possibly none.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/UpcomingSessions"
                 }
               }
             }

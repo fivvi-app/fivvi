@@ -56,6 +56,7 @@ extension Responder {
             "id": "2f6a1f0e-0000-4000-8000-000000000001", "email": signIn.email,
             "name": name.map { $0 as Any } ?? NSNull(),
             "preferredLocale": preferredLocale.map { $0 as Any } ?? NSNull(),
+            "bookingEmails": true,
             "canCreateWorkspace": signIn.canCreateWorkspace,
             "workspaces": teamWorkspaces.map { entry in
                 ["id": entry["workspaceId"] as Any, "name": entry["name"] as Any, "slug": entry["slug"] as Any,

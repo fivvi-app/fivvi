@@ -55,10 +55,20 @@ struct KitGalleryScreen {
         return [launched, .now].map { $0.formatted(style) }
     }
 
-    /// Scrolls the gallery up until `element` can be tapped, at most `swipes` times.
+    /// Scrolls the gallery up until `element` can be tapped, at most `swipes` times, and no longer once three swipes in
+    /// a row did not move it: the page is at its end and something else keeps the element from being hittable (the
+    /// keyboard), which a tap deals with by scrolling it into view itself. Twelve swipes that move nothing were most of
+    /// the 60 s of the toast test, whose allowance on a runner is 120 s (#679).
     func scroll(to element: XCUIElement, swipes: Int = 12) {
+        var last = CGRect.null
+        var unmoved = 0
         for _ in 0..<swipes where !(element.exists && element.isHittable) {
             scroll.swipeUp(velocity: .slow)
+            guard element.exists else { continue }
+            let frame = element.frame
+            unmoved = frame == last ? unmoved + 1 : 0
+            last = frame
+            if unmoved >= 3 { return }
         }
     }
 

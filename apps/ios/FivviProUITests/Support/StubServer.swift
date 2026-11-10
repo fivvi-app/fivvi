@@ -107,6 +107,12 @@ final class StubServer: Sendable {
         responder.trainerStatus = status
     }
 
+    /// While true, `GET` of one client gets no answer, so the loading state of its profile stays on screen. Setting it to
+    /// false answers the reads held.
+    func holdClientReads(_ hold: Bool) {
+        responder.holdClientReads(hold)
+    }
+
     /// While offline, every request is cut off without an answer, as a lost connection would (it is still recorded in
     /// `requests`).
     func setOffline(_ offline: Bool) {

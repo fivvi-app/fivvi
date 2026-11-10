@@ -66,6 +66,13 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     workspace_id: property.uuid(),
     surface: property.enum(['web', 'ios', 'android']),
   },
+  // F020: a team member rescheduled a private session. The workspace ID and the surface only, as
+  // for `private_session_created`: no session or client ID, name, email address, trainer, or the
+  // old or new date or time.
+  private_session_rescheduled: {
+    workspace_id: property.uuid(),
+    surface: property.enum(['web', 'ios', 'android']),
+  },
   // F011: the invited person accepted, or declined, the invitation. The workspace ID only (the
   // account's UUID is the distinct ID): not the invitation's ID, the person's name or email
   // address, the Owner who invited, and never the token.
@@ -98,6 +105,12 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
   my_calendar_viewed: {
     surface: property.enum(['web', 'ios', 'android']),
     workspace_count: property.number(),
+  },
+  // F005 (spec #610): a trainer or owner changed their own email address with a code. The surface
+  // only (the account's UUID is the distinct ID): never the old or the new address, the code or
+  // the name.
+  email_changed: {
+    surface: property.enum(['web', 'ios', 'android']),
   },
   // F010: someone chose their interface language. The language and the surface only: the distinct
   // ID is random for each event (`anonymousDistinctId()`), so nothing leads to the account, and no
