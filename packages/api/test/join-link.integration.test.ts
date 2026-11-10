@@ -21,8 +21,8 @@ import { type ApiDependencies, createApp, NO_DEPENDENCIES } from '../src/index.t
 
 // F029 (spec #484, ticket #898): the join link of a workspace through the API,
 // GET /v1/workspaces/{workspaceId}/join-link and POST …/join-link/renew. Synthetic people: John
-// (Owner of John's Gym), Sarah (Trainer of John's Gym), Mike (Owner of Fit Studio), Anna (a client
-// of John's Gym with no team role).
+// (Owner of John's Gym), Sarah (Trainer of John's Gym), Mike (Owner of Fit Studio), Anna (an
+// account with no place in John's Gym).
 
 const contract = JSON.parse(
   readFileSync(new URL('../../contract/openapi.json', import.meta.url), 'utf8'),
@@ -151,7 +151,7 @@ describe('F029 the join link of a workspace', () => {
       ...(options.body === undefined ? {} : { body: JSON.stringify(options.body) }),
     });
 
-  it('AC1: the read route answers the full URL of the workspace’s code, not renewed yet', async () => {
+  it('the read route answers the full URL of the workspace’s code, not renewed yet', async () => {
     const { gym, john } = await world();
     const { code } = await storedCode(gym.id);
 
@@ -227,7 +227,7 @@ describe('F029 the join link of a workspace', () => {
     expect(await storedCode(gym.id)).toEqual(before);
   });
 
-  it('AC8: Mike (Owner of Fit Studio) gets 404 on both of John’s Gym routes; anonymous calls get 401; a client with no team role gets 404', async () => {
+  it('AC8: Mike (Owner of Fit Studio) gets 404 on both of John’s Gym routes; anonymous calls get 401; an account with no place in John’s Gym gets 404', async () => {
     const { gym, mike, anna } = await world();
     const before = await storedCode(gym.id);
 

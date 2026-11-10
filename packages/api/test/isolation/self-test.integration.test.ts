@@ -48,7 +48,16 @@ const seedNote =
 const seedWorkspace: IsolationCase['seed'] = (_db, { workspaceId }) =>
   Promise.resolve({ workspace: workspaceId });
 
+/** The join code of the workspace the seed was called for (F029): neither an id nor a `uniqueMarker`. */
+const seedJoinCode: IsolationCase['seed'] = async (db, { workspaceId }) => {
+  const { rows } = await db.execute(
+    sql`select join_code from organizations where id = ${workspaceId}`,
+  );
+  return { code: (rows[0] as { join_code: string }).join_code };
+};
+
 const SELF_TEST_CASES: Record<string, IsolationCase> = {
+  probeLeakyJoinCodes: { seed: seedJoinCode },
   probeLeakyClients: { seed: seedWorkspace },
   probeLeakyBodies: { seed: seedNote(PROTECTED) },
   probeWritingGet: { seed: seedWorkspace },
@@ -110,6 +119,15 @@ function registerLeakyRoutes(world: World) {
     );
     return c.json({ bodies: (rows as { body: string }[]).map((row) => row.body) }, 200);
   });
+  // Leaks only the join codes of every workspace: the code is on the workspace's own row and is
+  // the only thing the suite has to find it by (F029).
+  app.openapi(
+    defineRoute(route('/probe/leaky/join-codes', 'probeLeakyJoinCodes'), team),
+    async (c) => {
+      const { rows } = await world.admin.db.execute(sql`select join_code from organizations`);
+      return c.json({ codes: (rows as { join_code: string }[]).map((row) => row.join_code) }, 200);
+    },
+  );
   // Changes rows on a read: the suite must notice A's rows are not what they were.
   app.openapi(defineRoute(route('/probe/writing-get', 'probeWritingGet'), team), async (c) =>
     c.json(
@@ -197,6 +215,18 @@ describe('E011 the suite can fail', () => {
           ),
         ]),
       );
+      // ...for a route that leaks only the join codes of the workspaces, found by the code (it
+      // lists every workspace of the database, so the first one named is not always A or B)...
+      expect(failuresOf('probeLeakyJoinCodes')).toEqual(
+        expect.arrayContaining([
+          expect.stringMatching(
+            /^probeLeakyJoinCodes as A’s owner in A: the response holds \d+ id or marker the actor may not see/,
+          ),
+          expect.stringMatching(
+            /^probeLeakyJoinCodes as B’s owner in B: the response holds \d+ id or marker the actor may not see/,
+          ),
+        ]),
+      );
       // ...for a policy that matches nothing: the listing is empty, and the suite says what is
       // missing from it...
       expect(failuresOf(`probeNotes_${STRICT}`)).toEqual(
@@ -227,6 +257,7 @@ describe('E011 the suite can fail', () => {
         (failure) =>
           !failure.startsWith('probeLeakyClients as ') &&
           !failure.startsWith('probeLeakyBodies as ') &&
+          !failure.startsWith('probeLeakyJoinCodes as ') &&
           !failure.startsWith(`probeNotes_${STRICT} as `) &&
           !failure.startsWith('probeWritingGet as ') &&
           !failure.startsWith('probeUnseeded: ') &&

@@ -62,7 +62,7 @@ describe('F029 the join code of a workspace', () => {
     return row;
   }
 
-  it('AC1: a new workspace gets a code of 8 unambiguous Crockford characters and has not been renewed', async () => {
+  it('a new workspace gets a code of 8 unambiguous Crockford characters and has not been renewed', async () => {
     const john = await createAccount(admin.db, { label: 'john' });
 
     const created = await scopes().inAccountScope(
@@ -82,7 +82,7 @@ describe('F029 the join code of a workspace', () => {
     expect(stored.renewedAt).toBeNull();
   });
 
-  it('AC1: codes are unique and use the whole alphabet, 400 draws', async () => {
+  it('codes are unique and use the whole alphabet, 400 draws', async () => {
     const codes = new Set<string>();
     const seen = new Set<string>();
     for (let i = 0; i < 400; i += 1) {
@@ -97,7 +97,7 @@ describe('F029 the join code of a workspace', () => {
     expect(seen.size).toBe(32);
   });
 
-  it('AC1: the database refuses a code that is not in the format, and a code another workspace has', async () => {
+  it('the database refuses a code that is not in the format, and a code another workspace has', async () => {
     const first = await createWorkspace(admin.db, { label: 'first' });
     const second = await createWorkspace(admin.db, { label: 'second' });
     const { code } = await codeOf(first.id);
@@ -126,9 +126,12 @@ describe('F029 the join code of a workspace', () => {
       (scope) => findJoinLink(scope),
     );
 
-    expect(found.status).toBe('entered');
-    expect(await codeOf(gym.id)).toEqual({ code: expect.stringMatching(CODE), renewedAt: null });
-    expect(await codeOf(studio.id)).toEqual({ code: expect.stringMatching(CODE), renewedAt: null });
+    const gymCode = (await codeOf(gym.id)).code;
+    const studioCode = (await codeOf(studio.id)).code;
+    expect(gymCode).toMatch(CODE);
+    expect(found).toEqual({ status: 'entered', value: await codeOf(gym.id) });
+    expect(found).not.toEqual({ status: 'entered', value: await codeOf(studio.id) });
+    expect(studioCode).not.toBe(gymCode);
   });
 
   it('AC6: renewJoinLink replaces the code, stores the time, and the old code is nowhere', async () => {
@@ -165,7 +168,7 @@ describe('F029 the join code of a workspace', () => {
 });
 
 describe('F029 the backfill', () => {
-  it('AC1: gives every workspace that exists before the join code its own code', async () => {
+  it('gives every workspace that exists before the join code its own code', async () => {
     const tag = '0027_organizations_join_code';
     const journal = JSON.parse(
       await readFile(join(migrationsFolder, 'meta', '_journal.json'), 'utf8'),

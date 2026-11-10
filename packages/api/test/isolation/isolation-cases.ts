@@ -1,4 +1,4 @@
-import { type DatabaseExecutor, locations, trainerProfiles } from '@fivvi/database';
+import { type DatabaseExecutor, locations, organizations, trainerProfiles } from '@fivvi/database';
 import {
   addGroupClass,
   addSession,
@@ -74,6 +74,16 @@ export interface IsolationCase {
 /** The client row that the seed was called for: what a route about one client names. */
 const theClient: IsolationCase['seed'] = (_db, { clientId }) =>
   Promise.resolve({ client: clientId });
+
+/** The join code of the workspace the seed was called for: what the join link shows (F029). */
+const theJoinCode: IsolationCase['seed'] = async (db, { workspaceId }) => {
+  const [row] = await db
+    .select({ code: organizations.joinCode })
+    .from(organizations)
+    .where(eq(organizations.id, workspaceId));
+  if (!row) throw new Error('no such workspace');
+  return { code: row.code };
+};
 
 /** The workspace the seed was called for: what a route about the caller's workspaces names. */
 const theWorkspace: IsolationCase['seed'] = (_db, { workspaceId }) =>
@@ -232,11 +242,9 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   recordWorkspaceSwitch: { body: {} },
 
   // The join link (F029): a read shows the URL of the workspace's code and a renewal replaces it.
-  // The code is on the workspace's own row and is neither a uuid nor a `uniqueMarker`, so the suite
-  // has nothing in the response to look for (`readsNoRecords`); `join-link.integration.test.ts`
-  // checks that the code is in the read and in no refusal. The suite still checks who may call,
-  // the exact refusals, and that a refused or foreign call changes no row.
-  getJoinLink: { readsNoRecords: true },
+  // The code is on the workspace's own row; the suite counts it among that workspace's values, so
+  // a response with another workspace's code fails.
+  getJoinLink: { seed: theJoinCode },
   // The body is optional (the app names its surface in it); the web sends none.
   renewJoinLink: { body: {} },
 

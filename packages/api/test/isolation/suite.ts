@@ -111,9 +111,10 @@ type Ledger = Map<string, (TokenOwner & { clientIds: Set<string> })[]>;
 /**
  * The ids and markers of every record of every workspace, and whose they are: a row's uuids,
  * and the markers in its text (a name, a note's body), belong to its workspace, and to its
- * client where it has a `client_id` (or is a client). Markers of accounts (email, name) belong
- * to wherever the account id appears. A record shared by two workspaces is an error in the
- * scenario; only an account may appear in several.
+ * client where it has a `client_id` (or is a client). So does the join code of a workspace (F029),
+ * which is neither an id nor a marker. Markers of accounts (email, name) belong to wherever the
+ * account id appears. A record shared by two workspaces is an error in the scenario; only an
+ * account may appear in several.
  */
 function buildLedger(rows: StoredRow[], scenario: Scenario): Ledger {
   const ledger: Ledger = new Map();
@@ -134,6 +135,10 @@ function buildLedger(rows: StoredRow[], scenario: Scenario): Ledger {
   for (const { table, workspaceId, row } of rows) {
     claim(workspaceId, workspaceId, undefined);
     const clientId = clientOf(table, row);
+    // The join code (F029) is a value of its workspace that is neither a uuid nor a marker.
+    if (table === 'organizations' && typeof row.join_code === 'string') {
+      claim(row.join_code, workspaceId, undefined);
+    }
     for (const value of Object.values(row)) {
       if (typeof value !== 'string') continue;
       if (UUID.test(value)) {
