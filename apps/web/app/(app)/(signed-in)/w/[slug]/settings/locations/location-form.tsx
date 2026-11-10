@@ -83,6 +83,7 @@ export function LocationForm({
   address: Location['address'];
 }) {
   const t = useTranslations('settingsLocation');
+  const tNav = useTranslations('workspaceNav');
   const router = useRouter();
   const [values, setValues] = useState({
     name,
@@ -208,11 +209,12 @@ export function LocationForm({
 
   return (
     <PageShell>
+      <h1 className="text-xl font-semibold tracking-tight">{tNav('settings')}</h1>
       <Card>
         <form noValidate onSubmit={submit} className="grid gap-(--card-spacing)">
           <CardHeader>
             <CardTitle>
-              <h1 className="text-[15px] font-semibold">{t('title')}</h1>
+              <h2 className="text-[15px] font-semibold">{t('title')}</h2>
             </CardTitle>
             <CardDescription>{t('help')}</CardDescription>
             <CardAction>
@@ -236,7 +238,7 @@ export function LocationForm({
             </dl>
             <fieldset className="grid gap-4">
               <legend className="mb-2 text-[13px] font-semibold">{t('addressLegend')}</legend>
-              <div className="grid gap-4 sm:grid-cols-3">
+              <div className="grid items-start gap-4 sm:grid-cols-3">
                 <Field
                   {...fieldProps('postcode', 'location-postcode')}
                   label={t('postcodeLabel')}
@@ -266,7 +268,7 @@ export function LocationForm({
                   onBlur={() => schedule(values, 0)}
                 />
               </div>
-              <div className="grid gap-4 sm:grid-cols-2">
+              <div className="grid items-start gap-4 sm:grid-cols-2">
                 <Field
                   {...fieldProps('street', 'location-street')}
                   label={t('streetLabel')}

@@ -782,12 +782,18 @@ test.describe('E020 trainer web: Trainers and Instellingen', () => {
       // under it, a saved name in the success colour.
       await page.goto(`/w/${slug}/settings/general`);
       await expect(
-        page.getByRole('heading', { level: 1, name: copy.settingsGeneral.title }),
+        page.getByRole('heading', { level: 2, name: copy.settingsGeneral.title }),
       ).toBeVisible();
       const card = page.locator('[data-slot="card"]');
       await expect(card).toHaveCount(1);
       await expect(card).toHaveCSS('background-color', tokenColour('web.trainer.card', scheme));
-      const title = await page.getByRole('heading', { level: 1 }).boundingBox();
+      // The page title above the card: *Settings*, 20px as the prototype's `.w-top h1`.
+      const pageTitle = page.getByRole('heading', { level: 1 });
+      await expect(pageTitle).toHaveText(copy.workspaceNav.settings);
+      await expect(pageTitle).toHaveCSS('font-size', '20px');
+      const title = await page
+        .getByRole('heading', { level: 2, name: copy.settingsGeneral.title })
+        .boundingBox();
       const save = page.getByRole('button', { name: copy.settingsGeneral.save });
       const saveBox = await save.boundingBox();
       // On one line, with Save at the right-hand end of the card.
@@ -819,7 +825,7 @@ test.describe('E020 trainer web: Trainers and Instellingen', () => {
       // Language: one card, the two languages and Save.
       await page.goto(`/w/${slug}/settings/language`);
       await expect(
-        page.getByRole('heading', { level: 1, name: copy.settingsLanguage.title }),
+        page.getByRole('heading', { level: 2, name: copy.settingsLanguage.title }),
       ).toBeVisible();
       await expect(page.locator('[data-slot="card"]')).toHaveCSS(
         'background-color',
@@ -831,7 +837,7 @@ test.describe('E020 trainer web: Trainers and Instellingen', () => {
       // message under it.
       await page.goto(`/w/${slug}/settings/locations`);
       await expect(
-        page.getByRole('heading', { level: 1, name: copy.settingsLocation.title }),
+        page.getByRole('heading', { level: 2, name: copy.settingsLocation.title }),
       ).toBeVisible();
       await expect(page.locator('[data-slot="card"]')).toHaveCSS(
         'background-color',
@@ -849,6 +855,12 @@ test.describe('E020 trainer web: Trainers and Instellingen', () => {
       await expect(wrong).toBeVisible();
       await expect(wrong.locator('svg')).toHaveCount(1);
       await expect(postcode).toHaveAttribute('aria-invalid', 'true');
+      // A message under one field does not push the other fields of its row down (the prototype's
+      // `.w-inline2>.w-field{align-content:start}`): the inputs of the row sit at the same height.
+      const houseNumber = page.getByLabel(copy.settingsLocation.houseNumberLabel);
+      const postcodeBox = await postcode.boundingBox();
+      const houseNumberBox = await houseNumber.boundingBox();
+      expect(postcodeBox?.y).toBe(houseNumberBox?.y);
       await expectNoAxeViolations(page, `Location with a refusal in ${scheme} and ${appLocale}`);
     }
   });

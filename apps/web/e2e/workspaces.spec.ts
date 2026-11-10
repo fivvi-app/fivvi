@@ -257,7 +257,7 @@ test.describe('F002 renaming the workspace (TW-08)', () => {
     await page.getByRole('link', { name: copy.workspaceNav.settings }).click();
     await expect(page).toHaveURL(`${home}/settings/general`);
     await expect(
-      page.getByRole('heading', { level: 1, name: copy.settingsGeneral.title }),
+      page.getByRole('heading', { level: 2, name: copy.settingsGeneral.title }),
     ).toBeVisible();
     await expect(page.getByLabel(copy.settingsGeneral.nameLabel)).toHaveValue("John's Gym");
     await expect(page.getByText(slug, { exact: true })).toBeVisible();

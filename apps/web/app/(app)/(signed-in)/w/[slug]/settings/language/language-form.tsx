@@ -38,6 +38,7 @@ export function LanguageForm({
   defaultLocale: Locale;
 }) {
   const t = useTranslations('settingsLanguage');
+  const tNav = useTranslations('workspaceNav');
   const router = useRouter();
   const [failure, setFailure] = useState<'noConnection' | 'generic' | null>(null);
   const [saved, setSaved] = useState(false);
@@ -70,11 +71,12 @@ export function LanguageForm({
 
   return (
     <PageShell>
+      <h1 className="text-xl font-semibold tracking-tight">{tNav('settings')}</h1>
       <Card>
         <form noValidate onSubmit={submit} className="grid gap-(--card-spacing)">
           <CardHeader>
             <CardTitle>
-              <h1 className="text-[15px] font-semibold">{t('title')}</h1>
+              <h2 className="text-[15px] font-semibold">{t('title')}</h2>
             </CardTitle>
             <CardAction>
               <Button type="submit" disabled={!ready || pending}>

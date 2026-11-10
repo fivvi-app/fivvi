@@ -37,6 +37,7 @@ export function GeneralForm({
   timeZone: string;
 }) {
   const t = useTranslations('settingsGeneral');
+  const tNav = useTranslations('workspaceNav');
   const router = useRouter();
   const [error, setError] = useState<NameErrorKey | null>(null);
   const [failure, setFailure] = useState<'noConnection' | 'generic' | null>(null);
@@ -71,11 +72,12 @@ export function GeneralForm({
 
   return (
     <PageShell>
+      <h1 className="text-xl font-semibold tracking-tight">{tNav('settings')}</h1>
       <Card>
         <form noValidate onSubmit={submit} className="grid gap-(--card-spacing)">
           <CardHeader>
             <CardTitle>
-              <h1 className="text-[15px] font-semibold">{t('title')}</h1>
+              <h2 className="text-[15px] font-semibold">{t('title')}</h2>
             </CardTitle>
             <CardDescription>{name}</CardDescription>
             <CardAction>
