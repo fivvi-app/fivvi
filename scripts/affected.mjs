@@ -62,6 +62,9 @@ const INPUT_OF_PACKAGE = new Map([
   // packages/database/turbo.json lists both as inputs of that test, for the cache.
   ['scripts/restore-drill.sh', '@fivvi/database'],
   ['scripts/_lib.sh', '@fivvi/database'],
+  // The Railway config and the environments doc are read by the cron tests (the schedule E012, the backups E016).
+  ['.railway/railway.ts', '@fivvi/cron'],
+  ['docs/engineering/ENVIRONMENTS.md', '@fivvi/cron'],
 ]);
 
 // Files of docs/ that are the input of a package's tests or build, not documentation: the web app renders the privacy
