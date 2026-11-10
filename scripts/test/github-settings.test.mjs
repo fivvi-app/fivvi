@@ -52,6 +52,7 @@ describe('the versioned GitHub settings', () => {
       jobs.filter((name) => !required.includes(name)),
       [
         'iOS build',
+        'iOS build (retry)',
         'iOS tests (${{ matrix.locale }})',
         'Android build',
         'Android tests',
@@ -94,7 +95,7 @@ describe('the versioned GitHub settings', () => {
       max_entries_to_merge: 1,
       min_entries_to_merge: 1,
       min_entries_to_merge_wait_minutes: 5,
-      check_response_timeout_minutes: 60,
+      check_response_timeout_minutes: 75,
     });
     const ci = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8');
     // The job timeouts as ci.yml sets them (job-level, four spaces): the longest native job starts after
@@ -103,8 +104,12 @@ describe('the versioned GitHub settings', () => {
       Number(ci.slice(ci.indexOf(`\n  ${job}:\n`)).match(/^ {4}timeout-minutes: (\d+)$/m)[1]);
     // iOS: the build, then the tests, then the gate. Android: the tests next to the build, then Maestro after the build,
     // then the gate (#293).
+    // #1268: a build that no runner took is cancelled by GitHub after 15 minutes and built once more by ios-build-retry,
+    // so that chain is the wait, the retry, the tests and the gate.
+    const NOT_ACQUIRED_WAIT = 15;
     const longestNative = Math.max(
       timeout('ios-build') + timeout('ios-tests') + timeout('ios'),
+      NOT_ACQUIRED_WAIT + timeout('ios-build-retry') + timeout('ios-tests') + timeout('ios'),
       timeout('android-tests') + timeout('android'),
       timeout('android-build') + timeout('android-maestro') + timeout('android'),
     );

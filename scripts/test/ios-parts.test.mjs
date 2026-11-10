@@ -121,6 +121,90 @@ describe('#413 ios-parts.sh: did a hosted runner pick up each iOS part', () => {
     ]);
   });
 
+  // #1268: GitHub now reports a job that no hosted runner took within 15 minutes as `abandoned` in needs.<job>.result
+  // (main push run 42795798409, merge_group run 42845596284: "iOS build=abandoned iOS tests (nl)=skipped"), not as
+  // cancelled, so the gate named it only by that word and a real failure looked the same.
+  it('#1268 names an abandoned build as unacquired, and the tests that never started as skipped', () => {
+    const result = run(
+      ['abandoned', 'skipped'],
+      jobs(skipped('iOS build'), skipped('iOS tests (nl)')),
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.parts, [
+      'iOS build=unacquired',
+      'iOS tests (nl)=skipped',
+      'iOS tests (en)=skipped',
+    ]);
+    assert.match(result.stderr, /iOS build: no hosted runner picked it up/);
+  });
+
+  it('#1268 keeps a real failure of the build a failure next to an abandoned test pass', () => {
+    const failed = run(['failure', 'skipped'], jobs(ran('iOS build', 'failure')));
+    assert.equal(failed.parts[0], 'iOS build=failure');
+    assert.doesNotMatch(failed.stderr, /no hosted runner/);
+  });
+
+  // The retry (#1268): "iOS build (retry)" runs once when "iOS build" was abandoned. Its result is the third argument.
+  it('#1268 reports the build as succeeded when the retry did, and says on stderr that the first try had no runner', () => {
+    const result = run(['abandoned', 'success', 'success'], [{ match: '^api ', status: 1 }]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.parts, [
+      'iOS build=success',
+      'iOS tests (nl)=success',
+      'iOS tests (en)=success',
+    ]);
+    assert.match(
+      result.stderr,
+      /iOS build: no hosted runner picked up the first try; the retry ran/,
+    );
+    assert.equal(calls().length, 0, 'nothing that succeeded can be a missing runner');
+  });
+
+  it('#1268 reports the build as unacquired when the retry was abandoned too', () => {
+    const result = run(['abandoned', 'skipped', 'abandoned'], jobs(unacquired('iOS build')));
+    assert.deepEqual(result.parts, [
+      'iOS build=unacquired',
+      'iOS tests (nl)=skipped',
+      'iOS tests (en)=skipped',
+    ]);
+    assert.match(result.stderr, /after the retry/);
+  });
+
+  it('#1268 reports a retry that failed on a runner as a failure, not as a missing runner', () => {
+    const result = run(
+      ['abandoned', 'skipped', 'failure'],
+      jobs(unacquired('iOS build'), ran('iOS build (retry)', 'failure')),
+    );
+    assert.equal(result.parts[0], 'iOS build=failure');
+    assert.doesNotMatch(result.stderr, /after the retry/);
+  });
+
+  it('#1268 reads the retry job by its own name when it was cancelled', () => {
+    const noRunner = run(
+      ['abandoned', 'skipped', 'cancelled'],
+      jobs(unacquired('iOS build'), unacquired('iOS build (retry)')),
+    );
+    assert.equal(noRunner.parts[0], 'iOS build=unacquired');
+    const timedOut = run(
+      ['abandoned', 'skipped', 'cancelled'],
+      jobs(unacquired('iOS build'), ran('iOS build (retry)', 'cancelled')),
+    );
+    assert.equal(timedOut.parts[0], 'iOS build=cancelled');
+  });
+
+  it('#1268 ignores a retry that was skipped, because the build had a runner', () => {
+    const result = run(['success', 'success', 'skipped'], [{ match: '^api ', status: 1 }]);
+    assert.deepEqual(result.parts, [
+      'iOS build=success',
+      'iOS tests (nl)=success',
+      'iOS tests (en)=success',
+    ]);
+    assert.equal(
+      run(['failure', 'skipped', 'skipped'], jobs(ran('iOS build', 'failure'))).parts[0],
+      'iOS build=failure',
+    );
+  });
+
   it('refuses `job` as the first argument with two arguments, not reading it as the CI form', () => {
     const result = run(['job', 'x'], [{ match: '^api ', status: 1 }]);
     assert.notEqual(result.status, 0);
@@ -129,7 +213,7 @@ describe('#413 ios-parts.sh: did a hosted runner pick up each iOS part', () => {
 
   it('refuses a wrong number of arguments', () => {
     assert.notEqual(run([], []).status, 0);
-    assert.notEqual(run(['success', 'success', 'success'], []).status, 0);
+    assert.notEqual(run(['success', 'success', 'success', 'success'], []).status, 0);
   });
 });
 
@@ -174,6 +258,14 @@ describe('#437 ios-parts.sh job: did a hosted runner pick up one job of the run'
 
   it('keeps cancelled when its job is not in the list', () => {
     assert.equal(run(['iOS tests', 'cancelled'], jobs()).stdout, 'iOS tests=cancelled\n');
+  });
+
+  it('#1268 labels an abandoned job as unacquired without reading the jobs', () => {
+    const result = run(['iOS tests', 'abandoned'], [{ match: '^api ', status: 1 }]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.stdout, 'iOS tests=unacquired\n');
+    assert.match(result.stderr, /iOS tests: no hosted runner picked it up/);
+    assert.equal(gh.calls().length, 0);
   });
 
   it('prints any other result as given, without reading the jobs', () => {

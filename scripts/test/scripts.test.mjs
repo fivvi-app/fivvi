@@ -331,12 +331,59 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       ),
       [
         'iOS build',
+        'iOS build (retry)',
         'iOS tests (${{ matrix.locale }})',
         'Android build',
         'Android tests',
         'Android Maestro',
       ],
     );
+  });
+
+  // #1268: GitHub cancels an iOS job that no hosted macOS runner took within 15 minutes; the build is tried once more.
+  describe('#1268 the retry of an iOS build that no runner took', () => {
+    const job = (name) => {
+      const text = ci();
+      const start = text.indexOf(`\n  ${name}:\n`);
+      assert.ok(start >= 0, `a job ${name}`);
+      const next = text.slice(start + 1).search(/\n(?: {2}#[^\n]*\n)* {2}[a-z][a-z0-9-]*:\n/);
+      return next < 0 ? text.slice(start) : text.slice(start, start + 1 + next);
+    };
+    const steps = (name) => job(name).slice(job(name).indexOf('\n    steps:\n'));
+    const field = (name, pattern) => job(name).match(pattern)?.[1];
+
+    it('runs only when the first build was abandoned and the run was not cancelled', () => {
+      assert.match(job('ios-build-retry'), /^ {4}name: iOS build \(retry\)$/m);
+      assert.match(job('ios-build-retry'), /^ {4}needs: \[changes, ios-build\]$/m);
+      const condition = field('ios-build-retry', /^ {4}if: (.+)$/m);
+      assert.match(condition, /!cancelled\(\)/);
+      assert.match(condition, /needs\.ios-build\.result == 'abandoned'/);
+      assert.match(condition, /needs\.changes\.outputs\.ios == 'true'/);
+    });
+
+    it('builds exactly as the first build does: same runner, Xcode, timeout and steps', () => {
+      for (const pattern of [
+        /^ {4}runs-on: (\S+)$/m,
+        /^ {4}timeout-minutes: (\d+)$/m,
+        /^ {6}DEVELOPER_DIR: (\S+)$/m,
+      ]) {
+        assert.equal(field('ios-build-retry', pattern), field('ios-build', pattern), `${pattern}`);
+      }
+      assert.equal(steps('ios-build-retry'), steps('ios-build'));
+    });
+
+    it('lets the tests start from either build, and the gate read all three', () => {
+      const tests = job('ios-tests');
+      assert.match(tests, /^ {4}needs: \[ios-build, ios-build-retry\]$/m);
+      const condition = field('ios-tests', /^ {4}if: (.+)$/m);
+      assert.match(condition, /!cancelled\(\)/);
+      assert.match(condition, /needs\.ios-build\.result == 'success'/);
+      assert.match(condition, /needs\.ios-build-retry\.result == 'success'/);
+      const gate = job('ios');
+      assert.match(gate, /^ {4}needs: \[changes, ios-build, ios-build-retry, ios-tests\]$/m);
+      assert.match(gate, /RETRY: \$\{\{ needs\.ios-build-retry\.result \}\}/);
+      assert.match(gate, /scripts\/ios-parts\.sh "\$BUILD" "\$TESTS" "\$RETRY"/);
+    });
   });
 
   // Runs the `Filter paths` step of the Detect changes job as it is in ci.yml, in a repo whose last commit changed
@@ -653,11 +700,12 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     return next < 0 ? ci.slice(start) : ci.slice(start, start + 1 + next);
   };
   const iosBuild = job('ios-build');
+  const iosBuildRetry = job('ios-build-retry');
   const iosTests = job('ios-tests');
   const androidBuild = job('android-build');
   const androidTests = job('android-tests');
   const androidMaestro = job('android-maestro');
-  const parts = { iosBuild, iosTests, androidBuild, androidTests, androidMaestro };
+  const parts = { iosBuild, iosBuildRetry, iosTests, androidBuild, androidTests, androidMaestro };
 
   it('caches the iOS DerivedData and Swift packages by Package.resolved, Xcode version and runner OS', () => {
     assert.match(iosBuild, /apps\/ios\/\.build\/DerivedData/);
@@ -742,7 +790,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
       /uses: actions\/upload-artifact@[^\n]*\n +with:\n +name: ios-test-bundle\n +path: apps\/ios\/\.build\/ios-test-bundle\.tar\n/,
     );
     assert.match(iosBuild, /include-hidden-files: true/);
-    assert.match(iosTests, /needs: ios-build\n/);
+    assert.match(iosTests, /needs: \[ios-build, ios-build-retry\]\n/);
     assert.match(iosTests, /matrix:\n +locale: \[nl, en\]/);
     assert.match(iosTests, /fail-fast: false/);
     assert.match(
@@ -941,7 +989,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
 
   it('#293 AC17: the required checks iOS and Android are gates that need their parts and report the combined result', () => {
     for (const [gate, native, needs] of [
-      ['ios', 'ios', '[changes, ios-build, ios-tests]'],
+      ['ios', 'ios', '[changes, ios-build, ios-build-retry, ios-tests]'],
       ['android', 'android', '[changes, android-build, android-tests, android-maestro]'],
     ]) {
       const section = job(gate);
@@ -964,9 +1012,10 @@ describe('E002 #91 the native jobs in ci.yml', () => {
         // the other results on; the gate reads the run's jobs, so it needs actions: read, and it works without them.
         assert.match(section, /^ {6}actions: read/m);
         assert.match(section, /BUILD: \$\{\{ needs\.ios-build\.result \}\}/);
+        assert.match(section, /RETRY: \$\{\{ needs\.ios-build-retry\.result \}\}/);
         assert.match(section, /TESTS: \$\{\{ needs\.ios-tests\.result \}\}/);
         assert.match(section, /GH_TOKEN: \$\{\{ github\.token \}\}/);
-        assert.match(section, /scripts\/ios-parts\.sh "\$BUILD" "\$TESTS"/);
+        assert.match(section, /scripts\/ios-parts\.sh "\$BUILD" "\$TESTS" "\$RETRY"/);
         assert.match(section, /scripts\/native-gate\.sh iOS true "\$\{PARTS\[@\]\}"/);
       }
     }
@@ -982,7 +1031,11 @@ describe('E002 #91 the native jobs in ci.yml', () => {
 
   it('every native part waits for the decision of Detect changes', () => {
     for (const [name, section] of Object.entries(parts)) {
-      assert.match(section, /needs: (changes|ios-build|\[changes, android-build\])\n/, name);
+      assert.match(
+        section,
+        /needs: (changes|\[changes, ios-build\]|\[ios-build, ios-build-retry\]|\[changes, android-build\])\n/,
+        name,
+      );
     }
     for (const section of [iosBuild, androidBuild, androidTests, androidMaestro]) {
       assert.match(section, /if: needs\.changes\.outputs\.(ios|android) == 'true'/);
@@ -5534,13 +5587,14 @@ describe('#413 the iOS gate says when no hosted runner picked a part up, and has
   const ci = readFileSync(join(SCRIPTS, '../.github/workflows/ci.yml'), 'utf8');
   const workflow = readFileSync(join(SCRIPTS, '../docs/engineering/WORKFLOW.md'), 'utf8');
 
-  it('has no fallback job, no workflow_dispatch input to force one, and no runner pool other than macos-15', () => {
+  it('has no fallback pool, no workflow_dispatch input to force one, and no runner pool other than macos-15', () => {
     const code = ci.replace(/^ *#.*$/gm, ''); // the comments say why the retry was dropped
     assert.doesNotMatch(code, /macos-15-intel|ios_retry|ios-retry/);
     assert.doesNotMatch(code, /^ {2}workflow_dispatch:\n +inputs:/m);
     assert.deepEqual(
       [...code.matchAll(/runs-on: (macos-[\w-]+)/g)].map((m) => m[1]),
-      ['macos-15', 'macos-15'],
+      // ios-build, its retry on the same image (#1268) and ios-tests
+      ['macos-15', 'macos-15', 'macos-15'],
     );
   });
 

@@ -319,7 +319,107 @@ jobs:
     runs-on: macos-15
     # The longest build of the last 10 green runs took 322 s (5.4 min), so 12 minutes is 2.2 times that (#393).
     # Detect changes (5) + this (12) + iOS tests (38) + the report job (2) = 57, under the merge queue's check
-    # timeout of 60 (ADR-018).
+    # timeout (ADR-018). If no runner takes this job, GitHub cancels it after 15 minutes and ios-build-retry builds once
+    # more: 5 + 15 + 12 + 38 + 2 = 72, so that timeout is 75.
+    timeout-minutes: 12
+    permissions:
+      contents: read
+      actions: read # scripts/step-timings.sh reads this run's step durations
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - id: xcode
+        name: Xcode version
+        run: echo "version=$(xcodebuild -version | tr -s ' \n' '--' | sed 's/-$//')" >> "$GITHUB_OUTPUT"
+
+      # DerivedData, with the compiled Swift packages (sentry-cocoa takes minutes to build), and the packages
+      # themselves. Keyed by Package.resolved, the Xcode version, the runner OS and the run: every run saves what it
+      # built (an exact hit is never saved again, so a key without the run would freeze the cache at the first
+      # build) and restores the newest one through the restore keys, the same Package.resolved first. The package
+      # graph is in the key too (the manifests of all local packages, in apps/ios/Packages and in packages/, and the
+      # project file): a cache built for another graph
+      # (Sentry a direct dependency of the app, not of FivviShared) made Xcode refuse its precompiled Sentry module in
+      # the first run of the shared packages (#500), and a failed run saves nothing. Within one graph a stale cache
+      # only costs build time and never changes a result. A PR can read its own caches and main's; main's are
+      # written by the pushes that change native paths, so a PR's first run is warm once main has run it. The
+      # manifest of the sources' modification times (scripts/ios-mtimes.mjs) is part of it. The index store is left
+      # out: nothing in a build reads it, and it is a large part of the payload. GitHub keeps a repository's caches
+      # to 10 GB, evicts the least recently used first, and removes any not read for 7 days.
+      - name: Cache the iOS build
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            apps/ios/.build/DerivedData
+            apps/ios/.build/SourcePackages
+            apps/ios/.build/source-mtimes.json
+            !apps/ios/.build/DerivedData/Logs
+            !apps/ios/.build/DerivedData/Index.noindex
+          key: ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('apps/ios/Packages/**/Package.swift', 'packages/contract/swift/Package.swift', 'packages/design-tokens/FivviDesignTokens/Package.swift', 'packages/i18n/generated/ios/Package.swift', 'apps/ios/FivviPro.xcodeproj/project.pbxproj') }}-${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: |
+            ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('apps/ios/Packages/**/Package.swift', 'packages/contract/swift/Package.swift', 'packages/design-tokens/FivviDesignTokens/Package.swift', 'packages/i18n/generated/ios/Package.swift', 'apps/ios/FivviPro.xcodeproj/project.pbxproj') }}-${{ hashFiles('apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved') }}-
+            ios-build-${{ runner.os }}-${{ steps.xcode.outputs.version }}-${{ hashFiles('apps/ios/Packages/**/Package.swift', 'packages/contract/swift/Package.swift', 'packages/design-tokens/FivviDesignTokens/Package.swift', 'packages/i18n/generated/ios/Package.swift', 'apps/ios/FivviPro.xcodeproj/project.pbxproj') }}-
+
+      # Xcode decides what to compile by the modification time of the inputs, and a checkout gives every file the
+      # time of the checkout: the restored DerivedData above was thrown away by a build that found every source "changed"
+      # (about 90 s of Swift and 50 s of asset catalog every run). The files whose content is the cached build's get
+      # their old time back; the ones that changed keep the new time and are compiled (#293 AC15).
+      - name: Restore the sources' modification times
+        run: node scripts/ios-mtimes.mjs restore
+
+      # The same steps as `pnpm test:ios` up to the build (apps/ios/README.md#tests): SwiftLint, the checks, one
+      # build-for-testing; then it packs the test bundle. Prints the build timing summary.
+      - name: SwiftLint, checks and build for testing
+        run: scripts/test-ios.sh build
+
+      - name: Record the sources' modification times
+        run: node scripts/ios-mtimes.mjs save
+
+      # What the two test jobs run: the .xctestrun and the build products, packed in a tar to keep the file modes.
+      - name: Upload the test bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-test-bundle
+          path: apps/ios/.build/ios-test-bundle.tar
+          # .build is a hidden folder, which the action skips by default (#290).
+          include-hidden-files: true
+          retention-days: 1
+          if-no-files-found: error
+
+      # Only on failure: artifact storage counts against the free quota.
+      - name: Upload build log
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: ios-build-log
+          path: apps/ios/.build/build-for-testing.log
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: ignore
+
+      - name: Step durations
+        if: always()
+        continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: scripts/step-timings.sh
+
+  # The retry (#1268): when no hosted macOS runner takes "iOS build" within 15 minutes, GitHub cancels it with no step
+  # run and `needs.ios-build.result` is `abandoned`. This builds once more, with the same steps (a test compares them),
+  # and the tests start from whichever build succeeded; a run that somebody cancelled is not retried. Only the build is
+  # retried: a test job needs the build's bundle, so a second try of a test pass would be a second try of both. The wait
+  # of the first try (15 minutes) plus this job (12) plus the tests (38), the gate (2) and Detect changes (5) is 72
+  # minutes by the timeouts, so the merge queue's check timeout is 75 (ADR-018), applied with
+  # `scripts/github-settings.sh apply`.
+  ios-build-retry:
+    name: iOS build (retry)
+    needs: [changes, ios-build]
+    if: ${{ !cancelled() && needs.changes.outputs.ios == 'true' && needs.ios-build.result == 'abandoned' }}
+    runs-on: macos-15
+    # As "iOS build".
     timeout-minutes: 12
     permissions:
       contents: read
@@ -408,14 +508,17 @@ jobs:
 
   ios-tests:
     name: iOS tests (${{ matrix.locale }})
-    needs: ios-build
+    needs: [ios-build, ios-build-retry]
+    # Start from whichever build succeeded (the retry runs only when the first was abandoned); !cancelled() because a
+    # skipped retry would skip this job.
+    if: ${{ !cancelled() && (needs.ios-build.result == 'success' || needs.ios-build-retry.result == 'success') }}
     runs-on: macos-15
     # A healthy run takes 14-21 min (#393), of which the simulator boot and settle is up to 4 min (xcodebuild 11-17). A test that hangs fails
     # after its own allowance (scripts/test-ios.sh), so this is the backstop for the whole job: the deadline there
     # (1790 s, counted from the start of xcodebuild) + its grace (60 s) + what the job spends outside the deadline (at
     # most 245 s boot and settle, 33 s other steps, 15 s uploading the results, 17 s reports and cleanup after the
     # grace: 310 s measured) + 2 min = 2280 s, so 38 min. Detect changes (5) + iOS build (12) + this (38) + the report job (2) = 57, under the merge queue's
-    # check timeout of 60 (ADR-018). Raising the deadline further means raising this, and a test fails when the
+    # check timeout (ADR-018). Raising the deadline further means raising this, and a test fails when the
     # numbers no longer fit.
     timeout-minutes: 38
     permissions:
@@ -468,14 +571,15 @@ jobs:
   # when the native decision says the app's inputs didn't change.
   #
   # No runner (#413): GitHub's hosted macOS arm64 runners run short of capacity at times, and then a job is cancelled
-  # after about 15 minutes with no runner and no step, although no test ran. That still fails this check, and so removes
-  # the PR from the merge queue: a retry on macos-15-intel was tried and dropped, because its tests ran past the 1080 s
-  # deadline of #305. The error now says which part had no runner (or was cancelled before one picked it up) and that,
+  # after about 15 minutes with no runner and no step, although no test ran, and `needs.<job>.result` is `abandoned`
+  # (#1268). A build that gets none is built once more by ios-build-retry on the same image; a test job that gets none
+  # still fails this check, and so removes the PR from the merge queue. A retry on macos-15-intel was tried and dropped,
+  # because its tests ran past the 1080 s deadline of #305. The error now says which part had no runner (or was cancelled before one picked it up) and that,
   # if nobody cancelled the run, re-queuing the PR is enough, and which part failed on a runner (a build or test failure). scripts/ios-parts.sh reads the run's jobs to tell the two apart; the
   # step adds a few seconds to the 2 minutes of this job, and the chain of the check stays as it was.
   ios:
     name: iOS
-    needs: [changes, ios-build, ios-tests]
+    needs: [changes, ios-build, ios-build-retry, ios-tests]
     if: always() && needs.changes.outputs.ios == 'true'
     runs-on: ubuntu-24.04
     # Only reads the results of the jobs it needs; short, so the chain of a native check stays under the queue timeout.
@@ -495,9 +599,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           BUILD: ${{ needs.ios-build.result }}
+          RETRY: ${{ needs.ios-build-retry.result }}
           TESTS: ${{ needs.ios-tests.result }}
         run: |
-          mapfile -t PARTS < <(scripts/ios-parts.sh "$BUILD" "$TESTS")
+          mapfile -t PARTS < <(scripts/ios-parts.sh "$BUILD" "$TESTS" "$RETRY")
           scripts/native-gate.sh iOS true "${PARTS[@]}"
 
   # Android (E008, #293). The same commands as locally (TESTING.md §7.2), in three jobs and the gate "Android": "Android
