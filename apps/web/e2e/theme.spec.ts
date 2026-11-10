@@ -659,6 +659,10 @@ test.describe('E020 trainer web: Mijn profiel, Klanten, the client profile and q
       const avatar = list.locator('[data-slot="avatar"]');
       await expect(avatar).toHaveCSS('background-color', tokenColour('web.trainer.muted', scheme));
       await expect(avatar).toHaveCSS('color', tokenColour('web.trainer.foreground', scheme));
+      // The letters are drawn by ::before from data-initials, not text in the page.
+      expect(
+        await avatar.evaluate((element) => getComputedStyle(element, '::before').content),
+      ).toBe('"AD"');
       // Round: the radius is at least half of the 28px square.
       expect((await avatar.boundingBox())?.width).toBe(28);
       expect(
@@ -678,6 +682,9 @@ test.describe('E020 trainer web: Mijn profiel, Klanten, the client profile and q
       await expect(page.getByRole('heading', { level: 1, name: 'Anna de Vries' })).toBeVisible();
       const large = page.locator('[data-slot="avatar"]');
       expect((await large.boundingBox())?.width).toBe(56);
+      expect(await large.evaluate((element) => getComputedStyle(element, '::before').content)).toBe(
+        '"AD"',
+      );
       await expect(page.locator('[data-slot="card"]')).toHaveCSS(
         'background-color',
         tokenColour('web.trainer.card', scheme),
@@ -691,7 +698,7 @@ test.describe('E020 trainer web: Mijn profiel, Klanten, the client profile and q
       const dialog = page.getByRole('dialog', { name: copy.clients.addDialog.title });
       await expect(dialog).toBeVisible();
       await expect(dialog).toHaveCSS('background-color', tokenColour('web.trainer.card', scheme));
-      await expect(dialog).toHaveCSS('border-radius', '16px');
+      await expect(dialog).toHaveCSS('border-radius', '14px');
       await dialog.getByRole('button', { name: copy.clients.addDialog.submit }).click();
       await page.mouse.move(0, 0);
       const refusal = dialog

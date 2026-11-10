@@ -542,6 +542,12 @@ test.describe('F006 clients on the web', () => {
     await search.fill('vrie');
     const error = page.getByText(copy.clients.loadError);
     await expect(error).toBeVisible();
+    // E020 AC15: the error is the kit's error line (an alert with its warning icon), and the retry
+    // is the button after it.
+    const alert = page.getByRole('alert').filter({ hasText: copy.clients.loadError });
+    await expect(alert).toHaveAttribute('data-slot', 'error-line');
+    await expect(alert.locator('svg[aria-hidden="true"]')).toHaveCount(1);
+    await expect(alert.locator('xpath=following-sibling::button')).toHaveText(copy.common.retry);
     await expect(list.getByRole('listitem')).toHaveText([
       'Anna de Vries, anna@example.com',
       'Mark Jansen, mark@example.com',
@@ -575,7 +581,11 @@ test.describe('F006 clients on the web', () => {
     await expect(page.getByText(copy.clients.loading)).toBeAttached();
     await expect(page.getByText(copy.common.loadingSlow)).toHaveCount(0);
     await page.clock.fastForward(10_000);
-    await expect(page.getByText(copy.common.loadingSlow)).toBeVisible();
+    // E020 AC15: the slow-load line is a status above the skeleton card, as the quiet text colour.
+    const slow = page.getByRole('status').filter({ hasText: copy.common.loadingSlow });
+    await expect(slow).toBeVisible();
+    await expect(slow).toHaveClass(/text-muted-foreground/);
+    await expect(slow.locator('xpath=following-sibling::*[@data-slot="card"]')).toBeVisible();
     await Promise.all(held.map((release) => release()));
   });
 

@@ -123,7 +123,7 @@ export function ClientFormDialogContent({
   return (
     <DialogContent
       aria-describedby={description ? 'client-form-description' : undefined}
-      className="gap-0 rounded-2xl p-5.5 sm:max-w-115"
+      className="gap-0 rounded-[14px] p-5.5 sm:max-w-115"
     >
       <form noValidate onSubmit={submit} className="grid gap-4">
         <DialogHeader>

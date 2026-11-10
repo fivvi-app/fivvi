@@ -140,12 +140,14 @@ describe.each(locales)('F006 TW-01 Clients in %s', (locale) => {
     );
   });
 
-  it('E020 AC15: an error is a kit error line with the retry, and a long load tells so', () => {
-    // States are in the e2e suite; here the markup of the empty list keeps the card and the action.
+  it('E020 AC15: the empty list is the message in a card, not a list', () => {
+    // The add action needs the quick-add provider, the error and the slow load a running page:
+    // they are in the e2e suite (clients.spec.ts, theme.spec.ts).
     const html = list([]);
 
-    expect(html).toMatch(/data-slot="card"/);
+    expect(html).toMatch(/data-slot="card"[^>]*>.*?<p>/s);
     expect(html).toContain(escapeHtml(copy.clients.empty));
+    expect(html).not.toContain('<ul');
   });
 
   it('shows the empty state with its one action when the workspace has no clients', () => {
