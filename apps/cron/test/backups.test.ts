@@ -113,7 +113,10 @@ describe('E016 backups in ENVIRONMENTS.md §8 and .railway/railway.ts', () => {
         /^(config as code|set by the owner with the CLI|fixed by railway)/i,
       );
       const command = /`(railway [^`]+)`/.exec(row.check)?.[1];
-      expect(command, `${row.setting}: a railway command that shows its current value`).toBeTruthy();
+      expect(
+        command,
+        `${row.setting}: a railway command that shows its current value`,
+      ).toBeTruthy();
       expect(
         READ_ONLY_COMMANDS.some((re) => re.test(command ?? '')),
         `${row.setting}: ${command} is a read-only command`,
