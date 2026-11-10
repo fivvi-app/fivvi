@@ -2,8 +2,9 @@
 // ({match: regex on the space-joined arguments, out: string or JSON, status}); the first match answers. A rule with
 // `outs` (a list) answers its first call with the first entry, the second with the second, and then repeats the last:
 // for a state that changes during a command (a PR that is removed from the merge queue, then queued). `--jq` is
-// applied with jq like gh does. Every call is logged, with the content of an `--input` file and, for `secret set`, the
-// value piped to its stdin. The directory also holds an `xcrun` and an `xcodebuild` that always fail.
+// applied with jq like gh does. `limited: true` cuts a JSON list to `--limit` like `gh issue list` does. Every call
+// is logged, with the content of an `--input` file and, for `secret set`, the value piped to its stdin. The
+// directory also holds an `xcrun` and an `xcodebuild` that always fail.
 import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -27,11 +28,12 @@ if (index < 0) { process.stderr.write('fake gh: no rule for: ' + line + '\\n'); 
 const rule = rules[index];
 const answer = rule.outs === undefined ? rule.out : rule.outs[Math.min(earlier.filter((i) => i === index).length, rule.outs.length - 1)];
 let out = answer === undefined ? '' : typeof answer === 'string' ? answer : JSON.stringify(answer);
+if (rule.limited && at('--limit') !== undefined) out = JSON.stringify(JSON.parse(out).slice(0, Number(at('--limit'))));
 const jq = at('--jq') ?? at('-q');
 if (jq !== undefined) out = execFileSync('jq', ['-r', jq], { input: out, encoding: 'utf8' });
 else if (out !== '' && !out.endsWith('\\n')) out += '\\n';
 process.stdout.write(out);
-process.exit(rule.status ?? 0);
+process.exitCode = rule.status ?? 0;
 `;
 
 export function fakeGh() {

@@ -168,9 +168,13 @@ cmd_block() {
   echo "⛓  #$1 is blocked by #$3"
 }
 
-# Tab-separated: number, title. Candidates are the parent's open sub-issues, or every open ready-for-agent issue.
+# More than any realistic number of open ready-for-agent issues; reaching it fails instead of dropping the rest (#1244).
+READY_LIST_LIMIT=3000
+
+# Tab-separated: number, title. Candidates are the parent's open sub-issues (viewed one by one), or every open
+# ready-for-agent issue, read in one paginated list (the fields it filters on come with it) and each parent spec once.
 cmd_ready() {
-  local parent="" candidates n
+  local parent="" items n subs count parents p unapproved=() unapproved_json="[]"
   while [ $# -gt 0 ]; do
     case "$1" in
       --parent) is_number "${2:-}"; parent="$2"; shift ;;
@@ -179,23 +183,34 @@ cmd_ready() {
     shift
   done
   if [ -n "$parent" ]; then
-    candidates="$(view "$parent" subIssues | jq -r '.subIssues.nodes[] | select(.state == "OPEN") | .number')"
+    local stream=""
+    subs="$(view "$parent" subIssues | jq -r '.subIssues.nodes[] | select(.state == "OPEN") | .number')" \
+      || die "could not read the sub-issues of #$parent"
+    for n in $subs; do
+      stream+="$(view "$n")"$'\n'
+    done
+    items="$(jq -s '.' <<<"$stream")"
   else
-    candidates="$(gh issue list --repo "$REPO" --state open --label "$READY_LABEL" --limit 200 --json number --jq '.[].number')"
+    items="$(gh issue list --repo "$REPO" --state open --label "$READY_LABEL" --limit "$READY_LIST_LIMIT" --json "$FIELDS")" \
+      || die "could not list the $READY_LABEL issues"
+    count="$(jq 'length' <<<"$items")"
+    [ "$count" -lt "$READY_LIST_LIMIT" ] || die "more than $READY_LIST_LIMIT open $READY_LABEL issues: raise READY_LIST_LIMIT in scripts/issue.sh"
   fi
-  local item p
-  for n in $candidates; do
-    item="$(view "$n")"
-    p="$(jq -r '.parent.number // empty' <<<"$item")"
-    [ -z "$p" ] || ! unapproved_spec "$p" || continue
-    jq -r --arg ready "$READY_LABEL" --arg spec "$SPEC_LABEL" --arg approved "$APPROVED_LABEL" '
-      [.labels[].name] as $labels
-      | select(($labels | index($ready))
-          and ((($labels | index($spec)) | not) or (.subIssues.totalCount == 0 and ($labels | index($approved))))
-          and (.assignees | length == 0)
-          and ([.blockedBy.nodes[] | select(.state == "OPEN")] | length == 0))
-      | "\(.number)\t\(.title)"' <<<"$item"
+  parents="$(jq -r '[.[].parent.number // empty] | unique[]' <<<"$items")"
+  for p in $parents; do
+    ! unapproved_spec "$p" || unapproved+=("$p")
   done
+  [ ${#unapproved[@]} -eq 0 ] || unapproved_json="$(jq -n '[$ARGS.positional[] | tonumber]' --args "${unapproved[@]}")"
+  jq -r --arg ready "$READY_LABEL" --arg spec "$SPEC_LABEL" --arg approved "$APPROVED_LABEL" \
+    --argjson unapproved "$unapproved_json" '
+    .[]
+    | [.labels[].name] as $labels
+    | select(((.parent.number // 0) as $p | $unapproved | index($p) | not)
+        and ($labels | index($ready))
+        and ((($labels | index($spec)) | not) or (.subIssues.totalCount == 0 and ($labels | index($approved))))
+        and (.assignees | length == 0)
+        and ([.blockedBy.nodes[] | select(.state == "OPEN")] | length == 0))
+    | "\(.number)\t\(.title)"' <<<"$items"
 }
 
 cmd_claim() {

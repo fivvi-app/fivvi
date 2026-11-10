@@ -40,6 +40,8 @@ describe('#669 the brand files of the website', () => {
       'app/favicon.ico',
       'app/icon.png',
       'app/icon.svg',
+      'public/site-images/brand/fivvi-day-dial-dark.svg',
+      'public/site-images/brand/fivvi-day-dial.svg',
       'public/site-images/brand/fivvi-logo-dark.svg',
       'public/site-images/brand/fivvi-logo.svg',
     ]);
@@ -52,6 +54,17 @@ describe('#669 the brand files of the website', () => {
     expect(files['public/site-images/brand/fivvi-logo.svg']).toEqual(brand('fivvi-logo.svg'));
     expect(files['public/site-images/brand/fivvi-logo-dark.svg']).toEqual(
       brand('fivvi-logo-dark.svg'),
+    );
+  });
+
+  it('serves the plain day dial B2, light and dark, exactly as drawn: the mark of the trainer web sign-in below 768 px (#626)', async () => {
+    const files = await brandFiles();
+
+    expect(files['public/site-images/brand/fivvi-day-dial.svg']).toEqual(
+      brand('day-dial/b2/fivvi-day-dial-b2-light.svg'),
+    );
+    expect(files['public/site-images/brand/fivvi-day-dial-dark.svg']).toEqual(
+      brand('day-dial/b2/fivvi-day-dial-b2-dark.svg'),
     );
   });
 

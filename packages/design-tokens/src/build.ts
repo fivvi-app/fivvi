@@ -44,6 +44,8 @@ export const shadcnColours = {
   'popover-foreground': 'color.web.trainer.foreground',
   primary: 'color.action.primary.bg',
   'primary-foreground': 'color.action.primary.fg',
+  // The fill of a primary button under the pointer: darkens the fill only, so the label keeps its contrast.
+  'primary-pressed': 'color.action.primary.bg-pressed',
   secondary: 'color.web.trainer.muted',
   'secondary-foreground': 'color.web.trainer.foreground',
   muted: 'color.web.trainer.muted',
@@ -55,6 +57,8 @@ export const shadcnColours = {
   border: 'color.web.trainer.border',
   input: 'color.border.control',
   ring: 'color.border.focus',
+  // The sidebar and the gate pages of the trainer web sit on a step from the page.
+  sidebar: 'color.web.trainer.sidebar',
 } as const;
 
 /**
@@ -71,6 +75,7 @@ export const clientColours: Record<keyof typeof shadcnColours, string> = {
   'popover-foreground': 'color.text.primary',
   primary: 'color.action.primary.bg',
   'primary-foreground': 'color.action.primary.fg',
+  'primary-pressed': 'color.action.primary.bg-pressed',
   secondary: 'color.action.tonal.bg',
   'secondary-foreground': 'color.action.tonal.fg',
   muted: 'color.bg.subtle',
@@ -82,6 +87,7 @@ export const clientColours: Record<keyof typeof shadcnColours, string> = {
   border: 'color.border.default',
   input: 'color.border.control',
   ring: 'color.border.focus',
+  sidebar: 'color.bg.canvas',
 };
 
 /** shadcn's `--radius`: the trainer web's card radius. Tailwind's radius scale is derived from it as in shadcn. */

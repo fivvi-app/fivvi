@@ -1,6 +1,14 @@
 import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import type { Locator, Page } from '@playwright/test';
+import {
+  clientIpHeaders,
+  createAccount,
+  createGymWithTrainer,
+  newAddress,
+  newAllowedAddress,
+  signInWithSession,
+} from './accounts';
 import { expect, expectNoAxeViolations, test } from './fixtures';
 
 type ColorScheme = 'light' | 'dark';
@@ -450,3 +458,259 @@ async function probe(page: Page, classes: string, text: string): Promise<Locator
   );
   return page.locator(`#${id}`);
 }
+
+// E020 #626: the shell of the trainer web, as the prototype draws it (docs/design/prototype-v2,
+// *Inloggen (TW-10)*, *Dashboard (WC-01)*, the sidebar): the gate pages and the sidebar sit on the
+// sidebar fill, the section the person is on is marked, the workspace has its logo square.
+test.describe('E020 trainer web shell', () => {
+  test.beforeEach(async ({ context }) => {
+    await context.setExtraHTTPHeaders(clientIpHeaders());
+  });
+
+  test('AC15: the sign-in, no access and welcome pages sit on the sidebar fill, in light and dark', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    for (const scheme of colorSchemes) {
+      await openSignInPage(page, scheme);
+      await expect(page.locator('main'), `sign-in in ${scheme}`).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.sidebar', scheme),
+      );
+      // The card keeps the card colour on it, with the title centred under the mark.
+      await expect(page.locator('[data-slot="card"]')).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.card', scheme),
+      );
+      await expect(page.getByRole('heading', { level: 1, name: copy.signIn.title })).toHaveCSS(
+        'text-align',
+        'center',
+      );
+    }
+
+    const outsider = newAddress('outsider');
+    await createAccount(outsider);
+    await signInWithSession(context, outsider);
+    for (const scheme of colorSchemes) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.goto('/home');
+      await expect(
+        page.getByRole('heading', { level: 1, name: copy.noAccess.title }),
+      ).toBeVisible();
+      await expect(page.locator('main'), `no access in ${scheme}`).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.sidebar', scheme),
+      );
+      await expectNoAxeViolations(page, `no access in ${scheme} and ${appLocale}`);
+    }
+
+    const newcomer = newAllowedAddress('newcomer');
+    await createAccount(newcomer);
+    await signInWithSession(context, newcomer);
+    for (const scheme of colorSchemes) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.goto('/welcome');
+      await expect(page.getByRole('heading', { level: 1, name: copy.welcome.title })).toBeVisible();
+      await expect(page.locator('main'), `welcome in ${scheme}`).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.sidebar', scheme),
+      );
+      await expectNoAxeViolations(page, `welcome in ${scheme} and ${appLocale}`);
+      // A field that was refused turns red with the message under it, announced (the kit's Field).
+      await page.getByRole('button', { name: copy.welcome.submit }).click();
+      await expect(
+        page.getByRole('alert').filter({ hasText: copy.welcome.errors.workspaceNameRequired }),
+      ).toBeVisible();
+      await expect(page.getByLabel(copy.welcome.workspaceNameLabel)).toHaveAttribute(
+        'aria-invalid',
+        'true',
+      );
+      await expectNoAxeViolations(page, `welcome with an error in ${scheme} and ${appLocale}`);
+    }
+  });
+
+  test('AC15: the sidebar is the sidebar fill, marks the section the person is on and shows the workspace logo and name', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const john = newAddress('john');
+    await createAccount(john, undefined, 'John');
+    const slug = await createGymWithTrainer(john, "John's Gym", 'owner');
+    await signInWithSession(context, john);
+
+    for (const scheme of colorSchemes) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.goto(`/w/${slug}/trainers`);
+      const sidebar = page.getByRole('complementary');
+      await expect(sidebar, `sidebar in ${scheme}`).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.sidebar', scheme),
+      );
+      // The logo square: the first letters of the name on the accent.
+      const logo = sidebar.locator('[aria-hidden="true"]').filter({ hasText: 'JG' });
+      await expect(logo).toHaveCSS('background-color', tokenColour('action.primary.bg', scheme));
+      await expect(logo).toHaveCSS('color', tokenColour('action.primary.fg', scheme));
+
+      // The current section has the muted row, dark text and its icon in the accent text.
+      const nav = page.getByRole('navigation', { name: copy.workspaceNav.label });
+      const current = nav.getByRole('link', { name: copy.workspaceNav.trainers });
+      await expect(current).toHaveAttribute('aria-current', 'page');
+      await expect(current).toHaveCSS('background-color', tokenColour('web.trainer.muted', scheme));
+      await expect(current).toHaveCSS('color', tokenColour('web.trainer.foreground', scheme));
+      await expect(current.locator('svg')).toHaveCSS('color', tokenColour('accent.text', scheme));
+      const other = nav.getByRole('link', { name: copy.workspaceNav.settings, exact: true });
+      await expect(other).not.toHaveAttribute('aria-current', /.+/);
+      await expect(other).toHaveCSS('color', tokenColour('web.trainer.muted-foreground', scheme));
+      await expectNoAxeViolations(page, `the sidebar in ${scheme} and ${appLocale}`);
+    }
+  });
+
+  test('AC15: the workspace dashboard (WC-01) is a page with the workspace name, in light and dark', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const john = newAddress('john');
+    await createAccount(john, undefined, 'John');
+    const slug = await createGymWithTrainer(john, "John's Gym", 'owner');
+    await signInWithSession(context, john);
+
+    for (const scheme of colorSchemes) {
+      await page.emulateMedia({ colorScheme: scheme });
+      await page.goto(`/w/${slug}`);
+      await expect(page.getByRole('heading', { level: 1, name: "John's Gym" })).toBeVisible();
+      await expect(page.getByText(copy.workspaceHome.description)).toBeVisible();
+      // The bar over the page is 60px high, as the prototype's `.w-top`.
+      const bar = page
+        .getByRole('button', { name: copy.workspaceNav.new, exact: true })
+        .locator('xpath=ancestor::div[contains(@class, "border-b")][1]');
+      expect((await bar.boundingBox())?.height).toBe(60);
+      await expect(page.locator('[data-slot="card"]')).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.card', scheme),
+      );
+      await expectNoAxeViolations(page, `the dashboard in ${scheme} and ${appLocale}`);
+    }
+  });
+});
+
+// E020 #627: Mijn profiel, Klanten, the client profile and quick add, as the prototype draws them
+// (docs/design/prototype-v2, *Mijn profiel (TW-09)*, *Klanten (TW-01)*, *Klantprofiel (TW-02)*,
+// *Klant toevoegen*): cards on the page, the clients as the rows of one card, the dialog with the
+// kit's fields. What each page does is in profile.spec.ts and clients.spec.ts.
+test.describe('E020 trainer web: Mijn profiel, Klanten, the client profile and quick add', () => {
+  test.beforeEach(async ({ context }) => {
+    await context.setExtraHTTPHeaders(clientIpHeaders());
+  });
+
+  test('AC15: the four screens match the prototype’s colours and shapes and pass axe, in light and dark', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const john = newAddress('john');
+    await createAccount(john, undefined, 'John');
+    const slug = await createGymWithTrainer(john, "John's Gym", 'owner');
+    await signInWithSession(context, john);
+    await page.goto(`/w/${slug}`);
+    const workspaces = (await (await page.request.get('/api/v1/me/workspaces')).json()) as {
+      workspaceId: string;
+    }[];
+    const workspaceId = workspaces[0]?.workspaceId;
+    const seeded = await page.request.post(`/api/v1/workspaces/${workspaceId}/clients`, {
+      data: { name: 'Anna de Vries', email: 'anna@example.com' },
+    });
+    expect(seeded.status()).toBe(201);
+    const anna = (await seeded.json()) as { id: string };
+
+    for (const scheme of colorSchemes) {
+      await page.emulateMedia({ colorScheme: scheme });
+
+      // Mijn profiel: cards on the page, the role of the workspace as a pill.
+      await page.goto('/me/profile');
+      await expect(
+        page.getByRole('heading', { level: 1, name: copy.myProfile.title }),
+      ).toBeVisible();
+      const cards = page.locator('[data-slot="card"]');
+      await expect(cards).toHaveCount(3);
+      for (const card of await cards.all()) {
+        await expect(card, `a card of Mijn profiel in ${scheme}`).toHaveCSS(
+          'background-color',
+          tokenColour('web.trainer.card', scheme),
+        );
+      }
+      await expect(page.locator('[data-slot="status-pill"]')).toHaveText(copy.roles.owner);
+      await expectNoAxeViolations(page, `Mijn profiel in ${scheme} and ${appLocale}`);
+
+      // Klanten: the clients are the rows of one card, an avatar on the muted fill before the name.
+      await page.goto(`/w/${slug}/clients`);
+      const list = page.getByRole('list', { name: copy.clients.listLabel });
+      await expect(list.getByRole('listitem')).toHaveText(['Anna de Vries, anna@example.com']);
+      await expect(list.locator('xpath=ancestor::div[@data-slot="card"]')).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.card', scheme),
+      );
+      const avatar = list.locator('[data-slot="avatar"]');
+      await expect(avatar).toHaveCSS('background-color', tokenColour('web.trainer.muted', scheme));
+      await expect(avatar).toHaveCSS('color', tokenColour('web.trainer.foreground', scheme));
+      // The letters are drawn by ::before from data-initials, not text in the page.
+      expect(
+        await avatar.evaluate((element) => getComputedStyle(element, '::before').content),
+      ).toBe('"AD"');
+      // Round: the radius is at least half of the 28px square.
+      expect((await avatar.boundingBox())?.width).toBe(28);
+      expect(
+        await avatar.evaluate((element) =>
+          Number.parseFloat(getComputedStyle(element).borderRadius),
+        ),
+      ).toBeGreaterThanOrEqual(14);
+      // The address is the quiet line.
+      await expect(list.getByText('anna@example.com')).toHaveCSS(
+        'color',
+        tokenColour('web.trainer.muted-foreground', scheme),
+      );
+      await expectNoAxeViolations(page, `Klanten in ${scheme} and ${appLocale}`);
+
+      // The client profile: the large avatar, the name, Edit, and the overview card.
+      await page.goto(`/w/${slug}/clients/${anna.id}`);
+      await expect(page.getByRole('heading', { level: 1, name: 'Anna de Vries' })).toBeVisible();
+      const large = page.locator('[data-slot="avatar"]');
+      expect((await large.boundingBox())?.width).toBe(56);
+      expect(await large.evaluate((element) => getComputedStyle(element, '::before').content)).toBe(
+        '"AD"',
+      );
+      await expect(page.locator('[data-slot="card"]')).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.card', scheme),
+      );
+      await expectNoAxeViolations(page, `the client profile in ${scheme} and ${appLocale}`);
+
+      // Quick add: the dialog is the card colour with the kit's fields; a refused field is red
+      // with the message under it.
+      await page.goto(`/w/${slug}/clients`);
+      await page.getByRole('button', { name: copy.clients.add }).first().click();
+      const dialog = page.getByRole('dialog', { name: copy.clients.addDialog.title });
+      await expect(dialog).toBeVisible();
+      await expect(dialog).toHaveCSS('background-color', tokenColour('web.trainer.card', scheme));
+      await expect(dialog).toHaveCSS('border-radius', '14px');
+      await dialog.getByRole('button', { name: copy.clients.addDialog.submit }).click();
+      await page.mouse.move(0, 0);
+      const refusal = dialog
+        .getByRole('alert')
+        .filter({ hasText: copy.clients.addDialog.errors.nameRequired });
+      await expect(refusal).toBeVisible();
+      await expect(refusal.locator('svg')).toHaveCount(1);
+      await expect(dialog.getByLabel(copy.clients.addDialog.nameLabel)).toHaveAttribute(
+        'aria-invalid',
+        'true',
+      );
+      await expectNoAxeViolations(page, `quick add with a refusal in ${scheme} and ${appLocale}`);
+    }
+  });
+});

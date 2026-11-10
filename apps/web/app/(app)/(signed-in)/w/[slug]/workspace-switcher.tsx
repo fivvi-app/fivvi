@@ -16,6 +16,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { rememberWorkspace, reportSwitch } from './workspace-client';
+import { initials } from './workspace-initials';
 
 /** A workspace of the person, as the switcher lists it. */
 type Switchable = Pick<Schemas['MyWorkspace'], 'slug' | 'role'> & { id: string; name: string };
@@ -58,7 +59,12 @@ export function WorkspaceSwitcher({
 
   const label = t('workspaceWithRole', { name, role: roles(teamRole) });
   if (workspaces.length < 2 && !canCreateWorkspace) {
-    return <p className="text-lg font-semibold">{label}</p>;
+    return (
+      <div className="flex items-center gap-2.5 p-2">
+        <WorkspaceLogo name={name} />
+        <p className="min-w-0 flex-1 text-sm font-semibold">{label}</p>
+      </div>
+    );
   }
 
   function open(nextSlug: string) {
@@ -75,9 +81,10 @@ export function WorkspaceSwitcher({
     <DropdownMenu modal={false}>
       <DropdownMenuTrigger
         disabled={!ready}
-        className="flex w-full items-center justify-between gap-2 rounded-lg text-start text-lg font-semibold outline-none disabled:pointer-events-none"
+        className="flex w-full items-center gap-2.5 rounded-[10px] p-2 text-start text-sm font-semibold hover:bg-muted disabled:pointer-events-none"
       >
-        <span>{label}</span>
+        <WorkspaceLogo name={name} />
+        <span className="min-w-0 flex-1">{label}</span>
         <svg
           aria-hidden="true"
           viewBox="0 0 16 16"
@@ -86,7 +93,7 @@ export function WorkspaceSwitcher({
           strokeWidth="2"
           strokeLinecap="round"
           strokeLinejoin="round"
-          className="size-4 shrink-0"
+          className="size-3.5 shrink-0 text-muted-foreground"
         >
           <path d="M4 6l4 4 4-4" />
         </svg>
@@ -119,5 +126,17 @@ export function WorkspaceSwitcher({
         ) : null}
       </DropdownMenuContent>
     </DropdownMenu>
+  );
+}
+
+/** The logo square of a workspace: its first letters on the accent, as the prototype's sidebar header. */
+function WorkspaceLogo({ name }: { name: string }) {
+  return (
+    <span
+      aria-hidden="true"
+      className="grid size-8 flex-none place-items-center rounded-[9px] bg-primary text-xs font-bold text-primary-foreground"
+    >
+      {initials(name)}
+    </span>
   );
 }

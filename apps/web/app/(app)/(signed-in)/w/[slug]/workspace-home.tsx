@@ -8,15 +8,17 @@ import { useTranslations } from 'next-intl';
 export function WorkspaceHome({ name }: { name: string }) {
   const t = useTranslations('workspaceHome');
   return (
-    <main className="flex flex-1 items-center justify-center p-4">
-      <Card className="w-full max-w-sm">
-        <CardHeader>
-          <CardTitle>
-            <h1>{name}</h1>
-          </CardTitle>
-          <CardDescription>{t('description')}</CardDescription>
-        </CardHeader>
-      </Card>
+    <main className="flex-1 px-6 pt-5 pb-10">
+      <div className="grid max-w-275 gap-4">
+        <Card className="shadow-xs [--card-spacing:--spacing(5)]">
+          <CardHeader>
+            <CardTitle className="text-xl leading-tight font-semibold">
+              <h1>{name}</h1>
+            </CardTitle>
+            <CardDescription>{t('description')}</CardDescription>
+          </CardHeader>
+        </Card>
+      </div>
     </main>
   );
 }

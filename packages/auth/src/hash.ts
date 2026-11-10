@@ -11,6 +11,11 @@ export function hashSecretValue(
   purpose:
     | 'link-token'
     | 'code'
+    | 'email-change-code'
+    | 'rate-limit-change-account'
+    | 'rate-limit-change-address'
+    | 'rate-limit-change-ip'
+    | 'rate-limit-change-confirm-ip'
     | 'rate-limit-address'
     | 'rate-limit-ip'
     | 'rate-limit-token-ip'

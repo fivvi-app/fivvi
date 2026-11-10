@@ -2,12 +2,12 @@ import { cn } from 'cn';
 import { type ComponentProps, type ReactNode, useId } from 'react';
 import { Input } from '../components/input';
 import { Label } from '../components/label';
-import { WarningIcon } from './icons';
+import { ErrorLine } from './error-line';
 
 /**
  * A labelled text field with its error state: the label and the field turn red, a warning icon and the message
  * come under it, and the input points at the message (`aria-invalid`, `aria-describedby`). A hint
- * shows while there is no error. The texts come from `packages/i18n`.
+ * shows while there is no error. The message is announced when it appears (`role="alert"`). The texts come from `packages/i18n`.
  */
 export function Field({
   id,
@@ -45,13 +45,7 @@ export function Field({
         {...props}
       />
       {error ? (
-        <p
-          id={messageId}
-          className="flex items-center gap-1.5 text-[13px] font-semibold text-status-danger-fg"
-        >
-          <WarningIcon className="size-3.5 shrink-0" />
-          {error}
-        </p>
+        <ErrorLine id={messageId}>{error}</ErrorLine>
       ) : hint ? (
         <p id={messageId} className="text-[13px] text-muted-foreground">
           {hint}

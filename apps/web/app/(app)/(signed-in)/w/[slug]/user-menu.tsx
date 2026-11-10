@@ -71,7 +71,7 @@ export function UserMenu({ initiallyOpen = false }: { initiallyOpen?: boolean })
       {open ? (
         <div
           id="user-menu"
-          className="absolute left-0 z-10 mt-1 grid min-w-48 gap-1 rounded-lg border bg-background p-1 shadow-md"
+          className="absolute end-0 bottom-full z-10 mb-1 grid min-w-48 gap-1 rounded-lg border bg-background p-1 shadow-md"
         >
           <Button asChild variant="ghost" className="justify-start">
             <Link href="/me/profile">{t('profile')}</Link>
