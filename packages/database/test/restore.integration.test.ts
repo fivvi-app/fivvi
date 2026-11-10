@@ -29,6 +29,8 @@ import { createWorkspace } from '../src/testing/index.ts';
 const cleanups: (() => Promise<void>)[] = [];
 afterEach(async () => {
   for (const cleanup of cleanups.splice(0).reverse()) await cleanup();
+  delete process.env.RESTORE_TEST_SOURCE;
+  delete process.env.RESTORE_TEST_RESTORED;
 });
 
 interface Pair {
@@ -72,7 +74,8 @@ async function now(db: DatabaseClient): Promise<Date> {
   return new Date(rows[0]?.now as Date);
 }
 
-const pause = () => new Promise((resolve) => setTimeout(resolve, 25));
+/** A fixed instant for a marker whose time the test does not look at. */
+const FIXED = new Date('2026-11-10T09:00:00Z');
 
 async function tableExists(db: DatabaseClient): Promise<boolean> {
   const { rows } = await db.db.execute<{ found: boolean }>(
@@ -87,7 +90,6 @@ describe('E016 the drill markers', () => {
     const point = await now(pair.source);
     await writeMarker(pair.source.db, 'before', point);
     const restored = await pair.restore();
-    await pause();
     await writeMarker(pair.source.db, 'after', point);
 
     expect(await checkMarkers(restored.client.db)).toEqual({
@@ -117,7 +119,7 @@ describe('E016 the drill markers', () => {
 
   it('AC2: the cleanup removes the drill table and its markers, and a second one is harmless', async () => {
     const pair = await openSource();
-    await writeMarker(pair.source.db, 'before', new Date());
+    await writeMarker(pair.source.db, 'before', FIXED);
     expect(await tableExists(pair.source)).toBe(true);
 
     expect(await removeDrill(pair.source.db)).toBe(true);
@@ -130,7 +132,11 @@ describe('E016 the drill markers', () => {
     cleanups.push(() => database.drop());
     const owner = createDatabase({ url: database.url, maxConnections: 1 });
     cleanups.push(() => owner.close());
-    await writeMarker(owner.db, 'before', new Date());
+    await writeMarker(owner.db, 'before', FIXED);
+    const { rows: owners } = await owner.db.execute<{ owned: boolean }>(
+      sql`select tableowner = current_user as owned from pg_tables where schemaname = 'public' and tablename = ${DRILL_TABLE}`,
+    );
+    expect(owners).toEqual([{ owned: true }]);
     const app = createDatabase({ url: database.appUrl, maxConnections: 1 });
     cleanups.push(() => app.close());
 
@@ -141,10 +147,10 @@ describe('E016 the drill markers', () => {
 });
 
 describe('E016 the row counts', () => {
-  it('AC4: an identical restore passes, with the drill table left out', async () => {
+  it('AC2: an identical restore passes, with the drill table left out', async () => {
     const pair = await openSource();
     await createWorkspace(pair.source.db);
-    await writeMarker(pair.source.db, 'before', new Date());
+    await writeMarker(pair.source.db, 'before', FIXED);
     const restored = await pair.restore();
     const point = await now(pair.source);
 
@@ -161,13 +167,11 @@ describe('E016 the row counts', () => {
     expect(tables).not.toContain(`public.${DRILL_TABLE}`);
   });
 
-  it('AC4: allows the rows created in the source after the point', async () => {
+  it('AC2: allows the rows created in the source after the point', async () => {
     const pair = await openSource();
     await createWorkspace(pair.source.db);
     const restored = await pair.restore();
-    await pause();
     const point = await now(pair.source);
-    await pause();
     await createWorkspace(pair.source.db);
 
     const comparison = compareCounts(
@@ -185,7 +189,7 @@ describe('E016 the row counts', () => {
     expect(countsPass(comparison)).toBe(true);
   });
 
-  it('AC4: reports the tables that differ beyond the rows changed after the point', async () => {
+  it('AC2: reports the tables that differ beyond the rows changed after the point', async () => {
     const pair = await openSource();
     await createWorkspace(pair.source.db);
     const restored = await pair.restore();
@@ -204,7 +208,7 @@ describe('E016 the row counts', () => {
     ).toEqual(['public.locations', 'public.organizations']);
   });
 
-  it('AC4: refuses a connection that row-level security would hide rows from', async () => {
+  it('AC2: refuses a connection that row-level security would hide rows from', async () => {
     const database = await cloneTemplateDatabase();
     cleanups.push(() => database.drop());
     const app = createDatabase({ url: database.appUrl, maxConnections: 1 });
@@ -224,10 +228,6 @@ describe('E016 the command line', () => {
   ): Promise<{ code: number; output: string }> {
     process.env.RESTORE_TEST_SOURCE = pair.sourceUrl;
     if (restoredUrl) process.env.RESTORE_TEST_RESTORED = restoredUrl;
-    cleanups.push(async () => {
-      delete process.env.RESTORE_TEST_SOURCE;
-      delete process.env.RESTORE_TEST_RESTORED;
-    });
     const lines: string[] = [];
     const { openPrivilegedDatabase } = await import('../src/privileged.ts');
     const code = await runRestore(argv, {
@@ -238,7 +238,7 @@ describe('E016 the command line', () => {
     return { code, output: lines.join('\n') };
   }
 
-  it('AC4: writes, checks and removes the markers, naming the database by variable', async () => {
+  it('AC2: writes, checks and removes the markers, naming the database by variable', async () => {
     const pair = await openSource();
     const at = ['--at', '2026-11-10T09:00:00Z'];
     const url = ['--database-url-env', 'RESTORE_TEST_SOURCE'];
@@ -276,11 +276,12 @@ describe('E016 the command line', () => {
     expect(await tableExists(pair.source)).toBe(false);
   });
 
-  it('AC4: exits non-zero and names the tables when the counts differ', async () => {
+  it('AC2: exits non-zero and names the tables when the counts differ', async () => {
     const pair = await openSource();
     await createWorkspace(pair.source.db);
     const restored = await pair.restore();
     await createWorkspace(restored.client.db, { label: SECRET });
+    const point = await now(pair.source);
 
     const result = await run(pair, restored.url, [
       'counts',
@@ -289,7 +290,7 @@ describe('E016 the command line', () => {
       '--restored-url-env',
       'RESTORE_TEST_RESTORED',
       '--at',
-      new Date().toISOString(),
+      point.toISOString(),
       '--source-name',
       'production',
       '--restored-name',
@@ -306,6 +307,7 @@ describe('E016 the command line', () => {
     const pair = await openSource();
     const workspace = await createWorkspace(pair.source.db, { label: SECRET });
     const restored = await pair.restore();
+    const point = await now(pair.source);
     const args = [
       'counts',
       '--source-url-env',
@@ -313,7 +315,7 @@ describe('E016 the command line', () => {
       '--restored-url-env',
       'RESTORE_TEST_RESTORED',
       '--at',
-      new Date().toISOString(),
+      point.toISOString(),
     ];
 
     const passed = await run(pair, restored.url, args);
@@ -331,7 +333,7 @@ describe('E016 the command line', () => {
     }
   });
 
-  it('AC5: refuses a database URL given as an argument, without echoing it', async () => {
+  it('AC2: refuses a database URL given as an argument, without echoing it', async () => {
     const pair = await openSource();
 
     const result = await run(pair, undefined, [
@@ -347,7 +349,7 @@ describe('E016 the command line', () => {
     expect(await tableExists(pair.source)).toBe(false);
   });
 
-  it('AC5: refuses a variable that is not set, naming the variable only', async () => {
+  it('AC2: refuses a variable that is not set, naming the variable only', async () => {
     const pair = await openSource();
 
     const result = await run(pair, undefined, [
@@ -358,10 +360,11 @@ describe('E016 the command line', () => {
     ]);
 
     expect(result.code).toBe(2);
+    expect(result.output).toContain('RESTORE_TEST_NOT_SET is not set.');
     expect(result.output).not.toMatch(/postgres(ql)?:\/\//);
   });
 
-  it('AC5: runs as a script, with the URL in an environment variable', async () => {
+  it('AC2: runs as a script, with the URL in an environment variable', async () => {
     const pair = await openSource();
     const env = { ...process.env, RESTORE_TEST_SOURCE: pair.sourceUrl };
     const script = (args: string[]) =>

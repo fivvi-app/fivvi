@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
 import type { Database, DatabaseExecutor } from './client.ts';
+import { SafeError } from './safe-error.ts';
 
 // The database side of the restore drill (E016, spec #479): markers that prove a restore went to
 // the chosen point in time, and row counts that compare a restored database with its source. The
@@ -86,7 +87,7 @@ async function assertSeesEveryRow(db: DatabaseExecutor): Promise<void> {
     sql`select (rolsuper or rolbypassrls) as sees_all from pg_roles where rolname = current_user`,
   );
   if (rows[0]?.sees_all !== true) {
-    throw new Error(
+    throw new SafeError(
       'The connection cannot count every row: its role is neither a superuser nor BYPASSRLS, so row-level security would hide rows.',
     );
   }
@@ -97,7 +98,7 @@ async function assertSeesEveryRow(db: DatabaseExecutor): Promise<void> {
  * the drill table. `at` also counts the rows changed after that point. Reads in one
  * repeatable-read, read-only transaction, so the counts are of one moment.
  */
-export async function countTables(db: Database, at?: Date): Promise<TableCount[]> {
+export function countTables(db: Database, at?: Date): Promise<TableCount[]> {
   return db.transaction(
     async (tx) => {
       await assertSeesEveryRow(tx);

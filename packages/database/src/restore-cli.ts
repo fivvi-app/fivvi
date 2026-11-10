@@ -11,6 +11,7 @@ import {
   removeDrill,
   writeMarker,
 } from './restore.ts';
+import { SafeError } from './safe-error.ts';
 
 // The command line of the restore drill's database helper (E016). `scripts/restore.ts` is the one
 // file that opens the privileged connection (reason `restore`) and hands this module an `open`
@@ -40,8 +41,11 @@ class UsageError extends Error {}
 
 const NAME = /^[A-Za-z0-9][A-Za-z0-9._-]{0,63}$/;
 
-function parseTime(value: string | undefined): Date {
-  if (!value || !/^\d{4}-\d{2}-\d{2}T/.test(value)) {
+/** An RFC 3339 time must say its offset: without one it would be read in the local time zone. */
+const RFC_3339 = /^\d{4}-\d{2}-\d{2}[Tt]\d{2}:\d{2}:\d{2}(\.\d+)?([Zz]|[+-]\d{2}:\d{2})$/;
+
+export function parseTime(value: string | undefined): Date {
+  if (!value || !RFC_3339.test(value)) {
     throw new UsageError('--at must be an RFC 3339 time, e.g. 2026-11-10T09:00:00Z.');
   }
   const at = new Date(value);
@@ -83,14 +87,12 @@ export async function runRestore(argv: readonly string[], deps: RestoreDeps): Pr
       deps.out(`Error: ${error.message}`);
       deps.out(USAGE);
     } else {
-      // Not the message: a driver's message can hold a statement or a detail with a value.
+      // Only a safe error's message: a driver's message can hold a statement or a detail with a value.
       const code = (error as { code?: unknown } | undefined)?.code;
       deps.out(
         `Error: the restore helper failed${typeof code === 'string' && /^[0-9A-Z]{5}$/.test(code) ? ` (${code})` : ''}.`,
       );
-      if (error instanceof Error && error.message.startsWith('The connection cannot')) {
-        deps.out(error.message);
-      }
+      if (error instanceof SafeError) deps.out(error.message);
     }
     return 2;
   }

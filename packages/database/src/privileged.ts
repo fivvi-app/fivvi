@@ -1,5 +1,6 @@
 import { createDatabase, type DatabaseClient } from './client.ts';
 import { PRIVILEGED_DATABASE_URL_VARIABLE, readDatabaseConfig } from './env.ts';
+import { SafeError } from './safe-error.ts';
 
 /**
  * The reasons for which code may use the privileged connection (the user of `DATABASE_URL`, who
@@ -51,10 +52,12 @@ const VARIABLE_NAME = /^(?!APP_|CRON_)[A-Z][A-Z0-9_]*$/;
 function privilegedVariable(reason: PrivilegedReason, variable: string | undefined): string {
   if (variable === undefined) return PRIVILEGED_DATABASE_URL_VARIABLE;
   if (reason !== 'restore') {
-    throw new Error('Only the reason restore may name the variable of the connection.');
+    throw new SafeError('Only the reason restore may name the variable of the connection.');
   }
   if (!VARIABLE_NAME.test(variable)) {
-    throw new Error('The variable of a restore connection must be an upper-case name of its own.');
+    throw new SafeError(
+      'The variable of a restore connection must be an upper-case name of its own.',
+    );
   }
   return variable;
 }

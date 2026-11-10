@@ -163,6 +163,10 @@ restore counts --source-url-env VAR --restored-url-env VAR --at <RFC3339> [--sou
 
 `counts` counts the rows of every table of both databases (`count(*)`, table names from `information_schema`, the drill table left out) and compares them. A table passes when the counts are equal or differ by no more than the source's rows created or changed after the point (`created_at` or `updated_at`); otherwise the command lists the tables and exits 1. Exit code 2 is a mistake in the arguments or a failed run. The connection must be a superuser or `BYPASSRLS`, because the tables force row-level security; otherwise the command refuses.
 
+`--at` must carry its offset (`Z` or `±hh:mm`); a time without one is refused rather than read in the local time zone. An error prints its own message only when it is one of ours (an unset variable, a refused variable name, a connection that RLS would hide rows from); any other error prints the helper's generic line and the five-character Postgres code, never the driver's message.
+
+**What the counts do not tolerate.** The comparison allows the source to hold *more* rows than the restored database, by at most the rows created or changed after the point. A row *deleted* from the source after the point makes the restored count bigger than the source's, and nothing excuses that: the table reports `differs`. Rows that are deleted routinely are the `job_runs` cleanup, the removal of a team member or a trainer profile, and Better Auth's expired verification rows. Whether the drill script avoids them (a quiet source), subtracts them, or lists the tables to skip is for the drill-script ticket (`scripts/restore-drill.sh`) to decide; this helper counts every table and excuses nothing else.
+
 ### System data vs. seed data (decided in E003)
 
 **Rows that every environment needs, production included, are data migrations.** The `hello` greeting is inserted by `migrations/0001_system_greeting_hello.sql` (`INSERT … ON CONFLICT DO NOTHING`), not by the seed. `HELLO_GREETING` in `src/system-data.ts` holds the same values, and the integration test checks that a migrated database contains exactly that row.

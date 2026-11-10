@@ -1,3 +1,5 @@
+import { SafeError } from './safe-error.ts';
+
 export interface DatabaseConfig {
   /** A `postgres://` or `postgresql://` connection string. Contains a password: never log it. */
   url: string;
@@ -34,17 +36,15 @@ export type DatabaseUrlVariable =
   | typeof PRIVILEGED_DATABASE_URL_VARIABLE;
 
 /**
- * Reads the connection settings from `variable` of the environment. There is no fallback from
+ * Reads the connection settings from `variable` of the environment: one of `DatabaseUrlVariable`,
+ * or, for the reason `restore` (`openPrivilegedDatabase`), the variable the restore drill names. There is no fallback from
  * one connection to the other: a missing app connection must fail, never quietly use the
  * privileged one. Error messages never include the URL, because it contains the password.
  */
-export function readDatabaseConfig(
-  env: NodeJS.ProcessEnv,
-  variable: DatabaseUrlVariable | string,
-): DatabaseConfig {
+export function readDatabaseConfig(env: NodeJS.ProcessEnv, variable: string): DatabaseConfig {
   const url = env[variable]?.trim();
   if (!url) {
-    throw new Error(
+    throw new SafeError(
       `${variable} is not set. For local development, copy packages/database/.env.example to .env.`,
     );
   }
@@ -52,10 +52,10 @@ export function readDatabaseConfig(
   try {
     protocol = new URL(url).protocol;
   } catch {
-    throw new Error(`${variable} is not a valid URL.`);
+    throw new SafeError(`${variable} is not a valid URL.`);
   }
   if (!PROTOCOLS.has(protocol)) {
-    throw new Error(`${variable} must start with postgres:// or postgresql://.`);
+    throw new SafeError(`${variable} must start with postgres:// or postgresql://.`);
   }
   return { url };
 }
