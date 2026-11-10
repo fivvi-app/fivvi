@@ -622,6 +622,9 @@ importers:
       '@fivvi/i18n':
         specifier: workspace:*
         version: link:../i18n
+      use-intl:
+        specifier: 'catalog:'
+        version: 4.14.6(react@19.3.0)
     devDependencies:
       '@biomejs/biome':
         specifier: 'catalog:'

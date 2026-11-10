@@ -386,6 +386,27 @@
     "haveLink": "Got the link? Open it on this phone.",
     "teamHint": "Are you a trainer or owner? Use the Fivvi Pro app."
   },
+  "offers": {
+    "summary": {
+      "classesPerWeek": "{count, plural, one {# class a week} other {# classes a week}}",
+      "months": "{count, plural, one {# month} other {# months}}",
+      "weeks": "{count, plural, one {# week} other {# weeks}}",
+      "days": "{count, plural, one {# day} other {# days}}",
+      "groupCredits": "{count, plural, one {# group credit} other {# group credits}}",
+      "privateCredits": "{count, plural, one {# private credit} other {# private credits}}",
+      "creditsEveryMonth": "{credits} a month",
+      "creditsEveryFourWeeks": "{credits} every 4 weeks",
+      "validFor": "valid for {duration}",
+      "minimumTerm": "minimum {duration}",
+      "pricePerMonth": "{amount} a month",
+      "pricePerFourWeeks": "{amount} every 4 weeks",
+      "singleClass": "1 group class"
+    },
+    "cancellation": {
+      "upTo": "{count, plural, one {You can cancel free of charge up to # hour before.} other {You can cancel free of charge up to # hours before.}}",
+      "untilStart": "You can cancel free of charge until the start."
+    }
+  },
   "site": {
     "meta": {
       "homeTitle": "Fivvi: software for personal trainers, studios and gyms",

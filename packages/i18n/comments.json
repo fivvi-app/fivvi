@@ -172,5 +172,20 @@
   "email.privateSession.intro": "First sentence of EM-11. {workspace} is the name of the workspace (the gym) where the session is planned.",
   "email.privateSession.when": "Line of EM-11 with the time of the session. {date} is the weekday and date with year, e.g. 'donderdag 24 september 2026'; {start} and {end} are the start and end time, e.g. '09:00' and '10:00'.",
   "email.privateSession.where": "Line of EM-11 with the place. {location} is the name of the location, followed by its address when it has one.",
-  "email.privateSession.trainer": "Line of EM-11 with the trainer. {trainer} is the trainer's name. Left out when the trainer has no name."
+  "email.privateSession.trainer": "Line of EM-11 with the trainer. {trainer} is the trainer's name. Left out when the trainer has no name.",
+  "offers.summary.classesPerWeek": "Part of the one-line summary of a membership: the classes a week. # is the number.",
+  "offers.summary.months": "Part of an offer summary: a length in months (the term of a membership, the validity of a credit pack, the minimum term of a credit plan).",
+  "offers.summary.weeks": "Part of the summary of a credit pack: a validity in weeks.",
+  "offers.summary.days": "Part of the summary of a credit pack: a validity in days.",
+  "offers.summary.groupCredits": "Part of an offer summary: a number of group credits.",
+  "offers.summary.privateCredits": "Part of an offer summary: a number of private credits.",
+  "offers.summary.creditsEveryMonth": "Part of the summary of a credit plan billed every month. {credits} is the number of credits, e.g. \"4 privécredits\".",
+  "offers.summary.creditsEveryFourWeeks": "Part of the summary of a credit plan billed every 4 weeks. {credits} is the number of credits.",
+  "offers.summary.validFor": "Part of the summary of a credit pack. {duration} is a length, e.g. \"3 maanden\".",
+  "offers.summary.minimumTerm": "Part of the summary of a credit plan. {duration} is a length in months, e.g. \"3 maanden\".",
+  "offers.summary.pricePerMonth": "Price of an offer billed every month. {amount} is the amount including VAT, e.g. \"€ 79,00\".",
+  "offers.summary.pricePerFourWeeks": "Price of an offer billed every 4 weeks. {amount} is the amount including VAT.",
+  "offers.summary.singleClass": "Part of the summary of a single class pass: what it is good for.",
+  "offers.cancellation.upTo": "The cancellation rule as clients read it, for a cutoff of one hour or more. # is the number of hours.",
+  "offers.cancellation.untilStart": "The cancellation rule as clients read it, for a cutoff of 0 hours."
 }

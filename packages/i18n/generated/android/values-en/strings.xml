@@ -88,6 +88,42 @@
     <string name="no_workspace_title">Ask your studio for its link.</string>
     <string name="not_found_body">We can\'t find this page. Check the link and try again.</string>
     <string name="not_found_title">Page not found</string>
+    <string name="offers_cancellation_until_start">You can cancel free of charge until the start.</string>
+    <plurals name="offers_cancellation_up_to">
+        <item quantity="one">You can cancel free of charge up to %1$d hour before.</item>
+        <item quantity="other">You can cancel free of charge up to %1$d hours before.</item>
+    </plurals>
+    <plurals name="offers_summary_classes_per_week">
+        <item quantity="one">%1$d class a week</item>
+        <item quantity="other">%1$d classes a week</item>
+    </plurals>
+    <string name="offers_summary_credits_every_four_weeks">%1$s every 4 weeks</string>
+    <string name="offers_summary_credits_every_month">%1$s a month</string>
+    <plurals name="offers_summary_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <plurals name="offers_summary_group_credits">
+        <item quantity="one">%1$d group credit</item>
+        <item quantity="other">%1$d group credits</item>
+    </plurals>
+    <string name="offers_summary_minimum_term">minimum %1$s</string>
+    <plurals name="offers_summary_months">
+        <item quantity="one">%1$d month</item>
+        <item quantity="other">%1$d months</item>
+    </plurals>
+    <string name="offers_summary_price_per_four_weeks">%1$s every 4 weeks</string>
+    <string name="offers_summary_price_per_month">%1$s a month</string>
+    <plurals name="offers_summary_private_credits">
+        <item quantity="one">%1$d private credit</item>
+        <item quantity="other">%1$d private credits</item>
+    </plurals>
+    <string name="offers_summary_single_class">1 group class</string>
+    <string name="offers_summary_valid_for">valid for %1$s</string>
+    <plurals name="offers_summary_weeks">
+        <item quantity="one">%1$d week</item>
+        <item quantity="other">%1$d weeks</item>
+    </plurals>
     <string name="profile_error">Your workspaces couldn\'t be loaded.</string>
     <string name="profile_language">Language</string>
     <string name="profile_privacy">Privacy policy</string>

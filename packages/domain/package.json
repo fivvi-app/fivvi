@@ -13,7 +13,8 @@
     "format:check": "biome format ."
   },
   "dependencies": {
-    "@fivvi/i18n": "workspace:*"
+    "@fivvi/i18n": "workspace:*",
+    "use-intl": "catalog:"
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
