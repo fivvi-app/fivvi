@@ -1,6 +1,7 @@
+import { PAYMENT_DESCRIPTION_MAX_LENGTH as DOMAIN_DESCRIPTION_MAX_LENGTH } from '@fivvi/domain';
 import { ledgerContract } from '@fivvi/domain/testing';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   createDatabase,
@@ -18,6 +19,7 @@ import {
   recordStatusChange,
   type WorkspaceScope,
 } from '../src/index.ts';
+import { PAYMENT_DESCRIPTION_MAX_LENGTH } from '../src/schema/index.ts';
 import { executorOf } from '../src/tenant-scope.ts';
 import {
   addClient,
@@ -186,6 +188,19 @@ describe('E019 payment ledger', () => {
           .where(eq(paymentStatusChanges.id, line.id)),
       ),
     ).rejects.toThrow();
+  });
+
+  it('AC7: a status line cannot be truncated either, nor by a cascade from the payments', async () => {
+    await expect(
+      violated((db) => db.execute(sql`TRUNCATE payment_status_changes`)),
+    ).resolves.toMatch(/append-only/);
+    await expect(violated((db) => db.execute(sql`TRUNCATE payments CASCADE`))).resolves.toMatch(
+      /append-only/,
+    );
+  });
+
+  it('the description limit of the table is the one the domain checks before the provider is called', () => {
+    expect(PAYMENT_DESCRIPTION_MAX_LENGTH).toBe(DOMAIN_DESCRIPTION_MAX_LENGTH);
   });
 
   it('AC7: a payment never has two lines for one status', async () => {

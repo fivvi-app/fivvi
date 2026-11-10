@@ -119,6 +119,10 @@ const FORBIDDEN: Record<string, string> = {
   'a testing subpath': "import { startDatabaseServer } from '@fivvi/testing/database/server';",
   'a dynamic import of the testing package':
     "export const load = () => import('@fivvi/testing/clock');",
+  // The fake provider and ledger of the payment engine are for tests too.
+  'the domain testing entry': "import { FakePaymentProvider } from '@fivvi/domain/testing';",
+  'a dynamic import of the domain testing entry':
+    "export const load = () => import('@fivvi/domain/testing');",
 };
 
 // What packages/api/src does today: types and the repository layer by name.
@@ -139,6 +143,7 @@ const ALLOWED = [
   "import { rows } from '../database/source.ts';",
   "export const load = () => import('./clients.ts');",
   "import { testing } from '@fivvi/testing-tools';",
+  "import { createPayment } from '@fivvi/domain';",
 ];
 
 let dir: string;

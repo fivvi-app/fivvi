@@ -91,4 +91,5 @@ BEGIN
 	RAISE EXCEPTION 'payment_status_changes is append-only' USING ERRCODE = 'restrict_violation';
 END;
 $$;--> statement-breakpoint
-CREATE TRIGGER "payment_status_changes_append_only" AFTER UPDATE OR DELETE ON "payment_status_changes" FOR EACH ROW EXECUTE FUNCTION "payment_status_changes_append_only"();
+CREATE TRIGGER "payment_status_changes_append_only" AFTER UPDATE OR DELETE ON "payment_status_changes" FOR EACH ROW EXECUTE FUNCTION "payment_status_changes_append_only"();--> statement-breakpoint
+CREATE TRIGGER "payment_status_changes_no_truncate" BEFORE TRUNCATE ON "payment_status_changes" FOR EACH STATEMENT EXECUTE FUNCTION "payment_status_changes_append_only"();

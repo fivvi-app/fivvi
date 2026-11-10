@@ -108,6 +108,22 @@ describe('createPayment', () => {
     expect(provider.calls.filter((call) => call.method === 'createCustomer')).toHaveLength(1);
   });
 
+  it("a business key that is another client's payment is refused, and nothing reaches the provider", async () => {
+    provider.failNext('createPayment', 'lost-response');
+    await expect(createPayment(engine, request())).rejects.toMatchObject({ code: 'unavailable' });
+    const before = provider.calls.length;
+
+    const other = request({
+      client: { id: 'client-bram', name: 'Bram Jansen', email: 'bram@example.com' },
+    });
+    await expect(createPayment(engine, other)).rejects.toMatchObject({
+      name: 'InvalidPaymentError',
+      field: 'client',
+    });
+    expect(provider.calls).toHaveLength(before);
+    expect(provider.customersOf(ACCESS)).toHaveLength(1);
+  });
+
   it('a client gets one provider customer, used by all their payments', async () => {
     await createPayment(engine, request());
     await createPayment(engine, request({ businessKey: 'agreement:1:due:2026-12-01' }));

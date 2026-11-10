@@ -57,7 +57,7 @@ export interface CreatedPayment {
   readonly checkoutUrl: string | null;
 }
 
-export type InvalidPaymentField = 'amountCents' | 'businessKey' | 'description';
+export type InvalidPaymentField = 'amountCents' | 'businessKey' | 'client' | 'description';
 
 export class InvalidPaymentError extends Error {
   readonly field: InvalidPaymentField;
@@ -121,6 +121,11 @@ export async function createPayment(
     testmode: access.testmode,
     occurredAt: engine.now(),
   });
+  // The business key belongs to the client it was made for: another client's request for it
+  // would put the payment on their customer, and for a recurring one charge their mandate.
+  if (payment.clientId !== request.client.id) {
+    throw new InvalidPaymentError('client', 'This business key is the payment of another client.');
+  }
   if (payment.providerPaymentId) return { payment, created, checkoutUrl: null };
 
   const customerId = await providerCustomerOf(engine, access, request.client);

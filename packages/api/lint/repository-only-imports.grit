@@ -8,7 +8,7 @@
 //     import or a re-export;
 //   - a namespace import, `export *`, `import()` or `require()` of @fivvi/database, which would hide the names;
 //   - the modules that give a handle or a query builder, in a static import, an `export ... from`, an
-//     `import()` or a `require()`: drizzle-orm, pg, @fivvi/database/seed, /migrate and /testing, a path into
+//     `import()` or a `require()`: drizzle-orm, pg, @fivvi/database/seed, /migrate and /testing, @fivvi/domain/testing, a path into
 //     packages/database/src (relative or not: it is the package without its exports) and @fivvi/testing
 //     (the test helpers: a database server, factories).
 // Every export of @fivvi/database is either named below or in the allowed list of
@@ -34,7 +34,7 @@ pattern table_or_handle() {
 // database package. Quotes are part of the source, so the pattern is anchored by them.
 pattern forbidden_module() {
   or {
-    r".(?:drizzle-orm|pg|@fivvi/database/(?:seed|migrate|testing)|@fivvi/testing)(?:/.*)?.",
+    r".(?:drizzle-orm|pg|@fivvi/database/(?:seed|migrate|testing)|@fivvi/domain/testing|@fivvi/testing)(?:/.*)?.",
     r".(?:.*/)?database/src(?:/.*)?."
   }
 }
