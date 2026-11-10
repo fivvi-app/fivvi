@@ -385,6 +385,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       'test-summary.sh',
       'test-summary.jq',
       'affected.mjs',
+      'doc-anchors.mjs',
     ]) {
       copyFileSync(join(SCRIPTS, file), join(repo(), 'scripts', file));
     }
