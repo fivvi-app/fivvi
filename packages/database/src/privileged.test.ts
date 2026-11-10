@@ -364,6 +364,57 @@ describe('E011 privileged database path', () => {
       ).toThrow('DATABASE_URL is not set');
     });
 
+    describe('E016 the reason restore', () => {
+      const restoreEnv = {
+        DATABASE_URL: 'postgres://owner:hunter2@localhost:5432/source',
+        RESTORED_URL: 'postgres://owner:hunter3@localhost:5432/restored',
+      };
+
+      it('has its own text and is allowed only from the restore helper', () => {
+        expect(PRIVILEGED_USES.restore).toContain('restore drill');
+        expect(PRIVILEGED_USES.restore).not.toBe(PRIVILEGED_USES.release);
+        const files = Object.entries(PRIVILEGED_ALLOW_LIST).filter(
+          ([, reason]) => reason === 'restore',
+        );
+        expect(files).toEqual([['packages/database/src/scripts/restore.ts', 'restore']]);
+      });
+
+      it('reads the connection from the variable it is told to, and logs the reason only', async () => {
+        const logs: string[] = [];
+
+        const { close } = openPrivilegedDatabase('restore', {
+          env: restoreEnv,
+          variable: 'RESTORED_URL',
+          log: (m) => logs.push(m),
+        });
+        await close();
+
+        expect(logs).toEqual([`Privileged database access: restore (${PRIVILEGED_USES.restore}).`]);
+        expect(logs.join()).not.toContain('hunter');
+      });
+
+      it('names the missing variable, never a URL', () => {
+        expect(() =>
+          openPrivilegedDatabase('restore', { env: {}, variable: 'RESTORED_URL', log: () => {} }),
+        ).toThrow('RESTORED_URL is not set');
+      });
+
+      it('refuses a variable for any other reason, and the variables of the app and the cron', () => {
+        expect(() =>
+          openPrivilegedDatabase('release', {
+            env: restoreEnv,
+            variable: 'RESTORED_URL',
+            log: () => {},
+          }),
+        ).toThrow('Only the reason restore');
+        for (const variable of ['APP_DATABASE_URL', 'CRON_DATABASE_URL', 'lower', 'A B', '']) {
+          expect(() =>
+            openPrivilegedDatabase('restore', { env: restoreEnv, variable, log: () => {} }),
+          ).toThrow('must be an upper-case name');
+        }
+      });
+    });
+
     it('has a plain description for every reason, without personal data', () => {
       for (const description of Object.values(PRIVILEGED_USES)) {
         expect(description).toMatch(/^[a-z][A-Za-z0-9 ,:()-]+$/);

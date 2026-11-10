@@ -40,7 +40,7 @@ export type DatabaseUrlVariable =
  */
 export function readDatabaseConfig(
   env: NodeJS.ProcessEnv,
-  variable: DatabaseUrlVariable,
+  variable: DatabaseUrlVariable | string,
 ): DatabaseConfig {
   const url = env[variable]?.trim();
   if (!url) {
