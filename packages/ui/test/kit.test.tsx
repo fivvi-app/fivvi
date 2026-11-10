@@ -12,10 +12,12 @@ import { Field } from '../src/kit/field';
 import { ChevronRightIcon, PersonPlusIcon, SearchIcon } from '../src/kit/icons';
 import { InsetList, InsetListItem } from '../src/kit/inset-list';
 import { NextCard } from '../src/kit/next-card';
+import { PageShell } from '../src/kit/page-shell';
 import { PillButton, PillButtonStack } from '../src/kit/pill-button';
 import { ProCard } from '../src/kit/pro-card';
 import { RoundButton } from '../src/kit/round-button';
 import { StatusPill } from '../src/kit/status-pill';
+import { SuccessLine } from '../src/kit/success-line';
 import { Toast } from '../src/kit/toast';
 
 const html = (element: ReactElement) => renderToStaticMarkup(element);
@@ -301,6 +303,48 @@ describe('E020 web kit', () => {
     });
   });
 
+  describe('AC14: success line', () => {
+    it('says that it went well in the success text colour, announced politely (role="status")', () => {
+      const markup = html(<SuccessLine id="done">Opgeslagen.</SuccessLine>);
+
+      expect(markup).toContain('id="done"');
+      expect(markup).toContain('role="status"');
+      expect(markup).toMatch(/>Opgeslagen\.<\/p>$/);
+      expect(classesOf(markup, 'data-slot="success-line"')).toEqual(
+        expect.arrayContaining(['text-status-success-text', 'font-semibold', 'text-sm']),
+      );
+    });
+  });
+
+  describe('AC14: page shell', () => {
+    it('is the trainer web page: padding 24px at the sides, 20px above and 40px below, a column of at most 1100px with 16px between its blocks', () => {
+      const markup = html(
+        <PageShell>
+          <h1>Klanten</h1>
+        </PageShell>,
+      );
+
+      expect(markup).toMatch(/^<main[^>]*>\s*<div[^>]*><h1>Klanten<\/h1><\/div><\/main>$/);
+      expect(classesOf(markup, 'data-slot="page-shell"')).toEqual(
+        expect.arrayContaining(['flex-1', 'px-6', 'pt-5', 'pb-10']),
+      );
+      expect(classesOf(markup, 'data-slot="page-shell-column"')).toEqual(
+        expect.arrayContaining(['grid', 'max-w-275', 'content-start', 'gap-4']),
+      );
+    });
+
+    it('takes a class and any main attribute', () => {
+      const markup = html(
+        <PageShell className="pt-0" aria-labelledby="title">
+          x
+        </PageShell>,
+      );
+
+      expect(markup).toContain('aria-labelledby="title"');
+      expect(classesOf(markup, 'data-slot="page-shell"')).toContain('pt-0');
+    });
+  });
+
   describe('AC14: field with its error state', () => {
     it('ties the label to the input', () => {
       const markup = html(<Field id="name" label="Naam" />);
@@ -371,6 +415,16 @@ describe('E020 web kit', () => {
 
       expect(markup).toContain('aria-describedby="name-error elders"');
       expect(plain).toContain('aria-describedby="elders"');
+    });
+
+    it('can mark a field red without a message of its own, for a refusal that the screen words once for several fields', () => {
+      const markup = html(<Field id="street" label="Straat" invalid aria-describedby="address" />);
+      const input = markup.match(/<input[^>]*>/)?.[0] ?? '';
+
+      expect(input).toContain('aria-invalid="true"');
+      expect(input).toContain('aria-describedby="address"');
+      expect(classesOf(markup, 'for="street"')).toContain('text-status-danger-fg');
+      expect(markup).not.toContain('role="alert"');
     });
 
     it('passes input attributes on', () => {
@@ -517,6 +571,9 @@ describe('E020 web kit stylesheet', () => {
       <Toast key="j3" surface="client" tone="warning">
         x
       </Toast>,
+      <SuccessLine key="sl">x</SuccessLine>,
+      <PageShell key="ps">x</PageShell>,
+      <Field key="h2" id="h2" label="x" invalid />,
       <Avatar key="av1" initials="x" />,
       <Avatar key="av2" initials="x" size="lg" />,
       <ClientLayout key="k" header="x">
