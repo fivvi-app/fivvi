@@ -21,9 +21,9 @@ Deleted when a person deletes the account.
 
 | Table | Personal data | Export carries | Deletion | Retention | Note |
 |---|---|---|---|---|---|
-| `auth_users` | `name`, `email`, `preferred_locale` | Not exported | Deleted | 24 months after the account's last sign-in, booking or team membership | The sign-in of a person. Deleted at once when the person deletes the account, and after the inactivity period with a warning first (R10). Not part of a workspace export: a workspace holds its own client and team records. |
-| `auth_sessions` | `ip_address`, `user_agent` | Not exported | Deleted | 30 days after the sign-in session was last used | A signed-in browser or app. Deleted with the account; an expired session is deleted by a daily task (R10). |
-| `auth_identities` | `account_id` | Not exported | Deleted | Until deleted | How an account signs in. Deleted with the account. |
+| `auth_users` | `name`, `email`, `preferred_locale` | Not exported | Deleted | 24 months after the account's last sign-in, booking or team membership | The sign-in of a person. Deleted at once when the person deletes the account, and 30 days after the warning email that follows 24 months without a sign-in (R10). Not part of a workspace export: a workspace holds its own client and team records. |
+| `auth_sessions` | `user_id`, `ip_address`, `user_agent` | Not exported | Deleted | 30 days after the sign-in session was last used | A signed-in browser or app. Deleted with the account; an expired session is deleted by a daily task (R10). |
+| `auth_identities` | `user_id`, `account_id` | Not exported | Deleted | Until deleted | How an account signs in. Deleted with the account. |
 | `auth_verifications` | `identifier`, `locale` | Not exported | Deleted | 24 hours after the sign-in link or code expired or was used | An emailed sign-in link and code (only hashes of them are stored). Deleted after the period, counted from expiry or use (R2). |
 | `auth_rate_limits` | `key` | Not exported | Deleted | 24 hours after the row was written | A counter per keyed hash of an email or IP address; the table holds neither (R14). |
 

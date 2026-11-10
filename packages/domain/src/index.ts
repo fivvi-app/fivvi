@@ -42,7 +42,7 @@ export {
   type Role,
   rolesWith,
 } from './permissions/matrix.ts';
-export { PRIVACY_INVENTORY_PATH, renderPrivacyInventory } from './privacy/inventory.ts';
+export { renderPrivacyInventory } from './privacy/inventory.ts';
 export {
   declaredTable,
   PRIVACY_REGISTRY,

@@ -59,7 +59,7 @@ describe('E014 AC2: every retention period is a named constant', () => {
   });
 
   it('counts days as 24 hours in UTC, so a change of the clocks moves nothing', () => {
-    // 30 days from 28 March 2026 cross the change to summer time (29 March, Europe/Amsterdam).
+    // 30 days from 10 March 2026 cross the change to summer time (29 March, Europe/Amsterdam).
     expectBoundary('TRASH', at('2026-03-10T23:30:00.000Z'), at('2026-04-09T23:30:00.000Z'));
     // 30 days from 10 October 2026 cross the change back to winter time (25 October).
     expectBoundary('DELETION_LOG', at('2026-10-10T00:00:00.000Z'), at('2026-11-09T00:00:00.000Z'));
@@ -134,7 +134,7 @@ describe('E014 AC2: every retention period is a named constant', () => {
     );
   });
 
-  it('belongs an invoice issued just before or just after midnight on 1 January to the year of the workspace zone', () => {
+  it('puts an invoice issued around midnight on 1 January in the year of the workspace zone', () => {
     // 23:59 Amsterdam on 31 December 2026 is still 2026; 00:00 on 1 January 2027 is 2027.
     expectBoundary('INVOICE', at('2026-12-31T22:59:00.000Z'), at('2033-12-31T23:00:00.000Z'));
     expectBoundary('INVOICE', at('2026-12-31T23:00:00.000Z'), at('2034-12-31T23:00:00.000Z'));
