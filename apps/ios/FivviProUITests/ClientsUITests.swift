@@ -44,7 +44,7 @@ final class ClientsUITests: SignInUITestCase {
 
     /// Replaces what a text field holds.
     private func replaceText(in field: XCUIElement, with text: String) {
-        field.tap()
+        field.focus()
         let current = (field.value as? String) ?? ""
         field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: current.count) + text)
     }
@@ -75,7 +75,7 @@ final class ClientsUITests: SignInUITestCase {
         // Search: part of a name, whatever the case.
         let search = app.searchFields["clients.search"]
         XCTAssertTrue(search.exists, "the search field has the id Maestro looks for")
-        search.tap()
+        search.focus()
         search.typeText("VRIE")
         XCTAssertTrue(Polling.until(timeout: timeout, interval: 0.3) { !row("Mark Jansen", in: app).exists })
         XCTAssertTrue(row("Anna de Vries", in: app).exists)
@@ -116,6 +116,9 @@ final class ClientsUITests: SignInUITestCase {
         add.tap()
         let name = app.textFields["clients.add.name"]
         XCTAssertTrue(name.waitUntilExists(timeout: timeout))
+        XCTAssertTrue(
+            Polling.until(timeout: timeout) { name.hasKeyboardFocus }, "the name field has focus when the dialog opens"
+        )
         XCTAssertEqual(app.buttons["clients.add.submit"].label, catalog["clients.addDialog.submit"])
         XCTAssertEqual(
             app.buttons["clients.add.language.default"].label,
