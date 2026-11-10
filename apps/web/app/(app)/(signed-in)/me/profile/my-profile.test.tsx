@@ -17,6 +17,7 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
       <MyProfile
         name="Sarah"
         email="sarah@example.com"
+        bookingEmails
         workspaces={[
           {
             workspaceId: 'w1',
@@ -57,7 +58,7 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
   it('AC1: shows the name in an editable field with Save, and the email address read-only', () => {
     const html = render(
       locale,
-      <MyProfile name="Sarah de Vries" email="sarah@example.com" workspaces={[]} />,
+      <MyProfile name="Sarah de Vries" bookingEmails email="sarah@example.com" workspaces={[]} />,
     );
 
     expect(html).toMatch(new RegExp(`<label[^>]*>${escapeHtml(copy.myProfile.nameLabel)}</label>`));
@@ -77,7 +78,7 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
   it('AC1: a person without a name yet gets an empty field', () => {
     const html = render(
       locale,
-      <MyProfile name={null} email="sarah@example.com" workspaces={[]} />,
+      <MyProfile name={null} bookingEmails email="sarah@example.com" workspaces={[]} />,
     );
 
     expect(html).toMatch(/<input[^>]*name="name"[^>]*value=""/);
@@ -111,7 +112,12 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
   it('AC4: an Owner has the switch "I also train at {workspace}", on when they train', () => {
     const html = render(
       locale,
-      <MyProfile name="John" email="john@example.com" workspaces={[johnsGym, sarahsGym]} />,
+      <MyProfile
+        name="John"
+        bookingEmails
+        email="john@example.com"
+        workspaces={[johnsGym, sarahsGym]}
+      />,
     );
 
     const johns = switchOf(html, "John's Gym");
@@ -131,6 +137,7 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
       <MyProfile
         name="Sarah"
         email="sarah@example.com"
+        bookingEmails
         workspaces={[{ ...johnsGym, role: 'trainer', capabilities: TRAINER }, sarahsGym]}
       />,
     );
@@ -143,7 +150,7 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
   it('F010 AC1: has the Language row with the two languages in their own language, the current one marked', () => {
     const html = render(
       locale,
-      <MyProfile name="Sarah" email="sarah@example.com" workspaces={[]} />,
+      <MyProfile name="Sarah" bookingEmails email="sarah@example.com" workspaces={[]} />,
     );
 
     // The row is named like the app's Profiel → Taal (`profile.language`).
@@ -166,21 +173,21 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
   });
 
   // E020 #627: the look of TW-09 (docs/design/prototype-v2, *Mijn profiel (TW-09)*).
-  it('E020 AC15: the page has the trainer web’s padding and three cards, each with a 15 px heading', () => {
+  it('E020 AC15: the page has the trainer web’s padding and four cards, each with a 15 px heading', () => {
     const html = render(
       locale,
-      <MyProfile name="John" email="john@example.com" workspaces={[johnsGym]} />,
+      <MyProfile name="John" bookingEmails email="john@example.com" workspaces={[johnsGym]} />,
     );
 
     expect(html).toMatch(/<main[^>]*px-6[^>]*pt-5[^>]*pb-10/);
-    expect(html.match(/data-slot="card"/g)).toHaveLength(3);
-    expect(html.match(/<h2[^>]*text-\[15px\][^>]*font-semibold/g)).toHaveLength(3);
+    expect(html.match(/data-slot="card"/g)).toHaveLength(4);
+    expect(html.match(/<h2[^>]*text-\[15px\][^>]*font-semibold/g)).toHaveLength(4);
   });
 
   it('E020 AC15: the name is a kit field, labelled', () => {
     const html = render(
       locale,
-      <MyProfile name="Sarah" email="sarah@example.com" workspaces={[]} />,
+      <MyProfile name="Sarah" bookingEmails email="sarah@example.com" workspaces={[]} />,
     );
 
     expect(html).toMatch(
@@ -193,12 +200,56 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
   it('E020 AC15: the role of each workspace is a status pill', () => {
     const html = render(
       locale,
-      <MyProfile name="John" email="john@example.com" workspaces={[johnsGym]} />,
+      <MyProfile name="John" bookingEmails email="john@example.com" workspaces={[johnsGym]} />,
     );
 
     expect(html).toMatch(
       new RegExp(`<span[^>]*data-slot="status-pill"[^>]*>${escapeHtml(copy.roles.owner)}</span>`),
     );
+  });
+
+  // F050 #1030: the checkbox of the emails about bookings (saving is in e2e/profile.spec.ts).
+  describe('F050 AC6: the section Emails', () => {
+    const box = (html: string) =>
+      html.match(
+        new RegExp(
+          `<label[^>]*for="([^"]+)"[^>]*>${escapeHtml(copy.myProfile.bookingEmailsLabel)}</label>`,
+        ),
+      );
+
+    it.each([true, false])(
+      'has the checkbox "E-mails over boekingen in mijn lessen" with its help text, checked as the account says (%s)',
+      (bookingEmails) => {
+        const html = render(
+          locale,
+          <MyProfile
+            name="Sarah"
+            email="sarah@example.com"
+            bookingEmails={bookingEmails}
+            workspaces={[]}
+          />,
+        );
+
+        expect(html).toMatch(new RegExp(`<h2[^>]*>${escapeHtml(copy.myProfile.emailsTitle)}</h2>`));
+        const label = box(html);
+        expect(label).not.toBeNull();
+        const input = html.match(new RegExp(`<input[^>]*id="${label?.[1]}"[^>]*>`))?.[0] ?? '';
+        expect(input).toContain('type="checkbox"');
+        expect(/\schecked=""/.test(input)).toBe(bookingEmails);
+        // The help text is read with the box.
+        const described = input.match(/aria-describedby="([^"]+)"/)?.[1];
+        expect(html).toMatch(
+          new RegExp(`id="${described}"[^>]*>${escapeHtml(copy.myProfile.bookingEmailsHelp)}<`),
+        );
+        expect(html).not.toContain('role="alert"');
+      },
+    );
+
+    it('uses the words boeking / booking, never afmelding, aanmelding or reservering', () => {
+      expect(
+        `${copy.myProfile.emailsTitle} ${copy.myProfile.bookingEmailsLabel} ${copy.myProfile.bookingEmailsHelp}`,
+      ).not.toMatch(/afmelding|aanmelding|reservering|reservation/i);
+    });
   });
 
   it('the switch talks about training, never about profiles', () => {

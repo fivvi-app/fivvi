@@ -272,7 +272,10 @@
       "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
       "generic": "Er ging iets mis. Probeer het opnieuw."
     },
-    "editName": "Naam wijzigen"
+    "editName": "Naam wijzigen",
+    "emailsTitle": "E-mails",
+    "bookingEmailsLabel": "E-mails over boekingen in mijn lessen",
+    "bookingEmailsHelp": "Je krijgt een e-mail als een klant boekt of annuleert."
   },
   "profile": {
     "title": "Profiel",

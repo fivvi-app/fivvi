@@ -1,4 +1,5 @@
 import { formattingLocales, type Locale, messages } from '@fivvi/i18n';
+import type { Page } from '@playwright/test';
 import {
   clientIpHeaders,
   createAccount,
@@ -268,5 +269,84 @@ test.describe('F010 language on My profile', () => {
       preferredLocale: string | null;
     };
     expect(me.preferredLocale).toBeNull();
+  });
+});
+
+// F050 AC6 (spec #492): a team member switches the emails about bookings in their classes off and
+// on, on My profile (TW-09). The setting belongs to the account (`bookingEmails` of `/v1/me`).
+test.describe('F050 booking emails switch', () => {
+  test.beforeEach(async ({ context }) => {
+    await context.setExtraHTTPHeaders(clientIpHeaders());
+  });
+
+  const stored = async (page: Page) =>
+    (await (await page.request.get('/api/v1/me')).json()) as {
+      name: string;
+      bookingEmails: boolean;
+    };
+
+  test('AC6: booking emails switch', async ({ page, context, appLocale, messages: copy }) => {
+    const sarah = newAddress('sarah');
+    await createAccount(sarah, undefined, 'Sarah');
+    await createGymWithTrainer(sarah, GYM, 'trainer');
+    await signInWithSession(context, sarah);
+    await page.goto('/me/profile');
+    const box = page.getByRole('checkbox', { name: copy.myProfile.bookingEmailsLabel });
+
+    // On by default, with its help text and heading.
+    await expect(
+      page.getByRole('heading', { level: 2, name: copy.myProfile.emailsTitle }),
+    ).toBeVisible();
+    await expect(box).toBeChecked();
+    await expect(box).toHaveAccessibleDescription(copy.myProfile.bookingEmailsHelp);
+    expect((await stored(page)).bookingEmails).toBe(true);
+    await expectNoAxeViolations(page, `TW-09 with the booking emails box in ${appLocale}`);
+
+    // Reached and toggled with the keyboard.
+    await box.focus();
+    await page.keyboard.press('Space');
+    await expect(page.getByRole('status')).toHaveText(copy.myProfile.saved);
+    await expect(box).not.toBeChecked();
+    // The data path: the account holds the setting, and it is still off after a reload.
+    expect((await stored(page)).bookingEmails).toBe(false);
+    await page.reload();
+    await expect(box).not.toBeChecked();
+    await expectNoAxeViolations(page, `TW-09 with the booking emails box off in ${appLocale}`);
+
+    await box.check();
+    await expect(page.getByRole('status')).toHaveText(copy.myProfile.saved);
+    expect((await stored(page)).bookingEmails).toBe(true);
+    await page.reload();
+    await expect(box).toBeChecked();
+    // Nothing else about Sarah changed.
+    expect((await stored(page)).name).toBe('Sarah');
+  });
+
+  test('a failed save puts the box back and says so; the name and the other fields are unaffected', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    const sarah = newAddress('sarah');
+    await createAccount(sarah, undefined, 'Sarah');
+    await createGymWithTrainer(sarah, GYM, 'trainer');
+    await signInWithSession(context, sarah);
+    await page.goto('/me/profile');
+    const box = page.getByRole('checkbox', { name: copy.myProfile.bookingEmailsLabel });
+    await expect(box).toBeChecked();
+    await page.route('**/api/v1/me', (route) =>
+      route.request().method() === 'PATCH' ? route.abort() : route.continue(),
+    );
+
+    await box.uncheck();
+
+    await expect(page.getByRole('main').getByRole('alert')).toHaveText(
+      copy.myProfile.errors.noConnection,
+    );
+    await expect(box).toBeChecked();
+    await expect(page.getByLabel(copy.myProfile.nameLabel)).toHaveValue('Sarah');
+    await expect(page.getByText(sarah)).toBeVisible();
+    await page.unroute('**/api/v1/me');
+    expect((await stored(page)).bookingEmails).toBe(true);
   });
 });

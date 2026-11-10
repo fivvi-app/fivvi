@@ -272,7 +272,10 @@
       "noConnection": "No connection. Check your internet and try again.",
       "generic": "Something went wrong. Try again."
     },
-    "editName": "Change name"
+    "editName": "Change name",
+    "emailsTitle": "Emails",
+    "bookingEmailsLabel": "Emails about bookings in my classes",
+    "bookingEmailsHelp": "You get an email when a client books or cancels."
   },
   "profile": {
     "title": "Profile",
