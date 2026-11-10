@@ -256,7 +256,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
   it('F010 AC7: TW-08 Language shows the two languages in their own names, the current one checked, the help line and Save', () => {
     const html = render(locale, <LanguageForm workspaceId="w1" defaultLocale="en" />);
 
-    expect(html).toContain(`<h1>${escapeHtml(copy.settingsLanguage.title)}</h1>`);
+    expect(html).toMatch(new RegExp(`<h1[^>]*>${escapeHtml(copy.settingsLanguage.title)}</h1>`));
     expect(html).toContain(escapeHtml(copy.settingsLanguage.defaultLabel));
     expect(html).toContain(escapeHtml(copy.settingsLanguage.help));
     expect(html).toMatch(
@@ -309,7 +309,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
       />,
     );
 
-    expect(html).toContain(`<h1>${escapeHtml(copy.settingsGeneral.title)}</h1>`);
+    expect(html).toMatch(new RegExp(`<h1[^>]*>${escapeHtml(copy.settingsGeneral.title)}</h1>`));
     expect(html).toMatch(
       new RegExp(
         `<label[^>]*for="workspace-name"[^>]*>${escapeHtml(copy.settingsGeneral.nameLabel)}</label>`,
@@ -392,7 +392,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
       />,
     );
 
-    expect(html).toContain(`<h1>${escapeHtml(copy.settingsLocation.title)}</h1>`);
+    expect(html).toMatch(new RegExp(`<h1[^>]*>${escapeHtml(copy.settingsLocation.title)}</h1>`));
     expect(html).toContain(escapeHtml(copy.settingsLocation.help));
     expect(html).toMatch(/<input[^>]*id="location-name"[^>]*value="John&#x27;s Gym"/);
     // The type is text, not a field: only the name and the five address fields can be edited.
@@ -449,6 +449,73 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     }
     // A saved address was typed or looked up before: it is not claimed to be filled in now.
     expect(html).not.toContain(escapeHtml(copy.settingsLocation.lookup.filled));
+  });
+
+  it('E020 AC15: each settings page is the trainer web page with one card; its title is the card’s title and Save is the card’s action at the top right', () => {
+    const pages = {
+      general: [
+        <GeneralForm
+          key="g"
+          workspaceId="w1"
+          name="John's Gym"
+          slug="johns-gym"
+          timeZone="Europe/Amsterdam"
+        />,
+        copy.settingsGeneral,
+      ],
+      language: [
+        <LanguageForm key="l" workspaceId="w1" defaultLocale="en" />,
+        copy.settingsLanguage,
+      ],
+      location: [
+        <LocationForm
+          key="o"
+          workspaceId="w1"
+          locationId="l1"
+          name="John's Gym"
+          type="organization_location"
+          address={null}
+        />,
+        copy.settingsLocation,
+      ],
+    } as const;
+
+    for (const [name, [element, text]] of Object.entries(pages)) {
+      const html = render(locale, element);
+
+      expect(html, name).toMatch(/<main[^>]*data-slot="page-shell"/);
+      expect(html.match(/data-slot="card"/g), name).toHaveLength(1);
+      expect(html, name).toMatch(
+        new RegExp(
+          `<div[^>]*data-slot="card-header"[^>]*>.*?<h1[^>]*class="[^"]*text-\\[15px\\][^"]*font-semibold[^"]*"[^>]*>${escapeHtml(text.title)}</h1>.*?<div[^>]*data-slot="card-action"[^>]*><button[^>]*type="submit"[^>]*>${escapeHtml(text.save)}</button></div></div>`,
+        ),
+      );
+    }
+  });
+
+  it('E020 AC15: the name, location and address are the kit’s fields', () => {
+    const general = render(
+      locale,
+      <GeneralForm
+        workspaceId="w1"
+        name="John's Gym"
+        slug="johns-gym"
+        timeZone="Europe/Amsterdam"
+      />,
+    );
+    const location = render(
+      locale,
+      <LocationForm
+        workspaceId="w1"
+        locationId="l1"
+        name="John's Gym"
+        type="organization_location"
+        address={null}
+      />,
+    );
+
+    expect(general.match(/data-slot="field"/g)).toHaveLength(1);
+    expect(location.match(/data-slot="field"/g)).toHaveLength(6);
   });
 
   it('AC7: the no-permission page names the workspace and offers no form', () => {
