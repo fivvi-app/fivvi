@@ -94,6 +94,46 @@ describe('#413 native-gate.sh: parts that had no runner', () => {
     assert.match(result.stdout, /iOS tests \(en\): failed on a runner/);
   });
 
+  // #1268: GitHub's needs.<job>.result for a job no hosted runner took is `abandoned`; run 42845596284 showed the gate
+  // only "iOS build: ended as abandoned, not success".
+  it('#1268 names an abandoned labelled part as a missing runner, not as an unknown result', () => {
+    const result = iOS(...parts('abandoned', 'skipped', 'skipped'));
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /iOS build: no hosted runner picked it up.*re-queue the PR/);
+    assert.doesNotMatch(result.stdout, /ended as abandoned/);
+  });
+
+  it('#1268 tells a missing runner from a build failure in one summary', () => {
+    const noRunner = iOS(...parts('unacquired', 'skipped', 'skipped'));
+    const failed = iOS(...parts('failure', 'skipped', 'skipped'));
+    assert.match(noRunner.stdout, /no hosted runner picked it up/);
+    assert.doesNotMatch(noRunner.stdout, /failed on a runner/);
+    assert.match(
+      failed.stdout,
+      /iOS build: failed on a runner \(failure\): a build or test failure/,
+    );
+    assert.doesNotMatch(failed.stdout, /no hosted runner|re-queue/i);
+  });
+
+  it('#1268 says it was the retry when the part carries the retry label', () => {
+    const result = iOS(
+      'iOS build=success',
+      'iOS tests (nl) (retry)=failure',
+      'iOS tests (en)=success',
+    );
+    assert.equal(result.status, 1);
+    assert.match(
+      result.stdout,
+      /iOS tests \(nl\) \(retry\): failed on a runner \(failure\): a build or test failure/,
+    );
+    const noRunner = iOS(
+      'iOS build=success',
+      'iOS tests (nl) (retry)=unacquired',
+      'iOS tests (en)=success',
+    );
+    assert.match(noRunner.stdout, /iOS tests \(nl\) \(retry\): no hosted runner picked it up/);
+  });
+
   it('has no retry syntax: a result with a suffix is not a success', () => {
     const result = iOS(...parts('success', 'unacquired:success', 'success'));
     assert.equal(result.status, 1);
