@@ -19,6 +19,8 @@ export type ImportProblemType =
   | 'sheet-missing'
   | 'column-missing'
   | 'column-not-imported'
+  | 'column-repeated'
+  | 'column-without-name'
   | 'value-missing'
   | 'client-key-duplicate'
   | 'email-missing'
@@ -115,6 +117,12 @@ function checkClients(parsed: ParsedImport, workspace: WorkspaceSnapshot): Impor
   const known: readonly string[] = [...CLIENT_SHEET.required, ...CLIENT_SHEET.optional];
   for (const column of sheet.columns) {
     if (!known.includes(column)) add('error', 'column-not-imported', 1, column, { column });
+  }
+  for (const column of sheet.repeatedColumns) {
+    add('error', 'column-repeated', 1, column, { column });
+  }
+  for (const column of sheet.unnamedColumns) {
+    add('warning', 'column-without-name', 1, column, { column });
   }
   const has = (column: string) => sheet.columns.includes(column);
   for (const column of CLIENT_SHEET.required) {

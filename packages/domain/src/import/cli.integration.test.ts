@@ -13,17 +13,14 @@ import {
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { dryRun, main } from './cli.ts';
 
-let database: TestDatabase;
 let folder: string;
 
-beforeAll(async () => {
+beforeAll(() => {
   folder = mkdtempSync(join(tmpdir(), 'fivvi-import-'));
-  database = await cloneTemplateDatabase();
 });
 
-afterAll(async () => {
+afterAll(() => {
   rmSync(folder, { recursive: true, force: true });
-  await database?.drop();
 });
 
 /** Each test loads its fixture into a database of its own, so none sees another's workspace. */

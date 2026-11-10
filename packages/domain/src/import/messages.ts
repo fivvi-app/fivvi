@@ -9,6 +9,8 @@ const PROBLEM_KEYS = {
   'sheet-missing': 'sheetMissing',
   'column-missing': 'columnMissing',
   'column-not-imported': 'columnNotImported',
+  'column-repeated': 'columnRepeated',
+  'column-without-name': 'columnWithoutName',
   'value-missing': 'valueMissing',
   'client-key-duplicate': 'clientKeyDuplicate',
   'email-missing': 'emailMissing',

@@ -58,14 +58,14 @@ describe('E015 the dry-run CLI', () => {
   });
 
   it('refuses a database that is not local, without echoing it', () => {
-    const remote = 'postgres://someone:secret-pw@db.example.net:5432/app';
+    const remote = 'postgres://someone:secret-pw@example.com:5432/app';
 
     expect(() => refuseNonLocalDatabase(remote)).toThrow('localhost');
     try {
       refuseNonLocalDatabase(remote);
     } catch (error) {
       expect(String(error)).not.toContain('secret-pw');
-      expect(String(error)).not.toContain('db.example.net');
+      expect(String(error)).not.toContain('example.com');
     }
     expect(refuseNonLocalDatabase('postgres://u:p@localhost:5432/x')).toBe(
       'postgres://u:p@localhost:5432/x',
@@ -120,14 +120,14 @@ describe('E015 the dry-run CLI', () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     const code = await main(['--file', 'missing.xlsx', '--workspace-fixture', 'johns-gym'], {
-      IMPORT_DRY_RUN_DATABASE_URL: 'postgres://someone:secret-pw@db.example.net:5432/app',
+      IMPORT_DRY_RUN_DATABASE_URL: 'postgres://someone:secret-pw@example.com:5432/app',
     });
 
     expect(code).toBe(2);
     const printed = error.mock.calls.flat().join('\n');
     expect(printed).toContain('localhost');
     expect(printed).not.toContain('secret-pw');
-    expect(printed).not.toContain('db.example.net');
+    expect(printed).not.toContain('example.com');
   });
 
   it('asks for a database when none is set', async () => {

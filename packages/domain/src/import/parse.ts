@@ -35,6 +35,10 @@ export interface ParsedRow {
 export interface ParsedSheet {
   /** The header names, trimmed and lower case. A column without a name is left out. */
   readonly columns: readonly string[];
+  /** The header names that appear more than once, once each. Only the last column of a name is read. */
+  readonly repeatedColumns: readonly string[];
+  /** The letters (`C`, `AB`) of the columns without a header name that have a cell filled in: not read. */
+  readonly unnamedColumns: readonly string[];
   /** The rows with at least one cell filled in, in order. */
   readonly rows: readonly ParsedRow[];
 }
@@ -48,18 +52,31 @@ function cellText(value: unknown): string {
   return String(value).trim();
 }
 
+/** The spreadsheet letter of a column: 0 is `A`, 26 is `AA`. */
+function columnLetter(index: number): string {
+  let letter = '';
+  for (let rest = index + 1; rest > 0; rest = Math.floor((rest - 1) / 26)) {
+    letter = String.fromCharCode(65 + ((rest - 1) % 26)) + letter;
+  }
+  return letter;
+}
+
 /** A sheet from rows of cells: the first row is the header. */
 function toSheet(table: readonly (readonly unknown[])[]): ParsedSheet {
   const [header = [], ...body] = table;
   const names = header.map((name) => cellText(name).toLowerCase());
   const columns = names.filter((name) => name !== '');
+  const repeatedColumns = [...new Set(columns.filter((name, at) => columns.indexOf(name) !== at))];
+  const unnamedColumns = names.flatMap((name, at) =>
+    name === '' && body.some((cells) => cellText(cells[at]) !== '') ? [columnLetter(at)] : [],
+  );
   const rows: ParsedRow[] = [];
   body.forEach((cells, index) => {
     const entries = names.flatMap((name, at) => (name === '' ? [] : [[name, cellText(cells[at])]]));
     if (entries.every(([, value]) => value === '')) return;
     rows.push({ row: index + 2, cells: Object.fromEntries(entries) });
   });
-  return { columns, rows };
+  return { columns, repeatedColumns, unnamedColumns, rows };
 }
 
 function refuseTooManyRows(sheets: ParsedImport): void {

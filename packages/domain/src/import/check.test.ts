@@ -78,10 +78,10 @@ describe('E015 checking the clients sheet', () => {
 
     expect(at('email-invalid')).toMatchObject({ row: PROBLEM_ROWS.invalidEmail, column: 'email' });
     expect(describeProblem(at('email-invalid'), 'nl-NL')).toBe(
-      'Rij 9: dit is geen geldig e-mailadres.',
+      'Rij 9: dit e-mailadres klopt niet.',
     );
     expect(describeProblem(at('email-invalid'), 'en')).toBe(
-      "Row 9: this isn't a valid email address.",
+      "Row 9: this email address doesn't look right.",
     );
 
     expect(at('email-missing')).toMatchObject({ row: PROBLEM_ROWS.missingEmail, column: 'email' });
@@ -119,6 +119,61 @@ describe('E015 checking the clients sheet', () => {
     expect(result.problems).toHaveLength(8);
     expect(result.canImport).toBe(false);
     expect(result.problems.every((problem) => problem.severity === 'error')).toBe(true);
+  });
+
+  it('refuses a header that appears twice, as an error at row 1, and says nothing of its cells', () => {
+    const rows = importSampleSheets().clients ?? [];
+    const file = clients(addColumn(rows, 'Email', () => 'second@example.com'));
+
+    const result = checkImport(file, johnsGym);
+
+    const repeated = find(result.problems, 'column-repeated');
+    expect(repeated).toHaveLength(1);
+    expect(repeated[0]).toMatchObject({
+      severity: 'error',
+      sheet: 'clients',
+      row: 1,
+      column: 'email',
+    });
+    expect(describeProblem(repeated[0] as ImportProblem, 'nl-NL')).toBe(
+      'Kolom email staat twee keer in het bestand.',
+    );
+    expect(describeProblem(repeated[0] as ImportProblem, 'en')).toBe(
+      'Column email appears twice in the file.',
+    );
+    expect(result.canImport).toBe(false);
+  });
+
+  it('warns about a column with data but no header name, by its letter, and stores nothing of it', () => {
+    const rows = importSampleSheets().clients ?? [];
+    const file = clients(addColumn(rows, '', () => 'synthetic cell'));
+
+    const result = checkImport(file, johnsGym);
+    const plan = planImport(file, johnsGym);
+
+    const unnamed = find(result.problems, 'column-without-name');
+    expect(unnamed).toHaveLength(1);
+    expect(unnamed[0]).toMatchObject({
+      severity: 'warning',
+      sheet: 'clients',
+      row: 1,
+      column: 'I',
+    });
+    expect(describeProblem(unnamed[0] as ImportProblem, 'nl-NL')).toBe(
+      'Kolom I heeft geen naam en wordt niet geïmporteerd.',
+    );
+    expect(describeProblem(unnamed[0] as ImportProblem, 'en')).toBe(
+      "Column I has no name and isn't imported.",
+    );
+    expect(result.canImport).toBe(true);
+    expect(JSON.stringify(plan)).not.toContain('synthetic cell');
+  });
+
+  it('does not warn about an empty column without a header name', () => {
+    const rows = importSampleSheets().clients ?? [];
+    const result = checkImport(clients(addColumn(rows, '', () => '')), johnsGym);
+
+    expect(find(result.problems, 'column-without-name')).toEqual([]);
   });
 
   it('AC12: refuses a column outside the template and never puts its values in the plan', () => {
