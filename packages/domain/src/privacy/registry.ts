@@ -25,6 +25,12 @@ interface PersonalDataDeclaration {
   readonly subject: PrivacySubject;
   /** The columns that hold personal data (or lead to a person): the data inventory lists them. */
   readonly personalData: readonly string[];
+  /**
+   * Columns that look like a link to a person (`*_team_member_id`, `*_account_id`, `*_client_id`,
+   * `*_user_id`, `*_trainer_profile_id`) and are left out of `personalData` on purpose, each with
+   * the reason. A test fails for such a column that is in neither.
+   */
+  readonly leftOut?: Readonly<Record<string, string>>;
   /** The columns an export carries; empty when no export carries the table. */
   readonly export: readonly string[];
   /** For the inventory: how the table is reached, what stays and why. Plain English, no copy shown to a user. */
@@ -56,7 +62,7 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     table: 'auth_users',
     personal: true,
     subject: 'account',
-    personalData: ['name', 'email', 'preferred_locale'],
+    personalData: ['name', 'email', 'preferred_locale', 'booking_emails'],
     export: [],
     onDelete: 'delete',
     retention: 'ACCOUNT_INACTIVITY',
@@ -230,7 +236,7 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     table: 'sessions',
     personal: true,
     subject: 'team_member',
-    personalData: ['trainer_profile_id', 'created_by_team_member_id'],
+    personalData: ['trainer_profile_id', 'created_by_team_member_id', 'updated_by_team_member_id'],
     export: [
       'id',
       'type',
@@ -244,11 +250,12 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
       'group_class_id',
       'version',
       'created_by_team_member_id',
+      'updated_by_team_member_id',
       ...TIMESTAMPS,
     ],
     onDelete: 'anonymize',
     retention: 'FORMER_TRAINER',
-    note: 'A scheduled session. The links to the trainer and to who planned it are cleared when the team member is removed; the session stays as the workspace’s record (R9).',
+    note: 'A scheduled session. The links to the trainer and to who planned it or changed it last are cleared when the team member is removed; the session stays as the workspace’s record (R9).',
   },
 ];
 

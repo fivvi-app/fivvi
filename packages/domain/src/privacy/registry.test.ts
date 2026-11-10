@@ -76,6 +76,34 @@ describe('E014 AC1: every table in the schema is in the privacy registry', () =>
     }
   });
 
+  it('lists every column that links to a person (*_team_member_id, *_account_id, *_client_id, *_user_id, *_trainer_profile_id) in personalData, unless the declaration leaves it out on purpose with a reason', () => {
+    const linksToPerson = /(^|_)(team_member|account|client|user|trainer_profile)_id$/;
+    const unlisted: string[] = [];
+    for (const table of schemaTables) {
+      const name = getTableName(table);
+      const declaration = declaredTable(name);
+      const listed = declaration?.personal ? declaration.personalData : [];
+      const leftOut = declaration?.personal ? Object.keys(declaration.leftOut ?? {}) : [];
+      for (const column of columnsOf(name)) {
+        if (!linksToPerson.test(column)) continue;
+        if (!listed.includes(column) && !leftOut.includes(column))
+          unlisted.push(`${name}.${column}`);
+      }
+    }
+    expect(unlisted).toEqual([]);
+  });
+
+  it('gives a reason for every column a declaration leaves out on purpose, and never lists the same column as personal data', () => {
+    for (const declaration of PRIVACY_REGISTRY) {
+      if (!declaration.personal) continue;
+      for (const [column, reason] of Object.entries(declaration.leftOut ?? {})) {
+        expect(columnsOf(declaration.table), `${declaration.table}.${column}`).toContain(column);
+        expect(declaration.personalData, `${declaration.table}.${column}`).not.toContain(column);
+        expect(reason, `${declaration.table}.${column}`).not.toBe('');
+      }
+    }
+  });
+
   it('never exports a secret: no token, hash or code leaves in an export', () => {
     for (const declaration of PRIVACY_REGISTRY) {
       if (!declaration.personal) continue;
