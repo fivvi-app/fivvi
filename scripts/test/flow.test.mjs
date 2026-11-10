@@ -1553,6 +1553,26 @@ describe('#292 flow.sh lock: a run lock with a 3-hour expiry', () => {
         assert.deepEqual(readdirSync(dir), ['factory.lock']);
       }
     });
+
+    it('no run ever sees the lock free while another replaces it: many contenders, many rounds', async () => {
+      for (let round = 0; round < 12; round++) {
+        clean();
+        const mine = acquireId(secondsAgo(4 * HOUR));
+        const [refresh, ...takeovers] = await Promise.all([
+          lockAsync('refresh', NOW, mine),
+          ...Array.from({ length: 12 }, () => lockAsync('acquire', NOW)),
+        ]);
+        const winners = takeovers.filter((result) => result.status === 0);
+        const holder = readFileSync(lockFile, 'utf8').match(/run (\S+)\n$/)?.[1];
+        assert.equal(
+          winners.length + (refresh.status === 0 ? 1 : 0),
+          1,
+          `round ${round}: ${winners.length} takeovers and a refresh that ${refresh.status === 0 ? 'won' : 'lost'}`,
+        );
+        assert.equal(holder, refresh.status === 0 ? mine : idOf(winners[0]));
+        assert.deepEqual(readdirSync(dir), ['factory.lock']);
+      }
+    });
   });
 
   it('status says free, live with its age, or expired, and changes nothing', () => {
