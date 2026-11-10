@@ -35,7 +35,8 @@ await sendEmail({
 | `src/provider.ts` | `createConfiguredTransport()`: the Lettermint transport for the config `readEmailConfig` read |
 | `src/log.ts`, `src/environment.ts` | Log transport and the per-environment choice of transport (`createEnvironmentSendEmail`) |
 | `src/memory.ts` | In-memory capture transport for tests and local development |
-| `scripts/` | Preview server and the test-send CLI |
+| `src/sending-domain.ts`, `src/sending-domain-cli.ts` | The sending-domain check (F049, AC8): `checkSendingDomain()` reads SPF, DKIM and DMARC through an injected DNS resolver; `runSendingDomainCheck()` is the command behind `check:domain` |
+| `scripts/` | Preview server, the test-send CLI and the sending-domain check |
 
 ## Templates
 
@@ -122,6 +123,34 @@ pnpm email:send-test --to you@example.com --locale en [--name Anna] [--time-zone
 - **Preview** renders every template in both locales with its `previewProps`, as HTML and as plain text (`/hello/nl-NL`, `/hello/en.txt`). It restarts when a file changes; reload the page. We don't use React Email's `email dev`: it installs `@react-email/ui` and a separate Next.js app with npm at run time, outside our lockfile and pnpm's release-age check.
 - **Send test** sends the `hello` template through Lettermint to one address and prints the Lettermint message id. It is the G1 delivery check; it counts against the monthly limit.
 
+## Sending-domain check
+
+```bash
+pnpm --filter @fivvi/email check:domain                      # fivvi.app
+pnpm --filter @fivvi/email check:domain --domain example.org # another domain
+```
+
+Reads the **public DNS** of the sending domain (no token, no secret, nothing sent) and reports whether Lettermint can send as it (ADR-028, F049 AC8). It prints one `PASS` or `FAIL` line per record, names what is missing or wrong, and exits 0 only when all three pass, 1 when one fails and 2 on bad arguments. A DNS lookup that fails for another reason than "no record" (a timeout, SERVFAIL) counts as a failing record and prints the DNS error code. The output holds Lettermint's host names and the DMARC policy only, never the report addresses of a DMARC record.
+
+| Check | Passes when |
+|---|---|
+| SPF | `lm-bounces.<domain>` is a CNAME to a `lmta.net` host (Lettermint's Return-Path, which carries Lettermint's SPF record) and exactly one `v=spf1` record resolves there. Receivers check SPF on that Return-Path host, never on the root, so an SPF record at the root of `<domain>` does not count |
+| DKIM | `lm1._domainkey.<domain>` and `lm2._domainkey.<domain>` are both CNAMEs to a `lmta.net` host (Lettermint rotates the keys every six months behind them) |
+| DMARC | `_dmarc.<domain>` has exactly one `v=DMARC1` record with `p=quarantine` or `p=reject` |
+
+**The records are the owner's** (`ROADMAP.md §4.5`; the DNS provider is Cloudflare, set to *DNS only*). Lettermint shows the exact target of each CNAME for the domain in its dashboard (*Domains*); this is the set to expect for `fivvi.app`:
+
+| Type | Name | Value |
+|---|---|---|
+| CNAME | `lm-bounces.fivvi.app` | `bounces.lmta.net` |
+| CNAME | `lm1._domainkey.fivvi.app` | `lm1.<domain id>.dkim.lmta.net` |
+| CNAME | `lm2._domainkey.fivvi.app` | `lm2.<domain id>.dkim.lmta.net` |
+| TXT | `_dmarc.fivvi.app` | `v=DMARC1; p=quarantine; rua=<the address already in the record>` (keep the `rua` and any other tag; change only `p=none` to `p=quarantine`) |
+
+Do not set `aspf=s`: Lettermint refuses to verify a domain with strict SPF alignment.
+
+The tests (`src/sending-domain.test.ts`) answer from a fake resolver and never touch the network.
+
 ## TypeScript 7
 
 Nothing here needs the TypeScript compiler API. React Email 6 (`react-email`: components + `render`) and `use-intl` ship plain JS, and `tsx` (esbuild) runs the scripts, because Node's type stripping doesn't handle JSX. No separate TypeScript 5 package is needed, unlike `packages/contract/tools/typescript-generator`.
@@ -143,4 +172,5 @@ pnpm --filter @fivvi/email test
 | `src/send.test.ts` | `sendEmail` with the memory transport: locale, idempotency keys, retry decisions, link capture |
 | `src/lettermint.test.ts` | The Lettermint request (mocked HTTP client): route per template, sender and recipient format, tag, idempotency key; retry on 5xx, network errors, timeouts and 429 with `Retry-After`; `409` as duplicate; no retry on 401, 403 and 422; no token or recipient in errors |
 | `src/retry.test.ts`, `src/config.test.ts` | Backoff maths; config validation without leaking the key |
+| `src/sending-domain.test.ts` | The sending-domain check against fake DNS answers: SPF (Return-Path CNAME or root `include:`), both DKIM CNAMEs, DMARC `p=quarantine`/`reject`; each failure named; exit codes; no report address printed |
 | `src/lint.test.ts` | The no-hard-coded-text rule is registered here and runs |
