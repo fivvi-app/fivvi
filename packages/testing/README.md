@@ -4,6 +4,7 @@ Shared test setup (ADR-014, `docs/engineering/TESTING.md`). Test-only: add it as
 
 | Entry point | What |
 |---|---|
+| `@fivvi/testing/import-sample` | The synthetic sample of the data import (E015): `buildImportSample()` (the workbook, a CSV per sheet and the expected counts), `importSampleSheets()`, `importSampleProblems()` (the sample with a known problem at a known row, `PROBLEM_ROWS`), `setCell`, `addColumn`, `toCsv` and `writeWorkbook` for other variants. Made-up data of John's Gym at example.com, the same bytes every time; the committed copy is in `fixtures/`, and `pnpm --filter @fivvi/testing generate:import-sample` rewrites it (a test fails when it is out of date) |
 | `@fivvi/testing/vitest` | `unitConfig()` and `integrationConfig()`, the Vitest presets every package uses |
 | `@fivvi/testing/database` | `cloneTemplateDatabase()`, `createTestDatabase()`, `withRollback()` for integration tests |
 | `@fivvi/testing/database/setup` | `setupTemplateDatabase(migrate)` for a Vitest global setup; it first makes sure the app role `fivvi_app` and the cron role `fivvi_cron` exist on the server with a login and a fake password (`ensureTestRoles()`, once per server, under an advisory lock), because roles belong to the server and a clone does not copy them |

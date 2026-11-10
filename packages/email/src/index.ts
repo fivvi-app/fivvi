@@ -1,4 +1,19 @@
 export {
+  type ActiveEntry,
+  type AnyEmailTemplate,
+  type CatalogCheckInput,
+  type CatalogEntry,
+  catalog,
+  checkCatalog,
+  type EmailAudience,
+  type InternalEntry,
+  internalCatalog,
+  type OwnerFeature,
+  type ReservedEntry,
+  type RetiredEntry,
+  templates,
+} from './catalog.ts';
+export {
   type EmailConfig,
   type LettermintConfig,
   type LettermintRoutes,
@@ -60,7 +75,6 @@ export {
   type SignInEmailProps,
   signInEmail,
   type TrainerInvitationEmailProps,
-  templates,
   trainerInvitationEmail,
 } from './templates/index.ts';
 export type { TrainerInvitationMail } from './trainer-invitation-mail.ts';

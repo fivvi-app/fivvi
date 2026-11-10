@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { dirname, join } from 'node:path';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { dirname, join, relative } from 'node:path';
 import { describe, it } from 'node:test';
 import { fileURLToPath } from 'node:url';
 import { plan, readWorkspace } from '../affected.mjs';
@@ -134,6 +135,16 @@ describe('#293 AC3 AC4: packages and their dependents', () => {
     assert.equal(result.all, false);
   });
 
+  it('E016: the restore drill script and its library are inputs of the database package, whose integration test runs the script', () => {
+    for (const path of ['scripts/restore-drill.sh', 'scripts/_lib.sh']) {
+      const result = decide([path]);
+      assert.ok(result.packages.includes('@fivvi/database'), path);
+      assert.ok(result.integration.includes('@fivvi/database'), path);
+      assert.equal(result.root, true, `${path}: the root script tests run as well`);
+      assert.equal(result.all, false, path);
+    }
+  });
+
   it('F064 AC10: a published legal text is an input of the web app, which renders it when it is built', () => {
     for (const path of [
       'docs/legal/privacy-policy.nl.md',
@@ -149,11 +160,81 @@ describe('#293 AC3 AC4: packages and their dependents', () => {
     }
   });
 
-  it('F064 AC10: the other texts of docs/legal stay documentation', () => {
-    for (const path of ['docs/legal/sub-processors.md', 'docs/legal/open-questions.md']) {
+  it('#697: every text of docs/legal and the registry are inputs of the web tests, which read them', () => {
+    for (const path of [
+      'docs/legal/sub-processors.md',
+      'docs/legal/verwerkersovereenkomst.md',
+      'docs/legal/open-questions.md',
+      'docs/legal/README.md',
+      'docs/product/FEATURES.md',
+    ]) {
       const result = decide([path]);
-      assert.deepEqual(result.packages, [], path);
-      assert.equal(result.docs, true, path);
+      assert.deepEqual(result.packages, ['@fivvi/web'], path);
+      assert.equal(result.e2e, true, path);
+      assert.equal(result.docs, false, `${path} is not Markdown only`);
+      assert.equal(result.all, false, path);
+    }
+  });
+
+  it('#697: the registry is still read by the root tests too', () => {
+    assert.equal(decide(['docs/product/FEATURES.md']).root, true);
+    assert.equal(decide(['docs/legal/sub-processors.md']).root, false);
+    assert.equal(decide(['docs/legal/verwerkersovereenkomst.md']).root, false);
+  });
+
+  it('#697: the brand SVGs, in subfolders too, run the web tests; the README and the archive of the brand folder stay documentation', () => {
+    for (const path of [
+      'docs/design/brand/favicon.svg',
+      'docs/design/brand/day-dial/b2/fivvi-day-dial-b2-light.svg',
+      'docs/design/brand/day-dial/b2/layers/1-background.svg',
+    ]) {
+      assert.deepEqual(decide([path]).packages, ['@fivvi/web'], path);
+    }
+    for (const path of ['docs/design/brand/README.md', 'docs/design/brand/archive/old-logo.svg']) {
+      assert.deepEqual(decide([path]).packages, [], path);
+    }
+    assert.equal(decide(['docs/design/brand/README.md']).docs, true);
+  });
+
+  // The list of files the web app reads from docs/ is kept by hand in scripts/affected.mjs; this derives it from the
+  // code instead, so a test that starts reading a new file of docs/ fails here until the list names it. It finds only
+  // literal paths ('../../docs/legal/x.md', a directory too), not ones built with path.join or path.dirname; a read
+  // of a directory counts for every file under it, except the ones that are documentation only (DOCS_ONLY below).
+  it('#697: every file of docs/ that code in apps/web reads makes the web app affected', () => {
+    const webRoot = join(SCRIPTS, '..', 'apps', 'web');
+    const references = new Set();
+    const walk = (dir) => {
+      for (const entry of readdirSync(dir, { withFileTypes: true })) {
+        if (['node_modules', '.next', 'test-results', 'playwright-report'].includes(entry.name))
+          continue;
+        const file = join(dir, entry.name);
+        if (entry.isDirectory()) walk(file);
+        else if (/\.(ts|tsx|mts|mjs)$/.test(entry.name)) {
+          const source = readFileSync(file, 'utf8');
+          for (const match of source.matchAll(/['"`](?:\.\.\/)+(docs\/[^'"`\s]+)['"`]/g))
+            references.add(match[1].replace(/\/$/, ''));
+        }
+      }
+    };
+    walk(webRoot);
+    assert.ok(references.has('docs/legal/sub-processors.md'), 'the scan finds the known reads');
+    const repo = join(SCRIPTS, '..');
+    const filesUnder = (path) => {
+      const absolute = join(repo, path);
+      if (!statSync(absolute).isDirectory()) return [path];
+      return readdirSync(absolute, { recursive: true, withFileTypes: true })
+        .filter((entry) => entry.isFile())
+        .map((entry) => relative(repo, join(entry.parentPath, entry.name)));
+    };
+    const DOCS_ONLY = [/^docs\/design\/brand\/README\.md$/, /^docs\/design\/brand\/archive\//];
+    for (const reference of references) {
+      for (const file of filesUnder(reference)) {
+        if (DOCS_ONLY.some((pattern) => pattern.test(file))) continue;
+        assert.ok(
+          decide([file]).packages.includes('@fivvi/web'),
+          `${file} (read through ${reference}) is read by the web app, but a change to it does not affect @fivvi/web: add it to DOCS_INPUT_OF_PACKAGE in scripts/affected.mjs and to the test inputs of apps/web/turbo.json`,
+        );
+      }
     }
   });
 

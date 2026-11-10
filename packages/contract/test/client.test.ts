@@ -102,6 +102,7 @@ describe('F001 TypeScript client: GET /v1/me', () => {
     expect(withLanguage.data).toEqual({
       ...account,
       preferredLocale: 'nl-NL',
+      bookingEmails: true,
       canCreateWorkspace: true,
       workspaces: [],
     });
@@ -186,6 +187,7 @@ describe('F001N TypeScript client: native sign-in', () => {
     const headers = { Authorization: `Bearer ${exchanged.data?.token}` };
     expect((await api.GET('/v1/me', { headers })).data).toEqual({
       ...account,
+      bookingEmails: true,
       canCreateWorkspace: false,
       workspaces: [],
     });

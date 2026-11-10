@@ -22,6 +22,11 @@ export const authUsers = pgTable(
     emailVerified: boolean('email_verified').notNull().default(false),
     /** The language of the screen where the person first signed in (ADR-019); F010 changes it. */
     preferredLocale: text('preferred_locale').$type<Locale>(),
+    /**
+     * Whether the person gets an email when a client books or cancels a class they teach (F050).
+     * On for every account until they switch it off; it belongs to the account, not to a workspace.
+     */
+    bookingEmails: boolean('booking_emails').notNull().default(true),
     ...timestamps(),
   },
   (table) => [

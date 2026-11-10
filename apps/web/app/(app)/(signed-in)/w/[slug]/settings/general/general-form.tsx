@@ -4,17 +4,19 @@ import { SIGNED_IN_HOME } from '@fivvi/auth/return-path';
 import { Button } from '@fivvi/ui/components/button';
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@fivvi/ui/components/card';
-import { Input } from '@fivvi/ui/components/input';
-import { Label } from '@fivvi/ui/components/label';
+import { ErrorLine } from '@fivvi/ui/kit/error-line';
+import { Field } from '@fivvi/ui/kit/field';
+import { SuccessLine } from '@fivvi/ui/kit/success-line';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useState } from 'react';
+import { SettingsPage } from '../settings-page';
 import { type NameErrorKey, renameWorkspace } from './rename-workspace-client';
 
 /**
@@ -68,32 +70,29 @@ export function GeneralForm({
   const failureMessage = failure ? t(`errors.${failure}`) : null;
 
   return (
-    <main className="flex flex-1 items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <SettingsPage>
+      <Card>
         <form noValidate onSubmit={submit} className="grid gap-(--card-spacing)">
           <CardHeader>
             <CardTitle>
-              <h1>{t('title')}</h1>
+              <h2 className="text-[15px] font-semibold">{t('title')}</h2>
             </CardTitle>
             <CardDescription>{name}</CardDescription>
+            <CardAction>
+              <Button type="submit" disabled={!ready || pending}>
+                {t('save')}
+              </Button>
+            </CardAction>
           </CardHeader>
           <CardContent className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="workspace-name">{t('nameLabel')}</Label>
-              <Input
-                id="workspace-name"
-                name="name"
-                defaultValue={name}
-                autoComplete="organization"
-                aria-invalid={nameError ? true : undefined}
-                aria-describedby={nameError ? 'workspace-name-error' : undefined}
-              />
-              {nameError ? (
-                <p id="workspace-name-error" role="alert" className="text-status-danger-fg">
-                  {nameError}
-                </p>
-              ) : null}
-            </div>
+            <Field
+              id="workspace-name"
+              name="name"
+              label={t('nameLabel')}
+              defaultValue={name}
+              autoComplete="organization"
+              error={nameError ?? undefined}
+            />
             <dl className="grid gap-2 text-sm">
               <div>
                 <dt className="text-muted-foreground">{t('urlNameLabel')}</dt>
@@ -104,20 +103,11 @@ export function GeneralForm({
                 <dd>{timeZone}</dd>
               </div>
             </dl>
-            {failureMessage ? (
-              <p role="alert" className="text-status-danger-fg">
-                {failureMessage}
-              </p>
-            ) : null}
-            {saved ? <p role="status">{t('saved')}</p> : null}
+            {failureMessage ? <ErrorLine>{failureMessage}</ErrorLine> : null}
+            {saved ? <SuccessLine>{t('saved')}</SuccessLine> : null}
           </CardContent>
-          <CardFooter>
-            <Button type="submit" disabled={!ready || pending}>
-              {t('save')}
-            </Button>
-          </CardFooter>
         </form>
       </Card>
-    </main>
+    </SettingsPage>
   );
 }

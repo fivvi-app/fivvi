@@ -346,7 +346,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
   const detectAll = ({
     event,
     label = false,
-    changed = ['docs/product/FEATURES.md'],
+    changed = ['docs/product/PRODUCT.md'],
     earlier = [],
     moves = [],
     noMergeBase = false,
@@ -468,7 +468,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
 
   it('#293 AC8: the Linux E2E job is skipped for a change the web app does not depend on', () => {
     for (const changed of [
-      ['docs/product/FEATURES.md'],
+      ['docs/product/PRODUCT.md'],
       ['scripts/pr.sh'],
       ['.github/workflows/ci.yml'],
       ['packages/other/src/x.ts'],
@@ -536,7 +536,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
 
   it('#293: a push to main is decided by the commits it adds', () => {
     assert.equal(e2e({ event: 'push', changed: ['apps/web/src/a.ts'] }), 'true');
-    assert.equal(e2e({ event: 'push', changed: ['docs/product/FEATURES.md'] }), 'false');
+    assert.equal(e2e({ event: 'push', changed: ['docs/product/PRODUCT.md'] }), 'false');
   });
 
   it("E002 #119: a merge group is compared with the queue's base commit, so native jobs skip when no native path changed", () => {

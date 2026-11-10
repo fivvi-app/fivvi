@@ -1,0 +1,1 @@
+ALTER TABLE "auth_users" ADD COLUMN "booking_emails" boolean DEFAULT true NOT NULL;

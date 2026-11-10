@@ -5,8 +5,8 @@ The web component kit (ADR-015, E007): [shadcn/ui](https://ui.shadcn.com/) compo
 | Path | What |
 |---|---|
 | `components.json` | shadcn configuration, as in shadcn's Next.js monorepo template |
-| `src/components/` | Components from the shadcn CLI: `Button` (variants `default` = primary, `secondary`, `ghost`, `destructive`, plus upstream's `outline` and `link`), `Input`, `Label`, `Card`, `AlertDialog` (confirmation dialog), `Dialog` (a form in a modal; no built-in close button), `DropdownMenu` (a menu button with checkable rows, for the scope switcher; see the divergences), `NativeSelect` (the browser's own select, for short lists such as a role; its chevron is an inline SVG because the kit has no icon library). **The CLI's output; never edit except for the divergences below (`Dialog`, `NativeSelect`, `DropdownMenu`, `Button`)** |
-| `src/kit/` | Our own building blocks of the Fivvi Pro look, written by hand: `ProCard`, `InsetList`, `PillButton`, `RoundButton`, `NextCard`, `StatusPill`, `Field`, `Toast` and `ClientLayout` ([the blocks](#the-blocks)). Imported as `@fivvi/ui/kit/<name>` |
+| `src/components/` | Components from the shadcn CLI: `Button` (variants `default` = primary, `secondary`, `ghost`, `destructive`, plus upstream's `outline` and `link`), `Input`, `Label`, `Card`, `AlertDialog` (confirmation dialog), `Dialog` (a form in a modal; no built-in close button), `DropdownMenu` (a menu button with checkable rows, for the scope switcher; see the divergences), `NativeSelect` (the browser's own select, for short lists such as a role; its chevron is an inline SVG because the kit has no icon library). **The CLI's output; never edit except for the divergences below (`Dialog`, `AlertDialog`, `NativeSelect`, `DropdownMenu`, `Button`)** |
+| `src/kit/` | Our own building blocks of the Fivvi Pro look, written by hand: `ProCard`, `InsetList`, `PillButton`, `RoundButton`, `NextCard`, `StatusPill`, `Field`, `Toast`, `ClientLayout` and `PortalDensity` ([the blocks](#the-blocks)). Imported as `@fivvi/ui/kit/<name>` |
 | `src/styles/globals.css` | The stylesheet apps import: Tailwind, the token theme (trainer and client), the kit's sources, the `rounded-card`, `numeric` and `glass` utilities, the densities, shadcn's base styles and the focus indicator |
 | `src/styles/palette-reset.css` | Drops Tailwind's default colour palette, so the only colours are the tokens |
 | `lint/` | The raw-colour guard, run by `pnpm check` |
@@ -48,12 +48,15 @@ A layout opts in to the client theme with `data-theme="client"` on any element: 
 | `RoundButton` | A round 48px control (the + button, the header's back button) with an icon; `aria-label` is required; variants `primary`, `tonal`, `glass` |
 | `NextCard` | The gradient "next" card in the accent or a session type (`private`, `group`): one hue from the gradient tokens, with the on-colour text. Open Gym is not offered: no screen uses it yet |
 | `StatusPill` | A status or session type: its tint with the text colour that passes on it (`neutral`, `success`, `warning`, `danger`, `private`, `group`) |
-| `Field` | Label, input and hint; with an `error` the label and the field turn red (a solid border with a 3px ring at 18%, in light and dark), a warning icon and the message come under it (announced when it appears, `role="alert"`), and the input points at it (`aria-invalid`, `aria-describedby`, added to the caller's) |
+| `Field` | Label, input and hint; with an `error` the label and the field turn red (a solid border with a 3px ring at 18%, in light and dark), a warning icon and the message come under it (announced when it appears, `role="alert"`), and the input points at it (`aria-invalid`, `aria-describedby`, added to the caller's); `invalid` marks the field red without a message of its own, for a refusal the screen words once for several fields |
 | `Avatar` | A person's mark: their initials on the neutral (muted) fill, round, 28px (`size="lg"`: 56px), hidden from screen readers. The letters come from a `data-initials` attribute through `::before`, so they are no text in the page: the name beside it says who it is |
 | `ErrorLine` | A refusal in words: the warning icon and the message in the danger text colour, announced when it appears (`role="alert"`). `Field` shows it under its input; a screen without a field (a failed request, a link that does not work) uses it alone |
+| `SuccessLine` | The counterpart of `ErrorLine`: "Opgeslagen." in the success text colour, announced politely (`role="status"`) |
+| `PageShell` | The trainer web's page: 24px at the sides, 20px above, 40px below, a column of at most 1100px with 16px between its blocks (the prototype's `.w-page`). The heading and the cards go in it |
 | `Toast` | `surface="trainer"` (default): the inverse of the page, radius 10, bottom right; a `warning` is a red fill with white text and icon. `surface="client"`: a glass pill above the tab bar, the warning icon in the danger colour. A `warning` is announced at once (`role="alert"`) |
 | `ChevronRightIcon`, `SearchIcon`, `PersonPlusIcon`, `WarningIcon` | Decorative line icons (`aria-hidden`, drawn in the text colour); the control or message beside them carries the name |
 | `ClientLayout` | The client web's layout: the client theme, the touch density, a sticky glass header and a column |
+| `PortalDensity` | Wraps a layout that sets `data-density` and renders the host the dialogs and menus opened inside it portal into, with the same density ([densities](#densities)) |
 
 Utilities from the stylesheet: `rounded-card` (the `radius.card` token), `glass` (the glass tokens, blurred; a solid fill with reduced transparency) and `numeric` (below).
 
@@ -71,6 +74,8 @@ A page picks its density with a `data-density` attribute on a layout element, no
 ```
 
 `apps/web`'s root layouts (the app's and the public website's) put `touch` on `<body>`, so every page is touch unless a layout nested inside it, such as Trainer Web's, sets `compact`; the nearest layout wins. The density sets the body text size and line height: the size text inherits, and `text-sm`, the body size shadcn's components use (`Card`, `Button`, `Label`). Other size classes keep their size. It also sets the minimum height of the kit's controls; icon-only buttons get the same minimum width. It is a minimum, so a control can still be made larger with a class. The values come from the token CSS variables, so a token change applies without editing the kit. A new control that should follow the density gets its `data-slot` added to the density rule in `globals.css`.
+
+Dialogs and menus (`Dialog`, `AlertDialog`, `DropdownMenu`) render in a portal, which Radix puts on `<body>`: there the density is the root layout's `touch`, not the one of the layout that opened them. A layout with its own density wraps its content in `PortalDensity` (`<PortalDensity density="compact">`); it renders a host element with that `data-density` next to the children, and the kit's portals render in it (`usePortalContainer`). The trainer web's workspace layout does (E020, #1258). Outside a `PortalDensity` (the public and client pages) a portal stays on `<body>` at the touch density. A new component with a portal passes `container={usePortalContainer()}`; a test fails when one doesn't.
 
 ## Fonts
 
@@ -90,7 +95,7 @@ Commit the new file in `src/components/` as the CLI wrote it. `pnpm dlx shadcn@l
 
 ## Divergences from upstream
 
-The components are the CLI's output, except for four edits (the `Dialog`, `NativeSelect`, `DropdownMenu` and `Button` rows below; `Button` has two). Apart from those, the kit differs from a fresh `shadcn init` only in its stylesheet:
+The components are the CLI's output, except for the edits in the `Dialog`, `NativeSelect`, `DropdownMenu` and `Button` rows below (`Button` has two; `Dialog`, `AlertDialog` and `DropdownMenu` also take the portal container). Apart from those, the kit differs from a fresh `shadcn init` only in its stylesheet:
 
 | What | Why |
 |---|---|
@@ -106,6 +111,7 @@ The components are the CLI's output, except for four edits (the `Dialog`, `Nativ
 | `DropdownMenu` is a reduced version of upstream's: the menu, trigger, content, group, item, radio group, radio item and separator only (the rest joins when a feature needs it), and the radio item's check is an inline SVG instead of upstream's `CheckIcon` from `lucide-react`. **`dropdown-menu.tsx` is written by hand** | The kit has no icon library, and only the parts the scope switcher (F012) uses are in it |
 | The `default` `Button` darkens its fill on hover (`hover:bg-primary-pressed`, the token `color.action.primary.bg-pressed`), not upstream's `hover:bg-primary/80`. **`button.tsx` is edited** | Fading the accent to 80% makes white text on it about 3.7:1, below 4.5:1 (an axe scan right after a click, with the pointer still on the button, fails). A `brightness` filter would darken the white label too (about 4.46:1), so only the fill changes |
 | The `destructive` `Button` tints are 10% and hover 15% (dark 15% and 20%), not upstream's 10/20 and 20/30. **`button.tsx` is edited** | The destructive text on its own tint must keep 4.5:1 on every web background, hover included; a test in `packages/design-tokens` reads these numbers |
+| The portals of `Dialog`, `AlertDialog` and `DropdownMenu` pass `container={usePortalContainer()}` (`kit/portal-density.tsx`). **`dialog.tsx`, `alert-dialog.tsx` and `dropdown-menu.tsx` are edited** | Radix portals to `<body>`, at the touch density of the root layout; inside a `PortalDensity` they render in its host, at the density of the layout that opened them ([densities](#densities)) |
 | Density rules for `[data-density]` (`compact`, `touch`) in Tailwind's `base` layer, which also set `--text-sm` inside the layout | shadcn has one size scale; the densities set body text and a minimum control size per layout from the tokens, without editing the components ([densities](#densities)) |
 | No `src/lib/utils.ts` | The `radix-nova` components import `cn` from the `cn` package directly |
 
@@ -122,7 +128,7 @@ It leaves alone, on purpose:
 
 | What | Why |
 |---|---|
-| `src/components/` | Vendored shadcn components, edited only where the divergences above say so (`Dialog`, `NativeSelect`, `DropdownMenu`, `Button`). Upstream's secondary `Button` uses `hover:bg-[color-mix(…)]`. The directory is where `components.json`'s `ui` alias resolves; a test keeps the two in step |
+| `src/components/` | Vendored shadcn components, edited only where the divergences above say so (`Dialog`, `AlertDialog`, `NativeSelect`, `DropdownMenu`, `Button`). Upstream's secondary `Button` uses `hover:bg-[color-mix(…)]`. The directory is where `components.json`'s `ui` alias resolves; a test keeps the two in step |
 | Tests (`*.test.*`, `*.spec.*`, and a package's top-level `test/` and `e2e/`) | They assert on colours, such as a token's computed `rgb()`, rather than paint with them |
 | `node_modules/`, hidden directories (`.next/`), and a package's top-level build output (`dist/`, `out/`, …) | Not source |
 

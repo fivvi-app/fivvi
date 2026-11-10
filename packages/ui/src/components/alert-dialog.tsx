@@ -5,6 +5,7 @@ import { cn } from "cn"
 import { AlertDialog as AlertDialogPrimitive } from "radix-ui"
 
 import { Button } from "@fivvi/ui/components/button"
+import { usePortalContainer } from "@fivvi/ui/kit/portal-density"
 
 function AlertDialog({
   ...props
@@ -24,7 +25,11 @@ function AlertDialogPortal({
   ...props
 }: React.ComponentProps<typeof AlertDialogPrimitive.Portal>) {
   return (
-    <AlertDialogPrimitive.Portal data-slot="alert-dialog-portal" {...props} />
+    <AlertDialogPrimitive.Portal
+      data-slot="alert-dialog-portal"
+      container={usePortalContainer()}
+      {...props}
+    />
   )
 }
 

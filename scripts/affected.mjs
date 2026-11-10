@@ -56,12 +56,27 @@ const MARKDOWN_READ_BY_TESTS = [
 // depends on it. compose.yaml is the Postgres image the integration and e2e tests run against (CI's service containers
 // use the same one, which a root test checks): a new version must run them again, not reuse a cached result. It also
 // affects the root tests, which compare the two.
-const INPUT_OF_PACKAGE = new Map([['compose.yaml', '@fivvi/database']]);
+const INPUT_OF_PACKAGE = new Map([
+  ['compose.yaml', '@fivvi/database'],
+  // The database integration test of the restore drill (E016) runs the script, with the library it sources.
+  // packages/database/turbo.json lists both as inputs of that test, for the cache.
+  ['scripts/restore-drill.sh', '@fivvi/database'],
+  ['scripts/_lib.sh', '@fivvi/database'],
+]);
 
-// Markdown that is the input of a package, not documentation: the web app renders the privacy policy and the terms when
-// it is built (F064, AC10), so an open value in one must fail the web build and tests here, not on Railway after the
-// merge. apps/web/turbo.json lists them as inputs of its build and tests, for the cache.
-const MARKDOWN_INPUT_OF_PACKAGE = [[/^docs\/legal\/(privacy-policy|terms)\.(nl|en)\.md$/, WEB]];
+// Files of docs/ that are the input of a package's tests or build, not documentation: the web app renders the privacy
+// policy and the terms when it is built (F064, AC10), so an open value in one must fail the web build and tests here,
+// not on Railway after the merge. Its tests read every text of docs/legal (the sub-processors list, F064 AC11, the
+// processor agreement, E006, and a scan of the others for Brevo), the registry of features (the claims of the site) and
+// the SVG files of docs/design/brand, the archive apart (the icons, the Open Graph image, the day dial) (#697). To add
+// one: a pattern here, and the same file in the "inputs" of the task in apps/web/turbo.json (the cache).
+// scripts/test/affected.test.mjs scans apps/web for the files of docs/ its code reads and fails when one is missing
+// here.
+const DOCS_INPUT_OF_PACKAGE = [
+  [/^docs\/legal\/[^/]+\.md$/, WEB],
+  [/^docs\/product\/FEATURES\.md$/, WEB],
+  [/^docs\/design\/brand\/(?!archive\/).+\.svg$/, WEB],
+];
 
 const isMarkdown = (path) => /\.md$/.test(path);
 
@@ -174,13 +189,16 @@ export function plan({ paths, packages, force = false }) {
   let root = false;
   let code = false;
   for (const path of changed) {
-    const input = MARKDOWN_INPUT_OF_PACKAGE.find(([pattern]) => pattern.test(path));
+    const markdownReadByTests =
+      isMarkdown(path) && MARKDOWN_READ_BY_TESTS.some((pattern) => pattern.test(path));
+    const input = DOCS_INPUT_OF_PACKAGE.find(([pattern]) => pattern.test(path));
     if (input && byName.has(input[1])) {
       code = true;
       touched.add(input[1]);
-      continue;
+      // The registry is also read by the root tests: it goes on to the check below.
+      if (!markdownReadByTests) continue;
     }
-    if (isMarkdown(path) && !MARKDOWN_READ_BY_TESTS.some((pattern) => pattern.test(path))) continue;
+    if (isMarkdown(path) && !markdownReadByTests) continue;
     code = true;
     const pkg = !isMarkdown(path) ? packageOf(path, packages) : undefined;
     if (pkg) touched.add(pkg.name);

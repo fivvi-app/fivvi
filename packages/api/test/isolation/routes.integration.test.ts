@@ -139,6 +139,7 @@ describe('E011 account routes', () => {
       email: `${s.sam.id}@example.com`,
       name: null,
       preferredLocale: null,
+      bookingEmails: true,
       // On the harness's allowlist (`@example.com`), so allowed although Sam has two workspaces (F012).
       canCreateWorkspace: true,
       workspaces: expect.arrayContaining(listed),
