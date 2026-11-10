@@ -322,18 +322,22 @@ test.describe('F050 booking emails switch', () => {
     expect((await stored(page)).name).toBe('Sarah');
   });
 
-  test('a failed save puts the box back and says so; the name and the other fields are unaffected', async ({
+  test('a failed save puts the box back and says so; the name, Ik train hier ook and the email address are unaffected', async ({
     page,
     context,
     messages: copy,
   }) => {
     const sarah = newAddress('sarah');
     await createAccount(sarah, undefined, 'Sarah');
-    await createGymWithTrainer(sarah, GYM, 'trainer');
+    await createGymWithTrainer(sarah, GYM, 'owner');
     await signInWithSession(context, sarah);
     await page.goto('/me/profile');
     const box = page.getByRole('checkbox', { name: copy.myProfile.bookingEmailsLabel });
+    const trainsHere = page.getByRole('switch', {
+      name: copy.profile.trainsHere.label.replace('{workspace}', GYM),
+    });
     await expect(box).toBeChecked();
+    await expect(trainsHere).toBeChecked();
     await page.route('**/api/v1/me', (route) =>
       route.request().method() === 'PATCH' ? route.abort() : route.continue(),
     );
@@ -345,8 +349,12 @@ test.describe('F050 booking emails switch', () => {
     );
     await expect(box).toBeChecked();
     await expect(page.getByLabel(copy.myProfile.nameLabel)).toHaveValue('Sarah');
+    await expect(trainsHere).toBeChecked();
+    await expect(trainsHere).toBeEnabled();
     await expect(page.getByText(sarah)).toBeVisible();
     await page.unroute('**/api/v1/me');
-    expect((await stored(page)).bookingEmails).toBe(true);
+    const after = await stored(page);
+    expect(after.bookingEmails).toBe(true);
+    expect(after.name).toBe('Sarah');
   });
 });
