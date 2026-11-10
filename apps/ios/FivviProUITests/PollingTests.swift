@@ -275,3 +275,74 @@ final class PollingTests: XCTestCase {
         )
     }
 }
+
+// `Polling.settled` on a slow runner and with nothing to read yet (#679).
+extension PollingTests {
+    /// On a slow runner one read is slow: XCTest waits for the app to be idle before every snapshot, and a read of the
+    /// tab bar took 12 s (#679). The deadline is for a value that keeps moving; it does not cut short a value that
+    /// stood still at every read it did.
+    func test_E008_aStillValueSettlesEvenWhenEveryReadTakesLongerThanTheDeadline() {
+        let clock = Clock()
+        var reads = 0
+
+        let settled = Polling.settled(
+            timeout: 10, interval: 0.2, now: { clock.now }, wait: clock.wait,
+            read: {
+                reads += 1
+                clock.wait(12)
+                return "still"
+            }
+        )
+
+        XCTAssertTrue(settled)
+        XCTAssertEqual(reads, 3)
+    }
+
+    func test_E008_aSlowValueThatMovesAtTheSecondReadFailsAtTheDeadline() {
+        let clock = Clock()
+        var reads = 0
+
+        let settled = Polling.settled(
+            timeout: 10, interval: 0.2, now: { clock.now }, wait: clock.wait,
+            read: {
+                reads += 1
+                clock.wait(12)
+                return reads
+            }
+        )
+
+        XCTAssertFalse(settled)
+        XCTAssertEqual(reads, 2, "one read says nothing about movement, the second does")
+    }
+
+    /// A read that returns nil found nothing to read yet (the bar is not there): it is not a value, so three of them
+    /// in a row are not a settled value.
+    func test_E008_readsThatFindNothingAreNotASettledValue() {
+        let clock = Clock()
+        let values: [String?] = [nil, nil, nil, "bar", "bar", "bar"]
+        var reads = 0
+
+        let settled = Polling.settled(
+            timeout: 30, interval: 0.2, now: { clock.now }, wait: clock.wait,
+            read: {
+                defer { reads += 1 }
+                return values[reads]
+            }
+        )
+
+        XCTAssertTrue(settled)
+        XCTAssertEqual(reads, 6, "it settled on the bar, not on the three empty reads before it")
+    }
+
+    func test_E008_aValueThatIsNeverFoundFailsAtTheDeadline() {
+        let clock = Clock()
+
+        let settled = Polling.settled(
+            timeout: 5, interval: 0.2, now: { clock.now }, wait: clock.wait,
+            read: { () -> String? in nil }
+        )
+
+        XCTAssertFalse(settled)
+        XCTAssertGreaterThanOrEqual(clock.now.timeIntervalSince1970, 5)
+    }
+}

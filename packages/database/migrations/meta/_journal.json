@@ -173,8 +173,15 @@
     {
       "idx": 24,
       "version": "7",
-      "when": 1794303263912,
-      "tag": "0024_auth_users_booking_emails",
+      "when": 1793915565381,
+      "tag": "0024_sessions_updated_by",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1794321839961,
+      "tag": "0025_auth_users_booking_emails",
       "breakpoints": true
     }
   ]

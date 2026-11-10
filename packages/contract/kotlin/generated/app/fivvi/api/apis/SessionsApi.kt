@@ -12,7 +12,11 @@ import app.fivvi.api.models.NotFound
 import app.fivvi.api.models.NotSignedIn
 import app.fivvi.api.models.PlanPrivateSessionRequest
 import app.fivvi.api.models.PlannedPrivateSession
+import app.fivvi.api.models.ReschedulePrivateSessionRequest
+import app.fivvi.api.models.ReschedulePrivateSessionResult
 import app.fivvi.api.models.Session
+import app.fivvi.api.models.SessionConflict
+import app.fivvi.api.models.UpcomingSessions
 import app.fivvi.api.models.ValidationError
 
 interface SessionsApi {
@@ -53,5 +57,45 @@ interface SessionsApi {
      */
     @GET("v1/workspaces/{workspaceId}/sessions/{sessionId}")
     suspend fun getSession(@Path("workspaceId") workspaceId: java.util.UUID, @Path("sessionId") sessionId: java.util.UUID): Response<Session>
+
+    /**
+     * GET v1/workspaces/{workspaceId}/clients/{clientId}/upcoming-sessions
+     * A client’s upcoming sessions
+     * The next 5 scheduled private sessions of the client, soonest first (instants in UTC plus the workspace’s time zone, and the trainer), for any team member who may see the workspace’s clients. A session that has started, a cancelled one and one the client’s place in was cancelled are left out. A client who is not in the workspace answers &#x60;404&#x60;.
+     * Responses:
+     *  - 200: The upcoming sessions, possibly none.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param clientId The client ID.
+     * @return [UpcomingSessions]
+     */
+    @GET("v1/workspaces/{workspaceId}/clients/{clientId}/upcoming-sessions")
+    suspend fun listClientUpcomingSessions(@Path("workspaceId") workspaceId: java.util.UUID, @Path("clientId") clientId: java.util.UUID): Response<UpcomingSessions>
+
+    /**
+     * POST v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule
+     * Reschedule a private session
+     * Moves a private session to a new local date and start, with a length (the same rules as planning, daylight saving time included); the location stays. The Owner may move any session, a Trainer only their own (&#x60;403&#x60; otherwise). &#x60;version&#x60; is the one the person saw: if the session has been changed since, nothing is stored and the answer is &#x60;409&#x60; with the session as it is now and who changed it last. A cancelled session answers &#x60;409&#x60; too; a session that is not private or not in the workspace answers &#x60;404&#x60;. When &#x60;notify&#x60; is on and the new time is not in the past, EM-04 goes to the client after the change is committed, in the client’s email language, else the workspace’s default.
+     * Responses:
+     *  - 200: The session was moved.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 409: The session was changed after the `version` sent, or it is cancelled. Nothing was stored.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param sessionId The session ID.
+     * @param reschedulePrivateSessionRequest 
+     * @return [ReschedulePrivateSessionResult]
+     */
+    @POST("v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule")
+    suspend fun reschedulePrivateSession(@Path("workspaceId") workspaceId: java.util.UUID, @Path("sessionId") sessionId: java.util.UUID, @Body reschedulePrivateSessionRequest: ReschedulePrivateSessionRequest): Response<ReschedulePrivateSessionResult>
 
 }

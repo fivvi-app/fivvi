@@ -1,5 +1,5 @@
 {
-  "id": "434d06c5-d430-4db1-8fcf-fdfdc4fca2b4",
+  "id": "6de90341-26e8-4ee1-bc13-d77240104c67",
   "prevId": "f298212e-1703-4733-b277-008798c08ee9",
   "version": "7",
   "dialect": "postgresql",
@@ -300,13 +300,6 @@
           "type": "text",
           "primaryKey": false,
           "notNull": false
-        },
-        "booking_emails": {
-          "name": "booking_emails",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": true
         },
         "created_at": {
           "name": "created_at",
@@ -1206,6 +1199,12 @@
           "primaryKey": false,
           "notNull": false
         },
+        "updated_by_team_member_id": {
+          "name": "updated_by_team_member_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
         "created_at": {
           "name": "created_at",
           "type": "timestamp with time zone",
@@ -1364,6 +1363,21 @@
           "columnsFrom": [
             "organization_id",
             "created_by_team_member_id"
+          ],
+          "columnsTo": [
+            "organization_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "sessions_updated_by_fk": {
+          "name": "sessions_updated_by_fk",
+          "tableFrom": "sessions",
+          "tableTo": "team_members",
+          "columnsFrom": [
+            "organization_id",
+            "updated_by_team_member_id"
           ],
           "columnsTo": [
             "organization_id",

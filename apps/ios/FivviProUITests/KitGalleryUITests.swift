@@ -86,13 +86,18 @@ final class KitGalleryUITests: XCTestCase {
             "the navigation bar shows the title once the large title has scrolled away"
         )
 
-        // And back up, until it is full again.
+        // And back up, until it is full again and stays full: the bar is full at one read and not at the next while
+        // it grows back (#679: a read right after the wait said full, the one after it said not), so the wait is for
+        // three full reads in a row, and what it saw is what the test asserts, not a read made after it.
         var swipes = 0
-        while !Polling.until(timeout: 2, condition: { bar.isFull }), swipes < 10 {
+        var grown = false
+        while !grown {
+            grown = Polling.settled(timeout: 2) { bar.isFull ? true : nil }
+            guard !grown, swipes < 10 else { break }
             screen.scroll.swipeDown(velocity: .fast)
             swipes += 1
         }
-        XCTAssertTrue(bar.isFull, "the tab bar grows back when scrolling up")
+        XCTAssertTrue(grown, "the tab bar grows back when scrolling up")
     }
 
     /// Scrolls the gallery down with each gesture in turn, a few times each, until `isShrunk` holds; returns the gesture
@@ -140,15 +145,20 @@ final class KitGalleryUITests: XCTestCase {
         try assertTheRoundControlsAreSolidAndTakeATapNearTheRim(screen)
 
         screen.scrollBack(toLowerHalf: screen.invalidField)
-        screen.invalidField.tap()
+        screen.invalidField.focus()
         screen.invalidField.typeText("Anna")
         XCTAssertEqual(screen.invalidField.value as? String, "Anna", "the error doesn't replace the typed text")
 
         // The toast: its text shows, and it goes away by itself.
         screen.scroll(to: screen.stackSecond)
         screen.stackSecond.tap()
-        XCTAssertTrue(screen.toastText.waitUntilExists(timeout: timeout))
-        XCTAssertEqual(screen.toastText.label, catalog["myProfile.errors.noConnection"])
+        // One read of the toast, not "it exists" and then its label: on a slow runner a read takes seconds, and the
+        // toast (6 s) can be gone between the two (#679).
+        let noConnection = catalog["myProfile.errors.noConnection"]
+        XCTAssertTrue(
+            Polling.until(timeout: timeout, condition: { screen.toastText.labelIfPresent == noConnection }),
+            "the toast shows \(noConnection), it shows \(screen.toastText.labelIfPresent ?? "nothing")"
+        )
         XCTAssertTrue(
             Polling.until(timeout: 15, condition: { !screen.toastText.exists }), "the toast goes away by itself"
         )
