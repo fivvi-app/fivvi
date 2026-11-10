@@ -5,6 +5,7 @@ import {
   createDatabase,
   createTenantScopes,
   type DatabaseClient,
+  locations,
   type SignedInAccount,
   sessionParticipants,
   type TenantScopes,
@@ -64,7 +65,9 @@ interface DayBody {
   timeZone: string;
   workspaceCount: number;
   items: Item[];
-  summary: { count: number; firstStartsAt?: string; lastEndsAt?: string };
+  summary: { count: number; done: number; firstStartsAt?: string; lastEndsAt?: string };
+  freeGap?: { startsAt: string; endsAt: string };
+  placesAhead?: { name: string; address?: unknown }[];
   next?: { sessionId: string; state: string; startsInMinutes: number };
   tomorrow?: { date: string; count: number; firstStartsAt: string };
   nextSessionDate?: string;
@@ -453,6 +456,86 @@ describe('F013 the personal day and sessions through the API', () => {
       expect(evening.items).toHaveLength(4);
     });
 
+    it('TD-01: done, free gap and places ahead across workspaces', async () => {
+      const w = await world();
+      const dayAt = async (now: string) =>
+        (await (await day('2026-09-22', w.sarah, api({ now }))).json()) as DayBody;
+
+      // 08:35: nothing done. Anna 09:00–10:00 (Sarah Personal Training), Mark 11:00–12:00 and
+      // Kracht 15:00–16:00 (John's Gym): the first gap is 10:00–11:00, in UTC 08:00–09:00. Tom's
+      // 10:00, John's 12:00 and Mike's 13:00 sessions are nobody's of Sarah and fill nothing.
+      const morning = await dayAt('2026-09-22T08:35');
+      expect(morning.summary.done).toBe(0);
+      expect(morning.freeGap).toEqual({
+        startsAt: '2026-09-22T08:00:00.000Z',
+        endsAt: '2026-09-22T09:00:00.000Z',
+      });
+      expect(morning.placesAhead?.map((place) => place.name)).toEqual([w.own.marker, w.gym.marker]);
+      expect(morning.placesAhead?.[0]).toMatchObject({ name: w.own.marker });
+
+      // 12:30: Anna and Mark are done (the cancelled 18:00 never is); 12:30–15:00 is free, the
+      // gym is the only place left, listed once for the class.
+      const noon = await dayAt('2026-09-22T12:30');
+      expect(noon.summary.done).toBe(2);
+      expect(noon.freeGap).toEqual({
+        startsAt: '2026-09-22T10:30:00.000Z',
+        endsAt: '2026-09-22T13:00:00.000Z',
+      });
+      expect(noon.placesAhead?.map((place) => place.name)).toEqual([w.gym.marker]);
+
+      // 16:30: only the cancelled one is left: no gap, no place, three of four sessions have
+      // happened that take place.
+      const evening = await dayAt('2026-09-22T16:30');
+      expect(evening.summary.done).toBe(3);
+      expect(evening).not.toHaveProperty('freeGap');
+      expect(evening.placesAhead).toEqual([]);
+    });
+
+    it('TD-01: a place says its name and, when it has one, its address', async () => {
+      const w = await world();
+      await admin.db
+        .update(locations)
+        .set({
+          postcode: '1012 AB',
+          houseNumber: '12',
+          street: 'Damstraat',
+          city: 'Amsterdam',
+        })
+        .where(eq(locations.organizationId, w.gym.id));
+
+      const body = (await (await day('2026-09-22', w.sarah)).json()) as DayBody;
+
+      expect(body.placesAhead?.[0]).toEqual({ name: w.own.marker });
+      expect(body.placesAhead?.[1]).toEqual({
+        name: w.gym.marker,
+        address: {
+          postcode: '1012 AB',
+          houseNumber: '12',
+          houseNumberAddition: null,
+          street: 'Damstraat',
+          city: 'Amsterdam',
+        },
+      });
+    });
+
+    it('TD-01: another date has no free gap and no places ahead, and counts what was done by now', async () => {
+      const w = await world();
+
+      const past = (await (
+        await day('2026-09-22', w.sarah, api({ now: '2026-09-23T08:00' }))
+      ).json()) as DayBody;
+      const coming = (await (
+        await day('2026-09-22', w.sarah, api({ now: '2026-09-21T20:00' }))
+      ).json()) as DayBody;
+
+      expect(past.summary.done).toBe(3);
+      expect(coming.summary.done).toBe(0);
+      for (const other of [past, coming]) {
+        expect(other).not.toHaveProperty('freeGap');
+        expect(other).not.toHaveProperty('placesAhead');
+      }
+    });
+
     it('AC3: only Sarah’s sessions from her two workspaces; never Tom’s, John’s or Mike’s', async () => {
       const w = await world();
 
@@ -788,8 +871,10 @@ describe('F013 the personal day and sessions through the API', () => {
           items: [],
           workspaceCount: 0,
           hasSessions: false,
-          summary: { count: 0 },
+          summary: { count: 0, done: 0 },
         });
+        expect(await (await day('2026-09-22', who)).json()).not.toHaveProperty('freeGap');
+        expect(((await (await day('2026-09-22', who)).json()) as DayBody).placesAhead).toEqual([]);
       }
     });
 
@@ -841,7 +926,14 @@ describe('F013 the personal day and sessions through the API', () => {
       expect(list.status).toBe(200);
       expect(((await list.json()) as RangeBody).items).toEqual([]);
       expect(today.status).toBe(200);
-      expect(await today.text()).not.toContain(session.id);
+      const todayText = await today.text();
+      expect(todayText).not.toContain(session.id);
+      // The empty answer: nothing done, no gap and no place.
+      expect(JSON.parse(todayText)).toMatchObject({
+        summary: { count: 0, done: 0 },
+        placesAhead: [],
+      });
+      expect(JSON.parse(todayText)).not.toHaveProperty('freeGap');
       expect([anonymousList.status, anonymousDay.status]).toEqual([401, 401]);
       expect(await anonymousList.json()).toEqual({ code: 'not_signed_in' });
     });

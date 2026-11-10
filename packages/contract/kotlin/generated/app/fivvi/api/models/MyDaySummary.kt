@@ -29,9 +29,10 @@ import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * *4 sessies · 09:00–19:00*.
+ * *4 sessies · 09:00–19:00*, and how many of them are done.
  *
  * @param count The items of the day, cancelled ones counted.
+ * @param done How many of the day’s items took place and have ended (`endsAt` at or before now): *2 klaar*. A cancelled item is never done; 0 on a day still to come.
  * @param firstStartsAt The start of the first item; left out for an empty day.
  * @param lastEndsAt The end of the last item; left out for an empty day.
  */
@@ -42,6 +43,10 @@ data class MyDaySummary (
     /* The items of the day, cancelled ones counted. */
     @SerialName(value = "count")
     val count: kotlin.Int,
+
+    /* How many of the day’s items took place and have ended (`endsAt` at or before now): *2 klaar*. A cancelled item is never done; 0 on a day still to come. */
+    @SerialName(value = "done")
+    val done: kotlin.Int,
 
     /* The start of the first item; left out for an empty day. */
     @Contextual @SerialName(value = "firstStartsAt")

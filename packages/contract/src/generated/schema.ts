@@ -137,7 +137,7 @@ export interface paths {
         };
         /**
          * My day: the sessions of one day across my workspaces
-         * @description Everything the signed-in account is the current trainer of on one day, in all the workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary, the tomorrow line, the date of the next session when the day is empty and the number of workspaces. Each workspace is read on its own; the answer is merged here. An account that trains in no workspace (an Owner who does not train, a client account) gets an empty answer, not `403`. The day is a date in Dutch time; times are UTC instants, to be shown in Dutch time.
+         * @description Everything the signed-in account is the current trainer of on one day, in all the workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary (with the number done), for today the next free gap and the places still ahead, the tomorrow line, the date of the next session when the day is empty and the number of workspaces. Each workspace is read on its own; the answer is merged here. An account that trains in no workspace (an Owner who does not train, a client account) gets an empty answer, not `403`. The day is a date in Dutch time; times are UTC instants, to be shown in Dutch time.
          */
         get: operations["getMyDay"];
         put?: never;
@@ -954,6 +954,9 @@ export interface components {
             items: components["schemas"]["PersonalSession"][];
             summary: components["schemas"]["MyDaySummary"];
             next?: components["schemas"]["MyDayNext"];
+            freeGap?: components["schemas"]["MyDayFreeGap"];
+            /** @description *Route vandaag*: the places of the sessions that take place and have not ended, in time order, the same place twice in a row listed once. A session’s place is its location; a class takes place at its workspace’s one location. Only for today (an empty list when nothing is left); left out for any other date. The apps show the route only when it holds 2 or more places. */
+            placesAhead?: components["schemas"]["MyDayPlace"][];
             tomorrow?: components["schemas"]["MyDayTomorrow"];
             /** @description The date of the next session that takes place after this day, `YYYY-MM-DD`. Only given when the day has no items; left out when there is none. */
             nextSessionDate?: string;
@@ -1042,10 +1045,12 @@ export interface components {
             street: string;
             city: string;
         } | null;
-        /** @description *4 sessies · 09:00–19:00*. */
+        /** @description *4 sessies · 09:00–19:00*, and how many of them are done. */
         MyDaySummary: {
             /** @description The items of the day, cancelled ones counted. */
             count: number;
+            /** @description How many of the day’s items took place and have ended (`endsAt` at or before now): *2 klaar*. A cancelled item is never done; 0 on a day still to come. */
+            done: number;
             /**
              * Format: date-time
              * @description The start of the first item; left out for an empty day.
@@ -1071,6 +1076,25 @@ export interface components {
             state: "upcoming" | "in_progress";
             /** @description Minutes to the start, rounded up; 0 while it runs. */
             startsInMinutes: number;
+        };
+        /** @description The next free gap of the *Mijn dag* card (*Plannen*): the first stretch of 30 minutes or more without a session that takes place, from now to the end of the day’s last such session. A cancelled session leaves its time free. Only for today; left out when there is none (also after the last session) and for any other date. */
+        MyDayFreeGap: {
+            /**
+             * Format: date-time
+             * @description The start of the gap, a UTC instant.
+             */
+            startsAt: string;
+            /**
+             * Format: date-time
+             * @description The end of the gap, a UTC instant.
+             */
+            endsAt: string;
+        };
+        /** @description A place on the route of the day: a location. */
+        MyDayPlace: {
+            /** @description The location’s name. */
+            name: string;
+            address?: components["schemas"]["LocationAddress"] & unknown;
         };
         /** @description The footer *Morgen: 3 sessies, eerste om 07:00*. Cancelled sessions are not counted; left out when the next day has none. */
         MyDayTomorrow: {
