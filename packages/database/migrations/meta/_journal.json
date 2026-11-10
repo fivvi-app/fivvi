@@ -183,6 +183,13 @@
       "when": 1794321839961,
       "tag": "0025_auth_users_booking_emails",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1794331348182,
+      "tag": "0026_payment_ledger",
+      "breakpoints": true
     }
   ]
 }

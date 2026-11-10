@@ -29,6 +29,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "catalog:",
+    "@fivvi/domain": "workspace:*",
     "@fivvi/testing": "workspace:*",
     "@types/node": "catalog:",
     "@types/pg": "catalog:",

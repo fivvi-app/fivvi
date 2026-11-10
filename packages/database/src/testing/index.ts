@@ -3,6 +3,8 @@ export { readTenantContext, type StoredContext, selectEverythingInScope } from '
 export {
   addClient,
   addGroupClass,
+  addPayment,
+  addPaymentCustomer,
   addSession,
   addTeamRole,
   addTrainerInvitation,
