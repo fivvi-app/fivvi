@@ -5,17 +5,19 @@ import type { Schemas } from '@fivvi/contract';
 import { Button } from '@fivvi/ui/components/button';
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@fivvi/ui/components/card';
-import { Input } from '@fivvi/ui/components/input';
-import { Label } from '@fivvi/ui/components/label';
+import { ErrorLine } from '@fivvi/ui/kit/error-line';
+import { Field } from '@fivvi/ui/kit/field';
+import { SuccessLine } from '@fivvi/ui/kit/success-line';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
+import { SettingsPage } from '../settings-page';
 import { clearLookupFilled, type FilledAddress, fillFromLookup } from './fill-from-lookup';
 import {
   type AddressQuery,
@@ -186,99 +188,88 @@ export function LocationForm({
   const incomplete = (['postcode', 'houseNumber', 'street', 'city'] as const).some(
     (field) => refusals[field] === 'required',
   );
+  /**
+   * The props of the kit's field for one input: its refusal worded under it, or red alone with the
+   * address note below pointing at it when the field is only missing.
+   */
   const fieldProps = (field: LocationField, id: string) => {
     const key = errorKey(field, refusals);
     const unfilled = refusals[field] === 'required' && field !== 'name';
-    const describedBy = key ? `${id}-error` : unfilled ? 'location-address-error' : undefined;
     return {
       id,
-      'aria-invalid': key || refusals[field] === 'required' ? true : undefined,
-      'aria-describedby': describedBy,
+      error: key ? t(`errors.${key}`) : undefined,
+      invalid: key || refusals[field] === 'required' ? true : undefined,
+      'aria-describedby': !key && unfilled ? 'location-address-error' : undefined,
     } as const;
-  };
-  const fieldError = (field: LocationField, id: string) => {
-    const key = errorKey(field, refusals);
-    return key ? (
-      <p id={`${id}-error`} role="alert" className="text-status-danger-fg">
-        {t(`errors.${key}`)}
-      </p>
-    ) : null;
   };
   const busy = lookup === 'busy';
   const filledNote = place.streetFilled || place.cityFilled;
   const failureMessage = failure ? t(`errors.${failure}`) : null;
 
   return (
-    <main className="flex flex-1 items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <SettingsPage>
+      <Card>
         <form noValidate onSubmit={submit} className="grid gap-(--card-spacing)">
           <CardHeader>
             <CardTitle>
-              <h1>{t('title')}</h1>
+              <h2 className="text-[15px] font-semibold">{t('title')}</h2>
             </CardTitle>
             <CardDescription>{t('help')}</CardDescription>
+            <CardAction>
+              <Button type="submit" disabled={!ready || pending}>
+                {t('save')}
+              </Button>
+            </CardAction>
           </CardHeader>
           <CardContent className="grid gap-4">
-            <div className="grid gap-2">
-              <Label htmlFor="location-name">{t('nameLabel')}</Label>
-              <Input
-                {...fieldProps('name', 'location-name')}
-                name="name"
-                value={values.name}
-                autoComplete="off"
-                onChange={(event) => change('name', event.target.value)}
-              />
-              {fieldError('name', 'location-name')}
-            </div>
+            <Field
+              {...fieldProps('name', 'location-name')}
+              label={t('nameLabel')}
+              name="name"
+              value={values.name}
+              autoComplete="off"
+              onChange={(event) => change('name', event.target.value)}
+            />
             <dl className="grid gap-1 text-sm">
               <dt className="text-muted-foreground">{t('typeLabel')}</dt>
               <dd>{t(`types.${TYPE_KEY[type]}`)}</dd>
             </dl>
             <fieldset className="grid gap-4">
-              <legend className="mb-2 text-sm font-medium">{t('addressLegend')}</legend>
-              <div className="grid gap-4 sm:grid-cols-3">
-                <div className="grid content-start gap-2">
-                  <Label htmlFor="location-postcode">{t('postcodeLabel')}</Label>
-                  <Input
-                    {...fieldProps('postcode', 'location-postcode')}
-                    name="postcode"
-                    value={values.postcode}
-                    autoComplete="postal-code"
-                    onChange={(event) => change('postcode', event.target.value)}
-                    onBlur={() => schedule(values, 0)}
-                  />
-                  {fieldError('postcode', 'location-postcode')}
-                </div>
-                <div className="grid content-start gap-2">
-                  <Label htmlFor="location-house-number">{t('houseNumberLabel')}</Label>
-                  <Input
-                    {...fieldProps('houseNumber', 'location-house-number')}
-                    name="houseNumber"
-                    value={values.houseNumber}
-                    inputMode="numeric"
-                    autoComplete="off"
-                    onChange={(event) => change('houseNumber', event.target.value)}
-                    onBlur={() => schedule(values, 0)}
-                  />
-                  {fieldError('houseNumber', 'location-house-number')}
-                </div>
-                <div className="grid content-start gap-2">
-                  <Label htmlFor="location-addition">{t('additionLabel')}</Label>
-                  <Input
-                    {...fieldProps('houseNumberAddition', 'location-addition')}
-                    name="houseNumberAddition"
-                    value={values.houseNumberAddition}
-                    autoComplete="off"
-                    onChange={(event) => change('houseNumberAddition', event.target.value)}
-                    onBlur={() => schedule(values, 0)}
-                  />
-                  {fieldError('houseNumberAddition', 'location-addition')}
-                </div>
+              <legend className="mb-2 text-[13px] font-semibold">{t('addressLegend')}</legend>
+              <div className="grid items-start gap-4 sm:grid-cols-3">
+                <Field
+                  {...fieldProps('postcode', 'location-postcode')}
+                  label={t('postcodeLabel')}
+                  name="postcode"
+                  value={values.postcode}
+                  autoComplete="postal-code"
+                  onChange={(event) => change('postcode', event.target.value)}
+                  onBlur={() => schedule(values, 0)}
+                />
+                <Field
+                  {...fieldProps('houseNumber', 'location-house-number')}
+                  label={t('houseNumberLabel')}
+                  name="houseNumber"
+                  value={values.houseNumber}
+                  inputMode="numeric"
+                  autoComplete="off"
+                  onChange={(event) => change('houseNumber', event.target.value)}
+                  onBlur={() => schedule(values, 0)}
+                />
+                <Field
+                  {...fieldProps('houseNumberAddition', 'location-addition')}
+                  label={t('additionLabel')}
+                  name="houseNumberAddition"
+                  value={values.houseNumberAddition}
+                  autoComplete="off"
+                  onChange={(event) => change('houseNumberAddition', event.target.value)}
+                  onBlur={() => schedule(values, 0)}
+                />
               </div>
-              <div className="grid gap-2">
-                <Label htmlFor="location-street">{t('streetLabel')}</Label>
-                <Input
+              <div className="grid items-start gap-4 sm:grid-cols-2">
+                <Field
                   {...fieldProps('street', 'location-street')}
+                  label={t('streetLabel')}
                   name="street"
                   value={place.street}
                   autoComplete="off"
@@ -288,12 +279,9 @@ export function LocationForm({
                     setPlace({ ...place, street: event.target.value, streetFilled: false })
                   }
                 />
-                {fieldError('street', 'location-street')}
-              </div>
-              <div className="grid gap-2">
-                <Label htmlFor="location-city">{t('cityLabel')}</Label>
-                <Input
+                <Field
                   {...fieldProps('city', 'location-city')}
+                  label={t('cityLabel')}
                   name="city"
                   value={place.city}
                   autoComplete="off"
@@ -303,34 +291,22 @@ export function LocationForm({
                     setPlace({ ...place, city: event.target.value, cityFilled: false })
                   }
                 />
-                {fieldError('city', 'location-city')}
               </div>
               {incomplete ? (
-                <p id="location-address-error" role="alert" className="text-status-danger-fg">
-                  {t('errors.addressIncomplete')}
-                </p>
+                <ErrorLine id="location-address-error">{t('errors.addressIncomplete')}</ErrorLine>
               ) : null}
-              <div role="status" className="text-sm text-muted-foreground">
+              <div role="status" className="text-[13px] text-muted-foreground">
                 {busy ? t('lookup.busy') : null}
                 {lookup === 'not-found' ? t('lookup.notFound') : null}
                 {lookup === 'unavailable' ? t('lookup.unavailable') : null}
                 {lookup === 'idle' && filledNote ? t('lookup.filled') : null}
               </div>
             </fieldset>
-            {failureMessage ? (
-              <p role="alert" className="text-status-danger-fg">
-                {failureMessage}
-              </p>
-            ) : null}
-            {saved ? <p role="status">{t('saved')}</p> : null}
+            {failureMessage ? <ErrorLine>{failureMessage}</ErrorLine> : null}
+            {saved ? <SuccessLine>{t('saved')}</SuccessLine> : null}
           </CardContent>
-          <CardFooter>
-            <Button type="submit" disabled={!ready || pending}>
-              {t('save')}
-            </Button>
-          </CardFooter>
         </form>
       </Card>
-    </main>
+    </SettingsPage>
   );
 }

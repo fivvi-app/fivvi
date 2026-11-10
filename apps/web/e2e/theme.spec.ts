@@ -5,6 +5,7 @@ import {
   clientIpHeaders,
   createAccount,
   createGymWithTrainer,
+  joinTeam,
   newAddress,
   newAllowedAddress,
   signInWithSession,
@@ -712,5 +713,193 @@ test.describe('E020 trainer web: Mijn profiel, Klanten, the client profile and q
       );
       await expectNoAxeViolations(page, `quick add with a refusal in ${scheme} and ${appLocale}`);
     }
+  });
+});
+
+// E020 #628: Trainers and Instellingen (General, Language, Location), as the prototype draws them
+// (docs/design/prototype-v2, *Trainers (TW-06)*, *Instellingen (TW-08)*, *Locatie*): the team as
+// the rows of one card with an avatar before each name, and each settings page as one card whose
+// title and Save sit on one line. What each page does is in team.spec.ts, roles.spec.ts,
+// workspaces.spec.ts and settings-location.spec.ts.
+test.describe('E020 trainer web: Trainers and Instellingen', () => {
+  test.beforeEach(async ({ context }) => {
+    await context.setExtraHTTPHeaders(clientIpHeaders());
+  });
+
+  test('AC15: Trainers and the three settings pages match the prototype’s colours and shapes and pass axe, in light and dark', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const john = newAddress('john');
+    const sarah = newAddress('sarah');
+    await createAccount(john, undefined, 'John');
+    await createAccount(sarah, undefined, 'Sarah');
+    const slug = await createGymWithTrainer(john, "John's Gym", 'owner');
+    await joinTeam(sarah, slug, 'trainer');
+    await signInWithSession(context, john);
+
+    for (const scheme of colorSchemes) {
+      await page.emulateMedia({ colorScheme: scheme });
+
+      // Trainers: the team is the rows of one card, an avatar on the muted fill before each name,
+      // the people who train with the neutral pill, the address as the quiet line.
+      await page.goto(`/w/${slug}/trainers`);
+      await expect(page.getByRole('heading', { level: 1, name: copy.team.title })).toBeVisible();
+      const table = page.getByRole('table');
+      await expect(table.locator('xpath=ancestor::div[@data-slot="card"]')).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.card', scheme),
+      );
+      const avatars = table.locator('[data-slot="avatar"]');
+      await expect(avatars).toHaveCount(2);
+      const avatar = avatars.first();
+      await expect(avatar).toHaveCSS('background-color', tokenColour('web.trainer.muted', scheme));
+      await expect(avatar).toHaveCSS('color', tokenColour('web.trainer.foreground', scheme));
+      expect(
+        await avatar.evaluate((element) => getComputedStyle(element, '::before').content),
+      ).toBe('"JO"');
+      expect((await avatar.boundingBox())?.width).toBe(28);
+      const pill = table.locator('[data-slot="status-pill"]').first();
+      await expect(pill).toHaveText(copy.team.badge.trainer);
+      await expect(pill).toHaveCSS('background-color', tokenColour('status.neutral.bg', scheme));
+      await expect(pill).toHaveCSS('color', tokenColour('status.neutral.fg', scheme));
+      await expect(table.getByRole('columnheader').first()).toHaveCSS(
+        'color',
+        tokenColour('web.trainer.muted-foreground', scheme),
+      );
+      await expectNoAxeViolations(page, `Trainers in ${scheme} and ${appLocale}`);
+
+      // The confirmation: the dialog is the card colour.
+      await table.getByRole('button', { name: copy.team.remove }).click();
+      const dialog = page.getByRole('alertdialog');
+      await expect(dialog).toHaveCSS('background-color', tokenColour('web.trainer.card', scheme));
+      await expectNoAxeViolations(page, `the Trainers dialog in ${scheme} and ${appLocale}`);
+      await dialog.getByRole('button', { name: copy.team.removeDialog.cancel }).click();
+
+      // General: one card, the title and Save on one line, a refused name red with the message
+      // under it, a saved name in the success colour.
+      await page.goto(`/w/${slug}/settings/general`);
+      await expect(
+        page.getByRole('heading', { level: 2, name: copy.settingsGeneral.title }),
+      ).toBeVisible();
+      const card = page.locator('[data-slot="card"]');
+      await expect(card).toHaveCount(1);
+      await expect(card).toHaveCSS('background-color', tokenColour('web.trainer.card', scheme));
+      // The page title above the card: *Settings*, 20px as the prototype's `.w-top h1`.
+      const pageTitle = page.getByRole('heading', { level: 1 });
+      await expect(pageTitle).toHaveText(copy.workspaceNav.settings);
+      await expect(pageTitle).toHaveCSS('font-size', '20px');
+      const title = await page
+        .getByRole('heading', { level: 2, name: copy.settingsGeneral.title })
+        .boundingBox();
+      const save = page.getByRole('button', { name: copy.settingsGeneral.save });
+      const saveBox = await save.boundingBox();
+      // On one line, with Save at the right-hand end of the card.
+      expect(Math.abs((title?.y ?? 0) - (saveBox?.y ?? 0))).toBeLessThan(20);
+      expect(saveBox?.x ?? 0).toBeGreaterThan((title?.x ?? 0) + (title?.width ?? 0));
+      const cardBox = await card.boundingBox();
+      expect((saveBox?.x ?? 0) + (saveBox?.width ?? 0)).toBeGreaterThan(
+        (cardBox?.x ?? 0) + (cardBox?.width ?? 0) - 40,
+      );
+      await expectNoAxeViolations(page, `General in ${scheme} and ${appLocale}`);
+      const name = page.getByLabel(copy.settingsGeneral.nameLabel);
+      const original = await name.inputValue();
+      await name.fill('');
+      await save.click();
+      const refusal = page
+        .getByRole('alert')
+        .filter({ hasText: copy.settingsGeneral.errors.nameRequired });
+      await expect(refusal).toBeVisible();
+      await expect(refusal).toHaveCSS('color', tokenColour('status.danger.fg', scheme));
+      await expect(refusal.locator('svg')).toHaveCount(1);
+      await expect(name).toHaveAttribute('aria-invalid', 'true');
+      await expectNoAxeViolations(page, `General with a refusal in ${scheme} and ${appLocale}`);
+      await name.fill(original);
+      await save.click();
+      const saved = page.getByRole('status').filter({ hasText: copy.settingsGeneral.saved });
+      await expect(saved).toBeVisible();
+      await expect(saved).toHaveCSS('color', tokenColour('status.success.text', scheme));
+
+      // Language: one card, the two languages and Save.
+      await page.goto(`/w/${slug}/settings/language`);
+      await expect(
+        page.getByRole('heading', { level: 2, name: copy.settingsLanguage.title }),
+      ).toBeVisible();
+      await expect(page.locator('[data-slot="card"]')).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.card', scheme),
+      );
+      await expectNoAxeViolations(page, `Language in ${scheme} and ${appLocale}`);
+
+      // Location: one card, the address in the kit's fields; a refused postcode is red with the
+      // message under it.
+      await page.goto(`/w/${slug}/settings/locations`);
+      await expect(
+        page.getByRole('heading', { level: 2, name: copy.settingsLocation.title }),
+      ).toBeVisible();
+      await expect(page.locator('[data-slot="card"]')).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.card', scheme),
+      );
+      await expect(page.locator('[data-slot="field"]')).toHaveCount(6);
+      await expectNoAxeViolations(page, `Location in ${scheme} and ${appLocale}`);
+      const postcode = page.getByLabel(copy.settingsLocation.postcodeLabel);
+      await postcode.fill('12');
+      await page.getByLabel(copy.settingsLocation.houseNumberLabel).fill('1');
+      await page.getByRole('button', { name: copy.settingsLocation.save }).click();
+      const wrong = page
+        .getByRole('alert')
+        .filter({ hasText: copy.settingsLocation.errors.postcodeInvalid });
+      await expect(wrong).toBeVisible();
+      await expect(wrong.locator('svg')).toHaveCount(1);
+      await expect(postcode).toHaveAttribute('aria-invalid', 'true');
+      // A message under one field does not push the other fields of its row down (the prototype's
+      // `.w-inline2>.w-field{align-content:start}`): the inputs of the row sit at the same height.
+      const houseNumber = page.getByLabel(copy.settingsLocation.houseNumberLabel);
+      const postcodeBox = await postcode.boundingBox();
+      const houseNumberBox = await houseNumber.boundingBox();
+      expect(postcodeBox?.y).toBe(houseNumberBox?.y);
+      await expectNoAxeViolations(page, `Location with a refusal in ${scheme} and ${appLocale}`);
+    }
+  });
+
+  // AC15 (#590): the trainer web is the compact density, as the prototype draws it
+  // (`.w-input{height:36px}`, 14px text), not the touch density of the public and client pages.
+  test('AC15: the trainer web runs at the compact density: controls 36px, body text 14px', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    const john = newAddress('john');
+    const sarah = newAddress('sarah');
+    await createAccount(john, undefined, 'John');
+    await createAccount(sarah, undefined, 'Sarah');
+    const slug = await createGymWithTrainer(john, "John's Gym", 'owner');
+    await joinTeam(sarah, slug, 'trainer');
+    await signInWithSession(context, john);
+
+    // Trainers: the role menu and the Remove button, and the text of a row.
+    await page.goto(`/w/${slug}/trainers`);
+    await expect(page.getByRole('heading', { level: 1, name: copy.team.title })).toBeVisible();
+    await expect(page.getByLabel(copy.team.roleMenu.replace('{name}', 'Sarah'))).toHaveCSS(
+      'height',
+      '36px',
+    );
+    await expect(page.getByRole('button', { name: copy.team.remove })).toHaveCSS('height', '36px');
+    await expect(page.getByRole('table').getByRole('cell').first()).toHaveCSS('font-size', '14px');
+
+    // General: the Input, the Save Button, and the text of the card.
+    await page.goto(`/w/${slug}/settings/general`);
+    await expect(
+      page.getByRole('heading', { level: 2, name: copy.settingsGeneral.title }),
+    ).toBeVisible();
+    await expect(page.getByLabel(copy.settingsGeneral.nameLabel)).toHaveCSS('height', '36px');
+    await expect(page.getByRole('button', { name: copy.settingsGeneral.save })).toHaveCSS(
+      'height',
+      '36px',
+    );
+    await expect(page.locator('[data-slot="card"] label').first()).toHaveCSS('font-size', '14px');
   });
 });

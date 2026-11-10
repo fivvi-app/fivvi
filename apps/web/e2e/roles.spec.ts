@@ -78,12 +78,12 @@ test.describe('F004 roles on the web', () => {
     await expect(page).toHaveURL(`/w/${slug}/trainers`);
     await expect(page.getByLabel(copy.team.roleMenu.replace('{name}', 'Sarah'))).toBeVisible();
     await expect(page.getByRole('button', { name: copy.team.remove })).toBeVisible();
-    // The trainer web runs at touch density: the menu is as tall as the Remove button (48 px).
+    // The trainer web runs at the compact density: the menu is as tall as the Remove button (36 px).
     const menuBox = await page
       .getByLabel(copy.team.roleMenu.replace('{name}', 'Sarah'))
       .boundingBox();
     const removeBox = await page.getByRole('button', { name: copy.team.remove }).boundingBox();
-    expect(menuBox?.height).toBeGreaterThanOrEqual(48);
+    expect(menuBox?.height).toBe(36);
     expect(menuBox?.height).toBe(removeBox?.height);
 
     // Settings: rename the workspace and set the default language.

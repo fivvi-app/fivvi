@@ -14,6 +14,7 @@ export function Field({
   label,
   hint,
   error,
+  invalid,
   className,
   'aria-describedby': describedBy,
   ...props
@@ -21,20 +22,23 @@ export function Field({
   label: ReactNode;
   hint?: ReactNode;
   error?: ReactNode;
+  /** Marks the field red without a message of its own: the screen words the refusal once, for several fields. */
+  invalid?: boolean;
 }) {
   const generated = useId();
   const inputId = id ?? generated;
+  const refused = Boolean(error) || invalid === true;
   const messageId = error ? `${inputId}-error` : hint ? `${inputId}-hint` : undefined;
   const descriptions = [messageId, describedBy].filter(Boolean).join(' ') || undefined;
 
   return (
     <div data-slot="field" className="grid gap-1.5">
-      <Label htmlFor={inputId} className={cn(error && 'text-status-danger-fg')}>
+      <Label htmlFor={inputId} className={cn(refused && 'text-status-danger-fg')}>
         {label}
       </Label>
       <Input
         id={inputId}
-        aria-invalid={error ? true : undefined}
+        aria-invalid={refused ? true : undefined}
         aria-describedby={descriptions}
         className={cn(
           // A solid red border with a 3px ring at 18%, in light and dark (the input's own dark

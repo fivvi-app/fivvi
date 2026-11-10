@@ -72,7 +72,7 @@ export function WorkspaceFrame({
     });
   }
   return (
-    <div className="flex flex-1 flex-col md:flex-row">
+    <div data-density="compact" className="flex flex-1 flex-col md:flex-row">
       <aside className="flex flex-col gap-1 border-b bg-sidebar px-2.5 py-3 md:w-60 md:shrink-0 md:border-r md:border-b-0">
         <WorkspaceSwitcher
           name={name}

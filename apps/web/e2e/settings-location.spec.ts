@@ -106,7 +106,7 @@ test.describe('F015 Settings → Location (TW-08)', () => {
 
     await expect(page).toHaveURL(`/w/${slug}/settings/locations`);
     await expect(
-      page.getByRole('heading', { level: 1, name: copy.settingsLocation.title }),
+      page.getByRole('heading', { level: 2, name: copy.settingsLocation.title }),
     ).toBeVisible();
     await expect(page.getByText(copy.settingsLocation.help)).toBeVisible();
     await expect(page.getByLabel(copy.settingsLocation.nameLabel)).toHaveValue('Pilot Two');
