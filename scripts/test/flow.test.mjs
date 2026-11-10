@@ -1728,7 +1728,7 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
           { match: '^issue list .*--label spec ', out: specs },
           {
             match: '^issue list .*--label ready-for-agent',
-            out: tickets.map(({ number }) => ({ number })),
+            out: tickets,
           },
           { match: '^issue list .*--label needs-info', out: questions },
           ...[...assigned, ...specs, ...tickets, ...others].map((item) => ({
