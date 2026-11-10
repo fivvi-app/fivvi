@@ -11,9 +11,10 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@fivvi/ui/components/dialog';
-import { Input } from '@fivvi/ui/components/input';
 import { Label } from '@fivvi/ui/components/label';
 import { NativeSelect, NativeSelectOption } from '@fivvi/ui/components/native-select';
+import { ErrorLine } from '@fivvi/ui/kit/error-line';
+import { Field } from '@fivvi/ui/kit/field';
 import type { Route } from 'next';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
@@ -113,75 +114,65 @@ export function ClientFormDialogContent({
     emailInput.current?.select();
   }
 
-  const emailMessage = duplicate ? 'duplicate' : emailError;
+  const emailMessage = emailError
+    ? t(`errors.${emailError}`)
+    : duplicate
+      ? t('exists', { name: duplicate.name })
+      : undefined;
 
   return (
-    <DialogContent aria-describedby={description ? 'client-form-description' : undefined}>
+    <DialogContent
+      aria-describedby={description ? 'client-form-description' : undefined}
+      className="gap-0 rounded-[14px] p-5.5 sm:max-w-115"
+    >
       <form noValidate onSubmit={submit} className="grid gap-4">
         <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
+          <DialogTitle className="text-lg leading-snug font-semibold">{title}</DialogTitle>
           {description ? (
             <DialogDescription id="client-form-description">{description}</DialogDescription>
           ) : null}
         </DialogHeader>
+        <Field
+          id="client-form-name"
+          name="name"
+          label={t('nameLabel')}
+          value={name}
+          autoComplete="off"
+          onChange={(event) => setName(event.target.value)}
+          error={nameError ? t(`errors.${nameError}`) : undefined}
+        />
         <div className="grid gap-2">
-          <Label htmlFor="client-form-name">{t('nameLabel')}</Label>
-          <Input
-            id="client-form-name"
-            name="name"
-            value={name}
-            autoComplete="off"
-            onChange={(event) => setName(event.target.value)}
-            aria-invalid={nameError ? true : undefined}
-            aria-describedby={nameError ? 'client-form-name-error' : undefined}
-          />
-          {nameError ? (
-            <p id="client-form-name-error" role="alert" className="text-status-danger-fg">
-              {t(`errors.${nameError}`)}
-            </p>
-          ) : null}
-        </div>
-        <div className="grid gap-2">
-          <Label htmlFor="client-form-email">{t('emailLabel')}</Label>
-          <Input
+          <Field
             ref={emailInput}
             id="client-form-email"
             name="email"
             type="email"
+            label={t('emailLabel')}
             value={email}
             autoComplete="off"
             onChange={(event) => setEmail(event.target.value)}
-            aria-invalid={emailMessage ? true : undefined}
-            aria-describedby={emailMessage ? 'client-form-email-message' : undefined}
+            error={emailMessage}
           />
-          {emailError ? (
-            <p id="client-form-email-message" role="alert" className="text-status-danger-fg">
-              {t(`errors.${emailError}`)}
-            </p>
-          ) : null}
           {duplicate ? (
-            <div id="client-form-email-message" role="alert" className="grid gap-2">
-              <p className="text-status-danger-fg">{t('exists', { name: duplicate.name })}</p>
-              <div className="flex flex-wrap gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    close();
-                    router.push(`/w/${slug}/clients/${duplicate.id}` as Route);
-                  }}
-                >
-                  {t('openExisting', { name: duplicate.name })}
-                </Button>
-                <Button type="button" variant="ghost" size="sm" onClick={chooseAnotherEmail}>
-                  {t('otherEmail')}
-                </Button>
-              </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={() => {
+                  close();
+                  router.push(`/w/${slug}/clients/${duplicate.id}` as Route);
+                }}
+              >
+                {t('openExisting', { name: duplicate.name })}
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={chooseAnotherEmail}>
+                {t('otherEmail')}
+              </Button>
             </div>
           ) : null}
         </div>
-        <div className="grid gap-2">
+        <div className="grid gap-1.5">
           <Label htmlFor="client-form-locale">{t('localeLabel')}</Label>
           <NativeSelect
             id="client-form-locale"
@@ -197,12 +188,8 @@ export function ClientFormDialogContent({
             <NativeSelectOption value="en">{t('localeEn')}</NativeSelectOption>
           </NativeSelect>
         </div>
-        {failed ? (
-          <p role="alert" className="text-status-danger-fg">
-            {t('errors.notSaved')}
-          </p>
-        ) : null}
-        <DialogFooter>
+        {failed ? <ErrorLine>{t('errors.notSaved')}</ErrorLine> : null}
+        <DialogFooter className="mx-0 mb-0 border-0 bg-transparent p-0 pt-2">
           <DialogClose asChild>
             <Button type="button" variant="outline">
               {t('cancel')}

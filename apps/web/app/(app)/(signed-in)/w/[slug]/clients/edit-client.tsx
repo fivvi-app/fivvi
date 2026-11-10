@@ -40,7 +40,6 @@ export function EditClient({
       <Button
         type="button"
         variant="outline"
-        size="sm"
         disabled={!ready}
         onClick={() => {
           setSaved(false);
@@ -49,7 +48,14 @@ export function EditClient({
       >
         {t('edit')}
       </Button>
-      {saved ? <p role="status">{t('saved')}</p> : null}
+      {saved ? (
+        <p
+          role="status"
+          className="rounded-lg bg-status-success-bg px-3 py-1.5 text-sm font-semibold text-status-success-text"
+        >
+          {t('saved')}
+        </p>
+      ) : null}
       <Dialog open={open} onOpenChange={setOpen}>
         {open ? (
           <ClientFormDialogContent

@@ -147,6 +147,10 @@ export async function createWorld(options: WorldOptions = {}): Promise<World> {
     // The test accounts are `<id>@example.com`: every harness account is on the allowlist, so the
     // route that creates a workspace succeeds for every signed-in caller, team roles or not (F012).
     signUpAllowlist: parseSignUpAllowlist('@example.com'),
+    // The email change routes (F005): the stand-ins accept every call and store nothing, so the
+    // sweep proves the routes' access and that they change no row of any workspace.
+    requestEmailChange: () => Promise.resolve(),
+    confirmEmailChange: () => Promise.resolve({ email: 'new-address@example.com' }),
     findSignedInAccount: (headers) => {
       const id = headers.get('x-test-account');
       return Promise.resolve(id ? emails.get(id) : undefined);
