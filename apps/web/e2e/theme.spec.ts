@@ -638,7 +638,7 @@ test.describe('E020 trainer web: Mijn profiel, Klanten, the client profile and q
         page.getByRole('heading', { level: 1, name: copy.myProfile.title }),
       ).toBeVisible();
       const cards = page.locator('[data-slot="card"]');
-      await expect(cards).toHaveCount(3);
+      await expect(cards).toHaveCount(4);
       for (const card of await cards.all()) {
         await expect(card, `a card of Mijn profiel in ${scheme}`).toHaveCSS(
           'background-color',
