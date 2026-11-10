@@ -1,6 +1,8 @@
 import SwiftUI
 import FivviAPI
 import FivviDesignTokens
+import FivviStrings
+import FivviUI
 
 extension ClientFormViewModel: Identifiable {}
 
@@ -32,10 +34,10 @@ struct ClientFormView: View {
                 if let offer = model.existsText { existingOffer(offer) }
                 localeChoice
                 if let failed = model.saveFailedText {
-                    ClientMessage(text: failed, kind: .error, id: "\(idPrefix).failed")
+                    StatusMessage(text: failed, kind: .error, id: "\(idPrefix).failed")
                 }
                 if model.noPermission {
-                    ClientMessage(text: model.noPermissionText, kind: .error, id: "\(idPrefix).noPermission")
+                    StatusMessage(text: model.noPermissionText, kind: .error, id: "\(idPrefix).noPermission")
                 }
             }
             .padding(Tokens.Spacing.gutter)
@@ -96,7 +98,7 @@ struct ClientFormView: View {
     /// client is created.
     private func existingOffer(_ text: String) -> some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.space3) {
-            ClientMessage(text: text, kind: .info, id: "\(idPrefix).duplicate")
+            StatusMessage(text: text, kind: .info, id: "\(idPrefix).duplicate")
             if let open = model.openExistingText, let existing = model.existing {
                 Button {
                     onOpenExisting(existing.id)

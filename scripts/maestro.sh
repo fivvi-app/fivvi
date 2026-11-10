@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # The Maestro flows in e2e/maestro against the local stack, once per catalog locale (E008, TESTING.md §7.2).
 #
-#   maestro.sh android [--apk [<file>]]   start Postgres (migrated and seeded), the fake Brevo server (the one of the web e2e, on E2E_PORT +
+#   maestro.sh android [--apk [<file>]]   start Postgres (migrated and seeded), the fake Lettermint server (the one of the web e2e, on E2E_PORT +
 #                        2000) and the web server on E2E_PORT, install the debug app on
 #                        the emulator (booted for the run when none is connected), then run every flow with the
 #                        emulator's language set to nl-NL and to en, each once Android has settled after the change
@@ -14,7 +14,7 @@
 #                        to save macOS CI minutes)
 #
 # The app starts on its sign-in (F001), so the flows sign in as the seeded owner@example.com: the web server sends its
-# emails to the fake Brevo server, and the flows read the newest sign-in code from it (`GET /emails?to=`), so no real
+# emails to the fake Lettermint server, and the flows read the newest sign-in code from it (`GET /emails?to=`), so no real
 # inbox is involved. Several flows sign in as the same seeded address, and 3 emails per address in 15 minutes would stop
 # the fourth, or the second run. So the sign-in rate limits are cleared before each locale's run (`maestro test
 # e2e/maestro`, one Maestro process for all its flows: a new one per flow made CI's emulator drop its adb connection, #363)
@@ -24,7 +24,7 @@
 # Before the first flow, the web server has answered GET /api/v1/hello, the app's first request, in both locales.
 # When it ends, also on failure or Ctrl-C, it stops the emulator or simulator it booted and its Gradle daemons;
 # KEEP_DEVICE=1 leaves them running for the next run. On an emulator it didn't boot, it restores the language and the
-# error dialog setting.
+# error dialog setting, also when it had to relaunch that emulator (#584) and stops the relaunched one.
 #
 # CI's emulator now and then lost its adb connection (#373): the host's adb server dropped it for about half a second
 # ("device offline", then "device 'emulator-5554' not found"), which fails the flow that happens to start in that window,
@@ -33,6 +33,11 @@
 # starts its driver. The runner therefore (1) waits after every switch until the host's adb server sees the device and
 # it answers several probes in a row, reconnecting an offline device, and (2) re-runs once, and says so, the flows that
 # failed with that exact transport error (ADB_DROP_ERROR below), never a flow that failed an assertion.
+#
+# Once (run 42015816516, #584) the emulator did not come back at all from the framework restart of the switch to en: no
+# device for 300 s, no emulator process left. The switch therefore waits LOCALE_BOOT_TIMEOUT seconds for Android to boot
+# again, and if it doesn't relaunches the emulator once, cold, sets it up again and repeats the switch. A second failure
+# fails the run. No flow is re-run for it, and none has started when it happens.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/_android.sh"
@@ -43,15 +48,28 @@ LOCALES="nl-NL en"
 PORT="${E2E_PORT:-$(e2e_port "$ROOT")}"
 REPORTS="$ROOT/e2e/maestro/build"
 SERVER_PID=""
-BREVO_PID=""
-BREVO_PORT=$((PORT + 2000))
+LETTERMINT_PID=""
+LETTERMINT_PORT=$((PORT + 2000))
 CLEAR_EVERY="${MAESTRO_CLEAR_EVERY:-20}"
 CLEARER_PID=""
 CLEARER_LOG=""
 DEVICE_LOCALE=""
+# Whether this run booted the emulator it started with (EMULATOR_STARTED is also true after a relaunch of one it did not
+# boot, #584): cleanup restores the language and the error dialog setting on an emulator it did not boot.
+DEVICE_BOOTED_BY_US=false
+# True from a language switch the emulator did not come back from until the relaunch is set up (or for good when that
+# fails): the device is gone, so cleanup restores nothing on it instead of waiting DEVICE_READY_TIMEOUT for it (#584).
+DEVICE_LOST=false
+# Seconds Android gets to write a setting to disk (it does so a moment after the change) before the emulator is stopped.
+SETTINGS_WRITE_WAIT="${SETTINGS_WRITE_WAIT:-5}"
 # Seconds to wait for the device to be usable again, and the number of probes (one a second) in a row it must answer.
 DEVICE_READY_TIMEOUT="${DEVICE_READY_TIMEOUT:-120}"
 DEVICE_STABLE_PROBES="${DEVICE_STABLE_PROBES:-5}"
+# Seconds Android gets to boot again after the framework restart of a language switch (it takes a minute or so on CI's 2
+# cores); past that the emulator is relaunched, once (#584). The boot of that relaunch has EMULATOR_BOOT_TIMEOUT.
+LOCALE_BOOT_TIMEOUT="${LOCALE_BOOT_TIMEOUT:-150}"
+# True once the emulator was relaunched after a language switch: a second failure fails the run.
+EMULATOR_RECOVERED=false
 # Set to a function that makes the device usable again (Android: wait_for_device_ready) before a flow is re-run.
 DEVICE_RECOVER=""
 export MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true
@@ -99,7 +117,7 @@ set_flow_env() {
     --env "DEVICE_LANGUAGE=$1"
     --env "LANGUAGE_THIS=$1"
     --env "LANGUAGE_OTHER=$other"
-    --env "BREVO_URL=http://localhost:$BREVO_PORT"
+    --env "LETTERMINT_URL=http://localhost:$LETTERMINT_PORT"
   )
 }
 
@@ -111,20 +129,20 @@ start_stack() {
   pnpm db:seed >/dev/null
   pnpm turbo run build --filter=@fivvi/web --output-logs=errors-only
   mkdir -p "$REPORTS"
-  # The fake Brevo server of the web e2e (apps/web/e2e/fake-brevo.ts): it keeps the emails the web server sends.
-  (cd apps/web && PORT="$BREVO_PORT" exec node e2e/fake-brevo.ts) >"$REPORTS/brevo.log" 2>&1 &
-  BREVO_PID=$!
-  wait_for "http://localhost:$BREVO_PORT/" "the fake Brevo server" "brevo.log"
-  # Every value is synthetic: the fake Brevo server accepts any key. EMAIL_SEND_EXAMPLE_DOMAIN=1 sends @example.com mail,
-  # the seeded owner@example.com, through Brevo (here the fake server) instead of writing it to the log (packages/email);
+  # The fake Lettermint server of the web e2e (apps/web/e2e/fake-lettermint.ts): it keeps the emails the web server sends.
+  (cd apps/web && PORT="$LETTERMINT_PORT" exec node e2e/fake-lettermint.ts) >"$REPORTS/lettermint.log" 2>&1 &
+  LETTERMINT_PID=$!
+  wait_for "http://localhost:$LETTERMINT_PORT/" "the fake Lettermint server" "lettermint.log"
+  # Every value is synthetic: the fake Lettermint server accepts any token. EMAIL_SEND_EXAMPLE_DOMAIN=1 sends @example.com mail,
+  # the seeded owner@example.com, through Lettermint (here the fake server) instead of writing it to the log (packages/email);
   # the server isn't the production environment, which would also tag Sentry and PostHog as production.
   local auth_url="http://127.0.0.1:$PORT"
   (cd apps/web && PORT="$PORT" HOSTNAME=127.0.0.1 \
     EMAIL_SEND_EXAMPLE_DOMAIN=1 \
     BETTER_AUTH_SECRET=maestro-secret-that-is-at-least-thirty-two-characters-long \
     BETTER_AUTH_URL="$auth_url" \
-    BREVO_API_URL="http://localhost:$BREVO_PORT/v3/smtp/email" BREVO_API_KEY=maestro-synthetic-brevo-key \
-    LETTERMINT_API_TOKEN='' \
+    LETTERMINT_API_URL="http://localhost:$LETTERMINT_PORT/v1/send" LETTERMINT_API_TOKEN=maestro-synthetic-lettermint-token \
+    LETTERMINT_ROUTE_SIGN_IN=maestro-sign-in LETTERMINT_ROUTE_MAIL=maestro-mail \
     EMAIL_FROM_ADDRESS=noreply@fivvi.maestro.test EMAIL_FROM_NAME=Fivvi \
     SIGN_UP_ALLOWED_EMAILS=@example.com \
     exec node --env-file=../../packages/database/.env .next/standalone/apps/web/server.js) >"$REPORTS/web.log" 2>&1 &
@@ -142,10 +160,10 @@ wait_for() {
   done
 }
 
-# Stops the web server and the fake Brevo server, and waits until they are gone.
+# Stops the web server and the fake Lettermint server, and waits until they are gone.
 stop_stack() {
   local pid
-  for pid in "$SERVER_PID" "$BREVO_PID"; do
+  for pid in "$SERVER_PID" "$LETTERMINT_PID"; do
     [ -z "$pid" ] || kill "$pid" 2>/dev/null || true
     [ -z "$pid" ] || wait "$pid" 2>/dev/null || true
   done
@@ -220,12 +238,72 @@ root_device() {
 
 # Root on the Google APIs emulator image, so the device language can be changed without a reboot: a framework restart.
 # The device must be online first (the adb connection may have dropped when the last Maestro run ended, #373), and after
-# the restart it must boot and then stay online.
+# the restart it must boot and then stay online. Returns 1, never exits, when it doesn't: the emulator once did not come
+# back from the restart at all (#584), and switch_device_locale then relaunches it.
 set_device_locale() {
   wait_for_device_ready || return 1
   adb shell "setprop persist.sys.locale $1; setprop sys.boot_completed 0; setprop ctl.restart zygote"
-  wait_for_boot
+  await_boot "$LOCALE_BOOT_TIMEOUT" || { echo "maestro.sh: $BOOT_ERROR after the switch to $1 (${LOCALE_BOOT_TIMEOUT}s)" >&2; return 1; }
   wait_for_device_ready
+}
+
+# Waits until the emulator that did not come back has exited: asks it to (`adb emu kill`), then ends the process, the one
+# this script started or the one android.sh emulator recorded in EMULATOR_PID_FILE, even a hung one.
+STALE_EMULATOR_WAIT="${STALE_EMULATOR_WAIT:-10}"
+stop_stale_emulator() {
+  local pid="$EMULATOR_PID" signal started
+  # Only the pid file of an emulator another process started (CI's step of its own), and only while the pid is still an
+  # emulator: a pid left over from an earlier run may belong to any process by now.
+  if [ -z "$pid" ]; then
+    pid="$(cat "$EMULATOR_PID_FILE" 2>/dev/null || true)"
+    case "$(ps -p "${pid:-0}" -o command= 2>/dev/null || true)" in *emulator*|*qemu*) ;; *) pid="" ;; esac
+  fi
+  adb emu kill >/dev/null 2>&1 || true
+  for signal in "" TERM KILL; do
+    if [ -z "$pid" ] || ! kill -0 "$pid" 2>/dev/null; then break; fi
+    [ -z "$signal" ] || kill "-$signal" "$pid" 2>/dev/null || true
+    started=$SECONDS
+    while kill -0 "$pid" 2>/dev/null && [ "$((SECONDS - started))" -lt "$STALE_EMULATOR_WAIT" ]; do sleep 0.1; done
+  done
+  [ -z "$EMULATOR_PID" ] || wait "$EMULATOR_PID" 2>/dev/null || true
+  EMULATOR_PID=""
+  rm -f "$EMULATOR_PID_FILE"
+}
+
+# The debug app of the run: the APK of the build job, or the Gradle build installed for the web server's address.
+install_app() {
+  if [ -n "$APK" ]; then adb install -r -t "$APK"
+  else gradle installDebug "-Pfivvi.apiBaseUrl=http://10.0.2.2:$PORT/api/"
+  fi
+}
+
+# The one bounded recovery of #584: the emulator did not boot again after a language switch (CI run 42015816516: no device
+# for 300 s, the process gone). Boots the AVD again, cold: a snapshot would only bring back the state before the switch,
+# and a framework restart that went wrong is not worth another try. The new emulator is this script's, so cleanup stops
+# it. Then the device is set up as at the start of the run. A failure to boot fails the script with the emulator log.
+recover_emulator() {
+  EMULATOR_RECOVERED=true
+  echo "maestro.sh: the emulator did not come back after the language switch; relaunching it once, cold"
+  stop_stale_emulator
+  mkdir -p "$(dirname "$EMULATOR_LOG")"
+  launch_cold
+  wait_for_boot
+  adb shell input keyevent 82
+  root_device
+  hide_error_dialogs
+  install_app # the crash may have lost the app
+  wait_for_device_ready || die "the relaunched emulator is not ready"
+}
+
+# Sets the device language; when the emulator does not come back from it, relaunches it once (recover_emulator) and sets
+# the language again. Whole flows are never re-run for it.
+switch_device_locale() {
+  set_device_locale "$1" && return 0
+  DEVICE_LOST=true
+  [ "$EMULATOR_RECOVERED" = false ] || die "the emulator did not come back after the language switch to $1, even after it was relaunched"
+  recover_emulator
+  set_device_locale "$1" || die "the emulator did not come back after the language switch to $1, even after it was relaunched"
+  DEVICE_LOST=false
 }
 
 # After a framework restart Android delivers BOOT_COMPLETED to every app again, which takes a minute or more on CI's 2
@@ -244,7 +322,8 @@ settle_device() {
 # hidden, Android restarts System UI instead. Applies at once. ERROR_DIALOGS keeps the device's own value (null: unset).
 ERROR_DIALOGS=""
 hide_error_dialogs() {
-  ERROR_DIALOGS="$(adb shell settings get global hide_error_dialogs | tr -d '\r')"
+  # Only the first time: after a relaunch (recover_emulator) the setting is already ours.
+  [ -n "$ERROR_DIALOGS" ] || ERROR_DIALOGS="$(adb shell settings get global hide_error_dialogs | tr -d '\r')"
   adb shell settings put global hide_error_dialogs 1
 }
 
@@ -384,13 +463,21 @@ run_locale() {
 cleanup() {
   stop_clearing || true
   stop_stack
-  if [ "$EMULATOR_STARTED" = false ]; then
+  # Also on an emulator relaunched by recover_emulator, which stop_android then stops: the AVD keeps its userdata.
+  # Nothing to restore on a device that is gone (a failed relaunch, or a second failed switch).
+  if [ "$DEVICE_BOOTED_BY_US" = false ] && [ "$DEVICE_LOST" = false ]; then
     # In this order: Android writes settings to disk a moment later, and the framework restart would lose the write.
     [ -z "$DEVICE_LOCALE" ] || set_device_locale "$DEVICE_LOCALE" || true
     restore_error_dialogs || true
+    # An emulator stopped next (EMULATOR_STARTED: a relaunched one) must not be killed before that write: the AVD keeps its
+    # userdata, and a lost write would leave the setting on for the next run. (The language restore waited for the boot.)
+    [ "$EMULATOR_STARTED" != true ] || sleep "$SETTINGS_WRITE_WAIT"
   fi
   stop_android
 }
+
+# The APK installed by --apk, installed again on an emulator relaunched after a language switch (empty: built by Gradle).
+APK=""
 
 cmd_android() {
   local apk=""
@@ -405,6 +492,7 @@ cmd_android() {
   on_exit cleanup
   start_stack
   start_emulator
+  DEVICE_BOOTED_BY_US=$EMULATOR_STARTED
   root_device
   wait_for_boot
   DEVICE_LOCALE="$(adb shell getprop persist.sys.locale | tr -d '\r')"
@@ -413,15 +501,14 @@ cmd_android() {
   DEVICE_RECOVER=wait_for_device_ready
   if [ -n "$apk" ]; then
     [ -f "$apk" ] || die "no APK at $apk — run scripts/android.sh maestro-apk first"
-    adb install -r -t "$apk"
-  else
-    gradle installDebug "-Pfivvi.apiBaseUrl=http://10.0.2.2:$PORT/api/"
+    APK="$apk"
   fi
+  install_app
 
   local locale failed=""
   for locale in $LOCALES; do
     echo "Maestro on Android in $locale"
-    set_device_locale "$locale"
+    switch_device_locale "$locale"
     settle_device
     run_locale "$locale" "android-$locale" maestro || failed="$failed $locale"
   done

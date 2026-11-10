@@ -6,6 +6,7 @@ import {
   type ImageSource,
   type SceneId,
   type ShotId,
+  sceneAvifSources,
   sceneSources,
   shotSources,
   shots,
@@ -26,21 +27,20 @@ const SIZES = {
 
 /**
  * A screen of the prototype: a picture in the language of the page, light or dark by the system
- * setting (no script), in two sizes. `alt` says what the screen shows; the first screens of a page
- * are loaded at once and the rest as they come near.
+ * setting (no script), in two sizes. `alt` says what the screen shows. A screen is always lazy and
+ * low in fetch priority, so even those in the first screen start after the page's miniature (AC15,
+ * LCP). Its width and height stay set, so the box is there before the file.
  */
 export function Screen({
   id,
   locale,
   alt,
-  priority = false,
   sizes,
   className,
 }: {
   id: ShotId;
   locale: Locale;
   alt: string;
-  priority?: boolean;
   sizes?: string;
   className?: string;
 }) {
@@ -61,7 +61,8 @@ export function Screen({
         alt={alt}
         width={width}
         height={height}
-        loading={priority ? 'eager' : 'lazy'}
+        loading="lazy"
+        fetchPriority="low"
         decoding="async"
         className={classes('block h-full w-full', className)}
       />
@@ -74,13 +75,13 @@ export function Device({
   id,
   locale,
   alt,
-  priority,
+  sizes,
   className,
 }: {
   id: ShotId;
   locale: Locale;
   alt: string;
-  priority?: boolean;
+  sizes?: string;
   className?: string;
 }) {
   const { device } = shots[id];
@@ -96,7 +97,7 @@ export function Device({
           id={id}
           locale={locale}
           alt={alt}
-          priority={priority}
+          sizes={sizes}
           className="site-browser-shot aspect-[1280/800] object-cover object-left-top"
         />
       </div>
@@ -114,7 +115,7 @@ export function Device({
         id={id}
         locale={locale}
         alt={alt}
-        priority={priority}
+        sizes={sizes}
         className="rounded-[inherit] object-cover"
       />
     </div>
@@ -122,9 +123,21 @@ export function Device({
 }
 
 /**
- * A miniature scene. It stands on its own beside the words and is never a background behind
- * screens or text (owner, `DECISIONS.md` §9); its meaning is in the words next to it, so it has no
- * description of its own.
+ * The width a phone of the stage's row of three has, as `devices.css` sets it: two of them fit on a
+ * phone, so each is half the width less the page's padding and the gap, and 300 px at most
+ * elsewhere. With a looser guess (half the screen) a phone would fetch the large file where the
+ * small one is sharp enough, three times in a row (AC15).
+ *
+ * Keep it in step with `.site-stage-row .site-phone` in `devices.css`: that file sets the width, this
+ * one tells the browser about it before the CSS is there, and neither can read the other.
+ */
+const ROW_SIZES = '(max-width: 639px) calc((100vw - 2 * clamp(16px, 4vw, 40px) - 14px) / 2), 300px';
+
+/**
+ * A miniature scene, in AVIF for the browsers that take it and WebP for the rest, in sizes for the
+ * screen. It stands on its own beside the words and is never a background behind screens or text
+ * (owner, `DECISIONS.md` §9); its meaning is in the words next to it, so it has no description of
+ * its own.
  */
 export function Scene({
   id,
@@ -139,38 +152,39 @@ export function Scene({
 }) {
   const sources = sceneSources(id);
   return (
-    // biome-ignore lint/performance/noImgElement: the scenes are already made in two sizes (400 and 800 px), served as they are
-    <img
-      src={sources[sources.length - 1]?.url}
-      srcSet={srcSet(sources)}
-      sizes={sizes}
-      alt=""
-      width={800}
-      height={800}
-      loading={priority ? 'eager' : 'lazy'}
-      decoding="async"
-      className={classes('block w-full object-contain', className)}
-    />
+    <picture>
+      <source type="image/avif" srcSet={srcSet(sceneAvifSources(id))} sizes={sizes} />
+      <img
+        src={sources[sources.length - 1]?.url}
+        srcSet={srcSet(sources)}
+        sizes={sizes}
+        alt=""
+        width={800}
+        height={800}
+        loading={priority ? 'eager' : 'lazy'}
+        fetchPriority={priority ? 'high' : undefined}
+        decoding="async"
+        className={classes('block w-full object-contain', className)}
+      />
+    </picture>
   );
 }
 
 /**
  * The screens under a headline: a laptop and a phone sharing one top and bottom edge, or three
- * phones in a row (`devices.css`). Put it in a `.site-stage`, which is the size container. The
- * phones load at once unless `priority` is off, the laptop's screen never does, since it is not
- * shown at all on a phone.
+ * phones in a row (`devices.css`). Put it in a `.site-stage`, which is the size container. They are
+ * all lazy: the miniature beside the headline is the page's largest picture on a phone, and the
+ * screens under it must not compete with it for the connection (AC15, LCP).
  */
 export function StageScreens({
   stage,
   locale,
   alts,
-  priority = true,
   className,
 }: {
   stage: Stage;
   locale: Locale;
   alts: Record<ShotId, string>;
-  priority?: boolean;
   className?: string;
 }) {
   if (stage.kind === 'mix') {
@@ -178,7 +192,7 @@ export function StageScreens({
       <div className={classes('site-stage-mix', className)}>
         <Device id={stage.web} locale={locale} alt={alts[stage.web]} />
         <div className="site-stage-cell">
-          <Device id={stage.phone} locale={locale} alt={alts[stage.phone]} priority={priority} />
+          <Device id={stage.phone} locale={locale} alt={alts[stage.phone]} />
         </div>
       </div>
     );
@@ -186,7 +200,7 @@ export function StageScreens({
   return (
     <div className={classes('site-stage-row', className)}>
       {stage.phones.map((id) => (
-        <Device key={id} id={id} locale={locale} alt={alts[id]} priority={priority} />
+        <Device key={id} id={id} locale={locale} alt={alts[id]} sizes={ROW_SIZES} />
       ))}
     </div>
   );

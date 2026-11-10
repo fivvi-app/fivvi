@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { execFileSync, spawn, spawnSync } from 'node:child_process';
 import {
+  chmodSync,
   cpSync,
   existsSync,
   mkdirSync,
@@ -297,6 +298,8 @@ describe('flow.sh next', () => {
             match: '^pr view 6[01345678] ',
             out: { headRefName: 'docs/no-issue', closingIssuesReferences: [], changedFiles: 1 },
           },
+          // The worktrees of the checkout these tests run in (#668): none has a merged PR.
+          { match: '^pr list .*--head ', out: [] },
         ]),
         FIVVI_NOW: now,
       },
@@ -985,58 +988,61 @@ describe('#509 flow.sh finish of a spec whose own branch was merged', () => {
   });
   after(() => gh.cleanup());
 
-  const finish = ({ labelNames, children = [] }) =>
+  const finish = ({ labelNames, children = [], env = {}, prState = 'MERGED' }) =>
     spawnSync(join(repo, 'scripts/flow.sh'), ['finish', '9999'], {
       cwd: repo,
       encoding: 'utf8',
-      env: gh.env([
-        { match: '^api user', out: { login: 'thekeyvan' } },
-        {
-          match: '^issue view 9999 ',
-          out: {
-            number: 9999,
-            title: 'Joining by link',
-            state: 'OPEN',
-            labels: labels(...labelNames),
-            assignees: [],
-            body: '## Acceptance criteria',
-            comments: [],
-            parent: null,
-            subIssues: {
-              totalCount: children.length,
-              nodes: children.map((number) => ({ number })),
+      env: {
+        ...gh.env([
+          { match: '^api user', out: { login: 'thekeyvan' } },
+          {
+            match: '^issue view 9999 ',
+            out: {
+              number: 9999,
+              title: 'Joining by link',
+              state: 'OPEN',
+              labels: labels(...labelNames),
+              assignees: [],
+              body: '## Acceptance criteria',
+              comments: [],
+              parent: null,
+              subIssues: {
+                totalCount: children.length,
+                nodes: children.map((number) => ({ number })),
+              },
+              blockedBy: { nodes: [] },
             },
-            blockedBy: { nodes: [] },
           },
-        },
-        ...children.map((number) => ({
-          match: `^issue view ${number} `,
-          out: {
-            number,
-            title: `ticket ${number}`,
-            state: 'OPEN',
-            labels: labels('ready-for-agent'),
-            assignees: [],
-            blockedBy: { nodes: [] },
-          },
-        })),
-        {
-          match: '^pr list .*--head docs/9999-adr',
-          out: [
-            {
-              number: 70,
-              state: 'MERGED',
-              isDraft: false,
-              reviewDecision: '',
-              statusCheckRollup: [],
-              url: 'https://github.com/o/r/pull/70',
-              createdAt: '2026-10-18T10:00:00Z',
-              headRefOid: git('rev-parse', 'docs/9999-adr'),
+          ...children.map((number) => ({
+            match: `^issue view ${number} `,
+            out: {
+              number,
+              title: `ticket ${number}`,
+              state: 'OPEN',
+              labels: labels('ready-for-agent'),
+              assignees: [],
+              blockedBy: { nodes: [] },
             },
-          ],
-        },
-        { match: '^issue close ', out: '' },
-      ]),
+          })),
+          {
+            match: '^pr list .*--head docs/9999-adr',
+            out: [
+              {
+                number: 70,
+                state: prState,
+                isDraft: false,
+                reviewDecision: '',
+                statusCheckRollup: [],
+                url: 'https://github.com/o/r/pull/70',
+                createdAt: '2026-10-18T10:00:00Z',
+                headRefOid: git('rev-parse', 'docs/9999-adr'),
+              },
+            ],
+          },
+          { match: '^issue close ', out: '' },
+        ]),
+        ...env,
+      },
     });
   const closed = () =>
     gh.calls().some((call) => call.args[0] === 'issue' && call.args[1] === 'close');
@@ -1057,6 +1063,50 @@ describe('#509 flow.sh finish of a spec whose own branch was merged', () => {
     assert.equal(result.status, 0, result.stderr);
     assert.equal(closed(), false);
     assert.match(result.stdout, /stays open/);
+  });
+
+  // #668: finishing ends with clean.sh, which takes care of everything else finished work leaves behind.
+  describe('#668 runs clean.sh at the end', () => {
+    const stub = () => {
+      writeFileSync(
+        join(repo, 'scripts/clean.sh'),
+        `#!/usr/bin/env bash\necho "clean $* [\${FIVVI_CLEANING:-}]" >>"${base}/clean.log"\necho cleaned up the rest\n`,
+      );
+      chmodSync(join(repo, 'scripts/clean.sh'), 0o755);
+    };
+    const log = () =>
+      existsSync(join(base, 'clean.log')) ? readFileSync(join(base, 'clean.log'), 'utf8') : '';
+
+    it('runs it once after the worktrees are removed', () => {
+      stub();
+      const result = finish({ labelNames: ['ready-for-agent'] });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(log(), 'clean  []\n');
+      assert.match(result.stdout, /cleaned up the rest/);
+    });
+
+    it('does not run it again when clean.sh itself is finishing (FIVVI_CLEANING)', () => {
+      stub();
+      const result = finish({ labelNames: ['ready-for-agent'], env: { FIVVI_CLEANING: '1' } });
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(log(), '');
+    });
+
+    it('is still done when clean.sh fails, with a warning', () => {
+      writeFileSync(join(repo, 'scripts/clean.sh'), '#!/usr/bin/env bash\nexit 3\n');
+      chmodSync(join(repo, 'scripts/clean.sh'), 0o755);
+      const result = finish({ labelNames: ['ready-for-agent'] });
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /#9999 done/);
+      assert.match(result.stderr, /warning: clean\.sh failed/);
+    });
+
+    it('does not run it when the finish stops before anything is removed', () => {
+      stub();
+      const result = finish({ labelNames: ['ready-for-agent'], prState: 'OPEN' });
+      assert.notEqual(result.status, 0);
+      assert.equal(log(), '');
+    });
   });
 
   it('fails closed when the phase of the issue cannot be decided: nothing removed, nothing closed', () => {
@@ -1088,6 +1138,35 @@ describe('flow.sh facts', () => {
   const gh = fakeGh();
   after(() => gh.cleanup());
 
+  const factsOfMe = (extraEnv = {}) => {
+    const result = spawnSync(join(SCRIPTS, 'flow.sh'), ['facts', '9999'], {
+      encoding: 'utf8',
+      env: {
+        ...gh.env([
+          { match: '^api user', out: { login: 'person1' } },
+          {
+            match: '^issue view 9999 ',
+            out: {
+              number: 9999,
+              title: 'T',
+              state: 'OPEN',
+              labels: labels('ready-for-agent'),
+              assignees: [],
+              body: 'x',
+              comments: [],
+              parent: null,
+              subIssues: { nodes: [] },
+              blockedBy: { nodes: [] },
+            },
+          },
+        ]),
+        ...extraEnv,
+      },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    return JSON.parse(result.stdout).me;
+  };
+
   const factsOf = (issueComments) => {
     const result = spawnSync(join(SCRIPTS, 'flow.sh'), ['facts', '9999'], {
       encoding: 'utf8',
@@ -1114,8 +1193,47 @@ describe('flow.sh facts', () => {
     return JSON.parse(result.stdout);
   };
 
+  it('FIVVI_ASSIGNEE is who you are: facts read no gh user, and `me` is that login', () => {
+    const rules = [
+      { match: '^api user', out: '', status: 1 },
+      {
+        match: '^issue view 9999 ',
+        out: {
+          number: 9999,
+          title: 'Which reminder time?',
+          state: 'OPEN',
+          labels: labels('ready-for-agent'),
+          assignees: [{ login: 'person1' }],
+          body: 'Remind clients before a session.',
+          comments: [],
+          parent: null,
+          subIssues: { nodes: [] },
+          blockedBy: { nodes: [] },
+        },
+      },
+    ];
+    const result = spawnSync(join(SCRIPTS, 'flow.sh'), ['facts', '9999'], {
+      encoding: 'utf8',
+      env: { ...gh.env(rules), FIVVI_ASSIGNEE: 'person1' },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(JSON.parse(result.stdout).me, 'person1');
+    assert.ok(
+      gh.calls().every((call) => call.args[0] !== 'api' || call.args[1] !== 'user'),
+      'gh api user was not called',
+    );
+  });
+
+  it('without FIVVI_ASSIGNEE, `me` is the login gh api user reads', () => {
+    assert.equal(factsOfMe(), 'person1');
+  });
+
+  it('an empty FIVVI_ASSIGNEE counts as unset', () => {
+    assert.equal(factsOfMe({ FIVVI_ASSIGNEE: '' }), 'person1');
+  });
+
   it('calls a question answered once the newest comment is not a triage note', () => {
-    // The agent and the owner share one GitHub account, so the note tells them apart, not the author.
+    // Codex and Copilot share the owner's GitHub account, so the note tells them apart, not the author.
     assert.equal(factsOf([]).answered, false);
     assert.equal(factsOf(comments(TRIAGE_NOTE)).answered, false);
     assert.equal(factsOf(comments(TRIAGE_NOTE, 'Two hours before.')).answered, true);
@@ -1591,24 +1709,26 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       openPrs = [],
       blockers = [],
       onGitHub = ['owner-queue', 'owner-decide'],
+      rules = [],
     } = scenario;
     return spawnSync(join(repo, 'scripts/flow.sh'), [command, ...args], {
       encoding: 'utf8',
       env: {
         ...gh.env([
           ...failing.map((match) => ({ match, out: '', status: 1 })),
+          ...rules,
           { match: '^label list ', out: onGitHub.map((name) => ({ name })) },
           { match: '^label create ', out: '' },
           { match: '^pr edit ', out: '' },
           { match: '^api user', out: { login: 'thekeyvan' } },
           {
-            match: '^issue list .*--assignee @me',
+            match: `^issue list .*--assignee ${env.FIVVI_ASSIGNEE || '@me'} `,
             out: assigned.map(({ number }) => ({ number })),
           },
           { match: '^issue list .*--label spec ', out: specs },
           {
             match: '^issue list .*--label ready-for-agent',
-            out: tickets.map(({ number }) => ({ number })),
+            out: tickets,
           },
           { match: '^issue list .*--label needs-info', out: questions },
           ...[...assigned, ...specs, ...tickets, ...others].map((item) => ({
@@ -1716,6 +1836,108 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       assert.notEqual(result.status, 0);
       assert.match(result.stderr, /^error: could not read/m);
       assert.doesNotMatch(result.stdout, /\(none\)\n== Waiting/);
+    });
+  });
+
+  // #668: finished work is work for an agent, also when the merged PR closed its issue.
+  describe('#668 worktrees of merged PRs', () => {
+    const git = (...args) =>
+      execFileSync(
+        'git',
+        ['-C', repo, '-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args],
+        { encoding: 'utf8' },
+      ).trim();
+    const BRANCHES = {
+      ticket: 'chore/9101-merged-ticket',
+      loose: 'docs/old-note',
+      open: 'chore/9102-still-open',
+      dirty: 'chore/9103-dirty',
+    };
+    const worktree = (branch) => join(repo, '.worktrees', branch.replace('/', '-'));
+    // The PR of each branch as `pr list --head` answers it; the head is the branch's own commit, so `wt.sh done` accepts it.
+    const prOf = (branch, state) => ({
+      match: `^pr list .*--head ${branch}`,
+      out: [
+        {
+          number: 200,
+          state,
+          isDraft: false,
+          reviewDecision: '',
+          statusCheckRollup: [],
+          url: 'https://github.com/o/r/pull/200',
+          createdAt: '2026-10-18T10:00:00Z',
+          headRefOid: git('rev-parse', branch),
+        },
+      ],
+    });
+    const rules = (...pairs) => pairs.map(([branch, state]) => prOf(branch, state));
+
+    before(() => {
+      for (const branch of Object.values(BRANCHES))
+        git('worktree', 'add', '--quiet', '-b', branch, worktree(branch));
+      writeFileSync(join(worktree(BRANCHES.dirty), 'edit.txt'), 'not committed\n');
+    });
+    after(() => {
+      for (const branch of Object.values(BRANCHES)) {
+        git('worktree', 'remove', '--force', worktree(branch));
+        git('branch', '-D', branch);
+      }
+    });
+
+    const scenario = (extra = {}) => ({
+      rules: rules(
+        [BRANCHES.ticket, 'MERGED'],
+        [BRANCHES.loose, 'MERGED'],
+        [BRANCHES.open, 'OPEN'],
+        [BRANCHES.dirty, 'MERGED'],
+      ),
+      ...extra,
+    });
+
+    it('next lists Finish #n for a merged branch whose issue is closed, Clean up for one without an issue', () => {
+      const result = run('next', scenario());
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(readyOf(result.stdout), /^Finish #9101 /m);
+      assert.match(readyOf(result.stdout), /^Clean up docs\/old-note /m);
+    });
+
+    it('lists neither a worktree whose PR is open nor one with uncommitted changes (clean.sh reports it)', () => {
+      const result = run('next', scenario());
+      assert.doesNotMatch(readyOf(result.stdout), /9102|still-open|9103|dirty/);
+    });
+
+    it('idle exits 1 and lists them while a merged worktree is left', () => {
+      const result = run('idle', scenario());
+      assert.equal(result.status, 1, result.stderr);
+      assert.match(result.stdout, /^Finish #9101 /m);
+      assert.match(result.stdout, /^Clean up docs\/old-note /m);
+    });
+
+    it('idle stays idle when the only worktrees have an open PR or an unmerged change', () => {
+      const result = run('idle', {
+        rules: rules(
+          [BRANCHES.ticket, 'OPEN'],
+          [BRANCHES.loose, 'CLOSED'],
+          [BRANCHES.open, 'OPEN'],
+          [BRANCHES.dirty, 'MERGED'],
+        ),
+      });
+      assert.equal(result.status, 0, result.stderr);
+    });
+
+    it('lists an open assigned issue in the phase merged once, as assigned work', () => {
+      const result = run(
+        'next',
+        scenario({ assigned: [issue(9101, 'Merged ticket', ['ready-for-agent'])] }),
+      );
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /^#9101 Merged ticket → merged$/m);
+      assert.doesNotMatch(readyOf(result.stdout), /Finish #9101/);
+    });
+
+    it('fails instead of reporting nothing when the PR of a worktree cannot be read', () => {
+      const result = run('idle', scenario({ failing: [`^pr list .*--head ${BRANCHES.loose}`] }));
+      assert.equal(result.status, 2, result.stderr);
     });
   });
 
@@ -1827,6 +2049,27 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       });
       assert.equal(result.status, 1, result.stderr);
       assert.equal(result.stdout, '#180 [F003] Add a client\n');
+    });
+
+    it('lists the issues assigned to FIVVI_ASSIGNEE, not to @me, when it is set', () => {
+      const result = run('idle', {
+        assigned: [issue(9004, 'Build it', ['ready-for-agent'])],
+        env: { FIVVI_ASSIGNEE: 'person1' },
+      });
+      assert.equal(result.status, 1, result.stderr);
+      assert.equal(result.stdout, '#9004 Build it → in-progress\n');
+      const listed = gh
+        .calls()
+        .find((call) => call.args[0] === 'issue' && call.args.includes('--assignee'));
+      assert.equal(listed.args[listed.args.indexOf('--assignee') + 1], 'person1');
+    });
+
+    it('lists the issues assigned to @me when FIVVI_ASSIGNEE is not set', () => {
+      run('idle', { assigned: [issue(9004, 'Build it', ['ready-for-agent'])] });
+      const listed = gh
+        .calls()
+        .find((call) => call.args[0] === 'issue' && call.args.includes('--assignee'));
+      assert.equal(listed.args[listed.args.indexOf('--assignee') + 1], '@me');
     });
 
     it('exits 1 and lists an issue in progress with its phase', () => {

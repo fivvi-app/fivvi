@@ -2,6 +2,7 @@ import Security
 import XCTest
 
 @testable import FivviPro
+@testable import FivviSession
 
 /// The session store against the real Keychain, in a service of its own per test.
 final class SessionStoreTests: XCTestCase {

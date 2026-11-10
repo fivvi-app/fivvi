@@ -368,6 +368,57 @@
         },
         "description": "What to change on the signed-in account. Fields left out stay as they are."
       },
+      "RequestEmailChange": {
+        "type": "object",
+        "properties": {
+          "newEmail": {
+            "type": "string",
+            "description": "The new address, trimmed and stored in lower case. Not an address, or the account’s own current one, answers `400` with a field error on `newEmail`."
+          }
+        },
+        "required": [
+          "newEmail"
+        ],
+        "description": "The address to send the confirmation code to."
+      },
+      "InvalidCode": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "invalid_or_expired_code"
+            ]
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "description": "The code is wrong, used, replaced, expired or out of attempts, or the address it was sent for has an account by now; nothing says which. Nothing changed. Contains no user-facing text."
+      },
+      "ConfirmEmailChange": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 32,
+            "description": "The 6-digit code in the email sent to the new address."
+          },
+          "surface": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android"
+            ],
+            "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the `email_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it."
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "description": "The code that confirms the new address."
+      },
       "MyDay": {
         "type": "object",
         "properties": {
@@ -2415,6 +2466,159 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/email/change": {
+      "post": {
+        "operationId": "requestEmailChange",
+        "tags": [
+          "me"
+        ],
+        "summary": "Ask for a code to change the signed-in account’s email address",
+        "description": "Sends a 6-digit code to the new address (EM-34), in the account’s language. The address does not change until `POST /v1/me/email/confirm` accepts the code. The answer is `202` for every valid address, one that already has an account, and a request over the rate limits (3 in 15 minutes per account and per address, 20 an hour per network, as for sign-in), so it never says who has an account; only a free address under the limits gets an email. A new request replaces the earlier code. It acts on the signed-in account alone: no route changes anyone else’s address.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "account",
+          "workspaces": "team"
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RequestEmailChange"
+              }
+            }
+          }
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted. The body is empty."
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me/email/confirm": {
+      "post": {
+        "operationId": "confirmEmailChange",
+        "tags": [
+          "me"
+        ],
+        "summary": "Confirm the code and change the signed-in account’s email address",
+        "description": "With the right code the account’s address becomes the one the code was sent to, in every workspace at once, and every open sign-in session stays signed in. The sign-in codes and links sent to the old address stop working. Answers with the account, as `GET /v1/me` does. A wrong, used, replaced or expired code, five wrong codes, an address that has an account by now and a network over its limit all answer `422` and nothing changes.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "account",
+          "workspaces": "team"
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmEmailChange"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The account with its new address.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The code was not accepted.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvalidCode"
                 }
               }
             }

@@ -33,17 +33,18 @@ struct SignInScreen {
         session: AppLaunch.Session = .signedOut,
         deviceLanguages: [String]? = nil,
         perAppLanguage: String? = nil,
-        textSize: String? = nil
+        textSize: String? = nil,
+        recordsOpenedLinks: Bool = false
     ) -> SignInScreen {
         SignInScreen(app: AppLaunch.launch(
             against: server, session: session, deviceLanguages: deviceLanguages, perAppLanguage: perAppLanguage,
-            textSize: textSize
+            textSize: textSize, recordsOpenedLinks: recordsOpenedLinks
         ))
     }
 
-    /// Types `text` into `field` after tapping it.
+    /// Types `text` into `field` once a tap has given it keyboard focus.
     func type(_ text: String, into field: XCUIElement) {
-        field.tap()
+        field.focus()
         field.typeText(text)
     }
 

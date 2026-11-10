@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import FivviAPI
+import FivviStrings
 
 /// *Klantprofiel* / *Client profile* (TM-03): the overview of one client, name, email address and language for emails,
 /// from `GET /api/v1/workspaces/{id}/clients/{clientId}` through the generated client, and its edit (F006 AC7, AC12).

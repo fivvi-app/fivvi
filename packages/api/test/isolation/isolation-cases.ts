@@ -214,6 +214,11 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   listMyWorkspaces: {},
   // The caller's own account: it stores their language and touches no workspace's data (F010).
   updateMe: { body: { preferredLocale: 'en' } },
+  // The email change (F005, spec #610): both routes act on the caller's own account and touch no
+  // workspace's data. The harness's stand-ins for the sign-in package answer without storing
+  // anything; the change itself is proved against the real thing in `me-email.integration.test.ts`.
+  requestEmailChange: { body: { newEmail: 'new-address@example.com' } },
+  confirmEmailChange: { body: { code: '123456' } },
   createWorkspace: { body: { name: "John's Gym" }, createsWorkspace: true },
   // The personal day and sessions of a trainer, read across the caller's own workspaces one at a time
   // (F013): a caller sees the sessions it is the trainer of, never another workspace's.

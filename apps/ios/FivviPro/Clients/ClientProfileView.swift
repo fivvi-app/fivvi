@@ -1,6 +1,9 @@
 import SwiftUI
 import FivviAPI
 import FivviDesignTokens
+import FivviStrings
+import FivviLanguage
+import FivviUI
 
 /// Owns the model of one client profile for as long as the screen is pushed, so a change of the list behind it doesn't
 /// start the profile over.
@@ -133,13 +136,13 @@ struct ClientProfileView: View {
     @ViewBuilder private var content: some View {
         switch model.state {
         case .loading:
-            ClientSkeletonRows(label: catalog[.commonLoading], id: "clientProfile.loading")
+            SkeletonRows(label: catalog[.commonLoading], id: "clientProfile.loading")
             if model.loadingSlow {
-                ClientMessage(text: catalog[.commonLoadingSlow], kind: .info, id: "clientProfile.loadingSlow")
+                StatusMessage(text: catalog[.commonLoadingSlow], kind: .info, id: "clientProfile.loadingSlow")
             }
         case .failed:
             VStack(alignment: .leading, spacing: Tokens.Spacing.space4) {
-                ClientMessage(text: catalog[.clientsLoadError], kind: .error, id: "clientProfile.error")
+                StatusMessage(text: catalog[.clientsLoadError], kind: .error, id: "clientProfile.error")
                 Button {
                     Task { await model.load() }
                 } label: {
@@ -151,9 +154,9 @@ struct ClientProfileView: View {
                 .accessibilityIdentifier("clientProfile.retry")
             }
         case .noPermission:
-            ClientMessage(text: catalog[.noPermissionTitle], kind: .info, id: "clientProfile.noPermissionTitle")
+            StatusMessage(text: catalog[.noPermissionTitle], kind: .info, id: "clientProfile.noPermissionTitle")
                 .accessibilityAddTraits(.isHeader)
-            ClientMessage(text: model.noPermissionText, kind: .info, id: "clientProfile.noPermission")
+            StatusMessage(text: model.noPermissionText, kind: .info, id: "clientProfile.noPermission")
         case .loaded:
             overview
         }
@@ -161,10 +164,10 @@ struct ClientProfileView: View {
 
     @ViewBuilder private var overview: some View {
         if let added = model.addedText {
-            ClientMessage(text: added, kind: .success, id: "clientProfile.added")
+            StatusMessage(text: added, kind: .success, id: "clientProfile.added")
         }
         if let saved = model.savedText {
-            ClientMessage(text: saved, kind: .success, id: "clientProfile.saved")
+            StatusMessage(text: saved, kind: .success, id: "clientProfile.saved")
         }
         Section {
             fact(catalog[.clientProfileNameLabel], model.client?.name ?? "", id: "clientProfile.name")

@@ -88,6 +88,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/me/email/change": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Ask for a code to change the signed-in account’s email address
+         * @description Sends a 6-digit code to the new address (EM-34), in the account’s language. The address does not change until `POST /v1/me/email/confirm` accepts the code. The answer is `202` for every valid address, one that already has an account, and a request over the rate limits (3 in 15 minutes per account and per address, 20 an hour per network, as for sign-in), so it never says who has an account; only a free address under the limits gets an email. A new request replaces the earlier code. It acts on the signed-in account alone: no route changes anyone else’s address.
+         */
+        post: operations["requestEmailChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/me/email/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Confirm the code and change the signed-in account’s email address
+         * @description With the right code the account’s address becomes the one the code was sent to, in every workspace at once, and every open sign-in session stays signed in. The sign-in codes and links sent to the old address stop working. Answers with the account, as `GET /v1/me` does. A wrong, used, replaced or expired code, five wrong codes, an address that has an account by now and a network over its limit all answer `422` and nothing changes.
+         */
+        post: operations["confirmEmailChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/me/day": {
         parameters: {
             query?: never;
@@ -874,6 +914,26 @@ export interface components {
             preferredLocale?: "nl-NL" | "en";
             /**
              * @description The app that sends the request: `ios` or `android`. A request with a bearer token that changes `preferredLocale` records the `language_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+             * @enum {string}
+             */
+            surface?: "ios" | "android";
+        };
+        /** @description The address to send the confirmation code to. */
+        RequestEmailChange: {
+            /** @description The new address, trimmed and stored in lower case. Not an address, or the account’s own current one, answers `400` with a field error on `newEmail`. */
+            newEmail: string;
+        };
+        /** @description The code is wrong, used, replaced, expired or out of attempts, or the address it was sent for has an account by now; nothing says which. Nothing changed. Contains no user-facing text. */
+        InvalidCode: {
+            /** @enum {string} */
+            code: "invalid_or_expired_code";
+        };
+        /** @description The code that confirms the new address. */
+        ConfirmEmailChange: {
+            /** @description The 6-digit code in the email sent to the new address. */
+            code: string;
+            /**
+             * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `email_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
              * @enum {string}
              */
             surface?: "ios" | "android";
@@ -1859,6 +1919,115 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    requestEmailChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RequestEmailChange"];
+            };
+        };
+        responses: {
+            /** @description Accepted. The body is empty. */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    confirmEmailChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmEmailChange"];
+            };
+        };
+        responses: {
+            /** @description The account with its new address. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeResponse"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The code was not accepted. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvalidCode"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */

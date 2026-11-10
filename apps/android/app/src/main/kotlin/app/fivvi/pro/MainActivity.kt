@@ -2,10 +2,8 @@ package app.fivvi.pro
 
 import android.content.ActivityNotFoundException
 import android.content.Context
-import android.content.ContextWrapper
 import android.content.Intent
 import android.content.res.Configuration
-import android.content.res.Resources
 import android.net.Uri
 import android.os.Bundle
 import android.os.LocaleList
@@ -16,7 +14,6 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -25,13 +22,8 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTagsAsResourceId
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fivvi.api.models.MeWorkspace
@@ -42,6 +34,8 @@ import app.fivvi.core.signin.SignInActions
 import app.fivvi.core.signin.SignInScreen
 import app.fivvi.core.signin.SignInViewModel
 import app.fivvi.core.theme.FivviTheme
+import app.fivvi.core.ui.Localized
+import app.fivvi.core.ui.OnForeground
 import app.fivvi.core.web.SiteLinks
 import app.fivvi.pro.capabilities.WorkspaceCapabilities
 import app.fivvi.pro.clients.ClientsFlow
@@ -86,27 +80,6 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
-    }
-
-    // The screens read their strings from the context that follows the language, so a switch re-renders in place:
-    // no restart, and what was typed stays in the view models.
-    @Composable
-    private fun Localized(language: AppLanguage, content: @Composable () -> Unit) {
-        val configuration = remember(language) {
-            Configuration(resources.configuration).apply { setLocales(LocaleList(language.locale)) }
-        }
-        val localized = remember(language) {
-            val resources = createConfigurationContext(configuration).resources
-            object : ContextWrapper(this) {
-                override fun getResources(): Resources = resources
-            }
-        }
-        CompositionLocalProvider(
-            LocalContext provides localized,
-            LocalConfiguration provides configuration,
-            LocalResources provides localized.resources,
-            content = content,
-        )
     }
 
     // The view models belong to one sign-in (the key holds its generation), so the next one starts fresh. The sign-in
@@ -184,16 +157,6 @@ class MainActivity : ComponentActivity() {
             onOpenSitePage = { openOnTheWeb(SiteLinks.url(it, language)) },
         )
         ProfileScreen(state, editor, actions)
-    }
-
-    // Runs [action] each time the app comes back to the foreground, not at the start that composing this already covers
-    // (the observer is told the current state when it is added).
-    @Composable
-    private fun OnForeground(action: () -> Unit) {
-        var first by remember { mutableStateOf(true) }
-        LifecycleEventEffect(Lifecycle.Event.ON_START) {
-            if (first) first = false else action()
-        }
     }
 
     @Composable

@@ -27,8 +27,8 @@ import { productEvents } from './product-events';
 let invitationSender: ReturnType<typeof createTrainerInvitationSender> | undefined;
 
 /**
- * EM-09, the trainer invitation (F011): sent through the provider of the environment (Lettermint,
- * Brevo, or the log for `@example.com` outside production), linking to the invitation page of
+ * EM-09, the trainer invitation (F011): sent through the provider of the environment (Lettermint
+ * or the log for `@example.com` outside production), linking to the invitation page of
  * this app. Created on first use, so `next build` runs without the email settings.
  */
 function sendTrainerInvitation(
@@ -45,7 +45,7 @@ let privateSessionSender: ReturnType<typeof createPrivateSessionSender> | undefi
 
 /**
  * EM-11, the confirmation of a private session (F020): sent through the provider of the environment
- * (Lettermint, Brevo, or the log for `@example.com` outside production). Created on first use, so
+ * (Lettermint or the log for `@example.com` outside production). Created on first use, so
  * `next build` runs without the email settings.
  */
 function sendPrivateSession(...[mail]: Parameters<ReturnType<typeof createPrivateSessionSender>>) {
@@ -59,7 +59,7 @@ let demoRequestSender: ReturnType<typeof createDemoRequestSender> | undefined;
  * The demo request of the public website (F064), emailed in Dutch to `demoRequestRecipient()`:
  * the support address in production, an `@example.com` address (logged, not sent) elsewhere.
  * Nothing goes to the visitor. Created on first use, so `next build` runs without the email
- * settings. The mailbox is the owner's to create (#612).
+ * settings. The mailbox is an alias of the owner's Zoho mailbox (Q2).
  */
 function sendDemoRequest(...[mail]: Parameters<ReturnType<typeof createDemoRequestSender>>) {
   demoRequestSender ??= createDemoRequestSender({
@@ -79,6 +79,9 @@ export const apiHandler = createApiHandler({
   requestSignIn: (input) => auth().requestSignIn(input),
   exchangeSignInCode: (input) => auth().exchangeSignInCode(input),
   signOutBearer: (headers) => auth().signOutBearer(headers),
+  // Changing one's own email address with a code sent to the new one (F005, spec #610).
+  requestEmailChange: (input) => auth().requestEmailChange(input),
+  confirmEmailChange: (input) => auth().confirmEmailChange(input),
   // Who may create a workspace builds on who may sign up (F002): the allowlist sign-in parsed.
   signUpAllowlist: { allows: (email) => signUpAllowlist().allows(email) },
   // Emails the trainer invitation (F011).

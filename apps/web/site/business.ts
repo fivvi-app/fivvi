@@ -1,11 +1,14 @@
 /**
  * The business details the website shows: the one place to fill them in (F064, AC7). The owner
- * gives them before go-live (#648). A detail left out shows nothing on the site, never a
- * placeholder, so the site can be published with only what is known.
+ * gave them on 8 November 2026 (`docs/legal/open-questions.md` Q2, #612, #648). A detail left out
+ * shows nothing on the site, never a placeholder, so the site can be published with only what is
+ * known.
  */
 export interface BusinessDetails {
   /** The trade name the footer shows: the company that runs Fivvi. */
   tradeName: string;
+  /** The registered name of the company, for the JSON-LD (`legalName`); the footer shows the trade name. */
+  legalName?: string;
   /** Chamber of Commerce (KvK) number. */
   kvk?: string;
   /** VAT (btw) number. */
@@ -17,11 +20,17 @@ export interface BusinessDetails {
 }
 
 /**
- * The details of Fivvi's company. Only the trade name is known (`DECISIONS.md` §9, assumption 3,
- * from #151). Add the rest here once the owner gives them.
+ * The details of Fivvi's company, as the owner gave them (Q2): a VOF with the trade name K&S Apps.
+ * The owner chose knowingly to publish the address and the phone number, and confirmed on
+ * 9 November 2026 that the VOF is registered as exactly "K&S Apps" (`legalName`).
  */
 export const business: BusinessDetails = {
   tradeName: 'K&S Apps',
+  legalName: 'K&S Apps',
+  kvk: '92372996',
+  vat: 'NL866022788B01',
+  address: 'Haringbuisdijk 43, 1086 VA Amsterdam',
+  phone: '+31 6 85145755',
 };
 
 /**

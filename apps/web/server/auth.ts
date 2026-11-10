@@ -55,7 +55,7 @@ let instance: Auth | undefined;
 
 /**
  * Sign-in for this process, created on first use, so `next build` runs without a database or a
- * secret. Sends sign-in emails through Lettermint (Brevo while its token is not set), or to the log for `@example.com` outside
+ * secret. Sends sign-in emails through Lettermint, or to the log for `@example.com` outside
  * production (packages/email).
  */
 export function auth(): Auth {

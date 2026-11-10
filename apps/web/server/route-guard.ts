@@ -3,8 +3,10 @@ import { loginPath, SIGN_IN_PAGE, SIGNED_IN_HOME } from '@fivvi/auth/return-path
 import { isLocale } from '@fivvi/i18n';
 import { type NextRequest, NextResponse } from 'next/server';
 import { localeCookie, localeCookieMaxAge } from '../i18n/config';
+import { ICON_FILES } from '../site/icons';
 import { robotsHeader } from '../site/indexing';
 import { isSitePath, siteHomePath } from '../site/routes';
+import { requestHostname, securityHeaders } from './security-headers';
 
 /** The public website's miniatures and screens (`public/site-images`, F064): images, no data. */
 const SITE_IMAGES = '/site-images';
@@ -28,12 +30,14 @@ const PUBLIC_PREFIXES = [SIGN_IN_PAGE, '/book', '/api', SITE_IMAGES, SITE_SHARE_
  * operating system fetches and follows no redirect for, and `robots.txt` and `sitemap.xml` for the
  * search engines (F064 AC13). Exactly these, not the whole `/.well-known/` folder.
  */
-const PUBLIC_FILES = [
+const PUBLIC_FILES: readonly string[] = [
   '/.well-known/apple-app-site-association',
   '/.well-known/assetlinks.json',
   // What a search engine fetches (F064 AC13).
   '/robots.txt',
   '/sitemap.xml',
+  // The favicon files of `app/` (#669), which a browser fetches for any page, signed in or not.
+  ...ICON_FILES,
 ];
 
 /** Whether `pathname` is open to anyone. Whole path segments only: `/booking` is not `/book`. */
@@ -93,10 +97,13 @@ function withStoredLocale(request: NextRequest, stored: string | null) {
 }
 
 /**
- * The route guard (`proxy.ts`) and the search header: the answer of `answerRequest` with the
- * `X-Robots-Tag` header of the path (`robotsHeader`, F064 AC13). It is set here, per request, because
- * the site's pages are static and one build serves every environment; whether this is production is
- * read from `env` at run time.
+ * The route guard (`proxy.ts`), the search header and the security headers: the answer of
+ * `answerRequest` with the `X-Robots-Tag` header of the path (`robotsHeader`, F064 AC13) and the
+ * security headers (`securityHeaders`, E013 AC8). They are set here, per request, on every answer
+ * (page, redirect, 404, API), because the site's pages are static and one build serves every
+ * environment; whether this is production is read from `env` at run time, and HSTS depends on the
+ * host in the `Host` header (`requestHostname`). The build's own files and the favicon, which the
+ * matcher in `proxy.ts` skips, get the same headers from `headers()` in next.config.ts.
  */
 export async function guardRequest(
   request: NextRequest,
@@ -106,6 +113,12 @@ export async function guardRequest(
   const response = await answerRequest(request, readSession);
   const robots = robotsHeader(request.nextUrl.pathname, env);
   if (robots) response.headers.set('x-robots-tag', robots);
+  // The host is the visitor's Host header: `request.nextUrl` carries the server's own HOSTNAME
+  // (0.0.0.0 on Railway, localhost in e2e), not the host asked for.
+  const hostname = requestHostname(request.headers.get('host'), request.nextUrl.hostname);
+  for (const [name, value] of Object.entries(securityHeaders(hostname, env))) {
+    response.headers.set(name, value);
+  }
   return response;
 }
 

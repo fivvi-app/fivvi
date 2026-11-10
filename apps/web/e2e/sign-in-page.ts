@@ -1,10 +1,10 @@
 import type { Messages } from '@fivvi/i18n';
 import type { Page } from '@playwright/test';
-import { signInCode, waitForEmails } from './brevo';
 import { expect } from './fixtures';
+import { signInCode, waitForEmails } from './lettermint';
 
 /**
- * Signs in on the page: types the address, waits for the email on the fake Brevo server and enters
+ * Signs in on the page: types the address, waits for the email on the fake Lettermint server and enters
  * its code (the latest of `emailCount` sent to the address so far). The page must be on the
  * sign-in page already (`/login`, possibly with a return path).
  */

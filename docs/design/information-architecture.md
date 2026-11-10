@@ -103,7 +103,7 @@ Roles come from `PRODUCT.md §9, §50`: **Owner and Trainer** are the team roles
 | Connect the payment provider account (decided in ADR-020; `§94`) | ✓ | — | — | — |
 | Agreements: create, end, see credit balances (`§91`, `§92`) | ✓ | 👁 credit balances of own clients [QC12](open-questions.md#qc12) | ✓ own | — |
 | Payments, invoices, refunds, payouts (`§94`–`§97`) | ✓ | — | 👁 own payments and invoices | — |
-| Buy a membership, credit pack, credit plan or single class (proposed, [decision 9](../product/ROADMAP.md#14-decisions)); pay | — | — | ✓ | ✓ single class (account created at verification) |
+| Buy a membership, credit pack, credit plan or single class pass (bought ahead; [decision 9](../product/ROADMAP.md#14-decisions)); pay | — | — | ✓ | — |
 | Billing details | ✓ on behalf of a client ⚑ [QC16](open-questions.md#qc16) | — | ✓ own | — |
 | Book group classes and Open Gym | — | — | ✓ | ✓ |
 | View and cancel own bookings and private sessions (*my schedule*) | — | — | ✓ client web | ✓ via manage link in email |
@@ -395,6 +395,7 @@ Every email exists in `nl-NL` and `en` with one template structure (`§51, §74`
 | EM-10 ⚑ | Je valt in: {class} op {date} | You're covering: {class} on {date} | Substitute trainer | Substitution (CO-02) | F024 — **not in `§51`**, see [QE01](open-questions.md#qe01) |
 | EM-11 ⚑ | Nieuwe afspraak: {date} om {time} | New appointment: {date} at {time} | Private-session client | Private session created (PS-01) | F020 — **not in `§51`**, see [QE02](open-questions.md#qe02) |
 | EM-12 | Je training staat klaar, {client} | Your workout is ready, {client} | Client | Trainer confirms WL-08 share | F045, F048, F049; `§51` |
+| EM-34 | Je code om je e-mailadres te wijzigen | Your code to change your email address | The new address of the account (sent to that address only) | Change of own email address requested (F005) | F005, F033, F049 |
 
 - Emails **never** say "magic link". The button is *Boeking bevestigen* / *Confirm booking*, and the code is shown underneath.
 - Free text from the owner (e.g. the optional message on a class cancellation, CO-03) is inserted **as typed** and not translated (`§3`). The template marks it as a quote from the workspace.

@@ -1,10 +1,12 @@
 import { formattingLocales, type Locale, locales, messages } from '@fivvi/i18n';
 import { expect, test } from './fixtures';
 
-// F064 AC12, AC13, AC14 (#644): what a search engine and a share card see of the site. The e2e
-// server is not the `production` environment, so it sends `noindex` on everything and its
-// robots.txt disallows all, exactly as a preview does. The production side and the switch are
-// unit-tested (site/indexing.test.ts); the markup is the same everywhere.
+// F064 AC12, AC13, AC14 (#644, #648): what a search engine and a share card see of the site. The e2e
+// server is not the `production` environment, so it sends `noindex` on everything in the header and
+// its robots.txt disallows all, exactly as a preview does. The production side (open pages, the
+// robots.txt that allows the site and names the sitemap) is unit-tested (site/indexing.test.ts) and
+// seen through the go-live proxy of the budget spec; the markup of the site is the same everywhere
+// and carries no `robots` tag, because the header decides per environment.
 const ORIGIN = 'https://fivvi.app';
 
 type Site = (typeof messages)['en']['site'];
@@ -12,8 +14,6 @@ interface PageSpec {
   paths: Record<Locale, string>;
   /** The title and description in the catalog. */
   copy: (site: Site) => { title: string; description: string };
-  /** Pages in the sitemap; the demo page is not linked yet (#648). */
-  listed: boolean;
   /** The names in the breadcrumbs after the home page (none on the home page). */
   breadcrumb?: (site: Site) => string;
 }
@@ -22,7 +22,6 @@ const PAGES: Record<string, PageSpec> = {
   home: {
     paths: { 'nl-NL': '/', en: '/en' },
     copy: (s) => ({ title: s.meta.homeTitle, description: s.meta.homeDescription }),
-    listed: true,
   },
   gyms: {
     paths: { 'nl-NL': '/sportscholen', en: '/en/gyms' },
@@ -30,7 +29,6 @@ const PAGES: Record<string, PageSpec> = {
       title: s.audience.gyms.metaTitle,
       description: s.audience.gyms.metaDescription,
     }),
-    listed: true,
     breadcrumb: (s) => s.nav.gyms,
   },
   studios: {
@@ -39,7 +37,6 @@ const PAGES: Record<string, PageSpec> = {
       title: s.audience.studios.metaTitle,
       description: s.audience.studios.metaDescription,
     }),
-    listed: true,
     breadcrumb: (s) => s.nav.studios,
   },
   personalTrainers: {
@@ -48,7 +45,6 @@ const PAGES: Record<string, PageSpec> = {
       title: s.audience.personalTrainers.metaTitle,
       description: s.audience.personalTrainers.metaDescription,
     }),
-    listed: true,
     breadcrumb: (s) => s.nav.personalTrainers,
   },
   clients: {
@@ -57,20 +53,27 @@ const PAGES: Record<string, PageSpec> = {
       title: s.audience.clients.metaTitle,
       description: s.audience.clients.metaDescription,
     }),
-    listed: true,
     breadcrumb: (s) => s.nav.clients,
   },
   pricing: {
     paths: { 'nl-NL': '/prijzen', en: '/en/pricing' },
     copy: (s) => ({ title: s.pricing.metaTitle, description: s.pricing.metaDescription }),
-    listed: true,
     breadcrumb: (s) => s.nav.pricing,
   },
   support: {
     paths: { 'nl-NL': '/support', en: '/en/support' },
     copy: (s) => ({ title: s.support.metaTitle, description: s.support.metaDescription }),
-    listed: true,
     breadcrumb: (s) => s.footer.support,
+  },
+  privacy: {
+    paths: { 'nl-NL': '/privacy', en: '/en/privacy' },
+    copy: (s) => ({ title: s.privacy.metaTitle, description: s.privacy.metaDescription }),
+    breadcrumb: (s) => s.footer.privacy,
+  },
+  terms: {
+    paths: { 'nl-NL': '/voorwaarden', en: '/en/terms' },
+    copy: (s) => ({ title: s.terms.metaTitle, description: s.terms.metaDescription }),
+    breadcrumb: (s) => s.footer.terms,
   },
   subProcessors: {
     paths: { 'nl-NL': '/subverwerkers', en: '/en/sub-processors' },
@@ -78,13 +81,11 @@ const PAGES: Record<string, PageSpec> = {
       title: s.subProcessors.metaTitle,
       description: s.subProcessors.metaDescription,
     }),
-    listed: true,
     breadcrumb: (s) => s.footer.subProcessors,
   },
   demo: {
     paths: { 'nl-NL': '/demo', en: '/en/demo' },
     copy: (s) => ({ title: s.demo.metaTitle, description: s.demo.metaDescription }),
-    listed: false,
     breadcrumb: (s) => s.header.demo,
   },
 };
@@ -196,8 +197,8 @@ test.describe('F064 AC12, AC14 every site page, walked in both languages', () =>
   });
 });
 
-test.describe('F064 AC13 until the site is indexable nothing is', () => {
-  test('every site page says noindex, in the markup and in the header', async ({
+test.describe('F064 AC13 outside production nothing is indexable', () => {
+  test('every site page says noindex in the header, and its markup has no robots tag of its own', async ({
     page,
     request,
   }) => {
@@ -206,10 +207,7 @@ test.describe('F064 AC13 until the site is indexable nothing is', () => {
         const path = (PAGES[id] as PageSpec).paths[locale];
 
         await page.goto(path);
-        await expect(page.locator('meta[name="robots"]'), path).toHaveAttribute(
-          'content',
-          /noindex.*nofollow|nofollow.*noindex/,
-        );
+        await expect(page.locator('meta[name="robots"]'), path).toHaveCount(0);
         const response = await request.get(path);
         expect(response.headers()['x-robots-tag'], path).toBe('noindex, nofollow');
       }
@@ -252,7 +250,7 @@ test.describe('F064 AC13 until the site is indexable nothing is', () => {
 });
 
 test.describe('F064 AC13 sitemap.xml', () => {
-  test('lists every listed page in both languages with its alternates, and not the demo page', async ({
+  test('lists every page of the site, the demo page too, in both languages with its alternates', async ({
     request,
   }) => {
     const response = await request.get('/sitemap.xml');
@@ -261,13 +259,10 @@ test.describe('F064 AC13 sitemap.xml', () => {
     const xml = await response.text();
 
     const locs = [...xml.matchAll(/<loc>([^<]*)<\/loc>/g)].map((match) => match[1]);
-    const expected = ids
-      .filter((id) => (PAGES[id] as PageSpec).listed)
-      .flatMap((id) => locales.map((locale) => urlOf(id, locale)));
+    const expected = ids.flatMap((id) => locales.map((locale) => urlOf(id, locale)));
     expect([...locs].sort()).toEqual([...expected].sort());
-    for (const id of ids.filter((candidate) => !(PAGES[candidate] as PageSpec).listed)) {
-      for (const locale of locales) expect(locs).not.toContain(urlOf(id, locale));
-    }
+    expect(locs).toContain(urlOf('demo', 'nl-NL'));
+    expect(locs).toContain(urlOf('demo', 'en'));
 
     // Each entry carries the three alternates.
     const gyms =

@@ -8,8 +8,8 @@ import {
   newAllowedAddress,
   signInWithSession,
 } from './accounts';
-import { emailsTo, waitForEmails } from './brevo';
 import { expect, expectNoAxeViolations, test } from './fixtures';
+import { emailsTo, waitForEmails } from './lettermint';
 import { appServer } from './servers';
 import { signInWithCode } from './sign-in-page';
 import { holdBackPageTitle } from './streamed-title';

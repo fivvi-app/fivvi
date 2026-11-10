@@ -6,6 +6,7 @@ import {
   alternatePath,
   builtPages,
   isSitePath,
+  type SitePage,
   siteHomePath,
   sitePageAt,
   sitePagePath,
@@ -75,16 +76,21 @@ describe('F064 the site’s addresses (#611)', () => {
   });
 
   // The native apps link to these two pages and keep a copy of the addresses: `apps/android/core/.../web/SiteLinks.kt`
-  // (its test reads `site/routes.ts`) and, once #646 lands, the iOS app. A web change to them must change the apps too.
+  // and `apps/ios/FivviPro/Web/SiteLinks.swift` (their tests read `site/routes.ts`). A web change to them must change
+  // the apps too.
   it('keeps the support and privacy addresses the native apps link to (F064 AC17, #647)', () => {
     expect(sitePaths.support).toEqual({ 'nl-NL': '/support', en: '/en/support' });
     expect(sitePaths.privacy).toEqual({ 'nl-NL': '/privacy', en: '/en/privacy' });
   });
 
-  it('keeps the demo page out of the links until go-live: it exists, and nothing links to it (#648)', () => {
-    expect(unlistedPages).toContain('demo');
-    expect(builtPages).not.toContain('demo');
+  it('links the demo page since go-live (#648): it is built, and no page is unlisted any more', () => {
+    expect(builtPages).toContain('demo');
+    expect(unlistedPages).toEqual([]);
     expect(unlistedPages.filter((page) => builtPages.includes(page))).toEqual([]);
+  });
+
+  it('builds every page there is: each address of the site has a page file', () => {
+    expect([...builtPages].sort()).toEqual((Object.keys(sitePaths) as SitePage[]).sort());
   });
 
   it('lists every page that has a page file in builtPages, so a forgotten entry never loses its links', () => {

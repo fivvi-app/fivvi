@@ -5,8 +5,8 @@
 
 | | |
 |---|---|
-| **Versie / Version** | 0.4 · 28 oktober 2026 / 28 October 2026 |
-| **Wijzigingen / Changes** | 0.4 (28 oktober 2026 / 28 October 2026): maatregel T12 / measure T12 volgt de nieuwe regels voor agents (ADR-023): kernregels en juridische zaken blijven bij de eigenaar, tooling en betaalcode (in de testmodus) en de overige wijzigingen worden gemerged zonder de eigenaar tot de livegang met echte persoonsgegevens, statusupdates altijd zonder de eigenaar / follows the new agent rules (ADR-023). 0.3 (24 oktober 2026 / 24 October 2026): T12 herschreven / reworded (ADR-021). |
+| **Versie / Version** | 0.5 · 9 november 2026 / 9 November 2026 |
+| **Wijzigingen / Changes** | 0.5 (9 november 2026 / 9 November 2026): Bijlage 3: Lettermint als e-mailsubverwerker (ADR-028) / Annex 3: Lettermint as the email sub-processor (ADR-028). 0.4 (28 oktober 2026 / 28 October 2026): maatregel T12 / measure T12 volgt de nieuwe regels voor agents (ADR-023): kernregels en juridische zaken blijven bij de eigenaar, tooling en betaalcode (in de testmodus) en de overige wijzigingen worden gemerged zonder de eigenaar tot de livegang met echte persoonsgegevens, statusupdates altijd zonder de eigenaar / follows the new agent rules (ADR-023). 0.3 (24 oktober 2026 / 24 October 2026): T12 herschreven / reworded (ADR-021). |
 | **Gebruik / Use** | Eerst met de pilotgym, vóór de import van echte gegevens (`ROADMAP.md §4.4`); later met elke workspace. / First with the pilot gym, before real data is imported; later with every workspace. |
 | **AVG / GDPR** | Art. 28(3)(a)–(h), 28(2), 28(4), 32–36 |
 
@@ -145,7 +145,7 @@ Verwerker geeft Verwerkingsverantwoordelijke de informatie en hulp die zij redel
 ## Artikel 14. Aansprakelijkheid
 
 1. Voor de aansprakelijkheid van partijen onder deze overeenkomst gelden de afspraken in de Hoofdovereenkomst, met deze aanvullingen:
-   - a. de totale aansprakelijkheid van Verwerker onder deze overeenkomst is per kalenderjaar beperkt tot **{{bedrag}}**;
+   - a. de totale aansprakelijkheid van Verwerker onder deze overeenkomst is per kalenderjaar beperkt tot **€ 1.000**;
    - b. de beperking in lid a geldt niet bij opzet of bewuste roekeloosheid van Verwerker of zijn leidinggevenden.
 2. Deze overeenkomst beperkt de rechten van betrokkenen onder art. 82 AVG niet. Tussen partijen draagt ieder de schade die aan haar eigen deel van de verwerking te wijten is (art. 82(5) AVG).
 
@@ -153,7 +153,7 @@ Verwerker geeft Verwerkingsverantwoordelijke de informatie en hulp die zij redel
 
 1. Bij strijd tussen deze overeenkomst en de Hoofdovereenkomst gaat deze overeenkomst voor, voor zover het de verwerking van persoonsgegevens betreft.
 2. Wijzigingen van deze overeenkomst zijn alleen geldig als partijen ze schriftelijk overeenkomen. Een wijziging van Bijlage 3 volgt artikel 7.
-3. Op deze overeenkomst is Nederlands recht van toepassing. Geschillen worden voorgelegd aan de bevoegde rechter in het arrondissement {{arrondissement}}.
+3. Op deze overeenkomst is Nederlands recht van toepassing. Geschillen worden voorgelegd aan de bevoegde rechter in het arrondissement Amsterdam (Rechtbank Amsterdam).
 4. Deze overeenkomst is opgesteld in het Nederlands en het Engels. Bij verschil gaat de Nederlandse tekst voor.
 
 ## Ondertekening
@@ -211,7 +211,7 @@ Zie [`sub-processors.md`](sub-processors.md), versie {{versie}} van {{datum}}. V
 | Dienst | Doel | Regio |
 |---|---|---|
 | Railway Corporation | Hosting web + API, cron, PostgreSQL | Amsterdam (EU West); verwerking buiten EER volgens Railway-DPA |
-| Sendinblue SAS (Brevo) | Transactionele e-mail | EU |
+| Lettermint B.V. | Transactionele e-mail | EU: infrastructuur in Amsterdam (UpCloud) en Duitsland (OVH, versleutelde back-ups) |
 | Sentry (Functional Software, Inc.) | Foutrapportage | Frankfurt (EU) |
 | Cloudflare, Inc. (Turnstile) | Botbescherming | Wereldwijd edge-netwerk |
 
@@ -351,7 +351,7 @@ Processor gives Controller the information and help it reasonably needs for (GDP
 ## Article 14. Liability
 
 1. The parties' liability under this agreement follows the Main Agreement, with these additions:
-   - a. Processor's total liability under this agreement is limited to **{{amount}}** per calendar year;
+   - a. Processor's total liability under this agreement is limited to **€ 1,000** per calendar year;
    - b. the limitation in (a) doesn't apply in case of intent or deliberate recklessness by Processor or its management.
 2. This agreement doesn't limit data subjects' rights under GDPR art. 82. Between the parties, each bears the damage attributable to its own part of the processing (GDPR art. 82(5)).
 
@@ -359,7 +359,7 @@ Processor gives Controller the information and help it reasonably needs for (GDP
 
 1. If this agreement conflicts with the Main Agreement, this agreement prevails as far as the processing of personal data is concerned.
 2. Changes to this agreement are valid only if the parties agree to them in writing. A change to Annex 3 follows Article 7.
-3. Dutch law governs this agreement. Disputes go to the competent court in the district of {{district}}.
+3. Dutch law governs this agreement. Disputes go to the competent court in the district of Amsterdam (the Amsterdam District Court).
 4. This agreement is drawn up in Dutch and English. If they differ, the Dutch text prevails.
 
 ## Signatures
@@ -415,6 +415,6 @@ See [`sub-processors.md`](sub-processors.md), version {{version}} of {{date}}. C
 | Service | Purpose | Region |
 |---|---|---|
 | Railway Corporation | Web + API hosting, cron, PostgreSQL | Amsterdam (EU West); processing outside the EEA under Railway's DPA |
-| Sendinblue SAS (Brevo) | Transactional email | EU |
+| Lettermint B.V. | Transactional email | EU: infrastructure in Amsterdam (UpCloud) and Germany (OVH, encrypted backups) |
 | Sentry (Functional Software, Inc.) | Error reporting | Frankfurt (EU) |
 | Cloudflare, Inc. (Turnstile) | Bot protection | Global edge network |

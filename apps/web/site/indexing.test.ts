@@ -1,6 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import { noindexValue, robotsHeader, robotsTxt, sitemapEntries } from './indexing';
-import { builtPages, siteIndexable, sitePagePath, unlistedPages } from './routes';
+import {
+  builtPages,
+  type SitePage,
+  siteIndexable,
+  sitePagePath,
+  sitePaths,
+  unlistedPages,
+} from './routes';
 import { pageUrl } from './seo';
 
 const production = { RAILWAY_ENVIRONMENT_NAME: 'production' };
@@ -8,15 +15,20 @@ const preview = { RAILWAY_ENVIRONMENT_NAME: 'pr-644' };
 const development = { RAILWAY_ENVIRONMENT_NAME: 'development' };
 const local = {};
 
-describe('F064 until go-live (#648) the one switch is off', () => {
-  it('siteIndexable is false', () => {
-    expect(siteIndexable).toBe(false);
+describe('F064 since go-live (#648) the one switch is on, for production only', () => {
+  it('siteIndexable is true', () => {
+    expect(siteIndexable).toBe(true);
   });
 
   it('the defaults of the functions read the switch and the real environment', () => {
-    // Nothing indexable, whatever the environment says, while the switch is off.
-    expect(robotsHeader('/', production)).toBe(noindexValue);
-    expect(robotsTxt(production)).toMatchObject({ rules: { disallow: '/' } });
+    // Production is indexable; every other environment is not, with the switch on.
+    expect(robotsHeader('/', production)).toBeUndefined();
+    expect(robotsHeader('/', preview)).toBe(noindexValue);
+    expect(robotsTxt(production)).toEqual({
+      rules: { userAgent: '*', allow: '/' },
+      sitemap: 'https://fivvi.app/sitemap.xml',
+    });
+    expect(robotsTxt(preview)).toEqual({ rules: { userAgent: '*', disallow: '/' } });
   });
 });
 
@@ -57,6 +69,12 @@ describe('F064 AC13 the noindex header, decided per request', () => {
       '/sitemap.xml',
       '/site-images/home.webp',
       '/site-og/nl/home',
+      // The favicon files and the wordmark (#669): a search engine fetches the icon of the site.
+      '/favicon.ico',
+      '/icon.svg',
+      '/icon.png',
+      '/apple-icon.png',
+      '/site-images/brand/fivvi-logo.svg',
     ]) {
       expect(productionOpen(path)).toBeUndefined();
     }
@@ -80,11 +98,18 @@ describe('F064 AC13 the noindex header, decided per request', () => {
     }
   });
 
-  it('production, switch on: a page nothing links to yet (the demo page) says noindex', () => {
-    for (const page of unlistedPages) {
-      for (const locale of ['nl-NL', 'en'] as const) {
-        expect(productionOpen(sitePagePath(page, locale))).toBe(noindexValue);
-      }
+  it('production, switch on: the demo page is a built page now, and is open in both languages', () => {
+    expect(builtPages).toContain('demo');
+    expect(productionOpen(sitePagePath('demo', 'nl-NL'))).toBeUndefined();
+    expect(productionOpen(sitePagePath('demo', 'en'))).toBeUndefined();
+  });
+
+  it('production, switch on: a page that is not in the built list says noindex', () => {
+    const withoutDemo = builtPages.filter((page) => page !== 'demo');
+
+    for (const locale of ['nl-NL', 'en'] as const) {
+      const path = sitePagePath('demo', locale);
+      expect(robotsHeader(path, production, true, withoutDemo)).toBe(noindexValue);
     }
   });
 
@@ -138,12 +163,27 @@ describe('F064 AC13 sitemap.xml', () => {
     }
   });
 
-  it('leaves out the pages that are not built yet, and invents no date', () => {
+  it('lists the demo page in both languages, leaves out a page that is not built, and invents no date', () => {
+    const urls = entries.map((entry) => entry.url);
+
+    expect(urls).toContain(pageUrl('demo', 'nl-NL'));
+    expect(urls).toContain(pageUrl('demo', 'en'));
+    const withoutDemo = sitemapEntries(builtPages.filter((page) => page !== 'demo'));
+    expect(withoutDemo.map((entry) => entry.url)).not.toContain(pageUrl('demo', 'nl-NL'));
     for (const page of unlistedPages) {
-      expect(entries.map((entry) => entry.url)).not.toContain(pageUrl(page, 'nl-NL'));
-      expect(entries.map((entry) => entry.url)).not.toContain(pageUrl(page, 'en'));
+      expect(urls).not.toContain(pageUrl(page, 'nl-NL'));
+      expect(urls).not.toContain(pageUrl(page, 'en'));
     }
     expect(entries.every((entry) => entry.lastModified === undefined)).toBe(true);
+  });
+
+  it('lists every page of the site: no address of sitePaths is missing', () => {
+    const all = (Object.keys(sitePaths) as SitePage[]).flatMap((page) => [
+      pageUrl(page, 'nl-NL'),
+      pageUrl(page, 'en'),
+    ]);
+
+    expect(entries.map((entry) => entry.url).sort()).toEqual(all.sort());
   });
 
   it('follows the list it is given', () => {

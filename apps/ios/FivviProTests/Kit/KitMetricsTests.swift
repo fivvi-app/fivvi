@@ -3,6 +3,7 @@ import XCTest
 import FivviDesignTokens
 
 @testable import FivviPro
+@testable import FivviUI
 
 /// E020: the names and sizes the kit takes from the decisions of `docs/design/prototype-v2/DECISIONS.md` §2. What the
 /// blocks look like drawn is checked in `KitRenderedTests`; how they behave on a screen in `KitGalleryUITests`.

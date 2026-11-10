@@ -983,8 +983,8 @@ describe('F001N native sign-in through the API', () => {
     it('a sign-in through the native routes, with failures and a limit, logs no address, code or token', async () => {
       const output = captureConsole();
       const failing = api({
-        // The provider's error quotes the recipient, as Brevo's would.
-        sendEmail: () => Promise.reject(new Error(`Brevo rejected ${EMAIL}`)),
+        // The provider's error quotes the recipient, as Lettermint's would.
+        sendEmail: () => Promise.reject(new Error(`Lettermint rejected ${EMAIL}`)),
       });
       await failing.app.request('/v1/sign-in/request', jsonPost({ email: EMAIL, locale: 'en' }));
       await Promise.all(pending.splice(0));
@@ -1055,7 +1055,7 @@ describe('F001N native sign-in through the API', () => {
       const transportOfSentry = createCaptureTransport();
       const errorReporter = createErrorReporter({ env: SENTRY, transport: transportOfSentry });
       const server = api({
-        sendEmail: () => Promise.reject(new Error(`Brevo rejected ${EMAIL}`)),
+        sendEmail: () => Promise.reject(new Error(`Lettermint rejected ${EMAIL}`)),
         // As apps/web wires it.
         reportError: (error) => errorReporter.captureError(error),
       });

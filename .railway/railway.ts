@@ -40,6 +40,11 @@ export default defineRailway((ctx) => {
   const source = github(REPO, { branch: 'main', checkSuites: true });
   const dockerfile = { builder: 'DOCKERFILE', dockerfilePath: 'Dockerfile' } as const;
 
+  // Backups: no setting can be declared here, so there is none. `postgres()` takes only a region,
+  // and Railway's config as code documents no field for point-in-time recovery (PITR), backup
+  // schedules or retention (railway SDK 3.11.0, CLI 5.62.1). The owner sets them with the CLI
+  // (`railway postgres pitr enable|schedule set`); ENVIRONMENTS.md §8 records each one and how to
+  // check it, and apps/cron/test/backups.test.ts fails when this file and §8 disagree.
   // Private network only: no TCP proxy, so Postgres has no public address.
   const db = postgres('postgres', { region: REGION });
 
@@ -83,10 +88,9 @@ export default defineRailway((ctx) => {
       // Dockerfile), so pin it: a mismatch passes the health check but answers 502 publicly.
       PORT: '3000',
       // Transactional email (E006, packages/email). Values are set in the dashboard, never
-      // here: production gets the real Brevo key, development (and so previews) a test key.
-      // Lettermint (ADR-028) takes over as soon as its token is set; without it, Brevo sends.
+      // here: production gets the production Lettermint token (ADR-028), development (and so
+      // previews) a separate one. Production without the token throws on the first email (`readEmailConfig`).
       // The route slugs differ per environment (the owner creates them in Lettermint).
-      BREVO_API_KEY: preserve(),
       LETTERMINT_API_TOKEN: preserve(),
       LETTERMINT_ROUTE_SIGN_IN: preserve(),
       LETTERMINT_ROUTE_MAIL: preserve(),

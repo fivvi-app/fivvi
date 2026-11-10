@@ -5,11 +5,12 @@ import Link from 'next/link';
 import { LanguageSwitch } from './language-switch';
 import { NavLink } from './nav-link';
 import { headerPages, linksTo } from './navigation';
-import { builtPages, type SitePage, siteHomePath } from './routes';
+import { builtPages, type SitePage } from './routes';
+import { SiteLogo } from './site-logo';
 import { siteText } from './text';
 
 /**
- * The header of every site page (F064): the logo, the pages of the product, the language switch,
+ * The header of every site page (F064): the wordmark, the pages of the product, the language switch,
  * *Sign in* and *Plan een demo*. Links to pages that do not exist yet are left out (`built`).
  */
 export function SiteHeader({
@@ -31,14 +32,9 @@ export function SiteHeader({
         {t('site.header.skipToContent')}
       </a>
       <div className="mx-auto flex w-full max-w-295 flex-wrap items-center gap-x-4 gap-y-2 px-[clamp(16px,4vw,40px)] py-2.5">
-        <Link
-          href={siteHomePath(locale)}
-          prefetch={false}
-          className="numeric mr-auto inline-flex items-baseline text-2xl font-extrabold tracking-[-0.02em]"
-        >
-          {t('app.title')}
-          <span aria-hidden="true" className="ml-0.5 size-[7px] rounded-full bg-primary" />
-        </Link>
+        <div className="mr-auto">
+          <SiteLogo locale={locale} place="header" />
+        </div>
         {pages.length > 0 ? (
           <nav
             aria-label={t('site.header.menuLabel')}

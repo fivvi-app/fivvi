@@ -106,6 +106,12 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     surface: property.enum(['web', 'ios', 'android']),
     workspace_count: property.number(),
   },
+  // F005 (spec #610): a trainer or owner changed their own email address with a code. The surface
+  // only (the account's UUID is the distinct ID): never the old or the new address, the code or
+  // the name.
+  email_changed: {
+    surface: property.enum(['web', 'ios', 'android']),
+  },
   // F010: someone chose their interface language. The language and the surface only: the distinct
   // ID is random for each event (`anonymousDistinctId()`), so nothing leads to the account, and no
   // name or email address is recorded.

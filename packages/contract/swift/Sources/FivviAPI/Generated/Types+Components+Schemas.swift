@@ -528,6 +528,82 @@ extension Components {
                 case surface
             }
         }
+        /// The address to send the confirmation code to.
+        ///
+        /// - Remark: Generated from `#/components/schemas/RequestEmailChange`.
+        public struct RequestEmailChange: Codable, Hashable, Sendable {
+            /// The new address, trimmed and stored in lower case. Not an address, or the account’s own current one, answers `400` with a field error on `newEmail`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/RequestEmailChange/newEmail`.
+            public var newEmail: Swift.String
+            /// Creates a new `RequestEmailChange`.
+            ///
+            /// - Parameters:
+            ///   - newEmail: The new address, trimmed and stored in lower case. Not an address, or the account’s own current one, answers `400` with a field error on `newEmail`.
+            public init(newEmail: Swift.String) {
+                self.newEmail = newEmail
+            }
+            public enum CodingKeys: String, CodingKey {
+                case newEmail
+            }
+        }
+        /// The code is wrong, used, replaced, expired or out of attempts, or the address it was sent for has an account by now; nothing says which. Nothing changed. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/InvalidCode`.
+        public struct InvalidCode: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/InvalidCode/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case invalidOrExpiredCode = "invalid_or_expired_code"
+            }
+            /// - Remark: Generated from `#/components/schemas/InvalidCode/code`.
+            public var code: Components.Schemas.InvalidCode.CodePayload
+            /// Creates a new `InvalidCode`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            public init(code: Components.Schemas.InvalidCode.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+            }
+        }
+        /// The code that confirms the new address.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ConfirmEmailChange`.
+        public struct ConfirmEmailChange: Codable, Hashable, Sendable {
+            /// The 6-digit code in the email sent to the new address.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ConfirmEmailChange/code`.
+            public var code: Swift.String
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `email_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ConfirmEmailChange/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `email_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ConfirmEmailChange/surface`.
+            public var surface: Components.Schemas.ConfirmEmailChange.SurfacePayload?
+            /// Creates a new `ConfirmEmailChange`.
+            ///
+            /// - Parameters:
+            ///   - code: The 6-digit code in the email sent to the new address.
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `email_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            public init(
+                code: Swift.String,
+                surface: Components.Schemas.ConfirmEmailChange.SurfacePayload? = nil
+            ) {
+                self.code = code
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+                case surface
+            }
+        }
         /// The personal day of a trainer across all their workspaces.
         ///
         /// - Remark: Generated from `#/components/schemas/MyDay`.

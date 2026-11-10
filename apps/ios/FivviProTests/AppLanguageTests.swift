@@ -2,6 +2,9 @@ import FivviAPI
 import XCTest
 
 @testable import FivviPro
+@testable import FivviStrings
+@testable import FivviLanguage
+@testable import FivviSignIn
 
 /// F010: the language the app shows, the choice on this device and the account's stored preference. The device is
 /// English unless a test says otherwise, whatever language the test plan runs in.

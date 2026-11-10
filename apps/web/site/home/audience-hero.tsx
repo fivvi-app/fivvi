@@ -23,6 +23,8 @@ export interface AudienceView {
 interface AudienceState {
   current: AudienceId;
   select: (id: AudienceId) => void;
+  /** Whether the visitor has chosen: only a change rises into view, not the page's first screen. */
+  rises: boolean;
   views: readonly AudienceView[];
   locale: Locale;
   /** The description of every screen, by id. */
@@ -54,12 +56,24 @@ export function AudienceHero({
   alts: Record<ShotId, string>;
   children: ReactNode;
 }) {
-  const [current, select] = useState<AudienceId>(views[0]?.id ?? 'gym');
+  const [current, setCurrent] = useState<AudienceId>(views[0]?.id ?? 'gym');
+  const [rises, setRises] = useState(false);
+  const select = (id: AudienceId) => {
+    setRises(true);
+    setCurrent(id);
+  };
   return (
-    <AudienceContext value={{ current, select, views, locale, alts }}>{children}</AudienceContext>
+    <AudienceContext value={{ current, select, rises, views, locale, alts }}>
+      {children}
+    </AudienceContext>
   );
 }
 
+/**
+ * The entrance of a new choice. The first one has none: the miniature is the page's largest
+ * picture, and one that fades in from nothing is painted, and counted, only when the fade is over
+ * (AC15, largest contentful paint).
+ */
 const rise =
   'motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-3 motion-safe:duration-500';
 
@@ -88,9 +102,12 @@ export function AudienceSwitch({ label }: { label: string }) {
 
 /** The miniature of the chosen audience, next to the headline. It stands on its own. */
 export function AudienceArt() {
-  const { current } = useAudience();
+  const { current, rises } = useAudience();
   return (
-    <div key={current} className={classes('mx-auto w-full max-w-75 md:max-w-none', rise)}>
+    <div
+      key={current}
+      className={classes('mx-auto w-full max-w-75 md:max-w-none', rises ? rise : undefined)}
+    >
       <Scene
         id={audiences[current].scene}
         priority
@@ -127,11 +144,11 @@ export function AudienceCopy() {
 
 /**
  * The screens of the chosen audience: a laptop and a phone sharing one top and bottom edge, or
- * three phones in a row. The phones load at once, being the page's largest image; the laptop's
- * screen is lazy, since it is not shown at all on a phone.
+ * three phones in a row. They are lazy: the miniature beside the headline is the largest picture,
+ * and the screens must not compete with it for the connection (AC15, LCP).
  */
 export function AudienceStage() {
-  const { current, locale, alts } = useAudience();
+  const { current, rises, locale, alts } = useAudience();
   return (
     <div className="site-stage mt-6.5">
       <StageScreens
@@ -139,7 +156,7 @@ export function AudienceStage() {
         stage={audiences[current].stage}
         locale={locale}
         alts={alts}
-        className={rise}
+        className={rises ? rise : undefined}
       />
     </div>
   );

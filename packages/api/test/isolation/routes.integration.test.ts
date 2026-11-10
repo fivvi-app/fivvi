@@ -3,7 +3,7 @@ import { addClient } from '@fivvi/database/testing';
 import { eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { seedActors } from './actors.ts';
-import { createWorld, seedScenario, type World } from './harness.ts';
+import { createWorld, SWEEP_TIMEOUT_MS, seedScenario, type World } from './harness.ts';
 import { ISOLATION_CASES } from './isolation-cases.ts';
 import { runIsolationSuite } from './suite.ts';
 
@@ -13,28 +13,32 @@ describe('E011 isolation suite', () => {
   let world: World;
 
   beforeAll(async () => {
-    world = await createWorld();
+    world = await createWorld({ observe: false });
   });
 
   afterAll(async () => {
     await world?.close();
   });
 
-  it('AC11: every workspace route, every actor: right status, no A data, A unchanged', async () => {
-    const result = await runIsolationSuite(world, ISOLATION_CASES);
+  it(
+    'AC11: every workspace route, every actor: right status, no A data, A unchanged',
+    async () => {
+      const result = await runIsolationSuite(world, ISOLATION_CASES);
 
-    expect(result.failures).toEqual([]);
-    // It must not pass by looking at nothing: every case was called, with a call per actor.
-    expect(result.operations.toSorted()).toEqual(Object.keys(ISOLATION_CASES).toSorted());
-    expect(result.calls).toBeGreaterThan(Object.keys(ISOLATION_CASES).length * 8);
-  });
+      expect(result.failures).toEqual([]);
+      // It must not pass by looking at nothing: every case was called, with a call per actor.
+      expect(result.operations.toSorted()).toEqual(Object.keys(ISOLATION_CASES).toSorted());
+      expect(result.calls).toBeGreaterThan(Object.keys(ISOLATION_CASES).length * 8);
+    },
+    SWEEP_TIMEOUT_MS,
+  );
 });
 
 describe('F002 the route that creates a workspace, in the isolation suite', () => {
   let world: World;
 
   beforeAll(async () => {
-    world = await createWorld();
+    world = await createWorld({ observe: false });
   });
 
   afterAll(async () => {
@@ -47,28 +51,32 @@ describe('F002 the route that creates a workspace, in the isolation suite', () =
       .from(teamMembers)
       .where(eq(teamMembers.accountId, accountId));
 
-  it('makes a workspace of their own for every allowlisted account, whatever team roles it has (F012)', async () => {
-    const scenario = await seedActors(world);
-    const { clientA, outsider, ownerA, sam } = scenario.actors;
-    const before = await world.admin.db.$count(organizations);
+  it(
+    'makes a workspace of their own for every allowlisted account, whatever team roles it has (F012)',
+    async () => {
+      const scenario = await seedActors(world);
+      const { clientA, outsider, ownerA, sam } = scenario.actors;
+      const before = await world.admin.db.$count(organizations);
 
-    const result = await runIsolationSuite(world, ISOLATION_CASES, {
-      scenario,
-      only: (actor) => [clientA, outsider, ownerA, sam].includes(actor),
-    });
+      const result = await runIsolationSuite(world, ISOLATION_CASES, {
+        scenario,
+        only: (actor) => [clientA, outsider, ownerA, sam].includes(actor),
+      });
 
-    expect(result.failures).toEqual([]);
-    // Four accounts made one each, under RLS.
-    expect(await world.admin.db.$count(organizations)).toBe(before + 4);
-    for (const actor of [clientA, outsider]) {
-      expect(await workspaces(actor.account?.id ?? '')).toEqual([
-        { workspaceId: expect.any(String), role: 'owner' },
-      ]);
-    }
-    // A's owner and Sam have team roles already and now an Owner role in a workspace of their own.
-    expect(await workspaces(ownerA.account?.id ?? '')).toHaveLength(2);
-    expect(await workspaces(sam.account?.id ?? '')).toHaveLength(3);
-  });
+      expect(result.failures).toEqual([]);
+      // Four accounts made one each, under RLS.
+      expect(await world.admin.db.$count(organizations)).toBe(before + 4);
+      for (const actor of [clientA, outsider]) {
+        expect(await workspaces(actor.account?.id ?? '')).toEqual([
+          { workspaceId: expect.any(String), role: 'owner' },
+        ]);
+      }
+      // A's owner and Sam have team roles already and now an Owner role in a workspace of their own.
+      expect(await workspaces(ownerA.account?.id ?? '')).toHaveLength(2);
+      expect(await workspaces(sam.account?.id ?? '')).toHaveLength(3);
+    },
+    SWEEP_TIMEOUT_MS,
+  );
 });
 
 describe('E011 account routes', () => {

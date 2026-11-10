@@ -2,6 +2,7 @@
 
 import { SIGN_IN_PAGE } from '@fivvi/auth/return-path';
 import { Label } from '@fivvi/ui/components/label';
+import { ErrorLine } from '@fivvi/ui/kit/error-line';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useId, useState } from 'react';
@@ -70,12 +71,12 @@ export function TrainsHereSwitch({
         />
         <Label htmlFor={id}>{t('label', { workspace: workspaceName })}</Label>
       </div>
-      {failure ? (
-        <p id={`${id}-error`} role="alert" className="text-status-danger-fg">
-          {t(`errors.${failure}`)}
+      {failure ? <ErrorLine id={`${id}-error`}>{t(`errors.${failure}`)}</ErrorLine> : null}
+      {saved ? (
+        <p role="status" className="text-sm font-semibold text-status-success-text">
+          {t('saved')}
         </p>
       ) : null}
-      {saved ? <p role="status">{t('saved')}</p> : null}
     </div>
   );
 }

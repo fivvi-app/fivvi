@@ -1,6 +1,7 @@
 import { isProductionEnvironment } from '@fivvi/email';
 import { locales } from '@fivvi/i18n';
 import type { MetadataRoute } from 'next';
+import { ICON_FILES } from './icons';
 import { builtPages, type SitePage, siteIndexable, sitePageAt } from './routes';
 import { pageUrl, siteOrigin } from './seo';
 
@@ -10,7 +11,7 @@ type Env = Readonly<Record<string, string | undefined>>;
 export const noindexValue = 'noindex, nofollow';
 
 /** The files and generated images that stay findable once the site is: the crawler fetches them. */
-const OPEN_FILES = ['/robots.txt', '/sitemap.xml'];
+const OPEN_FILES: readonly string[] = ['/robots.txt', '/sitemap.xml', ...ICON_FILES];
 const OPEN_PREFIXES = ['/site-images/', '/site-og/'];
 
 /**
@@ -25,9 +26,9 @@ function mayBeIndexed(env: Env, indexable: boolean): boolean {
 
 /**
  * The `X-Robots-Tag` value for a request path, or `undefined` when the page may be indexed (AC13).
- * Everything says `noindex` except, in production once the switch is on, the built pages of the
- * site and the files a crawler needs. The app, sign-in, booking and join pages, the API and the
- * pages nothing links to yet (the demo page) say `noindex` there too. The route guard (`proxy.ts`)
+ * Everything says `noindex` except, in production while the switch is on, the built pages of the
+ * site (the demo page included) and the files a crawler needs. The app, sign-in, booking and join
+ * pages, the API and any page that is not in the built list say `noindex` there too. The route guard (`proxy.ts`)
  * sends it, which keeps every site page static: the page's markup does not depend on the request.
  */
 export function robotsHeader(
@@ -60,7 +61,7 @@ export function robotsTxt(
 /**
  * `sitemap.xml` (AC13): every built page in both languages, each with the alternates in `nl`, `en`
  * and `x-default`. No `lastmod`: a date the pages do not know would be made up. Pages that are not
- * built yet (`unlistedPages`) are left out.
+ * built (not in the list given) are left out.
  */
 export function sitemapEntries(pages: readonly SitePage[] = builtPages): MetadataRoute.Sitemap {
   return pages.flatMap((page) =>

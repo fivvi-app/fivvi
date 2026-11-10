@@ -1,9 +1,6 @@
-export { type BrevoTransportOptions, createBrevoTransport } from './brevo.ts';
 export {
-  type BrevoEmailConfig,
   type EmailConfig,
   type LettermintConfig,
-  type LettermintEmailConfig,
   type LettermintRoutes,
   readEmailConfig,
 } from './config.ts';
@@ -52,6 +49,8 @@ export {
 export {
   type DemoRequestEmailProps,
   demoRequestEmail,
+  type EmailChangeCodeEmailProps,
+  emailChangeCodeEmail,
   type HelloEmailProps,
   helloEmail,
   type PrivateSessionEmailProps,

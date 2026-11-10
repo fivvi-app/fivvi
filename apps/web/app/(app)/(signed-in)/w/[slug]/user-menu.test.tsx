@@ -6,7 +6,10 @@ import { UserMenu } from './user-menu';
 import { WorkspaceFrame } from './workspace-frame';
 
 // The menu refreshes the page through the router, which exists only in a running app.
-vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: () => {} }) }));
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: () => {} }),
+  usePathname: () => null,
+}));
 
 // Opening it and choosing a language are in e2e/language.spec.ts. Copy is read from the
 // catalogs, never hard-coded (TESTING.md §5.4).

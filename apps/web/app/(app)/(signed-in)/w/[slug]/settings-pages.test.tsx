@@ -9,7 +9,13 @@ import { LocationForm } from './settings/locations/location-form';
 import { WorkspaceFrame } from './workspace-frame';
 
 // The form refreshes the page through the router, which exists only in a running app.
-vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: () => {} }) }));
+vi.mock('next/navigation', () => ({
+  useRouter: () => ({ refresh: () => {} }),
+  usePathname: () => null,
+}));
+
+/** A section of the navigation has its icon before the label (E020 #626); a page under it has none. */
+const NAV_ICON = '<svg[^>]*aria-hidden="true"[^>]*>.*?</svg>';
 
 // Expected copy is read from the catalogs, never hard-coded (TESTING.md §5.4).
 describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
@@ -88,7 +94,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
 
     expect(html).toMatch(
       new RegExp(
-        `<a[^>]*href="/w/johns-gym/trainers"[^>]*>${escapeHtml(copy.workspaceNav.trainers)}</a>`,
+        `<a[^>]*href="/w/johns-gym/trainers"[^>]*>${NAV_ICON}<span[^>]*>${escapeHtml(copy.workspaceNav.trainers)}</span></a>`,
       ),
     );
   });
@@ -194,7 +200,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     expect(html).toContain(`aria-label="${escapeHtml(copy.workspaceNav.label)}"`);
     expect(html).toMatch(
       new RegExp(
-        `<a[^>]*href="/w/johns-gym/settings/general"[^>]*>${escapeHtml(copy.workspaceNav.settings)}</a>`,
+        `<a[^>]*href="/w/johns-gym/settings/general"[^>]*>${NAV_ICON}<span[^>]*>${escapeHtml(copy.workspaceNav.settings)}</span></a>`,
       ),
     );
   });
@@ -221,7 +227,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     ]) {
       expect(html).toMatch(
         new RegExp(
-          `<a[^>]*href="/w/johns-gym/settings/${path}"[^>]*>${escapeHtml(label as string)}</a>`,
+          `<a[^>]*href="/w/johns-gym/settings/${path}"[^>]*><span[^>]*>${escapeHtml(label as string)}</span></a>`,
         ),
       );
     }
@@ -345,7 +351,7 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
 
     expect(html).toMatch(
       new RegExp(
-        `<a[^>]*href="/w/johns-gym/settings/locations"[^>]*>${escapeHtml(copy.workspaceNav.settingsLocation)}</a>`,
+        `<a[^>]*href="/w/johns-gym/settings/locations"[^>]*><span[^>]*>${escapeHtml(copy.workspaceNav.settingsLocation)}</span></a>`,
       ),
     );
   });

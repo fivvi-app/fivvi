@@ -4,6 +4,7 @@ import OpenAPIRuntime
 import XCTest
 
 @testable import FivviPro
+@testable import FivviSession
 
 /// The auth layer on the real generated `Client`, with a stub transport in place of the network.
 final class AuthMiddlewareTests: XCTestCase {

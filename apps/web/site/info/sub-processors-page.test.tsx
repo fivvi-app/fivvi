@@ -1,4 +1,4 @@
-import { readFileSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
 import { type Locale, locales, messages } from '@fivvi/i18n';
 import { renderToStaticMarkup } from 'react-dom/server';
@@ -28,16 +28,8 @@ function servicesInLegalFile(): string[] {
   return [...new Set(names)];
 }
 
-/**
- * ADR-028 decided that Lettermint replaces Brevo; the cutover is #398, so the code may still use
- * Brevo for now. The legal file is updated by #642 (owner-only) and still says Brevo here, so it
- * stands for Lettermint, the provider the page names. Once #642 has landed the file says Lettermint,
- * this rename does nothing, and this test can drop it.
- */
-const renamedSince: Record<string, string> = { Brevo: 'Lettermint' };
-
 describe('F064 AC11 the sub-processors page stays in step with docs/legal/sub-processors.md', () => {
-  const inFile = servicesInLegalFile().map((name) => renamedSince[name] ?? name);
+  const inFile = servicesInLegalFile();
 
   it('reads the services of the legal file', () => {
     expect(inFile.length).toBeGreaterThanOrEqual(5);
@@ -59,6 +51,57 @@ describe('F064 AC11 the sub-processors page stays in step with docs/legal/sub-pr
   it('is about the email provider of ADR-028, not Brevo', () => {
     expect(subProcessors.map(({ name }) => name)).toContain('Lettermint');
     expect(subProcessors.map(({ name }) => name)).not.toContain('Brevo');
+  });
+});
+
+const agreementFile = path.resolve(
+  import.meta.dirname,
+  '../../../../docs/legal/verwerkersovereenkomst.md',
+);
+
+/** The rows of the sub-processor tables of Annex 3, Dutch first and English second. */
+function agreementRows(): string[][] {
+  const text = readFileSync(agreementFile, 'utf8');
+  const tables = [...text.matchAll(/^\| (?:Dienst|Service) \| .*\n\|[-| ]+\|\n((?:\|.*\n?)+)/gm)];
+  return tables.map(([, body]) => (body ?? '').trim().split('\n'));
+}
+
+describe('E006 the processor agreement names the same email sub-processor as the legal file', () => {
+  it('AC2: has one sub-processor table in Dutch and one in English, with the same services', () => {
+    const tables = agreementRows();
+    const [nl, en] = tables;
+
+    expect(tables).toHaveLength(2);
+    expect(nl?.length).toBe(en?.length);
+    const names = (rows?: string[]) => rows?.map((row) => row.split('|')[1]?.trim());
+    expect(names(nl)).toEqual(names(en));
+  });
+
+  it('AC1: lists Lettermint in both tables, as in the legal file', () => {
+    const legal = readFileSync(legalFile, 'utf8');
+    const region =
+      'EU: infrastructuur in Amsterdam (UpCloud) en Duitsland (OVH, versleutelde back-ups)';
+    const regionEn =
+      'EU: infrastructure in Amsterdam (UpCloud) and Germany (OVH, encrypted backups)';
+    expect(legal).toContain(region);
+    expect(legal).toContain(regionEn);
+
+    const [nl, en] = agreementRows();
+    expect(nl).toContain(`| Lettermint B.V. | Transactionele e-mail | ${region} |`);
+    expect(en).toContain(`| Lettermint B.V. | Transactional email | ${regionEn} |`);
+  });
+
+  it('AC3: no longer names Brevo or Sendinblue anywhere', () => {
+    expect(readFileSync(agreementFile, 'utf8')).not.toMatch(/brevo|sendinblue/i);
+  });
+
+  it('AC3: only the dated records of the replacement still name Brevo in docs/legal', () => {
+    const legalDir = path.dirname(agreementFile);
+    const files = readdirSync(legalDir).filter((name) => name.endsWith('.md'));
+    const naming = files.filter((name) =>
+      /brevo|sendinblue/i.test(readFileSync(path.join(legalDir, name), 'utf8')),
+    );
+    expect(naming).toEqual(['open-questions.md', 'sub-processors.md']);
   });
 });
 
@@ -91,6 +134,16 @@ describe.each(locales)('F064 AC11 the sub-processors page in %s', (locale) => {
       expect(page).toContain(escapeHtml(t.purpose[purpose]));
       expect(page).toContain(escapeHtml(t.region[region]));
     }
+  });
+
+  // AC15: the table scrolls sideways on a phone, so a keyboard must be able to reach it, and a screen
+  // reader must hear what it is (axe: scrollable-region-focusable).
+  it('puts the table that scrolls in a labelled region a keyboard can focus', () => {
+    const page = html(<SubProcessorsPage locale={locale} />);
+    const region = page.match(/<section[^>]*overflow-x-auto[^>]*>/)?.[0] ?? '';
+
+    expect(region).toContain('tabindex="0"');
+    expect(region).toContain(`aria-label="${escapeHtml(t.listLabel)}"`);
   });
 
   it('names Mollie in a separate role, not in the table', () => {

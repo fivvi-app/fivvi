@@ -71,16 +71,23 @@ describe.each(locales)('F064 AC12 the search metadata of a page in %s', (locale)
   });
 });
 
-describe('F064 AC12 a page that is not built yet is not found by a search engine', () => {
-  it('sends noindex for a page that is in unlistedPages, and nothing for a built one', () => {
+describe('F064 AC12 a page that is not built is not found by a search engine', () => {
+  it('sends noindex for a page that is not in the built list, and nothing for a built one', () => {
+    const withoutDemo = builtPages.filter((page) => page !== 'demo');
+
     for (const locale of locales) {
-      expect(pageSeo('demo', locale, { title: 't', description: 'd' }).robots).toEqual({
-        index: false,
-        follow: false,
-      });
-      expect(demoMetadata(locale).robots).toEqual({ index: false, follow: false });
+      expect(pageSeo('demo', locale, { title: 't', description: 'd' }, withoutDemo).robots).toEqual(
+        { index: false, follow: false },
+      );
       expect(pageSeo('home', locale, { title: 't', description: 'd' }).robots).toBeUndefined();
       expect(homeMetadata(locale).robots).toBeUndefined();
+    }
+  });
+
+  it('since go-live (#648) the demo page is built, so its own metadata sends no noindex either', () => {
+    for (const locale of locales) {
+      expect(pageSeo('demo', locale, { title: 't', description: 'd' }).robots).toBeUndefined();
+      expect(demoMetadata(locale).robots).toBeUndefined();
     }
   });
 });
@@ -93,7 +100,7 @@ describe('F064 AC12 every page’s title and description are its own', () => {
       ...(['gyms', 'studios', 'personalTrainers', 'clients'] as const).map(
         (key) => [copy.audience[key].metaTitle, copy.audience[key].metaDescription] as const,
       ),
-      ...(['pricing', 'support', 'subProcessors', 'demo'] as const).map(
+      ...(['pricing', 'support', 'privacy', 'terms', 'subProcessors', 'demo'] as const).map(
         (key) => [copy[key].metaTitle, copy[key].metaDescription] as const,
       ),
     ];
@@ -115,6 +122,7 @@ describe.each(locales)('F064 AC12 the copy of every page with a page file in %s'
   });
 
   it('refuses a page that has none', () => {
-    expect(() => pageCopy('privacy', locale)).toThrow(/privacy/);
+    // Every page of the site has its copy now; a page that is not in the table has none.
+    expect(() => pageCopy('imaginary' as SitePage, locale)).toThrow(/imaginary/);
   });
 });

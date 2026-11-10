@@ -2,6 +2,10 @@ import OpenAPIURLSession
 import SwiftUI
 import FivviAPI
 import FivviDesignTokens
+import FivviSession
+import FivviLanguage
+import FivviUI
+import FivviObservability
 
 @main
 struct FivviProApp: App {
@@ -14,7 +18,12 @@ struct FivviProApp: App {
         ErrorReporting.start()
         let store = KeychainSessionStore()
         store.clearLeftoverTokenAtFirstLaunch()
-        UITestSession.apply(to: store)
+        UITestSession.apply(to: store) { defaults in
+            // A test starts from a phone with no language choice either (F010), and one that remembers no workspace
+            // (F012).
+            AppLanguage.forgetChoice(defaults: defaults)
+            CurrentWorkspaceStore.forget(defaults: defaults)
+        }
         let session = Session(store: store, onSignedOut: ErrorReporting.clearUser)
         let auth = AuthMiddleware(store: store) { await session.tokenRejected() }
         api = Client(serverURL: AppConfiguration.apiBaseURL(), transport: URLSessionTransport(), middlewares: [auth])
@@ -28,6 +37,9 @@ struct FivviProApp: App {
             root
                 .tint(Tokens.Colors.actionPrimaryBg)
                 .preferredColorScheme(LaunchAppearance.colorScheme())
+            #if DEBUG
+                .recordingOpenedLinks()
+            #endif
         }
     }
 

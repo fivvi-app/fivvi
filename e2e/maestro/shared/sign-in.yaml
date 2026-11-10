@@ -1,6 +1,6 @@
 # Sub-flow: sign in on TM-01 with the emailed code, as the seeded account EMAIL (F001, AC1 and AC3). It starts on the
-# email step (the app was launched signed out) and ends on the signed-in home. The code comes from the fake Brevo server
-# that scripts/maestro.sh starts (BREVO_URL), never from a real inbox. Elements are found by id: the Android testTag and
+# email step (the app was launched signed out) and ends on the signed-in home. The code comes from the fake Lettermint server
+# that scripts/maestro.sh starts (LETTERMINT_URL), never from a real inbox. Elements are found by id: the Android testTag and
 # the iOS accessibilityIdentifier, the same on both apps.
 appId: ${APP_ID}
 ---

@@ -65,8 +65,7 @@ same_tree_in_pr() {
 cmd_done() {
   [ $# -eq 1 ] || { [ $# -eq 2 ] && [ "$2" = --check ]; } || usage
   local branch="$1" check="${2:-}" pr state pr_head head wt default
-  read -r pr state pr_head < <(gh pr list --repo "$(repo_slug)" --head "$branch" --state all \
-    --json number,state,headRefOid --jq 'sort_by(.number) | last // empty | "\(.number) \(.state) \(.headRefOid)"') || true
+  read -r pr state pr_head < <(latest_pr_line "$branch") || true
   [ -n "${pr:-}" ] || die "no PR found for '$branch'"
   [ "$state" = MERGED ] || die "PR #$pr is $state, not merged"
 
