@@ -8,6 +8,7 @@
     "./database": "./src/database.ts",
     "./database/server": "./src/database-server.ts",
     "./database/setup": "./src/database-setup.ts",
+    "./import-sample": "./src/import-sample.ts",
     "./vitest": "./src/vitest.ts"
   },
   "scripts": {
@@ -15,7 +16,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "test:integration": "vitest run --config vitest.integration.config.ts",
-    "format:check": "biome format ."
+    "format:check": "biome format .",
+    "generate:import-sample": "node src/scripts/generate-import-sample.ts"
   },
   "dependencies": {
     "pg": "catalog:",
@@ -26,6 +28,7 @@
     "@types/node": "catalog:",
     "@types/pg": "catalog:",
     "drizzle-orm": "catalog:",
+    "fflate": "catalog:",
     "typescript": "catalog:"
   }
 }
