@@ -714,11 +714,10 @@ cmd_finish() {
 # and the run id that acquire printed (`<time> <user@host> pid <n> run <id>`); refresh and release must be given that id,
 # so a run never renews or frees the lock of another. The lock is written to a temporary file and renamed into place, so
 # a reader never sees a half-written lock or a missing one while it is replaced. Every change (acquire, a takeover of an
-# expired lock, refresh, release) reads the lock, decides and writes inside one critical section, guarded by a mutex file
-# next to the lock (`<lock>.mutex`, created with `ln`, which fails when it exists, and holding the pid of its owner), so
-# of racing runs exactly one wins and a refresh and a takeover never both succeed (#1250). The mutex is held for
-# milliseconds and freed on every way out of the script; one whose owner died is broken by the next run. Known limit
-# (ADR-023): two runs breaking the same dead mutex at the same moment, after a run died inside the critical section.
+# expired lock, refresh, release) reads the lock, decides and writes inside one critical section, guarded by a kernel lock
+# (flock) on a file next to the lock (`<lock>.mutex`), so of racing runs exactly one wins and a refresh and a takeover
+# never both succeed (#1250). The kernel frees that lock when its holder exits or dies, so it is never stale, never
+# broken by hand, and the mutex file that stays behind is harmless. Needs perl (on macOS and Linux by default).
 LOCK_TTL=$((3 * 3600))
 lock_file() { echo "${FIVVI_RUN_LOCK:-$NOTES_DIR/factory.lock}"; }
 
@@ -756,36 +755,18 @@ lock_require_own() {
     || die "the run lock is held by another run ($file; it records $([ -n "$LOCK_RUN" ] && echo "run $LOCK_RUN" || echo "no run id")): not touching it"
 }
 
-# Takes the mutex of the lock file $1, waiting up to about 30 seconds for the run that holds it, and frees it on every
-# way out of the script. A mutex whose owner no longer runs is broken: renamed to a name of this run alone, and put
-# back when it turns out to be a live run's.
-LOCK_MUTEX=""
-lock_mutex_drop() { if [ -n "$LOCK_MUTEX" ]; then rm -f "$LOCK_MUTEX"; LOCK_MUTEX=""; fi; }
+# Takes the mutex of the lock file $1: an exclusive kernel lock (flock, through perl, which macOS and Linux both have) on
+# the file `<lock>.mutex`, held on file descriptor 9 until this script exits. Waits up to FIVVI_LOCK_WAIT seconds
+# (default 30) for the run that holds it. The kernel frees the lock when its holder exits or dies, however it dies, so
+# nothing is ever stale and nothing is ever broken by hand; the mutex file itself stays, empty but for the pid of its
+# last holder (informational), and is never removed, because removing a lock file lets a second run lock a new one.
 lock_mutex_take() {
-  local mutex="$1.mutex" tmp holder tries=0
+  local mutex="$1.mutex" wait="${FIVVI_LOCK_WAIT:-30}"
   mkdir -p "$(dirname "$1")"
-  tmp="$(mktemp "$mutex.XXXXXX")"
-  echo "$$" >"$tmp"
-  while ! ln "$tmp" "$mutex" 2>/dev/null; do
-    holder="$(head -n 1 "$mutex" 2>/dev/null || true)"
-    if [[ "$holder" =~ ^[0-9]+$ ]] && ! kill -0 "$holder" 2>/dev/null; then
-      if mv "$mutex" "$mutex.stale.$$" 2>/dev/null; then
-        if [ "$(head -n 1 "$mutex.stale.$$")" != "$holder" ]; then ln "$mutex.stale.$$" "$mutex" 2>/dev/null || true; fi
-        rm -f "$mutex.stale.$$"
-      fi
-      continue
-    fi
-    tries=$((tries + 1))
-    if [ "$tries" -gt 600 ]; then
-      rm -f "$tmp"
-      die "the run lock is busy: $mutex is held by pid ${holder:-unknown}; try again, or remove it by hand once no run is going"
-    fi
-    sleep 0.05
-  done
-  rm -f "$tmp"
-  LOCK_MUTEX="$mutex"
-  trap 'lock_mutex_drop' EXIT
-  trap 'exit 1' HUP INT TERM
+  exec 9>>"$mutex" || die "cannot open the run lock mutex $mutex"
+  perl -MFcntl=:flock -e 'open(my $f, "<&=", 9) or exit 2; alarm $ARGV[0]; flock($f, LOCK_EX) or exit 1' "$wait" \
+    || die "the run lock is busy: $mutex is held by pid $(head -n 1 "$mutex" 2>/dev/null || echo unknown); try again once that run is done"
+  echo "$$" >"$mutex"
 }
 
 cmd_lock() {
