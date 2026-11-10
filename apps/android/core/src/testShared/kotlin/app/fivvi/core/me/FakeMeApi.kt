@@ -1,11 +1,13 @@
 package app.fivvi.core.me
 
 import app.fivvi.api.apis.MeApi
+import app.fivvi.api.models.ConfirmEmailChange
 import app.fivvi.api.models.MeResponse
 import app.fivvi.api.models.MeWorkspace
 import app.fivvi.api.models.MyDay
 import app.fivvi.api.models.MySessions
 import app.fivvi.api.models.MyWorkspace
+import app.fivvi.api.models.RequestEmailChange
 import app.fivvi.api.models.UpdateMeRequest
 import java.util.UUID
 import kotlinx.coroutines.CompletableDeferred
@@ -73,6 +75,13 @@ class FakeMeApi : MeApi {
             )
         }
     }
+
+    /** Changing the email address (F005) has no screen on Android yet, so no test expects it. */
+    override suspend fun requestEmailChange(requestEmailChange: RequestEmailChange): Response<Unit> =
+        error("FakeMeApi.requestEmailChange is not expected in this test")
+
+    override suspend fun confirmEmailChange(confirmEmailChange: ConfirmEmailChange): Response<MeResponse> =
+        error("FakeMeApi.confirmEmailChange is not expected in this test")
 
     /** The personal day and sessions (F013) have no screen on Android yet, so no test expects them. */
     override suspend fun getMyDay(date: String, surface: MeApi.SurfaceGetMyDay?): Response<MyDay> =

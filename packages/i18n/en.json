@@ -198,6 +198,13 @@
       "validity": "The code and the sign-in link work for {minutes, plural, one {# minute} other {# minutes}}.",
       "ignore": "Didn't ask for this? You can ignore this email."
     },
+    "emailChangeCode": {
+      "subject": "Your code to change your email address",
+      "preview": "Use code {code} to confirm your new email address for Fivvi.",
+      "intro": "Use this code to confirm your new email address for Fivvi:",
+      "validity": "The code works for {minutes, plural, one {# minute} other {# minutes}}. You'll sign in to Fivvi with this email address from then on.",
+      "ignore": "Didn't ask for this? You can ignore this email. Nothing will change."
+    },
     "trainerInvitation": {
       "subject": "{inviter} invited you to {workspace}",
       "preview": "You're invited to become a trainer at {workspace}.",
