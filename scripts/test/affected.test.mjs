@@ -150,10 +150,12 @@ describe('#293 AC3 AC4: packages and their dependents', () => {
     }
   });
 
-  it('#697: the sub-processors list, the processor agreement and the registry are inputs of the web tests, which read them', () => {
+  it('#697: every text of docs/legal and the registry are inputs of the web tests, which read them', () => {
     for (const path of [
       'docs/legal/sub-processors.md',
       'docs/legal/verwerkersovereenkomst.md',
+      'docs/legal/open-questions.md',
+      'docs/legal/README.md',
       'docs/product/FEATURES.md',
     ]) {
       const result = decide([path]);
@@ -170,24 +172,24 @@ describe('#293 AC3 AC4: packages and their dependents', () => {
     assert.equal(decide(['docs/legal/verwerkersovereenkomst.md']).root, false);
   });
 
-  it('#697: the brand SVGs run the web tests; the README and the archive of the brand folder stay documentation', () => {
-    assert.deepEqual(decide(['docs/design/brand/favicon.svg']).packages, ['@fivvi/web']);
+  it('#697: the brand SVGs, in subfolders too, run the web tests; the README and the archive of the brand folder stay documentation', () => {
+    for (const path of [
+      'docs/design/brand/favicon.svg',
+      'docs/design/brand/day-dial/b2/fivvi-day-dial-b2-light.svg',
+      'docs/design/brand/day-dial/b2/layers/1-background.svg',
+    ]) {
+      assert.deepEqual(decide([path]).packages, ['@fivvi/web'], path);
+    }
     for (const path of ['docs/design/brand/README.md', 'docs/design/brand/archive/old-logo.svg']) {
       assert.deepEqual(decide([path]).packages, [], path);
     }
     assert.equal(decide(['docs/design/brand/README.md']).docs, true);
   });
 
-  it('F064 AC10: the other texts of docs/legal stay documentation', () => {
-    for (const path of ['docs/legal/open-questions.md', 'docs/legal/README.md']) {
-      const result = decide([path]);
-      assert.deepEqual(result.packages, [], path);
-      assert.equal(result.docs, true, path);
-    }
-  });
-
   // The list of files the web app reads from docs/ is kept by hand in scripts/affected.mjs; this derives it from the
-  // code instead, so a test that starts reading a new file of docs/ fails here until the list names it.
+  // code instead, so a test that starts reading a new file of docs/ fails here until the list names it. It finds only
+  // literal paths ('../../docs/legal/x.md', a directory too), not ones built with path.join or path.dirname; a read
+  // of a directory counts for every file under it, except the ones that are documentation only (DOCS_ONLY below).
   it('#697: every file of docs/ that code in apps/web reads makes the web app affected', () => {
     const webRoot = join(SCRIPTS, '..', 'apps', 'web');
     const references = new Set();
@@ -214,12 +216,15 @@ describe('#293 AC3 AC4: packages and their dependents', () => {
         .filter((entry) => entry.isFile())
         .map((entry) => relative(repo, join(entry.parentPath, entry.name)));
     };
+    const DOCS_ONLY = [/^docs\/design\/brand\/README\.md$/, /^docs\/design\/brand\/archive\//];
     for (const reference of references) {
-      const files = filesUnder(reference);
-      assert.ok(
-        files.some((file) => decide([file]).packages.includes('@fivvi/web')),
-        `${reference} is read by the web app, but no change to it affects @fivvi/web: add it to DOCS_INPUT_OF_PACKAGE in scripts/affected.mjs and to the test inputs of apps/web/turbo.json`,
-      );
+      for (const file of filesUnder(reference)) {
+        if (DOCS_ONLY.some((pattern) => pattern.test(file))) continue;
+        assert.ok(
+          decide([file]).packages.includes('@fivvi/web'),
+          `${file} (read through ${reference}) is read by the web app, but a change to it does not affect @fivvi/web: add it to DOCS_INPUT_OF_PACKAGE in scripts/affected.mjs and to the test inputs of apps/web/turbo.json`,
+        );
+      }
     }
   });
 
