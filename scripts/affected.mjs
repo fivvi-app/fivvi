@@ -56,7 +56,12 @@ const MARKDOWN_READ_BY_TESTS = [
 // depends on it. compose.yaml is the Postgres image the integration and e2e tests run against (CI's service containers
 // use the same one, which a root test checks): a new version must run them again, not reuse a cached result. It also
 // affects the root tests, which compare the two.
-const INPUT_OF_PACKAGE = new Map([['compose.yaml', '@fivvi/database']]);
+// The Railway config and the environments doc are read by the cron tests (the schedule E012, the backups E016).
+const INPUT_OF_PACKAGE = new Map([
+  ['compose.yaml', '@fivvi/database'],
+  ['.railway/railway.ts', '@fivvi/cron'],
+  ['docs/engineering/ENVIRONMENTS.md', '@fivvi/cron'],
+]);
 
 // Markdown that is the input of a package, not documentation: the web app renders the privacy policy and the terms when
 // it is built (F064, AC10), so an open value in one must fail the web build and tests here, not on Railway after the
