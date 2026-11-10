@@ -1,6 +1,6 @@
 # Observability
 
-What Fivvi reports about itself, and what it never sends ([ADR-013](../decisions/ADR-013-observability.md), spec [#32](https://github.com/fivvi-app/fivvi/issues/32)). Errors go to **Sentry (EU region)**, product events and page views to **PostHog (EU Cloud)**. This document covers error reporting for the API, the cron job and the web app (server and browser), server product events (§4), the web app's page views (§5) how to tell that the cron runs and what it did (§6) and the alerts the runbooks start from (§7). Per native app:
+What Fivvi reports about itself, and what it never sends ([ADR-013](../decisions/ADR-013-observability.md), spec [#32](https://github.com/fivvi-app/fivvi/issues/32)). Errors go to **Sentry (EU region)**, product events and page views to **PostHog (EU Cloud)**. This document covers error reporting for the API, the cron job and the web app (server and browser), server product events (§4), the web app's page views (§5), how to tell that the cron runs and what it did (§6) and the alerts the runbooks start from (§7). Per native app:
 
 - Android: crash reporting, §1 "Android".
 - iOS: crash reporting, §1 "iOS".

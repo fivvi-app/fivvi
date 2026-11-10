@@ -32,7 +32,7 @@ curl -fsS https://web-production-d3fe2.up.railway.app/api/v1/health
 |---|---|---|---|
 | 1 | The gym cannot work, or data may be lost or exposed | The health check fails for more than 10 minutes; nobody can sign in or book; the database is gone or wrong; one workspace saw another's data (also run [runbook 2](#2-personal-data-breach)) | The owner, **by phone or WhatsApp within 1 hour** of confirming it |
 | 2 | Something important is broken but the gym can work around it | Emails do not arrive; the `cron` fails or misses runs; one screen or flow fails; slow responses | The owner, by email |
-| 3 | Small or cosmetic, or one person is affected | One client's problem, a wrong label, a single error with no pattern | Only if the gym asks; reply to support within 2 working days |
+| 3 | Small or cosmetic, or one person is affected | One client's problem, a wrong label, a single error with no pattern | The owner, by email otherwise; reply to support within 2 working days |
 
 The phone and email rules are the proposal accepted for this cut (`docs/legal/open-questions.md` Q14: support at `support@fivvi.app` and the business phone number, reply within 2 working days). A breach has its own deadlines in runbook 2.
 
@@ -73,7 +73,7 @@ The phone and email rules are the proposal accepted for this cut (`docs/legal/op
 
 **It is over when** the health check answers 200 and UptimeRobot is green again, the Sentry issue has no new events on the fixed release, the `cron` has checked in `ok` on its next run (the monitor `cron` is green, [OBSERVABILITY.md §6.3](OBSERVABILITY.md#63-the-sentry-cron-monitor)), the gym has been told it is fixed, and the incident note exists.
 
-**The post-incident note** is a file `docs/pilot/incident-<YYYY-MM-DD>-<slug>.md`, written by the owner or by an agent from the facts the owner gives it, in a PR. It holds: the severity; the times (UTC) it started, was found, was fixed and the gym was told; what happened and why; what we did; what we change so it does not happen again (a test, an alert, a step in a runbook), each as an issue; and the lessons. **No personal data:** categories and counts only, workspaces by slug.
+**The post-incident note** is a file `docs/pilot/incident-<YYYY-MM-DD>-<slug>.md`, written by the owner or by an agent from the facts the owner gives it, in a PR. It holds: the severity; the times (UTC) it started, was found, was fixed and the gym was told; what happened and why; what we did; what we change so it does not happen again (a test, an alert, a step in a runbook), each as an issue; and the lessons. **No personal data:** categories and counts only. **Nothing that identifies a gym, a workspace slug or a person:** this repository is public, so name a workspace only by an opaque reference.
 
 ## 2. Personal-data breach
 
@@ -92,7 +92,11 @@ Do not wait for the 48 hours. Every hour counts for the gym.
    - A leaked secret: rotate it. For the database roles, set a new value without printing it and redeploy `web` so the release step updates the role ([ENVIRONMENTS.md §7](ENVIRONMENTS.md#7-variables)), for example for the app role:
 
      ```bash
-     openssl rand -hex 24 | railway variable set APP_DATABASE_PASSWORD --stdin --service web --environment production
+     openssl rand -hex 24 | railway variable set APP_DATABASE_PASSWORD --stdin -p $P --service web --environment production
+     ```
+
+     ```bash
+     railway redeploy -p $P -e production -s web -y
      ```
 
      Rotating `BETTER_AUTH_SECRET` signs everyone out and voids pending sign-in emails; a leaked provider token (Lettermint, Sentry, PostHog) is rotated in that provider's dashboard and then set in `production` the same way. The owner does all of this; an agent never reads or sets a value.
@@ -110,7 +114,7 @@ Do not wait for the 48 hours. Every hour counts for the gym.
 5. **Gym owner. Decides and notifies.** The gym decides whether it notifies the Autoriteit Persoonsgegevens ([Meldloket datalekken](https://datalekken.autoriteitpersoonsgegevens.nl/)) within **72 hours** of knowing, and whether it tells the people concerned. The owner answers the gym's questions, quickly, in writing, and gives it the facts it needs for the form. Do not tell the people concerned or the authority yourself.
 6. **Owner and agent. Fix and prevent.** Fix the cause forward with a test that fails first ([runbook 1](#1-incident-response), step 6). If data was changed or lost, the restore runbook applies (added by its own ticket) with [ENVIRONMENTS.md §8](ENVIRONMENTS.md#8-backups).
 7. **Owner. Keep the facts.** Record the dates and times (UTC) of discovery, of telling the gym and of every message, and what the gym decided. Do not delete logs that show what happened.
-8. **Owner. Add a row to the [breach register](../pilot/breach-register.md)** (art. 6(5)), also for a breach that needed no notice, with the measures taken. Link the incident note. **No personal data** in either.
+8. **Owner. Add a row to the [breach register](../pilot/breach-register.md)** (art. 6(5)), also for a breach that needed no notice, with the measures taken. Link the incident note. The register is in a public repository: a row holds only the date, an opaque reference and the category, and **nothing that identifies a gym, workspace or person**. Rows removed later stay in git history.
 
 **It is over when** the cause is fixed and deployed, nothing more is leaking, the gym has had the written notice and everything it asked for, the register row is complete and closed, and the incident note lists what we change.
 
@@ -135,17 +139,17 @@ Do not wait for the 48 hours. Every hour counts for the gym.
 
    A rollback runs the old image **without its pre-deploy step** and does not undo migrations, which is why every migration must work with the code already deployed ([ENVIRONMENTS.md §5](ENVIRONMENTS.md#5-migrations)). The `cron` does not migrate.
 3. **Owner. Check it:** the health check (above), the new deployment's status in the list, UptimeRobot green. For the `cron`, wait for its next run (every 5 minutes) and see the Sentry monitor `cron` go `ok` ([OBSERVABILITY.md §6.3](OBSERVABILITY.md#63-the-sentry-cron-monitor)).
-4. **Agent (when asked). Revert the change on `main`** with a PR, so that the next deploy does not bring it back. Find the merge commit in `git log`, then in a worktree:
+4. **Agent (when asked). Revert the change on `main`** with a PR, so that the next deploy does not bring it back. Find the squash commit of the change in `git log` (`main` has only squash commits), then in a worktree:
 
    ```bash
    scripts/wt.sh add fix/revert-<slug>
    ```
 
    ```bash
-   git revert -m 1 <merge-commit>
+   git revert <squash-commit>
    ```
 
-   Use `-m 1` for a merge commit and drop it for a squash commit. Then `scripts/pr.sh create`; the PR goes through review and the merge queue like any other.
+   Then `scripts/pr.sh create`; the PR goes through review and the merge queue like any other.
 5. **Owner. Tell the gym** if it noticed, as runbook 1 says, and write the incident note if the severity was 1 or 2.
 
 **Steps (a migration).** The database is fixed forward, never rolled back by hand.
@@ -166,11 +170,11 @@ Do not wait for the 48 hours. Every hour counts for the gym.
 
 1. **Owner. Try the other ways first.** Ask the gym owner to look in their own screens, or to share their screen with you. Check Sentry (scrubbed), the `cron` records (`job_runs`) and a reproduction on `development` with synthetic data. Most questions end here, with no access.
 2. **Owner. Get the gym's request or make sure it knows.** A support email from the gym is the request. For an incident, tell the gym what you need to look at and why before you look, or as soon as you can if it cannot wait; say so in the log row.
-3. **Owner. Write the row first** in the [support access log](../pilot/support-access-log.md): the date and time (UTC), the workspace slug, why, how the gym knew, and what kind of data you will look at. **No personal data in the log.**
+3. **Owner. Write the row first** in the [support access log](../pilot/support-access-log.md): the date and time (UTC), an opaque reference (a number you keep in your own records, never the workspace slug or name), why in a category, how the gym knew, and what kind of data you will look at. **Nothing that identifies a gym, a workspace, a person or a client goes in the log**: this repository is public.
 4. **Owner. Look at the least you need.** Postgres has no public address, so the owner reads data through the Railway dashboard, the `postgres` service of `production`, its *Data* tab, with `select` queries only. Count first, then select only the columns and rows you need; never export a table or copy data out of the dashboard. **Note content only when there is no other way** (it may be health data, art. 13 of the processor agreement): say in the log why, and look only at the one note. Do not run `railway connect` or open a shell in a service for this.
 5. **Owner. Share nothing that is personal.** To get help from an agent, describe the problem in words, counts and ids of nothing real: "bookings of one day show the wrong time zone", not the rows.
 6. **Owner. Close the row** with the time you stopped and whether note content was viewed. Answer the gym in writing: what you found and what you changed. If you changed data, do it through the product's own paths where there are any; a hand edit is a migration or a fix in a PR, not a session in the dashboard.
-7. **Gym owner.** Can ask for the rows about its workspace at any time; send them, from the log, with the other workspaces' rows removed.
+7. **Gym owner.** Can ask for the rows about its workspace at any time; send the rows that carry the reference you keep for its workspace, from the log, without the other rows.
 
 **It is over when** the question is answered, the log row is complete, and nothing was copied out of production.
 
@@ -178,7 +182,14 @@ Do not wait for the 48 hours. Every hour counts for the gym.
 
 **Trigger.** Pilot setup (before real data), every quarter (with the restore drill), and whenever a provider or a plan changes. These are the values the retention policy promises ([retention-policy.md](../legal/retention-policy.md) R13, R15, R16, R17, R18; I5: the retention at providers is set to the values and recorded here). The privacy policy stays true only while they hold.
 
-**Steps.** For each provider, **the owner** (logins are the owner's, [tools.md](../agents/tools.md#what-needs-the-owner)) opens the place in the table, reads the value, sets it if it is not the value to set, and writes the date and the value seen in *Last checked*. No agent reads a setting here. Where a provider fixes a value and it cannot be set, record the value it shows and, if it is over the policy, the exception (`retention-policy.md` has it for Lettermint).
+**Steps.** All of them are the owner's: the logins are the owner's ([tools.md](../agents/tools.md#what-needs-the-owner)) and no agent reads a setting here.
+
+1. **Owner. Open the place** in the table for the provider, in the provider's dashboard.
+2. **Owner. Read the value** that is set now.
+3. **Owner. Set it** if it is not the value to set. Where a provider fixes a value and it cannot be set, record the value it shows.
+4. **Owner. Check it against the policy.** If a fixed value is over the policy, write the exception in `retention-policy.md` (it has one for Lettermint).
+5. **Owner. Write the date and the value you saw** in *Last checked*, in a PR.
+6. Repeat for every row of the table.
 
 | Provider | Policy | Value to set | Where it is set | Last checked (owner fills in) |
 |---|---|---|---|---|
@@ -186,6 +197,6 @@ Do not wait for the 48 hours. Every hour counts for the gym.
 | PostHog (events and page views, R17) | 12 months | 12 months | PostHog EU project settings: data retention | not yet checked |
 | Lettermint (delivery logs, R18) | at most 30 days | Fixed by Lettermint, not settable: 28 days for message content, recipients, metadata and events (within R18), 90 days for analytics events (over it: the recorded exception in R18). "Hide email content" **on** for the sign-in route | Lettermint dashboard: the route's settings for "Hide email content"; retention is Lettermint's ([sub-processors.md](../legal/sub-processors.md)) | not yet checked |
 | Railway logs (application and hosting logs, R13) | at most 30 days (or the plan's, if shorter) | The plan's own: not a setting. Read the retention of the current plan on Railway's plan page and write it here; it must be 30 days or less | Railway, the workspace's plan page; recorded here | not yet checked |
-| Backups (R16) | at most 30 days | PITR window at most 28 days; the daily backup kept 6 days; never the monthly schedule | Railway CLI, by the owner; the commands and the exact values are in [ENVIRONMENTS.md §8](ENVIRONMENTS.md#8-backups) | not yet checked |
+| Backups (R16) | at most 30 days | Fixed by Railway, not settable: point-in-time recovery keeps the last 4 full backups, roughly 4 weeks ([Railway: point-in-time recovery](https://docs.railway.com/volumes/point-in-time-recovery)). The owner checks that this stays within 30 days and records what the dashboard shows | Railway dashboard, the `postgres` service's backups, by the owner; the backup commands and values are set out in §8 of [ENVIRONMENTS.md](ENVIRONMENTS.md#8-backups) once #1039 is merged | not yet checked |
 
 **It is over when** every row has a date and a value the owner saw, a value over the policy has its exception written in `retention-policy.md` (by the owner, `docs/legal/` is the owner's), and the privacy policy still says what is true.
