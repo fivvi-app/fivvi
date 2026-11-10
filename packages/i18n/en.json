@@ -221,6 +221,14 @@
       "where": "Where: {location}",
       "trainer": "Trainer: {trainer}"
     },
+    "privateSessionMoved": {
+      "subject": "Change: your session on {oldDate} has moved to {newDate}",
+      "dateTime": "{date} at {time}",
+      "preview": "Your private session has moved to {newDate}.",
+      "intro": "Your private session at {workspace} has moved.",
+      "previously": "Previously: {date}, {start} to {end}",
+      "now": "Now: {date}, {start} to {end}"
+    },
     "demoRequest": {
       "subject": "Demo request: {name}",
       "preview": "{business}, {trainers}",
