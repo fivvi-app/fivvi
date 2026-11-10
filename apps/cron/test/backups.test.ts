@@ -45,16 +45,23 @@ function settingRows(): SettingRow[] {
   return rows;
 }
 
-/** Every backup setting the Railway config declares in an environment. */
-async function declaredBackupSettings(environment: string): Promise<Set<string>> {
-  const definition = await program(createRailwayContext({ environment }), project);
-  const json = JSON.stringify(definition.resources);
+/** The backup settings found in the JSON of a Railway definition. */
+function backupSettingsIn(json: string): Set<string> {
   const declared = new Set<string>();
   if (/pitr|point.in.time/i.test(json)) declared.add('PITR');
   for (const match of json.matchAll(/"backupSchedules":\[([^\]]*)\]/g)) {
-    if ((match[1] ?? '').includes('"DAILY"')) declared.add('Daily scheduled backup');
+    // A daily schedule is the documented setting; any other one is a setting the table doesn't know.
+    for (const kind of (match[1] ?? '').match(/"[A-Z_]+"/g) ?? []) {
+      declared.add(kind === '"DAILY"' ? 'Daily scheduled backup' : `Backup schedule ${kind}`);
+    }
   }
   return declared;
+}
+
+/** Every backup setting the Railway config declares in an environment. */
+async function declaredBackupSettings(environment: string): Promise<Set<string>> {
+  const definition = await program(createRailwayContext({ environment }), project);
+  return backupSettingsIn(JSON.stringify(definition.resources));
 }
 
 const READ_ONLY_COMMANDS = [
@@ -84,6 +91,18 @@ describe('E016 backups in ENVIRONMENTS.md §8 and .railway/railway.ts', () => {
     // When nothing can be declared, the file says so, so a reader doesn't look for it.
     if (documented.size === 0) {
       expect(railwayFile).toMatch(/Backups: .*no .*(setting|field)/is);
+    }
+  });
+
+  it('AC1: any backup schedule in the file counts as declared, not only a daily one', () => {
+    const schedule = (...kinds: string[]) =>
+      JSON.stringify({ volumeMounts: [{ backupSchedules: kinds }] });
+    expect([...backupSettingsIn(schedule())]).toEqual([]);
+    expect([...backupSettingsIn(schedule('DAILY'))]).toEqual(['Daily scheduled backup']);
+    for (const kind of ['WEEKLY', 'MONTHLY']) {
+      const declared = backupSettingsIn(schedule(kind));
+      expect(declared.size, `${kind} is a declared backup setting`).toBeGreaterThan(0);
+      expect(declared.has('Daily scheduled backup'), `${kind} is not the daily backup`).toBe(false);
     }
   });
 
