@@ -9,7 +9,7 @@ const PortalContainer = createContext<HTMLElement | null>(null);
  * Where a portal renders: the `PortalDensity` host around the caller, or `undefined`, which is
  * `<body>` (Radix's default, and so the touch density of the root layout). The kit's dialog and
  * menu components pass it as their portal's `container`; a new component with a portal must too
- * (`packages/ui/test/portal-density.test.ts` fails otherwise).
+ * (`packages/ui/test/portal-density.test.tsx` fails otherwise).
  */
 export function usePortalContainer(): HTMLElement | undefined {
   return useContext(PortalContainer) ?? undefined;
