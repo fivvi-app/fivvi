@@ -28,6 +28,26 @@ export async function setAccountName(scope: TenantScope, name: string): Promise<
 }
 
 /**
+ * Stores whether the scope's account gets the emails about bookings in the classes it teaches
+ * (F050). One setting per account, for every workspace. Only the account of the scope is changed.
+ */
+export async function setBookingEmails(scope: TenantScope, bookingEmails: boolean): Promise<void> {
+  await executorOf(scope)
+    .update(authUsers)
+    .set({ bookingEmails })
+    .where(eq(authUsers.id, scope.context.accountId));
+}
+
+/** Whether the scope's account gets the emails about bookings in its classes (F050); on by default. */
+export async function findBookingEmails(scope: TenantScope): Promise<boolean> {
+  const [row] = await executorOf(scope)
+    .select({ bookingEmails: authUsers.bookingEmails })
+    .from(authUsers)
+    .where(eq(authUsers.id, scope.context.accountId));
+  return row?.bookingEmails ?? true;
+}
+
+/**
  * The ID of the account that signs in with the email address (lower case), if there is one. Only
  * the ID, and only to link a client to it (F006 AC4): nothing else of the account is read, so
  * nothing of it can reach an answer.

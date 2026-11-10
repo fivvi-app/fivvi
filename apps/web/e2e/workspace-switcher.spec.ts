@@ -215,7 +215,15 @@ test.describe('F012 the scope switcher on the web', () => {
     expect(cookie?.value).toBe(personalSlug);
     const me = (await (await page.request.get('/api/v1/me')).json()) as Record<string, unknown>;
     expect(Object.keys(me).sort()).toEqual(
-      ['canCreateWorkspace', 'email', 'id', 'name', 'preferredLocale', 'workspaces'].sort(),
+      [
+        'bookingEmails',
+        'canCreateWorkspace',
+        'email',
+        'id',
+        'name',
+        'preferredLocale',
+        'workspaces',
+      ].sort(),
     );
   });
 

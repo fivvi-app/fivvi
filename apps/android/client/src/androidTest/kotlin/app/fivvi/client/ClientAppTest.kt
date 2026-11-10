@@ -252,6 +252,7 @@ class ClientAppTest(@Suppress("UNUSED_PARAMETER") tag: String, private val phone
         } else {
             MeResponse.PreferredLocale.EN
         },
+        bookingEmails = true,
         canCreateWorkspace = false,
         workspaces = emptyList(),
     )

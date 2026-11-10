@@ -268,6 +268,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MeResponse/preferredLocale`.
             public var preferredLocale: Components.Schemas.MeResponse.PreferredLocalePayload?
+            /// Whether the person gets an email when a client books or cancels a class they teach (F050). On for every account until they switch it off. It belongs to the account, so it is the same in every workspace.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeResponse/bookingEmails`.
+            public var bookingEmails: Swift.Bool
             /// Whether the account may set up a workspace: it is on the sign-up allowlist, whether or not it has a workspace already. With no workspace, the first-run screen shows when this is true and the no-access page when it is false. The web and the apps never decide this by rules of their own.
             ///
             /// - Remark: Generated from `#/components/schemas/MeResponse/canCreateWorkspace`.
@@ -283,6 +287,7 @@ extension Components {
             ///   - email: The address the account signs in with.
             ///   - name: The person’s own name; null until one is given (TW-11 asks for it).
             ///   - preferredLocale: The language stored on the account; null until one is stored.
+            ///   - bookingEmails: Whether the person gets an email when a client books or cancels a class they teach (F050). On for every account until they switch it off. It belongs to the account, so it is the same in every workspace.
             ///   - canCreateWorkspace: Whether the account may set up a workspace: it is on the sign-up allowlist, whether or not it has a workspace already. With no workspace, the first-run screen shows when this is true and the no-access page when it is false. The web and the apps never decide this by rules of their own.
             ///   - workspaces: The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed.
             public init(
@@ -290,6 +295,7 @@ extension Components {
                 email: Swift.String,
                 name: Swift.String? = nil,
                 preferredLocale: Components.Schemas.MeResponse.PreferredLocalePayload? = nil,
+                bookingEmails: Swift.Bool,
                 canCreateWorkspace: Swift.Bool,
                 workspaces: [Components.Schemas.MeWorkspace]
             ) {
@@ -297,6 +303,7 @@ extension Components {
                 self.email = email
                 self.name = name
                 self.preferredLocale = preferredLocale
+                self.bookingEmails = bookingEmails
                 self.canCreateWorkspace = canCreateWorkspace
                 self.workspaces = workspaces
             }
@@ -305,6 +312,7 @@ extension Components {
                 case email
                 case name
                 case preferredLocale
+                case bookingEmails
                 case canCreateWorkspace
                 case workspaces
             }
@@ -496,6 +504,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateMeRequest/preferredLocale`.
             public var preferredLocale: Components.Schemas.UpdateMeRequest.PreferredLocalePayload?
+            /// Whether to get an email when a client books or cancels a class the person teaches: `true` or `false`, stored on the account and the same in every workspace. Anything that is not a boolean answers `400` with a field error.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateMeRequest/bookingEmails`.
+            public var bookingEmails: Swift.Bool?
             /// The app that sends the request: `ios` or `android`. A request with a bearer token that changes `preferredLocale` records the `language_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateMeRequest/surface`.
@@ -512,19 +524,23 @@ extension Components {
             /// - Parameters:
             ///   - name: The person’s own name, as shown in every workspace they are on: trimmed, at least one and at most 80 characters. Empty, blank or longer answers `400` with a field error.
             ///   - preferredLocale: The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`.
+            ///   - bookingEmails: Whether to get an email when a client books or cancels a class the person teaches: `true` or `false`, stored on the account and the same in every workspace. Anything that is not a boolean answers `400` with a field error.
             ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token that changes `preferredLocale` records the `language_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             public init(
                 name: Swift.String? = nil,
                 preferredLocale: Components.Schemas.UpdateMeRequest.PreferredLocalePayload? = nil,
+                bookingEmails: Swift.Bool? = nil,
                 surface: Components.Schemas.UpdateMeRequest.SurfacePayload? = nil
             ) {
                 self.name = name
                 self.preferredLocale = preferredLocale
+                self.bookingEmails = bookingEmails
                 self.surface = surface
             }
             public enum CodingKeys: String, CodingKey {
                 case name
                 case preferredLocale
+                case bookingEmails
                 case surface
             }
         }

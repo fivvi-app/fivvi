@@ -875,10 +875,11 @@ describe('F005 change your own email address', () => {
       ]);
     });
 
-    it('keeps PATCH /v1/me to the name and the language', () => {
+    it('keeps PATCH /v1/me to the name, the language and the booking emails', () => {
       const schema = contract.components.schemas.UpdateMeRequest;
 
       expect(Object.keys(schema.properties).toSorted()).toEqual([
+        'bookingEmails',
         'name',
         'preferredLocale',
         'surface',

@@ -63,7 +63,7 @@ export interface paths {
         head?: never;
         /**
          * Change the signed-in account
-         * @description Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load, and the name they gave themselves (`name`), one per account, shown in every workspace they are on. Answers with the account, as `GET /v1/me` does. A language other than `nl-NL` or `en`, or a name that is empty, blank or over 80 characters, answers `400` and nothing changes.
+         * @description Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load, and the name they gave themselves (`name`), one per account, shown in every workspace they are on, and whether they get the emails about bookings in their classes (`bookingEmails`, on until switched off), also one per account. Answers with the account, as `GET /v1/me` does. A language other than `nl-NL` or `en`, a name that is empty, blank or over 80 characters, or a `bookingEmails` that is not a boolean, answers `400` and nothing changes.
          */
         patch: operations["updateMe"];
         trace?: never;
@@ -818,6 +818,8 @@ export interface components {
              * @enum {string|null}
              */
             preferredLocale: "nl-NL" | "en" | null;
+            /** @description Whether the person gets an email when a client books or cancels a class they teach (F050). On for every account until they switch it off. It belongs to the account, so it is the same in every workspace. */
+            bookingEmails: boolean;
             /** @description Whether the account may set up a workspace: it is on the sign-up allowlist, whether or not it has a workspace already. With no workspace, the first-run screen shows when this is true and the no-access page when it is false. The web and the apps never decide this by rules of their own. */
             canCreateWorkspace: boolean;
             /** @description The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed. */
@@ -872,6 +874,8 @@ export interface components {
              * @enum {string}
              */
             preferredLocale?: "nl-NL" | "en";
+            /** @description Whether to get an email when a client books or cancels a class the person teaches: `true` or `false`, stored on the account and the same in every workspace. Anything that is not a boolean answers `400` with a field error. */
+            bookingEmails?: boolean;
             /**
              * @description The app that sends the request: `ios` or `android`. A request with a bearer token that changes `preferredLocale` records the `language_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
              * @enum {string}

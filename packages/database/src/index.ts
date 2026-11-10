@@ -31,9 +31,11 @@ export { recordWrongSignInCode } from './queries/verifications.ts';
 export {
   findAccountForInvitation,
   findAccountIdByEmail,
+  findBookingEmails,
   findPreferredLocaleByEmail,
   nameAccountIfEmpty,
   setAccountName,
+  setBookingEmails,
   setPreferredLocale,
 } from './repositories/accounts.ts';
 export {
