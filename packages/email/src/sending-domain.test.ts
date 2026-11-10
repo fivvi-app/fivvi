@@ -47,14 +47,18 @@ describe('F049 AC8: sending-domain check', () => {
     ]);
   });
 
-  it('accepts a root SPF record that includes Lettermint', async () => {
+  it('fails SPF when only the root record includes Lettermint, and names the Return-Path host', async () => {
+    // Lettermint mail uses the Return-Path lm-bounces.<domain>, so receivers never check the root.
     const zone = {
       ...without(healthy, 'lm-bounces.fivvi.app'),
       'fivvi.app': { txt: ['v=spf1 include:spf.lmta.net -all'] },
     };
     const report = await checkSendingDomain('fivvi.app', fakeResolver(zone));
+    const spf = report.checks.find((check) => check.name === 'SPF');
 
-    expect(report.checks.find((check) => check.name === 'SPF')?.ok).toBe(true);
+    expect(report.ok).toBe(false);
+    expect(spf?.ok).toBe(false);
+    expect(spf?.detail).toContain('lm-bounces.fivvi.app');
   });
 
   it('accepts p=reject as well', async () => {
@@ -63,17 +67,17 @@ describe('F049 AC8: sending-domain check', () => {
     expect((await checkSendingDomain('fivvi.app', fakeResolver(zone))).ok).toBe(true);
   });
 
-  it('fails SPF when the record does not include Lettermint', async () => {
+  it('fails SPF when the Return-Path host has no SPF record', async () => {
     const zone = {
-      ...without(healthy, 'lm-bounces.fivvi.app'),
-      'fivvi.app': { txt: ['v=spf1 include:_spf.example.com -all'] },
+      ...healthy,
+      'lm-bounces.fivvi.app': { cname: ['bounces.lmta.net'], txt: ['some other text'] },
     };
-    const report = await checkSendingDomain('fivvi.app', fakeResolver(zone));
-    const spf = report.checks.find((check) => check.name === 'SPF');
+    const spf = (await checkSendingDomain('fivvi.app', fakeResolver(zone))).checks.find(
+      (check) => check.name === 'SPF',
+    );
 
-    expect(report.ok).toBe(false);
     expect(spf?.ok).toBe(false);
-    expect(spf?.detail).toContain('Lettermint');
+    expect(spf?.detail).toContain('lm-bounces.fivvi.app');
   });
 
   it('fails SPF when the Return-Path CNAME points somewhere that is not Lettermint', async () => {
@@ -85,11 +89,12 @@ describe('F049 AC8: sending-domain check', () => {
     expect((await checkSendingDomain('fivvi.app', fakeResolver(zone))).ok).toBe(false);
   });
 
-  it('fails SPF on two SPF records at the root, which receivers reject', async () => {
+  it('fails SPF on two SPF records at the Return-Path host, which receivers reject', async () => {
     const zone = {
-      ...without(healthy, 'lm-bounces.fivvi.app'),
-      'fivvi.app': {
-        txt: ['v=spf1 include:spf.lmta.net -all', 'v=spf1 include:other.example -all'],
+      ...healthy,
+      'lm-bounces.fivvi.app': {
+        cname: ['bounces.lmta.net'],
+        txt: [lettermintSpf, 'v=spf1 include:other.example -all'],
       },
     };
 
@@ -217,5 +222,13 @@ describe('F049 AC8: sending-domain check command', () => {
 
     expect(code).toBe(2);
     expect(output).toContain('--domain');
+  });
+
+  it('exits 2 and prints the usage line when --domain is not a domain name', async () => {
+    const { code, output } = await run(healthy, ['--domain', 'not a domain']);
+
+    expect(code).toBe(2);
+    expect(output).toContain('"not a domain" is not a domain name.');
+    expect(output).toContain('Usage:');
   });
 });

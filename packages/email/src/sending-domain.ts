@@ -57,56 +57,22 @@ async function txtRecords(resolver: DnsResolver, name: string): Promise<Lookup<s
 const describeFailure = (answer: Lookup<unknown>, what: string) =>
   'error' in answer ? `${what} could not be looked up (${answer.error})` : `${what} is missing`;
 
-type Attempt = { ok: true; detail: string } | { ok: false; detail: string };
-
-// Lettermint's SPF lives on the Return-Path host, a CNAME to Lettermint, so the root record
-// does not have to change; a root record that includes Lettermint passes as well.
-async function spfViaReturnPath(resolver: DnsResolver, domain: string): Promise<Attempt> {
+// Lettermint sends with the Return-Path `lm-bounces.<domain>`, so receivers check SPF there and
+// never at the root. The host must be a CNAME to Lettermint and resolve to exactly one SPF
+// record; a root record that includes Lettermint does not make mail pass and does not count.
+async function checkSpf(resolver: DnsResolver, domain: string): Promise<CheckResult> {
   const host = `${returnPathLabel}.${domain}`;
+  const fail = (detail: string): CheckResult => ({ name: 'SPF', ok: false, detail });
   const cname = await lookup(() => resolver.resolveCname(host));
-  if (!('found' in cname)) {
-    return { ok: false, detail: `${describeFailure(cname, `CNAME ${host}`)}` };
-  }
+  if (!('found' in cname)) return fail(describeFailure(cname, `CNAME ${host}`));
   if (!cname.found.some(isLettermintHost)) {
-    return { ok: false, detail: `CNAME ${host} does not point to Lettermint (${lettermintZone})` };
+    return fail(`CNAME ${host} does not point to Lettermint (${lettermintZone})`);
   }
   const txt = await txtRecords(resolver, host);
-  if (!('found' in txt))
-    return { ok: false, detail: describeFailure(txt, `SPF record at ${host}`) };
+  if (!('found' in txt)) return fail(describeFailure(txt, `SPF record at ${host}`));
   const spf = txt.found.filter((record) => /^v=spf1(\s|$)/i.test(record));
-  if (spf.length !== 1) {
-    return { ok: false, detail: `${host} has ${spf.length} SPF records, expected exactly one` };
-  }
-  return { ok: true, detail: `${host} -> Lettermint, with one SPF record` };
-}
-
-async function spfAtRoot(resolver: DnsResolver, domain: string): Promise<Attempt> {
-  const txt = await txtRecords(resolver, domain);
-  if (!('found' in txt))
-    return { ok: false, detail: describeFailure(txt, `SPF record at ${domain}`) };
-  const spf = txt.found.filter((record) => /^v=spf1(\s|$)/i.test(record));
-  if (spf.length === 0) return { ok: false, detail: `${domain} has no SPF record` };
-  if (spf.length > 1) {
-    return { ok: false, detail: `${domain} has ${spf.length} SPF records, expected exactly one` };
-  }
-  const includesLettermint = spf[0]
-    ?.split(/\s+/)
-    .some((term) => term.toLowerCase().startsWith('include:') && isLettermintHost(term.slice(8)));
-  return includesLettermint
-    ? { ok: true, detail: `${domain} has one SPF record that includes Lettermint` }
-    : { ok: false, detail: `the SPF record at ${domain} does not include Lettermint` };
-}
-
-async function checkSpf(resolver: DnsResolver, domain: string): Promise<CheckResult> {
-  const viaReturnPath = await spfViaReturnPath(resolver, domain);
-  if (viaReturnPath.ok) return { name: 'SPF', ...viaReturnPath };
-  const atRoot = await spfAtRoot(resolver, domain);
-  if (atRoot.ok) return { name: 'SPF', ...atRoot };
-  return {
-    name: 'SPF',
-    ok: false,
-    detail: `no SPF record for Lettermint: ${viaReturnPath.detail}; ${atRoot.detail}`,
-  };
+  if (spf.length !== 1) return fail(`${host} has ${spf.length} SPF records, expected exactly one`);
+  return { name: 'SPF', ok: true, detail: `${host} -> Lettermint, with one SPF record` };
 }
 
 async function checkDkim(resolver: DnsResolver, domain: string): Promise<CheckResult> {

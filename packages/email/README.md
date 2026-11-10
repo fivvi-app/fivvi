@@ -113,7 +113,7 @@ Reads the **public DNS** of the sending domain (no token, no secret, nothing sen
 
 | Check | Passes when |
 |---|---|
-| SPF | `lm-bounces.<domain>` is a CNAME to a `lmta.net` host (Lettermint's Return-Path, which carries Lettermint's SPF record) and exactly one `v=spf1` record resolves there; or the root record of `<domain>` is the only `v=spf1` record and includes a `lmta.net` host (for example `include:spf.lmta.net`) |
+| SPF | `lm-bounces.<domain>` is a CNAME to a `lmta.net` host (Lettermint's Return-Path, which carries Lettermint's SPF record) and exactly one `v=spf1` record resolves there. Receivers check SPF on that Return-Path host, never on the root, so an SPF record at the root of `<domain>` does not count |
 | DKIM | `lm1._domainkey.<domain>` and `lm2._domainkey.<domain>` are both CNAMEs to a `lmta.net` host (Lettermint rotates the keys every six months behind them) |
 | DMARC | `_dmarc.<domain>` has exactly one `v=DMARC1` record with `p=quarantine` or `p=reject` |
 
@@ -126,7 +126,7 @@ Reads the **public DNS** of the sending domain (no token, no secret, nothing sen
 | CNAME | `lm2._domainkey.fivvi.app` | `lm2.<domain id>.dkim.lmta.net` |
 | TXT | `_dmarc.fivvi.app` | `v=DMARC1; p=quarantine; rua=<the address already in the record>` (keep the `rua` and any other tag; change only `p=none` to `p=quarantine`) |
 
-The three CNAMEs are in place; the DMARC record still says `p=none`, which is the one change left before M5 (the check reports it as `FAIL  DMARC`). Do not set `aspf=s`: Lettermint refuses to verify a domain with strict SPF alignment.
+Do not set `aspf=s`: Lettermint refuses to verify a domain with strict SPF alignment.
 
 The tests (`src/sending-domain.test.ts`) answer from a fake resolver and never touch the network.
 
