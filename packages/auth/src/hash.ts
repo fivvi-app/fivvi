@@ -19,7 +19,10 @@ export function hashSecretValue(
     | 'rate-limit-address'
     | 'rate-limit-ip'
     | 'rate-limit-token-ip'
-    | 'rate-limit-demo-ip',
+    | 'rate-limit-demo-ip'
+    | 'rate-limit-join-ip'
+    | 'rate-limit-join-account'
+    | 'rate-limit-booking-account',
   value: string,
 ) {
   return createHmac('sha256', secret).update(`${purpose}:${value}`).digest('hex');
