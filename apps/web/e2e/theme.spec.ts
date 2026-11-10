@@ -598,3 +598,119 @@ test.describe('E020 trainer web shell', () => {
     }
   });
 });
+
+// E020 #627: Mijn profiel, Klanten, the client profile and quick add, as the prototype draws them
+// (docs/design/prototype-v2, *Mijn profiel (TW-09)*, *Klanten (TW-01)*, *Klantprofiel (TW-02)*,
+// *Klant toevoegen*): cards on the page, the clients as the rows of one card, the dialog with the
+// kit's fields. What each page does is in profile.spec.ts and clients.spec.ts.
+test.describe('E020 trainer web: Mijn profiel, Klanten, the client profile and quick add', () => {
+  test.beforeEach(async ({ context }) => {
+    await context.setExtraHTTPHeaders(clientIpHeaders());
+  });
+
+  test('AC15: the four screens match the prototype’s colours and shapes and pass axe, in light and dark', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const john = newAddress('john');
+    await createAccount(john, undefined, 'John');
+    const slug = await createGymWithTrainer(john, "John's Gym", 'owner');
+    await signInWithSession(context, john);
+    await page.goto(`/w/${slug}`);
+    const workspaces = (await (await page.request.get('/api/v1/me/workspaces')).json()) as {
+      workspaceId: string;
+    }[];
+    const workspaceId = workspaces[0]?.workspaceId;
+    const seeded = await page.request.post(`/api/v1/workspaces/${workspaceId}/clients`, {
+      data: { name: 'Anna de Vries', email: 'anna@example.com' },
+    });
+    expect(seeded.status()).toBe(201);
+    const anna = (await seeded.json()) as { id: string };
+
+    for (const scheme of colorSchemes) {
+      await page.emulateMedia({ colorScheme: scheme });
+
+      // Mijn profiel: cards on the page, the role of the workspace as a pill.
+      await page.goto('/me/profile');
+      await expect(
+        page.getByRole('heading', { level: 1, name: copy.myProfile.title }),
+      ).toBeVisible();
+      const cards = page.locator('[data-slot="card"]');
+      await expect(cards).toHaveCount(3);
+      for (const card of await cards.all()) {
+        await expect(card, `a card of Mijn profiel in ${scheme}`).toHaveCSS(
+          'background-color',
+          tokenColour('web.trainer.card', scheme),
+        );
+      }
+      await expect(page.locator('[data-slot="status-pill"]')).toHaveText(copy.roles.owner);
+      await expectNoAxeViolations(page, `Mijn profiel in ${scheme} and ${appLocale}`);
+
+      // Klanten: the clients are the rows of one card, an avatar on the muted fill before the name.
+      await page.goto(`/w/${slug}/clients`);
+      const list = page.getByRole('list', { name: copy.clients.listLabel });
+      await expect(list.getByRole('listitem')).toHaveText(['Anna de Vries, anna@example.com']);
+      await expect(list.locator('xpath=ancestor::div[@data-slot="card"]')).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.card', scheme),
+      );
+      const avatar = list.locator('[data-slot="avatar"]');
+      await expect(avatar).toHaveCSS('background-color', tokenColour('web.trainer.muted', scheme));
+      await expect(avatar).toHaveCSS('color', tokenColour('web.trainer.foreground', scheme));
+      // The letters are drawn by ::before from data-initials, not text in the page.
+      expect(
+        await avatar.evaluate((element) => getComputedStyle(element, '::before').content),
+      ).toBe('"AD"');
+      // Round: the radius is at least half of the 28px square.
+      expect((await avatar.boundingBox())?.width).toBe(28);
+      expect(
+        await avatar.evaluate((element) =>
+          Number.parseFloat(getComputedStyle(element).borderRadius),
+        ),
+      ).toBeGreaterThanOrEqual(14);
+      // The address is the quiet line.
+      await expect(list.getByText('anna@example.com')).toHaveCSS(
+        'color',
+        tokenColour('web.trainer.muted-foreground', scheme),
+      );
+      await expectNoAxeViolations(page, `Klanten in ${scheme} and ${appLocale}`);
+
+      // The client profile: the large avatar, the name, Edit, and the overview card.
+      await page.goto(`/w/${slug}/clients/${anna.id}`);
+      await expect(page.getByRole('heading', { level: 1, name: 'Anna de Vries' })).toBeVisible();
+      const large = page.locator('[data-slot="avatar"]');
+      expect((await large.boundingBox())?.width).toBe(56);
+      expect(await large.evaluate((element) => getComputedStyle(element, '::before').content)).toBe(
+        '"AD"',
+      );
+      await expect(page.locator('[data-slot="card"]')).toHaveCSS(
+        'background-color',
+        tokenColour('web.trainer.card', scheme),
+      );
+      await expectNoAxeViolations(page, `the client profile in ${scheme} and ${appLocale}`);
+
+      // Quick add: the dialog is the card colour with the kit's fields; a refused field is red
+      // with the message under it.
+      await page.goto(`/w/${slug}/clients`);
+      await page.getByRole('button', { name: copy.clients.add }).first().click();
+      const dialog = page.getByRole('dialog', { name: copy.clients.addDialog.title });
+      await expect(dialog).toBeVisible();
+      await expect(dialog).toHaveCSS('background-color', tokenColour('web.trainer.card', scheme));
+      await expect(dialog).toHaveCSS('border-radius', '14px');
+      await dialog.getByRole('button', { name: copy.clients.addDialog.submit }).click();
+      await page.mouse.move(0, 0);
+      const refusal = dialog
+        .getByRole('alert')
+        .filter({ hasText: copy.clients.addDialog.errors.nameRequired });
+      await expect(refusal).toBeVisible();
+      await expect(refusal.locator('svg')).toHaveCount(1);
+      await expect(dialog.getByLabel(copy.clients.addDialog.nameLabel)).toHaveAttribute(
+        'aria-invalid',
+        'true',
+      );
+      await expectNoAxeViolations(page, `quick add with a refusal in ${scheme} and ${appLocale}`);
+    }
+  });
+});
