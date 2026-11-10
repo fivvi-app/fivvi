@@ -32,7 +32,7 @@ curl -fsS https://web-production-d3fe2.up.railway.app/api/v1/health
 |---|---|---|---|
 | 1 | The gym cannot work, or data may be lost or exposed | The health check fails for more than 10 minutes; nobody can sign in or book; the database is gone or wrong; one workspace saw another's data (also run [runbook 2](#2-personal-data-breach)) | The owner, **by phone or WhatsApp within 1 hour** of confirming it |
 | 2 | Something important is broken but the gym can work around it | Emails do not arrive; the `cron` fails or misses runs; one screen or flow fails; slow responses | The owner, by email |
-| 3 | Small or cosmetic, or one person is affected | One client's problem, a wrong label, a single error with no pattern | The owner, by email otherwise; reply to support within 2 working days |
+| 3 | Small or cosmetic, or one person is affected | One client's problem, a wrong label, a single error with no pattern | The owner, by email; reply to support within 2 working days |
 
 The phone and email rules are the proposal accepted for this cut (`docs/legal/open-questions.md` Q14: support at `support@fivvi.app` and the business phone number, reply within 2 working days). A breach has its own deadlines in runbook 2.
 
@@ -92,7 +92,7 @@ Do not wait for the 48 hours. Every hour counts for the gym.
    - A leaked secret: rotate it. For the database roles, set a new value without printing it and redeploy `web` so the release step updates the role ([ENVIRONMENTS.md §7](ENVIRONMENTS.md#7-variables)), for example for the app role:
 
      ```bash
-     openssl rand -hex 24 | railway variable set APP_DATABASE_PASSWORD --stdin -p $P --service web --environment production
+     openssl rand -hex 24 | railway variable set APP_DATABASE_PASSWORD --stdin --skip-deploys -p $P --service web --environment production
      ```
 
      ```bash
@@ -197,6 +197,6 @@ Do not wait for the 48 hours. Every hour counts for the gym.
 | PostHog (events and page views, R17) | 12 months | 12 months | PostHog EU project settings: data retention | not yet checked |
 | Lettermint (delivery logs, R18) | at most 30 days | Fixed by Lettermint, not settable: 28 days for message content, recipients, metadata and events (within R18), 90 days for analytics events (over it: the recorded exception in R18). "Hide email content" **on** for the sign-in route | Lettermint dashboard: the route's settings for "Hide email content"; retention is Lettermint's ([sub-processors.md](../legal/sub-processors.md)) | not yet checked |
 | Railway logs (application and hosting logs, R13) | at most 30 days (or the plan's, if shorter) | The plan's own: not a setting. Read the retention of the current plan on Railway's plan page and write it here; it must be 30 days or less | Railway, the workspace's plan page; recorded here | not yet checked |
-| Backups (R16) | at most 30 days | Fixed by Railway, not settable: point-in-time recovery keeps the last 4 full backups, roughly 4 weeks ([Railway: point-in-time recovery](https://docs.railway.com/volumes/point-in-time-recovery)). The owner checks that this stays within 30 days and records what the dashboard shows | Railway dashboard, the `postgres` service's backups, by the owner; the backup commands and values are set out in §8 of [ENVIRONMENTS.md](ENVIRONMENTS.md#8-backups) once #1039 is merged | not yet checked |
+| Backups (R16) | at most 30 days | Fixed by Railway, not settable: point-in-time recovery keeps the last 4 full backups, roughly 4 weeks ([Railway: point-in-time recovery](https://docs.railway.com/volumes/point-in-time-recovery)). The owner checks that this stays within 30 days and records what the dashboard shows. Scheduled backups, from G4, are daily or weekly only, never monthly: Railway keeps daily backups 6 days, weekly 27 and monthly 89 ([Railway: backups](https://docs.railway.com/volumes/backups)), so a monthly schedule would break the 30 days | Railway dashboard, the `postgres` service's backups, by the owner; the backup commands and values are set out in [ENVIRONMENTS.md §8, Backups](ENVIRONMENTS.md#8-backups) | not yet checked |
 
 **It is over when** every row has a date and a value the owner saw, a value over the policy has its exception written in `retention-policy.md` (by the owner, `docs/legal/` is the owner's), and the privacy policy still says what is true.
