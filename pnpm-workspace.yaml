@@ -35,6 +35,8 @@ catalog:
   cn: ^0.4.0
   drizzle-kit: ^0.31.11
   drizzle-orm: ^0.45.3
+  # Zips the synthetic import sample workbook with fixed timestamps (E015, packages/testing, tests only).
+  fflate: ^0.8.3
   hono: ^4.13.8
   # Performance and SEO budgets of the public website (F064, AC15): apps/web e2e only.
   lighthouse: ^13.6.0
@@ -55,6 +57,8 @@ catalog:
   react: ^19.3.0
   react-dom: ^19.3.0
   react-email: ^6.11.0
+  # Reads the Owner's import workbook (E015, packages/domain): MIT, maintained, no known advisories.
+  read-excel-file: ^9.3.14
   # Major 4, as decided in spec #33 (E007).
   style-dictionary: ^4.4.0
   tailwindcss: ^4.3.3

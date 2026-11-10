@@ -374,6 +374,28 @@
     "book": "Book",
     "profile": "Profile"
   },
+  "dataImport": {
+    "problems": {
+      "sheetMissing": "The {sheet} sheet is missing.",
+      "columnMissing": "Column {column} is missing.",
+      "columnNotImported": "Column {column} isn't imported.",
+      "valueMissing": "Row {row}: {column} is missing.",
+      "clientKeyDuplicate": "Row {row}: client_key {value} appears twice.",
+      "emailMissing": "Row {row}: email address is missing.",
+      "emailInvalid": "Row {row}: this isn't a valid email address.",
+      "emailDuplicate": "Row {row}: this email address is also in row {firstRow}.",
+      "languageNotSupported": "Row {row}: language must be nl or en.",
+      "trainerUnknown": "Row {row}: {email} isn't a trainer of {workspace}.",
+      "statusNotSupported": "Row {row}: status must be active or inactive.",
+      "clientInactive": "Row {row}: this client is inactive and is left out.",
+      "clientExists": "Row {row}: a client with this email address already exists."
+    },
+    "fileErrors": {
+      "tooLarge": "This file is larger than 5 MB.",
+      "tooManyRows": "This file has more than 5,000 rows.",
+      "unreadable": "We can't read this file. Use the template (.xlsx) or a UTF-8 CSV."
+    }
+  },
   "noWorkspace": {
     "title": "Ask your studio for its link.",
     "haveLink": "Got the link? Open it on this phone.",

@@ -374,6 +374,28 @@
     "book": "Boeken",
     "profile": "Profiel"
   },
+  "dataImport": {
+    "problems": {
+      "sheetMissing": "Het tabblad {sheet} ontbreekt.",
+      "columnMissing": "Kolom {column} ontbreekt.",
+      "columnNotImported": "Kolom {column} wordt niet geïmporteerd.",
+      "valueMissing": "Rij {row}: {column} ontbreekt.",
+      "clientKeyDuplicate": "Rij {row}: client_key {value} komt twee keer voor.",
+      "emailMissing": "Rij {row}: e-mailadres ontbreekt.",
+      "emailInvalid": "Rij {row}: dit is geen geldig e-mailadres.",
+      "emailDuplicate": "Rij {row}: dit e-mailadres staat ook in rij {firstRow}.",
+      "languageNotSupported": "Rij {row}: taal moet nl of en zijn.",
+      "trainerUnknown": "Rij {row}: {email} is geen trainer van {workspace}.",
+      "statusNotSupported": "Rij {row}: status moet active of inactive zijn.",
+      "clientInactive": "Rij {row}: deze klant is inactief en wordt overgeslagen.",
+      "clientExists": "Rij {row}: er bestaat al een klant met dit e-mailadres."
+    },
+    "fileErrors": {
+      "tooLarge": "Dit bestand is groter dan 5 MB.",
+      "tooManyRows": "Dit bestand heeft meer dan 5.000 rijen.",
+      "unreadable": "We kunnen dit bestand niet lezen. Gebruik het sjabloon (.xlsx) of een UTF-8 CSV."
+    }
+  },
   "noWorkspace": {
     "title": "Vraag je studio om de aanmeldlink.",
     "haveLink": "Heb je de link al? Open hem op deze telefoon.",

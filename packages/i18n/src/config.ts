@@ -12,8 +12,9 @@ export const defaultLocale: Locale = 'nl-NL';
  * (parity, ICU subset), but the native exporters leave them out: the apps never show them.
  * `email`: transactional email copy, rendered by `packages/email` (ADR-009).
  * `site`: the copy of the public website, rendered by `apps/web` (F064, ADR-030).
+ * `dataImport`: the problems the import check reports, rendered by the API and the web (E015).
  */
-export const serverOnlyNamespaces = ['email', 'site'] as const;
+export const serverOnlyNamespaces = ['email', 'site', 'dataImport'] as const;
 
 /** Workspace time zone used when nothing more specific is known (ADR-012). */
 export const defaultTimeZone = 'Europe/Amsterdam';
