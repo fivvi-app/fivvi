@@ -111,11 +111,14 @@ export function clientIp(headers: Headers | undefined, requireClientIp: boolean)
 }
 
 /**
- * The client's IP address as the rate limits read it, or `null` when the request has no usable
- * one (no proxy header, not an IP address, several): for Cloudflare's `remoteip`, which is optional.
+ * The client's IP address exactly as the proxy sent it, or `null` when the request has no usable
+ * one (no proxy header, not an IP address, several): for Cloudflare's `remoteip`, which is
+ * optional. Unlike the rate-limit keys it is not grouped: an IPv6 address stays the client's own,
+ * not the /64 network address that sign-in counts it under.
  */
 export function usableClientIp(headers: Headers): string | null {
-  return clientIp(headers, false);
+  const value = headers.get(CLIENT_IP_HEADER)?.trim();
+  return value && isIP(value) !== 0 ? value : null;
 }
 
 /**

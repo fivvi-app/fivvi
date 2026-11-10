@@ -22,7 +22,9 @@ export const MAX_PENDING_JOIN_REQUESTS = 5;
 
 export const RateLimitedSchema = z
   .object({ code: z.enum(['rate_limited']) })
-  .openapi('RateLimited', {
+  // Not 'RateLimited': the address lookup registers that name with its own description, and
+  // zod-openapi keeps the first one registered, so the contract would depend on the route order.
+  .openapi('PublicRequestRateLimited', {
     description:
       'Too many requests from this network or this account in the last minutes or hour. Nothing ' +
       'was stored or sent. Contains no user-facing text.',

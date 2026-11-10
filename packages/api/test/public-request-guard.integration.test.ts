@@ -372,7 +372,7 @@ describe('E013 the public request guard', () => {
   });
 
   describe('the refusal schemas', () => {
-    it('AC13: exist for routes to document, with a machine-readable code and no user-facing text', () => {
+    it('exist for routes to document, with a machine-readable code and no user-facing text', () => {
       const cases = [
         [RateLimitedSchema, 'rate_limited'],
         [TurnstileFailedSchema, 'turnstile_failed'],

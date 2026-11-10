@@ -76,15 +76,20 @@ export interface TurnstileVerifier {
   verify(token: string | undefined, headers: Headers): Promise<TurnstileResult>;
 }
 
-/** Cloudflare error codes that say the call, not the visitor, was wrong: no answer about the token. */
+/** Cloudflare error codes that say the service or our secret key, not the visitor, was wrong: no answer about the token. (`bad-request` is not one: the token was not accepted, so it fails.) */
 const SERVICE_ERRORS = new Set([
   'internal-error',
   'missing-input-secret',
   'invalid-input-secret',
-  'bad-request',
 ]);
 
-type NoAnswerReason = 'timeout' | 'unreachable' | 'http-error' | 'invalid-answer';
+/** Why Cloudflare gave no answer: a kind of failure, or the service error code it named. */
+type NoAnswerReason =
+  | 'timeout'
+  | 'unreachable'
+  | 'http-error'
+  | 'invalid-answer'
+  | `service-error:${string}`;
 
 export function createTurnstileVerifier({
   secret,
@@ -138,7 +143,8 @@ export function createTurnstileVerifier({
         if (!answer.ok) return noAnswer('http-error');
         const body: unknown = await Promise.race([answer.json(), timedOut]);
         if (body === 'timeout') return noAnswer('timeout');
-        return interpret(body) ?? noAnswer('invalid-answer');
+        const verdict = interpret(body);
+        return verdict.result !== undefined ? verdict.result : noAnswer(verdict.reason);
       } catch {
         return noAnswer(controller.signal.aborted ? 'timeout' : 'unreachable');
       } finally {
@@ -148,12 +154,22 @@ export function createTurnstileVerifier({
   };
 }
 
-function interpret(body: unknown): 'pass' | 'fail' | null {
-  if (typeof body !== 'object' || body === null) return null;
+/**
+ * What Cloudflare's answer says: `pass`, `fail`, or no verdict with the reason (a service error
+ * code from the fixed list above, or an answer that is not the documented shape). The reason never
+ * holds anything of the request.
+ */
+function interpret(
+  body: unknown,
+): { result: 'pass' | 'fail'; reason?: never } | { result?: never; reason: NoAnswerReason } {
+  if (typeof body !== 'object' || body === null) return { reason: 'invalid-answer' };
   const { success } = body as { success?: unknown };
   const codes = (body as { 'error-codes'?: unknown })['error-codes'];
-  if (success === true) return 'pass';
-  if (success !== false) return null;
-  if (Array.isArray(codes) && codes.some((code) => SERVICE_ERRORS.has(String(code)))) return null;
-  return 'fail';
+  if (success === true) return { result: 'pass' };
+  if (success !== false) return { reason: 'invalid-answer' };
+  const serviceError = Array.isArray(codes)
+    ? codes.map(String).find((code) => SERVICE_ERRORS.has(code))
+    : undefined;
+  if (serviceError) return { reason: `service-error:${serviceError}` };
+  return { result: 'fail' };
 }

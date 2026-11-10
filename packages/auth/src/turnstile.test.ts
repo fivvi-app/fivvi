@@ -91,6 +91,17 @@ describe('E013 the Turnstile check', () => {
     });
   });
 
+  it('sends an IPv6 client address as it came, not as the /64 network address sign-in counts it under', async () => {
+    const cloudflare = fakeCloudflare();
+
+    await verifier({ fetch: cloudflare.fetch }).verify(
+      FAKE_TOKEN,
+      new Headers({ 'x-real-ip': '2001:db8:1:2:3:4:5:6' }),
+    );
+
+    expect(cloudflare.calls[0]?.body.get('remoteip')).toBe('2001:db8:1:2:3:4:5:6');
+  });
+
   it('leaves the IP out when the request has no usable one', async () => {
     const cloudflare = fakeCloudflare();
 
@@ -138,6 +149,26 @@ describe('E013 the Turnstile check', () => {
     for (const fetch of answers) {
       expect(await verifier({ fetch }).verify(FAKE_TOKEN, headers)).toBe('no_answer');
     }
+  });
+
+  it('fails a token Cloudflare calls a bad request: the visitor sent it, so it is not "no answer"', async () => {
+    const turnstile = verifier({
+      fetch: () => Promise.resolve(Response.json({ success: false, 'error-codes': ['bad-request'] })),
+    });
+
+    expect(await turnstile.verify(FAKE_TOKEN, headers)).toBe('fail');
+    expect(reported).toHaveLength(0);
+  });
+
+  it('names the service error code in the report, so a wrong secret key is not hidden', async () => {
+    const turnstile = verifier({
+      fetch: () =>
+        Promise.resolve(Response.json({ success: false, 'error-codes': ['invalid-input-secret'] })),
+    });
+
+    expect(await turnstile.verify(FAKE_TOKEN, headers)).toBe('no_answer');
+    expect(String((reported[0] as Error).message)).toContain('invalid-input-secret');
+    expect(String((reported[0] as Error).message)).not.toContain(FAKE_TOKEN);
   });
 
   it('AC10: a caller can let "no answer" through (sign-in) or refuse it (join request)', () => {
