@@ -3,8 +3,8 @@
 import { SIGN_IN_PAGE } from '@fivvi/auth/return-path';
 import { Button } from '@fivvi/ui/components/button';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@fivvi/ui/components/card';
-import { Input } from '@fivvi/ui/components/input';
-import { Label } from '@fivvi/ui/components/label';
+import { ErrorLine } from '@fivvi/ui/kit/error-line';
+import { Field } from '@fivvi/ui/kit/field';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useState } from 'react';
@@ -54,38 +54,30 @@ export function NameForm({ name, email }: { name: string | null; email: string }
       <form noValidate onSubmit={submit} className="grid gap-(--card-spacing)">
         <CardHeader>
           <CardTitle>
-            <h2>{t('detailsTitle')}</h2>
+            <h2 className="text-[15px] font-semibold">{t('detailsTitle')}</h2>
           </CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4">
-          <div className="grid gap-2">
-            <Label htmlFor="person-name">{t('nameLabel')}</Label>
-            <Input
-              id="person-name"
-              name="name"
-              defaultValue={name ?? ''}
-              autoComplete="name"
-              aria-invalid={nameError ? true : undefined}
-              aria-describedby={nameError ? 'person-name-error' : undefined}
-            />
-            {nameError ? (
-              <p id="person-name-error" role="alert" className="text-status-danger-fg">
-                {nameError}
-              </p>
-            ) : null}
-          </div>
+          <Field
+            id="person-name"
+            name="name"
+            label={t('nameLabel')}
+            defaultValue={name ?? ''}
+            autoComplete="name"
+            error={nameError ?? undefined}
+          />
           <dl className="grid gap-2 text-sm">
             <div>
               <dt className="text-muted-foreground">{t('emailLabel')}</dt>
               <dd>{email}</dd>
             </div>
           </dl>
-          {failureMessage ? (
-            <p role="alert" className="text-status-danger-fg">
-              {failureMessage}
+          {failureMessage ? <ErrorLine>{failureMessage}</ErrorLine> : null}
+          {saved ? (
+            <p role="status" className="text-sm font-semibold text-status-success-text">
+              {t('saved')}
             </p>
           ) : null}
-          {saved ? <p role="status">{t('saved')}</p> : null}
         </CardContent>
         <CardFooter>
           <Button type="submit" disabled={!ready || pending}>
