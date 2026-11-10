@@ -60,7 +60,7 @@ final class SignInRecoveryUITests: SignInUITestCase {
         XCTAssertEqual(screen.email.value as? String, "trainer@example.com", "the address is kept")
         XCTAssertFalse(screen.code.exists)
         XCTAssertFalse(screen.error.exists)
-        screen.email.tap()
+        screen.email.focus()
         screen.email.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: "trainer@example.com".count))
         screen.email.typeText(server.signIn.email)
         screen.sendCode.tap()

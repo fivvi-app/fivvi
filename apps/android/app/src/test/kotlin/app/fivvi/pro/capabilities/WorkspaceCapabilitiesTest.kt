@@ -51,6 +51,7 @@ class WorkspaceCapabilitiesTest {
         email = "sarah@example.com",
         name = "Sarah",
         preferredLocale = MeResponse.PreferredLocale.NL_NL,
+        bookingEmails = true,
         canCreateWorkspace = false,
         workspaces = workspaces.toList(),
     )

@@ -67,7 +67,7 @@ getSession: {                           // a route about one record of a workspa
 createSession: { body: { startsAt: '2030-01-01T10:00:00Z' } },       // a valid body (and `query: '?page=1'`)
 ```
 
-A route that takes a record in its body, not in its path (`createPrivateSession`, F020, names the client), gives `body` as a function of the seeded values: `body: (values) => ({ clientId: values.client, … })`. It is called once per call, with the values of the workspace and client the call is for, and makes the suite treat the route as one that names a record. Where the route needs more of the workspace than the case seeds (everyone on the team training), the seed makes it, right before the calls.
+A route that takes a record in its body, not in its path (`createPrivateSession`, F020, names the client), gives `body` as a function of the seeded values: `body: (values) => ({ clientId: values.client, … })`. It is called once per call, with the values of the workspace and client the call is for, and makes the suite treat the route as one that names a record. Where the route needs more of the workspace than the case seeds (everyone on the team training), the seed makes it, right before the calls. A route that changes the record it names, or whose answer depends on who calls (a Trainer reschedules only their own session, `reschedulePrivateSession`), sets `reseedForEachCall: true`: the seed runs again before every call and gets the caller's account (`callerAccountId`), so each call starts from a record it may change.
 
 `seed` runs through the privileged connection for every client of workspaces A and B, so a route
 about a client's records is called with the caller's own and with another client's. Make its rows with

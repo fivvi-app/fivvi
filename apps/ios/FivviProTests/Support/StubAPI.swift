@@ -359,6 +359,7 @@ extension StubAPI {
         .init(
             id: id, email: email, name: name,
             preferredLocale: preferredLocale.flatMap { .init(rawValue: $0.rawValue) },
+            bookingEmails: true,
             canCreateWorkspace: canCreateWorkspace,
             workspaces: team.isEmpty
                 ? workspaces.enumerated().map { index, name in

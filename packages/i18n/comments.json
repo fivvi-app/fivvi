@@ -172,5 +172,11 @@
   "email.privateSession.intro": "First sentence of EM-11. {workspace} is the name of the workspace (the gym) where the session is planned.",
   "email.privateSession.when": "Line of EM-11 with the time of the session. {date} is the weekday and date with year, e.g. 'donderdag 24 september 2026'; {start} and {end} are the start and end time, e.g. '09:00' and '10:00'.",
   "email.privateSession.where": "Line of EM-11 with the place. {location} is the name of the location, followed by its address when it has one.",
-  "email.privateSession.trainer": "Line of EM-11 with the trainer. {trainer} is the trainer's name. Left out when the trainer has no name."
+  "email.privateSession.trainer": "Line of EM-11 with the trainer. {trainer} is the trainer's name. Left out when the trainer has no name.",
+  "email.privateSessionMoved.subject": "Subject of EM-04, the email that tells the client a private session moved. {oldDate} and {newDate} are the day and time before and after, each built with email.privateSessionMoved.dateTime, e.g. 'donderdag 24 september om 09:00'. Says 'sessie' here, as the spec words it; the UI says 'privésessie'.",
+  "email.privateSessionMoved.dateTime": "A weekday, date and time inside the subject and the preview of EM-04. {date} is the weekday and date without year, e.g. 'donderdag 24 september'; {time} the start time, e.g. '09:00'.",
+  "email.privateSessionMoved.preview": "Preview text that inbox lists show next to the subject of EM-04. {newDate} is the new day and time, built with email.privateSessionMoved.dateTime.",
+  "email.privateSessionMoved.intro": "First sentence of EM-04. {workspace} is the name of the workspace (the gym) where the session is planned.",
+  "email.privateSessionMoved.previously": "Line of EM-04 with the time before the move. {date} is the weekday and date with year, e.g. 'donderdag 24 september 2026'; {start} and {end} are the start and end time.",
+  "email.privateSessionMoved.now": "Line of EM-04 with the new time. {date} is the weekday and date with year; {start} and {end} are the start and end time."
 }

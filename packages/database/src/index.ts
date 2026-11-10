@@ -31,9 +31,11 @@ export { recordWrongSignInCode } from './queries/verifications.ts';
 export {
   findAccountForInvitation,
   findAccountIdByEmail,
+  findBookingEmails,
   findPreferredLocaleByEmail,
   nameAccountIfEmpty,
   setAccountName,
+  setBookingEmails,
   setPreferredLocale,
 } from './repositories/accounts.ts';
 export {
@@ -84,13 +86,17 @@ export {
   type AttendanceStatus,
   createPrivateSession,
   findSession,
+  listUpcomingSessionsOfClient,
   type NewPrivateSession,
+  rescheduleSession,
   type SessionGroupClassView,
   type SessionParticipantView,
+  type SessionReschedule,
   type SessionStatus,
   type SessionTrainerView,
   type SessionType,
   type SessionView,
+  type UpcomingSessionView,
 } from './repositories/sessions.ts';
 export {
   addTrainerToTeam,

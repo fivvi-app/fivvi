@@ -16,7 +16,7 @@ import {
   createProductEventCaptureTransport,
   createProductEvents,
 } from '@fivvi/observability';
-import { type Clock, manualClock } from '@fivvi/testing/clock';
+import { type Clock, freezeSystemTime, manualClock } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { eq, like } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -200,9 +200,18 @@ describe('F005 change your own email address', () => {
 
   beforeEach(() => {
     clock = manualClock(T0);
+    // Better Auth deletes expired verification rows by the real clock, so the system time must
+    // stand at T0 too; otherwise the codes vanish once the real time passes T0 + 15 minutes (#1260).
+    freezeSystemTime(T0);
     transport.clear();
     posthog.events.length = 0;
     logged.length = 0;
+  });
+
+  // Guard for #1260: Better Auth deletes expired verification rows by the real clock, so a fixed
+  // T0 only works while the system time stands at T0 too. If this fails, the freeze is gone.
+  it('the system time stands at T0, so no code expires by the real clock', () => {
+    expect(new Date().toISOString()).toBe(new Date(T0).toISOString());
   });
 
   describe('AC1: a code to the new address, nothing changed yet', () => {
@@ -875,10 +884,11 @@ describe('F005 change your own email address', () => {
       ]);
     });
 
-    it('keeps PATCH /v1/me to the name and the language', () => {
+    it('keeps PATCH /v1/me to the name, the language and the booking emails', () => {
       const schema = contract.components.schemas.UpdateMeRequest;
 
       expect(Object.keys(schema.properties).toSorted()).toEqual([
+        'bookingEmails',
         'name',
         'preferredLocale',
         'surface',

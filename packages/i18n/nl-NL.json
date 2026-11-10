@@ -221,6 +221,14 @@
       "where": "Waar: {location}",
       "trainer": "Trainer: {trainer}"
     },
+    "privateSessionMoved": {
+      "subject": "Wijziging: je sessie op {oldDate} is verplaatst naar {newDate}",
+      "dateTime": "{date} om {time}",
+      "preview": "Je privésessie is verplaatst naar {newDate}.",
+      "intro": "Je privésessie bij {workspace} is verplaatst.",
+      "previously": "Eerder: {date}, {start} tot {end}",
+      "now": "Nieuw: {date}, {start} tot {end}"
+    },
     "demoRequest": {
       "subject": "Demo-aanvraag: {name}",
       "preview": "{business}, {trainers}",

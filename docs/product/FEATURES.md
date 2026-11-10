@@ -150,7 +150,7 @@ Added in roadmap v1.19 (M11), before go-live; credit packs and credit plans, gro
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
 | F049 | Localized Transactional Emails | PLANNED | Must | M1 (infra) → M5 | E006, F007 | ⬜ | ⬜ | §51, §74 (client emails: invitation, join request declined, on the waitlist, you're in, you didn't get in, skipped in M11; owner email: new join request; commerce emails in M11, EM-12 in M7) |
-| F050 | Trainer Booking Notifications | PLANNED | Must | M5 | F049, F031 | ⬜ | ⬜ | §51 |
+| F050 | Trainer Booking Notifications | IN PROGRESS | Must | M5 | F049, F031 | ⬜ | ⬜ | §51 |
 
 ---
 

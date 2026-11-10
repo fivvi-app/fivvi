@@ -57,6 +57,7 @@ class FakeMeApi : MeApi {
                 } else {
                     MeResponse.PreferredLocale.NL_NL
                 },
+                bookingEmails = true,
                 canCreateWorkspace = false,
                 workspaces = emptyList(),
             ),
@@ -161,6 +162,7 @@ class FakeMeApi : MeApi {
                     email = email,
                     name = name,
                     preferredLocale = preferredLocale ?: defaultPreferredLocale,
+                    bookingEmails = true,
                     canCreateWorkspace = canCreateWorkspace,
                     workspaces = workspaces.map {
                         MeWorkspace(
