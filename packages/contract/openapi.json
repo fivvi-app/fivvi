@@ -269,7 +269,9 @@
                 "session.private.manage.own",
                 "session.private.manage.any",
                 "class.manage",
-                "class.read"
+                "class.read",
+                "join_link.view",
+                "join_link.renew"
               ]
             },
             "description": "What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway."
@@ -325,7 +327,9 @@
                 "session.private.manage.own",
                 "session.private.manage.any",
                 "class.manage",
-                "class.read"
+                "class.read",
+                "join_link.view",
+                "join_link.renew"
               ]
             },
             "description": "What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway."
@@ -2051,6 +2055,43 @@
           "version"
         ],
         "description": "Changes one date of a class (CO-04): the start, the end and the capacity, each only when given. The date stays on its day. The class itself never changes."
+      },
+      "JoinLink": {
+        "type": "object",
+        "properties": {
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The join link in full, `https://…/j/{code}`: the one link of the workspace. The QR code and the poster show this same link."
+          },
+          "renewedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When the Owner last renewed the link, a UTC instant; `null` while it is the link the workspace started with."
+          }
+        },
+        "required": [
+          "url",
+          "renewedAt"
+        ],
+        "description": "The join link (*aanmeldlink*) of a workspace: where a new client asks to become a client."
+      },
+      "RenewJoinLinkRequest": {
+        "type": "object",
+        "properties": {
+          "surface": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android"
+            ],
+            "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the `join_link_renewed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it."
+          }
+        },
+        "description": "Who sends the renewal. The body is optional; the web sends none."
       },
       "ClientList": {
         "type": "object",
@@ -6342,6 +6383,221 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/Session"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/join-link": {
+      "get": {
+        "operationId": "getJoinLink",
+        "tags": [
+          "join-link"
+        ],
+        "summary": "The join link of a workspace",
+        "description": "The workspace’s join link in full and when it was last renewed. The Owner and the Trainers may read it, to send it to a new client; a client of the workspace gets `403`, a person with no place in it `404`.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "join_link.view",
+          "roles": [
+            "owner",
+            "trainer"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The join link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JoinLink"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/join-link/renew": {
+      "post": {
+        "operationId": "renewJoinLink",
+        "tags": [
+          "join-link"
+        ],
+        "summary": "Renew the join link of a workspace",
+        "description": "Replaces the workspace’s join code with a new one (the Owner only; a Trainer gets `403`) and stores the time. The old link, and every QR code of it, stops working at once; join requests already sent stay. Records the product event `join_link_renewed` with the workspace ID and the surface (`web`, `ios` or `android`) and nothing else. The body is optional; the web sends none and is recorded as `web`. A request with a bearer token records the `surface` it names in the body and, naming none, records nothing.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "join_link.renew",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenewJoinLinkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The new join link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/JoinLink"
                 }
               }
             }

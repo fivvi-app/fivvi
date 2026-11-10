@@ -359,6 +359,8 @@ extension Components {
                 case session_private_manage_any = "session.private.manage.any"
                 case class_manage = "class.manage"
                 case class_read = "class.read"
+                case joinLink_view = "join_link.view"
+                case joinLink_renew = "join_link.renew"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -439,6 +441,8 @@ extension Components {
                 case session_private_manage_any = "session.private.manage.any"
                 case class_manage = "class.manage"
                 case class_read = "class.read"
+                case joinLink_view = "join_link.view"
+                case joinLink_renew = "join_link.renew"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -3077,6 +3081,61 @@ extension Components {
                 case localStart
                 case localEnd
                 case capacity
+            }
+        }
+        /// The join link (*aanmeldlink*) of a workspace: where a new client asks to become a client.
+        ///
+        /// - Remark: Generated from `#/components/schemas/JoinLink`.
+        public struct JoinLink: Codable, Hashable, Sendable {
+            /// The join link in full, `https://…/j/{code}`: the one link of the workspace. The QR code and the poster show this same link.
+            ///
+            /// - Remark: Generated from `#/components/schemas/JoinLink/url`.
+            public var url: Swift.String
+            /// When the Owner last renewed the link, a UTC instant; `null` while it is the link the workspace started with.
+            ///
+            /// - Remark: Generated from `#/components/schemas/JoinLink/renewedAt`.
+            public var renewedAt: Foundation.Date?
+            /// Creates a new `JoinLink`.
+            ///
+            /// - Parameters:
+            ///   - url: The join link in full, `https://…/j/{code}`: the one link of the workspace. The QR code and the poster show this same link.
+            ///   - renewedAt: When the Owner last renewed the link, a UTC instant; `null` while it is the link the workspace started with.
+            public init(
+                url: Swift.String,
+                renewedAt: Foundation.Date? = nil
+            ) {
+                self.url = url
+                self.renewedAt = renewedAt
+            }
+            public enum CodingKeys: String, CodingKey {
+                case url
+                case renewedAt
+            }
+        }
+        /// Who sends the renewal. The body is optional; the web sends none.
+        ///
+        /// - Remark: Generated from `#/components/schemas/RenewJoinLinkRequest`.
+        public struct RenewJoinLinkRequest: Codable, Hashable, Sendable {
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `join_link_renewed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/RenewJoinLinkRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `join_link_renewed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/RenewJoinLinkRequest/surface`.
+            public var surface: Components.Schemas.RenewJoinLinkRequest.SurfacePayload?
+            /// Creates a new `RenewJoinLinkRequest`.
+            ///
+            /// - Parameters:
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `join_link_renewed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            public init(surface: Components.Schemas.RenewJoinLinkRequest.SurfacePayload? = nil) {
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case surface
             }
         }
         /// One page of the clients of a workspace.

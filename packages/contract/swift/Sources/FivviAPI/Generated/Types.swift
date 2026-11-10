@@ -312,6 +312,20 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/group-classes/{classId}/dates`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/{classId}/dates/post(scheduleGroupClassDate)`.
     func scheduleGroupClassDate(_ input: Operations.ScheduleGroupClassDate.Input) async throws -> Operations.ScheduleGroupClassDate.Output
+    /// The join link of a workspace
+    ///
+    /// The workspace’s join link in full and when it was last renewed. The Owner and the Trainers may read it, to send it to a new client; a client of the workspace gets `403`, a person with no place in it `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/join-link`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/join-link/get(getJoinLink)`.
+    func getJoinLink(_ input: Operations.GetJoinLink.Input) async throws -> Operations.GetJoinLink.Output
+    /// Renew the join link of a workspace
+    ///
+    /// Replaces the workspace’s join code with a new one (the Owner only; a Trainer gets `403`) and stores the time. The old link, and every QR code of it, stops working at once; join requests already sent stay. Records the product event `join_link_renewed` with the workspace ID and the surface (`web`, `ios` or `android`) and nothing else. The body is optional; the web sends none and is recorded as `web`. A request with a bearer token records the `surface` it names in the body and, naming none, records nothing.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/join-link/renew`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/join-link/renew/post(renewJoinLink)`.
+    func renewJoinLink(_ input: Operations.RenewJoinLink.Input) async throws -> Operations.RenewJoinLink.Output
     /// The clients of a workspace
     ///
     /// The whole workspace’s clients (the Owner and every Trainer), sorted by name, one page at a time. `search` matches part of a name or an email address in the server, ignoring case and accents.
@@ -984,6 +998,38 @@ extension APIProtocol {
         body: Operations.ScheduleGroupClassDate.Input.Body
     ) async throws -> Operations.ScheduleGroupClassDate.Output {
         try await scheduleGroupClassDate(Operations.ScheduleGroupClassDate.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// The join link of a workspace
+    ///
+    /// The workspace’s join link in full and when it was last renewed. The Owner and the Trainers may read it, to send it to a new client; a client of the workspace gets `403`, a person with no place in it `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/join-link`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/join-link/get(getJoinLink)`.
+    public func getJoinLink(
+        path: Operations.GetJoinLink.Input.Path,
+        headers: Operations.GetJoinLink.Input.Headers = .init()
+    ) async throws -> Operations.GetJoinLink.Output {
+        try await getJoinLink(Operations.GetJoinLink.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Renew the join link of a workspace
+    ///
+    /// Replaces the workspace’s join code with a new one (the Owner only; a Trainer gets `403`) and stores the time. The old link, and every QR code of it, stops working at once; join requests already sent stay. Records the product event `join_link_renewed` with the workspace ID and the surface (`web`, `ios` or `android`) and nothing else. The body is optional; the web sends none and is recorded as `web`. A request with a bearer token records the `surface` it names in the body and, naming none, records nothing.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/join-link/renew`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/join-link/renew/post(renewJoinLink)`.
+    public func renewJoinLink(
+        path: Operations.RenewJoinLink.Input.Path,
+        headers: Operations.RenewJoinLink.Input.Headers = .init(),
+        body: Operations.RenewJoinLink.Input.Body? = nil
+    ) async throws -> Operations.RenewJoinLink.Output {
+        try await renewJoinLink(Operations.RenewJoinLink.Input(
             path: path,
             headers: headers,
             body: body

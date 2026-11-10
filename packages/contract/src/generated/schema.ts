@@ -736,6 +736,46 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{workspaceId}/join-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The join link of a workspace
+         * @description The workspace’s join link in full and when it was last renewed. The Owner and the Trainers may read it, to send it to a new client; a client of the workspace gets `403`, a person with no place in it `404`.
+         */
+        get: operations["getJoinLink"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/join-link/renew": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /**
+         * Renew the join link of a workspace
+         * @description Replaces the workspace’s join code with a new one (the Owner only; a Trainer gets `403`) and stores the time. The old link, and every QR code of it, stops working at once; join requests already sent stay. Records the product event `join_link_renewed` with the workspace ID and the surface (`web`, `ios` or `android`) and nothing else. The body is optional; the web sends none and is recorded as `web`. A request with a bearer token records the `surface` it names in the body and, naming none, records nothing.
+         */
+        post: operations["renewJoinLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/v1/workspaces/{workspaceId}/clients": {
         parameters: {
             query?: never;
@@ -882,7 +922,7 @@ export interface components {
              */
             role: "owner" | "trainer";
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew")[];
         };
         /** @description A workspace the account is on the team of. */
         MyWorkspace: {
@@ -901,7 +941,7 @@ export interface components {
              */
             role: "owner" | "trainer";
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew")[];
             /** @description Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner. */
             trainsHere: boolean;
         };
@@ -1655,6 +1695,27 @@ export interface components {
             localEnd?: string;
             /** @description The new capacity of this date, 1 to 100. Leave it out to keep it. */
             capacity?: number;
+        };
+        /** @description The join link (*aanmeldlink*) of a workspace: where a new client asks to become a client. */
+        JoinLink: {
+            /**
+             * Format: uri
+             * @description The join link in full, `https://…/j/{code}`: the one link of the workspace. The QR code and the poster show this same link.
+             */
+            url: string;
+            /**
+             * Format: date-time
+             * @description When the Owner last renewed the link, a UTC instant; `null` while it is the link the workspace started with.
+             */
+            renewedAt: string | null;
+        };
+        /** @description Who sends the renewal. The body is optional; the web sends none. */
+        RenewJoinLinkRequest: {
+            /**
+             * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `join_link_renewed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+             * @enum {string}
+             */
+            surface?: "ios" | "android";
         };
         /** @description One page of the clients of a workspace. */
         ClientList: {
@@ -4438,6 +4499,146 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["Session"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    getJoinLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The join link. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JoinLink"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    renewJoinLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["RenewJoinLinkRequest"];
+            };
+        };
+        responses: {
+            /** @description The new join link. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["JoinLink"];
                 };
             };
             /** @description The request did not match the contract. */

@@ -231,6 +231,15 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   // The report of a switch (F012) records a product event and changes no row.
   recordWorkspaceSwitch: { body: {} },
 
+  // The join link (F029): a read shows the URL of the workspace's code and a renewal replaces it.
+  // The code is on the workspace's own row and is neither a uuid nor a `uniqueMarker`, so the suite
+  // has nothing in the response to look for (`readsNoRecords`); `join-link.integration.test.ts`
+  // checks that the code is in the read and in no refusal. The suite still checks who may call,
+  // the exact refusals, and that a refused or foreign call changes no row.
+  getJoinLink: { readsNoRecords: true },
+  // The body is optional (the app names its surface in it); the web sends none.
+  renewJoinLink: { body: {} },
+
   // The team of a workspace (F003): the list shows the seeded team member, the removal names it.
   listTeamMembers: { seed: aTeamMember },
   // The role change (F004): it names the seeded team member and asks for the role it already has.
