@@ -141,6 +141,7 @@ describe('E015 checking the clients sheet', () => {
     expect(describeProblem(repeated[0] as ImportProblem, 'en')).toBe(
       'Column email appears twice in the file.',
     );
+    expect(result.problems.filter((problem) => problem.column === 'email')).toEqual(repeated);
     expect(result.canImport).toBe(false);
   });
 

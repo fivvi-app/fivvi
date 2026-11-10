@@ -124,9 +124,12 @@ function checkClients(parsed: ParsedImport, workspace: WorkspaceSnapshot): Impor
   for (const column of sheet.unnamedColumns) {
     add('warning', 'column-without-name', 1, column, { column });
   }
-  const has = (column: string) => sheet.columns.includes(column);
+  // A repeated header is refused as a whole: its cells are not read, so they raise no problems.
+  const repeated = new Set(sheet.repeatedColumns);
+  const hasHeader = (column: string) => sheet.columns.includes(column);
+  const has = (column: string) => hasHeader(column) && !repeated.has(column);
   for (const column of CLIENT_SHEET.required) {
-    if (!has(column)) add('error', 'column-missing', 1, column, { column });
+    if (!hasHeader(column)) add('error', 'column-missing', 1, column, { column });
   }
 
   const trainers = new Set(workspace.trainerEmails.map(normalizeEmail));
@@ -135,7 +138,7 @@ function checkClients(parsed: ParsedImport, workspace: WorkspaceSnapshot): Impor
   const emails = new Map<string, number>();
 
   for (const row of sheet.rows) {
-    const cell = (column: string) => row.cells[column] ?? '';
+    const cell = (column: string) => (repeated.has(column) ? '' : (row.cells[column] ?? ''));
     const where = String(row.row);
 
     for (const column of ['client_key', 'first_name', 'status'] as const) {
