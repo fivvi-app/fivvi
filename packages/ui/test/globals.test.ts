@@ -89,4 +89,19 @@ describe('E007 kit stylesheet', () => {
     expect(base, 'the base focus rule').toBeGreaterThan(-1);
     expect(inset, 'the inset list focus rule').toBeGreaterThan(base);
   });
+
+  it('E020: the density sets the height of the confirmation dialog buttons too, which are a Button under another data-slot', async () => {
+    const css = (await compileKit()).build([]).replaceAll(/\s+/g, ' ');
+    const rule = css.match(/\[data-density\] :is\(([^)]*)\) \{ min-height/)?.[1] ?? '';
+
+    for (const slot of [
+      'button',
+      'alert-dialog-action',
+      'alert-dialog-cancel',
+      'input',
+      'native-select',
+    ]) {
+      expect(rule, slot).toContain(`[data-slot="${slot}"]`);
+    }
+  });
 });

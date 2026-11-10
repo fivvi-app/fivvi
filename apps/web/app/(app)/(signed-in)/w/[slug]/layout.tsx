@@ -1,3 +1,4 @@
+import { PortalDensity } from '@fivvi/ui/kit/portal-density';
 import { headers } from 'next/headers';
 import type { ReactNode } from 'react';
 import { apiClient } from '../../../../../server/api';
@@ -23,18 +24,22 @@ export default async function WorkspaceLayout({
   // language in its form, which only `GET /v1/workspaces/{workspaceId}` tells.
   const quickAdd = capabilities.includes('clients.manage') ? await quickAddOf(id) : undefined;
   return (
-    <WorkspaceFrame
-      name={name}
-      slug={slug}
-      teamRole={role}
-      workspaces={me.workspaces}
-      canCreateWorkspace={me.canCreateWorkspace}
-      capabilities={capabilities}
-      personName={me.name}
-      quickAdd={quickAdd}
-    >
-      {children}
-    </WorkspaceFrame>
+    // The frame is compact; the dialogs and menus opened in it render in a portal, which would be
+    // `<body>` at the touch density, so the portal host sits next to the frame at the same one (E020).
+    <PortalDensity density="compact">
+      <WorkspaceFrame
+        name={name}
+        slug={slug}
+        teamRole={role}
+        workspaces={me.workspaces}
+        canCreateWorkspace={me.canCreateWorkspace}
+        capabilities={capabilities}
+        personName={me.name}
+        quickAdd={quickAdd}
+      >
+        {children}
+      </WorkspaceFrame>
+    </PortalDensity>
   );
 }
 
