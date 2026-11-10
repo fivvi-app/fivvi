@@ -267,17 +267,66 @@ describe('issue.sh', () => {
       },
     });
 
+    // #1244: the list was cut at 200 and each candidate was then viewed on its own.
+    const listed = (number, names = ['ready-for-agent'], parent = { number: 50 }) =>
+      item(number, names, parent).out;
+    const manyReady = (count) => Array.from({ length: count }, (_, i) => listed(1000 - i));
+
+    it('#1244: lists a ready ticket that is older than the newest 200 ready-for-agent issues', () => {
+      const result = issueSh(
+        [
+          { match: '^issue list ', out: manyReady(650), limited: true },
+          viewOf(50, ['spec', 'spec-approved']),
+        ],
+        'ready',
+      );
+      assert.equal(result.status, 0, result.stderr);
+      const numbers = result.stdout.split('\n').filter(Boolean);
+      assert.equal(numbers.length, 650);
+      assert.equal(numbers.at(-1), '351\tissue 351');
+    });
+
+    it('#1244: reads the candidates in one list and each spec once, not each ticket on its own', () => {
+      const result = issueSh(
+        [
+          { match: '^issue list ', out: manyReady(300), limited: true },
+          viewOf(50, ['spec', 'spec-approved']),
+        ],
+        'ready',
+      );
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.calls.filter((args) => args[1] === 'list').length, 1);
+      assert.deepEqual(
+        result.calls.filter((args) => args[1] === 'view').map((args) => args[2]),
+        ['50'],
+      );
+    });
+
+    it('#1244: fails when the list reaches its limit, instead of dropping the rest', () => {
+      const result = issueSh(
+        [
+          { match: '^issue list ', out: manyReady(5000), limited: true },
+          viewOf(50, ['spec', 'spec-approved']),
+        ],
+        'ready',
+      );
+      assert.equal(result.status, 1);
+      assert.equal(result.stdout, '');
+      assert.match(result.stderr, /more than \d+ open ready-for-agent issues/);
+    });
+
     it('leaves out tickets of unapproved specs and unapproved specs built as their own ticket', () => {
       const result = issueSh(
         [
           {
             match: '^issue list ',
-            out: [{ number: 51 }, { number: 52 }, { number: 60 }, { number: 61 }],
+            out: [
+              listed(51, ['ready-for-agent'], { number: 50 }),
+              listed(52, ['ready-for-agent'], { number: 49 }),
+              listed(60, ['spec', 'ready-for-agent'], null),
+              listed(61, ['spec', 'spec-approved', 'ready-for-agent'], null),
+            ],
           },
-          item(51, ['ready-for-agent'], { number: 50 }),
-          item(52, ['ready-for-agent'], { number: 49 }),
-          item(60, ['spec', 'ready-for-agent'], null),
-          item(61, ['spec', 'spec-approved', 'ready-for-agent'], null),
           viewOf(50, ['spec', 'spec-approved']),
           viewOf(49, ['spec']),
         ],
@@ -298,12 +347,13 @@ describe('issue.sh', () => {
         [
           {
             match: '^issue list ',
-            out: [{ number: 51 }, { number: 52 }, { number: 53 }, { number: 54 }],
+            out: [
+              withBlockers(51, []).out,
+              withBlockers(52, [{ number: 45, state: 'OPEN' }]).out,
+              withBlockers(53, [{ number: 49, state: 'OPEN' }]).out,
+              withBlockers(54, [{ number: 44, state: 'CLOSED' }]).out,
+            ],
           },
-          withBlockers(51, []),
-          withBlockers(52, [{ number: 45, state: 'OPEN' }]),
-          withBlockers(53, [{ number: 49, state: 'OPEN' }]),
-          withBlockers(54, [{ number: 44, state: 'CLOSED' }]),
           // Spec #50 itself waits on spec #49: its tickets are approved to be built, so only their own edges count.
           {
             ...viewOf(50, ['spec', 'spec-approved']),
@@ -320,11 +370,37 @@ describe('issue.sh', () => {
       assert.equal(result.stdout, '51\tissue 51\n54\tissue 54\n');
     });
 
+    it('--parent views the open sub-issues of the spec, one by one', () => {
+      const result = issueSh(
+        [
+          {
+            match: '^issue view 50 ',
+            out: {
+              subIssues: {
+                nodes: [
+                  { number: 51, state: 'OPEN' },
+                  { number: 52, state: 'CLOSED' },
+                  { number: 53, state: 'OPEN' },
+                ],
+              },
+              labels: labels('spec', 'spec-approved'),
+            },
+          },
+          item(51, ['ready-for-agent'], { number: 50 }),
+          item(53, ['ready-for-agent', 'bug'], { number: 50 }),
+        ],
+        'ready',
+        '--parent',
+        '50',
+      );
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.stdout, '51\tissue 51\n53\tissue 53\n');
+    });
+
     it("fails instead of listing a ticket whose spec's labels it can't read", () => {
       const result = issueSh(
         [
-          { match: '^issue list ', out: [{ number: 51 }] },
-          item(51, ['ready-for-agent'], { number: 50 }),
+          { match: '^issue list ', out: [listed(51)] },
           { match: '^issue view 50 ', out: '', status: 1 },
         ],
         'ready',
