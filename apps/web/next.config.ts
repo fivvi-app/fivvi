@@ -1,6 +1,7 @@
 import { fileURLToPath } from 'node:url';
 import type { NextConfig } from 'next';
 import createNextIntlPlugin from 'next-intl/plugin';
+import { staticFileHeaders } from './server/security-headers';
 
 const withNextIntl = createNextIntlPlugin('./i18n/request.ts');
 
@@ -22,6 +23,10 @@ const nextConfig: NextConfig = {
     RAILWAY_GIT_COMMIT_SHA: process.env.RAILWAY_GIT_COMMIT_SHA ?? '',
   },
   typedRoutes: true,
+  // The route guard (proxy.ts) sets the security headers on every page and API answer, but its
+  // matcher skips the build's own files and the favicon; these get the same values here (E013 AC8).
+  headers: async () =>
+    ['/_next/:path*', '/favicon.ico'].map((source) => ({ source, headers: staticFileHeaders() })),
   // The app and the public website have a root layout each (F064, ADR-030), so an address that
   // matches no page has no layout to render its 404 in: `app/global-not-found.tsx` is that page.
   experimental: { globalNotFound: true },
