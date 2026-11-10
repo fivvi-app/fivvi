@@ -22,10 +22,12 @@ struct TabBarProbe {
         let selectedTab = tabs.matching(NSPredicate(format: "label == %@", selected))
         let otherTab = tabs.matching(NSPredicate(format: "label == %@", other))
         var widths: (tab: CGFloat, bar: CGFloat)?
-        let settled = Polling.settled(timeout: timeout, interval: 0.2, reads: 3) { () -> [CGFloat] in
+        // A read that finds no bar yet, or no tab to touch, is nothing to settle on: it returns nil, never a value that
+        // three reads could agree on (#679).
+        let settled = Polling.settled(timeout: timeout, interval: 0.2, reads: 3) { () -> [CGFloat]? in
             guard let tab = Self.width(of: selectedTab), let bar = Self.width(of: tabBar),
                 Self.canBeHit(otherTab)
-            else { return [] }
+            else { return nil }
             widths = (tab, bar)
             return [tab, bar]
         }
