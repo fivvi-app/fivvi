@@ -66,10 +66,8 @@ Internal emails (the demo request to Fivvi's own inbox, the developer sample) ar
 1. Write `src/templates/<type>.tsx` (see Templates) and its render test; add the keys to `nl-NL.json`, `en.json` and `comments.json`, worded as in `packages/i18n/GLOSSARY.md`.
 2. Export it from `src/templates/index.ts`.
 3. In `catalog.ts`, import it and change the entry of its ID: `status: 'active'`, `template: register(yourEmail)`, and `subjectKeys` set to the keys that now exist (they must exist in both languages).
-4. A new email that has no reserved ID takes the next free ID (EM-24 and up are the M6, M9 and M11 emails; check `docs/design/information-architecture.md §8` and the spec of the feature) and is added to `catalog` as `active` in the same change.
+4. A new email that has no reserved ID takes the number after the highest allocated anywhere (EM-35 today), not just in `catalog.ts`: the prototype's `docs/design/prototype-v2/more-email.js` already allocates EM-24 to EM-34 for the M6, M9 and M11 emails (for example EM-28 in #481), most of them not yet in the catalog. Use another number only when the feature's spec already allocated one. Add it to `catalog` as `active` in the same change.
 5. Run `pnpm --filter @fivvi/email test`: the catalog test, the generic render test for both languages and the preview pick it up without another list.
-
-Adding a template: write `src/templates/<type>.tsx`, add the keys to both catalogs, register it in the catalog as above, and add a render test. The generic test in `templates.test.ts` renders every template in every locale.
 
 ## Sending
 
