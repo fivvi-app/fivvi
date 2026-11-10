@@ -5,9 +5,11 @@ import type { ReactElement } from 'react';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it } from 'vitest';
 import { Button } from '../src/components/button';
+import { Avatar } from '../src/kit/avatar';
 import { ClientLayout } from '../src/kit/client-layout';
 import { ErrorLine } from '../src/kit/error-line';
 import { Field } from '../src/kit/field';
+import { ChevronRightIcon, PersonPlusIcon, SearchIcon } from '../src/kit/icons';
 import { InsetList, InsetListItem } from '../src/kit/inset-list';
 import { NextCard } from '../src/kit/next-card';
 import { PillButton, PillButtonStack } from '../src/kit/pill-button';
@@ -247,6 +249,45 @@ describe('E020 web kit', () => {
     });
   });
 
+  describe('AC14: avatar', () => {
+    it('is a round mark hidden from screen readers, whose letters are drawn by the stylesheet', () => {
+      const markup = html(<Avatar initials="AV" />);
+
+      // The letters are no text in the page: the name beside the avatar says who it is.
+      expect(markup).not.toMatch(/>\s*AV\s*</);
+      expect(markup).toContain('data-initials="AV"');
+      expect(markup).toContain('aria-hidden="true"');
+      expect(classesOf(markup, 'data-slot="avatar"')).toEqual(
+        expect.arrayContaining([
+          'rounded-full',
+          'bg-muted',
+          'text-foreground',
+          'size-7',
+          'before:content-[attr(data-initials)]',
+        ]),
+      );
+    });
+
+    it('has a large size for a profile header', () => {
+      const classes = classesOf(html(<Avatar initials="AV" size="lg" />), 'data-slot="avatar"');
+
+      expect(classes).toEqual(expect.arrayContaining(['size-14', 'text-xl']));
+      expect(classes).not.toContain('size-7');
+    });
+  });
+
+  describe('icons', () => {
+    it('are decorative drawings that take their colour from the text and a class', () => {
+      for (const Icon of [ChevronRightIcon, PersonPlusIcon, SearchIcon]) {
+        const markup = html(<Icon className="size-4" />);
+
+        expect(markup).toMatch(/^<svg[^>]*aria-hidden="true"/);
+        expect(markup).toContain('stroke="currentColor"');
+        expect(classesOf(markup, 'aria-hidden')).toContain('size-4');
+      }
+    });
+  });
+
   describe('AC14: error line', () => {
     it('is the warning icon and the message in the danger text, announced when it appears', () => {
       const markup = html(<ErrorLine id="oops">Geen verbinding.</ErrorLine>);
@@ -476,6 +517,8 @@ describe('E020 web kit stylesheet', () => {
       <Toast key="j3" surface="client" tone="warning">
         x
       </Toast>,
+      <Avatar key="av1" initials="x" />,
+      <Avatar key="av2" initials="x" size="lg" />,
       <ClientLayout key="k" header="x">
         x
       </ClientLayout>,

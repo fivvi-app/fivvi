@@ -1,8 +1,11 @@
 import type { Schemas } from '@fivvi/contract';
 import type { Locale } from '@fivvi/i18n';
+import { Card, CardContent, CardHeader, CardTitle } from '@fivvi/ui/components/card';
+import { Avatar } from '@fivvi/ui/kit/avatar';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { initials } from '../workspace-initials';
 import { EditClient } from './edit-client';
 
 /**
@@ -40,41 +43,56 @@ export function ClientProfile({
         ? form('localeEn')
         : form('localeDefault', { language: names(defaultLocale === 'nl-NL' ? 'nl' : 'en') });
   return (
-    <main className="flex flex-1 justify-center p-4">
-      <div className="grid w-full max-w-3xl content-start gap-4">
-        <Link href={`/w/${slug}/clients` as Route} className="underline">
+    <main className="flex-1 px-6 pt-5 pb-10">
+      <div className="grid max-w-275 content-start gap-4">
+        <Link
+          href={`/w/${slug}/clients` as Route}
+          className="justify-self-start text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline"
+        >
           {t('title')}
         </Link>
-        <div className="flex flex-wrap items-center justify-between gap-2">
-          <h1 className="text-2xl font-semibold">{client.name}</h1>
+        <div className="flex flex-wrap items-center gap-4">
+          <Avatar initials={initials(client.name)} size="lg" />
+          <h1 className="min-w-0 text-[22px] font-semibold tracking-tight">{client.name}</h1>
           {canEdit ? (
-            <EditClient
-              workspaceId={workspaceId}
-              slug={slug}
-              client={client}
-              defaultLocale={defaultLocale}
-            />
+            <div className="ml-auto">
+              <EditClient
+                workspaceId={workspaceId}
+                slug={slug}
+                client={client}
+                defaultLocale={defaultLocale}
+              />
+            </div>
           ) : null}
         </div>
-        {added ? <p role="status">{t('profile.added', { name: client.name })}</p> : null}
-        <section aria-labelledby="client-overview" className="grid gap-2">
-          <h2 id="client-overview" className="text-lg font-medium">
-            {t('profile.overview')}
-          </h2>
-          <dl className="grid gap-2 text-sm">
-            <div>
-              <dt className="text-muted-foreground">{t('profile.nameLabel')}</dt>
-              <dd>{client.name}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">{t('profile.emailLabel')}</dt>
-              <dd>{client.email}</dd>
-            </div>
-            <div>
-              <dt className="text-muted-foreground">{t('profile.localeLabel')}</dt>
-              <dd>{language}</dd>
-            </div>
-          </dl>
+        {added ? (
+          <p
+            role="status"
+            className="justify-self-start rounded-lg bg-status-success-bg px-3 py-2 text-sm font-semibold text-status-success-text"
+          >
+            {t('profile.added', { name: client.name })}
+          </p>
+        ) : null}
+        <section aria-labelledby="client-overview">
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                <h2 id="client-overview" className="text-[15px] font-semibold">
+                  {t('profile.overview')}
+                </h2>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">
+                <dt className="text-muted-foreground">{t('profile.nameLabel')}</dt>
+                <dd>{client.name}</dd>
+                <dt className="text-muted-foreground">{t('profile.emailLabel')}</dt>
+                <dd>{client.email}</dd>
+                <dt className="text-muted-foreground">{t('profile.localeLabel')}</dt>
+                <dd>{language}</dd>
+              </dl>
+            </CardContent>
+          </Card>
         </section>
       </div>
     </main>

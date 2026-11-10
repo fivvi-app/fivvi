@@ -59,6 +59,18 @@ export const unauthorizedResponse = (description: string) => ({
   content: { 'application/json': { schema: UnauthorizedSchema } },
 });
 
+export const InvalidCodeSchema = z
+  .object({ code: z.enum(['invalid_or_expired_code']) })
+  .openapi('InvalidCode', {
+    description:
+      'The code is wrong, used, replaced, expired or out of attempts, or the address it was sent ' +
+      'for has an account by now; nothing says which. Nothing changed. Contains no user-facing ' +
+      'text.',
+  });
+
+/** The body of the `422` of a code that was not accepted. */
+export const INVALID_OR_EXPIRED_CODE = { code: 'invalid_or_expired_code' } as const;
+
 /** The body of every `401`: it never says whether a token, a code or an address was wrong. */
 export const UNAUTHORIZED = { code: 'unauthorized' } as const;
 

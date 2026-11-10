@@ -71,7 +71,14 @@ export interface SignInRateLimitOptions {
   requireClientIp: boolean;
 }
 
-type LimitName = 'address' | 'ip' | 'token-ip';
+type LimitName =
+  | 'address'
+  | 'ip'
+  | 'token-ip'
+  | 'change-account'
+  | 'change-address'
+  | 'change-ip'
+  | 'change-confirm-ip';
 
 /** Counts the request under `<name>:<keyed hash of value>`; true when it is over the rule. */
 async function isOverLimit(
@@ -186,5 +193,60 @@ export function signInTokenRateLimit({
     await deleteExpiredRateLimits(db, now);
     if (limited) log('Sign-in token exchange rate-limited: ip');
     return limited;
+  };
+}
+
+/**
+ * The limits of the email change (F005, spec #610), "as for sign-in": a request counts 3 in 15
+ * minutes per account and per new address, and 20 an hour per IP address (the sign-in's numbers);
+ * the code step counts per IP address like the apps' code exchange. A wrong code is limited by the
+ * verification itself, which dies after `MAX_WRONG_CODES`.
+ */
+export interface EmailChangeRateLimits {
+  /** Counts a request for a code and says whether it is over a limit: then nothing is sent. */
+  requestLimited(input: {
+    accountId: string;
+    newEmail: string;
+    headers: Headers;
+  }): Promise<boolean>;
+  /** Counts a try at a code and says whether this client IP address is over its limit. */
+  confirmLimited(headers: Headers): Promise<boolean>;
+}
+
+export function emailChangeRateLimits({
+  db,
+  secret,
+  clock,
+  log,
+  requireClientIp,
+}: SignInRateLimitOptions): EmailChangeRateLimits {
+  const store = { db, secret };
+  return {
+    async requestLimited({ accountId, newEmail, headers }) {
+      const now = clock.now();
+      const limited: LimitName[] = [];
+      if (await isOverLimit(store, 'change-account', accountId, ADDRESS_LIMIT, now)) {
+        limited.push('change-account');
+      }
+      if (await isOverLimit(store, 'change-address', newEmail, ADDRESS_LIMIT, now)) {
+        limited.push('change-address');
+      }
+      const ip = clientIp(headers, requireClientIp);
+      if (ip && (await isOverLimit(store, 'change-ip', ip, IP_LIMIT, now))) {
+        limited.push('change-ip');
+      }
+      await deleteExpiredRateLimits(db, now);
+      if (limited.length > 0) log(`Email change request rate-limited: ${limited.join(', ')}`);
+      return limited.length > 0;
+    },
+    async confirmLimited(headers) {
+      const now = clock.now();
+      const ip = clientIp(headers, requireClientIp);
+      const limited =
+        ip !== null && (await isOverLimit(store, 'change-confirm-ip', ip, TOKEN_IP_LIMIT, now));
+      await deleteExpiredRateLimits(db, now);
+      if (limited) log('Email change code rate-limited: ip');
+      return limited;
+    },
   };
 }

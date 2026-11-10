@@ -1,4 +1,4 @@
-import { randomBytes, randomInt } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { type Database, recordWrongSignInCode } from '@fivvi/database';
 import { maskEmail } from '@fivvi/domain';
 import { type SendEmail, signInEmail } from '@fivvi/email';
@@ -14,6 +14,7 @@ import { APIError, createAuthEndpoint } from 'better-auth/api';
 import { setSessionCookie } from 'better-auth/cookies';
 import { z } from 'zod';
 import type { SignUpAllowlist } from './allowlist.ts';
+import { generateCode, runSettled } from './background.ts';
 import { hashesEqual, hashSecretValue } from './hash.ts';
 import { MAX_RETURN_PATH_LENGTH, RETURN_PATH_PARAM, safeReturnPath } from './return-path.ts';
 
@@ -78,7 +79,7 @@ export const REQUEST_PATH = '/sign-in/code/request';
 const IDENTIFIER_PREFIX = 'sign-in:';
 
 /** `sign-in:<email>`: one verification per address, so a new request replaces the old one. */
-const identifierFor = (email: string) => `${IDENTIFIER_PREFIX}${email}`;
+export const identifierFor = (email: string) => `${IDENTIFIER_PREFIX}${email}`;
 
 /** The endpoints (under `/api/auth`) of the confirm step: what the link is for, and the button. */
 const LINK_PREVIEW_ENDPOINT = '/sign-in/link/preview';
@@ -95,12 +96,33 @@ const emailOf = (identifier: string) =>
  * The row of `auth_verifications` as the plugin reads it: Better Auth's types lack the plugin's
  * own columns, which are optional here because they are read from untyped storage.
  */
-type Verification = NonNullable<
+export type Verification = NonNullable<
   Awaited<ReturnType<GenericEndpointContext['context']['internalAdapter']['findVerificationValue']>>
 > & { codeHash?: unknown; locale?: unknown; failedAttempts?: unknown };
 
+/**
+ * The newest verification of `identifier` if it can still be used: not expired by the injected
+ * clock and under the wrong-code limit. There is no unique index on the identifier (a request
+ * replaces by delete and insert), so two parallel requests can leave two rows: the newest one
+ * is the verification, for the code and for the link. Shared with the email change, which keeps
+ * its codes in the same table.
+ */
+export async function findLiveVerification(
+  ctx: GenericEndpointContext,
+  identifier: string,
+  clock: Clock,
+): Promise<Verification | null> {
+  const verification: Verification | null =
+    await ctx.context.internalAdapter.findVerificationValue(identifier);
+  if (!verification) return null;
+  if (verification.expiresAt.getTime() <= clock.now().getTime()) return null;
+  const { failedAttempts } = verification;
+  if (typeof failedAttempts === 'number' && failedAttempts >= MAX_WRONG_CODES) return null;
+  return verification;
+}
+
 /** One answer for a wrong, expired, used or never issued code: no message says which. */
-const rejectedCode = () =>
+export const rejectedCode = () =>
   new APIError('UNAUTHORIZED', {
     code: 'INVALID_OR_EXPIRED_CODE',
     message: 'The code is incorrect or has expired.',
@@ -151,24 +173,8 @@ export function signInWithEmail({
     return signUpAllowlist.allows(email) || (await isInvitedEmail(email, clock.now()));
   }
 
-  /**
-   * The newest verification of `identifier` if it can still be used: not expired by the injected
-   * clock and under the wrong-code limit. There is no unique index on the identifier (a request
-   * replaces by delete and insert), so two parallel requests can leave two rows: the newest one
-   * is the verification, for the code and for the link.
-   */
-  async function findLiveVerification(
-    ctx: GenericEndpointContext,
-    identifier: string,
-  ): Promise<Verification | null> {
-    const verification: Verification | null =
-      await ctx.context.internalAdapter.findVerificationValue(identifier);
-    if (!verification) return null;
-    if (verification.expiresAt.getTime() <= clock.now().getTime()) return null;
-    const { failedAttempts } = verification;
-    if (typeof failedAttempts === 'number' && failedAttempts >= MAX_WRONG_CODES) return null;
-    return verification;
-  }
+  const findLive = (ctx: GenericEndpointContext, identifier: string) =>
+    findLiveVerification(ctx, identifier, clock);
 
   /** The live verification a link token belongs to, found by the hash of the token, with its address. */
   async function findLinkVerification(ctx: GenericEndpointContext, token: string) {
@@ -179,7 +185,7 @@ export function signInWithEmail({
     const email = row ? emailOf(row.identifier) : undefined;
     if (!row || !email) return null;
     // A replaced link is not the newest verification of its address any more.
-    const verification = await findLiveVerification(ctx, row.identifier);
+    const verification = await findLive(ctx, row.identifier);
     return verification?.id === row.id ? { verification, email } : null;
   }
 
@@ -320,55 +326,46 @@ export function signInWithEmail({
           // database write and an email, a stranger nothing, so waiting for them would show how
           // long the answer takes and so who has an account (AC8). The same body and status for
           // all is the other half.
-          runInBackground(
-            (async () => {
-              const found = await ctx.context.internalAdapter.findUserByEmail(email);
-              // Sign-up is closed: only an account, an allowed or an invited address gets an email.
-              if (!found && !(await mayCreateAccount(email))) return;
+          runSettled(runInBackground, reportError, async () => {
+            const found = await ctx.context.internalAdapter.findUserByEmail(email);
+            // Sign-up is closed: only an account, an allowed or an invited address gets an email.
+            if (!found && !(await mayCreateAccount(email))) return;
 
-              const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
-              const token = randomBytes(32).toString('base64url');
-              const identifier = identifierFor(email);
-              // ADR-019: the stored language, else the language of the page that asked. A new
-              // account stores the latter at its first sign-in.
-              const emailLocale = resolveSignInCommunicationLanguage({
-                recipientPreference: (
-                  found?.user as { preferredLocale?: string | null } | undefined
-                )?.preferredLocale,
-                page: { explicit: locale, requested: parseAcceptLanguage(acceptLanguage) },
-              });
-              await ctx.context.internalAdapter.deleteVerificationByIdentifier(identifier);
-              // Better Auth's types don't know the fields this plugin adds to the row.
-              const row = {
-                identifier,
-                value: hashSecretValue(secret, 'link-token', token),
-                codeHash: hashSecretValue(secret, 'code', `${email}:${code}`),
-                locale: emailLocale,
-                expiresAt: new Date(clock.now().getTime() + SIGN_IN_EXPIRES_IN_MINUTES * 60_000),
-              };
-              await ctx.context.internalAdapter.createVerificationValue(row);
+            const code = generateCode();
+            const token = randomBytes(32).toString('base64url');
+            const identifier = identifierFor(email);
+            // ADR-019: the stored language, else the language of the page that asked. A new
+            // account stores the latter at its first sign-in.
+            const emailLocale = resolveSignInCommunicationLanguage({
+              recipientPreference: (found?.user as { preferredLocale?: string | null } | undefined)
+                ?.preferredLocale,
+              page: { explicit: locale, requested: parseAcceptLanguage(acceptLanguage) },
+            });
+            await ctx.context.internalAdapter.deleteVerificationByIdentifier(identifier);
+            // Better Auth's types don't know the fields this plugin adds to the row.
+            const row = {
+              identifier,
+              value: hashSecretValue(secret, 'link-token', token),
+              codeHash: hashSecretValue(secret, 'code', `${email}:${code}`),
+              locale: emailLocale,
+              expiresAt: new Date(clock.now().getTime() + SIGN_IN_EXPIRES_IN_MINUTES * 60_000),
+            };
+            await ctx.context.internalAdapter.createVerificationValue(row);
 
-              const url = new URL(CONFIRM_PAGE_PATH, origin);
-              url.searchParams.set('token', token);
-              // Only a path of this site, checked here as the page checks it: the link is the
-              // only place it goes (not stored, logged or sent anywhere else), and is the one
-              // thing a forged request could have steered to another site.
-              const returnPath = safeReturnPath(returnTo);
-              if (returnPath) url.searchParams.set(RETURN_PATH_PARAM, returnPath);
-              await sendEmail({
-                template: signInEmail,
-                props: { code, url: url.toString(), expiresInMinutes: SIGN_IN_EXPIRES_IN_MINUTES },
-                to: { email },
-                locale: emailLocale,
-              });
-            })().catch((error: unknown) => {
-              try {
-                reportError(error);
-              } catch {
-                // Reporting must never turn into a second failure: the task never rejects.
-              }
-            }),
-          );
+            const url = new URL(CONFIRM_PAGE_PATH, origin);
+            url.searchParams.set('token', token);
+            // Only a path of this site, checked here as the page checks it: the link is the
+            // only place it goes (not stored, logged or sent anywhere else), and is the one
+            // thing a forged request could have steered to another site.
+            const returnPath = safeReturnPath(returnTo);
+            if (returnPath) url.searchParams.set(RETURN_PATH_PARAM, returnPath);
+            await sendEmail({
+              template: signInEmail,
+              props: { code, url: url.toString(), expiresInMinutes: SIGN_IN_EXPIRES_IN_MINUTES },
+              to: { email },
+              locale: emailLocale,
+            });
+          });
           return ctx.json(REQUESTED);
         },
       ),
@@ -381,7 +378,7 @@ export function signInWithEmail({
         },
         async (ctx) => {
           const { email, code } = ctx.body;
-          const verification = await findLiveVerification(ctx, identifierFor(email));
+          const verification = await findLive(ctx, identifierFor(email));
           if (!verification) throw rejectedCode();
           const stored = verification.codeHash;
           if (

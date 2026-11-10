@@ -40,6 +40,11 @@ export default defineRailway((ctx) => {
   const source = github(REPO, { branch: 'main', checkSuites: true });
   const dockerfile = { builder: 'DOCKERFILE', dockerfilePath: 'Dockerfile' } as const;
 
+  // Backups: no setting can be declared here, so there is none. `postgres()` takes only a region,
+  // and Railway's config as code documents no field for point-in-time recovery (PITR), backup
+  // schedules or retention (railway SDK 3.11.0, CLI 5.62.1). The owner sets them with the CLI
+  // (`railway postgres pitr enable|schedule set`); ENVIRONMENTS.md §8 records each one and how to
+  // check it, and apps/cron/test/backups.test.ts fails when this file and §8 disagree.
   // Private network only: no TCP proxy, so Postgres has no public address.
   const db = postgres('postgres', { region: REGION });
 

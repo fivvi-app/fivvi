@@ -9,10 +9,12 @@ import { APIError } from 'better-auth/api';
 import { bearer } from 'better-auth/plugins';
 import { closedSignUp, type SignUpAllowlist } from './allowlist.ts';
 import { AUTH_TOKEN_HEADER, bearerOnly, withoutAuthorization, withoutAuthToken } from './bearer.ts';
+import { changeEmailWithCode } from './change-email-plugin.ts';
 import {
   CLIENT_IP_HEADER,
   clientIpOptions,
   defaultRequireClientIp,
+  emailChangeRateLimits,
   signInRateLimits,
   signInTokenRateLimit,
 } from './rate-limit.ts';
@@ -105,6 +107,30 @@ export interface Auth {
     headers: Headers;
   }): Promise<string | undefined>;
   /**
+   * Sends a code to `newEmail` for the account `accountId`, which the caller has already
+   * authenticated (F005, spec #610). The same outcome for every address: an address that already
+   * has an account, one over a rate limit and a free one all return normally, and only a free one
+   * under the limits gets an email (after the answer). The address changes only in
+   * `confirmEmailChange`. `newEmail` is trimmed and lower case.
+   */
+  requestEmailChange(input: {
+    accountId: string;
+    newEmail: string;
+    headers: Headers;
+  }): Promise<void>;
+  /**
+   * Changes the address of `accountId` to the one the code was sent to. `undefined` for every
+   * failure (wrong, used, replaced, expired or killed code, an address that has an account by
+   * now, or a client IP over its limit); the account and its sessions are untouched then. On
+   * success the account's other sign-in sessions stay, and the sign-in codes and links sent to the
+   * old address stop working.
+   */
+  confirmEmailChange(input: {
+    accountId: string;
+    code: string;
+    headers: Headers;
+  }): Promise<{ email: string } | undefined>;
+  /**
    * Ends the sign-in session of the bearer token in the request, and only that one. `false`
    * when there is no valid bearer token.
    */
@@ -178,6 +204,18 @@ export function createAuth({
         },
         productEvents,
       }),
+      // The email change (F005, spec #610): server-side endpoints, not served over HTTP.
+      changeEmailWithCode({
+        db,
+        secret,
+        sendEmail,
+        clock,
+        runInBackground,
+        reportError: (error) => {
+          logFailure(error);
+          reportError?.(error);
+        },
+      }),
     ],
     // Better Auth's own limiter (production only) answers 429 and keeps its counts in memory.
     // The sign-in request has its own limits in Postgres with the neutral answer (rate-limit.ts).
@@ -214,6 +252,7 @@ export function createAuth({
     telemetry: { enabled: false },
   });
   const tokenIpLimited = signInTokenRateLimit({ db, secret, clock, log, requireClientIp });
+  const emailChangeLimits = emailChangeRateLimits({ db, secret, clock, log, requireClientIp });
   async function sessionOf(headers: Headers): Promise<SessionRead> {
     const { headers: answer, response } = await auth.api.getSession({
       headers,
@@ -258,6 +297,26 @@ export function createAuth({
         });
         // The session cookie of the answer is dropped: the app holds the token.
         return answer.get(AUTH_TOKEN_HEADER) ?? undefined;
+      } catch (error) {
+        if (error instanceof APIError && error.statusCode === 401) return undefined;
+        throw error;
+      }
+    },
+    async requestEmailChange({ accountId, newEmail, headers }) {
+      // Over a limit: the usual answer, nothing sent and nothing replaced (AC6).
+      if (await emailChangeLimits.requestLimited({ accountId, newEmail, headers })) return;
+      await auth.api.requestEmailChangeCode({
+        body: { userId: accountId, newEmail },
+        headers: forwardedHeaders(headers),
+      });
+    },
+    async confirmEmailChange({ accountId, code, headers }) {
+      if (await emailChangeLimits.confirmLimited(headers)) return undefined;
+      try {
+        return await auth.api.confirmEmailChangeCode({
+          body: { userId: accountId, code },
+          headers: forwardedHeaders(headers),
+        });
       } catch (error) {
         if (error instanceof APIError && error.statusCode === 401) return undefined;
         throw error;

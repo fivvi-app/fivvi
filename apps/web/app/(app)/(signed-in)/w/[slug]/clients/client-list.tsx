@@ -2,11 +2,16 @@
 
 import { SIGNED_IN_HOME } from '@fivvi/auth/return-path';
 import { Button } from '@fivvi/ui/components/button';
+import { Card } from '@fivvi/ui/components/card';
 import { Input } from '@fivvi/ui/components/input';
+import { Avatar } from '@fivvi/ui/kit/avatar';
+import { ErrorLine } from '@fivvi/ui/kit/error-line';
+import { ChevronRightIcon, PersonPlusIcon, SearchIcon } from '@fivvi/ui/kit/icons';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
 import { useEffect, useRef, useState } from 'react';
+import { initials } from '../workspace-initials';
 import { useOpenAddClient } from './add-client-dialog';
 import { type Client, searchClients } from './clients-client';
 
@@ -98,24 +103,29 @@ export function ClientList({
   const list: Shown = state.status === 'ready' ? state : state.status === 'error' ? shown : EMPTY;
 
   return (
-    <main className="flex flex-1 justify-center p-4">
-      <div className="grid w-full max-w-3xl content-start gap-4">
-        <div className="flex items-center justify-between gap-2">
-          <h1 className="text-2xl font-semibold">{t('title')}</h1>
+    <main className="flex-1 px-6 pt-5 pb-10">
+      <div className="grid max-w-275 content-start gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
           {openAddClient ? (
             <Button type="button" disabled={!ready} onClick={openAddClient}>
+              <PersonPlusIcon />
               {t('add')}
             </Button>
           ) : null}
         </div>
-        <Input
-          type="search"
-          value={search}
-          autoComplete="off"
-          placeholder={t('searchPlaceholder')}
-          aria-label={t('searchPlaceholder')}
-          onChange={(event) => setSearch(event.target.value)}
-        />
+        <div className="relative max-w-sm">
+          <SearchIcon className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            type="search"
+            value={search}
+            autoComplete="off"
+            placeholder={t('searchPlaceholder')}
+            aria-label={t('searchPlaceholder')}
+            className="pl-8"
+            onChange={(event) => setSearch(event.target.value)}
+          />
+        </div>
         {state.status === 'loading' ? (
           <div>
             <p role="status" className="sr-only">
@@ -126,48 +136,59 @@ export function ClientList({
                 {common('loadingSlow')}
               </p>
             ) : null}
-            <ul aria-hidden="true" className="grid gap-2">
-              {[0, 1, 2, 3].map((row) => (
-                <li key={row} className="h-14 animate-pulse rounded-lg border bg-muted" />
-              ))}
-            </ul>
+            <Card className="gap-0 py-0">
+              <ul aria-hidden="true">
+                {[0, 1, 2, 3].map((row) => (
+                  <li key={row} className="h-14 animate-pulse border-b bg-muted last:border-b-0" />
+                ))}
+              </ul>
+            </Card>
           </div>
         ) : null}
         {state.status === 'error' ? (
-          <div role="alert" className="grid justify-items-start gap-2">
-            <p className="text-status-danger-fg">{t('loadError')}</p>
+          <div className="grid justify-items-start gap-2">
+            <ErrorLine>{t('loadError')}</ErrorLine>
             <Button type="button" variant="outline" onClick={() => void load(search)}>
               {common('retry')}
             </Button>
           </div>
         ) : null}
         {state.status === 'ready' && state.items.length === 0 ? (
-          <div className="grid justify-items-start gap-2">
-            <p>{searching ? t('noResults') : t('empty')}</p>
-            {!searching && openAddClient ? (
-              <Button type="button" disabled={!ready} onClick={openAddClient}>
-                {t('add')}
-              </Button>
-            ) : null}
-          </div>
+          <Card>
+            <div className="grid justify-items-start gap-3 px-(--card-spacing)">
+              <p>{searching ? t('noResults') : t('empty')}</p>
+              {!searching && openAddClient ? (
+                <Button type="button" disabled={!ready} onClick={openAddClient}>
+                  <PersonPlusIcon />
+                  {t('add')}
+                </Button>
+              ) : null}
+            </div>
+          </Card>
         ) : null}
         {list.items.length > 0 ? (
           <>
-            <ul aria-label={t('listLabel')} className="grid gap-2">
-              {list.items.map((client) => (
-                <li key={client.id}>
-                  <Link
-                    href={`/w/${slug}/clients/${client.id}` as Route}
-                    className="grid gap-0.5 rounded-lg border p-3 hover:bg-muted"
-                  >
-                    <span className="font-medium">{client.name}</span>
-                    {/* A pause between the name and the address in the link's spoken name. */}
-                    <span className="sr-only">, </span>
-                    <span className="text-muted-foreground">{client.email}</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+            <Card className="gap-0 py-0">
+              <ul aria-label={t('listLabel')}>
+                {list.items.map((client) => (
+                  <li key={client.id} className="border-b last:border-b-0">
+                    <Link
+                      href={`/w/${slug}/clients/${client.id}` as Route}
+                      className="grid grid-cols-[auto_1fr_auto] items-center gap-x-3 px-4.5 py-2.5 outline-none hover:bg-muted/60 focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:ring-inset"
+                    >
+                      <Avatar initials={initials(client.name)} className="row-span-2" />
+                      <span className="col-start-2 font-semibold">{client.name}</span>
+                      {/* A pause between the name and the address in the link's spoken name. */}
+                      <span className="sr-only">, </span>
+                      <span className="col-start-2 text-[13px] text-muted-foreground">
+                        {client.email}
+                      </span>
+                      <ChevronRightIcon className="col-start-3 row-span-2 row-start-1 size-4 text-muted-foreground" />
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </Card>
             {list.total > list.items.length ? (
               <p className="text-sm text-muted-foreground">
                 {t('partial', { shown: list.items.length, total: list.total })}

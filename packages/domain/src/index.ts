@@ -9,6 +9,38 @@ export {
   type NewClientDecision,
   type NewClientFacts,
 } from './clients/new-client.ts';
+export {
+  type BillingDetails,
+  type BillingDetailsDecision,
+  type BillingDetailsInput,
+  decideBillingDetails,
+  decideInvoiceDetails,
+  INVOICE_NAME_MAX_LENGTH,
+  type InvoiceDetails,
+  type InvoiceDetailsDecision,
+  type InvoiceDetailsField,
+  type InvoiceDetailsInput,
+  type InvoiceDetailsIssue,
+  isInvoiceDetailsComplete,
+  isKvkNumber,
+  isVatNumber,
+} from './commerce/invoice-details.ts';
+export {
+  type ExemptLine,
+  type InvoiceLine,
+  type InvoiceTotals,
+  invoiceLine,
+  invoiceTotals,
+  splitVat,
+  type VatLine,
+  type VatSplit,
+} from './commerce/invoice-math.ts';
+export {
+  formatInvoiceNumber,
+  invoiceYear,
+  type NextInvoiceNumberFacts,
+  nextInvoiceNumber,
+} from './commerce/invoice-number.ts';
 export { maskEmail, normalizeEmail } from './email.ts';
 export {
   ADDRESS_ADDITION_MAX_LENGTH,
