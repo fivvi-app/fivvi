@@ -18,7 +18,7 @@ import {
 } from '@fivvi/observability';
 import { type Clock, manualClock } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
-import { eq } from 'drizzle-orm';
+import { eq, like } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type ApiDependencies, createApp, NO_DEPENDENCIES } from '../src/index.ts';
 
@@ -463,6 +463,72 @@ describe('F005 change your own email address', () => {
     });
   });
 
+  describe('AC6: limits per client IP address', () => {
+    const IP = { 'x-real-ip': '203.0.113.9' };
+
+    it('over the IP limit a change request answers 202 and sends nothing', async () => {
+      // Seven accounts at three requests each (the per-account limit is 3): the first 20 requests
+      // are within the IP limit.
+      const accounts = [];
+      for (let i = 0; i < 7; i++) accounts.push(await account(unique(`ip${i}`)));
+      const fresh = await account(unique('fresh'));
+      transport.clear();
+      for (let n = 0; n < 20; n++) {
+        const sarah = accounts[Math.floor(n / 3)];
+        expect((await requestChange(sarah?.cookie, unique('new'), IP)).status).toBe(202);
+      }
+      await settle();
+      expect(transport.sent).toHaveLength(20);
+
+      transport.clear();
+      const limited = await requestChange(fresh.cookie, unique('new'), IP);
+      await settle();
+
+      expect(limited.status).toBe(202);
+      expect(transport.sent).toEqual([]);
+      // Another network is not limited.
+      const other = await requestChange(fresh.cookie, unique('new'), {
+        'x-real-ip': '203.0.113.10',
+      });
+      await settle();
+      expect(other.status).toBe(202);
+      expect(transport.sent).toHaveLength(1);
+    });
+
+    it('over the IP limit a confirm answers 422 and leaves the code alone', async () => {
+      const sarah = await account(unique('sarah'));
+      const newEmail = unique('sarah.jansen');
+      const { code } = await askForCode(sarah.cookie, newEmail);
+      const wrong = wrongCodeFor(code);
+      // 30 tries from one network are within the limit. They are of an account with no pending
+      // change, so none of them counts against Sarah's code.
+      const other = await account(unique('other'), { name: 'Other' });
+      for (let i = 0; i < 30; i++) {
+        expect((await confirmChange(other.cookie, wrong, {}, IP)).status).toBe(422);
+      }
+
+      const limited = await confirmChange(sarah.cookie, code, {}, IP);
+
+      expect(limited.status).toBe(422);
+      expect(await limited.json()).toEqual(INVALID_CODE);
+      expect(await storedEmail(sarah.id)).toBe(sarah.email);
+      // The limited try did not count as a wrong code, and the right code works from elsewhere.
+      const [verification] = await client.db
+        .select()
+        .from(authVerifications)
+        .where(like(authVerifications.identifier, `change-email:${sarah.id}`));
+      expect(verification?.failedAttempts).toBe(0);
+      const elsewhere = await confirmChange(
+        sarah.cookie,
+        code,
+        {},
+        { 'x-real-ip': '203.0.113.10' },
+      );
+      expect(elsewhere.status).toBe(200);
+      expect(await storedEmail(sarah.id)).toBe(newEmail);
+    });
+  });
+
   describe('AC7: invalid or same address', () => {
     it.each([
       ['not an address', 'not-an-address'],
@@ -673,6 +739,42 @@ describe('F005 change your own email address', () => {
       expect(await storedEmail(other.id)).toBe(other.email);
       // Hers still works, and the other account's wrong try did not count against it.
       expect((await confirmChange(sarah.cookie, code)).status).toBe(200);
+    });
+
+    it('the plugin endpoints are not served under /api/auth, whatever the body says', async () => {
+      const sarah = await account(unique('sarah'));
+      const victim = await account(unique('victim'), { name: 'Victim' });
+      const attackerNew = unique('taken-over');
+      const { code } = await askForCode(victim.cookie, unique('victim.new'));
+      transport.clear();
+      const server = authAt(clock);
+      const direct = (path: string, body: unknown) =>
+        server.handler(
+          new Request(`${ORIGIN}/api/auth${path}`, {
+            method: 'POST',
+            headers: {
+              'content-type': 'application/json',
+              origin: ORIGIN,
+              cookie: sarah.cookie,
+            },
+            body: JSON.stringify(body),
+          }),
+        );
+
+      const request = await direct('/change-email/code/request', {
+        userId: victim.id,
+        newEmail: attackerNew,
+      });
+      const confirm = await direct('/change-email/code/confirm', { userId: victim.id, code });
+      await settle();
+
+      expect(request.status).toBe(404);
+      expect(confirm.status).toBe(404);
+      expect(transport.sent).toEqual([]);
+      expect(await storedEmail(victim.id)).toBe(victim.email);
+      expect(await storedEmail(sarah.id)).toBe(sarah.email);
+      // Her own pending change was not replaced by the forged request.
+      expect((await confirmChange(victim.cookie, code)).status).toBe(200);
     });
 
     it('works with a bearer token, as the apps send it', async () => {

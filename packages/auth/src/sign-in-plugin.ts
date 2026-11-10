@@ -1,4 +1,4 @@
-import { randomBytes, randomInt } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { type Database, recordWrongSignInCode } from '@fivvi/database';
 import { maskEmail } from '@fivvi/domain';
 import { type SendEmail, signInEmail } from '@fivvi/email';
@@ -14,6 +14,7 @@ import { APIError, createAuthEndpoint } from 'better-auth/api';
 import { setSessionCookie } from 'better-auth/cookies';
 import { z } from 'zod';
 import type { SignUpAllowlist } from './allowlist.ts';
+import { generateCode, runSettled } from './background.ts';
 import { hashesEqual, hashSecretValue } from './hash.ts';
 import { MAX_RETURN_PATH_LENGTH, RETURN_PATH_PARAM, safeReturnPath } from './return-path.ts';
 
@@ -325,55 +326,46 @@ export function signInWithEmail({
           // database write and an email, a stranger nothing, so waiting for them would show how
           // long the answer takes and so who has an account (AC8). The same body and status for
           // all is the other half.
-          runInBackground(
-            (async () => {
-              const found = await ctx.context.internalAdapter.findUserByEmail(email);
-              // Sign-up is closed: only an account, an allowed or an invited address gets an email.
-              if (!found && !(await mayCreateAccount(email))) return;
+          runSettled(runInBackground, reportError, async () => {
+            const found = await ctx.context.internalAdapter.findUserByEmail(email);
+            // Sign-up is closed: only an account, an allowed or an invited address gets an email.
+            if (!found && !(await mayCreateAccount(email))) return;
 
-              const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
-              const token = randomBytes(32).toString('base64url');
-              const identifier = identifierFor(email);
-              // ADR-019: the stored language, else the language of the page that asked. A new
-              // account stores the latter at its first sign-in.
-              const emailLocale = resolveSignInCommunicationLanguage({
-                recipientPreference: (
-                  found?.user as { preferredLocale?: string | null } | undefined
-                )?.preferredLocale,
-                page: { explicit: locale, requested: parseAcceptLanguage(acceptLanguage) },
-              });
-              await ctx.context.internalAdapter.deleteVerificationByIdentifier(identifier);
-              // Better Auth's types don't know the fields this plugin adds to the row.
-              const row = {
-                identifier,
-                value: hashSecretValue(secret, 'link-token', token),
-                codeHash: hashSecretValue(secret, 'code', `${email}:${code}`),
-                locale: emailLocale,
-                expiresAt: new Date(clock.now().getTime() + SIGN_IN_EXPIRES_IN_MINUTES * 60_000),
-              };
-              await ctx.context.internalAdapter.createVerificationValue(row);
+            const code = generateCode();
+            const token = randomBytes(32).toString('base64url');
+            const identifier = identifierFor(email);
+            // ADR-019: the stored language, else the language of the page that asked. A new
+            // account stores the latter at its first sign-in.
+            const emailLocale = resolveSignInCommunicationLanguage({
+              recipientPreference: (found?.user as { preferredLocale?: string | null } | undefined)
+                ?.preferredLocale,
+              page: { explicit: locale, requested: parseAcceptLanguage(acceptLanguage) },
+            });
+            await ctx.context.internalAdapter.deleteVerificationByIdentifier(identifier);
+            // Better Auth's types don't know the fields this plugin adds to the row.
+            const row = {
+              identifier,
+              value: hashSecretValue(secret, 'link-token', token),
+              codeHash: hashSecretValue(secret, 'code', `${email}:${code}`),
+              locale: emailLocale,
+              expiresAt: new Date(clock.now().getTime() + SIGN_IN_EXPIRES_IN_MINUTES * 60_000),
+            };
+            await ctx.context.internalAdapter.createVerificationValue(row);
 
-              const url = new URL(CONFIRM_PAGE_PATH, origin);
-              url.searchParams.set('token', token);
-              // Only a path of this site, checked here as the page checks it: the link is the
-              // only place it goes (not stored, logged or sent anywhere else), and is the one
-              // thing a forged request could have steered to another site.
-              const returnPath = safeReturnPath(returnTo);
-              if (returnPath) url.searchParams.set(RETURN_PATH_PARAM, returnPath);
-              await sendEmail({
-                template: signInEmail,
-                props: { code, url: url.toString(), expiresInMinutes: SIGN_IN_EXPIRES_IN_MINUTES },
-                to: { email },
-                locale: emailLocale,
-              });
-            })().catch((error: unknown) => {
-              try {
-                reportError(error);
-              } catch {
-                // Reporting must never turn into a second failure: the task never rejects.
-              }
-            }),
-          );
+            const url = new URL(CONFIRM_PAGE_PATH, origin);
+            url.searchParams.set('token', token);
+            // Only a path of this site, checked here as the page checks it: the link is the
+            // only place it goes (not stored, logged or sent anywhere else), and is the one
+            // thing a forged request could have steered to another site.
+            const returnPath = safeReturnPath(returnTo);
+            if (returnPath) url.searchParams.set(RETURN_PATH_PARAM, returnPath);
+            await sendEmail({
+              template: signInEmail,
+              props: { code, url: url.toString(), expiresInMinutes: SIGN_IN_EXPIRES_IN_MINUTES },
+              to: { email },
+              locale: emailLocale,
+            });
+          });
           return ctx.json(REQUESTED);
         },
       ),

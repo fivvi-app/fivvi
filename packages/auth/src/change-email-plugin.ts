@@ -1,10 +1,10 @@
-import { randomInt } from 'node:crypto';
 import { type Database, recordWrongSignInCode } from '@fivvi/database';
 import { emailChangeCodeEmail, type SendEmail } from '@fivvi/email';
 import { parseAcceptLanguage, resolveSignInCommunicationLanguage } from '@fivvi/i18n';
 import type { BetterAuthPlugin } from 'better-auth';
 import { createAuthEndpoint } from 'better-auth/api';
 import { z } from 'zod';
+import { generateCode, runSettled } from './background.ts';
 import { hashesEqual, hashSecretValue } from './hash.ts';
 import {
   type Clock,
@@ -84,45 +84,37 @@ export function changeEmailWithCode({
           const acceptLanguage = ctx.headers?.get('accept-language');
           // Answers first and works after, for every address alike: looking an address up and
           // sending to it must not show, by the time it takes, who has an account (AC8).
-          runInBackground(
-            (async () => {
-              const { internalAdapter } = ctx.context;
-              const identifier = identifierFor(userId);
-              // Replaced whatever the address turns out to be, so asking for a taken address
-              // ends the earlier code just as asking for a free one does.
-              await internalAdapter.deleteVerificationByIdentifier(identifier);
-              const user = await internalAdapter.findUserById(userId);
-              if (!user || user.email === newEmail) return;
-              if (await internalAdapter.findUserByEmail(newEmail)) return;
+          runSettled(runInBackground, reportError, async () => {
+            const { internalAdapter } = ctx.context;
+            const identifier = identifierFor(userId);
+            // Replaced whatever the address turns out to be, so asking for a taken address
+            // ends the earlier code just as asking for a free one does.
+            await internalAdapter.deleteVerificationByIdentifier(identifier);
+            const user = await internalAdapter.findUserById(userId);
+            if (!user || user.email === newEmail) return;
+            if (await internalAdapter.findUserByEmail(newEmail)) return;
 
-              const code = String(randomInt(0, 1_000_000)).padStart(6, '0');
-              const locale = resolveSignInCommunicationLanguage({
-                recipientPreference: (user as { preferredLocale?: string | null }).preferredLocale,
-                page: { requested: parseAcceptLanguage(acceptLanguage) },
-              });
-              // Better Auth's types don't know the fields the sign-in plugin adds to the row.
-              const row = {
-                identifier,
-                value: newEmail,
-                codeHash: codeHashOf(secret, userId, newEmail, code),
-                locale,
-                expiresAt: new Date(clock.now().getTime() + SIGN_IN_EXPIRES_IN_MINUTES * 60_000),
-              };
-              await internalAdapter.createVerificationValue(row);
-              await sendEmail({
-                template: emailChangeCodeEmail,
-                props: { code, expiresInMinutes: SIGN_IN_EXPIRES_IN_MINUTES },
-                to: { email: newEmail },
-                locale,
-              });
-            })().catch((error: unknown) => {
-              try {
-                reportError(error);
-              } catch {
-                // Reporting must never turn into a second failure: the task never rejects.
-              }
-            }),
-          );
+            const code = generateCode();
+            const locale = resolveSignInCommunicationLanguage({
+              recipientPreference: (user as { preferredLocale?: string | null }).preferredLocale,
+              page: { requested: parseAcceptLanguage(acceptLanguage) },
+            });
+            // Better Auth's types don't know the fields the sign-in plugin adds to the row.
+            const row = {
+              identifier,
+              value: newEmail,
+              codeHash: codeHashOf(secret, userId, newEmail, code),
+              locale,
+              expiresAt: new Date(clock.now().getTime() + SIGN_IN_EXPIRES_IN_MINUTES * 60_000),
+            };
+            await internalAdapter.createVerificationValue(row);
+            await sendEmail({
+              template: emailChangeCodeEmail,
+              props: { code, expiresInMinutes: SIGN_IN_EXPIRES_IN_MINUTES },
+              to: { email: newEmail },
+              locale,
+            });
+          });
           return ctx.json(REQUESTED);
         },
       ),
