@@ -5,15 +5,18 @@ import type { Locale } from '@fivvi/i18n';
 import { Button } from '@fivvi/ui/components/button';
 import {
   Card,
+  CardAction,
   CardContent,
   CardDescription,
-  CardFooter,
   CardHeader,
   CardTitle,
 } from '@fivvi/ui/components/card';
+import { ErrorLine } from '@fivvi/ui/kit/error-line';
+import { SuccessLine } from '@fivvi/ui/kit/success-line';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useEffect, useState } from 'react';
+import { SettingsPage } from '../settings-page';
 import { setDefaultLocale } from './default-locale-client';
 
 /** The two options, always written in their own language (`packages/i18n/GLOSSARY.md` §4.8). */
@@ -66,17 +69,22 @@ export function LanguageForm({
   const failureMessage = failure ? t(`errors.${failure}`) : null;
 
   return (
-    <main className="flex flex-1 items-center justify-center p-4">
-      <Card className="w-full max-w-md">
+    <SettingsPage>
+      <Card>
         <form noValidate onSubmit={submit} className="grid gap-(--card-spacing)">
           <CardHeader>
             <CardTitle>
-              <h1>{t('title')}</h1>
+              <h2 className="text-[15px] font-semibold">{t('title')}</h2>
             </CardTitle>
+            <CardAction>
+              <Button type="submit" disabled={!ready || pending}>
+                {t('save')}
+              </Button>
+            </CardAction>
           </CardHeader>
           <CardContent className="grid gap-4">
             <fieldset aria-describedby="default-locale-help" className="grid gap-2">
-              <legend className="mb-2 text-sm font-medium">{t('defaultLabel')}</legend>
+              <legend className="mb-2 text-[13px] font-semibold">{t('defaultLabel')}</legend>
               {OPTIONS.map(({ locale, label }) => (
                 <label key={locale} className="flex items-center gap-2">
                   <input
@@ -84,26 +92,20 @@ export function LanguageForm({
                     name="defaultLocale"
                     value={locale}
                     defaultChecked={locale === defaultLocale}
+                    className="accent-primary"
                   />
                   {t(label)}
                 </label>
               ))}
             </fieldset>
-            <CardDescription id="default-locale-help">{t('help')}</CardDescription>
-            {failureMessage ? (
-              <p role="alert" className="text-status-danger-fg">
-                {failureMessage}
-              </p>
-            ) : null}
-            {saved ? <p role="status">{t('saved')}</p> : null}
+            <CardDescription id="default-locale-help" className="text-[13px]">
+              {t('help')}
+            </CardDescription>
+            {failureMessage ? <ErrorLine>{failureMessage}</ErrorLine> : null}
+            {saved ? <SuccessLine>{t('saved')}</SuccessLine> : null}
           </CardContent>
-          <CardFooter>
-            <Button type="submit" disabled={!ready || pending}>
-              {t('save')}
-            </Button>
-          </CardFooter>
         </form>
       </Card>
-    </main>
+    </SettingsPage>
   );
 }

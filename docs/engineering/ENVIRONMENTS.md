@@ -236,7 +236,7 @@ Read each setting with the `railway` command in its row (`P=5ac2d844-191a-4671-9
 - **RPO (recovery point objective):** at most 5 minutes with PITR (the WAL is archived continuously); at most 24 hours when restoring from the daily backup.
 - **RTO (recovery time objective):** 2 hours, from the decision to restore until `web` runs on the restored service. A small database restores in about 2 minutes (M1 spike); the rest is checking the data and pointing `web` at it.
 - **Copies:** Railway's PITR and daily backups are the only copies for the pilot (no second provider). `retention-policy.md` R16 also mentions own encrypted logical backups; that is a legal follow-up for the owner.
-- **Drill:** a restore drill on `development` before G4, on `production` right after the Pro upgrade, then every 3 months and after every major Postgres upgrade (E016). Each run is logged in the drill log.
+- **Drill:** a restore drill on `development` before G4, on `production` right after the Pro upgrade, then every 3 months and after every major Postgres upgrade (E016). Each run is logged in the [drill log](restore-drills.md#drill-log), which also holds the steps for the owner.
 
 These were the proposals of the spec (#479) for its open questions 1 to 3, accepted for the first cut; the owner can change them.
 

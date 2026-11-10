@@ -43,6 +43,26 @@ export {
 } from './commerce/invoice-number.ts';
 export { maskEmail, normalizeEmail } from './email.ts';
 export {
+  CLIENT_SHEET,
+  checkImport,
+  type ImportCheck,
+  type ImportProblem,
+  type ImportProblemType,
+  type WorkspaceSnapshot,
+} from './import/check.ts';
+export { describeFileError, describeProblem } from './import/messages.ts';
+export {
+  IMPORT_LIMITS,
+  ImportFileError,
+  type ImportFileErrorReason,
+  type ParsedImport,
+  type ParsedRow,
+  type ParsedSheet,
+  parseCsvFiles,
+  parseWorkbook,
+} from './import/parse.ts';
+export { type ImportPlan, type PlannedClient, planImport } from './import/plan.ts';
+export {
   ADDRESS_ADDITION_MAX_LENGTH,
   ADDRESS_TEXT_MAX_LENGTH,
   type Address,

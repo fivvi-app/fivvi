@@ -55,7 +55,7 @@ test.describe('F010 language', () => {
     // The page shows the language of the browser: nothing is stored yet.
     await expect(page.locator('html')).toHaveAttribute('lang', formattingLocales[appLocale]);
     await expect(
-      page.getByRole('heading', { level: 1, name: copy.settingsGeneral.title }),
+      page.getByRole('heading', { level: 2, name: copy.settingsGeneral.title }),
     ).toBeVisible();
     expect(await storedLanguage(page)).toBeNull();
     const name = page.getByLabel(copy.settingsGeneral.nameLabel);
@@ -84,7 +84,7 @@ test.describe('F010 language', () => {
     await page.getByRole('button', { name: ownName(otherLocale), exact: true }).click();
 
     await expect(
-      page.getByRole('heading', { level: 1, name: other.settingsGeneral.title }),
+      page.getByRole('heading', { level: 2, name: other.settingsGeneral.title }),
     ).toBeVisible();
     await expect(page.locator('html')).toHaveAttribute('lang', formattingLocales[otherLocale]);
     expect(
@@ -146,7 +146,7 @@ test.describe('F010 language', () => {
 
       await expect(
         secondPage.getByRole('heading', {
-          level: 1,
+          level: 2,
           name: messages[otherLocale].settingsGeneral.title,
         }),
       ).toBeVisible();
@@ -211,7 +211,7 @@ test.describe('F010 language', () => {
     await page.getByRole('link', { name: copy.workspaceNav.settingsLanguage }).click();
     await expect(page).toHaveURL(`${home}/settings/language`);
     await expect(
-      page.getByRole('heading', { level: 1, name: copy.settingsLanguage.title }),
+      page.getByRole('heading', { level: 2, name: copy.settingsLanguage.title }),
     ).toBeVisible();
     await expect(page.getByRole('radio', { name: copy.settingsLanguage.optionNl })).toBeChecked();
     await expect(
@@ -234,7 +234,7 @@ test.describe('F010 language', () => {
     const after = (await (await page.request.get('/api/v1/me')).json()) as Me;
     expect(after.preferredLocale).toBe(me.preferredLocale);
     await expect(
-      page.getByRole('heading', { level: 1, name: copy.settingsLanguage.title }),
+      page.getByRole('heading', { level: 2, name: copy.settingsLanguage.title }),
     ).toBeVisible();
     await page.reload();
     await expect(page.getByRole('radio', { name: copy.settingsLanguage.optionEn })).toBeChecked();

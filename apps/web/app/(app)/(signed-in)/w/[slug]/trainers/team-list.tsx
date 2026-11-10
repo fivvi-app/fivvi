@@ -13,10 +13,17 @@ import {
   AlertDialogTitle,
 } from '@fivvi/ui/components/alert-dialog';
 import { Button } from '@fivvi/ui/components/button';
+import { Card } from '@fivvi/ui/components/card';
 import { NativeSelect, NativeSelectOption } from '@fivvi/ui/components/native-select';
+import { Avatar } from '@fivvi/ui/kit/avatar';
+import { ErrorLine } from '@fivvi/ui/kit/error-line';
+import { PageShell } from '@fivvi/ui/kit/page-shell';
+import { StatusPill } from '@fivvi/ui/kit/status-pill';
+import { SuccessLine } from '@fivvi/ui/kit/success-line';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
+import { initials } from '../workspace-initials';
 import { changeTeamMemberRole } from './change-role-client';
 import { removeTeamMember } from './remove-team-member-client';
 
@@ -132,84 +139,87 @@ export function TeamList({
     return changeRole(member, kind === 'makeOwner' ? 'owner' : 'trainer');
   }
 
+  const head = 'px-4.5 py-2 text-start text-[13px] font-medium text-muted-foreground';
+  const cell = 'px-4.5 py-2.5';
+
   return (
-    <main className="flex flex-1 justify-center p-4">
-      <div className="grid w-full max-w-3xl content-start gap-4">
-        <h1 className="text-2xl font-semibold">{t('title')}</h1>
-        {notice ? <p role="status">{notice}</p> : null}
-        {failure ? (
-          <p role="alert" className="text-status-danger-fg">
-            {t(`errors.${failure}`, { workspace: workspaceName })}
-          </p>
-        ) : null}
-        <table className="w-full text-start text-sm">
-          <thead>
-            <tr className="border-b text-start">
-              <th scope="col" className="p-2 text-start font-medium">
-                {t('nameColumn')}
-              </th>
-              <th scope="col" className="p-2 text-start font-medium">
-                {t('emailColumn')}
-              </th>
-              <th scope="col" className="p-2 text-start font-medium">
-                {t('roleColumn')}
-              </th>
-              <th scope="col" className="p-2 text-start font-medium">
-                <span className="sr-only">{t('actionsColumn')}</span>
-              </th>
-            </tr>
-          </thead>
-          <tbody>
-            {members.map((member) => (
-              <tr key={member.id} className="border-b">
-                <td className="p-2">{displayName(member)}</td>
-                <td className="p-2">{member.email}</td>
-                <td className="p-2">
-                  <div className="flex flex-wrap items-center gap-2">
-                    {canManage && !(member.role === 'owner' && owners <= 1) ? (
-                      <NativeSelect
-                        aria-label={t('roleMenu', { name: displayName(member) })}
-                        value={member.role}
-                        disabled={!ready || pending}
-                        onChange={(event) => chooseRole(member, event.target.value as Role)}
-                      >
-                        {ROLES.map((role) => (
-                          <NativeSelectOption key={role} value={role}>
-                            {roles(role)}
-                          </NativeSelectOption>
-                        ))}
-                      </NativeSelect>
-                    ) : (
-                      roles(member.role)
-                    )}
-                    {trainers.has(member.id) ? (
-                      <span
-                        data-slot="badge"
-                        className="rounded-full bg-secondary px-2 py-0.5 text-xs font-medium text-secondary-foreground"
-                      >
-                        {t('badge.trainer')}
-                      </span>
-                    ) : null}
-                  </div>
-                </td>
-                <td className="p-2 text-end">
-                  {canManage && !(member.role === 'owner' && owners <= 1) ? (
-                    <Button
-                      type="button"
-                      variant="outline"
-                      size="sm"
-                      disabled={!ready || pending}
-                      onClick={() => setAsking({ kind: 'remove', member })}
-                    >
-                      {t('remove')}
-                    </Button>
-                  ) : null}
-                </td>
+    <PageShell>
+      <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
+      {notice ? <SuccessLine>{notice}</SuccessLine> : null}
+      {failure ? (
+        <ErrorLine>{t(`errors.${failure}`, { workspace: workspaceName })}</ErrorLine>
+      ) : null}
+      <Card className="gap-0 py-0">
+        <div className="overflow-x-auto">
+          <table className="w-full text-start text-sm">
+            <thead>
+              <tr className="border-b">
+                <th scope="col" className={head}>
+                  {t('nameColumn')}
+                </th>
+                <th scope="col" className={head}>
+                  {t('emailColumn')}
+                </th>
+                <th scope="col" className={head}>
+                  {t('roleColumn')}
+                </th>
+                <th scope="col" className={head}>
+                  <span className="sr-only">{t('actionsColumn')}</span>
+                </th>
               </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+            </thead>
+            <tbody>
+              {members.map((member) => (
+                <tr key={member.id} className="border-b last:border-b-0 hover:bg-muted/60">
+                  <td className={cell}>
+                    <span className="inline-flex items-center gap-2.5">
+                      <Avatar initials={initials(displayName(member))} />
+                      <span className="font-semibold">{displayName(member)}</span>
+                    </span>
+                  </td>
+                  <td className={cell}>{member.email}</td>
+                  <td className={cell}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {canManage && !(member.role === 'owner' && owners <= 1) ? (
+                        <NativeSelect
+                          aria-label={t('roleMenu', { name: displayName(member) })}
+                          value={member.role}
+                          disabled={!ready || pending}
+                          onChange={(event) => chooseRole(member, event.target.value as Role)}
+                        >
+                          {ROLES.map((role) => (
+                            <NativeSelectOption key={role} value={role}>
+                              {roles(role)}
+                            </NativeSelectOption>
+                          ))}
+                        </NativeSelect>
+                      ) : (
+                        roles(member.role)
+                      )}
+                      {trainers.has(member.id) ? (
+                        <StatusPill>{t('badge.trainer')}</StatusPill>
+                      ) : null}
+                    </div>
+                  </td>
+                  <td className={`${cell} text-end`}>
+                    {canManage && !(member.role === 'owner' && owners <= 1) ? (
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        disabled={!ready || pending}
+                        onClick={() => setAsking({ kind: 'remove', member })}
+                      >
+                        {t('remove')}
+                      </Button>
+                    ) : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </Card>
       <AlertDialog open={asking !== null} onOpenChange={(open) => !open && setAsking(null)}>
         {asking ? (
           <AlertDialogContent>
@@ -240,6 +250,6 @@ export function TeamList({
           </AlertDialogContent>
         ) : null}
       </AlertDialog>
-    </main>
+    </PageShell>
   );
 }

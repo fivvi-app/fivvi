@@ -42,7 +42,7 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
     // John is the last Owner: a plain label. Sarah's role is in her menu (below).
     expect(html).toMatch(
       new RegExp(
-        `John</td><td[^>]*>john@example.com</td><td[^>]*>(?:<div[^>]*>)?${copy.roles.owner}(?:</div>)?</td>.*Sarah</td><td[^>]*>sarah@example.com</td>`,
+        `John(?:</span>)+</td><td[^>]*>john@example.com</td><td[^>]*>(?:<div[^>]*>)?${copy.roles.owner}(?:</div>)?</td>.*Sarah(?:</span>)+</td><td[^>]*>sarah@example.com</td>`,
       ),
     );
   });
@@ -107,10 +107,10 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
     expect(html.match(/sarah@example\.com/g)?.length).toBeGreaterThanOrEqual(2);
   });
 
-  /** The badge of a row: the text after the role cell of the person. */
+  /** The badge of a row: the kit's pill after the role of the person. */
   const badges = (html: string) =>
     html.match(
-      new RegExp(`<span[^>]*data-slot="badge"[^>]*>${copy.team.badge.trainer}</span>`, 'g'),
+      new RegExp(`<span[^>]*data-slot="status-pill"[^>]*>${copy.team.badge.trainer}</span>`, 'g'),
     );
 
   it('AC7: a trainer badge on each team member with a trainer profile, not on an Owner who does not train', () => {
@@ -121,14 +121,41 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
     expect(badges(html)).toHaveLength(2);
     expect(html).toMatch(
       new RegExp(
-        `John</td>.*?${copy.roles.owner}.*?<span[^>]*data-slot="badge"[^>]*>${copy.team.badge.trainer}</span>.*?Joan</td>`,
+        `John(?:</span>)+</td>.*?${copy.roles.owner}.*?<span[^>]*data-slot="status-pill"[^>]*>${copy.team.badge.trainer}</span>.*?Joan(?:</span>)+</td>`,
       ),
     );
-    expect(html).toMatch(/Joan<\/td>(?:(?!data-slot="badge").)*?Sarah<\/td>/);
+    expect(html).toMatch(
+      /Joan(?:<\/span>)+<\/td>(?:(?!data-slot="status-pill").)*?Sarah(?:<\/span>)+<\/td>/,
+    );
   });
 
   it('AC7: with nobody training there is no badge', () => {
     expect(badges(list([john, sarah]))).toBeNull();
+  });
+
+  it('E020 AC15: the team is one card with the kit’s avatar before each name, the initials drawn from data-initials', () => {
+    const html = list([
+      john,
+      { ...sarah, name: 'Sarah de Vries' },
+      { ...sarah, id: 't4', name: '' },
+    ]);
+
+    expect(html).toMatch(/<div[^>]*data-slot="card"[^>]*>\s*<div[^>]*><table/);
+    expect(html.match(/<table/g)).toHaveLength(1);
+    expect(html).toMatch(/<span[^>]*data-slot="avatar"[^>]*data-initials="JO"[^>]*><\/span>/);
+    expect(html).toMatch(/<span[^>]*data-slot="avatar"[^>]*data-initials="SD"[^>]*><\/span>/);
+    // Without a name the initials come from the address, as the name does.
+    expect(html).toMatch(/<span[^>]*data-slot="avatar"[^>]*data-initials="SA"[^>]*><\/span>/);
+    // Said by the name beside it, not by the avatar: it is hidden from screen readers.
+    expect(html.match(/data-slot="avatar"[^>]*aria-hidden="true"/g)).toHaveLength(3);
+  });
+
+  it('E020 AC15: the column headings are the quiet line, and the page is the trainer web page with the 20px heading', () => {
+    const html = list([john, sarah]);
+
+    expect(html).toMatch(/<main[^>]*data-slot="page-shell"/);
+    expect(html).toMatch(/<h1[^>]*class="[^"]*text-xl[^"]*tracking-tight[^"]*"/);
+    expect(html).toMatch(/<th[^>]*scope="col"[^>]*class="[^"]*text-muted-foreground[^"]*"/);
   });
 
   it('the copy has none of the forbidden words', () => {

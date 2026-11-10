@@ -1,8 +1,8 @@
 import { type Locale, locales, messages } from '@fivvi/i18n';
 import { describe, expect, it } from 'vitest';
+import { templates } from '../catalog.ts';
 import { createEmailContext, type EmailTemplate, renderEmail } from '../render.tsx';
 import { helloEmail } from './hello.tsx';
-import { templates } from './index.ts';
 
 const all = templates as readonly EmailTemplate<unknown>[];
 
