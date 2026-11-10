@@ -1496,8 +1496,9 @@ describe('#292 flow.sh lock: a run lock with a 3-hour expiry', () => {
     });
   });
 
-  // Racing runs. The lock is replaced only by renaming the lock that was read, never by removing whatever is there, so of
-  // many runs taking over one expired lock exactly one wins, and a refresh and a takeover cannot both succeed.
+  // Racing runs (#1250). Every change to the lock runs inside one kernel lock (flock on factory.lock.mutex), so of many
+  // runs taking over one expired lock exactly one wins, and a refresh and a takeover cannot both succeed. Only the empty
+  // mutex file stays next to the lock.
   describe('races on an expired lock', () => {
     const lockAsync = (action, at, ...extra) =>
       new Promise((resolve) => {
@@ -1514,6 +1515,8 @@ describe('#292 flow.sh lock: a run lock with a 3-hour expiry', () => {
     const clean = () => {
       for (const name of readdirSync(dir)) rmSync(join(dir, name), { force: true });
     };
+    const leftBehind = () => readdirSync(dir).sort();
+    const ONLY_LOCK_AND_MUTEX = ['factory.lock', 'factory.lock.mutex'];
 
     it('of many runs taking over an expired lock exactly one wins, and the lock is its own', async () => {
       for (let round = 0; round < 5; round++) {
@@ -1525,32 +1528,61 @@ describe('#292 flow.sh lock: a run lock with a 3-hour expiry', () => {
         const winners = results.filter((result) => result.status === 0);
         assert.equal(winners.length, 1, `round ${round}: ${winners.length} runs took the lock`);
         assert.match(readFileSync(lockFile, 'utf8'), new RegExp(`run ${idOf(winners[0])}\\n$`));
-        assert.deepEqual(
-          readdirSync(dir),
-          ['factory.lock'],
-          'no temporary or renamed file is left',
-        );
+        assert.deepEqual(leftBehind(), ONLY_LOCK_AND_MUTEX, 'no temporary file is left');
       }
     });
 
-    it('a refresh of an expired lock and runs taking it over cannot both succeed', async () => {
-      for (let round = 0; round < 8; round++) {
+    it('a refresh of an expired lock and many runs taking it over: exactly one wins, round after round', async () => {
+      for (let round = 0; round < 12; round++) {
         clean();
         const mine = acquireId(secondsAgo(4 * HOUR));
         const [refresh, ...takeovers] = await Promise.all([
           lockAsync('refresh', NOW, mine),
-          ...Array.from({ length: 4 }, () => lockAsync('acquire', NOW)),
+          ...Array.from({ length: 12 }, () => lockAsync('acquire', NOW)),
         ]);
         const winners = takeovers.filter((result) => result.status === 0);
         const holder = readFileSync(lockFile, 'utf8').match(/run (\S+)\n$/)?.[1];
-        if (refresh.status === 0) {
-          assert.equal(winners.length, 0, `round ${round}: refreshed, yet a takeover won`);
-          assert.equal(holder, mine);
-        } else {
-          assert.equal(winners.length, 1, `round ${round}: refresh lost, so one takeover must win`);
-          assert.equal(holder, idOf(winners[0]));
-        }
-        assert.deepEqual(readdirSync(dir), ['factory.lock']);
+        assert.equal(
+          winners.length + (refresh.status === 0 ? 1 : 0),
+          1,
+          `round ${round}: ${winners.length} takeovers and a refresh that ${refresh.status === 0 ? 'won' : 'lost'}`,
+        );
+        assert.equal(holder, refresh.status === 0 ? mine : idOf(winners[0]));
+        assert.deepEqual(leftBehind(), ONLY_LOCK_AND_MUTEX);
+      }
+    });
+
+    it('a mutex file left by a run that died (a dead pid in it) does not block anything', () => {
+      const dead = spawnSync('true').pid;
+      writeFileSync(`${lockFile}.mutex`, `${dead}\n`);
+      const id = acquireId();
+      assert.equal(lock('refresh', NOW, id).status, 0);
+      assert.equal(lock('release', NOW, id).status, 0);
+      assert.deepEqual(leftBehind(), ['factory.lock.mutex']);
+    });
+
+    it('a mutex held by a live run makes a change wait, then fail naming it, and leaves the lock alone', async () => {
+      const holder = spawn(
+        'perl',
+        [
+          '-MFcntl=:flock',
+          '-e',
+          'open(F, ">>", $ARGV[0]); flock(F, LOCK_EX); $| = 1; print "held\\n"; sleep 60',
+          `${lockFile}.mutex`,
+        ],
+        { stdio: ['ignore', 'pipe', 'inherit'] },
+      );
+      try {
+        await new Promise((resolve) => holder.stdout.once('data', resolve));
+        const result = spawnSync(join(SCRIPTS, 'flow.sh'), ['lock', 'acquire'], {
+          encoding: 'utf8',
+          env: { ...process.env, FIVVI_NOW: NOW, FIVVI_RUN_LOCK: lockFile, FIVVI_LOCK_WAIT: '1' },
+        });
+        assert.equal(result.status, 1);
+        assert.match(result.stderr, /busy.*factory\.lock\.mutex/);
+        assert.equal(existsSync(lockFile), false);
+      } finally {
+        holder.kill();
       }
     });
   });

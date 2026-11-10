@@ -121,6 +121,11 @@ export {
   type PlanPrivateSessionRefusal,
   PRIVATE_SESSION_DURATIONS,
   planPrivateSession,
+  type ReschedulePrivateSessionDecision,
+  type ReschedulePrivateSessionFacts,
+  type ReschedulePrivateSessionRefusal,
+  reschedulePrivateSession,
+  sendsChangeNotice,
   sendsConfirmation,
 } from './scheduling/private-session.ts';
 export {

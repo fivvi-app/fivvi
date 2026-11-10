@@ -37,6 +37,7 @@ private fun ownerAccount() = MeResponse(
     email = "owner@example.com",
     name = "Owner",
     preferredLocale = MeResponse.PreferredLocale.NL_NL,
+    bookingEmails = true,
     canCreateWorkspace = false,
     workspaces = emptyList(),
 )

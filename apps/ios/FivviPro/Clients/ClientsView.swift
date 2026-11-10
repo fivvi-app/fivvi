@@ -32,9 +32,12 @@ struct ClientsView: View {
     let model: ClientsViewModel
     let language: AppLanguage
     let capabilities: WorkspaceCapabilities
+    /// Opens TM-03 for a client. The home's navigation stack owns the screen, as it owns this one: a destination
+    /// declared here, on a screen the stack pushed, made the stack resolve its destinations again on every update while
+    /// a profile opened by ID was loading (#684).
+    let onOpen: (ClientRoute) -> Void
     @State private var searchText = ""
     @State private var newClient: ClientFormViewModel?
-    @State private var opened: ClientRoute?
     /// The client to open once the sheet that added or found them is gone.
     @State private var afterSheet: ClientRoute?
 
@@ -69,14 +72,8 @@ struct ClientsView: View {
                 NavigationStack { newClientForm(form) }
                     .presentationDetents([.large])
             }
-            .navigationDestination(item: $opened) { route in
-                ClientProfileScreen(
-                    model: model, route: route, language: language, capabilities: capabilities,
-                    onOpenExisting: { opened = ClientRoute(id: $0) }
-                )
-                .id(route.id)
-            }
             .environment(\.locale, catalog.formattingLocale)
+            .countingRenders("ClientsView")
     }
 
     /// Typing waits a moment for the next letter; coming back to the screen reads the list again at once.
@@ -122,7 +119,7 @@ struct ClientsView: View {
     private func openClientAfterSheet() {
         guard let route = afterSheet else { return }
         afterSheet = nil
-        opened = route
+        onOpen(route)
     }
 
     // MARK: Content
@@ -203,7 +200,7 @@ struct ClientsView: View {
 
     private func row(_ client: Components.Schemas.Client) -> some View {
         Button {
-            opened = ClientRoute(client: client)
+            onOpen(ClientRoute(client: client))
         } label: {
             HStack {
                 VStack(alignment: .leading, spacing: Tokens.Spacing.space1) {
