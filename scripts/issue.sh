@@ -174,7 +174,7 @@ READY_LIST_LIMIT=3000
 # Tab-separated: number, title. Candidates are the parent's open sub-issues (viewed one by one), or every open
 # ready-for-agent issue, read in one paginated list (the fields it filters on come with it) and each parent spec once.
 cmd_ready() {
-  local parent="" items n count parents p unapproved=()
+  local parent="" items n subs count parents p unapproved=() unapproved_json="[]"
   while [ $# -gt 0 ]; do
     case "$1" in
       --parent) is_number "${2:-}"; parent="$2"; shift ;;
@@ -184,7 +184,9 @@ cmd_ready() {
   done
   if [ -n "$parent" ]; then
     local stream=""
-    for n in $(view "$parent" subIssues | jq -r '.subIssues.nodes[] | select(.state == "OPEN") | .number'); do
+    subs="$(view "$parent" subIssues | jq -r '.subIssues.nodes[] | select(.state == "OPEN") | .number')" \
+      || die "could not read the sub-issues of #$parent"
+    for n in $subs; do
       stream+="$(view "$n")"$'\n'
     done
     items="$(jq -s '.' <<<"$stream")"
@@ -198,8 +200,9 @@ cmd_ready() {
   for p in $parents; do
     ! unapproved_spec "$p" || unapproved+=("$p")
   done
+  [ ${#unapproved[@]} -eq 0 ] || unapproved_json="$(jq -n '[$ARGS.positional[] | tonumber]' --args "${unapproved[@]}")"
   jq -r --arg ready "$READY_LABEL" --arg spec "$SPEC_LABEL" --arg approved "$APPROVED_LABEL" \
-    --argjson unapproved "$(printf '%s\n' ${unapproved[@]+"${unapproved[@]}"} | jq -R 'select(. != "") | tonumber' | jq -s '.')" '
+    --argjson unapproved "$unapproved_json" '
     .[]
     | [.labels[].name] as $labels
     | select(((.parent.number // 0) as $p | $unapproved | index($p) | not)

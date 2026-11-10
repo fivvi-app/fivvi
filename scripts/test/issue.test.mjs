@@ -397,6 +397,18 @@ describe('issue.sh', () => {
       assert.equal(result.stdout, '51\tissue 51\n53\tissue 53\n');
     });
 
+    it('--parent fails when the sub-issues of the spec cannot be read', () => {
+      const result = issueSh(
+        [{ match: '^issue view 50 ', out: '', status: 1 }],
+        'ready',
+        '--parent',
+        '50',
+      );
+      assert.equal(result.status, 1);
+      assert.equal(result.stdout, '');
+      assert.match(result.stderr, /could not read the sub-issues of #50/);
+    });
+
     it("fails instead of listing a ticket whose spec's labels it can't read", () => {
       const result = issueSh(
         [
