@@ -6,7 +6,7 @@ import { localeCookie, localeCookieMaxAge } from '../i18n/config';
 import { ICON_FILES } from '../site/icons';
 import { robotsHeader } from '../site/indexing';
 import { isSitePath, siteHomePath } from '../site/routes';
-import { securityHeaders } from './security-headers';
+import { requestHostname, securityHeaders } from './security-headers';
 
 /** The public website's miniatures and screens (`public/site-images`, F064): images, no data. */
 const SITE_IMAGES = '/site-images';
@@ -101,7 +101,9 @@ function withStoredLocale(request: NextRequest, stored: string | null) {
  * `answerRequest` with the `X-Robots-Tag` header of the path (`robotsHeader`, F064 AC13) and the
  * security headers (`securityHeaders`, E013 AC8). They are set here, per request, on every answer
  * (page, redirect, 404, API), because the site's pages are static and one build serves every
- * environment; whether this is production is read from `env` at run time.
+ * environment; whether this is production is read from `env` at run time, and HSTS depends on the
+ * host in the `Host` header (`requestHostname`). The build's own files and the favicon, which the
+ * matcher in `proxy.ts` skips, get the same headers from `headers()` in next.config.ts.
  */
 export async function guardRequest(
   request: NextRequest,
@@ -111,7 +113,10 @@ export async function guardRequest(
   const response = await answerRequest(request, readSession);
   const robots = robotsHeader(request.nextUrl.pathname, env);
   if (robots) response.headers.set('x-robots-tag', robots);
-  for (const [name, value] of Object.entries(securityHeaders(request.nextUrl.hostname, env))) {
+  // The host is the visitor's Host header: `request.nextUrl` carries the server's own HOSTNAME
+  // (0.0.0.0 on Railway, localhost in e2e), not the host asked for.
+  const hostname = requestHostname(request.headers.get('host'), request.nextUrl.hostname);
+  for (const [name, value] of Object.entries(securityHeaders(hostname, env))) {
     response.headers.set(name, value);
   }
   return response;

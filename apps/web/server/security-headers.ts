@@ -33,7 +33,31 @@ function isLocalHost(hostname: string): boolean {
 }
 
 /**
- * The security headers for a request to `hostname`. `Strict-Transport-Security` only when
+ * The name of the host a visitor asked for: the `Host` header without its port, in lower case. The
+ * proxy's `request.nextUrl` can't be used for it: Next.js builds that URL from the server's own
+ * `HOSTNAME` and port (`0.0.0.0` on Railway, `localhost` in the e2e server), never from the
+ * visitor's `Host` header. `fallback` (the hostname of that URL) is for a request without one.
+ */
+export function requestHostname(host: string | null | undefined, fallback: string): string {
+  const value = host?.trim().toLowerCase();
+  if (!value) return fallback;
+  // An IPv6 address is in brackets, its port after them: `[::1]:3000`.
+  if (value.startsWith('[')) return value.slice(0, value.indexOf(']') + 1) || fallback;
+  return value.split(':')[0] || fallback;
+}
+
+/**
+ * The headers of the files the proxy skips (`proxy.ts` matcher): the build's own files under
+ * `/_next/` (chunks, `/_next/image`) and `/favicon.ico`. The same values as `securityHeaders`, in
+ * the shape `headers()` of next.config.ts wants. No HSTS: the build can't tell the host, and every
+ * page and API answer, which the browser meets first, carries it.
+ */
+export function staticFileHeaders(): { key: string; value: string }[] {
+  return Object.entries(ALWAYS).map(([key, value]) => ({ key, value }));
+}
+
+/**
+ * The security headers for a request to `hostname` (see `requestHostname`). `Strict-Transport-Security` only when
  * `NODE_ENV` is `production` and the host is not localhost, so the development server and the e2e
  * server on localhost keep working over plain HTTP. Read at run time from `env` (the whole object,
  * never `process.env.NODE_ENV`, which the build would inline).
