@@ -61,7 +61,7 @@ Then do the same with `--environment production`. Never apply to a PR environmen
 - Apply changes to `development` first: the next PRs pick them up, and production follows when you apply there.
 - When `plan` keeps showing a change after `apply`, Railway may be dropping a value equal to its default (for example the restart policy). Remove it from the file. A first apply that creates services can need a second run to set every field; re-run `plan` until it says *already up to date*.
 - **Adding Postgres to another environment:** Railway then stores the password generator as plain text (`POSTGRES_PASSWORD` = the literal `secret(32, "…")`), so the database runs with a known password. After applying to a new environment, check it (§7) and have the owner set a real value. Production, created first, has a random one.
-- Things the file doesn't hold: the PR environment settings (PR environments on, base environment `development`, bot and focused PR environments off), Railway domains, the spending alert and variable values. They are in the dashboard; this document is their record.
+- Things the file doesn't hold: the backup settings (PITR and the daily schedule, §8), the PR environment settings (PR environments on, base environment `development`, bot and focused PR environments off), Railway domains, the spending alert and variable values. They are in the dashboard; this document is their record.
 
 Check the regions after any change:
 
@@ -217,11 +217,36 @@ The native apps aren't on Railway: their variables are build settings, per platf
 
 ## 8. Backups
 
-Measured in the M1 spike (ADR-011, "M1 spike results"):
+What protects `production`'s Postgres, what each promises and how to check it (E016, [ADR-011](../decisions/ADR-011-hosting-and-environments.md)). The one place the owner and agents look. Retention follows [`retention-policy.md`](../legal/retention-policy.md) R16: backups are kept **30 days at most**, so a deleted person is gone from them within that time.
 
-- **Hobby (now):** volume backups and scheduled backups are refused. Postgres **point-in-time recovery (PITR)** can be enabled; a restore to a point in time into a new service works (about 2 minutes for a small database).
-- **Before real data (pilot setup, no later than G2):** enable PITR on production: `railway postgres pitr enable --service postgres --environment production`. Owner decision; it adds bucket storage cost.
-- **At G4 (Pro):** enable daily backups and repeat the restore drill (E016).
+Read each setting with the `railway` command in its row (`P=5ac2d844-191a-4671-9632-50b66817f648`, as in [tools.md](../agents/tools.md)). They are read-only, and **the owner runs them on `production`**: agents never read or change a production value (D8), and `pitr status` also probes the running container over SSH. An agent may run only `railway config plan` ([tools.md](../agents/tools.md)).
+
+| Setting | Production | Where it lives | Check |
+|---|---|---|---|
+| Point-in-time recovery (PITR) | Enabled by the owner before real data, in #161. Date enabled: not yet recorded; the owner adds it here when #161 is done | Set by the owner with the CLI: `railway postgres pitr enable --service postgres --environment production` | `railway postgres pitr status -p $P -e production -s postgres` |
+| PITR window | About 4 weeks: the last 4 weekly full backups, with a differential backup every day, and the WAL between them. It starts at the first base backup after PITR is enabled, so it is not retroactive. Any point inside it can be restored | Fixed by Railway (not a setting) | `railway postgres pitr backup list -p $P -e production -s postgres` (the oldest base backup is the start of the window) |
+| Daily scheduled backup | From G4 (Railway Pro). Not before: Hobby refuses scheduled backups | Set by the owner with the CLI at G4: `railway postgres pitr schedule set --daily --service postgres --environment production` | `railway postgres pitr schedule list -p $P -e production -s postgres` |
+| Retention (R16: 30 days at most) | PITR: at most 28 days (4 weekly fulls). Daily backup: kept 6 days, fixed by the schedule. Never set the monthly schedule, which Railway keeps longer than R16 allows | Fixed by Railway per schedule (not a setting) | `railway postgres pitr schedule list -p $P -e production -s postgres` |
+| Location | Railway, EU West Amsterdam: the Postgres volume and its PITR bucket (`Postgres-PITR`) | Fixed by Railway: the service and volume region is declared in the file (`REGION` in `.railway/railway.ts`); the PITR bucket is created by Railway when PITR is enabled | `railway bucket list -e production --json` (the bucket and its region) and `railway config plan` on `development` for the region in the file |
+
+**Config as code.** [`.railway/railway.ts`](../../.railway/railway.ts) declares every backup setting that Railway's config as code can hold, and today that is none: `postgres()` takes only a region, and Railway's reference documents no field for PITR, backup schedules or retention (SDK `railway` 3.11.0, CLI 5.62.1; checked 10 November 2026). The SDK's types have `backupSchedules` on a volume mount, but the database helper doesn't expose it and Railway says database provisioning stays with its own product workflows. The settings above are therefore set by the owner with the CLI, and the file says so in a comment. When a later Railway release lets the file hold one, declare it there, change its row to "Config as code" and `railway config plan` shows drift when it is changed by hand. The test `AC1: PITR and backups are configured as documented` (`apps/cron/test/backups.test.ts`) fails when the file declares a backup setting that the table doesn't call config as code, or the table claims one that the file doesn't declare.
+
+**What we promise**
+
+- **RPO (recovery point objective):** at most 5 minutes with PITR (the WAL is archived continuously); at most 24 hours when restoring from the daily backup.
+- **RTO (recovery time objective):** 2 hours, from the decision to restore until `web` runs on the restored service. A small database restores in about 2 minutes (M1 spike); the rest is checking the data and pointing `web` at it.
+- **Copies:** Railway's PITR and daily backups are the only copies for the pilot (no second provider). `retention-policy.md` R16 also mentions own encrypted logical backups; that is a legal follow-up for the owner.
+- **Drill:** a restore drill on `development` before G4, on `production` right after the Pro upgrade, then every 3 months and after every major Postgres upgrade (E016). Each run is logged in the drill log.
+
+These were the proposals of the spec (#479) for its open questions 1 to 3, accepted for the first cut; the owner can change them.
+
+**Steps for the owner**
+
+1. Before real data: enable PITR on `production` (the command in the table, #161), then check it with `pitr status` and write the date in the table.
+2. At G4, after the upgrade to Pro: `railway postgres pitr schedule set --daily --service postgres --environment production`, then `schedule list`.
+3. When a setting changes, update its row in the same change.
+
+Measured in the M1 spike (ADR-011, "M1 spike results"): on Hobby, volume backups and scheduled backups are refused; PITR can be enabled and a restore to a point in time into a new service works (about 2 minutes for a small database). PITR adds bucket storage and egress cost, no separate fee.
 
 Restore into a new service, then point `web` at it after checking the data:
 
