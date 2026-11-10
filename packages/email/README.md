@@ -23,7 +23,8 @@ await sendEmail({
 
 | Path | What |
 |---|---|
-| `src/templates/` | One template per email type. Add new ones to `templates` in `index.ts` |
+| `src/catalog.ts` | The email catalog (F049): every email by ID (EM-01 … EM-23, EM-34), with audience, owner features, subject keys, status and template; `templates` is derived from it |
+| `src/templates/` | One template per email type, registered in the catalog |
 | `src/trainer-invitation-sender.ts` | `createTrainerInvitationSender()`: EM-09 (F011) in the language it is given, linking to `/invitations/{token}`; `apps/web` wires it into the API, which cannot import `.tsx` templates itself. `sendEmail` takes an optional `idempotencyKey` per send |
 | `src/private-session-sender.ts` | `createPrivateSessionSender()`: EM-11 (F020), the client's confirmation of a private session, or EM-04, the notice that it moved (a mail with `previous`), in the language it is given and the workspace's time zone, with the address written the Dutch way; `apps/web` wires it into the API, which sends it after the session is committed |
 | `src/demo-request-sender.ts` | `createDemoRequestSender()`: the website's demo request (F064) as one email to the address it is given (the support address; `apps/web` picks it, `server/demo-request-recipient.ts`), always in Dutch, listing the visitor's answers and the language of the page they used; nothing goes to the visitor; `apps/web` wires it into the API, which cannot import `.tsx` templates itself |
@@ -46,7 +47,29 @@ await sendEmail({
 - A template has `subject`, `preview` (the inbox preview line: put the key fact in it), `render` (the content inside the layout) and `previewProps` (obviously fake data for the preview).
 - Plain styles for now; E007 brings the design tokens.
 
-Adding a template: write `src/templates/<type>.tsx`, add the keys to both catalogs, add it to `templates`, and add a render test. The generic test in `templates.test.ts` renders every template in every locale.
+## The email catalog
+
+`src/catalog.ts` lists every transactional email by ID (F049, spec #476; the IDs and subjects are the spec's M5 table). It is the single list the docs, the checks and the preview read, and the only way to a template: `templates` (the preview, the render tests) is derived from it.
+
+| Status | Meaning |
+|---|---|
+| `active` | The template exists and is sent. The entry points at it (`template`) and names the subject keys that exist in both catalogs |
+| `reserved` | The ID is taken for an email whose owner feature has not built its template yet. It has the audience, the owner features and the planned subject keys, no template |
+| `retired` | No longer sent (EM-01, ADR-026). The ID stays taken |
+
+Internal emails (the demo request to Fivvi's own inbox, the developer sample) are in `internalCatalog` with a `key` and no EM ID. Entries without a client, trainer or owner as recipient go there, never into `catalog`.
+
+`catalog.test.ts` fails when a template file under `src/templates/` is not in the catalog, when an `active` entry has no template, when a `reserved` or `retired` entry has one, when two entries share an ID and when one template is registered twice.
+
+**Adding the email of a feature** (the feature that owns a `reserved` ID builds it):
+
+1. Write `src/templates/<type>.tsx` (see Templates) and its render test; add the keys to `nl-NL.json`, `en.json` and `comments.json`, worded as in `packages/i18n/GLOSSARY.md`.
+2. Export it from `src/templates/index.ts`.
+3. In `catalog.ts`, import it and change the entry of its ID: `status: 'active'`, `template: register(yourEmail)`, and `subjectKeys` set to the keys that now exist (they must exist in both languages).
+4. A new email that has no reserved ID takes the next free ID (EM-24 and up are the M6, M9 and M11 emails; check `docs/design/information-architecture.md §8` and the spec of the feature) and is added to `catalog` as `active` in the same change.
+5. Run `pnpm --filter @fivvi/email test`: the catalog test, the generic render test for both languages and the preview pick it up without another list.
+
+Adding a template: write `src/templates/<type>.tsx`, add the keys to both catalogs, register it in the catalog as above, and add a render test. The generic test in `templates.test.ts` renders every template in every locale.
 
 ## Sending
 
@@ -117,6 +140,7 @@ pnpm --filter @fivvi/email test
 
 | File | Proves |
 |---|---|
+| `src/catalog.test.ts` | The catalog: every template file is in it, every `active` entry has a template, unique IDs, EM-01 … EM-23 and EM-34 present, subject keys exist in both languages |
 | `src/templates/templates.test.ts` | Every template renders in nl-NL and en with no missing keys or placeholders; hello: subject, preview, text and HTML from the catalog, Europe/Amsterdam dates in both locales (summer, winter, around midnight), escaping of user content |
 | `src/send.test.ts` | `sendEmail` with the memory transport: locale, idempotency keys, retry decisions, link capture |
 | `src/lettermint.test.ts` | The Lettermint request (mocked HTTP client): route per template, sender and recipient format, tag, idempotency key; retry on 5xx, network errors, timeouts and 429 with `Retry-After`; `409` as duplicate; no retry on 401, 403 and 422; no token or recipient in errors |
