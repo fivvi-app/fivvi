@@ -38,8 +38,12 @@ test.describe('E020 dialogs and menus of the trainer web are compact', () => {
   const control = '36px';
   const body = '14px';
 
-  /** Every control and the text of `surface` is compact; the surface is in the compact host. */
-  async function expectCompact(surface: Locator, controls: Locator, state: string) {
+  /**
+   * The text of `surface` and of every one of `controls` is 14 px and the surface is in the compact
+   * host; with `heights` the controls are 36 px high too (a menu row is not a control: the
+   * switcher's two lines of text make it taller).
+   */
+  async function expectCompact(surface: Locator, controls: Locator, state: string, heights = true) {
     expect(
       await surface.evaluate((element) =>
         element.closest('[data-density]')?.getAttribute('data-density'),
@@ -50,7 +54,9 @@ test.describe('E020 dialogs and menus of the trainer web are compact', () => {
     const count = await controls.count();
     expect(count, `${state} has controls`).toBeGreaterThan(0);
     for (let index = 0; index < count; index++) {
-      await expect(controls.nth(index), `${state} control ${index}`).toHaveCSS('height', control);
+      if (heights) {
+        await expect(controls.nth(index), `${state} control ${index}`).toHaveCSS('height', control);
+      }
       await expect(controls.nth(index), `${state} control ${index} text`).toHaveCSS(
         'font-size',
         body,
@@ -102,6 +108,7 @@ test.describe('E020 dialogs and menus of the trainer web are compact', () => {
         menu,
         menu.getByRole('menuitemradio'),
         `the workspace switcher in ${colorScheme} mode`,
+        false,
       );
       await page.keyboard.press('Escape');
     }
