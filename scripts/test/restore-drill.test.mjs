@@ -82,6 +82,14 @@ describe('AC2: refuses other environments and future times, before touching anyt
     assert.equal(missing.calls + odd.calls, '');
   });
 
+  it('refuses to keep the scratch service on production, where only development needs it', () => {
+    const result = run(['--environment', 'production', '--keep-scratch']);
+    assert.notEqual(result.code, 0);
+    assert.match(result.output, /--keep-scratch is only for development/);
+    assert.equal(result.calls, '');
+    assert.equal(result.output.includes('Restore drill:'), false, 'it did not start');
+  });
+
   it('refuses an option it does not know, printing its usage', () => {
     const result = run(['--environment', 'development', '--from-backup', 'abc']);
     assert.notEqual(result.code, 0);

@@ -134,6 +134,16 @@ describe('#293 AC3 AC4: packages and their dependents', () => {
     assert.equal(result.all, false);
   });
 
+  it('E016: the restore drill script and its library are inputs of the database package, whose integration test runs the script', () => {
+    for (const path of ['scripts/restore-drill.sh', 'scripts/_lib.sh']) {
+      const result = decide([path]);
+      assert.ok(result.packages.includes('@fivvi/database'), path);
+      assert.ok(result.integration.includes('@fivvi/database'), path);
+      assert.equal(result.root, true, `${path}: the root script tests run as well`);
+      assert.equal(result.all, false, path);
+    }
+  });
+
   it('F064 AC10: a published legal text is an input of the web app, which renders it when it is built', () => {
     for (const path of [
       'docs/legal/privacy-policy.nl.md',

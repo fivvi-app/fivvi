@@ -9,10 +9,10 @@
 #   --environment    The environment whose `postgres` service is restored. Nothing else is accepted.
 #   --at             The point in time to restore to: RFC 3339 with its offset, not in the future. Without it the
 #                    drill picks the point itself: it writes the `before` marker, waits, takes the point, waits, writes
-#                    the `after` marker, and restores to the point. A marker cannot be written in the past, so with
+#                    the `after` marker, waits, and restores to the point. A marker cannot be written in the past, so with
 #                    --at both markers are written now and the drill proves the restore predates both.
 #   --keep-scratch   Do not remove the scratch service, so a scratch `web` can be pointed at it (AC8, the steps are in
-#                    docs/engineering/restore-drills.md). The script then prints how to remove it.
+#                    docs/engineering/restore-drills.md). Only with development. The script then prints how to remove it.
 #   --source-url-env The environment variable that holds the connection URL of the source database (default
 #                    RESTORE_DRILL_SOURCE_URL), exported in the shell and never given as an argument.
 #   --who            Who runs the drill, for the drill-log row (default: owner).
@@ -79,6 +79,7 @@ case "$ENVIRONMENT" in
   development | production) ;;
   *) die "--environment must be development or production" ;;
 esac
+[ "$KEEP" = 0 ] || [ "$ENVIRONMENT" = development ] || die "--keep-scratch is only for development: a kept scratch copy of production data stays out of reach of the cleanup"
 [[ "$SOURCE_VAR" =~ ^[A-Z][A-Z0-9_]*$ ]] || die "--source-url-env must be an upper-case variable name"
 [ "$SOURCE_VAR" != "$RESTORED_VAR" ] || die "--source-url-env cannot be $RESTORED_VAR, the script's own variable"
 for number in "$SETTLE" "$WAIT" "$INTERVAL"; do
@@ -121,7 +122,8 @@ say() { printf '%s\n' "$*"; }
 helper() { (cd "$ROOT/packages/database" && node src/scripts/restore.ts "$@"); }
 
 # Railway for the project and environment of the drill. Nothing it prints is shown: a response can hold a connection URL.
-rail() { railway "$@" --project "$PROJECT" --environment "$ENVIRONMENT"; }
+# Its input is closed, so it fails rather than wait on a prompt (a confirmation, a 2FA code) nobody can see.
+rail() { railway "$@" --project "$PROJECT" --environment "$ENVIRONMENT" </dev/null; }
 
 duration_text() { printf '%sm %ss' "$(($1 / 60))" "$(($1 % 60))"; }
 
@@ -175,12 +177,20 @@ on_exit finish
 write_markers() {
   MARKERS_TOUCHED=1
   if [ "$MODE" = markers ]; then
-    # The point sits between the two markers: it is taken once the `before` marker is committed (rounded up to the next
-    # whole second, which is later than the marker's own time), and the `after` marker is written once it has passed.
-    # The clock is this machine's, the markers' time is the database's; $SETTLE leaves room for the difference.
-    helper markers write --kind before --at "$(iso_of "$(date -u +%s)")" --database-url-env "$SOURCE_VAR" || return 1
-    POINT="$(iso_of "$(($(date -u +%s) + 1))")"
-    sleep $((SETTLE + 1))
+    # The point sits between the two markers: the `before` marker is committed, $SETTLE passes, the point is taken
+    # (rounded up to a whole second), and the `after` marker is written once $SETTLE has passed since the point. The
+    # clock is this machine's, the markers' time is the database's; $SETTLE leaves room for the difference.
+    # The `before` marker stores the point it is planned for (the second after $SETTLE and one more); when the helper
+    # was slow, the point is taken later than planned and the marker still holds the planned time.
+    local planned point_epoch now remaining
+    planned=$(($(date -u +%s) + SETTLE + 2))
+    helper markers write --kind before --at "$(iso_of "$planned")" --database-url-env "$SOURCE_VAR" || return 1
+    sleep "$SETTLE"
+    now="$(date -u +%s)"
+    point_epoch=$((now + 1 > planned ? now + 1 : planned))
+    POINT="$(iso_of "$point_epoch")"
+    remaining=$((point_epoch + SETTLE + 1 - $(date -u +%s)))
+    [ "$remaining" -le 0 ] || sleep "$remaining"
     helper markers write --kind after --at "$POINT" --database-url-env "$SOURCE_VAR" || return 1
     sleep "$SETTLE" # the write-ahead log up to the point reaches the archive before the restore asks for the point
   else

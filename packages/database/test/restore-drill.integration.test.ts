@@ -30,7 +30,13 @@ type Mode =
 interface Drill {
   source: TestDatabase;
   restoredName: string;
-  run(args: string[], mode?: Mode): Promise<{ code: number; output: string; calls: string[][] }>;
+  run(
+    args: string[],
+    mode?: Mode,
+    env?: Record<string, string>,
+  ): Promise<{ code: number; output: string; calls: string[][] }>;
+  /** The `before` marker of the source as the fake `railway` saw it when the restore was asked for. */
+  beforeMarker(): { point: string; markerPoint: string | null; writtenAt: string | null };
   drillTableExists(): Promise<boolean>;
   restoredExists(): Promise<boolean>;
 }
@@ -63,7 +69,7 @@ async function setUpDrill({ onTestFinished }: Pick<TestContext, 'onTestFinished'
   return {
     source,
     restoredName,
-    async run(args, mode = 'ok') {
+    async run(args, mode = 'ok', extraEnv = {}) {
       // Asynchronous, so the tests of this file run side by side.
       const child = spawn(SCRIPT, args, {
         env: {
@@ -78,6 +84,7 @@ async function setUpDrill({ onTestFinished }: Pick<TestContext, 'onTestFinished'
           FAKE_RAILWAY_SERVER_URL: serverUrl(),
           FAKE_RAILWAY_SOURCE_DB: source.name,
           FAKE_RAILWAY_RESTORED_DB: restoredName,
+          ...extraEnv,
         },
       });
       let output = '';
@@ -96,6 +103,7 @@ async function setUpDrill({ onTestFinished }: Pick<TestContext, 'onTestFinished'
         .map((line) => JSON.parse(line) as string[]);
       return { code, output, calls };
     },
+    beforeMarker: () => JSON.parse(readFileSync(`${log}.before`, 'utf8')),
     async drillTableExists() {
       const client = new pg.Client({ connectionString: source.url });
       await client.connect();
@@ -179,6 +187,22 @@ describe.concurrent('E016 the restore drill script', () => {
     );
     expect(await drill.drillTableExists()).toBe(false);
     expect(await drill.restoredExists()).toBe(false);
+  }, 60_000);
+
+  it('AC2: the point is taken a settle time after the before marker, and the marker is not for a later point', async (context) => {
+    const drill = await setUpDrill(context);
+
+    const passed = await drill.run(['--environment', 'development'], 'ok', {
+      RESTORE_DRILL_SETTLE: '3',
+    });
+
+    expect(passed.code).toBe(0);
+    const { point, markerPoint, writtenAt } = drill.beforeMarker();
+    expect(writtenAt).not.toBeNull();
+    // The comment of the script and the document say: marker, wait, point, wait, marker. The wait is measured on
+    // the database's clock (the marker's written_at) against the point the restore was asked for.
+    expect(Date.parse(point) - Date.parse(writtenAt as string)).toBeGreaterThanOrEqual(3_000);
+    expect(Date.parse(markerPoint as string)).toBeLessThanOrEqual(Date.parse(point));
   }, 60_000);
 
   it('AC2: restores to a chosen past point and finds neither marker there', async (context) => {

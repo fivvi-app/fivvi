@@ -56,7 +56,13 @@ const MARKDOWN_READ_BY_TESTS = [
 // depends on it. compose.yaml is the Postgres image the integration and e2e tests run against (CI's service containers
 // use the same one, which a root test checks): a new version must run them again, not reuse a cached result. It also
 // affects the root tests, which compare the two.
-const INPUT_OF_PACKAGE = new Map([['compose.yaml', '@fivvi/database']]);
+const INPUT_OF_PACKAGE = new Map([
+  ['compose.yaml', '@fivvi/database'],
+  // The database integration test of the restore drill (E016) runs the script, with the library it sources.
+  // packages/database/turbo.json lists both as inputs of that test, for the cache.
+  ['scripts/restore-drill.sh', '@fivvi/database'],
+  ['scripts/_lib.sh', '@fivvi/database'],
+]);
 
 // Markdown that is the input of a package, not documentation: the web app renders the privacy policy and the terms when
 // it is built (F064, AC10), so an open value in one must fail the web build and tests here, not on Railway after the

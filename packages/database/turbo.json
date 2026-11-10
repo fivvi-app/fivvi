@@ -1,0 +1,18 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "extends": ["//"],
+  "tasks": {
+    "test:integration": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/packages/testing/src/**",
+        "$TURBO_ROOT$/packages/database/migrations/**",
+        "$TURBO_ROOT$/packages/database/src/seed.ts",
+        "$TURBO_ROOT$/packages/database/src/scripts/**",
+        "$TURBO_ROOT$/compose.yaml",
+        "$TURBO_ROOT$/scripts/restore-drill.sh",
+        "$TURBO_ROOT$/scripts/_lib.sh"
+      ]
+    }
+  }
+}
