@@ -85,6 +85,7 @@ describe('#293 check.sh runs the checks a change can affect', () => {
       'test-summary.sh',
       'test-summary.jq',
       'affected.mjs',
+      'doc-anchors.mjs',
     ])
       copyFileSync(join(SCRIPTS, file), join(repo(), 'scripts', file));
     // The hygiene checks are not under test here, only that they run: each logs its name.
@@ -173,6 +174,22 @@ describe('#293 check.sh runs the checks a change can affect', () => {
     assert.match(result.stdout, /shellcheck: skipped \(not affected\)/);
     for (const suite of result.summary.suites)
       assert.equal(suite.status, 'skipped (not affected)', suite.name);
+  });
+
+  it('#1041 AC7: the doc links check fails on a runbook link to a heading that does not exist, and passes when it does', () => {
+    const runbooks = 'docs/engineering/RUNBOOKS.md';
+    write(join(repo(), runbooks), '# Runbooks\n\n## Rollback\n\n[up](#rollback) [bad](#restore)\n');
+    const broken = run([]);
+    assert.equal(broken.status, 1, broken.stdout);
+    assert.match(broken.stdout, /✗ doc links/);
+    assert.match(broken.stdout, /docs\/engineering\/RUNBOOKS\.md: broken link #restore/);
+    write(
+      join(repo(), runbooks),
+      '# Runbooks\n\n## Rollback\n\n## Restore\n\n[up](#rollback) [ok](#restore)\n',
+    );
+    const fixed = run([]);
+    assert.equal(fixed.status, 0, fixed.stdout);
+    assert.match(fixed.stdout, /✓ doc links/);
   });
 
   it('AC3: a change to one package runs lint, types, unit tests and build for it and its dependents only', () => {
