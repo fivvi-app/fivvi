@@ -77,11 +77,7 @@ export interface TurnstileVerifier {
 }
 
 /** Cloudflare error codes that say the service or our secret key, not the visitor, was wrong: no answer about the token. (`bad-request` is not one: the token was not accepted, so it fails.) */
-const SERVICE_ERRORS = new Set([
-  'internal-error',
-  'missing-input-secret',
-  'invalid-input-secret',
-]);
+const SERVICE_ERRORS = new Set(['internal-error', 'missing-input-secret', 'invalid-input-secret']);
 
 /** Why Cloudflare gave no answer: a kind of failure, or the service error code it named. */
 type NoAnswerReason =

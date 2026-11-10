@@ -153,7 +153,8 @@ describe('E013 the Turnstile check', () => {
 
   it('fails a token Cloudflare calls a bad request: the visitor sent it, so it is not "no answer"', async () => {
     const turnstile = verifier({
-      fetch: () => Promise.resolve(Response.json({ success: false, 'error-codes': ['bad-request'] })),
+      fetch: () =>
+        Promise.resolve(Response.json({ success: false, 'error-codes': ['bad-request'] })),
     });
 
     expect(await turnstile.verify(FAKE_TOKEN, headers)).toBe('fail');
