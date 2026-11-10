@@ -626,12 +626,18 @@ importers:
       '@biomejs/biome':
         specifier: 'catalog:'
         version: 2.5.14
+      '@fivvi/database':
+        specifier: workspace:*
+        version: link:../database
       '@fivvi/testing':
         specifier: workspace:*
         version: link:../testing
       '@types/node':
         specifier: 'catalog:'
         version: 26.6.2
+      drizzle-orm:
+        specifier: 'catalog:'
+        version: 0.45.3(@opentelemetry/api@1.10.0)(@types/pg@8.23.1)(kysely@0.29.7)(pg@8.23.0)
       typescript:
         specifier: 'catalog:'
         version: 7.0.2

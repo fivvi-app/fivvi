@@ -42,6 +42,7 @@ Use this as the checklist when writing and reviewing a PR.
 | New or changed **business rule** | Domain unit tests, including edge cases and invalid input |
 | New or changed **API route** | Integration test: happy path, validation error, **every role** (Owner / Trainer / Client / anonymous) allowed or denied as specified, response matches the schema. The isolation suite picks the route up automatically (§4.1) |
 | **Schema / migration** | Migrations apply to an empty DB and on top of the previous version; RLS policy exists for every new business table (a test checks this) |
+| **New table** | Declared in the privacy registry (`packages/domain/src/privacy/registry.ts`) in the same PR, with its subject, personal-data columns, export columns and what deletion does; then `pnpm --filter @fivvi/domain generate:privacy` and commit `docs/engineering/PRIVACY.md`. A test fails naming a table that is missing, and another when the inventory is out of date (E014) |
 | **Scheduling, time, recurrence** | DST fixtures (§4.3); times near midnight in Europe/Amsterdam |
 | **Booking, capacity, holds** | Concurrency test (§4.2); hold expiry; cancellation frees the spot |
 | **Tokens** (magic link, 6-digit code, invitations) | Single use, expiry, stored hashed, rate limit, wrong-workspace rejection |
