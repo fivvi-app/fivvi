@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
@@ -17,10 +17,11 @@ import { createWorkspace } from '../src/testing/index.ts';
 
 const SCRIPT = join(import.meta.dirname, '../../../scripts/restore-drill.sh');
 const FAKE = join(import.meta.dirname, 'fixtures/fake-railway.mjs');
-// A drill is CPU-bound: about fourteen processes one after the other, five of them loading Drizzle and the whole
-// schema (about two CPU-seconds in all). A GitHub runner has two or four cores, so drills side by side are not
-// faster, only each of them slower, and the budget of a test counts its own wait for the processor. The tests of
-// this file therefore take turns, a few at a time (#1309).
+// A mitigation, not a diagnosis (#1309). On CI the tests with a drill of their own took 22 to 52 s of their 60 s with
+// five drills side by side, and the first try of this cap is a guess: fewer drills at once should leave each test less
+// to wait for. Where the time goes (the helper processes, the clone and the restored copy in Postgres, the counts) is
+// not measured on CI yet; the lines `[restore-drill timing]` below are there to show it. Remove the cap or change it
+// when those numbers say so.
 const DRILLS_AT_ONCE = 2;
 vi.setConfig({ maxConcurrency: DRILLS_AT_ONCE });
 const SECRET = 'zzqsecret-gym-name';
@@ -42,6 +43,8 @@ interface Drill {
     env?: Record<string, string>,
   ): Promise<{ code: number; output: string; calls: string[][] }>;
   /** The `before` marker of the source as the fake `railway` saw it when the restore was asked for. */
+  /** What the fake `railway` recorded per call: when the process started and ended, and its CREATE DATABASE. */
+  railwayTimes(): RailwayTime[];
   beforeMarker(): { point: string; markerPoint: string | null; writtenAt: string | null };
   drillTableExists(): Promise<boolean>;
   restoredExists(): Promise<boolean>;
@@ -52,20 +55,28 @@ interface Drill {
 // several tests share.
 interface Cleanup {
   onTestFinished(handler: () => Promise<void> | void): void;
+  /** The test's own context has one; its name labels the timings. */
+  task?: { name: string };
 }
 
-async function setUpDrill({ onTestFinished }: Cleanup): Promise<Drill> {
-  const source = await cloneTemplateDatabase();
-  onTestFinished(() => source.drop());
-  const client = createDatabase({ url: source.url, maxConnections: 1 });
-  await createWorkspace(client.db, { label: SECRET });
-  await client.close();
+async function setUpDrill({ onTestFinished, task }: Cleanup): Promise<Drill> {
+  const label = (task?.name ?? 'shared drill').slice(0, 60);
+  onTestFinished(() => printTimings(label)); // the first to be registered runs last
+  const source = await timed(label, 'clone of the template', cloneTemplateDatabase);
+  onTestFinished(() => timed(label, 'drop of the source', () => source.drop()));
+  await timed(label, 'workspace in the source', async () => {
+    const client = createDatabase({ url: source.url, maxConnections: 1 });
+    await createWorkspace(client.db, { label: SECRET });
+    await client.close();
+  });
 
   const run = inject('fivviTestRun');
   if (!run) throw new Error('No test run.');
   const restoredName = newDatabaseName(run.runId);
   onTestFinished(() =>
-    onServer(`DROP DATABASE IF EXISTS "${restoredName}" WITH (FORCE)`).then(() => {}),
+    timed(label, 'drop of the restored copy', () =>
+      onServer(`DROP DATABASE IF EXISTS "${restoredName}" WITH (FORCE)`).then(() => {}),
+    ),
   );
 
   const dir = mkdtempSync(join(tmpdir(), 'restore-drill-'));
@@ -85,6 +96,7 @@ async function setUpDrill({ onTestFinished }: Cleanup): Promise<Drill> {
       // Asynchronous, so the tests of this file run side by side.
       drillsRunning += 1;
       peakDrills = Math.max(peakDrills, drillsRunning);
+      const startedAt = Date.now();
       const child = spawn(SCRIPT, args, {
         env: {
           ...process.env,
@@ -119,8 +131,25 @@ async function setUpDrill({ onTestFinished }: Cleanup): Promise<Drill> {
         .split('\n')
         .filter(Boolean)
         .map((line) => JSON.parse(line) as string[]);
+      // The gaps between the calls of `railway` are the helper runs and the checks of the script.
+      timing(
+        label,
+        `drill ${args.join(' ').slice(0, 40)} (${mode}), exit ${code}`,
+        Date.now() - startedAt,
+      );
+      for (const call of readRailwayTimes(log)) {
+        timing(
+          label,
+          `  railway ${call.command} at +${call.startedAt - startedAt} ms`,
+          call.endedAt - call.startedAt,
+        );
+        if (call.createDatabaseMs !== undefined) {
+          timing(label, `    its CREATE DATABASE`, call.createDatabaseMs);
+        }
+      }
       return { code, output, calls };
     },
+    railwayTimes: () => readRailwayTimes(log),
     beforeMarker: () => JSON.parse(readFileSync(`${log}.before`, 'utf8')),
     async drillTableExists() {
       const client = new pg.Client({ connectionString: source.url });
@@ -140,9 +169,47 @@ async function setUpDrill({ onTestFinished }: Cleanup): Promise<Drill> {
   };
 }
 
+// Timings for the CI log (#1309): one line per step, `[restore-drill timing] <test> | <step> | <ms>`. The lines of a
+// test are printed together when it has finished, so they do not run into those of the tests beside it.
+const timingLines = new Map<string, string[]>();
+const timing = (label: string, step: string, ms: number) => {
+  const lines = timingLines.get(label) ?? [];
+  lines.push(`[restore-drill timing] ${label} | ${step} | ${Math.round(ms)} ms`);
+  timingLines.set(label, lines);
+};
+const printTimings = (label: string) => {
+  console.info((timingLines.get(label) ?? []).join('\n'));
+  timingLines.delete(label);
+};
+
+async function timed<T>(label: string, step: string, work: () => Promise<T>): Promise<T> {
+  const started = performance.now();
+  try {
+    return await work();
+  } finally {
+    timing(label, step, performance.now() - started);
+  }
+}
+
+interface RailwayTime {
+  command: string;
+  startedAt: number;
+  endedAt: number;
+  createDatabaseMs?: number;
+}
+
 // How many drill scripts run at this moment, and the most that ran side by side in this file.
 let drillsRunning = 0;
 let peakDrills = 0;
+
+// No file when the script refused before it called `railway`.
+const readRailwayTimes = (log: string): RailwayTime[] =>
+  existsSync(`${log}.times`)
+    ? readFileSync(`${log}.times`, 'utf8')
+        .split('\n')
+        .filter(Boolean)
+        .map((line) => JSON.parse(line) as RailwayTime)
+    : [];
 
 const verbs = (calls: string[][]) => calls.map((call) => call.slice(0, 3).join(' '));
 
@@ -354,6 +421,11 @@ describe.concurrent('E016 the restore drill script', () => {
     );
     expect(await drill.drillTableExists()).toBe(false);
     expect(await drill.restoredExists()).toBe(false);
+    // The fake railway times its own calls, for the timings in the log (#1309).
+    const times = drill.railwayTimes();
+    expect(times.map((call) => call.command)).toEqual(verbs(passed.calls));
+    for (const call of times) expect(call.endedAt).toBeGreaterThanOrEqual(call.startedAt);
+    expect(times[0]?.createDatabaseMs).toEqual(expect.any(Number));
   }, 60_000);
 
   it('AC2: the point is taken a settle time after the before marker, and the marker is not for a later point', async () => {
@@ -382,8 +454,8 @@ describe.concurrent('E016 the restore drill script', () => {
 
 // After the tests above, because suites of a file run one after the other.
 describe('E016 the load of the restore drill tests', () => {
-  it('AC2: no more drills run side by side than a CI runner can serve inside the budget of a test', () => {
-    expect(peakDrills).toBeGreaterThan(0);
+  // Passes when run alone (`-t`): then no drill ran and the peak is 0.
+  it('#1309: no more drills run side by side than the cap of this file', () => {
     expect(peakDrills).toBeLessThanOrEqual(DRILLS_AT_ONCE + 1); // + the shared passing drill
   });
 });
