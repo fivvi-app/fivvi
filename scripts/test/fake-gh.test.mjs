@@ -62,7 +62,7 @@ describe('#1294 the fake gh and its jq child', () => {
     stubJq('exec sleep 60');
     const started = Date.now();
     const result = run([{ match: '^pr list', out: [] }], ['pr', 'list', '--jq', '.'], {
-      FAKE_GH_JQ_TIMEOUT_MS: '500',
+      FIVVI_TEST_JQ_TIMEOUT_MS: '500',
     });
     assert.ok(Date.now() - started < 15000, 'the fake gave up');
     assert.notEqual(result.status, 0);

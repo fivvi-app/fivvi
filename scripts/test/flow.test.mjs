@@ -27,6 +27,32 @@ const DISCLAIMER = readFileSync(join(SCRIPTS, '../.agents/skills/triage/SKILL.md
 const TRIAGE_NOTE = `${DISCLAIMER}\n\n## Triage Notes`;
 const comments = (...bodies) => bodies.map((body) => ({ body }));
 
+// A checkout of its own for the scripts under test, with a base commit on main and an origin: a copy of scripts/ (and
+// .github/repo-settings.json with `settings`). Returns its path and a `git` that runs in it. Tests that run flow.sh
+// from here instead of from the real checkout don't see its branches and worktrees.
+function scriptsRepo(prefix, { settings = false } = {}) {
+  const repo = realpathSync(mkdtempSync(join(tmpdir(), prefix)));
+  cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
+  if (settings) {
+    mkdirSync(join(repo, '.github'));
+    cpSync(
+      join(SCRIPTS, '../.github/repo-settings.json'),
+      join(repo, '.github/repo-settings.json'),
+    );
+  }
+  const git = (...args) =>
+    execFileSync(
+      'git',
+      ['-C', repo, '-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args],
+      { encoding: 'utf8' },
+    );
+  git('init', '--quiet', '--initial-branch=main');
+  git('add', '.');
+  git('commit', '--quiet', '-m', 'chore: base');
+  git('remote', 'add', 'origin', 'https://github.com/o/r.git');
+  return { repo, git };
+}
+
 // The scripts take "now" from FIVVI_NOW (ISO-8601, UTC), so no test reads the real clock.
 const NOW = '2026-10-20T12:00:00Z';
 const secondsAgo = (seconds) =>
@@ -77,23 +103,7 @@ describe('flow.sh next', () => {
   before(() => {
     // The scripts run from their own checkout, with no branch and no worktree but main: `next` looks at the branches
     // and worktrees of the checkout it runs in, and the real one holds those of other tickets (#1294).
-    repo = realpathSync(mkdtempSync(join(tmpdir(), 'flow-next-')));
-    cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
-    mkdirSync(join(repo, '.github'));
-    cpSync(
-      join(SCRIPTS, '../.github/repo-settings.json'),
-      join(repo, '.github/repo-settings.json'),
-    );
-    const git = (...args) =>
-      execFileSync(
-        'git',
-        ['-C', repo, '-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args],
-        { encoding: 'utf8' },
-      );
-    git('init', '--quiet', '--initial-branch=main');
-    git('add', '.');
-    git('commit', '--quiet', '-m', 'chore: base');
-    git('remote', 'add', 'origin', 'https://github.com/o/r.git');
+    ({ repo } = scriptsRepo('flow-next-', { settings: true }));
   });
   after(() => {
     gh.cleanup();
@@ -731,18 +741,8 @@ describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () 
   let repo;
   before(() => {
     // The scripts run from their own checkout, which here has one branch of issue 9999 and no worktree.
-    repo = realpathSync(mkdtempSync(join(tmpdir(), 'flow-queue-')));
-    cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
-    const git = (...args) =>
-      execFileSync(
-        'git',
-        ['-C', repo, '-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args],
-        { encoding: 'utf8' },
-      );
-    git('init', '--quiet', '--initial-branch=main');
-    git('add', '.');
-    git('commit', '--quiet', '-m', 'chore: base');
-    git('remote', 'add', 'origin', 'https://github.com/o/r.git');
+    const { repo: dir, git } = scriptsRepo('flow-queue-');
+    repo = dir;
     git('branch', 'chore/9999-queue');
   });
   after(() => {
@@ -1280,19 +1280,9 @@ describe('ADR-021 flow.sh start: no fixed limit on the tickets in progress', () 
   let elsewhere;
   before(() => {
     // A checkout with four tickets already in progress (worktrees) and a ready ticket #9998 without a branch.
-    repo = realpathSync(mkdtempSync(join(tmpdir(), 'flow-limit-')));
+    const { repo: dir, git } = scriptsRepo('flow-limit-');
+    repo = dir;
     elsewhere = realpathSync(mkdtempSync(join(tmpdir(), 'flow-limit-wt-')));
-    cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
-    const git = (...args) =>
-      execFileSync(
-        'git',
-        ['-C', repo, '-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args],
-        { encoding: 'utf8' },
-      );
-    git('init', '--quiet', '--initial-branch=main');
-    git('add', '.');
-    git('commit', '--quiet', '-m', 'chore: base');
-    git('remote', 'add', 'origin', 'https://github.com/o/r.git');
     for (const n of [1, 2, 3, 4])
       git('worktree', 'add', '--quiet', '-b', `feature/${n}-a`, join(elsewhere, `${n}`));
   });
@@ -1660,24 +1650,9 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
   let repo;
   before(() => {
     // The scripts run from their own checkout (its .work/ holds the notes), with a branch for each issue below.
-    repo = realpathSync(mkdtempSync(join(tmpdir(), 'flow-idle-')));
-    cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
     // The owner labels are created from the settings when GitHub lacks them.
-    mkdirSync(join(repo, '.github'));
-    cpSync(
-      join(SCRIPTS, '../.github/repo-settings.json'),
-      join(repo, '.github/repo-settings.json'),
-    );
-    const git = (...args) =>
-      execFileSync(
-        'git',
-        ['-C', repo, '-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args],
-        { encoding: 'utf8' },
-      );
-    git('init', '--quiet', '--initial-branch=main');
-    git('add', '.');
-    git('commit', '--quiet', '-m', 'chore: base');
-    git('remote', 'add', 'origin', 'https://github.com/o/r.git');
+    const { repo: dir, git } = scriptsRepo('flow-idle-', { settings: true });
+    repo = dir;
     for (const branch of ['9001-removed', '9002-queued', '9003-refused', '9004-building'])
       git('branch', `chore/${branch}`);
   });

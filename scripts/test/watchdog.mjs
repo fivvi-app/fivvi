@@ -1,8 +1,8 @@
 // A global setup of `node --test` for the root tests (`--test-global-setup`): it runs in the runner, which stays
 // responsive while the test files run in their own processes. A test file stuck in a blocking call (a hung spawnSync,
 // #1294) cannot be stopped by a test timeout, because its event loop is blocked; so after FIVVI_TEST_WATCHDOG_MS
-// (default 45 minutes; a run under load takes up to a quarter of that) the runner prints the processes it started, kills them and
-// fails the run.
+// (default 45 minutes; a run under heavy load, load average 30, took about 20) the runner prints the processes it
+// started, kills them and fails the run.
 import { execFileSync } from 'node:child_process';
 
 const processes = () =>

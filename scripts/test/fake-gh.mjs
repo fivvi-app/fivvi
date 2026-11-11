@@ -35,7 +35,7 @@ const jq = at('--jq') ?? at('-q');
 if (jq !== undefined) {
   // jq reads a file and gets no stdin at all: a piped input has hung under load, the pipe never ending (#1294).
   const dir = mkdtempSync(join(tmpdir(), 'fake-gh-jq-'));
-  const limit = Number(process.env.FAKE_GH_JQ_TIMEOUT_MS ?? 30000);
+  const limit = Number(process.env.FIVVI_TEST_JQ_TIMEOUT_MS ?? 30000);
   let timedOut = false;
   try {
     writeFileSync(join(dir, 'in.json'), out);
