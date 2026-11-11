@@ -517,6 +517,32 @@ describe('E004 database', () => {
     });
   });
 
+  describe('F037 seed booking links', () => {
+    it('AC1: gives every seeded workspace its two standing links, once', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        await seed(tx);
+
+        const rows = await tx.execute(
+          sql`select o.slug, b.scope::text as scope, b.language::text as language, b.deactivated_at, b.created_by_team_member_id
+              from booking_links b join organizations o on o.id = b.organization_id
+              order by o.slug, b.scope`,
+        );
+        expect(rows.rows).toEqual(
+          ['fit-studio', 'johns-gym', 'sarah-personal-training'].flatMap((slug) =>
+            ['all', 'group'].map((scope) => ({
+              slug,
+              scope,
+              language: 'visitor',
+              deactivated_at: null,
+              created_by_team_member_id: null,
+            })),
+          ),
+        );
+      });
+    });
+  });
+
   describe('F011 seed trainer invitation', () => {
     it('AC14: gives John’s Gym a pending invitation for invitee@example.com, from John, once', async () => {
       await withRollback(db, async (tx) => {

@@ -369,6 +369,8 @@ extension Components {
                 case class_read = "class.read"
                 case joinLink_view = "join_link.view"
                 case joinLink_renew = "join_link.renew"
+                case bookingLink_manage = "booking_link.manage"
+                case bookingLink_copy = "booking_link.copy"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -488,6 +490,8 @@ extension Components {
                 case class_read = "class.read"
                 case joinLink_view = "join_link.view"
                 case joinLink_renew = "join_link.renew"
+                case bookingLink_manage = "booking_link.manage"
+                case bookingLink_copy = "booking_link.copy"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -3284,6 +3288,337 @@ extension Components {
             /// - Parameters:
             ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `join_link_renewed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             public init(surface: Components.Schemas.RenewJoinLinkRequest.SurfacePayload? = nil) {
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case surface
+            }
+        }
+        /// The booking links of a workspace.
+        ///
+        /// - Remark: Generated from `#/components/schemas/BookingLinks`.
+        public struct BookingLinks: Codable, Hashable, Sendable {
+            /// The workspace’s links: the active ones first (the standing links *Alle boekingen* and *Groepslessen*, then the others by the time they were made), then the deactivated ones.
+            ///
+            /// - Remark: Generated from `#/components/schemas/BookingLinks/links`.
+            public var links: [Components.Schemas.BookingLink]
+            /// Creates a new `BookingLinks`.
+            ///
+            /// - Parameters:
+            ///   - links: The workspace’s links: the active ones first (the standing links *Alle boekingen* and *Groepslessen*, then the others by the time they were made), then the deactivated ones.
+            public init(links: [Components.Schemas.BookingLink]) {
+                self.links = links
+            }
+            public enum CodingKeys: String, CodingKey {
+                case links
+            }
+        }
+        /// A booking link of a workspace (*boekingslink*). Its scope, target and language are fixed for good; only its deactivation changes.
+        ///
+        /// - Remark: Generated from `#/components/schemas/BookingLink`.
+        public struct BookingLink: Codable, Hashable, Sendable {
+            /// The booking link ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/BookingLink/id`.
+            public var id: Swift.String
+            /// The short link in full, `https://…/l/{code}`. The QR code and the poster show this same link (F038).
+            ///
+            /// - Remark: Generated from `#/components/schemas/BookingLink/url`.
+            public var url: Swift.String
+            /// What the link opens: `all` (*Alle boekingen*), `group` (*Groepslessen*), `class` (*Eén les*) or `session` (*Eén les op een datum*). Open Gym returns with F034 to F036.
+            ///
+            /// - Remark: Generated from `#/components/schemas/BookingLink/scope`.
+            @frozen public enum ScopePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case all = "all"
+                case group = "group"
+                case _class = "class"
+                case session = "session"
+            }
+            /// What the link opens: `all` (*Alle boekingen*), `group` (*Groepslessen*), `class` (*Eén les*) or `session` (*Eén les op een datum*). Open Gym returns with F034 to F036.
+            ///
+            /// - Remark: Generated from `#/components/schemas/BookingLink/scope`.
+            public var scope: Components.Schemas.BookingLink.ScopePayload
+            /// The page language: `visitor` (*Taal van de bezoeker*), or always Dutch (`nl`) or English (`en`). The visitor can always switch language themselves (ADR-017).
+            ///
+            /// - Remark: Generated from `#/components/schemas/BookingLink/language`.
+            @frozen public enum LanguagePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case visitor = "visitor"
+                case nl = "nl"
+                case en = "en"
+            }
+            /// The page language: `visitor` (*Taal van de bezoeker*), or always Dutch (`nl`) or English (`en`). The visitor can always switch language themselves (ADR-017).
+            ///
+            /// - Remark: Generated from `#/components/schemas/BookingLink/language`.
+            public var language: Components.Schemas.BookingLink.LanguagePayload
+            /// `false` once the Owner has deactivated it; it never comes back.
+            ///
+            /// - Remark: Generated from `#/components/schemas/BookingLink/active`.
+            public var active: Swift.Bool
+            /// When it was deactivated, a UTC instant; `null` while it is active.
+            ///
+            /// - Remark: Generated from `#/components/schemas/BookingLink/deactivatedAt`.
+            public var deactivatedAt: Foundation.Date?
+            /// When it was made, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/BookingLink/createdAt`.
+            public var createdAt: Foundation.Date
+            /// - Remark: Generated from `#/components/schemas/BookingLink/groupClass`.
+            public var groupClass: Components.Schemas.BookingLinkClass?
+            /// The class date of a `session` link; `null` for the other scopes.
+            ///
+            /// - Remark: Generated from `#/components/schemas/BookingLink/date`.
+            public struct DatePayload: Codable, Hashable, Sendable {
+                /// The class date (session) ID.
+                ///
+                /// - Remark: Generated from `#/components/schemas/BookingLink/date/id`.
+                public var id: Swift.String
+                /// The start, a UTC instant.
+                ///
+                /// - Remark: Generated from `#/components/schemas/BookingLink/date/startsAt`.
+                public var startsAt: Foundation.Date
+                /// The workspace’s IANA time zone: show the start in it.
+                ///
+                /// - Remark: Generated from `#/components/schemas/BookingLink/date/timeZone`.
+                public var timeZone: Swift.String
+                /// - Remark: Generated from `#/components/schemas/BookingLink/date/groupClass`.
+                public struct GroupClassPayload: Codable, Hashable, Sendable {
+                    /// - Remark: Generated from `#/components/schemas/BookingLink/date/groupClass/value1`.
+                    public var value1: Components.Schemas.BookingLinkClass
+                    /// A class by name, as the list labels a link.
+                    ///
+                    /// - Remark: Generated from `#/components/schemas/BookingLink/date/groupClass/value2`.
+                    public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                    /// Creates a new `GroupClassPayload`.
+                    ///
+                    /// - Parameters:
+                    ///   - value1:
+                    ///   - value2: A class by name, as the list labels a link.
+                    public init(
+                        value1: Components.Schemas.BookingLinkClass,
+                        value2: OpenAPIRuntime.OpenAPIValueContainer
+                    ) {
+                        self.value1 = value1
+                        self.value2 = value2
+                    }
+                    public init(from decoder: any Swift.Decoder) throws {
+                        self.value1 = try .init(from: decoder)
+                        self.value2 = try .init(from: decoder)
+                    }
+                    public func encode(to encoder: any Swift.Encoder) throws {
+                        try self.value1.encode(to: encoder)
+                        try self.value2.encode(to: encoder)
+                    }
+                }
+                /// - Remark: Generated from `#/components/schemas/BookingLink/date/groupClass`.
+                public var groupClass: Components.Schemas.BookingLink.DatePayload.GroupClassPayload
+                /// Creates a new `DatePayload`.
+                ///
+                /// - Parameters:
+                ///   - id: The class date (session) ID.
+                ///   - startsAt: The start, a UTC instant.
+                ///   - timeZone: The workspace’s IANA time zone: show the start in it.
+                ///   - groupClass:
+                public init(
+                    id: Swift.String,
+                    startsAt: Foundation.Date,
+                    timeZone: Swift.String,
+                    groupClass: Components.Schemas.BookingLink.DatePayload.GroupClassPayload
+                ) {
+                    self.id = id
+                    self.startsAt = startsAt
+                    self.timeZone = timeZone
+                    self.groupClass = groupClass
+                }
+                public enum CodingKeys: String, CodingKey {
+                    case id
+                    case startsAt
+                    case timeZone
+                    case groupClass
+                }
+            }
+            /// The class date of a `session` link; `null` for the other scopes.
+            ///
+            /// - Remark: Generated from `#/components/schemas/BookingLink/date`.
+            public var date: Components.Schemas.BookingLink.DatePayload?
+            /// Creates a new `BookingLink`.
+            ///
+            /// - Parameters:
+            ///   - id: The booking link ID.
+            ///   - url: The short link in full, `https://…/l/{code}`. The QR code and the poster show this same link (F038).
+            ///   - scope: What the link opens: `all` (*Alle boekingen*), `group` (*Groepslessen*), `class` (*Eén les*) or `session` (*Eén les op een datum*). Open Gym returns with F034 to F036.
+            ///   - language: The page language: `visitor` (*Taal van de bezoeker*), or always Dutch (`nl`) or English (`en`). The visitor can always switch language themselves (ADR-017).
+            ///   - active: `false` once the Owner has deactivated it; it never comes back.
+            ///   - deactivatedAt: When it was deactivated, a UTC instant; `null` while it is active.
+            ///   - createdAt: When it was made, a UTC instant.
+            ///   - groupClass:
+            ///   - date: The class date of a `session` link; `null` for the other scopes.
+            public init(
+                id: Swift.String,
+                url: Swift.String,
+                scope: Components.Schemas.BookingLink.ScopePayload,
+                language: Components.Schemas.BookingLink.LanguagePayload,
+                active: Swift.Bool,
+                deactivatedAt: Foundation.Date? = nil,
+                createdAt: Foundation.Date,
+                groupClass: Components.Schemas.BookingLinkClass? = nil,
+                date: Components.Schemas.BookingLink.DatePayload? = nil
+            ) {
+                self.id = id
+                self.url = url
+                self.scope = scope
+                self.language = language
+                self.active = active
+                self.deactivatedAt = deactivatedAt
+                self.createdAt = createdAt
+                self.groupClass = groupClass
+                self.date = date
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case url
+                case scope
+                case language
+                case active
+                case deactivatedAt
+                case createdAt
+                case groupClass
+                case date
+            }
+        }
+        /// The class of a `class` link; `null` for the other scopes.
+        ///
+        /// - Remark: Generated from `#/components/schemas/BookingLinkClass`.
+        public struct BookingLinkClass: Codable, Hashable, Sendable {
+            /// The class ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/BookingLinkClass/id`.
+            public var id: Swift.String
+            /// The Dutch name: always there.
+            ///
+            /// - Remark: Generated from `#/components/schemas/BookingLinkClass/nameNl`.
+            public var nameNl: Swift.String
+            /// The English name, `null` without one. Show the Dutch name then.
+            ///
+            /// - Remark: Generated from `#/components/schemas/BookingLinkClass/nameEn`.
+            public var nameEn: Swift.String?
+            /// Creates a new `BookingLinkClass`.
+            ///
+            /// - Parameters:
+            ///   - id: The class ID.
+            ///   - nameNl: The Dutch name: always there.
+            ///   - nameEn: The English name, `null` without one. Show the Dutch name then.
+            public init(
+                id: Swift.String,
+                nameNl: Swift.String,
+                nameEn: Swift.String? = nil
+            ) {
+                self.id = id
+                self.nameNl = nameNl
+                self.nameEn = nameEn
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case nameNl
+                case nameEn
+            }
+        }
+        /// The link to get or make: its scope, its target and its page language.
+        ///
+        /// - Remark: Generated from `#/components/schemas/CreateBookingLinkRequest`.
+        public struct CreateBookingLinkRequest: Codable, Hashable, Sendable {
+            /// What the link opens: `all` (*Alle boekingen*), `group` (*Groepslessen*), `class` (*Eén les*) or `session` (*Eén les op een datum*). Open Gym returns with F034 to F036.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateBookingLinkRequest/scope`.
+            @frozen public enum ScopePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case all = "all"
+                case group = "group"
+                case _class = "class"
+                case session = "session"
+            }
+            /// What the link opens: `all` (*Alle boekingen*), `group` (*Groepslessen*), `class` (*Eén les*) or `session` (*Eén les op een datum*). Open Gym returns with F034 to F036.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateBookingLinkRequest/scope`.
+            public var scope: Components.Schemas.CreateBookingLinkRequest.ScopePayload
+            /// The page language: `visitor` (*Taal van de bezoeker*), or always Dutch (`nl`) or English (`en`). The visitor can always switch language themselves (ADR-017).
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateBookingLinkRequest/language`.
+            @frozen public enum LanguagePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case visitor = "visitor"
+                case nl = "nl"
+                case en = "en"
+            }
+            /// The page language: `visitor` (*Taal van de bezoeker*), or always Dutch (`nl`) or English (`en`). The visitor can always switch language themselves (ADR-017).
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateBookingLinkRequest/language`.
+            public var language: Components.Schemas.CreateBookingLinkRequest.LanguagePayload
+            /// The class of a `class` link, and only of that scope.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateBookingLinkRequest/groupClassId`.
+            public var groupClassId: Swift.String?
+            /// The class date of a `session` link, and only of that scope: an upcoming group session of the workspace (a private session, an Open Gym slot and a date that has passed are refused).
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateBookingLinkRequest/sessionId`.
+            public var sessionId: Swift.String?
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the product event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateBookingLinkRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the product event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateBookingLinkRequest/surface`.
+            public var surface: Components.Schemas.CreateBookingLinkRequest.SurfacePayload?
+            /// Creates a new `CreateBookingLinkRequest`.
+            ///
+            /// - Parameters:
+            ///   - scope: What the link opens: `all` (*Alle boekingen*), `group` (*Groepslessen*), `class` (*Eén les*) or `session` (*Eén les op een datum*). Open Gym returns with F034 to F036.
+            ///   - language: The page language: `visitor` (*Taal van de bezoeker*), or always Dutch (`nl`) or English (`en`). The visitor can always switch language themselves (ADR-017).
+            ///   - groupClassId: The class of a `class` link, and only of that scope.
+            ///   - sessionId: The class date of a `session` link, and only of that scope: an upcoming group session of the workspace (a private session, an Open Gym slot and a date that has passed are refused).
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the product event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            public init(
+                scope: Components.Schemas.CreateBookingLinkRequest.ScopePayload,
+                language: Components.Schemas.CreateBookingLinkRequest.LanguagePayload,
+                groupClassId: Swift.String? = nil,
+                sessionId: Swift.String? = nil,
+                surface: Components.Schemas.CreateBookingLinkRequest.SurfacePayload? = nil
+            ) {
+                self.scope = scope
+                self.language = language
+                self.groupClassId = groupClassId
+                self.sessionId = sessionId
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case scope
+                case language
+                case groupClassId
+                case sessionId
+                case surface
+            }
+        }
+        /// Who sends the deactivation. The body is optional; the web sends none.
+        ///
+        /// - Remark: Generated from `#/components/schemas/DeactivateBookingLinkRequest`.
+        public struct DeactivateBookingLinkRequest: Codable, Hashable, Sendable {
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the product event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DeactivateBookingLinkRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the product event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/DeactivateBookingLinkRequest/surface`.
+            public var surface: Components.Schemas.DeactivateBookingLinkRequest.SurfacePayload?
+            /// Creates a new `DeactivateBookingLinkRequest`.
+            ///
+            /// - Parameters:
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the product event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            public init(surface: Components.Schemas.DeactivateBookingLinkRequest.SurfacePayload? = nil) {
                 self.surface = surface
             }
             public enum CodingKeys: String, CodingKey {

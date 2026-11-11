@@ -253,6 +253,25 @@ export {
   wallClockToInstant,
 } from './scheduling/zoned-time.ts';
 export {
+  BOOKING_LINK_CODE_ALPHABET,
+  BOOKING_LINK_CODE_LENGTH,
+  BOOKING_LINK_LANGUAGES,
+  BOOKING_LINK_SCOPES,
+  type BookingLink,
+  type BookingLinkLanguage,
+  type BookingLinkRequest,
+  type BookingLinkRequestCheck,
+  type BookingLinkResolution,
+  type BookingLinkScope,
+  bookingLinkUrl,
+  checkBookingLinkRequest,
+  decideBookingLinkCreate,
+  decideBookingLinkSession,
+  resolveBookingLink,
+  STANDING_BOOKING_LINKS,
+  sortBookingLinks,
+} from './sharing/booking-link.ts';
+export {
   canChangeRole,
   canRemoveTeamMember,
   keepsAnOwner,

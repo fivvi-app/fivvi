@@ -73,6 +73,21 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     workspace_id: property.uuid(),
     surface: property.enum(['web', 'ios', 'android']),
   },
+  // F037: a team member made a booking link, or an Owner deactivated one. The workspace ID, the
+  // scope kind, the language mode and the surface only (the account's UUID is the distinct ID):
+  // never the code, the URL, the link's or the class's or date's ID, or a name.
+  booking_link_created: {
+    workspace_id: property.uuid(),
+    scope_kind: property.enum(['all', 'group', 'class', 'session']),
+    language_mode: property.enum(['visitor', 'nl', 'en']),
+    surface: property.enum(['web', 'ios', 'android']),
+  },
+  booking_link_deactivated: {
+    workspace_id: property.uuid(),
+    scope_kind: property.enum(['all', 'group', 'class', 'session']),
+    language_mode: property.enum(['visitor', 'nl', 'en']),
+    surface: property.enum(['web', 'ios', 'android']),
+  },
   // F020: a team member rescheduled a private session. The workspace ID and the surface only, as
   // for `private_session_created`: no session or client ID, name, email address, trainer, or the
   // old or new date or time.

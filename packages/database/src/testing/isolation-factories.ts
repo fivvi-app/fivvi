@@ -9,6 +9,7 @@ import {
   trainerProfiles,
 } from '../schema/index.ts';
 import {
+  addBookingLink,
   addClient,
   addGroupClass,
   addPayment,
@@ -108,6 +109,11 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
   group_classes: {
     scopeColumn: 'organization_id',
     create: (db, workspaceId) => addGroupClass(db, { workspaceId }),
+  },
+  // The standing link of all bookings, made by the system.
+  booking_links: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addBookingLink(db, { workspaceId }),
   },
   // A private session with a trainer of the workspace, planned by an Owner of it, and its one client.
   sessions: {

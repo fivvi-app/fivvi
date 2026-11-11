@@ -4,6 +4,7 @@ import type { DatabaseExecutor } from '../client.ts';
 import { FIXTURE_INVITATION_VALIDITY_MS } from '../invitation-validity.ts';
 import {
   authUsers,
+  bookingLinks,
   clients,
   groupClasses,
   locations,
@@ -256,6 +257,59 @@ export async function addGroupClass(
       })
       .returning({ id: groupClasses.id, nameNl: groupClasses.nameNl }),
     'group class',
+  );
+}
+
+/**
+ * A booking link of a workspace (F037): by default the standing link of all bookings in the
+ * visitor's language, active, with a code the database makes. A `class` link points at the given
+ * class or at one made for it, a `session` link at the given class date or at a group session made
+ * for it, a week from now.
+ */
+export async function addBookingLink(
+  db: Pick<DatabaseExecutor, 'insert' | 'select'>,
+  options: {
+    workspaceId: string;
+    scope?: 'all' | 'group' | 'class' | 'session';
+    language?: 'visitor' | 'nl' | 'en';
+    groupClassId?: string;
+    sessionId?: string;
+    createdByTeamMemberId?: string | null;
+    deactivatedAt?: Date | null;
+    code?: string;
+  },
+): Promise<{ id: string; code: string }> {
+  const scope = options.scope ?? 'all';
+  const groupClassId =
+    scope === 'class'
+      ? (options.groupClassId ?? (await addGroupClass(db, { workspaceId: options.workspaceId })).id)
+      : null;
+  const sessionId =
+    scope === 'session'
+      ? (options.sessionId ??
+        (
+          await addSession(db, {
+            workspaceId: options.workspaceId,
+            type: 'group',
+            participant: false,
+          })
+        ).id)
+      : null;
+  return first(
+    await db
+      .insert(bookingLinks)
+      .values({
+        organizationId: options.workspaceId,
+        scope,
+        language: options.language ?? 'visitor',
+        groupClassId,
+        sessionId,
+        createdByTeamMemberId: options.createdByTeamMemberId ?? null,
+        deactivatedAt: options.deactivatedAt ?? null,
+        ...(options.code === undefined ? {} : { code: options.code }),
+      })
+      .returning({ id: bookingLinks.id, code: bookingLinks.code }),
+    'booking link',
   );
 }
 

@@ -45,9 +45,10 @@ extension Responder {
         role == "owner"
             ? ["workspace.manage", "team.view", "team.manage", "trainers.view", "clients.view", "clients.manage",
                "location.read", "settings.manage", "team.invite", "session.private.manage.own",
-               "session.private.manage.any", "class.manage", "class.read", "join_link.view", "join_link.renew"]
+               "session.private.manage.any", "class.manage", "class.read", "join_link.view", "join_link.renew",
+               "booking_link.manage", "booking_link.copy"]
             : ["trainers.view", "clients.view", "clients.manage", "location.read", "session.private.manage.own",
-               "class.read", "join_link.view"]
+               "class.read", "join_link.view", "booking_link.copy"]
     }
 
     /// `GET /api/v1/me`'s answer for the one account.

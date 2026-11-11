@@ -3,6 +3,7 @@ import type { DatabaseExecutor } from './client.ts';
 import { FIXTURE_INVITATION_VALIDITY_MS } from './invitation-validity.ts';
 import {
   authUsers,
+  bookingLinks,
   clients,
   groupClasses,
   locations,
@@ -53,7 +54,7 @@ export function isProductionEnvironment(env: NodeJS.ProcessEnv = process.env): b
  * and the calendars of M4 have data; a week that has sessions already is left alone, and the next
  * week gets its own. And three group classes of John's Gym with their dates in that week (F021
  * AC12): one with an English name and one that needs a trainer; the classes are made once, the
- * dates once per week. And the people and the day of the personal calendar (F013, spec #457): Lisa
+ * dates once per week. And the standing booking links of the three workspaces (F037). And the people and the day of the personal calendar (F013, spec #457): Lisa
  * (`lisa@example.com`), an account that is only a client of John's Gym, Mike (`mike@example.com`),
  * the Owner of a third workspace, "Fit Studio" (`fit-studio`), who does not train, Anna de Vries
  * as a client of Sarah Personal Training, and Tuesday 22 September 2026 as the spec has it: Sarah has
@@ -244,6 +245,21 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
     now: options.now ?? new Date(),
   });
   await seedPersonalCalendar(db, { gym, personalTraining });
+  // The standing booking links of every workspace (F037): *Alle boekingen* and *Groepslessen* in
+  // the visitor's language. Idempotent through the partial unique index of the active links; the
+  // API makes them on the first list too, so a workspace made without the seed has them as well.
+  await db
+    .insert(bookingLinks)
+    .values(
+      [gym, personalTraining, fitStudio].flatMap((organizationId) =>
+        (['all', 'group'] as const).map((scope) => ({
+          organizationId,
+          scope,
+          language: 'visitor' as const,
+        })),
+      ),
+    )
+    .onConflictDoNothing();
 }
 
 /**
