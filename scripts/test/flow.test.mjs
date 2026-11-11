@@ -73,7 +73,32 @@ const queueRule = (
 
 describe('flow.sh next', () => {
   const gh = fakeGh();
-  after(() => gh.cleanup());
+  let repo;
+  before(() => {
+    // The scripts run from their own checkout, with no branch and no worktree but main: `next` looks at the branches
+    // and worktrees of the checkout it runs in, and the real one holds those of other tickets (#1294).
+    repo = realpathSync(mkdtempSync(join(tmpdir(), 'flow-next-')));
+    cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
+    mkdirSync(join(repo, '.github'));
+    cpSync(
+      join(SCRIPTS, '../.github/repo-settings.json'),
+      join(repo, '.github/repo-settings.json'),
+    );
+    const git = (...args) =>
+      execFileSync(
+        'git',
+        ['-C', repo, '-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args],
+        { encoding: 'utf8' },
+      );
+    git('init', '--quiet', '--initial-branch=main');
+    git('add', '.');
+    git('commit', '--quiet', '-m', 'chore: base');
+    git('remote', 'add', 'origin', 'https://github.com/o/r.git');
+  });
+  after(() => {
+    gh.cleanup();
+    rmSync(repo, { recursive: true, force: true });
+  });
 
   const HEAD = 'c'.repeat(40);
   const refusal = (sha) =>
@@ -89,7 +114,7 @@ describe('flow.sh next', () => {
     onGitHub = ['owner-queue', 'owner-decide'],
     { branches = {}, rules = [] } = {},
   ) =>
-    spawnSync(join(SCRIPTS, 'flow.sh'), ['next'], {
+    spawnSync(join(repo, 'scripts/flow.sh'), ['next'], {
       encoding: 'utf8',
       env: {
         ...gh.env([
@@ -298,8 +323,6 @@ describe('flow.sh next', () => {
             match: '^pr view 6[01345678] ',
             out: { headRefName: 'docs/no-issue', closingIssuesReferences: [], changedFiles: 1 },
           },
-          // The worktrees of the checkout these tests run in (#668): none has a merged PR.
-          { match: '^pr list .*--head ', out: [] },
         ]),
         FIVVI_NOW: now,
       },
@@ -667,6 +690,16 @@ describe('flow.sh next', () => {
         assert.equal(failed.stdout, plain.stdout);
         assert.match(failed.stderr, /^warning: .*PR #60\b/m);
       }
+    });
+
+    it('#1294: asks nothing about the branches or worktrees of the real checkout it is started from', () => {
+      const result = next();
+      assert.equal(result.status, 0, result.stderr);
+      const asked = gh
+        .calls()
+        .map(({ args }) => args)
+        .filter((args) => args.includes('--head'));
+      assert.deepEqual(asked, []);
     });
 
     it('AC7: creates a missing label from .github/repo-settings.json before it adds it', () => {
