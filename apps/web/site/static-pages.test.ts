@@ -13,20 +13,28 @@ function filesNamed(name: string, directory = siteDir): string[] {
   });
 }
 
-describe('F064 the site is static (ADR-030)', () => {
-  it('every root layout of the site makes the build fail when a page reads the request', () => {
+describe('F064 the site reads no request, but renders per request for the nonce (ADR-030, E013 AC8)', () => {
+  // A page cannot get the nonce of its Content-Security-Policy at build time: Next.js puts it on its
+  // own inline scripts while it renders a request. So the root layout of each language waits for
+  // the request (`connection()`), which makes the site's pages render per request. It reads
+  // nothing from the request: the pages are the same for every visitor, and set no cookie.
+  it('every root layout of the site waits for the request, so its pages get the nonce', () => {
     const layouts = filesNamed('layout.tsx');
     // One per language.
     expect(layouts.length).toBeGreaterThanOrEqual(2);
 
-    const notStatic = layouts.filter(
-      (file) => !/^export const dynamic = 'error';$/m.test(readFileSync(file, 'utf8')),
-    );
+    const notPerRequest = layouts.filter((file) => {
+      const source = readFileSync(file, 'utf8');
+      return !(
+        /import \{ connection \} from 'next\/server';/.test(source) &&
+        /await connection\(\);/.test(source)
+      );
+    });
 
-    expect(notStatic.map((file) => path.relative(siteDir, file))).toEqual([]);
+    expect(notPerRequest.map((file) => path.relative(siteDir, file))).toEqual([]);
   });
 
-  it('no page or layout of the site opts back into dynamic rendering or reads the request', () => {
+  it('no page or layout of the site reads the request', () => {
     const offending = [...filesNamed('layout.tsx'), ...filesNamed('page.tsx')].filter((file) =>
       /next\/headers|cookies\(|headers\(|searchParams|force-dynamic|revalidate\s*=\s*0|currentLocale/.test(
         readFileSync(file, 'utf8'),
