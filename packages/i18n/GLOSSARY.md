@@ -142,8 +142,8 @@ Timestamps are stored in UTC. Render them in the **workspace timezone** (default
 
 ```json
 "roles.trainerLabel": "{Word}"
-"team.example": "{AWord} nodig"
-"team.example": "{AWord} is needed"
+"team.example": "{Word} nodig"
+"team.example": "{Word} needed"
 ```
 
 ---
@@ -169,7 +169,7 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 | role | rol (de, rollen) | No custom roles in MVP. The MVP roles are Eigenaar and Trainer. |
 | Owner | Eigenaar (de, eigenaren) | ❌ *baas, beheerder* (that's Admin 🔜 7.0), *owner* (NL). |
 | Admin 🔜 7.0 | Beheerder (de, beheerders) | A later role, not in the MVP (owner decision, 2026-10-20): no strings until it is built. ❌ NL: *admin, administrator, manager*. |
-| Trainer | Trainer (de, trainers) | The **role** is Trainer: in code, routes, the API's role values and the permission matrix. The **UI** says the workspace's word (next row), never *trainer* literally; the `no-literal-trainer` check fails on a message that does. ❌ *PT* (as a role name). "Personal trainer" is fine in marketing copy (the public website), not as a role. |
+| Trainer | Trainer (de, trainers) | The **role** is Trainer: in code, routes, the API's role values and the permission matrix. The **UI of a workspace** says the workspace's word (next row), never *trainer* literally (screens with no workspace, the public website and Fivvi's own team emails are the exceptions); the `no-literal-trainer` check fails on a message that does. ❌ *PT* (as a role name). "Personal trainer" is fine in marketing copy (the public website), not as a role. |
 | Workspace's word | trainer (de, trainers), instructeur (de, instructeurs), docent (de, docenten), coach (de, coaches) | What a workspace calls its trainers on every screen, in emails and on the QR poster. EN: *trainer, instructor, teacher, coach* (plurals *trainers, instructors, teachers, coaches*). One of these four per workspace (`trainer` by default), in the reader's language: Dutch *instructeur* is English *instructor* at the same place on the same screen. A message uses the placeholders of §3.3, never a compound: *profiel van de trainer*, ❌ *trainersprofiel*. Screens with no workspace (sign-in, *Mijn profiel*, rows from several workspaces together, the apps' no-workspace screen) and the public website don't use it. ❌ *coach, instructeur, docent* hard-coded as a role name. |
 | client | klant (de, klanten) | ❌ NL: *cliënt* (sounds medical), *lid, sporter, deelnemer* (see *participant*), *gebruiker*. ❌ EN: *customer, member, user, athlete, guest*. A client who has a membership is a *klant met een abonnement* / *client with a membership*, never a *lid* / *member*. |
 | participant | deelnemer (de, deelnemers) | ❌ EN: *attendee, student*. ❌ NL: *cursist, leerling*. |

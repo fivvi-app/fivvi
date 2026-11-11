@@ -127,7 +127,7 @@ describe('F068 no-literal-trainer check', () => {
       expect(forGood.map((entry) => [entry.prefix, entry.scope])).toEqual([
         ['noWorkspace.', 'no-workspace'],
         ['site.', 'website'],
-        ['email.demoRequest.', 'website'],
+        ['email.demoRequest.', 'no-workspace'],
       ]);
     });
 
@@ -147,7 +147,7 @@ describe('F068 no-literal-trainer check', () => {
 
   it('passes on the committed catalogs', async () => {
     const set = await readCatalogSet(packageRoot);
-    const [result] = await runChecks(packageRoot, ['no-literal-trainer'], set);
+    const [result] = await runChecks(packageRoot, ['no-literal-trainer'], { set });
     expect(result?.problems).toEqual([]);
   });
 
@@ -157,7 +157,7 @@ describe('F068 no-literal-trainer check', () => {
       ...(set.messages.en as Record<string, Record<string, string>>).roles,
       brandNew: 'Your trainer',
     };
-    const results = await runChecks(packageRoot, undefined, set);
+    const results = await runChecks(packageRoot, undefined, { set });
     expect(results.map((result) => result.name)).toContain('no-literal-trainer');
     expect(results.find((result) => result.name === 'no-literal-trainer')?.problems).toEqual([
       expect.stringContaining('"roles.brandNew"'),

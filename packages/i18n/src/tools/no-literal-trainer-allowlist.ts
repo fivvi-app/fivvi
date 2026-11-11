@@ -5,8 +5,9 @@
  *
  * Every entry gives its reason, in one of two kinds:
  * - **For good**: a screen with no workspace, which can't know one word (sign-in, *Mijn profiel*,
- *   the apps' no-workspace screen, rows from several workspaces together), and the public
- *   website's copy, which is out of scope. Covers every key under its prefix.
+ *   the apps' no-workspace screen, rows from several workspaces together, Fivvi's own team
+ *   emails about a visitor with no workspace), and the public website's copy, which is out of
+ *   scope. Covers every key under its prefix.
  * - **For now**: a string that said *trainer* before the word existed. It moves with the #588
  *   ticket that switches its callers, and that ticket takes the entry off (the check fails on
  *   an entry no message needs any more). Covers exactly one key.
@@ -48,9 +49,9 @@ export const trainerAllowlist: TrainerAllowlist = [
   },
   {
     prefix: 'email.demoRequest.',
-    scope: 'website',
+    scope: 'no-workspace',
     reason:
-      'The demo request is sent from the public website to Fivvi’s own team, and asks how many trainers a visitor has: no workspace exists yet.',
+      'The demo request is an email to Fivvi’s own team, sent from the public website about a visitor who has no workspace yet, so there is no word to use.',
   },
 
   // For now: #746, the trainer web.
@@ -91,8 +92,9 @@ export const trainerAllowlist: TrainerAllowlist = [
   },
   {
     key: 'dataImport.problems.trainerUnknown',
-    movesWith: 746,
-    reason: 'moves with #746: the import check’s problem, shown on the trainer web.',
+    movesWith: 751,
+    reason:
+      'moves with #751: the import’s problem is resolved in packages/domain/src/import/messages.ts and no web, email or app ticket names the import, so the last ticket moves it to the word.',
   },
 
   // For now: #747, the emails.

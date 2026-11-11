@@ -27,8 +27,7 @@ export interface CheckResult {
 export async function runChecks(
   root: string,
   names: readonly CheckName[] = checkNames,
-  set?: CatalogSet,
-  allowlist: TrainerAllowlist = trainerAllowlist,
+  { set, allowlist = trainerAllowlist }: { set?: CatalogSet; allowlist?: TrainerAllowlist } = {},
 ): Promise<CheckResult[]> {
   const analysis = analyze(set ?? (await readCatalogSet(root)));
   const results: CheckResult[] = [];

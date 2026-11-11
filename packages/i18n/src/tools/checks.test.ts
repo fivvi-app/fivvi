@@ -112,7 +112,7 @@ describe('E005 i18n checks', () => {
 
     it('passes right after generating', async () => {
       // A small catalog of its own, so the committed allowlist would only report stale entries.
-      const results = await runChecks(root, undefined, undefined, []);
+      const results = await runChecks(root, undefined, { allowlist: [] });
       expect(results.map((r) => [r.name, r.problems])).toEqual([
         ['parity', []],
         ['icu', []],
