@@ -57,7 +57,15 @@ export const checkDocLists = (dir = join(import.meta.dirname, '..')) => {
   const catalog = section(lines, '### 4.3 Event catalog');
   if (catalog === null) problems.push('no "### 4.3 Event catalog" section');
   else {
-    const live = catalog.flatMap((line) => /^- `([a-z0-9_]+)`/.exec(line)?.[1] ?? []);
+    const live = [];
+    for (const line of catalog.filter((l) => l.startsWith('- '))) {
+      const event = /^- `([a-z0-9_]+)` \(/.exec(line)?.[1];
+      if (event === undefined)
+        problems.push(
+          `live events list: "${line}" is not a line of the form "- \`event_name\` (feature, spec)"`,
+        );
+      else live.push(event);
+    }
     problems.push(...order(live, 'live events list'));
 
     // The tables: a run of consecutive `| `event` | Status | ...` rows is one table.
@@ -93,7 +101,23 @@ export const checkDocLists = (dir = join(import.meta.dirname, '..')) => {
   const testing = section(lines, '### 4.4 Testing');
   if (testing === null) problems.push('no "### 4.4 Testing" section');
   else {
-    const paths = testing.flatMap((line) => /^- `([^`\s]+)`/.exec(line)?.[1] ?? []);
+    const paths = [];
+    for (const line of testing.filter((l) => l.startsWith('- '))) {
+      const match = /^- `([^`\s]+)`(.*)$/.exec(line);
+      if (!match) {
+        problems.push(
+          `event testing: "${line}" is not a line of the form "- \`path/to/file.test.ts\` → …"`,
+        );
+        continue;
+      }
+      const [, path, rest] = match;
+      paths.push(path);
+      const other = /`([^`\s]+\.test\.[a-z]+)`/.exec(rest)?.[1];
+      if (other !== undefined)
+        problems.push(
+          `event testing: \`${path}\` also names \`${other}\`; give each test its own bullet, under its full path`,
+        );
+    }
     problems.push(...order(paths, 'event testing', { unique: false }));
   }
   return problems;

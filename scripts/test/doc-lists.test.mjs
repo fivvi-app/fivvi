@@ -112,7 +112,20 @@ describe('#1271: the lists of OBSERVABILITY.md are one entry per line, in order'
     ]);
   });
 
-  it('fails when an event has a row twice, in one table or in two', () => {
+  it('fails when an event has a row twice, in one table', () => {
+    const dir = fixture({
+      [DOC]: doc({
+        plannedRows: [
+          '| `delta_done` | Planned | F004 | x |',
+          '| `delta_done` | Planned | F004 | x |',
+          '| `gamma_done` | Planned | F003 | x |',
+        ],
+      }),
+    });
+    assert.deepEqual(checkDocLists(dir), ['event table: `delta_done` is listed twice']);
+  });
+
+  it('fails when an event has a row twice, in two tables', () => {
     const dir = fixture({
       [DOC]: doc({
         plannedRows: [
@@ -122,6 +135,55 @@ describe('#1271: the lists of OBSERVABILITY.md are one entry per line, in order'
       }),
     });
     assert.deepEqual(checkDocLists(dir), ['event table: `alpha_done` is listed twice']);
+  });
+
+  it('fails on a bullet in the live events list that is not `event` (feature)', () => {
+    const dir = fixture({
+      [DOC]: doc({
+        live: ['- `alpha_done` (F001)', '- `beta_done` and `gamma_done` (F002)'],
+      }),
+    });
+    assert.deepEqual(checkDocLists(dir), [
+      'live events list: "- `beta_done` and `gamma_done` (F002)" is not a line of the form "- `event_name` (feature, spec)"',
+      '`beta_done` has a Live row but is not in the live events list',
+    ]);
+    const plain = fixture({
+      [DOC]: doc({ live: ['- `alpha_done` (F001)', '- `beta_done`', '- `beta_done` (F002)'] }),
+    });
+    assert.equal(checkDocLists(plain).length, 1);
+    assert.match(checkDocLists(plain)[0], /"- `beta_done`" is not a line of the form/);
+  });
+
+  it('fails on a bullet in the event testing section that does not start with a test path', () => {
+    const dir = fixture({
+      [DOC]: doc({
+        tests: [
+          '- `packages/api/test/a.test.ts` → `AC1: alpha_done` checks it.',
+          '- A note that is not a test reference.',
+        ],
+      }),
+    });
+    assert.deepEqual(checkDocLists(dir), [
+      'event testing: "- A note that is not a test reference." is not a line of the form "- `path/to/file.test.ts` → …"',
+    ]);
+  });
+
+  it('fails on a test reference that holds a second test file, which needs a bullet of its own', () => {
+    const dir = fixture({
+      [DOC]: doc({
+        tests: [
+          '- `packages/api/test/a.test.ts` → `AC1: alpha_done` checks it. `packages/observability/src/scrub.test.ts` → `AC1` checks more.',
+          '- `packages/api/test/b.test.ts` → `AC1: beta_done` checks it. `config.test.ts` checks more.',
+        ],
+      }),
+    });
+    const problems = checkDocLists(dir);
+    assert.equal(problems.length, 2);
+    assert.match(
+      problems[0],
+      /event testing: `packages\/api\/test\/a\.test\.ts` also names `packages\/observability\/src\/scrub\.test\.ts`; give each test its own bullet/,
+    );
+    assert.match(problems[1], /`packages\/api\/test\/b\.test\.ts` also names `config\.test\.ts`/);
   });
 
   it('fails when the live events and the Live rows of the table differ', () => {
