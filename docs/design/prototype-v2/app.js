@@ -624,7 +624,7 @@
     body += '<div class="pad">' + grp(rows.map(function (x) { return row({ title: esc(x[0]), tr: '<b class="num">' + x[1] + " × " + esc(x[2]) + "</b>", cls: "kv" }); })) + "</div>";
     body += foot("Een wijziging verandert geen trainingen die al zijn gelogd.");
     body += '<div class="pad stack" style="margin-top:20px">' + btn("Wijzigen", { k: "sec", blk: true, a: "tpl-edit", d: { t: r.id }, i: "pencil" }) + btn("Schema verwijderen", { k: "dng", blk: true, a: "tpl-del-ask", d: { t: r.id } }) + "</div>";
-    return { title: r.id, body: body };
+    return { title: r.id, noTr: true, body: body };
   };
 
   SCREENS.language = function () {
@@ -740,7 +740,7 @@
         '<div class="fgrp">' + fld("Doel", '<input data-tr="' + i + ',target" value="' + esc(r.target) + '" aria-label="' + esc(r.n) + ' doel">') + "</div></div></div>";
     }).join("");
     body += '<div style="margin-top:14px">' + btn("Oefening toevoegen", { k: "sec", blk: true, a: "tpl-pick", i: "plus" }) + "</div>";
-    body += foot("Trainingen die al met dit schema zijn gelogd, veranderen niet.");
+    body += foot("Een wijziging verandert geen trainingen die al zijn gelogd.");
     return { title: f.orig ? "Schema wijzigen" : "Nieuw schema", body: body, save: "save-tpl", still: !!S.tplPick };
   };
   function exList() {
@@ -885,12 +885,12 @@
       var caps = trailing.map(function (t) { return t.t ? '<button class="gb glass txt" data-a="' + t.a + '"' + dattrs(t.d) + ">" + t.t + "</button>" : '<button class="gb glass" data-a="' + t.a + '"' + dattrs(t.d) + ' aria-label="' + esc(t.label) + '">' + ic(t.i) + "</button>"; }).join("");
       if (p.add) caps += '<button class="gb prom" data-a="' + p.add.a + '" aria-label="' + esc(p.add.label) + '">' + ic("plus") + "</button>";
       if (p.save) caps += '<button class="gb prom" data-a="' + p.save.a + '"' + dattrs(p.save.d) + ' aria-label="Opslaan">' + ic("check") + "</button>";
-      return '<div class="nb' + (p.inline ? "" : "") + '">' + L + '<span class="sp"></span>' + caps + '<div class="t">' + esc(p.title) + "</div></div>";
+      return '<div class="nb' + (p.inline ? "" : "") + '">' + L + '<span class="sp"></span>' + caps + '<div class="t"' + (p.noTr ? ' translate="no"' : "") + ">" + esc(p.title) + "</div></div>";
     }
     var A = prev ? '<button class="ib" data-a="back" aria-label="Terug">' + ic("back") + "</button>" : "";
     var acts = trailing.map(function (t) { return '<button class="ib" data-a="' + t.a + '"' + dattrs(t.d) + ' aria-label="' + esc(t.label || t.t) + '">' + ic(t.i === "more" ? "moreV" : t.i) + "</button>"; }).join("");
     if (p.save) acts += btn("Opslaan", { k: "ghost", sm: true, a: p.save.a, d: p.save.d });
-    return '<div class="ab ' + (p.large ? "root" : "") + '">' + A + '<div class="t">' + esc(p.title) + "</div>" + acts + "</div>";
+    return '<div class="ab ' + (p.large ? "root" : "") + '">' + A + '<div class="t"' + (p.noTr ? ' translate="no"' : "") + ">" + esc(p.title) + "</div>" + acts + "</div>";
   }
 
   function tabsHTML() {
@@ -1071,7 +1071,7 @@
     "save-tpl": function () {
       var f = S.form, nm = (f.name || "").trim();
       if (!nm) { bad("name", "Vul een naam in"); return; }
-      if (nm !== f.orig && D.tpl[nm]) { bad("name", "Er is al een schema met deze naam"); return; }
+      if (Object.keys(D.tpl).some(function (k) { return k !== f.orig && k.trim().toLowerCase() === nm.toLowerCase(); })) { bad("name", "Er is al een schema met deze naam"); return; }
       if (!f.rows.length) { S.err = {}; toast("Een schema heeft minstens één oefening", "err"); return; }
       var rows = f.rows.map(function (r) { return [r.n, Math.max(1, parseInt(r.sets, 10) || 1), (r.target || "").trim() || TPL_DEF[tplType(r.n)]]; });
       if (f.orig && f.orig !== nm) { var keep = Object.keys(D.tpl).map(function (k) { return [k === f.orig ? nm : k, k === f.orig ? rows : D.tpl[k]]; }); Object.keys(D.tpl).forEach(function (k) { delete D.tpl[k]; }); keep.forEach(function (x) { D.tpl[x[0]] = x[1]; }); }
