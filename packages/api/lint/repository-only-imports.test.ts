@@ -250,8 +250,6 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     lockInvitationQuota: 'repository of the trainer invitations, takes the workspace scope (F011)',
     countInvitationsSince:
       'repository of the trainer invitations, takes the workspace scope (F011)',
-    findPendingInvitation:
-      'repository of the trainer invitations, takes the workspace scope (F011)',
     findPendingInvitationByEmail:
       'repository of the trainer invitations, takes the workspace scope (F011)',
     listPendingInvitations:

@@ -116,6 +116,16 @@ describe('F011 trainer invitations', () => {
     return { server: createApp({ ...NO_DEPENDENCIES, ...dependencies }), transport, clock, hooks };
   }
 
+  /** An error reporter that keeps what it is told, for a test to look at. */
+  function reporter() {
+    const reported: unknown[] = [];
+    const errorReporter: ApiDependencies['errorReporter'] = {
+      ...createErrorReporter({ env: {} }),
+      captureError: (error) => void reported.push(error),
+    };
+    return { reported, errorReporter };
+  }
+
   /** John's Gym (Dutch) with John (Owner, named) and Sarah (Trainer); Fit Studio with Mike. */
   async function world(options: { defaultLocale?: 'nl-NL' | 'en' } = {}) {
     const gym = await createWorkspace(admin.db, { label: 'johns-gym' });
@@ -728,7 +738,8 @@ describe('F011 trainer invitations', () => {
   it('a failed send answers 500 and leaves nothing stored: no invitation without its email', async () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { gym, john } = await world();
-    const { server, transport } = setup();
+    const { reported, errorReporter } = reporter();
+    const { server, transport } = setup({ errorReporter });
     transport.failNext(new EmailSendError('memory: rejected', { retryable: false }));
 
     const response = await invite(server, gym.id, john, {
@@ -737,6 +748,8 @@ describe('F011 trainer invitations', () => {
     });
 
     expect(response.status).toBe(500);
+    // Only the failed send: the undo found its invitation and took it back.
+    expect(reported).toHaveLength(1);
     expect(await rowsOf(gym.id)).toEqual([]);
     // The address can be invited at once; the failed try did not block it or count for the limit.
     expect(
@@ -866,6 +879,60 @@ describe('F011 trainer invitations', () => {
       expiresAt: before?.expiresAt,
       status: 'pending',
     });
+    error.mockRestore();
+  });
+
+  it('F049: a failed send does not delete an invitation that changed since: a newer token stays', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { gym, john } = await world();
+    const { reported, errorReporter } = reporter();
+    const { server, transport, hooks } = setup({ errorReporter });
+    // While the send is in flight another request resends the invitation: the row holds a newer token.
+    hooks.beforeSend = async () => {
+      await admin.db
+        .update(trainerInvitations)
+        .set({ tokenHash: 'newer-create-token-hash' })
+        .where(eq(trainerInvitations.organizationId, gym.id));
+    };
+    transport.failNext(new EmailSendError('memory: rejected', { retryable: false }));
+
+    const response = await invite(server, gym.id, john, {
+      name: 'Lisa',
+      email: 'lisa@example.com',
+    });
+
+    expect(response.status).toBe(500);
+    const rows = await rowsOf(gym.id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.tokenHash).toBe('newer-create-token-hash');
+    // The failed send, and the undo that found nothing of its own to take back.
+    expect(reported).toHaveLength(2);
+    error.mockRestore();
+  });
+
+  it('F049: a failed resend does not put the old token back over a newer one', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { gym, john } = await world();
+    const { reported, errorReporter } = reporter();
+    const { server, transport, hooks } = setup({ errorReporter });
+    const created = (await (
+      await invite(server, gym.id, john, { name: 'Lisa', email: 'lisa@example.com' })
+    ).json()) as InvitationBody;
+    const [before] = await rowsOf(gym.id);
+    hooks.beforeSend = async () => {
+      await admin.db
+        .update(trainerInvitations)
+        .set({ tokenHash: 'newer-resend-token-hash' })
+        .where(eq(trainerInvitations.organizationId, gym.id));
+    };
+    transport.failNext(new EmailSendError('memory: rejected', { retryable: false }));
+
+    expect((await resend(server, gym.id, created.id, john)).status).toBe(500);
+
+    const [after] = await rowsOf(gym.id);
+    expect(after?.tokenHash).toBe('newer-resend-token-hash');
+    expect(reported).toHaveLength(2);
+    expect(after?.tokenHash).not.toBe(before?.tokenHash);
     error.mockRestore();
   });
 

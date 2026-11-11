@@ -320,14 +320,14 @@ async function invitationMail(
 /**
  * Sends the email once the request's transaction has committed, then runs `sent`. When the send
  * fails, `undo` runs in a transaction of its own, in the same workspace, and the request answers
- * `500`: no invitation without its email. The failure is reported by name only (a message can
- * quote an address).
+ * `500`: no invitation without its email. An undo that finds nothing to take back is reported
+ * too. The failure is reported by name only (a message can quote an address).
  */
 function sendAfterCommit(
   c: Context<WorkspaceEnv>,
   scope: WorkspaceScope,
   mail: Parameters<ApiDependencies['sendTrainerInvitation']>[0],
-  steps: { undo: (scope: WorkspaceScope) => Promise<unknown>; sent: () => void },
+  steps: { undo: (scope: WorkspaceScope) => Promise<boolean>; sent: () => void },
 ): void {
   const { workspaceId } = scope;
   const account = c.get('account');
@@ -343,10 +343,14 @@ function sendAfterCommit(
       report(error);
       try {
         // The same workspace, so the undo can only touch its own rows.
-        await tenantScopes.inWorkspaceScope(
+        const undone = await tenantScopes.inWorkspaceScope(
           { accountId: account.id, workspaceId, admit: () => 'team' },
           steps.undo,
         );
+        // Not entered, or no row left to take back (a newer send or a withdrawal got there first).
+        if (undone.status !== 'entered' || !undone.value) {
+          report(new Error('The failed invitation could not be taken back.'));
+        }
       } catch (undoError) {
         report(undoError);
       }

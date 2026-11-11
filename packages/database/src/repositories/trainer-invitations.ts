@@ -75,19 +75,6 @@ export async function findPendingInvitationByEmail(
   return row;
 }
 
-/** One pending invitation of the workspace; `undefined` when it is closed or is another workspace's. */
-export async function findPendingInvitation(
-  scope: WorkspaceScope,
-  invitationId: string,
-): Promise<TrainerInvitationView | undefined> {
-  const [row] = await executorOf(scope)
-    .select(columns)
-    .from(trainerInvitations)
-    .where(and(pendingOf(scope), eq(trainerInvitations.id, invitationId)))
-    .limit(1);
-  return row;
-}
-
 /** The pending invitations of the workspace, the latest sent first (then by ID, so the order is stable). */
 export function listPendingInvitations(scope: WorkspaceScope): Promise<TrainerInvitationView[]> {
   return executorOf(scope)

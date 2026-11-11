@@ -134,7 +134,6 @@ export {
   countInvitationsSince,
   createTrainerInvitation,
   findInvitation,
-  findPendingInvitation,
   findPendingInvitationByEmail,
   hasPendingInvitation,
   type InvitationRecord,
