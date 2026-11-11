@@ -72,6 +72,12 @@ export interface CreateSendEmailOptions {
    * nothing else about the recipient: the web server records the product event `email_sent` here.
    */
   onSent?: (event: SentEvent) => void;
+  /**
+   * Called with the error when `onSent` throws. The email is already delivered then, so the send
+   * still succeeds; the caller reports the error (the web server hands it to Sentry). Default:
+   * the error's name on the server log.
+   */
+  onSentError?: (error: unknown) => void;
 }
 
 /**
@@ -88,6 +94,8 @@ export function createSendEmail(options: CreateSendEmailOptions): SendEmail {
     sleep: wait = sleep,
     random = Math.random,
     onSent,
+    onSentError = (error) =>
+      console.error('Email sent hook failed:', error instanceof Error ? error.name : 'unknown'),
   } = options;
 
   return async ({ template, props, to, locale, timeZone, event }) => {
@@ -104,9 +112,13 @@ export function createSendEmail(options: CreateSendEmailOptions): SendEmail {
     };
 
     const result = await deliver(email);
-    // After the provider accepted it, and outside the retry loop: a hook that throws must not make
-    // the send be tried again.
-    onSent?.({ emailId, language: locale });
+    // After the provider accepted it, and outside the retry loop: a hook that throws must neither
+    // make the send be tried again nor fail it, because the email is delivered.
+    try {
+      onSent?.({ emailId, language: locale });
+    } catch (error) {
+      onSentError(error);
+    }
     return result;
   };
 

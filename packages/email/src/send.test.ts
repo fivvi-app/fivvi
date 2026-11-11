@@ -14,7 +14,7 @@ const sender = { email: 'noreply@fivvi.app', name: 'Fivvi' };
 const props = { firstName: 'Anna', sentAt: new Date('2026-09-22T16:00:00Z') };
 const to = { email: 'anna@example.com' };
 
-function setup(onSent?: (event: SentEvent) => void) {
+function setup(onSent?: (event: SentEvent) => void, onSentError?: (error: unknown) => void) {
   const transport = createMemoryTransport();
   const sendEmail = createSendEmail({
     transport,
@@ -22,6 +22,7 @@ function setup(onSent?: (event: SentEvent) => void) {
     sleep: () => Promise.resolve(),
     random: () => 0,
     onSent,
+    onSentError,
   });
   return { transport, sendEmail };
 }
@@ -202,6 +203,24 @@ describe('F049 AC11: every send carries its catalog ID', () => {
     await sendEmail({ template: helloEmail, props, to, locale: dutch, event: 'e' });
 
     expect(sent).toEqual([{ emailId: 'hello', language: 'nl-NL' }]);
+  });
+
+  it('does not fail a send the provider accepted when the onSent hook throws: it reports the hook', async () => {
+    const hookError = new Error('posthog is down');
+    const reported: unknown[] = [];
+    const { transport, sendEmail } = setup(
+      () => {
+        throw hookError;
+      },
+      (error) => reported.push(error),
+    );
+
+    const result = await sendEmail({ template: helloEmail, props, to, locale: dutch, event: 'e' });
+
+    // Delivered once, not retried, and the caller sees a success; the failure is reported.
+    expect(result).toEqual({ messageId: 'memory-1', attempts: 1 });
+    expect(transport.sent).toHaveLength(1);
+    expect(reported).toEqual([hookError]);
   });
 });
 

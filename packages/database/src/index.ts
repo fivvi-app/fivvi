@@ -138,12 +138,16 @@ export {
   findPendingInvitationByEmail,
   hasPendingInvitation,
   type InvitationRecord,
+  type InvitationSend,
   listPendingInvitations,
   lockInvitation,
   lockInvitationQuota,
+  lockPendingInvitationSend,
   type NewTrainerInvitation,
   resendInvitation,
   type TrainerInvitationView,
+  undoInvitation,
+  undoResend,
   withdrawInvitation,
 } from './repositories/trainer-invitations.ts';
 export {

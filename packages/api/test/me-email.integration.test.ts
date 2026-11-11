@@ -9,7 +9,12 @@ import {
   type DatabaseClient,
 } from '@fivvi/database';
 import { addTeamRole, createWorkspace } from '@fivvi/database/testing';
-import { createMemoryTransport, createSendEmail, type MemoryTransport } from '@fivvi/email';
+import {
+  createMemoryTransport,
+  createSendEmail,
+  emailIdempotencyKey,
+  type MemoryTransport,
+} from '@fivvi/email';
 import { messages } from '@fivvi/i18n';
 import {
   createErrorReporter,
@@ -289,6 +294,10 @@ describe('F005 change your own email address', () => {
       const newEmail = unique('sarah.jansen');
 
       await askForCode(sarah.cookie, newEmail);
+      const [stored] = await client.db
+        .select({ codeHash: authVerifications.codeHash })
+        .from(authVerifications)
+        .where(eq(authVerifications.identifier, `change-email:${sarah.id}`));
       await askForCode(sarah.cookie, newEmail);
 
       const [first, second] = transport.sent.map((sent) => sent.idempotencyKey);
@@ -296,6 +305,9 @@ describe('F005 change your own email address', () => {
         /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
       );
       expect(second).not.toBe(first);
+      // The event is the request's stored code hash, not a random value: the key follows the row.
+      expect(stored?.codeHash).toEqual(expect.any(String));
+      expect(first).toBe(emailIdempotencyKey('EM-34', stored?.codeHash ?? ''));
     });
 
     it('answers 202 with an empty body', async () => {

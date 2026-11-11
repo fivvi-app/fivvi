@@ -146,6 +146,83 @@ export async function resendInvitation(
   return row;
 }
 
+/** What a send replaced, to put back when the email could not go out: the old link, time and expiry. */
+export interface InvitationSend {
+  readonly tokenHash: string;
+  readonly sentAt: Date;
+  readonly expiresAt: Date;
+}
+
+/**
+ * The send a pending invitation has now (its token's hash, sending time and expiry), read before
+ * a resend replaces it, and locked until the transaction ends. `undefined` when the workspace has
+ * no such pending invitation.
+ */
+export async function lockPendingInvitationSend(
+  scope: WorkspaceScope,
+  invitationId: string,
+): Promise<InvitationSend | undefined> {
+  const [row] = await executorOf(scope)
+    .select({
+      tokenHash: trainerInvitations.tokenHash,
+      sentAt: trainerInvitations.sentAt,
+      expiresAt: trainerInvitations.expiresAt,
+    })
+    .from(trainerInvitations)
+    .where(and(pendingOf(scope), eq(trainerInvitations.id, invitationId)))
+    .limit(1)
+    .for('update');
+  return row;
+}
+
+/**
+ * Puts a resend back: the invitation goes back to `previous` (its old link works again), but only
+ * while it still holds the token of the send that failed (`failedTokenHash`): a later resend or a
+ * withdrawal is left alone. `false` when nothing was put back.
+ */
+export async function undoResend(
+  scope: WorkspaceScope,
+  invitationId: string,
+  failedTokenHash: string,
+  previous: InvitationSend,
+): Promise<boolean> {
+  const rows = await executorOf(scope)
+    .update(trainerInvitations)
+    .set(previous)
+    .where(
+      and(
+        pendingOf(scope),
+        eq(trainerInvitations.id, invitationId),
+        eq(trainerInvitations.tokenHash, failedTokenHash),
+      ),
+    )
+    .returning({ id: trainerInvitations.id });
+  return rows.length > 0;
+}
+
+/**
+ * Takes back an invitation whose email could not go out: the row is deleted (it leaves the day's
+ * count too), but only while it is pending with the token of that send. `false` when nothing was
+ * deleted.
+ */
+export async function undoInvitation(
+  scope: WorkspaceScope,
+  invitationId: string,
+  failedTokenHash: string,
+): Promise<boolean> {
+  const rows = await executorOf(scope)
+    .delete(trainerInvitations)
+    .where(
+      and(
+        pendingOf(scope),
+        eq(trainerInvitations.id, invitationId),
+        eq(trainerInvitations.tokenHash, failedTokenHash),
+      ),
+    )
+    .returning({ id: trainerInvitations.id });
+  return rows.length > 0;
+}
+
 /**
  * Withdraws a pending invitation: its token stops working and it leaves the pending list. The
  * row stays (it counts for the day's limit). `false` when the workspace has no such pending

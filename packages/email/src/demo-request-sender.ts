@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { resolveInternalCommunicationLanguage } from '@fivvi/i18n';
 import type { DemoRequestMail } from './demo-request-mail.ts';
 import type { SendEmail } from './send.ts';
@@ -27,8 +27,10 @@ export function createDemoRequestSender({
       props: mail,
       to,
       locale: resolveInternalCommunicationLanguage(),
-      // A request has no ID of its own to build the key from: one event per request.
-      event: randomUUID(),
+      // A request has no ID of its own: the event is the hash of its answers, so a double submit
+      // (the same answers twice) has one idempotency key and the provider sends it once, within
+      // the 24 hours it keeps a key. The key is hashed again, so it holds nothing personal.
+      event: createHash('sha256').update(JSON.stringify(mail)).digest('hex'),
     });
   };
 }

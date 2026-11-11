@@ -2,15 +2,18 @@ import {
   countInvitationsSince,
   createTrainerInvitation,
   findOwnTeamMember,
-  findPendingInvitation,
   findPendingInvitationByEmail,
   findPreferredLocaleByEmail,
   findWorkspace,
+  type InvitationSend,
   isOnTeam,
   listPendingInvitations,
   lockInvitationQuota,
+  lockPendingInvitationSend,
   resendInvitation,
   type TrainerInvitationView,
+  undoInvitation,
+  undoResend,
   type WorkspaceScope,
   withdrawInvitation,
 } from '@fivvi/database';
@@ -26,8 +29,10 @@ import { locales } from '@fivvi/i18n';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
 import type { Context } from 'hono';
 import { defineRoute, type WorkspaceEnv } from '../access.ts';
+import type { ApiDependencies } from '../dependencies.ts';
 import {
   answerValidationFailure,
+  INTERNAL_SERVER_ERROR,
   internalServerErrorResponse,
   NOT_FOUND,
   validationErrorResponse,
@@ -41,8 +46,10 @@ import { createInvitationToken, invitationEmailEvent } from '../invitations/toke
 // (packages/database); EM-09 is a template of @fivvi/email.
 //
 // The token in the link is random, goes into the email and nowhere else; only its hash is stored.
-// Resending rotates it, so the old link stops working. An invitation is made, or sent again,
-// together with its email: a send that fails fails the request and rolls everything back.
+// Resending rotates it, so the old link stops working. The email goes out after the request's
+// transaction committed (F049), never inside it, so the provider is only ever asked for an
+// invitation that is stored. A send that fails answers `500` and undoes the change in a new
+// transaction: a new invitation is deleted, a resend gives the old token, time and expiry back.
 // Wording: *invitation*, *invite*, *Trainer*; never "member".
 
 // Typed once: written inline, TypeScript loses the route's request types (see workspaces.ts).
@@ -278,20 +285,22 @@ function shown({ id, name, email, emailLocale, sentAt, expiresAt }: TrainerInvit
 }
 
 /**
- * Emails EM-09 for an invitation with the token in its link, in the language the rules decide:
- * the chosen one, the account's behind the address, the workspace's default. The event follows
- * the invitation and its token, so the same send repeated has one idempotency key and goes out once.
+ * What EM-09 needs for an invitation with the token in its link, in the language the rules decide:
+ * the chosen one, the account's behind the address, the workspace's default. Read inside the
+ * request's transaction, because it needs the scope; the email is sent after the commit. The event
+ * follows the invitation and its token, so the same send repeated has one idempotency key and goes
+ * out once.
  */
-async function sendInvitationEmail(
+async function invitationMail(
   c: Context<WorkspaceEnv>,
   scope: WorkspaceScope,
   invitation: TrainerInvitationView,
   token: { value: string; hash: string },
-): Promise<void> {
+): Promise<Parameters<ApiDependencies['sendTrainerInvitation']>[0]> {
   const workspace = await findWorkspace(scope);
   if (!workspace) throw new Error('The workspace of the invitation was not found.');
   const account = c.get('account');
-  await c.get('dependencies').sendTrainerInvitation({
+  return {
     to: { email: invitation.email, name: invitation.name },
     locale: invitationLanguage({
       chosen: invitation.emailLocale,
@@ -305,6 +314,46 @@ async function sendInvitationEmail(
     token: token.value,
     expiresAt: invitation.expiresAt,
     event: invitationEmailEvent(invitation.id, token.hash),
+  };
+}
+
+/**
+ * Sends the email once the request's transaction has committed, then runs `sent`. When the send
+ * fails, `undo` runs in a transaction of its own, in the same workspace, and the request answers
+ * `500`: no invitation without its email. The failure is reported by name only (a message can
+ * quote an address).
+ */
+function sendAfterCommit(
+  c: Context<WorkspaceEnv>,
+  scope: WorkspaceScope,
+  mail: Parameters<ApiDependencies['sendTrainerInvitation']>[0],
+  steps: { undo: (scope: WorkspaceScope) => Promise<unknown>; sent: () => void },
+): void {
+  const { workspaceId } = scope;
+  const account = c.get('account');
+  const { sendTrainerInvitation, tenantScopes, errorReporter } = c.get('dependencies');
+  const report = (error: unknown) => {
+    console.error('Trainer invitation failed:', error instanceof Error ? error.name : 'unknown');
+    errorReporter.captureError(error, { request: c.req.raw, route: c.req.routePath });
+  };
+  c.get('afterCommit')(async () => {
+    try {
+      await sendTrainerInvitation(mail);
+    } catch (error) {
+      report(error);
+      try {
+        // The same workspace, so the undo can only touch its own rows.
+        await tenantScopes.inWorkspaceScope(
+          { accountId: account.id, workspaceId, admit: () => 'team' },
+          steps.undo,
+        );
+      } catch (undoError) {
+        report(undoError);
+      }
+      c.res = c.text(INTERNAL_SERVER_ERROR, 500);
+      return;
+    }
+    steps.sent();
   });
 }
 
@@ -351,13 +400,20 @@ export function registerTrainerInvitations(app: OpenAPIHono) {
     });
     // The quota lock serialises the requests of a workspace, so the check above still holds.
     if (!invitation) throw new Error('The invitation was not stored.');
-    await sendInvitationEmail(c, scope, invitation, { value: token.token, hash: token.hash });
-    // The workspace ID only: neither the person's name, address nor language, nor the token
-    // (OBSERVABILITY.md §4).
-    productEvents.track({
-      event: 'trainer_invited',
-      distinctId: c.get('account').id,
-      properties: { workspace_id: scope.workspaceId },
+    const mail = await invitationMail(c, scope, invitation, {
+      value: token.token,
+      hash: token.hash,
+    });
+    sendAfterCommit(c, scope, mail, {
+      undo: (undoScope) => undoInvitation(undoScope, invitation.id, token.hash),
+      // The workspace ID only: neither the person's name, address nor language, nor the token
+      // (OBSERVABILITY.md §4).
+      sent: () =>
+        productEvents.track({
+          event: 'trainer_invited',
+          distinctId: c.get('account').id,
+          properties: { workspace_id: scope.workspaceId },
+        }),
     });
     return c.json(shown(invitation), 201);
   });
@@ -367,7 +423,11 @@ export function registerTrainerInvitations(app: OpenAPIHono) {
   router.openapi(resendInvitationRoute, async (c) => {
     const scope = c.get('scope');
     const { invitationId } = c.req.valid('param');
-    if (!(await findPendingInvitation(scope, invitationId))) return c.json(NOT_FOUND, 404);
+    const previous: InvitationSend | undefined = await lockPendingInvitationSend(
+      scope,
+      invitationId,
+    );
+    if (!previous) return c.json(NOT_FOUND, 404);
     const now = c.get('dependencies').clock.now();
     const token = createInvitationToken();
     const invitation = await resendInvitation(scope, invitationId, {
@@ -376,7 +436,14 @@ export function registerTrainerInvitations(app: OpenAPIHono) {
       expiresAt: invitationExpiry(now),
     });
     if (!invitation) return c.json(NOT_FOUND, 404);
-    await sendInvitationEmail(c, scope, invitation, { value: token.token, hash: token.hash });
+    const mail = await invitationMail(c, scope, invitation, {
+      value: token.token,
+      hash: token.hash,
+    });
+    sendAfterCommit(c, scope, mail, {
+      undo: (undoScope) => undoResend(undoScope, invitation.id, token.hash, previous),
+      sent: () => {},
+    });
     return c.json(shown(invitation), 200);
   });
   router.openapi(withdrawInvitationRoute, async (c) => {

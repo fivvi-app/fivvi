@@ -41,6 +41,8 @@ export interface EnvironmentSendEmailOptions {
   log?: (line: string) => void;
   /** Called after each accepted send with the catalog ID and language only (`email_sent`, F049). */
   onSent?: (event: SentEvent) => void;
+  /** Called when `onSent` throws; the send itself still succeeds (`createSendEmail`). */
+  onSentError?: (error: unknown) => void;
 }
 
 /**
@@ -59,7 +61,7 @@ export interface EnvironmentSendEmailOptions {
  * only `@example.com` mail is sent; production without them throws.
  */
 export function createEnvironmentSendEmail(options: EnvironmentSendEmailOptions = {}): SendEmail {
-  const { env = process.env, fetch: fetchFn, log, onSent } = options;
+  const { env = process.env, fetch: fetchFn, log, onSent, onSentError } = options;
   const production = isProductionEnvironment(env);
   const logExampleMail = !production && !sendsExampleDomain(env);
 
@@ -77,7 +79,12 @@ export function createEnvironmentSendEmail(options: EnvironmentSendEmailOptions 
       return providerTransport.send(email);
     },
   };
-  return createSendEmail({ transport, sender: config?.sender ?? FALLBACK_SENDER, onSent });
+  return createSendEmail({
+    transport,
+    sender: config?.sender ?? FALLBACK_SENDER,
+    onSent,
+    ...(onSentError ? { onSentError } : {}),
+  });
 }
 
 function tryReadEmailConfig(env: Env) {
