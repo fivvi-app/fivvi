@@ -22,6 +22,7 @@ import {
   type ProductEventTransport,
   type SentProductEvent,
 } from '@fivvi/observability';
+import { createBackgroundTasks } from '@fivvi/testing/background-tasks';
 import { freezeSystemTime } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { eq, notInArray } from 'drizzle-orm';
@@ -54,7 +55,7 @@ describe('F001N native sign-in through the API', () => {
   let client: DatabaseClient;
   const transport = createMemoryTransport();
   /** The work a sign-in request does after its answer; `requestSignIn` waits for it. */
-  const pending: Promise<void>[] = [];
+  const tasks = createBackgroundTasks();
   let allowlist = parseSignUpAllowlist(undefined);
 
   /** The API as apps/web wires it: every sign-in dependency is `packages/auth`'s. */
@@ -72,7 +73,7 @@ describe('F001N native sign-in through the API', () => {
       secret: SECRET,
       baseURL: ORIGIN,
       signUpAllowlist: allowlist,
-      runInBackground: (task) => pending.push(task),
+      runInBackground: tasks.run,
       sendEmail:
         overrides.sendEmail ??
         createSendEmail({
@@ -118,7 +119,7 @@ describe('F001N native sign-in through the API', () => {
     app?: ReturnType<typeof api>['app'],
   ) {
     const response = await post('/v1/sign-in/request', { email, locale }, headers, app);
-    await Promise.all(pending.splice(0));
+    await tasks.settle();
     return response;
   }
 
@@ -171,7 +172,7 @@ describe('F001N native sign-in through the API', () => {
   /** Asks the web's sign-in page for a code and waits for the email to be sent. */
   async function webRequestSignIn(email = 'owner@example.com', locale: Locale = 'en') {
     const response = await webPost('/sign-in/code/request', { email, locale });
-    await Promise.all(pending.splice(0));
+    await tasks.settle();
     return response;
   }
 
@@ -222,8 +223,9 @@ describe('F001N native sign-in through the API', () => {
   beforeEach(async () => {
     // Every test runs at T0, so no result depends on the real clock; `passTime` moves it.
     freezeSystemTime(T0);
+    // Wait for the email an earlier test left in flight before the transport is cleared (#1275).
+    await tasks.reset();
     transport.clear();
-    pending.length = 0;
     allowlist = parseSignUpAllowlist(undefined);
     await client.db.delete(authVerifications);
     await client.db.delete(authRateLimits);
@@ -988,7 +990,7 @@ describe('F001N native sign-in through the API', () => {
         sendEmail: () => Promise.reject(new Error(`Lettermint rejected ${EMAIL}`)),
       });
       await failing.app.request('/v1/sign-in/request', jsonPost({ email: EMAIL, locale: 'en' }));
-      await Promise.all(pending.splice(0));
+      await tasks.settle();
 
       const token = await signInWithToken(EMAIL);
       const code = codeOf();
@@ -1065,7 +1067,7 @@ describe('F001N native sign-in through the API', () => {
         '/v1/sign-in/request',
         jsonPost({ email: EMAIL, locale: 'nl-NL' }),
       );
-      await Promise.all(pending.splice(0));
+      await tasks.settle();
       await errorReporter.flush();
 
       expect(response.status).toBe(202);

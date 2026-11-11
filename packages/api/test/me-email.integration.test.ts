@@ -16,6 +16,7 @@ import {
   createProductEventCaptureTransport,
   createProductEvents,
 } from '@fivvi/observability';
+import { createBackgroundTasks } from '@fivvi/testing/background-tasks';
 import { type Clock, freezeSystemTime, manualClock } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { eq, like } from 'drizzle-orm';
@@ -59,7 +60,7 @@ describe('F005 change your own email address', () => {
       return sent;
     },
   };
-  const pending: Promise<void>[] = [];
+  const tasks = createBackgroundTasks();
   const posthog = createProductEventCaptureTransport();
   const productEvents = createProductEvents({
     env: { POSTHOG_KEY: 'phc_test', POSTHOG_HOST: 'https://posthog.example.test' },
@@ -81,7 +82,7 @@ describe('F005 change your own email address', () => {
         transport,
         sender: { email: 'noreply@fivvi.app', name: 'Fivvi' },
       }),
-      runInBackground: (task) => pending.push(task),
+      runInBackground: tasks.run,
       productEvents,
     });
 
@@ -101,7 +102,7 @@ describe('F005 change your own email address', () => {
   }
 
   const settle = async () => {
-    await Promise.all(pending.splice(0));
+    await tasks.settle();
   };
 
   const unique = (label: string) => `${label}-${crypto.randomUUID().slice(0, 8)}@example.com`;
@@ -222,7 +223,7 @@ describe('F005 change your own email address', () => {
     // (`answers 202`). On a loaded runner it then lands in the next test, whose `sent.at(-1)` is the
     // wrong email: the sign-in code of the account step is wrong and the sign-in answers 401 (#1269).
     openGate();
-    await settle();
+    await tasks.reset();
     clock = manualClock(T0);
     // Better Auth deletes expired verification rows by the real clock, so the system time must
     // stand at T0 too; otherwise the codes vanish once the real time passes T0 + 15 minutes (#1260).
@@ -251,7 +252,7 @@ describe('F005 change your own email address', () => {
     });
 
     it('the next test starts without it and signs in with its own code', async () => {
-      expect(pending).toHaveLength(0);
+      expect(tasks.count).toBe(0);
       expect(transport.sent).toHaveLength(0);
 
       const sarah = await account(unique('sarah'));
