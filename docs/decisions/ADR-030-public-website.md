@@ -25,6 +25,7 @@ Today `/` is a hello page. The root layout reads the language from a cookie on e
 ## Consequences
 
 - Moving the app's pages under a second root layout touches the routes and their tests once. The route guard stays the single list of what's public.
+- **Amendment (E013, [#720](https://github.com/fivvi-app/fivvi/issues/720)): point 2 changes from "generated at build time" to "renders per request, the same for everyone".** A page can't get the nonce of its Content-Security-Policy at build time: Next.js puts the nonce on its own inline scripts while it renders a request, so a page built in advance would have scripts the policy blocks. The site's root layouts wait for the request (`connection()`); the pages still read no session, cookie or database and set no cookie. The effect is on caching: there is no HTML built in advance, so every visit renders on the server, and a CDN in front of the site (none today) could not cache the page. The scripts and images under `/_next/` and `public/` stay static and cacheable. The alternative, a hash-based policy for static pages (Next.js `experimental.sri`), does not cover the inline scripts, so it was not chosen.
 - A deployment is needed to change a word on the site. That's fine at this size, and no CMS is needed.
 - Going live waits on the owner's details and the updated legal texts ([#158](https://github.com/fivvi-app/fivvi/issues/158), [#611](https://github.com/fivvi-app/fivvi/issues/611)), and the site's look needs the Design v2 token values first ([#590](https://github.com/fivvi-app/fivvi/issues/590)).
 
