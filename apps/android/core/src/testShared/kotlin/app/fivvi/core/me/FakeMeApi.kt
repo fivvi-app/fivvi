@@ -60,6 +60,7 @@ class FakeMeApi : MeApi {
                 bookingEmails = true,
                 canCreateWorkspace = false,
                 workspaces = emptyList(),
+                clientWorkspaces = emptyList(),
             ),
         )
     }
@@ -173,6 +174,7 @@ class FakeMeApi : MeApi {
                             capabilitiesByWorkspace[it] ?: capabilities,
                         )
                     },
+                    clientWorkspaces = emptyList(),
                 ),
             )
         }

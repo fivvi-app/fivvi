@@ -40,6 +40,7 @@ private fun ownerAccount() = MeResponse(
     bookingEmails = true,
     canCreateWorkspace = false,
     workspaces = emptyList(),
+    clientWorkspaces = emptyList(),
 )
 
 private val OWNER_IN_WORKSPACE = MeState.Loaded(

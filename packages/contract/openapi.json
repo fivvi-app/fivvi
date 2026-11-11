@@ -214,7 +214,14 @@
             "items": {
               "$ref": "#/components/schemas/MeWorkspace"
             },
-            "description": "The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed."
+            "description": "The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed here, but under `clientWorkspaces`."
+          },
+          "clientWorkspaces": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MeClientWorkspace"
+            },
+            "description": "The workspaces where the account has a joined client relationship, by name; a workspace it is both a team member and a client of is listed here too. Empty when it has none. Until join requests and invitations exist (F029, F032), a client record linked to the account counts as joined. A workspace the account has only asked to join is not listed."
           }
         },
         "required": [
@@ -224,7 +231,8 @@
           "preferredLocale",
           "bookingEmails",
           "canCreateWorkspace",
-          "workspaces"
+          "workspaces",
+          "clientWorkspaces"
         ],
         "description": "The signed-in account."
       },
@@ -285,6 +293,30 @@
           "capabilities"
         ],
         "description": "A workspace the account has a team role in."
+      },
+      "MeClientWorkspace": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The workspace ID."
+          },
+          "slug": {
+            "type": "string",
+            "description": "The URL name: `/w/{slug}` on the web."
+          },
+          "name": {
+            "type": "string",
+            "description": "The name shown in the product."
+          }
+        },
+        "required": [
+          "id",
+          "slug",
+          "name"
+        ],
+        "description": "A workspace the account is a client of: its ID, URL name and name, nothing more. The account’s own client record in it is the only thing that lists it."
       },
       "MyWorkspace": {
         "type": "object",
@@ -355,8 +387,8 @@
           "name": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 80,
-            "description": "The person’s own name, as shown in every workspace they are on: trimmed, at least one and at most 80 characters. Empty, blank or longer answers `400` with a field error."
+            "maxLength": 120,
+            "description": "The person’s own name, as shown in every workspace they are on: trimmed, at least one and at most 120 characters. Empty, blank or longer answers `400` with a field error."
           },
           "preferredLocale": {
             "type": "string",
@@ -1026,7 +1058,7 @@
           "personName": {
             "type": "string",
             "minLength": 1,
-            "maxLength": 80,
+            "maxLength": 120,
             "description": "The creator’s own name, stored on the account. Leave it out when the account has one."
           }
         },
@@ -2413,7 +2445,7 @@
           "me"
         ],
         "summary": "The signed-in account",
-        "description": "The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, and whether they may set one up (`canCreateWorkspace`: on the sign-up allowlist, also when they have a workspace already).",
+        "description": "The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, the workspaces they are a client of (`clientWorkspaces`), and whether they may set one up (`canCreateWorkspace`: on the sign-up allowlist, also when they have a workspace already). An account in no workspace gets both lists empty.",
         "security": [
           {
             "cookieAuth": []
@@ -2424,7 +2456,7 @@
         ],
         "x-access": {
           "type": "account",
-          "workspaces": "team"
+          "workspaces": "any"
         },
         "responses": {
           "200": {
@@ -2466,7 +2498,7 @@
           "me"
         ],
         "summary": "Change the signed-in account",
-        "description": "Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load, and the name they gave themselves (`name`), one per account, shown in every workspace they are on, and whether they get the emails about bookings in their classes (`bookingEmails`, on until switched off), also one per account. Answers with the account, as `GET /v1/me` does. A language other than `nl-NL` or `en`, a name that is empty, blank or over 80 characters, or a `bookingEmails` that is not a boolean, answers `400` and nothing changes.",
+        "description": "Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load, and the name they gave themselves (`name`), one per account, shown in every workspace they are on, and whether they get the emails about bookings in their classes (`bookingEmails`, on until switched off), also one per account. Answers with the account, as `GET /v1/me` does. A language other than `nl-NL` or `en`, a name that is empty, blank or over 120 characters, or a `bookingEmails` that is not a boolean, answers `400` and nothing changes.",
         "security": [
           {
             "cookieAuth": []
@@ -2477,7 +2509,7 @@
         ],
         "x-access": {
           "type": "account",
-          "workspaces": "team"
+          "workspaces": "any"
         },
         "requestBody": {
           "required": true,
@@ -2678,7 +2710,7 @@
         ],
         "x-access": {
           "type": "account",
-          "workspaces": "team"
+          "workspaces": "any"
         },
         "requestBody": {
           "required": true,

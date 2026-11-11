@@ -28,7 +28,7 @@ class GeneratedClientChainTest {
     fun F001N_AC4_meIsCalledWithTheBearerToken() = runBlocking {
         network.json =
             """{"id":"3f0b1c2e-8a54-4b51-9a42-6a1a3a1d9b10","email":"owner@example.com","name":"Owner",""" +
-            """"preferredLocale":"nl-NL","bookingEmails":true,"canCreateWorkspace":false,"workspaces":[]}"""
+            """"preferredLocale":"nl-NL","bookingEmails":true,"canCreateWorkspace":false,"workspaces":[],"clientWorkspaces":[]}"""
         val me = apiClient(Session(InMemorySessionStore("tok-1"))).meApi
 
         val response = me.getMe()
@@ -130,7 +130,7 @@ class GeneratedClientChainTest {
         try {
             network.json =
                 """{"token":"tok-9","id":"3f0b1c2e-8a54-4b51-9a42-6a1a3a1d9b10","email":"owner@example.com",""" +
-                """"name":"Owner","preferredLocale":"nl-NL","bookingEmails":true,"canCreateWorkspace":false,"workspaces":[]}"""
+                """"name":"Owner","preferredLocale":"nl-NL","bookingEmails":true,"canCreateWorkspace":false,"workspaces":[],"clientWorkspaces":[]}"""
             val services = apiClient(Session(InMemorySessionStore("tok-1")))
             services.signInApi.exchangeSignInCode(SignInTokenRequest("owner@example.com", "493817"))
             services.signInApi.requestSignIn(SignInRequest("owner@example.com", Locale.EN))

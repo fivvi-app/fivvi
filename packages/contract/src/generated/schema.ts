@@ -53,7 +53,7 @@ export interface paths {
         };
         /**
          * The signed-in account
-         * @description The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, and whether they may set one up (`canCreateWorkspace`: on the sign-up allowlist, also when they have a workspace already).
+         * @description The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, the workspaces they are a client of (`clientWorkspaces`), and whether they may set one up (`canCreateWorkspace`: on the sign-up allowlist, also when they have a workspace already). An account in no workspace gets both lists empty.
          */
         get: operations["getMe"];
         put?: never;
@@ -63,7 +63,7 @@ export interface paths {
         head?: never;
         /**
          * Change the signed-in account
-         * @description Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load, and the name they gave themselves (`name`), one per account, shown in every workspace they are on, and whether they get the emails about bookings in their classes (`bookingEmails`, on until switched off), also one per account. Answers with the account, as `GET /v1/me` does. A language other than `nl-NL` or `en`, a name that is empty, blank or over 80 characters, or a `bookingEmails` that is not a boolean, answers `400` and nothing changes.
+         * @description Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load, and the name they gave themselves (`name`), one per account, shown in every workspace they are on, and whether they get the emails about bookings in their classes (`bookingEmails`, on until switched off), also one per account. Answers with the account, as `GET /v1/me` does. A language other than `nl-NL` or `en`, a name that is empty, blank or over 120 characters, or a `bookingEmails` that is not a boolean, answers `400` and nothing changes.
          */
         patch: operations["updateMe"];
         trace?: never;
@@ -902,8 +902,10 @@ export interface components {
             bookingEmails: boolean;
             /** @description Whether the account may set up a workspace: it is on the sign-up allowlist, whether or not it has a workspace already. With no workspace, the first-run screen shows when this is true and the no-access page when it is false. The web and the apps never decide this by rules of their own. */
             canCreateWorkspace: boolean;
-            /** @description The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed. */
+            /** @description The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed here, but under `clientWorkspaces`. */
             workspaces: components["schemas"]["MeWorkspace"][];
+            /** @description The workspaces where the account has a joined client relationship, by name; a workspace it is both a team member and a client of is listed here too. Empty when it has none. Until join requests and invitations exist (F029, F032), a client record linked to the account counts as joined. A workspace the account has only asked to join is not listed. */
+            clientWorkspaces: components["schemas"]["MeClientWorkspace"][];
         };
         /** @description A workspace the account has a team role in. */
         MeWorkspace: {
@@ -923,6 +925,18 @@ export interface components {
             role: "owner" | "trainer";
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
             capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew")[];
+        };
+        /** @description A workspace the account is a client of: its ID, URL name and name, nothing more. The account’s own client record in it is the only thing that lists it. */
+        MeClientWorkspace: {
+            /**
+             * Format: uuid
+             * @description The workspace ID.
+             */
+            id: string;
+            /** @description The URL name: `/w/{slug}` on the web. */
+            slug: string;
+            /** @description The name shown in the product. */
+            name: string;
         };
         /** @description A workspace the account is on the team of. */
         MyWorkspace: {
@@ -947,7 +961,7 @@ export interface components {
         };
         /** @description What to change on the signed-in account. Fields left out stay as they are. */
         UpdateMeRequest: {
-            /** @description The person’s own name, as shown in every workspace they are on: trimmed, at least one and at most 80 characters. Empty, blank or longer answers `400` with a field error. */
+            /** @description The person’s own name, as shown in every workspace they are on: trimmed, at least one and at most 120 characters. Empty, blank or longer answers `400` with a field error. */
             name?: string;
             /**
              * @description The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`.

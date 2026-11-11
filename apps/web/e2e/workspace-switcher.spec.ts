@@ -218,6 +218,7 @@ test.describe('F012 the scope switcher on the web', () => {
       [
         'bookingEmails',
         'canCreateWorkspace',
+        'clientWorkspaces',
         'email',
         'id',
         'name',

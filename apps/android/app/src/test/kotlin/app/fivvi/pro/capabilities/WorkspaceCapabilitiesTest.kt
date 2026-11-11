@@ -54,6 +54,7 @@ class WorkspaceCapabilitiesTest {
         bookingEmails = true,
         canCreateWorkspace = false,
         workspaces = workspaces.toList(),
+        clientWorkspaces = emptyList(),
     )
 
     private fun answerAccount(vararg workspaces: MeWorkspace) {

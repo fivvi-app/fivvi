@@ -3,6 +3,7 @@ import type { Locale } from '@fivvi/i18n';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import {
   authUsers,
+  clients,
   locations,
   organizations,
   teamMembers,
@@ -39,6 +40,13 @@ export interface WorkspaceSummary {
   readonly role: TeamRole;
   /** Whether the account has a trainer profile in it, that is whether it trains there (F005). */
   readonly trainsHere: boolean;
+}
+
+/** What a client sees of a workspace they belong to: the name and the URL name, nothing else. */
+export interface ClientWorkspaceSummary {
+  readonly id: string;
+  readonly name: string;
+  readonly slug: string;
 }
 
 export interface NewWorkspace {
@@ -150,6 +158,25 @@ export function listTeamWorkspaces(scope: TenantScope): Promise<WorkspaceSummary
         trainsHere: trainerProfileId !== null,
       })),
     );
+}
+
+/**
+ * The workspaces where the scope's account has a client relationship, by name: where a person
+ * who is only a client lands after sign-in (F030). A client record linked to the account counts
+ * as joined; F029 and F032 narrow that to the joined ones when join requests and invitations
+ * exist. A team role alone lists nothing, and neither does a workspace outside the scope's
+ * context (RLS says the same).
+ */
+export function listClientWorkspaces(scope: TenantScope): Promise<ClientWorkspaceSummary[]> {
+  const db = executorOf(scope);
+  const { accountId, workspaceIds } = scope.context;
+  if (workspaceIds.length === 0) return Promise.resolve([]);
+  return db
+    .select({ id: organizations.id, name: organizations.name, slug: organizations.slug })
+    .from(organizations)
+    .innerJoin(clients, eq(clients.organizationId, organizations.id))
+    .where(and(eq(clients.accountId, accountId), inArray(organizations.id, [...workspaceIds])))
+    .orderBy(asc(organizations.name), asc(organizations.slug));
 }
 
 const workspaceColumns = {

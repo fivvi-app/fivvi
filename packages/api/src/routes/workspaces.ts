@@ -2,6 +2,7 @@ import { createWorkspaceWithOwner, findWorkspace, updateWorkspace } from '@fivvi
 import {
   canCreateWorkspace,
   NAME_MAX_LENGTH,
+  PERSON_NAME_MAX_LENGTH,
   slugCandidates,
   startsWithTrainerProfile,
   WORKSPACE_DEFAULTS,
@@ -23,15 +24,16 @@ import { LocaleSchema } from '../schemas.ts';
 // (`organizations`, `team_members`), through repository functions of @fivvi/database; the rules
 // (who may create one, the slug, the defaults) are in @fivvi/domain.
 
-/** A name as typed: trimmed, not empty, at most `NAME_MAX_LENGTH` characters (AC3). */
-const nameField = (description: string) =>
-  z.string().trim().min(1).max(NAME_MAX_LENGTH).openapi({ description });
+/** A name as typed: trimmed, not empty, at most `max` characters (AC3; F030 AC4 for a person). */
+const nameField = (description: string, max: number) =>
+  z.string().trim().min(1).max(max).openapi({ description });
 
 const CreateWorkspaceRequestSchema = z
   .object({
-    name: nameField('The name of the gym or business, as shown in the product.'),
+    name: nameField('The name of the gym or business, as shown in the product.', NAME_MAX_LENGTH),
     personName: nameField(
       'The creator’s own name, stored on the account. Leave it out when the account has one.',
+      PERSON_NAME_MAX_LENGTH,
     ).optional(),
   })
   .openapi('CreateWorkspaceRequest', {
@@ -120,7 +122,10 @@ const WorkspaceParamsSchema = z.object({
 
 const UpdateWorkspaceRequestSchema = z
   .object({
-    name: nameField('The new name, as the product shows it from now on.').optional(),
+    name: nameField(
+      'The new name, as the product shows it from now on.',
+      NAME_MAX_LENGTH,
+    ).optional(),
     // A bare `LocaleSchema`, like `Workspace.defaultLocale` (#223).
     defaultLocale: LocaleSchema.optional(),
   })

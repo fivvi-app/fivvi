@@ -276,10 +276,14 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MeResponse/canCreateWorkspace`.
             public var canCreateWorkspace: Swift.Bool
-            /// The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed.
+            /// The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed here, but under `clientWorkspaces`.
             ///
             /// - Remark: Generated from `#/components/schemas/MeResponse/workspaces`.
             public var workspaces: [Components.Schemas.MeWorkspace]
+            /// The workspaces where the account has a joined client relationship, by name; a workspace it is both a team member and a client of is listed here too. Empty when it has none. Until join requests and invitations exist (F029, F032), a client record linked to the account counts as joined. A workspace the account has only asked to join is not listed.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeResponse/clientWorkspaces`.
+            public var clientWorkspaces: [Components.Schemas.MeClientWorkspace]
             /// Creates a new `MeResponse`.
             ///
             /// - Parameters:
@@ -289,7 +293,8 @@ extension Components {
             ///   - preferredLocale: The language stored on the account; null until one is stored.
             ///   - bookingEmails: Whether the person gets an email when a client books or cancels a class they teach (F050). On for every account until they switch it off. It belongs to the account, so it is the same in every workspace.
             ///   - canCreateWorkspace: Whether the account may set up a workspace: it is on the sign-up allowlist, whether or not it has a workspace already. With no workspace, the first-run screen shows when this is true and the no-access page when it is false. The web and the apps never decide this by rules of their own.
-            ///   - workspaces: The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed.
+            ///   - workspaces: The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed here, but under `clientWorkspaces`.
+            ///   - clientWorkspaces: The workspaces where the account has a joined client relationship, by name; a workspace it is both a team member and a client of is listed here too. Empty when it has none. Until join requests and invitations exist (F029, F032), a client record linked to the account counts as joined. A workspace the account has only asked to join is not listed.
             public init(
                 id: Swift.String,
                 email: Swift.String,
@@ -297,7 +302,8 @@ extension Components {
                 preferredLocale: Components.Schemas.MeResponse.PreferredLocalePayload? = nil,
                 bookingEmails: Swift.Bool,
                 canCreateWorkspace: Swift.Bool,
-                workspaces: [Components.Schemas.MeWorkspace]
+                workspaces: [Components.Schemas.MeWorkspace],
+                clientWorkspaces: [Components.Schemas.MeClientWorkspace]
             ) {
                 self.id = id
                 self.email = email
@@ -306,6 +312,7 @@ extension Components {
                 self.bookingEmails = bookingEmails
                 self.canCreateWorkspace = canCreateWorkspace
                 self.workspaces = workspaces
+                self.clientWorkspaces = clientWorkspaces
             }
             public enum CodingKeys: String, CodingKey {
                 case id
@@ -315,6 +322,7 @@ extension Components {
                 case bookingEmails
                 case canCreateWorkspace
                 case workspaces
+                case clientWorkspaces
             }
         }
         /// A workspace the account has a team role in.
@@ -397,6 +405,43 @@ extension Components {
                 case slug
                 case role
                 case capabilities
+            }
+        }
+        /// A workspace the account is a client of: its ID, URL name and name, nothing more. The account’s own client record in it is the only thing that lists it.
+        ///
+        /// - Remark: Generated from `#/components/schemas/MeClientWorkspace`.
+        public struct MeClientWorkspace: Codable, Hashable, Sendable {
+            /// The workspace ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeClientWorkspace/id`.
+            public var id: Swift.String
+            /// The URL name: `/w/{slug}` on the web.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeClientWorkspace/slug`.
+            public var slug: Swift.String
+            /// The name shown in the product.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeClientWorkspace/name`.
+            public var name: Swift.String
+            /// Creates a new `MeClientWorkspace`.
+            ///
+            /// - Parameters:
+            ///   - id: The workspace ID.
+            ///   - slug: The URL name: `/w/{slug}` on the web.
+            ///   - name: The name shown in the product.
+            public init(
+                id: Swift.String,
+                slug: Swift.String,
+                name: Swift.String
+            ) {
+                self.id = id
+                self.slug = slug
+                self.name = name
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case slug
+                case name
             }
         }
         /// A workspace the account is on the team of.
@@ -493,7 +538,7 @@ extension Components {
         ///
         /// - Remark: Generated from `#/components/schemas/UpdateMeRequest`.
         public struct UpdateMeRequest: Codable, Hashable, Sendable {
-            /// The person’s own name, as shown in every workspace they are on: trimmed, at least one and at most 80 characters. Empty, blank or longer answers `400` with a field error.
+            /// The person’s own name, as shown in every workspace they are on: trimmed, at least one and at most 120 characters. Empty, blank or longer answers `400` with a field error.
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateMeRequest/name`.
             public var name: Swift.String?
@@ -526,7 +571,7 @@ extension Components {
             /// Creates a new `UpdateMeRequest`.
             ///
             /// - Parameters:
-            ///   - name: The person’s own name, as shown in every workspace they are on: trimmed, at least one and at most 80 characters. Empty, blank or longer answers `400` with a field error.
+            ///   - name: The person’s own name, as shown in every workspace they are on: trimmed, at least one and at most 120 characters. Empty, blank or longer answers `400` with a field error.
             ///   - preferredLocale: The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`.
             ///   - bookingEmails: Whether to get an email when a client books or cancels a class the person teaches: `true` or `false`, stored on the account and the same in every workspace. Anything that is not a boolean answers `400` with a field error.
             ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token that changes `preferredLocale` records the `language_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.

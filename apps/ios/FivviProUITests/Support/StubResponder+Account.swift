@@ -61,7 +61,8 @@ extension Responder {
             "workspaces": teamWorkspaces.map { entry in
                 ["id": entry["workspaceId"] as Any, "name": entry["name"] as Any, "slug": entry["slug"] as Any,
                  "role": entry["role"] as Any, "capabilities": entry["capabilities"] as Any]
-            }
+            },
+            "clientWorkspaces": [Any]()
         ]
     }
 

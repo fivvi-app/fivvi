@@ -234,6 +234,10 @@ export {
   canCreateWorkspace,
   type SignUpAllowlist,
 } from './workspaces/can-create.ts';
-export { NAME_MAX_LENGTH, WORKSPACE_DEFAULTS } from './workspaces/defaults.ts';
+export {
+  NAME_MAX_LENGTH,
+  PERSON_NAME_MAX_LENGTH,
+  WORKSPACE_DEFAULTS,
+} from './workspaces/defaults.ts';
 export { JOIN_CODE_ALPHABET, JOIN_CODE_LENGTH, joinLinkUrl } from './workspaces/join-link.ts';
 export { RESERVED_SLUGS, slugCandidates, slugFromName } from './workspaces/slug.ts';

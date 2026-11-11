@@ -104,8 +104,8 @@ describe('E011 account routes', () => {
     const outsider = await world.request(s.outsider, '/v1/me');
 
     expect([sam.status, client.status, outsider.status]).toEqual([200, 200, 200]);
-    // GET /v1/me ran in a context of the workspaces where the caller has a team role: it lists
-    // those and no workspace the caller is only a client of.
+    // GET /v1/me ran in a context of the workspaces where the caller has a team role or a client
+    // relationship (F030): it lists the team ones with their roles, and the client ones apart.
     expect(world.observed.map((observed) => observed.kind)).toEqual([
       'account',
       'account',
@@ -113,13 +113,13 @@ describe('E011 account routes', () => {
     ]);
     expect(world.observed.map((observed) => idsOf(observed.context.workspaceIds))).toEqual([
       idsOf([s.a, s.b]),
-      [],
+      [s.a],
       [],
     ]);
     // Postgres holds the same, and never an unscoped context.
     expect(
       world.observed.map((observed) => observed.stored.workspaceIds?.toSorted() ?? null),
-    ).toEqual([idsOf([s.a, s.b]), null, null]);
+    ).toEqual([idsOf([s.a, s.b]), [s.a], null]);
     expect(world.observed.map((observed) => observed.stored.accountId)).toEqual([
       s.sam.id,
       s.clientAccount.id,
@@ -142,16 +142,28 @@ describe('E011 account routes', () => {
       bookingEmails: true,
       // On the harness's allowlist (`@example.com`), so allowed although Sam has two workspaces (F012).
       canCreateWorkspace: true,
+      // Sam is also a client of A.
+      clientWorkspaces: [{ id: s.a, name: expect.any(String), slug: expect.any(String) }],
       workspaces: expect.arrayContaining(listed),
     });
     expect(JSON.parse(body).workspaces).toHaveLength(2);
     for (const foreign of [s.c, clientInC, ...Object.values(s.clients)]) {
       expect(body).not.toContain(foreign);
     }
-    // A client of A has no team role anywhere: nothing of A, and the first-run rule applies.
+    // A client of A has no team role anywhere: A is under `clientWorkspaces` only, nothing of any
+    // other workspace, and the first-run rule applies.
     const clientBody = await client.text();
-    expect(JSON.parse(clientBody)).toMatchObject({ workspaces: [], canCreateWorkspace: true });
-    expect(clientBody).not.toContain(s.a);
+    expect(JSON.parse(clientBody)).toMatchObject({
+      workspaces: [],
+      clientWorkspaces: [{ id: s.a, name: expect.any(String), slug: expect.any(String) }],
+      canCreateWorkspace: true,
+    });
+    for (const foreign of [s.b, s.c, clientInC]) expect(clientBody).not.toContain(foreign);
+    // An account with no place anywhere sees no workspace at all.
+    expect(JSON.parse(await outsider.text())).toMatchObject({
+      workspaces: [],
+      clientWorkspaces: [],
+    });
   });
 
   it('AC13: a route asks for the relationship it needs: team roles only', async () => {
