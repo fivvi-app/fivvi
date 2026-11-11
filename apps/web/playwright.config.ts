@@ -14,6 +14,7 @@ import {
   TEST_POSTHOG_KEY,
 } from './e2e/servers';
 import { budgetsTarget } from './test/budgets';
+import { e2eRun } from './test/e2e-run';
 
 // Web e2e tests (TESTING.md §2). Every spec runs once per catalog locale: one project
 // per locale, with the browser language set to it. `pnpm test:e2e` from the repo root
@@ -54,6 +55,8 @@ if (existsSync('../../packages/database/.env')) {
 const reporter: ReporterDescription[] = ci
   ? [['github'], ['list'], ['html', { open: 'never' }]]
   : [['list']];
+// A run that hits the global limit says so (e2e/timeout-reporter.ts), not only through the tests it cut off.
+if (ci) reporter.push(['./e2e/timeout-reporter.ts']);
 // The budgets end with one table of their numbers, to paste on the PR.
 if (budgets) reporter.push(['./e2e/budgets-reporter.ts']);
 
@@ -61,11 +64,12 @@ export default defineConfig<E2EOptions>({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: ci,
-  // The CI job of the e2e tests has 15 minutes in all (setup and build included, .github/workflows/ci.yml).
-  // The suite stops itself earlier, at 12 minutes, with the results so far and the names of the tests
-  // still running, instead of the job being cancelled without a word (turbo only prints a task's
-  // output when it ends). The budgets are not a CI gate: they run by hand, with `--workers=1`.
-  globalTimeout: ci ? 12 * 60_000 : undefined,
+  // The CI job of the e2e tests has a limit of its own (`timeout-minutes` in .github/workflows/ci.yml,
+  // setup and build included). The suite stops itself earlier, with the results so far and the names of the tests still running,
+  // instead of the job being cancelled without a word (turbo only prints a task's output when it ends).
+  // The workers and the limit, and why, are in test/e2e-run.ts. The budgets are not a CI gate: they
+  // run by hand, with `--workers=1`, which overrides the workers here.
+  ...e2eRun(ci),
   // One retry in CI; a test that only passes on retry is reported as flaky (TESTING.md §8).
   retries: ci ? 1 : 0,
   reporter,
