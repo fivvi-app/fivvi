@@ -15,6 +15,7 @@ A throwaway, clickable prototype of the new look (November 2026): Calendar-style
 | 6 | Everything the specs describe: agreements, payments, payouts, invoices, membership rules, invitations, joining, privacy, import, booking links and QR, class and trainer dialogs, every client booking and cancelling state, all emails (`more-web.js`, `more-client.js`, `more-pro.js`, `more-email.js`) | Scherm → all; E-mails |
 | 7 | Workout templates on the phone (F041): Profiel → Schema's, a template, Nieuw schema / Schema wijzigen with the exercise picker, delete | App → Profiel |
 | 8 | Assigning workouts (F042): a client's own templates on the client profile, a template per private or duo session that opens directly, trainer only | App → Klantprofiel, Sessie; Trainer web → Klantprofiel → Trainingen, Agenda |
+| 9 | Workout history (F045): a logged workout shows who logged it and whether the client sees it; any owner or trainer can correct it (an edit mode with the logger's set rows), delete it or stop sharing it, each removal after a confirmation; Activiteit in the client app and web follows | App → Klantprofiel → Training, Sessie; Trainer web → Klantprofiel → Trainingen → Training; Fivvi (klant-app), Klantweb |
 
 **What was decided:** [DECISIONS.md](DECISIONS.md) (ADR-029). It is the record specs follow.
 
@@ -32,6 +33,7 @@ The ⚙ panel also switches language (NL/EN), accent, light/dark, glass, role, a
 | `data.js` | Fictional data and the scenario setups |
 | `app.js` | The app: state, screens, logger, panel |
 | `web.js` | Trainer web and client web |
+| `more-history.js` | Round 9: a logged workout on the trainer web with its edit mode and confirmations, and the client panel entries |
 | `i18n.js` | English on top of the Dutch screens (the real apps use `packages/i18n`) |
 
 Decisions the owner made while reviewing it are listed in the commit history of this branch; they move into the design tokens, the flow docs and the specs once the prototype is final.

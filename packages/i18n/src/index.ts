@@ -29,6 +29,10 @@ export {
   SIGN_IN_LANGUAGE_COOKIE,
   type SignInCommunicationLanguageSources,
 } from './locale.ts';
+export {
+  TRAINER_WORDS,
+  type TrainerWord,
+} from './trainer-word.ts';
 
 /** Message tree of the source catalog. `en.json` must have the same shape. */
 export type Messages = typeof nlNL;

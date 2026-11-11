@@ -14,6 +14,7 @@ import androidx.compose.ui.test.performTextReplacement
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fivvi.api.models.Locale
 import app.fivvi.api.models.MeWorkspace
+import app.fivvi.api.models.TrainerWord
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
@@ -122,6 +123,7 @@ class ClientsFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lan
                         gym,
                         "John's Gym",
                         "slug",
+                        TrainerWord.TRAINER,
                         MeWorkspace.Role.OWNER,
                         listOf(
                             MeWorkspace.Capabilities.CLIENTS_PERIOD_VIEW,
@@ -254,6 +256,7 @@ class ClientsFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lan
                             it,
                             "Workspace",
                             "slug",
+                            TrainerWord.TRAINER,
                             MeWorkspace.Role.OWNER,
                             listOf(
                                 MeWorkspace.Capabilities.CLIENTS_PERIOD_VIEW,

@@ -28,6 +28,7 @@ extension Responder {
         teamWorkspaceEntries.map {
             [
                 "workspaceId": Self.workspaceID($0.index), "name": $0.workspace.name, "slug": "workspace-\($0.index)",
+                "trainerWord": "trainer",
                 "role": $0.workspace.role, "capabilities": capabilities(ofWorkspace: $0.index, role: $0.workspace.role),
                 // F005: a Trainer always trains; an Owner trains once the switch was put on
                 "trainsHere": trainsOverride(at: $0.index) ?? ($0.workspace.role != "owner")
@@ -60,7 +61,8 @@ extension Responder {
             "canCreateWorkspace": signIn.canCreateWorkspace,
             "workspaces": teamWorkspaces.map { entry in
                 ["id": entry["workspaceId"] as Any, "name": entry["name"] as Any, "slug": entry["slug"] as Any,
-                 "role": entry["role"] as Any, "capabilities": entry["capabilities"] as Any]
+                 "trainerWord": entry["trainerWord"] as Any, "role": entry["role"] as Any,
+                 "capabilities": entry["capabilities"] as Any]
             },
             "clientWorkspaces": [Any]()
         ]
@@ -113,7 +115,7 @@ extension Responder {
         }
         send(connection, status: 200, json: [
             "id": id, "name": entry.workspace.name, "slug": "workspace-\(entry.index)", "defaultLocale": "nl-NL",
-            "timeZone": "Europe/Amsterdam"
+            "timeZone": "Europe/Amsterdam", "trainerWord": "trainer"
         ])
     }
 

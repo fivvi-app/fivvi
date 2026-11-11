@@ -13,6 +13,20 @@ window.FIVVI_I18N = (function () {
 
   /* Sentence-level rules first: these change word order or need a captured value. */
   var RULES = [
+/* correcting, deleting and unsharing a logged workout (F045) */
+[/^Gedeeld met (.+) · (.+)$/, function (m, n, d) { return "Shared with " + n + " · " + P(d); }],
+[/^Gedeeld · (.+)$/, function (m, d) { return "Shared · " + P(d); }],
+[/^Niet gedeeld met (.+)$/, "Not shared with $1"],
+[/^(.+) ziet deze training bij Activiteit\.$/, "$1 sees this workout under Activity."],
+[/^(.+) ziet deze training niet\.$/, "$1 doesn't see this workout."],
+[/^Niet meer gedeeld met (.+)$/, "Stopped sharing with $1"],
+[/^Niet meer delen met (.+)\?$/, "Stop sharing with $1?"],
+[/^(.+) ziet deze training niet meer bij Activiteit\. De e-mail die \1 al kreeg, blijft verstuurd\. Deel je de training later opnieuw, dan krijgt \1 weer een e-mail\.$/, "$1 no longer sees this workout under Activity. The email $1 already got stays sent. If you share the workout again later, $1 gets another email."],
+[/^Training van (.+) verwijderen\?$/, function (m, d) { return "Delete the workout of " + P(d) + "?"; }],
+[/^Deze training is voorgoed weg\. (.+) ziet de training ook niet meer bij Activiteit\. De e-mail die \1 al kreeg, blijft verstuurd\. Je kunt dit niet ongedaan maken\.$/, "This workout is gone for good. $1 no longer sees the workout under Activity either. The email $1 already got stays sent. You can't undo this."],
+[/^(.+) ziet de wijziging meteen bij Activiteit\. Er gaat geen nieuwe e-mail uit\.$/, "$1 sees the change under Activity right away. No new email is sent."],
+[/^(.+), set (\d+), (gewicht \(kg\)|herhalingen|minuten|seconden|afstand \(m\))$/, function (m, e, n, k) { return P(e) + ", set " + n + ", " + { "gewicht (kg)": "weight (kg)", herhalingen: "reps", minuten: "minutes", seconden: "seconds", "afstand (m)": "distance (m)" }[k]; }],
+[/^Set (\d+) van (.+) verwijderen$/, function (m, n, e) { return "Delete set " + n + " of " + P(e); }],
 /* assigning workouts (F042) */
 [/^Nog geen schema's voor (.+)\.$/, "No templates for $1 yet."],
 [/^(.+) weghalen bij (.+?)(\?)?$/, function (m, t, c, q) { return "Remove " + t + " from " + c + (q || ""); }],
@@ -552,6 +566,17 @@ window.FIVVI_I18N = (function () {
     "Klantprofiel: schema's": "Client profile: templates", "Klantprofiel: nog geen schema's": "Client profile: no templates yet", "Schema toevoegen aan klant": "Add a template to a client", "Schema weghalen bij klant": "Remove a template from a client",
     "Sessie: schema kiezen": "Session: choose a template", "Sessie: nog geen schema": "Session: no template yet", "Sessie: schema vast (training loopt)": "Session: template fixed (workout running)",
     "Duosessie: schema per klant": "Duo session: a template per client", "Duosessie: schema kiezen": "Duo session: choose a template", "Schema verwijderen: in gebruik": "Delete template: in use", "Agenda: schema bij een sessie": "Calendar: a template on a session",
+    /* correcting, deleting and unsharing a logged workout (F045, owner 11 Nov 2026) */
+    "Gelogd door": "Logged by", "Niet meer delen": "Stop sharing", "Niet gedeeld": "Not shared", "Training verwijderen": "Delete workout", "Training wijzigen": "Edit workout", "Training verwijderd": "Workout deleted",
+    "Elke eigenaar of trainer in je werkruimte kan deze training wijzigen, verwijderen en delen.": "Every owner or trainer in your workspace can edit, delete and share this workout.",
+    "Alleen jij en je collega-trainers zien deze training.": "Only you and your fellow trainers see this workout.",
+    "Een training heeft minstens één oefening": "A workout needs at least one exercise", "Deze training is voorgoed weg. Je kunt dit niet ongedaan maken.": "This workout is gone for good. You can't undo this.",
+    "Oefening verwijderen": "Delete exercise", "Set verwijderd": "Set deleted", "Oefening verwijderd": "Exercise deleted",
+    "Sessie: gelogde training": "Session: a logged workout", "Training: gedeeld": "Workout: shared", "Training: niet gedeeld": "Workout: not shared",
+    "Training wijzigen: set verwijderen": "Edit workout: delete a set", "Training wijzigen: oefening verwijderen": "Edit workout: delete an exercise",
+    "Training verwijderen: gedeeld": "Delete workout: shared", "Training verwijderen: niet gedeeld": "Delete workout: not shared",
+    "Klantprofiel › Trainingen: gedeeld en niet gedeeld": "Client profile › Workouts: shared and not shared",
+    "Activiteit: training niet meer gedeeld": "Activity: workout no longer shared", "Activiteit: training verwijderd": "Activity: workout deleted", "Gedeelde training: gecorrigeerd": "Shared workout: corrected", "Mijn trainingen: training niet meer gedeeld": "My workouts: workout no longer shared",
     /* dates */
     "maandag": "Monday", "dinsdag": "Tuesday", "woensdag": "Wednesday", "donderdag": "Thursday", "vrijdag": "Friday", "zaterdag": "Saturday", "zondag": "Sunday",
     "januari": "January", "februari": "February", "maart": "March", "april": "April", "mei": "May", "juni": "June", "juli": "July", "augustus": "August", "september": "September", "oktober": "October", "november": "November", "december": "December",
