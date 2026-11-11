@@ -5,6 +5,7 @@ const gym = {
   id: '0197c0de-0000-7000-8000-0000000000a1',
   name: "John's Gym",
   slug: 'johns-gym',
+  trainerWord: 'trainer',
   role: 'owner',
   capabilities: [] as never[],
 } as const;
@@ -12,6 +13,7 @@ const studio = {
   id: '0197c0de-0000-7000-8000-0000000000a2',
   name: 'Studio Zuid',
   slug: 'studio-zuid',
+  trainerWord: 'trainer',
   role: 'trainer',
   capabilities: [] as never[],
 } as const;

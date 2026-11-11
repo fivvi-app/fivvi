@@ -24,6 +24,7 @@
 package app.fivvi.api.models
 
 import app.fivvi.api.models.Locale
+import app.fivvi.api.models.TrainerWord
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -37,6 +38,7 @@ import kotlinx.serialization.Contextual
  * @param slug The URL name, made from the name when the workspace is created and never changed by a rename. Lower case letters, digits and hyphens.
  * @param defaultLocale 
  * @param timeZone The IANA time zone dates and times are shown in, for example `Europe/Amsterdam`.
+ * @param trainerWord 
  */
 @Serializable
 
@@ -59,7 +61,10 @@ data class Workspace (
 
     /* The IANA time zone dates and times are shown in, for example `Europe/Amsterdam`. */
     @SerialName(value = "timeZone")
-    val timeZone: kotlin.String
+    val timeZone: kotlin.String,
+
+    @Contextual @SerialName(value = "trainerWord")
+    val trainerWord: TrainerWord
 
 ) {
 

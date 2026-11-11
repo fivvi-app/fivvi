@@ -258,6 +258,7 @@ describe('F011 answering a trainer invitation', () => {
       workspaceId: w.gym.id,
       name: w.gym.marker,
       slug: w.gym.marker,
+      trainerWord: 'trainer',
       role: 'trainer',
       capabilities: expect.arrayContaining(['clients.view']),
       trainsHere: true,

@@ -7,7 +7,10 @@ import XCTest
 /// `GET /api/v1/me` gave. No business rule: the server's list decides who is on which team.
 final class StartWorkspaceTests: XCTestCase {
     private func workspace(_ name: String, id: String? = nil) -> Components.Schemas.MeWorkspace {
-        .init(id: id ?? "id-\(name)", name: name, slug: name.lowercased(), role: .trainer, capabilities: [])
+        .init(
+            id: id ?? "id-\(name)", name: name, slug: name.lowercased(), trainerWord: .trainer, role: .trainer,
+            capabilities: []
+        )
     }
 
     private func names(_ workspaces: [Components.Schemas.MeWorkspace]) -> [String] { workspaces.map(\.name) }
