@@ -84,14 +84,15 @@ describe('naming rules', () => {
   it('never hands out a port Chromium blocks, nor one whose +1000 analytics partner it blocks (#1286)', () => {
     // A worktree path whose old port (3200 + cksum % 700) is 3659: apple-sasl, blocked with net::ERR_UNSAFE_PORT.
     const hit = '/tmp/wt-1411';
-    assert.equal(lib(`echo $(( 3200 + $(printf %s "${hit}" | cksum | cut -d' ' -f1) % 700 ))`), '3659');
+    assert.equal(
+      lib(`echo $(( 3200 + $(printf %s "${hit}" | cksum | cut -d' ' -f1) % 700 ))`),
+      '3659',
+    );
     assert.equal(lib(`e2e_port "${hit}"`), '3660');
     assert.equal(lib(`e2e_port "${hit}"`), lib(`e2e_port "${hit}"`));
     // The +1000 partner counts too: with 4660 blocked as well, 3660 is skipped.
     assert.equal(
-      lib(
-        `chromium_restricted_port() { [ "$1" = 3659 ] || [ "$1" = 4660 ]; }; e2e_port "${hit}"`,
-      ),
+      lib(`chromium_restricted_port() { [ "$1" = 3659 ] || [ "$1" = 4660 ]; }; e2e_port "${hit}"`),
       '3661',
     );
     // Ports that were not restricted keep their value.
