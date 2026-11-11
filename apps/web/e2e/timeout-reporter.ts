@@ -1,5 +1,5 @@
 import type { FullConfig, FullResult, Reporter, Suite } from '@playwright/test/reporter';
-import { type TestOutcome, timeoutAnnotation } from '../test/e2e-run';
+import { type TestOutcome, testState, timeoutAnnotation } from '../test/e2e-run';
 
 /**
  * When the suite hits its global limit (`globalTimeout` in playwright.config.ts), Playwright only
@@ -19,12 +19,7 @@ export default class TimeoutReporter implements Reporter {
   onEnd(result: FullResult): void {
     if (result.status !== 'timedout' || !this.suite) return;
     const tests = this.suite.allTests().map((test): TestOutcome => {
-      const last = test.results.at(-1);
-      const state = !last
-        ? 'not-run'
-        : last.status === 'passed' || last.status === 'interrupted' || last.status === 'skipped'
-          ? last.status
-          : 'failed';
+      const state = testState(test.outcome(), test.results.at(-1)?.status);
       return { title: test.titlePath().slice(1).join(' › '), state };
     });
     const message = timeoutAnnotation(tests, this.limitMinutes);

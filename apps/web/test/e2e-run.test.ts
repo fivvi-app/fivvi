@@ -6,6 +6,7 @@ import {
   CI_WORKERS,
   e2eRun,
   type TestOutcome,
+  testState,
   timeoutAnnotation,
 } from './e2e-run';
 
@@ -62,5 +63,32 @@ describe('#1301 timeoutAnnotation', () => {
     const text = timeoutAnnotation([test('a', 'failed'), test('b', 'interrupted')], 12);
     expect(text).toContain('1 failed: a');
     expect(text).not.toContain('no test failed');
+  });
+});
+
+// What the reporter makes of a test's results (Playwright's `outcome()` and the status of its last result).
+describe('#1301 testState', () => {
+  it('counts a test that failed and whose retry was cut off as failed, not as interrupted', () => {
+    // retries: 1 on CI: the first attempt failed, the retry was running when the limit hit.
+    expect(testState('unexpected', 'interrupted')).toBe('failed');
+  });
+
+  it('counts a test that failed on every attempt as failed', () => {
+    expect(testState('unexpected', 'failed')).toBe('failed');
+    expect(testState('unexpected', 'timedOut')).toBe('failed');
+  });
+
+  it('does not count a test that failed once and passed on retry as failed', () => {
+    expect(testState('flaky', 'passed')).toBe('passed');
+  });
+
+  it('calls a test whose only attempt was cut off interrupted', () => {
+    expect(testState('skipped', 'interrupted')).toBe('interrupted');
+  });
+
+  it('keeps passed and skipped tests as they are, and a test without results as not run', () => {
+    expect(testState('expected', 'passed')).toBe('passed');
+    expect(testState('skipped', 'skipped')).toBe('skipped');
+    expect(testState('skipped', undefined)).toBe('not-run');
   });
 });

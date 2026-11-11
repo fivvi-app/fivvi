@@ -64,8 +64,8 @@ export default defineConfig<E2EOptions>({
   testDir: './e2e',
   fullyParallel: true,
   forbidOnly: ci,
-  // The CI job of the e2e tests has 15 minutes in all (setup and build included, .github/workflows/ci.yml).
-  // The suite stops itself earlier, with the results so far and the names of the tests still running,
+  // The CI job of the e2e tests has a limit of its own (`timeout-minutes` in .github/workflows/ci.yml,
+  // setup and build included). The suite stops itself earlier, with the results so far and the names of the tests still running,
   // instead of the job being cancelled without a word (turbo only prints a task's output when it ends).
   // The workers and the limit, and why, are in test/e2e-run.ts. The budgets are not a CI gate: they
   // run by hand, with `--workers=1`, which overrides the workers here.
