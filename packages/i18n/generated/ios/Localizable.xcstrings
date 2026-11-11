@@ -1,6 +1,74 @@
 {
   "sourceLanguage" : "nl",
   "strings" : {
+    "agreements.dueDay.few" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "on the %1$@rd"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "op de %1$@e"
+          }
+        }
+      }
+    },
+    "agreements.dueDay.one" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "on the %1$@st"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "op de %1$@e"
+          }
+        }
+      }
+    },
+    "agreements.dueDay.other" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "on the %1$@th"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "op de %1$@e"
+          }
+        }
+      }
+    },
+    "agreements.dueDay.two" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "on the %1$@nd"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "op de %1$@e"
+          }
+        }
+      }
+    },
     "app.name" : {
       "comment" : "Name of the native app under its home-screen icon (iOS CFBundleDisplayName and CFBundleName, Android app label). The name of the trainer app, Fivvi Pro, the same in both languages.",
       "extractionState" : "manual",

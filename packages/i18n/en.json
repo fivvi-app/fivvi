@@ -442,6 +442,14 @@
       "untilStart": "You can cancel free of charge until the start."
     }
   },
+  "agreements": {
+    "dueDay": {
+      "one": "on the {day}st",
+      "two": "on the {day}nd",
+      "few": "on the {day}rd",
+      "other": "on the {day}th"
+    }
+  },
   "site": {
     "meta": {
       "homeTitle": "Fivvi: software for personal trainers, studios and gyms",
