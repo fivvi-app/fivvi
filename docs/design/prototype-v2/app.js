@@ -281,7 +281,7 @@
     var hard = h.sets.filter(function (x) { return x[2] === "h"; }).map(function (x) { return x[0]; });
     var rows = h.sets.map(function (x) { return row({ title: esc(x[0]), sub: esc(x[1]), tr: diffTag(x[2]), cls: "kv" }); });
     if (h.note) rows.push(row({ lead: '<span class="dc-ic" style="--c:#8E8E93">' + ic("note") + "</span>", title: '<span translate="no">' + esc(h.note) + "</span>", small: "Notitie van " + esc(h.by) + " · alleen voor trainers", cls: "wrap dc" }));
-    return sh("Vorige keer · " + h.d, '<button data-a="open-workout" data-id="' + cid + '" data-i="' + hist(cid).indexOf(h) + '">Details</button>', "small") +
+    return sh("Vorige keer · " + h.d, '<button data-a="open-workout" data-id="' + cid + '" data-h="' + h.id + '">Details</button>', "small") +
       '<div class="pad"><p class="lastsum">' + esc(h.name) + (h.dur ? " · " + h.dur : "") + " · " + h.n + " oefeningen" + (hard.length ? ' · <span class="hard">' + diffTag("h") + "<span>Zwaar: " + hard.map(esc).join(", ") + "</span></span>" : "") + "</p>" + grp(rows) + "</div>";
   }
   function progressList(cid) {
@@ -293,9 +293,17 @@
   /* ---------- Logged workouts (F045, owner 11 Nov 2026) ----------
      Any owner or trainer of the workspace may correct, delete, share or stop sharing any logged workout; it keeps showing who logged it.
      D.history[client] is the one list, so the client app and the client web read the same state: shared = the day it was shared. */
-  var TODAYD = "do 5 nov", TODAYS = "5 nov";
+  var TODAYD = shortDate(NOW), TODAYS = dateOnly(TODAYD), HSEQ = 0;
   function hist(cid) { return D.history[cid] || []; }
+  /* a logged workout is found by its id, never by its place in the list: logging a new one puts it at the top */
+  function wkOf(cid, id) { return hist(cid).filter(function (h) { return h.id === id; })[0]; }
   function dateOnly(d) { return String(d).replace(/^\S+ /, ""); }
+  /* the library exercises a workout does not have yet (adding one while correcting) */
+  function exLeft(ex) { return D.library.filter(function (l) { return ex.every(function (e) { return e.name !== l.n; }); }); }
+  /* the 😌 / 🙂 / 🥵 buttons of one exercise; act = the action, d = the attributes that tell the action which exercise */
+  function diffBtns(e, act, attrs) {
+    return [["e", "😌", "Makkelijk"], ["n", "🙂", "Normaal"], ["h", "🥵", "Zwaar"]].map(function (x) { return '<button class="' + (e.diff === x[0] ? "on" : "") + '" data-a="' + act + '"' + attrs + ' data-v="' + x[0] + '" aria-label="' + x[2] + '" aria-pressed="' + (e.diff === x[0]) + '" title="' + x[2] + '"><span aria-hidden="true">' + x[1] + "</span></button>"; }).join("");
+  }
   /* "Vorige keer" is the last workout before today's */
   function prevHist(cid) { var l = hist(cid); for (var i = 0; i < l.length; i++) if (l[i].d !== TODAYD) return l[i]; return null; }
   function entryOf(it, cid) { var l = hist(cid || it.client); for (var i = 0; i < l.length; i++) if (l[i].sid === it.id) return l[i]; return null; }
@@ -545,13 +553,13 @@
       return row({ title: tplName(t), sub: tplCount(D.tpl[t].length), tr: '<button class="btn ghost sm" data-a="cl-tpl-drop-ask" data-id="' + c.id + '" data-t="' + esc(t) + '" aria-label="' + esc(t) + " weghalen bij " + esc(cfn) + '">Weghalen</button>' });
     }) : ['<div class="row"><div class="m"><span>Nog geen schema\'s voor ' + esc(cfn) + ".</span></div></div>"]).concat([row({ a: "cl-tpl-add", d: { id: c.id }, lead: '<span style="color:var(--accent-text);display:grid">' + ic("plus") + "</span>", title: '<span style="color:var(--accent-text)">Schema toevoegen</span>', chev: false })])) + "</div>" + foot("Alleen jij en je collega-trainers zien dit. " + esc(cfn) + " ziet niets van deze lijst.");
     body += sh("Trainingen", "", "small");
-    body += '<div class="pad">' + (hist.length ? grp(hist.map(function (h, i) { return row({ a: "open-workout", d: { id: c.id, i: i }, title: esc(h.name), sub: h.d + " · " + h.n + " oefeningen · " + esc(h.by), tr: h.shared ? '<span class="pill">Gedeeld</span>' : "" }); })) : '<div class="grp"><div class="row"><div class="m"><span>Nog geen trainingen.</span></div></div></div>') + "</div>";
+    body += '<div class="pad">' + (hist.length ? grp(hist.map(function (h) { return row({ a: "open-workout", d: { id: c.id, h: h.id }, title: esc(h.name), sub: h.d + " · " + h.n + " oefeningen · " + esc(h.by), tr: h.shared ? '<span class="pill">Gedeeld</span>' : "" }); })) : '<div class="grp"><div class="row"><div class="m"><span>Nog geen trainingen.</span></div></div></div>') + "</div>";
     return { title: c.name, inline: true, body: body, trailing: [{ i: "pencil", a: "web-only", label: "Bewerken" }] };
   };
 
   /* A logged workout (F045): who logged it, whether the client sees it, and the four things a trainer can do with it */
   SCREENS.workout = function (r) {
-    var c = CLIENT[r.id], h = hist(r.id)[r.i], fn = fname(r.id);
+    var c = CLIENT[r.id], h = wkOf(r.id, r.h), fn = fname(r.id);
     if (!h) return { title: "", body: "" };
     var sets = h.sets || [["Squat", "60 kg × 8, 8, 8"], ["Bankdrukken", "57,5 kg × 8, 8, 6"], ["Plank", "0:45 × 3"]];
     var body = lt(h.d, esc(h.name), esc(c.name));
@@ -561,8 +569,8 @@
     ], "--inset:60px") + "</div>";
     body += sh("Oefeningen", "", "small") + '<div class="pad">' + grp(sets.map(function (x) { return row({ title: esc(x[0]), sub: esc(x[1]), tr: diffTag(x[2]) }); })) + "</div>";
     if (h.note) body += sh("Notitie", "", "small") + '<div class="pad">' + grp([row({ title: '<span translate="no">' + esc(h.note) + "</span>", small: esc(h.by) + " · alleen voor trainers", cls: "wrap" })]) + "</div>";
-    body += '<div class="pad stack" style="margin-top:16px">' + (h.shared ? btn("Niet meer delen", { k: "sec", blk: true, a: "wk-unshare-ask", d: { id: r.id, i: r.i }, i: "lock" }) : btn("Delen met " + esc(fn), { k: "sec", blk: true, a: "wk-share", d: { id: r.id, i: r.i }, i: "share" })) +
-      btn("Wijzigen", { k: "sec", blk: true, a: "wk-edit", d: { id: r.id, i: r.i }, i: "pencil" }) + btn("Training verwijderen", { k: "dng", blk: true, a: "wk-del-ask", d: { id: r.id, i: r.i }, i: "trash" }) + "</div>";
+    body += '<div class="pad stack" style="margin-top:16px">' + (h.shared ? btn("Niet meer delen", { k: "sec", blk: true, a: "wk-unshare-ask", d: { id: r.id, h: r.h }, i: "lock" }) : btn("Delen met " + esc(fn), { k: "sec", blk: true, a: "wk-share", d: { id: r.id, h: r.h }, i: "share" })) +
+      btn("Wijzigen", { k: "sec", blk: true, a: "wk-edit", d: { id: r.id, h: r.h }, i: "pencil" }) + btn("Training verwijderen", { k: "dng", blk: true, a: "wk-del-ask", d: { id: r.id, h: r.h }, i: "trash" }) + "</div>";
     body += foot("Elke eigenaar of trainer in je werkruimte kan deze training wijzigen, verwijderen en delen.");
     return { title: h.name, body: body };
   };
@@ -590,7 +598,7 @@
       return row({ a: lock ? "" : "sess-tpl-pick", d: { id: it.id, c: x }, lead: '<span style="color:var(--label2);display:grid">' + ic("dumb") + "</span>", title: it.duo ? "Schema voor " + esc(fname(x)) : "Schema", tr: t ? tplName(t) : '<span style="color:var(--label2)">' + (lock ? "Geen schema" : "Nog geen schema") + "</span>", cls: "kv" });
     });
     var tcard = '<div class="card"><div style="display:flex;gap:12px;align-items:center;margin-bottom:14px"><span class="av" style="--c:var(--priv);border-radius:14px">' + ic("dumb") + '</span><div><b style="display:block">' + (tpl ? tplName(tpl) : "Training") + '</b><span style="font-size:15px;color:var(--label2)">' + (ws === "done" ? "Afgerond · " + (we ? we.n + " oefeningen · " + we.dur : "6 oefeningen · 52 min") : ws === "running" ? "Bezig · gestart om " + it.s : tpl ? (D.tpl[tpl] ? tplCount(D.tpl[tpl].length) : "5 oefeningen") : "Kies een schema of begin leeg") + (it.duo ? "<span> · je logt per klant</span>" : "") + "</span></div></div>" +
-      (ws === "done" ? '<div class="btns">' + btn("Bekijken", { k: "sec", a: "open-workout", d: { id: cid, i: we ? hist(cid).indexOf(we) : 0 } }) + (itShared(it, cid) ? btn("Gedeeld", { k: "sec", dis: true, i: "check" }) : btn("Delen met " + esc(c.name.split(" ")[0]), { a: "share-item", d: { id: it.id, c: cid }, i: "share" })) + "</div>" : btn(ws === "running" ? "Doorgaan met training" : "Training starten", { blk: true, a: "start-workout", d: { id: it.id }, i: "play", dis: it.cancelled })) + "</div>";
+      (ws === "done" ? '<div class="btns">' + btn("Bekijken", { k: "sec", a: "open-workout", d: { id: cid, h: (we || hist(cid)[0] || {}).id } }) + (itShared(it, cid) ? btn("Gedeeld", { k: "sec", dis: true, i: "check" }) : btn("Delen met " + esc(c.name.split(" ")[0]), { a: "share-item", d: { id: it.id, c: cid }, i: "share" })) + "</div>" : btn(ws === "running" ? "Doorgaan met training" : "Training starten", { blk: true, a: "start-workout", d: { id: it.id }, i: "play", dis: it.cancelled })) + "</div>";
     body += '<div data-sec="sess"></div>' + sh("Training", "", "small") + grp(trow) + (it.cancelled ? "" : foot(lock ? "De training loopt of is klaar, dus het schema staat vast." : "Met een schema opent Training starten meteen.")) + '<div style="height:12px"></div>' + tcard + "</div>";
     body += lastTime(cid) + progressList(cid);
     var notes = D.notes[cid] || [];
@@ -970,10 +978,10 @@
             '<div class="set c ' + (s.done ? "done" : "") + '">' + '<button class="sn" data-a="set-menu" data-drag="set" data-e="' + ei + '" data-s="' + si + '" aria-label="Set ' + (si + 1) + ': verplaatsen of verwijderen">' + (si + 1) + "</button>" +
             (ed ? "" : '<span class="pv">' + (e.prev[si] ? esc(e.prev[si]) : "–") + "</span>") + '<span class="vals">' + vals + "</span>" + (ed ? "" : '<button class="tick ' + (s.done ? "on" : "") + '" data-a="tick" data-e="' + ei + '" data-s="' + si + '" aria-label="' + esc(e.name) + ", set " + (si + 1) + (s.done ? " weer openzetten" : " klaar") + '">' + ic("check") + "</button>") + "</div></div>";
         }).join("");
-        h += '<div class="lg-f">' + btn("Set", { k: "ghost", sm: true, a: "set-add", d: { e: ei }, i: "plus" }) + '<div class="diff" role="group" aria-label="Hoe ging het?">' + [["e", "😌", "Makkelijk"], ["n", "🙂", "Normaal"], ["h", "🥵", "Zwaar"]].map(function (x) { return '<button class="' + (e.diff === x[0] ? "on" : "") + '" data-a="diff" data-e="' + ei + '" data-v="' + x[0] + '" aria-label="' + x[2] + '" aria-pressed="' + (e.diff === x[0]) + '" title="' + x[2] + '"><span aria-hidden="true">' + x[1] + "</span></button>"; }).join("") + '<button class="info" data-a="info" data-n="diff" aria-label="Wat betekent dit?">' + ic("info") + "</button></div></div></div>";
+        h += '<div class="lg-f">' + btn("Set", { k: "ghost", sm: true, a: "set-add", d: { e: ei }, i: "plus" }) + '<div class="diff" role="group" aria-label="Hoe ging het?">' + diffBtns(e, "diff", ' data-e="' + ei + '"') + '<button class="info" data-a="info" data-n="diff" aria-label="Wat betekent dit?">' + ic("info") + "</button></div></div></div>";
         return h;
       }).join("") + btn("Oefening toevoegen", { k: "sec", blk: true, a: "ex-add", i: "plus" }) + "</div>";
-      if (ed) { var eh = hist(L.client)[L.edit.i]; body += foot(eh && eh.shared ? esc(first) + " ziet de wijziging meteen bij Activiteit. Er gaat geen nieuwe e-mail uit." : "Alleen jij en je collega-trainers zien deze training."); }
+      if (ed) { var eh = wkOf(L.client, L.edit.h); body += foot(eh && eh.shared ? esc(first) + " ziet de wijziging meteen bij Activiteit. Er gaat geen nieuwe e-mail uit." : "Alleen jij en je collega-trainers zien deze training."); }
     } else if (L.step === "finish") {
       nav = barHTML("Training afronden", { left: { t: "Terug", a: "log-back", back: true } });
       var exDone = L.ex.filter(function (e) { return e.sets.some(function (s) { return s.done; }); }), sets = 0; L.ex.forEach(function (e) { e.sets.forEach(function (s) { if (s.done) sets++; }); });
@@ -1057,7 +1065,7 @@
     removeSet: function (d) { var e = S.log.ex[d.e]; return { t: "Set " + (+d.s + 1) + " verwijderen?", p: e.name + " houdt " + (e.sets.length - 1) + (e.sets.length - 1 === 1 ? " set" : " sets") + ".", b: [["Verwijderen", "do-remove-set", "dng"], ["Terug", "close-alert", "sec"]] }; },
     tplDel: function (d) { return { t: "Schema verwijderen?", p: d.t + " kun je daarna niet meer kiezen bij een training. Trainingen die al met dit schema zijn gelogd, blijven bewaard." + (tplUseLine(d.t) ? " " + tplUseLine(d.t) : ""), b: [["Verwijderen", "do-tpl-del", "dng"], ["Terug", "close-alert", "sec"]] }; },
     tplDrop: function (d) { return { t: d.t + " weghalen bij " + fname(d.c) + "?", p: "Het schema zelf blijft bestaan.", b: [["Weghalen", "do-tpl-drop", "dng"], ["Terug", "close-alert", "sec"]] }; },
-    wkDel: function (d) { var h = hist(d.id)[d.i], fn = fname(d.id); return { t: "Training van " + dateOnly(h.d) + " verwijderen?", p: h.shared ? "Deze training is voorgoed weg. " + fn + " ziet de training ook niet meer bij Activiteit. De e-mail die " + fn + " al kreeg, blijft verstuurd. Je kunt dit niet ongedaan maken." : "Deze training is voorgoed weg. Je kunt dit niet ongedaan maken.", b: [["Verwijderen", "do-wk-del", "dng"], ["Terug", "close-alert", "sec"]] }; },
+    wkDel: function (d) { var h = wkOf(d.id, d.h), fn = fname(d.id); return { t: "Training van " + dateOnly(h.d) + " verwijderen?", p: h.shared ? "Deze training is voorgoed weg. " + fn + " ziet de training ook niet meer bij Activiteit. De e-mail die " + fn + " al kreeg, blijft verstuurd. Je kunt dit niet ongedaan maken." : "Deze training is voorgoed weg. Je kunt dit niet ongedaan maken.", b: [["Verwijderen", "do-wk-del", "dng"], ["Terug", "close-alert", "sec"]] }; },
     wkUnshare: function (d) { var fn = fname(d.id); return { t: "Niet meer delen met " + fn + "?", p: fn + " ziet deze training niet meer bij Activiteit. De e-mail die " + fn + " al kreeg, blijft verstuurd. Deel je de training later opnieuw, dan krijgt " + fn + " weer een e-mail.", b: [["Niet meer delen", "do-wk-unshare", "dng"], ["Terug", "close-alert", "sec"]] }; },
     zero: function () { return { t: "Nog niets bijgehouden", p: "Je hebt nog geen sets afgevinkt. Toch afronden?", b: [["Afronden", "do-zero", "pri"], ["Terug", "close-alert", "sec"]] }; },
     rings: function () {
@@ -1175,7 +1183,7 @@
     "open-session": function (d) { push({ n: "session", id: d.id }); },
     "open-class": function (d) { push({ n: "klass", id: d.id }); },
     "open-client": function (d) { push({ n: "client", id: d.id }); },
-    "open-workout": function (d) { push({ n: "workout", id: d.id, i: +d.i }); },
+    "open-workout": function (d) { push({ n: "workout", id: d.id, h: d.h }); },
     "open-att": function (d) { var it = findItem(d.id).it; it.attDraft = null; push({ n: "attendance", id: d.id }); },
     push: function (d) { push({ n: d.n }); },
     att: function (d) { var it = findItem(d.id).it; it.att = d.v; toast(d.v === "yes" ? CLIENT[it.client].name.split(" ")[0] + " was aanwezig" : "Genoteerd als niet verschenen"); },
@@ -1290,17 +1298,17 @@
     "log-who": function (d) { var L = S.log; L.client = d.v; L.ex = L.per[d.v]; render(); },
     "log-pick": function (d) { var L = S.log, it = findItem(L.item).it; pair(it).forEach(function (x) { setSessTpl(it, x, d.t); }); L.tpl = d.t || null; L.ex = d.t ? tplEx(d.t) : []; if (L.per) { L.per[L.pair[0]] = L.ex; L.per[L.pair[1]] = d.t ? tplEx(d.t) : []; L.client = L.pair[0]; } L.step = d.t ? "log" : "add"; L.start = Date.now(); S.logs[L.item] = L; it.wstate = "running"; S.exq = ""; render(); },
     /* a logged workout (F045) */
-    "wk-share": function (d) { wkShare(hist(d.id)[d.i]); toast("Gedeeld met " + fname(d.id)); },
-    "wk-unshare-ask": function (d) { S.alert = { n: "wkUnshare", id: d.id, i: d.i }; render(); },
-    "do-wk-unshare": function () { var a = S.alert; wkUnshare(hist(a.id)[a.i]); S.alert = null; toast("Niet meer gedeeld met " + fname(a.id)); },
-    "wk-del-ask": function (d) { S.alert = { n: "wkDel", id: d.id, i: d.i }; render(); },
-    "do-wk-del": function () { var a = S.alert; wkDelete(a.id, hist(a.id)[a.i]); S.alert = null; S.stacks[S.tab].pop(); S.anim = "pop"; toast("Training verwijderd"); },
+    "wk-share": function (d) { wkShare(wkOf(d.id, d.h)); toast("Gedeeld met " + fname(d.id)); },
+    "wk-unshare-ask": function (d) { S.alert = { n: "wkUnshare", id: d.id, h: d.h }; render(); },
+    "do-wk-unshare": function () { var a = S.alert; wkUnshare(wkOf(a.id, a.h)); S.alert = null; toast("Niet meer gedeeld met " + fname(a.id)); },
+    "wk-del-ask": function (d) { S.alert = { n: "wkDel", id: d.id, h: d.h }; render(); },
+    "do-wk-del": function () { var a = S.alert; wkDelete(a.id, wkOf(a.id, a.h)); S.alert = null; S.stacks[S.tab].pop(); S.anim = "pop"; toast("Training verwijderd"); },
     /* correcting: the logger's set rows without timer, ticks or share step; nothing changes until Opslaan */
-    "wk-edit": function (d) { var h = hist(d.id)[d.i]; S.log = { edit: { id: d.id, i: +d.i, name: h.name, d: h.d }, client: d.id, step: "log", tpl: null, changed: false, start: Date.now(), note: "", msg: "", ex: (h.sets || []).map(parseHist) }; S.anim = "up"; render(); },
+    "wk-edit": function (d) { var h = wkOf(d.id, d.h); S.log = { edit: { id: d.id, h: d.h, name: h.name, d: h.d }, client: d.id, step: "log", tpl: null, changed: false, start: Date.now(), note: "", msg: "", ex: (h.sets || []).map(parseHist) }; S.anim = "up"; render(); },
     "wk-edit-cancel": function () { S.log = null; render(); },
     "wk-edit-save": function () {
       var L = S.log; if (!L.ex.length) { toast("Een training heeft minstens één oefening", "err"); return; }
-      var h = hist(L.edit.id)[L.edit.i]; h.sets = L.ex.map(fmtHist); h.n = L.ex.length; S.log = null; toast("Training opgeslagen");
+      var h = wkOf(L.edit.id, L.edit.h); h.sets = L.ex.map(fmtHist); h.n = L.ex.length; S.log = null; toast("Training opgeslagen");
     },
     "log-close-cancel": function () { S.log = null; render(); },
     "log-close": function () { S.log = null; render(); },
@@ -1372,7 +1380,7 @@
       ex.forEach(function (e) { var dn = e.sets.filter(function (s) { return s.done; }); if (dn.length) sets.push(fmtHist({ name: e.name, ty: e.ty, sets: dn, diff: e.diff })); });
       var l = hist(cid), old = entryOf(it, cid); if (old) l.splice(l.indexOf(old), 1);
       if (!sets.length) return;
-      (D.history[cid] = l).unshift({ name: L.tpl || "Training zonder schema", d: TODAYD, n: sets.length, by: D.me.name.split(" ")[0], dur: Math.max(1, Math.round((Date.now() - L.start) / 60000)) + " min", sid: it.id, note: L.note || "", sets: sets });
+      (D.history[cid] = l).unshift({ id: "h" + (++HSEQ), name: L.tpl || "Training zonder schema", d: TODAYD, n: sets.length, by: D.me.name.split(" ")[0], dur: Math.max(1, Math.round((Date.now() - L.start) / 60000)) + " min", sid: it.id, note: L.note || "", sets: sets });
     });
   }
   function finishLog() { var L = S.log, it = findItem(L.item).it; logEntries(L, it); it.wstate = "done"; it.att = "yes"; delete S.logs[L.item]; L.step = "share"; S.anim = null; render(); if (L.saveTpl) toast("Training opgeslagen. Schema " + (L.tplName || "nieuw") + " staat klaar."); }
@@ -1514,14 +1522,14 @@
       ["Schema toevoegen aan klant", "F042", function () { fresh(); S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "anna" }]; S.scrollTo = "tpl"; A["cl-tpl-add"]({ id: "anna" }); }, true],
       ["Schema weghalen bij klant", "F042", function () { fresh(); S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "anna" }]; S.scrollTo = "tpl"; S.alert = { n: "tplDrop", t: "Upper A", c: "anna" }; }, true],
       ["Sessie: gelogde training", "F045", function () { fresh(); S.stacks.today = [{ n: "session", id: "s1" }]; }, true],
-      ["Training: gedeeld", "F045", function () { fresh(); S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "anna" }, { n: "workout", id: "anna", i: 0 }]; }, true],
-      ["Training: niet gedeeld", "F045", function () { fresh(); S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "anna" }, { n: "workout", id: "anna", i: 2 }]; }, true],
-      ["Training wijzigen", "F045", function () { fresh(); S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "anna" }, { n: "workout", id: "anna", i: 0 }]; A["wk-edit"]({ id: "anna", i: 0 }); }, true],
-      ["Training wijzigen: set verwijderen", "F045", function () { fresh(); S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "anna" }, { n: "workout", id: "anna", i: 0 }]; A["wk-edit"]({ id: "anna", i: 0 }); S.alert = { n: "removeSet", e: 0, s: 1 }; }, true],
-      ["Training wijzigen: oefening verwijderen", "F045", function () { fresh(); S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "anna" }, { n: "workout", id: "anna", i: 0 }]; A["wk-edit"]({ id: "anna", i: 0 }); S.alert = { n: "removeEx", e: 1 }; }, true],
-      ["Niet meer delen", "F045", function () { fresh(); S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "anna" }, { n: "workout", id: "anna", i: 0 }]; S.alert = { n: "wkUnshare", id: "anna", i: 0 }; }, true],
-      ["Training verwijderen: gedeeld", "F045", function () { fresh(); S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "anna" }, { n: "workout", id: "anna", i: 0 }]; S.alert = { n: "wkDel", id: "anna", i: 0 }; }, true],
-      ["Training verwijderen: niet gedeeld", "F045", function () { fresh(); S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "anna" }, { n: "workout", id: "anna", i: 2 }]; S.alert = { n: "wkDel", id: "anna", i: 2 }; }, true],
+      ["Training: gedeeld", "F045", function () { fresh(); S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "anna" }, { n: "workout", id: "anna", h: "anna-1" }]; }, true],
+      ["Training: niet gedeeld", "F045", function () { fresh(); S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "anna" }, { n: "workout", id: "anna", h: "anna-3" }]; }, true],
+      ["Training wijzigen", "F045", function () { fresh(); S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "anna" }, { n: "workout", id: "anna", h: "anna-1" }]; A["wk-edit"]({ id: "anna", h: "anna-1" }); }, true],
+      ["Training wijzigen: set verwijderen", "F045", function () { fresh(); S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "anna" }, { n: "workout", id: "anna", h: "anna-1" }]; A["wk-edit"]({ id: "anna", h: "anna-1" }); S.alert = { n: "removeSet", e: 0, s: 1 }; }, true],
+      ["Training wijzigen: oefening verwijderen", "F045", function () { fresh(); S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "anna" }, { n: "workout", id: "anna", h: "anna-1" }]; A["wk-edit"]({ id: "anna", h: "anna-1" }); S.alert = { n: "removeEx", e: 1 }; }, true],
+      ["Niet meer delen", "F045", function () { fresh(); S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "anna" }, { n: "workout", id: "anna", h: "anna-1" }]; S.alert = { n: "wkUnshare", id: "anna", h: "anna-1" }; }, true],
+      ["Training verwijderen: gedeeld", "F045", function () { fresh(); S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "anna" }, { n: "workout", id: "anna", h: "anna-1" }]; S.alert = { n: "wkDel", id: "anna", h: "anna-1" }; }, true],
+      ["Training verwijderen: niet gedeeld", "F045", function () { fresh(); S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "anna" }, { n: "workout", id: "anna", h: "anna-3" }]; S.alert = { n: "wkDel", id: "anna", h: "anna-3" }; }, true],
       ["Notitie", "F046", function () { fresh(); S.tab = "clients"; S.stacks.clients = [{ n: "client", id: "anna" }]; A.note({ id: "anna" }); }, true],
       ["Training starten", "WL-01", function () { fresh(); S.stacks.today = [{ n: "session", id: "s6" }]; openLogger("s6", "start"); }, true],
       ["Training loggen", "WL-02", function () { fresh(); S.stacks.today = [{ n: "session", id: "s3" }]; A["start-workout"]({ id: "s3" }); }, true],
@@ -1591,7 +1599,7 @@
   window.addEventListener("resize", function () { if (dev) fitDev(); });
   function addClient(c) { D.clients.push(c); CLIENT[c.id] = c; }
   function addItem(k, it) { dayItems(k); DAYCACHE[k].push(it); }
-  window.FV = { hist: hist, prevHist: prevHist, entryOf: entryOf, itShared: itShared, parseHist: parseHist, fmtHist: fmtHist, wkShare: wkShare, wkUnshare: wkUnshare, wkDelete: wkDelete, dateOnly: dateOnly, libTy: libTy, mkEx: mkEx, TODAYS: TODAYS, TODAYD: TODAYD, tplCount: tplCount, tplList: tplList, tplOthers: tplOthers, tplAdd: tplAdd, tplDrop: tplDrop, tplUse: tplUse, tplUseLine: tplUseLine, tplPurge: tplPurge, tplRename: tplRename, sessTpl: sessTpl, setSessTpl: setSessTpl, sessLocked: sessLocked, cashText: F_CASHTEXT, agrName: agrName, offerOpts: offerOpts, offerStart: offerStart, saveClassText: saveClassText, PAYST: PAYST, PAYONLINE: PAYONLINE, PAYSTUDIO: PAYSTUDIO, PAYOPEN: PAYOPEN, OFFEROPEN: OFFEROPEN, AGROPEN: AGROPEN, OPENOFFERS: OPENOFFERS, get S() { return S; }, PREF: PREF, D: D, A: A, CLIENT: CLIENT, dayItems: dayItems, findItem: findItem, extra: function () { return EXTRA_WS; },
+  window.FV = { hist: hist, wkOf: wkOf, exLeft: exLeft, diffBtns: diffBtns, prevHist: prevHist, parseHist: parseHist, fmtHist: fmtHist, wkShare: wkShare, wkUnshare: wkUnshare, wkDelete: wkDelete, dateOnly: dateOnly, mkEx: mkEx, tplCount: tplCount, tplList: tplList, tplOthers: tplOthers, tplAdd: tplAdd, tplDrop: tplDrop, tplUse: tplUse, tplUseLine: tplUseLine, tplPurge: tplPurge, tplRename: tplRename, sessTpl: sessTpl, setSessTpl: setSessTpl, sessLocked: sessLocked, cashText: F_CASHTEXT, agrName: agrName, offerOpts: offerOpts, offerStart: offerStart, saveClassText: saveClassText, PAYST: PAYST, PAYONLINE: PAYONLINE, PAYSTUDIO: PAYSTUDIO, PAYOPEN: PAYOPEN, OFFEROPEN: OFFEROPEN, AGROPEN: AGROPEN, OPENOFFERS: OPENOFFERS, get S() { return S; }, PREF: PREF, D: D, A: A, CLIENT: CLIENT, dayItems: dayItems, findItem: findItem, extra: function () { return EXTRA_WS; },
     cancelDuoPart: cancelDuoPart, CV: CV, TYPE: TYPE, title: title, level: level, lvlTag: lvlTag, esc: esc, ic: ic, mins: mins, hm: hm, key: key, parse: parse, add: add, monday: monday, longDate: longDate, shortDate: shortDate,
     isoWeek: isoWeek, DAYS: DAYS, DS: DS, MONTHS: MONTHS, MS: MS, TODAY: TODAY, NOW: NOW, NOWT: NOWT, isPast: isPast, initials: initials, toast: toast, render: function () { render(); },
     OWNER: OWNER, SOLO: SOLO, HAS: HAS, MIXED: MIXED, WSS: WSS, avatar: avatar, addClient: addClient, addItem: addItem, INDEX: INDEX, SHEETS: SHEETS, SCREENS: SCREENS, kit: { fld: fld, inp: inp, sel: sel, row: row, grp: grp, sh: sh, lt: lt, btn: btn, seg: seg, foot: foot, avatar: avatar, rings: rings, shape: shape, SHAPE: SHAPE }, fresh: function () { fresh(); }, save: function () { save(); applyPrefs(); } };

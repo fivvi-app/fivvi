@@ -631,9 +631,8 @@ textarea.w-input{height:auto;padding:8px 10px;resize:vertical}
 .w-wk-status>svg{width:22px;height:22px;flex:none;color:var(--w-mfg)}
 .w-wk-status b{font-weight:600}
 .w-wk-status p{margin:2px 0 0}
-.w-wk-set{display:grid;grid-template-columns:34px minmax(0,1fr) 36px;gap:10px;align-items:center}
+.w-wk-set{display:grid;grid-template-columns:34px minmax(0,1fr) 36px;gap:10px;align-items:center;padding:4px 0}
 .w-wk-set .vals{display:flex;gap:8px;align-items:center}
-.w-wk-set{padding:4px 0}
 .w-wk-n{font-weight:600;color:var(--w-mfg);font-variant-numeric:tabular-nums}
 .w-wk-diff{display:flex;gap:2px;padding:2px;border-radius:9px;background:var(--w-muted)}
 .w-wk-diff button{border:0;background:none;border-radius:7px;padding:3px 8px;font-size:17px;cursor:pointer;opacity:.55}
