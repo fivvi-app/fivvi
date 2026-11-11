@@ -47,7 +47,7 @@ test.describe('F029 the Aanmeldlink page', () => {
     await expect(page.getByRole('heading', { level: 1, name: copy.joinLink.title })).toBeVisible();
     await expect(page.getByText(copy.joinLink.body)).toBeVisible();
     // The data path: the page shows the link the API holds, built on the code in the row.
-    const joinLink = page.locator('code');
+    const joinLink = page.getByTestId('join-link-url');
     await expect(joinLink).toHaveText(new RegExp(`/j/${before}$`));
     const read = (await (
       await page.request.get(`/api/v1/workspaces/${await workspaceId(page, slug)}/join-link`)
@@ -61,6 +61,10 @@ test.describe('F029 the Aanmeldlink page', () => {
       dialog.getByRole('heading', { name: copy.joinLink.renewDialog.title }),
     ).toBeVisible();
     await expect(dialog.getByText(copy.joinLink.renewDialog.body)).toBeVisible();
+    // The prototype marks the confirm as dangerous: the link and its QR codes stop working.
+    await expect(
+      dialog.getByRole('button', { name: copy.joinLink.renewDialog.confirm }),
+    ).toHaveClass(/text-destructive/);
     await expectNoAxeViolations(page, `the renew dialog in ${appLocale}`);
 
     // Terug changes nothing.
@@ -102,7 +106,7 @@ test.describe('F029 the Aanmeldlink page', () => {
       .click();
 
     await expect(page).toHaveURL(`/w/${slug}/join-link`);
-    const joinLink = page.locator('code');
+    const joinLink = page.getByTestId('join-link-url');
     await expect(joinLink).toHaveText(new RegExp(`/j/${code}$`));
     // She copies the link, and has no Vernieuwen.
     await page.getByRole('button', { name: copy.joinLink.copy }).click();

@@ -22,6 +22,13 @@ describe.each(locales)('F029 the Aanmeldlink page in %s', (locale) => {
     expect(html).toMatch(new RegExp(`<button[^>]*>${escapeHtml(copy.joinLink.copy)}</button>`));
   });
 
+  it('AC7: the card carries the title as an h2 under the one h1', () => {
+    const html = card(false);
+
+    expect(html.match(/<h1[ >]/g)).toHaveLength(1);
+    expect(html).toMatch(new RegExp(`<h2[^>]*>${escapeHtml(copy.joinLink.title)}</h2>`));
+  });
+
   it('AC7: a Trainer (no join_link.renew) has no Vernieuwen', () => {
     expect(card(false)).not.toContain(escapeHtml(copy.joinLink.renew));
   });

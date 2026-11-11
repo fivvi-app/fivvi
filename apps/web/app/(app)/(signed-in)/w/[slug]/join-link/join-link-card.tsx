@@ -12,7 +12,7 @@ import {
   AlertDialogTitle,
 } from '@fivvi/ui/components/alert-dialog';
 import { Button } from '@fivvi/ui/components/button';
-import { Card } from '@fivvi/ui/components/card';
+import { Card, CardHeader, CardTitle } from '@fivvi/ui/components/card';
 import { ErrorLine } from '@fivvi/ui/kit/error-line';
 import { PageShell } from '@fivvi/ui/kit/page-shell';
 import { SuccessLine } from '@fivvi/ui/kit/success-line';
@@ -25,7 +25,7 @@ import { renewJoinLink } from './renew-join-link-client';
  * The Aanmeldlink page (F029; a person with `join_link.view`, the Owner and the Trainers): the
  * workspace's one join link with **Link kopiëren**, and, for a person with `join_link.renew` (the
  * Owner), **Vernieuwen**, which asks first because the old link and its QR codes stop working. The
- * new URL replaces the old one at once and the page asks the server again, so it shows what the
+ * new URL shows at once; the page asks the server again and, when its value arrives, shows what the
  * API holds. The QR code, its poster and the booking links join this page in M6 (F038, F037).
  */
 export function JoinLinkCard({
@@ -41,7 +41,9 @@ export function JoinLinkCard({
 }) {
   const t = useTranslations('joinLink');
   const router = useRouter();
-  const [renewedUrl, setRenewedUrl] = useState<string | null>(null);
+  // The URL a renewal gave, and the server value it replaced: once the refreshed page brings a
+  // different `url`, the server value is shown.
+  const [renewal, setRenewal] = useState<{ from: string; to: string } | null>(null);
   const [asking, setAsking] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
   const [failure, setFailure] = useState<'copy' | 'noConnection' | 'generic' | null>(null);
@@ -51,7 +53,7 @@ export function JoinLinkCard({
 
   useEffect(() => setReady(true), []);
 
-  const shown = renewedUrl ?? url;
+  const shown = renewal && renewal.from === url ? renewal.to : url;
 
   async function copy() {
     setNotice(null);
@@ -72,7 +74,7 @@ export function JoinLinkCard({
     setPending(false);
     setAsking(false);
     if (result.ok) {
-      setRenewedUrl(result.url);
+      setRenewal({ from: url, to: result.url });
       setNotice(t('renewed'));
       return router.refresh();
     }
@@ -87,10 +89,17 @@ export function JoinLinkCard({
       {notice ? <SuccessLine>{notice}</SuccessLine> : null}
       {failure ? <ErrorLine>{t(`errors.${failure}`)}</ErrorLine> : null}
       <Card className="max-w-2xl">
+        <CardHeader>
+          <CardTitle>
+            <h2 className="text-[15px] font-semibold">{t('title')}</h2>
+          </CardTitle>
+        </CardHeader>
         <div className="grid gap-3 px-(--card-spacing)">
           <p>{t('body')}</p>
           <div className="flex items-center gap-2 rounded-lg border bg-muted/40 p-2">
-            <code className="min-w-0 flex-1 break-all text-[13px]">{shown}</code>
+            <code data-testid="join-link-url" className="min-w-0 flex-1 break-all text-[13px]">
+              {shown}
+            </code>
             <Button
               type="button"
               variant="outline"
@@ -105,7 +114,7 @@ export function JoinLinkCard({
             <div>
               <Button
                 type="button"
-                variant="ghost"
+                variant="outline"
                 size="sm"
                 disabled={!ready || pending}
                 onClick={() => setAsking(true)}
@@ -125,6 +134,7 @@ export function JoinLinkCard({
           <AlertDialogFooter>
             <AlertDialogCancel>{t('renewDialog.cancel')}</AlertDialogCancel>
             <AlertDialogAction
+              variant="destructive"
               disabled={pending}
               onClick={(event) => {
                 event.preventDefault();
