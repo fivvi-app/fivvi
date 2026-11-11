@@ -275,13 +275,14 @@ jobs:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
 
-      - name: Install Chromium and its OS packages
+      - name: Install Chromium
         if: steps.playwright-cache.outputs.cache-hit != 'true'
-        run: pnpm --filter @fivvi/web exec playwright install --with-deps --only-shell chromium
+        run: pnpm --filter @fivvi/web exec playwright install --only-shell chromium
 
+      # apt cannot always resolve the Ubuntu mirror from the runner (#1311), which failed the job before any test ran;
+      # the script tries the install again.
       - name: Install Chromium's OS packages
-        if: steps.playwright-cache.outputs.cache-hit == 'true'
-        run: pnpm --filter @fivvi/web exec playwright install-deps chromium
+        run: scripts/playwright-deps.sh
 
       # Builds the web app, then runs every spec in nl-NL and en with axe checks.
       - name: Web e2e (nl-NL and en)
