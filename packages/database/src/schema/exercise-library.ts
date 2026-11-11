@@ -28,6 +28,9 @@ export const MUSCLE_GROUPS = [
 ] as const;
 export type MuscleGroup = (typeof MUSCLE_GROUPS)[number];
 
+/** A key: lowercase kebab-case, starting with a letter. The one definition; the table check and the content check use it. */
+export const EXERCISE_KEY_PATTERN = /^[a-z][a-z0-9]*(-[a-z0-9]+)*$/;
+
 const sqlList = (values: readonly string[]) =>
   sql.raw(values.map((value) => `'${value}'`).join(', '));
 
@@ -51,7 +54,10 @@ export const exerciseLibrary = pgTable(
     ...timestamps(),
   },
   (table) => [
-    check('exercise_library_key_format', sql`${table.key} ~ '^[a-z][a-z0-9]*(-[a-z0-9]+)*$'`),
+    check(
+      'exercise_library_key_format',
+      sql`${table.key} ~ ${sql.raw(`'${EXERCISE_KEY_PATTERN.source}'`)}`,
+    ),
     check('exercise_library_type_known', sql`${table.type} in (${sqlList(EXERCISE_TYPES)})`),
     check(
       'exercise_library_muscle_groups_known',

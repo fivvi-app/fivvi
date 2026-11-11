@@ -1,4 +1,5 @@
 import {
+  EXERCISE_KEY_PATTERN,
   EXERCISE_TYPES,
   type ExerciseType,
   MUSCLE_GROUPS,
@@ -61,6 +62,7 @@ export function findLibraryProblems({
   const problems: string[] = [];
   const seen = new Set<string>();
   const known = new Set<string>();
+  const aliasOwner = new Map<string, string>();
 
   for (const exercise of exercises) {
     const { key } = exercise;
@@ -68,7 +70,7 @@ export function findLibraryProblems({
     seen.add(key);
     known.add(camelCase(key));
 
-    if (!/^[a-z][a-z0-9]*(-[a-z0-9]+)*$/.test(key)) problems.push(`${key}: invalid key`);
+    if (!EXERCISE_KEY_PATTERN.test(key)) problems.push(`${key}: invalid key`);
 
     for (const locale of LIBRARY_LOCALES) {
       if (!isFilled(messages[locale].exercises.names[camelCase(key)])) {
@@ -76,7 +78,9 @@ export function findLibraryProblems({
       }
     }
 
-    if (!(EXERCISE_TYPES as readonly string[]).includes(exercise.type)) {
+    if (!isFilled(exercise.type)) {
+      problems.push(`${key}: no type`);
+    } else if (!(EXERCISE_TYPES as readonly string[]).includes(exercise.type)) {
       problems.push(`${key}: unknown type "${exercise.type}"`);
     }
 
@@ -100,6 +104,12 @@ export function findLibraryProblems({
       }
       if (aliases.has(alias)) problems.push(`${key}: repeats alias "${alias}"`);
       aliases.add(alias);
+      const normalised = alias.trim().toLowerCase();
+      const owner = aliasOwner.get(normalised);
+      if (owner !== undefined && owner !== key) {
+        problems.push(`${key}: alias "${alias}" is also an alias of ${owner}`);
+      }
+      if (owner === undefined) aliasOwner.set(normalised, key);
     }
   }
 

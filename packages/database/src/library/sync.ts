@@ -10,6 +10,10 @@ export interface LibrarySyncResult {
   unchanged: number;
 }
 
+/** The log line of a sync; the release step and `pnpm db:migrate` print the same one. */
+export const describeLibrarySync = (result: LibrarySyncResult): string =>
+  `Exercise library: ${result.added} added, ${result.updated} updated, ${result.unchanged} unchanged.`;
+
 /**
  * Makes the `exercise_library` table match the data file (F039), in every environment, production
  * included (production doesn't run the seed). New keys are added, changed fields (type, muscle

@@ -3,7 +3,7 @@ import type { Database } from './client.ts';
 import { CRON_ROLE, ensureCronRole } from './cron-role.ts';
 import { APP_ROLE_PASSWORD_VARIABLE, CRON_ROLE_PASSWORD_VARIABLE } from './env.ts';
 import type { LibraryExercise } from './library/content.ts';
-import { syncExerciseLibrary } from './library/sync.ts';
+import { describeLibrarySync, syncExerciseLibrary } from './library/sync.ts';
 import { runMigrations } from './migrate.ts';
 import { APP_ROLE } from './schema/tenant-policies.ts';
 import { seed } from './seed.ts';
@@ -54,10 +54,7 @@ export async function release(
       ? `Cron role ${CRON_ROLE}: login enabled, password set from ${CRON_ROLE_PASSWORD_VARIABLE}.`
       : `Cron role ${CRON_ROLE}: ${CRON_ROLE_PASSWORD_VARIABLE} is not set, so its login and password are left as they are${cron.login ? '' : ' (it cannot log in yet)'}.`,
   );
-  const library = await syncExerciseLibrary(db, options.library);
-  log(
-    `Exercise library: ${library.added} added, ${library.updated} updated, ${library.unchanged} unchanged.`,
-  );
+  log(describeLibrarySync(await syncExerciseLibrary(db, options.library)));
   if (options.seed) {
     await seed(db, { production: options.production });
     log('Seed data inserted.');

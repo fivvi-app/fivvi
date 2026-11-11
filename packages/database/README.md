@@ -45,7 +45,7 @@ Entry points: `@fivvi/database` (client, schema, queries, `pingDatabase`, `HELLO
 |---|---|---|
 | `db:up` / `db:down` | root | Start / stop local Postgres |
 | `db:generate` | root or package | Write a new SQL migration from the schema diff (`pnpm db:generate --name <what>`) |
-| `db:migrate` | root or package | Apply pending migrations to `DATABASE_URL`, then give the app role `fivvi_app` its login with `APP_DATABASE_PASSWORD` (like the release step) |
+| `db:migrate` | root or package | Apply pending migrations to `DATABASE_URL`, then give the app role `fivvi_app` its login with `APP_DATABASE_PASSWORD`, and sync the exercise library (like the release step) |
 | `db:seed` | root or package | Insert demo data into `DATABASE_URL` (idempotent; never in production) |
 | `db:reset-rate-limits` | root or package | Delete every sign-in rate limit counter (F001) so a Maestro run isn't limited by an earlier one; connects as the app role and refuses any `APP_DATABASE_URL` that is not a local Postgres |
 | `db:check` | package | Check the migration history for conflicts (`drizzle-kit check`) |

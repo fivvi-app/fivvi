@@ -76,6 +76,23 @@ describe('F039 AC9: the library content check', () => {
     expect(problems.join('\n')).toMatch(/unknown type/i);
   });
 
+  it('fails when the type is missing', () => {
+    const { type: _type, ...withoutType } = exercise();
+    const problems = findLibraryProblems({
+      exercises: [withoutType as unknown as LibraryExercise],
+      messages: goodMessages,
+    });
+    expect(problems).toContainEqual('bench-press: no type');
+  });
+
+  it('fails when the key is not kebab-case', () => {
+    const problems = findLibraryProblems({
+      exercises: [exercise({ key: 'Bench_Press' })],
+      messages: goodMessages,
+    });
+    expect(problems.join('\n')).toMatch(/invalid key/i);
+  });
+
   it('fails when the type has no name in a catalog', () => {
     const broken = catalog({ benchPress: 'x' });
     delete (broken.exercises.types as Record<string, string>).repsOnly;
@@ -132,6 +149,20 @@ describe('F039 AC9: the library content check', () => {
     expect(problems.join('\n')).toMatch(/repeats alias/i);
   });
 
+  it('fails when two exercises share an alias, whatever its case', () => {
+    const problems = findLibraryProblems({
+      exercises: [
+        exercise({ aliases: ['optrekken'] }),
+        exercise({ key: 'pull-up', aliases: ['Optrekken'] }),
+      ],
+      messages: {
+        'nl-NL': catalog({ benchPress: 'Bankdrukken', pullUp: 'Pull-up' }),
+        en: catalog({ benchPress: 'Bench press', pullUp: 'Pull-up' }),
+      },
+    });
+    expect(problems.join('\n')).toMatch(/alias "Optrekken" is also an alias of bench-press/);
+  });
+
   it('fails when a key that exists in the table was removed from the file instead of retired', () => {
     const problems = findLibraryProblems({
       exercises: [exercise()],
@@ -171,6 +202,19 @@ describe('F039 the starting library', () => {
     expect(messages['nl-NL'].exercises.names.romanianDeadlift).toBe('Roemeense deadlift');
     expect(messages['nl-NL'].exercises.muscleGroups.chest).toBe('borst');
     expect(messages.en.exercises.muscleGroups.fullBody).toBe('full body');
+  });
+
+  it('gives no alias to two exercises', () => {
+    const owner = new Map<string, string>();
+    const shared: string[] = [];
+    for (const entry of EXERCISE_LIBRARY) {
+      for (const alias of entry.aliases) {
+        const other = owner.get(alias.trim().toLowerCase());
+        if (other) shared.push(`${alias}: ${other}, ${entry.key}`);
+        owner.set(alias.trim().toLowerCase(), entry.key);
+      }
+    }
+    expect(shared).toEqual([]);
   });
 
   it('carries the aliases the spec names', () => {

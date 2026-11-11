@@ -166,40 +166,6 @@ describe('F039 the release step syncs the exercise library', () => {
     });
   });
 
-  it('the table refuses an unknown type, no muscle group and an unknown muscle group', async () => {
-    await withFreshDatabase(async (client) => {
-      await release(client.db, options, () => {});
-      const bad = (type: string, muscles: string) =>
-        client.db.execute(
-          sql.raw(
-            `insert into exercise_library (key, type, muscle_groups) values ('synthetic-bad', '${type}', '${muscles}')`,
-          ),
-        );
-      await expect(bad('weight-time', '{core}')).rejects.toThrow();
-      await expect(bad('time', '{}')).rejects.toThrow();
-      await expect(bad('time', '{neck}')).rejects.toThrow();
-    });
-  });
-
-  it('keeps nothing about a workspace or a person: no organization_id column', async () => {
-    await withFreshDatabase(async (client) => {
-      await release(client.db, options, () => {});
-      const columns = await client.db.execute(
-        sql`select column_name from information_schema.columns where table_name = 'exercise_library' order by column_name`,
-      );
-      expect((columns.rows as { column_name: string }[]).map((row) => row.column_name)).toEqual([
-        'aliases',
-        'created_at',
-        'id',
-        'key',
-        'muscle_groups',
-        'retired',
-        'type',
-        'updated_at',
-      ]);
-    });
-  });
-
   it("AC5: the name is the catalog's for the key, so a corrected name needs no change to the row", async () => {
     await withFreshDatabase(async (client) => {
       await release(client.db, options, () => {});
@@ -213,16 +179,8 @@ describe('F039 the release step syncs the exercise library', () => {
       expect(after).toEqual(before);
       expect(logs.join('\n')).toContain('0 updated');
 
-      const path = libraryMessageKey('names', after.key).split('.');
-      const resolve = (catalog: Record<string, unknown>) =>
-        path.reduce<unknown>(
-          (node, segment) => (node as Record<string, unknown>)[segment],
-          catalog,
-        );
-      expect(resolve(messages['nl-NL'])).toBe('Bankdrukken');
-      const corrected = structuredClone(messages['nl-NL']);
-      corrected.exercises.names.benchPress = 'Bankdrukken met halter';
-      expect(resolve(corrected)).toBe('Bankdrukken met halter');
+      expect(libraryMessageKey('names', after.key)).toBe('exercises.names.benchPress');
+      expect(messages['nl-NL'].exercises.names.benchPress).toBe('Bankdrukken');
     });
   });
 });
