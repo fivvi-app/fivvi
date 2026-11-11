@@ -359,8 +359,9 @@ function logFailure(error: unknown): void {
 
 /**
  * What an app's sign-in routes pass on to Better Auth: the proxy's client IP address (rate
- * limits, the session's address), the user agent and the language. Nothing else, so a cookie
- * or token in the request can't change what the call does.
+ * limits, the session's address), the user agent (the platform of a refusal event at the sign-in
+ * request; Better Auth stores it on the session at the code exchange) and the language. Nothing
+ * else, so a cookie or token in the request can't change what the call does.
  */
 function forwardedHeaders(headers: Headers): Headers {
   const forwarded = new Headers();
