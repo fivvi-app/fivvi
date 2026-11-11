@@ -221,6 +221,7 @@ Also for E008:
 
 - A flaky test is a bug with a priority, not noise. Fix the cause (usually a race, a real clock or shared data).
 - CI retries are off for unit and integration tests. Playwright and Maestro may retry once, and a test that only passes on retry is reported as flaky.
+- **The web e2e suite has headroom under its limit on CI** (#1301). It runs on 3 workers, not Playwright's default of 2 on the 4 vCPU runner, and stops itself after 12 minutes (the job has 15; `apps/web/test/e2e-run.ts`). The limit is a guard for a hung suite, not a budget: when a run takes more than about half of it, speed the suite up (workers, slow specs) before adding tests. A run that does hit it prints one `::error` annotation (`apps/web/e2e/timeout-reporter.ts`) saying the suite timed out, whether any test failed and which tests were cut off.
 - Quarantine (skip) is allowed only with a linked issue, an owner and a date, for at most one week. Never quarantine tenant isolation, concurrency or permission tests: fix them or revert the change that broke them.
 
 ## 9. Agent workflow
