@@ -358,6 +358,7 @@ describe('F001N native sign-in through the API', () => {
         preferredLocale: 'nl-NL',
         bookingEmails: true,
         canCreateWorkspace: false,
+        clientWorkspaces: [],
         workspaces: [
           {
             id: gym?.id,

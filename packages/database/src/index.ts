@@ -137,10 +137,12 @@ export {
   type TrainerWithProfile,
 } from './repositories/trainer-profiles.ts';
 export {
+  type ClientWorkspaceSummary,
   createWorkspaceWithOwner,
   findJoinLink,
   findWorkspace,
   type JoinLinkView,
+  listClientWorkspaces,
   listTeamWorkspaces,
   type NewWorkspace,
   renewJoinLink,

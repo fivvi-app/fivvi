@@ -27,14 +27,14 @@ public protocol APIProtocol: Sendable {
     func getHello(_ input: Operations.GetHello.Input) async throws -> Operations.GetHello.Output
     /// The signed-in account
     ///
-    /// The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, and whether they may set one up (`canCreateWorkspace`: on the sign-up allowlist, also when they have a workspace already).
+    /// The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, the workspaces they are a client of (`clientWorkspaces`), and whether they may set one up (`canCreateWorkspace`: on the sign-up allowlist, also when they have a workspace already). An account in no workspace gets both lists empty.
     ///
     /// - Remark: HTTP `GET /v1/me`.
     /// - Remark: Generated from `#/paths//v1/me/get(getMe)`.
     func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output
     /// Change the signed-in account
     ///
-    /// Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load, and the name they gave themselves (`name`), one per account, shown in every workspace they are on, and whether they get the emails about bookings in their classes (`bookingEmails`, on until switched off), also one per account. Answers with the account, as `GET /v1/me` does. A language other than `nl-NL` or `en`, a name that is empty, blank or over 80 characters, or a `bookingEmails` that is not a boolean, answers `400` and nothing changes.
+    /// Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load, and the name they gave themselves (`name`), one per account, shown in every workspace they are on, and whether they get the emails about bookings in their classes (`bookingEmails`, on until switched off), also one per account. Answers with the account, as `GET /v1/me` does. A language other than `nl-NL` or `en`, a name that is empty, blank or over 120 characters, or a `bookingEmails` that is not a boolean, answers `400` and nothing changes.
     ///
     /// - Remark: HTTP `PATCH /v1/me`.
     /// - Remark: Generated from `#/paths//v1/me/patch(updateMe)`.
@@ -384,7 +384,7 @@ extension APIProtocol {
     }
     /// The signed-in account
     ///
-    /// The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, and whether they may set one up (`canCreateWorkspace`: on the sign-up allowlist, also when they have a workspace already).
+    /// The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, the workspaces they are a client of (`clientWorkspaces`), and whether they may set one up (`canCreateWorkspace`: on the sign-up allowlist, also when they have a workspace already). An account in no workspace gets both lists empty.
     ///
     /// - Remark: HTTP `GET /v1/me`.
     /// - Remark: Generated from `#/paths//v1/me/get(getMe)`.
@@ -393,7 +393,7 @@ extension APIProtocol {
     }
     /// Change the signed-in account
     ///
-    /// Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load, and the name they gave themselves (`name`), one per account, shown in every workspace they are on, and whether they get the emails about bookings in their classes (`bookingEmails`, on until switched off), also one per account. Answers with the account, as `GET /v1/me` does. A language other than `nl-NL` or `en`, a name that is empty, blank or over 80 characters, or a `bookingEmails` that is not a boolean, answers `400` and nothing changes.
+    /// Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load, and the name they gave themselves (`name`), one per account, shown in every workspace they are on, and whether they get the emails about bookings in their classes (`bookingEmails`, on until switched off), also one per account. Answers with the account, as `GET /v1/me` does. A language other than `nl-NL` or `en`, a name that is empty, blank or over 120 characters, or a `bookingEmails` that is not a boolean, answers `400` and nothing changes.
     ///
     /// - Remark: HTTP `PATCH /v1/me`.
     /// - Remark: Generated from `#/paths//v1/me/patch(updateMe)`.

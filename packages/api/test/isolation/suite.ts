@@ -106,7 +106,7 @@ async function businessTables(world: World): Promise<string[]> {
  * Whose a token is. One owner, except for the tokens of an account that has a place in several
  * workspaces (Sam): its id appears in the rows of each, and each is an owner of it.
  */
-type Ledger = Map<string, (TokenOwner & { clientIds: Set<string> })[]>;
+type Ledger = Map<string, (TokenOwner & { clientIds: Set<string>; listed?: boolean })[]>;
 
 /**
  * The ids and markers of every record of every workspace, and whose they are: a row's uuids,
@@ -119,7 +119,12 @@ type Ledger = Map<string, (TokenOwner & { clientIds: Set<string> })[]>;
 function buildLedger(rows: StoredRow[], scenario: Scenario): Ledger {
   const ledger: Ledger = new Map();
   const accountIds = new Set(scenario.accounts.map((account) => account.id));
-  const claim = (token: string, workspaceId: string, clientId: string | undefined) => {
+  const claim = (
+    token: string,
+    workspaceId: string,
+    clientId: string | undefined,
+    listed = false,
+  ) => {
     const owners = ledger.get(token) ?? [];
     let entry = owners.find((owner) => owner.workspaceId === workspaceId);
     if (!entry) {
@@ -130,6 +135,7 @@ function buildLedger(rows: StoredRow[], scenario: Scenario): Ledger {
       owners.push(entry);
     }
     if (clientId) entry.clientIds.add(clientId);
+    if (listed) entry.listed = true;
     ledger.set(token, owners);
   };
   for (const { table, workspaceId, row } of rows) {
@@ -138,6 +144,15 @@ function buildLedger(rows: StoredRow[], scenario: Scenario): Ledger {
     // The join code (F029) is a value of its workspace that is neither a uuid nor a marker.
     if (table === 'organizations' && typeof row.join_code === 'string') {
       claim(row.join_code, workspaceId, undefined);
+    }
+    // The name and URL name of a workspace are what a list of workspaces shows (F030).
+    if (table === 'organizations') {
+      for (const column of ['name', 'slug']) {
+        const value = row[column];
+        if (typeof value === 'string') {
+          for (const marker of markersIn(value)) claim(marker, workspaceId, undefined, true);
+        }
+      }
     }
     for (const value of Object.values(row)) {
       if (typeof value !== 'string') continue;

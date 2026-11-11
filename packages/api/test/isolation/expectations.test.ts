@@ -293,6 +293,27 @@ describe('what a response may show', () => {
     expect(mayShow(facts, 'c1-row', token('a', 'c1'))).toBe(false);
   });
 
+  it('an account route shows a client the name and URL name of its workspace, not the team’s data', () => {
+    const facts = call(
+      { type: 'account' },
+      { places: { a: { clientId: 'c1' }, b: { teamRole: 'owner' } } },
+    );
+    const name = { ...token('a'), listed: true };
+
+    expect(mayShow(facts, 'a-name', name)).toBe(true);
+    expect(mayShow(facts, 'a-team-row', token('a'))).toBe(false);
+    expect(mayShow(facts, 'c-name', { ...token('c'), listed: true })).toBe(false);
+    // Where the route asks for team roles only, a client relationship lists nothing.
+    const teamOnly = call(
+      { type: 'account', workspaces: 'team' },
+      { places: { a: { clientId: 'c1' } } },
+    );
+    expect(mayShow(teamOnly, 'a-name', name)).toBe(false);
+    // On a workspace route the client still sees only its own records and the workspace id.
+    const route = call(ownRecords, { places: { a: { clientId: 'c1' } } });
+    expect(mayShow(route, 'a-name', name)).toBe(false);
+  });
+
   it('a refused call shows nothing', () => {
     const facts = call(team, { places: { a: { clientId: 'c1' } } });
 

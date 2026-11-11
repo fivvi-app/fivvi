@@ -377,7 +377,8 @@ extension StubAPI {
                             .init(rawValue: $0.rawValue)
                         }
                     )
-                }
+                },
+            clientWorkspaces: []
         )
     }
 

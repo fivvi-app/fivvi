@@ -8,6 +8,7 @@ import {
   createWorkspaceWithOwner,
   type DatabaseClient,
   findWorkspace,
+  listClientWorkspaces,
   listMyWorkspaces,
   listTeamWorkspaces,
   organizations,
@@ -212,6 +213,52 @@ describe('F002 creating a workspace', () => {
     expect(fromAny).toEqual(listed);
     expect(JSON.stringify([listed, fromAny])).not.toContain(stranger.id);
     expect(JSON.stringify([listed, fromAny])).not.toContain(clientOf.id);
+  });
+
+  it('F030 AC11: lists the workspaces the account has a client relationship in, by name, and no other', async () => {
+    const zeta = await createWorkspace(admin.db, { label: 'zeta-studio' });
+    const alpha = await createWorkspace(admin.db, { label: 'alpha-gym' });
+    const teamOnly = await createWorkspace(admin.db);
+    const stranger = await createWorkspace(admin.db);
+    const account = await createAccount(admin.db, { label: 'two-gyms' });
+    await addClient(admin.db, { workspaceId: zeta.id, accountId: account.id });
+    await addClient(admin.db, { workspaceId: alpha.id, accountId: account.id });
+    await addTeamRole(admin.db, {
+      workspaceId: teamOnly.id,
+      accountId: account.id,
+      role: 'trainer',
+    });
+    // A client record of the same workspace that no account is linked to is nobody's here.
+    await addClient(admin.db, { workspaceId: stranger.id });
+
+    const listed = await scopes().inAccountScope(
+      { accountId: account.id, workspaces: 'any' },
+      (scope) => listClientWorkspaces(scope),
+    );
+    // A scope that holds team workspaces only lists no client workspace.
+    const fromTeam = await scopes().inAccountScope(
+      { accountId: account.id, workspaces: 'team' },
+      (scope) => listClientWorkspaces(scope),
+    );
+
+    expect(listed).toEqual([
+      { id: alpha.id, name: alpha.marker, slug: alpha.marker },
+      { id: zeta.id, name: zeta.marker, slug: zeta.marker },
+    ]);
+    expect(fromTeam).toEqual([]);
+    expect(JSON.stringify(listed)).not.toContain(teamOnly.id);
+    expect(JSON.stringify(listed)).not.toContain(stranger.id);
+  });
+
+  it('F030 AC11: an account without a client relationship has an empty list', async () => {
+    const account = await createAccount(admin.db, { label: 'mark' });
+
+    const listed = await scopes().inAccountScope(
+      { accountId: account.id, workspaces: 'any' },
+      (scope) => listClientWorkspaces(scope),
+    );
+
+    expect(listed).toEqual([]);
   });
 
   it('F005 AC3: the Owner of a new workspace has a trainer profile when the creator trains, and lists it', async () => {

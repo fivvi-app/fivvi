@@ -255,6 +255,7 @@ class ClientAppTest(@Suppress("UNUSED_PARAMETER") tag: String, private val phone
         bookingEmails = true,
         canCreateWorkspace = false,
         workspaces = emptyList(),
+        clientWorkspaces = emptyList(),
     )
 
     @Test

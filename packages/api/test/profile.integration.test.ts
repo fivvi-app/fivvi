@@ -143,7 +143,7 @@ describe('F005 PATCH /v1/me name', () => {
   it.each([
     ['empty', '', 'too_small'],
     ['blank', '   \t ', 'too_small'],
-    ['over 80 characters', 'x'.repeat(81), 'too_big'],
+    ['over 120 characters', 'x'.repeat(121), 'too_big'],
   ])(
     'AC1: a name that is %s is refused with a field error and nothing is saved',
     async (_, name, code) => {
@@ -159,12 +159,13 @@ describe('F005 PATCH /v1/me name', () => {
     },
   );
 
-  it('AC1: exactly 80 characters is accepted', async () => {
+  it('F030 AC4: exactly 120 characters is accepted, and the limit counts the trimmed name', async () => {
     const { sarah } = await world();
 
-    const res = await patch(sarah, { name: 'x'.repeat(80) });
+    const res = await patch(sarah, { name: `  ${'x'.repeat(120)} \n` });
 
     expect(res.status).toBe(200);
+    expect(await storedName(sarah.id)).toBe('x'.repeat(120));
   });
 
   it('AC1: a name that is not text is refused', async () => {
@@ -182,10 +183,10 @@ describe('F005 PATCH /v1/me name', () => {
     expect(res.status).toBe(401);
   });
 
-  it('AC10: name is in the contract on PATCH me, 1 to 80 characters', () => {
+  it('F030 AC10: name is in the contract on PATCH me, 1 to 120 characters', () => {
     const { name } = contract.components.schemas.UpdateMeRequest.properties;
 
-    expect(name).toMatchObject({ type: 'string', minLength: 1, maxLength: 80 });
+    expect(name).toMatchObject({ type: 'string', minLength: 1, maxLength: 120 });
   });
 
   it('AC11: a name change sends no product event and logs no name or email address', async () => {

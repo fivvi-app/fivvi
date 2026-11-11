@@ -39,7 +39,7 @@ interface MeApi {
     /**
      * GET v1/me
      * The signed-in account
-     * The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ &#x60;Authorization: Bearer &lt;token&gt;&#x60; (the token of &#x60;POST /v1/sign-in/token&#x60;). A request with an &#x60;Authorization&#x60; header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, and whether they may set one up (&#x60;canCreateWorkspace&#x60;: on the sign-up allowlist, also when they have a workspace already).
+     * The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ &#x60;Authorization: Bearer &lt;token&gt;&#x60; (the token of &#x60;POST /v1/sign-in/token&#x60;). A request with an &#x60;Authorization&#x60; header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, the workspaces they are a client of (&#x60;clientWorkspaces&#x60;), and whether they may set one up (&#x60;canCreateWorkspace&#x60;: on the sign-up allowlist, also when they have a workspace already). An account in no workspace gets both lists empty.
      * Responses:
      *  - 200: The account.
      *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
@@ -138,7 +138,7 @@ interface MeApi {
     /**
      * PATCH v1/me
      * Change the signed-in account
-     * Stores the language the person chose (&#x60;preferredLocale&#x60;), so every browser and app of the account shows it from its next load, and the name they gave themselves (&#x60;name&#x60;), one per account, shown in every workspace they are on, and whether they get the emails about bookings in their classes (&#x60;bookingEmails&#x60;, on until switched off), also one per account. Answers with the account, as &#x60;GET /v1/me&#x60; does. A language other than &#x60;nl-NL&#x60; or &#x60;en&#x60;, a name that is empty, blank or over 80 characters, or a &#x60;bookingEmails&#x60; that is not a boolean, answers &#x60;400&#x60; and nothing changes.
+     * Stores the language the person chose (&#x60;preferredLocale&#x60;), so every browser and app of the account shows it from its next load, and the name they gave themselves (&#x60;name&#x60;), one per account, shown in every workspace they are on, and whether they get the emails about bookings in their classes (&#x60;bookingEmails&#x60;, on until switched off), also one per account. Answers with the account, as &#x60;GET /v1/me&#x60; does. A language other than &#x60;nl-NL&#x60; or &#x60;en&#x60;, a name that is empty, blank or over 120 characters, or a &#x60;bookingEmails&#x60; that is not a boolean, answers &#x60;400&#x60; and nothing changes.
      * Responses:
      *  - 200: The account with its change.
      *  - 400: The request did not match the contract.

@@ -157,6 +157,7 @@ describe('GET /v1/me', () => {
       preferredLocale: 'nl-NL',
       bookingEmails: true,
       canCreateWorkspace: false,
+      clientWorkspaces: [],
       workspaces: [
         {
           id: gym?.id,
@@ -243,9 +244,100 @@ describe('GET /v1/me', () => {
 
     const me = await meOf(cookie);
 
+    // A workspace the account is only a client of is under `clientWorkspaces`, not here.
     expect(me.workspaces.map((workspace) => workspace.id)).toEqual([mine.id]);
-    expect(JSON.stringify(me)).not.toContain(clientOf.id);
+    expect(me.clientWorkspaces.map((workspace) => workspace.id)).toEqual([clientOf.id]);
     expect(JSON.stringify(me)).not.toContain(other.id);
+  });
+
+  it('F030 AC11: the contract lists clientWorkspaces with ID, slug and name, and GET /v1/me reads client relationships too', () => {
+    const { MeClientWorkspace, MeResponse } = contract.components.schemas;
+
+    expect(contract.paths['/v1/me'].get['x-access']).toEqual({
+      type: 'account',
+      workspaces: 'any',
+    });
+    expect(MeResponse.required).toContain('clientWorkspaces');
+    expect(MeResponse.properties.clientWorkspaces).toMatchObject({
+      type: 'array',
+      items: { $ref: '#/components/schemas/MeClientWorkspace' },
+    });
+    expect(Object.keys(MeClientWorkspace.properties).toSorted()).toEqual(['id', 'name', 'slug']);
+  });
+
+  it('F030 AC11: a client of one workspace sees it under clientWorkspaces and no team workspace', async () => {
+    const { id, cookie } = await accountSignedIn('anna@example.com', 'Anna');
+    const gym = await createWorkspace(client.db, { label: 'johns-gym' });
+    const other = await createWorkspace(client.db, { label: 'other-gym' });
+    await addClient(client.db, { workspaceId: gym.id, accountId: id });
+    // A client record of someone else, with Anna's address, in another workspace is not hers.
+    await addClient(client.db, { workspaceId: other.id, email: 'anna@example.com' });
+
+    const me = await meOf(cookie);
+
+    expect(me.workspaces).toEqual([]);
+    expect(me.clientWorkspaces).toEqual([{ id: gym.id, slug: gym.marker, name: gym.marker }]);
+    expect(JSON.stringify(me)).not.toContain(other.id);
+  });
+
+  it('F030 AC11: Sarah, a Trainer who is also a client of the same workspace, sees it under both', async () => {
+    const { id, cookie } = await accountSignedIn('sarah@example.com', 'Sarah');
+    const gym = await createWorkspace(client.db, { label: 'johns-gym-sarah' });
+    await addTeamRole(client.db, { workspaceId: gym.id, accountId: id, role: 'trainer' });
+    await addClient(client.db, { workspaceId: gym.id, accountId: id });
+
+    const me = await meOf(cookie);
+
+    expect(me.workspaces).toEqual([
+      {
+        id: gym.id,
+        name: gym.marker,
+        slug: gym.marker,
+        role: 'trainer',
+        capabilities: capabilitiesOf('trainer'),
+      },
+    ]);
+    expect(me.clientWorkspaces).toEqual([{ id: gym.id, slug: gym.marker, name: gym.marker }]);
+  });
+
+  it('F030 AC11: a client of two workspaces sees both, by name', async () => {
+    const { id, cookie } = await accountSignedIn('both@example.com', 'Both');
+    const zeta = await createWorkspace(client.db, { label: 'zeta-studio' });
+    const alpha = await createWorkspace(client.db, { label: 'alpha-gym' });
+    await addClient(client.db, { workspaceId: zeta.id, accountId: id });
+    await addClient(client.db, { workspaceId: alpha.id, accountId: id });
+
+    const me = await meOf(cookie);
+
+    expect(me.clientWorkspaces).toEqual([
+      { id: alpha.id, slug: alpha.marker, name: alpha.marker },
+      { id: zeta.id, slug: zeta.marker, name: zeta.marker },
+    ]);
+  });
+
+  it('F030 AC11: Mark, an account without any workspace, sees both lists empty', async () => {
+    const { cookie } = await accountSignedIn('mark@example.com', 'Mark');
+
+    const me = await meOf(cookie);
+
+    expect(me).toMatchObject({ workspaces: [], clientWorkspaces: [] });
+  });
+
+  it('F030 AC10: Mark gets the 404 of an unknown workspace on a workspace route, and anonymous gets 401', async () => {
+    const { cookie } = await accountSignedIn('mark-isolated@example.com', 'Mark');
+    const gym = await createWorkspace(client.db, { label: 'johns-gym-hidden' });
+    const unknown = '0197c0de-0000-7000-8000-00000000dead';
+    const call = (workspaceId: string, headers: Record<string, string>) =>
+      api(client.db).request(`/v1/workspaces/${workspaceId}`, { headers });
+
+    const real = await call(gym.id, { cookie });
+    const missing = await call(unknown, { cookie });
+    const anonymous = await call(gym.id, {});
+
+    expect(real.status).toBe(404);
+    expect(missing.status).toBe(404);
+    expect(await real.json()).toEqual(await missing.json());
+    expect(anonymous.status).toBe(401);
   });
 
   it('AC14: an account without a stored language has none, and the contract allows it', async () => {
@@ -412,7 +504,8 @@ describe('GET /v1/me', () => {
       const operation = contract.paths['/v1/me'].patch;
 
       expect(operation.operationId).toBe('updateMe');
-      expect(operation['x-access']).toEqual({ type: 'account', workspaces: 'team' });
+      // It answers with the account as GET does, so it opens the client relationships too (F030).
+      expect(operation['x-access']).toEqual({ type: 'account', workspaces: 'any' });
       expect(Object.keys(operation.responses).toSorted()).toEqual(['200', '400', '401', '500']);
       expect(contract.components.schemas.UpdateMeRequest.properties.preferredLocale.enum).toEqual([
         'nl-NL',

@@ -23,6 +23,7 @@
 
 package app.fivvi.api.models
 
+import app.fivvi.api.models.MeClientWorkspace
 import app.fivvi.api.models.MeWorkspace
 
 import kotlinx.serialization.Serializable
@@ -38,7 +39,8 @@ import kotlinx.serialization.Contextual
  * @param preferredLocale The language stored on the account; null until one is stored.
  * @param bookingEmails Whether the person gets an email when a client books or cancels a class they teach (F050). On for every account until they switch it off. It belongs to the account, so it is the same in every workspace.
  * @param canCreateWorkspace Whether the account may set up a workspace: it is on the sign-up allowlist, whether or not it has a workspace already. With no workspace, the first-run screen shows when this is true and the no-access page when it is false. The web and the apps never decide this by rules of their own.
- * @param workspaces The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed.
+ * @param workspaces The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed here, but under `clientWorkspaces`.
+ * @param clientWorkspaces The workspaces where the account has a joined client relationship, by name; a workspace it is both a team member and a client of is listed here too. Empty when it has none. Until join requests and invitations exist (F029, F032), a client record linked to the account counts as joined. A workspace the account has only asked to join is not listed.
  */
 @Serializable
 
@@ -68,9 +70,13 @@ data class MeResponse (
     @SerialName(value = "canCreateWorkspace")
     val canCreateWorkspace: kotlin.Boolean,
 
-    /* The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed. */
+    /* The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed here, but under `clientWorkspaces`. */
     @SerialName(value = "workspaces")
-    val workspaces: kotlin.collections.List<MeWorkspace>
+    val workspaces: kotlin.collections.List<MeWorkspace>,
+
+    /* The workspaces where the account has a joined client relationship, by name; a workspace it is both a team member and a client of is listed here too. Empty when it has none. Until join requests and invitations exist (F029, F032), a client record linked to the account counts as joined. A workspace the account has only asked to join is not listed. */
+    @SerialName(value = "clientWorkspaces")
+    val clientWorkspaces: kotlin.collections.List<MeClientWorkspace>
 
 ) {
 

@@ -729,11 +729,12 @@ describe('F005 change your own email address', () => {
       }
       expect(offenders).toEqual([]);
       // The only routes that take an address for an account act on the signed-in one.
-      for (const path of ['/v1/me/email/change', '/v1/me/email/confirm']) {
-        expect(contract.paths[path].post['x-access']).toEqual({
-          type: 'account',
-          workspaces: 'team',
-        });
+      // The confirmation answers with the whole account, client workspaces included (F030).
+      for (const [path, workspaces] of [
+        ['/v1/me/email/change', 'team'],
+        ['/v1/me/email/confirm', 'any'],
+      ] as const) {
+        expect(contract.paths[path].post['x-access']).toEqual({ type: 'account', workspaces });
       }
     });
 
@@ -916,8 +917,9 @@ describe('F005 change your own email address', () => {
 
       expect(change.operationId).toBe('requestEmailChange');
       expect(confirm.operationId).toBe('confirmEmailChange');
+      expect(change['x-access']).toEqual({ type: 'account', workspaces: 'team' });
+      expect(confirm['x-access']).toEqual({ type: 'account', workspaces: 'any' });
       for (const operation of [change, confirm]) {
-        expect(operation['x-access']).toEqual({ type: 'account', workspaces: 'team' });
         expect(operation.security).toEqual([{ cookieAuth: [] }, { bearerAuth: [] }]);
         expect(operation.responses['401']).toBeDefined();
       }
