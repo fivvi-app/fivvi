@@ -21,6 +21,7 @@ import {
   createProductEventCaptureTransport,
   createProductEvents,
 } from '@fivvi/observability';
+import { createBackgroundTasks } from '@fivvi/testing/background-tasks';
 import { type Clock, freezeSystemTime, manualClock } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { eq, notInArray } from 'drizzle-orm';
@@ -42,7 +43,7 @@ describe('F001 sign in with the emailed code through the API', () => {
   let client: DatabaseClient;
   const transport = createMemoryTransport();
   /** The sign-in requests' work that runs after their answer; `requestCode` waits for it. */
-  const pending: Promise<void>[] = [];
+  const tasks = createBackgroundTasks();
   let allowlist = parseSignUpAllowlist(undefined);
   let reportedErrors: unknown[] = [];
 
@@ -73,7 +74,7 @@ describe('F001 sign in with the emailed code through the API', () => {
       ...(log ? { log } : {}),
       ...(requireClientIp === undefined ? {} : { requireClientIp }),
       signUpAllowlist: allowlist,
-      runInBackground: (task) => pending.push(task),
+      runInBackground: tasks.run,
       reportError: (error) => reportedErrors.push(error),
       sendEmail: createSendEmail({
         transport: emailTransport,
@@ -87,7 +88,7 @@ describe('F001 sign in with the emailed code through the API', () => {
 
   /** Waits until the work that followed the answers of the sign-in requests so far is done. */
   const settle = async () => {
-    await Promise.all(pending.splice(0));
+    await tasks.settle();
   };
 
   interface PostOptions {
@@ -223,8 +224,9 @@ describe('F001 sign in with the emailed code through the API', () => {
   });
 
   beforeEach(async () => {
+    // Wait for the email an earlier test left in flight before the transport is cleared (#1275).
+    await tasks.reset();
     transport.clear();
-    pending.length = 0;
     reportedErrors = [];
     allowlist = parseSignUpAllowlist(undefined);
     await client.db.delete(authVerifications);
