@@ -1,4 +1,4 @@
-import { type Locale, matchLocale, resolveCommunicationLanguage } from '@fivvi/i18n';
+import { type EmailLanguage, type Locale, resolveClientCommunicationLanguage } from '@fivvi/i18n';
 import { defaultLocation } from '../locations/default-location.ts';
 import { hasCapability, type Role } from '../permissions/matrix.ts';
 import { wallClockToInstant } from './zoned-time.ts';
@@ -234,15 +234,19 @@ export function sendsConfirmation(input: { notify: boolean; past: boolean }): bo
 }
 
 /**
- * The language of EM-11 (ADR-017, AC1, AC3): the client's own email language, then the workspace's
- * default. A value that is no catalog language is skipped.
+ * The language of EM-11 and EM-04 (ADR-017, AC1, AC3, F049 AC4): the linked account's own stored
+ * preference, then the client's own email language, then the workspace's default. A client has no
+ * linked account yet, so callers leave `accountPreference` out. A value that is no catalog language
+ * is skipped.
  */
 export function confirmationLanguage(sources: {
+  accountPreference?: string | null;
   clientEmailLocale?: string | null;
   workspaceDefault: Locale;
-}): Locale {
-  return resolveCommunicationLanguage({
-    recipientPreference: matchLocale(sources.clientEmailLocale),
+}): EmailLanguage {
+  return resolveClientCommunicationLanguage({
+    accountPreference: sources.accountPreference,
+    clientLanguage: sources.clientEmailLocale,
     workspaceDefault: sources.workspaceDefault,
   });
 }

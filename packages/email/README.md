@@ -4,6 +4,7 @@ Transactional email (ADR-009): React Email templates, localized from `packages/i
 
 ```ts
 import { createConfiguredTransport, createSendEmail, helloEmail, readEmailConfig } from '@fivvi/email';
+import { resolveClientCommunicationLanguage } from '@fivvi/i18n';
 
 // Lettermint: LETTERMINT_API_TOKEN, both routes and the sender are required
 const config = readEmailConfig();
@@ -16,7 +17,8 @@ await sendEmail({
   template: helloEmail,
   props: { firstName: 'Anna', sentAt },
   to: { email: 'anna@example.com', name: 'Anna' },
-  locale: 'nl-NL', // resolveCommunicationLanguage() from @fivvi/i18n
+  // Only an EmailLanguage from a resolver of @fivvi/i18n type-checks; a plain 'nl-NL' does not (F049).
+  locale: resolveClientCommunicationLanguage({ workspaceDefault: 'nl-NL' }),
   timeZone: 'Europe/Amsterdam', // the workspace time zone
 });
 ```

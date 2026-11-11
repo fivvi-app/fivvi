@@ -7,6 +7,7 @@ import {
 import { createSendEmail, type RetryEvent } from './send.ts';
 import { helloEmail } from './templates/hello.tsx';
 import { signInEmail } from './templates/sign-in.tsx';
+import { dutch, english } from './test-languages.ts';
 import { EmailSendError } from './transport.ts';
 
 const apiToken = 'lm-test-not-a-real-token';
@@ -58,9 +59,9 @@ function setup(...replies: Reply[]) {
     idempotencyKey: () => key,
     onRetry: (event) => retries.push(event),
   });
-  const send = () => sendEmail({ template: helloEmail, props: helloProps, to, locale: 'nl-NL' });
+  const send = () => sendEmail({ template: helloEmail, props: helloProps, to, locale: dutch });
   const sendSignIn = () =>
-    sendEmail({ template: signInEmail, props: signInProps, to, locale: 'en' });
+    sendEmail({ template: signInEmail, props: signInProps, to, locale: english });
   return { ...http, waits, retries, send, sendSignIn };
 }
 

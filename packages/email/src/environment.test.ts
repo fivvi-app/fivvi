@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest';
 import { createEnvironmentSendEmail, isProductionEnvironment } from './environment.ts';
 import { lettermintApiUrl } from './lettermint.ts';
 import { signInEmail } from './templates/sign-in.tsx';
+import { english } from './test-languages.ts';
 
 const lettermintEnv = {
   LETTERMINT_API_TOKEN: 'lm-test-not-a-real-token',
@@ -34,7 +35,7 @@ function setup(env: Record<string, string>) {
     log: (line) => logged.push(line),
   });
   const send = (to: string) =>
-    sendEmail({ template: signInEmail, props, to: { email: to }, locale: 'en' });
+    sendEmail({ template: signInEmail, props, to: { email: to }, locale: english });
   return { requests, logged, send };
 }
 
