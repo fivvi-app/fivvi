@@ -21,6 +21,11 @@ import { useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { renewJoinLink } from './renew-join-link-client';
 
+/** The URL to show: the renewed one only while the server still gives the URL it replaced. */
+export function shownJoinLink(renewal: { from: string; to: string } | null, url: string): string {
+  return renewal && renewal.from === url ? renewal.to : url;
+}
+
 /**
  * The Aanmeldlink page (F029; a person with `join_link.view`, the Owner and the Trainers): the
  * workspace's one join link with **Link kopiëren**, and, for a person with `join_link.renew` (the
@@ -53,7 +58,7 @@ export function JoinLinkCard({
 
   useEffect(() => setReady(true), []);
 
-  const shown = renewal && renewal.from === url ? renewal.to : url;
+  const shown = shownJoinLink(renewal, url);
 
   async function copy() {
     setNotice(null);
@@ -114,7 +119,7 @@ export function JoinLinkCard({
             <div>
               <Button
                 type="button"
-                variant="outline"
+                variant="ghost"
                 size="sm"
                 disabled={!ready || pending}
                 onClick={() => setAsking(true)}

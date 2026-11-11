@@ -61,7 +61,8 @@ test.describe('F029 the Aanmeldlink page', () => {
       dialog.getByRole('heading', { name: copy.joinLink.renewDialog.title }),
     ).toBeVisible();
     await expect(dialog.getByText(copy.joinLink.renewDialog.body)).toBeVisible();
-    // The prototype marks the confirm as dangerous: the link and its QR codes stop working.
+    // A destructive confirm uses the error colour (information-architecture.md, destructive
+    // confirmation): the link and its QR codes stop working.
     await expect(
       dialog.getByRole('button', { name: copy.joinLink.renewDialog.confirm }),
     ).toHaveClass(/text-destructive/);

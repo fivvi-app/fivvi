@@ -1,7 +1,7 @@
 import { locales, messages } from '@fivvi/i18n';
 import { describe, expect, it, vi } from 'vitest';
 import { escapeHtml, render } from '../../../../../../test/render';
-import { JoinLinkCard } from './join-link-card';
+import { JoinLinkCard, shownJoinLink } from './join-link-card';
 
 vi.mock('next/navigation', () => ({ useRouter: () => ({ refresh: () => {} }) }));
 
@@ -39,5 +39,23 @@ describe.each(locales)('F029 the Aanmeldlink page in %s', (locale) => {
     expect(html).toMatch(new RegExp(`<button[^>]*>${escapeHtml(copy.joinLink.renew)}</button>`));
     expect(html).not.toContain(escapeHtml(copy.joinLink.renewDialog.title));
     expect(html).not.toContain(escapeHtml(copy.joinLink.copied));
+  });
+});
+
+describe('F029 the URL the card shows after a renewal', () => {
+  const renewal = { from: 'https://fivvi.app/j/OLDOLD11', to: 'https://fivvi.app/j/NEWNEW22' };
+
+  it('AC6: shows the renewed URL while the server still gives the one it replaced', () => {
+    expect(shownJoinLink(renewal, renewal.from)).toBe(renewal.to);
+  });
+
+  it('AC6: a re-render with a new server url shows the server value, not the renewal', () => {
+    expect(shownJoinLink(renewal, 'https://fivvi.app/j/SERVER33')).toBe(
+      'https://fivvi.app/j/SERVER33',
+    );
+  });
+
+  it('AC7: without a renewal the server url is shown', () => {
+    expect(shownJoinLink(null, URL_OF_THE_LINK)).toBe(URL_OF_THE_LINK);
   });
 });
