@@ -1,4 +1,8 @@
--- Hand edit of the generated file: the three new business tables force RLS, as the conventions
+-- Hand edit of the generated file: the foreign key payment_refunds_requested_by_fk says
+-- ON DELETE SET NULL ("requested_by_team_member_id"), as sessions_created_by_fk does (see 0021): a
+-- plain SET NULL would also clear organization_id, which is part of the composite key and not null.
+-- Removing the team member who asked for a refund is never blocked by it; the refund stays, without
+-- that link. The three new business tables force RLS, as the conventions
 -- check demands (see 0009, 0013, 0017, 0021, 0023 and 0028), and payment_refund_status_changes is
 -- append-only: a trigger refuses every update and delete, for every role, so the history of a
 -- refund cannot be rewritten. It runs AFTER the row change so that row-level security (WITH CHECK)
@@ -67,7 +71,7 @@ ALTER TABLE "payment_refund_status_changes" ADD CONSTRAINT "payment_refund_statu
 ALTER TABLE "payment_refund_status_changes" ADD CONSTRAINT "payment_refund_status_changes_refund_fk" FOREIGN KEY ("organization_id","refund_id","client_id") REFERENCES "public"."payment_refunds"("organization_id","id","client_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "payment_refunds" ADD CONSTRAINT "payment_refunds_organization_id_organizations_id_fk" FOREIGN KEY ("organization_id") REFERENCES "public"."organizations"("id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "payment_refunds" ADD CONSTRAINT "payment_refunds_payment_fk" FOREIGN KEY ("organization_id","payment_id","client_id") REFERENCES "public"."payments"("organization_id","id","client_id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
-ALTER TABLE "payment_refunds" ADD CONSTRAINT "payment_refunds_requested_by_fk" FOREIGN KEY ("organization_id","requested_by_team_member_id") REFERENCES "public"."team_members"("organization_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "payment_refunds" ADD CONSTRAINT "payment_refunds_requested_by_fk" FOREIGN KEY ("organization_id","requested_by_team_member_id") REFERENCES "public"."team_members"("organization_id","id") ON DELETE SET NULL ("requested_by_team_member_id") ON UPDATE no action;--> statement-breakpoint
 CREATE UNIQUE INDEX "payment_chargebacks_provider_chargeback_id_unique" ON "payment_chargebacks" USING btree ("provider_chargeback_id");--> statement-breakpoint
 CREATE INDEX "payment_chargebacks_organization_id_payment_id_idx" ON "payment_chargebacks" USING btree ("organization_id","payment_id","received_at");--> statement-breakpoint
 CREATE INDEX "payment_refund_status_changes_organization_id_refund_id_idx" ON "payment_refund_status_changes" USING btree ("organization_id","refund_id","occurred_at");--> statement-breakpoint

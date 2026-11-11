@@ -42,11 +42,17 @@ export const REFUND_REASON_MAX_LENGTH = 500;
  * - The row is inserted before the provider is called; its `id` goes to the provider as the
  *   idempotency key and in the metadata. `provider_refund_id` stays empty until the provider's
  *   refund is linked (and is unique across the table: the webhook finds the refund by it).
- * - `reason` is internal, for the Owner only, and never leaves the database for the provider.
+ * - `reason` is internal, for the Owner only, and never leaves the database for the provider. The
+ *   client policy limits rows, not columns (the app role is one role for team and client paths),
+ *   so a client-facing query must not select it: the client routes of the later F060 tickets pick
+ *   their columns and leave `reason` out.
  * - `revoke_credits` is the Owner's choice to take back the credits of the payment.
  * - `status` is the current status, the last of the refund's `payment_refund_status_changes`; it
  *   is moved only together with a new line.
- * - `requested_by_team_member_id` is empty once that person has left the team.
+ * - `requested_by_team_member_id` is empty once that person has left the team
+ *   (`ON DELETE SET NULL (requested_by_team_member_id)`, which only clears that column; the
+ *   migration writes the column list, Drizzle cannot): the refund stays, and removing a team member
+ *   is never blocked by the refunds they asked for.
  *
  * `unique (organization_id, id, client_id)` lets the status lines point at the refund and repeat
  * its client, so a client's policy covers them too.

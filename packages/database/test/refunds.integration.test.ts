@@ -6,6 +6,7 @@ import {
   createTenantScopes,
   type DatabaseClient,
   type DatabaseExecutor,
+  deleteTeamMember,
   insertRefund,
   listRefundStatusChanges,
   paymentChargebacks,
@@ -122,6 +123,30 @@ describe('F060 refunds and reversals', () => {
         .from(paymentRefunds)
         .where(eq(paymentRefunds.organizationId, workspaceId)),
     ).toHaveLength(1);
+  });
+
+  it('removing the team member who asked for a refund keeps the refund and empties that link', async () => {
+    const { workspaceId, inScope } = await gym();
+    const trainerAccount = await createAccount(admin.db, { label: 'sarah' });
+    const trainer = await addTeamRole(admin.db, {
+      workspaceId,
+      accountId: trainerAccount.id,
+      role: 'trainer',
+    });
+    const refund = await addPaymentRefund(admin.db, {
+      workspaceId,
+      requestedByTeamMemberId: trainer.id,
+    });
+
+    expect(await inScope((scope) => deleteTeamMember(scope, trainer.id))).toBe(true);
+
+    const [kept] = await admin.db.select().from(paymentRefunds).where(eq(paymentRefunds.id, refund.id));
+    expect(kept?.requestedByTeamMemberId).toBeNull();
+    // Only that column is cleared: the refund stays in its workspace, with its status line.
+    expect(kept?.organizationId).toBe(workspaceId);
+    expect(kept?.status).toBe('requested');
+    const lines = await inScope((scope) => listRefundStatusChanges(scope, refund.id));
+    expect(lines.map((line) => line.to)).toEqual(['requested']);
   });
 
   it('AC13: two status changes at once write one line', async () => {

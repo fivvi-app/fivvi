@@ -1,5 +1,4 @@
 import { describe, expect, it } from 'vitest';
-import { REFUND_STATUSES } from './refund-status.ts';
 import { type RefundBasis, refundableAmount } from './refundable.ts';
 
 // Mark Jansen's Privécreditabonnement of € 260,00 (26 000 cents), paid.
@@ -87,42 +86,9 @@ function generator(seed: number) {
   };
 }
 
-describe('AC9: the refundable amount stays between 0 and the paid amount', () => {
-  it('holds for any sequence of refunds, reversals and statuses', () => {
-    const random = generator(2027);
-    const pick = <T>(items: readonly T[]): T => items[Math.floor(random() * items.length)] as T;
-    const paymentStatuses = [
-      'open',
-      'pending',
-      'paid',
-      'failed',
-      'canceled',
-      'expired',
-      'refunded',
-      'charged_back',
-    ] as const;
-    for (let round = 0; round < 2000; round += 1) {
-      const paymentAmountCents = 1 + Math.floor(random() * 100_000);
-      const refunds = Array.from({ length: Math.floor(random() * 6) }, () => ({
-        amountCents: 1 + Math.floor(random() * paymentAmountCents * 1.5),
-        status: pick(REFUND_STATUSES),
-      }));
-      const chargebacks = Array.from({ length: Math.floor(random() * 4) }, () => ({
-        amountCents: 1 + Math.floor(random() * paymentAmountCents * 1.5),
-      }));
-      const paymentStatus = pick(paymentStatuses);
-      const refundable = refundableAmount({
-        paymentStatus,
-        paymentAmountCents,
-        refunds,
-        chargebacks,
-      });
-      expect(Number.isInteger(refundable)).toBe(true);
-      expect(refundable).toBeGreaterThanOrEqual(0);
-      expect(refundable).toBeLessThanOrEqual(paymentAmountCents);
-    }
-  });
-
+// The whole histories (requests, statuses, reversals) run through the ledgers in
+// `refund-sequences.test.ts`; here the pure function alone.
+describe('AC9: a refund on its way', () => {
   it('a refund on its way never raises it', () => {
     const random = generator(11);
     for (let round = 0; round < 500; round += 1) {
