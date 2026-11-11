@@ -1143,6 +1143,41 @@
         }
       }
     },
+    "myProfile.bookingEmailsHelp" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You get an email when a client books or cancels."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je krijgt een e-mail als een klant boekt of annuleert."
+          }
+        }
+      }
+    },
+    "myProfile.bookingEmailsLabel" : {
+      "comment" : "Label of the checkbox on My profile (TW-09) that switches the emails for a client booking or cancelling in the person's own classes on or off (F050). On by default; the setting belongs to the account.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Emails about bookings in my classes"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-mails over boekingen in mijn lessen"
+          }
+        }
+      }
+    },
     "myProfile.detailsTitle" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1191,6 +1226,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "E-mailadres"
+          }
+        }
+      }
+    },
+    "myProfile.emailsTitle" : {
+      "comment" : "Heading of the section of My profile (TW-09) with the switches for emails the person gets.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Emails"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "E-mails"
           }
         }
       }

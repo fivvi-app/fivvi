@@ -94,10 +94,15 @@
     <string name="home_set_up_on_web">Maak je werkruimte aan op het web.</string>
     <!-- Native apps only: line on the signed-in home placeholder that says which account is signed in. {email} is the account's email address, shown in full to its owner. -->
     <string name="home_signed_in_as">Ingelogd als %1$s</string>
+    <string name="my_profile_booking_emails_help">Je krijgt een e-mail als een klant boekt of annuleert.</string>
+    <!-- Label of the checkbox on My profile (TW-09) that switches the emails for a client booking or cancelling in the person's own classes on or off (F050). On by default; the setting belongs to the account. -->
+    <string name="my_profile_booking_emails_label">E-mails over boekingen in mijn lessen</string>
     <string name="my_profile_details_title">Jouw gegevens</string>
     <!-- Title of the native dialog (iOS sheet, Android full-screen dialog) in which the person changes their name on Profile (TM-04), and the action of the name row that opens it. -->
     <string name="my_profile_edit_name">Naam wijzigen</string>
     <string name="my_profile_email_label">E-mailadres</string>
+    <!-- Heading of the section of My profile (TW-09) with the switches for emails the person gets. -->
+    <string name="my_profile_emails_title">E-mails</string>
     <string name="my_profile_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
     <string name="my_profile_errors_name_required">Vul je naam in.</string>
     <string name="my_profile_errors_name_too_long">Deze naam is te lang. Gebruik een kortere naam.</string>
