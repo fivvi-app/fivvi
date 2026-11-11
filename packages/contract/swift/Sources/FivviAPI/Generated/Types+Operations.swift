@@ -2358,7 +2358,7 @@ public enum Operations {
     }
     /// Ask for a sign-in email
     ///
-    /// Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for a request over the rate limits, so it never says who has an account.
+    /// Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for an address over its limit (3 requests per 15 minutes), so it never says who has an account. The app needs no bot check; every limit applies to it. A network over its limit (20 requests per hour) gets `429`, and nothing is sent.
     ///
     /// - Remark: HTTP `POST /v1/sign-in/request`.
     /// - Remark: Generated from `#/paths//v1/sign-in/request/post(requestSignIn)`.
@@ -2478,6 +2478,57 @@ public enum Operations {
                     default:
                         try throwUnexpectedResponseStatus(
                             expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct TooManyRequests: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/sign-in/request/POST/responses/429/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/sign-in/request/POST/responses/429/content/application\/json`.
+                    case json(Components.Schemas.PublicRequestRateLimited)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.PublicRequestRateLimited {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.RequestSignIn.Output.TooManyRequests.Body
+                /// Creates a new `TooManyRequests`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.RequestSignIn.Output.TooManyRequests.Body) {
+                    self.body = body
+                }
+            }
+            /// Too many requests from this network in the last hour. Nothing was sent. Try again later.
+            ///
+            /// - Remark: Generated from `#/paths//v1/sign-in/request/post(requestSignIn)/responses/429`.
+            ///
+            /// HTTP response code: `429 tooManyRequests`.
+            case tooManyRequests(Operations.RequestSignIn.Output.TooManyRequests)
+            /// The associated value of the enum case if `self` is `.tooManyRequests`.
+            ///
+            /// - Throws: An error if `self` is not `.tooManyRequests`.
+            /// - SeeAlso: `.tooManyRequests`.
+            public var tooManyRequests: Operations.RequestSignIn.Output.TooManyRequests {
+                get throws {
+                    switch self {
+                    case let .tooManyRequests(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "tooManyRequests",
                             response: self
                         )
                     }
@@ -3709,7 +3760,7 @@ public enum Operations {
     }
     /// A workspace
     ///
-    /// The workspace: its name, URL name, default language and time zone.
+    /// The workspace: its name, URL name, default language, time zone and the word it uses for its trainers.
     ///
     /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/get(getWorkspace)`.
@@ -4100,9 +4151,9 @@ public enum Operations {
             }
         }
     }
-    /// Rename a workspace or set its default language
+    /// Rename a workspace, set its default language or its word for trainers
     ///
-    /// Changes the name and/or the default communication language of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`, anything else answers `400` and nothing changes.
+    /// Changes the name, the default communication language and/or the word for trainers of the workspace (the Owner only; a Trainer reads the word but gets `403` when changing it). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`; the word is `trainer`, `instructeur`, `docent` or `coach`. Anything else answers `400` (the API’s validation error) and nothing changes. The role stays Trainer whatever the word.
     ///
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/patch(renameWorkspace)`.

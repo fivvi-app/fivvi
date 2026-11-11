@@ -1369,10 +1369,11 @@ describe('F001 sign in with the emailed code through the API', () => {
       expect(transport.sent).toHaveLength(4);
 
       // Per IP address: 20 requests in an hour, whoever they are for (an unknown address counts
-      // too, so the limit can't tell who has an account). A later request is answered the same way.
+      // too, so the limit can't tell who has an account). A later request is answered 429 (E013).
       await expectIpBoundary((email) => requestCode(email, 'en', from(CLIENT_C, server)));
       const ipLimited = await requestCode('owner@example.com', 'en', from(CLIENT_C, server));
-      expect(await outcome(ipLimited)).toEqual(first);
+      expect(ipLimited.status).toBe(429);
+      expect(await ipLimited.json()).toEqual({ code: 'rate_limited' });
       expect(transport.sent).toHaveLength(1);
 
       // Another IP address is not affected, and an hour later the first one may ask again.
@@ -1621,6 +1622,140 @@ describe('F001 sign in with the emailed code through the API', () => {
           i === 0 ? 200 : 401,
         );
       }
+    });
+  });
+
+  describe('E013 the F001 limits for new addresses and the 429 of the IP limit', () => {
+    /** The test network of the ticket (TEST-NET-1) and the addresses of its examples. */
+    const IP = '192.0.2.10';
+    const NEW_ADDRESS = 'mark@example.com';
+    const EXISTING_ADDRESS = 'owner@example.com';
+
+    const posthog = createProductEventCaptureTransport();
+    const productEvents = createProductEvents({
+      env: { POSTHOG_KEY: 'phc_test', POSTHOG_HOST: 'https://posthog.example.test' },
+      transport: posthog,
+      errorReporter: createErrorReporter({ env: {} }),
+    });
+    /** The properties of the refusals PostHog got, without the SDK's own (`$lib`, …). */
+    const refusals = async () => {
+      await productEvents.flush();
+      return posthog.events
+        .filter((event) => event.event === 'public_request_refused')
+        .map((event) =>
+          Object.fromEntries(
+            Object.entries(event.properties).filter(([name]) => !name.startsWith('$')),
+          ),
+        );
+    };
+
+    function startAt() {
+      freezeSystemTime(T0);
+      posthog.events.length = 0;
+      return authAt({ clock: manualClock(T0), overrides: { productEvents } });
+    }
+    const fromIp = (server: ReturnType<typeof auth>, ip = IP) => ({
+      server,
+      headers: { 'x-real-ip': ip },
+    });
+
+    it.each([
+      ['a new address', NEW_ADDRESS],
+      ['an existing one', EXISTING_ADDRESS],
+    ])(
+      'AC4: the 4th request of %s within 15 minutes answers like an allowed one and sends nothing',
+      async (_, address) => {
+        allowlist = parseSignUpAllowlist(NEW_ADDRESS);
+        const server = startAt();
+        const allowed = await outcome(await requestCode(address, 'en', fromIp(server)));
+        await requestCode(address, 'en', fromIp(server));
+        await requestCode(address, 'en', fromIp(server));
+        expect(transport.sent).toHaveLength(3);
+
+        const fourth = await requestCode(address, 'en', fromIp(server));
+
+        expect(await outcome(fourth)).toEqual(allowed);
+        expect(transport.sent).toHaveLength(3);
+        expect(await refusals()).toEqual([{ rule: 'sign_in_address', platform: 'web' }]);
+      },
+    );
+
+    it('AC4: the 21st request from one IP address within an hour answers 429 rate_limited and sends nothing', async () => {
+      const server = startAt();
+      for (let i = 0; i < 20; i++) {
+        const response = await requestCode(`nobody${i}@example.com`, 'en', fromIp(server));
+        expect(response.status).toBe(200);
+      }
+
+      const limited = await requestCode(EXISTING_ADDRESS, 'en', fromIp(server));
+
+      expect(limited.status).toBe(429);
+      expect(await limited.json()).toEqual({ code: 'rate_limited' });
+      expect(transport.sent).toEqual([]);
+      expect(await refusals()).toEqual([{ rule: 'sign_in_ip', platform: 'web' }]);
+    });
+
+    it('AC4: a request over the IP limit replaces nothing: the pending code keeps working', async () => {
+      allowlist = parseSignUpAllowlist(NEW_ADDRESS);
+      const server = startAt();
+      await requestCode(NEW_ADDRESS, 'en', fromIp(server));
+      const { code } = readEmail();
+      for (let i = 0; i < 19; i++)
+        await requestCode(`nobody${i}@example.com`, 'en', fromIp(server));
+
+      const limited = await requestCode(NEW_ADDRESS, 'en', fromIp(server));
+
+      expect(limited.status).toBe(429);
+      expect(transport.sent).toHaveLength(1);
+      expect((await enterCode(NEW_ADDRESS, code, server)).status).toBe(200);
+    });
+
+    it('AC4: over both limits at once is one refusal, by the IP limit', async () => {
+      const server = startAt();
+      for (let i = 0; i < 3; i++) await requestCode(EXISTING_ADDRESS, 'en', fromIp(server));
+      for (let i = 0; i < 17; i++)
+        await requestCode(`nobody${i}@example.com`, 'en', fromIp(server));
+      posthog.events.length = 0;
+
+      const limited = await requestCode(EXISTING_ADDRESS, 'en', fromIp(server));
+
+      expect(limited.status).toBe(429);
+      expect(await refusals()).toEqual([{ rule: 'sign_in_ip', platform: 'web' }]);
+    });
+
+    it('AC4: 5 wrong codes kill the code of a new address too', async () => {
+      allowlist = parseSignUpAllowlist(NEW_ADDRESS);
+      const server = startAt();
+      await requestCode(NEW_ADDRESS, 'en', fromIp(server));
+      const { code } = readEmail();
+
+      for (let i = 0; i < 5; i++) {
+        expect((await enterCode(NEW_ADDRESS, wrongCodeFor(code), server)).status).toBe(401);
+      }
+      const right = await enterCode(NEW_ADDRESS, code, server);
+
+      expect(right.status).toBe(401);
+      expect(right.headers.getSetCookie()).toEqual([]);
+      expect(await client.db.$count(authUsers, eq(authUsers.email, NEW_ADDRESS))).toBe(0);
+    });
+
+    it('AC11: a refusal records the rule and the platform and nothing else', async () => {
+      const server = startAt();
+      for (let i = 0; i < 4; i++) await requestCode(EXISTING_ADDRESS, 'en', fromIp(server));
+      for (let i = 0; i < 17; i++)
+        await requestCode(`nobody${i}@example.com`, 'en', fromIp(server));
+
+      const events = await refusals();
+      expect(events).toHaveLength(2);
+      for (const properties of events)
+        expect(Object.keys(properties).sort()).toEqual(['platform', 'rule']);
+      expect(JSON.stringify(posthog.events)).not.toMatch(/example\.com|192\.0\.2\./);
+    });
+
+    it('an allowed request records no refusal', async () => {
+      const server = startAt();
+      await requestCode(EXISTING_ADDRESS, 'en', fromIp(server));
+      expect(await refusals()).toEqual([]);
     });
   });
 
@@ -2111,18 +2246,19 @@ describe('F001 sign in with the emailed code through the API', () => {
       for (const ip of ['203.0.113.10', '203.0.113.11', '203.0.113.12']) {
         await requestCode('owner@example.com', 'en', from(ip));
       }
-      expect(posthog.events).toHaveLength(3);
+      const requested = () => posthog.events.filter(({ event }) => event === 'sign_in_requested');
+      expect(requested()).toHaveLength(3);
       await requestCode('owner@example.com', 'en', from('203.0.113.13'));
-      expect(posthog.events).toHaveLength(3);
+      expect(requested()).toHaveLength(3);
 
       // Over the IP limit (20 in an hour): 20 requests, each for an address of its own.
       posthog.events.length = 0;
       for (let i = 0; i < 20; i++) {
         await requestCode(`nobody${i}@example.com`, 'en', from('203.0.113.20'));
       }
-      expect(posthog.events).toHaveLength(20);
+      expect(requested()).toHaveLength(20);
       await requestCode('nobody20@example.com', 'en', from('203.0.113.20'));
-      expect(posthog.events).toHaveLength(20);
+      expect(requested()).toHaveLength(20);
     });
 
     it('AC16: a wrong code and an unknown link record no signed_in', async () => {

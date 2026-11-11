@@ -11,7 +11,9 @@ import { join } from 'node:path';
 import { cleanEnv } from './clean-env.mjs';
 
 const GH = `#!/usr/bin/env node
-const { appendFileSync, readFileSync } = require('node:fs');
+const { appendFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } = require('node:fs');
+const { tmpdir } = require('node:os');
+const { join } = require('node:path');
 const { execFileSync } = require('node:child_process');
 const args = process.argv.slice(2);
 const line = args.join(' ');
@@ -30,8 +32,25 @@ const answer = rule.outs === undefined ? rule.out : rule.outs[Math.min(earlier.f
 let out = answer === undefined ? '' : typeof answer === 'string' ? answer : JSON.stringify(answer);
 if (rule.limited && at('--limit') !== undefined) out = JSON.stringify(JSON.parse(out).slice(0, Number(at('--limit'))));
 const jq = at('--jq') ?? at('-q');
-if (jq !== undefined) out = execFileSync('jq', ['-r', jq], { input: out, encoding: 'utf8' });
-else if (out !== '' && !out.endsWith('\\n')) out += '\\n';
+if (jq !== undefined) {
+  // jq reads a file and gets no stdin at all: a piped input has hung under load, the pipe never ending (#1294).
+  const dir = mkdtempSync(join(tmpdir(), 'fake-gh-jq-'));
+  const limit = Number(process.env.FIVVI_TEST_JQ_TIMEOUT_MS ?? 30000);
+  let timedOut = false;
+  try {
+    writeFileSync(join(dir, 'in.json'), out);
+    out = execFileSync('jq', ['-r', jq, join(dir, 'in.json')], { stdio: ['ignore', 'pipe', 'inherit'], encoding: 'utf8', timeout: limit });
+  } catch (error) {
+    if (error.code !== 'ETIMEDOUT') throw error;
+    timedOut = true;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  if (timedOut) {
+    process.stderr.write('fake gh: jq did not finish within ' + limit + ' ms for: ' + line + '\\n');
+    process.exit(1);
+  }
+} else if (out !== '' && !out.endsWith('\\n')) out += '\\n';
 process.stdout.write(out);
 process.exitCode = rule.status ?? 0;
 `;

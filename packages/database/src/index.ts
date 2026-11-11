@@ -102,6 +102,28 @@ export {
 } from './repositories/personal-sessions.ts';
 export { listMyWorkspaces, type WorkspacePlace } from './repositories/places.ts';
 export {
+  type ChargebackRecord,
+  findRefund,
+  findRefundFacts,
+  type InRefundScope,
+  type InsertRefundResult,
+  insertRefund,
+  linkProviderRefund,
+  listChargebacksOfPayment,
+  listRefundStatusChanges,
+  listRefundsOfPayment,
+  type NewChargeback,
+  type NewRefund,
+  type NewRefundStatusChange,
+  type RefundFacts,
+  type RefundRecord,
+  type RefundStatus,
+  type RefundStatusChangeRecord,
+  recordChargeback,
+  recordRefundStatusChange,
+  refundLedger,
+} from './repositories/refunds.ts';
+export {
   type AttendanceStatus,
   createPrivateSession,
   findSession,

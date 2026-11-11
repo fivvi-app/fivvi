@@ -174,6 +174,8 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
       'join_request_pending',
       'join_requests_capped',
       'booking_churn',
+      'sign_in_address',
+      'sign_in_ip',
     ]),
     platform: property.enum(['web', 'ios', 'android']),
   },

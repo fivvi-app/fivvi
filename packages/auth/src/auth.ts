@@ -92,10 +92,15 @@ export interface Auth {
   findAccount(headers: Headers): Promise<SignedInAccount | undefined>;
   /**
    * The sign-in request of an app (spec #168): the same request as the web's, with the same
-   * verification, email, allowlist and rate limits. It answers the same for every address, and
-   * the email follows after the answer.
+   * verification, email, allowlist and rate limits. It answers `requested` for every address,
+   * also one over its limit, and the email follows after the answer. `rate_limited`: the client
+   * IP address is over its limit (E013); nothing was sent.
    */
-  requestSignIn(input: { email: string; locale: Locale; headers: Headers }): Promise<void>;
+  requestSignIn(input: {
+    email: string;
+    locale: Locale;
+    headers: Headers;
+  }): Promise<'requested' | 'rate_limited'>;
   /**
    * Exchanges the emailed code for a bearer token: a sign-in session of the account, which the
    * web's cookie would hold too. `undefined` for every failure (wrong, used, replaced, expired
@@ -189,7 +194,7 @@ export function createAuth({
       bearer({ requireSignature: true }),
       // First, so the limits hold before the endpoint does anything (AC10), including the
       // background work that follows its answer.
-      signInRateLimits({ db, secret, clock, log, requireClientIp }),
+      signInRateLimits({ db, secret, clock, log, requireClientIp, productEvents }),
       signInWithEmail({
         db,
         secret,
@@ -281,10 +286,16 @@ export function createAuth({
       }
     },
     async requestSignIn({ email, locale, headers }) {
-      await auth.api.requestSignInCode({
-        body: { email, locale },
-        headers: forwardedHeaders(headers),
-      });
+      try {
+        await auth.api.requestSignInCode({
+          body: { email, locale },
+          headers: forwardedHeaders(headers),
+        });
+        return 'requested';
+      } catch (error) {
+        if (error instanceof APIError && error.statusCode === 429) return 'rate_limited';
+        throw error;
+      }
     },
     async exchangeSignInCode({ email, code, headers }) {
       // The web's per-IP limiter is the HTTP router's, which `auth.api` skips.
@@ -348,8 +359,9 @@ function logFailure(error: unknown): void {
 
 /**
  * What an app's sign-in routes pass on to Better Auth: the proxy's client IP address (rate
- * limits, the session's address), the user agent and the language. Nothing else, so a cookie
- * or token in the request can't change what the call does.
+ * limits, the session's address), the user agent (the platform of a refusal event at the sign-in
+ * request; Better Auth stores it on the session at the code exchange) and the language. Nothing
+ * else, so a cookie or token in the request can't change what the call does.
  */
 function forwardedHeaders(headers: Headers): Headers {
   const forwarded = new Headers();

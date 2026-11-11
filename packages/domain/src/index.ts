@@ -174,6 +174,40 @@ export {
   type ProviderSettlement,
   type ProviderSettlementLine,
 } from './payments/provider.ts';
+export type {
+  ChargebackRecord,
+  InsertRefundResult,
+  NewChargeback,
+  NewRefund,
+  RecordRefundStatusChange,
+  RefundLedger,
+  RefundRecord,
+  RefundStatusChange,
+} from './payments/refund-ledger.ts';
+export {
+  decideRefundStatusChange,
+  REFUND_STATUSES,
+  type RefundStatus,
+  type RefundStatusDecision,
+  refundHoldsAmount,
+  refundStatusOfProvider,
+} from './payments/refund-status.ts';
+export { type RefundBasis, refundableAmount } from './payments/refundable.ts';
+export {
+  type AppliedRefundStatus,
+  type ApplyRefundStatusOptions,
+  applyProviderRefundStatus,
+  InvalidRefundError,
+  type InvalidRefundField,
+  REFUND_REASON_MAX_LENGTH,
+  type RefundEngine,
+  type RefundRequest,
+  type RequestedRefund,
+  recordReversal,
+  refundableOf,
+  requestRefund,
+  submitRefund,
+} from './payments/refunds.ts';
 export {
   decideStatusChange,
   PAYMENT_STATUSES,

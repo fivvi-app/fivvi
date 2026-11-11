@@ -23,6 +23,7 @@
 
 package app.fivvi.api.models
 
+import app.fivvi.api.models.TrainerWord
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -34,6 +35,7 @@ import kotlinx.serialization.Contextual
  * @param id The workspace ID.
  * @param name The name shown in the product.
  * @param slug The URL name: `/w/{slug}` on the web.
+ * @param trainerWord 
  * @param role What the account is in the workspace; shown as a label, never decided on.
  * @param capabilities What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
  */
@@ -52,6 +54,9 @@ data class MeWorkspace (
     /* The URL name: `/w/{slug}` on the web. */
     @SerialName(value = "slug")
     val slug: kotlin.String,
+
+    @Contextual @SerialName(value = "trainerWord")
+    val trainerWord: TrainerWord,
 
     /* What the account is in the workspace; shown as a label, never decided on. */
     @SerialName(value = "role")

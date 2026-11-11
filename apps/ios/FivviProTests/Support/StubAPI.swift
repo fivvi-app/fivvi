@@ -14,6 +14,7 @@ actor StubAPI: APIProtocol {
     enum SignInAnswer: Sendable {
         case accepted
         case badRequest
+        case rateLimited
         case status(Int)
         case offline
     }
@@ -240,6 +241,8 @@ actor StubAPI: APIProtocol {
             return .accepted(.init())
         case .badRequest:
             return .badRequest(.init(body: .json(.init(code: .validationFailed, issues: []))))
+        case .rateLimited:
+            return .tooManyRequests(.init(body: .json(.init(code: .rateLimited))))
         case let .status(code):
             return .undocumented(statusCode: code, .init())
         case .offline:
@@ -322,7 +325,8 @@ extension StubAPI {
         }
         return .ok(.init(body: .json(.init(
             id: input.path.workspaceId, name: "Workspace", slug: "workspace",
-            defaultLocale: clients.workspaceDefaultLocale, timeZone: clients.workspaceTimeZone
+            defaultLocale: clients.workspaceDefaultLocale, timeZone: clients.workspaceTimeZone,
+            trainerWord: .trainer
         ))))
     }
 
@@ -334,7 +338,7 @@ extension StubAPI {
         case let .workspaces(memberships):
             return .ok(.init(body: .json(memberships.map {
                 .init(
-                    workspaceId: $0.workspaceID, name: $0.name, slug: $0.slug, role: $0.role,
+                    workspaceId: $0.workspaceID, name: $0.name, slug: $0.slug, trainerWord: .trainer, role: $0.role,
                     capabilities: $0.capabilities ?? Self.capabilities(of: $0.role),
                     trainsHere: $0.trainsHere ?? ($0.role == .trainer)
                 )
