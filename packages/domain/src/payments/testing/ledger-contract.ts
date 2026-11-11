@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import type { NewPayment, PaymentLedger } from '../ledger.ts';
 
 // The shared ledger contract suite: what every `PaymentLedger` must do. The in-memory ledger
-// passes it in `in-memory-ledger.test.ts`, the database-backed one in `packages/database`. Test-only.
+// passes it in `in-memory-ledger.test.ts`, the database-backed one in
+// `test/payment-ledger.integration.test.ts` of this package. Test-only.
 
 export interface LedgerHarness {
   /** The ledger of one workspace. */

@@ -580,9 +580,6 @@ importers:
       '@biomejs/biome':
         specifier: 'catalog:'
         version: 2.5.14
-      '@fivvi/domain':
-        specifier: workspace:*
-        version: link:../domain
       '@fivvi/testing':
         specifier: workspace:*
         version: link:../testing

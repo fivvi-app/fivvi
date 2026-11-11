@@ -1,5 +1,3 @@
-import { PAYMENT_DESCRIPTION_MAX_LENGTH as DOMAIN_DESCRIPTION_MAX_LENGTH } from '@fivvi/domain';
-import { ledgerContract } from '@fivvi/domain/testing';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
@@ -13,13 +11,11 @@ import {
   linkProviderPayment,
   type NewPayment,
   type PaymentRecord,
-  paymentLedger,
   paymentStatusChanges,
   payments,
   recordStatusChange,
   type WorkspaceScope,
 } from '../src/index.ts';
-import { PAYMENT_DESCRIPTION_MAX_LENGTH } from '../src/schema/index.ts';
 import { executorOf } from '../src/tenant-scope.ts';
 import {
   addClient,
@@ -70,17 +66,6 @@ describe('E019 payment ledger', () => {
 
   const newClient = (workspaceId: string) => async () =>
     (await addClient(admin.db, { workspaceId })).id;
-
-  ledgerContract('database ledger', async () => {
-    const mine = await gym();
-    const theirs = await gym();
-    return {
-      ledger: paymentLedger(mine.inScope),
-      otherLedger: paymentLedger(theirs.inScope),
-      newClient: newClient(mine.workspaceId),
-      newOtherClient: newClient(theirs.workspaceId),
-    };
-  });
 
   function input(clientId: string, overrides: Partial<NewPayment> = {}): NewPayment {
     return {
@@ -197,10 +182,6 @@ describe('E019 payment ledger', () => {
     await expect(violated((db) => db.execute(sql`TRUNCATE payments CASCADE`))).resolves.toMatch(
       /append-only/,
     );
-  });
-
-  it('the description limit of the table is the one the domain checks before the provider is called', () => {
-    expect(PAYMENT_DESCRIPTION_MAX_LENGTH).toBe(DOMAIN_DESCRIPTION_MAX_LENGTH);
   });
 
   it('AC7: a payment never has two lines for one status', async () => {

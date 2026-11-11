@@ -10,9 +10,10 @@ import { executorOf, type WorkspaceScope } from '../tenant-scope.ts';
 // The payment ledger of a workspace (E019, spec #466, ticket #727), through a workspace scope. The
 // rules (the status order, creating a payment once, the retry) are in `packages/domain/payments`,
 // which also defines the `PaymentLedger` port these functions implement; the ledger contract
-// suite (`@fivvi/domain/testing`) runs against `paymentLedger` below. The tables repeat what they
-// can: an amount above zero, one payment per business key, one status line per status, and no
-// update or delete of a status line.
+// suite (`@fivvi/domain/testing`) runs against `paymentLedger` below, from the integration test in
+// `packages/domain` (the domain package may depend on this one, not the other way round). The
+// tables repeat what they can: an amount above zero, one payment per business key, one status line
+// per status, and no update or delete of a status line.
 
 export type PaymentKind = (typeof payments.kind.enumValues)[number];
 export type PaymentPurpose = (typeof payments.purpose.enumValues)[number];
