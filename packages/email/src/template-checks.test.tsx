@@ -62,8 +62,24 @@ describe('AC2: checkRendering', () => {
   });
 
   it('accepts a subject of exactly 78 characters', async () => {
-    const exact = withTemplate({ subject: () => 'x'.repeat(78) });
+    const exact = withTemplate({
+      subject: (ctx) => {
+        const base = ctx.t('email.hello.subject');
+        return base + 'x'.repeat(maxSubjectLength - base.length);
+      },
+    });
     expect(await checkRendering(exact)).toEqual([]);
+  });
+
+  it('reports a subject or a preview line that is literal text, not a catalog key', async () => {
+    const literalSubject = withTemplate({ subject: () => 'Literal subject' });
+    expect((await checkRendering(literalSubject)).join('\n')).toMatch(
+      /nl-NL: the subject asks for no catalog key/,
+    );
+    const literalPreview = withTemplate({ preview: () => 'Literal preview' });
+    const problems = (await checkRendering(literalPreview)).join('\n');
+    expect(problems).toMatch(/nl-NL: the preview asks for no catalog key/);
+    expect(problems).toMatch(/en: the preview asks for no catalog key/);
   });
 
   it('reports a template that cannot render (a missing key or placeholder)', async () => {

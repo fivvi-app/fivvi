@@ -11,6 +11,14 @@ const active = [
   ...internalCatalog.map((entry) => entry.template.id),
 ];
 
+// Any email that is not built yet; whichever the catalog has left, so the test outlives the
+// feature that activates one.
+const reserved = (() => {
+  const entry = catalog.find((candidate) => candidate.status === 'reserved');
+  if (!entry) throw new Error('the catalog has no reserved entry to test the preview with');
+  return entry;
+})();
+
 describe('AC7: the preview reads the catalog', () => {
   it('lists every catalog entry, active or not, with its ID and status', () => {
     const entries = previewEntries();
@@ -21,7 +29,7 @@ describe('AC7: the preview reads the catalog', () => {
       expect(entries.map((e) => e.label)).toContain(entry.key);
     }
     expect(entries.filter((e) => e.template).map((e) => e.template?.id)).toEqual(active);
-    expect(entries.find((e) => e.label === 'EM-02')?.status).toBe('reserved');
+    expect(entries.find((e) => e.label === reserved.id)?.status).toBe('reserved');
     expect(entries.find((e) => e.label === 'EM-01')?.status).toBe('retired');
   });
 
@@ -50,8 +58,8 @@ describe('AC7: the preview reads the catalog', () => {
         expect(index.body).toContain(`href="/${id}/${locale}.txt"`);
       }
     }
-    expect(index.body).toContain('EM-02');
-    expect(index.body).not.toContain('href="/EM-02');
+    expect(index.body).toContain(reserved.id);
+    expect(index.body).not.toContain(`href="/${reserved.id}`);
   });
 
   it('answers 404 for an email or a language it does not have', async () => {

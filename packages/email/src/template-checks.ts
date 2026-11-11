@@ -1,5 +1,6 @@
 import { type Locale, locales, messages } from '@fivvi/i18n';
 import {
+  createEmailContext,
   type EmailMessageKey,
   type EmailTemplate,
   type RenderedEmail,
@@ -110,6 +111,22 @@ async function renderBoth<Props>(
 export async function checkRendering<Props>(template: EmailTemplate<Props>): Promise<string[]> {
   const problems: string[] = [];
   const rendered = await renderBoth(template, template.previewProps, problems);
+
+  // The subject and the preview line come from the catalogs too, not from literal text.
+  for (const locale of locales) {
+    for (const part of ['subject', 'preview'] as const) {
+      const keys = new Set<EmailMessageKey>();
+      try {
+        const ctx = createEmailContext({ locale, onTranslate: (key) => keys.add(key) });
+        template[part](ctx, template.previewProps);
+      } catch {
+        continue; // `renderBoth` reported why it does not render
+      }
+      if (keys.size === 0) {
+        problems.push(`${locale}: the ${part} asks for no catalog key (it is literal text)`);
+      }
+    }
+  }
 
   for (const [locale, { email }] of rendered) {
     const length = [...email.subject].length;
