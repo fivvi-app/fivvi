@@ -9,7 +9,7 @@ import {
   type DatabaseClient,
 } from '@fivvi/database';
 import { addTeamRole, createWorkspace } from '@fivvi/database/testing';
-import { createMemoryTransport, createSendEmail } from '@fivvi/email';
+import { createMemoryTransport, createSendEmail, type MemoryTransport } from '@fivvi/email';
 import { messages } from '@fivvi/i18n';
 import {
   createErrorReporter,
@@ -39,7 +39,26 @@ describe('F005 change your own email address', () => {
   let database: TestDatabase;
   let client: DatabaseClient;
   let clock = manualClock(T0);
-  const transport = createMemoryTransport();
+  const memory = createMemoryTransport();
+  // A runner under load sends an email late (#1269). A test closes the gate; a send to an address
+  // that starts with `late-` waits at it until any other email has been sent (or `openGate` runs).
+  let openGate = () => {};
+  let gate = Promise.resolve();
+  const closeGate = () => {
+    gate = new Promise<void>((resolve) => {
+      openGate = resolve;
+    });
+  };
+  const transport: MemoryTransport = {
+    ...memory,
+    send: async (email) => {
+      const late = email.to.email.startsWith('late-');
+      if (late) await gate;
+      const sent = await memory.send(email);
+      if (!late) openGate();
+      return sent;
+    },
+  };
   const pending: Promise<void>[] = [];
   const posthog = createProductEventCaptureTransport();
   const productEvents = createProductEvents({
@@ -198,7 +217,12 @@ describe('F005 change your own email address', () => {
     await database?.drop();
   });
 
-  beforeEach(() => {
+  beforeEach(async () => {
+    // An email that a request sends after its answer outlives a test that does not wait for it
+    // (`answers 202`). On a loaded runner it then lands in the next test, whose `sent.at(-1)` is the
+    // wrong email: the sign-in code of the account step is wrong and the sign-in answers 401 (#1269).
+    openGate();
+    await settle();
     clock = manualClock(T0);
     // Better Auth deletes expired verification rows by the real clock, so the system time must
     // stand at T0 too; otherwise the codes vanish once the real time passes T0 + 15 minutes (#1260).
@@ -212,6 +236,29 @@ describe('F005 change your own email address', () => {
   // T0 only works while the system time stands at T0 too. If this fails, the freeze is gone.
   it('the system time stands at T0, so no code expires by the real clock', () => {
     expect(new Date().toISOString()).toBe(new Date(T0).toISOString());
+  });
+
+  // Guard for #1269: a test that leaves a slow email in flight must not disturb the next one. The
+  // first test leaves one; the second must start clean and sign in as usual.
+  describe('no email outlives its test', () => {
+    it('leaves a slow code email in flight', async () => {
+      const sarah = await account(unique('sarah'));
+      closeGate();
+
+      const response = await requestChange(sarah.cookie, unique('late'));
+
+      expect(response.status).toBe(202);
+    });
+
+    it('the next test starts without it and signs in with its own code', async () => {
+      expect(pending).toHaveLength(0);
+      expect(transport.sent).toHaveLength(0);
+
+      const sarah = await account(unique('sarah'));
+
+      expect(sarah.cookie).toContain('session_token=');
+      expect(transport.sent).toHaveLength(1);
+    });
   });
 
   describe('AC1: a code to the new address, nothing changed yet', () => {

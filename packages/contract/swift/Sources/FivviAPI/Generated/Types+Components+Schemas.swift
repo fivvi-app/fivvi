@@ -644,6 +644,12 @@ extension Components {
             public var summary: Components.Schemas.MyDaySummary
             /// - Remark: Generated from `#/components/schemas/MyDay/next`.
             public var next: Components.Schemas.MyDayNext?
+            /// - Remark: Generated from `#/components/schemas/MyDay/freeGap`.
+            public var freeGap: Components.Schemas.MyDayFreeGap?
+            /// *Route vandaag*: the places of the sessions that take place and have not ended, in time order, the same place twice in a row listed once. A session’s place is its location; a class takes place at its workspace’s one location. Only for today (an empty list when nothing is left); left out for any other date. The apps show the route only when it holds 2 or more places.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDay/placesAhead`.
+            public var placesAhead: [Components.Schemas.MyDayPlace]?
             /// - Remark: Generated from `#/components/schemas/MyDay/tomorrow`.
             public var tomorrow: Components.Schemas.MyDayTomorrow?
             /// The date of the next session that takes place after this day, `YYYY-MM-DD`. Only given when the day has no items; left out when there is none.
@@ -663,6 +669,8 @@ extension Components {
             ///   - items: The day’s items in time order, cancelled ones included.
             ///   - summary:
             ///   - next:
+            ///   - freeGap:
+            ///   - placesAhead: *Route vandaag*: the places of the sessions that take place and have not ended, in time order, the same place twice in a row listed once. A session’s place is its location; a class takes place at its workspace’s one location. Only for today (an empty list when nothing is left); left out for any other date. The apps show the route only when it holds 2 or more places.
             ///   - tomorrow:
             ///   - nextSessionDate: The date of the next session that takes place after this day, `YYYY-MM-DD`. Only given when the day has no items; left out when there is none.
             ///   - hasSessions: Whether the account is the current trainer of any session at all, past or future. Only computed when the day is empty and no session follows, to tell a new trainer (*Je hebt nog geen sessies*) from one with nothing planned; true otherwise.
@@ -673,6 +681,8 @@ extension Components {
                 items: [Components.Schemas.PersonalSession],
                 summary: Components.Schemas.MyDaySummary,
                 next: Components.Schemas.MyDayNext? = nil,
+                freeGap: Components.Schemas.MyDayFreeGap? = nil,
+                placesAhead: [Components.Schemas.MyDayPlace]? = nil,
                 tomorrow: Components.Schemas.MyDayTomorrow? = nil,
                 nextSessionDate: Swift.String? = nil,
                 hasSessions: Swift.Bool
@@ -683,6 +693,8 @@ extension Components {
                 self.items = items
                 self.summary = summary
                 self.next = next
+                self.freeGap = freeGap
+                self.placesAhead = placesAhead
                 self.tomorrow = tomorrow
                 self.nextSessionDate = nextSessionDate
                 self.hasSessions = hasSessions
@@ -694,6 +706,8 @@ extension Components {
                 case items
                 case summary
                 case next
+                case freeGap
+                case placesAhead
                 case tomorrow
                 case nextSessionDate
                 case hasSessions
@@ -965,7 +979,7 @@ extension Components {
                 case city
             }
         }
-        /// *4 sessies · 09:00–19:00*.
+        /// *4 sessies · 09:00–19:00*, and how many of them are done.
         ///
         /// - Remark: Generated from `#/components/schemas/MyDaySummary`.
         public struct MyDaySummary: Codable, Hashable, Sendable {
@@ -973,6 +987,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MyDaySummary/count`.
             public var count: Swift.Int
+            /// How many of the day’s items took place and have ended (`endsAt` at or before now): *2 klaar*. A cancelled item is never done; 0 on a day still to come.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDaySummary/done`.
+            public var done: Swift.Int
             /// The start of the first item; left out for an empty day.
             ///
             /// - Remark: Generated from `#/components/schemas/MyDaySummary/firstStartsAt`.
@@ -985,19 +1003,23 @@ extension Components {
             ///
             /// - Parameters:
             ///   - count: The items of the day, cancelled ones counted.
+            ///   - done: How many of the day’s items took place and have ended (`endsAt` at or before now): *2 klaar*. A cancelled item is never done; 0 on a day still to come.
             ///   - firstStartsAt: The start of the first item; left out for an empty day.
             ///   - lastEndsAt: The end of the last item; left out for an empty day.
             public init(
                 count: Swift.Int,
+                done: Swift.Int,
                 firstStartsAt: Foundation.Date? = nil,
                 lastEndsAt: Foundation.Date? = nil
             ) {
                 self.count = count
+                self.done = done
                 self.firstStartsAt = firstStartsAt
                 self.lastEndsAt = lastEndsAt
             }
             public enum CodingKeys: String, CodingKey {
                 case count
+                case done
                 case firstStartsAt
                 case lastEndsAt
             }
@@ -1044,6 +1066,91 @@ extension Components {
                 case sessionId
                 case state
                 case startsInMinutes
+            }
+        }
+        /// The next free gap of the *Mijn dag* card (*Plannen*): the first stretch of 30 minutes or more without a session that takes place, from now to the end of the day’s last such session. A cancelled session leaves its time free. Only for today; left out when there is none (also after the last session) and for any other date.
+        ///
+        /// - Remark: Generated from `#/components/schemas/MyDayFreeGap`.
+        public struct MyDayFreeGap: Codable, Hashable, Sendable {
+            /// The start of the gap, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDayFreeGap/startsAt`.
+            public var startsAt: Foundation.Date
+            /// The end of the gap, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDayFreeGap/endsAt`.
+            public var endsAt: Foundation.Date
+            /// Creates a new `MyDayFreeGap`.
+            ///
+            /// - Parameters:
+            ///   - startsAt: The start of the gap, a UTC instant.
+            ///   - endsAt: The end of the gap, a UTC instant.
+            public init(
+                startsAt: Foundation.Date,
+                endsAt: Foundation.Date
+            ) {
+                self.startsAt = startsAt
+                self.endsAt = endsAt
+            }
+            public enum CodingKeys: String, CodingKey {
+                case startsAt
+                case endsAt
+            }
+        }
+        /// A place on the route of the day: a location.
+        ///
+        /// - Remark: Generated from `#/components/schemas/MyDayPlace`.
+        public struct MyDayPlace: Codable, Hashable, Sendable {
+            /// The location’s name.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MyDayPlace/name`.
+            public var name: Swift.String
+            /// - Remark: Generated from `#/components/schemas/MyDayPlace/address`.
+            public struct AddressPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/MyDayPlace/address/value1`.
+                public var value1: Components.Schemas.LocationAddress
+                /// The location’s address; left out when it has none.
+                ///
+                /// - Remark: Generated from `#/components/schemas/MyDayPlace/address/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `AddressPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The location’s address; left out when it has none.
+                public init(
+                    value1: Components.Schemas.LocationAddress,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/MyDayPlace/address`.
+            public var address: Components.Schemas.MyDayPlace.AddressPayload?
+            /// Creates a new `MyDayPlace`.
+            ///
+            /// - Parameters:
+            ///   - name: The location’s name.
+            ///   - address:
+            public init(
+                name: Swift.String,
+                address: Components.Schemas.MyDayPlace.AddressPayload? = nil
+            ) {
+                self.name = name
+                self.address = address
+            }
+            public enum CodingKeys: String, CodingKey {
+                case name
+                case address
             }
         }
         /// The footer *Morgen: 3 sessies, eerste om 07:00*. Cancelled sessions are not counted; left out when the next day has none.

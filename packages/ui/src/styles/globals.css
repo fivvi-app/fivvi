@@ -73,7 +73,14 @@
     font-size: var(--density-body-size);
     line-height: var(--density-body-line-height);
   }
-  [data-density] :is([data-slot="button"], [data-slot="input"], [data-slot="native-select"]) {
+  [data-density]
+    :is(
+      [data-slot="button"],
+      [data-slot="alert-dialog-action"],
+      [data-slot="alert-dialog-cancel"],
+      [data-slot="input"],
+      [data-slot="native-select"]
+    ) {
     min-height: var(--density-control-size);
   }
   [data-density] [data-slot="button"][data-size^="icon"] {

@@ -12,6 +12,7 @@
   "scripts": {
     "preview": "tsx watch --clear-screen=false scripts/preview.ts",
     "send:test": "tsx --env-file-if-exists=.env scripts/send-test.ts",
+    "check:domain": "tsx scripts/check-sending-domain.ts",
     "lint": "biome check --formatter-enabled=false --error-on-warnings .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

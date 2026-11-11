@@ -456,6 +456,16 @@
           "next": {
             "$ref": "#/components/schemas/MyDayNext"
           },
+          "freeGap": {
+            "$ref": "#/components/schemas/MyDayFreeGap"
+          },
+          "placesAhead": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MyDayPlace"
+            },
+            "description": "*Route vandaag*: the places of the sessions that take place and have not ended, in time order, the same place twice in a row listed once. A session’s place is its location; a class takes place at its workspace’s one location. Only for today (an empty list when nothing is left); left out for any other date. The apps show the route only when it holds 2 or more places."
+          },
           "tomorrow": {
             "$ref": "#/components/schemas/MyDayTomorrow"
           },
@@ -664,6 +674,10 @@
             "type": "integer",
             "description": "The items of the day, cancelled ones counted."
           },
+          "done": {
+            "type": "integer",
+            "description": "How many of the day’s items took place and have ended (`endsAt` at or before now): *2 klaar*. A cancelled item is never done; 0 on a day still to come."
+          },
           "firstStartsAt": {
             "type": "string",
             "format": "date-time",
@@ -676,9 +690,10 @@
           }
         },
         "required": [
-          "count"
+          "count",
+          "done"
         ],
-        "description": "*4 sessies · 09:00–19:00*."
+        "description": "*4 sessies · 09:00–19:00*, and how many of them are done."
       },
       "MyDayNext": {
         "type": "object",
@@ -707,6 +722,49 @@
           "startsInMinutes"
         ],
         "description": "*Straks* / *Nu bezig*: the first item of today that has not ended and is not cancelled. Left out when nothing is left today, and for any day but today."
+      },
+      "MyDayFreeGap": {
+        "type": "object",
+        "properties": {
+          "startsAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The start of the gap, a UTC instant."
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "The end of the gap, a UTC instant."
+          }
+        },
+        "required": [
+          "startsAt",
+          "endsAt"
+        ],
+        "description": "The next free gap of the *Mijn dag* card (*Plannen*): the first stretch of 30 minutes or more without a session that takes place, from now to the end of the day’s last such session. A cancelled session leaves its time free. Only for today; left out when there is none (also after the last session) and for any other date."
+      },
+      "MyDayPlace": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "The location’s name."
+          },
+          "address": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/LocationAddress"
+              },
+              {
+                "description": "The location’s address; left out when it has none."
+              }
+            ]
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "description": "A place on the route of the day: a location."
       },
       "MyDayTomorrow": {
         "type": "object",
@@ -2653,7 +2711,7 @@
           "me"
         ],
         "summary": "My day: the sessions of one day across my workspaces",
-        "description": "Everything the signed-in account is the current trainer of on one day, in all the workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary, the tomorrow line, the date of the next session when the day is empty and the number of workspaces. Each workspace is read on its own; the answer is merged here. An account that trains in no workspace (an Owner who does not train, a client account) gets an empty answer, not `403`. The day is a date in Dutch time; times are UTC instants, to be shown in Dutch time.",
+        "description": "Everything the signed-in account is the current trainer of on one day, in all the workspaces it trains in, in time order: the items, *Straks* / *Nu bezig*, the summary (with the number done), for today the next free gap and the places still ahead, the tomorrow line, the date of the next session when the day is empty and the number of workspaces. Each workspace is read on its own; the answer is merged here. An account that trains in no workspace (an Owner who does not train, a client account) gets an empty answer, not `403`. The day is a date in Dutch time; times are UTC instants, to be shown in Dutch time.",
         "security": [
           {
             "cookieAuth": []

@@ -24,6 +24,20 @@ export {
 } from './errors.ts';
 export { buildOpenApiDocument, type OpenApiDocument } from './openapi.ts';
 export {
+  createPublicRequestGuard,
+  JoinRequestPendingSchema,
+  JoinRequestsCappedSchema,
+  MAX_PENDING_JOIN_REQUESTS,
+  MAX_PENDING_JOIN_REQUESTS_PER_WORKSPACE,
+  type Platform,
+  type PublicRequestGuard,
+  RateLimitedSchema,
+  REFUSAL_STATUS,
+  type Refusal,
+  type RefusalCode,
+  TurnstileFailedSchema,
+} from './public-request-guard.ts';
+export {
   HEALTH_CHECK_TIMEOUT_MS,
   type HealthResponse,
   HealthResponseSchema,

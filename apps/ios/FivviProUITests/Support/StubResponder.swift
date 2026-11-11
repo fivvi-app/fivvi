@@ -19,6 +19,8 @@ final class Responder: @unchecked Sendable {
     var holdsTrainerCalls = false
     var heldTrainerCalls: [@Sendable () -> Void] = []
     var storedTrainerStatus: Int?
+    var holdsClientReads = false
+    var heldClientReads: [@Sendable () -> Void] = []
 
     init(_ answer: StubServer.Answer, signIn: StubServer.SignIn) {
         currentAnswer = answer
@@ -67,6 +69,26 @@ final class Responder: @unchecked Sendable {
         lock.withLock {
             if holdsTrainerCalls { heldTrainerCalls.append(answer) }
             return holdsTrainerCalls
+        }
+    }
+
+    /// While true, `GET` of one client gets no answer until it is set to false (which answers the reads held).
+    func holdClientReads(_ hold: Bool) {
+        let waiting: [@Sendable () -> Void] = lock.withLock {
+            holdsClientReads = hold
+            defer { if !hold { heldClientReads = [] } }
+            return hold ? [] : heldClientReads
+        }
+        waiting.forEach { $0() }
+    }
+
+    /// Keeps `answer` for later when it is the read of one client and reads are on hold; returns whether it did.
+    func holdClientRead(method: String, path: String, answer: @escaping @Sendable () -> Void) -> Bool {
+        let isRead = method == "GET" && path.split(separator: "/").count == 6 && path.contains("/clients/")
+        return lock.withLock {
+            let holds = holdsClientReads && isRead
+            if holds { heldClientReads.append(answer) }
+            return holds
         }
     }
 
@@ -181,8 +203,18 @@ final class Responder: @unchecked Sendable {
             )
         default:
             let reply = clientReply(method: method, path: path, query: query, body: json, authorization: authorization)
-            send(connection, status: reply.status, json: reply.json)
+            answerClientRoute(connection, method: method, path: path, reply: reply)
         }
+    }
+
+    /// Answers a client route, unless reads of one client are on hold: then when they are released.
+    func answerClientRoute(
+        _ connection: NWConnection, method: String, path: String, reply: (status: Int, json: [String: Any]?)
+    ) {
+        nonisolated(unsafe) let json = reply.json  // read once, by the one closure that answers
+        let status = reply.status
+        let answer: @Sendable () -> Void = { [self] in send(connection, status: status, json: json) }
+        if !holdClientRead(method: method, path: path, answer: answer) { answer() }
     }
 
     /// The client routes (F006) for a signed-in caller; any other path is unknown.

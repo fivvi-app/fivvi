@@ -23,7 +23,8 @@ await sendEmail({
 
 | Path | What |
 |---|---|
-| `src/templates/` | One template per email type. Add new ones to `templates` in `index.ts` |
+| `src/catalog.ts` | The email catalog (F049): every email by ID (EM-01 … EM-23, EM-34), with audience, owner features, subject keys, status and template; `templates` is derived from it |
+| `src/templates/` | One template per email type, registered in the catalog |
 | `src/trainer-invitation-sender.ts` | `createTrainerInvitationSender()`: EM-09 (F011) in the language it is given, linking to `/invitations/{token}`; `apps/web` wires it into the API, which cannot import `.tsx` templates itself. `sendEmail` takes an optional `idempotencyKey` per send |
 | `src/private-session-sender.ts` | `createPrivateSessionSender()`: EM-11 (F020), the client's confirmation of a private session, or EM-04, the notice that it moved (a mail with `previous`), in the language it is given and the workspace's time zone, with the address written the Dutch way; `apps/web` wires it into the API, which sends it after the session is committed |
 | `src/demo-request-sender.ts` | `createDemoRequestSender()`: the website's demo request (F064) as one email to the address it is given (the support address; `apps/web` picks it, `server/demo-request-recipient.ts`), always in Dutch, listing the visitor's answers and the language of the page they used; nothing goes to the visitor; `apps/web` wires it into the API, which cannot import `.tsx` templates itself |
@@ -34,7 +35,8 @@ await sendEmail({
 | `src/provider.ts` | `createConfiguredTransport()`: the Lettermint transport for the config `readEmailConfig` read |
 | `src/log.ts`, `src/environment.ts` | Log transport and the per-environment choice of transport (`createEnvironmentSendEmail`) |
 | `src/memory.ts` | In-memory capture transport for tests and local development |
-| `scripts/` | Preview server and the test-send CLI |
+| `src/sending-domain.ts`, `src/sending-domain-cli.ts` | The sending-domain check (F049, AC8): `checkSendingDomain()` reads SPF, DKIM and DMARC through an injected DNS resolver; `runSendingDomainCheck()` is the command behind `check:domain` |
+| `scripts/` | Preview server, the test-send CLI and the sending-domain check |
 
 ## Templates
 
@@ -46,7 +48,27 @@ await sendEmail({
 - A template has `subject`, `preview` (the inbox preview line: put the key fact in it), `render` (the content inside the layout) and `previewProps` (obviously fake data for the preview).
 - Plain styles for now; E007 brings the design tokens.
 
-Adding a template: write `src/templates/<type>.tsx`, add the keys to both catalogs, add it to `templates`, and add a render test. The generic test in `templates.test.ts` renders every template in every locale.
+## The email catalog
+
+`src/catalog.ts` lists every transactional email by ID (F049, spec #476; the IDs and subjects are the spec's M5 table). It is the single list the docs, the checks and the preview read, and the only way to a template: `templates` (the preview, the render tests) is derived from it.
+
+| Status | Meaning |
+|---|---|
+| `active` | The template exists and is sent. The entry points at it (`template`) and names the subject keys that exist in both catalogs |
+| `reserved` | The ID is taken for an email whose owner feature has not built its template yet. It has the audience, the owner features and the planned subject keys, no template |
+| `retired` | No longer sent (EM-01, ADR-026). The ID stays taken |
+
+Internal emails (the demo request to Fivvi's own inbox, the developer sample) are in `internalCatalog` with a `key` and no EM ID. Entries without a client, trainer or owner as recipient go there, never into `catalog`.
+
+`catalog.test.ts` fails when a template file under `src/templates/` is not in the catalog, when an `active` entry has no template, when a `reserved` or `retired` entry has one, when two entries share an ID and when one template is registered twice.
+
+**Adding the email of a feature** (the feature that owns a `reserved` ID builds it):
+
+1. Write `src/templates/<type>.tsx` (see Templates) and its render test; add the keys to `nl-NL.json`, `en.json` and `comments.json`, worded as in `packages/i18n/GLOSSARY.md`.
+2. Export it from `src/templates/index.ts`.
+3. In `catalog.ts`, import it and change the entry of its ID: `status: 'active'`, `template: register(yourEmail)`, and `subjectKeys` set to the keys that now exist (they must exist in both languages).
+4. A new email that has no reserved ID takes the number after the highest allocated anywhere (EM-35 today), not just in `catalog.ts`: the prototype's `docs/design/prototype-v2/more-email.js` already allocates EM-24 to EM-34 for the M6, M9 and M11 emails (for example EM-28 in #481), most of them not yet in the catalog. Use another number only when the feature's spec already allocated one. Add it to `catalog` as `active` in the same change.
+5. Run `pnpm --filter @fivvi/email test`: the catalog test, the generic render test for both languages and the preview pick it up without another list.
 
 ## Sending
 
@@ -101,6 +123,34 @@ pnpm email:send-test --to you@example.com --locale en [--name Anna] [--time-zone
 - **Preview** renders every template in both locales with its `previewProps`, as HTML and as plain text (`/hello/nl-NL`, `/hello/en.txt`). It restarts when a file changes; reload the page. We don't use React Email's `email dev`: it installs `@react-email/ui` and a separate Next.js app with npm at run time, outside our lockfile and pnpm's release-age check.
 - **Send test** sends the `hello` template through Lettermint to one address and prints the Lettermint message id. It is the G1 delivery check; it counts against the monthly limit.
 
+## Sending-domain check
+
+```bash
+pnpm --filter @fivvi/email check:domain                      # fivvi.app
+pnpm --filter @fivvi/email check:domain --domain example.org # another domain
+```
+
+Reads the **public DNS** of the sending domain (no token, no secret, nothing sent) and reports whether Lettermint can send as it (ADR-028, F049 AC8). It prints one `PASS` or `FAIL` line per record, names what is missing or wrong, and exits 0 only when all three pass, 1 when one fails and 2 on bad arguments. A DNS lookup that fails for another reason than "no record" (a timeout, SERVFAIL) counts as a failing record and prints the DNS error code. The output holds Lettermint's host names and the DMARC policy only, never the report addresses of a DMARC record.
+
+| Check | Passes when |
+|---|---|
+| SPF | `lm-bounces.<domain>` is a CNAME to a `lmta.net` host (Lettermint's Return-Path, which carries Lettermint's SPF record) and exactly one `v=spf1` record resolves there. Receivers check SPF on that Return-Path host, never on the root, so an SPF record at the root of `<domain>` does not count |
+| DKIM | `lm1._domainkey.<domain>` and `lm2._domainkey.<domain>` are both CNAMEs to a `lmta.net` host (Lettermint rotates the keys every six months behind them) |
+| DMARC | `_dmarc.<domain>` has exactly one `v=DMARC1` record with `p=quarantine` or `p=reject` |
+
+**The records are the owner's** (`ROADMAP.md §4.5`; the DNS provider is Cloudflare, set to *DNS only*). Lettermint shows the exact target of each CNAME for the domain in its dashboard (*Domains*); this is the set to expect for `fivvi.app`:
+
+| Type | Name | Value |
+|---|---|---|
+| CNAME | `lm-bounces.fivvi.app` | `bounces.lmta.net` |
+| CNAME | `lm1._domainkey.fivvi.app` | `lm1.<domain id>.dkim.lmta.net` |
+| CNAME | `lm2._domainkey.fivvi.app` | `lm2.<domain id>.dkim.lmta.net` |
+| TXT | `_dmarc.fivvi.app` | `v=DMARC1; p=quarantine; rua=<the address already in the record>` (keep the `rua` and any other tag; change only `p=none` to `p=quarantine`) |
+
+Do not set `aspf=s`: Lettermint refuses to verify a domain with strict SPF alignment.
+
+The tests (`src/sending-domain.test.ts`) answer from a fake resolver and never touch the network.
+
 ## TypeScript 7
 
 Nothing here needs the TypeScript compiler API. React Email 6 (`react-email`: components + `render`) and `use-intl` ship plain JS, and `tsx` (esbuild) runs the scripts, because Node's type stripping doesn't handle JSX. No separate TypeScript 5 package is needed, unlike `packages/contract/tools/typescript-generator`.
@@ -117,8 +167,10 @@ pnpm --filter @fivvi/email test
 
 | File | Proves |
 |---|---|
+| `src/catalog.test.ts` | The catalog: every template file is in it, every `active` entry has a template, unique IDs, EM-01 … EM-23 and EM-34 present, subject keys exist in both languages |
 | `src/templates/templates.test.ts` | Every template renders in nl-NL and en with no missing keys or placeholders; hello: subject, preview, text and HTML from the catalog, Europe/Amsterdam dates in both locales (summer, winter, around midnight), escaping of user content |
 | `src/send.test.ts` | `sendEmail` with the memory transport: locale, idempotency keys, retry decisions, link capture |
 | `src/lettermint.test.ts` | The Lettermint request (mocked HTTP client): route per template, sender and recipient format, tag, idempotency key; retry on 5xx, network errors, timeouts and 429 with `Retry-After`; `409` as duplicate; no retry on 401, 403 and 422; no token or recipient in errors |
 | `src/retry.test.ts`, `src/config.test.ts` | Backoff maths; config validation without leaking the key |
+| `src/sending-domain.test.ts` | The sending-domain check against fake DNS answers: SPF (Return-Path CNAME or root `include:`), both DKIM CNAMEs, DMARC `p=quarantine`/`reject`; each failure named; exit codes; no report address printed |
 | `src/lint.test.ts` | The no-hard-coded-text rule is registered here and runs |

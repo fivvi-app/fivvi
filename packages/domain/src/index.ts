@@ -41,7 +41,57 @@ export {
   type NextInvoiceNumberFacts,
   nextInvoiceNumber,
 } from './commerce/invoice-number.ts';
+export {
+  BILLING_CYCLES,
+  type BillingCycle,
+  CREDIT_KINDS,
+  type CreditKind,
+  type CreditPackOffer,
+  type CreditPlanOffer,
+  cancellationSentence,
+  DEFAULT_RENEWAL_WINDOW_DAYS,
+  END_OF_TERMS,
+  type EndOfTerm,
+  formatEuros,
+  formatVatRate,
+  type MembershipOffer,
+  OFFER_KINDS,
+  OFFER_LIMITS,
+  type OfferDecision,
+  type OfferField,
+  type OfferIssue,
+  type OfferKind,
+  type SingleClassPassOffer,
+  summarise,
+  VALIDITY_UNITS,
+  VAT_RATES_BASIS_POINTS,
+  type ValidateOfferOptions,
+  type Validity,
+  type ValidityUnit,
+  type ValidOffer,
+  validateOffer,
+} from './commerce/offers.ts';
 export { maskEmail, normalizeEmail } from './email.ts';
+export {
+  CLIENT_SHEET,
+  checkImport,
+  type ImportCheck,
+  type ImportProblem,
+  type ImportProblemType,
+  type WorkspaceSnapshot,
+} from './import/check.ts';
+export { describeFileError, describeProblem } from './import/messages.ts';
+export {
+  IMPORT_LIMITS,
+  ImportFileError,
+  type ImportFileErrorReason,
+  type ParsedImport,
+  type ParsedRow,
+  type ParsedSheet,
+  parseCsvFiles,
+  parseWorkbook,
+} from './import/parse.ts';
+export { type ImportPlan, type PlannedClient, planImport } from './import/plan.ts';
 export {
   ADDRESS_ADDITION_MAX_LENGTH,
   ADDRESS_TEXT_MAX_LENGTH,
@@ -126,6 +176,25 @@ export {
   type Role,
   rolesWith,
 } from './permissions/matrix.ts';
+export { renderPrivacyInventory } from './privacy/inventory.ts';
+export {
+  declaredTable,
+  PRIVACY_REGISTRY,
+  type PrivacyDeclaration,
+  type PrivacyDeletion,
+  type PrivacySubject,
+  tablesMissingFromRegistry,
+  tablesNotInSchema,
+} from './privacy/registry.ts';
+export {
+  describeRetention,
+  isRetentionOver,
+  RETENTION,
+  RETENTION_BASIS,
+  type RetentionKey,
+  type RetentionPeriod,
+  retentionEndsAt,
+} from './privacy/retention.ts';
 export {
   decideGroupDateEdit,
   GROUP_CLASS_LIMITS,
@@ -141,6 +210,7 @@ export {
   decidePersonalRange,
   mergePersonalDay,
   orderPersonalSessions,
+  PERSONAL_FREE_GAP_MINUTES,
   PERSONAL_RANGE_MAX_DAYS,
   PERSONAL_TIME_ZONE,
   type PersonalDay,

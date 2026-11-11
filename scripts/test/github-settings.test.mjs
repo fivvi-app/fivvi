@@ -52,7 +52,10 @@ describe('the versioned GitHub settings', () => {
       jobs.filter((name) => !required.includes(name)),
       [
         'iOS build',
+        'iOS build (retry)',
         'iOS tests (${{ matrix.locale }})',
+        'iOS tests (retry plan)',
+        'iOS tests (${{ matrix.locale }}) (retry)',
         'Android build',
         'Android tests',
         'Android Maestro',
@@ -94,7 +97,7 @@ describe('the versioned GitHub settings', () => {
       max_entries_to_merge: 1,
       min_entries_to_merge: 1,
       min_entries_to_merge_wait_minutes: 5,
-      check_response_timeout_minutes: 60,
+      check_response_timeout_minutes: 150,
     });
     const ci = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8');
     // The job timeouts as ci.yml sets them (job-level, four spaces): the longest native job starts after
@@ -103,8 +106,21 @@ describe('the versioned GitHub settings', () => {
       Number(ci.slice(ci.indexOf(`\n  ${job}:\n`)).match(/^ {4}timeout-minutes: (\d+)$/m)[1]);
     // iOS: the build, then the tests, then the gate. Android: the tests next to the build, then Maestro after the build,
     // then the gate (#293).
+    // #1268: a job that no runner took is cancelled by GitHub after 15 minutes and tried once more (the build by
+    // ios-build-retry, a test pass by ios-tests-retry, after ios-tests-plan has named it), and the retry may wait for a
+    // runner as long. So that chain is the build's two waits and the job, then the tests' (the plan needs the whole
+    // ios-tests matrix, so the slower of the wait and the other language's full run, the plan, the retry's wait and the
+    // retry), then the gate.
+    const NOT_ACQUIRED_WAIT = 15;
     const longestNative = Math.max(
       timeout('ios-build') + timeout('ios-tests') + timeout('ios'),
+      2 * NOT_ACQUIRED_WAIT +
+        timeout('ios-build-retry') +
+        (Math.max(NOT_ACQUIRED_WAIT, timeout('ios-tests')) +
+          timeout('ios-tests-plan') +
+          NOT_ACQUIRED_WAIT +
+          timeout('ios-tests-retry')) +
+        timeout('ios'),
       timeout('android-tests') + timeout('android'),
       timeout('android-build') + timeout('android-maestro') + timeout('android'),
     );

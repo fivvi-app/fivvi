@@ -135,6 +135,16 @@ describe('#293 AC3 AC4: packages and their dependents', () => {
     assert.equal(result.all, false);
   });
 
+  it('E016: the restore drill script and its library are inputs of the database package, whose integration test runs the script', () => {
+    for (const path of ['scripts/restore-drill.sh', 'scripts/_lib.sh']) {
+      const result = decide([path]);
+      assert.ok(result.packages.includes('@fivvi/database'), path);
+      assert.ok(result.integration.includes('@fivvi/database'), path);
+      assert.equal(result.root, true, `${path}: the root script tests run as well`);
+      assert.equal(result.all, false, path);
+    }
+  });
+
   it('F064 AC10: a published legal text is an input of the web app, which renders it when it is built', () => {
     for (const path of [
       'docs/legal/privacy-policy.nl.md',
@@ -226,6 +236,26 @@ describe('#293 AC3 AC4: packages and their dependents', () => {
         );
       }
     }
+  });
+
+  it('E016: the Railway config and the environments doc are inputs of the cron app, whose tests read them', () => {
+    for (const path of ['.railway/railway.ts', 'docs/engineering/ENVIRONMENTS.md']) {
+      const result = decide([path]);
+      assert.deepEqual(result.packages, ['@fivvi/cron'], path);
+      assert.equal(result.docs, false, `${path} is not documentation only`);
+      assert.equal(result.all, false, path);
+    }
+  });
+
+  it('E016: apps/cron/turbo.json lists them as inputs of the cron tests, for the cache', () => {
+    const { tasks } = JSON.parse(readFileSync(join(SCRIPTS, '..', 'apps/cron/turbo.json'), 'utf8'));
+    for (const input of [
+      '$TURBO_ROOT$/.railway/railway.ts',
+      '$TURBO_ROOT$/docs/engineering/ENVIRONMENTS.md',
+    ]) {
+      assert.ok(tasks.test.inputs.includes(input), `${input} is an input of the cron tests`);
+    }
+    assert.ok(tasks.test.inputs.includes('$TURBO_DEFAULT$'), 'the default inputs stay');
   });
 
   it('dependents are followed through a chain: tokens -> ui -> web', () => {

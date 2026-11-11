@@ -16,6 +16,7 @@ import {
   type ProductEvents,
 } from '@fivvi/observability';
 import { type AddressLookup, createFakeAddressLookup } from './address-lookup/index.ts';
+import type { PublicRequestGuardDependencies } from './public-request-guard.ts';
 
 /** What the API needs from the outside world. apps/web wires the real ones; tests pass fakes. */
 export interface ApiDependencies {
@@ -91,6 +92,19 @@ export interface ApiDependencies {
    */
   deleteExpiredRateLimits(): Promise<void>;
   /**
+   * The bot check of the public forms (E013): asks Cloudflare whether a Turnstile token is good,
+   * with the client IP address of the request; `no_answer` when Cloudflare does not answer in 3
+   * seconds. apps/web wires `createTurnstileVerifier` of `@fivvi/auth`. Routes call it through
+   * `createPublicRequestGuard`, not directly.
+   */
+  verifyTurnstile: PublicRequestGuardDependencies['verifyTurnstile'];
+  /**
+   * The counters of the public request guard (E013): join requests per IP address and per account,
+   * booking churn per account, in the rate-limit table under keyed hashes. apps/web wires
+   * `createPublicRequestLimits` of `@fivvi/auth`.
+   */
+  publicRequestLimits: PublicRequestGuardDependencies['publicRequestLimits'];
+  /**
    * The address lookup by postcode and house number (F015, spec #424): PDOK in production, an
    * in-memory fake elsewhere (`createAddressLookup`, from `ADDRESS_LOOKUP`).
    */
@@ -155,6 +169,12 @@ export const NO_DEPENDENCIES: ApiDependencies = {
   // No address is told apart, and there are no counters to clear.
   clientAddressKey: () => null,
   deleteExpiredRateLimits: () => Promise.resolve(),
+  verifyTurnstile: () => Promise.reject(new Error('No Turnstile configured.')),
+  publicRequestLimits: {
+    joinRequestFromIp: () => Promise.reject(new Error('No database configured.')),
+    joinRequestFromAccount: () => Promise.reject(new Error('No database configured.')),
+    bookingAction: () => Promise.reject(new Error('No database configured.')),
+  },
   // The fake: no test or document build reaches PDOK.
   addressLookup: createFakeAddressLookup(),
   errorReporter,

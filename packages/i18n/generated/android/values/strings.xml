@@ -125,6 +125,57 @@
     <string name="no_workspace_title">Vraag je studio om de aanmeldlink.</string>
     <string name="not_found_body">We kunnen deze pagina niet vinden. Controleer de link en probeer het opnieuw.</string>
     <string name="not_found_title">Pagina niet gevonden</string>
+    <!-- The cancellation rule as clients read it, for a cutoff of 0 hours. -->
+    <string name="offers_cancellation_until_start">Je kunt tot de start gratis annuleren.</string>
+    <!-- The cancellation rule as clients read it, for a cutoff of one hour or more. # is the number of hours. -->
+    <plurals name="offers_cancellation_up_to">
+        <item quantity="one">Je kunt tot %1$d uur van tevoren gratis annuleren.</item>
+        <item quantity="other">Je kunt tot %1$d uur van tevoren gratis annuleren.</item>
+    </plurals>
+    <!-- Part of the one-line summary of a membership: the classes a week. # is the number. -->
+    <plurals name="offers_summary_classes_per_week">
+        <item quantity="one">%1$d les per week</item>
+        <item quantity="other">%1$d lessen per week</item>
+    </plurals>
+    <!-- Part of the summary of a credit plan billed every 4 weeks. {credits} is the number of credits. -->
+    <string name="offers_summary_credits_every_four_weeks">%1$s per 4 weken</string>
+    <!-- Part of the summary of a credit plan billed every month. {credits} is the number of credits, e.g. "4 privécredits". -->
+    <string name="offers_summary_credits_every_month">%1$s per maand</string>
+    <!-- Part of the summary of a credit pack: a validity in days. -->
+    <plurals name="offers_summary_days">
+        <item quantity="one">%1$d dag</item>
+        <item quantity="other">%1$d dagen</item>
+    </plurals>
+    <!-- Part of an offer summary: a number of group credits. -->
+    <plurals name="offers_summary_group_credits">
+        <item quantity="one">%1$d groepscredit</item>
+        <item quantity="other">%1$d groepscredits</item>
+    </plurals>
+    <!-- Part of the summary of a credit plan. {duration} is a length in months, e.g. "3 maanden". -->
+    <string name="offers_summary_minimum_term">minimaal %1$s</string>
+    <!-- Part of an offer summary: a length in months (the term of a membership, the validity of a credit pack, the minimum term of a credit plan). -->
+    <plurals name="offers_summary_months">
+        <item quantity="one">%1$d maand</item>
+        <item quantity="other">%1$d maanden</item>
+    </plurals>
+    <!-- Price of an offer billed every 4 weeks. {amount} is the amount including VAT. -->
+    <string name="offers_summary_price_per_four_weeks">%1$s per 4 weken</string>
+    <!-- Price of an offer billed every month. {amount} is the amount including VAT, e.g. "€ 79,00". -->
+    <string name="offers_summary_price_per_month">%1$s per maand</string>
+    <!-- Part of an offer summary: a number of private credits. -->
+    <plurals name="offers_summary_private_credits">
+        <item quantity="one">%1$d privécredit</item>
+        <item quantity="other">%1$d privécredits</item>
+    </plurals>
+    <!-- Part of the summary of a single class pass: what it is good for. -->
+    <string name="offers_summary_single_class">1 groepsles</string>
+    <!-- Part of the summary of a credit pack. {duration} is a length, e.g. "3 maanden". -->
+    <string name="offers_summary_valid_for">%1$s geldig</string>
+    <!-- Part of the summary of a credit pack: a validity in weeks. -->
+    <plurals name="offers_summary_weeks">
+        <item quantity="one">%1$d week</item>
+        <item quantity="other">%1$d weken</item>
+    </plurals>
     <string name="profile_error">Je werkruimtes konden niet worden geladen.</string>
     <string name="profile_language">Taal</string>
     <!-- Row on the native Profile (iOS and Android, F064 AC17) that opens the privacy policy of the public website fivvi.app in the browser. Same wording as the website footer (site.footer.privacy). -->
