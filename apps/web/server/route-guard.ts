@@ -107,10 +107,11 @@ function withStoredLocale(request: NextRequest, requestHeaders: Headers, stored:
  * The route guard (`proxy.ts`), the search header and the security headers: the answer of
  * `answerRequest` with the `X-Robots-Tag` header of the path (`robotsHeader`, F064 AC13) and the
  * security headers (`securityHeaders`, E013 AC8). They are set here, per request, on every answer
- * (page, redirect, 404, API), because the site's pages are static and one build serves every
- * environment; whether this is production is read from `env` at run time, and HSTS depends on the
- * host in the `Host` header (`requestHostname`). The build's own files and the favicon, which the
- * matcher in `proxy.ts` skips, get the same headers from `headers()` in next.config.ts.
+ * (page, redirect, 404, API), because one build serves every environment (the site's pages render
+ * per request so their scripts get the CSP nonce); whether this is production is read from `env` at
+ * run time, and HSTS depends on the host in the `Host` header (`requestHostname`). The build's own
+ * files and the favicon, which the matcher in `proxy.ts` skips, get the same headers from
+ * `headers()` in next.config.ts.
  */
 export async function guardRequest(
   request: NextRequest,
