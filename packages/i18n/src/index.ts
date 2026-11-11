@@ -16,6 +16,7 @@ export { pickContentLanguage } from './content-language.ts';
 export {
   type ClientCommunicationLanguageSources,
   type CommunicationLanguageSources,
+  type EmailLanguage,
   type InterfaceLanguageSources,
   isLocale,
   matchLocale,
@@ -23,6 +24,7 @@ export {
   resolveClientCommunicationLanguage,
   resolveCommunicationLanguage,
   resolveInterfaceLanguage,
+  resolveInternalCommunicationLanguage,
   resolveSignInCommunicationLanguage,
   SIGN_IN_LANGUAGE_COOKIE,
   type SignInCommunicationLanguageSources,

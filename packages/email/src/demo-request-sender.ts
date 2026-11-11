@@ -1,3 +1,4 @@
+import { resolveInternalCommunicationLanguage } from '@fivvi/i18n';
 import type { DemoRequestMail } from './demo-request-mail.ts';
 import type { SendEmail } from './send.ts';
 import { demoRequestEmail } from './templates/demo-request.tsx';
@@ -20,6 +21,11 @@ export function createDemoRequestSender({
   to,
 }: DemoRequestSenderOptions): (mail: DemoRequestMail) => Promise<void> {
   return async (mail) => {
-    await sendEmail({ template: demoRequestEmail, props: mail, to, locale: 'nl-NL' });
+    await sendEmail({
+      template: demoRequestEmail,
+      props: mail,
+      to,
+      locale: resolveInternalCommunicationLanguage(),
+    });
   };
 }

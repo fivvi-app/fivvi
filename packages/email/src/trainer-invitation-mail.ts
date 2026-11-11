@@ -1,4 +1,4 @@
-import type { Locale } from '@fivvi/i18n';
+import type { EmailLanguage } from '@fivvi/i18n';
 
 // Its own file, without the template: `packages/api` imports this type through the package's
 // `./trainer-invitation-mail` export, and the API cannot load or type-check the `.tsx` templates.
@@ -7,7 +7,7 @@ import type { Locale } from '@fivvi/i18n';
 export interface TrainerInvitationMail {
   to: { email: string; name: string };
   /** The language of the email, decided by the route (`invitationLanguage` in `@fivvi/domain`). */
-  locale: Locale;
+  locale: EmailLanguage;
   inviterName: string;
   workspaceName: string;
   /** The workspace's IANA time zone: the expiry date is shown in it. */

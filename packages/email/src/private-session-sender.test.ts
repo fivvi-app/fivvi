@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest';
 import { createMemoryTransport } from './memory.ts';
 import { createPrivateSessionSender } from './private-session-sender.ts';
 import { createSendEmail } from './send.ts';
+import { dutch, english } from './test-languages.ts';
 
 const mail = {
   to: { email: 'anna@example.com', name: 'Anna de Vries' },
-  locale: 'nl-NL' as const,
+  locale: dutch,
   workspaceName: "John's Gym",
   timeZone: 'Europe/Amsterdam',
   // Thursday 24 September 2026, 09:00 to 10:00 in Amsterdam.
@@ -53,7 +54,7 @@ describe('F020 EM-11 sender', () => {
   it('AC3: sends it in English when the mail says English', async () => {
     const { transport, send } = setup();
 
-    await send({ ...mail, locale: 'en' });
+    await send({ ...mail, locale: english });
 
     expect(transport.sent[0]).toMatchObject({
       locale: 'en',
@@ -124,7 +125,7 @@ describe('F020 EM-11 sender', () => {
     it('AC6: sends it in English when the mail says English', async () => {
       const { transport, send } = setup();
 
-      await send({ ...moved, locale: 'en' });
+      await send({ ...moved, locale: english });
 
       expect(transport.sent[0]).toMatchObject({
         locale: 'en',

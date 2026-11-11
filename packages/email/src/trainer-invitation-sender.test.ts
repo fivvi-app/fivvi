@@ -1,11 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { createMemoryTransport } from './memory.ts';
 import { createSendEmail } from './send.ts';
+import { english } from './test-languages.ts';
 import { createTrainerInvitationSender } from './trainer-invitation-sender.ts';
 
 const mail = {
   to: { email: 'lisa@example.com', name: 'Lisa' },
-  locale: 'en' as const,
+  locale: english,
   inviterName: 'John',
   workspaceName: "John's Gym",
   timeZone: 'Europe/Amsterdam',

@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vitest';
 import { createMemoryTransport } from './memory.ts';
 import { createSendEmail } from './send.ts';
 import { helloEmail } from './templates/hello.tsx';
+import { dutch, english } from './test-languages.ts';
 import { EmailSendError } from './transport.ts';
 
 const sender = { email: 'noreply@fivvi.app', name: 'Fivvi' };
@@ -29,7 +30,7 @@ describe('E006 sendEmail', () => {
       template: helloEmail,
       props,
       to: { email: 'anna@example.com' },
-      locale: 'en',
+      locale: english,
     });
 
     expect(result).toEqual({ messageId: 'memory-1', attempts: 1 });
@@ -48,7 +49,7 @@ describe('E006 sendEmail', () => {
   it('gives every send its own idempotency key', async () => {
     const { transport, sendEmail } = setup();
     const send = () =>
-      sendEmail({ template: helloEmail, props, to: { email: 'a@example.com' }, locale: 'nl-NL' });
+      sendEmail({ template: helloEmail, props, to: { email: 'a@example.com' }, locale: dutch });
 
     await send();
     await send();
@@ -63,7 +64,7 @@ describe('E006 sendEmail', () => {
         template: helloEmail,
         props,
         to: { email: 'a@example.com' },
-        locale: 'nl-NL',
+        locale: dutch,
         idempotencyKey: 'invitation-1-token-1',
       });
 
@@ -81,7 +82,7 @@ describe('E006 sendEmail', () => {
   it('retries a retryable failure and gives up on the others', async () => {
     const { transport, sendEmail } = setup();
     const send = () =>
-      sendEmail({ template: helloEmail, props, to: { email: 'a@example.com' }, locale: 'nl-NL' });
+      sendEmail({ template: helloEmail, props, to: { email: 'a@example.com' }, locale: dutch });
 
     transport.failNext(new EmailSendError('memory: down', { retryable: true }));
     expect((await send()).attempts).toBe(2);
@@ -100,7 +101,7 @@ describe('E006 sendEmail', () => {
     const broken = { ...helloEmail, subject: () => 'x', render: () => ({}) as never };
 
     await expect(
-      sendEmail({ template: broken, props, to: { email: 'a@example.com' }, locale: 'nl-NL' }),
+      sendEmail({ template: broken, props, to: { email: 'a@example.com' }, locale: dutch }),
     ).rejects.toThrow();
     expect(transport.sent).toEqual([]);
   });
@@ -115,7 +116,7 @@ describe('E006 memory transport', () => {
       subject: 's',
       html: '<a href="https://example.com/login?token=abc&amp;next=%2F">x</a> <a href="/b">y</a>',
       text: 't',
-      locale: 'nl-NL',
+      locale: dutch,
       template: 'test',
       idempotencyKey: 'k',
     });

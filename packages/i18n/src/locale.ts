@@ -74,6 +74,23 @@ export function resolveInterfaceLanguage(sources: InterfaceLanguageSources): Loc
   return interfaceFallback;
 }
 
+declare const emailLanguageBrand: unique symbol;
+
+/**
+ * The language of one email, as decided by a resolver of this file (ADR-017, ADR-019). It is a
+ * `Locale` that only `resolveCommunicationLanguage`, `resolveClientCommunicationLanguage`,
+ * `resolveSignInCommunicationLanguage` and `resolveInternalCommunicationLanguage` can produce, so
+ * the send function of `@fivvi/email` takes no plain `'en'` or `'nl-NL'` (F049 AC4). Nothing else
+ * casts to it: the Biome rule `packages/i18n/lint/email-language-cast.grit` fails lint on a cast
+ * outside this file and tests.
+ */
+export type EmailLanguage = Locale & { readonly [emailLanguageBrand]: 'EmailLanguage' };
+
+/** The one place a `Locale` becomes an `EmailLanguage`; every resolver for emails ends here. */
+function emailLanguage(locale: Locale): EmailLanguage {
+  return locale as EmailLanguage;
+}
+
 /** What is known about the recipient of an email or other message. */
 export interface CommunicationLanguageSources {
   /** The recipient's stored preference, including the language a client chose while booking. */
@@ -86,8 +103,8 @@ export interface CommunicationLanguageSources {
  * The language of an email or other message to a recipient (ADR-017): their stored
  * preference → the workspace's default communication language.
  */
-export function resolveCommunicationLanguage(sources: CommunicationLanguageSources): Locale {
-  return matchLocale(sources.recipientPreference) ?? sources.workspaceDefault;
+export function resolveCommunicationLanguage(sources: CommunicationLanguageSources): EmailLanguage {
+  return emailLanguage(matchLocale(sources.recipientPreference) ?? sources.workspaceDefault);
 }
 
 /** What is known about a client of a workspace, for the language of the emails to them. */
@@ -108,11 +125,11 @@ export interface ClientCommunicationLanguageSources {
  */
 export function resolveClientCommunicationLanguage(
   sources: ClientCommunicationLanguageSources,
-): Locale {
-  return (
+): EmailLanguage {
+  return emailLanguage(
     matchLocale(sources.accountPreference) ??
-    matchLocale(sources.clientLanguage) ??
-    sources.workspaceDefault
+      matchLocale(sources.clientLanguage) ??
+      sources.workspaceDefault,
   );
 }
 
@@ -132,6 +149,16 @@ export interface SignInCommunicationLanguageSources {
  */
 export function resolveSignInCommunicationLanguage(
   sources: SignInCommunicationLanguageSources,
-): Locale {
-  return matchLocale(sources.recipientPreference) ?? resolveInterfaceLanguage(sources.page);
+): EmailLanguage {
+  return emailLanguage(
+    matchLocale(sources.recipientPreference) ?? resolveInterfaceLanguage(sources.page),
+  );
+}
+
+/**
+ * The language of an email to Fivvi's own team rather than to a user or a client, today the demo
+ * request mail (F064): the owner's language, Dutch, whatever language the visitor used.
+ */
+export function resolveInternalCommunicationLanguage(): EmailLanguage {
+  return emailLanguage('nl-NL');
 }
