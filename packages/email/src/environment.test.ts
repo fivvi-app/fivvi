@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createEnvironmentSendEmail, isProductionEnvironment } from './environment.ts';
 import { lettermintApiUrl } from './lettermint.ts';
+import type { SentEvent } from './send.ts';
 import { signInEmail } from './templates/sign-in.tsx';
 import { english } from './test-languages.ts';
 
@@ -17,7 +18,7 @@ const props = {
   expiresInMinutes: 15,
 };
 
-function setup(env: Record<string, string>) {
+function setup(env: Record<string, string>, onSent?: (event: SentEvent) => void) {
   const requests: { url: string; body: Record<string, unknown> }[] = [];
   const fetch = (input: string | URL | Request, init: RequestInit = {}) => {
     requests.push({ url: String(input), body: JSON.parse(String(init.body)) });
@@ -33,9 +34,16 @@ function setup(env: Record<string, string>) {
     env,
     fetch: fetch as typeof globalThis.fetch,
     log: (line) => logged.push(line),
+    onSent,
   });
   const send = (to: string) =>
-    sendEmail({ template: signInEmail, props, to: { email: to }, locale: english });
+    sendEmail({
+      template: signInEmail,
+      props,
+      to: { email: to },
+      locale: english,
+      event: 'sign-in-1',
+    });
   return { requests, logged, send };
 }
 
@@ -211,5 +219,16 @@ describe('F001 which transport sends an email', () => {
     await expect(send('anna@gym.test')).rejects.toMatchObject({
       cause: expect.objectContaining({ message: expect.stringMatching(/LETTERMINT_ROUTE_/) }),
     });
+  });
+
+  it('F049: reports each accepted send with the catalog ID and language, to the log or the provider', async () => {
+    const sent: SentEvent[] = [];
+    const { send } = setup({ ...lettermintEnv, RAILWAY_ENVIRONMENT_NAME: 'production' }, (event) =>
+      sent.push(event),
+    );
+
+    await send('anna@gym.test');
+
+    expect(sent).toEqual([{ emailId: 'EM-08', language: 'en' }]);
   });
 });

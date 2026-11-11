@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { emailIdempotencyKey } from './idempotency-key.ts';
 import { createMemoryTransport } from './memory.ts';
 import { createSendEmail } from './send.ts';
 import { english } from './test-languages.ts';
@@ -12,7 +13,7 @@ const mail = {
   timeZone: 'Europe/Amsterdam',
   token: 'token-for-a-test-not-real',
   expiresAt: new Date('2026-11-12T10:00:00Z'),
-  idempotencyKey: '3b8f1c5e-0c1f-5a0e-8c3b-2f6d9a7e4b10',
+  event: 'invitation-1:token-hash-1',
 };
 
 function setup(appBaseUrl: () => string) {
@@ -36,7 +37,7 @@ describe('F011 EM-09 sender', () => {
       locale: 'en',
       template: 'trainer-invitation',
       subject: "John invited you to John's Gym",
-      idempotencyKey: mail.idempotencyKey,
+      idempotencyKey: emailIdempotencyKey('EM-09', mail.event),
     });
     expect(transport.sent[0]?.text).toContain('valid until Thursday, 12 November 2026');
   });

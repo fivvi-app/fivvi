@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { emailIdempotencyKey } from './idempotency-key.ts';
 import { createMemoryTransport } from './memory.ts';
 import { createPrivateSessionSender } from './private-session-sender.ts';
 import { createSendEmail } from './send.ts';
@@ -23,7 +24,7 @@ const mail = {
     },
   },
   trainerName: 'Sarah',
-  idempotencyKey: '9d3c1e52-7c1a-5b8e-9f10-4a2b6c8d0e13',
+  event: 'session-1:1',
 };
 
 function setup() {
@@ -36,7 +37,7 @@ function setup() {
 }
 
 describe('F020 EM-11 sender', () => {
-  it('AC1: sends EM-11 to the client in the given language, with the idempotency key', async () => {
+  it('AC1: sends EM-11 to the client in the given language, with the idempotency key of EM-11 and the event', async () => {
     const { transport, send } = setup();
 
     await send(mail);
@@ -47,7 +48,7 @@ describe('F020 EM-11 sender', () => {
       locale: 'nl-NL',
       template: 'private-session',
       subject: 'Nieuwe afspraak: donderdag 24 september om 09:00',
-      idempotencyKey: mail.idempotencyKey,
+      idempotencyKey: emailIdempotencyKey('EM-11', mail.event),
     });
   });
 
@@ -111,7 +112,7 @@ describe('F020 EM-11 sender', () => {
         locale: 'nl-NL',
         template: 'private-session-moved',
         subject: 'Wijziging: je sessie is verplaatst naar vrijdag 25 september om 10:00',
-        idempotencyKey: mail.idempotencyKey,
+        idempotencyKey: emailIdempotencyKey('EM-04', mail.event),
       });
       expect(transport.sent[0]?.text).toContain(
         'Eerder: donderdag 24 september 2026, 09:00 tot 10:00',

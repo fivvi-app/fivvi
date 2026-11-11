@@ -1,6 +1,7 @@
-import { randomUUID } from 'node:crypto';
 import { setTimeout as sleep } from 'node:timers/promises';
-import type { EmailLanguage } from '@fivvi/i18n';
+import type { EmailLanguage, Locale } from '@fivvi/i18n';
+import { catalogIdOf } from './catalog.ts';
+import { emailIdempotencyKey } from './idempotency-key.ts';
 import { type EmailTemplate, renderEmail } from './render.tsx';
 import { defaultRetryPolicy, nextDelay, type RetryPolicy } from './retry.ts';
 import {
@@ -25,11 +26,13 @@ export interface SendEmailOptions<Props> {
   /** The workspace or user time zone. Default: Europe/Amsterdam. */
   timeZone?: string;
   /**
-   * A key the caller chooses for this email, so sending the same thing twice (the same invitation
-   * with the same link) reaches the provider with one key and goes out once. Without one, every
-   * send gets a random key. A UUID.
+   * The event that causes this email, as text that names it and no one: the session and its
+   * version (`{sessionId}:{version}`), the invitation and its token's hash. The idempotency key is
+   * built from the email's catalog ID and this event (F049), so sending the same email for the same
+   * event twice reaches the provider with one key and goes out once, while another event has a key
+   * of its own. A send that has no natural event (a demo request) makes a fresh one per request.
    */
-  idempotencyKey?: string;
+  event: string;
 }
 
 export interface SendEmailResult {
@@ -39,6 +42,13 @@ export interface SendEmailResult {
 
 /** Renders a template in the recipient's locale and sends it, retrying transient failures. */
 export type SendEmail = <Props>(options: SendEmailOptions<Props>) => Promise<SendEmailResult>;
+
+/** What a successful send records: the catalog ID and the language, never the recipient. */
+export interface SentEvent {
+  /** `EM-11`, or the key of an internal email (`demo-request`). */
+  emailId: string;
+  language: Locale;
+}
 
 export interface RetryEvent {
   template: string;
@@ -57,7 +67,11 @@ export interface CreateSendEmailOptions {
   // Injected in tests, so they never wait or depend on chance.
   sleep?: (ms: number) => Promise<unknown>;
   random?: () => number;
-  idempotencyKey?: () => string;
+  /**
+   * Called once after a send the provider accepted, with the email's catalog ID and language and
+   * nothing else about the recipient: the web server records the product event `email_sent` here.
+   */
+  onSent?: (event: SentEvent) => void;
 }
 
 /**
@@ -73,10 +87,12 @@ export function createSendEmail(options: CreateSendEmailOptions): SendEmail {
     onRetry,
     sleep: wait = sleep,
     random = Math.random,
-    idempotencyKey = randomUUID,
+    onSent,
   } = options;
 
-  return async ({ template, props, to, locale, timeZone, idempotencyKey: key }) => {
+  return async ({ template, props, to, locale, timeZone, event }) => {
+    const emailId = catalogIdOf(template.id);
+    if (!emailId) throw new Error(`Template ${template.id} is not in the email catalog.`);
     const rendered = await renderEmail(template, props, { locale, timeZone });
     const email: OutgoingEmail = {
       from: sender,
@@ -84,9 +100,17 @@ export function createSendEmail(options: CreateSendEmailOptions): SendEmail {
       ...rendered,
       locale,
       template: template.id,
-      idempotencyKey: key ?? idempotencyKey(),
+      idempotencyKey: emailIdempotencyKey(emailId, event),
     };
 
+    const result = await deliver(email);
+    // After the provider accepted it, and outside the retry loop: a hook that throws must not make
+    // the send be tried again.
+    onSent?.({ emailId, language: locale });
+    return result;
+  };
+
+  async function deliver(email: OutgoingEmail): Promise<SendEmailResult> {
     for (let attempt = 1; ; attempt++) {
       try {
         const sent = await transport.send(email);
@@ -106,9 +130,9 @@ export function createSendEmail(options: CreateSendEmailOptions): SendEmail {
           error.attempts = attempt;
           throw error;
         }
-        onRetry?.({ template: template.id, attempt, delayMs, error });
+        onRetry?.({ template: email.template, attempt, delayMs, error });
         await wait(delayMs);
       }
     }
-  };
+  }
 }

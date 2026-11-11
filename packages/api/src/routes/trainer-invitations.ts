@@ -32,7 +32,7 @@ import {
   NOT_FOUND,
   validationErrorResponse,
 } from '../errors.ts';
-import { createInvitationToken, invitationIdempotencyKey } from '../invitations/token.ts';
+import { createInvitationToken, invitationEmailEvent } from '../invitations/token.ts';
 
 // The trainer invitations of a workspace (F011, spec #422), first slice: the Owner invites a
 // trainer by email, sees the pending invitations, sends one again or withdraws it. Accepting and
@@ -279,8 +279,8 @@ function shown({ id, name, email, emailLocale, sentAt, expiresAt }: TrainerInvit
 
 /**
  * Emails EM-09 for an invitation with the token in its link, in the language the rules decide:
- * the chosen one, the account's behind the address, the workspace's default. The idempotency key
- * follows the invitation and its token, so the same send repeated goes out once.
+ * the chosen one, the account's behind the address, the workspace's default. The event follows
+ * the invitation and its token, so the same send repeated has one idempotency key and goes out once.
  */
 async function sendInvitationEmail(
   c: Context<WorkspaceEnv>,
@@ -304,7 +304,7 @@ async function sendInvitationEmail(
     timeZone: workspace.timeZone,
     token: token.value,
     expiresAt: invitation.expiresAt,
-    idempotencyKey: invitationIdempotencyKey(invitation.id, token.hash),
+    event: invitationEmailEvent(invitation.id, token.hash),
   });
 }
 

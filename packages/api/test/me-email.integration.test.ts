@@ -284,6 +284,20 @@ describe('F005 change your own email address', () => {
       },
     );
 
+    it('F049 AC11: each request has its own idempotency key, made of EM-34 and the request', async () => {
+      const sarah = await account(unique('sarah'));
+      const newEmail = unique('sarah.jansen');
+
+      await askForCode(sarah.cookie, newEmail);
+      await askForCode(sarah.cookie, newEmail);
+
+      const [first, second] = transport.sent.map((sent) => sent.idempotencyKey);
+      expect(first).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      );
+      expect(second).not.toBe(first);
+    });
+
     it('answers 202 with an empty body', async () => {
       const sarah = await account(unique('sarah'));
 

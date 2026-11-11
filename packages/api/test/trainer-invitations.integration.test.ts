@@ -22,6 +22,7 @@ import {
   createSendEmail,
   createTrainerInvitationSender,
   EmailSendError,
+  emailIdempotencyKey,
 } from '@fivvi/email';
 import {
   createErrorReporter,
@@ -33,7 +34,7 @@ import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/databas
 import { asc, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { type ApiDependencies, createApp, NO_DEPENDENCIES } from '../src/index.ts';
-import { hashInvitationToken } from '../src/invitations/token.ts';
+import { hashInvitationToken, invitationEmailEvent } from '../src/invitations/token.ts';
 
 // F011 (spec #422), the first slice: the Owner invites a trainer by email, sees the pending
 // invitations, sends one again or withdraws it. Synthetic people: John (Owner) and Sarah (Trainer)
@@ -353,6 +354,19 @@ describe('F011 trainer invitations', () => {
       (await invite(server, gym.id, john, { ...valid, name: 'x'.repeat(120), emailLocale: 'en' }))
         .status,
     ).toBe(201);
+  });
+
+  it('F049 AC11: the idempotency key is built from EM-09 and the invitation with its token', async () => {
+    const { gym, john } = await world();
+    const { server, transport } = setup();
+    const created = (await (
+      await invite(server, gym.id, john, { name: 'Lisa', email: 'lisa@example.com' })
+    ).json()) as InvitationBody;
+    const [row] = await rowsOf(gym.id);
+
+    expect(transport.sent[0]?.idempotencyKey).toBe(
+      emailIdempotencyKey('EM-09', invitationEmailEvent(created.id, row?.tokenHash ?? '')),
+    );
   });
 
   it('AC7: resend sends a new link with a new expiry, and the old token stops working', async () => {

@@ -1,7 +1,7 @@
 import { readEmailConfig } from './config.ts';
 import { createLogTransport } from './log.ts';
 import { createConfiguredTransport } from './provider.ts';
-import { createSendEmail, type SendEmail } from './send.ts';
+import { createSendEmail, type SendEmail, type SentEvent } from './send.ts';
 import type { EmailAddress, EmailTransport } from './transport.ts';
 
 type Env = Readonly<Record<string, string | undefined>>;
@@ -39,6 +39,8 @@ export interface EnvironmentSendEmailOptions {
   fetch?: typeof fetch;
   /** Where logged emails go. Default: `console.info`. */
   log?: (line: string) => void;
+  /** Called after each accepted send with the catalog ID and language only (`email_sent`, F049). */
+  onSent?: (event: SentEvent) => void;
 }
 
 /**
@@ -57,7 +59,7 @@ export interface EnvironmentSendEmailOptions {
  * only `@example.com` mail is sent; production without them throws.
  */
 export function createEnvironmentSendEmail(options: EnvironmentSendEmailOptions = {}): SendEmail {
-  const { env = process.env, fetch: fetchFn, log } = options;
+  const { env = process.env, fetch: fetchFn, log, onSent } = options;
   const production = isProductionEnvironment(env);
   const logExampleMail = !production && !sendsExampleDomain(env);
 
@@ -75,7 +77,7 @@ export function createEnvironmentSendEmail(options: EnvironmentSendEmailOptions 
       return providerTransport.send(email);
     },
   };
-  return createSendEmail({ transport, sender: config?.sender ?? FALLBACK_SENDER });
+  return createSendEmail({ transport, sender: config?.sender ?? FALLBACK_SENDER, onSent });
 }
 
 function tryReadEmailConfig(env: Env) {

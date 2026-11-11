@@ -22,6 +22,7 @@ import {
   createPrivateSessionSender,
   createSendEmail,
   EmailSendError,
+  emailIdempotencyKey,
 } from '@fivvi/email';
 import {
   createErrorReporter,
@@ -34,7 +35,7 @@ import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/databas
 import { asc, eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { type ApiDependencies, createApp, NO_DEPENDENCIES } from '../src/index.ts';
-import { privateSessionEmailKey } from '../src/sessions/email-key.ts';
+import { privateSessionEmailEvent } from '../src/sessions/email-event.ts';
 
 // F020 (spec #425), first ticket (#442): plan a private session through the API and read it. Synthetic
 // people: John (Owner of John's Gym, also trains), Sarah and Tom (Trainers), the clients Anna de Vries
@@ -307,7 +308,9 @@ describe('F020 plan a private session', () => {
     );
     expect(transport.sent[0]?.text).toContain(`Waar: ${gym.marker}`);
     expect(transport.sent[0]?.text).toContain('Trainer: Sarah');
-    expect(transport.sent[0]?.idempotencyKey).toBe(privateSessionEmailKey(planned.session.id, 1));
+    expect(transport.sent[0]?.idempotencyKey).toBe(
+      emailIdempotencyKey('EM-11', privateSessionEmailEvent(planned.session.id, 1)),
+    );
   });
 
   it('AC1: the session can be read back by Sarah, John and Tom with the same values', async () => {
@@ -753,13 +756,13 @@ describe('F020 plan a private session', () => {
 
       const [first, second] = (await storedSessions(gym.id)).map((row) => row.id);
       expect(transport.sent.map((email) => email.idempotencyKey)).toEqual([
-        privateSessionEmailKey(first ?? '', 1),
-        privateSessionEmailKey(second ?? '', 1),
+        emailIdempotencyKey('EM-11', privateSessionEmailEvent(first ?? '', 1)),
+        emailIdempotencyKey('EM-11', privateSessionEmailEvent(second ?? '', 1)),
       ]);
-      expect(privateSessionEmailKey(first ?? '', 1)).not.toBe(
-        privateSessionEmailKey(first ?? '', 2),
+      expect(emailIdempotencyKey('EM-11', privateSessionEmailEvent(first ?? '', 1))).not.toBe(
+        emailIdempotencyKey('EM-11', privateSessionEmailEvent(first ?? '', 2)),
       );
-      expect(privateSessionEmailKey(first ?? '', 1)).toMatch(
+      expect(emailIdempotencyKey('EM-11', privateSessionEmailEvent(first ?? '', 1))).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
       );
     });
@@ -1067,7 +1070,7 @@ describe('F020 plan a private session', () => {
         locale: 'nl-NL',
         template: 'private-session-moved',
         subject: 'Wijziging: je sessie is verplaatst naar vrijdag 25 september om 10:00',
-        idempotencyKey: privateSessionEmailKey(session.id, 2),
+        idempotencyKey: emailIdempotencyKey('EM-04', privateSessionEmailEvent(session.id, 2)),
       });
       expect(transport.sent[0]?.text).toContain(
         'Eerder: donderdag 24 september 2026, 09:00 tot 10:00',

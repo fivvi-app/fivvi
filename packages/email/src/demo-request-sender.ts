@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { resolveInternalCommunicationLanguage } from '@fivvi/i18n';
 import type { DemoRequestMail } from './demo-request-mail.ts';
 import type { SendEmail } from './send.ts';
@@ -26,6 +27,8 @@ export function createDemoRequestSender({
       props: mail,
       to,
       locale: resolveInternalCommunicationLanguage(),
+      // A request has no ID of its own to build the key from: one event per request.
+      event: randomUUID(),
     });
   };
 }

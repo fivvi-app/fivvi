@@ -30,6 +30,9 @@ export interface PrivateSessionMail {
    * `endsAt` are then the new time. Left out for a new session (EM-11).
    */
   previous?: { startsAt: Date; endsAt: Date };
-  /** One key per session and version, so the same send repeated goes out once. */
-  idempotencyKey: string;
+  /**
+   * The event behind the mail, `{sessionId}:{version}`: one per session and version, so the same
+   * send repeated reaches the provider with one idempotency key and goes out once (F049).
+   */
+  event: string;
 }

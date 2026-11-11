@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto';
 import { type Database, recordWrongSignInCode } from '@fivvi/database';
 import { emailChangeCodeEmail, type SendEmail } from '@fivvi/email';
 import { parseAcceptLanguage, resolveSignInCommunicationLanguage } from '@fivvi/i18n';
@@ -113,6 +114,8 @@ export function changeEmailWithCode({
               props: { code, expiresInMinutes: SIGN_IN_EXPIRES_IN_MINUTES },
               to: { email: newEmail },
               locale,
+              // One event per request: asking again is a new email, a retry of this one is not.
+              event: randomUUID(),
             });
           });
           return ctx.json(REQUESTED);
