@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { newDatabaseName, onServer, serverUrl } from '@fivvi/testing/database/server';
 import pg from 'pg';
-import { describe, expect, inject, it, type TestContext } from 'vitest';
+import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
 import { createDatabase } from '../src/index.ts';
 import { DRILL_TABLE } from '../src/restore.ts';
 import { createWorkspace } from '../src/testing/index.ts';
@@ -41,8 +41,14 @@ interface Drill {
   restoredExists(): Promise<boolean>;
 }
 
-// Under `describe.concurrent` the cleanup hook must be the one of the test's own context.
-async function setUpDrill({ onTestFinished }: Pick<TestContext, 'onTestFinished'>): Promise<Drill> {
+// Where the cleanup of a drill is registered: the `onTestFinished` of the test's own context (under
+// `describe.concurrent` it must be the one of that context), or the `afterAll` of the file for the drill that
+// several tests share.
+interface Cleanup {
+  onTestFinished(handler: () => Promise<void> | void): void;
+}
+
+async function setUpDrill({ onTestFinished }: Cleanup): Promise<Drill> {
   const source = await cloneTemplateDatabase();
   onTestFinished(() => source.drop());
   const client = createDatabase({ url: source.url, maxConnections: 1 });
@@ -76,7 +82,9 @@ async function setUpDrill({ onTestFinished }: Pick<TestContext, 'onTestFinished'
           ...process.env,
           PATH: `${dir}:${process.env.PATH}`,
           RESTORE_DRILL_SOURCE_URL: source.url,
-          RESTORE_DRILL_SETTLE: '1',
+          // The script waits this long three times around the point, on top of a fixed two seconds. Only the test of
+          // the settle time needs a real wait; the others take the shortest.
+          RESTORE_DRILL_SETTLE: '0',
           RESTORE_DRILL_WAIT: '3',
           RESTORE_DRILL_INTERVAL: '1',
           FAKE_RAILWAY_LOG: log,
@@ -134,8 +142,42 @@ function expectCountsOnly(output: string, drill: Drill) {
   expect(output).not.toContain(new URL(drill.source.url).password);
 }
 
+// One passing drill, with the settle time of 3 seconds, for the three tests that check what a passing drill does
+// (what it calls, what it prints, the order of the markers and the point). The settle time is the longest wait of
+// the file, so it is waited for once, and the script's startup (the database helper is started five times per run)
+// is paid once instead of three times. The tests that need their own drill (a refusal, another mode, a failure) set
+// one up themselves.
+const SHARED_SETTLE_SECONDS = 3;
+const sharedCleanups: Array<() => Promise<void> | void> = [];
+let sharedDrill: Promise<{ drill: Drill; passed: Awaited<ReturnType<Drill['run']>> }> | undefined;
+
+function passingDrill() {
+  sharedDrill ??= (async () => {
+    const drill = await setUpDrill({
+      onTestFinished: (handler) => {
+        sharedCleanups.push(handler);
+      },
+    });
+    const passed = await drill.run(['--environment', 'development', '--who', 'the owner'], 'ok', {
+      RESTORE_DRILL_SETTLE: String(SHARED_SETTLE_SECONDS),
+    });
+    return { drill, passed };
+  })();
+  return sharedDrill;
+}
+
+// Started before the first test, so the longest wait of the file runs next to the other drills, not after them.
+beforeAll(() => {
+  passingDrill().catch(() => {}); // a failure reaches the tests that wait for it
+});
+
+afterAll(async () => {
+  await sharedDrill?.catch(() => {});
+  for (const cleanup of sharedCleanups.reverse()) await cleanup();
+});
+
 describe.concurrent('E016 the restore drill script', () => {
-  it('AC2: drill restores, checks markers and counts, and cleans up; refuses other environments and future times', async (context) => {
+  it('AC2: drill refuses other environments and future times, before it touches anything', async (context) => {
     const drill = await setUpDrill(context);
 
     const refusedEnvironment = await drill.run(['--environment', 'staging']);
@@ -159,50 +201,6 @@ describe.concurrent('E016 the restore drill script', () => {
     expect(refusedEnvironment.output).toContain('--environment must be development or production');
     expect(refusedFuture.output).toContain('--at is in the future');
     expect(await drill.drillTableExists()).toBe(false);
-
-    const passed = await drill.run(['--environment', 'development', '--who', 'the owner']);
-
-    expect(passed.output).toContain('Result: passed');
-    expect(passed.code).toBe(0);
-    expect(verbs(passed.calls)).toEqual([
-      'postgres pitr restore',
-      'variable list --service',
-      'service delete --service',
-    ]);
-    const [restore] = passed.calls as [string[]];
-    expect(restore).toEqual(
-      expect.arrayContaining(['--service', 'postgres', '--environment', 'development', '--yes']),
-    );
-    const name = restore[restore.indexOf('--new-service-name') + 1] as string;
-    expect(name).toMatch(/^postgres-drill-\d{8}-\d{4}$/);
-    expect(passed.calls[2]).toEqual(expect.arrayContaining(['--service', name, '--yes']));
-    expect(passed.output).toContain('Marker before the point: found.');
-    expect(passed.output).toContain('Marker after the point: absent.');
-    expect(passed.output).toContain('Markers: passed.');
-    expect(passed.output).toMatch(/Counts: passed \(\d+ tables\)\./);
-    expect(passed.output).toContain(`Cleanup: scratch service ${name} removed`);
-    expect(passed.output).toContain('Cleanup: drill table and markers removed from development');
-    expect(passed.output).toMatch(
-      /\| \d{4}-\d{2}-\d{2} \| development \| \d{4}-\d{2}-\d{2}T[\d:]+Z \| \d+m \d+s \| (\d+) of \1 tables \| the owner \| passed \|/,
-    );
-    expect(await drill.drillTableExists()).toBe(false);
-    expect(await drill.restoredExists()).toBe(false);
-  }, 60_000);
-
-  it('AC2: the point is taken a settle time after the before marker, and the marker is not for a later point', async (context) => {
-    const drill = await setUpDrill(context);
-
-    const passed = await drill.run(['--environment', 'development'], 'ok', {
-      RESTORE_DRILL_SETTLE: '3',
-    });
-
-    expect(passed.code).toBe(0);
-    const { point, markerPoint, writtenAt } = drill.beforeMarker();
-    expect(writtenAt).not.toBeNull();
-    // The comment of the script and the document say: marker, wait, point, wait, marker. The wait is measured on
-    // the database's clock (the marker's written_at) against the point the restore was asked for.
-    expect(Date.parse(point) - Date.parse(writtenAt as string)).toBeGreaterThanOrEqual(3_000);
-    expect(Date.parse(markerPoint as string)).toBeLessThanOrEqual(Date.parse(point));
   }, 60_000);
 
   it('AC2: restores to a chosen past point and finds neither marker there', async (context) => {
@@ -221,17 +219,6 @@ describe.concurrent('E016 the restore drill script', () => {
     expect(passed.output).toContain('Marker after the point: absent (expected).');
     expect(await drill.drillTableExists()).toBe(false);
     expect(await drill.restoredExists()).toBe(false);
-  }, 60_000);
-
-  it('AC4: output holds counts only', async (context) => {
-    const drill = await setUpDrill(context);
-
-    const passed = await drill.run(['--environment', 'development']);
-
-    expect(passed.code).toBe(0);
-    expectCountsOnly(passed.output, drill);
-    expect(passed.output).toContain('public.organizations | 1 | 1 | 0 | match');
-    expect(passed.output).toContain('table | development | postgres-drill-');
   }, 60_000);
 
   it('AC4: cleanup also after a failed check (the restore is not at the point)', async (context) => {
@@ -321,5 +308,60 @@ describe.concurrent('E016 the restore drill script', () => {
     );
     expect(await drill.restoredExists()).toBe(true);
     expect(await drill.drillTableExists()).toBe(false);
+  }, 60_000);
+
+  // The tests of the shared passing drill come last: while they wait for it they hold a place among the tests
+  // that run side by side, which the tests with a drill of their own should have first.
+  it('AC2: drill restores, checks markers and counts, and cleans up', async () => {
+    const { drill, passed } = await passingDrill();
+
+    expect(passed.output).toContain('Result: passed');
+    expect(passed.code).toBe(0);
+    expect(verbs(passed.calls)).toEqual([
+      'postgres pitr restore',
+      'variable list --service',
+      'service delete --service',
+    ]);
+    const [restore] = passed.calls as [string[]];
+    expect(restore).toEqual(
+      expect.arrayContaining(['--service', 'postgres', '--environment', 'development', '--yes']),
+    );
+    const name = restore[restore.indexOf('--new-service-name') + 1] as string;
+    expect(name).toMatch(/^postgres-drill-\d{8}-\d{4}$/);
+    expect(passed.calls[2]).toEqual(expect.arrayContaining(['--service', name, '--yes']));
+    expect(passed.output).toContain('Marker before the point: found.');
+    expect(passed.output).toContain('Marker after the point: absent.');
+    expect(passed.output).toContain('Markers: passed.');
+    expect(passed.output).toMatch(/Counts: passed \(\d+ tables\)\./);
+    expect(passed.output).toContain(`Cleanup: scratch service ${name} removed`);
+    expect(passed.output).toContain('Cleanup: drill table and markers removed from development');
+    expect(passed.output).toMatch(
+      /\| \d{4}-\d{2}-\d{2} \| development \| \d{4}-\d{2}-\d{2}T[\d:]+Z \| \d+m \d+s \| (\d+) of \1 tables \| the owner \| passed \|/,
+    );
+    expect(await drill.drillTableExists()).toBe(false);
+    expect(await drill.restoredExists()).toBe(false);
+  }, 60_000);
+
+  it('AC2: the point is taken a settle time after the before marker, and the marker is not for a later point', async () => {
+    const { drill, passed } = await passingDrill();
+
+    expect(passed.code).toBe(0);
+    const { point, markerPoint, writtenAt } = drill.beforeMarker();
+    expect(writtenAt).not.toBeNull();
+    // The comment of the script and the document say: marker, wait, point, wait, marker. The wait is measured on
+    // the database's clock (the marker's written_at) against the point the restore was asked for.
+    expect(Date.parse(point) - Date.parse(writtenAt as string)).toBeGreaterThanOrEqual(
+      SHARED_SETTLE_SECONDS * 1_000,
+    );
+    expect(Date.parse(markerPoint as string)).toBeLessThanOrEqual(Date.parse(point));
+  }, 60_000);
+
+  it('AC4: output holds counts only', async () => {
+    const { drill, passed } = await passingDrill();
+
+    expect(passed.code).toBe(0);
+    expectCountsOnly(passed.output, drill);
+    expect(passed.output).toContain('public.organizations | 1 | 1 | 0 | match');
+    expect(passed.output).toContain('table | development | postgres-drill-');
   }, 60_000);
 });
