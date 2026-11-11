@@ -332,7 +332,7 @@
       /* F042: the trainer's own list of templates for this client; the client sees nothing of it */
       var tl = F.tplList(c.id), cfn = c.name.split(" ")[0];
       h += card("Schema's van " + esc(cfn), tl.length ? '<ul class="w-list plain">' + tl.map(function (t) {
-        return "<li><div><b translate=\"no\">" + esc(t) + "</b><p class=\"w-muted\">" + D.tpl[t].length + (D.tpl[t].length === 1 ? " oefening" : " oefeningen") + '</p></div><div><button class="w-btn ghost sm" data-a="w-tpl-drop" data-id="' + c.id + '" data-t="' + esc(t) + '" aria-label="' + esc(t) + " weghalen bij " + esc(cfn) + '">Weghalen</button></div></li>';
+        return "<li><div><b translate=\"no\">" + esc(t) + "</b><p class=\"w-muted\">" + F.tplCount(D.tpl[t].length) + '</p></div><div><button class="w-btn ghost sm" data-a="w-tpl-drop" data-id="' + c.id + '" data-t="' + esc(t) + '" aria-label="' + esc(t) + " weghalen bij " + esc(cfn) + '">Weghalen</button></div></li>';
       }).join("") + "</ul>" : "<p class=\"w-muted\">Nog geen schema's voor " + esc(cfn) + ".</p>", { desc: "Alleen jij en je collega-trainers zien dit. " + esc(cfn) + " ziet niets van deze lijst.", act: btn("Schema toevoegen", "w-tpl-add", { k: "outline sm", i: "plus", d: { id: c.id } }) });
       h += card("", hist.length ? '<ul class="w-list plain">' + hist.map(function (x) { return "<li><div><b>" + esc(x.name) + "</b><p>" + esc(x.d) + " · " + x.n + " oefeningen · " + esc(x.by) + "</p>" + (x.sets ? '<p class="w-muted">' + x.sets.map(function (st) { return esc(st[0]) + " " + esc(st[1]) + " " + dtag(st[2]); }).join(" · ") + "</p>" : "") + (x.note ? '<p class="w-note" translate="no">' + ic("note") + "<span>" + esc(x.note) + "</span></p>" : "") + "</div>" + btn("Delen", "w-toast", { k: "outline sm", d: { m: "Gedeeld met " + c.name.split(" ")[0] } }) + "</li>"; }).join("") + "</ul>" : '<p class="w-muted">Nog geen trainingen.</p>');
     } else if (w.tab === "bookings") {
@@ -594,7 +594,7 @@
     }).join("");
   }
   function pickRow(a, d, t, on, off) {
-    return "<li><button data-a=\"" + a + "\"" + dat(d) + (off ? " disabled" : "") + "><span translate=\"no\">" + esc(t) + '</span><span class="w-muted">' + D.tpl[t].length + (D.tpl[t].length === 1 ? " oefening" : " oefeningen") + "</span>" + (off ? '<span class="w-muted">Op de lijst</span>' : "") + (on ? ic("check") : "") + "</button></li>";
+    return "<li><button data-a=\"" + a + "\"" + dat(d) + (off ? " disabled" : "") + "><span translate=\"no\">" + esc(t) + '</span><span class="w-muted">' + F.tplCount(D.tpl[t].length) + "</span>" + (off ? '<span class="w-muted">Op de lijst</span>' : "") + (on ? ic("check") : "") + "</button></li>";
   }
   function sheet() {
     var f = F.findItem(W().sheet), it = f.it, k = f.day, h = "";
@@ -654,10 +654,10 @@
       var ac = F.CLIENT[d.c], al = F.tplList(d.c), an = Object.keys(D.tpl); t = "Schema toevoegen";
       b = "<p>Kies een schema voor " + esc(ac.name.split(" ")[0]) + ".</p>" + (an.length ? '<ul class="w-list">' + an.map(function (n) { return pickRow("w-tpl-add-do", { t: n }, n, false, al.indexOf(n) >= 0); }).join("") + "</ul>" : '<p class="w-muted">Nog geen schema\'s.</p>') + '<p class="w-muted" style="margin-top:10px">Een nieuw schema maak je onder Trainingen › Schema\'s.</p>'; ok = "";
     }
-    else if (d.n === "tpldrop") { t = esc(d.t) + " weghalen bij " + esc(F.CLIENT[d.c].name.split(" ")[0]) + "?"; b = "<p>Het schema zelf blijft bestaan.</p>"; ok = "Weghalen"; kind = "dng"; cancel = "Terug"; }
+    else if (d.n === "tpldrop") { t = d.t + " weghalen bij " + F.CLIENT[d.c].name.split(" ")[0] + "?"; b = "<p>Het schema zelf blijft bestaan.</p>"; ok = "Weghalen"; kind = "dng"; cancel = "Terug"; }
     else if (d.n === "sesstpl") {
       var si = F.findItem(d.id).it, sc = F.sessTpl(si, d.c), sf = F.CLIENT[d.c].name.split(" ")[0], sm = F.tplList(d.c), so = F.tplOthers(d.c);
-      t = si.duo ? "Schema voor " + esc(sf) : "Schema kiezen";
+      t = si.duo ? "Schema voor " + sf : "Schema kiezen";
       b = "<h4>Schema's van " + esc(sf) + "</h4>" + (sm.length ? '<ul class="w-list">' + sm.map(function (n) { return pickRow("w-sess-tpl-set", { t: n }, n, sc === n); }).join("") + "</ul>" : '<p class="w-muted">Nog geen schema\'s voor ' + esc(sf) + ".</p>") +
         (so.length ? "<h4>Andere schema's</h4>" + '<ul class="w-list">' + so.map(function (n) { return pickRow("w-sess-tpl-set", { t: n }, n, sc === n); }).join("") + "</ul>" : "") +
         '<ul class="w-list" style="margin-top:12px"><li><button data-a="w-sess-tpl-set" data-t=""><span>Geen schema</span>' + (sc ? "" : ic("check")) + "</button></li></ul>"; ok = "";
@@ -682,7 +682,7 @@
     else if (d.n === "newclient") { t = "Klant toevoegen"; b = fld("Naam", inp("name", "text", "Voor- en achternaam")) + fld("E-mail", inp("email", "email", "naam@voorbeeld.nl")) + fld("Taal voor e-mails", selF("lang", ["Nederlands", "English"])) + (payOpen() ? '<p class="w-muted">De klant krijgt een e-mail met een uitnodiging om in te loggen.</p>' : '<p class="w-muted">De klant krijgt een uitnodiging zodra de studio klaar is.</p>'); ok = "Toevoegen"; }
     else if (d.n === "newclass") { t = "Nieuwe les"; b = sect("Naam en omschrijving", fld("Naam (Nederlands)", inp("name", "text", "Bijvoorbeeld Reformer")) + fld("Naam (Engels, optioneel)", inp("nameEn")) + fld("Omschrijving (Nederlands, optioneel)", '<textarea class="w-input" data-wf="desc" rows="2"></textarea>') + fld("Omschrijving (Engels, optioneel)", '<textarea class="w-input" data-wf="descEn" rows="2"></textarea>')) + sect("De les", '<div class="w-inline2">' + fld("Trainer", selF("trainer", D.trainers.sf.concat(["Trainer nodig"]))) + fld("Niveau", selF("level", [["", "Geen"]].concat(D.LEVELS.map(function (l) { return [l, l]; })))) + fld("Plekken", inp("cap", "number")) + "</div>") + sect("Wanneer", '<div class="w-inline2">' + fld("Dag", selF("day", ["maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag", "zondag"])) + fld("Begin", inp("start", "time")) + "</div>" + fld("Herhalen", selF("rep", ["Elke week", "Niet herhalen"]))); ok = "Les maken"; }
     else if (d.n === "newgym") { t = "Nieuw Open Gym-blok"; b = '<div class="w-inline2">' + fld("Datum", inp("date", "date")) + fld("Begin", inp("start", "time")) + fld("Eind", inp("end", "time")) + "</div>" + fld("Plekken", inp("cap", "number")); ok = "Publiceren"; }
-    return '<div class="w-scrim dark" data-a="w-dclose"></div><div class="w-dialog" role="dialog" aria-label="' + esc(t) + '"><h3>' + t + "</h3>" + b + '<div class="w-dialog-f">' + btn(cancel, "w-dclose", { k: "outline" }) + (ok ? btn(ok, "w-dok", { k: kind }) : "") + "</div></div>";
+    return '<div class="w-scrim dark" data-a="w-dclose"></div><div class="w-dialog" role="dialog" aria-label="' + esc(t) + '"><h3>' + esc(t) + "</h3>" + b + '<div class="w-dialog-f">' + btn(cancel, "w-dclose", { k: "outline" }) + (ok ? btn(ok, "w-dok", { k: kind }) : "") + "</div></div>";
   }
 
   /* ---------- actions ---------- */

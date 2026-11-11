@@ -241,7 +241,7 @@ window.FIVVI_I18N = (function () {
     [/^Gemaakt door trainers van (.+)\. Die wijzig of verwijder je zelf\.$/, "Made by trainers at $1. You change or delete them yourself."],
     [/^(.+) kun je daarna niet meer toevoegen\. Trainingen waarin hij al zit, blijven zoals ze zijn\.$/, "You can't add $1 any more after this. Workouts it's already in stay as they are."],
     [/^(.+?) kun je daarna niet meer kiezen bij een training\. Trainingen die al met dit schema zijn gelogd, blijven bewaard\.(?: (Het staat bij .+; daar verdwijnt het\.))?$/, function (m, n, use) { return "You can't choose " + n + " for a workout any more. Workouts already logged with this template are kept." + (use ? " " + T(use) : ""); }],
-[/^Het staat bij (.+); daar verdwijnt het\.$/, function (m, x) { var a = x.split(" en ").map(function (y) { return y.replace(/^(\d+) klanten?$/, function (z, n) { return n + (n === "1" ? " client" : " clients"); }).replace(/^(\d+) geplande sessies?$/, function (z, n) { return n + (n === "1" ? " planned session" : " planned sessions"); }); }); return "It's on " + a.join(" and ") + "; it's removed there."; }],
+[/^Het staat bij (.+); daar verdwijnt het\.$/, function (m, x) { var a = x.split(" en ").map(function (y) { return y.replace(/^(\d+) klant(?:en)?$/, function (z, n) { return n + (n === "1" ? " client" : " clients"); }).replace(/^(\d+) geplande sessies?$/, function (z, n) { return n + (n === "1" ? " planned session" : " planned sessions"); }); }); return "It's on " + a.join(" and ") + "; it's removed there."; }],
     [/^(.+) is verwijderd$/, "$1 has been deleted"],
     [/^Notitie van (\S+) · alleen voor trainers$/, "Note from $1 · trainers only"],
     [/^(\S+) · alleen voor trainers$/, "$1 · trainers only"],

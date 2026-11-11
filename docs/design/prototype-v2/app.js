@@ -668,6 +668,11 @@
   }
   /* deleting a template takes it off every client's list and off planned sessions; logged workouts stay */
   function tplPurge(name) {
+    /* every session whose workout hasn't started, past ones included, loses it */
+    Object.keys(DAYCACHE).forEach(function (k) { DAYCACHE[k].forEach(function (it) {
+      if (it.type !== "priv" || sessLocked(it)) return;
+      pair(it).forEach(function (c) { if (sessTpl(it, c) === name) setSessTpl(it, c, null); });
+    }); });
     plannedWith(name).forEach(function (x) { setSessTpl(x[0], x[1], null); });
     Object.keys(D.templates).forEach(function (c) { tplDrop(c, name); });
   }
@@ -873,6 +878,7 @@
       /* tpl is one name for everyone, or [first client's, second client's] when a duo has a template per client (F042) */
       var tl = Array.isArray(tpl) ? tpl : pair(it).map(function () { return tpl || null; }), who = tl[0] || !it.duo || !tl[1] ? it.client : it.duo;
       S.log = { item: itemId, client: it.client, step: step, tpl: tl[0] || tl[1] || null, ex: tl[0] ? tplEx(tl[0]) : [], start: Date.now(), changed: false, note: "", saveTpl: false, tplName: "", msg: "" };
+      if (it.type === "priv") pair(it).forEach(function (c, i) { if (tl[i]) setSessTpl(it, c, tl[i]); });
       if (it.duo) { S.log.pair = pair(it); S.log.per = {}; S.log.per[it.client] = S.log.ex; S.log.per[it.duo] = tl[1] ? tplEx(tl[1]) : []; S.log.client = who; S.log.ex = S.log.per[who]; }
     }
     S.anim = "up"; render();
@@ -1504,7 +1510,7 @@
   window.addEventListener("resize", function () { if (dev) fitDev(); });
   function addClient(c) { D.clients.push(c); CLIENT[c.id] = c; }
   function addItem(k, it) { dayItems(k); DAYCACHE[k].push(it); }
-  window.FV = { tplList: tplList, tplOthers: tplOthers, tplAdd: tplAdd, tplDrop: tplDrop, tplUse: tplUse, tplUseLine: tplUseLine, tplPurge: tplPurge, tplRename: tplRename, sessTpl: sessTpl, setSessTpl: setSessTpl, sessLocked: sessLocked, cashText: F_CASHTEXT, agrName: agrName, offerOpts: offerOpts, offerStart: offerStart, saveClassText: saveClassText, PAYST: PAYST, PAYONLINE: PAYONLINE, PAYSTUDIO: PAYSTUDIO, PAYOPEN: PAYOPEN, OFFEROPEN: OFFEROPEN, AGROPEN: AGROPEN, OPENOFFERS: OPENOFFERS, get S() { return S; }, PREF: PREF, D: D, A: A, CLIENT: CLIENT, dayItems: dayItems, findItem: findItem, extra: function () { return EXTRA_WS; },
+  window.FV = { tplCount: tplCount, tplList: tplList, tplOthers: tplOthers, tplAdd: tplAdd, tplDrop: tplDrop, tplUse: tplUse, tplUseLine: tplUseLine, tplPurge: tplPurge, tplRename: tplRename, sessTpl: sessTpl, setSessTpl: setSessTpl, sessLocked: sessLocked, cashText: F_CASHTEXT, agrName: agrName, offerOpts: offerOpts, offerStart: offerStart, saveClassText: saveClassText, PAYST: PAYST, PAYONLINE: PAYONLINE, PAYSTUDIO: PAYSTUDIO, PAYOPEN: PAYOPEN, OFFEROPEN: OFFEROPEN, AGROPEN: AGROPEN, OPENOFFERS: OPENOFFERS, get S() { return S; }, PREF: PREF, D: D, A: A, CLIENT: CLIENT, dayItems: dayItems, findItem: findItem, extra: function () { return EXTRA_WS; },
     cancelDuoPart: cancelDuoPart, CV: CV, TYPE: TYPE, title: title, level: level, lvlTag: lvlTag, esc: esc, ic: ic, mins: mins, hm: hm, key: key, parse: parse, add: add, monday: monday, longDate: longDate, shortDate: shortDate,
     isoWeek: isoWeek, DAYS: DAYS, DS: DS, MONTHS: MONTHS, MS: MS, TODAY: TODAY, NOW: NOW, NOWT: NOWT, isPast: isPast, initials: initials, toast: toast, render: function () { render(); },
     OWNER: OWNER, SOLO: SOLO, HAS: HAS, MIXED: MIXED, WSS: WSS, avatar: avatar, addClient: addClient, addItem: addItem, INDEX: INDEX, SHEETS: SHEETS, SCREENS: SCREENS, kit: { fld: fld, inp: inp, sel: sel, row: row, grp: grp, sh: sh, lt: lt, btn: btn, seg: seg, foot: foot, avatar: avatar, rings: rings, shape: shape, SHAPE: SHAPE }, fresh: function () { fresh(); }, save: function () { save(); applyPrefs(); } };
