@@ -181,6 +181,13 @@
     "layout": {
       "footer": "Deze e-mail is verstuurd door Fivvi."
     },
+    "frame": {
+      "clientReason": "Je krijgt deze e-mail omdat je klant bent bij {workspace}.",
+      "teamReason": "Je krijgt deze e-mail omdat je in het team van {workspace} zit.",
+      "questions": "Vragen? Neem contact op met {workspace}.",
+      "button": "In Fivvi bekijken",
+      "sentWith": "Verstuurd via Fivvi"
+    },
     "hello": {
       "subject": "Testbericht van Fivvi",
       "preview": "Als je dit leest, komen e-mails van Fivvi goed aan.",

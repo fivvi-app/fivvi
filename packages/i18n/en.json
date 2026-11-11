@@ -181,6 +181,13 @@
     "layout": {
       "footer": "This email was sent by Fivvi."
     },
+    "frame": {
+      "clientReason": "You're getting this email because you're a client of {workspace}.",
+      "teamReason": "You're getting this email because you're on the team at {workspace}.",
+      "questions": "Questions? Contact {workspace}.",
+      "button": "View in Fivvi",
+      "sentWith": "Sent with Fivvi"
+    },
     "hello": {
       "subject": "Test message from Fivvi",
       "preview": "If you can read this, emails from Fivvi are getting through.",

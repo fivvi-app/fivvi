@@ -47,6 +47,7 @@ export { createConfiguredTransport } from './provider.ts';
 export {
   createEmailContext,
   type EmailContext,
+  type EmailFrame,
   type EmailMessageKey,
   type EmailTemplate,
   type RenderedEmail,
