@@ -155,6 +155,15 @@ describe('E014 AC1: every table in the schema is in the privacy registry', () =>
     expect(RETENTION.DELETION_LOG).toEqual({ unit: 'days', amount: 30 });
   });
 
+  it('keeps the entries of both logs unchanged until their retention constant ends, whoever is deleted', () => {
+    // The tables are write-once and the access log's client action needs the client ID; a restore
+    // re-applies the deletion log after the workspace is gone (retention-policy.md §3.5).
+    for (const table of ['access_log', 'deletion_log']) {
+      const declaration = declaredTable(table);
+      expect(declaration?.personal && declaration.onDelete, table).toBe('keep-for-law');
+    }
+  });
+
   it('exports no content from the logs: only IDs, the action and the time', () => {
     const access = declaredTable('access_log');
     expect(access?.personal && access.export).toEqual([

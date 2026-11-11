@@ -160,7 +160,7 @@ describe('E014 the Owner reads the access log', () => {
       headers: { ...(who ? { 'x-test-account': who.id } : {}), ...headers },
     });
 
-  it('AC22: John reads only John’s Gym’s entries, newest first, with the names resolved', async () => {
+  it('AC22: Owner reads this workspace’s log; names resolved; no note text', async () => {
     const w = await world();
     await addAccessLogEntry(admin.db, {
       workspaceId: w.gym.id,
@@ -383,33 +383,49 @@ describe('E014 the Owner reads the access log', () => {
       subjectClientId: w.anna.id,
     });
 
-    const sarah = await read(w.gym.id, w.sarah);
-    const mike = await read(w.gym.id, w.mike);
-    const anna = await read(w.gym.id, w.annaAccount);
-    const anonymous = await read(w.gym.id, undefined);
+    const refusals = {
+      sarah: await read(w.gym.id, w.sarah),
+      mike: await read(w.gym.id, w.mike),
+      anna: await read(w.gym.id, w.annaAccount),
+      anonymous: await read(w.gym.id, undefined),
+    };
+    const bodies = Object.fromEntries(
+      await Promise.all(
+        Object.entries(refusals).map(async ([who, response]) => [who, await response.text()]),
+      ),
+    ) as Record<keyof typeof refusals, string>;
 
-    expect(sarah.status).toBe(403);
-    expect(await sarah.json()).toEqual({ code: 'forbidden' });
-    expect(mike.status).toBe(404);
-    expect(anna.status).toBe(403);
-    expect(anonymous.status).toBe(401);
-    for (const refused of [sarah, mike, anna, anonymous]) {
-      expect(JSON.stringify(refused)).not.toContain(w.anna.id);
+    expect(refusals.sarah.status).toBe(403);
+    expect(JSON.parse(bodies.sarah)).toEqual({ code: 'forbidden' });
+    expect(refusals.mike.status).toBe(404);
+    expect(refusals.anna.status).toBe(403);
+    expect(refusals.anonymous.status).toBe(401);
+    // A refusal says nothing of the log: no ID, no name, no entry.
+    for (const [who, body] of Object.entries(bodies)) {
+      for (const secret of [w.anna.id, w.johnMember.id, 'Anna', 'John', 'items']) {
+        expect(body, who).not.toContain(secret);
+      }
     }
   });
 
   it('refuses a query that does not match the contract with 400 and the field', async () => {
     const w = await world();
 
-    for (const query of [
-      '?clientId=anna',
-      '?action=client.deleted',
-      '?pageSize=0',
-      '?pageSize=101',
-      '?page=0',
-    ]) {
+    for (const [query, field] of [
+      ['?clientId=anna', 'clientId'],
+      ['?action=client.deleted', 'action'],
+      ['?pageSize=0', 'pageSize'],
+      ['?pageSize=101', 'pageSize'],
+      ['?page=0', 'page'],
+    ] as const) {
       const response = await read(w.gym.id, w.john, query);
       expect(response.status, query).toBe(400);
+      const body = (await response.json()) as { code: string; issues: { path: string }[] };
+      expect(body.code, query).toBe('validation_failed');
+      expect(
+        body.issues.map((issue) => issue.path),
+        query,
+      ).toEqual([field]);
     }
   });
 

@@ -400,12 +400,30 @@ describe('E014 the access log and the deletion log', () => {
         .where(eq(deletionLog.organizationId, johns.workspaceId));
       expect(written.map((row) => row.recordId)).toEqual([RECORD]);
 
+      // The store applies the scope: an entry that names another workspace is refused before it is sent.
       await expect(
         johns.inScope((scope) =>
           deletionLogStore(scope).append([
             { table: 'clients', recordId: RECORD, workspaceId: fit.workspaceId, deletedAt: at(1) },
           ]),
         ),
+      ).rejects.toThrow('another workspace');
+      expect(
+        await cron.db
+          .select()
+          .from(deletionLog)
+          .where(eq(deletionLog.organizationId, fit.workspaceId)),
+      ).toEqual([]);
+      // And the database says the same under it: RLS refuses an insert for a workspace that is not in the context.
+      await expect(
+        app.db.transaction(async (tx) => {
+          await tx.execute(sql`select set_config('app.workspace_ids', ${johns.workspaceId}, true)`);
+          await tx.insert(deletionLog).values({
+            tableName: 'clients',
+            recordId: RECORD,
+            organizationId: fit.workspaceId,
+          });
+        }),
       ).rejects.toMatchObject({ cause: { code: '42501' } });
       await expect(app.db.select().from(deletionLog)).rejects.toMatchObject({
         cause: { code: '42501' },

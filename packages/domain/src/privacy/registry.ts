@@ -272,9 +272,9 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
       'occurred_at',
       ...TIMESTAMPS,
     ],
-    onDelete: 'anonymize',
+    onDelete: 'keep-for-law',
     retention: 'ACCESS_LOG',
-    note: 'Who exported, trashed, restored or purged which client, and from M7 who viewed or changed which note (the note’s ID, never its content). IDs and a time only; the Owner reads it with the names resolved at read time (R12). When a client is purged her entries stay with an ID that no longer leads to a person, and the reader shows “Deleted client”; every entry is deleted after the period.',
+    note: 'Who exported, trashed, restored or purged which client, and from M7 who viewed or changed which note (the note’s ID, never its content). IDs and a time only; the Owner reads it with the names resolved at read time (R12). The entries are write-once and stay unchanged, also when the client is purged or the team member leaves: the ID then no longer leads to a person and the reader shows “Deleted client”. “Kept for the law” here means the record of who did what is kept as it was written until the period ends; then a daily task deletes it.',
   },
   {
     table: 'deletion_log',
@@ -282,9 +282,9 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     subject: 'workspace',
     personalData: ['record_id'],
     export: [],
-    onDelete: 'delete',
+    onDelete: 'keep-for-law',
     retention: 'DELETION_LOG',
-    note: 'The table name and record ID of every hard deletion and anonymization, with the workspace and the time, so a restore of a backup can re-apply them (retention policy §3.5). No content. Platform data of the cron role, not part of an export. Entries are deleted after the period.',
+    note: 'The table name and record ID of every hard deletion and anonymization, with the workspace and the time, so a restore of a backup can re-apply them (retention policy §3.5). No content. Platform data of the cron role, not part of an export. The entries are write-once and stay unchanged, also when the client, the person or the whole workspace is deleted, because a restore of a backup made before the deletion has to re-apply them; a daily task deletes each entry when the period ends.',
   },
   // Payments (E019, ADR-020): references, amounts and statuses; the provider holds the payment data.
   {

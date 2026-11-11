@@ -37,11 +37,18 @@ export async function appendDeletionLog(
 
 /**
  * The deletion log as the domain's `DeletionLogStore` port, written inside the scope's transaction
- * so an entry commits or rolls back with the deletion it records.
+ * so an entry commits or rolls back with the deletion it records. The scope decides the workspace:
+ * an entry that names another one is refused before anything is sent (RLS refuses it under this).
  */
 export function deletionLogStore(scope: WorkspaceScope) {
   return {
-    append: (entries: readonly DeletionLogEntryRecord[]) =>
-      appendDeletionLog(executorOf(scope), entries),
+    append: (entries: readonly DeletionLogEntryRecord[]) => {
+      if (entries.some((entry) => entry.workspaceId !== scope.workspaceId)) {
+        return Promise.reject(
+          new Error('A deletion log entry names another workspace than the scope.'),
+        );
+      }
+      return appendDeletionLog(executorOf(scope), entries);
+    },
   };
 }
