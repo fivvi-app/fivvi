@@ -125,6 +125,15 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md), amended by [ADR-031
 - **Share:** a message for the client and a preview.
 - **Duo:** a switch between the two clients, one log each.
 
+### Schema's (TM-05 to TM-09, F041)
+
+Trainers manage workout templates on the phone too, not only on the web (owner, 11 November 2026). The owner clicked through it and accepted it.
+
+- **Where:** *Profiel* → *Trainingen* → *Schema's*: the list with each template's number of exercises, **+** on iOS and *Nieuw schema* on Android.
+- **A template:** its rows (*Bankdrukken 3 × 8*), *Wijzigen*, and *Schema verwijderen* with the web's confirmation.
+- **Nieuw schema / Schema wijzigen:** a name, then per exercise *Sets* and *Doel* (the target in the exercise type's unit, no weight); up and down buttons to reorder, a remove button (nothing is saved until *Opslaan*, so no confirmation), and *Oefening toevoegen* with the exercise picker, without *Recent* and *Nieuwe oefening*. A new template starts empty. The same exercise may be added twice; it shows *In schema*.
+- **Footers:** "Alle trainers in je werkruimte kunnen schema's maken, wijzigen en verwijderen." and "Een wijziging verandert geen trainingen die al zijn gelogd."
+
 ### + Nieuw (TD-05) and forms
 
 - **Privésessie**, with an optional *Tweede klant* that makes it a duo session.
@@ -178,7 +187,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md), amended by [ADR-031
 
 - Own exercises: add, change, remove.
 - The library is read-only.
-- Templates: add, change, remove, with a row editor.
+- Templates: add, change, remove, with a row editor; also in Fivvi Pro (§3, *Schema's*).
 
 ### Aanbod (F052)
 
@@ -419,6 +428,7 @@ The prototype had to choose something for these. **The owner confirmed every ite
 18. **Cancelling one client of a duo** (#586): *Wie annuleer je?* with *Alleen Eva annuleren* and *Hele sessie annuleren*, and to the client who stays "Je sessie gaat door, zonder Eva." Prototype entry: *Duosessie: één klant annuleren*. The owner clicked through it and accepted it (6 November 2026).
 19. **Correcting a payment outside Fivvi** (#606): *Corrigeren* on a payment row, with the right offer, method and date and a required reason. The old line stays as *Gecorrigeerd* and points to the new one, and if the offer was wrong, the wrong agreement ends and the right one starts. Prototype entry: *Betaling buiten Fivvi corrigeren*. The owner clicked through it and accepted it (6 November 2026).
 20. **Where a session or class takes place** (owner, 7 November 2026): after a PT training in a park came up, the owner looked at letting any session or class say where, and chose to go live with one place per workspace, as decided on 20 October 2026 (`ROADMAP.md` decision 12), and improve it after go-live.
+21. **Workout templates** (F041, owner, 11 November 2026): a template row is an exercise with sets × target, no weight; any Owner or Trainer in the workspace creates, changes and deletes any template; a name is unique in the workspace, regardless of capitals; *Opslaan als schema* when a workout finishes belongs to F043, not F041; templates are managed on the web and in Fivvi Pro (§3, *Schema's*).
 
 ## 8. What this changes in existing documents
 
