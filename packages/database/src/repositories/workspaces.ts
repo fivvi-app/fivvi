@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import type { Locale } from '@fivvi/i18n';
-import { and, asc, eq, inArray } from 'drizzle-orm';
+import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import {
   authUsers,
   locations,
@@ -197,4 +197,43 @@ export async function updateWorkspace(
     .where(eq(organizations.id, scope.workspaceId))
     .returning(workspaceColumns);
   return workspace;
+}
+
+/** The join link of a workspace (F029): the code in `/j/{code}` and when it was last renewed. */
+export interface JoinLinkView {
+  readonly code: string;
+  /** When the Owner last renewed it; `null` while the code is the one the workspace started with. */
+  readonly renewedAt: Date | null;
+}
+
+const joinLinkColumns = {
+  code: organizations.joinCode,
+  renewedAt: organizations.joinLinkRenewedAt,
+};
+
+/** The join link of the workspace of a workspace route's scope. `undefined` when RLS shows no such row. */
+export async function findJoinLink(scope: WorkspaceScope): Promise<JoinLinkView | undefined> {
+  const [link] = await executorOf(scope)
+    .select(joinLinkColumns)
+    .from(organizations)
+    .where(eq(organizations.id, scope.workspaceId));
+  return link;
+}
+
+/**
+ * Replaces the workspace's join code with a new one (`new_join_code()`, from Postgres's CSPRNG)
+ * and stores `renewedAt`. The old code names no workspace from the moment this commits. The caller
+ * has decided the account may (F004: `join_link.renew`). Two codes colliding is a 1-in-10^12 event
+ * that the unique index refuses: the request fails and renewing again makes another code.
+ */
+export async function renewJoinLink(
+  scope: WorkspaceScope,
+  renewedAt: Date,
+): Promise<JoinLinkView | undefined> {
+  const [link] = await executorOf(scope)
+    .update(organizations)
+    .set({ joinCode: sql`new_join_code()`, joinLinkRenewedAt: renewedAt })
+    .where(eq(organizations.id, scope.workspaceId))
+    .returning(joinLinkColumns);
+  return link;
 }

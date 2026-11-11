@@ -15,10 +15,11 @@ const TRAINER_CAPABILITIES: readonly Capability[] = [
   'location.read',
   'session.private.manage.own',
   'class.read',
+  'join_link.view',
 ];
 
 describe('F004 permission matrix', () => {
-  it('AC1: Owner has every capability, Trainer only trainers.view, clients.view, clients.manage, location.read, session.private.manage.own and class.read', () => {
+  it('AC1: Owner has every capability, Trainer only trainers.view, clients.view, clients.manage, location.read, session.private.manage.own, class.read and join_link.view', () => {
     expect(ROLES).toEqual(['owner', 'trainer']);
     expect(CAPABILITIES).toEqual([
       'workspace.manage',
@@ -34,6 +35,8 @@ describe('F004 permission matrix', () => {
       'session.private.manage.any',
       'class.manage',
       'class.read',
+      'join_link.view',
+      'join_link.renew',
     ]);
     expect(capabilitiesOf('owner')).toEqual(CAPABILITIES);
     expect(capabilitiesOf('trainer')).toEqual(TRAINER_CAPABILITIES);
@@ -62,6 +65,9 @@ describe('F004 permission matrix', () => {
     // F021: only the Owner manages group classes and puts them on a date; the whole team reads them.
     expect(rolesWith('class.manage')).toEqual(['owner']);
     expect(rolesWith('class.read')).toEqual(['owner', 'trainer']);
+    // F029: the whole team reads the join link to send it to a new client, only the Owner renews it.
+    expect(rolesWith('join_link.view')).toEqual(['owner', 'trainer']);
+    expect(rolesWith('join_link.renew')).toEqual(['owner']);
   });
 
   it('AC9: has no admin role', () => {

@@ -23,6 +23,8 @@ export const CAPABILITIES = [
   'session.private.manage.any',
   'class.manage',
   'class.read',
+  'join_link.view',
+  'join_link.renew',
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 
@@ -35,6 +37,7 @@ const MATRIX: Readonly<Record<Role, readonly Capability[]>> = {
     'location.read',
     'session.private.manage.own',
     'class.read',
+    'join_link.view',
   ],
 };
 

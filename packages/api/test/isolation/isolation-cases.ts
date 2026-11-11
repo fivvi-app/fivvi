@@ -1,4 +1,4 @@
-import { type DatabaseExecutor, locations, trainerProfiles } from '@fivvi/database';
+import { type DatabaseExecutor, locations, organizations, trainerProfiles } from '@fivvi/database';
 import {
   addGroupClass,
   addSession,
@@ -74,6 +74,16 @@ export interface IsolationCase {
 /** The client row that the seed was called for: what a route about one client names. */
 const theClient: IsolationCase['seed'] = (_db, { clientId }) =>
   Promise.resolve({ client: clientId });
+
+/** The join code of the workspace the seed was called for: what the join link shows (F029). */
+const theJoinCode: IsolationCase['seed'] = async (db, { workspaceId }) => {
+  const [row] = await db
+    .select({ code: organizations.joinCode })
+    .from(organizations)
+    .where(eq(organizations.id, workspaceId));
+  if (!row) throw new Error('no such workspace');
+  return { code: row.code };
+};
 
 /** The workspace the seed was called for: what a route about the caller's workspaces names. */
 const theWorkspace: IsolationCase['seed'] = (_db, { workspaceId }) =>
@@ -230,6 +240,13 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   renameWorkspace: { seed: theWorkspace, body: { name: 'Renamed Gym' } },
   // The report of a switch (F012) records a product event and changes no row.
   recordWorkspaceSwitch: { body: {} },
+
+  // The join link (F029): a read shows the URL of the workspace's code and a renewal replaces it.
+  // The code is on the workspace's own row; the suite counts it among that workspace's values, so
+  // a response with another workspace's code fails.
+  getJoinLink: { seed: theJoinCode },
+  // The body is optional (the app names its surface in it); the web sends none.
+  renewJoinLink: { body: {} },
 
   // The team of a workspace (F003): the list shows the seeded team member, the removal names it.
   listTeamMembers: { seed: aTeamMember },

@@ -15571,6 +15571,801 @@ public enum Operations {
             }
         }
     }
+    /// The join link of a workspace
+    ///
+    /// The workspace’s join link in full and when it was last renewed. The Owner and the Trainers may read it, to send it to a new client; a client of the workspace gets `403`, a person with no place in it `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/join-link`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/join-link/get(getJoinLink)`.
+    public enum GetJoinLink {
+        public static let id: Swift.String = "getJoinLink"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/GET/path`.
+            public struct Path: Sendable, Hashable {
+                /// The workspace ID.
+                ///
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/GET/path/workspaceId`.
+                public var workspaceId: Swift.String
+                /// Creates a new `Path`.
+                ///
+                /// - Parameters:
+                ///   - workspaceId: The workspace ID.
+                public init(workspaceId: Swift.String) {
+                    self.workspaceId = workspaceId
+                }
+            }
+            public var path: Operations.GetJoinLink.Input.Path
+            /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/GET/header`.
+            public struct Headers: Sendable, Hashable {
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.GetJoinLink.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - accept:
+                public init(accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.GetJoinLink.AcceptableContentType>] = .defaultValues()) {
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.GetJoinLink.Input.Headers
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - path:
+            ///   - headers:
+            public init(
+                path: Operations.GetJoinLink.Input.Path,
+                headers: Operations.GetJoinLink.Input.Headers = .init()
+            ) {
+                self.path = path
+                self.headers = headers
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/GET/responses/200/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/GET/responses/200/content/application\/json`.
+                    case json(Components.Schemas.JoinLink)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.JoinLink {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetJoinLink.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetJoinLink.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            /// The join link.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/join-link/get(getJoinLink)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.GetJoinLink.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            public var ok: Operations.GetJoinLink.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct BadRequest: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/GET/responses/400/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/GET/responses/400/content/application\/json`.
+                    case json(Components.Schemas.ValidationError)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.ValidationError {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetJoinLink.Output.BadRequest.Body
+                /// Creates a new `BadRequest`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetJoinLink.Output.BadRequest.Body) {
+                    self.body = body
+                }
+            }
+            /// The request did not match the contract.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/join-link/get(getJoinLink)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Operations.GetJoinLink.Output.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Operations.GetJoinLink.Output.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct Unauthorized: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/GET/responses/401/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/GET/responses/401/content/application\/json`.
+                    case json(Components.Schemas.NotSignedIn)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.NotSignedIn {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetJoinLink.Output.Unauthorized.Body
+                /// Creates a new `Unauthorized`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetJoinLink.Output.Unauthorized.Body) {
+                    self.body = body
+                }
+            }
+            /// Nobody is signed in: no valid sign-in session or bearer token.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/join-link/get(getJoinLink)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Operations.GetJoinLink.Output.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Operations.GetJoinLink.Output.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct Forbidden: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/GET/responses/403/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/GET/responses/403/content/application\/json`.
+                    case json(Components.Schemas.Forbidden)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.Forbidden {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetJoinLink.Output.Forbidden.Body
+                /// Creates a new `Forbidden`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetJoinLink.Output.Forbidden.Body) {
+                    self.body = body
+                }
+            }
+            /// The caller has a place in the workspace that this route’s access doesn’t allow.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/join-link/get(getJoinLink)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Operations.GetJoinLink.Output.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            public var forbidden: Operations.GetJoinLink.Output.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct NotFound: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/GET/responses/404/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/GET/responses/404/content/application\/json`.
+                    case json(Components.Schemas.NotFound)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.NotFound {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetJoinLink.Output.NotFound.Body
+                /// Creates a new `NotFound`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetJoinLink.Output.NotFound.Body) {
+                    self.body = body
+                }
+            }
+            /// The caller has no place in the workspace, or the record is out of the caller’s reach.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/join-link/get(getJoinLink)/responses/404`.
+            ///
+            /// HTTP response code: `404 notFound`.
+            case notFound(Operations.GetJoinLink.Output.NotFound)
+            /// The associated value of the enum case if `self` is `.notFound`.
+            ///
+            /// - Throws: An error if `self` is not `.notFound`.
+            /// - SeeAlso: `.notFound`.
+            public var notFound: Operations.GetJoinLink.Output.NotFound {
+                get throws {
+                    switch self {
+                    case let .notFound(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "notFound",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct InternalServerError: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/GET/responses/500/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/GET/responses/500/content/text\/plain`.
+                    case plainText(OpenAPIRuntime.HTTPBody)
+                    /// The associated value of the enum case if `self` is `.plainText`.
+                    ///
+                    /// - Throws: An error if `self` is not `.plainText`.
+                    /// - SeeAlso: `.plainText`.
+                    public var plainText: OpenAPIRuntime.HTTPBody {
+                        get throws {
+                            switch self {
+                            case let .plainText(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetJoinLink.Output.InternalServerError.Body
+                /// Creates a new `InternalServerError`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetJoinLink.Output.InternalServerError.Body) {
+                    self.body = body
+                }
+            }
+            /// Unexpected server error, reported to error tracking. Contains no error details.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/join-link/get(getJoinLink)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Operations.GetJoinLink.Output.InternalServerError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Operations.GetJoinLink.Output.InternalServerError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case plainText
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "text/plain":
+                    self = .plainText
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .plainText:
+                    return "text/plain"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .plainText
+                ]
+            }
+        }
+    }
+    /// Renew the join link of a workspace
+    ///
+    /// Replaces the workspace’s join code with a new one (the Owner only; a Trainer gets `403`) and stores the time. The old link, and every QR code of it, stops working at once; join requests already sent stay. Records the product event `join_link_renewed` with the workspace ID and the surface (`web`, `ios` or `android`) and nothing else. The body is optional; the web sends none and is recorded as `web`. A request with a bearer token records the `surface` it names in the body and, naming none, records nothing.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/join-link/renew`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/join-link/renew/post(renewJoinLink)`.
+    public enum RenewJoinLink {
+        public static let id: Swift.String = "renewJoinLink"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/renew/POST/path`.
+            public struct Path: Sendable, Hashable {
+                /// The workspace ID.
+                ///
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/renew/POST/path/workspaceId`.
+                public var workspaceId: Swift.String
+                /// Creates a new `Path`.
+                ///
+                /// - Parameters:
+                ///   - workspaceId: The workspace ID.
+                public init(workspaceId: Swift.String) {
+                    self.workspaceId = workspaceId
+                }
+            }
+            public var path: Operations.RenewJoinLink.Input.Path
+            /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/renew/POST/header`.
+            public struct Headers: Sendable, Hashable {
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.RenewJoinLink.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - accept:
+                public init(accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.RenewJoinLink.AcceptableContentType>] = .defaultValues()) {
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.RenewJoinLink.Input.Headers
+            /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/renew/POST/requestBody`.
+            @frozen public enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/renew/POST/requestBody/content/application\/json`.
+                case json(Components.Schemas.RenewJoinLinkRequest)
+            }
+            public var body: Operations.RenewJoinLink.Input.Body?
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - path:
+            ///   - headers:
+            ///   - body:
+            public init(
+                path: Operations.RenewJoinLink.Input.Path,
+                headers: Operations.RenewJoinLink.Input.Headers = .init(),
+                body: Operations.RenewJoinLink.Input.Body? = nil
+            ) {
+                self.path = path
+                self.headers = headers
+                self.body = body
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/renew/POST/responses/200/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/renew/POST/responses/200/content/application\/json`.
+                    case json(Components.Schemas.JoinLink)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.JoinLink {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.RenewJoinLink.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.RenewJoinLink.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            /// The new join link.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/join-link/renew/post(renewJoinLink)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.RenewJoinLink.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            public var ok: Operations.RenewJoinLink.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct BadRequest: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/renew/POST/responses/400/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/renew/POST/responses/400/content/application\/json`.
+                    case json(Components.Schemas.ValidationError)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.ValidationError {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.RenewJoinLink.Output.BadRequest.Body
+                /// Creates a new `BadRequest`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.RenewJoinLink.Output.BadRequest.Body) {
+                    self.body = body
+                }
+            }
+            /// The request did not match the contract.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/join-link/renew/post(renewJoinLink)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Operations.RenewJoinLink.Output.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Operations.RenewJoinLink.Output.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct Unauthorized: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/renew/POST/responses/401/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/renew/POST/responses/401/content/application\/json`.
+                    case json(Components.Schemas.NotSignedIn)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.NotSignedIn {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.RenewJoinLink.Output.Unauthorized.Body
+                /// Creates a new `Unauthorized`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.RenewJoinLink.Output.Unauthorized.Body) {
+                    self.body = body
+                }
+            }
+            /// Nobody is signed in: no valid sign-in session or bearer token.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/join-link/renew/post(renewJoinLink)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Operations.RenewJoinLink.Output.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Operations.RenewJoinLink.Output.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct Forbidden: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/renew/POST/responses/403/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/renew/POST/responses/403/content/application\/json`.
+                    case json(Components.Schemas.Forbidden)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.Forbidden {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.RenewJoinLink.Output.Forbidden.Body
+                /// Creates a new `Forbidden`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.RenewJoinLink.Output.Forbidden.Body) {
+                    self.body = body
+                }
+            }
+            /// The caller has a place in the workspace that this route’s access doesn’t allow.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/join-link/renew/post(renewJoinLink)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Operations.RenewJoinLink.Output.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            public var forbidden: Operations.RenewJoinLink.Output.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct NotFound: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/renew/POST/responses/404/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/renew/POST/responses/404/content/application\/json`.
+                    case json(Components.Schemas.NotFound)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.NotFound {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.RenewJoinLink.Output.NotFound.Body
+                /// Creates a new `NotFound`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.RenewJoinLink.Output.NotFound.Body) {
+                    self.body = body
+                }
+            }
+            /// The caller has no place in the workspace, or the record is out of the caller’s reach.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/join-link/renew/post(renewJoinLink)/responses/404`.
+            ///
+            /// HTTP response code: `404 notFound`.
+            case notFound(Operations.RenewJoinLink.Output.NotFound)
+            /// The associated value of the enum case if `self` is `.notFound`.
+            ///
+            /// - Throws: An error if `self` is not `.notFound`.
+            /// - SeeAlso: `.notFound`.
+            public var notFound: Operations.RenewJoinLink.Output.NotFound {
+                get throws {
+                    switch self {
+                    case let .notFound(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "notFound",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct InternalServerError: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/renew/POST/responses/500/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/join-link/renew/POST/responses/500/content/text\/plain`.
+                    case plainText(OpenAPIRuntime.HTTPBody)
+                    /// The associated value of the enum case if `self` is `.plainText`.
+                    ///
+                    /// - Throws: An error if `self` is not `.plainText`.
+                    /// - SeeAlso: `.plainText`.
+                    public var plainText: OpenAPIRuntime.HTTPBody {
+                        get throws {
+                            switch self {
+                            case let .plainText(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.RenewJoinLink.Output.InternalServerError.Body
+                /// Creates a new `InternalServerError`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.RenewJoinLink.Output.InternalServerError.Body) {
+                    self.body = body
+                }
+            }
+            /// Unexpected server error, reported to error tracking. Contains no error details.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/join-link/renew/post(renewJoinLink)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Operations.RenewJoinLink.Output.InternalServerError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Operations.RenewJoinLink.Output.InternalServerError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case plainText
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "text/plain":
+                    self = .plainText
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .plainText:
+                    return "text/plain"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .plainText
+                ]
+            }
+        }
+    }
     /// The clients of a workspace
     ///
     /// The whole workspace’s clients (the Owner and every Trainer), sorted by name, one page at a time. `search` matches part of a name or an email address in the server, ignoring case and accents.

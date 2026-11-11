@@ -486,6 +486,8 @@ describe('E011 route access', () => {
       'get /v1/workspaces/{workspaceId}/group-classes/{classId}': 'workspace',
       'patch /v1/workspaces/{workspaceId}/group-classes/{classId}': 'workspace',
       'post /v1/workspaces/{workspaceId}/group-classes/{classId}/dates': 'workspace',
+      'get /v1/workspaces/{workspaceId}/join-link': 'workspace',
+      'post /v1/workspaces/{workspaceId}/join-link/renew': 'workspace',
       'post /v1/workspaces': 'account',
     });
   });

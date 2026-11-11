@@ -1,7 +1,7 @@
 import type { Locale } from '@fivvi/i18n';
 import { sql } from 'drizzle-orm';
 import { check, pgTable, text } from 'drizzle-orm/pg-core';
-import { id, timestamps } from './columns.ts';
+import { id, instant, timestamps } from './columns.ts';
 import { workspacePolicy } from './tenant-policies.ts';
 
 /**
@@ -27,11 +27,21 @@ export const organizations = pgTable(
     defaultLocale: text('default_locale').$type<Locale>().notNull(),
     /** An IANA time zone name: the zone the workspace's dates and times are shown in (ADR-012). */
     timeZone: text('time_zone').notNull(),
+    /**
+     * The code of the join link `/j/{code}` (F029): 8 characters of Crockford's base32, unique,
+     * made by `new_join_code()` (migration `0026`, from Postgres's CSPRNG) when the workspace is
+     * created and again when the Owner renews the link. The old code names no workspace once it
+     * is replaced.
+     */
+    joinCode: text('join_code').notNull().unique().default(sql`new_join_code()`),
+    /** When the Owner last renewed the join link; empty until the first renewal. */
+    joinLinkRenewedAt: instant('join_link_renewed_at'),
     ...timestamps(),
   },
   (table) => [
     check('organizations_slug_format', sql`${table.slug} ~ '^[a-z0-9]+(-[a-z0-9]+)*$'`),
     check('organizations_name_not_blank', sql`btrim(${table.name}) <> ''`),
+    check('organizations_join_code_format', sql`${table.joinCode} ~ '^[0-9A-HJKMNP-TV-Z]{8}$'`),
     check('organizations_default_locale_supported', sql`${table.defaultLocale} IN ('nl-NL', 'en')`),
     workspacePolicy('organizations', table.id),
   ],

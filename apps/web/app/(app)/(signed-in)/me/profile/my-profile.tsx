@@ -4,6 +4,7 @@ import { StatusPill } from '@fivvi/ui/kit/status-pill';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { BookingEmailsBox } from './booking-emails-box';
 import { LanguageRow } from './language-row';
 import { NameForm } from './name-form';
 import { TrainsHereSwitch } from './trains-here-switch';
@@ -15,17 +16,20 @@ export type MyWorkspace = Schemas['MyWorkspace'];
  * TW-09 My profile (`/me/profile`, F003): the section *Mijn werkruimtes* / *My workspaces*, each
  * workspace with the person's role in it, the name linking to the workspace (F012), and the name
  * (editable) and email address (read-only) of the person (F005), and the *Taal* / *Language* row
- * (F010).
+ * (F010), and the section *E-mails* with the checkbox for the emails about bookings in the
+ * person's classes (F050).
  * For each workspace where the person may manage the team (the Owner) there is the switch
  * *I also train at …* (F005); a Trainer has none, because they always train.
  */
 export function MyProfile({
   name,
   email,
+  bookingEmails,
   workspaces,
 }: {
   name: string | null;
   email: string;
+  bookingEmails: boolean;
   workspaces: readonly MyWorkspace[];
 }) {
   const t = useTranslations('myProfile');
@@ -37,6 +41,7 @@ export function MyProfile({
       <div className="grid max-w-275 content-start gap-4">
         <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
         <NameForm name={name} email={email} />
+        <BookingEmailsBox bookingEmails={bookingEmails} />
         <LanguageRow />
         <Card>
           <CardHeader>

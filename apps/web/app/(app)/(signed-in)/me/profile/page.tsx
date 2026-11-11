@@ -12,16 +12,16 @@ export async function generateMetadata(): Promise<Metadata> {
 
 /**
  * TW-09 My profile (`/me/profile`, F003), reached from the user menu. The workspaces are read
- * from `GET /v1/me/workspaces`, the name and email address from `GET /v1/me`, so the page shows
+ * from `GET /v1/me/workspaces`, the name, email address and booking-emails setting from `GET /v1/me`, so the page shows
  * what the API holds. The route guard
  * (`proxy.ts`) keeps anonymous visitors out.
  */
 export default async function MyProfilePage() {
-  const { name, email } = await currentMe();
+  const { name, email, bookingEmails } = await currentMe();
   const cookie = (await headers()).get('cookie');
   const { data } = await apiClient.GET('/v1/me/workspaces', {
     headers: cookie ? { cookie } : {},
   });
   if (!data) throw new Error('GET /v1/me/workspaces did not answer with the workspaces.');
-  return <MyProfile name={name} email={email} workspaces={data} />;
+  return <MyProfile name={name} email={email} bookingEmails={bookingEmails} workspaces={data} />;
 }
