@@ -10,6 +10,22 @@ import type { EmailContext, EmailMessageKey } from '../render.tsx';
 /** The client web, the one place the button of a frame may lead to. */
 export const clientWebUrl = 'https://fivvi.app/';
 
+/** Where the button leads when a template names no page: the signed-in home, which routes clients and team members (F002). */
+export const defaultButtonPath = 'home';
+
+/**
+ * The address of a page of the client web. A path that resolves to another origin (`//evil.example.com`,
+ * `https://example.com`) throws: an email only ever links to fivvi.app (F049 AC5).
+ */
+export function clientWebLink(path: string): string {
+  const base = new URL(clientWebUrl);
+  const url = new URL(path, base);
+  if (url.origin !== base.origin) {
+    throw new Error(`An email button may only lead to ${base.host}, not to ${url.host}`);
+  }
+  return url.href;
+}
+
 const styles = {
   body: {
     backgroundColor: '#f4f4f5',
@@ -43,13 +59,12 @@ const styles = {
   hr: { borderColor: '#e4e4e7', margin: '24px 0 16px' },
   footer: { color: '#71717a', fontSize: '12px', lineHeight: '18px', margin: '0 0 8px' },
   sentWith: { color: '#71717a', fontSize: '12px', lineHeight: '18px', margin: '16px 0 0' },
-  wordmark: { color: '#18181b', fontSize: '14px', fontWeight: 700 },
 } as const;
 
 /** Who the frame is for: a client of the workspace, or a member of its team. */
 export type FrameKind = 'client' | 'team';
 
-interface FrameProps {
+export interface FrameProps {
   ctx: EmailContext;
   /** Also the document `<title>`. */
   subject: string;
@@ -64,7 +79,8 @@ interface FrameProps {
   children: ReactNode;
 }
 
-function Frame({
+/** The frame of an email about a workspace; the kind picks the footer. `ClientEmailLayout` and `TeamEmailLayout` are the named forms. */
+export function EmailFrameLayout({
   kind,
   ctx,
   subject,
@@ -86,7 +102,7 @@ function Frame({
           <Text style={styles.workspace}>{workspaceName}</Text>
           <Section>{children}</Section>
           <Section style={{ margin: '24px 0 0' }}>
-            <Button href={new URL(buttonPath, clientWebUrl).href} style={styles.button}>
+            <Button href={clientWebLink(buttonPath)} style={styles.button}>
               {ctx.t(buttonLabel)}
             </Button>
           </Section>
@@ -98,11 +114,7 @@ function Frame({
             )}
           </Text>
           <Text style={styles.footer}>{ctx.t('email.frame.questions', workspace)}</Text>
-          <Text style={styles.sentWith}>
-            <span style={styles.wordmark}>{ctx.t('email.frame.wordmark')}</span>
-            {' · '}
-            {ctx.t('email.frame.sentWith')}
-          </Text>
+          <Text style={styles.sentWith}>{ctx.t('email.frame.sentWith')}</Text>
         </Container>
       </Body>
     </Html>
@@ -111,10 +123,10 @@ function Frame({
 
 /** The frame of an email to a client: "Je krijgt deze e-mail omdat je klant bent bij {workspace}." */
 export function ClientEmailLayout(props: FrameProps) {
-  return <Frame kind="client" {...props} />;
+  return <EmailFrameLayout kind="client" {...props} />;
 }
 
 /** The frame of an email to a trainer or an owner: "… omdat je in het team van {workspace} zit." */
 export function TeamEmailLayout(props: FrameProps) {
-  return <Frame kind="team" {...props} />;
+  return <EmailFrameLayout kind="team" {...props} />;
 }

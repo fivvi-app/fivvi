@@ -185,8 +185,7 @@
       "clientReason": "Je krijgt deze e-mail omdat je klant bent bij {workspace}.",
       "teamReason": "Je krijgt deze e-mail omdat je in het team van {workspace} zit.",
       "questions": "Vragen? Neem contact op met {workspace}.",
-      "button": "Bekijk in Fivvi",
-      "wordmark": "fivvi",
+      "button": "In Fivvi bekijken",
       "sentWith": "Verstuurd via Fivvi"
     },
     "hello": {

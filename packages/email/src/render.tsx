@@ -10,7 +10,7 @@ import {
 import type { ReactElement } from 'react';
 import { render } from 'react-email';
 import { createTranslator } from 'use-intl/core';
-import { ClientEmailLayout, type FrameKind, TeamEmailLayout } from './components/frames.tsx';
+import { defaultButtonPath, EmailFrameLayout, type FrameKind } from './components/frames.tsx';
 import { EmailLayout } from './components/layout.tsx';
 
 /** Email copy lives under `email.*` in the catalogs; the native exporters skip it. */
@@ -77,7 +77,7 @@ export interface EmailFrame<Props> {
   workspaceName: (props: Props) => string;
   /** The label of the button. Default: `email.frame.button`. */
   buttonLabel?: EmailMessageKey;
-  /** Where the button leads, relative to `https://fivvi.app/`. Default: the home page. */
+  /** Where the button leads, relative to `https://fivvi.app/`; it can't leave that host. Default: `home`, the signed-in home. */
   buttonPath?: (props: Props) => string;
 }
 
@@ -106,12 +106,6 @@ export interface RenderedEmail {
   text: string;
 }
 
-const FrameLayout = ({
-  kind,
-  ...rest
-}: Parameters<typeof ClientEmailLayout>[0] & { kind: FrameKind }) =>
-  kind === 'client' ? <ClientEmailLayout {...rest} /> : <TeamEmailLayout {...rest} />;
-
 export async function renderEmail<Props>(
   template: EmailTemplate<Props>,
   props: Props,
@@ -123,17 +117,17 @@ export async function renderEmail<Props>(
   const content = template.render(ctx, props);
   const { frame } = template;
   const element = frame ? (
-    <FrameLayout
+    <EmailFrameLayout
       kind={frame.kind}
       ctx={ctx}
       subject={subject}
       preview={preview}
       workspaceName={frame.workspaceName(props)}
       buttonLabel={frame.buttonLabel ?? 'email.frame.button'}
-      buttonPath={frame.buttonPath?.(props) ?? ''}
+      buttonPath={frame.buttonPath?.(props) ?? defaultButtonPath}
     >
       {content}
-    </FrameLayout>
+    </EmailFrameLayout>
   ) : (
     <EmailLayout ctx={ctx} subject={subject} preview={preview}>
       {content}

@@ -43,76 +43,92 @@ const questions = {
   'nl-NL': "Vragen? Neem contact op met John's Gym.",
   en: "Questions? Contact John's Gym.",
 } as const;
+const buttonLabel = { 'nl-NL': 'In Fivvi bekijken', en: 'View in Fivvi' } as const;
 const sentWith = { 'nl-NL': 'Verstuurd via Fivvi', en: 'Sent with Fivvi' } as const;
 const props = { workspaceName: "John's Gym" };
 
-describe('F049 AC3 the client frame', () => {
-  it.each(locales)(
-    '%s: workspace at the top, one button to fivvi.app, the footer',
-    async (locale) => {
+describe('AC3: client and team frames, sign-in without frame', () => {
+  describe('the client frame', () => {
+    it.each(locales)(
+      '%s: workspace at the top, one button to fivvi.app, the footer',
+      async (locale) => {
+        const email = await renderEmail(clientEmail, props, { locale });
+        const copy = messages[locale].email.frame;
+
+        expect(email.text.startsWith("John's Gym")).toBe(true);
+        expect(email.text).toContain(reason.client[locale]);
+        expect(email.text).toContain(questions[locale]);
+        expect(email.text).toContain(sentWith[locale]);
+        // Order: header, content, button, footer, "sent with".
+        const at = (text: string) => email.text.indexOf(text);
+        expect(at("John's Gym")).toBeLessThan(at(copy.button));
+        expect(at(copy.button)).toBeLessThan(at(reason.client[locale]));
+        expect(at(reason.client[locale])).toBeLessThan(at(questions[locale]));
+        expect(at(questions[locale])).toBeLessThan(at(sentWith[locale]));
+
+        const hrefs = [...email.html.matchAll(/<a [^>]*href="([^"]+)"/g)].map((match) => match[1]);
+        expect(hrefs).toHaveLength(1);
+        expect(hrefs[0]).toBe('https://fivvi.app/home');
+        expect(email.html).toContain(copy.button);
+        expect(copy.button).toBe(buttonLabel[locale]);
+        expect(email.html).toContain('John&#x27;s Gym');
+      },
+    );
+
+    it('a button path stays on fivvi.app', async () => {
+      const withPath: EmailTemplate<Props> = {
+        ...clientEmail,
+        frame: {
+          kind: 'client',
+          workspaceName: (p) => p.workspaceName,
+          buttonPath: () => 'bookings',
+        },
+      };
+      const email = await renderEmail(withPath, props, { locale: 'en' });
+      expect(email.html).toContain('href="https://fivvi.app/bookings"');
+    });
+
+    it.each([
+      '//evil.example.com',
+      'https://example.com',
+      'https://example.com/home',
+      '\\\\evil.example.com',
+    ])('a button path cannot leave fivvi.app: %s', async (path) => {
+      const escaping: EmailTemplate<Props> = {
+        ...clientEmail,
+        frame: { kind: 'client', workspaceName: (p) => p.workspaceName, buttonPath: () => path },
+      };
+      await expect(renderEmail(escaping, props, { locale: 'en' })).rejects.toThrow(/fivvi\.app/);
+    });
+
+    it.each(locales)('%s: names the language of the page', async (locale) => {
       const email = await renderEmail(clientEmail, props, { locale });
-      const copy = messages[locale].email.frame;
+      expect(email.html).toContain(`lang="${locale === 'nl-NL' ? 'nl-NL' : 'en-GB'}"`);
+    });
+  });
+
+  describe('the team frame', () => {
+    it.each(locales)('%s: the team footer, not the client footer', async (locale) => {
+      const email = await renderEmail(teamEmail, props, { locale });
 
       expect(email.text.startsWith("John's Gym")).toBe(true);
-      expect(email.text).toContain(reason.client[locale]);
-      expect(email.text).toContain(questions[locale]);
-      expect(email.text).toContain(copy.wordmark);
+      expect(email.text).toContain(reason.team[locale]);
+      expect(email.text).not.toContain(reason.client[locale]);
       expect(email.text).toContain(sentWith[locale]);
-      // Order: header, content, button, footer, "sent with".
-      const at = (text: string) => email.text.indexOf(text);
-      expect(at("John's Gym")).toBeLessThan(at(copy.button));
-      expect(at(copy.button)).toBeLessThan(at(reason.client[locale]));
-      expect(at(reason.client[locale])).toBeLessThan(at(questions[locale]));
-      expect(at(questions[locale])).toBeLessThan(at(sentWith[locale]));
-
-      const hrefs = [...email.html.matchAll(/<a [^>]*href="([^"]+)"/g)].map((match) => match[1]);
-      expect(hrefs).toHaveLength(1);
-      expect(hrefs[0]?.startsWith('https://fivvi.app/')).toBe(true);
-      expect(email.html).toContain(copy.button);
-      expect(email.html).toContain('John&#x27;s Gym');
-    },
-  );
-
-  it('a button path stays on fivvi.app', async () => {
-    const withPath: EmailTemplate<Props> = {
-      ...clientEmail,
-      frame: {
-        kind: 'client',
-        workspaceName: (p) => p.workspaceName,
-        buttonPath: () => 'bookings',
-      },
-    };
-    const email = await renderEmail(withPath, props, { locale: 'en' });
-    expect(email.html).toContain('href="https://fivvi.app/bookings"');
+      expect(email.html).toContain('href="https://fivvi.app/home"');
+    });
   });
 
-  it.each(locales)('%s: names the language of the page', async (locale) => {
-    const email = await renderEmail(clientEmail, props, { locale });
-    expect(email.html).toContain(`lang="${locale === 'nl-NL' ? 'nl-NL' : 'en-GB'}"`);
-  });
-});
+  describe('the sign-in email', () => {
+    it.each(locales)('%s: no workspace header and neither footer', async (locale) => {
+      const email = await renderEmail(signInEmail, signInEmail.previewProps, { locale });
+      const copy = messages[locale].email;
 
-describe('F049 AC3 the team frame', () => {
-  it.each(locales)('%s: the team footer, not the client footer', async (locale) => {
-    const email = await renderEmail(teamEmail, props, { locale });
-
-    expect(email.text.startsWith("John's Gym")).toBe(true);
-    expect(email.text).toContain(reason.team[locale]);
-    expect(email.text).not.toContain(reason.client[locale]);
-    expect(email.text).toContain(sentWith[locale]);
-    expect(email.html).toContain('href="https://fivvi.app/"');
-  });
-});
-
-describe('F049 AC3 the sign-in email', () => {
-  it.each(locales)('%s: no workspace header and neither footer', async (locale) => {
-    const email = await renderEmail(signInEmail, signInEmail.previewProps, { locale });
-    const copy = messages[locale].email;
-
-    expect(email.text).not.toContain(reason.client[locale].replace("John's Gym", ''));
-    expect(email.text).not.toContain(reason.team[locale].replace("John's Gym", ''));
-    expect(email.text).not.toContain(sentWith[locale]);
-    expect(email.text).toContain(copy.layout.footer);
+      expect(email.text).not.toContain(copy.frame.clientReason.split('{workspace}')[0] as string);
+      expect(email.text).not.toContain(copy.frame.teamReason.split('{workspace}')[0] as string);
+      expect(email.text).not.toContain(sentWith[locale]);
+      expect(email.text).toContain(copy.layout.footer);
+    });
   });
 });
 

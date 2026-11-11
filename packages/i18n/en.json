@@ -186,7 +186,6 @@
       "teamReason": "You're getting this email because you're on the team at {workspace}.",
       "questions": "Questions? Contact {workspace}.",
       "button": "View in Fivvi",
-      "wordmark": "fivvi",
       "sentWith": "Sent with Fivvi"
     },
     "hello": {

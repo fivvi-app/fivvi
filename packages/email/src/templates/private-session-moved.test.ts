@@ -112,7 +112,7 @@ describe('F020 EM-04 private session moved email', () => {
 
     expect(email.text.startsWith(props.workspaceName)).toBe(true);
     expect(email.text).toContain(`${footer} ${props.workspaceName}.`);
-    expect(email.html).toContain('href="https://fivvi.app/"');
+    expect(email.html).toContain('href="https://fivvi.app/home"');
     expect(email.text).not.toContain(messages[locale].email.layout.footer);
   });
 });
