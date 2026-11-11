@@ -44,8 +44,8 @@ export function createBackgroundTasks(): BackgroundTasks {
       return tasks.length;
     },
     settle: async () => {
-      const [first] = await drain();
-      if (first !== undefined) throw first;
+      const failures = await drain();
+      if (failures.length > 0) throw failures[0];
     },
     reset: async () => {
       await drain();
