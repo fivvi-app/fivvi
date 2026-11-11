@@ -30,8 +30,6 @@ export {
   type SignInCommunicationLanguageSources,
 } from './locale.ts';
 export {
-  DEFAULT_TRAINER_WORD,
-  isTrainerWord,
   TRAINER_WORDS,
   type TrainerWord,
 } from './trainer-word.ts';

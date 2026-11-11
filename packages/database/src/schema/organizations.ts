@@ -1,15 +1,31 @@
-import { DEFAULT_TRAINER_WORD, type Locale, TRAINER_WORDS } from '@fivvi/i18n';
+import type { Locale, TrainerWord } from '@fivvi/i18n';
 import { sql } from 'drizzle-orm';
 import { check, pgEnum, pgTable, text } from 'drizzle-orm/pg-core';
 import { id, instant, timestamps } from './columns.ts';
 import { workspacePolicy } from './tenant-policies.ts';
 
 /**
- * The workspace's word for its trainers (F068, spec #588): a label only, the role stays
- * `trainer`. A fifth word is an additive `ALTER TYPE trainer_word ADD VALUE` and a new entry in
- * `TRAINER_WORDS`, which the schema reads.
+ * The choices for the workspace's word for its trainers (F068, spec #588). They are written here
+ * and not read from `@fivvi/i18n`: the runtime image's ops stage ships this package without
+ * `@fivvi/i18n`, and the release step and the cron job load this schema. `ops-image.test.ts`
+ * checks the list against `TRAINER_WORDS` of `@fivvi/i18n` (the type below fails to compile when
+ * a word is missing from `TrainerWord`).
  */
-export const trainerWord = pgEnum('trainer_word', TRAINER_WORDS);
+const TRAINER_WORD_VALUES = [
+  'trainer',
+  'instructeur',
+  'docent',
+  'coach',
+] as const satisfies readonly TrainerWord[];
+
+/** What every workspace starts with: creating one doesn't ask. */
+const DEFAULT_TRAINER_WORD: TrainerWord = 'trainer';
+
+/**
+ * The workspace's word for its trainers: a label only, the role stays `trainer`. A fifth word is
+ * an additive `ALTER TYPE trainer_word ADD VALUE`, a new entry here and in `TRAINER_WORDS`.
+ */
+export const trainerWord = pgEnum('trainer_word', TRAINER_WORD_VALUES);
 
 /**
  * A workspace: a gym or an independent trainer's business, the root of tenant isolation
