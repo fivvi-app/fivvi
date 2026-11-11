@@ -3,8 +3,8 @@
 // repositories store the answer, and every platform shows the text this returns. Amounts are
 // integers in cents including VAT and rates are basis points (2100 is 21 %); no float is accepted.
 
-import { formattingLocales, type Locale, messages } from '@fivvi/i18n';
-import { createTranslator } from 'use-intl/core';
+import type { Locale } from '@fivvi/i18n';
+import { type Translator, translatorFor } from './translator.ts';
 
 /** The four kinds of offer (`PRODUCT.md §90`). There is no fifth kind. */
 export const OFFER_KINDS = [
@@ -437,28 +437,6 @@ export function formatVatRate(basisPoints: number, locale: Locale): string {
   const dutch = locale === 'nl-NL';
   const percent = String(basisPoints / 100).replace('.', dutch ? ',' : '.');
   return dutch ? `${percent} %` : `${percent}%`;
-}
-
-type Translator = (key: string, values?: Record<string, string | number>) => string;
-
-const translators = new Map<Locale, Translator>();
-
-// The wording is in the catalogs (`offers.*`), never here. A missing key or placeholder throws, so
-// a broken message fails the tests instead of reaching a client.
-function translatorFor(locale: Locale): Translator {
-  let translator = translators.get(locale);
-  if (!translator) {
-    const created = createTranslator({
-      locale: formattingLocales[locale],
-      messages: messages[locale],
-      onError: (error) => {
-        throw error;
-      },
-    });
-    translator = (key, values) => created(key as never, values as never);
-    translators.set(locale, translator);
-  }
-  return translator;
 }
 
 const SEPARATOR = ' · ';

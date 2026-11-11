@@ -442,6 +442,14 @@
       "untilStart": "Je kunt tot de start gratis annuleren."
     }
   },
+  "agreements": {
+    "dueDay": {
+      "one": "op de {day}e",
+      "two": "op de {day}e",
+      "few": "op de {day}e",
+      "other": "op de {day}e"
+    }
+  },
   "site": {
     "meta": {
       "homeTitle": "Fivvi: software voor personal trainers, studio's en sportscholen",

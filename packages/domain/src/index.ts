@@ -71,6 +71,19 @@ export {
   type ValidOffer,
   validateOffer,
 } from './commerce/offers.ts';
+export {
+  type AgreementClock,
+  agreementClock,
+  anchorDay,
+  calendarDateIn,
+  dueDates,
+  dueDayPhrase,
+  effectiveEnd,
+  type NoticeEnd,
+  noticeEnd,
+  periodEnd,
+  stopAtTermEnd,
+} from './commerce/schedule.ts';
 export { maskEmail, normalizeEmail } from './email.ts';
 export {
   CLIENT_SHEET,

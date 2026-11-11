@@ -138,7 +138,7 @@ Added in roadmap v1.19 (M11), before go-live; credit packs and credit plans, gro
 | F054 | Credit Packs and Plans (group and private) | PLANNED | Must | M11 | F052, F020, F028, F055, F057 | ⬜ | ⬜ | §92 (credit packs bought once; credit plans paid each billing cycle, with a carry-over limit; group and private credits never mix) |
 | F055 | Credit Balance | PLANNED | Must | M11 | F025, F026 | ⬜ | ⬜ | §92 (one balance per kind, group or private, per agreement; history: granted, used, returned, expired) |
 | F056 | Cancellation Policy and Makeups | PLANNED | Must | M11 | F026, F055 | ⬜ | ⬜ | §93 (cutoff, late cancellation, makeups) |
-| F057 | Recurring Payments | PLANNED | Must | M11 | E019, F059 | ⬜ | ⬜ | §94 (first payment + mandate, SEPA Direct Debit: proposal, QC06; exactly once) |
+| F057 | Recurring Payments | IN PROGRESS | Must | M11 | E019, F059 | ⬜ | ⬜ | §94 (first payment + mandate, SEPA Direct Debit: proposal, QC06; exactly once) |
 | [F058](https://github.com/fivvi-app/fivvi/issues/495) | Single class pass | PLANNED | Must | M11 | F052, F031, E019, F059 | ⬜ | ⬜ | §95 (an offer kind of its own, bought ahead like credits, good for one group class; the owner sets the price, with a guideline that it costs more than a class in a membership or pack; an unused pass is never refunded; credits are used before a pass; cancellation and validity are open) |
 | F059 | Invoices and Billing Details | IN PROGRESS | Must | M11 | F006, F052 | ⬜ | ⬜ | §96 (company details, gapless numbers, credit notes) |
 | F060 | Failed Payments and Refunds | PLANNED | Must | M11 | F057, F059 | ⬜ | ⬜ | §94 |
