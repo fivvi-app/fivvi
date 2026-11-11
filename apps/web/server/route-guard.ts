@@ -123,11 +123,7 @@ export async function guardRequest(
   const requestHeaders = new Headers(request.headers);
   const nonce = carriesDocumentPolicy(request.nextUrl.pathname) ? createNonce() : undefined;
   const policy = nonce ? contentSecurityPolicy(nonce, env) : undefined;
-  if (nonce && policy) {
-    requestHeaders.set('content-security-policy', policy);
-    // For a server component that adds a script of its own (Turnstile): `(await headers()).get('x-nonce')`.
-    requestHeaders.set('x-nonce', nonce);
-  }
+  if (policy) requestHeaders.set('content-security-policy', policy);
   const response = await answerRequest(request, readSession, requestHeaders);
   if (policy) response.headers.set('content-security-policy', policy);
   const robots = robotsHeader(request.nextUrl.pathname, env);

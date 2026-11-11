@@ -14,11 +14,6 @@ export function createNonce(): string {
   return Buffer.from(crypto.getRandomValues(new Uint8Array(16))).toString('base64');
 }
 
-/** The nonce a policy allows, as Next.js reads it from the request's policy to tag its own scripts. */
-export function nonceOf(policy: string): string | undefined {
-  return /'nonce-([^']+)'/.exec(policy)?.[1];
-}
-
 /**
  * Whether the answer to `pathname` carries the document policy (E013 AC8). The API under `/api`
  * answers JSON, never a page, so it sends none; its other security headers stay

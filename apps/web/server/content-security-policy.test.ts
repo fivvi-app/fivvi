@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
+import { cspNonce, policyDirective as directive } from '../test/security-headers';
 import {
   carriesDocumentPolicy,
   contentSecurityPolicy,
   createNonce,
-  nonceOf,
 } from './content-security-policy';
 
 // Synthetic hosts and keys only (AGENTS.md, D8).
@@ -12,15 +12,6 @@ const ANALYTICS = {
   NEXT_PUBLIC_POSTHOG_KEY: 'phc_example_project_key',
   POSTHOG_HOST: 'https://posthog.example.test',
 };
-
-/** The sources of one directive of a policy, or undefined when the policy has none. */
-function directive(policy: string, name: string): string[] | undefined {
-  const found = policy
-    .split(';')
-    .map((part) => part.trim().split(/\s+/))
-    .find(([first]) => first === name);
-  return found?.slice(1);
-}
 
 describe('E013 AC8 the nonce', () => {
   it('differs per request', () => {
@@ -36,7 +27,7 @@ describe('E013 AC8 the nonce', () => {
   it('is read back from a policy', () => {
     const nonce = createNonce();
 
-    expect(nonceOf(contentSecurityPolicy(nonce, {}))).toBe(nonce);
+    expect(cspNonce({ 'content-security-policy': contentSecurityPolicy(nonce, {}) })).toBe(nonce);
   });
 });
 

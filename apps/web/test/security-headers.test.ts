@@ -87,6 +87,21 @@ describe('E013 AC8 the helper', () => {
       POLICY.replace('frame-src', 'frame-src https://frames.example.test'),
       'frame-src',
     ],
+    ['an image host', POLICY.replace('img-src', 'img-src https://img.example.test'), 'img-src'],
+    ['a font host', POLICY.replace('font-src', 'font-src https://fonts.example.test'), 'font-src'],
+    [
+      'a style host',
+      POLICY.replace('style-src', 'style-src https://styles.example.test'),
+      'style-src',
+    ],
+    [
+      'a default-src host',
+      POLICY.replace('default-src', 'default-src https://cdn.example.test'),
+      'default-src',
+    ],
+    ['an image wildcard', POLICY.replace('img-src', 'img-src https:'), 'wildcard'],
+    ['a font wildcard', POLICY.replace('font-src', 'font-src *'), 'wildcard'],
+    ['a style wildcard', POLICY.replace('style-src', 'style-src *.example.test'), 'wildcard'],
   ])('catches %s in the policy', (_name, policy, problem) => {
     expect(securityHeaderProblems(headersOf(policy)).join('\n')).toContain(problem);
   });
@@ -199,7 +214,6 @@ describe('E013 AC8 every answer of the route guard carries the headers', () => {
 
     expect(securityHeaderProblems(response.headers, { hsts: true, csp: 'none' })).toEqual([]);
     expect(response.headers.get('x-middleware-request-content-security-policy')).toBeNull();
-    expect(response.headers.get('x-middleware-request-x-nonce')).toBeNull();
   });
 
   it('a signed-out visit to a page that needs sign-in (the redirect)', async () => {
@@ -299,7 +313,6 @@ describe('E013 AC8 the nonce of a request', () => {
 
       expect(policy).not.toBeNull();
       expect(response.headers.get('x-middleware-request-content-security-policy')).toBe(policy);
-      expect(response.headers.get('x-middleware-request-x-nonce')).toBe(cspNonce(response.headers));
     },
   );
 

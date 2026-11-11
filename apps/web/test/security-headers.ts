@@ -67,8 +67,27 @@ function pagePolicyProblems(policy: string | undefined): string[] {
     JSON.stringify(policyDirective(policy, 'frame-src')) === JSON.stringify([TURNSTILE]),
     `frame-src may name ${TURNSTILE} only`,
   );
+  // Images, fonts, styles and the fallback name no host: the app's own origin, keywords, and for
+  // images `data:` and `blob:`.
+  for (const name of ['default-src', 'style-src', 'font-src', 'img-src']) {
+    const sources = policyDirective(policy, name) ?? [];
+    want(
+      sources.every(
+        (source) => source.startsWith("'") || (name === 'img-src' && /^(data|blob):$/.test(source)),
+      ),
+      `${name} may name no host`,
+    );
+  }
   want(
-    ['default-src', 'script-src', 'connect-src', 'frame-src'].every((name) =>
+    [
+      'default-src',
+      'script-src',
+      'style-src',
+      'img-src',
+      'font-src',
+      'connect-src',
+      'frame-src',
+    ].every((name) =>
       (policyDirective(policy, name) ?? []).every((source) => !/^\*|^https?:$|\*\./.test(source)),
     ),
     'no wildcard or scheme-wide source',
