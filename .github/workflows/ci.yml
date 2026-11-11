@@ -218,7 +218,9 @@ jobs:
     # passes as skipped, and "Detect changes" says why.
     if: needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    # 15 minutes for the work itself (the last runs took 10 to 14) plus the 10 minutes the OS packages step may spend
+    # on its retries (#1311), so the job is never cancelled in the middle of one.
+    timeout-minutes: 25
     # The e2e servers each create and migrate their own database on it (apps/web/e2e/serve.ts).
     services:
       postgres:
@@ -282,6 +284,8 @@ jobs:
       # apt cannot always resolve the Ubuntu mirror from the runner (#1311), which failed the job before any test ran;
       # the script tries the install again.
       - name: Install Chromium's OS packages
+        # Worst case: 4 tries of about 1.5 minutes, plus 90 seconds of waiting between them.
+        timeout-minutes: 10
         run: scripts/playwright-deps.sh
 
       # Builds the web app, then runs every spec in nl-NL and en with axe checks.

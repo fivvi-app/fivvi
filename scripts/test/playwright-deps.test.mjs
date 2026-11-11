@@ -13,7 +13,7 @@ after(() => rmSync(work, { recursive: true, force: true }));
 // Runs the script with a stand-in `pnpm` that fails its first <failures> calls the way apt does when the runner
 // can't resolve the Ubuntu mirror, then succeeds. Returns the result and how often the stand-in was called.
 let n = 0;
-const run = ({ failures, attempts = '3' }) => {
+const run = ({ failures, attempts = '3', delay = '0' }) => {
   const dir = join(work, `case-${n++}`);
   const bin = join(dir, 'bin');
   const count = join(dir, 'calls');
@@ -38,7 +38,7 @@ exit 0
       ...process.env,
       PATH: `${bin}:${process.env.PATH}`,
       PLAYWRIGHT_DEPS_ATTEMPTS: attempts,
-      PLAYWRIGHT_DEPS_DELAY: '0',
+      PLAYWRIGHT_DEPS_DELAY: delay,
     },
   });
   const calls = readFileSync(count, 'utf8').split('\n').filter(Boolean);
@@ -75,6 +75,15 @@ describe('#1311 playwright-deps.sh: Chromium OS packages survive a flaky apt mir
       assert.equal(calls.length, 0, attempts);
     }
   });
+
+  it('refuses a pause that is not a whole number of seconds', () => {
+    for (const delay of ['x', '-1', '1.5']) {
+      const { result, calls } = run({ failures: 0, delay });
+      assert.notEqual(result.status, 0, delay);
+      assert.match(result.stderr, /PLAYWRIGHT_DEPS_DELAY/, delay);
+      assert.equal(calls.length, 0, delay);
+    }
+  });
 });
 
 // The workflow must use the script and not let `playwright install --with-deps` run apt once without a retry.
@@ -95,6 +104,19 @@ describe('#1311 ci.yml: the E2E job installs the OS packages through the retry',
       step,
       /\bif:/,
       'the OS packages are not cached, so the step has no condition',
+    );
+  });
+
+  it('gives that step its own timeout and leaves the job room for it (not cancelled mid-retry)', () => {
+    const at = ci.indexOf("- name: Install Chromium's OS packages");
+    const step = ci.slice(at, ci.indexOf('\n\n', at));
+    const stepMinutes = Number(step.match(/timeout-minutes: (\d+)/)?.[1]);
+    assert.ok(stepMinutes > 0, 'the step has a timeout-minutes');
+    const job = ci.slice(ci.indexOf('\n  e2e:\n'));
+    const jobMinutes = Number(job.match(/timeout-minutes: (\d+)/)?.[1]);
+    assert.ok(
+      jobMinutes >= 15 + stepMinutes,
+      'the job limit is 15 minutes of work plus the retry step',
     );
   });
 });
