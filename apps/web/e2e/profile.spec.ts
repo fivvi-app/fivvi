@@ -342,7 +342,10 @@ test.describe('F050 booking emails switch', () => {
       route.request().method() === 'PATCH' ? route.abort() : route.continue(),
     );
 
-    await box.uncheck();
+    // `click()`, not `uncheck()`: `uncheck()` re-reads the box after its click and fails when the
+    // aborted save has already put the box back (#1290). The alert below proves the click was
+    // saved (and failed), the box is asserted checked again afterwards.
+    await box.click();
 
     await expect(page.getByRole('main').getByRole('alert')).toHaveText(
       copy.myProfile.errors.noConnection,
