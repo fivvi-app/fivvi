@@ -177,8 +177,10 @@
   ];
   var PREF = { setup: "team", lang: "nl", plat: "ios", mode: matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light", accent: "pink", glass: "regular", role: "owner", app: "pro" };
   try { var saved = JSON.parse(localStorage.getItem("fivvi-proto-v2") || "{}"); for (var pk in saved) if (pk in PREF) PREF[pk] = saved[pk]; } catch (e) { /* storage unavailable */ }
-  var S;
+  var S, TPL0 = JSON.stringify(D.tpl);
   function fresh() {
+    /* the workspace's templates go back to the fictional start, in place: the trainer web reads the same object */
+    Object.keys(D.tpl).forEach(function (k) { delete D.tpl[k]; }); var t0 = JSON.parse(TPL0); Object.keys(t0).forEach(function (k) { D.tpl[k] = t0[k]; });
     var duoIt = findItem("s6"); if (duoIt) { duoIt.it.client = "lisa"; duoIt.it.duo = "eva"; duoIt.it.cancelled = false; }
     D.resetBilling();
     S = { signedIn: true, signStep: "email", email: "", code: "", tab: "today", stacks: { today: [], agenda: [], clients: [], profile: [] },
@@ -589,6 +591,7 @@
   SCREENS.profile = function () {
     var body = '<div class="pad stack"><div class="card" style="display:flex;gap:14px;align-items:center">' + avatar(D.me.name, "var(--accent)") + '<div style="flex:1;min-width:0"><b style="display:block;font-size:19px">' + D.me.name + '</b><span style="color:var(--label2);font-size:15px">' + D.me.email + "</span></div>" + btn("Wijzigen", { k: "ghost", sm: true, a: "toast", d: { m: "Naam wijzigen opent een veld" } }) + "</div></div>";
     body += '<div class="pad" style="margin-top:12px">' + grp([row({ a: "pro-me-email", title: "E-mailadres wijzigen" })]) + "</div>";
+    body += sh("Trainingen", "", "small") + '<div class="pad">' + grp([row({ a: "push", d: { n: "templates" }, lead: '<span style="color:var(--label2);display:grid">' + ic("dumb") + "</span>", title: "Schema's", tr: String(Object.keys(D.tpl).length) })]) + "</div>";
     body += sh("Instellingen", "", "small") + '<div class="pad">' + grp([row({ a: "push", d: { n: "language" }, lead: '<span style="color:var(--label2);display:grid">' + ic("globe") + "</span>", title: "Taal", tr: '<span translate="no">' + (PREF.lang === "en" ? "English" : "Nederlands") + "</span>" })]) + "</div>";
     body += sh("Werkruimtes", "", "small") + '<div class="pad">' + grp(WSS().map(function (w) { var x = D.workspaces[w]; return row({ lead: '<span class="av" style="--c:' + x.color + ';border-radius:12px;width:36px;height:36px;font-size:13px">' + initials(x.name) + "</span>", title: x.name, tr: w === "sf" ? (OWNER() ? "Eigenaar" : "Trainer") : "Trainer" }); })) + "</div>" + (WSS().length > 1 ? foot("Vandaag en Agenda tonen je sessies van alle werkruimtes samen.") : "");
     body += '<div class="pad" style="margin-top:16px">' + grp([
@@ -599,6 +602,29 @@
       row({ a: "alert", d: { n: "signout" }, title: '<span style="color:var(--accent-text)">Uitloggen</span>', chev: false })
     ]) + "</div>" + '<div class="pad">' + window.FVW.dzZone(btn("Account verwijderen", { k: "dng", a: "pro-acc-del" })) + "</div>" + foot("Fivvi Pro · prototype v2 · fictieve gegevens");
     return { large: true, title: "Profiel", body: body };
+  };
+
+  /* Workout templates ("schema's", F041): any Owner or Trainer of the workspace makes, changes and deletes them.
+     The same data as the trainer web (D.tpl: name → [exercise, sets, target]). */
+  var TPL_UNIT = { wr: "Doel in herhalingen", r: "Doel in herhalingen", t: "Doel in m:ss", dt: "Doel in meters" };
+  var TPL_DEF = { wr: "10", r: "10", t: "0:30", dt: "500 m" };
+  function tplType(n) { var e = D.library.filter(function (l) { return l.n === n; })[0]; return e ? e.ty : "wr"; }
+  function tplCount(n) { return n + (n === 1 ? " oefening" : " oefeningen"); }
+  function tplName(n) { return '<span translate="no">' + esc(n) + "</span>"; }
+  SCREENS.templates = function () {
+    var names = Object.keys(D.tpl);
+    var body = lt("", "Schema's") + (names.length ? '<div class="pad">' + grp(names.map(function (n) { return row({ a: "open-tpl", d: { t: n }, title: tplName(n), sub: tplCount(D.tpl[n].length) }); })) + "</div>" : '<div class="empty">Nog geen schema\'s.</div>');
+    body += foot("Alle trainers in je werkruimte kunnen schema's maken, wijzigen en verwijderen.");
+    return { title: "Schema's", body: body, add: { a: "tpl-new", label: "Nieuw schema", i: "plus" } };
+  };
+  SCREENS.template = function (r) {
+    var rows = D.tpl[r.id];
+    if (!rows) return { title: "Schema", body: '<div class="empty">Dit schema bestaat niet meer.</div>' };
+    var body = lt("", tplName(r.id), tplCount(rows.length));
+    body += '<div class="pad">' + grp(rows.map(function (x) { return row({ title: esc(x[0]), tr: '<b class="num">' + x[1] + " × " + esc(x[2]) + "</b>", cls: "kv" }); })) + "</div>";
+    body += foot("Een wijziging verandert geen trainingen die al zijn gelogd.");
+    body += '<div class="pad stack" style="margin-top:20px">' + btn("Wijzigen", { k: "sec", blk: true, a: "tpl-edit", d: { t: r.id }, i: "pencil" }) + btn("Schema verwijderen", { k: "dng", blk: true, a: "tpl-del-ask", d: { t: r.id } }) + "</div>";
+    return { title: r.id, noTr: true, body: body };
   };
 
   SCREENS.language = function () {
@@ -700,13 +726,32 @@
     var body = '<label class="search" style="margin-bottom:12px">' + ic("search") + '<input data-in="exq" type="search" placeholder="Zoek oefening (NL of EN)" value="' + esc(S.exq) + '" aria-label="Zoek oefening"></label><div id="exlist">' + exList() + "</div>";
     return { title: "Oefening toevoegen", body: body };
   };
+  /* New / Edit template: the draft lives in S.form = { name, orig, rows: [{ n, sets, target }] } until Opslaan */
+  SHEETS.tplForm = function () {
+    var f = S.form, last = f.rows.length - 1;
+    var body = '<div class="fgrp">' + fld("Naam", inp("name", "text", "Bijvoorbeeld Upper A")) + "</div>";
+    body += sh("Oefeningen", "", "small");
+    if (!f.rows.length) body += '<div class="empty tpl-empty">Nog geen oefeningen. Voeg er een toe.</div>';
+    body += f.rows.map(function (r, i) {
+      function ib(a, icon, label, off, cls) { return '<button class="ib ' + (cls || "") + '" data-a="' + a + '" data-i="' + i + '" aria-label="' + esc(r.n) + " " + label + '"' + (off ? " disabled" : "") + ">" + ic(icon) + "</button>"; }
+      return '<div class="tpl-ex"><div class="tpl-h"><div class="m"><b>' + esc(r.n) + "</b><small>" + TPL_UNIT[tplType(r.n)] + "</small></div>" +
+        ib("tpl-up", "up", "naar boven", i === 0) + ib("tpl-down", "down", "naar beneden", i === last) + ib("tpl-rm", "x", "weghalen", false, "rm") + "</div>" +
+        '<div class="tpl-two"><div class="fgrp">' + fld("Sets", '<input data-tr="' + i + ',sets" inputmode="numeric" value="' + esc(r.sets) + '" aria-label="' + esc(r.n) + ' sets">') + "</div>" +
+        '<div class="fgrp">' + fld("Doel", '<input data-tr="' + i + ',target" value="' + esc(r.target) + '" aria-label="' + esc(r.n) + ' doel">') + "</div></div></div>";
+    }).join("");
+    body += '<div style="margin-top:14px">' + btn("Oefening toevoegen", { k: "sec", blk: true, a: "tpl-pick", i: "plus" }) + "</div>";
+    body += foot("Een wijziging verandert geen trainingen die al zijn gelogd.");
+    return { title: f.orig ? "Schema wijzigen" : "Nieuw schema", body: body, save: "save-tpl", still: !!S.tplPick };
+  };
   function exList() {
+    var tp = S.sheet === "tplForm" && S.tplPick, inTpl = tp ? S.form.rows.map(function (r) { return r.n; }) : [];
     var q = norm(S.exq.trim()), inLog = (S.log ? S.log.ex : []).map(function (e) { return e.name; });
     var lib = D.library.filter(function (e) { return !q || norm(e.n).indexOf(q) >= 0 || norm(e.en).indexOf(q) >= 0; });
     var TY = { wr: "", r: "Alleen herhalingen", t: "Tijd", dt: "Afstand + tijd" };
-    function exRow(e) { var dis = inLog.indexOf(e.n) >= 0; return row({ a: dis ? "" : "add-ex", d: { n: e.n }, title: esc(e.n), sub: "ook: " + esc(e.en) + " · " + esc(e.mu) + (TY[e.ty] ? " · " + TY[e.ty] : ""), cls: dis ? "past" : "", tr: dis ? "In training" : "" }); }
-    var out = grp([row({ a: "add-ex-new", lead: '<span style="color:var(--accent-text);display:grid">' + ic("plus") + "</span>", title: '<span style="color:var(--accent-text)">Nieuwe oefening' + (q ? " “" + esc(S.exq) + "” aanmaken" : "") + "</span>" })]);
-    if (!q) out += sh("Recent bij " + (S.log ? CLIENT[S.log.client].name.split(" ")[0] : ""), "", "small") + grp(D.library.slice(0, 3).map(exRow));
+    function exRow(e) { var dis = !tp && inLog.indexOf(e.n) >= 0; return row({ a: dis ? "" : "add-ex", d: { n: e.n }, title: esc(e.n), sub: "ook: " + esc(e.en) + " · " + esc(e.mu) + (TY[e.ty] ? " · " + TY[e.ty] : ""), cls: dis ? "past" : "", tr: dis ? "In training" : tp && inTpl.indexOf(e.n) >= 0 ? "In schema" : "" }); }
+    /* picking for a template: no "Recent bij …" and no new exercise (own exercises are F040) */
+    var out = tp ? "" : grp([row({ a: "add-ex-new", lead: '<span style="color:var(--accent-text);display:grid">' + ic("plus") + "</span>", title: '<span style="color:var(--accent-text)">Nieuwe oefening' + (q ? " “" + esc(S.exq) + "” aanmaken" : "") + "</span>" })]);
+    if (!q && !tp) out += sh("Recent bij " + (S.log ? CLIENT[S.log.client].name.split(" ")[0] : ""), "", "small") + grp(D.library.slice(0, 3).map(exRow));
     out += sh(q ? "Resultaten" : "Bibliotheek", "", "small") + (lib.length ? grp(lib.map(exRow)) : '<div class="empty">Geen oefening gevonden.</div>');
     return out;
   }
@@ -722,7 +767,19 @@
     dt: { head: [["m", "w"], ["tijd", "ts"]], inp: [[0, "decimal", "w", "", "afstand (m)"], [1, "numeric", "s", ":", "minuten"], [2, "numeric", "s", "", "seconden"]] }
   };
   function mkEx(e) { var def = { wr: ["20", "10"], r: ["10"], t: ["0", "30"], dt: ["500", "2", "00"] }[e.ty]; return { name: e.n, ty: e.ty, target: "", prev: [], sets: [{ v: def.slice(), done: false }], diff: "n" }; }
+  /* a template as the logger opens it: sets × target from D.tpl, so a template made or changed on the phone or the web is what the trainer logs */
+  function tplFromRows(rows) {
+    return rows.map(function (r) {
+      var lib = D.library.filter(function (l) { return l.n === r[0]; })[0]; if (!lib) return null;
+      var e = mkEx(lib), v = e.sets[0].v, t = String(r[2]), m = t.match(/^(\d+):(\d+)$/);
+      if (lib.ty === "wr" && /^\d+$/.test(t)) v[1] = t; else if (lib.ty === "r" && /^\d+$/.test(t)) v[0] = t; else if (lib.ty === "t" && m) { v[0] = m[1]; v[1] = m[2]; }
+      e.sets = []; for (var i = 0; i < r[1]; i++) e.sets.push({ v: v.slice(), done: false });
+      e.target = "Doel: " + r[1] + " × " + t; return e;
+    }).filter(Boolean);
+  }
   function tplEx(name) {
+    var orig = JSON.parse(TPL0)[name];
+    if (D.tpl[name] && !(name === "Upper A" && JSON.stringify(D.tpl[name]) === JSON.stringify(orig))) return tplFromRows(D.tpl[name]);
     if (name === "Upper A") return D.upperA().map(function (e) { return { name: e.name, ty: e.ty, target: e.target, prev: e.prev, sets: e.sets.map(function (v) { return { v: v.slice(), done: false }; }), diff: "n" }; });
     return ["Squat", "Bankdrukken", "Kabel roeien", "Plank"].map(function (n) { var e = mkEx(D.library.filter(function (l) { return l.n === n; })[0]); e.sets.push({ v: e.sets[0].v.slice(), done: false }, { v: e.sets[0].v.slice(), done: false }); e.target = "Doel: 3 × " + (e.ty === "t" ? "0:30" : "10"); return e; });
   }
@@ -749,8 +806,8 @@
         row({ a: "log-pick", d: { t: "" }, lead: '<span class="av" style="--c:var(--accent);border-radius:14px">' + ic("plus") + "</span>", title: "Lege training", sub: "Begin zonder schema en voeg oefeningen toe terwijl je traint.", cls: "wrap" }),
         row({ a: "log-pick", d: { t: "Upper A" }, lead: '<span class="av" style="--c:var(--priv);border-radius:14px">' + ic("repeat") + "</span>", title: "Vorige training herhalen", sub: "Upper A · 29 okt · 5 oefeningen", cls: "wrap" })
       ], "--inset:68px") + "</div>";
-      body += sh("Schema's van " + first, "", "small") + '<div class="pad">' + grp((D.templates[c.id] || []).map(function (t) { return row({ a: "log-pick", d: { t: t }, title: t }); })) + "</div>";
-      body += sh("Andere schema's", "", "small") + '<div class="pad">' + grp(D.templates.other.map(function (t) { return row({ a: "log-pick", d: { t: t }, title: t }); })) + "</div>";
+      body += sh("Schema's van " + first, "", "small") + '<div class="pad">' + grp((D.templates[c.id] || []).filter(function (t) { return D.tpl[t]; }).map(function (t) { return row({ a: "log-pick", d: { t: t }, title: tplName(t) }); })) + "</div>";
+      body += sh("Andere schema's", "", "small") + '<div class="pad">' + grp(D.templates.other.filter(function (t) { return D.tpl[t]; }).concat(Object.keys(D.tpl).filter(function (t) { return !(t in JSON.parse(TPL0)); })).map(function (t) { return row({ a: "log-pick", d: { t: t }, title: tplName(t) }); })) + "</div>";
     } else if ((L.step === "log" || L.step === "add") && L.reorder) {
       nav = barHTML("Volgorde", { right: { t: "Klaar", a: "ex-reorder-done", prom: true } });
       body += '<div class="pad"><p class="ro-hint">Sleep aan ≡ om de volgorde te wijzigen.</p><div class="grp ro">' + L.ex.map(function (e, i) {
@@ -828,12 +885,12 @@
       var caps = trailing.map(function (t) { return t.t ? '<button class="gb glass txt" data-a="' + t.a + '"' + dattrs(t.d) + ">" + t.t + "</button>" : '<button class="gb glass" data-a="' + t.a + '"' + dattrs(t.d) + ' aria-label="' + esc(t.label) + '">' + ic(t.i) + "</button>"; }).join("");
       if (p.add) caps += '<button class="gb prom" data-a="' + p.add.a + '" aria-label="' + esc(p.add.label) + '">' + ic("plus") + "</button>";
       if (p.save) caps += '<button class="gb prom" data-a="' + p.save.a + '"' + dattrs(p.save.d) + ' aria-label="Opslaan">' + ic("check") + "</button>";
-      return '<div class="nb' + (p.inline ? "" : "") + '">' + L + '<span class="sp"></span>' + caps + '<div class="t">' + esc(p.title) + "</div></div>";
+      return '<div class="nb' + (p.inline ? "" : "") + '">' + L + '<span class="sp"></span>' + caps + '<div class="t"' + (p.noTr ? ' translate="no"' : "") + ">" + esc(p.title) + "</div></div>";
     }
     var A = prev ? '<button class="ib" data-a="back" aria-label="Terug">' + ic("back") + "</button>" : "";
     var acts = trailing.map(function (t) { return '<button class="ib" data-a="' + t.a + '"' + dattrs(t.d) + ' aria-label="' + esc(t.label || t.t) + '">' + ic(t.i === "more" ? "moreV" : t.i) + "</button>"; }).join("");
     if (p.save) acts += btn("Opslaan", { k: "ghost", sm: true, a: p.save.a, d: p.save.d });
-    return '<div class="ab ' + (p.large ? "root" : "") + '">' + A + '<div class="t">' + esc(p.title) + "</div>" + acts + "</div>";
+    return '<div class="ab ' + (p.large ? "root" : "") + '">' + A + '<div class="t"' + (p.noTr ? ' translate="no"' : "") + ">" + esc(p.title) + "</div>" + acts + "</div>";
   }
 
   function tabsHTML() {
@@ -850,7 +907,7 @@
     closeA = closeA || "close-sheet";
     if (ios) bar = '<div class="sbar"><button class="gb glass" data-a="' + closeA + '" aria-label="Sluiten">' + ic("x") + "</button><h3>" + esc(sh_.title) + "</h3>" + (sh_.save ? '<button class="gb prom" data-a="' + sh_.save + '" aria-label="Opslaan">' + ic("check") + "</button>" : '<span style="width:44px"></span>') + "</div>";
     else bar = large ? '<div class="sbar"><button class="ib" data-a="' + closeA + '" aria-label="Sluiten">' + ic("x") + "</button><h3>" + esc(sh_.title) + "</h3>" + (sh_.save ? btn("Opslaan", { k: "ghost", sm: true, a: sh_.save }) : "") + "</div>" : '<div class="sbar"><h3 style="padding-left:12px">' + esc(sh_.title) + "</h3></div>";
-    return '<div class="scrim anim-fade" data-a="' + closeA + '"></div><div class="sheet ' + (large ? "large" : "") + (S.anim === "up" || S.anim === "sheet" ? " anim-up" : "") + '" role="dialog" aria-label="' + esc(sh_.title) + '"><div class="grab"></div>' + bar + '<div class="sbody">' + sh_.body + "</div></div>";
+    return '<div class="scrim anim-fade" data-a="' + closeA + '"></div><div class="sheet ' + (large ? "large" : "") + (!sh_.still && (S.anim === "up" || S.anim === "sheet") ? " anim-up" : "") + '" role="dialog" aria-label="' + esc(sh_.title) + '"><div class="grab"></div>' + bar + '<div class="sbody">' + sh_.body + "</div></div>";
   }
 
   var ALERTS = {
@@ -859,6 +916,7 @@
     cancelClass: function (d) { var it = findItem(d.id).it; return { t: "Les annuleren?", p: "De " + it.people.length + " geboekte klanten krijgen een e-mail. Je kunt er een bericht bij zetten op het web.", b: [["Les annuleren", "do-cancel", "dng"], ["Terug", "close-alert", "sec"]] }; },
     removeEx: function (d) { var e = S.log.ex[d.e], n = e.sets.filter(function (s) { return s.done; }).length; return { t: e.name + " verwijderen?", p: n ? e.name + " heeft " + n + (n === 1 ? " gelogde set" : " gelogde sets") + ". Toch verwijderen?" : (e.sets.length === 1 ? "De enige set van " + e.name + " gaat uit deze training." : (e.sets.length === 2 ? "Beide" : "Alle " + e.sets.length) + " sets van " + e.name + " gaan uit deze training."), b: [["Verwijderen", "do-remove-ex", "dng"], ["Terug", "close-alert", "sec"]] }; },
     removeSet: function (d) { var e = S.log.ex[d.e]; return { t: "Set " + (+d.s + 1) + " verwijderen?", p: e.name + " houdt " + (e.sets.length - 1) + (e.sets.length - 1 === 1 ? " set" : " sets") + ".", b: [["Verwijderen", "do-remove-set", "dng"], ["Terug", "close-alert", "sec"]] }; },
+    tplDel: function (d) { return { t: "Schema verwijderen?", p: d.t + " kun je daarna niet meer kiezen bij een training. Trainingen die al met dit schema zijn gelogd, blijven bewaard.", b: [["Verwijderen", "do-tpl-del", "dng"], ["Terug", "close-alert", "sec"]] }; },
     zero: function () { return { t: "Nog niets bijgehouden", p: "Je hebt nog geen sets afgevinkt. Toch afronden?", b: [["Afronden", "do-zero", "pri"], ["Terug", "close-alert", "sec"]] }; },
     rings: function () {
       var ws = S.scope === "ws";
@@ -925,6 +983,7 @@
       dev.classList.toggle("has-acc", !!run);
       h += tabsHTML();
       if (S.sheet) h += sheetHTML(SHEETS[S.sheet](), "close-sheet");
+      if (S.sheet === "tplForm" && S.tplPick) h += sheetHTML(SHEETS.addEx(), "tpl-pick-close");
       if (S.log) h += loggerHTML();
     }
     if (S.menu) h += menuHTML();
@@ -936,6 +995,7 @@
     var nc = dev.querySelector(".screen .content");
     if (nc && S.anim !== "push" && scrollMem[dev.dataset.rk] != null) nc.scrollTop = scrollMem[dev.dataset.rk];
     var nsb = dev.querySelector(".sbody"); if (nsb && S.anim !== "up" && prevSheet === (S.sheet || "")) nsb.scrollTop = sbTop;
+    if (nsb && S.sheetBottom) { nsb.scrollTop = nsb.scrollHeight; S.sheetBottom = false; }
     var nfc = dev.querySelector(".full .content");
     if (nfc) { if (S.scrollBottom) { nfc.scrollTop = nfc.scrollHeight; S.scrollBottom = false; } else if (S.anim !== "up") nfc.scrollTop = fcTop; }
     if (nc && nc.scrollTop > 30) nc.parentNode.classList.add("scrolled");
@@ -960,7 +1020,7 @@
   function bad(f, msg) { S.err = {}; S.err[f] = msg; toast(msg, "err"); return true; }
   function toast(m, kind) { S.toast = m; S.toastKind = kind || "ok"; render(); clearTimeout(toast.t); toast.t = setTimeout(function () { S.toast = null; var el = dev.querySelector(".toast"); if (el) el.remove(); }, 2300); }
   function push(r) { S.stacks[S.tab].push(r); S.anim = "push"; S.tabMin = false; render(); }
-  function closeAll() { S.sheet = null; S.alert = null; S.menu = null; }
+  function closeAll() { S.sheet = null; S.tplPick = false; S.alert = null; S.menu = null; }
 
   /* ---------- Actions ---------- */
   function today5() { return { date: TODAY, start: "11:00", end: "12:00", dur: "60", cap: "10" }; }
@@ -1000,7 +1060,29 @@
     "new-class": function () { S.form = Object.assign(today5(), { name: "", trainer: D.me.name, rep: "Niet herhalen", cap: "12", start: "19:00", end: "20:00" }); S.sheet = "newClass"; S.anim = "up"; render(); },
     "new-gym": function () { S.form = Object.assign(today5(), { start: "17:00", end: "19:00" }); S.sheet = "newGym"; S.anim = "up"; render(); },
     note: function (d) { S.form = { client: d.id, text: "" }; S.sheet = "note"; S.anim = "up"; render(); },
-    "close-sheet": function () { S.sheet = null; S.err = {}; render(); },
+    "open-tpl": function (d) { push({ n: "template", id: d.t }); },
+    "tpl-new": function () { S.form = { name: "", orig: "", rows: [] }; S.err = {}; S.tplPick = false; S.sheet = "tplForm"; S.anim = "up"; render(); },
+    "tpl-edit": function (d) { S.form = { name: d.t, orig: d.t, rows: D.tpl[d.t].map(function (r) { return { n: r[0], sets: String(r[1]), target: r[2] }; }) }; S.err = {}; S.tplPick = false; S.sheet = "tplForm"; S.anim = "up"; render(); },
+    "tpl-pick": function () { S.exq = ""; S.tplPick = true; S.anim = "sheet"; render(); },
+    "tpl-pick-close": function () { S.tplPick = false; render(); },
+    "tpl-up": function (d) { tplMove(+d.i, -1); },
+    "tpl-down": function (d) { tplMove(+d.i, 1); },
+    "tpl-rm": function (d) { S.form.rows.splice(+d.i, 1); render(); },
+    "save-tpl": function () {
+      var f = S.form, nm = (f.name || "").trim();
+      if (!nm) { bad("name", "Vul een naam in"); return; }
+      if (Object.keys(D.tpl).some(function (k) { return k !== f.orig && k.trim().toLowerCase() === nm.toLowerCase(); })) { bad("name", "Er is al een schema met deze naam"); return; }
+      if (!f.rows.length) { S.err = {}; toast("Een schema heeft minstens één oefening", "err"); return; }
+      var rows = f.rows.map(function (r) { return [r.n, Math.max(1, parseInt(r.sets, 10) || 1), (r.target || "").trim() || TPL_DEF[tplType(r.n)]]; });
+      if (f.orig && f.orig !== nm) { var keep = Object.keys(D.tpl).map(function (k) { return [k === f.orig ? nm : k, k === f.orig ? rows : D.tpl[k]]; }); Object.keys(D.tpl).forEach(function (k) { delete D.tpl[k]; }); keep.forEach(function (x) { D.tpl[x[0]] = x[1]; }); }
+      else D.tpl[nm] = rows;
+      S.sheet = null; S.tplPick = false; S.err = {};
+      if (f.orig) { var st = S.stacks[S.tab], tp = st[st.length - 1]; if (tp && tp.n === "template") tp.id = nm; toast("Schema opgeslagen"); }
+      else { S.stacks[S.tab].push({ n: "template", id: nm }); S.anim = "push"; toast("Schema gemaakt"); }
+    },
+    "tpl-del-ask": function (d) { S.alert = { n: "tplDel", t: d.t }; render(); },
+    "do-tpl-del": function () { delete D.tpl[S.alert.t]; S.alert = null; S.stacks[S.tab].pop(); S.anim = "pop"; toast("Schema verwijderd"); },
+    "close-sheet": function () { S.sheet = null; S.tplPick = false; S.err = {}; render(); },
     fset: function (d) { S.form[d.f] = d.v; render(); },
     "save-session": function () {
       var f = S.form, it = { id: "n" + Date.now(), ws: "sf", type: "priv", s: f.start, e: hm(mins(f.start) + +f.dur), client: f.client, duo: f.duo && f.duo !== f.client ? f.duo : undefined, loc: f.loc, att: null };
@@ -1107,7 +1189,9 @@
     diff: function (d) { S.log.ex[d.e].diff = d.v; render(); },
     "ex-add": function () { S.exq = ""; S.log.step = "add"; S.anim = "sheet"; render(); },
     "close-add": function () { S.log.step = "log"; render(); },
-    "add-ex": function (d) { var e = D.library.filter(function (l) { return l.n === d.n; })[0]; S.log.ex.push(mkEx(e)); if (S.log.tpl) S.log.changed = true; S.log.step = "log"; S.scrollBottom = true; render(); },
+    "add-ex": function (d) { var e = D.library.filter(function (l) { return l.n === d.n; })[0];
+      if (S.tplPick) { S.form.rows.push({ n: e.n, sets: "3", target: TPL_DEF[e.ty] }); S.tplPick = false; S.sheetBottom = true; render(); return; }
+      S.log.ex.push(mkEx(e)); if (S.log.tpl) S.log.changed = true; S.log.step = "log"; S.scrollBottom = true; render(); },
     "add-ex-new": function () { var n = S.exq.trim() || "Nieuwe oefening"; S.log.ex.push(mkEx({ n: n.charAt(0).toUpperCase() + n.slice(1), ty: "wr" })); if (S.log.tpl) S.log.changed = true; S.log.step = "log"; S.scrollBottom = true; toast("Oefening aangemaakt. Je vindt hem voortaan onder Jouw oefeningen."); }
   };
   function menuAt(el, n, alignLeft) {
@@ -1115,6 +1199,7 @@
     var top = (r.bottom - d.top) / z + 4; if (top + h > d.height / z - 20) top = (r.top - d.top) / z - h - 4;
     return alignLeft ? { top: top, left: (r.left - d.left) / z } : { top: top, right: (d.right - r.right) / z };
   }
+  function tplMove(i, by) { var a = S.form.rows, j = i + by; if (j < 0 || j >= a.length) return; a.splice(j, 0, a.splice(i, 1)[0]); render(); }
   function moveSet(e, from, to) { var a = S.log.ex[e].sets; a.splice(to, 0, a.splice(from, 1)[0]); if (S.log.tpl) S.log.changed = true; S.menu = null; render(); }
   function moveEx(from, to) { var a = S.log.ex; a.splice(to, 0, a.splice(from, 1)[0]); if (S.log.tpl) S.log.changed = true; S.menu = null; render(); }
   function removeSet(e, s) { S.log.ex[e].sets.splice(+s, 1); if (S.log.tpl) S.log.changed = true; render(); }
@@ -1134,6 +1219,7 @@
     if (window.FVW && window.FVW.onInput(t)) return;
     var ek = t.dataset.f || t.dataset.in;
     if (ek && S.err && S.err[ek]) { delete S.err[ek]; var lb = t.closest(".invalid"); if (lb) { lb.classList.remove("invalid"); var em = lb.querySelector(".err"); if (em) em.remove(); } }
+    if (t.dataset.tr) { var tp = t.dataset.tr.split(","); S.form.rows[+tp[0]][tp[1]] = t.value; return; }
     if (t.dataset.f) { S.form[t.dataset.f] = t.value; return; }
     var k = t.dataset.in;
     if (k === "q") { S.q = t.value; dev.querySelector("#clist").innerHTML = clientList(); tr(dev.querySelector("#clist")); }
@@ -1253,6 +1339,13 @@
       ["Training afronden", "WL-05", function () { fresh(); S.stacks.today = [{ n: "session", id: "s3" }]; A["start-workout"]({ id: "s3" }); S.log.ex[0].sets.forEach(function (s) { s.done = true; }); S.log.ex[1].sets[0].done = true; S.log.step = "finish"; }, true],
       ["Training delen", "WL-08", function () { fresh(); S.stacks.today = [{ n: "session", id: "s3" }]; A["start-workout"]({ id: "s3" }); S.log.ex[0].sets.forEach(function (s) { s.done = true; }); S.log.step = "share"; }, true],
       ["Profiel", "TM-04", function () { fresh(); S.tab = "profile"; }],
+      ["Schema's", "TM-05", function () { fresh(); S.tab = "profile"; S.stacks.profile = [{ n: "templates" }]; }],
+      ["Schema's: nog geen", "TM-05", function () { fresh(); S.tab = "profile"; S.stacks.profile = [{ n: "templates" }]; Object.keys(D.tpl).forEach(function (k) { delete D.tpl[k]; }); }],
+      ["Schema", "TM-06", function () { fresh(); S.tab = "profile"; S.stacks.profile = [{ n: "templates" }, { n: "template", id: "Upper A" }]; }],
+      ["Nieuw schema", "TM-07", function () { fresh(); S.tab = "profile"; S.stacks.profile = [{ n: "templates" }]; A["tpl-new"](); }],
+      ["Schema wijzigen", "TM-07", function () { fresh(); S.tab = "profile"; S.stacks.profile = [{ n: "templates" }, { n: "template", id: "Upper A" }]; A["tpl-edit"]({ t: "Upper A" }); }],
+      ["Oefening toevoegen aan schema", "TM-08", function () { fresh(); S.tab = "profile"; S.stacks.profile = [{ n: "templates" }, { n: "template", id: "Upper A" }]; A["tpl-edit"]({ t: "Upper A" }); S.tplPick = true; }],
+      ["Schema verwijderen", "TM-09", function () { fresh(); S.tab = "profile"; S.stacks.profile = [{ n: "templates" }, { n: "template", id: "Upper A" }]; S.alert = { n: "tplDel", t: "Upper A" }; }],
       ["Taal", "F010", function () { fresh(); S.tab = "profile"; S.stacks.profile = [{ n: "language" }]; }]
     ]]
   ];
