@@ -1,8 +1,15 @@
-import type { Locale } from '@fivvi/i18n';
+import { DEFAULT_TRAINER_WORD, type Locale, TRAINER_WORDS } from '@fivvi/i18n';
 import { sql } from 'drizzle-orm';
-import { check, pgTable, text } from 'drizzle-orm/pg-core';
+import { check, pgEnum, pgTable, text } from 'drizzle-orm/pg-core';
 import { id, instant, timestamps } from './columns.ts';
 import { workspacePolicy } from './tenant-policies.ts';
+
+/**
+ * The workspace's word for its trainers (F068, spec #588): a label only, the role stays
+ * `trainer`. A fifth word is an additive `ALTER TYPE trainer_word ADD VALUE` and a new entry in
+ * `TRAINER_WORDS`, which the schema reads.
+ */
+export const trainerWord = pgEnum('trainer_word', TRAINER_WORDS);
 
 /**
  * A workspace: a gym or an independent trainer's business, the root of tenant isolation
@@ -36,6 +43,12 @@ export const organizations = pgTable(
     joinCode: text('join_code').notNull().unique().default(sql`new_join_code()`),
     /** When the Owner last renewed the join link; empty until the first renewal. */
     joinLinkRenewedAt: instant('join_link_renewed_at'),
+    /**
+     * The word the product uses for the people who teach in this workspace (F068): `trainer`,
+     * `instructeur`, `docent` or `coach`. Every workspace starts on `trainer` (creating one doesn't
+     * ask) and the Owner changes it in the settings; the role stays Trainer in code and rights.
+     */
+    trainerWord: trainerWord('trainer_word').notNull().default(DEFAULT_TRAINER_WORD),
     ...timestamps(),
   },
   (table) => [

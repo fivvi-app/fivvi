@@ -1,5 +1,5 @@
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   authUsers,
@@ -67,6 +67,7 @@ describe('F002 creating a workspace', () => {
       slug: 'johns-gym',
       defaultLocale: 'nl-NL',
       timeZone: 'Europe/Amsterdam',
+      trainerWord: 'trainer',
     });
     const [row] = await admin.db
       .select()
@@ -208,7 +209,14 @@ describe('F002 creating a workspace', () => {
 
     const [row] = await admin.db.select().from(organizations).where(eq(organizations.id, owned.id));
     expect(listed).toEqual([
-      { id: owned.id, name: row?.name, slug: row?.slug, role: 'owner', trainsHere: false },
+      {
+        id: owned.id,
+        name: row?.name,
+        slug: row?.slug,
+        trainerWord: 'trainer',
+        role: 'owner',
+        trainsHere: false,
+      },
     ]);
     expect(fromAny).toEqual(listed);
     expect(JSON.stringify([listed, fromAny])).not.toContain(stranger.id);
@@ -242,8 +250,8 @@ describe('F002 creating a workspace', () => {
     );
 
     expect(listed).toEqual([
-      { id: alpha.id, name: alpha.marker, slug: alpha.marker },
-      { id: zeta.id, name: zeta.marker, slug: zeta.marker },
+      { id: alpha.id, name: alpha.marker, slug: alpha.marker, trainerWord: 'trainer' },
+      { id: zeta.id, name: zeta.marker, slug: zeta.marker, trainerWord: 'trainer' },
     ]);
     expect(fromTeam).toEqual([]);
     expect(JSON.stringify(listed)).not.toContain(teamOnly.id);
@@ -334,8 +342,66 @@ describe('F002 reading and renaming a workspace', () => {
         slug: workspace.marker,
         defaultLocale: 'nl-NL',
         timeZone: 'Europe/Amsterdam',
+        trainerWord: 'trainer',
       },
     });
+  });
+
+  it('F068 AC1: changes the workspace’s word, read back by every list, and nothing else', async () => {
+    const workspace = await createWorkspace(admin.db);
+    const owner = await ownerOf(workspace.id);
+    await addClient(admin.db, { workspaceId: workspace.id, accountId: owner.id });
+
+    const entry = await scopes().inWorkspaceScope(
+      { accountId: owner.id, workspaceId: workspace.id, admit: () => 'team' },
+      (scope) => updateWorkspace(scope, { trainerWord: 'instructeur' }),
+    );
+
+    expect(entry).toMatchObject({
+      status: 'entered',
+      value: { id: workspace.id, name: workspace.marker, trainerWord: 'instructeur' },
+    });
+    const team = await scopes().inAccountScope(
+      { accountId: owner.id, workspaces: 'any' },
+      (scope) => listTeamWorkspaces(scope),
+    );
+    const clientOf = await scopes().inAccountScope(
+      { accountId: owner.id, workspaces: 'any' },
+      (scope) => listClientWorkspaces(scope),
+    );
+    expect(team.map(({ trainerWord }) => trainerWord)).toEqual(['instructeur']);
+    expect(clientOf.map(({ trainerWord }) => trainerWord)).toEqual(['instructeur']);
+    const [row] = await admin.db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.id, workspace.id));
+    expect(row).toMatchObject({ name: workspace.marker, defaultLocale: 'nl-NL' });
+  });
+
+  it('F068 AC1: a change of the word touches no other workspace', async () => {
+    const mine = await createWorkspace(admin.db);
+    const other = await createWorkspace(admin.db);
+    const owner = await ownerOf(mine.id);
+
+    await scopes().inWorkspaceScope(
+      { accountId: owner.id, workspaceId: mine.id, admit: () => 'team' },
+      (scope) => updateWorkspace(scope, { trainerWord: 'docent' }),
+    );
+
+    const [row] = await admin.db
+      .select({ trainerWord: organizations.trainerWord })
+      .from(organizations)
+      .where(eq(organizations.id, other.id));
+    expect(row?.trainerWord).toBe('trainer');
+  });
+
+  it('F068: the database refuses a word outside the four choices', async () => {
+    const workspace = await createWorkspace(admin.db);
+    await expect(
+      admin.db.execute(
+        sql`update organizations set trainer_word = 'teacher' where id = ${workspace.id}`,
+      ),
+    ).rejects.toThrow();
   });
 
   it('AC6: a rename changes the name and never the slug', async () => {

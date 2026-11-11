@@ -204,6 +204,13 @@
       "when": 1794357204872,
       "tag": "0028_payment_ledger",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1794391143570,
+      "tag": "0029_workspace_trainer_word",
+      "breakpoints": true
     }
   ]
 }
