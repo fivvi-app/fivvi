@@ -1,4 +1,4 @@
-import { defaultLocale, type Locale, locales } from './config.ts';
+import { type Locale, locales } from './config.ts';
 
 /** The interface language when nothing supported is chosen, stored or requested (ADR-017). */
 const interfaceFallback: Locale = 'en';
@@ -81,7 +81,8 @@ declare const emailLanguageBrand: unique symbol;
  * `Locale` that only `resolveCommunicationLanguage`, `resolveClientCommunicationLanguage`,
  * `resolveSignInCommunicationLanguage` and `resolveInternalCommunicationLanguage` can produce, so
  * the send function of `@fivvi/email` takes no plain `'en'` or `'nl-NL'` (F049 AC4). Nothing else
- * casts to it: `packages/email/src/email-language.test.ts` fails on a cast outside tests.
+ * casts to it: the Biome rule `packages/i18n/lint/email-language-cast.grit` fails lint on a cast
+ * outside this file and tests.
  */
 export type EmailLanguage = Locale & { readonly [emailLanguageBrand]: 'EmailLanguage' };
 
@@ -159,5 +160,5 @@ export function resolveSignInCommunicationLanguage(
  * request mail (F064): the owner's language, Dutch, whatever language the visitor used.
  */
 export function resolveInternalCommunicationLanguage(): EmailLanguage {
-  return emailLanguage(defaultLocale);
+  return emailLanguage('nl-NL');
 }

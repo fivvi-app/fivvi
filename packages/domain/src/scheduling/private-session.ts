@@ -234,18 +234,16 @@ export function sendsConfirmation(input: { notify: boolean; past: boolean }): bo
 }
 
 /**
- * The language of EM-11 and EM-04 (ADR-017, AC1, AC3, F049 AC4): the linked account's own stored
- * preference, then the client's own email language, then the workspace's default. A client has no
- * linked account yet, so callers leave `accountPreference` out. A value that is no catalog language
- * is skipped.
+ * The language of EM-11 and EM-04 (ADR-017, AC1, AC3, F049 AC4): the client's own email language,
+ * then the workspace's default. A client has no linked account yet, so there is no account
+ * preference here (`resolveClientCommunicationLanguage` of `@fivvi/i18n` has the full order). A
+ * value that is no catalog language is skipped.
  */
 export function confirmationLanguage(sources: {
-  accountPreference?: string | null;
   clientEmailLocale?: string | null;
   workspaceDefault: Locale;
 }): EmailLanguage {
   return resolveClientCommunicationLanguage({
-    accountPreference: sources.accountPreference,
     clientLanguage: sources.clientEmailLocale,
     workspaceDefault: sources.workspaceDefault,
   });

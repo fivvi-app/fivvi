@@ -17,7 +17,8 @@ export interface SendEmailOptions<Props> {
   /**
    * The recipient's communication language, as a resolver of `@fivvi/i18n` returned it
    * (`resolveCommunicationLanguage`, `resolveClientCommunicationLanguage`,
-   * `resolveSignInCommunicationLanguage`; ADR-017, ADR-019). A plain `'en'` or `'nl-NL'` does not
+   * `resolveSignInCommunicationLanguage`, `resolveInternalCommunicationLanguage`; ADR-017,
+   * ADR-019). A plain `'en'` or `'nl-NL'` does not
    * type-check, so no send picks its language by hand.
    */
   locale: EmailLanguage;

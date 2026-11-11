@@ -1,5 +1,3 @@
-import { readdir, readFile } from 'node:fs/promises';
-import path from 'node:path';
 import type { EmailLanguage, Locale } from '@fivvi/i18n';
 import {
   resolveClientCommunicationLanguage,
@@ -15,7 +13,6 @@ import { helloEmail } from './templates/hello.tsx';
 import type { TrainerInvitationMail } from './trainer-invitation-mail.ts';
 
 // F049 AC4: the send function takes a language only as a resolver of @fivvi/i18n returns it.
-const repositoryRoot = path.resolve(import.meta.dirname, '../../..');
 
 describe('F049: the send function only accepts a language a resolver returned', () => {
   it('does not type-check a plain locale, for the send function or the mails built for it', () => {
@@ -85,38 +82,5 @@ describe('F049: the send function only accepts a language a resolver returned', 
     });
 
     expect(transport.sent[0]).toMatchObject({ locale: 'nl-NL', to: { email: 'anna@example.com' } });
-  });
-});
-
-const skipped = new Set(['node_modules', '.next', '.turbo', 'dist', 'generated', 'e2e', 'test']);
-const isTest = (file: string) => /\.(test|spec)\.tsx?$/.test(file);
-
-async function sourceFiles(dir: string): Promise<string[]> {
-  const files: string[] = [];
-  for (const entry of await readdir(dir, { withFileTypes: true })) {
-    const full = path.join(dir, entry.name);
-    if (entry.isDirectory()) {
-      if (!skipped.has(entry.name)) files.push(...(await sourceFiles(full)));
-    } else if (/\.tsx?$/.test(entry.name) && !isTest(entry.name)) {
-      files.push(full);
-    }
-  }
-  return files;
-}
-
-describe('F049: nothing makes an EmailLanguage by hand', () => {
-  it('casts to EmailLanguage only inside the resolvers, never elsewhere outside tests', async () => {
-    const files = [
-      ...(await sourceFiles(path.join(repositoryRoot, 'apps'))),
-      ...(await sourceFiles(path.join(repositoryRoot, 'packages'))),
-    ];
-    const cast = /\bas\s+(?:unknown\s+as\s+)?EmailLanguage\b/;
-    const casting: string[] = [];
-    for (const file of files) {
-      if (cast.test(await readFile(file, 'utf8')))
-        casting.push(path.relative(repositoryRoot, file));
-    }
-    // The scan finds the one place that casts (so it is not looking at nothing), and only it.
-    expect(casting).toEqual(['packages/i18n/src/locale.ts']);
   });
 });

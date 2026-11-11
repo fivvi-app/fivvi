@@ -234,32 +234,6 @@ describe('F020 the confirmation email (EM-11)', () => {
     expect(confirmationLanguage({ clientEmailLocale: null, workspaceDefault: 'en' })).toBe('en');
   });
 
-  it('F049 AC4: the linked account’s own preference comes before the client’s email language', () => {
-    // Mark Jansen prefers English; John's Gym defaults to Dutch.
-    expect(
-      confirmationLanguage({
-        accountPreference: 'en',
-        clientEmailLocale: null,
-        workspaceDefault: 'nl-NL',
-      }),
-    ).toBe('en');
-    expect(
-      confirmationLanguage({
-        accountPreference: 'en',
-        clientEmailLocale: 'nl-NL',
-        workspaceDefault: 'nl-NL',
-      }),
-    ).toBe('en');
-    // Anna de Vries has no preference and no language for emails: the workspace default.
-    expect(
-      confirmationLanguage({
-        accountPreference: null,
-        clientEmailLocale: null,
-        workspaceDefault: 'nl-NL',
-      }),
-    ).toBe('nl-NL');
-  });
-
   it('skips a language that is no catalog language', () => {
     expect(confirmationLanguage({ clientEmailLocale: 'fr', workspaceDefault: 'en' })).toBe('en');
   });
