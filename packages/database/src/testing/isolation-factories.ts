@@ -1,9 +1,18 @@
 import { eq } from 'drizzle-orm';
 import type { DatabaseExecutor } from '../client.ts';
-import { locations, organizations, sessionParticipants, trainerProfiles } from '../schema/index.ts';
+import {
+  locations,
+  organizations,
+  paymentStatusChanges,
+  payments,
+  sessionParticipants,
+  trainerProfiles,
+} from '../schema/index.ts';
 import {
   addClient,
   addGroupClass,
+  addPayment,
+  addPaymentCustomer,
   addSession,
   addTeamRole,
   addTrainerInvitation,
@@ -141,6 +150,52 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
         .values({ organizationId: workspaceId, sessionId: session.id, clientId: client.id })
         .returning({ id: sessionParticipants.id });
       if (!row) throw new Error('session participant was not created.');
+      return row;
+    },
+  },
+  // The provider customer of a client made for the workspace.
+  payment_customers: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addPaymentCustomer(db, { workspaceId }),
+  },
+  // An open payment of a client made for the workspace (its first status line is its own row).
+  payments: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addPayment(db, { workspaceId }),
+  },
+  // A status line of a payment made for the workspace: the line of a payment other than the one
+  // `addPayment` gave its first line, so each factory call adds exactly one row.
+  payment_status_changes: {
+    scopeColumn: 'organization_id',
+    create: async (db, workspaceId) => {
+      const client = await addClient(db, { workspaceId });
+      const [payment] = await db
+        .insert(payments)
+        .values({
+          organizationId: workspaceId,
+          clientId: client.id,
+          kind: 'oneoff',
+          purpose: 'open_amount',
+          businessKey: uniqueMarker('open-amount'),
+          amountCents: 4950,
+          description: 'Membership October',
+          supplied: { nameNl: 'Lidmaatschap', nameEn: 'Membership', period: null, vatRateBp: null },
+        })
+        .returning({ id: payments.id });
+      if (!payment) throw new Error('payment was not created.');
+      const [row] = await db
+        .insert(paymentStatusChanges)
+        .values({
+          organizationId: workspaceId,
+          paymentId: payment.id,
+          clientId: client.id,
+          fromStatus: null,
+          toStatus: 'open',
+          occurredAt: new Date(),
+          source: 'job',
+        })
+        .returning({ id: paymentStatusChanges.id });
+      if (!row) throw new Error('payment status change was not created.');
       return row;
     },
   },

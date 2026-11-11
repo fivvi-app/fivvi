@@ -4,6 +4,7 @@ export * from './group-classes.ts';
 export * from './job-runs.ts';
 export * from './locations.ts';
 export * from './organizations.ts';
+export * from './payments.ts';
 export * from './sessions.ts';
 export * from './system-greetings.ts';
 export * from './tenancy.ts';

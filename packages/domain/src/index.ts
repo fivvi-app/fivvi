@@ -129,6 +129,58 @@ export {
   type LocationType,
 } from './locations/default-location.ts';
 export {
+  type AppliedStatus,
+  type ApplyStatusOptions,
+  applyProviderStatus,
+} from './payments/apply-status.ts';
+export {
+  type CreatedPayment,
+  type CreatePaymentRequest,
+  createPayment,
+  InvalidPaymentError,
+  type InvalidPaymentField,
+  PAYMENT_DESCRIPTION_MAX_LENGTH,
+  type PaymentEngine,
+  type PaymentEnvironment,
+} from './payments/create-payment.ts';
+export {
+  type NewPayment,
+  PAYMENT_PURPOSES,
+  type PaymentKind,
+  type PaymentLedger,
+  type PaymentPurpose,
+  type PaymentRecord,
+  type PaymentSupplied,
+  type RecordStatusChange,
+  type StatusChange,
+  type StatusSource,
+} from './payments/ledger.ts';
+export {
+  type ConnectRequest,
+  type ConnectStart,
+  type PaymentProvider,
+  type ProviderAccess,
+  type ProviderConnectionStatus,
+  type ProviderCustomer,
+  type ProviderCustomerRequest,
+  ProviderError,
+  type ProviderErrorCode,
+  type ProviderPayment,
+  type ProviderPaymentRequest,
+  type ProviderRefund,
+  type ProviderRefundRequest,
+  type ProviderRefundStatus,
+  type ProviderSequenceType,
+  type ProviderSettlement,
+  type ProviderSettlementLine,
+} from './payments/provider.ts';
+export {
+  decideStatusChange,
+  PAYMENT_STATUSES,
+  type PaymentStatus,
+  type StatusChangeDecision,
+} from './payments/status.ts';
+export {
   CAPABILITIES,
   type Capability,
   capabilitiesOf,

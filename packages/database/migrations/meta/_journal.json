@@ -197,6 +197,13 @@
       "when": 1794331073492,
       "tag": "0027_organizations_join_code",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1794357204872,
+      "tag": "0028_payment_ledger",
+      "breakpoints": true
     }
   ]
 }

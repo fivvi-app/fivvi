@@ -74,6 +74,25 @@ export {
   updateLocation,
 } from './repositories/locations.ts';
 export {
+  findPayment,
+  findProviderCustomerId,
+  type InPaymentScope,
+  insertPayment,
+  linkProviderCustomer,
+  linkProviderPayment,
+  listStatusChanges,
+  type NewPayment,
+  type NewStatusChange,
+  type PaymentKind,
+  type PaymentPurpose,
+  type PaymentRecord,
+  type PaymentStatus,
+  type PaymentStatusSource,
+  paymentLedger,
+  recordStatusChange,
+  type StatusChangeRecord,
+} from './repositories/payments.ts';
+export {
   findMyNextSessionStart,
   hasMySession,
   listMySessions,

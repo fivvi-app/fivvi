@@ -8,6 +8,9 @@ import {
   groupClasses,
   locations,
   organizations,
+  paymentCustomers,
+  paymentStatusChanges,
+  payments,
   sessionParticipants,
   sessions,
   teamMembers,
@@ -333,4 +336,74 @@ export async function addSession(
     });
   }
   return { id: session.id, startsAt, endsAt, locationId };
+}
+
+/**
+ * An open payment of a client of the workspace (E019): a one-off payment for an open amount, in
+ * test mode, with a business key of its own. The client is made for it unless `clientId` is given.
+ */
+export async function addPayment(
+  db: Pick<DatabaseExecutor, 'insert'>,
+  options: {
+    workspaceId: string;
+    clientId?: string;
+    businessKey?: string;
+    amountCents?: number;
+  },
+): Promise<{ id: string; clientId: string; businessKey: string }> {
+  const clientId =
+    options.clientId ?? (await addClient(db, { workspaceId: options.workspaceId })).id;
+  const businessKey = options.businessKey ?? uniqueMarker('open-amount');
+  const payment = first(
+    await db
+      .insert(payments)
+      .values({
+        organizationId: options.workspaceId,
+        clientId,
+        kind: 'oneoff',
+        purpose: 'open_amount',
+        businessKey,
+        amountCents: options.amountCents ?? 4950,
+        description: 'Membership October',
+        supplied: {
+          nameNl: 'Lidmaatschap',
+          nameEn: 'Membership',
+          period: null,
+          vatRateBp: 2100,
+        },
+      })
+      .returning({ id: payments.id }),
+    'payment',
+  );
+  await db.insert(paymentStatusChanges).values({
+    organizationId: options.workspaceId,
+    paymentId: payment.id,
+    clientId,
+    fromStatus: null,
+    toStatus: 'open',
+    occurredAt: new Date(),
+    source: 'job',
+  });
+  return { id: payment.id, clientId, businessKey };
+}
+
+/** A provider customer for a client of the workspace (E019); the client is made unless given. */
+export async function addPaymentCustomer(
+  db: Pick<DatabaseExecutor, 'insert'>,
+  options: { workspaceId: string; clientId?: string },
+): Promise<{ id: string; clientId: string }> {
+  const clientId =
+    options.clientId ?? (await addClient(db, { workspaceId: options.workspaceId })).id;
+  const row = first(
+    await db
+      .insert(paymentCustomers)
+      .values({
+        organizationId: options.workspaceId,
+        clientId,
+        providerCustomerId: uniqueMarker('cst'),
+      })
+      .returning({ id: paymentCustomers.id }),
+    'payment customer',
+  );
+  return { id: row.id, clientId };
 }

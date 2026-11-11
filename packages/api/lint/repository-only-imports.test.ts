@@ -47,6 +47,10 @@ const FORBIDDEN: Record<string, string> = {
   'the group classes table': "import { groupClasses } from '@fivvi/database';",
   'the sessions table': "import { sessions } from '@fivvi/database';",
   'the session participants table': "import { sessionParticipants } from '@fivvi/database';",
+  'the payments table': "import { payments } from '@fivvi/database';",
+  'the payment customers table': "import { paymentCustomers } from '@fivvi/database';",
+  'the payment status changes table': "import { paymentStatusChanges } from '@fivvi/database';",
+  'the payment status enum': "import { paymentStatus } from '@fivvi/database';",
   'the session type enum': "import { sessionType } from '@fivvi/database';",
   'the session status enum': "import { sessionStatus } from '@fivvi/database';",
   'the attendance status enum': "import { attendanceStatus } from '@fivvi/database';",
@@ -115,6 +119,10 @@ const FORBIDDEN: Record<string, string> = {
   'a testing subpath': "import { startDatabaseServer } from '@fivvi/testing/database/server';",
   'a dynamic import of the testing package':
     "export const load = () => import('@fivvi/testing/clock');",
+  // The fake provider and ledger of the payment engine are for tests too.
+  'the domain testing entry': "import { FakePaymentProvider } from '@fivvi/domain/testing';",
+  'a dynamic import of the domain testing entry':
+    "export const load = () => import('@fivvi/domain/testing');",
 };
 
 // What packages/api/src does today: types and the repository layer by name.
@@ -135,6 +143,7 @@ const ALLOWED = [
   "import { rows } from '../database/source.ts';",
   "export const load = () => import('./clients.ts');",
   "import { testing } from '@fivvi/testing-tools';",
+  "import { createPayment } from '@fivvi/domain';",
 ];
 
 let dir: string;
@@ -271,6 +280,15 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
       'repository of the personal sessions, takes the workspace scope; answers a time (F013)',
     hasMySession:
       'repository of the personal sessions, takes the workspace scope; answers yes or no (F013)',
+    insertPayment: 'repository of the payment ledger, takes the workspace scope (E019)',
+    findPayment: 'repository of the payment ledger, takes the workspace scope (E019)',
+    findProviderCustomerId: 'repository of the payment ledger, takes the workspace scope (E019)',
+    linkProviderCustomer: 'repository of the payment ledger, takes the workspace scope (E019)',
+    linkProviderPayment: 'repository of the payment ledger, takes the workspace scope (E019)',
+    recordStatusChange: 'repository of the payment ledger, takes the workspace scope (E019)',
+    listStatusChanges: 'repository of the payment ledger, takes the workspace scope (E019)',
+    paymentLedger:
+      'the payment ledger over a function that opens a workspace scope (E019); every call goes through the scope, no connection of its own',
     findInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
     lockInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
     closeInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
@@ -332,6 +350,15 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     GroupClassChanges: 'type of the group-class repository (F021)',
     GroupClassView: 'type of the group-class repository (F021)',
     ClassDateChanges: 'type of the group-class repository (F021)',
+    InPaymentScope: 'type of the payment-ledger repository (E019)',
+    NewPayment: 'type of the payment-ledger repository (E019)',
+    NewStatusChange: 'type of the payment-ledger repository (E019)',
+    PaymentKind: 'type of the payment-ledger repository (E019)',
+    PaymentPurpose: 'type of the payment-ledger repository (E019)',
+    PaymentRecord: 'type of the payment-ledger repository (E019)',
+    PaymentStatus: 'type of the payment-ledger repository (E019)',
+    PaymentStatusSource: 'type of the payment-ledger repository (E019)',
+    StatusChangeRecord: 'type of the payment-ledger repository (E019)',
     ClassDateUpdate: 'type of the group-class repository (F021)',
     NewGroupClass: 'type of the group-class repository (F021)',
     NewClassDate: 'type of the group-class repository (F021)',
