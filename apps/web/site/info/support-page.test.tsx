@@ -10,13 +10,6 @@ const html = (node: React.ReactNode) => renderToStaticMarkup(node);
 const hrefs = (markup: string) => [...markup.matchAll(/href="([^"]*)"/g)].map(([, href]) => href);
 
 const noDetails: BusinessDetails = { tradeName: 'Voorbeeld BV' };
-const allDetails: BusinessDetails = {
-  tradeName: 'Voorbeeld BV',
-  kvk: '12345678',
-  vat: 'NL000000000B01',
-  address: 'Voorbeeldstraat 1, 1234 AB Plaats',
-  phone: '+31 6 00000000',
-};
 
 describe.each(locales)('F064 the role addresses in %s', (locale) => {
   it('are support@ and privacy@ on fivvi.app, shown as mail links with their labels', () => {
@@ -54,44 +47,27 @@ describe.each(locales)('F064 AC8 the help page in %s', (locale) => {
     expect(page).toContain(escapeHtml(copy.footer.tradeName.replace('{name}', 'Voorbeeld BV')));
   });
 
-  it('shows every business detail that is filled in, with its label, phone included', () => {
-    const page = html(<SupportPage locale={locale} business={allDetails} />);
+  it('shows no business details list and no phone number, whatever the business holds', () => {
+    // A fixture with more than the type allows, as a later edit of `business.ts` might add.
+    const crowded = {
+      tradeName: 'Voorbeeld BV',
+      kvk: '12345678',
+      vat: 'NL000000000B01',
+      address: 'Voorbeeldstraat 1, 1234 AB Plaats',
+      phone: '+31 6 00000000',
+    } as BusinessDetails;
 
-    for (const [label, value] of [
-      [copy.footer.kvk, '12345678'],
-      [copy.footer.vat, 'NL000000000B01'],
-      [copy.footer.address, 'Voorbeeldstraat 1, 1234 AB Plaats'],
-      [copy.footer.phone, '+31 6 00000000'],
-    ] as const) {
-      expect(page).toContain(escapeHtml(label));
-      expect(page).toContain(value);
-    }
-  });
-
-  it('shows nothing for a detail that is missing: no label, no empty value, no placeholder', () => {
-    for (const business of [
-      noDetails,
-      {
-        tradeName: 'Voorbeeld BV',
-        kvk: '{{KvK-nummer}}',
-        vat: '',
-        address: '  ',
-        phone: undefined,
-      },
-    ]) {
+    for (const business of [noDetails, crowded]) {
       const page = html(<SupportPage locale={locale} business={business} />);
 
-      for (const label of [
-        copy.footer.kvk,
-        copy.footer.vat,
-        copy.footer.address,
-        copy.footer.phone,
-      ]) {
-        expect(page).not.toContain(escapeHtml(label));
+      for (const value of ['12345678', 'NL000000000B01', 'Voorbeeldstraat', '+31 6']) {
+        expect(page).not.toContain(value);
       }
       expect(page).not.toContain('{{');
-      // The addresses are not business details the owner still has to give: they stay.
-      expect(hrefs(page)).toContain(`mailto:${supportEmail}`);
+      // Only the two mailboxes are listed, as mail links.
+      expect(page.match(/<dt[ >]/g)).toHaveLength(2);
+      expect(hrefs(page)).toEqual(expect.arrayContaining([`mailto:${supportEmail}`]));
+      expect(hrefs(page).filter((href) => href?.startsWith('tel:'))).toEqual([]);
     }
   });
 

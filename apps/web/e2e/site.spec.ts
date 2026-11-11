@@ -1,4 +1,6 @@
 import { formattingLocales, type Locale, locales, messages } from '@fivvi/i18n';
+import { sitePagePath } from '../site/routes';
+import { undisclosedDetails } from '../test/undisclosed-details';
 import { signInWithSession } from './accounts';
 import { expect, expectNoAxeViolations, test } from './fixtures';
 
@@ -41,23 +43,41 @@ for (const locale of locales) {
       });
     }
 
-    test('AC7: the footer shows the trade name, KvK and VAT number, address and phone, and no placeholder', async ({
+    test('AC7: the footer shows the trade name and its links, and no KvK or VAT number, address, phone or placeholder', async ({
       page,
     }) => {
       await page.goto(HOME[locale]);
 
       const footer = page.getByRole('contentinfo');
       await expect(footer).toContainText(copy.footer.tradeName.replace('{name}', 'K&S Apps'));
-      for (const [label, value] of [
-        [copy.footer.kvk, '92372996'],
-        [copy.footer.vat, 'NL866022788B01'],
-        [copy.footer.address, 'Haringbuisdijk 43, 1086 VA Amsterdam'],
-        [copy.footer.phone, '+31 6 85145755'],
-      ] as const) {
-        await expect(footer).toContainText(label);
-        await expect(footer).toContainText(value);
+      for (const label of [
+        copy.footer.support,
+        copy.footer.privacy,
+        copy.footer.terms,
+        copy.footer.subProcessors,
+      ]) {
+        await expect(footer.getByRole('link', { name: label })).toBeVisible();
       }
+      // The registration numbers, the street address and the phone number are in the terms and the
+      // privacy policy only.
+      await expect(footer).not.toContainText(undisclosedDetails);
       await expect(footer).not.toContainText('{{');
+      await expect(footer.locator('dl')).toHaveCount(0);
+    });
+
+    test('AC8: the help page shows the support address and the way to the demo form, and no phone number or business details list', async ({
+      page,
+    }) => {
+      await page.goto(sitePagePath('support', locale));
+
+      const main = page.getByRole('main');
+      await expect(main.getByRole('link', { name: 'support@fivvi.app' })).toHaveAttribute(
+        'href',
+        'mailto:support@fivvi.app',
+      );
+      await expect(main.getByRole('link', { name: copy.cta.demo })).toBeVisible();
+      await expect(main).not.toContainText(undisclosedDetails);
+      await expect(main.locator('a[href^="tel:"]')).toHaveCount(0);
     });
 
     // AC13: the markup of the site carries no `robots` tag; the header does the work per

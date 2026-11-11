@@ -1003,11 +1003,7 @@
       "privacy": "Privacy policy",
       "terms": "Terms of service",
       "subProcessors": "Sub-processors",
-      "tradeName": "{name}, trading as Fivvi",
-      "kvk": "Chamber of Commerce (KvK)",
-      "vat": "VAT number",
-      "address": "Address",
-      "phone": "Phone or WhatsApp"
+      "tradeName": "{name}, trading as Fivvi"
     },
     "cta": {
       "heading": "What does your day look like in Fivvi?",

@@ -1,16 +1,16 @@
 import type { Locale } from '@fivvi/i18n';
 import Link from 'next/link';
-import { type BusinessDetails, filledDetails, business as fivviBusiness, shown } from './business';
+import { type BusinessDetails, business as fivviBusiness, shown } from './business';
 import { footerColumns, linksTo } from './navigation';
 import { builtPages, type SitePage } from './routes';
 import { SiteLogo } from './site-logo';
 import { siteText } from './text';
 
 /**
- * The footer of every site page (F064, AC7): the trade name, the business details that are filled
- * in (a missing one shows nothing, never a placeholder), and links to help, pricing and the legal
- * pages. A link to a page that does not exist yet is left out (`built`), and so is a column left
- * with none.
+ * The footer of every site page (F064, AC7): the trade name (a missing one shows nothing, never a
+ * placeholder) and links to help, pricing and the legal pages. No KvK, VAT number, address or phone
+ * number: those are in the terms and the privacy policy (owner, 11 November 2026, #1344). A link to
+ * a page that does not exist yet is left out (`built`), and so is a column left with none.
  */
 export function SiteFooter({
   locale,
@@ -23,7 +23,6 @@ export function SiteFooter({
 }) {
   const t = siteText(locale);
   const tradeName = shown(business.tradeName);
-  const details = filledDetails(business);
   const columns = footerColumns
     .map(({ heading, pages }) => ({ heading, links: linksTo(pages, locale, built) }))
     .filter(({ links }) => links.length > 0);
@@ -36,16 +35,6 @@ export function SiteFooter({
             <p className="mt-2.5 leading-relaxed">
               {t('site.footer.tradeName', { name: tradeName })}
             </p>
-          ) : null}
-          {details.length > 0 ? (
-            <dl className="mt-1 leading-relaxed">
-              {details.map(({ key, value }) => (
-                <div key={key} className="flex gap-1.5">
-                  <dt>{t(`site.footer.${key}`)}</dt>
-                  <dd>{value}</dd>
-                </div>
-              ))}
-            </dl>
           ) : null}
         </div>
         {columns.length > 0 ? (
