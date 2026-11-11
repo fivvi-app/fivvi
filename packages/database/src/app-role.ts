@@ -27,6 +27,8 @@ export const APP_TABLE_PRIVILEGES: Readonly<Record<string, readonly Privilege[]>
   job_runs: [],
   // System data: read by every workspace, changed only by migrations.
   system_greetings: ['SELECT'],
+  // The exercise library (F039): the same for every workspace, synced by the release step only.
+  exercise_library: ['SELECT'],
   // Tenancy core and business tables: reached through RLS (the policies decide which rows).
   organizations: ALL,
   team_members: ALL,

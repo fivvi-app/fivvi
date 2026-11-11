@@ -1,5 +1,6 @@
 export * from './auth.ts';
 export * from './business-table.ts';
+export * from './exercise-library.ts';
 export * from './group-classes.ts';
 export * from './job-runs.ts';
 export * from './locations.ts';

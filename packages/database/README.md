@@ -183,4 +183,10 @@ Why not run an idempotent seed in production as well: the seed is going to fill 
 
 To add system data: `pnpm --filter @fivvi/database exec drizzle-kit generate --custom --name <what>`, write an idempotent `INSERT … ON CONFLICT DO NOTHING`, and add a test.
 
+### The exercise library (F039)
+
+The one system table that is **synced** rather than inserted by a migration, because its content grows with the product. `src/library/exercises.ts` is the versioned data file (key, type, muscle groups, aliases, retired); the Dutch and English names, the muscle groups and the types are in `packages/i18n` under `exercises.*` (`libraryMessageKey()` turns a key into its catalog path). `exercise_library` has no `organization_id`: it is the same for every workspace and holds nothing about any workspace or person.
+
+The release step runs `syncExerciseLibrary()` after the migrations, in every environment, production included: new keys are added, changed fields are updated on the same row, and a row that already matches is not touched, so a second run changes nothing. **A key in the table that is missing from the file fails the release**: set `retired: true` and keep the entry, because templates and past workouts point at its key. `src/library/library-content.test.ts` checks the file against the catalogs (unique keys, both names, a known type, at least one known muscle group, no orphan names). The app role can only read the table.
+
 Open point: ids use `gen_random_uuid()` (v4). Switching the default to Postgres 18's `uuidv7()` is a default-only change, once every environment (including CI) runs Postgres 18.

@@ -118,6 +118,12 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     personal: false,
     reason: 'System data read by every workspace: the i18n key of a greeting (M1).',
   },
+  {
+    table: 'exercise_library',
+    personal: false,
+    reason:
+      'The exercise library, the same for every workspace: an exercise’s key, type, muscle groups and search aliases (F039). The names are in `packages/i18n`. Nothing about any workspace or person.',
+  },
   // The workspace.
   {
     table: 'organizations',

@@ -4,7 +4,7 @@ This is the **single wording source** for every user-facing string on every surf
 
 What each concept **is** lives in the domain glossary, [`GLOSSARY.md`](../../GLOSSARY.md) at the repo root (English canonical terms, definitions, words to avoid). This file says how those terms are **worded** in nl-NL and en.
 
-- **Status:** v0.17, started in M0 (`ROADMAP.md §4.2`). The owner decided the nine open terms on 2026-10-29 by choosing the standard Dutch wording, and on the same day the wording of *single class* and *client*. Terms marked ⚠️ are still open (see [§8 Open questions](#8-open-questions)); v0.14 adds the join link, join request and waitlist closing time terms of ADR-026 as ⚠️; v0.16 adds *guest / introducé* 🔜 as ⚠️; v0.17 renames *single class* to *single class pass*, an offer kind of its own, with its UI names ⚠️.
+- **Status:** v0.18, started in M0 (`ROADMAP.md §4.2`). The owner decided the nine open terms on 2026-10-29 by choosing the standard Dutch wording, and on the same day the wording of *single class* and *client*. Terms marked ⚠️ are still open (see [§8 Open questions](#8-open-questions)); v0.14 adds the join link, join request and waitlist closing time terms of ADR-026 as ⚠️; v0.16 adds *guest / introducé* 🔜 as ⚠️; v0.17 renames *single class* to *single class pass*, an offer kind of its own, with its UI names ⚠️. v0.18 adds the exercise library terms *retired exercise* and *exercise type*.
 - **Scope:** UI strings, emails, notifications, validation messages, empty states, the client timetable and join pages and QR posters. Legal documents (privacy policy, terms, verwerkersovereenkomst) follow their own register and are out of scope.
 - **Catalogs:** `packages/i18n/nl-NL.json` and `packages/i18n/en.json` (ICU MessageFormat, ADR-008). Native catalogs (`.xcstrings`, `strings.xml`) are generated from them and are never edited by hand.
 - **Precedence:** `PRODUCT.md` owns requirements. This file owns terminology, tone and copy style. Where it deliberately differs from example copy in `PRODUCT.md`, [§7](#7-deviations-from-productmd-example-copy) lists why.
@@ -258,7 +258,9 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 | exercise library | oefeningenbibliotheek (de); screen title **Oefeningen** | EN: *Exercise library*; screen title *Exercises*. |
 | custom exercise | eigen oefening | ❌ *aangepaste oefening, custom oefening*. |
 | target muscles | spiergroepen | Field in the exercise library. EN: *Target muscles*. |
-| equipment | materiaal (het) | Field in the exercise library. ❌ *apparatuur, benodigdheden, equipment*. |
+| equipment | materiaal (het) | Field in the exercise library, not in the first version (it comes later). ❌ *apparatuur, benodigdheden, equipment*. |
+| retired exercise | uit de bibliotheek gehaald | An exercise Fivvi no longer offers; it stays in templates and past workouts. Use it as a status, not as an action on a trainer's own exercise. EN: *retired*. ❌ *verwijderd*, *gearchiveerd*, *uitgefaseerd* (nothing is deleted). |
+| exercise type | soort (de) | What a set records: *Gewicht × herhalingen*, *Alleen herhalingen*, *Tijd*, *Afstand + tijd* (EN: *Weight × reps*, *Reps only*, *Time*, *Distance + time*). Table column: *Soort* / *Type*. ❌ *type*. |
 | aliases | andere namen | Alternative names used for search. EN UI: *Also known as*. |
 | set | set (de, sets) | ❌ *serie, reeks, ronde*. |
 | rep | herhaling (de, herhalingen) | Compact tables: *herh.* / *reps*. Set lines use `62,5 kg × 8` with no word. ❌ NL: *reps, keer*. See the recurrence note in §4.2. |
@@ -540,3 +542,4 @@ Marked ⚠️ in §4.9 since v0.17: *single class pass*. It is an offer kind of 
 | 2026-10-31 | 0.15 | The client app at go-live (roadmap v1.31): the brand rule says the client app is *Fivvi* (it was "of Release 1.2"), and the *Home* row is no longer marked 🔜 1.2. Terminology is unchanged. |
 | 2026-11-06 | 0.16 | Bring a friend, parked in Release 4.0 (roadmap v1.37, `PRODUCT.md §66`): §4.9 adds *guest* (*introducé*) 🔜 4.0 as ⚠️. *Guest* is back with a new meaning only, a friend a client brings to a class; a client is still never a guest, so the 0.6 change and the *client* row stand. |
 | 2026-11-09 | 0.17 | The owner decided that the single class is a **single class pass**, an offer kind of its own (four kinds), bought ahead and good for one group class, not a credit pack (roadmap decision 9, F058 reopened). §4.9: the *single class* row becomes *single class pass*; the Dutch and English UI names are ⚠️ (*losse sessie* of 0.12 may carry over, not decided; no string exists yet). |
+| 2026-11-11 | 0.18 | Exercise library (F039): §4.6 adds *retired exercise* (*uit de bibliotheek gehaald*) and *exercise type* (*soort*), notes that *equipment* (*materiaal*) comes later, and fixes the Dutch names of the four exercise types and the fourteen muscle groups in the catalogs (`exercises.types.*`, `exercises.muscleGroups.*`). |

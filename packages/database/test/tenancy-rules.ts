@@ -6,6 +6,8 @@ import type { TenancyRules } from './conventions.ts';
  */
 export const NON_BUSINESS_TABLES: Record<string, string> = {
   system_greetings: 'System data read by every workspace and the public hello slice (M1).',
+  exercise_library:
+    'The exercise library, the same for every workspace; synced from a data file by the release step (F039).',
   job_runs: 'Run history of the cron tasks, platform data of the cron job (E012, ADR-027).',
   // Sign-in tables (F001): an account is global and shared by every workspace of its person.
   auth_identities: 'Sign-in identity of a global account (F001, ADR-007).',

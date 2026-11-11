@@ -22,6 +22,8 @@ The single source of every user-facing string (ADR-008). `nl-NL.json` and `en.js
 
 **Email copy** goes under the `email` namespace (`email.hello.subject`). It follows the same rules and checks, but the native exporters leave `email.*` out (`serverOnlyNamespaces` in `src/config.ts`), because only `packages/email` renders it. The same holds for the public website's copy under `site` (`site.home.headline`): only `apps/web` renders it, and for the import's problems under `dataImport` (E015): only the API and the web render them.
 
+**Exercise names** go under `exercises.names` (`exercises.names.benchPress`, the camelCase of the library key `bench-press`), with the muscle groups under `exercises.muscleGroups` and the exercise types under `exercises.types` (F039). The exercise list itself, with the type, muscles and search aliases of each, is `packages/database/src/library/exercises.ts`; its content check fails when a name is missing or has no exercise.
+
 **Keys** are dot paths grouped by screen or feature: `hello.title`, `notFound.body`, `booking.spotsAvailable`. Every segment is lowerCamelCase (`[a-z][a-zA-Z0-9]*`) and every key has at least two segments. Name keys after the English glossary term (`GLOSSARY.md §6.3`). The same key is used on iOS (`"hello.title"`); Android turns it into snake_case (`hello_title`, `not_found_body`).
 
 ## Supported ICU
