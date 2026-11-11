@@ -112,6 +112,7 @@
 .w-list li>button svg{width:16px;height:16px;flex:none;color:var(--w-mfg)}
 .w-list li>button svg:first-child{color:var(--gym)}
 .w-list li>button span{flex:1}
+.w-list li>button:disabled{opacity:.55;cursor:default}.w-list li>button:disabled:hover{background:none}.w-dialog h4{margin:12px 0 4px;font-size:14px}.w-dialog h4:first-of-type{margin-top:0}
 .w-list.plain li{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--w-border)}
 .w-list.plain li:last-child{border-bottom:0}
 .w-list.plain p{margin:2px 0 0}

@@ -690,3 +690,5 @@ input:focus,select:focus,textarea:focus{outline:none}
 .tpl-two .fld input{text-align:right}
 .android .tpl-two .fld input{text-align:left}
 .tpl-empty{padding:18px 24px}
+/* F042: the check mark of the chosen template in a picker */
+.row .tr svg.tick{width:22px;height:22px;color:var(--accent-text)}

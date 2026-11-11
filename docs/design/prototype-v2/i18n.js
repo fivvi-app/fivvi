@@ -13,6 +13,12 @@ window.FIVVI_I18N = (function () {
 
   /* Sentence-level rules first: these change word order or need a captured value. */
   var RULES = [
+/* assigning workouts (F042) */
+[/^Nog geen schema's voor (.+)\.$/, "No templates for $1 yet."],
+[/^(.+) weghalen bij (.+?)(\?)?$/, function (m, t, c, q) { return "Remove " + t + " from " + c + (q || ""); }],
+[/^Schema (voor|wijzigen voor|kiezen voor) (.+)$/, function (m, k, c) { return k === "voor" ? "Template for " + c : (k === "kiezen voor" ? "Choose a template for " : "Change the template for ") + c; }],
+[/^Kies een schema voor (.+)\.$/, "Choose a template for $1."],
+[/^Alleen jij en je collega-trainers zien dit\. (.+) ziet niets van deze lijst\.$/, "Only you and your fellow trainers see this. $1 sees nothing of this list."],
 [/^(.+) boeken\?$/, function (m, t) { return "Book " + P(t) + "?"; }],
 [/^Op de wachtlijst voor (.+)\?$/, function (m, t) { return "Join the waitlist for " + P(t) + "?"; }],
 [/^Je wordt nummer (\d+)\. Komt er een plek vrij, dan word je automatisch geboekt en krijg je een e-mail\.$/, "You'll be number $1. If a spot frees up, you're booked automatically and get an email."],
@@ -234,7 +240,8 @@ window.FIVVI_I18N = (function () {
     [/^Op een komende datum zijn al (\d+) boekingen\. Kies minstens (\d+) plekken\.$/, "A coming date already has $1 bookings. Choose at least $2 spots."],
     [/^Gemaakt door trainers van (.+)\. Die wijzig of verwijder je zelf\.$/, "Made by trainers at $1. You change or delete them yourself."],
     [/^(.+) kun je daarna niet meer toevoegen\. Trainingen waarin hij al zit, blijven zoals ze zijn\.$/, "You can't add $1 any more after this. Workouts it's already in stay as they are."],
-    [/^(.+) kun je daarna niet meer kiezen bij een training\. Trainingen die al met dit schema zijn gelogd, blijven bewaard\.$/, "You can't choose $1 for a workout any more. Workouts already logged with this template are kept."],
+    [/^(.+?) kun je daarna niet meer kiezen bij een training\. Trainingen die al met dit schema zijn gelogd, blijven bewaard\.(?: (Het staat bij .+; daar verdwijnt het\.))?$/, function (m, n, use) { return "You can't choose " + n + " for a workout any more. Workouts already logged with this template are kept." + (use ? " " + T(use) : ""); }],
+[/^Het staat bij (.+); daar verdwijnt het\.$/, function (m, x) { var a = x.split(" en ").map(function (y) { return y.replace(/^(\d+) klant(?:en)?$/, function (z, n) { return n + (n === "1" ? " client" : " clients"); }).replace(/^(\d+) geplande sessies?$/, function (z, n) { return n + (n === "1" ? " planned session" : " planned sessions"); }); }); return "It's on " + a.join(" and ") + "; it's removed there."; }],
     [/^(.+) is verwijderd$/, "$1 has been deleted"],
     [/^Notitie van (\S+) · alleen voor trainers$/, "Note from $1 · trainers only"],
     [/^(\S+) · alleen voor trainers$/, "$1 · trainers only"],
@@ -537,6 +544,14 @@ window.FIVVI_I18N = (function () {
     "10 groepscredits": "10 group credits", "1 jaar geldig": "Valid for 1 year", "Elke les": "Every class", "Maandelijks opzegbaar": "Cancel any month", "Onbeperkt yoga": "Unlimited yoga",
     "Twee studio's: Home": "Two studios: Home", "Twee studio's: studio wisselen": "Two studios: switch studio", "Twee studio's: boeken bij Yoga Loft": "Two studios: book at Yoga Loft", "Twee studio's: tegoed": "Two studios: balance",
     "Welkom en inloggen": "Welcome and sign in", "Link geopend: meedoen": "Link opened: join", "Geen credits: aanbod op het web": "No credits: offers on the web", "Nieuwe klant zonder tegoed": "New client without a balance",
+    /* assigning workouts (F042, owner 11 Nov 2026): a client's own templates, and a template per planned private or duo session */
+    "Schema toevoegen": "Add template", "Schema toegevoegd": "Template added", "Schema weggehaald": "Template removed", "Schema ingesteld": "Template set", "Op de lijst": "On the list",
+    "Het schema zelf blijft bestaan.": "The template itself stays.", "Geen schema": "No template", "Schema kiezen": "Choose a template",
+    "Een nieuw schema maak je onder Profiel › Schema's.": "You make a new template under Profile › Templates.", "Een nieuw schema maak je onder Trainingen › Schema's.": "You make a new template under Workouts › Templates.",
+    "De training loopt of is klaar, dus het schema staat vast.": "The workout is running or done, so the template is fixed.", "Met een schema opent Training starten meteen.": "With a template, Start workout opens it right away.",
+    "Klantprofiel: schema's": "Client profile: templates", "Klantprofiel: nog geen schema's": "Client profile: no templates yet", "Schema toevoegen aan klant": "Add a template to a client", "Schema weghalen bij klant": "Remove a template from a client",
+    "Sessie: schema kiezen": "Session: choose a template", "Sessie: nog geen schema": "Session: no template yet", "Sessie: schema vast (training loopt)": "Session: template fixed (workout running)",
+    "Duosessie: schema per klant": "Duo session: a template per client", "Duosessie: schema kiezen": "Duo session: choose a template", "Schema verwijderen: in gebruik": "Delete template: in use", "Agenda: schema bij een sessie": "Calendar: a template on a session",
     /* dates */
     "maandag": "Monday", "dinsdag": "Tuesday", "woensdag": "Wednesday", "donderdag": "Thursday", "vrijdag": "Friday", "zaterdag": "Saturday", "zondag": "Sunday",
     "januari": "January", "februari": "February", "maart": "March", "april": "April", "mei": "May", "juni": "June", "juli": "July", "augustus": "August", "september": "September", "oktober": "October", "november": "November", "december": "December",

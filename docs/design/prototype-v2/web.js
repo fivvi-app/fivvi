@@ -329,6 +329,11 @@
     } else if (w.tab === "sessions") {
       h += card("", sess.length ? table(["Datum", "Tijd", "Locatie", "Trainer", "Aanwezigheid"], sess.map(function (x) { return [F.shortDate(F.parse(x[0])), '<span class="w-tnum">' + x[1].s + "–" + x[1].e + "</span>", esc(shortLoc(x[1].loc)), esc(who(x[1]) === ME() ? "Jij" : who(x[1])), x[1].att === "yes" ? badge("Aanwezig", "var(--ok)") : x[1].att === "no" ? badge("Niet verschenen", "var(--danger)") : badge(F.isPast(x[1], x[0]) ? "Nog invullen" : "Gepland", "", "secondary")]; })) : '<p class="w-muted">Geen privésessies in deze periode.</p>');
     } else if (w.tab === "workouts") {
+      /* F042: the trainer's own list of templates for this client; the client sees nothing of it */
+      var tl = F.tplList(c.id), cfn = c.name.split(" ")[0];
+      h += card("Schema's van " + esc(cfn), tl.length ? '<ul class="w-list plain">' + tl.map(function (t) {
+        return "<li><div><b translate=\"no\">" + esc(t) + "</b><p class=\"w-muted\">" + F.tplCount(D.tpl[t].length) + '</p></div><div><button class="w-btn ghost sm" data-a="w-tpl-drop" data-id="' + c.id + '" data-t="' + esc(t) + '" aria-label="' + esc(t) + " weghalen bij " + esc(cfn) + '">Weghalen</button></div></li>';
+      }).join("") + "</ul>" : "<p class=\"w-muted\">Nog geen schema's voor " + esc(cfn) + ".</p>", { desc: "Alleen jij en je collega-trainers zien dit. " + esc(cfn) + " ziet niets van deze lijst.", act: btn("Schema toevoegen", "w-tpl-add", { k: "outline sm", i: "plus", d: { id: c.id } }) });
       h += card("", hist.length ? '<ul class="w-list plain">' + hist.map(function (x) { return "<li><div><b>" + esc(x.name) + "</b><p>" + esc(x.d) + " · " + x.n + " oefeningen · " + esc(x.by) + "</p>" + (x.sets ? '<p class="w-muted">' + x.sets.map(function (st) { return esc(st[0]) + " " + esc(st[1]) + " " + dtag(st[2]); }).join(" · ") + "</p>" : "") + (x.note ? '<p class="w-note" translate="no">' + ic("note") + "<span>" + esc(x.note) + "</span></p>" : "") + "</div>" + btn("Delen", "w-toast", { k: "outline sm", d: { m: "Gedeeld met " + c.name.split(" ")[0] } }) + "</li>"; }).join("") + "</ul>" : '<p class="w-muted">Nog geen trainingen.</p>');
     } else if (w.tab === "bookings") {
       h += card("", book.length ? table(["Datum", "Tijd", "Les", "Status"], book.map(function (x) { return [F.shortDate(F.parse(x[0])), '<span class="w-tnum">' + x[1].s + "</span>", esc(itemTitle(x[1])), badge(F.isPast(x[1], x[0]) ? "Geweest" : "Geboekt", "", "secondary")]; })) : '<p class="w-muted">Nog geen boekingen van groepslessen of Open Gym.</p>');
@@ -579,10 +584,22 @@
     if (F.OWNER()) items.push("-", ["w-new-offer", "Aanbod", "repeat"]);
     return '<div class="w-scrim clear" data-a="w-close"></div><div class="w-menu" role="menu">' + items.map(function (x) { return x === "-" ? '<hr role="separator">' : '<button role="menuitem" data-a="' + x[0] + '">' + ic(x[2]) + x[1] + "</button>"; }).join("") + "</div>";
   }
+  /* F042: the template of a planned private session, one row per client in a duo; read-only once the workout runs or is done */
+  function sessTplRows(it) {
+    var lock = F.sessLocked(it);
+    return (it.duo ? [it.client, it.duo] : [it.client]).map(function (x) {
+      var t = F.sessTpl(it, x), fn = F.CLIENT[x].name.split(" ")[0], lbl = it.duo ? "Schema voor " + fn : "Schema";
+      return "<dt>" + esc(lbl) + "</dt><dd>" + (t ? '<span translate="no">' + esc(t) + "</span>" : '<span class="w-muted">' + (lock ? "Geen schema" : "Nog geen schema") + "</span>") +
+        (lock ? "" : ' <button class="w-btn ghost sm" data-a="w-sess-tpl" data-id="' + it.id + '" data-c="' + x + '" aria-label="Schema ' + (t ? "wijzigen" : "kiezen") + " voor " + esc(fn) + '">' + (t ? "Wijzigen" : "Kiezen") + "</button>") + "</dd>";
+    }).join("");
+  }
+  function pickRow(a, d, t, on, off) {
+    return "<li><button data-a=\"" + a + "\"" + dat(d) + (off ? " disabled" : "") + "><span translate=\"no\">" + esc(t) + '</span><span class="w-muted">' + F.tplCount(D.tpl[t].length) + "</span>" + (off ? '<span class="w-muted">Op de lijst</span>' : "") + (on ? ic("check") : "") + "</button></li>";
+  }
   function sheet() {
     var f = F.findItem(W().sheet), it = f.it, k = f.day, h = "";
     h += '<div class="w-sheet-h"><div>' + badge(it.duo ? "Duosessie" : F.TYPE[it.type], F.CV[it.type]) + F.lvlTag(it) + "<h3>" + esc(itemTitle(it)) + "</h3><p>" + F.longDate(F.parse(k)) + " · " + it.s + "–" + it.e + "</p></div>" + '<button class="w-icon" data-a="w-close" aria-label="Sluiten">' + ic("x") + "</button></div>";
-    h += '<dl class="w-dl">' + "<dt>Locatie</dt><dd>" + esc(it.loc) + "</dd>" + (it.type !== "gym" ? "<dt>Trainer</dt><dd>" + esc(who(it) === ME() ? "Jij" : who(it)) + "</dd>" : "") + (it.cap ? "<dt>Geboekt</dt><dd>" + it.people.length + "/" + it.cap + (it.waitlist ? " · " + it.waitlist + " op de wachtlijst" : "") + "</dd>" : "") + (it.duo ? "<dt>Klanten</dt><dd>" + [it.client, it.duo].map(function (x) { return esc(F.CLIENT[x].name); }).join(", ") + "</dd>" : "") + (it.type === "priv" ? "<dt>Aanwezigheid</dt><dd>" + (it.att === "yes" ? "Aanwezig" : it.att === "no" ? "Niet verschenen" : "Nog niet ingevuld") + "</dd>" : "") + "</dl>";
+    h += '<dl class="w-dl">' + "<dt>Locatie</dt><dd>" + esc(it.loc) + "</dd>" + (it.type !== "gym" ? "<dt>Trainer</dt><dd>" + esc(who(it) === ME() ? "Jij" : who(it)) + "</dd>" : "") + (it.cap ? "<dt>Geboekt</dt><dd>" + it.people.length + "/" + it.cap + (it.waitlist ? " · " + it.waitlist + " op de wachtlijst" : "") + "</dd>" : "") + (it.duo ? "<dt>Klanten</dt><dd>" + [it.client, it.duo].map(function (x) { return esc(F.CLIENT[x].name); }).join(", ") + "</dd>" : "") + (it.type === "priv" ? "<dt>Aanwezigheid</dt><dd>" + (it.att === "yes" ? "Aanwezig" : it.att === "no" ? "Niet verschenen" : "Nog niet ingevuld") + "</dd>" + sessTplRows(it) : "") + "</dl>";
     var ds = it.type === "group" ? desc(it.title) : null;
     if (ds) h += '<p class="w-desc" translate="no"' + (ds.nl ? ' lang="nl"' : "") + ">" + esc(ds.t) + "</p>";
     if (it.type === "priv") (it.duo ? [it.client, it.duo] : [it.client]).forEach(function (x) { h += '<div class="w-sheet-sec"><h4>Vorige keer' + (it.duo ? " · " + esc(F.CLIENT[x].name.split(" ")[0]) : "") + "</h4>" + lastCard(x, true) + "</div>"; });
@@ -632,7 +649,19 @@
         return '<div class="w-rowe' + (del ? " del" : "") + '"><select class="w-input" data-wrow="' + i + ',0"' + (del ? " disabled" : "") + ">" + D.library.map(function (e) { return '<option value="' + esc(e.n) + '"' + (e.n === r[0] ? " selected" : "") + ">" + esc(e.n) + "</option>"; }).join("") + '</select><input class="w-input sm" data-wrow="' + i + ',1" value="' + esc(r[1]) + '" aria-label="Sets"' + (del ? " disabled" : "") + '><span class="w-muted">×</span><input class="w-input sm" data-wrow="' + i + ',2" value="' + esc(r[2]) + '" aria-label="Doel"' + (del ? " disabled" : "") + ">" +
           (del ? btn("Herstellen", "w-row-del", { k: "ghost sm", d: { i: i } }) : '<button class="w-icon" data-a="w-row-del" data-i="' + i + '" aria-label="' + esc(r[0]) + ' verwijderen">' + ic("x") + "</button>") + "</div>";
       }).join("") + "</div>" + btn("Oefening toevoegen", "w-row-add", { k: "outline sm", i: "plus" }) + "</div>" + '<p class="w-muted">Doorgestreepte oefeningen gaan er pas uit als je opslaat. Trainingen die al met dit schema zijn gelogd, veranderen niet.</p>'; ok = "Opslaan"; }
-    else if (d.n === "tpldel") { t = "Schema verwijderen?"; b = "<p>" + esc(d.t) + " kun je daarna niet meer kiezen bij een training. Trainingen die al met dit schema zijn gelogd, blijven bewaard.</p>"; ok = "Verwijderen"; kind = "dng"; cancel = "Terug"; }
+    else if (d.n === "tpldel") { t = "Schema verwijderen?"; b = "<p>" + esc(d.t) + " kun je daarna niet meer kiezen bij een training. Trainingen die al met dit schema zijn gelogd, blijven bewaard." + (F.tplUseLine(d.t) ? " " + F.tplUseLine(d.t) : "") + "</p>"; ok = "Verwijderen"; kind = "dng"; cancel = "Terug"; }
+    else if (d.n === "tpladd") {
+      var ac = F.CLIENT[d.c], al = F.tplList(d.c), an = Object.keys(D.tpl); t = "Schema toevoegen";
+      b = "<p>Kies een schema voor " + esc(ac.name.split(" ")[0]) + ".</p>" + (an.length ? '<ul class="w-list">' + an.map(function (n) { return pickRow("w-tpl-add-do", { t: n }, n, false, al.indexOf(n) >= 0); }).join("") + "</ul>" : '<p class="w-muted">Nog geen schema\'s.</p>') + '<p class="w-muted" style="margin-top:10px">Een nieuw schema maak je onder Trainingen › Schema\'s.</p>'; ok = "";
+    }
+    else if (d.n === "tpldrop") { t = d.t + " weghalen bij " + F.CLIENT[d.c].name.split(" ")[0] + "?"; b = "<p>Het schema zelf blijft bestaan.</p>"; ok = "Weghalen"; kind = "dng"; cancel = "Terug"; }
+    else if (d.n === "sesstpl") {
+      var si = F.findItem(d.id).it, sc = F.sessTpl(si, d.c), sf = F.CLIENT[d.c].name.split(" ")[0], sm = F.tplList(d.c), so = F.tplOthers(d.c);
+      t = si.duo ? "Schema voor " + sf : "Schema kiezen";
+      b = "<h4>Schema's van " + esc(sf) + "</h4>" + (sm.length ? '<ul class="w-list">' + sm.map(function (n) { return pickRow("w-sess-tpl-set", { t: n }, n, sc === n); }).join("") + "</ul>" : '<p class="w-muted">Nog geen schema\'s voor ' + esc(sf) + ".</p>") +
+        (so.length ? "<h4>Andere schema's</h4>" + '<ul class="w-list">' + so.map(function (n) { return pickRow("w-sess-tpl-set", { t: n }, n, sc === n); }).join("") + "</ul>" : "") +
+        '<ul class="w-list" style="margin-top:12px"><li><button data-a="w-sess-tpl-set" data-t=""><span>Geen schema</span>' + (sc ? "" : ic("check")) + "</button></li></ul>"; ok = "";
+    }
     else if (d.n === "trole") {
       var sole = role(d.t) === "owner" && owners().length === 1; t = "Rol van " + d.t; ok = "Opslaan";
       b = fld("Rol", selF("role", [["trainer", "Trainer: eigen sessies, lessen en klanten"], ["owner", "Eigenaar: alles, ook betalingen, aanbod en instellingen"]])) +
@@ -653,7 +682,7 @@
     else if (d.n === "newclient") { t = "Klant toevoegen"; b = fld("Naam", inp("name", "text", "Voor- en achternaam")) + fld("E-mail", inp("email", "email", "naam@voorbeeld.nl")) + fld("Taal voor e-mails", selF("lang", ["Nederlands", "English"])) + (payOpen() ? '<p class="w-muted">De klant krijgt een e-mail met een uitnodiging om in te loggen.</p>' : '<p class="w-muted">De klant krijgt een uitnodiging zodra de studio klaar is.</p>'); ok = "Toevoegen"; }
     else if (d.n === "newclass") { t = "Nieuwe les"; b = sect("Naam en omschrijving", fld("Naam (Nederlands)", inp("name", "text", "Bijvoorbeeld Reformer")) + fld("Naam (Engels, optioneel)", inp("nameEn")) + fld("Omschrijving (Nederlands, optioneel)", '<textarea class="w-input" data-wf="desc" rows="2"></textarea>') + fld("Omschrijving (Engels, optioneel)", '<textarea class="w-input" data-wf="descEn" rows="2"></textarea>')) + sect("De les", '<div class="w-inline2">' + fld("Trainer", selF("trainer", D.trainers.sf.concat(["Trainer nodig"]))) + fld("Niveau", selF("level", [["", "Geen"]].concat(D.LEVELS.map(function (l) { return [l, l]; })))) + fld("Plekken", inp("cap", "number")) + "</div>") + sect("Wanneer", '<div class="w-inline2">' + fld("Dag", selF("day", ["maandag", "dinsdag", "woensdag", "donderdag", "vrijdag", "zaterdag", "zondag"])) + fld("Begin", inp("start", "time")) + "</div>" + fld("Herhalen", selF("rep", ["Elke week", "Niet herhalen"]))); ok = "Les maken"; }
     else if (d.n === "newgym") { t = "Nieuw Open Gym-blok"; b = '<div class="w-inline2">' + fld("Datum", inp("date", "date")) + fld("Begin", inp("start", "time")) + fld("Eind", inp("end", "time")) + "</div>" + fld("Plekken", inp("cap", "number")); ok = "Publiceren"; }
-    return '<div class="w-scrim dark" data-a="w-dclose"></div><div class="w-dialog" role="dialog" aria-label="' + esc(t) + '"><h3>' + t + "</h3>" + b + '<div class="w-dialog-f">' + btn(cancel, "w-dclose", { k: "outline" }) + (ok ? btn(ok, "w-dok", { k: kind }) : "") + "</div></div>";
+    return '<div class="w-scrim dark" data-a="w-dclose"></div><div class="w-dialog" role="dialog" aria-label="' + esc(t) + '"><h3>' + esc(t) + "</h3>" + b + '<div class="w-dialog-f">' + btn(cancel, "w-dclose", { k: "outline" }) + (ok ? btn(ok, "w-dok", { k: kind }) : "") + "</div></div>";
   }
 
   /* ---------- actions ---------- */
@@ -682,6 +711,12 @@
   A["w-ex-edit"] = function (d) { var e = D.library[+d.i]; openDlg("exform", { name: e.n, ty: e.ty, mu: e.mu || "" }, { i: +d.i }); };
   A["w-tpl-new"] = function () { W().rows = [["Squat", 3, "10", ""]]; openDlg("tplform", { name: "" }); };
   A["w-tpl-edit"] = function (d) { W().rows = D.tpl[d.t].map(function (r) { return [r[0], r[1], r[2], ""]; }); openDlg("tplform", { name: d.t }, { t: d.t }); };
+  /* F042: assigning workouts */
+  A["w-tpl-add"] = function (d) { openDlg("tpladd", {}, { c: d.id }); };
+  A["w-tpl-add-do"] = function (d) { var w = W(); F.tplAdd(w.dialog.c, d.t); w.dialog = null; F.toast("Schema toegevoegd"); };
+  A["w-tpl-drop"] = function (d) { openDlg("tpldrop", {}, { c: d.id, t: d.t }); };
+  A["w-sess-tpl"] = function (d) { openDlg("sesstpl", {}, { id: d.id, c: d.c }); };
+  A["w-sess-tpl-set"] = function (d) { var w = W(); F.setSessTpl(F.findItem(w.dialog.id).it, w.dialog.c, d.t); w.dialog = null; F.toast(d.t ? "Schema ingesteld" : "Schema weggehaald"); };
   A["w-row-add"] = function () { W().rows.push([D.library[0].n, 3, "10", ""]); R(); };
   A["w-row-del"] = function (d) { var r = W().rows[+d.i]; r[3] = r[3] === "del" ? "" : "del"; R(); };
   A["w-requests"] = function () { var w = W(); w.page = "clients"; w.ctab = "req"; R(); };
@@ -787,10 +822,11 @@
       if (nm !== d.t && D.tpl[nm]) { bad("name", "Er is al een schema met deze naam"); return; }
       var rows = w.rows.filter(function (r) { return r[3] !== "del"; }).map(function (r) { return [r[0], +r[1] || 1, r[2]]; });
       if (!rows.length) { F.toast("Een schema heeft minstens één oefening", "err"); return; }
-      if (d.t && d.t !== nm) delete D.tpl[d.t];
+      if (d.t && d.t !== nm) { F.tplRename(d.t, nm); delete D.tpl[d.t]; }
       D.tpl[nm] = rows; msg = d.t ? "Schema opgeslagen" : "Schema gemaakt";
     }
-    else if (d.n === "tpldel") { delete D.tpl[d.t]; msg = "Schema verwijderd"; }
+    else if (d.n === "tpldel") { F.tplPurge(d.t); delete D.tpl[d.t]; msg = "Schema verwijderd"; }
+    else if (d.n === "tpldrop") { F.tplDrop(d.c, d.t); msg = "Schema weggehaald"; }
     else if (d.n === "renew") { w.linkCode = ["9XP4", "3MV8", "6TR1"][Math.floor(Math.random() * 3)]; msg = "Nieuwe link gemaakt. De oude werkt niet meer."; }
     else if (d.n === "decline") { D.requests = D.requests.filter(function (x) { return x.id !== d.id; }); msg = "Verzoek afgewezen"; }
     else if (d.n === "invite") { if (!/.+@.+\..+/.test(f.email || "")) { bad("email", "Vul een geldig e-mailadres in"); return; } D.invited.push({ email: f.email.trim(), name: (f.name || "").trim(), lang: f.lang }); msg = "Uitnodiging verstuurd naar " + ((f.name || "").trim() || f.email); }
@@ -1468,6 +1504,14 @@
     ["Lessen", "TW-03", goWeb("classes")],
     ["Les op datum", "CO-01", function () { F.fresh(); F.PREF.plat = "web"; var w = W(); w.page = "klass"; var t = F.dayItems(F.TODAY).filter(function (i) { return i.type === "group"; })[0]; w.kid = t ? t.id : null; }],
     ["Trainingen", "TW-05", goWeb("workouts")],
+    ["Klantprofiel: schema's", "F042", goWeb("client", { cid: "anna", tab: "workouts" })],
+    ["Klantprofiel: nog geen schema's", "F042", goWeb("client", { cid: "daan", tab: "workouts" })],
+    ["Schema toevoegen aan klant", "F042", goWeb("client", { cid: "anna", tab: "workouts", dialog: { n: "tpladd", c: "anna" }, form: {} })],
+    ["Schema weghalen bij klant", "F042", goWeb("client", { cid: "anna", tab: "workouts", dialog: { n: "tpldrop", c: "anna", t: "Upper A" }, form: {} })],
+    ["Agenda: schema bij een sessie", "F042", goWeb("agenda", { view: "week", sheet: "s3" }), true],
+    ["Sessie: schema kiezen", "F042", goWeb("agenda", { view: "week", sheet: "s3", dialog: { n: "sesstpl", id: "s3", c: "anna" }, form: {} }), true],
+    ["Duosessie: schema per klant", "F042", (function () { var g = goWeb("agenda", { view: "week", sheet: "s6" }); return function () { g(); F.setSessTpl(F.findItem("s6").it, "lisa", "Upper B"); }; })(), true],
+    ["Schema verwijderen: in gebruik", "F042", goWeb("workouts", { wtab: "tpl", dialog: { n: "tpldel", t: "Upper A" }, form: {} })],
     ["Trainers", "TW-06", goWeb("trainers")],
     ["Aanmeldlink en QR", "TW-07", goWeb("link")],
     ["Aanbod", "F052", goWeb("offers")],

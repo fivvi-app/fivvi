@@ -87,6 +87,7 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md), amended by [ADR-031
   - what was hard;
   - the trainer's note, trainer-only.
 - **Voortgang:** a sparkline per top lift with the change over 8 weeks, and dots for the weeks trained.
+- **Schema's van <klant>** (F042): the templates on the client's list, above *Trainingen*, with *Schema toevoegen* (templates already on the list show *Op de lijst*) and *Weghalen*, which asks first ("Upper A weghalen bij Anna?", the template itself stays). Empty: a line that there are no templates yet. Footer: "Alleen jij en je collega-trainers zien dit. Anna ziet niets van deze lijst."
 - **The rest:** *Gegevens*, *Notities* (trainer-only), history.
 
 ### Sessie (TD-02)
@@ -96,8 +97,9 @@ Recorded in [ADR-029](../../decisions/ADR-029-design-v2.md), amended by [ADR-031
   - an open payment, owner only.
 - **Location** with *Route*, the workspace and the trainer.
 - **The Training card**, then *Vorige keer*, *Voortgang* and *Notities*.
+- **Schema** (F042), a row on the Training card of a private or duo session: the picker shows *Schema's van <klant>*, then *Andere schema's*, then *Geen schema*; picking applies at once, without a confirmation. With a template, *Training starten* opens the logger with its rows (footer "Met een schema opent Training starten meteen."). Once the workout runs or is done, the row is fixed and shows the template used ("De training loopt of is klaar, dus het schema staat vast.").
 - **Attendance** as a segmented control.
-- **Duo session:** a switch between the two clients ([§6](#6-product-decisions)).
+- **Duo session:** a switch between the two clients ([§6](#6-product-decisions)); a *Schema* row per client, and each client's workout starts from their own template.
 
 ### Les (TD-03)
 
@@ -133,6 +135,7 @@ Trainers manage workout templates on the phone too, not only on the web (owner, 
 - **A template:** its rows (*Bankdrukken 3 × 8*), *Wijzigen*, and *Schema verwijderen* with the web's confirmation.
 - **Nieuw schema / Schema wijzigen:** a name, then per exercise *Sets* and *Doel* (the target in the exercise type's unit, no weight); up and down buttons to reorder, a remove button (nothing is saved until *Opslaan*, so no confirmation), and *Oefening toevoegen* with the exercise picker, without *Recent* and *Nieuwe oefening*. A new template starts empty. The same exercise may be added twice; it shows *In schema*.
 - **Footers:** "Alle trainers in je werkruimte kunnen schema's maken, wijzigen en verwijderen." and "Een wijziging verandert geen trainingen die al zijn gelogd."
+- **Deleting a template in use** (F042): the confirmation adds where it is assigned ("Het staat bij 2 klanten en 1 geplande sessie; daar verdwijnt het."). A rename shows everywhere the template is assigned.
 
 ### + Nieuw (TD-05) and forms
 
@@ -159,6 +162,7 @@ Trainers manage workout templates on the phone too, not only on the web (owner, 
 
 - **Views:** week, day per trainer (one column per trainer) and list.
 - **The side sheet** shows *Vorige keer*, per client in a duo.
+- **Schema** (F042): the session panel has the same *Schema* row as Fivvi Pro (§3, *Sessie*), with the picker as a dialog.
 
 ### Klanten and Klantprofiel
 
@@ -172,7 +176,8 @@ Trainers manage workout templates on the phone too, not only on the web (owner, 
     - the renewal line;
     - payments and invoices;
     - refunds, which create a creditfactuur;
-  - sessions, workouts, bookings, notes, history.
+  - sessions, workouts, bookings, notes, history;
+  - *Trainingen* starts with the *Schema's van <klant>* card, as in Fivvi Pro (§3, *Klanten and Klantprofiel*).
 - **A back link** returns to where you came from.
 
 ### Lessen
@@ -429,6 +434,7 @@ The prototype had to choose something for these. **The owner confirmed every ite
 19. **Correcting a payment outside Fivvi** (#606): *Corrigeren* on a payment row, with the right offer, method and date and a required reason. The old line stays as *Gecorrigeerd* and points to the new one, and if the offer was wrong, the wrong agreement ends and the right one starts. Prototype entry: *Betaling buiten Fivvi corrigeren*. The owner clicked through it and accepted it (6 November 2026).
 20. **Where a session or class takes place** (owner, 7 November 2026): after a PT training in a park came up, the owner looked at letting any session or class say where, and chose to go live with one place per workspace, as decided on 20 October 2026 (`ROADMAP.md` decision 12), and improve it after go-live.
 21. **Workout templates** (F041, owner, 11 November 2026): a template row is an exercise with sets × target, no weight; any Owner or Trainer in the workspace creates, changes and deletes any template; a name is unique in the workspace, regardless of capitals; *Opslaan als schema* when a workout finishes belongs to F043, not F041; templates are managed on the web and in Fivvi Pro (§3, *Schema's*).
+22. **Assigning workout templates** (F042, owner, 11 November 2026): a trainer assigns templates in two places, the client's list and per private or duo session, where a template makes *Training starten* open it at once; only Owners and Trainers see and change assignments, the client sees nothing of them; deleting a template removes it from client lists and from sessions whose workout hasn't started. Prototype entries: the *F042* entries in the panel. The owner clicked through it and accepted it (11 November 2026).
 
 ## 8. What this changes in existing documents
 
