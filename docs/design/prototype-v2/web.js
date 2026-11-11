@@ -95,7 +95,7 @@
   function nl(x) { return String(x).replace(".", ","); }
   function dtag(d) { return d ? '<span class="w-diff" role="img" aria-label="' + D.DIFF[d][1] + '" title="' + D.DIFF[d][1] + '">' + D.DIFF[d][0] + "</span>" : ""; }
   function lastCard(cid, compact) {
-    var h = (D.history[cid] || [])[0];
+    var h = F.prevHist(cid);
     if (!h || !h.sets) return compact ? '<p class="w-muted">Nog geen eerdere training.</p>' : card("Laatste training", '<p class="w-muted">Nog geen eerdere training.</p>');
     var hard = h.sets.filter(function (x) { return x[2] === "h"; }).map(function (x) { return x[0]; });
     var body = '<p class="w-muted">' + esc(h.d) + " · " + esc(h.name) + (h.dur ? " · " + h.dur : "") + " · " + esc(h.by) + "</p>" +
@@ -133,7 +133,7 @@
       ["settings", "Instellingen", "pencil", own]
     ];
   };
-  var TITLES = { paymail: "E-mail", myday: "Mijn dag", mycal: "Mijn agenda", dashboard: "Dashboard", agenda: "Agenda", clients: "Klanten", client: "Klantprofiel", classes: "Lessen", klass: "Les", gym: "Open Gym", offers: "Aanbod", workouts: "Trainingen", trainers: "Trainers", link: "Aanmeldlink", settings: "Instellingen" };
+  var TITLES = { paymail: "E-mail", myday: "Mijn dag", mycal: "Mijn agenda", dashboard: "Dashboard", agenda: "Agenda", clients: "Klanten", client: "Klantprofiel", workout: "Training", classes: "Lessen", klass: "Les", gym: "Open Gym", offers: "Aanbod", workouts: "Trainingen", trainers: "Trainers", link: "Aanmeldlink", settings: "Instellingen" };
 
   var OWNERPAGES = ["dashboard", "classes", "gym", "trainers", "settings", "offers", "payments", "payout", "invoice", "agreement", "import", "posters", "offerstates", "classempty", "classseries"];
   function web() {
@@ -144,11 +144,12 @@
     var nav = NAV().map(function (n) {
       if (n[0] === "h") return '<div class="w-navh">' + esc(n[1]) + "</div>";
       if (!n[3]) return "";
-      var on = w.page === n[0] || (n[0] === "clients" && w.page === "client") || (n[0] === "classes" && w.page === "klass");
+      var on = w.page === n[0] || (n[0] === "clients" && (w.page === "client" || w.page === "workout")) || (n[0] === "classes" && w.page === "klass");
       return '<button class="w-nav' + (on ? " on" : "") + '" data-a="w-page" data-v="' + n[0] + '">' + ic(n[2]) + "<span>" + n[1] + "</span>" + (n[4] ? '<b class="w-count">' + n[4] + "</b>" : "") + "</button>";
     }).join("");
     var page = (PAGES[w.page] || PAGES.dashboard)();
     if (w.page === "client" || w.page === "klass") { var to = w.back ? w.back.page : w.page === "client" ? "clients" : "classes"; page = '<button class="w-back" data-a="w-back">' + ic("chevL") + "<span>" + esc(TITLES[to] || "Terug") + "</span></button>" + page; }
+    if (w.page === "workout") page = '<button class="w-back" data-a="w-workout-back">' + ic("chevL") + "<span>" + esc(TITLES.client) + "</span></button>" + page;
     var h = '<div class="w-chrome"><i></i><i></i><i></i><span class="w-url">fivvi.app/w/' + slug() + "/" + w.page + "</span></div>";
     h += '<div class="w-app"><aside class="w-side"><button class="w-wsb" data-a="w-toast" data-m="Wissel van werkruimte">' + '<span class="w-logo">' + F.initials(wsName()) + '</span><span class="w-wsn"><b>' + esc(wsName()) + "</b><span>" + (F.OWNER() ? "Eigenaar" : "Trainer") + "</span></span>" + ic("chevR") + "</button>" + nav +
       '<div class="w-sidef"><button class="w-nav" data-a="w-toast" data-m="Opent het feedbackformulier">' + ic("chat") + "<span>Feedback geven</span></button>" +
@@ -334,7 +335,8 @@
       h += card("Schema's van " + esc(cfn), tl.length ? '<ul class="w-list plain">' + tl.map(function (t) {
         return "<li><div><b translate=\"no\">" + esc(t) + "</b><p class=\"w-muted\">" + F.tplCount(D.tpl[t].length) + '</p></div><div><button class="w-btn ghost sm" data-a="w-tpl-drop" data-id="' + c.id + '" data-t="' + esc(t) + '" aria-label="' + esc(t) + " weghalen bij " + esc(cfn) + '">Weghalen</button></div></li>';
       }).join("") + "</ul>" : "<p class=\"w-muted\">Nog geen schema's voor " + esc(cfn) + ".</p>", { desc: "Alleen jij en je collega-trainers zien dit. " + esc(cfn) + " ziet niets van deze lijst.", act: btn("Schema toevoegen", "w-tpl-add", { k: "outline sm", i: "plus", d: { id: c.id } }) });
-      h += card("", hist.length ? '<ul class="w-list plain">' + hist.map(function (x) { return "<li><div><b>" + esc(x.name) + "</b><p>" + esc(x.d) + " · " + x.n + " oefeningen · " + esc(x.by) + "</p>" + (x.sets ? '<p class="w-muted">' + x.sets.map(function (st) { return esc(st[0]) + " " + esc(st[1]) + " " + dtag(st[2]); }).join(" · ") + "</p>" : "") + (x.note ? '<p class="w-note" translate="no">' + ic("note") + "<span>" + esc(x.note) + "</span></p>" : "") + "</div>" + btn("Delen", "w-toast", { k: "outline sm", d: { m: "Gedeeld met " + c.name.split(" ")[0] } }) + "</li>"; }).join("") + "</ul>" : '<p class="w-muted">Nog geen trainingen.</p>');
+      /* F045: every logged workout opens on its own page; it shows whether the client sees it */
+      h += card("", hist.length ? '<ul class="w-list plain">' + hist.map(function (x, hi) { return "<li><div>" + '<button class="w-link" data-a="w-workout" data-id="' + c.id + '" data-i="' + hi + '"><b>' + esc(x.name) + "</b></button>" + "<p>" + esc(x.d) + " · " + x.n + " oefeningen · " + esc(x.by) + "</p>" + (x.sets ? '<p class="w-muted">' + x.sets.map(function (st) { return esc(st[0]) + " " + esc(st[1]) + " " + dtag(st[2]); }).join(" · ") + "</p>" : "") + (x.note ? '<p class="w-note" translate="no">' + ic("note") + "<span>" + esc(x.note) + "</span></p>" : "") + '</div><div class="w-hgroup">' + (x.shared ? badge("Gedeeld · " + esc(x.shared), "var(--ok)") : badge("Niet gedeeld", "", "secondary")) + btn("Openen", "w-workout", { k: "outline sm", d: { id: c.id, i: hi } }) + "</div></li>"; }).join("") + "</ul>" : '<p class="w-muted">Nog geen trainingen.</p>');
     } else if (w.tab === "bookings") {
       h += card("", book.length ? table(["Datum", "Tijd", "Les", "Status"], book.map(function (x) { return [F.shortDate(F.parse(x[0])), '<span class="w-tnum">' + x[1].s + "</span>", esc(itemTitle(x[1])), badge(F.isPast(x[1], x[0]) ? "Geweest" : "Geboekt", "", "secondary")]; })) : '<p class="w-muted">Nog geen boekingen van groepslessen of Open Gym.</p>');
     } else if (w.tab === "notes") {
@@ -1043,7 +1045,7 @@
       h += tegoedParts();
       h += '<div class="pad" style="margin-top:12px">' + K.grp([["Mijn abonnementen (CP-04)", "Mijn abonnementen en tegoed"], ["Betalingen en facturen (CP-05)", "Betalingen en facturen"], ["Opzeggen (CP-06)", "Opzeggen"], ["Factuurgegevens klant", "Factuurgegevens"]].map(function (x) { return K.row({ a: "c-st", d: { v: x[0] }, title: x[1], cls: "c-row", chev: true }); })) + "</div>";
       h += K.sh("Facturen", "", "small") + '<div class="pad">' + K.grp(D.billing.anna.payments.map(function (p) { return K.row({ a: "w-toast", d: { m: "Factuur gedownload" }, cls: "c-row", title: esc(payName(p)), sub: esc(p[0]) + " · " + esc(p[3]), tr: '<b class="num c-amt">' + esc(p[2]) + "</b>" + ic("down", "c-dl") }); })) + "</div>";
-      if (!APP) h += K.sh("Mijn trainingen", "", "small") + '<div class="pad">' + K.grp((D.history.anna || []).slice(0, 3).map(function (x, i) { return K.row({ a: "c-workout", d: { v: i }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("dumb") + "</span>", title: esc(x.name), sub: esc(x.d) + " · met " + esc(x.by) }); }), "--inset:60px") + "</div>";
+      if (!APP) h += K.sh("Mijn trainingen", "", "small") + '<div class="pad">' + K.grp((D.history.anna || []).map(function (x, i) { return [x, i]; }).filter(function (p) { return p[0].shared; }).slice(0, 3).map(function (p) { var x = p[0], i = p[1]; return K.row({ a: "c-workout", d: { v: i }, lead: '<span class="dc-ic" style="--c:var(--accent)">' + ic("dumb") + "</span>", title: esc(x.name), sub: esc(x.d) + " · met " + esc(x.by) }); }), "--inset:60px") + "</div>";
     } else h += '<div class="pad"><div class="card empty">Nog geen abonnement of credits.<div style="margin-top:14px">' + K.btn("Aanbod bekijken", { k: "sec", a: "c-offers" }) + "</div></div></div>";
     if (APP) h += K.sh("Je studio's", "", "small") + '<div class="pad">' + K.grp(studios().map(function (ws) { return K.row({ lead: sMark(ws, "lg"), title: esc(sName(ws)), sub: esc(ws === "yl" ? "Oostelijke Handelskade 8" : shortLoc(D.workspaces.sf.location)) }); })
       .concat([K.row({ a: "c-wsheet", d: { v: "add" }, lead: '<span class="c-mark lg add" aria-hidden="true">' + ic("plus") + "</span>", title: "Studio toevoegen", cls: "c-row" })]), "--inset:68px") + "</div>";
@@ -1077,6 +1079,8 @@
   }
   function workoutView() {
     var c = C(), x = (D.history.anna || [])[c.workout];
+    /* the trainer stopped sharing it or deleted it while it was open (F045): it is gone from here */
+    if (!x || !x.shared) { c.workout = null; c.self = null; c.selfOn = false; return ATAB.training(); }
     var sets = x.sets || [["Squat", "60 kg × 8, 8, 8"], ["Bankdrukken", "57,5 kg × 8, 8, 6"]];
     return { title: x.name, body: K.lt("Training", esc(x.name), esc(x.d) + " · met " + esc(x.by)) +
       '<div class="pad stack"><div class="card c-msg">' + K.avatar(x.by, "var(--accent)") + '<div><b>Bericht van ' + esc(x.by) + '</b><p translate="no">Goed gewerkt vandaag! Volgende keer gaan we naar 62,5 kg.</p></div></div></div>' +
@@ -1288,7 +1292,7 @@
     var c = C(), out = [], hist = c.who === "anna" && F.HAS("priv") ? D.history.anna || [] : [];
     var pn = F.PREF.setup === "pilates" ? "Reformer privé" : null;
     function at(ws) { return multi() ? " · " + sName(ws) : ""; }
-    hist.forEach(function (x, i) { out.push({ d: x.d, title: pn || x.name, sub: "met " + x.by + at("sf"), type: "priv", w: i }); });
+    hist.forEach(function (x, i) { if (x.shared) out.push({ d: x.d, title: pn || x.name, sub: "met " + x.by + at("sf"), type: "priv", w: i }); });
     if (c.who === "anna" && F.HAS("priv")) (D.selfLog.anna || []).forEach(function (x, i) { out.push({ d: x.d, title: x.name, sub: x.n + (x.n === 1 ? " oefening" : " oefeningen") + at("sf"), type: "self", self: true, sl: i }); });
     if (c.who === "anna") studios().forEach(function (ws) {
       if (ws === "sf" && !F.HAS("group") && !F.HAS("gym")) return;
@@ -1458,6 +1462,7 @@
   /* inputs on the web surfaces; returns true when handled */
   function clearErr(t, map) { var k = t.dataset.wf || t.dataset.cin; if (map && map[k]) { delete map[k]; var l = t.closest(".invalid"); if (l) { l.classList.remove("invalid"); var e = l.querySelector(".err"); if (e) e.remove(); } } }
   function onInput(t) {
+    if (t.dataset.wset) { var q = t.dataset.wset.split(","); W().wedit.ex[+q[0]].sets[+q[1]].v[+q[2]] = t.value; return true; }
     if (t.dataset.wrow) { var p = t.dataset.wrow.split(","); W().rows[+p[0]][+p[1]] = t.value; return true; }
     if (t.dataset.wf) { W().form[t.dataset.wf] = t.value; clearErr(t, W().err); if (t.dataset.wf === "kind") W().form.tpl = ""; if (t.dataset.wf === "kind" || t.dataset.wf === "end") R(); return true; }
     if (t.dataset.win === "q") { W().q = t.value; var el = document.getElementById("w-sr"); if (el) { el.innerHTML = searchResults(); if (window.FIVVI_I18N) window.FIVVI_I18N.apply(el, F.PREF.lang); } return true; }

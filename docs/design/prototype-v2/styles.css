@@ -523,6 +523,10 @@ input:focus,select:focus,textarea:focus{outline:none}
 .set.c .tick{width:44px;height:44px}
 .set.c .tick svg{width:22px;height:22px}
 .lg-f{padding-top:6px}
+/* correcting a logged workout (F045): the same set rows without the previous values and the tick */
+.lg-ex.ed .lg-cols,.lg-ex.ed .set.c{grid-template-columns:30px minmax(0,1fr)}
+.lg-ex.ed .set.c .vals{justify-content:flex-start;gap:8px}
+.lg-ex.ed .lg-cols .vals{justify-content:flex-start;gap:8px}
 .diff button:not(.info){width:42px;height:42px;font-size:21px}
 .diff .info{width:40px;height:40px}
 .android .set.c button.sn{background:var(--m-c-high);border-radius:10px}
