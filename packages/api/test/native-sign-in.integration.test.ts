@@ -1351,7 +1351,7 @@ describe('F001N native sign-in through the API', () => {
             { ...SDK_PROPERTIES, rule: 'sign_in_address', platform },
             { ...SDK_PROPERTIES, rule: 'sign_in_ip', platform },
           ]);
-          expectNoPersonalData([], sent().replaceAll(userAgent, ''));
+          expectNoPersonalData([userAgent], sent());
           expect(sent()).not.toContain('192.0.2.10');
         },
       );

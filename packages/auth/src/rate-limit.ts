@@ -149,7 +149,7 @@ export function platformOf(request: Request | undefined, headers: Headers | unde
   return /android|okhttp/i.test(headers?.get('user-agent') ?? '') ? 'android' : 'ios';
 }
 
-/** The body a request over the IP limit answers with: `RateLimited` of the OpenAPI contract. */
+/** The body a request over the IP limit answers with: `PublicRequestRateLimited` of the OpenAPI contract. */
 export const RATE_LIMITED_BODY = { code: 'rate_limited' } as const;
 
 /**
