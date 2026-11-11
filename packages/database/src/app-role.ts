@@ -48,6 +48,10 @@ export const APP_TABLE_PRIVILEGES: Readonly<Record<string, readonly Privilege[]>
   // The deletion log (E014): platform data of the cron role. A request of the app role (the
   // Owner's purge) may only add entries for its own workspace; it reads, changes and deletes none.
   deletion_log: ['INSERT'],
+  // Refunds and reversals (F060): the refund's status lines are append-only by a trigger too.
+  payment_refunds: ALL,
+  payment_refund_status_changes: ALL,
+  payment_chargebacks: ALL,
 };
 
 /**

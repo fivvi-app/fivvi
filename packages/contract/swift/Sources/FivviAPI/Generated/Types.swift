@@ -111,14 +111,14 @@ public protocol APIProtocol: Sendable {
     func createWorkspace(_ input: Operations.CreateWorkspace.Input) async throws -> Operations.CreateWorkspace.Output
     /// A workspace
     ///
-    /// The workspace: its name, URL name, default language and time zone.
+    /// The workspace: its name, URL name, default language, time zone and the word it uses for its trainers.
     ///
     /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/get(getWorkspace)`.
     func getWorkspace(_ input: Operations.GetWorkspace.Input) async throws -> Operations.GetWorkspace.Output
-    /// Rename a workspace or set its default language
+    /// Rename a workspace, set its default language or its word for trainers
     ///
-    /// Changes the name and/or the default communication language of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`, anything else answers `400` and nothing changes.
+    /// Changes the name, the default communication language and/or the word for trainers of the workspace (the Owner only; a Trainer reads the word but gets `403` when changing it). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`; the word is `trainer`, `instructeur`, `docent` or `coach`. Anything else answers `400` (the API’s validation error) and nothing changes. The role stays Trainer whatever the word.
     ///
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/patch(renameWorkspace)`.
@@ -553,7 +553,7 @@ extension APIProtocol {
     }
     /// A workspace
     ///
-    /// The workspace: its name, URL name, default language and time zone.
+    /// The workspace: its name, URL name, default language, time zone and the word it uses for its trainers.
     ///
     /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/get(getWorkspace)`.
@@ -566,9 +566,9 @@ extension APIProtocol {
             headers: headers
         ))
     }
-    /// Rename a workspace or set its default language
+    /// Rename a workspace, set its default language or its word for trainers
     ///
-    /// Changes the name and/or the default communication language of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`, anything else answers `400` and nothing changes.
+    /// Changes the name, the default communication language and/or the word for trainers of the workspace (the Owner only; a Trainer reads the word but gets `403` when changing it). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`; the word is `trainer`, `instructeur`, `docent` or `coach`. Anything else answers `400` (the API’s validation error) and nothing changes. The role stays Trainer whatever the word.
     ///
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/patch(renameWorkspace)`.

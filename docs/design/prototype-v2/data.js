@@ -39,17 +39,27 @@ window.FIVVI_DATA = (function () {
     anna: [{ name: "Upper A", d: "di 3 nov", n: 5, from: "29 okt", by: "Sarah",
       sets: [["Bankdrukken", "62,5 kg × 8, 8, 6", "60 kg × 8, 8, 7"], ["Kabel roeien", "45 kg × 10, 10, 10", "45 kg × 10, 10, 10"], ["Dumbbell schouderdrukken", "14 kg × 10, 8", "14 kg × 10, 10"], ["Roeien", "500 m · 1:58", "500 m · 1:52"], ["Hip thrust", "40 kg × 12, 12, 10"]] }]
   };
+  /* Each logged workout: id = what screens look it up by (never its place in the list, which changes when a new one is logged); shared = the day it was shared with the client (absent = not shared); sid = the session it was logged in.
+     The trainer web, Fivvi Pro and the client app all read these, so sharing, unsharing, correcting and deleting show everywhere (F045). */
   var history = {
     anna: [
-      { name: "Upper A", d: "do 29 okt", n: 5, by: "Sarah", dur: "52 min", note: "Bankdrukken laatste set zwaar. Volgende keer zelfde gewicht, eerst 8 × 3 halen.",
+      { id: "anna-1", name: "Upper A", d: "do 29 okt", n: 5, by: "Sarah", dur: "52 min", shared: "29 okt", note: "Bankdrukken laatste set zwaar. Volgende keer zelfde gewicht, eerst 8 × 3 halen.",
         sets: [["Bankdrukken", "60 kg × 8, 8, 7", "h"], ["Kabel roeien", "45 kg × 10, 10, 10", "n"], ["Dumbbell schouderdrukken", "14 kg × 10, 10", "e"], ["Plank", "0:45 × 2, 0:40", "n"], ["Roeien", "500 m · 1:52", "n"]] },
-      { name: "Lower A", d: "do 22 okt", n: 4, by: "Sarah", dur: "48 min", note: "Deadlift goed, rug stabiel.",
+      { id: "anna-2", name: "Lower A", d: "do 22 okt", n: 4, by: "Sarah", dur: "48 min", shared: "22 okt", note: "Deadlift goed, rug stabiel.",
         sets: [["Squat", "70 kg × 8, 8, 8", "n"], ["Deadlift", "80 kg × 5, 5, 5", "h"], ["Lunges", "12 kg × 10, 10, 10", "n"], ["Plank", "0:45 × 2", "e"]] },
-      { name: "Training zonder schema", d: "do 15 okt", n: 3, by: "Sarah" },
-      { name: "Upper A", d: "do 8 okt", n: 5, by: "Mike" }
+      { id: "anna-3", name: "Training zonder schema", d: "do 15 okt", n: 3, by: "Sarah", dur: "40 min",
+        sets: [["Squat", "60 kg × 8, 8", "n"], ["Bankdrukken", "55 kg × 8, 8, 8", "n"], ["Plank", "0:40 × 3", "e"]] },
+      { id: "anna-4", name: "Upper A", d: "do 8 okt", n: 5, by: "Mike", dur: "50 min", shared: "8 okt",
+        sets: [["Bankdrukken", "57,5 kg × 8, 8, 8", "n"], ["Kabel roeien", "42,5 kg × 10, 10, 10", "n"], ["Dumbbell schouderdrukken", "12 kg × 10, 10", "n"], ["Plank", "0:40 × 2", "n"], ["Roeien", "500 m · 1:58", "n"]] }
     ],
-    mark: [{ name: "Full body", d: "ma 2 nov", n: 4, by: "Sarah", dur: "55 min", note: "Knie hield zich goed bij squat tot parallel.",
-      sets: [["Squat", "90 kg × 10, 10, 9", "h"], ["Bankdrukken", "70 kg × 10, 10, 10", "n"], ["Kabel roeien", "55 kg × 10, 10, 10", "e"], ["Plank", "0:30 × 3", "e"]] }, { name: "Full body", d: "do 29 okt", n: 4, by: "Sarah" }]
+    mark: [
+      { id: "mark-1", name: "Full body", d: "do 5 nov", n: 4, by: "Sarah", dur: "55 min", shared: "5 nov", sid: "s1", note: "Knie prima. Volgende keer 2,5 kg erbij op de squat.",
+        sets: [["Squat", "92,5 kg × 10, 10, 8", "h"], ["Bankdrukken", "72,5 kg × 10, 10, 10", "n"], ["Kabel roeien", "55 kg × 10, 10, 10", "e"], ["Plank", "0:30 × 3", "e"]] },
+      { id: "mark-2", name: "Full body", d: "ma 2 nov", n: 4, by: "Sarah", dur: "55 min", note: "Knie hield zich goed bij squat tot parallel.",
+        sets: [["Squat", "90 kg × 10, 10, 9", "h"], ["Bankdrukken", "70 kg × 10, 10, 10", "n"], ["Kabel roeien", "55 kg × 10, 10, 10", "e"], ["Plank", "0:30 × 3", "e"]] },
+      { id: "mark-3", name: "Full body", d: "do 29 okt", n: 4, by: "Sarah", shared: "29 okt",
+        sets: [["Squat", "87,5 kg × 10, 10, 10", "n"], ["Bankdrukken", "67,5 kg × 10, 10, 10", "n"], ["Kabel roeien", "52,5 kg × 10, 10, 10", "n"], ["Plank", "0:30 × 2", "e"]] }
+    ]
   };
   /* Bench press heaviest set per week for Anna, for the Health-style chart. */
   var progress = { anna: [52.5, 52.5, 55, 55, 57.5, 57.5, 60, 60] };
@@ -109,7 +119,9 @@ window.FIVVI_DATA = (function () {
     "Vinyasa Flow": "Gemiddeld", "Yin Yoga": "Alle niveaus", Hatha: "Beginner", "Power Yoga": "Gevorderd", "Workshop Ademwerk": "Alle niveaus",
     "Small group kracht": "Gemiddeld", "Small group conditie": "Alle niveaus" };
 
-  var templates = { anna: ["Upper A", "Lower A"], other: ["Full body", "Upper B", "Lower B", "Core & conditie"] };
+  /* F042: a client's own list of templates ("Schema's van Anna"), set by the trainer; the client sees nothing of it. The
+     workspace's other templates ("Andere schema's") are D.tpl minus this list, so a new template shows up there by itself. */
+  var templates = { anna: ["Upper A", "Lower A"], mark: ["Full body", "Upper A"], lisa: ["Upper B"] };
 
   /* Library: n = Dutch, en = English alias, ty = wr (weight × reps), r (reps), t (time), dt (distance + time). */
   var library = [

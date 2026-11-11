@@ -56,6 +56,11 @@ const FORBIDDEN: Record<string, string> = {
   'the payment customers table': "import { paymentCustomers } from '@fivvi/database';",
   'the payment status changes table': "import { paymentStatusChanges } from '@fivvi/database';",
   'the payment status enum': "import { paymentStatus } from '@fivvi/database';",
+  'the payment refunds table': "import { paymentRefunds } from '@fivvi/database';",
+  'the payment refund status changes table':
+    "import { paymentRefundStatusChanges } from '@fivvi/database';",
+  'the payment chargebacks table': "import { paymentChargebacks } from '@fivvi/database';",
+  'the refund status enum': "import { refundStatus } from '@fivvi/database';",
   'the session type enum': "import { sessionType } from '@fivvi/database';",
   'the session status enum': "import { sessionStatus } from '@fivvi/database';",
   'the attendance status enum': "import { attendanceStatus } from '@fivvi/database';",
@@ -300,6 +305,21 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     listStatusChanges: 'repository of the payment ledger, takes the workspace scope (E019)',
     paymentLedger:
       'the payment ledger over a function that opens a workspace scope (E019); every call goes through the scope, no connection of its own',
+    findRefund: 'repository of the refunds and reversals, takes the workspace scope (F060)',
+    findRefundFacts: 'repository of the refunds and reversals, takes the workspace scope (F060)',
+    insertRefund: 'repository of the refunds and reversals, takes the workspace scope (F060)',
+    linkProviderRefund: 'repository of the refunds and reversals, takes the workspace scope (F060)',
+    listChargebacksOfPayment:
+      'repository of the refunds and reversals, takes the workspace scope (F060)',
+    listRefundsOfPayment:
+      'repository of the refunds and reversals, takes the workspace scope (F060)',
+    listRefundStatusChanges:
+      'repository of the refunds and reversals, takes the workspace scope (F060)',
+    recordChargeback: 'repository of the refunds and reversals, takes the workspace scope (F060)',
+    recordRefundStatusChange:
+      'repository of the refunds and reversals, takes the workspace scope (F060)',
+    refundLedger:
+      'the refund ledger over a function that opens a workspace scope (F060); every call goes through the scope, no connection of its own',
     findInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
     lockInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
     closeInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
@@ -376,6 +396,16 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     PaymentStatus: 'type of the payment-ledger repository (E019)',
     PaymentStatusSource: 'type of the payment-ledger repository (E019)',
     StatusChangeRecord: 'type of the payment-ledger repository (E019)',
+    ChargebackRecord: 'type of the refund repository (F060)',
+    InRefundScope: 'type of the refund repository (F060)',
+    InsertRefundResult: 'type of the refund repository (F060)',
+    NewChargeback: 'type of the refund repository (F060)',
+    NewRefund: 'type of the refund repository (F060)',
+    NewRefundStatusChange: 'type of the refund repository (F060)',
+    RefundFacts: 'type of the refund repository (F060)',
+    RefundRecord: 'type of the refund repository (F060)',
+    RefundStatus: 'type of the refund repository (F060)',
+    RefundStatusChangeRecord: 'type of the refund repository (F060)',
     ClassDateUpdate: 'type of the group-class repository (F021)',
     NewGroupClass: 'type of the group-class repository (F021)',
     NewClassDate: 'type of the group-class repository (F021)',

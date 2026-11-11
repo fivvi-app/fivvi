@@ -131,6 +131,7 @@ describe('E011 account routes', () => {
       id,
       name: expect.any(String),
       slug: expect.any(String),
+      trainerWord: 'trainer',
       role: expect.stringMatching(/^(owner|trainer)$/),
       capabilities: expect.any(Array),
     }));
@@ -143,7 +144,9 @@ describe('E011 account routes', () => {
       // On the harness's allowlist (`@example.com`), so allowed although Sam has two workspaces (F012).
       canCreateWorkspace: true,
       // Sam is also a client of A.
-      clientWorkspaces: [{ id: s.a, name: expect.any(String), slug: expect.any(String) }],
+      clientWorkspaces: [
+        { id: s.a, name: expect.any(String), slug: expect.any(String), trainerWord: 'trainer' },
+      ],
       workspaces: expect.arrayContaining(listed),
     });
     expect(JSON.parse(body).workspaces).toHaveLength(2);
@@ -155,7 +158,9 @@ describe('E011 account routes', () => {
     const clientBody = await client.text();
     expect(JSON.parse(clientBody)).toMatchObject({
       workspaces: [],
-      clientWorkspaces: [{ id: s.a, name: expect.any(String), slug: expect.any(String) }],
+      clientWorkspaces: [
+        { id: s.a, name: expect.any(String), slug: expect.any(String), trainerWord: 'trainer' },
+      ],
       canCreateWorkspace: true,
     });
     for (const foreign of [s.b, s.c, clientInC]) expect(clientBody).not.toContain(foreign);

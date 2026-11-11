@@ -252,6 +252,9 @@
             "type": "string",
             "description": "The URL name: `/w/{slug}` on the web."
           },
+          "trainerWord": {
+            "$ref": "#/components/schemas/TrainerWord"
+          },
           "role": {
             "type": "string",
             "enum": [
@@ -290,10 +293,21 @@
           "id",
           "name",
           "slug",
+          "trainerWord",
           "role",
           "capabilities"
         ],
         "description": "A workspace the account has a team role in."
+      },
+      "TrainerWord": {
+        "type": "string",
+        "enum": [
+          "trainer",
+          "instructeur",
+          "docent",
+          "coach"
+        ],
+        "description": "The word the product uses for the people who teach in the workspace: `trainer`, `instructeur`, `docent` or `coach`. It is only a label shown to the team and the clients, in their own language; the role stays `trainer` in the API and nobody’s rights depend on it. Every workspace starts on `trainer`."
       },
       "MeClientWorkspace": {
         "type": "object",
@@ -310,14 +324,18 @@
           "name": {
             "type": "string",
             "description": "The name shown in the product."
+          },
+          "trainerWord": {
+            "$ref": "#/components/schemas/TrainerWord"
           }
         },
         "required": [
           "id",
           "slug",
-          "name"
+          "name",
+          "trainerWord"
         ],
-        "description": "A workspace the account is a client of: its ID, URL name and name, nothing more. The account’s own client record in it is the only thing that lists it."
+        "description": "A workspace the account is a client of: its ID, URL name, name and the word it uses for its trainers (F068), nothing more. The account’s own client record in it is the only thing that lists it."
       },
       "MyWorkspace": {
         "type": "object",
@@ -334,6 +352,9 @@
           "slug": {
             "type": "string",
             "description": "The URL name: `/w/{slug}` on the web."
+          },
+          "trainerWord": {
+            "$ref": "#/components/schemas/TrainerWord"
           },
           "role": {
             "type": "string",
@@ -377,6 +398,7 @@
           "workspaceId",
           "name",
           "slug",
+          "trainerWord",
           "role",
           "capabilities",
           "trainsHere"
@@ -1037,6 +1059,9 @@
           "timeZone": {
             "type": "string",
             "description": "The IANA time zone dates and times are shown in, for example `Europe/Amsterdam`."
+          },
+          "trainerWord": {
+            "$ref": "#/components/schemas/TrainerWord"
           }
         },
         "required": [
@@ -1044,7 +1069,8 @@
           "name",
           "slug",
           "defaultLocale",
-          "timeZone"
+          "timeZone",
+          "trainerWord"
         ],
         "description": "A workspace: a gym or an independent trainer’s business."
       },
@@ -1080,9 +1106,12 @@
           },
           "defaultLocale": {
             "$ref": "#/components/schemas/Locale"
+          },
+          "trainerWord": {
+            "$ref": "#/components/schemas/TrainerWord"
           }
         },
-        "description": "Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), or both. The slug stays, so links keep working. Other fields are ignored."
+        "description": "Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), the word it uses for its trainers (`trainerWord`, F068), or any of them. The slug stays, so links keep working. Other fields are ignored."
       },
       "WorkspaceSwitchedRequest": {
         "type": "object",
@@ -3398,7 +3427,7 @@
           "workspaces"
         ],
         "summary": "A workspace",
-        "description": "The workspace: its name, URL name, default language and time zone.",
+        "description": "The workspace: its name, URL name, default language, time zone and the word it uses for its trainers.",
         "security": [
           {
             "cookieAuth": []
@@ -3498,8 +3527,8 @@
         "tags": [
           "workspaces"
         ],
-        "summary": "Rename a workspace or set its default language",
-        "description": "Changes the name and/or the default communication language of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`, anything else answers `400` and nothing changes.",
+        "summary": "Rename a workspace, set its default language or its word for trainers",
+        "description": "Changes the name, the default communication language and/or the word for trainers of the workspace (the Owner only; a Trainer reads the word but gets `403` when changing it). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`; the word is `trainer`, `instructeur`, `docent` or `coach`. Anything else answers `400` (the API’s validation error) and nothing changes. The role stays Trainer whatever the word.",
         "security": [
           {
             "cookieAuth": []

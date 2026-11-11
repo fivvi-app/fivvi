@@ -1,198 +1,9 @@
 {
-  "id": "a20c02aa-1c81-4ab3-8ea8-a408405d483d",
+  "id": "36b77ba4-41ef-43aa-b628-ba710c36ff10",
   "prevId": "e274a28c-3715-4e14-8470-926a899ea43e",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
-    "public.access_log": {
-      "name": "access_log",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "actor_team_member_id": {
-          "name": "actor_team_member_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "action": {
-          "name": "action",
-          "type": "access_log_action",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "subject_client_id": {
-          "name": "subject_client_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "object_id": {
-          "name": "object_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "occurred_at": {
-          "name": "occurred_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "access_log_organization_id_occurred_at_idx": {
-          "name": "access_log_organization_id_occurred_at_idx",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "occurred_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "access_log_organization_id_subject_client_id_idx": {
-          "name": "access_log_organization_id_subject_client_id_idx",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "subject_client_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "occurred_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "access_log_occurred_at_idx": {
-          "name": "access_log_occurred_at_idx",
-          "columns": [
-            {
-              "expression": "occurred_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "access_log_organization_id_organizations_id_fk": {
-          "name": "access_log_organization_id_organizations_id_fk",
-          "tableFrom": "access_log",
-          "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "access_log_organization_id_id_unique": {
-          "name": "access_log_organization_id_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "organization_id",
-            "id"
-          ]
-        }
-      },
-      "policies": {
-        "access_log_workspace": {
-          "name": "access_log_workspace",
-          "as": "PERMISSIVE",
-          "for": "ALL",
-          "to": [
-            "fivvi_app"
-          ],
-          "using": "\"access_log\".\"organization_id\" = ANY (app_workspace_ids())",
-          "withCheck": "\"access_log\".\"organization_id\" = ANY (app_workspace_ids())"
-        }
-      },
-      "checkConstraints": {
-        "access_log_object_matches_action": {
-          "name": "access_log_object_matches_action",
-          "value": "(\"access_log\".\"action\" IN ('note.viewed', 'note.changed')) = (\"access_log\".\"object_id\" IS NOT NULL)"
-        },
-        "access_log_client_matches_action": {
-          "name": "access_log_client_matches_action",
-          "value": "(\"access_log\".\"action\" = 'workspace.exported') = (\"access_log\".\"subject_client_id\" IS NULL)"
-        },
-        "access_log_actor_matches_action": {
-          "name": "access_log_actor_matches_action",
-          "value": "\"access_log\".\"actor_team_member_id\" IS NOT NULL OR \"access_log\".\"action\" IN ('client.trashed', 'client.purged')"
-        }
-      },
-      "isRLSEnabled": false
-    },
     "public.auth_identities": {
       "name": "auth_identities",
       "schema": "",
@@ -625,92 +436,6 @@
         "auth_verifications_locale_supported": {
           "name": "auth_verifications_locale_supported",
           "value": "\"auth_verifications\".\"locale\" IS NULL OR \"auth_verifications\".\"locale\" IN ('nl-NL', 'en')"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.deletion_log": {
-      "name": "deletion_log",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "table_name": {
-          "name": "table_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "record_id": {
-          "name": "record_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "deleted_at": {
-          "name": "deleted_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "deletion_log_deleted_at_idx": {
-          "name": "deletion_log_deleted_at_idx",
-          "columns": [
-            {
-              "expression": "deleted_at",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "policies": {
-        "deletion_log_cron": {
-          "name": "deletion_log_cron",
-          "as": "PERMISSIVE",
-          "for": "ALL",
-          "to": [
-            "fivvi_cron"
-          ],
-          "using": "true",
-          "withCheck": "true"
-        },
-        "deletion_log_app_insert": {
-          "name": "deletion_log_app_insert",
-          "as": "PERMISSIVE",
-          "for": "INSERT",
-          "to": [
-            "fivvi_app"
-          ],
-          "withCheck": "\"deletion_log\".\"organization_id\" = ANY (app_workspace_ids())"
-        }
-      },
-      "checkConstraints": {
-        "deletion_log_table_name_valid": {
-          "name": "deletion_log_table_name_valid",
-          "value": "\"deletion_log\".\"table_name\" ~ '^[a-z][a-z0-9_]{0,62}$'"
         }
       },
       "isRLSEnabled": false
@@ -1181,6 +906,14 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "trainer_word": {
+          "name": "trainer_word",
+          "type": "trainer_word",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'trainer'"
         },
         "created_at": {
           "name": "created_at",
@@ -3037,20 +2770,6 @@
     }
   },
   "enums": {
-    "public.access_log_action": {
-      "name": "access_log_action",
-      "schema": "public",
-      "values": [
-        "client.exported",
-        "client.trashed",
-        "client.restored",
-        "client.purged",
-        "workspace.exported",
-        "client.retention_kept",
-        "note.viewed",
-        "note.changed"
-      ]
-    },
     "public.job_run_outcome": {
       "name": "job_run_outcome",
       "schema": "public",
@@ -3070,6 +2789,16 @@
         "outdoor",
         "online",
         "other"
+      ]
+    },
+    "public.trainer_word": {
+      "name": "trainer_word",
+      "schema": "public",
+      "values": [
+        "trainer",
+        "instructeur",
+        "docent",
+        "coach"
       ]
     },
     "public.payment_kind": {

@@ -47,10 +47,12 @@ export { createConfiguredTransport } from './provider.ts';
 export {
   createEmailContext,
   type EmailContext,
+  type EmailFrame,
   type EmailMessageKey,
   type EmailTemplate,
   type RenderedEmail,
   renderEmail,
+  type UserContentProp,
 } from './render.tsx';
 export { defaultRetryPolicy, type RetryPolicy } from './retry.ts';
 export {

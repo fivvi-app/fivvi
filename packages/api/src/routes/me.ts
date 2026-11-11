@@ -27,6 +27,7 @@ import {
   internalServerErrorResponse,
   validationErrorResponse,
 } from '../errors.ts';
+import { TrainerWordSchema } from '../schemas.ts';
 
 const RoleSchema = z.enum(ROLES);
 
@@ -42,6 +43,7 @@ export const MeWorkspaceSchema = z
     id: z.uuid().openapi({ description: 'The workspace ID.' }),
     name: z.string().openapi({ description: 'The name shown in the product.' }),
     slug: z.string().openapi({ description: 'The URL name: `/w/{slug}` on the web.' }),
+    trainerWord: TrainerWordSchema,
     role: RoleSchema.openapi({
       description: 'What the account is in the workspace; shown as a label, never decided on.',
     }),
@@ -54,10 +56,12 @@ export const MeClientWorkspaceSchema = z
     id: z.uuid().openapi({ description: 'The workspace ID.' }),
     slug: z.string().openapi({ description: 'The URL name: `/w/{slug}` on the web.' }),
     name: z.string().openapi({ description: 'The name shown in the product.' }),
+    trainerWord: TrainerWordSchema,
   })
   .openapi('MeClientWorkspace', {
     description:
-      'A workspace the account is a client of: its ID, URL name and name, nothing more. The ' +
+      'A workspace the account is a client of: its ID, URL name, name and the word it uses for ' +
+      'its trainers (F068), nothing more. The ' +
       'account’s own client record in it is the only thing that lists it.',
   });
 
@@ -105,6 +109,7 @@ export const MyWorkspaceSchema = z
     workspaceId: z.uuid().openapi({ description: 'The workspace ID.' }),
     name: z.string().openapi({ description: 'The name shown in the product.' }),
     slug: z.string().openapi({ description: 'The URL name: `/w/{slug}` on the web.' }),
+    trainerWord: TrainerWordSchema,
     role: RoleSchema.openapi({
       description: 'What the account is on the team; shown as a label, never decided on.',
     }),

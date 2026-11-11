@@ -15,6 +15,7 @@ import androidx.compose.ui.test.performTextReplacement
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.Locale
 import app.fivvi.api.models.MeWorkspace
+import app.fivvi.api.models.TrainerWord
 import app.fivvi.api.models.Workspace
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
@@ -162,7 +163,9 @@ class ClientsScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
     @Test
     fun test_F006_AC1_theDefaultLanguageNamesTheWorkspacesDefault() {
         workspaces.answers += {
-            Response.success(Workspace(it, "John's Gym", "johns-gym", Locale.EN, "Europe/Amsterdam"))
+            Response.success(
+                Workspace(it, "John's Gym", "johns-gym", Locale.EN, "Europe/Amsterdam", TrainerWord.TRAINER),
+            )
         }
         launch()
         openClients()

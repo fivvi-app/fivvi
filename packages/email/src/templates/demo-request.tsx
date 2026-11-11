@@ -89,6 +89,7 @@ export const demoRequestEmail: EmailTemplate<DemoRequestEmailProps> = {
       <Text style={textStyle}>{ctx.t('email.demoRequest.reply')}</Text>
     </>
   ),
+  userContent: ['name', 'email', 'message'],
   previewProps: {
     name: 'Anna de Vries',
     email: 'anna@example.com',

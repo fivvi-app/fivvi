@@ -246,9 +246,13 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   getMyDay: { seed: aSessionForEachTrainer, query: '?date=2026-09-22' },
   listMySessions: { seed: aSessionForEachTrainer, query: '?from=2026-09-21&to=2026-09-27' },
 
-  // The routes of one workspace (F002): a read shows its id, a rename takes a valid name.
+  // The routes of one workspace (F002): a read shows its id, a rename takes a valid name and, with
+  // it, the workspace's word for its trainers (F068).
   getWorkspace: { seed: theWorkspace },
-  renameWorkspace: { seed: theWorkspace, body: { name: 'Renamed Gym' } },
+  renameWorkspace: {
+    seed: theWorkspace,
+    body: { name: 'Renamed Gym', trainerWord: 'instructeur' },
+  },
   // The report of a switch (F012) records a product event and changes no row.
   recordWorkspaceSwitch: { body: {} },
 

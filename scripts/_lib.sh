@@ -121,11 +121,28 @@ ident_email() { sed -nE 's/^[^<]*<([^>]*)>.*$/\1/p' <<<"$1"; }
 # The addresses of the Co-authored-by trailers in the commit message on stdin.
 coauthor_emails() { sed -nE 's/^[[:space:]]*[Cc][Oo]-[Aa][Uu][Tt][Hh][Oo][Rr][Ee][Dd]-[Bb][Yy]:.*<([^>]*)>.*$/\1/p'; }
 
+# A port Chromium refuses to connect to (net::ERR_UNSAFE_PORT). The source of truth is kRestrictedPorts in Chromium's
+# net/base/port_util.cc; only the ports of the two ranges e2e_port draws from matter: 3200-3899 (the web server)
+# and 4200-4899 (the analytics server on E2E_PORT + 1000). 3659 is apple-sasl; the list has no port in 4200-4899.
+chromium_restricted_port() {
+  case "$1" in
+    3659) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+
 # A stable Playwright port per checkout, so parallel worktrees never test each other's server (AGENTS.md).
+# 3200-3899, stepping to the next value (wrapping) while the port or its E2E_PORT + 1000 partner is one Chromium blocks.
 e2e_port() {
-  local dir="${1:-$ROOT}"
+  local dir="${1:-$ROOT}" n port
   if [ "$dir" = "$MAIN_ROOT" ]; then echo 3100; return; fi
-  echo $(( 3200 + $(printf '%s' "$dir" | cksum | cut -d' ' -f1) % 700 ))
+  n=$(( $(printf '%s' "$dir" | cksum | cut -d' ' -f1) % 700 ))
+  port=$(( 3200 + n ))
+  while chromium_restricted_port "$port" || chromium_restricted_port $(( port + 1000 )); do
+    n=$(( (n + 1) % 700 ))
+    port=$(( 3200 + n ))
+  done
+  echo "$port"
 }
 
 slugify() {
