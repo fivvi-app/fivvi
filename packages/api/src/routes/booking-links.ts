@@ -2,7 +2,6 @@ import {
   type BookingLinkView,
   deactivateBookingLink,
   ensureStandingBookingLinks,
-  findBookingLink,
   findBookingLinkSession,
   findGroupClass,
   findOwnTeamMember,
@@ -387,15 +386,14 @@ export function registerBookingLinks(app: OpenAPIHono) {
     const named = c.req.valid('json')?.surface;
     const { appBaseUrl, clock, productEvents } = c.get('dependencies');
     const workspace = await findWorkspace(scope);
-    const before = await findBookingLink(scope, linkId);
-    if (!workspace || !before) return c.json(NOT_FOUND, 404);
-    const link = before.deactivatedAt
-      ? before
-      : await deactivateBookingLink(scope, linkId, clock.now());
-    if (!link) return c.json(NOT_FOUND, 404);
+    if (!workspace) return c.json(NOT_FOUND, 404);
+    const stopped = await deactivateBookingLink(scope, linkId, clock.now());
+    if (!stopped) return c.json(NOT_FOUND, 404);
+    const { link, changed } = stopped;
 
+    // Only the call that set the time records the event: a repeat, or the second of two at once, does not.
     const surface = surfaceOf(c.req.header('authorization'), named);
-    if (!before.deactivatedAt && surface !== undefined) {
+    if (changed && surface !== undefined) {
       const distinctId = c.get('account').id;
       const workspaceId = scope.workspaceId;
       c.get('afterCommit')(() =>

@@ -170,16 +170,24 @@ describe('F037 resolving a link', () => {
   });
 
   it('AC11: a link’s target never changes; cancelled dates still resolve', () => {
-    // The link holds the date's ID and nothing of its status: a cancelled date resolves to the same
-    // path as before, and the timetable says it does not take place.
+    // The link holds the date's ID and nothing of the date's status: a link whose date has been
+    // cancelled since (the status is not part of `BookingLink`, so it rides along as an extra
+    // field) resolves to the same path as before, and the timetable says it does not take place.
     const link: BookingLink = { ...base, scope: 'session', sessionId: SESSION };
-    const before = resolveBookingLink({ link, workspaceSlug: 'johns-gym' });
-    const afterCancelling = resolveBookingLink({ link: { ...link }, workspaceSlug: 'johns-gym' });
-    expect(afterCancelling).toEqual(before);
-    expect(before).toMatchObject({ outcome: 'active', path: `/book/johns-gym/s/${SESSION}` });
-    // Resolving does not touch the link it was given.
+    const withCancelledDate = { ...link, sessionStatus: 'cancelled' } satisfies BookingLink & {
+      sessionStatus: string;
+    };
+    const resolved = resolveBookingLink({ link: withCancelledDate, workspaceSlug: 'johns-gym' });
+    expect(resolved).toEqual({
+      outcome: 'active',
+      workspaceSlug: 'johns-gym',
+      path: `/book/johns-gym/s/${SESSION}`,
+      language: 'visitor',
+    });
+    expect(resolveBookingLink({ link, workspaceSlug: 'johns-gym' })).toEqual(resolved);
+    // Resolving never changes the link it was given.
     const frozen = Object.freeze({ ...link });
-    expect(() => resolveBookingLink({ link: frozen, workspaceSlug: 'johns-gym' })).not.toThrow();
+    resolveBookingLink({ link: frozen, workspaceSlug: 'johns-gym' });
     expect(frozen).toEqual(link);
   });
 });

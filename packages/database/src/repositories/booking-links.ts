@@ -145,7 +145,7 @@ export async function findBookingLink(
   return row ? viewOf(row) : undefined;
 }
 
-/** The facts of a class date that decide whether it may have a link: kind, status and start. */
+/** The facts of a class date that decide whether it may have a link: kind and start. */
 export interface BookingLinkSessionFacts {
   readonly type: (typeof sessions.type.enumValues)[number];
   readonly startsAt: Date;
@@ -251,16 +251,18 @@ export async function ensureStandingBookingLinks(
 }
 
 /**
- * Stops a link of the scope's workspace at `at`, for good, and returns it; `undefined` when the
- * workspace has no such link. A link that is already deactivated keeps its first time: doing it
- * again changes nothing.
+ * Stops a link of the scope's workspace at `at`, for good, and returns it with whether this call
+ * did it; `undefined` when the workspace has no such link. A link that is already deactivated keeps
+ * its first time and `changed` is `false`: doing it again changes nothing. `changed` comes from the
+ * `UPDATE ... WHERE deactivated_at IS NULL ... RETURNING`, so of two deactivations at the same time
+ * exactly one has it (the second waits for the row, then matches nothing).
  */
 export async function deactivateBookingLink(
   scope: WorkspaceScope,
   linkId: string,
   at: Date,
-): Promise<BookingLinkView | undefined> {
-  await executorOf(scope)
+): Promise<{ link: BookingLinkView; changed: boolean } | undefined> {
+  const updated = await executorOf(scope)
     .update(bookingLinks)
     .set({ deactivatedAt: at })
     .where(
@@ -269,6 +271,8 @@ export async function deactivateBookingLink(
         eq(bookingLinks.id, linkId),
         isNull(bookingLinks.deactivatedAt),
       ),
-    );
-  return findBookingLink(scope, linkId);
+    )
+    .returning({ id: bookingLinks.id });
+  const link = await findBookingLink(scope, linkId);
+  return link ? { link, changed: updated.length > 0 } : undefined;
 }

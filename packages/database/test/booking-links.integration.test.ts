@@ -404,11 +404,13 @@ describe('F037 booking links', () => {
       const stopped = await asTeam(john.id, workspace.id, (scope) =>
         deactivateBookingLink(scope, link.id, at),
       );
-      expect(stopped?.deactivatedAt).toEqual(at);
+      expect(stopped?.changed).toBe(true);
+      expect(stopped?.link.deactivatedAt).toEqual(at);
       const again = await asTeam(john.id, workspace.id, (scope) =>
         deactivateBookingLink(scope, link.id, new Date('2026-11-13T09:00:00Z')),
       );
-      expect(again?.deactivatedAt).toEqual(at);
+      expect(again?.changed).toBe(false);
+      expect(again?.link.deactivatedAt).toEqual(at);
 
       const next = await asTeam(john.id, workspace.id, (scope) =>
         getOrCreateBookingLink(scope, request),
@@ -418,6 +420,20 @@ describe('F037 booking links', () => {
       // Both are listed: the old one stays, deactivated.
       const all = await asTeam(john.id, workspace.id, (scope) => listBookingLinks(scope));
       expect(all.map(({ id }) => id).sort()).toEqual([link.id, next.link.id].sort());
+    });
+
+    it('of deactivations at the same time exactly one changes the link', async () => {
+      const { workspace, john } = await gym();
+      const link = await addBookingLink(admin.db, { workspaceId: workspace.id, scope: 'class' });
+      const results = await Promise.all(
+        Array.from({ length: 4 }, () =>
+          asTeam(john.id, workspace.id, (scope) =>
+            deactivateBookingLink(scope, link.id, new Date('2026-11-12T09:00:00Z')),
+          ),
+        ),
+      );
+      expect(results.filter((result) => result?.changed)).toHaveLength(1);
+      expect(results.every((result) => result?.link.deactivatedAt !== null)).toBe(true);
     });
 
     it('a link of another workspace is out of reach: nothing found, nothing deactivated', async () => {

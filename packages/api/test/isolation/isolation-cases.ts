@@ -167,7 +167,7 @@ const anUpcomingGroupDate: IsolationCase['seed'] = async (db, { workspaceId }) =
   return { session: id };
 };
 
-/** A link of its own to deactivate (F037); the standing links are made too, so the seed changes nothing else. */
+/** A class link of its own, on a class of its own, to deactivate (F037). */
 const aBookingLink: IsolationCase['seed'] = async (db, { workspaceId }) => {
   const { id } = await addBookingLink(db, {
     workspaceId,

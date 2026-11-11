@@ -749,6 +749,18 @@ describe('F037 booking links through the API', () => {
     expect(statuses).toEqual([200, 200, 400, 403, 404, 401, 201, 403]);
     expect(posthog.events).toEqual([]);
 
+    // Four deactivations at the same time record one event.
+    const fresh = (await (
+      await make(gym.id, john, { scope: 'class', groupClassId: kracht.id, language: 'nl' }, server)
+    ).json()) as LinkBody;
+    posthog.events.length = 0;
+    const together = await Promise.all(
+      Array.from({ length: 4 }, () => deactivate(gym.id, fresh.id, john, server)),
+    );
+    expect(together.map((response) => response.status)).toEqual([200, 200, 200, 200]);
+    expect(posthog.events.map(({ event }) => event)).toEqual(['booking_link_deactivated']);
+    posthog.events.length = 0;
+
     // Deactivating twice records the first only.
     await deactivate(gym.id, link.id, john, server);
     await deactivate(gym.id, link.id, john, server);
