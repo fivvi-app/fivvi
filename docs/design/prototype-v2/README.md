@@ -14,6 +14,7 @@ A throwaway, clickable prototype of the new look (November 2026): Calendar-style
 | 5 | The client app Fivvi (§55): Home, Boeken, Activiteit, Profiel on iOS and Android, the studio switcher for a client of more than one studio, and doing a shared workout on your own (#602); joining by link, offers on the web in a browser sheet, account deletion | App → Fivvi (klant); index → Fivvi (klant-app) |
 | 6 | Everything the specs describe: agreements, payments, payouts, invoices, membership rules, invitations, joining, privacy, import, booking links and QR, class and trainer dialogs, every client booking and cancelling state, all emails (`more-web.js`, `more-client.js`, `more-pro.js`, `more-email.js`) | Scherm → all; E-mails |
 | 7 | Workout templates on the phone (F041): Profiel → Schema's, a template, Nieuw schema / Schema wijzigen with the exercise picker, delete | App → Profiel |
+| 8 | Assigning workouts (F042): a client's own templates on the client profile, a template per private or duo session that opens directly, trainer only | App → Klantprofiel, Sessie; Trainer web → Klantprofiel → Trainingen, Agenda |
 
 **What was decided:** [DECISIONS.md](DECISIONS.md) (ADR-029). It is the record specs follow.
 

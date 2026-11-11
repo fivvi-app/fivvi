@@ -109,7 +109,9 @@ window.FIVVI_DATA = (function () {
     "Vinyasa Flow": "Gemiddeld", "Yin Yoga": "Alle niveaus", Hatha: "Beginner", "Power Yoga": "Gevorderd", "Workshop Ademwerk": "Alle niveaus",
     "Small group kracht": "Gemiddeld", "Small group conditie": "Alle niveaus" };
 
-  var templates = { anna: ["Upper A", "Lower A"], other: ["Full body", "Upper B", "Lower B", "Core & conditie"] };
+  /* F042: a client's own list of templates ("Schema's van Anna"), set by the trainer; the client sees nothing of it. The
+     workspace's other templates ("Andere schema's") are D.tpl minus this list, so a new template shows up there by itself. */
+  var templates = { anna: ["Upper A", "Lower A"], mark: ["Full body", "Upper A"], lisa: ["Upper B"] };
 
   /* Library: n = Dutch, en = English alias, ty = wr (weight × reps), r (reps), t (time), dt (distance + time). */
   var library = [
