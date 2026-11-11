@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { newDatabaseName, onServer, serverUrl } from '@fivvi/testing/database/server';
 import pg from 'pg';
-import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, inject, it, vi } from 'vitest';
 import { createDatabase } from '../src/index.ts';
 import { DRILL_TABLE } from '../src/restore.ts';
 import { createWorkspace } from '../src/testing/index.ts';
@@ -17,6 +17,12 @@ import { createWorkspace } from '../src/testing/index.ts';
 
 const SCRIPT = join(import.meta.dirname, '../../../scripts/restore-drill.sh');
 const FAKE = join(import.meta.dirname, 'fixtures/fake-railway.mjs');
+// A drill is CPU-bound: about fourteen processes one after the other, five of them loading Drizzle and the whole
+// schema (about two CPU-seconds in all). A GitHub runner has two or four cores, so drills side by side are not
+// faster, only each of them slower, and the budget of a test counts its own wait for the processor. The tests of
+// this file therefore take turns, a few at a time (#1309).
+const DRILLS_AT_ONCE = 2;
+vi.setConfig({ maxConcurrency: DRILLS_AT_ONCE });
 const SECRET = 'zzqsecret-gym-name';
 
 type Mode =
@@ -77,6 +83,8 @@ async function setUpDrill({ onTestFinished }: Cleanup): Promise<Drill> {
     restoredName,
     async run(args, mode = 'ok', extraEnv = {}) {
       // Asynchronous, so the tests of this file run side by side.
+      drillsRunning += 1;
+      peakDrills = Math.max(peakDrills, drillsRunning);
       const child = spawn(SCRIPT, args, {
         env: {
           ...process.env,
@@ -104,7 +112,9 @@ async function setUpDrill({ onTestFinished }: Cleanup): Promise<Drill> {
       });
       const code = await new Promise<number>((resolve) =>
         child.on('close', (c) => resolve(c ?? -1)),
-      );
+      ).finally(() => {
+        drillsRunning -= 1;
+      });
       const calls = readFileSync(log, 'utf8')
         .split('\n')
         .filter(Boolean)
@@ -129,6 +139,10 @@ async function setUpDrill({ onTestFinished }: Cleanup): Promise<Drill> {
       exists(`select exists(select 1 from pg_database where datname = '${restoredName}') as found`),
   };
 }
+
+// How many drill scripts run at this moment, and the most that ran side by side in this file.
+let drillsRunning = 0;
+let peakDrills = 0;
 
 const verbs = (calls: string[][]) => calls.map((call) => call.slice(0, 3).join(' '));
 
@@ -364,4 +378,12 @@ describe.concurrent('E016 the restore drill script', () => {
     expect(passed.output).toContain('public.organizations | 1 | 1 | 0 | match');
     expect(passed.output).toContain('table | development | postgres-drill-');
   }, 60_000);
+});
+
+// After the tests above, because suites of a file run one after the other.
+describe('E016 the load of the restore drill tests', () => {
+  it('AC2: no more drills run side by side than a CI runner can serve inside the budget of a test', () => {
+    expect(peakDrills).toBeGreaterThan(0);
+    expect(peakDrills).toBeLessThanOrEqual(DRILLS_AT_ONCE + 1); // + the shared passing drill
+  });
 });
