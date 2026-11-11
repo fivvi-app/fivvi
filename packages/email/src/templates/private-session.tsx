@@ -60,6 +60,7 @@ export const privateSessionEmail: EmailTemplate<PrivateSessionEmailProps> = {
       ) : null}
     </>
   ),
+  frame: { kind: 'client', workspaceName: (props) => props.workspaceName },
   previewProps: {
     workspaceName: 'John’s Gym',
     startsAt: new Date('2026-09-24T07:00:00Z'),

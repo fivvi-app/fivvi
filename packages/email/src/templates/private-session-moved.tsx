@@ -86,6 +86,7 @@ export const privateSessionMovedEmail: EmailTemplate<PrivateSessionMovedEmailPro
       ) : null}
     </>
   ),
+  frame: { kind: 'client', workspaceName: (props) => props.workspaceName },
   previewProps: {
     workspaceName: 'John’s Gym',
     previousStartsAt: new Date('2026-09-24T07:00:00Z'),

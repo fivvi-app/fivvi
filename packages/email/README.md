@@ -30,7 +30,8 @@ await sendEmail({
 | `src/trainer-invitation-sender.ts` | `createTrainerInvitationSender()`: EM-09 (F011) in the language it is given, linking to `/invitations/{token}`; `apps/web` wires it into the API, which cannot import `.tsx` templates itself. `sendEmail` takes an optional `idempotencyKey` per send |
 | `src/private-session-sender.ts` | `createPrivateSessionSender()`: EM-11 (F020), the client's confirmation of a private session, or EM-04, the notice that it moved (a mail with `previous`), in the language it is given and the workspace's time zone, with the address written the Dutch way; `apps/web` wires it into the API, which sends it after the session is committed |
 | `src/demo-request-sender.ts` | `createDemoRequestSender()`: the website's demo request (F064) as one email to the address it is given (the support address; `apps/web` picks it, `server/demo-request-recipient.ts`), always in Dutch, listing the visitor's answers and the language of the page they used; nothing goes to the visitor; `apps/web` wires it into the API, which cannot import `.tsx` templates itself |
-| `src/components/layout.tsx` | The shell every email shares: `<html lang>`, `<title>`, preview line, footer |
+| `src/components/layout.tsx` | The plain shell of an email without a workspace (sign-in, trainer invitation): `<html lang>`, `<title>`, preview line, footer |
+| `src/components/frames.tsx` | `ClientEmailLayout` and `TeamEmailLayout` (F049): the workspace's name at the top, the content, one button to `https://fivvi.app/`, the footer and the wordmark |
 | `src/render.tsx` | `renderEmail()` and the per-locale context (`t`, `formatDateTime`) |
 | `src/send.ts` | `createSendEmail()`: render, send, inline retry |
 | `src/lettermint.ts` | Lettermint transport (`POST /v1/send`), the route per template |
@@ -49,6 +50,7 @@ await sendEmail({
 - User content (names, class names) is passed as a placeholder value and rendered as text; React escapes it.
 - A template has `subject`, `preview` (the inbox preview line: put the key fact in it), `render` (the content inside the layout) and `previewProps` (obviously fake data for the preview).
 - Plain styles for now; E007 brings the design tokens.
+- **Frames** (F049): an email about a workspace sets `frame: { kind: 'client' | 'team', workspaceName: (props) => props.workspaceName }` on its template. `renderEmail` then wraps the content in the client frame (workspace's name on top, one primary button to the client web, the footer "Je krijgt deze e-mail omdat je klant bent bij {workspace}.", "Vragen? Neem contact op met {workspace}.", then the wordmark and "Verstuurd via Fivvi") or the team frame (the same, with "… omdat je in het team van {workspace} zit."). Don't put your own footer or workspace header in the content. The button label defaults to `email.frame.button`; `buttonLabel` and `buttonPath: (props) => 'bookings'` (relative to `https://fivvi.app/`) change them. Leave `frame` out for the sign-in email (ADR-019) and the trainer invitation (its recipient is not on the team yet): they keep the plain layout. The workspace's name is user content and is shown as typed.
 
 ## The email catalog
 

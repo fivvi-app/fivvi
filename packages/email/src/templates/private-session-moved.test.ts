@@ -103,4 +103,16 @@ describe('F020 EM-04 private session moved email', () => {
     expect(email.html).not.toContain('<b>Sarah</b>');
     expect(email.html).toContain('&lt;b&gt;Sarah&lt;/b&gt;');
   });
+
+  it.each([
+    ['nl-NL', 'Je krijgt deze e-mail omdat je klant bent bij'],
+    ['en', "You're getting this email because you're a client of"],
+  ] as const)('F049 AC3: the frame is the client frame in %s', async (locale, footer) => {
+    const email = await renderEmail(privateSessionMovedEmail, props, { locale });
+
+    expect(email.text.startsWith(props.workspaceName)).toBe(true);
+    expect(email.text).toContain(`${footer} ${props.workspaceName}.`);
+    expect(email.html).toContain('href="https://fivvi.app/"');
+    expect(email.text).not.toContain(messages[locale].email.layout.footer);
+  });
 });
