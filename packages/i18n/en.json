@@ -229,7 +229,7 @@
       "trainer": "Trainer: {trainer}"
     },
     "privateSessionMoved": {
-      "subject": "Change: your session on {oldDate} has moved to {newDate}",
+      "subject": "Change: your session has moved to {newDate}",
       "dateTime": "{date} at {time}",
       "preview": "Your private session has moved to {newDate}.",
       "intro": "Your private session at {workspace} has moved.",

@@ -52,6 +52,7 @@ export {
   type EmailTemplate,
   type RenderedEmail,
   renderEmail,
+  type UserContentProp,
 } from './render.tsx';
 export { defaultRetryPolicy, type RetryPolicy } from './retry.ts';
 export {

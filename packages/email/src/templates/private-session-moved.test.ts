@@ -18,16 +18,10 @@ const props = {
 
 describe('F020 EM-04 private session moved email', () => {
   it.each([
-    [
-      'nl-NL',
-      'Wijziging: je sessie op donderdag 24 september om 09:00 is verplaatst naar vrijdag 25 september om 10:00',
-    ],
-    [
-      'en',
-      'Change: your session on Thursday 24 September at 09:00 has moved to Friday 25 September at 10:00',
-    ],
+    ['nl-NL', 'Wijziging: je sessie is verplaatst naar vrijdag 25 september om 10:00'],
+    ['en', 'Change: your session has moved to Friday 25 September at 10:00'],
   ] as const)(
-    'AC6: %s has the old and the new date and time in the subject',
+    'AC6: %s has the new date and time in the subject, short enough for an inbox',
     async (locale, subject) => {
       const email = await renderEmail(privateSessionMovedEmail, props, { locale });
 
@@ -72,9 +66,7 @@ describe('F020 EM-04 private session moved email', () => {
       timeZone: 'UTC',
     });
 
-    expect(utc.subject).toBe(
-      'Change: your session on Thursday 24 September at 07:00 has moved to Friday 25 September at 08:00',
-    );
+    expect(utc.subject).toBe('Change: your session has moved to Friday 25 September at 08:00');
   });
 
   it.each(locales)(

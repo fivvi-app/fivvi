@@ -61,6 +61,7 @@ export const privateSessionEmail: EmailTemplate<PrivateSessionEmailProps> = {
     </>
   ),
   frame: { kind: 'client', workspaceName: (props) => props.workspaceName },
+  userContent: ['workspaceName', 'locationName', 'locationAddress', 'trainerName'],
   previewProps: {
     workspaceName: 'John’s Gym',
     startsAt: new Date('2026-09-24T07:00:00Z'),
