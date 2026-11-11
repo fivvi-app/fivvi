@@ -14,6 +14,7 @@ actor StubAPI: APIProtocol {
     enum SignInAnswer: Sendable {
         case accepted
         case badRequest
+        case rateLimited
         case status(Int)
         case offline
     }
@@ -240,6 +241,8 @@ actor StubAPI: APIProtocol {
             return .accepted(.init())
         case .badRequest:
             return .badRequest(.init(body: .json(.init(code: .validationFailed, issues: []))))
+        case .rateLimited:
+            return .tooManyRequests(.init(body: .json(.init(code: .rateLimited))))
         case let .status(code):
             return .undocumented(statusCode: code, .init())
         case .offline:

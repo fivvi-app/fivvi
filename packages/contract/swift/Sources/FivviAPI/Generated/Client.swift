@@ -1152,7 +1152,7 @@ public struct Client: APIProtocol {
     }
     /// Ask for a sign-in email
     ///
-    /// Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for a request over the rate limits, so it never says who has an account.
+    /// Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for an address over its limit (3 requests per 15 minutes), so it never says who has an account. The app needs no bot check; every limit applies to it. A network over its limit (20 requests per hour) gets `429`, and nothing is sent.
     ///
     /// - Remark: HTTP `POST /v1/sign-in/request`.
     /// - Remark: Generated from `#/paths//v1/sign-in/request/post(requestSignIn)`.
@@ -1211,6 +1211,28 @@ public struct Client: APIProtocol {
                         preconditionFailure("bestContentType chose an invalid content type.")
                     }
                     return .badRequest(.init(body: body))
+                case 429:
+                    let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
+                    let body: Operations.RequestSignIn.Output.TooManyRequests.Body
+                    let chosenContentType = try converter.bestContentType(
+                        received: contentType,
+                        options: [
+                            "application/json"
+                        ]
+                    )
+                    switch chosenContentType {
+                    case "application/json":
+                        body = try await converter.getResponseBodyAsJSON(
+                            Components.Schemas.PublicRequestRateLimited.self,
+                            from: responseBody,
+                            transforming: { value in
+                                .json(value)
+                            }
+                        )
+                    default:
+                        preconditionFailure("bestContentType chose an invalid content type.")
+                    }
+                    return .tooManyRequests(.init(body: body))
                 case 500:
                     let contentType = converter.extractContentTypeIfPresent(in: response.headerFields)
                     let body: Operations.RequestSignIn.Output.InternalServerError.Body

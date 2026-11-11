@@ -862,6 +862,21 @@
         ],
         "description": "The personal sessions of a trainer across all their workspaces, for a range of days."
       },
+      "PublicRequestRateLimited": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "rate_limited"
+            ]
+          }
+        },
+        "required": [
+          "code"
+        ],
+        "description": "Too many requests from this network or this account in the last minutes or hour. Nothing was stored or sent. Contains no user-facing text."
+      },
       "SignInRequest": {
         "type": "object",
         "properties": {
@@ -2979,7 +2994,7 @@
           "sign-in"
         ],
         "summary": "Ask for a sign-in email",
-        "description": "Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for a request over the rate limits, so it never says who has an account.",
+        "description": "Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for an address over its limit (3 requests per 15 minutes), so it never says who has an account. The app needs no bot check; every limit applies to it. A network over its limit (20 requests per hour) gets `429`, and nothing is sent.",
         "x-access": {
           "type": "public"
         },
@@ -3003,6 +3018,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too many requests from this network in the last hour. Nothing was sent. Try again later.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicRequestRateLimited"
                 }
               }
             }

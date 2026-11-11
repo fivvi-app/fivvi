@@ -5,8 +5,9 @@ import {
   deleteExpiredRateLimits,
   type RateLimitRule,
 } from '@fivvi/database';
+import { anonymousDistinctId, type ProductEvents } from '@fivvi/observability';
 import type { BetterAuthOptions, BetterAuthPlugin } from 'better-auth';
-import { createAuthMiddleware, getIP } from 'better-auth/api';
+import { APIError, createAuthMiddleware, getIP } from 'better-auth/api';
 import { hashSecretValue } from './hash.ts';
 import { type Clock, emailSchema, REQUEST_PATH, REQUESTED } from './sign-in-plugin.ts';
 
@@ -137,12 +138,31 @@ export function clientAddressKey(
 }
 
 /**
- * The rate limits of `POST /sign-in/code/request` (AC10), in Postgres so a deploy or restart
- * doesn't reset them. They run before the endpoint, so they hold whatever the endpoint goes on
- * to do (look the address up, send an email, work in the background). A limited request gets
- * the same answer as any other request (`REQUESTED`), sends nothing and replaces nothing. Better
- * Auth's own limiter answers 429, lives in memory and knows no addresses, so it is switched off
- * for this path (`rateLimit.customRules` in `auth.ts`).
+ * The platform a sign-in request came from, for `public_request_refused`. A request that came
+ * through Better Auth's HTTP router is the web's; the apps' routes call `auth.api` directly, with
+ * no `Request` behind the call (`ctx.request`), and name themselves by their user agent only: the
+ * Android app's HTTP stack (okhttp) or Android itself, else the iOS app. It labels an event and
+ * nothing else, so a client that lies about it gains nothing.
+ */
+export function platformOf(request: Request | undefined, headers: Headers | undefined) {
+  if (request) return 'web';
+  return /android|okhttp/i.test(headers?.get('user-agent') ?? '') ? 'android' : 'ios';
+}
+
+/** The body a request over the IP limit answers with: `RateLimited` of the OpenAPI contract. */
+export const RATE_LIMITED_BODY = { code: 'rate_limited' } as const;
+
+/**
+ * The rate limits of `POST /sign-in/code/request` (AC10, E013 AC4), in Postgres so a deploy or
+ * restart doesn't reset them. They run before the endpoint, so they hold whatever the endpoint
+ * goes on to do (look the address up, send an email, work in the background), for an address with
+ * an account and one without alike. An address over its limit gets the same answer as any other
+ * request (`REQUESTED`: no enumeration), sends nothing and replaces nothing. A client IP address
+ * over its limit gets 429 `rate_limited`, also nothing sent or replaced: that answer is about the
+ * caller's own network, so it tells nothing about any address. Every refusal records
+ * `public_request_refused` with the rule and the platform. Better Auth's own limiter answers 429,
+ * lives in memory and knows no addresses, so it is switched off for this path
+ * (`rateLimit.customRules` in `auth.ts`).
  */
 export function signInRateLimits({
   db,
@@ -150,7 +170,8 @@ export function signInRateLimits({
   clock,
   log,
   requireClientIp,
-}: SignInRateLimitOptions) {
+  productEvents,
+}: SignInRateLimitOptions & { productEvents?: ProductEvents }) {
   const store = { db, secret };
 
   return {
@@ -178,6 +199,17 @@ export function signInRateLimits({
             await deleteExpiredRateLimits(db, now);
             if (limited.length === 0) return;
             log(`Sign-in request rate-limited: ${limited.join(', ')}`);
+            // One refusal, one event: the IP limit, which answers, outranks the address limit.
+            const overIp = limited.includes('ip');
+            productEvents?.track({
+              event: 'public_request_refused',
+              distinctId: anonymousDistinctId(),
+              properties: {
+                rule: overIp ? 'sign_in_ip' : 'sign_in_address',
+                platform: platformOf(ctx.request, ctx.headers),
+              },
+            });
+            if (overIp) throw new APIError('TOO_MANY_REQUESTS', RATE_LIMITED_BODY);
             return ctx.json(REQUESTED);
           }),
         },

@@ -76,7 +76,7 @@ public protocol APIProtocol: Sendable {
     func listMySessions(_ input: Operations.ListMySessions.Input) async throws -> Operations.ListMySessions.Output
     /// Ask for a sign-in email
     ///
-    /// Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for a request over the rate limits, so it never says who has an account.
+    /// Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for an address over its limit (3 requests per 15 minutes), so it never says who has an account. The app needs no bot check; every limit applies to it. A network over its limit (20 requests per hour) gets `429`, and nothing is sent.
     ///
     /// - Remark: HTTP `POST /v1/sign-in/request`.
     /// - Remark: Generated from `#/paths//v1/sign-in/request/post(requestSignIn)`.
@@ -477,7 +477,7 @@ extension APIProtocol {
     }
     /// Ask for a sign-in email
     ///
-    /// Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for a request over the rate limits, so it never says who has an account.
+    /// Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for an address over its limit (3 requests per 15 minutes), so it never says who has an account. The app needs no bot check; every limit applies to it. A network over its limit (20 requests per hour) gets `429`, and nothing is sent.
     ///
     /// - Remark: HTTP `POST /v1/sign-in/request`.
     /// - Remark: Generated from `#/paths//v1/sign-in/request/post(requestSignIn)`.

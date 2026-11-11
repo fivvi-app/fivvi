@@ -209,7 +209,9 @@ final class SignInViewModel {
             switch try await api.requestSignIn(body: .json(.init(email: address, locale: catalog.locale))) {
             case .accepted: return .success(())
             case .badRequest: return .failure(.invalidEmail)
-            case .internalServerError, .undocumented: return .failure(.generic)
+            // `tooManyRequests`: this network is over the sign-in limit (E013). The apps word it
+            // later; until then it is the generic error.
+            case .tooManyRequests, .internalServerError, .undocumented: return .failure(.generic)
             }
         } catch {
             return .failure(Self.failure(for: error))

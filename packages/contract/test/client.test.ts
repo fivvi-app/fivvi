@@ -155,7 +155,7 @@ describe('F001N TypeScript client: native sign-in', () => {
       tenantScopes,
       requestSignIn: ({ email, locale }) => {
         requests.push({ email, locale });
-        return Promise.resolve();
+        return Promise.resolve('requested');
       },
       exchangeSignInCode: async ({ code }) => (code === '123456' ? 'token-1' : undefined),
       findSignedInAccount: async (headers) =>

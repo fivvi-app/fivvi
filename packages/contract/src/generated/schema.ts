@@ -179,7 +179,7 @@ export interface paths {
         put?: never;
         /**
          * Ask for a sign-in email
-         * @description Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for a request over the rate limits, so it never says who has an account.
+         * @description Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for an address over its limit (3 requests per 15 minutes), so it never says who has an account. The app needs no bot check; every limit applies to it. A network over its limit (20 requests per hour) gets `429`, and nothing is sent.
          */
         post: operations["requestSignIn"];
         delete?: never;
@@ -1174,6 +1174,11 @@ export interface components {
             workspaceCount: number;
             /** @description The sessions from the start of `from` to the end of `to`, in time order. */
             items: components["schemas"]["PersonalSession"][];
+        };
+        /** @description Too many requests from this network or this account in the last minutes or hour. Nothing was stored or sent. Contains no user-facing text. */
+        PublicRequestRateLimited: {
+            /** @enum {string} */
+            code: "rate_limited";
         };
         /** @description Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019. */
         SignInRequest: {
@@ -2277,6 +2282,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Too many requests from this network in the last hour. Nothing was sent. Try again later. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicRequestRateLimited"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */
