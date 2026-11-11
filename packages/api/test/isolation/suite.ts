@@ -106,7 +106,7 @@ async function businessTables(world: World): Promise<string[]> {
  * Whose a token is. One owner, except for the tokens of an account that has a place in several
  * workspaces (Sam): its id appears in the rows of each, and each is an owner of it.
  */
-type Ledger = Map<string, (TokenOwner & { clientIds: Set<string>; listed?: boolean })[]>;
+type Ledger = Map<string, (TokenOwner & { clientIds: Set<string> })[]>;
 
 /**
  * The ids and markers of every record of every workspace, and whose they are: a row's uuids,

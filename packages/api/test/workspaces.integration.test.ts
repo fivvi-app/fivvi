@@ -346,7 +346,7 @@ describe('F002 POST /v1/workspaces', () => {
       [{ name: 'x'.repeat(81) }, 'name'],
       [{ name: 'Fine Gym', personName: '' }, 'personName'],
       [{ name: 'Fine Gym', personName: '  ' }, 'personName'],
-      [{ name: 'Fine Gym', personName: 'y'.repeat(81) }, 'personName'],
+      [{ name: 'Fine Gym', personName: 'y'.repeat(121) }, 'personName'],
       [{}, 'name'],
       [{ name: 42 }, 'name'],
     ];
@@ -374,6 +374,15 @@ describe('F002 POST /v1/workspaces', () => {
     expect(response.status).toBe(201);
     expect(((await response.json()) as { name: string }).name).toBe('z'.repeat(80));
     expect(await nameOf(who.id)).toBe('Sarah de Vries');
+  });
+
+  it('F030 AC4: the person name takes up to 120 characters, the workspace name stays at 80', async () => {
+    const who = await account();
+
+    const response = await create(who, { name: 'Fine Gym', personName: `  ${'y'.repeat(120)} ` });
+
+    expect(response.status).toBe(201);
+    expect(await nameOf(who.id)).toBe('y'.repeat(120));
   });
 
   it('F012 AC8: an allowlisted account that owns a workspace creates another and is its Owner', async () => {

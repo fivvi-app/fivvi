@@ -145,7 +145,7 @@ describe('F005 PATCH /v1/me name', () => {
     ['blank', '   \t ', 'too_small'],
     ['over 120 characters', 'x'.repeat(121), 'too_big'],
   ])(
-    'AC1: a name that is %s is refused with a field error and nothing is saved',
+    'F005 AC1, F030 AC4: a name that is %s is refused with a field error and nothing is saved',
     async (_, name, code) => {
       const { sarah } = await world();
 
@@ -183,7 +183,7 @@ describe('F005 PATCH /v1/me name', () => {
     expect(res.status).toBe(401);
   });
 
-  it('F030 AC10: name is in the contract on PATCH me, 1 to 120 characters', () => {
+  it('F030 AC4: name is in the contract on PATCH me, 1 to 120 characters', () => {
     const { name } = contract.components.schemas.UpdateMeRequest.properties;
 
     expect(name).toMatchObject({ type: 'string', minLength: 1, maxLength: 120 });
