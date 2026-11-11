@@ -113,6 +113,9 @@ export function changeEmailWithCode({
               props: { code, expiresInMinutes: SIGN_IN_EXPIRES_IN_MINUTES },
               to: { email: newEmail },
               locale,
+              // One event per request (the code hash is of this request's code): asking again is a
+              // new email, a retry of this one is not.
+              event: row.codeHash,
             });
           });
           return ctx.json(REQUESTED);

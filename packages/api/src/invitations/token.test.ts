@@ -1,6 +1,6 @@
 import { createHash } from 'node:crypto';
 import { describe, expect, it } from 'vitest';
-import { createInvitationToken, hashInvitationToken, invitationIdempotencyKey } from './token.ts';
+import { createInvitationToken, hashInvitationToken, invitationEmailEvent } from './token.ts';
 
 describe('F011 invitation token', () => {
   it('AC10: is random, at least 128 bits, and safe in a link', () => {
@@ -28,13 +28,11 @@ describe('F011 invitation token', () => {
     expect(createInvitationToken().hash).not.toBe(createInvitationToken().hash);
   });
 
-  it('AC1: the idempotency key of a send is a UUID of the invitation and its token', () => {
-    const uuid = /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
-    const key = invitationIdempotencyKey('invitation-1', 'hash-1');
+  it('AC1: the event of a send follows the invitation and its token', () => {
+    const event = invitationEmailEvent('invitation-1', 'hash-1');
 
-    expect(key).toMatch(uuid);
-    expect(invitationIdempotencyKey('invitation-1', 'hash-1')).toBe(key);
-    expect(invitationIdempotencyKey('invitation-1', 'hash-2')).not.toBe(key);
-    expect(invitationIdempotencyKey('invitation-2', 'hash-1')).not.toBe(key);
+    expect(invitationEmailEvent('invitation-1', 'hash-1')).toBe(event);
+    expect(invitationEmailEvent('invitation-1', 'hash-2')).not.toBe(event);
+    expect(invitationEmailEvent('invitation-2', 'hash-1')).not.toBe(event);
   });
 });

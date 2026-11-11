@@ -255,8 +255,6 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     lockInvitationQuota: 'repository of the trainer invitations, takes the workspace scope (F011)',
     countInvitationsSince:
       'repository of the trainer invitations, takes the workspace scope (F011)',
-    findPendingInvitation:
-      'repository of the trainer invitations, takes the workspace scope (F011)',
     findPendingInvitationByEmail:
       'repository of the trainer invitations, takes the workspace scope (F011)',
     listPendingInvitations:
@@ -265,6 +263,10 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
       'repository of the trainer invitations, takes the workspace scope (F011)',
     resendInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
     withdrawInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
+    lockPendingInvitationSend:
+      'repository of the trainer invitations, takes the workspace scope (F049)',
+    undoInvitation: 'repository of the trainer invitations, takes the workspace scope (F049)',
+    undoResend: 'repository of the trainer invitations, takes the workspace scope (F049)',
     findLocation: 'repository of the locations, takes the workspace scope (F020)',
     findTrainer: 'repository of the trainer profiles, takes the workspace scope (F020)',
     findSession: 'repository of the sessions, takes the workspace scope (F020)',
@@ -401,6 +403,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     SessionView: 'type of the session repository (F020)',
     UpcomingSessionView: 'type of the session repository (F020)',
     NewTrainerInvitation: 'type of the trainer-invitation repository (F011)',
+    InvitationSend: 'type of the trainer-invitation repository (F049)',
     InvitationRecord: 'type of the trainer-invitation repository (F011)',
     InvitationAdmission: 'type of the tenant scope (F011)',
     InvitationEntry: 'type of the tenant scope (F011)',

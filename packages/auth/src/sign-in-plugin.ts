@@ -364,6 +364,8 @@ export function signInWithEmail({
               props: { code, url: url.toString(), expiresInMinutes: SIGN_IN_EXPIRES_IN_MINUTES },
               to: { email },
               locale: emailLocale,
+              // One event per request: asking again is a new email, a retry of this one is not.
+              event: row.value,
             });
           });
           return ctx.json(REQUESTED);

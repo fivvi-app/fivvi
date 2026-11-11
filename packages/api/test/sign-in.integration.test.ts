@@ -462,6 +462,18 @@ describe('F001 sign in with the emailed code through the API', () => {
       expect(transport.sent).toHaveLength(0);
     });
 
+    it('F049 AC11: each request has its own idempotency key, made of EM-08 and the request, not of the address', async () => {
+      await requestCode('owner@example.com', 'en');
+      await requestCode('owner@example.com', 'en');
+
+      const [first, second] = transport.sent.map((email) => email.idempotencyKey);
+      expect(first).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      );
+      expect(second).not.toBe(first);
+      expect(transport.sent[0]).toMatchObject({ template: 'sign-in' });
+    });
+
     it('without a returnTo the link is unchanged', async () => {
       await requestCode('owner@example.com', 'en');
 

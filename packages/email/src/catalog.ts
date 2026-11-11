@@ -305,6 +305,17 @@ export const templates: readonly AnyEmailTemplate[] = [
   ...internalCatalog.map((entry) => entry.template),
 ];
 
+/**
+ * The catalog ID a template is sent under: `EM-11` for a catalog email, the entry's `key` for an
+ * internal one (`demo-request`). `undefined` for a template that is not in the catalog.
+ */
+export function catalogIdOf(templateId: string): string | undefined {
+  for (const entry of catalog) {
+    if (entry.status === 'active' && entry.template.id === templateId) return entry.id;
+  }
+  return internalCatalog.find((entry) => entry.template.id === templateId)?.key;
+}
+
 export interface CatalogCheckInput {
   catalog: readonly CatalogEntry[];
   internalCatalog: readonly InternalEntry[];

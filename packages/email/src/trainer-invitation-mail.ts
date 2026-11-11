@@ -15,6 +15,10 @@ export interface TrainerInvitationMail {
   /** The token for the link. It is in the email and nowhere else. */
   token: string;
   expiresAt: Date;
-  /** One key per invitation and token, so the same send repeated goes out once. */
-  idempotencyKey: string;
+  /**
+   * The event behind the mail, `{invitationId}:{tokenHash}`: one per invitation and token, so the
+   * same send repeated reaches the provider with one idempotency key and goes out once (F049).
+   * Built from the token's hash, never from the token.
+   */
+  event: string;
 }
