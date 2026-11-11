@@ -23,7 +23,8 @@ final class UpdateMeRequestTests: XCTestCase {
             var response = HTTPResponse(status: .ok)
             response.headerFields[.contentType] = "application/json"
             let answer = #"{"id":"3f0b1c2e-8a54-4b51-9a42-6a1a3a1d9b10","email":"anna@example.com","name":null,"#
-                + #""preferredLocale":"en","bookingEmails":true,"canCreateWorkspace":false,"workspaces":[],"clientWorkspaces":[]}"#
+                + #""preferredLocale":"en","bookingEmails":true,"canCreateWorkspace":false,"#
+                + #""workspaces":[],"clientWorkspaces":[]}"#
             return (response, HTTPBody(answer))
         }
     }
