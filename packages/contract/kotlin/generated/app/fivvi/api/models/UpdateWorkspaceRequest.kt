@@ -24,16 +24,18 @@
 package app.fivvi.api.models
 
 import app.fivvi.api.models.Locale
+import app.fivvi.api.models.TrainerWord
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), or both. The slug stays, so links keep working. Other fields are ignored.
+ * Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), the word it uses for its trainers (`trainerWord`, F068), or any of them. The slug stays, so links keep working. Other fields are ignored.
  *
  * @param name The new name, as the product shows it from now on.
  * @param defaultLocale 
+ * @param trainerWord 
  */
 @Serializable
 
@@ -44,7 +46,10 @@ data class UpdateWorkspaceRequest (
     val name: kotlin.String? = null,
 
     @Contextual @SerialName(value = "defaultLocale")
-    val defaultLocale: Locale? = null
+    val defaultLocale: Locale? = null,
+
+    @Contextual @SerialName(value = "trainerWord")
+    val trainerWord: TrainerWord? = null
 
 ) {
 

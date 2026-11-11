@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
+import { jqOutput } from './jq.mjs';
 
 const GATE_JQ = join(import.meta.dirname, '../merge-gate.jq');
 
@@ -13,12 +13,7 @@ const MARKS = [
 ].flatMap(([name, value]) => ['--arg', name, value]);
 
 const gate = (facts) =>
-  JSON.parse(
-    execFileSync('jq', ['-c', ...MARKS, '-f', GATE_JQ], {
-      input: JSON.stringify(facts),
-      encoding: 'utf8',
-    }),
-  );
+  JSON.parse(jqOutput(['-c', ...MARKS, '-f', GATE_JQ], JSON.stringify(facts)));
 
 const HEAD = 'a'.repeat(40);
 const OLD = 'b'.repeat(40);

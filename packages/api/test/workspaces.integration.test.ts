@@ -629,6 +629,7 @@ describe('F002 POST /v1/workspaces', () => {
           id: workspace.id,
           name: "John's Gym Utrecht",
           slug: workspace.slug,
+          trainerWord: 'trainer',
           role: 'owner',
           capabilities: capabilitiesOf('owner'),
         },

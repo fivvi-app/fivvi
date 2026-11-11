@@ -1,16 +1,16 @@
 import assert from 'node:assert/strict';
-import { execFileSync, spawnSync } from 'node:child_process';
+import { spawnSync } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
 import { fakeGh } from './fake-gh.mjs';
+import { jq, jqOutput } from './jq.mjs';
 
 const SCRIPTS = join(import.meta.dirname, '..');
 
 const classify = (facts) =>
   JSON.parse(
-    execFileSync(
-      'jq',
+    jqOutput(
       [
         '-c',
         '--rawfile',
@@ -19,7 +19,7 @@ const classify = (facts) =>
         '-f',
         join(SCRIPTS, 'risk.jq'),
       ],
-      { input: JSON.stringify(facts), encoding: 'utf8' },
+      JSON.stringify(facts),
     ),
   );
 
@@ -819,10 +819,10 @@ describe('risk.sh', () => {
 
 describe('high-risk paths', () => {
   const decide = (rules, files = ['apps/web/page.tsx']) =>
-    spawnSync('jq', ['-c', '--arg', 'rules', rules, '-f', join(SCRIPTS, 'risk.jq')], {
-      input: JSON.stringify({ files, issues: [] }),
-      encoding: 'utf8',
-    });
+    jq(
+      ['-c', '--arg', 'rules', rules, '-f', join(SCRIPTS, 'risk.jq')],
+      JSON.stringify({ files, issues: [] }),
+    );
 
   it('ADR-021: the file declares exactly the agent-queueable groups, and every one has a path rule', () => {
     const text = readFileSync(join(SCRIPTS, 'high-risk-paths.txt'), 'utf8');
@@ -917,10 +917,9 @@ describe('high-risk paths', () => {
 
   it('is an error when a rule line does not have exactly a group and a pattern', () => {
     for (const line of ['dependencies', 'dependencies package.json extra']) {
-      const result = spawnSync(
-        'jq',
+      const result = jq(
         ['-c', '--arg', 'rules', `${line}\n`, '-f', join(SCRIPTS, 'risk.jq')],
-        { input: JSON.stringify({ files: ['apps/web/page.tsx'], issues: [] }), encoding: 'utf8' },
+        JSON.stringify({ files: ['apps/web/page.tsx'], issues: [] }),
       );
       assert.notEqual(result.status, 0, line);
       assert.match(result.stderr, /malformed rule/, line);

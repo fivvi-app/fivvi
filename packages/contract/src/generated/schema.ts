@@ -277,7 +277,7 @@ export interface paths {
         };
         /**
          * A workspace
-         * @description The workspace: its name, URL name, default language and time zone.
+         * @description The workspace: its name, URL name, default language, time zone and the word it uses for its trainers.
          */
         get: operations["getWorkspace"];
         put?: never;
@@ -286,8 +286,8 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Rename a workspace or set its default language
-         * @description Changes the name and/or the default communication language of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`, anything else answers `400` and nothing changes.
+         * Rename a workspace, set its default language or its word for trainers
+         * @description Changes the name, the default communication language and/or the word for trainers of the workspace (the Owner only; a Trainer reads the word but gets `403` when changing it). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`; the word is `trainer`, `instructeur`, `docent` or `coach`. Anything else answers `400` (the API’s validation error) and nothing changes. The role stays Trainer whatever the word.
          */
         patch: operations["renameWorkspace"];
         trace?: never;
@@ -918,6 +918,7 @@ export interface components {
             name: string;
             /** @description The URL name: `/w/{slug}` on the web. */
             slug: string;
+            trainerWord: components["schemas"]["TrainerWord"];
             /**
              * @description What the account is in the workspace; shown as a label, never decided on.
              * @enum {string}
@@ -926,7 +927,12 @@ export interface components {
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
             capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew")[];
         };
-        /** @description A workspace the account is a client of: its ID, URL name and name, nothing more. The account’s own client record in it is the only thing that lists it. */
+        /**
+         * @description The word the product uses for the people who teach in the workspace: `trainer`, `instructeur`, `docent` or `coach`. It is only a label shown to the team and the clients, in their own language; the role stays `trainer` in the API and nobody’s rights depend on it. Every workspace starts on `trainer`.
+         * @enum {string}
+         */
+        TrainerWord: "trainer" | "instructeur" | "docent" | "coach";
+        /** @description A workspace the account is a client of: its ID, URL name, name and the word it uses for its trainers (F068), nothing more. The account’s own client record in it is the only thing that lists it. */
         MeClientWorkspace: {
             /**
              * Format: uuid
@@ -937,6 +943,7 @@ export interface components {
             slug: string;
             /** @description The name shown in the product. */
             name: string;
+            trainerWord: components["schemas"]["TrainerWord"];
         };
         /** @description A workspace the account is on the team of. */
         MyWorkspace: {
@@ -949,6 +956,7 @@ export interface components {
             name: string;
             /** @description The URL name: `/w/{slug}` on the web. */
             slug: string;
+            trainerWord: components["schemas"]["TrainerWord"];
             /**
              * @description What the account is on the team; shown as a label, never decided on.
              * @enum {string}
@@ -1251,6 +1259,7 @@ export interface components {
             defaultLocale: components["schemas"]["Locale"];
             /** @description The IANA time zone dates and times are shown in, for example `Europe/Amsterdam`. */
             timeZone: string;
+            trainerWord: components["schemas"]["TrainerWord"];
         };
         /** @description Creates a workspace for the caller, who becomes its Owner. Nothing else is asked: the default language, the time zone and the slug are the platform’s defaults. */
         CreateWorkspaceRequest: {
@@ -1259,11 +1268,12 @@ export interface components {
             /** @description The creator’s own name, stored on the account. Leave it out when the account has one. */
             personName?: string;
         };
-        /** @description Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), or both. The slug stays, so links keep working. Other fields are ignored. */
+        /** @description Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), the word it uses for its trainers (`trainerWord`, F068), or any of them. The slug stays, so links keep working. Other fields are ignored. */
         UpdateWorkspaceRequest: {
             /** @description The new name, as the product shows it from now on. */
             name?: string;
             defaultLocale?: components["schemas"]["Locale"];
+            trainerWord?: components["schemas"]["TrainerWord"];
         };
         /** @description Who sent the report that the person switched workspace. */
         WorkspaceSwitchedRequest: {

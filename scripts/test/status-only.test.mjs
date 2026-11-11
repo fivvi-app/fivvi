@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
+import { jq } from './jq.mjs';
 
 // Spec #292, "Status-only rule (risk)": scripts/status-only.jq decides from a file's patch (the files API's `patch`
 // field) whether a change to ROADMAP.md or FEATURES.md only moves status forward. Pure functions, called here with
@@ -11,8 +11,7 @@ import { describe, it } from 'node:test';
 const SCRIPTS = join(import.meta.dirname, '..');
 
 const decide = (fn, patch) => {
-  const result = spawnSync(
-    'jq',
+  const result = jq(
     [
       '-c',
       '-L',
@@ -22,7 +21,7 @@ const decide = (fn, patch) => {
       JSON.stringify(patch),
       `include "status-only"; ${fn}`,
     ],
-    { input: 'null', encoding: 'utf8' },
+    'null',
   );
   assert.equal(result.status, 0, result.stderr);
   return JSON.parse(result.stdout);

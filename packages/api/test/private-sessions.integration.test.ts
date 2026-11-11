@@ -1066,8 +1066,7 @@ describe('F020 plan a private session', () => {
         to: { email: 'anna@example.com', name: 'Anna de Vries' },
         locale: 'nl-NL',
         template: 'private-session-moved',
-        subject:
-          'Wijziging: je sessie op donderdag 24 september om 09:00 is verplaatst naar vrijdag 25 september om 10:00',
+        subject: 'Wijziging: je sessie is verplaatst naar vrijdag 25 september om 10:00',
         idempotencyKey: privateSessionEmailKey(session.id, 2),
       });
       expect(transport.sent[0]?.text).toContain(
@@ -1121,7 +1120,7 @@ describe('F020 plan a private session', () => {
         ['sophie@example.com', 'en'],
       ]);
       expect(transport.sent[0]?.subject).toBe(
-        'Change: your session on Thursday 24 September at 09:00 has moved to Friday 25 September at 10:00',
+        'Change: your session has moved to Friday 25 September at 10:00',
       );
     });
 

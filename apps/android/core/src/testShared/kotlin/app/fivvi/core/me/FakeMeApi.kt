@@ -8,6 +8,7 @@ import app.fivvi.api.models.MyDay
 import app.fivvi.api.models.MySessions
 import app.fivvi.api.models.MyWorkspace
 import app.fivvi.api.models.RequestEmailChange
+import app.fivvi.api.models.TrainerWord
 import app.fivvi.api.models.UpdateMeRequest
 import java.util.UUID
 import kotlinx.coroutines.CompletableDeferred
@@ -127,6 +128,7 @@ class FakeMeApi : MeApi {
                         workspaceIdOf(name),
                         name,
                         slug,
+                        TrainerWord.TRAINER,
                         role,
                         capabilities[name] ?: capabilitiesOf(role),
                         // A Trainer always trains; an Owner here has not switched it on (F005).
@@ -170,6 +172,7 @@ class FakeMeApi : MeApi {
                             workspaceIdOf(it),
                             it,
                             "slug",
+                            TrainerWord.TRAINER,
                             role,
                             capabilitiesByWorkspace[it] ?: capabilities,
                         )

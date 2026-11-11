@@ -366,6 +366,7 @@ describe('F001N native sign-in through the API', () => {
             id: gym?.id,
             name: "John's Gym",
             slug: 'johns-gym',
+            trainerWord: 'trainer',
             role: 'owner',
             capabilities: capabilitiesOf('owner'),
           },

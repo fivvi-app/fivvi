@@ -37,7 +37,7 @@ interface WorkspacesApi {
     /**
      * GET v1/workspaces/{workspaceId}
      * A workspace
-     * The workspace: its name, URL name, default language and time zone.
+     * The workspace: its name, URL name, default language, time zone and the word it uses for its trainers.
      * Responses:
      *  - 200: The workspace.
      *  - 400: The request did not match the contract.
@@ -73,8 +73,8 @@ interface WorkspacesApi {
 
     /**
      * PATCH v1/workspaces/{workspaceId}
-     * Rename a workspace or set its default language
-     * Changes the name and/or the default communication language of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is &#x60;nl-NL&#x60; or &#x60;en&#x60;, anything else answers &#x60;400&#x60; and nothing changes.
+     * Rename a workspace, set its default language or its word for trainers
+     * Changes the name, the default communication language and/or the word for trainers of the workspace (the Owner only; a Trainer reads the word but gets &#x60;403&#x60; when changing it). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is &#x60;nl-NL&#x60; or &#x60;en&#x60;; the word is &#x60;trainer&#x60;, &#x60;instructeur&#x60;, &#x60;docent&#x60; or &#x60;coach&#x60;. Anything else answers &#x60;400&#x60; (the API’s validation error) and nothing changes. The role stays Trainer whatever the word.
      * Responses:
      *  - 200: The workspace with its changes.
      *  - 400: The request did not match the contract.
