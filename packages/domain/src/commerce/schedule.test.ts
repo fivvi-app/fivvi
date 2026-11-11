@@ -337,6 +337,14 @@ describe('noticeEnd', () => {
     });
   });
 
+  it('a stopping credit plan without a minimum term never ends by itself: notice ends it one month on', () => {
+    const endless = clockOf(
+      { ...creditPlan, endOfTerm: 'stop', minimumTermMonths: 0 },
+      '2027-02-01',
+    );
+    expect(noticeEnd(endless, '2027-02-10')).toEqual({ outcome: 'ends', endsOn: '2027-03-09' });
+  });
+
   it('an agreement that already has an end takes no second notice', () => {
     const ending: AgreementClock = { ...plan, endsOn: '2027-07-09' };
     expect(noticeEnd(ending, '2027-06-20')).toEqual({

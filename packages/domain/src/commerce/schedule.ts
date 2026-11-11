@@ -180,8 +180,8 @@ export type NoticeEnd =
   | { readonly outcome: 'ends'; readonly endsOn: string }
   /** A fixed term that has not run out: notice is possible from `firstNoticeOn`, and then ends it on `endsOn`. */
   | { readonly outcome: 'not-yet'; readonly firstNoticeOn: string; readonly endsOn: string }
-  /** The agreement stops at the end of its term (*Stopt*), `null` when it has none. */
-  | { readonly outcome: 'not-needed'; readonly endsOn: string | null }
+  /** The agreement stops at the end of its term (*Stopt*) on `endsOn`, so it needs no notice. */
+  | { readonly outcome: 'not-needed'; readonly endsOn: string }
   /** Notice or the Owner already gave the agreement an end. */
   | { readonly outcome: 'already-ending'; readonly endsOn: string };
 
@@ -194,7 +194,9 @@ export type NoticeEnd =
 export function noticeEnd(clock: AgreementClock, noticeDate: string): NoticeEnd {
   parse(noticeDate);
   if (clock.endsOn !== null) return { outcome: 'already-ending', endsOn: clock.endsOn };
-  if (clock.endOfTerm === 'stop') return { outcome: 'not-needed', endsOn: stopAtTermEnd(clock) };
+  // A stopping credit plan without a minimum term has no end of its own: it needs notice like any other.
+  const stopsOn = stopAtTermEnd(clock);
+  if (stopsOn !== null) return { outcome: 'not-needed', endsOn: stopsOn };
   if (clock.kind === 'membership' && clock.termEndsOn !== null && noticeDate <= clock.termEndsOn) {
     const firstNoticeOn = addDays(clock.termEndsOn, 1);
     return { outcome: 'not-yet', firstNoticeOn, endsOn: periodEnd(firstNoticeOn, 1) };

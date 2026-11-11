@@ -7,7 +7,7 @@ export type Translator = (key: string, values?: Record<string, string | number>)
 
 const translators = new Map<Locale, Translator>();
 
-// The wording is in the catalogs (`offers.*`), never here. A missing key or placeholder throws, so
+// The wording is in the catalogs (`offers.*` and `agreements.*`), never here. A missing key or placeholder throws, so
 // a broken message fails the tests instead of reaching a client.
 export function translatorFor(locale: Locale): Translator {
   let translator = translators.get(locale);
