@@ -83,7 +83,7 @@ The single source of truth for feature status. A status changes **in the same PR
 |---|---|---|---|---|---|---|---|---|
 | F027 | Client Timetable: the booking page for approved clients only, nothing public | PLANNED | Must | M5 (+ Fivvi iOS/Android) | F022, F007, F029 | ⬜ | ⬜ | §15, §21 |
 | F028 | Booking Capacity | PLANNED | Must | M5 (+ iOS/Android: add a participant) | F027 | ⬜ | ⬜ | §18 |
-| F029 | Join Link and Join Requests: one join link per workspace with its QR code, a join request, the Owner approves or declines (a list on Clients, an email per request), renew the link | PLANNED | Must | M5 (+ Fivvi iOS/Android: join) | F006, F049, F032 | ⬜ | ⬜ | §26 |
+| F029 | Join Link and Join Requests: one join link per workspace with its QR code, a join request, the Owner approves or declines (a list on Clients, an email per request), renew the link | IN PROGRESS | Must | M5 (+ Fivvi iOS/Android: join) | F006, F049, F032 | ⬜ | ⬜ | §26 |
 | F030 | Client Sign-Up: open account sign-up with the emailed link or code (ADR-007); workspace creation stays allowlisted until 2.0 | PLANNED | Must | M5 (+ Fivvi iOS/Android: sign-in) | F001 | ⬜ | ⬜ | §27 |
 | F031 | Booking for Approved Clients: immediate booking, capacity, and from M11 the agreement check | PLANNED | Must | M5 (+M11 commerce) (+ Fivvi iOS/Android) | F027, F028, F030 | ⬜ | ⬜ | §22, §23, §25 |
 | F032 | Client Invitations: the Owner adds a client, who gets an invitation email and is in once they sign in | PLANNED | Must | M5 | F006, F030, F049 | ⬜ | ⬜ | §2.4, §26, §34 |

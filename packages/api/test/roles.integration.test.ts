@@ -191,6 +191,7 @@ describe('F004 roles on every workspace route', () => {
       'putTrainerProfile',
       'removeTeamMember',
       'renameWorkspace',
+      'renewJoinLink',
       'resendTrainerInvitation',
       'scheduleGroupClassDate',
       'updateGroupClass',
@@ -224,12 +225,14 @@ describe('F004 roles on every workspace route', () => {
     // report of a switch to the workspace (F012), which any team member may send, and the planning
     // and reading of sessions (F020: `session.private.manage.own`, and `clients.view`), the
     // reschedule (`session.private.manage.own`; the handler asks whether it is theirs), a client's
-    // upcoming sessions (`clients.view`) and reading the classes (F021: `class.read`).
+    // upcoming sessions (`clients.view`), reading the classes (F021: `class.read`) and the join link
+    // (F029: `join_link.view`; only the Owner renews it).
     expect(trainerRoutes.map(({ name }) => name).toSorted()).toEqual([
       'addClient',
       'createPrivateSession',
       'getClient',
       'getGroupClass',
+      'getJoinLink',
       'getSession',
       'getWorkspace',
       'listClientUpcomingSessions',
@@ -262,6 +265,7 @@ describe('F004 roles on every workspace route', () => {
       listClientUpcomingSessions: 200,
       listGroupClasses: 200,
       getGroupClass: 404,
+      getJoinLink: 200,
     });
   });
 

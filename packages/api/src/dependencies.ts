@@ -129,6 +129,12 @@ export interface ApiDependencies {
    * apps/web). A failed send throws; the route answers 503 and stores nothing.
    */
   sendDemoRequest(mail: DemoRequestMail): Promise<void>;
+  /**
+   * The address the app is served at, without a trailing slash (`https://fivvi.app`): what a link
+   * to a page of the app starts with, today the join link `/j/{code}` (F029). apps/web passes the
+   * base URL it is configured with (`BETTER_AUTH_URL`, ENVIRONMENTS.md), as the emailed links use.
+   */
+  appBaseUrl(): string;
   /** Where "now" comes from: the expiry and the daily limit of an invitation (F011), the past of a session (F020). Tests pass a manual clock. */
   clock: { now(): Date };
   /** Reports unhandled route errors to Sentry (E009). Off without a DSN. */
@@ -160,6 +166,7 @@ export const NO_DEPENDENCIES: ApiDependencies = {
   sendPrivateSession: () => Promise.reject(new Error('No email configured.')),
   sendDemoRequest: () => Promise.reject(new Error('No email configured.')),
   clock: { now: () => new Date() },
+  appBaseUrl: () => 'https://fivvi.app',
   tenantScopes: {
     inAccountScope: () => Promise.reject(new Error('No database configured.')),
     inWorkspaceScope: () => Promise.reject(new Error('No database configured.')),

@@ -17,6 +17,7 @@ import { registerGroupClasses } from './routes/group-classes.ts';
 import { registerHealth } from './routes/health.ts';
 import { registerHello } from './routes/hello.ts';
 import { registerInvitations } from './routes/invitations.ts';
+import { registerJoinLink } from './routes/join-link.ts';
 import { registerLocations } from './routes/locations.ts';
 import { registerMe } from './routes/me.ts';
 import { registerPersonal } from './routes/personal.ts';
@@ -83,6 +84,7 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
   registerAddressLookup(app);
   registerSessions(app);
   registerGroupClasses(app);
+  registerJoinLink(app);
   registerClients(app);
   return app;
 }

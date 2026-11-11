@@ -66,6 +66,13 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     workspace_id: property.uuid(),
     surface: property.enum(['web', 'ios', 'android']),
   },
+  // F029: an Owner renewed the workspace's join link. The workspace ID and the surface only (the
+  // Owner's account UUID is the distinct ID): never the code, the URL or anything of the people
+  // who sent a join request.
+  join_link_renewed: {
+    workspace_id: property.uuid(),
+    surface: property.enum(['web', 'ios', 'android']),
+  },
   // F020: a team member rescheduled a private session. The workspace ID and the surface only, as
   // for `private_session_created`: no session or client ID, name, email address, trainer, or the
   // old or new date or time.

@@ -134,6 +134,8 @@ export const apiHandler = createApiHandler({
   sendDemoRequest,
   // Where "now" comes from: the expiry and the daily limit of an invitation (F011), the past of a session (F020).
   clock: { now: () => new Date() },
+  // The address links to the app start with, the one the emailed links use: the join link (F029).
+  appBaseUrl: () => readAuthConfig(process.env).baseURL,
   // The request transaction of workspace and account routes, with its tenant context (E011).
   tenantScopes: createTenantScopes(database),
   // Fixed-window counters in Postgres (the sign-in's), outside the request transaction.

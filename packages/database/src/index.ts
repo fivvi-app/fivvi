@@ -138,9 +138,12 @@ export {
 } from './repositories/trainer-profiles.ts';
 export {
   createWorkspaceWithOwner,
+  findJoinLink,
   findWorkspace,
+  type JoinLinkView,
   listTeamWorkspaces,
   type NewWorkspace,
+  renewJoinLink,
   updateWorkspace,
   type WorkspaceSummary,
   type WorkspaceView,
