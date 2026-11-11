@@ -16,10 +16,11 @@ const TRAINER_CAPABILITIES: readonly Capability[] = [
   'session.private.manage.own',
   'class.read',
   'join_link.view',
+  'booking_link.copy',
 ];
 
 describe('F004 permission matrix', () => {
-  it('AC1: Owner has every capability, Trainer only trainers.view, clients.view, clients.manage, location.read, session.private.manage.own, class.read and join_link.view', () => {
+  it('AC1: Owner has every capability, Trainer only trainers.view, clients.view, clients.manage, location.read, session.private.manage.own, class.read, join_link.view and booking_link.copy', () => {
     expect(ROLES).toEqual(['owner', 'trainer']);
     expect(CAPABILITIES).toEqual([
       'workspace.manage',
@@ -37,6 +38,8 @@ describe('F004 permission matrix', () => {
       'class.read',
       'join_link.view',
       'join_link.renew',
+      'booking_link.manage',
+      'booking_link.copy',
     ]);
     expect(capabilitiesOf('owner')).toEqual(CAPABILITIES);
     expect(capabilitiesOf('trainer')).toEqual(TRAINER_CAPABILITIES);
@@ -68,6 +71,10 @@ describe('F004 permission matrix', () => {
     // F029: the whole team reads the join link to send it to a new client, only the Owner renews it.
     expect(rolesWith('join_link.view')).toEqual(['owner', 'trainer']);
     expect(rolesWith('join_link.renew')).toEqual(['owner']);
+    // F037: only the Owner makes any booking link and deactivates one; the whole team lists them and
+    // copies (get-or-create) the link of a class date.
+    expect(rolesWith('booking_link.manage')).toEqual(['owner']);
+    expect(rolesWith('booking_link.copy')).toEqual(['owner', 'trainer']);
   });
 
   it('AC9: has no admin role', () => {

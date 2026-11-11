@@ -326,6 +326,27 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/join-link/renew`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/join-link/renew/post(renewJoinLink)`.
     func renewJoinLink(_ input: Operations.RenewJoinLink.Input) async throws -> Operations.RenewJoinLink.Output
+    /// The booking links of a workspace
+    ///
+    /// The workspace’s booking links, for any team member. The first list makes the standing links *Alle boekingen* and *Groepslessen* with the visitor’s language, once (a second list, or two at the same time, makes no more; a standing link that was deactivated is made anew). Each has its short URL and the labels of its target: the class name in both stored languages, the class date’s UTC start and the workspace’s time zone. A client of the workspace gets `403`, a person with no place in it `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/booking-links`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/booking-links/get(listBookingLinks)`.
+    func listBookingLinks(_ input: Operations.ListBookingLinks.Input) async throws -> Operations.ListBookingLinks.Output
+    /// Get or make a booking link
+    ///
+    /// Gets or makes (get-or-create) the link of a scope, target and page language: an active link with the same scope, target and language is returned (`200`) instead of a second one; otherwise a new link with a new code is made (`201`). The Owner makes any link; a Trainer only the link of a class date with the visitor’s language (any other answers `403`). A target that is not in the workspace, a private session, an Open Gym slot or a class that does not exist answers `404`; a class date that has started or passed answers `400` (`date_passed`); a request that names the wrong target for its scope answers `400` with the field in `issues`. Records the product event `booking_link_created` with the workspace ID, the scope kind, the language mode and the surface (`web`, `ios` or `android`) and nothing else, for a new link only; the web is recorded as `web`, a request with a bearer token records the `surface` it names in the body and, naming none, records nothing.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/booking-links`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/booking-links/post(createBookingLink)`.
+    func createBookingLink(_ input: Operations.CreateBookingLink.Input) async throws -> Operations.CreateBookingLink.Output
+    /// Deactivate a booking link
+    ///
+    /// Stops a link for good (the Owner only; a Trainer gets `403`): it is listed as deactivated, never comes back, and a new link for the same scope gets a new code. Deactivating a link again changes nothing and answers `200` with the first time. A link that is not in the workspace answers `404`. Records the product event `booking_link_deactivated` (the same properties as `booking_link_created`) the first time only. The body is optional; the web sends none and is recorded as `web`.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/booking-links/{linkId}/deactivate`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/booking-links/{linkId}/deactivate/post(deactivateBookingLink)`.
+    func deactivateBookingLink(_ input: Operations.DeactivateBookingLink.Input) async throws -> Operations.DeactivateBookingLink.Output
     /// The clients of a workspace
     ///
     /// The whole workspace’s clients (the Owner and every Trainer), sorted by name, one page at a time. `search` matches part of a name or an email address in the server, ignoring case and accents.
@@ -1030,6 +1051,55 @@ extension APIProtocol {
         body: Operations.RenewJoinLink.Input.Body? = nil
     ) async throws -> Operations.RenewJoinLink.Output {
         try await renewJoinLink(Operations.RenewJoinLink.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// The booking links of a workspace
+    ///
+    /// The workspace’s booking links, for any team member. The first list makes the standing links *Alle boekingen* and *Groepslessen* with the visitor’s language, once (a second list, or two at the same time, makes no more; a standing link that was deactivated is made anew). Each has its short URL and the labels of its target: the class name in both stored languages, the class date’s UTC start and the workspace’s time zone. A client of the workspace gets `403`, a person with no place in it `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/booking-links`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/booking-links/get(listBookingLinks)`.
+    public func listBookingLinks(
+        path: Operations.ListBookingLinks.Input.Path,
+        headers: Operations.ListBookingLinks.Input.Headers = .init()
+    ) async throws -> Operations.ListBookingLinks.Output {
+        try await listBookingLinks(Operations.ListBookingLinks.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Get or make a booking link
+    ///
+    /// Gets or makes (get-or-create) the link of a scope, target and page language: an active link with the same scope, target and language is returned (`200`) instead of a second one; otherwise a new link with a new code is made (`201`). The Owner makes any link; a Trainer only the link of a class date with the visitor’s language (any other answers `403`). A target that is not in the workspace, a private session, an Open Gym slot or a class that does not exist answers `404`; a class date that has started or passed answers `400` (`date_passed`); a request that names the wrong target for its scope answers `400` with the field in `issues`. Records the product event `booking_link_created` with the workspace ID, the scope kind, the language mode and the surface (`web`, `ios` or `android`) and nothing else, for a new link only; the web is recorded as `web`, a request with a bearer token records the `surface` it names in the body and, naming none, records nothing.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/booking-links`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/booking-links/post(createBookingLink)`.
+    public func createBookingLink(
+        path: Operations.CreateBookingLink.Input.Path,
+        headers: Operations.CreateBookingLink.Input.Headers = .init(),
+        body: Operations.CreateBookingLink.Input.Body
+    ) async throws -> Operations.CreateBookingLink.Output {
+        try await createBookingLink(Operations.CreateBookingLink.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// Deactivate a booking link
+    ///
+    /// Stops a link for good (the Owner only; a Trainer gets `403`): it is listed as deactivated, never comes back, and a new link for the same scope gets a new code. Deactivating a link again changes nothing and answers `200` with the first time. A link that is not in the workspace answers `404`. Records the product event `booking_link_deactivated` (the same properties as `booking_link_created`) the first time only. The body is optional; the web sends none and is recorded as `web`.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/booking-links/{linkId}/deactivate`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/booking-links/{linkId}/deactivate/post(deactivateBookingLink)`.
+    public func deactivateBookingLink(
+        path: Operations.DeactivateBookingLink.Input.Path,
+        headers: Operations.DeactivateBookingLink.Input.Headers = .init(),
+        body: Operations.DeactivateBookingLink.Input.Body? = nil
+    ) async throws -> Operations.DeactivateBookingLink.Output {
+        try await deactivateBookingLink(Operations.DeactivateBookingLink.Input(
             path: path,
             headers: headers,
             body: body

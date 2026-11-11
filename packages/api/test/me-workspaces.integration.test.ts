@@ -199,6 +199,8 @@ describe('F004 capabilities on GET /v1/me/workspaces', () => {
       'class.read',
       'join_link.view',
       'join_link.renew',
+      'booking_link.manage',
+      'booking_link.copy',
     ]);
     expect(capabilitiesIn(gym.id)).toEqual([
       'trainers.view',
@@ -208,6 +210,7 @@ describe('F004 capabilities on GET /v1/me/workspaces', () => {
       'session.private.manage.own',
       'class.read',
       'join_link.view',
+      'booking_link.copy',
     ]);
   });
 

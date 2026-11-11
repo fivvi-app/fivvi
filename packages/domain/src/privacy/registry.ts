@@ -257,6 +257,25 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     retention: 'FORMER_TRAINER',
     note: 'A scheduled session. The links to the trainer and to who planned it or changed it last are cleared when the team member is removed; the session stays as the workspace’s record (R9).',
   },
+  {
+    table: 'booking_links',
+    personal: true,
+    subject: 'team_member',
+    personalData: ['created_by_team_member_id'],
+    export: [
+      'id',
+      'scope',
+      'group_class_id',
+      'session_id',
+      'language',
+      'created_by_team_member_id',
+      'deactivated_at',
+      ...TIMESTAMPS,
+    ],
+    onDelete: 'anonymize',
+    retention: 'FORMER_TRAINER',
+    note: 'A short link to the workspace’s timetable; the code is left out of an export, as every code is. The link to the team member who made it is cleared when the team member is removed; the link itself stays with the workspace, it holds no data of a person.',
+  },
   // Payments (E019, ADR-020): references, amounts and statuses; the provider holds the payment data.
   {
     table: 'payment_customers',

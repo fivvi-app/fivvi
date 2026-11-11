@@ -170,6 +170,24 @@ extension StubAPI {
         fatalError("The app doesn't call renewJoinLink yet")
     }
 
+    func listBookingLinks(
+        _ input: Operations.ListBookingLinks.Input
+    ) async throws -> Operations.ListBookingLinks.Output {
+        fatalError("The app doesn't call listBookingLinks yet")
+    }
+
+    func createBookingLink(
+        _ input: Operations.CreateBookingLink.Input
+    ) async throws -> Operations.CreateBookingLink.Output {
+        fatalError("The app doesn't call createBookingLink yet")
+    }
+
+    func deactivateBookingLink(
+        _ input: Operations.DeactivateBookingLink.Input
+    ) async throws -> Operations.DeactivateBookingLink.Output {
+        fatalError("The app doesn't call deactivateBookingLink yet")
+    }
+
     func getInvitation(
         _ input: Operations.GetInvitation.Input
     ) async throws -> Operations.GetInvitation.Output {

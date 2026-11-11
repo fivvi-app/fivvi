@@ -39,6 +39,20 @@ export {
   setPreferredLocale,
 } from './repositories/accounts.ts';
 export {
+  type BookingLinkClassView,
+  type BookingLinkLanguageName,
+  type BookingLinkScopeName,
+  type BookingLinkSessionFacts,
+  type BookingLinkView,
+  deactivateBookingLink,
+  ensureStandingBookingLinks,
+  findBookingLink,
+  findBookingLinkSession,
+  getOrCreateBookingLink,
+  listBookingLinks,
+  type NewBookingLink,
+} from './repositories/booking-links.ts';
+export {
   type ClientChanges,
   type ClientPage,
   type ClientView,

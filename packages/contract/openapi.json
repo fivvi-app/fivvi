@@ -279,7 +279,9 @@
                 "class.manage",
                 "class.read",
                 "join_link.view",
-                "join_link.renew"
+                "join_link.renew",
+                "booking_link.manage",
+                "booking_link.copy"
               ]
             },
             "description": "What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway."
@@ -361,7 +363,9 @@
                 "class.manage",
                 "class.read",
                 "join_link.view",
-                "join_link.renew"
+                "join_link.renew",
+                "booking_link.manage",
+                "booking_link.copy"
               ]
             },
             "description": "What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway."
@@ -2182,6 +2186,218 @@
           }
         },
         "description": "Who sends the renewal. The body is optional; the web sends none."
+      },
+      "BookingLinks": {
+        "type": "object",
+        "properties": {
+          "links": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BookingLink"
+            },
+            "description": "The workspace’s links: the active ones first (the standing links *Alle boekingen* and *Groepslessen*, then the others by the time they were made), then the deactivated ones."
+          }
+        },
+        "required": [
+          "links"
+        ],
+        "description": "The booking links of a workspace."
+      },
+      "BookingLink": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The booking link ID."
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "The short link in full, `https://…/l/{code}`. The QR code and the poster show this same link (F038)."
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "all",
+              "group",
+              "class",
+              "session"
+            ],
+            "description": "What the link opens: `all` (*Alle boekingen*), `group` (*Groepslessen*), `class` (*Eén les*) or `session` (*Eén les op een datum*). Open Gym returns with F034 to F036."
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "visitor",
+              "nl",
+              "en"
+            ],
+            "description": "The page language: `visitor` (*Taal van de bezoeker*), or always Dutch (`nl`) or English (`en`). The visitor can always switch language themselves (ADR-017)."
+          },
+          "active": {
+            "type": "boolean",
+            "description": "`false` once the Owner has deactivated it; it never comes back."
+          },
+          "deactivatedAt": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "date-time",
+            "description": "When it was deactivated, a UTC instant; `null` while it is active."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it was made, a UTC instant."
+          },
+          "groupClass": {
+            "$ref": "#/components/schemas/BookingLinkClass"
+          },
+          "date": {
+            "type": [
+              "object",
+              "null"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid",
+                "description": "The class date (session) ID."
+              },
+              "startsAt": {
+                "type": "string",
+                "format": "date-time",
+                "description": "The start, a UTC instant."
+              },
+              "timeZone": {
+                "type": "string",
+                "description": "The workspace’s IANA time zone: show the start in it."
+              },
+              "groupClass": {
+                "allOf": [
+                  {
+                    "$ref": "#/components/schemas/BookingLinkClass"
+                  },
+                  {
+                    "description": "A class by name, as the list labels a link."
+                  }
+                ]
+              }
+            },
+            "required": [
+              "id",
+              "startsAt",
+              "timeZone",
+              "groupClass"
+            ],
+            "description": "The class date of a `session` link; `null` for the other scopes."
+          }
+        },
+        "required": [
+          "id",
+          "url",
+          "scope",
+          "language",
+          "active",
+          "deactivatedAt",
+          "createdAt",
+          "groupClass",
+          "date"
+        ],
+        "description": "A booking link of a workspace (*boekingslink*). Its scope, target and language are fixed for good; only its deactivation changes."
+      },
+      "BookingLinkClass": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The class ID."
+          },
+          "nameNl": {
+            "type": "string",
+            "description": "The Dutch name: always there."
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The English name, `null` without one. Show the Dutch name then."
+          }
+        },
+        "required": [
+          "id",
+          "nameNl",
+          "nameEn"
+        ],
+        "description": "The class of a `class` link; `null` for the other scopes."
+      },
+      "CreateBookingLinkRequest": {
+        "type": "object",
+        "properties": {
+          "scope": {
+            "type": "string",
+            "enum": [
+              "all",
+              "group",
+              "class",
+              "session"
+            ],
+            "description": "What the link opens: `all` (*Alle boekingen*), `group` (*Groepslessen*), `class` (*Eén les*) or `session` (*Eén les op een datum*). Open Gym returns with F034 to F036."
+          },
+          "language": {
+            "type": "string",
+            "enum": [
+              "visitor",
+              "nl",
+              "en"
+            ],
+            "description": "The page language: `visitor` (*Taal van de bezoeker*), or always Dutch (`nl`) or English (`en`). The visitor can always switch language themselves (ADR-017)."
+          },
+          "groupClassId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The class of a `class` link, and only of that scope."
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The class date of a `session` link, and only of that scope: an upcoming group session of the workspace (a private session, an Open Gym slot and a date that has passed are refused)."
+          },
+          "surface": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android"
+            ],
+            "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the product event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it."
+          }
+        },
+        "required": [
+          "scope",
+          "language"
+        ],
+        "description": "The link to get or make: its scope, its target and its page language."
+      },
+      "DeactivateBookingLinkRequest": {
+        "type": "object",
+        "properties": {
+          "surface": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android"
+            ],
+            "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the product event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it."
+          }
+        },
+        "description": "Who sends the deactivation. The body is optional; the web sends none."
       },
       "ClientList": {
         "type": "object",
@@ -6688,6 +6904,353 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/JoinLink"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/booking-links": {
+      "get": {
+        "operationId": "listBookingLinks",
+        "tags": [
+          "booking-links"
+        ],
+        "summary": "The booking links of a workspace",
+        "description": "The workspace’s booking links, for any team member. The first list makes the standing links *Alle boekingen* and *Groepslessen* with the visitor’s language, once (a second list, or two at the same time, makes no more; a standing link that was deactivated is made anew). Each has its short URL and the labels of its target: the class name in both stored languages, the class date’s UTC start and the workspace’s time zone. A client of the workspace gets `403`, a person with no place in it `404`.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "booking_link.copy",
+          "roles": [
+            "owner",
+            "trainer"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The links.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingLinks"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createBookingLink",
+        "tags": [
+          "booking-links"
+        ],
+        "summary": "Get or make a booking link",
+        "description": "Gets or makes (get-or-create) the link of a scope, target and page language: an active link with the same scope, target and language is returned (`200`) instead of a second one; otherwise a new link with a new code is made (`201`). The Owner makes any link; a Trainer only the link of a class date with the visitor’s language (any other answers `403`). A target that is not in the workspace, a private session, an Open Gym slot or a class that does not exist answers `404`; a class date that has started or passed answers `400` (`date_passed`); a request that names the wrong target for its scope answers `400` with the field in `issues`. Records the product event `booking_link_created` with the workspace ID, the scope kind, the language mode and the surface (`web`, `ios` or `android`) and nothing else, for a new link only; the web is recorded as `web`, a request with a bearer token records the `surface` it names in the body and, naming none, records nothing.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "booking_link.copy",
+          "roles": [
+            "owner",
+            "trainer"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateBookingLinkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The active link that already existed.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingLink"
+                }
+              }
+            }
+          },
+          "201": {
+            "description": "The new link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingLink"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/booking-links/{linkId}/deactivate": {
+      "post": {
+        "operationId": "deactivateBookingLink",
+        "tags": [
+          "booking-links"
+        ],
+        "summary": "Deactivate a booking link",
+        "description": "Stops a link for good (the Owner only; a Trainer gets `403`): it is listed as deactivated, never comes back, and a new link for the same scope gets a new code. Deactivating a link again changes nothing and answers `200` with the first time. A link that is not in the workspace answers `404`. Records the product event `booking_link_deactivated` (the same properties as `booking_link_created`) the first time only. The body is optional; the web sends none and is recorded as `web`.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "booking_link.manage",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The booking link ID."
+            },
+            "required": true,
+            "description": "The booking link ID.",
+            "name": "linkId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeactivateBookingLinkRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The deactivated link.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/BookingLink"
                 }
               }
             }

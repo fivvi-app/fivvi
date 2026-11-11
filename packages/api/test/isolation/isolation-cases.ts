@@ -1,12 +1,19 @@
-import { type DatabaseExecutor, locations, organizations, trainerProfiles } from '@fivvi/database';
 import {
+  bookingLinks,
+  type DatabaseExecutor,
+  locations,
+  organizations,
+  trainerProfiles,
+} from '@fivvi/database';
+import {
+  addBookingLink,
   addGroupClass,
   addSession,
   addTeamRole,
   addTrainerInvitation,
   createAccount,
 } from '@fivvi/database/testing';
-import { eq, sql } from 'drizzle-orm';
+import { and, eq, isNull, sql } from 'drizzle-orm';
 
 // The isolation cases (E011, AC11, AC14): one per workspace and account operation, by operation
 // ID, holding only the data the isolation suite needs to call the route. The suite derives the
@@ -127,6 +134,46 @@ const aSession: IsolationCase['seed'] = async (db, { workspaceId, clientId }) =>
 const aClass: IsolationCase['seed'] = async (db, { workspaceId }) => {
   const { id } = await addGroupClass(db, { workspaceId });
   return { class: id };
+};
+
+/**
+ * The booking links of the workspace the seed was called for (F037): the two standing links, made
+ * here when the workspace has none yet (the list makes them on the first read, and a read must not
+ * change a row), and a link to a class of its own: what the list shows.
+ */
+const theBookingLinks: IsolationCase['seed'] = async (db, { workspaceId }) => {
+  for (const scope of ['all', 'group'] as const) {
+    const [present] = await db
+      .select({ id: bookingLinks.id })
+      .from(bookingLinks)
+      .where(
+        and(
+          eq(bookingLinks.organizationId, workspaceId),
+          eq(bookingLinks.scope, scope),
+          eq(bookingLinks.language, 'visitor'),
+          isNull(bookingLinks.deactivatedAt),
+        ),
+      );
+    if (!present) await addBookingLink(db, { workspaceId, scope });
+  }
+  const { id } = await addGroupClass(db, { workspaceId });
+  const link = await addBookingLink(db, { workspaceId, scope: 'class', groupClassId: id });
+  return { class: id, link: link.id };
+};
+
+/** An upcoming class date of the workspace the seed was called for: what the date link is made for (F037). */
+const anUpcomingGroupDate: IsolationCase['seed'] = async (db, { workspaceId }) => {
+  const { id } = await addSession(db, { workspaceId, type: 'group', participant: false });
+  return { session: id };
+};
+
+/** A class link of its own, on a class of its own, to deactivate (F037). */
+const aBookingLink: IsolationCase['seed'] = async (db, { workspaceId }) => {
+  const { id } = await addBookingLink(db, {
+    workspaceId,
+    scope: 'class',
+  });
+  return { link: id };
 };
 
 /** A class on a date of the workspace the seed was called for: what the session read shows and the date edit changes (F021). */
@@ -327,6 +374,22 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
     reseedForEachCall: true,
     params: { sessionId: 'session' },
     body: { version: 1, capacity: 9 },
+  },
+
+  // The booking links of a workspace (F037): the list shows the seeded links (the standing ones
+  // exist already, so reading changes nothing). The create takes what a Trainer may make too, the
+  // link of an upcoming class date in the visitor's language; the deactivation names a link of its own.
+  listBookingLinks: { seed: theBookingLinks },
+  createBookingLink: {
+    seed: anUpcomingGroupDate,
+    body: (values) => ({ scope: 'session', sessionId: values.session ?? '', language: 'visitor' }),
+  },
+  deactivateBookingLink: {
+    seed: aBookingLink,
+    reseedForEachCall: true,
+    params: { linkId: 'link' },
+    // The body is optional (the app names its surface in it); the web sends none.
+    body: {},
   },
 
   // The trainers of a workspace (F005): the list shows the seeded Trainer. The two switch routes
