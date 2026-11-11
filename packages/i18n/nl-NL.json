@@ -229,7 +229,7 @@
       "trainer": "Trainer: {trainer}"
     },
     "privateSessionMoved": {
-      "subject": "Wijziging: je sessie op {oldDate} is verplaatst naar {newDate}",
+      "subject": "Wijziging: je sessie is verplaatst naar {newDate}",
       "dateTime": "{date} om {time}",
       "preview": "Je privésessie is verplaatst naar {newDate}.",
       "intro": "Je privésessie bij {workspace} is verplaatst.",

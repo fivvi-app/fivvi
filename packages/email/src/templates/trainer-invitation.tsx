@@ -64,10 +64,11 @@ export const trainerInvitationEmail: EmailTemplate<TrainerInvitationEmailProps> 
       <Text style={textStyle}>{ctx.t('email.trainerInvitation.ignore')}</Text>
     </>
   ),
+  userContent: ['inviterName', 'workspaceName'],
   previewProps: {
     inviterName: 'John',
     workspaceName: 'John’s Gym',
-    url: 'https://fivvi.example.com/invitations/preview-token-not-real',
+    url: 'https://fivvi.app/invitations/preview-token-not-real',
     expiresAt: new Date('2026-11-12T10:00:00Z'),
   },
 };

@@ -33,6 +33,7 @@ export const helloEmail: EmailTemplate<HelloEmailProps> = {
       </Text>
     </>
   ),
+  userContent: ['firstName'],
   previewProps: {
     firstName: 'Anna',
     sentAt: new Date('2026-09-22T16:00:00Z'),

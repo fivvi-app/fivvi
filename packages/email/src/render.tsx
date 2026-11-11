@@ -6,6 +6,7 @@ import {
   type Locale,
   type MessageKey,
   messages,
+  pickContentLanguage,
 } from '@fivvi/i18n';
 import type { ReactElement } from 'react';
 import { render } from 'react-email';
@@ -28,12 +29,20 @@ export interface EmailContext {
   t: Translate;
   /** Formats an instant with a shared format from `@fivvi/i18n`, in `timeZone`. */
   formatDateTime: (instant: Date, format: DateTimeFormatName) => string;
+  /**
+   * A name or text the team typed in both languages (a class name), in the recipient's language
+   * by F021's rule: the English text when the recipient reads English and there is one, else the
+   * Dutch text. Shown as typed, never machine-translated.
+   */
+  pickContent: (nl: string, en: string | null | undefined) => string;
 }
 
 export interface EmailContextOptions {
   locale: Locale;
   /** The workspace or user time zone. Default: Europe/Amsterdam. */
   timeZone?: string;
+  /** Called with the key of every message the template asks for. The checks of F049 read it. */
+  onTranslate?: (key: EmailMessageKey) => void;
 }
 
 /**
@@ -44,6 +53,7 @@ export interface EmailContextOptions {
 export function createEmailContext({
   locale,
   timeZone = defaultTimeZone,
+  onTranslate,
 }: EmailContextOptions): EmailContext {
   const lang = formattingLocales[locale];
   const translator = createTranslator({
@@ -59,9 +69,13 @@ export function createEmailContext({
     lang,
     timeZone,
     // use-intl types `values` per key; our keys are checked by EmailMessageKey instead.
-    t: (key, values) => translator(key as never, values as never),
+    t: (key, values) => {
+      onTranslate?.(key);
+      return translator(key as never, values as never);
+    },
     formatDateTime: (instant, format) =>
       new Intl.DateTimeFormat(lang, { ...dateTimeFormats[format], timeZone }).format(instant),
+    pickContent: (nl, en) => pickContentLanguage(locale, nl, en),
   };
 }
 
@@ -82,6 +96,15 @@ export interface EmailFrame<Props> {
 }
 
 /**
+ * A prop that holds text people typed, which the catalog checks (F049 AC6) fill with markup to
+ * prove it is escaped and shown as typed: the prop's name, or a pair of props for a name written
+ * in Dutch and English (a class name), shown by `ctx.pickContent`.
+ */
+export type UserContentProp<Props> =
+  | (keyof Props & string)
+  | { nl: keyof Props & string; en: keyof Props & string };
+
+/**
  * One email type. There is one template per type, never one per language (ADR-009):
  * every string comes from the catalogs through `ctx.t`. `renderEmail` wraps the content
  * in the shared layout.
@@ -96,6 +119,12 @@ export interface EmailTemplate<Props> {
   render: (ctx: EmailContext, props: Props) => ReactElement;
   /** Set for every email about a workspace; leave out for an email without one. */
   frame?: EmailFrame<Props>;
+  /**
+   * The props that hold text a person typed (a name, an owner's message), `[]` for none. The
+   * catalog suite renders the template with `<b>` and `&` in each, in both languages, and fails
+   * when one is not escaped, not shown as typed, or not in the recipient's language.
+   */
+  userContent: readonly UserContentProp<Props>[];
   /** Sample props for the preview script. Obviously fake data only. */
   previewProps: Props;
 }
