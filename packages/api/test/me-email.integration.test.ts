@@ -293,21 +293,28 @@ describe('F005 change your own email address', () => {
       const sarah = await account(unique('sarah'));
       const newEmail = unique('sarah.jansen');
 
-      await askForCode(sarah.cookie, newEmail);
-      const [stored] = await client.db
-        .select({ codeHash: authVerifications.codeHash })
-        .from(authVerifications)
-        .where(eq(authVerifications.identifier, `change-email:${sarah.id}`));
-      await askForCode(sarah.cookie, newEmail);
+      const storedCodeHash = async () =>
+        (
+          await client.db
+            .select({ codeHash: authVerifications.codeHash })
+            .from(authVerifications)
+            .where(eq(authVerifications.identifier, `change-email:${sarah.id}`))
+        )[0]?.codeHash;
 
-      const [first, second] = transport.sent.map((sent) => sent.idempotencyKey);
+      // `askForCode` clears the transport first, so each call has the one email of its request.
+      const first = (await askForCode(sarah.cookie, newEmail)).email?.idempotencyKey;
+      const firstCodeHash = await storedCodeHash();
+      const second = (await askForCode(sarah.cookie, newEmail)).email?.idempotencyKey;
+      const secondCodeHash = await storedCodeHash();
+
       expect(first).toMatch(
         /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
       );
       expect(second).not.toBe(first);
       // The event is the request's stored code hash, not a random value: the key follows the row.
-      expect(stored?.codeHash).toEqual(expect.any(String));
-      expect(first).toBe(emailIdempotencyKey('EM-34', stored?.codeHash ?? ''));
+      expect(firstCodeHash).toEqual(expect.any(String));
+      expect(first).toBe(emailIdempotencyKey('EM-34', firstCodeHash ?? ''));
+      expect(second).toBe(emailIdempotencyKey('EM-34', secondCodeHash ?? ''));
     });
 
     it('answers 202 with an empty body', async () => {
