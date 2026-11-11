@@ -140,7 +140,10 @@ describe('F060 refunds and reversals', () => {
 
     expect(await inScope((scope) => deleteTeamMember(scope, trainer.id))).toBe(true);
 
-    const [kept] = await admin.db.select().from(paymentRefunds).where(eq(paymentRefunds.id, refund.id));
+    const [kept] = await admin.db
+      .select()
+      .from(paymentRefunds)
+      .where(eq(paymentRefunds.id, refund.id));
     expect(kept?.requestedByTeamMemberId).toBeNull();
     // Only that column is cleared: the refund stays in its workspace, with its status line.
     expect(kept?.organizationId).toBe(workspaceId);
