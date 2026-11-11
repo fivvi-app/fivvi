@@ -257,6 +257,35 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     retention: 'FORMER_TRAINER',
     note: 'A scheduled session. The links to the trainer and to who planned it or changed it last are cleared when the team member is removed; the session stays as the workspace’s record (R9).',
   },
+  // The two logs of the privacy tooling (E014, ticket #1173): IDs and times, never content.
+  {
+    table: 'access_log',
+    personal: true,
+    subject: 'client',
+    personalData: ['actor_team_member_id', 'subject_client_id'],
+    export: [
+      'id',
+      'actor_team_member_id',
+      'action',
+      'subject_client_id',
+      'object_id',
+      'occurred_at',
+      ...TIMESTAMPS,
+    ],
+    onDelete: 'anonymize',
+    retention: 'ACCESS_LOG',
+    note: 'Who exported, trashed, restored or purged which client, and from M7 who viewed or changed which note (the note’s ID, never its content). IDs and a time only; the Owner reads it with the names resolved at read time (R12). When a client is purged her entries stay with an ID that no longer leads to a person, and the reader shows “Deleted client”; every entry is deleted after the period.',
+  },
+  {
+    table: 'deletion_log',
+    personal: true,
+    subject: 'workspace',
+    personalData: ['record_id'],
+    export: [],
+    onDelete: 'delete',
+    retention: 'DELETION_LOG',
+    note: 'The table name and record ID of every hard deletion and anonymization, with the workspace and the time, so a restore of a backup can re-apply them (retention policy §3.5). No content. Platform data of the cron role, not part of an export. Entries are deleted after the period.',
+  },
   // Payments (E019, ADR-020): references, amounts and statuses; the provider holds the payment data.
   {
     table: 'payment_customers',

@@ -416,6 +416,9 @@
       "unreadable": "We kunnen dit bestand niet lezen. Gebruik het sjabloon (.xlsx) of een UTF-8 CSV."
     }
   },
+  "accessLog": {
+    "deletedClient": "Verwijderde klant"
+  },
   "noWorkspace": {
     "title": "Vraag je studio om de aanmeldlink.",
     "haveLink": "Heb je de link al? Open hem op deze telefoon.",

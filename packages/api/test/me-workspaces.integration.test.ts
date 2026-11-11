@@ -199,6 +199,7 @@ describe('F004 capabilities on GET /v1/me/workspaces', () => {
       'class.read',
       'join_link.view',
       'join_link.renew',
+      'access_log.read',
     ]);
     expect(capabilitiesIn(gym.id)).toEqual([
       'trainers.view',

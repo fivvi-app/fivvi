@@ -146,6 +146,29 @@ describe('E014 AC1: every table in the schema is in the privacy registry', () =>
     expect(retentionOf('trainer_invitations')).toBe('TRAINER_INVITATION_AFTER_CLOSING');
   });
 
+  it('AC21/AC22 (E014 #1173): declares the access log under its 12-month constant and the deletion log under its 30-day constant', () => {
+    const access = declaredTable('access_log');
+    const deletion = declaredTable('deletion_log');
+    expect(access?.personal && access.retention).toBe('ACCESS_LOG');
+    expect(deletion?.personal && deletion.retention).toBe('DELETION_LOG');
+    expect(RETENTION.ACCESS_LOG).toEqual({ unit: 'months', amount: 12 });
+    expect(RETENTION.DELETION_LOG).toEqual({ unit: 'days', amount: 30 });
+  });
+
+  it('exports no content from the logs: only IDs, the action and the time', () => {
+    const access = declaredTable('access_log');
+    expect(access?.personal && access.export).toEqual([
+      'id',
+      'actor_team_member_id',
+      'action',
+      'subject_client_id',
+      'object_id',
+      'occurred_at',
+      'created_at',
+      'updated_at',
+    ]);
+  });
+
   it('keeps the booking and attendance of a deleted client as an anonymous count', () => {
     const participants = declaredTable('session_participants');
     expect(participants?.personal && participants.onDelete).toBe('anonymize');

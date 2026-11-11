@@ -3,6 +3,7 @@ import { and, eq } from 'drizzle-orm';
 import type { DatabaseExecutor } from '../client.ts';
 import { FIXTURE_INVITATION_VALIDITY_MS } from '../invitation-validity.ts';
 import {
+  accessLog,
   authUsers,
   clients,
   groupClasses,
@@ -69,17 +70,20 @@ export async function createWorkspace(
   return { id: row.id, marker };
 }
 
-/** An account (a person's global login) whose email and name carry a unique marker. */
+/**
+ * An account (a person's global login) whose email and name carry a unique marker; a test that
+ * reads the name back gives one (`name`).
+ */
 export async function createAccount(
   db: Executor,
-  options: { label?: string } = {},
+  options: { label?: string; name?: string } = {},
 ): Promise<{ id: string; email: string; marker: string }> {
   const marker = uniqueMarker(options.label ?? 'account');
   const email = `${marker}@example.com`;
   const row = first(
     await db
       .insert(authUsers)
-      .values({ email, name: marker, emailVerified: true })
+      .values({ email, name: options.name ?? marker, emailVerified: true })
       .returning({ id: authUsers.id }),
     'account',
   );
@@ -406,4 +410,60 @@ export async function addPaymentCustomer(
     'payment customer',
   );
   return { id: row.id, clientId };
+}
+
+/**
+ * An access-log entry of the workspace (E014), by default a `client.exported` by an Owner made for
+ * it about a client made for it. Pass the IDs to say who and what; a `workspace.exported` entry
+ * names no client, a `note.viewed` or `note.changed` entry gets a note ID of its own unless given.
+ */
+export async function addAccessLogEntry(
+  db: Executor,
+  options: {
+    workspaceId: string;
+    action?: (typeof accessLog.action.enumValues)[number];
+    actorTeamMemberId?: string | null;
+    subjectClientId?: string | null;
+    objectId?: string | null;
+    occurredAt?: Date;
+  },
+): Promise<{ id: string; actorTeamMemberId: string | null; subjectClientId: string | null }> {
+  const action = options.action ?? 'client.exported';
+  const actorTeamMemberId =
+    options.actorTeamMemberId !== undefined
+      ? options.actorTeamMemberId
+      : (
+          await addTeamRole(db, {
+            workspaceId: options.workspaceId,
+            accountId: (await createAccount(db, { label: 'actor' })).id,
+            role: 'owner',
+          })
+        ).id;
+  const subjectClientId =
+    options.subjectClientId !== undefined
+      ? options.subjectClientId
+      : action === 'workspace.exported'
+        ? null
+        : (await addClient(db, { workspaceId: options.workspaceId })).id;
+  const objectId =
+    options.objectId !== undefined
+      ? options.objectId
+      : action === 'note.viewed' || action === 'note.changed'
+        ? crypto.randomUUID()
+        : null;
+  const row = first(
+    await db
+      .insert(accessLog)
+      .values({
+        organizationId: options.workspaceId,
+        actorTeamMemberId,
+        action,
+        subjectClientId,
+        objectId,
+        ...(options.occurredAt ? { occurredAt: options.occurredAt } : {}),
+      })
+      .returning({ id: accessLog.id }),
+    'access log entry',
+  );
+  return { id: row.id, actorTeamMemberId, subjectClientId };
 }

@@ -279,7 +279,8 @@
                 "class.manage",
                 "class.read",
                 "join_link.view",
-                "join_link.renew"
+                "join_link.renew",
+                "access_log.read"
               ]
             },
             "description": "What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway."
@@ -361,7 +362,8 @@
                 "class.manage",
                 "class.read",
                 "join_link.view",
-                "join_link.renew"
+                "join_link.renew",
+                "access_log.read"
               ]
             },
             "description": "What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway."
@@ -2341,6 +2343,110 @@
           }
         },
         "description": "The fields of a client to change. A field left out, or `null`, stays as it is; the language goes back to the default with `clearEmailLocale`. The email address can be changed, never cleared. The same body reads alike in every client: Swift and Kotlin leave an unset field out, and any caller may send `null` for \"keep\"."
+      },
+      "AccessLogList": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AccessLogEntry"
+            },
+            "description": "This page of entries, newest first."
+          },
+          "total": {
+            "type": "integer",
+            "description": "How many entries match, over all pages."
+          }
+        },
+        "required": [
+          "items",
+          "total"
+        ],
+        "description": "One page of the access log of a workspace."
+      },
+      "AccessLogEntry": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The entry ID."
+          },
+          "occurredAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When it happened, a UTC instant."
+          },
+          "action": {
+            "type": "string",
+            "enum": [
+              "client.exported",
+              "client.trashed",
+              "client.restored",
+              "client.purged",
+              "workspace.exported",
+              "client.retention_kept",
+              "note.viewed",
+              "note.changed"
+            ],
+            "description": "What was done: `client.exported`, `client.trashed`, `client.restored`, `client.purged`, `workspace.exported`, `client.retention_kept`, and from M7 `note.viewed` and `note.changed`."
+          },
+          "actorTeamMemberId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The team member who did it. `null` for what the daily cleanup does by itself. The ID stays when the team member has left the team."
+          },
+          "actorName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The team member’s name now (their email address when they have given none). `null` when there is no team member, or when they have left the team."
+          },
+          "clientId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The client the action was about; `null` for an action about no client (`workspace.exported`). The ID stays after the client is deleted, so the list can still be filtered by it."
+          },
+          "clientName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The client’s name now. `null` for an action about no client. A client that no longer exists reads as *Verwijderde klant* or *Deleted client*, in the language of the reader (their stored language, else `Accept-Language`, else English); `clientRemoved` is `true` then."
+          },
+          "clientRemoved": {
+            "type": "boolean",
+            "description": "`true` when the entry is about a client who no longer exists."
+          },
+          "objectId": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "format": "uuid",
+            "description": "The note’s ID for `note.viewed` and `note.changed`; `null` for any other action. The log never holds a note’s text."
+          }
+        },
+        "required": [
+          "id",
+          "occurredAt",
+          "action",
+          "actorTeamMemberId",
+          "actorName",
+          "clientId",
+          "clientName",
+          "clientRemoved",
+          "objectId"
+        ],
+        "description": "One entry of the access log: who did what to which client, and when. IDs, names and a time; no free text, never note content."
       }
     },
     "parameters": {}
@@ -7235,6 +7341,165 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/ClientExists"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/access-log": {
+      "get": {
+        "operationId": "listAccessLog",
+        "tags": [
+          "privacy"
+        ],
+        "summary": "The access log of a workspace",
+        "description": "The access log of the workspace (the Owner only; a Trainer gets `403`): who exported, trashed, restored or purged which client, and from M7 who viewed or changed which note. This workspace’s entries only, newest first, one page at a time, optionally of one client and one action. Names are looked up now; a client who no longer exists reads as *Verwijderde klant* or *Deleted client* in the reader’s language. Entries hold IDs and a time, never a note’s text. Entries older than 12 months are deleted.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "access_log.read",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "Only the entries about this client. Also finds those of a client who is deleted since. An ID that belongs to no client of this workspace finds nothing."
+            },
+            "required": false,
+            "description": "Only the entries about this client. Also finds those of a client who is deleted since. An ID that belongs to no client of this workspace finds nothing.",
+            "name": "clientId",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "enum": [
+                "client.exported",
+                "client.trashed",
+                "client.restored",
+                "client.purged",
+                "workspace.exported",
+                "client.retention_kept",
+                "note.viewed",
+                "note.changed"
+              ],
+              "description": "Only the entries of this action."
+            },
+            "required": false,
+            "description": "Only the entries of this action.",
+            "name": "action",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100,
+              "default": 50,
+              "description": "How many entries a page holds, 1 to 100; 50 by default."
+            },
+            "required": false,
+            "description": "How many entries a page holds, 1 to 100; 50 by default.",
+            "name": "pageSize",
+            "in": "query"
+          },
+          {
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 100000,
+              "default": 1,
+              "description": "Which page, counted from 1, newest first; 1 by default."
+            },
+            "required": false,
+            "description": "Which page, counted from 1, newest first; 1 by default.",
+            "name": "page",
+            "in": "query"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "One page of the access log.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccessLogList"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
                 }
               }
             }

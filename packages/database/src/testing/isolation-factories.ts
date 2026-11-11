@@ -9,6 +9,7 @@ import {
   trainerProfiles,
 } from '../schema/index.ts';
 import {
+  addAccessLogEntry,
   addClient,
   addGroupClass,
   addPayment,
@@ -198,5 +199,10 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
       if (!row) throw new Error('payment status change was not created.');
       return row;
     },
+  },
+  // An export of a client by an Owner, both made for the workspace.
+  access_log: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addAccessLogEntry(db, { workspaceId }),
   },
 };

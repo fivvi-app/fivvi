@@ -416,6 +416,9 @@
       "unreadable": "We can't read this file. Use the template (.xlsx) or a UTF-8 CSV."
     }
   },
+  "accessLog": {
+    "deletedClient": "Deleted client"
+  },
   "noWorkspace": {
     "title": "Ask your studio for its link.",
     "haveLink": "Got the link? Open it on this phone.",

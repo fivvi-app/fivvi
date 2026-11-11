@@ -1,5 +1,6 @@
 import { type DatabaseExecutor, locations, organizations, trainerProfiles } from '@fivvi/database';
 import {
+  addAccessLogEntry,
   addGroupClass,
   addSession,
   addTeamRole,
@@ -217,6 +218,16 @@ const aSessionForEachTrainer: IsolationCase['seed'] = async (db, { workspaceId, 
   return {};
 };
 
+/**
+ * An entry of the access log of the workspace the seed was called for: an export of the client it
+ * was called for by an Owner of the workspace. The list shows the entry's ID and the client's ID
+ * (E014).
+ */
+const anAccessLogEntry: IsolationCase['seed'] = async (db, { workspaceId, clientId }) => {
+  const entry = await addAccessLogEntry(db, { workspaceId, subjectClientId: clientId });
+  return { entry: entry.id, client: clientId };
+};
+
 export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   // Account routes.
   getMe: {},
@@ -368,6 +379,9 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
     params: { clientId: 'client' },
     body: { name: 'Renamed Client' },
   },
+
+  // The access log (E014): the Owner's list shows the seeded entry of each client of the workspace.
+  listAccessLog: { seed: anAccessLogEntry },
 
   // The probe routes of the test app (`probe-routes.ts`), one per kind of access.
   probeOwner: { seed: theWorkspace },
