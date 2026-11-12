@@ -228,10 +228,27 @@ describe('#1360 the lists in this repository', () => {
     // when only the date passes.
     assert.ok(turbo.tasks.check.dependsOn.includes('//#check:quarantine'));
     assert.equal(turbo.tasks['//#check:quarantine'].cache, false);
+    // Without inputs turbo would hash every file of the root package, and every package's check depends on this task.
+    assert.deepEqual(turbo.tasks['//#check:quarantine'].inputs, [
+      'quarantine/**',
+      'scripts/quarantine.mjs',
+    ]);
     assert.equal(pkg.scripts['check:quarantine'], 'node scripts/quarantine.mjs');
     assert.match(
       readFileSync(join(REPO, 'scripts/check.sh'), 'utf8'),
       /check "quarantine lists" node .*quarantine\.mjs/,
+    );
+  });
+
+  it('the dates are UTC days, and the lists and TESTING.md say so', () => {
+    for (const runner of LISTS)
+      assert.match(
+        readFileSync(join(REPO, 'quarantine', `${runner}.txt`), 'utf8'),
+        /dates are UTC days/,
+      );
+    assert.match(
+      readFileSync(join(REPO, 'docs/engineering/TESTING.md'), 'utf8'),
+      /dates are UTC days/,
     );
   });
 
