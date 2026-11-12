@@ -1,0 +1,3 @@
+# Quarantine list: Compose (Android unit and UI tests).
+# One entry per line: test | bug | added | end   (full test name | #issue of the bug | YYYY-MM-DD | YYYY-MM-DD, at most 7 days after added)
+# Rules and evidence: docs/engineering/TESTING.md section 8, checked by scripts/quarantine.mjs. A quarantined test still runs.

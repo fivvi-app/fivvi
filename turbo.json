@@ -53,7 +53,7 @@
       ]
     },
     "check": {
-      "dependsOn": ["^build", "//#check:root"]
+      "dependsOn": ["^build", "//#check:root", "//#check:quarantine"]
     },
     "format:check": {
       "dependsOn": ["//#format:check:root"]
@@ -70,6 +70,7 @@
         ".codex/**",
         "scripts/**",
         ".githooks/**",
+        "quarantine/*.txt",
         "Dockerfile",
         "apps/*/package.json",
         "packages/*/package.json",
@@ -112,6 +113,9 @@
         "scripts/agents.sh",
         "scripts/_lib.sh"
       ]
+    },
+    "//#check:quarantine": {
+      "cache": false
     },
     "dev": {
       "cache": false,
