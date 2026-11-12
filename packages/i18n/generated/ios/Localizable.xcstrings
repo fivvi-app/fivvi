@@ -1,6 +1,74 @@
 {
   "sourceLanguage" : "nl",
   "strings" : {
+    "agreements.dueDay.few" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "on the %1$@rd"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "op de %1$@e"
+          }
+        }
+      }
+    },
+    "agreements.dueDay.one" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "on the %1$@st"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "op de %1$@e"
+          }
+        }
+      }
+    },
+    "agreements.dueDay.other" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "on the %1$@th"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "op de %1$@e"
+          }
+        }
+      }
+    },
+    "agreements.dueDay.two" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "on the %1$@nd"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "op de %1$@e"
+          }
+        }
+      }
+    },
     "app.name" : {
       "comment" : "Name of the native app under its home-screen icon (iOS CFBundleDisplayName and CFBundleName, Android app label). The name of the trainer app, Fivvi Pro, the same in both languages.",
       "extractionState" : "manual",
@@ -1139,6 +1207,227 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Ingelogd als %1$@"
+          }
+        }
+      }
+    },
+    "joinLink.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "For new clients: they sign in and ask to join. The owner approves each request."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Voor nieuwe klanten: ze loggen in en vragen of ze klant mogen worden. De eigenaar keurt elk verzoek goed."
+          }
+        }
+      }
+    },
+    "joinLink.copied" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link copied."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link gekopieerd."
+          }
+        }
+      }
+    },
+    "joinLink.copy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copy link"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Link kopiëren"
+          }
+        }
+      }
+    },
+    "joinLink.errors.copy" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Copying didn't work. Select the link and copy it yourself."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kopiëren is niet gelukt. Selecteer de link en kopieer hem zelf."
+          }
+        }
+      }
+    },
+    "joinLink.errors.generic" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Something went wrong. Try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Er ging iets mis. Probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "joinLink.errors.noConnection" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "No connection. Check your internet and try again."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Geen verbinding. Controleer je internet en probeer het opnieuw."
+          }
+        }
+      }
+    },
+    "joinLink.renew" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renew"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vernieuwen"
+          }
+        }
+      }
+    },
+    "joinLink.renewDialog.body" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The current link and its QR codes will stop working. Requests already sent stay."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De huidige link en de QR-codes ervan werken daarna niet meer. Verzoeken die al zijn verstuurd blijven staan."
+          }
+        }
+      }
+    },
+    "joinLink.renewDialog.cancel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Go back"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terug"
+          }
+        }
+      }
+    },
+    "joinLink.renewDialog.confirm" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renew"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Vernieuwen"
+          }
+        }
+      }
+    },
+    "joinLink.renewDialog.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Renew the join link?"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aanmeldlink vernieuwen?"
+          }
+        }
+      }
+    },
+    "joinLink.renewed" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The join link has been renewed."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "De aanmeldlink is vernieuwd."
+          }
+        }
+      }
+    },
+    "joinLink.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join link"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aanmeldlink"
           }
         }
       }
@@ -2337,7 +2626,7 @@
       }
     },
     "roles.trainer" : {
-      "comment" : "Role label of a Trainer of a workspace, shown as a plain label.",
+      "comment" : "OLD role label of a Trainer, shown as a plain label with the literal word trainer. Kept until the web, iOS and Android use roles.trainerLabel (F068, ticket #751 removes it).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -2350,6 +2639,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Trainer"
+          }
+        }
+      }
+    },
+    "roles.trainerLabel" : {
+      "comment" : "Role label of a Trainer of a workspace, shown as a plain label, in the workspace's word (F068): {Word} is the word with a capital start, e.g. Instructeur / Instructor. The role itself stays Trainer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@"
           }
         }
       }
@@ -4179,6 +4486,438 @@
         }
       }
     },
+    "trainerWord.coach.aWord" : {
+      "comment" : "The workspace's word 'coach' (F068), the singular with its article, lowercase, for use inside a sentence (placeholder {aWord}); English chooses a or an. One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "a coach"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "een coach"
+          }
+        }
+      }
+    },
+    "trainerWord.coach.aWordCap" : {
+      "comment" : "The workspace's word 'coach' (F068), the singular with its article and a capital start, for the start of a message (placeholder {AWord}); English chooses A or An. One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A coach"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een coach"
+          }
+        }
+      }
+    },
+    "trainerWord.coach.word" : {
+      "comment" : "The workspace's word 'coach' (F068), the singular, lowercase, for use inside a sentence (placeholder {word}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "coach"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "coach"
+          }
+        }
+      }
+    },
+    "trainerWord.coach.wordCap" : {
+      "comment" : "The workspace's word 'coach' (F068), the singular with a capital start, for the start of a message (placeholder {Word}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coach"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coach"
+          }
+        }
+      }
+    },
+    "trainerWord.coach.words" : {
+      "comment" : "The workspace's word 'coach' (F068), the plural, lowercase, for use inside a sentence (placeholder {words}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "coaches"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "coaches"
+          }
+        }
+      }
+    },
+    "trainerWord.coach.wordsCap" : {
+      "comment" : "The workspace's word 'coach' (F068), the plural with a capital start, for the start of a message (placeholder {Words}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coaches"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coaches"
+          }
+        }
+      }
+    },
+    "trainerWord.docent.aWord" : {
+      "comment" : "The workspace's word 'docent / teacher' (F068), the singular with its article, lowercase, for use inside a sentence (placeholder {aWord}); English chooses a or an. One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "a teacher"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "een docent"
+          }
+        }
+      }
+    },
+    "trainerWord.docent.aWordCap" : {
+      "comment" : "The workspace's word 'docent / teacher' (F068), the singular with its article and a capital start, for the start of a message (placeholder {AWord}); English chooses A or An. One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A teacher"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een docent"
+          }
+        }
+      }
+    },
+    "trainerWord.docent.word" : {
+      "comment" : "The workspace's word 'docent / teacher' (F068), the singular, lowercase, for use inside a sentence (placeholder {word}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "teacher"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "docent"
+          }
+        }
+      }
+    },
+    "trainerWord.docent.wordCap" : {
+      "comment" : "The workspace's word 'docent / teacher' (F068), the singular with a capital start, for the start of a message (placeholder {Word}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teacher"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Docent"
+          }
+        }
+      }
+    },
+    "trainerWord.docent.words" : {
+      "comment" : "The workspace's word 'docent / teacher' (F068), the plural, lowercase, for use inside a sentence (placeholder {words}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "teachers"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "docenten"
+          }
+        }
+      }
+    },
+    "trainerWord.docent.wordsCap" : {
+      "comment" : "The workspace's word 'docent / teacher' (F068), the plural with a capital start, for the start of a message (placeholder {Words}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teachers"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Docenten"
+          }
+        }
+      }
+    },
+    "trainerWord.instructeur.aWord" : {
+      "comment" : "The workspace's word 'instructeur / instructor' (F068), the singular with its article, lowercase, for use inside a sentence (placeholder {aWord}); English chooses a or an. One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "an instructor"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "een instructeur"
+          }
+        }
+      }
+    },
+    "trainerWord.instructeur.aWordCap" : {
+      "comment" : "The workspace's word 'instructeur / instructor' (F068), the singular with its article and a capital start, for the start of a message (placeholder {AWord}); English chooses A or An. One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An instructor"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een instructeur"
+          }
+        }
+      }
+    },
+    "trainerWord.instructeur.word" : {
+      "comment" : "The workspace's word 'instructeur / instructor' (F068), the singular, lowercase, for use inside a sentence (placeholder {word}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "instructor"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "instructeur"
+          }
+        }
+      }
+    },
+    "trainerWord.instructeur.wordCap" : {
+      "comment" : "The workspace's word 'instructeur / instructor' (F068), the singular with a capital start, for the start of a message (placeholder {Word}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instructor"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instructeur"
+          }
+        }
+      }
+    },
+    "trainerWord.instructeur.words" : {
+      "comment" : "The workspace's word 'instructeur / instructor' (F068), the plural, lowercase, for use inside a sentence (placeholder {words}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "instructors"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "instructeurs"
+          }
+        }
+      }
+    },
+    "trainerWord.instructeur.wordsCap" : {
+      "comment" : "The workspace's word 'instructeur / instructor' (F068), the plural with a capital start, for the start of a message (placeholder {Words}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instructors"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instructeurs"
+          }
+        }
+      }
+    },
+    "trainerWord.trainer.aWord" : {
+      "comment" : "The workspace's word 'trainer' (F068), the singular with its article, lowercase, for use inside a sentence (placeholder {aWord}); English chooses a or an. One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "a trainer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "een trainer"
+          }
+        }
+      }
+    },
+    "trainerWord.trainer.aWordCap" : {
+      "comment" : "The workspace's word 'trainer' (F068), the singular with its article and a capital start, for the start of a message (placeholder {AWord}); English chooses A or An. One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A trainer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een trainer"
+          }
+        }
+      }
+    },
+    "trainerWord.trainer.word" : {
+      "comment" : "The workspace's word 'trainer' (F068), the singular, lowercase, for use inside a sentence (placeholder {word}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trainer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trainer"
+          }
+        }
+      }
+    },
+    "trainerWord.trainer.wordCap" : {
+      "comment" : "The workspace's word 'trainer' (F068), the singular with a capital start, for the start of a message (placeholder {Word}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainer"
+          }
+        }
+      }
+    },
+    "trainerWord.trainer.words" : {
+      "comment" : "The workspace's word 'trainer' (F068), the plural, lowercase, for use inside a sentence (placeholder {words}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trainers"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trainers"
+          }
+        }
+      }
+    },
+    "trainerWord.trainer.wordsCap" : {
+      "comment" : "The workspace's word 'trainer' (F068), the plural with a capital start, for the start of a message (placeholder {Words}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainers"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainers"
+          }
+        }
+      }
+    },
     "userMenu.error" : {
       "comment" : "Shown in the user menu when the chosen language could not be saved on the account (no connection or a server error). The page keeps its language and the person can try again.",
       "extractionState" : "manual",
@@ -4534,6 +5273,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Klanten"
+          }
+        }
+      }
+    },
+    "workspaceNav.joinLink" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Join link"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aanmeldlink"
           }
         }
       }

@@ -2,6 +2,7 @@ import { createWorkspaceWithOwner, findWorkspace, updateWorkspace } from '@fivvi
 import {
   canCreateWorkspace,
   NAME_MAX_LENGTH,
+  PERSON_NAME_MAX_LENGTH,
   slugCandidates,
   startsWithTrainerProfile,
   WORKSPACE_DEFAULTS,
@@ -17,21 +18,22 @@ import {
   NOT_FOUND,
   validationErrorResponse,
 } from '../errors.ts';
-import { LocaleSchema } from '../schemas.ts';
+import { LocaleSchema, TrainerWordSchema } from '../schemas.ts';
 
 // The workspace routes (F002, spec #170, ADR-022). A workspace is created on our own tables
 // (`organizations`, `team_members`), through repository functions of @fivvi/database; the rules
 // (who may create one, the slug, the defaults) are in @fivvi/domain.
 
-/** A name as typed: trimmed, not empty, at most `NAME_MAX_LENGTH` characters (AC3). */
-const nameField = (description: string) =>
-  z.string().trim().min(1).max(NAME_MAX_LENGTH).openapi({ description });
+/** A name as typed: trimmed, not empty, at most `max` characters (AC3; F030 AC4 for a person). */
+const nameField = (description: string, max: number) =>
+  z.string().trim().min(1).max(max).openapi({ description });
 
 const CreateWorkspaceRequestSchema = z
   .object({
-    name: nameField('The name of the gym or business, as shown in the product.'),
+    name: nameField('The name of the gym or business, as shown in the product.', NAME_MAX_LENGTH),
     personName: nameField(
       'The creator’s own name, stored on the account. Leave it out when the account has one.',
+      PERSON_NAME_MAX_LENGTH,
     ).optional(),
   })
   .openapi('CreateWorkspaceRequest', {
@@ -40,7 +42,7 @@ const CreateWorkspaceRequestSchema = z
       'default language, the time zone and the slug are the platform’s defaults.',
   });
 
-// `defaultLocale` stays a bare `LocaleSchema`: see the note in routes/sign-in.ts (#223).
+// `defaultLocale` and `trainerWord` stay bare schemas: see the note in routes/sign-in.ts (#223).
 export const WorkspaceSchema = z
   .object({
     id: z.uuid().openapi({ description: 'The workspace ID.' }),
@@ -55,6 +57,7 @@ export const WorkspaceSchema = z
       description:
         'The IANA time zone dates and times are shown in, for example `Europe/Amsterdam`.',
     }),
+    trainerWord: TrainerWordSchema,
   })
   .openapi('Workspace', {
     description: 'A workspace: a gym or an independent trainer’s business.',
@@ -120,21 +123,31 @@ const WorkspaceParamsSchema = z.object({
 
 const UpdateWorkspaceRequestSchema = z
   .object({
-    name: nameField('The new name, as the product shows it from now on.').optional(),
+    name: nameField(
+      'The new name, as the product shows it from now on.',
+      NAME_MAX_LENGTH,
+    ).optional(),
     // A bare `LocaleSchema`, like `Workspace.defaultLocale` (#223).
     defaultLocale: LocaleSchema.optional(),
+    // A bare `TrainerWordSchema`, like `defaultLocale` (#223).
+    trainerWord: TrainerWordSchema.optional(),
   })
-  // A body with neither changes nothing; it is refused on `name`, the field every client sent
+  // A body with none of them changes nothing; it is refused on `name`, the field every client sent
   // before `defaultLocale` existed.
-  .refine((body) => body.name !== undefined || body.defaultLocale !== undefined, {
-    path: ['name'],
-    error: 'Give the name, the default language or both.',
-  })
+  .refine(
+    (body) =>
+      body.name !== undefined || body.defaultLocale !== undefined || body.trainerWord !== undefined,
+    {
+      path: ['name'],
+      error: 'Give the name, the default language, the word for trainers or any of them.',
+    },
+  )
   .openapi('UpdateWorkspaceRequest', {
     description:
       'Changes a workspace: its name, its default communication language (the language of ' +
       'emails to people whose own preference is unknown, never what anyone sees on screen, ' +
-      'ADR-017), or both. The slug stays, so links keep working. Other fields are ignored.',
+      'ADR-017), the word it uses for its trainers (`trainerWord`, F068), or any of them. The ' +
+      'slug stays, so links keep working. Other fields are ignored.',
   });
 
 const getWorkspaceRoute = defineRoute(
@@ -144,7 +157,9 @@ const getWorkspaceRoute = defineRoute(
     operationId: 'getWorkspace',
     tags: ['workspaces'],
     summary: 'A workspace',
-    description: 'The workspace: its name, URL name, default language and time zone.',
+    description:
+      'The workspace: its name, URL name, default language, time zone and the word it uses for ' +
+      'its trainers.',
     security: SIGNED_IN,
     request: { params: WorkspaceParamsSchema },
     responses: {
@@ -215,12 +230,14 @@ const renameWorkspaceRoute = defineRoute(
     path: '/v1/workspaces/{workspaceId}',
     operationId: 'renameWorkspace',
     tags: ['workspaces'],
-    summary: 'Rename a workspace or set its default language',
+    summary: 'Rename a workspace, set its default language or its word for trainers',
     description:
-      'Changes the name and/or the default communication language of the workspace (the Owner ' +
-      'only). The slug never changes, so links and QR codes keep working. The name is trimmed, ' +
-      'not blank and at most 80 characters; the language is `nl-NL` or `en`, anything else ' +
-      'answers `400` and nothing changes.',
+      'Changes the name, the default communication language and/or the word for trainers of the ' +
+      'workspace (the Owner only; a Trainer reads the word but gets `403` when changing it). The ' +
+      'slug never changes, so links and QR codes keep working. The name is trimmed, not blank ' +
+      'and at most 80 characters; the language is `nl-NL` or `en`; the word is `trainer`, ' +
+      '`instructeur`, `docent` or `coach`. Anything else answers `400` (the API’s validation ' +
+      'error) and nothing changes. The role stays Trainer whatever the word.',
     security: SIGNED_IN,
     request: {
       params: WorkspaceParamsSchema,

@@ -39,6 +39,7 @@ class LanguageViewModelTest {
         bookingEmails = true,
         canCreateWorkspace = false,
         workspaces = emptyList(),
+        clientWorkspaces = emptyList(),
     )
 
     @Before

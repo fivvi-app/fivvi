@@ -1,4 +1,4 @@
-import type { Locale } from '@fivvi/i18n';
+import type { EmailLanguage } from '@fivvi/i18n';
 
 // Its own file, without the template: `packages/api` imports this type through the package's
 // `./trainer-invitation-mail` export, and the API cannot load or type-check the `.tsx` templates.
@@ -7,7 +7,7 @@ import type { Locale } from '@fivvi/i18n';
 export interface TrainerInvitationMail {
   to: { email: string; name: string };
   /** The language of the email, decided by the route (`invitationLanguage` in `@fivvi/domain`). */
-  locale: Locale;
+  locale: EmailLanguage;
   inviterName: string;
   workspaceName: string;
   /** The workspace's IANA time zone: the expiry date is shown in it. */
@@ -15,6 +15,10 @@ export interface TrainerInvitationMail {
   /** The token for the link. It is in the email and nowhere else. */
   token: string;
   expiresAt: Date;
-  /** One key per invitation and token, so the same send repeated goes out once. */
-  idempotencyKey: string;
+  /**
+   * The event behind the mail, `{invitationId}:{tokenHash}`: one per invitation and token, so the
+   * same send repeated reaches the provider with one idempotency key and goes out once (F049).
+   * Built from the token's hash, never from the token.
+   */
+  event: string;
 }

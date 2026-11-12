@@ -1,9 +1,9 @@
 import { type Auth, createAuth, parseSignUpAllowlist, type SignUpAllowlist } from '@fivvi/auth';
 import { hasPendingInvitation } from '@fivvi/database';
-import { createEnvironmentSendEmail } from '@fivvi/email';
 import { database } from './database';
 import { errorReporter } from './error-reporter';
 import { productEvents } from './product-events';
+import { sendEmail } from './send-email';
 
 export interface AuthConfig {
   secret: string;
@@ -62,7 +62,7 @@ export function auth(): Auth {
   instance ??= createAuth({
     db: database(),
     ...readAuthConfig(process.env),
-    sendEmail: createEnvironmentSendEmail(),
+    sendEmail: sendEmail(),
     // An address with a pending trainer invitation may create its account too (F011).
     isInvitedEmail: (email, now) => hasPendingInvitation(database(), email, now),
     // Failures of the work after a sign-in request's answer (a failed email) go to the shared

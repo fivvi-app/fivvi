@@ -71,7 +71,8 @@ export type Refusal<Code extends RefusalCode = RefusalCode> = {
   [C in Code]: { status: (typeof REFUSAL_STATUS)[C]; body: { code: C } };
 }[Code];
 
-function refusal<Code extends RefusalCode>(code: Code): Refusal<Code> {
+/** The answer for a refusal. The guard records the event; a rule that records it itself uses this. */
+export function refusal<Code extends RefusalCode>(code: Code): Refusal<Code> {
   return { status: REFUSAL_STATUS[code], body: { code } } as Refusal<Code>;
 }
 

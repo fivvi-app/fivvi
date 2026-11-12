@@ -1,5 +1,6 @@
 import {
   findBookingEmails,
+  listClientWorkspaces,
   listTeamWorkspaces,
   type SignedInAccount,
   setAccountName,
@@ -10,7 +11,7 @@ import {
   CAPABILITIES,
   canCreateWorkspace,
   capabilitiesOf,
-  NAME_MAX_LENGTH,
+  PERSON_NAME_MAX_LENGTH,
   ROLES,
   type Role,
 } from '@fivvi/domain';
@@ -26,6 +27,7 @@ import {
   internalServerErrorResponse,
   validationErrorResponse,
 } from '../errors.ts';
+import { TrainerWordSchema } from '../schemas.ts';
 
 const RoleSchema = z.enum(ROLES);
 
@@ -41,12 +43,27 @@ export const MeWorkspaceSchema = z
     id: z.uuid().openapi({ description: 'The workspace ID.' }),
     name: z.string().openapi({ description: 'The name shown in the product.' }),
     slug: z.string().openapi({ description: 'The URL name: `/w/{slug}` on the web.' }),
+    trainerWord: TrainerWordSchema,
     role: RoleSchema.openapi({
       description: 'What the account is in the workspace; shown as a label, never decided on.',
     }),
     capabilities: CapabilitiesSchema,
   })
   .openapi('MeWorkspace', { description: 'A workspace the account has a team role in.' });
+
+export const MeClientWorkspaceSchema = z
+  .object({
+    id: z.uuid().openapi({ description: 'The workspace ID.' }),
+    slug: z.string().openapi({ description: 'The URL name: `/w/{slug}` on the web.' }),
+    name: z.string().openapi({ description: 'The name shown in the product.' }),
+    trainerWord: TrainerWordSchema,
+  })
+  .openapi('MeClientWorkspace', {
+    description:
+      'A workspace the account is a client of: its ID, URL name, name and the word it uses for ' +
+      'its trainers (F068), nothing more. The ' +
+      'account’s own client record in it is the only thing that lists it.',
+  });
 
 export const MeResponseSchema = z
   .object({
@@ -74,7 +91,14 @@ export const MeResponseSchema = z
     workspaces: z.array(MeWorkspaceSchema).openapi({
       description:
         'The workspaces the account has a team role in, by name. Empty when it has none. ' +
-        'Workspaces it is only a client of are not listed.',
+        'Workspaces it is only a client of are not listed here, but under `clientWorkspaces`.',
+    }),
+    clientWorkspaces: z.array(MeClientWorkspaceSchema).openapi({
+      description:
+        'The workspaces where the account has a joined client relationship, by name; a workspace ' +
+        'it is both a team member and a client of is listed here too. Empty when it has none. ' +
+        'Until join requests and invitations exist (F029, F032), a client record linked to the ' +
+        'account counts as joined. A workspace the account has only asked to join is not listed.',
     }),
   })
   .openapi('MeResponse', { description: 'The signed-in account.' });
@@ -85,6 +109,7 @@ export const MyWorkspaceSchema = z
     workspaceId: z.uuid().openapi({ description: 'The workspace ID.' }),
     name: z.string().openapi({ description: 'The name shown in the product.' }),
     slug: z.string().openapi({ description: 'The URL name: `/w/{slug}` on the web.' }),
+    trainerWord: TrainerWordSchema,
     role: RoleSchema.openapi({
       description: 'What the account is on the team; shown as a label, never decided on.',
     }),
@@ -109,8 +134,9 @@ const meRoute = defineRoute(
       'cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). ' +
       'A request with an `Authorization` header is judged by that token alone, never by a cookie. ' +
       'It also tells where the person goes after sign-in: the workspaces they have a team role ' +
-      'in, and whether they may set one up (`canCreateWorkspace`: on the sign-up allowlist, also ' +
-      'when they have a workspace already).',
+      'in, the workspaces they are a client of (`clientWorkspaces`), and whether they may set one ' +
+      'up (`canCreateWorkspace`: on the sign-up allowlist, also when they have a workspace ' +
+      'already). An account in no workspace gets both lists empty.',
     security: [{ cookieAuth: [] }, { bearerAuth: [] }],
     responses: {
       200: {
@@ -120,8 +146,8 @@ const meRoute = defineRoute(
       500: internalServerErrorResponse,
     },
   },
-  // Only the workspaces with a team role: where the account goes after sign-in.
-  { type: 'account', workspaces: 'team' },
+  // The workspaces with a team role and those with a client relationship: where it goes after sign-in.
+  { type: 'account', workspaces: 'any' },
 );
 
 // Typed on purpose, as in routes/workspaces.ts: written inline, the two-element literal makes
@@ -135,12 +161,13 @@ const UpdateMeRequestSchema = z
       .string()
       .trim()
       .min(1)
-      .max(NAME_MAX_LENGTH)
+      .max(PERSON_NAME_MAX_LENGTH)
       .optional()
       .openapi({
         description:
           'The person’s own name, as shown in every workspace they are on: trimmed, at least ' +
-          'one and at most 80 characters. Empty, blank or longer answers `400` with a field error.',
+          `one and at most ${PERSON_NAME_MAX_LENGTH} characters. Empty, blank or longer answers ` +
+          '`400` with a field error.',
       }),
     preferredLocale: z
       .enum(locales)
@@ -187,7 +214,8 @@ const updateMeRoute = defineRoute(
       'account, shown in every workspace they are on, and whether they get the emails about bookings ' +
       'in their classes (`bookingEmails`, on until switched off), also one per account. Answers with the account, as ' +
       '`GET /v1/me` does. A language other than `nl-NL` or `en`, a name that is empty, blank ' +
-      'or over 80 characters, or a `bookingEmails` that is not a boolean, answers `400` and nothing changes.',
+      `or over ${PERSON_NAME_MAX_LENGTH} characters, or a \`bookingEmails\` that is not a boolean, ` +
+      'answers `400` and nothing changes.',
     security: SIGNED_IN,
     request: {
       body: {
@@ -204,7 +232,7 @@ const updateMeRoute = defineRoute(
       500: internalServerErrorResponse,
     },
   },
-  { type: 'account', workspaces: 'team' },
+  { type: 'account', workspaces: 'any' },
 );
 
 const RequestEmailChangeSchema = z
@@ -310,7 +338,7 @@ const confirmEmailChangeRoute = defineRoute(
       500: internalServerErrorResponse,
     },
   },
-  { type: 'account', workspaces: 'team' },
+  { type: 'account', workspaces: 'any' },
 );
 
 const listMyWorkspacesRoute = defineRoute(
@@ -352,6 +380,7 @@ export function registerMe(app: OpenAPIHono) {
     const workspaces = (await listTeamWorkspaces(c.get('scope'))).map(
       ({ trainsHere: _trainsHere, ...workspace }) => withCapabilities(workspace),
     );
+    const clientWorkspaces = await listClientWorkspaces(c.get('scope'));
     // The rule is in packages/domain: the sign-up allowlist, whatever workspaces the account has.
     const mayCreate = canCreateWorkspace({
       email,
@@ -365,6 +394,7 @@ export function registerMe(app: OpenAPIHono) {
       bookingEmails: await findBookingEmails(c.get('scope')),
       canCreateWorkspace: mayCreate,
       workspaces,
+      clientWorkspaces,
     };
   }
 

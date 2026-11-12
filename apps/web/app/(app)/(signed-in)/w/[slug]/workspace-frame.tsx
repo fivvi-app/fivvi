@@ -14,7 +14,7 @@ import { WorkspaceSwitcher } from './workspace-switcher';
  * header shows the workspace name and the person's role in it (F003) as the scope switcher (F012):
  * a plain label with one workspace, otherwise a menu of the person's workspaces, and the
  * navigation. A section is in it only when the API lists its capability for this person in this workspace (F004, `information-architecture.md §3.2`): Clients
- * (F006) with `clients.view`, Trainers (F003) with `team.view`, Settings with `workspace.manage` and its pages General and Language
+ * (F006) with `clients.view`, Trainers (F003) with `team.view`, the Aanmeldlink (F029) with `join_link.view`, Settings with `workspace.manage` and its pages General and Language
  * (F010), plus Location (F015) with `settings.manage`. A section a person can't use is absent, not greyed out, and nothing here decides from the
  * role name: the role is only the label in the header. The user menu with
  * the language switch is below them (F010), and the sidebar footer shows the person's name as
@@ -55,6 +55,9 @@ export function WorkspaceFrame({
   }
   if (capabilities.includes('team.view')) {
     items.push({ href: `/w/${slug}/trainers`, label: t('trainers'), icon: 'trainers' });
+  }
+  if (capabilities.includes('join_link.view')) {
+    items.push({ href: `/w/${slug}/join-link`, label: t('joinLink'), icon: 'joinLink' });
   }
   if (capabilities.includes('workspace.manage')) {
     items.push({

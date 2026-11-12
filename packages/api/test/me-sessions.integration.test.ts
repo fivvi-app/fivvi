@@ -26,7 +26,7 @@ import {
   createProductEventCaptureTransport,
   createProductEvents,
 } from '@fivvi/observability';
-import { fixedClock, zonedTime } from '@fivvi/testing/clock';
+import { fixedClock, freezeSystemTime, zonedTime } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { and, eq } from 'drizzle-orm';
 import { PgDialect } from 'drizzle-orm/pg-core';
@@ -1029,6 +1029,8 @@ describe('F013 the personal day and sessions through the API', () => {
     }
 
     it('AC17: my_day_viewed and my_calendar_viewed carry the surface and the workspace count only', async () => {
+      // PostHog stamps each event with the wall clock; at minute :09 that stamp holds "09:00".
+      freezeSystemTime('2026-09-22T14:09:00.000Z');
       const { posthog, lines, productEvents, restore } = capture();
       const w = await world();
       const server = api({ productEvents });
@@ -1065,7 +1067,11 @@ describe('F013 the personal day and sessions through the API', () => {
         expect(event.distinct_id).toBe(w.sarah.id);
       }
       // Nothing of the day reaches PostHog or the log: no client, class, workspace, time or address.
-      const sent = JSON.stringify([posthog.events, lines]);
+      // The event's own timestamp is the wall clock of the send, not the day, so it is left out.
+      const sent = JSON.stringify([
+        posthog.events.map(({ timestamp: _sentAt, ...event }) => event),
+        lines,
+      ]);
       for (const personal of [
         'Anna de Vries',
         'Mark Jansen',

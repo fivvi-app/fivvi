@@ -2,6 +2,7 @@ package app.fivvi.pro.clients
 
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.Locale
+import app.fivvi.api.models.TrainerWord
 import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.pro.home.FakeWorkspacesApi
 import java.io.IOException
@@ -209,7 +210,14 @@ class ClientsViewModelTest {
     fun test_F006_AC12_theWorkspaceFromTheApiSetsLanguageAndZone() {
         workspaces.answers += {
             Response.success(
-                app.fivvi.api.models.Workspace(it, "Fit Studio", "fit-studio", Locale.EN, "Europe/London"),
+                app.fivvi.api.models.Workspace(
+                    it,
+                    "Fit Studio",
+                    "fit-studio",
+                    Locale.EN,
+                    "Europe/London",
+                    TrainerWord.TRAINER,
+                ),
             )
         }
 

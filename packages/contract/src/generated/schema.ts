@@ -53,7 +53,7 @@ export interface paths {
         };
         /**
          * The signed-in account
-         * @description The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, and whether they may set one up (`canCreateWorkspace`: on the sign-up allowlist, also when they have a workspace already).
+         * @description The account of the sign-in session in the request. The web sends the sign-in session cookie, the apps’ `Authorization: Bearer <token>` (the token of `POST /v1/sign-in/token`). A request with an `Authorization` header is judged by that token alone, never by a cookie. It also tells where the person goes after sign-in: the workspaces they have a team role in, the workspaces they are a client of (`clientWorkspaces`), and whether they may set one up (`canCreateWorkspace`: on the sign-up allowlist, also when they have a workspace already). An account in no workspace gets both lists empty.
          */
         get: operations["getMe"];
         put?: never;
@@ -63,7 +63,7 @@ export interface paths {
         head?: never;
         /**
          * Change the signed-in account
-         * @description Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load, and the name they gave themselves (`name`), one per account, shown in every workspace they are on, and whether they get the emails about bookings in their classes (`bookingEmails`, on until switched off), also one per account. Answers with the account, as `GET /v1/me` does. A language other than `nl-NL` or `en`, a name that is empty, blank or over 80 characters, or a `bookingEmails` that is not a boolean, answers `400` and nothing changes.
+         * @description Stores the language the person chose (`preferredLocale`), so every browser and app of the account shows it from its next load, and the name they gave themselves (`name`), one per account, shown in every workspace they are on, and whether they get the emails about bookings in their classes (`bookingEmails`, on until switched off), also one per account. Answers with the account, as `GET /v1/me` does. A language other than `nl-NL` or `en`, a name that is empty, blank or over 120 characters, or a `bookingEmails` that is not a boolean, answers `400` and nothing changes.
          */
         patch: operations["updateMe"];
         trace?: never;
@@ -179,7 +179,7 @@ export interface paths {
         put?: never;
         /**
          * Ask for a sign-in email
-         * @description Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for a request over the rate limits, so it never says who has an account.
+         * @description Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for an address over its limit (3 requests per 15 minutes), so it never says who has an account. The app needs no bot check; every limit applies to it. A network over its limit (20 requests per hour) gets `429`, and nothing is sent.
          */
         post: operations["requestSignIn"];
         delete?: never;
@@ -277,7 +277,7 @@ export interface paths {
         };
         /**
          * A workspace
-         * @description The workspace: its name, URL name, default language and time zone.
+         * @description The workspace: its name, URL name, default language, time zone and the word it uses for its trainers.
          */
         get: operations["getWorkspace"];
         put?: never;
@@ -286,8 +286,8 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Rename a workspace or set its default language
-         * @description Changes the name and/or the default communication language of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`, anything else answers `400` and nothing changes.
+         * Rename a workspace, set its default language or its word for trainers
+         * @description Changes the name, the default communication language and/or the word for trainers of the workspace (the Owner only; a Trainer reads the word but gets `403` when changing it). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`; the word is `trainer`, `instructeur`, `docent` or `coach`. Anything else answers `400` (the API’s validation error) and nothing changes. The role stays Trainer whatever the word.
          */
         patch: operations["renameWorkspace"];
         trace?: never;
@@ -902,8 +902,10 @@ export interface components {
             bookingEmails: boolean;
             /** @description Whether the account may set up a workspace: it is on the sign-up allowlist, whether or not it has a workspace already. With no workspace, the first-run screen shows when this is true and the no-access page when it is false. The web and the apps never decide this by rules of their own. */
             canCreateWorkspace: boolean;
-            /** @description The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed. */
+            /** @description The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed here, but under `clientWorkspaces`. */
             workspaces: components["schemas"]["MeWorkspace"][];
+            /** @description The workspaces where the account has a joined client relationship, by name; a workspace it is both a team member and a client of is listed here too. Empty when it has none. Until join requests and invitations exist (F029, F032), a client record linked to the account counts as joined. A workspace the account has only asked to join is not listed. */
+            clientWorkspaces: components["schemas"]["MeClientWorkspace"][];
         };
         /** @description A workspace the account has a team role in. */
         MeWorkspace: {
@@ -916,6 +918,7 @@ export interface components {
             name: string;
             /** @description The URL name: `/w/{slug}` on the web. */
             slug: string;
+            trainerWord: components["schemas"]["TrainerWord"];
             /**
              * @description What the account is in the workspace; shown as a label, never decided on.
              * @enum {string}
@@ -923,6 +926,24 @@ export interface components {
             role: "owner" | "trainer";
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
             capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew")[];
+        };
+        /**
+         * @description The word the product uses for the people who teach in the workspace: `trainer`, `instructeur`, `docent` or `coach`. It is only a label shown to the team and the clients, in their own language; the role stays `trainer` in the API and nobody’s rights depend on it. Every workspace starts on `trainer`.
+         * @enum {string}
+         */
+        TrainerWord: "trainer" | "instructeur" | "docent" | "coach";
+        /** @description A workspace the account is a client of: its ID, URL name, name and the word it uses for its trainers (F068), nothing more. The account’s own client record in it is the only thing that lists it. */
+        MeClientWorkspace: {
+            /**
+             * Format: uuid
+             * @description The workspace ID.
+             */
+            id: string;
+            /** @description The URL name: `/w/{slug}` on the web. */
+            slug: string;
+            /** @description The name shown in the product. */
+            name: string;
+            trainerWord: components["schemas"]["TrainerWord"];
         };
         /** @description A workspace the account is on the team of. */
         MyWorkspace: {
@@ -935,6 +956,7 @@ export interface components {
             name: string;
             /** @description The URL name: `/w/{slug}` on the web. */
             slug: string;
+            trainerWord: components["schemas"]["TrainerWord"];
             /**
              * @description What the account is on the team; shown as a label, never decided on.
              * @enum {string}
@@ -947,7 +969,7 @@ export interface components {
         };
         /** @description What to change on the signed-in account. Fields left out stay as they are. */
         UpdateMeRequest: {
-            /** @description The person’s own name, as shown in every workspace they are on: trimmed, at least one and at most 80 characters. Empty, blank or longer answers `400` with a field error. */
+            /** @description The person’s own name, as shown in every workspace they are on: trimmed, at least one and at most 120 characters. Empty, blank or longer answers `400` with a field error. */
             name?: string;
             /**
              * @description The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`.
@@ -1161,6 +1183,11 @@ export interface components {
             /** @description The sessions from the start of `from` to the end of `to`, in time order. */
             items: components["schemas"]["PersonalSession"][];
         };
+        /** @description Too many requests from this network or this account in the last minutes or hour. Nothing was stored or sent. Contains no user-facing text. */
+        PublicRequestRateLimited: {
+            /** @enum {string} */
+            code: "rate_limited";
+        };
         /** @description Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019. */
         SignInRequest: {
             /**
@@ -1237,6 +1264,7 @@ export interface components {
             defaultLocale: components["schemas"]["Locale"];
             /** @description The IANA time zone dates and times are shown in, for example `Europe/Amsterdam`. */
             timeZone: string;
+            trainerWord: components["schemas"]["TrainerWord"];
         };
         /** @description Creates a workspace for the caller, who becomes its Owner. Nothing else is asked: the default language, the time zone and the slug are the platform’s defaults. */
         CreateWorkspaceRequest: {
@@ -1245,11 +1273,12 @@ export interface components {
             /** @description The creator’s own name, stored on the account. Leave it out when the account has one. */
             personName?: string;
         };
-        /** @description Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), or both. The slug stays, so links keep working. Other fields are ignored. */
+        /** @description Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), the word it uses for its trainers (`trainerWord`, F068), or any of them. The slug stays, so links keep working. Other fields are ignored. */
         UpdateWorkspaceRequest: {
             /** @description The new name, as the product shows it from now on. */
             name?: string;
             defaultLocale?: components["schemas"]["Locale"];
+            trainerWord?: components["schemas"]["TrainerWord"];
         };
         /** @description Who sent the report that the person switched workspace. */
         WorkspaceSwitchedRequest: {
@@ -2263,6 +2292,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Too many requests from this network in the last hour. Nothing was sent. Try again later. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicRequestRateLimited"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */

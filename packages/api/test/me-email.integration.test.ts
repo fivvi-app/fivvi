@@ -9,13 +9,19 @@ import {
   type DatabaseClient,
 } from '@fivvi/database';
 import { addTeamRole, createWorkspace } from '@fivvi/database/testing';
-import { createMemoryTransport, createSendEmail, type MemoryTransport } from '@fivvi/email';
+import {
+  createMemoryTransport,
+  createSendEmail,
+  emailIdempotencyKey,
+  type MemoryTransport,
+} from '@fivvi/email';
 import { messages } from '@fivvi/i18n';
 import {
   createErrorReporter,
   createProductEventCaptureTransport,
   createProductEvents,
 } from '@fivvi/observability';
+import { createBackgroundTasks } from '@fivvi/testing/background-tasks';
 import { type Clock, freezeSystemTime, manualClock } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { eq, like } from 'drizzle-orm';
@@ -59,7 +65,7 @@ describe('F005 change your own email address', () => {
       return sent;
     },
   };
-  const pending: Promise<void>[] = [];
+  const tasks = createBackgroundTasks();
   const posthog = createProductEventCaptureTransport();
   const productEvents = createProductEvents({
     env: { POSTHOG_KEY: 'phc_test', POSTHOG_HOST: 'https://posthog.example.test' },
@@ -81,7 +87,7 @@ describe('F005 change your own email address', () => {
         transport,
         sender: { email: 'noreply@fivvi.app', name: 'Fivvi' },
       }),
-      runInBackground: (task) => pending.push(task),
+      runInBackground: tasks.run,
       productEvents,
     });
 
@@ -101,7 +107,7 @@ describe('F005 change your own email address', () => {
   }
 
   const settle = async () => {
-    await Promise.all(pending.splice(0));
+    await tasks.settle();
   };
 
   const unique = (label: string) => `${label}-${crypto.randomUUID().slice(0, 8)}@example.com`;
@@ -222,7 +228,7 @@ describe('F005 change your own email address', () => {
     // (`answers 202`). On a loaded runner it then lands in the next test, whose `sent.at(-1)` is the
     // wrong email: the sign-in code of the account step is wrong and the sign-in answers 401 (#1269).
     openGate();
-    await settle();
+    await tasks.reset();
     clock = manualClock(T0);
     // Better Auth deletes expired verification rows by the real clock, so the system time must
     // stand at T0 too; otherwise the codes vanish once the real time passes T0 + 15 minutes (#1260).
@@ -251,7 +257,7 @@ describe('F005 change your own email address', () => {
     });
 
     it('the next test starts without it and signs in with its own code', async () => {
-      expect(pending).toHaveLength(0);
+      expect(tasks.count).toBe(0);
       expect(transport.sent).toHaveLength(0);
 
       const sarah = await account(unique('sarah'));
@@ -282,6 +288,34 @@ describe('F005 change your own email address', () => {
         expect(transport.sent.some((sent) => sent.to.email === sarah.email)).toBe(false);
       },
     );
+
+    it('F049 AC11: each request has its own idempotency key, made of EM-34 and the request', async () => {
+      const sarah = await account(unique('sarah'));
+      const newEmail = unique('sarah.jansen');
+
+      const storedCodeHash = async () =>
+        (
+          await client.db
+            .select({ codeHash: authVerifications.codeHash })
+            .from(authVerifications)
+            .where(eq(authVerifications.identifier, `change-email:${sarah.id}`))
+        )[0]?.codeHash;
+
+      // `askForCode` clears the transport first, so each call has the one email of its request.
+      const first = (await askForCode(sarah.cookie, newEmail)).email?.idempotencyKey;
+      const firstCodeHash = await storedCodeHash();
+      const second = (await askForCode(sarah.cookie, newEmail)).email?.idempotencyKey;
+      const secondCodeHash = await storedCodeHash();
+
+      expect(first).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      );
+      expect(second).not.toBe(first);
+      // The event is the request's stored code hash, not a random value: the key follows the row.
+      expect(firstCodeHash).toEqual(expect.any(String));
+      expect(first).toBe(emailIdempotencyKey('EM-34', firstCodeHash ?? ''));
+      expect(second).toBe(emailIdempotencyKey('EM-34', secondCodeHash ?? ''));
+    });
 
     it('answers 202 with an empty body', async () => {
       const sarah = await account(unique('sarah'));
@@ -729,11 +763,12 @@ describe('F005 change your own email address', () => {
       }
       expect(offenders).toEqual([]);
       // The only routes that take an address for an account act on the signed-in one.
-      for (const path of ['/v1/me/email/change', '/v1/me/email/confirm']) {
-        expect(contract.paths[path].post['x-access']).toEqual({
-          type: 'account',
-          workspaces: 'team',
-        });
+      // The confirmation answers with the whole account, client workspaces included (F030).
+      for (const [path, workspaces] of [
+        ['/v1/me/email/change', 'team'],
+        ['/v1/me/email/confirm', 'any'],
+      ] as const) {
+        expect(contract.paths[path].post['x-access']).toEqual({ type: 'account', workspaces });
       }
     });
 
@@ -916,8 +951,9 @@ describe('F005 change your own email address', () => {
 
       expect(change.operationId).toBe('requestEmailChange');
       expect(confirm.operationId).toBe('confirmEmailChange');
+      expect(change['x-access']).toEqual({ type: 'account', workspaces: 'team' });
+      expect(confirm['x-access']).toEqual({ type: 'account', workspaces: 'any' });
       for (const operation of [change, confirm]) {
-        expect(operation['x-access']).toEqual({ type: 'account', workspaces: 'team' });
         expect(operation.security).toEqual([{ cookieAuth: [] }, { bearerAuth: [] }]);
         expect(operation.responses['401']).toBeDefined();
       }

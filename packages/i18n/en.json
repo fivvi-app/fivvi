@@ -149,6 +149,25 @@
     "title": "No access",
     "body": "You don't have access to this page. Ask the owner of {workspace}."
   },
+  "joinLink": {
+    "title": "Join link",
+    "body": "For new clients: they sign in and ask to join. The owner approves each request.",
+    "copy": "Copy link",
+    "copied": "Link copied.",
+    "renew": "Renew",
+    "renewDialog": {
+      "title": "Renew the join link?",
+      "body": "The current link and its QR codes will stop working. Requests already sent stay.",
+      "confirm": "Renew",
+      "cancel": "Go back"
+    },
+    "renewed": "The join link has been renewed.",
+    "errors": {
+      "copy": "Copying didn't work. Select the link and copy it yourself.",
+      "noConnection": "No connection. Check your internet and try again.",
+      "generic": "Something went wrong. Try again."
+    }
+  },
   "workspaceNav": {
     "label": "Main navigation",
     "settings": "Settings",
@@ -160,7 +179,8 @@
     "clients": "Clients",
     "new": "New",
     "newMenu": "Create new",
-    "newClient": "Client"
+    "newClient": "Client",
+    "joinLink": "Join link"
   },
   "workspaceSwitcher": {
     "newWorkspace": "+ New workspace"
@@ -180,6 +200,13 @@
   "email": {
     "layout": {
       "footer": "This email was sent by Fivvi."
+    },
+    "frame": {
+      "clientReason": "You're getting this email because you're a client of {workspace}.",
+      "teamReason": "You're getting this email because you're on the team at {workspace}.",
+      "questions": "Questions? Contact {workspace}.",
+      "button": "View in Fivvi",
+      "sentWith": "Sent with Fivvi"
     },
     "hello": {
       "subject": "Test message from Fivvi",
@@ -222,7 +249,7 @@
       "trainer": "Trainer: {trainer}"
     },
     "privateSessionMoved": {
-      "subject": "Change: your session on {oldDate} has moved to {newDate}",
+      "subject": "Change: your session has moved to {newDate}",
       "dateTime": "{date} at {time}",
       "preview": "Your private session has moved to {newDate}.",
       "intro": "Your private session at {workspace} has moved.",
@@ -256,7 +283,42 @@
   },
   "roles": {
     "owner": "Owner",
-    "trainer": "Trainer"
+    "trainer": "Trainer",
+    "trainerLabel": "{Word}"
+  },
+  "trainerWord": {
+    "trainer": {
+      "word": "trainer",
+      "words": "trainers",
+      "wordCap": "Trainer",
+      "wordsCap": "Trainers",
+      "aWord": "a trainer",
+      "aWordCap": "A trainer"
+    },
+    "instructeur": {
+      "word": "instructor",
+      "words": "instructors",
+      "wordCap": "Instructor",
+      "wordsCap": "Instructors",
+      "aWord": "an instructor",
+      "aWordCap": "An instructor"
+    },
+    "docent": {
+      "word": "teacher",
+      "words": "teachers",
+      "wordCap": "Teacher",
+      "wordsCap": "Teachers",
+      "aWord": "a teacher",
+      "aWordCap": "A teacher"
+    },
+    "coach": {
+      "word": "coach",
+      "words": "coaches",
+      "wordCap": "Coach",
+      "wordsCap": "Coaches",
+      "aWord": "a coach",
+      "aWordCap": "A coach"
+    }
   },
   "myProfile": {
     "title": "My profile",
@@ -440,6 +502,14 @@
     "cancellation": {
       "upTo": "{count, plural, one {You can cancel free of charge up to # hour before.} other {You can cancel free of charge up to # hours before.}}",
       "untilStart": "You can cancel free of charge until the start."
+    }
+  },
+  "agreements": {
+    "dueDay": {
+      "one": "on the {day}st",
+      "two": "on the {day}nd",
+      "few": "on the {day}rd",
+      "other": "on the {day}th"
     }
   },
   "site": {
@@ -953,11 +1023,7 @@
       "privacy": "Privacy policy",
       "terms": "Terms of service",
       "subProcessors": "Sub-processors",
-      "tradeName": "{name}, trading as Fivvi",
-      "kvk": "Chamber of Commerce (KvK)",
-      "vat": "VAT number",
-      "address": "Address",
-      "phone": "Phone or WhatsApp"
+      "tradeName": "{name}, trading as Fivvi"
     },
     "cta": {
       "heading": "What does your day look like in Fivvi?",

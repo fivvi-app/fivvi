@@ -1,9 +1,22 @@
 import { eq } from 'drizzle-orm';
 import type { DatabaseExecutor } from '../client.ts';
-import { locations, organizations, sessionParticipants, trainerProfiles } from '../schema/index.ts';
+import {
+  locations,
+  organizations,
+  paymentRefundStatusChanges,
+  paymentRefunds,
+  paymentStatusChanges,
+  payments,
+  sessionParticipants,
+  trainerProfiles,
+} from '../schema/index.ts';
 import {
   addClient,
   addGroupClass,
+  addPayment,
+  addPaymentChargeback,
+  addPaymentCustomer,
+  addPaymentRefund,
   addSession,
   addTeamRole,
   addTrainerInvitation,
@@ -143,5 +156,93 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
       if (!row) throw new Error('session participant was not created.');
       return row;
     },
+  },
+  // The provider customer of a client made for the workspace.
+  payment_customers: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addPaymentCustomer(db, { workspaceId }),
+  },
+  // An open payment of a client made for the workspace (its first status line is its own row).
+  payments: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addPayment(db, { workspaceId }),
+  },
+  // A status line of a payment made for the workspace: the line of a payment other than the one
+  // `addPayment` gave its first line, so each factory call adds exactly one row.
+  payment_status_changes: {
+    scopeColumn: 'organization_id',
+    create: async (db, workspaceId) => {
+      const client = await addClient(db, { workspaceId });
+      const [payment] = await db
+        .insert(payments)
+        .values({
+          organizationId: workspaceId,
+          clientId: client.id,
+          kind: 'oneoff',
+          purpose: 'open_amount',
+          businessKey: uniqueMarker('open-amount'),
+          amountCents: 4950,
+          description: 'Membership October',
+          supplied: { nameNl: 'Lidmaatschap', nameEn: 'Membership', period: null, vatRateBp: null },
+        })
+        .returning({ id: payments.id });
+      if (!payment) throw new Error('payment was not created.');
+      const [row] = await db
+        .insert(paymentStatusChanges)
+        .values({
+          organizationId: workspaceId,
+          paymentId: payment.id,
+          clientId: client.id,
+          fromStatus: null,
+          toStatus: 'open',
+          occurredAt: new Date(),
+          source: 'job',
+        })
+        .returning({ id: paymentStatusChanges.id });
+      if (!row) throw new Error('payment status change was not created.');
+      return row;
+    },
+  },
+  // A refund of a payment made for the workspace (its first status line is its own row).
+  payment_refunds: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addPaymentRefund(db, { workspaceId }),
+  },
+  // A status line of a refund made for the workspace: the line of a refund other than the one
+  // `addPaymentRefund` gave its first line, so each factory call adds exactly one row.
+  payment_refund_status_changes: {
+    scopeColumn: 'organization_id',
+    create: async (db, workspaceId) => {
+      const payment = await addPayment(db, { workspaceId });
+      const [refund] = await db
+        .insert(paymentRefunds)
+        .values({
+          organizationId: workspaceId,
+          paymentId: payment.id,
+          clientId: payment.clientId,
+          amountCents: 2000,
+        })
+        .returning({ id: paymentRefunds.id });
+      if (!refund) throw new Error('payment refund was not created.');
+      const [row] = await db
+        .insert(paymentRefundStatusChanges)
+        .values({
+          organizationId: workspaceId,
+          refundId: refund.id,
+          clientId: payment.clientId,
+          fromStatus: null,
+          toStatus: 'requested',
+          occurredAt: new Date(),
+          source: 'job',
+        })
+        .returning({ id: paymentRefundStatusChanges.id });
+      if (!row) throw new Error('payment refund status change was not created.');
+      return row;
+    },
+  },
+  // A reversal of a payment made for the workspace.
+  payment_chargebacks: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addPaymentChargeback(db, { workspaceId }),
   },
 };

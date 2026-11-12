@@ -1,8 +1,9 @@
 import { randomUUID } from 'node:crypto';
-import type { Locale } from '@fivvi/i18n';
+import type { Locale, TrainerWord } from '@fivvi/i18n';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import {
   authUsers,
+  clients,
   locations,
   organizations,
   teamMembers,
@@ -28,6 +29,8 @@ export interface WorkspaceView {
   readonly slug: string;
   readonly defaultLocale: Locale;
   readonly timeZone: string;
+  /** The word the product uses for the workspace's trainers (F068); the role stays Trainer. */
+  readonly trainerWord: TrainerWord;
 }
 
 /** What a list of workspaces shows (the picker, the signed-in home): the name and the URL name. */
@@ -35,10 +38,22 @@ export interface WorkspaceSummary {
   readonly id: string;
   readonly name: string;
   readonly slug: string;
+  readonly trainerWord: TrainerWord;
   /** What the account is in it: the page decides from this who sees the settings. */
   readonly role: TeamRole;
   /** Whether the account has a trainer profile in it, that is whether it trains there (F005). */
   readonly trainsHere: boolean;
+}
+
+/**
+ * What a client sees of a workspace they belong to: the name, the URL name and the word the
+ * workspace uses for its trainers (F068), nothing else.
+ */
+export interface ClientWorkspaceSummary {
+  readonly id: string;
+  readonly name: string;
+  readonly slug: string;
+  readonly trainerWord: TrainerWord;
 }
 
 export interface NewWorkspace {
@@ -88,6 +103,7 @@ export async function createWorkspaceWithOwner(
       slug: organizations.slug,
       defaultLocale: organizations.defaultLocale,
       timeZone: organizations.timeZone,
+      trainerWord: organizations.trainerWord,
     });
   if (!workspace) {
     // Back to the context the request had, so nothing names a workspace that doesn't exist.
@@ -130,6 +146,7 @@ export function listTeamWorkspaces(scope: TenantScope): Promise<WorkspaceSummary
       id: organizations.id,
       name: organizations.name,
       slug: organizations.slug,
+      trainerWord: organizations.trainerWord,
       role: teamMembers.role,
       trainerProfileId: trainerProfiles.id,
     })
@@ -152,12 +169,37 @@ export function listTeamWorkspaces(scope: TenantScope): Promise<WorkspaceSummary
     );
 }
 
+/**
+ * The workspaces where the scope's account has a client relationship, by name: where a person
+ * who is only a client lands after sign-in (F030). A client record linked to the account counts
+ * as joined; F029 and F032 narrow that to the joined ones when join requests and invitations
+ * exist. A team role alone lists nothing, and neither does a workspace outside the scope's
+ * context (RLS says the same).
+ */
+export function listClientWorkspaces(scope: TenantScope): Promise<ClientWorkspaceSummary[]> {
+  const db = executorOf(scope);
+  const { accountId, workspaceIds } = scope.context;
+  if (workspaceIds.length === 0) return Promise.resolve([]);
+  return db
+    .select({
+      id: organizations.id,
+      name: organizations.name,
+      slug: organizations.slug,
+      trainerWord: organizations.trainerWord,
+    })
+    .from(organizations)
+    .innerJoin(clients, eq(clients.organizationId, organizations.id))
+    .where(and(eq(clients.accountId, accountId), inArray(organizations.id, [...workspaceIds])))
+    .orderBy(asc(organizations.name), asc(organizations.slug));
+}
+
 const workspaceColumns = {
   id: organizations.id,
   name: organizations.name,
   slug: organizations.slug,
   defaultLocale: organizations.defaultLocale,
   timeZone: organizations.timeZone,
+  trainerWord: organizations.trainerWord,
 };
 
 /** The workspace of a workspace route's scope. `undefined` when RLS shows no such row. */
@@ -175,10 +217,12 @@ export interface WorkspaceChanges {
   readonly name?: string;
   /** The default communication language (ADR-017); checked by the caller to be a catalog locale. */
   readonly defaultLocale?: Locale;
+  /** The word for the workspace's trainers (F068); checked by the caller to be one of the four. */
+  readonly trainerWord?: TrainerWord;
 }
 
 /**
- * Changes the name and/or the default communication language of the scope's workspace and
+ * Changes the name, the default communication language and/or the word for trainers of the scope's workspace and
  * nothing else: the slug stays, so links and QR codes keep working. The caller has checked the
  * values and decided the account may. With nothing to change it just reads the workspace.
  */
@@ -189,6 +233,7 @@ export async function updateWorkspace(
   const values = {
     ...(changes.name === undefined ? {} : { name: changes.name }),
     ...(changes.defaultLocale === undefined ? {} : { defaultLocale: changes.defaultLocale }),
+    ...(changes.trainerWord === undefined ? {} : { trainerWord: changes.trainerWord }),
   };
   if (Object.keys(values).length === 0) return findWorkspace(scope);
   const [workspace] = await executorOf(scope)

@@ -1,4 +1,4 @@
-import type { Locale } from '@fivvi/i18n';
+import type { EmailLanguage } from '@fivvi/i18n';
 
 // Its own file, without the template: `packages/api` imports this type through the package's
 // `./private-session-mail` export, and the API cannot load or type-check the `.tsx` templates.
@@ -16,7 +16,7 @@ export interface PrivateSessionMailAddress {
 export interface PrivateSessionMail {
   to: { email: string; name: string };
   /** The language of the email, decided by the route (`confirmationLanguage` in `@fivvi/domain`). */
-  locale: Locale;
+  locale: EmailLanguage;
   workspaceName: string;
   /** The workspace's IANA time zone: the date and the times are shown in it. */
   timeZone: string;
@@ -30,6 +30,9 @@ export interface PrivateSessionMail {
    * `endsAt` are then the new time. Left out for a new session (EM-11).
    */
   previous?: { startsAt: Date; endsAt: Date };
-  /** One key per session and version, so the same send repeated goes out once. */
-  idempotencyKey: string;
+  /**
+   * The event behind the mail, `{sessionId}:{version}`: one per session and version, so the same
+   * send repeated reaches the provider with one idempotency key and goes out once (F049).
+   */
+  event: string;
 }

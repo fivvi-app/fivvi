@@ -10,8 +10,8 @@ The single source of every user-facing string (ADR-008). `nl-NL.json` and `en.js
 | `generated/ios/Package.swift`, `generated/ios/FivviStringCatalogs.swift` | The Swift package manifest and the file that exposes its resource bundle (`FivviStringCatalogs.bundle`). **Generated, never edit** |
 | `generated/ios/InfoPlist.xcstrings` | iOS Info.plist strings: `CFBundleDisplayName` and `CFBundleName` from `app.name`, in nl and en. **Generated, never edit** |
 | `generated/android/values*/strings.xml` | Android resources (`values/` = nl-NL, `values-en/` = en). **Generated, never edit** |
-| `src/index.ts` | Runtime exports: `locales`, `defaultLocale`, `messages`, `MessageKey`, `formattingLocales`, `dateTimeFormats`, `resolveInterfaceLanguage`, `resolveCommunicationLanguage`, `resolveSignInCommunicationLanguage`, `pickContentLanguage` (F021: a class's name or description in the viewer's language, else Dutch; never translated) |
-| `src/tools/` | Checks and exporters (Node only) |
+| `src/index.ts` | Runtime exports: `locales`, `defaultLocale`, `messages`, `MessageKey`, `formattingLocales`, `dateTimeFormats`, `resolveInterfaceLanguage`, `resolveCommunicationLanguage`, `resolveSignInCommunicationLanguage`, `pickContentLanguage` (F021: a class's name or description in the viewer's language, else Dutch; never translated), `TRAINER_WORDS`, `TrainerWord`, `trainerWordForms` (F068: the workspace's word and its placeholder values) |
+| `src/tools/` | Checks and exporters (Node only); `no-literal-trainer-allowlist.ts` is the allowlist of the `no-literal-trainer` check |
 | `lint/no-hard-coded-jsx-text.grit` | Biome plugin that fails on literal text in JSX |
 
 ## Adding or changing a string
@@ -39,6 +39,23 @@ The exporters only accept ICU that maps cleanly to Apple and Android formats, an
 - **At most one plural per message**, cardinal, with exactly the locale's categories (`one` and `other` for nl and en). Android selects one item for the whole string, so the text around the plural is repeated in every item.
 - **Not supported:** `=0` / `=1` exact selectors (Android ignores them in nl and en; use a separate key such as `hello.noSessionsToday` and choose in code), `select`, `selectordinal`, `offset`, nested plurals, `{n, number}`, `{d, date}`, `{t, time}` and rich-text tags.
 
+## The workspace's word (F068)
+
+A workspace calls its trainers *trainer*, *instructeur*, *docent* or *coach* (in English trainer, instructor, teacher, coach). A message never says *trainer* for that role; it uses six plain placeholders, because the native exporters reject ICU `select`:
+
+| Placeholder | nl-NL (`instructeur`) | en (`instructor`) |
+|---|---|---|
+| `{word}` | instructeur | instructor |
+| `{words}` | instructeurs | instructors |
+| `{Word}` | Instructeur | Instructor |
+| `{Words}` | Instructeurs | Instructors |
+| `{aWord}` | een instructeur | an instructor |
+| `{AWord}` | Een instructeur | An instructor |
+
+- The words are the messages `trainerWord.<choice>.<form>` (`word`, `words`, `wordCap`, `wordsCap`, `aWord`, `aWordCap`); both catalogs have every form of every word. `trainerWordForms(choice, locale)` turns a workspace's choice and the reader's language into the six values, and the apps mirror it from the generated strings with tests named after `trainer-word.test.ts`.
+- Use the capital form at the start of a message and the lowercase one inside a sentence, and never compound the word in Dutch (*profiel van de {word}*, not *{word}sprofiel*). `{trainer}` stays a person's name.
+- `roles.trainerLabel` (`{Word}`) is the role label that carries the word; `roles.trainer` is the old one, until the web, iOS and Android have moved (spec #588, ticket #751).
+
 ## Dates, times and numbers
 
 Format in code, in the workspace time zone, and pass the result as a plain placeholder (`GLOSSARY.md §3.1`). `dateTimeFormats` holds the shared options:
@@ -54,12 +71,14 @@ The `en` catalog formats as **`en-GB`** (`formattingLocales`), so English gets d
 
 ## Locales
 
-Two languages, two orders ([ADR-017](../../docs/decisions/ADR-017-language-policy.md)). Web and the API resolve with these functions, and callers of `sendEmail` in `packages/email` must resolve its `locale` with `resolveCommunicationLanguage()`; the native apps mirror them with tests named after the same cases. No platform lets its resource fallback decide the language: that would give Dutch, the source language.
+Two languages, two orders ([ADR-017](../../docs/decisions/ADR-017-language-policy.md)). Web and the API resolve with these functions, and `sendEmail` in `packages/email` takes its `locale` only as an `EmailLanguage`, the branded type the email resolvers below return (F049), so a plain `'en'` does not type-check and nothing outside tests casts to it (the Biome rule `lint/email-language-cast.grit` fails lint on a cast); the native apps mirror them with tests named after the same cases. No platform lets its resource fallback decide the language: that would give Dutch, the source language.
 
 - **Interface language** (`resolveInterfaceLanguage()`): what a screen shows and the `locale` it sends to the API. Explicit choice (the language switch, or the OS per-app language) → stored preference → a booking link's fixed language → the first supported device/browser language, in the user's order → `en`. An empty or entirely unsupported list gives `en`. `[fr-FR, nl-BE]` gives `nl-NL`; `[de-DE, en-GB, nl-NL]` gives `en`.
 - **Communication language** (`resolveCommunicationLanguage()`): the language of an email or other message. The recipient's stored preference → the workspace's default communication language. The workspace default never decides the interface language.
 - **Client email language** (`resolveClientCommunicationLanguage()`, F006): an email to a client of a workspace. The linked account's stored preference → the language for emails the team set on the client → the workspace's default communication language. Without a linked account the first step is skipped. Mirrored by the test cases named `AC11` in `src/locale.test.ts`.
 - **Sign-in email language** (`resolveSignInCommunicationLanguage()`, [ADR-019](../../docs/decisions/ADR-019-sign-in-communication-language.md)): an email outside a workspace has no workspace default. The recipient's stored preference → the interface language of the page that asked for the email (so itself falling back to the browser language, then `en`). The first sign-in that creates an account stores that language on it.
+
+- **Internal email language** (`resolveInternalCommunicationLanguage()`): an email to Fivvi's own team, today the demo request mail. Always Dutch.
 
 Any `nl-*` tag matches `nl-NL`, any `en-*` tag matches `en`, and unsupported values are skipped. The stored preference comes with F010 (M2) and booking-link languages with M6; callers pass what they have.
 
@@ -78,10 +97,11 @@ The `no-hard-coded-jsx-text` Biome plugin (registered in `apps/web/biome.json`) 
 
 ## Checks
 
-`pnpm check` (turbo) runs `node src/cli.ts check` in this package. Run one check with `pnpm --filter @fivvi/i18n check:parity`, `check:icu` or `check:generated`.
+`pnpm check` (turbo) runs `node src/cli.ts check` in this package. Run one check with `pnpm --filter @fivvi/i18n check:parity`, `check:icu`, `check:generated` or `check:no-literal-trainer`.
 
 | Check | Fails when |
 |---|---|
 | `parity` | A key exists in one locale only, the locales use different placeholders, a key name is invalid, two keys map to the same Android name, or `comments.json` names an unknown key |
 | `icu` | A message doesn't parse, or uses ICU the exporters can't convert (see above) |
 | `generated` | A file in `generated/` differs from what the generator writes, is missing, or shouldn't exist |
+| `no-literal-trainer` | A message says *trainer* literally (any case, so *trainers* and *Trainersnotities* too) and its key isn't on the allowlist in `src/tools/no-literal-trainer-allowlist.ts`; or an allowlist entry has no reason, is listed twice, names a ticket that isn't one of spec #588, or no message needs it any more. Only a message's text counts, not a placeholder called `{trainer}`; the `trainerWord.*` messages are the words themselves. An entry is **for good** (a screen with no workspace, the public website's copy: a key prefix) or **for now** (one key, "moves with #<ticket>": that ticket takes the entry off) |

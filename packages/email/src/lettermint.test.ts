@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { emailIdempotencyKey } from './idempotency-key.ts';
 import {
   createLettermintTransport,
   lettermintApiUrl,
@@ -7,13 +8,16 @@ import {
 import { createSendEmail, type RetryEvent } from './send.ts';
 import { helloEmail } from './templates/hello.tsx';
 import { signInEmail } from './templates/sign-in.tsx';
+import { dutch, english } from './test-languages.ts';
 import { EmailSendError } from './transport.ts';
 
 const apiToken = 'lm-test-not-a-real-token';
 const routes = { signIn: 'sign-in-route', mail: 'mail-route' };
 const sender = { email: 'noreply@fivvi.app', name: 'Fivvi' };
 const to = { email: 'anna@example.com', name: 'Anna' };
-const key = '6f1c1f3e-5b2a-4c7e-9a51-3c0e2f5d8b10';
+const event = 'event-1';
+// What `sendEmail` makes of the hello email (a catalog entry of its own) and the event.
+const key = emailIdempotencyKey('hello', event);
 const helloProps = { firstName: 'Anna', sentAt: new Date('2026-09-22T16:00:00Z') };
 const signInProps = {
   code: '482915',
@@ -55,12 +59,12 @@ function setup(...replies: Reply[]) {
       return Promise.resolve();
     },
     random: () => 0.5,
-    idempotencyKey: () => key,
     onRetry: (event) => retries.push(event),
   });
-  const send = () => sendEmail({ template: helloEmail, props: helloProps, to, locale: 'nl-NL' });
+  const send = () =>
+    sendEmail({ template: helloEmail, props: helloProps, to, locale: dutch, event });
   const sendSignIn = () =>
-    sendEmail({ template: signInEmail, props: signInProps, to, locale: 'en' });
+    sendEmail({ template: signInEmail, props: signInProps, to, locale: english, event });
   return { ...http, waits, retries, send, sendSignIn };
 }
 

@@ -1,7 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { createEnvironmentSendEmail, isProductionEnvironment } from './environment.ts';
 import { lettermintApiUrl } from './lettermint.ts';
+import type { SentEvent } from './send.ts';
 import { signInEmail } from './templates/sign-in.tsx';
+import { english } from './test-languages.ts';
 
 const lettermintEnv = {
   LETTERMINT_API_TOKEN: 'lm-test-not-a-real-token',
@@ -16,7 +18,11 @@ const props = {
   expiresInMinutes: 15,
 };
 
-function setup(env: Record<string, string>) {
+function setup(
+  env: Record<string, string>,
+  onSent?: (event: SentEvent) => void,
+  onSentError?: (error: unknown) => void,
+) {
   const requests: { url: string; body: Record<string, unknown> }[] = [];
   const fetch = (input: string | URL | Request, init: RequestInit = {}) => {
     requests.push({ url: String(input), body: JSON.parse(String(init.body)) });
@@ -32,9 +38,17 @@ function setup(env: Record<string, string>) {
     env,
     fetch: fetch as typeof globalThis.fetch,
     log: (line) => logged.push(line),
+    onSent,
+    ...(onSentError ? { onSentError } : {}),
   });
   const send = (to: string) =>
-    sendEmail({ template: signInEmail, props, to: { email: to }, locale: 'en' });
+    sendEmail({
+      template: signInEmail,
+      props,
+      to: { email: to },
+      locale: english,
+      event: 'sign-in-1',
+    });
   return { requests, logged, send };
 }
 
@@ -210,5 +224,32 @@ describe('F001 which transport sends an email', () => {
     await expect(send('anna@gym.test')).rejects.toMatchObject({
       cause: expect.objectContaining({ message: expect.stringMatching(/LETTERMINT_ROUTE_/) }),
     });
+  });
+
+  it('F049: reports each accepted send with the catalog ID and language, to the log or the provider', async () => {
+    const sent: SentEvent[] = [];
+    const { send } = setup({ ...lettermintEnv, RAILWAY_ENVIRONMENT_NAME: 'production' }, (event) =>
+      sent.push(event),
+    );
+
+    await send('anna@gym.test');
+
+    expect(sent).toEqual([{ emailId: 'EM-08', language: 'en' }]);
+  });
+
+  it('F049: a recording that throws is handed to onSentError and does not fail the send', async () => {
+    const reported: unknown[] = [];
+    const failure = new Error('posthog is down');
+    const { send } = setup(
+      { ...lettermintEnv, RAILWAY_ENVIRONMENT_NAME: 'production' },
+      () => {
+        throw failure;
+      },
+      (error) => reported.push(error),
+    );
+
+    await expect(send('anna@gym.test')).resolves.toBeDefined();
+
+    expect(reported).toEqual([failure]);
   });
 });

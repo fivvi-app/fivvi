@@ -1,12 +1,15 @@
 package app.fivvi.pro.home
 
 import androidx.activity.compose.BackHandler
+import androidx.annotation.StringRes
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.indication
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.interaction.PressInteraction
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
@@ -18,8 +21,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -36,6 +39,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
@@ -43,17 +47,24 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.LanguageList
 import app.fivvi.core.R
+import app.fivvi.core.kit.FieldErrorLine
 import app.fivvi.core.kit.InsetGroupedList
 import app.fivvi.core.kit.ListRow
+import app.fivvi.core.kit.PillButton
+import app.fivvi.core.kit.PillButtonStack
+import app.fivvi.core.theme.tokens
 import app.fivvi.core.web.SitePage
+import app.fivvi.designtokens.Radius
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
+import app.fivvi.designtokens.headline
 import app.fivvi.designtokens.subhead
 import app.fivvi.designtokens.title1
-import app.fivvi.designtokens.title2
+import app.fivvi.designtokens.workspaceColor
 import java.util.UUID
 
 /** Test tags, shared with the iOS accessibility identifiers and the Maestro flows. */
@@ -100,6 +111,9 @@ object ProfileTags {
     const val WORKSPACE = "profile.workspace"
     const val WORKSPACE_NAME = "profile.workspaceName"
     const val WORKSPACE_ROLE = "profile.workspaceRole"
+
+    /** The mark at the start of a row, in the workspace's colour: `profile.workspaceMark.<slug>` (decorative, no text). */
+    const val WORKSPACE_MARK = "profile.workspaceMark"
 }
 
 /** What the person can do on *Profiel*; the view model answers each. */
@@ -142,20 +156,17 @@ fun ProfileScreen(state: ProfileState, editor: NameEditor?, actions: ProfileActi
     }
     Column(
         modifier = modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState())
-            .padding(Spacing.space6),
+            .padding(Spacing.space4),
         verticalArrangement = Arrangement.spacedBy(Spacing.space4),
     ) {
         Text(
             text = stringResource(R.string.profile_title),
-            modifier = Modifier.testTag(ProfileTags.TITLE).semantics { heading() },
+            modifier = Modifier.padding(horizontal = Spacing.space1).testTag(ProfileTags.TITLE)
+                .semantics { heading() },
             style = MaterialTheme.typography.title1,
         )
         if (state is ProfileState.Loaded) Details(state, actions.onEditName)
-        Text(
-            text = stringResource(R.string.my_profile_workspaces_title),
-            modifier = Modifier.testTag(ProfileTags.WORKSPACES_TITLE).semantics { heading() },
-            style = MaterialTheme.typography.title2,
-        )
+        SectionHeader(R.string.my_profile_workspaces_title, ProfileTags.WORKSPACES_TITLE)
         when (state) {
             ProfileState.Loading -> {
                 val label = stringResource(R.string.common_loading)
@@ -165,14 +176,7 @@ fun ProfileScreen(state: ProfileState, editor: NameEditor?, actions: ProfileActi
                 )
             }
 
-            is ProfileState.Loaded -> state.workspaces.forEach {
-                Workspace(
-                    it,
-                    selected = it.id == actions.currentWorkspace,
-                    onSelect = if (state.workspaces.size > 1) ({ actions.onSelectWorkspace(it.id) }) else null,
-                    onSetTrainsHere = actions.onSetTrainsHere,
-                )
-            }
+            is ProfileState.Loaded -> Workspaces(state.workspaces, actions)
 
             ProfileState.Failed -> {
                 Text(
@@ -180,26 +184,55 @@ fun ProfileScreen(state: ProfileState, editor: NameEditor?, actions: ProfileActi
                     modifier = Modifier.testTag(ProfileTags.ERROR),
                     style = MaterialTheme.typography.body,
                 )
-                Button(onClick = actions.onRetry, modifier = Modifier.testTag(ProfileTags.RETRY)) {
-                    Text(stringResource(R.string.common_retry))
+                PillButtonStack {
+                    PillButton(
+                        text = stringResource(R.string.common_retry),
+                        onClick = actions.onRetry,
+                        modifier = Modifier.testTag(ProfileTags.RETRY),
+                    )
                 }
             }
         }
-        Text(
-            text = stringResource(R.string.profile_language),
-            modifier = Modifier.testTag(ProfileTags.LANGUAGE).semantics { heading() },
-            style = MaterialTheme.typography.title2,
-        )
+        SectionHeader(R.string.profile_language, ProfileTags.LANGUAGE)
         LanguageList(ProfileTags.LANGUAGE, actions.language, actions.onChooseLanguage)
         if (actions.languageSaveFailed) {
-            Text(
-                text = stringResource(R.string.user_menu_error),
+            FieldErrorLine(
+                message = stringResource(R.string.user_menu_error),
                 modifier = Modifier.testTag(ProfileTags.LANGUAGE_ERROR),
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.body,
             )
         }
         SiteLinkRows(actions.onOpenSitePage)
+    }
+}
+
+// The small title above a group of rows (the prototype's section header): quiet, in the secondary colour, still a heading.
+@Composable
+private fun SectionHeader(@StringRes text: Int, tag: String) {
+    Text(
+        text = stringResource(text),
+        modifier = Modifier.padding(start = Spacing.space4).testTag(tag).semantics { heading() },
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        style = MaterialTheme.typography.subhead,
+    )
+}
+
+// The workspaces, one group: each workspace's row, and under it the Owner's switch where the API lets them manage the team.
+@Composable
+private fun Workspaces(workspaces: List<ProfileWorkspace>, actions: ProfileActions) {
+    val owner = stringResource(R.string.roles_owner)
+    val trainer = stringResource(R.string.roles_trainer)
+    InsetGroupedList {
+        workspaces.forEach { workspace ->
+            row {
+                WorkspaceRow(
+                    workspace,
+                    roleLabel = if (workspace.role == ProfileRole.Owner) owner else trainer,
+                    isCurrent = workspace.id == actions.currentWorkspace,
+                    onSelect = if (workspaces.size > 1) ({ actions.onSelectWorkspace(workspace.id) }) else null,
+                )
+            }
+            if (workspace.canSwitchTrainsHere) row { TrainsHere(workspace, actions.onSetTrainsHere) }
+        }
     }
 }
 
@@ -227,68 +260,66 @@ private fun SiteLinkRows(onOpen: (SitePage) -> Unit) {
 // The name (tap to change it) and the email address, which is read-only: changing it is out of scope (F001).
 @Composable
 private fun Details(state: ProfileState.Loaded, onEditName: () -> Unit) {
-    Text(
-        text = stringResource(R.string.my_profile_details_title),
-        modifier = Modifier.testTag(ProfileTags.DETAILS_TITLE).semantics { heading() },
-        style = MaterialTheme.typography.title2,
-    )
+    SectionHeader(R.string.my_profile_details_title, ProfileTags.DETAILS_TITLE)
     val editName = stringResource(R.string.my_profile_edit_name)
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.space1)) {
-        Text(text = stringResource(R.string.my_profile_name_label), style = MaterialTheme.typography.subhead)
-        // The name itself is the button, so the node that opens the dialog carries both the tag and the name as its text (a
-        // Material button keeps its text on a child, and Maestro matches an id and a text on one node); without a name it
-        // offers the change.
-        Text(
-            text = state.name ?: editName,
-            modifier = Modifier
-                .heightIn(min = Spacing.space12)
-                .testTag(ProfileTags.NAME)
-                .clickable(onClickLabel = editName, role = Role.Button, onClick = onEditName)
-                .wrapContentHeight(Alignment.CenterVertically),
-            color = MaterialTheme.colorScheme.primary,
-            style = MaterialTheme.typography.body,
-        )
-        if (state.nameSaved) {
-            Text(
-                text = stringResource(R.string.my_profile_saved),
-                modifier = Modifier.testTag(ProfileTags.NAME_SAVED).semantics { liveRegion = LiveRegionMode.Polite },
-                style = MaterialTheme.typography.body,
-            )
+    InsetGroupedList {
+        row {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.space4, vertical = Spacing.space2),
+                verticalArrangement = Arrangement.spacedBy(Spacing.space1),
+            ) {
+                Text(
+                    text = stringResource(R.string.my_profile_name_label),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.subhead,
+                )
+                // The name itself is the button, so the node that opens the dialog carries both the tag and the name as its
+                // text (a Material button keeps its text on a child, and Maestro matches an id and a text on one node);
+                // without a name it offers the change.
+                Text(
+                    text = state.name ?: editName,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(min = Spacing.space12)
+                        .testTag(ProfileTags.NAME)
+                        .clickable(onClickLabel = editName, role = Role.Button, onClick = onEditName)
+                        .wrapContentHeight(Alignment.CenterVertically),
+                    color = MaterialTheme.tokens.accentText,
+                    style = MaterialTheme.typography.body,
+                )
+                if (state.nameSaved) {
+                    Text(
+                        text = stringResource(R.string.my_profile_saved),
+                        modifier = Modifier.testTag(ProfileTags.NAME_SAVED)
+                            .semantics { liveRegion = LiveRegionMode.Polite },
+                        style = MaterialTheme.typography.body,
+                    )
+                }
+            }
+        }
+        row {
+            Column(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.space4, vertical = Spacing.space3),
+                verticalArrangement = Arrangement.spacedBy(Spacing.space1),
+            ) {
+                Text(
+                    text = stringResource(R.string.my_profile_email_label),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.subhead,
+                )
+                Text(
+                    text = state.email,
+                    modifier = Modifier.testTag(ProfileTags.EMAIL),
+                    style = MaterialTheme.typography.body,
+                )
+            }
         }
     }
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.space1)) {
-        Text(text = stringResource(R.string.my_profile_email_label), style = MaterialTheme.typography.subhead)
-        Text(
-            text = state.email,
-            modifier = Modifier.testTag(ProfileTags.EMAIL),
-            style = MaterialTheme.typography.body,
-        )
-    }
 }
 
-@Composable
-private fun Workspace(
-    workspace: ProfileWorkspace,
-    selected: Boolean,
-    onSelect: (() -> Unit)?,
-    onSetTrainsHere: (UUID, Boolean) -> Unit,
-) {
-    val role = stringResource(
-        when (workspace.role) {
-            ProfileRole.Owner -> R.string.roles_owner
-            ProfileRole.Trainer -> R.string.roles_trainer
-        },
-    )
-    Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Spacing.space1),
-    ) {
-        WorkspaceRow(workspace, role, selected, onSelect)
-        if (workspace.canSwitchTrainsHere) TrainsHere(workspace, onSetTrainsHere)
-    }
-}
+private val WorkspaceMarkSize = 36.dp
 
-// The name and the role; with more than one workspace the whole row is the button (`profile.workspace.<slug>`), with a
+// The mark, the name and, at the trailing end, the role; with more than one workspace the whole row is the button (`profile.workspace.<slug>`), with a
 // check and the selected state on the current one. The row does not merge its two lines into itself (unlike a Material
 // button), so they keep their own tags for the flows that read them. Its role is a tab, as a Material navigation item's
 // is: only then does Compose report the selected state as the accessibility node's `selected`, which is what the shared
@@ -333,27 +364,39 @@ private fun WorkspaceRow(workspace: ProfileWorkspace, roleLabel: String, isCurre
                             )
                         }
                 },
-            ),
-        horizontalArrangement = Arrangement.SpaceBetween,
+            )
+            .padding(horizontal = Spacing.space4, vertical = Spacing.space3),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.space3),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(Spacing.space1),
-        ) {
-            Text(
-                text = workspace.name,
-                modifier = Modifier.testTag("${ProfileTags.WORKSPACE_NAME}.${workspace.slug}"),
-                style = MaterialTheme.typography.body,
-            )
-            Text(
-                text = roleLabel,
-                modifier = Modifier.testTag("${ProfileTags.WORKSPACE_ROLE}.${workspace.slug}"),
-                style = MaterialTheme.typography.body,
-            )
-        }
+        // The prototype's 36 dp mark in the workspace's colour, picked from its ID (the same function on every platform).
+        // Decorative: the row names the workspace, and the colour is never the only signal.
+        Box(
+            Modifier
+                .size(WorkspaceMarkSize)
+                .background(MaterialTheme.tokens.workspaceColor(workspace.id.toString()), RoundedCornerShape(Radius.md))
+                .testTag("${ProfileTags.WORKSPACE_MARK}.${workspace.slug}")
+                .clearAndSetSemantics { },
+        )
+        Text(
+            text = workspace.name,
+            modifier = Modifier.weight(1f).testTag("${ProfileTags.WORKSPACE_NAME}.${workspace.slug}"),
+            style = MaterialTheme.typography.headline,
+        )
+        // TM-04: the role sits at the trailing end of the row, not under the name.
+        Text(
+            text = roleLabel,
+            modifier = Modifier.testTag("${ProfileTags.WORKSPACE_ROLE}.${workspace.slug}"),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.subhead,
+        )
         if (onSelect != null && isCurrent) {
-            Icon(painterResource(R.drawable.ic_check), contentDescription = null, Modifier.size(Spacing.space6))
+            Icon(
+                painterResource(R.drawable.ic_check),
+                contentDescription = null,
+                modifier = Modifier.size(Spacing.space6),
+                tint = MaterialTheme.tokens.accentText,
+            )
         }
     }
 }
@@ -362,49 +405,55 @@ private fun WorkspaceRow(workspace: ProfileWorkspace, roleLabel: String, isCurre
 @Composable
 private fun TrainsHere(workspace: ProfileWorkspace, onSetTrainsHere: (UUID, Boolean) -> Unit) {
     val saving = workspace.change == TrainsHereChange.Saving
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = Spacing.space12)
-            .testTag("${ProfileTags.TRAINS_HERE}.${workspace.slug}")
-            .toggleable(
-                value = workspace.trainsHere,
-                enabled = !saving,
-                role = Role.Switch,
-                onValueChange = { onSetTrainsHere(workspace.id, it) },
-            ),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.space4),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        Text(
-            text = stringResource(R.string.profile_trains_here_label, workspace.name),
-            modifier = Modifier.weight(1f),
-            style = MaterialTheme.typography.body,
-        )
-        Switch(checked = workspace.trainsHere, onCheckedChange = null, enabled = !saving)
-    }
-    when (workspace.change) {
-        TrainsHereChange.Saved -> Text(
-            text = stringResource(R.string.profile_trains_here_saved),
-            modifier = Modifier.testTag("${ProfileTags.TRAINS_HERE_SAVED}.${workspace.slug}")
-                .semantics { liveRegion = LiveRegionMode.Polite },
-            style = MaterialTheme.typography.body,
-        )
+    Column(Modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = Spacing.space12)
+                .testTag("${ProfileTags.TRAINS_HERE}.${workspace.slug}")
+                .toggleable(
+                    value = workspace.trainsHere,
+                    enabled = !saving,
+                    role = Role.Switch,
+                    onValueChange = { onSetTrainsHere(workspace.id, it) },
+                )
+                .padding(horizontal = Spacing.space4, vertical = Spacing.space3),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.space4),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Text(
+                text = stringResource(R.string.profile_trains_here_label, workspace.name),
+                modifier = Modifier.weight(1f),
+                style = MaterialTheme.typography.body,
+            )
+            Switch(checked = workspace.trainsHere, onCheckedChange = null, enabled = !saving)
+        }
+        val tag = workspace.slug
+        val lineModifier = Modifier.padding(start = Spacing.space4, end = Spacing.space4, bottom = Spacing.space3)
+        when (workspace.change) {
+            TrainsHereChange.Saved -> Text(
+                text = stringResource(R.string.profile_trains_here_saved),
+                modifier = lineModifier.testTag("${ProfileTags.TRAINS_HERE_SAVED}.$tag")
+                    .semantics { liveRegion = LiveRegionMode.Polite },
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.subhead,
+            )
 
-        TrainsHereChange.NoConnection, TrainsHereChange.Failed -> Text(
-            text = stringResource(
-                if (workspace.change == TrainsHereChange.NoConnection) {
-                    R.string.profile_trains_here_errors_no_connection
-                } else {
-                    R.string.profile_trains_here_errors_generic
-                },
-            ),
-            modifier = Modifier.testTag("${ProfileTags.TRAINS_HERE_ERROR}.${workspace.slug}")
-                .semantics { liveRegion = LiveRegionMode.Polite },
-            color = MaterialTheme.colorScheme.error,
-            style = MaterialTheme.typography.body,
-        )
+            TrainsHereChange.NoConnection, TrainsHereChange.Failed -> Box(lineModifier) {
+                FieldErrorLine(
+                    message = stringResource(
+                        if (workspace.change == TrainsHereChange.NoConnection) {
+                            R.string.profile_trains_here_errors_no_connection
+                        } else {
+                            R.string.profile_trains_here_errors_generic
+                        },
+                    ),
+                    modifier = Modifier.testTag("${ProfileTags.TRAINS_HERE_ERROR}.$tag")
+                        .semantics { liveRegion = LiveRegionMode.Polite },
+                )
+            }
 
-        TrainsHereChange.Idle, TrainsHereChange.Saving -> Unit
+            TrainsHereChange.Idle, TrainsHereChange.Saving -> Unit
+        }
     }
 }

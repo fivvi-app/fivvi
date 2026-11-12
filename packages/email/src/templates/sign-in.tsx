@@ -61,9 +61,10 @@ export const signInEmail: EmailTemplate<SignInEmailProps> = {
       <Text style={textStyle}>{ctx.t('email.signIn.ignore')}</Text>
     </>
   ),
+  userContent: [],
   previewProps: {
     code: '482915',
-    url: 'https://fivvi.example.com/login/confirm?token=preview-token-not-real',
+    url: 'https://fivvi.app/login/confirm?token=preview-token-not-real',
     expiresInMinutes: 15,
   },
 };

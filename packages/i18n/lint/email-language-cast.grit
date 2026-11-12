@@ -1,0 +1,38 @@
+// Biome plugin (F049, ADR-017, ADR-019): an `EmailLanguage` is made only by a resolver of
+// packages/i18n/src/locale.ts (resolveCommunicationLanguage, resolveClientCommunicationLanguage,
+// resolveSignInCommunicationLanguage, resolveInternalCommunicationLanguage). A cast gets around
+// that, so the send function of @fivvi/email would take a language nobody resolved.
+//
+// Flags, in all code but the one place that casts (packages/i18n/src/locale.ts) and the tests
+// (the root biome.json registers it with those left out):
+//   - `x as EmailLanguage` and `<EmailLanguage>x`, also behind `as unknown`;
+//   - `as never` or `as any` on the value of a `locale` property, and a cast to the type of a
+//     `locale` property of an email (`SendEmailOptions<…>['locale']`, `…Mail['locale']`).
+// Tested by packages/i18n/lint/email-language-cast.test.ts.
+language js
+
+pattern email_language_type() { r"\s*EmailLanguage\s*" }
+
+pattern locale_type() { r"[\s\S]*\[\s*['\"]locale['\"]\s*\]\s*" }
+
+pattern unsafe_type() { r"\s*(?:never|any)\s*" }
+
+or {
+  TsAsExpression(ty=$type) as $cast where {
+    $type <: email_language_type(),
+    register_diagnostic(span=$cast, message="Do not cast to EmailLanguage: take the language from resolveCommunicationLanguage, resolveClientCommunicationLanguage, resolveSignInCommunicationLanguage or resolveInternalCommunicationLanguage of @fivvi/i18n (F049).")
+  },
+  TsTypeAssertionExpression(ty=$type) as $cast where {
+    $type <: email_language_type(),
+    register_diagnostic(span=$cast, message="Do not cast to EmailLanguage: take the language from resolveCommunicationLanguage, resolveClientCommunicationLanguage, resolveSignInCommunicationLanguage or resolveInternalCommunicationLanguage of @fivvi/i18n (F049).")
+  },
+  TsAsExpression(ty=$type) as $cast where {
+    $type <: locale_type(),
+    register_diagnostic(span=$cast, message="Do not cast to the type of a locale property: take the language from a resolver of @fivvi/i18n (F049).")
+  },
+  JsPropertyObjectMember(name=JsLiteralMemberName() as $name, value=TsAsExpression(ty=$type) as $cast) where {
+    $name <: `locale`,
+    $type <: unsafe_type(),
+    register_diagnostic(span=$cast, message="Do not cast a locale to never or any: take the language from a resolver of @fivvi/i18n (F049).")
+  }
+}

@@ -19,6 +19,9 @@ import app.fivvi.designtokens.TokenShapes
 /** The semantic colours of the mode shown, for what Material's colour roles don't cover (sessions, status). */
 val LocalTokenColors = staticCompositionLocalOf { LightTokenColors }
 
+/** Whether the theme shows dark mode, for what comes in a light and a dark version (the Fivvi Pro icon on the sign-in). */
+val LocalDarkTheme = staticCompositionLocalOf { false }
+
 /** `MaterialTheme.tokens.sessionPrivateBg`: the token colours of the mode the theme shows. */
 val MaterialTheme.tokens: TokenColors
     @Composable
@@ -34,7 +37,10 @@ val MaterialTheme.tokens: TokenColors
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 fun FivviTheme(darkTheme: Boolean = isSystemInDarkTheme(), content: @Composable () -> Unit) {
-    CompositionLocalProvider(LocalTokenColors provides if (darkTheme) DarkTokenColors else LightTokenColors) {
+    CompositionLocalProvider(
+        LocalTokenColors provides if (darkTheme) DarkTokenColors else LightTokenColors,
+        LocalDarkTheme provides darkTheme,
+    ) {
         MaterialExpressiveTheme(
             colorScheme = if (darkTheme) DarkColorScheme else LightColorScheme,
             motionScheme = MotionScheme.expressive(),

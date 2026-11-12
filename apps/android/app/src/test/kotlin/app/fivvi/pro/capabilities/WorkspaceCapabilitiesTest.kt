@@ -7,6 +7,7 @@ import app.fivvi.api.models.MeWorkspace.Capabilities.CLIENTS_PERIOD_VIEW
 import app.fivvi.api.models.MeWorkspace.Capabilities.WORKSPACE_PERIOD_MANAGE
 import app.fivvi.api.models.MeWorkspace.Role
 import app.fivvi.api.models.MyWorkspace
+import app.fivvi.api.models.TrainerWord
 import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.pro.home.FakeTrainersApi
@@ -43,8 +44,14 @@ class WorkspaceCapabilitiesTest {
     private val johnsGym = workspaceIdOf("John's Gym")
     private val personalTraining = workspaceIdOf("Sarah Personal Training")
 
-    private fun workspace(name: String, role: Role, vararg capabilities: MeWorkspace.Capabilities) =
-        MeWorkspace(workspaceIdOf(name), name, name.lowercase().replace(' ', '-'), role, capabilities.toList())
+    private fun workspace(name: String, role: Role, vararg capabilities: MeWorkspace.Capabilities) = MeWorkspace(
+        workspaceIdOf(name),
+        name,
+        name.lowercase().replace(' ', '-'),
+        TrainerWord.TRAINER,
+        role,
+        capabilities.toList(),
+    )
 
     private fun account(vararg workspaces: MeWorkspace) = MeResponse(
         id = UUID.randomUUID(),
@@ -54,6 +61,7 @@ class WorkspaceCapabilitiesTest {
         bookingEmails = true,
         canCreateWorkspace = false,
         workspaces = workspaces.toList(),
+        clientWorkspaces = emptyList(),
     )
 
     private fun answerAccount(vararg workspaces: MeWorkspace) {

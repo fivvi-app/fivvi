@@ -33,7 +33,7 @@ export function createTrainerInvitationSender({
       to: mail.to,
       locale: mail.locale,
       timeZone: mail.timeZone,
-      idempotencyKey: mail.idempotencyKey,
+      event: mail.event,
     });
   };
 }

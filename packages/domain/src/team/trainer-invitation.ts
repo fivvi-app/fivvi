@@ -1,4 +1,9 @@
-import { type Locale, matchLocale, resolveCommunicationLanguage } from '@fivvi/i18n';
+import {
+  type EmailLanguage,
+  type Locale,
+  matchLocale,
+  resolveCommunicationLanguage,
+} from '@fivvi/i18n';
 import { normalizeEmail } from '../email.ts';
 
 // Trainer invitations (F011, spec #422): the rules of inviting a trainer by email. Pure: the
@@ -39,7 +44,7 @@ export interface InvitationLanguageSources {
  * stored preference of the address's account, then the workspace's default. A value that is no
  * catalog language is skipped.
  */
-export function invitationLanguage(sources: InvitationLanguageSources): Locale {
+export function invitationLanguage(sources: InvitationLanguageSources): EmailLanguage {
   return resolveCommunicationLanguage({
     recipientPreference: matchLocale(sources.chosen) ?? sources.accountPreference,
     workspaceDefault: sources.workspaceDefault,

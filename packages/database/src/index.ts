@@ -74,6 +74,25 @@ export {
   updateLocation,
 } from './repositories/locations.ts';
 export {
+  findPayment,
+  findProviderCustomerId,
+  type InPaymentScope,
+  insertPayment,
+  linkProviderCustomer,
+  linkProviderPayment,
+  listStatusChanges,
+  type NewPayment,
+  type NewStatusChange,
+  type PaymentKind,
+  type PaymentPurpose,
+  type PaymentRecord,
+  type PaymentStatus,
+  type PaymentStatusSource,
+  paymentLedger,
+  recordStatusChange,
+  type StatusChangeRecord,
+} from './repositories/payments.ts';
+export {
   findMyNextSessionStart,
   hasMySession,
   listMySessions,
@@ -82,6 +101,28 @@ export {
   type PersonalWorkspace,
 } from './repositories/personal-sessions.ts';
 export { listMyWorkspaces, type WorkspacePlace } from './repositories/places.ts';
+export {
+  type ChargebackRecord,
+  findRefund,
+  findRefundFacts,
+  type InRefundScope,
+  type InsertRefundResult,
+  insertRefund,
+  linkProviderRefund,
+  listChargebacksOfPayment,
+  listRefundStatusChanges,
+  listRefundsOfPayment,
+  type NewChargeback,
+  type NewRefund,
+  type NewRefundStatusChange,
+  type RefundFacts,
+  type RefundRecord,
+  type RefundStatus,
+  type RefundStatusChangeRecord,
+  recordChargeback,
+  recordRefundStatusChange,
+  refundLedger,
+} from './repositories/refunds.ts';
 export {
   type AttendanceStatus,
   createPrivateSession,
@@ -115,16 +156,19 @@ export {
   countInvitationsSince,
   createTrainerInvitation,
   findInvitation,
-  findPendingInvitation,
   findPendingInvitationByEmail,
   hasPendingInvitation,
   type InvitationRecord,
+  type InvitationSend,
   listPendingInvitations,
   lockInvitation,
   lockInvitationQuota,
+  lockPendingInvitationSend,
   type NewTrainerInvitation,
   resendInvitation,
   type TrainerInvitationView,
+  undoInvitation,
+  undoResend,
   withdrawInvitation,
 } from './repositories/trainer-invitations.ts';
 export {
@@ -137,10 +181,12 @@ export {
   type TrainerWithProfile,
 } from './repositories/trainer-profiles.ts';
 export {
+  type ClientWorkspaceSummary,
   createWorkspaceWithOwner,
   findJoinLink,
   findWorkspace,
   type JoinLinkView,
+  listClientWorkspaces,
   listTeamWorkspaces,
   type NewWorkspace,
   renewJoinLink,

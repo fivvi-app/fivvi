@@ -149,6 +149,25 @@
     "title": "Geen toegang",
     "body": "Je hebt geen toegang tot deze pagina. Vraag de eigenaar van {workspace}."
   },
+  "joinLink": {
+    "title": "Aanmeldlink",
+    "body": "Voor nieuwe klanten: ze loggen in en vragen of ze klant mogen worden. De eigenaar keurt elk verzoek goed.",
+    "copy": "Link kopiëren",
+    "copied": "Link gekopieerd.",
+    "renew": "Vernieuwen",
+    "renewDialog": {
+      "title": "Aanmeldlink vernieuwen?",
+      "body": "De huidige link en de QR-codes ervan werken daarna niet meer. Verzoeken die al zijn verstuurd blijven staan.",
+      "confirm": "Vernieuwen",
+      "cancel": "Terug"
+    },
+    "renewed": "De aanmeldlink is vernieuwd.",
+    "errors": {
+      "copy": "Kopiëren is niet gelukt. Selecteer de link en kopieer hem zelf.",
+      "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
+      "generic": "Er ging iets mis. Probeer het opnieuw."
+    }
+  },
   "workspaceNav": {
     "label": "Hoofdnavigatie",
     "settings": "Instellingen",
@@ -160,7 +179,8 @@
     "clients": "Klanten",
     "new": "Nieuw",
     "newMenu": "Nieuw maken",
-    "newClient": "Klant"
+    "newClient": "Klant",
+    "joinLink": "Aanmeldlink"
   },
   "workspaceSwitcher": {
     "newWorkspace": "+ Nieuwe werkruimte"
@@ -180,6 +200,13 @@
   "email": {
     "layout": {
       "footer": "Deze e-mail is verstuurd door Fivvi."
+    },
+    "frame": {
+      "clientReason": "Je krijgt deze e-mail omdat je klant bent bij {workspace}.",
+      "teamReason": "Je krijgt deze e-mail omdat je in het team van {workspace} zit.",
+      "questions": "Vragen? Neem contact op met {workspace}.",
+      "button": "In Fivvi bekijken",
+      "sentWith": "Verstuurd via Fivvi"
     },
     "hello": {
       "subject": "Testbericht van Fivvi",
@@ -222,7 +249,7 @@
       "trainer": "Trainer: {trainer}"
     },
     "privateSessionMoved": {
-      "subject": "Wijziging: je sessie op {oldDate} is verplaatst naar {newDate}",
+      "subject": "Wijziging: je sessie is verplaatst naar {newDate}",
       "dateTime": "{date} om {time}",
       "preview": "Je privésessie is verplaatst naar {newDate}.",
       "intro": "Je privésessie bij {workspace} is verplaatst.",
@@ -256,7 +283,42 @@
   },
   "roles": {
     "owner": "Eigenaar",
-    "trainer": "Trainer"
+    "trainer": "Trainer",
+    "trainerLabel": "{Word}"
+  },
+  "trainerWord": {
+    "trainer": {
+      "word": "trainer",
+      "words": "trainers",
+      "wordCap": "Trainer",
+      "wordsCap": "Trainers",
+      "aWord": "een trainer",
+      "aWordCap": "Een trainer"
+    },
+    "instructeur": {
+      "word": "instructeur",
+      "words": "instructeurs",
+      "wordCap": "Instructeur",
+      "wordsCap": "Instructeurs",
+      "aWord": "een instructeur",
+      "aWordCap": "Een instructeur"
+    },
+    "docent": {
+      "word": "docent",
+      "words": "docenten",
+      "wordCap": "Docent",
+      "wordsCap": "Docenten",
+      "aWord": "een docent",
+      "aWordCap": "Een docent"
+    },
+    "coach": {
+      "word": "coach",
+      "words": "coaches",
+      "wordCap": "Coach",
+      "wordsCap": "Coaches",
+      "aWord": "een coach",
+      "aWordCap": "Een coach"
+    }
   },
   "myProfile": {
     "title": "Mijn profiel",
@@ -440,6 +502,14 @@
     "cancellation": {
       "upTo": "{count, plural, one {Je kunt tot # uur van tevoren gratis annuleren.} other {Je kunt tot # uur van tevoren gratis annuleren.}}",
       "untilStart": "Je kunt tot de start gratis annuleren."
+    }
+  },
+  "agreements": {
+    "dueDay": {
+      "one": "op de {day}e",
+      "two": "op de {day}e",
+      "few": "op de {day}e",
+      "other": "op de {day}e"
     }
   },
   "site": {
@@ -953,11 +1023,7 @@
       "privacy": "Privacyverklaring",
       "terms": "Algemene voorwaarden",
       "subProcessors": "Subverwerkers",
-      "tradeName": "{name}, handelend onder de naam Fivvi",
-      "kvk": "KvK-nummer",
-      "vat": "Btw-nummer",
-      "address": "Adres",
-      "phone": "Telefoon of WhatsApp"
+      "tradeName": "{name}, handelend onder de naam Fivvi"
     },
     "cta": {
       "heading": "Hoe ziet jouw dag eruit in Fivvi?",
