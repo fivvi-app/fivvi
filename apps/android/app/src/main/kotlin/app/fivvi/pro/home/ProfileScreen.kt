@@ -58,6 +58,7 @@ import app.fivvi.core.kit.PillButton
 import app.fivvi.core.kit.PillButtonStack
 import app.fivvi.core.theme.tokens
 import app.fivvi.core.web.SitePage
+import app.fivvi.designtokens.Radius
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
 import app.fivvi.designtokens.headline
@@ -373,7 +374,7 @@ private fun WorkspaceRow(workspace: ProfileWorkspace, roleLabel: String, isCurre
         Box(
             Modifier
                 .size(WorkspaceMarkSize)
-                .background(MaterialTheme.tokens.workspaceColor(workspace.id.toString()), RoundedCornerShape(12.dp))
+                .background(MaterialTheme.tokens.workspaceColor(workspace.id.toString()), RoundedCornerShape(Radius.md))
                 .testTag("${ProfileTags.WORKSPACE_MARK}.${workspace.slug}")
                 .clearAndSetSemantics { },
         )
