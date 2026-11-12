@@ -19,9 +19,11 @@ import {
 } from '@fivvi/email';
 import { messages } from '@fivvi/i18n';
 import {
+  anonymousDistinctId,
   createErrorReporter,
   createProductEventCaptureTransport,
   createProductEvents,
+  type ProductEvent,
 } from '@fivvi/observability';
 import { createBackgroundTasks } from '@fivvi/testing/background-tasks';
 import { type Clock, freezeSystemTime, manualClock } from '@fivvi/testing/clock';
@@ -44,6 +46,8 @@ const contract = JSON.parse(
 );
 
 const INVALID_CODE = { code: 'invalid_or_expired_code' };
+
+type EmailId = Extract<ProductEvent, { event: 'email_sent' }>['properties']['email_id'];
 
 describe('F005 change your own email address', () => {
   let database: TestDatabase;
@@ -91,6 +95,13 @@ describe('F005 change your own email address', () => {
       sendEmail: createSendEmail({
         transport,
         sender: { email: 'noreply@fivvi.app', name: 'Fivvi' },
+        // As apps/web/server/send-email.ts wires it: each accepted send is the event `email_sent`.
+        onSent: ({ emailId, language }) =>
+          productEvents.track({
+            event: 'email_sent',
+            distinctId: anonymousDistinctId(),
+            properties: { email_id: emailId as EmailId, language },
+          }),
       }),
       runInBackground: tasks.run,
       productEvents,
@@ -474,15 +485,38 @@ describe('F005 change your own email address', () => {
 
     it('each change has its own idempotency key, made of EM-35 and the change', async () => {
       const sarah = await account(unique('sarah'));
+      const changeId = async () =>
+        (
+          await client.db
+            .select({ id: authVerifications.id })
+            .from(authVerifications)
+            .where(eq(authVerifications.identifier, `change-email:${sarah.id}`))
+        )[0]?.id;
+
       const first = await askForCode(sarah.cookie, unique('new'));
+      const firstId = await changeId();
       transport.clear();
       await confirmChange(sarah.cookie, first.code);
       await settle();
+      const firstKey = transport.sent[0]?.idempotencyKey;
 
-      const key = transport.sent[0]?.idempotencyKey;
+      const second = await askForCode(sarah.cookie, unique('newer'));
+      const secondId = await changeId();
+      transport.clear();
+      await confirmChange(sarah.cookie, second.code);
+      await settle();
+      const secondKey = transport.sent[0]?.idempotencyKey;
 
-      expect(key).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-/);
-      expect(key).not.toBe(emailIdempotencyKey('EM-34', first.code));
+      expect(firstKey).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      );
+      // The event is the change's own row, so the key follows the change and a retry keeps it.
+      expect(firstId).toEqual(expect.any(String));
+      expect(secondId).toEqual(expect.any(String));
+      expect(secondId).not.toBe(firstId);
+      expect(firstKey).toBe(emailIdempotencyKey('EM-35', firstId ?? ''));
+      expect(secondKey).toBe(emailIdempotencyKey('EM-35', secondId ?? ''));
+      expect(secondKey).not.toBe(firstKey);
     });
   });
 
@@ -1156,14 +1190,36 @@ describe('F005 change your own email address', () => {
       posthog.events.length = 0;
       logged.length = 0;
 
+      transport.clear();
       await requestChange(sarah.cookie, mike.email);
       await settle();
+      // Mike has an account: he got the notice EM-36 instead of a code.
+      const toMike = transport.sent.filter((sent) => sent.to.email === mike.email);
       const { code } = await askForCode(sarah.cookie, newEmail);
       await confirmChange(sarah.cookie, code);
       await settle();
       await productEvents.flush();
 
+      expect(toMike).toHaveLength(1);
+      // Sarah's old address got EM-35.
       expect(transport.sent.map((sent) => sent.to.email)).toContain(sarah.email);
+      const sentEvents = posthog.events.filter((event) => event.event === 'email_sent');
+      const noticeEvents = sentEvents.filter((event) =>
+        ['EM-35', 'EM-36'].includes(String(event.properties.email_id)),
+      );
+      expect(noticeEvents.map((event) => event.properties.email_id).sort()).toEqual([
+        'EM-35',
+        'EM-36',
+      ]);
+      for (const event of noticeEvents) {
+        const { $lib, $lib_version, token, distinct_id, ...rest } = event.properties;
+        void [$lib, $lib_version, token, distinct_id];
+        expect(
+          Object.keys(rest)
+            .filter((key) => !key.startsWith('$'))
+            .sort(),
+        ).toEqual(['email_id', 'language']);
+      }
       const everything = JSON.stringify(posthog.events) + logged.join('\n');
       for (const secret of [
         newEmail,

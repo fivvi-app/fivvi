@@ -237,7 +237,7 @@
       "preview": "This email address no longer belongs to your Fivvi account.",
       "intro": "The email address of your Fivvi account has just been changed. You no longer sign in with this email address; you sign in with the new one.",
       "fine": "If you made this change, you don't need to do anything.",
-      "notYou": "Wasn't you? Contact us right away through Help and contact on fivvi.app and we'll look into it."
+      "notYou": "Wasn't this you? Contact us right away through Help and contact on fivvi.app and we'll look into it."
     },
     "emailChangeTaken": {
       "subject": "Someone wanted to use this email address for another Fivvi account",

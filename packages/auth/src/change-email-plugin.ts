@@ -1,8 +1,8 @@
 import { type Database, recordWrongSignInCode } from '@fivvi/database';
 import {
   emailChangeCodeEmail,
-  emailChangeTakenNoticeEmail,
   emailChangedNoticeEmail,
+  emailChangeTakenNoticeEmail,
   type SendEmail,
 } from '@fivvi/email';
 import { parseAcceptLanguage, resolveSignInCommunicationLanguage } from '@fivvi/i18n';
