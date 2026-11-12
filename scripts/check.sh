@@ -86,8 +86,9 @@ acquire_e2e_queue() {
     if ln -sn "$$" "$E2E_LOCK" 2>/dev/null; then OWN_E2E_LOCK=true; return 0; fi
     holder="$(readlink "$E2E_LOCK" 2>/dev/null || true)"
     if [ -z "$holder" ] || ! is_check_sh "$holder"; then
-      # A stale lock (or none, and `ln` failed for another reason: an unwritable .work). Three takeovers, as acquire_lock
-      # makes, then stop: otherwise a lock that cannot be removed, or a directory that cannot be written, spins here for good.
+      # A stale lock (or none, and `ln` failed for another reason: an unwritable .work). Three takeovers in a row, as
+      # acquire_lock makes, then stop: otherwise a lock that cannot be removed, or a directory that cannot be written, spins
+      # here for good. Seeing a live holder in between resets the count: a long wait behind many suites is not a failure.
       takeovers=$((takeovers + 1))
       if [ "$takeovers" -gt 3 ]; then
         E2E_QUEUE_ERROR="could not take the e2e queue ${E2E_LOCK}: tried to take over a stale lock 3 times and failed (is ${E2E_LOCK%/*} writable?). Run this again, or delete the lock."
@@ -96,6 +97,7 @@ acquire_e2e_queue() {
       [ "$(readlink "$E2E_LOCK" 2>/dev/null || true)" != "$holder" ] || rm -f "$E2E_LOCK"
       continue
     fi
+    takeovers=0
     if [ $((SECONDS - started)) -ge "$timeout" ]; then
       E2E_QUEUE_ERROR="the e2e queue is still held by pid $holder after $((SECONDS - started)) s: the suite of another check.sh runs. Run this again later, or raise E2E_QUEUE_TIMEOUT_SECONDS. If none runs, delete ${E2E_LOCK}."
       return 1
@@ -112,11 +114,12 @@ release_e2e_queue() {
   OWN_E2E_LOCK=false
 }
 # Whether turbo has the e2e suite cached for this commit (a dry run, a fraction of a second): the run then replays a log and
-# loads nothing, so it does not wait for the queue. A forced run (TURBO_FORCE=1) runs the suite, whatever the cache holds.
+# loads nothing, so it does not wait for the queue. Turbo lists test:e2e for every package, the ones without the script with the
+# command <NONEXISTENT> and cache MISS: only the packages that have it count. A forced run (TURBO_FORCE=1) runs the suite, whatever the cache holds.
 e2e_cached() {
   [ -z "${TURBO_FORCE:-}" ] || return 1
   E2E_PORT="$(e2e_port "$ROOT")" pnpm turbo run test:e2e --dry=json 2>/dev/null \
-    | jq -e '[.tasks[] | select(.task == "test:e2e")] | length > 0 and all(.cache.status == "HIT")' >/dev/null 2>&1
+    | jq -e '[.tasks[] | select(.task == "test:e2e" and .command != "<NONEXISTENT>")] | length > 0 and all(.cache.status == "HIT")' >/dev/null 2>&1
 }
 e2e_not_queued() { echo "$E2E_QUEUE_ERROR"; return 1; }
 

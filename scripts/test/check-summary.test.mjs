@@ -612,67 +612,6 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
   });
 
   describe('E001 #1336: one e2e suite at a time on the machine', () => {
-    // Several worktrees running their suites at once load the machine until tests time out (the measurements:
-    // docs/engineering/TESTING.md §8). The suites queue on a lock shared by all worktrees (the main checkout's
-    // .work/e2e.lock), a symbolic link to the pid of the check.sh whose suite runs.
-    const lock = () => join(repo(), '.work/check.lock');
-    const lockExists = () => {
-      try {
-        lstatSync(lock());
-        return true;
-      } catch {
-        return false;
-      }
-    };
-    const holdLock = (pid) => () => {
-      mkdirSync(join(repo(), '.work'), { recursive: true });
-      symlinkSync(String(pid), lock());
-    };
-    const deadPid = () => spawnSync('true').pid;
-    // A live process whose command line names check.sh, like a check.sh run, for as long as the test needs it.
-    const runningCheck = () =>
-      spawn('bash', ['-c', 'sleep 20; :', 'scripts/check.sh'], { stdio: 'ignore' });
-
-    it('stops when another check.sh holds the lock, runs nothing, and leaves the lock to its holder', () => {
-      const holder = runningCheck();
-      try {
-        const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(holder.pid));
-        assert.equal(result.status, 1, result.stdout);
-        assert.match(
-          result.stdout,
-          new RegExp(`another scripts/check\\.sh runs in this worktree \\(pid ${holder.pid}\\)`),
-        );
-        assert.match(result.stdout, /delete \.work\/check\.lock/);
-        assert.doesNotMatch(result.stdout, /✓/);
-        assert.equal(result.summary, null);
-        assert.ok(lockExists(), 'the holder keeps its lock');
-      } finally {
-        holder.kill();
-      }
-    });
-
-    it('takes over the lock of a check.sh that is gone', () => {
-      const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(deadPid()));
-      assert.equal(result.status, 0, result.stdout);
-      assert.ok(!lockExists(), 'released at the end');
-    });
-
-    it('takes over a lock whose pid now belongs to a process that is not a check.sh', () => {
-      // After a kill -9 the pid can be reused: this test process is alive and is not a check.sh.
-      const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(process.pid));
-      assert.equal(result.status, 0, result.stdout);
-      assert.ok(!lockExists(), 'released at the end');
-    });
-
-    it('releases the lock when the run passes and when it fails', () => {
-      assert.equal(check({ unit: unit(), integration, e2e }).status, 0);
-      assert.ok(!lockExists());
-      assert.equal(check({ unit: failingUnit, integration, e2e }).status, 1);
-      assert.ok(!lockExists());
-    });
-  });
-
-  describe('E001 #1336: one e2e suite at a time on the machine', () => {
     // Several worktrees running their suites at once load the machine until timing-sensitive tests time out
     // (a factory run with 4-6 builders, load average 20-45). The suites queue on a lock shared by all worktrees
     // (the main checkout's .work/e2e.lock), a symbolic link to the pid of the check.sh whose suite runs.
@@ -783,6 +722,48 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       assert.equal(result.summary.suites.find((s) => s.kind === 'e2e').status, 'not-run');
     });
 
+    it('AC2: the cap counts takeovers in a row: a live holder in between resets it', () => {
+      // The fake rm leaves a stale lock twice, then a live holder's lock; once that holder is done, the lock is stale
+      // again. That is four takeovers in all, but never more than three in a row.
+      const fakeRm = join(base, 'resetting-rm');
+      mkdirSync(fakeRm, { recursive: true });
+      const holderPid = join(fakeRm, 'holder-pid');
+      const counter = join(fakeRm, 'count');
+      write(
+        join(fakeRm, 'rm'),
+        `#!/bin/bash
+case "$*" in *e2e.lock*) ;; *) exec /bin/rm "$@" ;; esac
+lock="\${!#}"
+c=$(( $(cat "${counter}" 2>/dev/null || echo 0) + 1 ))
+echo "$c" > "${counter}"
+if [ "$c" -le 2 ]; then /bin/rm -f "$lock"; ln -s ${deadPid()} "$lock"; exit 0; fi
+if [ "$c" -eq 3 ]; then /bin/rm -f "$lock"; ln -s "$(cat "${holderPid}")" "$lock"; exit 0; fi
+exec /bin/rm "$@"
+`,
+        0o755,
+      );
+      rmSync(counter, { force: true });
+      let holder;
+      try {
+        const result = check(
+          { unit: unit(), integration, e2e },
+          ['--all'],
+          () => {
+            holder = checkUntilPolled(join(base, `runs-${n - 1}`, 'slept'));
+            writeFileSync(holderPid, String(holder.pid));
+            holdLock(deadPid())();
+          },
+          { ...fast, PATH: `${fakeRm}:${bin()}:${process.env.PATH}` },
+        );
+        assert.equal(result.status, 0, result.stdout);
+        assert.match(result.stdout, /✓ e2e tests/);
+        assert.doesNotMatch(result.stdout, /could not take the e2e queue/);
+        assert.ok(!lockExists(), 'released at the end');
+      } finally {
+        holder?.kill();
+      }
+    });
+
     it('AC2: the queue is shared by the worktrees: a run in a linked worktree waits for a lock in the main checkout', () => {
       const linked = join(base, 'linked-worktree');
       git('worktree', 'add', '--quiet', '--detach', linked);
@@ -820,7 +801,19 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       JSON.stringify({
         tasks: [
           { taskId: '@fivvi/web#build', task: 'build', cache: { status: 'MISS' } },
-          { taskId: '@fivvi/web#test:e2e', task: 'test:e2e', cache: { status } },
+          // Turbo lists test:e2e for every package; those without the script have no command and never hit the cache.
+          {
+            taskId: '@fivvi/api#test:e2e',
+            task: 'test:e2e',
+            command: '<NONEXISTENT>',
+            cache: { status: 'MISS' },
+          },
+          {
+            taskId: '@fivvi/web#test:e2e',
+            task: 'test:e2e',
+            command: 'playwright test',
+            cache: { status },
+          },
         ],
       });
     const withDryRun = (status) => () => {
