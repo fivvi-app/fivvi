@@ -222,8 +222,15 @@
     {
       "idx": 31,
       "version": "7",
-      "when": 1794447249007,
-      "tag": "0031_exercise_library",
+      "when": 1794435640482,
+      "tag": "0031_access_and_deletion_log",
+      "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1794467226948,
+      "tag": "0032_exercise_library",
       "breakpoints": true
     }
   ]

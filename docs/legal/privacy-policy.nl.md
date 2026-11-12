@@ -1,6 +1,6 @@
 # Privacyverklaring Fivvi
 
-**Versie 1.0 · 8 november 2026.** Deze Nederlandse tekst is leidend; de Engelse vertaling staat in [`privacy-policy.en.md`](privacy-policy.en.md).
+**Versie 1.1 · 11 november 2026.** Deze Nederlandse tekst is leidend; de Engelse vertaling staat in [`privacy-policy.en.md`](privacy-policy.en.md).
 
 Fivvi (fivvi.app) is een platform waarmee personal trainers en sportscholen hun agenda, boekingen, klanten, abonnementen en credits, betalingen, trainingen en notities beheren. Trainers en eigenaren gebruiken Fivvi Pro (iPhone, Android) en de website, klanten gebruiken straks de app Fivvi of de website. In deze privacyverklaring lees je welke persoonsgegevens we verwerken, waarom, hoe lang, en welke rechten je hebt.
 
@@ -13,7 +13,6 @@ Fivvi wordt aangeboden door **K&S Apps**, een vennootschap onder firma ("**wij**
 - Adres: Haringbuisdijk 43, 1086 VA Amsterdam
 - Kamer van Koophandel (KvK): 92372996
 - btw-nummer: NL866022788B01
-- Telefoon: +31 6 85145755
 - Privacy: **privacy@fivvi.app**. Andere vragen: support@fivvi.app
 
 ## 2. Twee rollen: de sportschool of trainer, en wij
@@ -48,7 +47,7 @@ Voor die gegevens geldt deze privacyverklaring.
 | **Foutmeldingen** | Technische gegevens bij een fout of crash: de pagina of route, app- en besturingssysteemversie, het apparaatmodel (niet de naam van je toestel), een pseudoniem gebruikers-ID of, zolang niemand is ingelogd, een willekeurig ID per installatie. **Geen** namen, e-mailadressen, boekings-, trainings- of notitie-inhoud | Om fouten te vinden en op te lossen | Gerechtvaardigd belang: een werkende dienst (art. 6 lid 1 sub f) |
 | **Productstatistieken** | Welke functies worden gebruikt en welke pagina's van de webapp worden geopend (het pad zonder parameters), met pseudonieme gebruikers- en workspace-ID's. Bij een paginaweergave gaan ook je browser en versie, besturingssysteem en versie, apparaattype, user-agent en tijdzone mee. Dit zijn persoonsgegevens. **Geen** namen, e-mailadressen, boekings-, trainings- of notitie-inhoud | Om Fivvi te verbeteren | Gerechtvaardigd belang: productverbetering (art. 6 lid 1 sub f) |
 | **Een demo aanvragen op de website** | Je naam, e-mailadres, het soort bedrijf (sportschool, studio of personal trainer), het aantal trainers en, als je dat invult, je bericht | Om je aanvraag te beantwoorden en een demo af te spreken | Gerechtvaardigd belang: een vraag naar een demo beantwoorden (art. 6 lid 1 sub f). Vraag je een demo aan als zelfstandige, voor jezelf, dan zijn het ook stappen op jouw verzoek voor een overeenkomst (sub b) |
-| **Vragen en privacyverzoeken per e-mail of telefoon** | Je naam, e-mailadres of telefoonnummer en wat je ons vertelt | Om je te antwoorden en je verzoek af te handelen | Gerechtvaardigd belang: vragen beantwoorden (art. 6 lid 1 sub f); wettelijke plicht bij privacyverzoeken (sub c) |
+| **Vragen en privacyverzoeken per e-mail** | Je naam, e-mailadres en wat je ons vertelt | Om je te antwoorden en je verzoek af te handelen | Gerechtvaardigd belang: vragen beantwoorden (art. 6 lid 1 sub f); wettelijke plicht bij privacyverzoeken (sub c) |
 | **Contact met studio's die Fivvi gebruiken** | Naam, e-mailadres, organisatie, berichten | Support, afspraken, belangrijke mededelingen over de dienst | Uitvoering van de overeenkomst; gerechtvaardigd belang (art. 6 lid 1 sub b en f) |
 | **Wettelijke plichten** | Contractgegevens en, als we gaan rekenen, factuurgegevens | Administratie- en bewaarplichten | Wettelijke plicht (art. 6 lid 1 sub c) |
 

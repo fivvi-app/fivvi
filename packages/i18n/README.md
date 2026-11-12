@@ -20,7 +20,7 @@ The single source of every user-facing string (ADR-008). `nl-NL.json` and `en.js
 2. `pnpm --filter @fivvi/i18n generate` and commit the regenerated `generated/` files.
 3. `pnpm check` must pass.
 
-**Email copy** goes under the `email` namespace (`email.hello.subject`). It follows the same rules and checks, but the native exporters leave `email.*` out (`serverOnlyNamespaces` in `src/config.ts`), because only `packages/email` renders it. The same holds for the public website's copy under `site` (`site.home.headline`): only `apps/web` renders it, and for the import's problems under `dataImport` (E015): only the API and the web render them.
+**Email copy** goes under the `email` namespace (`email.hello.subject`). It follows the same rules and checks, but the native exporters leave `email.*` out (`serverOnlyNamespaces` in `src/config.ts`), because only `packages/email` renders it. The same holds for the public website's copy under `site` (`site.home.headline`): only `apps/web` renders it, and for the import's problems under `dataImport` (E015) and the words of the access log's answer under `accessLog` (E014): only the API and the web render them.
 
 **Exercise names** go under `exercises.names` (`exercises.names.benchPress`, the camelCase of the library key `bench-press`), with the muscle groups under `exercises.muscleGroups` and the exercise types under `exercises.types` (F039). The exercise list itself, with the type, muscles and search aliases of each, is `packages/database/src/library/exercises.ts`; its content check fails when a name is missing or has no exercise.
 

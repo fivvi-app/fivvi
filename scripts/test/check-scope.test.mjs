@@ -86,6 +86,7 @@ describe('#293 check.sh runs the checks a change can affect', () => {
       'test-summary.jq',
       'affected.mjs',
       'doc-anchors.mjs',
+      'doc-lists.mjs',
     ])
       copyFileSync(join(SCRIPTS, file), join(repo(), 'scripts', file));
     // The hygiene checks are not under test here, only that they run: each logs its name.

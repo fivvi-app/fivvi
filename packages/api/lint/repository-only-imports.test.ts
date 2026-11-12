@@ -47,6 +47,11 @@ const FORBIDDEN: Record<string, string> = {
   'the group classes table': "import { groupClasses } from '@fivvi/database';",
   'the sessions table': "import { sessions } from '@fivvi/database';",
   'the session participants table': "import { sessionParticipants } from '@fivvi/database';",
+  'the access log table': "import { accessLog } from '@fivvi/database';",
+  'the access log action enum': "import { accessLogAction } from '@fivvi/database';",
+  'the deletion log table': "import { deletionLog } from '@fivvi/database';",
+  'the deletion log writer for a raw handle':
+    "import { appendDeletionLog } from '@fivvi/database';",
   'the payments table': "import { payments } from '@fivvi/database';",
   'the payment customers table': "import { paymentCustomers } from '@fivvi/database';",
   'the payment status changes table': "import { paymentStatusChanges } from '@fivvi/database';",
@@ -290,6 +295,12 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
       'repository of the personal sessions, takes the workspace scope; answers a time (F013)',
     hasMySession:
       'repository of the personal sessions, takes the workspace scope; answers yes or no (F013)',
+    listAccessLog: 'repository of the access log, takes the workspace scope (E014)',
+    appendAccessLog: 'repository of the access log, takes the workspace scope (E014)',
+    accessLogStore:
+      'the access log over a workspace scope, as the domain’s AccessLogStore port (E014); no connection of its own',
+    deletionLogStore:
+      'the deletion log over a workspace scope, as the domain’s DeletionLogStore port (E014); the database lets the scope insert entries for its own workspace and nothing else',
     insertPayment: 'repository of the payment ledger, takes the workspace scope (E019)',
     findPayment: 'repository of the payment ledger, takes the workspace scope (E019)',
     findProviderCustomerId: 'repository of the payment ledger, takes the workspace scope (E019)',
@@ -375,6 +386,12 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     GroupClassChanges: 'type of the group-class repository (F021)',
     GroupClassView: 'type of the group-class repository (F021)',
     ClassDateChanges: 'type of the group-class repository (F021)',
+    AccessLogActionName: 'type of the access-log repository (E014)',
+    AccessLogEntryRecord: 'type of the access-log repository (E014)',
+    AccessLogItem: 'type of the access-log repository (E014)',
+    AccessLogPage: 'type of the access-log repository (E014)',
+    AccessLogQuery: 'type of the access-log repository (E014)',
+    DeletionLogEntryRecord: 'type of the deletion-log repository (E014)',
     InPaymentScope: 'type of the payment-ledger repository (E019)',
     NewPayment: 'type of the payment-ledger repository (E019)',
     NewStatusChange: 'type of the payment-ledger repository (E019)',

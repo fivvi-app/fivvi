@@ -459,6 +459,7 @@ describe('E011 route access', () => {
       'post /v1/sign-in/token': 'public',
       'post /v1/sign-out': 'public',
       'get /v1/workspaces/{workspaceId}': 'workspace',
+      'get /v1/workspaces/{workspaceId}/access-log': 'workspace',
       'get /v1/workspaces/{workspaceId}/address-lookup': 'workspace',
       'get /v1/workspaces/{workspaceId}/clients': 'workspace',
       'post /v1/workspaces/{workspaceId}/clients': 'workspace',

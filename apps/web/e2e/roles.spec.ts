@@ -115,8 +115,11 @@ test.describe('F004 roles on the web', () => {
     await page.goto(`/w/${slug}`);
     await expect(page.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
     const nav = page.getByRole('navigation', { name: copy.workspaceNav.label });
-    // A Trainer has Clients (clients.view, F006) and nothing the role may not use.
-    await expect(nav.getByRole('link')).toHaveText([copy.workspaceNav.clients]);
+    // A Trainer has Clients (clients.view, F006), the Aanmeldlink (join_link.view, F029) and nothing the role may not use.
+    await expect(nav.getByRole('link')).toHaveText([
+      copy.workspaceNav.clients,
+      copy.workspaceNav.joinLink,
+    ]);
     await expectNoAxeViolations(page, `the Trainer's navigation in ${appLocale}`);
 
     for (const path of ['trainers', 'settings/general', 'settings/language']) {
@@ -229,6 +232,7 @@ test.describe('F004 roles on the web', () => {
       await expect(sarahsPage.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
       await expect(sarahsPage.getByRole('navigation').getByRole('link')).toHaveText([
         copy.workspaceNav.clients,
+        copy.workspaceNav.joinLink,
       ]);
       await sarahsPage.goto(`/w/${slug}/trainers`);
       await expect(
@@ -281,6 +285,7 @@ test.describe('F004 roles on the web', () => {
     await expect(page.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
     await expect(page.getByRole('navigation').getByRole('link')).toHaveText([
       copy.workspaceNav.clients,
+      copy.workspaceNav.joinLink,
     ]);
     await expect(page).toHaveTitle(copy.team.title);
     await expectNoAxeViolations(page, `the no-permission page after stepping down in ${appLocale}`);
@@ -342,8 +347,11 @@ test.describe('F004 roles on the web', () => {
 
     await page.goto(`/w/${gymSlug}`);
     await expect(page.getByText(`${GYM} · ${copy.roles.trainer}`)).toBeVisible();
-    // A Trainer has Clients (clients.view, F006) and nothing the role may not use.
-    await expect(nav.getByRole('link')).toHaveText([copy.workspaceNav.clients]);
+    // A Trainer has Clients (clients.view, F006), the Aanmeldlink (join_link.view, F029) and nothing the role may not use.
+    await expect(nav.getByRole('link')).toHaveText([
+      copy.workspaceNav.clients,
+      copy.workspaceNav.joinLink,
+    ]);
 
     await page.goto(`/w/${personalSlug}`);
     await expect(page.getByText(`${PERSONAL} · ${copy.roles.owner}`)).toBeVisible();

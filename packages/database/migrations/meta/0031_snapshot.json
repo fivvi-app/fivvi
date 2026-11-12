@@ -1,9 +1,198 @@
 {
-  "id": "c2ed79ac-ab1f-4c09-90b1-36570b9a9f75",
+  "id": "5bc7b00f-a727-4395-8df7-e31e2ecb38db",
   "prevId": "d037275a-2efb-4fc6-a691-045fc9b8f535",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.access_log": {
+      "name": "access_log",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "actor_team_member_id": {
+          "name": "actor_team_member_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "action": {
+          "name": "action",
+          "type": "access_log_action",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "subject_client_id": {
+          "name": "subject_client_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "object_id": {
+          "name": "object_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "occurred_at": {
+          "name": "occurred_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "access_log_organization_id_occurred_at_idx": {
+          "name": "access_log_organization_id_occurred_at_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "access_log_organization_id_subject_client_id_idx": {
+          "name": "access_log_organization_id_subject_client_id_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "subject_client_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "access_log_occurred_at_idx": {
+          "name": "access_log_occurred_at_idx",
+          "columns": [
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "access_log_organization_id_organizations_id_fk": {
+          "name": "access_log_organization_id_organizations_id_fk",
+          "tableFrom": "access_log",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "access_log_organization_id_id_unique": {
+          "name": "access_log_organization_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "organization_id",
+            "id"
+          ]
+        }
+      },
+      "policies": {
+        "access_log_workspace": {
+          "name": "access_log_workspace",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "fivvi_app"
+          ],
+          "using": "\"access_log\".\"organization_id\" = ANY (app_workspace_ids())",
+          "withCheck": "\"access_log\".\"organization_id\" = ANY (app_workspace_ids())"
+        }
+      },
+      "checkConstraints": {
+        "access_log_object_matches_action": {
+          "name": "access_log_object_matches_action",
+          "value": "(\"access_log\".\"action\" IN ('note.viewed', 'note.changed')) = (\"access_log\".\"object_id\" IS NOT NULL)"
+        },
+        "access_log_client_matches_action": {
+          "name": "access_log_client_matches_action",
+          "value": "(\"access_log\".\"action\" = 'workspace.exported') = (\"access_log\".\"subject_client_id\" IS NULL)"
+        },
+        "access_log_actor_matches_action": {
+          "name": "access_log_actor_matches_action",
+          "value": "\"access_log\".\"actor_team_member_id\" IS NOT NULL OR \"access_log\".\"action\" IN ('client.trashed', 'client.purged')"
+        }
+      },
+      "isRLSEnabled": false
+    },
     "public.auth_identities": {
       "name": "auth_identities",
       "schema": "",
@@ -440,8 +629,8 @@
       },
       "isRLSEnabled": false
     },
-    "public.exercise_library": {
-      "name": "exercise_library",
+    "public.deletion_log": {
+      "name": "deletion_log",
       "schema": "",
       "columns": {
         "id": {
@@ -451,78 +640,77 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "key": {
-          "name": "key",
+        "table_name": {
+          "name": "table_name",
           "type": "text",
           "primaryKey": false,
           "notNull": true
         },
-        "type": {
-          "name": "type",
-          "type": "text",
+        "record_id": {
+          "name": "record_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "muscle_groups": {
-          "name": "muscle_groups",
-          "type": "text[]",
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
           "primaryKey": false,
           "notNull": true
         },
-        "aliases": {
-          "name": "aliases",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::text[]"
-        },
-        "retired": {
-          "name": "retired",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
+        "deleted_at": {
+          "name": "deleted_at",
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true,
           "default": "now()"
         }
       },
-      "indexes": {},
+      "indexes": {
+        "deletion_log_deleted_at_idx": {
+          "name": "deletion_log_deleted_at_idx",
+          "columns": [
+            {
+              "expression": "deleted_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
       "foreignKeys": {},
       "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "exercise_library_key_unique": {
-          "name": "exercise_library_key_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "key"
-          ]
+      "uniqueConstraints": {},
+      "policies": {
+        "deletion_log_cron": {
+          "name": "deletion_log_cron",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "fivvi_cron"
+          ],
+          "using": "true",
+          "withCheck": "true"
+        },
+        "deletion_log_app_insert": {
+          "name": "deletion_log_app_insert",
+          "as": "PERMISSIVE",
+          "for": "INSERT",
+          "to": [
+            "fivvi_app"
+          ],
+          "withCheck": "\"deletion_log\".\"organization_id\" = ANY (app_workspace_ids())"
         }
       },
-      "policies": {},
       "checkConstraints": {
-        "exercise_library_key_format": {
-          "name": "exercise_library_key_format",
-          "value": "\"exercise_library\".\"key\" ~ '^[a-z][a-z0-9]*(-[a-z0-9]+)*$'"
-        },
-        "exercise_library_type_known": {
-          "name": "exercise_library_type_known",
-          "value": "\"exercise_library\".\"type\" in ('weight-reps', 'reps-only', 'time', 'distance-time')"
-        },
-        "exercise_library_muscle_groups_known": {
-          "name": "exercise_library_muscle_groups_known",
-          "value": "cardinality(\"exercise_library\".\"muscle_groups\") >= 1 and \"exercise_library\".\"muscle_groups\" <@ array['chest', 'back', 'shoulders', 'biceps', 'triceps', 'forearms', 'quadriceps', 'hamstrings', 'glutes', 'calves', 'adductors', 'core', 'cardio', 'full-body']::text[]"
+        "deletion_log_table_name_valid": {
+          "name": "deletion_log_table_name_valid",
+          "value": "\"deletion_log\".\"table_name\" ~ '^[a-z][a-z0-9_]{0,62}$'"
         }
       },
       "isRLSEnabled": false
@@ -3469,6 +3657,20 @@
     }
   },
   "enums": {
+    "public.access_log_action": {
+      "name": "access_log_action",
+      "schema": "public",
+      "values": [
+        "client.exported",
+        "client.trashed",
+        "client.restored",
+        "client.purged",
+        "workspace.exported",
+        "client.retention_kept",
+        "note.viewed",
+        "note.changed"
+      ]
+    },
     "public.job_run_outcome": {
       "name": "job_run_outcome",
       "schema": "public",

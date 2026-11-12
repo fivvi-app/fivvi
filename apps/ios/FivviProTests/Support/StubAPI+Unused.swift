@@ -166,6 +166,10 @@ extension StubAPI {
         fatalError("The app doesn't call getJoinLink yet")
     }
 
+    func listAccessLog(_ input: Operations.ListAccessLog.Input) async throws -> Operations.ListAccessLog.Output {
+        fatalError("The app doesn't call listAccessLog yet")
+    }
+
     func renewJoinLink(_ input: Operations.RenewJoinLink.Input) async throws -> Operations.RenewJoinLink.Output {
         fatalError("The app doesn't call renewJoinLink yet")
     }

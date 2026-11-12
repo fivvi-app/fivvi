@@ -238,6 +238,19 @@
     <string name="home_set_up_on_web">Maak je werkruimte aan op het web.</string>
     <!-- Native apps only: line on the signed-in home placeholder that says which account is signed in. {email} is the account's email address, shown in full to its owner. -->
     <string name="home_signed_in_as">Ingelogd als %1$s</string>
+    <string name="join_link_body">Voor nieuwe klanten: ze loggen in en vragen of ze klant mogen worden. De eigenaar keurt elk verzoek goed.</string>
+    <string name="join_link_copied">Link gekopieerd.</string>
+    <string name="join_link_copy">Link kopiëren</string>
+    <string name="join_link_errors_copy">Kopiëren is niet gelukt. Selecteer de link en kopieer hem zelf.</string>
+    <string name="join_link_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
+    <string name="join_link_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <string name="join_link_renew">Vernieuwen</string>
+    <string name="join_link_renew_dialog_body">De huidige link en de QR-codes ervan werken daarna niet meer. Verzoeken die al zijn verstuurd blijven staan.</string>
+    <string name="join_link_renew_dialog_cancel">Terug</string>
+    <string name="join_link_renew_dialog_confirm">Vernieuwen</string>
+    <string name="join_link_renew_dialog_title">Aanmeldlink vernieuwen?</string>
+    <string name="join_link_renewed">De aanmeldlink is vernieuwd.</string>
+    <string name="join_link_title">Aanmeldlink</string>
     <string name="my_profile_booking_emails_help">Je krijgt een e-mail als een klant boekt of annuleert.</string>
     <!-- Label of the checkbox on My profile (TW-09) that switches the emails for a client booking or cancelling in the person's own classes on or off (F050). On by default; the setting belongs to the account. -->
     <string name="my_profile_booking_emails_label">E-mails over boekingen in mijn lessen</string>
@@ -612,6 +625,7 @@
     <!-- Line under the workspace name on the placeholder home of a workspace, until the owner dashboard and the trainer's day arrive. -->
     <string name="workspace_home_description">Hier komt binnenkort het overzicht van je sportschool of bedrijf.</string>
     <string name="workspace_nav_clients">Klanten</string>
+    <string name="workspace_nav_join_link">Aanmeldlink</string>
     <!-- Accessible name of the navigation of a workspace's pages, read by screen readers. -->
     <string name="workspace_nav_label">Hoofdnavigatie</string>
     <string name="workspace_nav_new">Nieuw</string>
