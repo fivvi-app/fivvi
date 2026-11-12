@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -19,11 +20,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import app.fivvi.core.R
 import app.fivvi.core.theme.numeric
 import app.fivvi.core.theme.tokens
 import app.fivvi.designtokens.Spacing
@@ -62,7 +65,7 @@ fun SessionAvatar(type: SessionType, letters: String, modifier: Modifier = Modif
 
 /**
  * A row of an [InsetGroupedList] (AC14): [leading] (an avatar, usually), a title with a subtitle under it, and [trailing]
- * text on the right, like the time of a session. [onClick] makes the whole row one touch target.
+ * text on the right, like the time of a session. [onClick] makes the whole row one touch target; a [chevron] shows that it opens something.
  */
 @Composable
 fun ListRow(
@@ -72,6 +75,7 @@ fun ListRow(
     leading: (@Composable () -> Unit)? = null,
     trailing: String? = null,
     onClick: (() -> Unit)? = null,
+    chevron: Boolean = false,
 ) {
     Row(
         modifier = modifier
@@ -100,6 +104,15 @@ fun ListRow(
                 // The prototype's Android time: 14, semibold, tabular and rounded.
                 style = MaterialTheme.typography.subhead.numeric().copy(fontWeight = FontWeight.SemiBold),
                 textAlign = TextAlign.End,
+            )
+        }
+        if (chevron) {
+            // The decorative mark of a row that opens something (the prototype's chevron): the lighter fill, never text.
+            Icon(
+                painterResource(R.drawable.ic_chevron_right),
+                contentDescription = null,
+                modifier = Modifier.size(Spacing.space5),
+                tint = MaterialTheme.tokens.fillDecorative,
             )
         }
     }

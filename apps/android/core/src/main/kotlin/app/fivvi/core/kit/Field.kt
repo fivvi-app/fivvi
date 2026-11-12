@@ -29,6 +29,9 @@ private val ErrorIconSize = 16.dp
  * A text field with its error state (AC14, DECISIONS.md section 2): with an [error] the field turns red (outline and
  * label), and the message sits under it behind a warning icon. Colour is never the only signal: the icon and the message
  * say it too, and a screen reader reads the message as the field's error. The caller words the message; none is made here.
+ * [help] is a line under the field while it has no message of its own. With `showsErrorMessage = false` the field turns
+ * red and is read as in error, but the message is not drawn: the caller puts a [FieldErrorLine] under it, where it can
+ * tag it and keep it out of the field's own text.
  */
 @Composable
 fun FivviField(
@@ -41,6 +44,8 @@ fun FivviField(
     singleLine: Boolean = true,
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
+    showsErrorMessage: Boolean = true,
+    help: String? = null,
 ) {
     OutlinedTextField(
         value = value,
@@ -48,7 +53,11 @@ fun FivviField(
         modifier = modifier.fillMaxWidth().let { if (error != null) it.semantics { error(error) } else it },
         enabled = enabled,
         label = { Text(label) },
-        supportingText = error?.let { message -> { FieldError(message) } },
+        supportingText = when {
+            error != null && showsErrorMessage -> ({ FieldErrorLine(error) })
+            help != null -> ({ Text(help, style = MaterialTheme.typography.footnote) })
+            else -> null
+        },
         isError = error != null,
         singleLine = singleLine,
         shape = RoundedCornerShape(Radius.sm),
@@ -57,10 +66,29 @@ fun FivviField(
     )
 }
 
+/**
+ * The message under a field in its error state: the warning icon, then the words, in the error colour. [FivviField] shows
+ * it by itself; a screen that has to tag the message, or keep it out of the field's own text, passes `showsErrorMessage =
+ * false` to the field and puts this under it. [modifier] goes on the words, so a tag or a live region sits on the text.
+ */
 @Composable
-private fun FieldError(message: String) {
-    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.space1), verticalAlignment = Alignment.Top) {
-        Icon(painterResource(R.drawable.ic_warning), contentDescription = null, modifier = Modifier.size(ErrorIconSize))
-        Text(message, style = MaterialTheme.typography.footnote)
+fun FieldErrorLine(message: String, modifier: Modifier = Modifier) {
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.space1),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(
+            painterResource(R.drawable.ic_warning),
+            contentDescription = null,
+            modifier = Modifier.size(ErrorIconSize),
+            tint = MaterialTheme.colorScheme.error,
+        )
+        Text(
+            message,
+            modifier = modifier,
+            color = MaterialTheme.colorScheme.error,
+            style = MaterialTheme.typography.footnote,
+        )
     }
 }

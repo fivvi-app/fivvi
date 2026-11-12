@@ -2,18 +2,14 @@ package app.fivvi.pro.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -25,8 +21,13 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextAlign
 import app.fivvi.core.R
+import app.fivvi.core.kit.FivviCard
+import app.fivvi.core.kit.InsetGroupedList
+import app.fivvi.core.kit.ListRow
+import app.fivvi.core.kit.PillButton
+import app.fivvi.core.kit.PillButtonStack
+import app.fivvi.core.kit.PillButtonStyle
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
 import app.fivvi.designtokens.title1
@@ -51,8 +52,9 @@ object HomeTags {
 }
 
 /**
- * The signed-in home (a placeholder): the hello screen, the address of the signed-in account and the sign-out button,
- * which a progress indicator replaces while [signingOut]. [onOpenClients] is `null` where the person may not see clients.
+ * The signed-in home (a placeholder, in the look of *Vandaag (TD-01)*'s large title and grouped list): the hello block,
+ * the address of the signed-in account, the rows to Klanten and Profiel and the sign-out button, which a progress
+ * indicator replaces while [signingOut]. [onOpenClients] is `null` where the person may not see clients.
  */
 @Composable
 fun HomeScreen(
@@ -67,69 +69,70 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     onOpenClients: (() -> Unit)? = null,
 ) {
-    // One scroll for the whole screen, so the account block can't squeeze the hello block at the largest font scale. The
-    // spacers share what is left when both fit (the hello block centred above the account block) and give way when not.
+    // One scroll for the whole screen, so the account block can't squeeze the hello block at the largest font scale.
     Column(
-        modifier = modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState()),
-        horizontalAlignment = Alignment.CenterHorizontally,
+        modifier = modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState())
+            .padding(Spacing.space4),
+        verticalArrangement = Arrangement.spacedBy(Spacing.space4),
     ) {
-        Spacer(Modifier.weight(1f))
         Destination(hello, me, onRetryHello, onOpenWeb)
-        Spacer(Modifier.weight(1f))
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(Spacing.space6),
-            verticalArrangement = Arrangement.spacedBy(Spacing.space4),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            when (me) {
-                MeState.Loading -> {
-                    val label = stringResource(R.string.common_loading)
-                    CircularProgressIndicator(
-                        Modifier.testTag(HomeTags.LOADING).semantics {
-                            contentDescription = label
-                        },
+        when (me) {
+            MeState.Loading -> {
+                val label = stringResource(R.string.common_loading)
+                CircularProgressIndicator(
+                    Modifier.align(Alignment.CenterHorizontally).testTag(HomeTags.LOADING).semantics {
+                        contentDescription = label
+                    },
+                )
+            }
+
+            is MeState.Loaded -> Text(
+                text = stringResource(R.string.home_signed_in_as, me.email),
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.space1).testTag(HomeTags.SIGNED_IN_AS),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.body,
+            )
+
+            MeState.Failed -> {
+                Text(
+                    text = stringResource(R.string.sign_in_errors_generic),
+                    modifier = Modifier.fillMaxWidth().testTag(HomeTags.ERROR),
+                    style = MaterialTheme.typography.body,
+                )
+                PillButtonStack {
+                    PillButton(
+                        text = stringResource(R.string.common_retry),
+                        onClick = onRetryMe,
+                        modifier = Modifier.testTag(HomeTags.RETRY),
                     )
                 }
-
-                is MeState.Loaded -> Text(
-                    text = stringResource(R.string.home_signed_in_as, me.email),
-                    modifier = Modifier.testTag(HomeTags.SIGNED_IN_AS),
-                    style = MaterialTheme.typography.body,
-                    textAlign = TextAlign.Center,
-                )
-
-                MeState.Failed -> {
-                    Text(
-                        text = stringResource(R.string.sign_in_errors_generic),
-                        modifier = Modifier.testTag(HomeTags.ERROR),
-                        style = MaterialTheme.typography.body,
-                        textAlign = TextAlign.Center,
-                    )
-                    Button(onClick = onRetryMe, modifier = Modifier.testTag(HomeTags.RETRY)) {
-                        Text(stringResource(R.string.common_retry), textAlign = TextAlign.Center)
+            }
+        }
+        // Klanten (TM-02) is reached from here when the capability helper lists `clients.view` for the workspace shown, and
+        // Profiel (TM-04) once the account has answered (it lists the workspaces, whatever the home shows).
+        if (me is MeState.Loaded) {
+            InsetGroupedList {
+                if (onOpenClients != null) {
+                    row {
+                        ListRow(
+                            title = stringResource(R.string.clients_title),
+                            modifier = Modifier.testTag(HomeTags.OPEN_CLIENTS),
+                            onClick = onOpenClients,
+                            chevron = true,
+                        )
                     }
                 }
-            }
-            // Klanten (TM-02) is reached from here when the capability helper lists `clients.view` for the workspace shown.
-            if (me is MeState.Loaded && onOpenClients != null) {
-                OutlinedButton(
-                    onClick = onOpenClients,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = Spacing.space12).testTag(HomeTags.OPEN_CLIENTS),
-                ) {
-                    Text(stringResource(R.string.clients_title), textAlign = TextAlign.Center)
+                row {
+                    ListRow(
+                        title = stringResource(R.string.profile_title),
+                        modifier = Modifier.testTag(HomeTags.OPEN_PROFILE),
+                        onClick = onOpenProfile,
+                        chevron = true,
+                    )
                 }
             }
-            // Profiel (TM-04) is reached from here once the account has answered; it lists the workspaces, whatever the home shows.
-            if (me is MeState.Loaded) {
-                OutlinedButton(
-                    onClick = onOpenProfile,
-                    modifier = Modifier.fillMaxWidth().heightIn(min = Spacing.space12).testTag(HomeTags.OPEN_PROFILE),
-                ) {
-                    Text(stringResource(R.string.profile_title), textAlign = TextAlign.Center)
-                }
-            }
-            SignOut(signingOut, onSignOut)
         }
+        SignOut(signingOut, onSignOut)
     }
 }
 
@@ -144,49 +147,39 @@ private fun Destination(hello: HelloState, me: MeState, onRetryHello: () -> Unit
         is HomeDestination.Workspace -> {
             Text(
                 text = destination.name,
-                modifier = Modifier.padding(horizontal = Spacing.space6).testTag(HomeTags.WORKSPACE_NAME)
+                modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.space1).testTag(HomeTags.WORKSPACE_NAME)
                     .semantics { heading() },
                 style = MaterialTheme.typography.title1,
-                textAlign = TextAlign.Center,
             )
             HelloContent(hello, onRetryHello)
         }
 
-        HomeDestination.SetUpOnWeb -> Column(
-            modifier = Modifier.fillMaxWidth().padding(Spacing.space6),
-            verticalArrangement = Arrangement.spacedBy(Spacing.space4),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = stringResource(R.string.home_set_up_on_web),
-                modifier = Modifier.testTag(HomeTags.SET_UP_ON_WEB),
-                style = MaterialTheme.typography.title2,
-                textAlign = TextAlign.Center,
-            )
-            Button(
-                onClick = onOpenWeb,
-                modifier = Modifier.fillMaxWidth().heightIn(min = Spacing.space12).testTag(HomeTags.OPEN_WEB),
-            ) {
-                Text(stringResource(R.string.home_open_web), textAlign = TextAlign.Center)
+        HomeDestination.SetUpOnWeb -> FivviCard(Modifier.fillMaxWidth()) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.space4)) {
+                Text(
+                    text = stringResource(R.string.home_set_up_on_web),
+                    modifier = Modifier.fillMaxWidth().testTag(HomeTags.SET_UP_ON_WEB),
+                    style = MaterialTheme.typography.title2,
+                )
+                PillButtonStack {
+                    PillButton(
+                        text = stringResource(R.string.home_open_web),
+                        onClick = onOpenWeb,
+                        modifier = Modifier.testTag(HomeTags.OPEN_WEB),
+                    )
+                }
             }
         }
 
-        HomeDestination.NoAccess -> Column(
-            modifier = Modifier.fillMaxWidth().padding(Spacing.space6).testTag(HomeTags.NO_ACCESS),
-            verticalArrangement = Arrangement.spacedBy(Spacing.space2),
-            horizontalAlignment = Alignment.CenterHorizontally,
-        ) {
-            Text(
-                text = stringResource(R.string.no_access_title),
-                modifier = Modifier.semantics { heading() },
-                style = MaterialTheme.typography.title2,
-                textAlign = TextAlign.Center,
-            )
-            Text(
-                text = stringResource(R.string.no_access_body),
-                style = MaterialTheme.typography.body,
-                textAlign = TextAlign.Center,
-            )
+        HomeDestination.NoAccess -> FivviCard(Modifier.fillMaxWidth().testTag(HomeTags.NO_ACCESS)) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.space2)) {
+                Text(
+                    text = stringResource(R.string.no_access_title),
+                    modifier = Modifier.semantics { heading() },
+                    style = MaterialTheme.typography.title2,
+                )
+                Text(text = stringResource(R.string.no_access_body), style = MaterialTheme.typography.body)
+            }
         }
     }
 }
@@ -202,11 +195,13 @@ private fun SignOut(signingOut: Boolean, onSignOut: () -> Unit) {
             },
         )
     } else {
-        OutlinedButton(
-            onClick = onSignOut,
-            modifier = Modifier.fillMaxWidth().heightIn(min = Spacing.space12).testTag(HomeTags.SIGN_OUT),
-        ) {
-            Text(stringResource(R.string.sign_out_label), textAlign = TextAlign.Center)
+        PillButtonStack {
+            PillButton(
+                text = stringResource(R.string.sign_out_label),
+                onClick = onSignOut,
+                modifier = Modifier.testTag(HomeTags.SIGN_OUT),
+                style = PillButtonStyle.Tonal,
+            )
         }
     }
 }
