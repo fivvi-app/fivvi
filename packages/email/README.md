@@ -28,7 +28,7 @@ await sendEmail({
 
 | Path | What |
 |---|---|
-| `src/catalog.ts` | The email catalog (F049): every email by ID (EM-01 … EM-23, EM-34), with audience, owner features, subject keys, status and template; `templates` is derived from it |
+| `src/catalog.ts` | The email catalog (F049): every email by ID (EM-01 … EM-23, EM-34 … EM-36), with audience, owner features, subject keys, status and template; `templates` is derived from it |
 | `src/templates/` | One template per email type, registered in the catalog |
 | `src/template-checks.ts` | The checks every catalog email must pass (F049 AC2, AC5, AC6): `checkRendering`, `checkLinks`, `checkContent`, `checkSyntheticData`; each returns the problems it finds |
 | `src/preview.ts` | The pages of the local preview: the catalog's entries, each active email in both languages as HTML and text |
@@ -76,7 +76,7 @@ Internal emails (the demo request to Fivvi's own inbox, the developer sample) ar
 1. Write `src/templates/<type>.tsx` (see Templates) and its render test; add the keys to `nl-NL.json`, `en.json` and `comments.json`, worded as in `packages/i18n/GLOSSARY.md`.
 2. Export it from `src/templates/index.ts`.
 3. In `catalog.ts`, import it and change the entry of its ID: `status: 'active'`, `template: register(yourEmail)`, and `subjectKeys` set to the keys that now exist (they must exist in both languages).
-4. A new email that has no reserved ID takes the number after the highest allocated anywhere (EM-35 today), not just in `catalog.ts`: the prototype's `docs/design/prototype-v2/more-email.js` already allocates EM-24 to EM-34 for the M6, M9 and M11 emails (for example EM-28 in #481), most of them not yet in the catalog. Use another number only when the feature's spec already allocated one. Add it to `catalog` as `active` in the same change.
+4. A new email that has no reserved ID takes the number after the highest allocated anywhere (EM-37 today), not just in `catalog.ts`: the prototype's `docs/design/prototype-v2/more-email.js` already allocates EM-24 to EM-34 for the M6, M9 and M11 emails (for example EM-28 in #481), most of them not yet in the catalog. Use another number only when the feature's spec already allocated one. Add it to `catalog` as `active` in the same change.
 5. Declare `userContent` on the template: the props that hold text a person typed (a name, an owner's message), or `[]`. A class name written in Dutch and English is a pair, `{ nl: 'className', en: 'classNameEn' }`, shown with `ctx.pickContent(nl, en)` (F021's rule: the English name when the recipient reads English and there is one, else the Dutch one). The type fails without it.
 6. Run `pnpm --filter @fivvi/email test`: the catalog suite (below), the generic render test for both languages and the preview pick it up without another list.
 
@@ -178,7 +178,7 @@ pnpm --filter @fivvi/email test
 
 | File | Proves |
 |---|---|
-| `src/catalog.test.ts` | The catalog: every template file is in it, every `active` entry has a template, unique IDs, EM-01 … EM-23 and EM-34 present, subject keys exist in both languages |
+| `src/catalog.test.ts` | The catalog: every template file is in it, every `active` entry has a template, unique IDs, EM-01 … EM-23 and EM-34 … EM-36 present, subject keys exist in both languages |
 | `src/catalog.test.ts` (checks) | The checklist for every active entry, internal emails included, without a change when one is added: AC2 both languages from catalog keys with the same keys and placeholders, a subject of at most 78 characters, a plain-text part; AC5 links to `https://fivvi.app` only, no tracking pixel, tracking parameter, redirect or tracker path, no `List-Unsubscribe` on the message; AC6 `<b>` and `&` in user content shown as typed, a class name by F021's rule; the preview data is synthetic |
 | `src/template-checks.test.tsx` | Each check fails for a template that breaks its rule |
 | `src/preview.test.ts` | AC7: the preview shows every catalog email in both languages, HTML and text, and reads no database |

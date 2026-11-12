@@ -232,6 +232,20 @@
       "validity": "De code werkt {minutes, plural, one {# minuut} other {# minuten}}. Met dit e-mailadres log je daarna in bij Fivvi.",
       "ignore": "Heb je dit niet aangevraagd? Dan kun je deze e-mail negeren. Er verandert niets."
     },
+    "emailChanged": {
+      "subject": "Het e-mailadres van je Fivvi-account is gewijzigd",
+      "preview": "Dit e-mailadres hoort niet meer bij je Fivvi-account.",
+      "intro": "Het e-mailadres van je Fivvi-account is zojuist gewijzigd. Met dit e-mailadres log je niet meer in; dat doe je nu met het nieuwe e-mailadres.",
+      "fine": "Heb jij dit gedaan? Dan hoef je niets te doen.",
+      "notYou": "Was jij dit niet? Neem dan direct contact met ons op via Help en contact op fivvi.app, dan zoeken we het uit."
+    },
+    "emailChangeTaken": {
+      "subject": "Iemand wilde dit e-mailadres voor een ander Fivvi-account gebruiken",
+      "preview": "Er is geen code gestuurd en er is niets veranderd.",
+      "intro": "Iemand vroeg om een code om dit e-mailadres te gebruiken voor een ander Fivvi-account. Dit e-mailadres hoort al bij een account, dus we hebben geen code gestuurd.",
+      "unchanged": "Er is niets veranderd. Je account en je gegevens zijn niet aangepast en blijven van jou.",
+      "ignore": "Je hoeft niets te doen. Je kunt deze e-mail negeren."
+    },
     "trainerInvitation": {
       "subject": "{inviter} nodigt je uit voor {workspace}",
       "preview": "Je bent uitgenodigd om trainer te worden bij {workspace}.",

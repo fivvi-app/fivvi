@@ -156,6 +156,8 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
       'EM-22',
       'EM-23',
       'EM-34',
+      'EM-35',
+      'EM-36',
       'demo-request',
       'hello',
     ]),

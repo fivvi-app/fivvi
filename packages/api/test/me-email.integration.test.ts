@@ -7,8 +7,10 @@ import {
   createDatabase,
   createTenantScopes,
   type DatabaseClient,
+  hasPendingInvitation,
+  trainerInvitations,
 } from '@fivvi/database';
-import { addTeamRole, createWorkspace } from '@fivvi/database/testing';
+import { addTeamRole, addTrainerInvitation, createWorkspace } from '@fivvi/database/testing';
 import {
   createMemoryTransport,
   createSendEmail,
@@ -27,9 +29,11 @@ import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/databas
 import { eq, like } from 'drizzle-orm';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { type ApiDependencies, createApp, NO_DEPENDENCIES } from '../src/index.ts';
+import { createInvitationToken } from '../src/invitations/token.ts';
 
-// F005 / spec #610, ticket #698: a trainer or owner changes their own email address with a code.
-// Each test goes through the change as Sarah, then tries to sign in with each address.
+// F005 / spec #610, tickets #698 and #699: a trainer or owner changes their own email address with
+// a code, and the notices of the change. Each test goes through the change as Sarah, then tries to
+// sign in with each address.
 
 const SECRET = 'test-secret-that-is-at-least-thirty-two-characters-long';
 const ORIGIN = 'http://localhost:3000';
@@ -76,13 +80,14 @@ describe('F005 change your own email address', () => {
   const logged: string[] = [];
 
   /** Sign-in as apps/web wires it: the real Better Auth on the test database. */
-  const authAt = (at: Clock) =>
+  const authAt = (at: Clock, allowlist = parseSignUpAllowlist(undefined)) =>
     createAuth({
       db: client.db,
       secret: SECRET,
       baseURL: ORIGIN,
       clock: at,
-      signUpAllowlist: parseSignUpAllowlist(undefined),
+      signUpAllowlist: allowlist,
+      isInvitedEmail: (email, now) => hasPendingInvitation(client.db, email, now),
       sendEmail: createSendEmail({
         transport,
         sender: { email: 'noreply@fivvi.app', name: 'Fivvi' },
@@ -134,9 +139,12 @@ describe('F005 change your own email address', () => {
   }
 
   /** Whether a sign-in code requested for `email` arrives, and signs in with that code. */
-  async function signInOutcome(email: string): Promise<'signed-in' | 'no-email' | 'rejected'> {
+  async function signInOutcome(
+    email: string,
+    allowlist?: ReturnType<typeof parseSignUpAllowlist>,
+  ): Promise<'signed-in' | 'no-email' | 'rejected'> {
     transport.clear();
-    const server = authAt(clock);
+    const server = authAt(clock, allowlist);
     const post = (path: string, body: unknown) =>
       server.handler(
         new Request(`${ORIGIN}/api/auth${path}`, {
@@ -395,6 +403,86 @@ describe('F005 change your own email address', () => {
 
       expect(again.status).toBe(422);
       expect(await again.json()).toEqual(INVALID_CODE);
+    });
+  });
+
+  describe('AC3: notice to the old address', () => {
+    it.each(['en', 'nl-NL'] as const)(
+      '(%s) the old address gets one notice in her language, with no link and what to do if it was not her',
+      async (locale) => {
+        const sarah = await account(unique('sarah'), { locale });
+        const newEmail = unique('sarah.jansen');
+        const { code } = await askForCode(sarah.cookie, newEmail);
+        transport.clear();
+
+        const response = await confirmChange(sarah.cookie, code);
+        await settle();
+
+        expect(response.status).toBe(200);
+        expect(transport.sent).toHaveLength(1);
+        const [notice] = transport.sent;
+        const copy = messages[locale].email.emailChanged;
+        expect(notice?.to.email).toBe(sarah.email);
+        expect(notice?.locale).toBe(locale);
+        expect(notice?.subject).toBe(copy.subject);
+        expect(notice?.text).toContain(copy.notYou);
+        for (const part of [notice?.html ?? '', notice?.text ?? '']) {
+          expect(part).not.toMatch(/<a\s|href=/);
+          expect(part).not.toContain(newEmail);
+          expect(part).not.toContain(code);
+        }
+      },
+    );
+
+    it('uses the language of her page when her account has none stored', async () => {
+      const sarah = await account(unique('sarah'));
+      await client.db
+        .update(authUsers)
+        .set({ preferredLocale: null })
+        .where(eq(authUsers.id, sarah.id));
+      const { code } = await askForCode(sarah.cookie, unique('new'));
+      transport.clear();
+
+      await confirmChange(sarah.cookie, code, {}, { 'accept-language': 'nl-NL' });
+      await settle();
+
+      expect(transport.sent[0]?.locale).toBe('nl-NL');
+    });
+
+    it('a refused code sends no notice', async () => {
+      const sarah = await account(unique('sarah'));
+      const { code } = await askForCode(sarah.cookie, unique('new'));
+      transport.clear();
+
+      await confirmChange(sarah.cookie, wrongCodeFor(code));
+      await settle();
+
+      expect(transport.sent).toHaveLength(0);
+    });
+
+    it('a code works once, so the notice goes once', async () => {
+      const sarah = await account(unique('sarah'));
+      const { code } = await askForCode(sarah.cookie, unique('new'));
+      transport.clear();
+
+      await confirmChange(sarah.cookie, code);
+      await confirmChange(sarah.cookie, code);
+      await settle();
+
+      expect(transport.sent).toHaveLength(1);
+    });
+
+    it('each change has its own idempotency key, made of EM-35 and the change', async () => {
+      const sarah = await account(unique('sarah'));
+      const first = await askForCode(sarah.cookie, unique('new'));
+      transport.clear();
+      await confirmChange(sarah.cookie, first.code);
+      await settle();
+
+      const key = transport.sent[0]?.idempotencyKey;
+
+      expect(key).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-/);
+      expect(key).not.toBe(emailIdempotencyKey('EM-34', first.code));
     });
   });
 
@@ -692,7 +780,13 @@ describe('F005 change your own email address', () => {
       await settle();
 
       expect({ status: taken.status, body: await taken.text() }).toEqual(forFree);
-      expect(transport.sent).toHaveLength(0);
+      // Mike gets a notice instead of a code, and Sarah gets nothing.
+      expect(transport.sent).toHaveLength(1);
+      const [notice] = transport.sent;
+      expect(notice?.to.email).toBe(mike.email);
+      expect(notice?.subject).toBe(messages.en.email.emailChangeTaken.subject);
+      expect(notice?.text).not.toMatch(/\b\d{6}\b/);
+      expect(notice?.text).not.toContain(sarah.email);
       for (const guess of ['000000', '123456', '999999']) {
         const response = await confirmChange(sarah.cookie, guess);
         expect(response.status).toBe(422);
@@ -703,6 +797,37 @@ describe('F005 change your own email address', () => {
       // Nothing signs anyone into Mike's account.
       expect(((await meOf({ cookie: mike.cookie })) as { id?: string }).id).toBe(mike.id);
       expect(((await meOf({ cookie: sarah.cookie })) as { id?: string }).id).toBe(sarah.id);
+    });
+
+    it.each(['en', 'nl-NL'] as const)(
+      '(%s) the notice is in the language of the account that has the address',
+      async (locale) => {
+        const sarah = await account(unique('sarah'), { locale: locale === 'en' ? 'nl-NL' : 'en' });
+        const mike = await account(unique('mike'), { name: 'Mike', locale });
+
+        transport.clear();
+        await requestChange(sarah.cookie, mike.email);
+        await settle();
+
+        expect(transport.sent).toHaveLength(1);
+        expect(transport.sent[0]?.to.email).toBe(mike.email);
+        expect(transport.sent[0]?.locale).toBe(locale);
+        expect(transport.sent[0]?.subject).toBe(messages[locale].email.emailChangeTaken.subject);
+        expect(transport.sent[0]?.html).not.toMatch(/<a\s/);
+      },
+    );
+
+    it('the notice is limited like a code: three in 15 minutes for one address', async () => {
+      const sarah = await account(unique('sarah'));
+      const mike = await account(unique('mike'), { name: 'Mike' });
+
+      transport.clear();
+      for (let i = 0; i < 5; i++) {
+        expect((await requestChange(sarah.cookie, mike.email)).status).toBe(202);
+        await settle();
+      }
+
+      expect(transport.sent).toHaveLength(3);
     });
 
     it('asking for a taken address replaces the code asked for before, as asking for a free one does', async () => {
@@ -727,6 +852,124 @@ describe('F005 change your own email address', () => {
       expect(response.status).toBe(422);
       expect(await storedEmail(sarah.id)).toBe(sarah.email);
       expect(await storedEmail(late.id)).toBe(target);
+    });
+  });
+
+  describe('AC12: a pending invitation stays with its address', () => {
+    /** A pending invitation of Fit Studio (Mike's) to `email`, with a token the test holds. */
+    async function invitationTo(email: string) {
+      const workspace = await createWorkspace(client.db, { label: 'fit-studio' });
+      const mike = await account(unique('mike'), { name: 'Mike' });
+      const role = await addTeamRole(client.db, {
+        workspaceId: workspace.id,
+        accountId: mike.id,
+        role: 'owner',
+      });
+      const invite = async (to: string) => {
+        const token = createInvitationToken();
+        const { id } = await addTrainerInvitation(client.db, {
+          workspaceId: workspace.id,
+          inviterTeamMemberId: role.id,
+          name: 'Sarah',
+          email: to,
+          tokenHash: token.hash,
+        });
+        return { id, token: token.token };
+      };
+      return { invite, mike, first: await invite(email) };
+    }
+
+    const accept = (token: string, headers: Record<string, string>) =>
+      api().request(`/v1/invitations/${token}/accept`, { method: 'POST', headers });
+    const statusOf = async (id: string) =>
+      (
+        await client.db
+          .select({ status: trainerInvitations.status, email: trainerInvitations.email })
+          .from(trainerInvitations)
+          .where(eq(trainerInvitations.id, id))
+      )[0];
+
+    it('stays tied to the old address: she can not accept it as the account of the new one', async () => {
+      const sarah = await account(unique('sarah'));
+      const { first } = await invitationTo(sarah.email);
+      const { code } = await askForCode(sarah.cookie, unique('sarah.jansen'));
+      await confirmChange(sarah.cookie, code);
+
+      const response = await accept(first.token, { cookie: sarah.cookie });
+
+      expect(response.status).toBe(403);
+      expect(await statusOf(first.id)).toEqual({ status: 'pending', email: sarah.email });
+    });
+
+    it('is accepted by signing in with the old address, as F011 says', async () => {
+      const sarah = await account(unique('sarah'));
+      const { first } = await invitationTo(sarah.email);
+      const { code } = await askForCode(sarah.cookie, unique('sarah.jansen'));
+      await confirmChange(sarah.cookie, code);
+
+      // The address is free now, and the invitation lets whoever holds it sign in (F011).
+      const cookie = await signInWith(sarah.email);
+      const response = await accept(first.token, { cookie });
+
+      expect(response.status).toBe(200);
+      expect((await statusOf(first.id))?.status).toBe('accepted');
+      // A different account from Sarah's, which has not moved.
+      expect((await meOf({ cookie })).email).toBe(sarah.email);
+      expect(await storedEmail(sarah.id)).not.toBe(sarah.email);
+    });
+
+    it('is accepted by her account after the owner invites her new address', async () => {
+      const sarah = await account(unique('sarah'));
+      const { invite, first } = await invitationTo(sarah.email);
+      const newEmail = unique('sarah.jansen');
+      const { code } = await askForCode(sarah.cookie, newEmail);
+      await confirmChange(sarah.cookie, code);
+      const second = await invite(newEmail);
+
+      const response = await accept(second.token, { cookie: sarah.cookie });
+
+      expect(response.status).toBe(200);
+      expect((await statusOf(second.id))?.status).toBe('accepted');
+      expect((await statusOf(first.id))?.status).toBe('pending');
+    });
+  });
+
+  describe('AC16: workspaces stay, the allowlist entry does not move', () => {
+    it('John keeps John’s Gym and every other workspace, and the entry stays on the old address', async () => {
+      const john = await account(unique('john'), { name: 'John', locale: 'nl-NL' });
+      const allowlist = parseSignUpAllowlist(john.email);
+      const johnsGym = await createWorkspace(client.db, { label: 'johns-gym' });
+      const yogaLoft = await createWorkspace(client.db, { label: 'yoga-loft' });
+      await addTeamRole(client.db, { workspaceId: johnsGym.id, accountId: john.id, role: 'owner' });
+      await addTeamRole(client.db, { workspaceId: yogaLoft.id, accountId: john.id });
+      const newEmail = unique('john.studio');
+      const { code } = await askForCode(john.cookie, newEmail);
+
+      expect((await confirmChange(john.cookie, code)).status).toBe(200);
+
+      const workspaces = await api().request('/v1/me/workspaces', {
+        headers: { cookie: john.cookie },
+      });
+      const list = (await workspaces.json()) as { workspaceId: string; role: string }[];
+      expect(list.map((entry) => [entry.workspaceId, entry.role]).sort()).toEqual(
+        [
+          [johnsGym.id, 'owner'],
+          [yogaLoft.id, 'trainer'],
+        ].sort(),
+      );
+      // The entry still reads the old address, and nothing moved to the new one.
+      expect(allowlist.allows(john.email)).toBe(true);
+      expect(allowlist.allows(newEmail)).toBe(false);
+      // He signs in with the new address as before; the old address, which an account no longer
+      // holds, may still create a new one, and that one has no workspace.
+      expect(await signInOutcome(newEmail, allowlist)).toBe('signed-in');
+      expect(await signInOutcome(john.email, allowlist)).toBe('signed-in');
+      expect(await storedEmail(john.id)).toBe(newEmail);
+      const [created] = await client.db
+        .select()
+        .from(authUsers)
+        .where(eq(authUsers.email, john.email));
+      expect(created?.id).not.toBe(john.id);
     });
   });
 
@@ -902,6 +1145,34 @@ describe('F005 change your own email address', () => {
       expect(Object.keys(rest).filter((key) => !key.startsWith('$'))).toEqual(['surface']);
       const everything = JSON.stringify(posthog.events) + logged.join('\n');
       for (const secret of [newEmail, sarah.email, code, 'Sarah Synthetic']) {
+        expect(everything).not.toContain(secret);
+      }
+    });
+
+    it('the notices carry no address, code or name in events or logs, and EM-35 and EM-36 are recorded as sent', async () => {
+      const sarah = await account(unique('sarah'), { name: 'Sarah Synthetic' });
+      const mike = await account(unique('mike'), { name: 'Mike Synthetic' });
+      const newEmail = unique('sarah.jansen');
+      posthog.events.length = 0;
+      logged.length = 0;
+
+      await requestChange(sarah.cookie, mike.email);
+      await settle();
+      const { code } = await askForCode(sarah.cookie, newEmail);
+      await confirmChange(sarah.cookie, code);
+      await settle();
+      await productEvents.flush();
+
+      expect(transport.sent.map((sent) => sent.to.email)).toContain(sarah.email);
+      const everything = JSON.stringify(posthog.events) + logged.join('\n');
+      for (const secret of [
+        newEmail,
+        sarah.email,
+        mike.email,
+        code,
+        'Sarah Synthetic',
+        'Mike Synthetic',
+      ]) {
         expect(everything).not.toContain(secret);
       }
     });
