@@ -53,6 +53,7 @@ describe('E014 AC1: every table in the schema is in the privacy registry', () =>
       'organizations',
       'job_runs',
       'system_greetings',
+      'exercise_library',
       'team_members',
       'trainer_profiles',
       'clients',

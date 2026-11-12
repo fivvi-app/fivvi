@@ -45,7 +45,7 @@ Entry points: `@fivvi/database` (client, schema, queries, `pingDatabase`, `HELLO
 |---|---|---|
 | `db:up` / `db:down` | root | Start / stop local Postgres |
 | `db:generate` | root or package | Write a new SQL migration from the schema diff (`pnpm db:generate --name <what>`) |
-| `db:migrate` | root or package | Apply pending migrations to `DATABASE_URL`, then give the app role `fivvi_app` its login with `APP_DATABASE_PASSWORD` (like the release step) |
+| `db:migrate` | root or package | Apply pending migrations to `DATABASE_URL`, then give the app role `fivvi_app` its login with `APP_DATABASE_PASSWORD`, and sync the exercise library (like the release step) |
 | `db:seed` | root or package | Insert demo data into `DATABASE_URL` (idempotent; never in production) |
 | `db:reset-rate-limits` | root or package | Delete every sign-in rate limit counter (F001) so a Maestro run isn't limited by an earlier one; connects as the app role and refuses any `APP_DATABASE_URL` that is not a local Postgres |
 | `db:check` | package | Check the migration history for conflicts (`drizzle-kit check`) |
@@ -186,5 +186,11 @@ restore counts --source-url-env VAR --restored-url-env VAR --at <RFC3339> [--sou
 Why not run an idempotent seed in production as well: the seed is going to fill up with demo workspaces, fake clients and test bookings. If production ran it, one missed check would put demo data next to real client data. A data migration runs exactly once per database, in order with the schema it depends on, is reviewed as SQL like any other migration, and needs no extra deploy step.
 
 To add system data: `pnpm --filter @fivvi/database exec drizzle-kit generate --custom --name <what>`, write an idempotent `INSERT … ON CONFLICT DO NOTHING`, and add a test.
+
+### The exercise library (F039)
+
+The one system table that is **synced** rather than inserted by a migration, because its content grows with the product. `src/library/exercises.ts` is the versioned data file (key, type, muscle groups, aliases, retired); the Dutch and English names, the muscle groups and the types are in `packages/i18n` under `exercises.*` (`libraryMessageKey()` turns a key into its catalog path). `exercise_library` has no `organization_id`: it is the same for every workspace and holds nothing about any workspace or person.
+
+The release step runs `syncExerciseLibrary()` after the migrations, in every environment, production included: new keys are added, changed fields are updated on the same row, and a row that already matches is not touched, so a second run changes nothing. **A key in the table that is missing from the file fails the release**: set `retired: true` and keep the entry, because templates and past workouts point at its key. `src/library/library-content.test.ts` checks the file against the catalogs (unique keys, both names, a known type, at least one known muscle group, no orphan names). The app role can only read the table.
 
 Open point: ids use `gen_random_uuid()` (v4). Switching the default to Postgres 18's `uuidv7()` is a default-only change, once every environment (including CI) runs Postgres 18.

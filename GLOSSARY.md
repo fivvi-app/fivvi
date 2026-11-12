@@ -358,10 +358,14 @@ A multi-week plan of workouts.
 One movement, e.g. Bench Press.
 
 **Exercise library**:
-The shared list of exercises, with Dutch and English names, target muscles, equipment and aliases.
+The shared list of exercises, the same for every workspace and read-only, with Dutch and English names, an exercise type, target muscles and aliases. Equipment comes later: the first library has no equipment field.
 
 **Custom exercise**:
 An exercise a trainer created. Stored as entered and never translated.
+
+**Retired exercise**:
+An exercise of the library that is no longer offered. It is not listed or found by search, but it stays in templates and past workouts, and looking it up by its key still returns it. Fivvi retires an exercise instead of deleting it.
+_Avoid_: deleted exercise, archived exercise
 
 **Set**:
 One round of reps of an exercise, with weight (kg) and difficulty.

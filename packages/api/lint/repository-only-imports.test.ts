@@ -229,6 +229,9 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
   // connection. Everything else the package exports must be named in table_or_handle() of the rule.
   const ALLOWED_EXPORTS: Record<string, string> = {
     // Repositories: every query takes a tenant scope or runs on system data.
+    EXERCISE_KEY_PATTERN: 'the pattern an exercise key matches, a regular expression (F039)',
+    EXERCISE_TYPES: 'the four exercise types of the library, a list of names (F039)',
+    MUSCLE_GROUPS: 'the fixed muscle groups of the library, a list of names (F039)',
     createClient: 'repository of clients, takes a workspace scope',
     findClient: 'repository of clients, takes a workspace scope',
     listClients: 'repository of clients, takes a workspace scope',

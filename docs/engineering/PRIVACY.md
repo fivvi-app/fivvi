@@ -62,6 +62,7 @@ Deleted when a terminated workspace is purged.
 |---|---|
 | `job_runs` | The cron job’s run records: task name, times and outcome, never content. A daily task deletes rows after 90 days (E012). |
 | `system_greetings` | System data read by every workspace: the i18n key of a greeting (M1). |
+| `exercise_library` | The exercise library, the same for every workspace: an exercise’s key, type, muscle groups and search aliases (F039). The names are in `packages/i18n`. Nothing about any workspace or person. |
 
 ## Retention periods
 
