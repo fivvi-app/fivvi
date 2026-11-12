@@ -27,6 +27,9 @@ type Privilege = 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE';
 export const CRON_TABLE_PRIVILEGES: Readonly<Record<string, readonly Privilege[]>> = {
   // The record of the cron's runs, and its 90-day retention (platform data, no RLS).
   job_runs: ['SELECT', 'INSERT', 'DELETE'],
+  // The deletion log (E014): the retention tasks write it and delete entries after 30 days. It
+  // is platform data, but it has RLS on all the same (`deletion_log_cron` lets this role in).
+  deletion_log: ['SELECT', 'INSERT', 'DELETE'],
 };
 
 /**

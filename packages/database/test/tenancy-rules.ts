@@ -7,6 +7,8 @@ import type { TenancyRules } from './conventions.ts';
 export const NON_BUSINESS_TABLES: Record<string, string> = {
   system_greetings: 'System data read by every workspace and the public hello slice (M1).',
   job_runs: 'Run history of the cron tasks, platform data of the cron job (E012, ADR-027).',
+  deletion_log:
+    'Table name, record ID and workspace of every hard deletion, platform data of the cron role (E014, retention-policy.md §3.5).',
   // Sign-in tables (F001): an account is global and shared by every workspace of its person.
   auth_identities: 'Sign-in identity of a global account (F001, ADR-007).',
   auth_rate_limits: 'Sign-in rate limit counters, keyed by hashes, not by workspace (F001).',

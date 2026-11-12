@@ -218,6 +218,13 @@
       "when": 1794422218678,
       "tag": "0030_payment_refunds",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1794435640482,
+      "tag": "0031_access_and_deletion_log",
+      "breakpoints": true
     }
   ]
 }

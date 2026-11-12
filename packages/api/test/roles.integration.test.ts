@@ -185,6 +185,7 @@ describe('F004 roles on every workspace route', () => {
       'createGroupClass',
       'createTrainerInvitation',
       'deleteTrainerProfile',
+      'listAccessLog',
       'listTeamMembers',
       'listTrainerInvitations',
       'lookupAddress',
