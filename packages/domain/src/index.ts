@@ -223,6 +223,28 @@ export {
   type Role,
   rolesWith,
 } from './permissions/matrix.ts';
+export {
+  ACCESS_LOG_ACTIONS,
+  type AccessLog,
+  type AccessLogAction,
+  type AccessLogEntry,
+  type AccessLogEntryInput,
+  type AccessLogStore,
+  accessLogEntry,
+  createAccessLog,
+  InvalidAccessLogEntryError,
+  type InvalidAccessLogEntryField,
+} from './privacy/access-log.ts';
+export {
+  createDeletionLog,
+  type DeletionLog,
+  type DeletionLogEntry,
+  type DeletionLogEntryInput,
+  type DeletionLogStore,
+  deletionLogEntry,
+  InvalidDeletionLogEntryError,
+  type InvalidDeletionLogEntryField,
+} from './privacy/deletion-log.ts';
 export { renderPrivacyInventory } from './privacy/inventory.ts';
 export {
   declaredTable,
