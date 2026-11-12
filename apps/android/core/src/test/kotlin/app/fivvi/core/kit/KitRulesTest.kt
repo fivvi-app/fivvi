@@ -21,6 +21,16 @@ class KitRulesTest {
         assertEquals(28.dp, CardRadius)
     }
 
+    // E020 AC15 (#633): a client's avatar shows the first letters of the first and the last word of the name.
+    @Test
+    fun E020_AC15_aPersonAvatarShowsTheInitialsOfTheFirstAndTheLastWord() {
+        assertEquals("AV", initialsOf("Anna de Vries"))
+        assertEquals("MJ", initialsOf("Mark Jansen"))
+        assertEquals("S", initialsOf("sarah"))
+        assertEquals("ÉB", initialsOf("  éva   van   den  berg "))
+        assertEquals("", initialsOf("   "))
+    }
+
     @Test
     fun E020_AC14_aGroupedListRoundsOnlyTheOuterCornersOfItsFirstAndLastRow() {
         assertEquals(

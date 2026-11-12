@@ -25,6 +25,7 @@ export const CAPABILITIES = [
   'class.read',
   'join_link.view',
   'join_link.renew',
+  'access_log.read',
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 

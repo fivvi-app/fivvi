@@ -7,6 +7,7 @@ import { literalTrainerProblems } from './no-literal-trainer.ts';
 import {
   type AllowedForGood,
   type AllowedForNow,
+  type AllowedNotTheRole,
   type TrainerAllowlist,
   trainerAllowlist,
 } from './no-literal-trainer-allowlist.ts';
@@ -88,6 +89,45 @@ describe('F068 no-literal-trainer check', () => {
       expect(problemsFor(messages, messages, [forGood])).toEqual([]);
     });
 
+    it('lets an entry for a word that is not the role cover exactly its key, whatever the ticket', () => {
+      const notTheRole: AllowedNotTheRole = {
+        exactKey: 'exercises.names.elliptical',
+        scope: 'not-the-role',
+        reason: 'Equipment: a crosstrainer is a machine, not a person.',
+      };
+      const messages = {
+        'exercises.names.elliptical': 'Crosstrainer',
+        'exercises.names.other': 'Crosstrainer',
+      };
+      expect(problemsFor(messages, messages, [notTheRole])).toEqual([
+        expect.stringContaining('"exercises.names.other"'),
+      ]);
+      expect(
+        problemsFor(messages, messages, [
+          notTheRole,
+          { ...notTheRole, exactKey: 'exercises.names.other' },
+        ]),
+      ).toEqual([]);
+    });
+
+    it('fails on an entry for a word that is not the role when it has no reason, is listed twice or is no longer needed', () => {
+      const notTheRole: AllowedNotTheRole = {
+        exactKey: 'a.b',
+        scope: 'not-the-role',
+        reason: 'Equipment.',
+      };
+      const messages = { 'a.b': 'Crosstrainer' };
+      expect(problemsFor(messages, messages, [{ ...notTheRole, reason: ' ' }])).toEqual([
+        expect.stringContaining('reason'),
+      ]);
+      expect(problemsFor(messages, messages, [notTheRole, notTheRole])).toEqual([
+        expect.stringContaining('twice'),
+      ]);
+      expect(problemsFor({ 'a.b': 'Elliptical' }, { 'a.b': 'Elliptical' }, [notTheRole])).toEqual([
+        expect.stringContaining('"a.b" no longer says trainer'),
+      ]);
+    });
+
     it('lets an entry for now cover exactly its key', () => {
       const messages = { 'team.title': 'Trainers', 'team.other': 'Trainers' };
       expect(problemsFor(messages, messages, [forNow])).toEqual([
@@ -138,6 +178,17 @@ describe('F068 no-literal-trainer check', () => {
         expect(entry.reason, entry.key).toContain(`moves with #${entry.movesWith}`);
         expect([746, 747, 748, 749, 750, 751], entry.key).toContain(entry.movesWith);
       }
+    });
+
+    it('allows words that are not the role only by exact key, each naming the equipment', () => {
+      const notTheRole = trainerAllowlist.filter(
+        (entry): entry is AllowedNotTheRole => 'exactKey' in entry,
+      );
+      expect(notTheRole.map((entry) => entry.exactKey)).toEqual([
+        'exercises.names.stationaryBike',
+        'exercises.names.elliptical',
+      ]);
+      for (const entry of notTheRole) expect(entry.scope).toBe('not-the-role');
     });
 
     it('has a reason on every entry', () => {

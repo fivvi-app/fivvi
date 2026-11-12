@@ -31,7 +31,7 @@
     "format:check:root": "biome format ./*.json .claude scripts",
     "lint:root": "biome lint .claude scripts && shellcheck -x scripts/*.sh .githooks/*",
     "check:root": "scripts/skills.sh check && scripts/agents.sh check",
-    "test:root": "node --test '.claude/hooks/*.test.mjs' 'scripts/test/*.test.mjs'",
+    "test:root": "node --test --test-global-setup=scripts/test/watchdog.mjs '.claude/hooks/*.test.mjs' 'scripts/test/*.test.mjs'",
     "format": "biome format --write .",
     "fix": "biome check --write .",
     "db:up": "docker compose up --detach --wait postgres",

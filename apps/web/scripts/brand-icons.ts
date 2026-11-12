@@ -14,6 +14,8 @@
 //   public/site-images/brand/fivvi-logo.svg, fivvi-logo-dark.svg    the wordmarks as drawn, for the header and footer
 //   public/site-images/brand/fivvi-day-dial.svg, fivvi-day-dial-dark.svg    the plain day dial B2 as drawn (light is
 //                                            favicon.svg's mark), the sign-in mark of the trainer web below 768 px (#626)
+//   ../android/app/src/main/res/drawable-nodpi/fivvi_pro_dial_{light,dark}.png    512 px, the day dial B2 with PRO
+//                                            (day-dial/b2-pro), the sign-in mark of Fivvi Pro on Android (E020, #632); Android has no SVG
 //
 // No dependency: next/og (satori and resvg, which already draw the share images) rasterises the SVG,
 // and the ICO is a header around the PNGs. The same input gives the same bytes.
@@ -74,7 +76,14 @@ export async function brandFiles(): Promise<Record<string, Buffer>> {
     rasterise(favicon, 192),
     rasterise(square, 180),
   ]);
+  const [proLight, proDark] = await Promise.all(
+    ['light', 'dark'].map(async (mode) =>
+      rasterise(await brand(`day-dial/b2-pro/fivvi-day-dial-b2-pro-${mode}.svg`), 512),
+    ),
+  );
   return {
+    '../android/app/src/main/res/drawable-nodpi/fivvi_pro_dial_light.png': proLight as Buffer,
+    '../android/app/src/main/res/drawable-nodpi/fivvi_pro_dial_dark.png': proDark as Buffer,
     'app/icon.svg': favicon,
     'app/favicon.ico': ico([
       { size: 32, png: png32 },
