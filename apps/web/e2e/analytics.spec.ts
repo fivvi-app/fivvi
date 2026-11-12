@@ -33,8 +33,8 @@ test.describe('E009 page views', () => {
     await page.addInitScript(poseAsVisitor);
     const traffic = await interceptTraffic(page);
 
-    // The sign-in page, a page of the app (the website's pages are static and send no page view
-    // yet). Its query string and fragment hold personal data, which must never be sent.
+    // The sign-in page, a page of the app (the website's pages send no page view yet). Its query
+    // string and fragment hold personal data, which must never be sent.
     await page.goto(`/login?name=${FIRST_NAME}&email=${encodeURIComponent(EMAIL)}#notes`);
     await expect(page.getByRole('heading', { level: 1, name: copy.signIn.title })).toBeVisible();
     await expect.poll(() => traffic.events.length).toBe(1);

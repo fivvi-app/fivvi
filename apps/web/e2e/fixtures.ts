@@ -1,6 +1,6 @@
 import AxeBuilder from '@axe-core/playwright';
 import { type Locale, locales, type Messages, messages } from '@fivvi/i18n';
-import { test as base, expect, type Page } from '@playwright/test';
+import { type BrowserContext, test as base, expect, type Page } from '@playwright/test';
 
 /** Options each Playwright project sets (playwright.config.ts). */
 export interface E2EOptions {
@@ -15,6 +15,65 @@ interface E2EFixtures {
   otherLocale: Locale;
   /** Runs the axe check on the page as the test left it (automatic). */
   axeAfterEach: undefined;
+  /**
+   * Fails the test on any `securitypolicyviolation` event in any page of any browser context it
+   * opens (automatic, E013 AC9). A test that provokes a violation on purpose reads and drains it
+   * here (`e2e/csp.spec.ts`).
+   */
+  cspViolations: CspViolations;
+}
+
+/** One `securitypolicyviolation` event, as far as it says what was blocked and where. */
+export interface CspViolation {
+  /** The directive that blocked it, for example `script-src-elem`. */
+  directive: string;
+  /** What it blocked: a URL, or `inline`, `eval`, … */
+  blocked: string;
+  /** The page it happened on. */
+  page: string;
+  /** The first characters of the blocked inline code, when the browser says. */
+  sample: string;
+}
+
+/** The violations the browser reported during the test. */
+export interface CspViolations {
+  /** Every violation reported so far and not drained. */
+  all(): readonly CspViolation[];
+  /** Takes the violations out, so the test does not fail on those it expected. */
+  drain(): CspViolation[];
+}
+
+/** The name of the binding that carries a violation from a page to the test. */
+const REPORT_CSP_VIOLATION = '__fivviReportCspViolation';
+
+/**
+ * Runs in every frame of every page of a context, before the page's own scripts (the browser
+ * installs it past the page's policy): reports each `securitypolicyviolation` event to the test.
+ */
+function listenForCspViolations(report: string): void {
+  document.addEventListener(
+    'securitypolicyviolation',
+    (event) => {
+      const send = (
+        window as unknown as Record<string, ((violation: unknown) => void) | undefined>
+      )[report];
+      send?.({
+        directive: event.effectiveDirective,
+        blocked: event.blockedURI,
+        page: event.documentURI,
+        sample: event.sample,
+      });
+    },
+    true,
+  );
+}
+
+/** Starts reporting the violations of `context` (and of the frames of its pages) to `found`. */
+async function watchCspViolations(context: BrowserContext, found: CspViolation[]): Promise<void> {
+  await context.exposeBinding(REPORT_CSP_VIOLATION, (_source, violation: CspViolation) => {
+    found.push(violation);
+  });
+  await context.addInitScript(listenForCspViolations, REPORT_CSP_VIOLATION);
 }
 
 /** WCAG 2.2 A and AA, the level the product commits to. */
@@ -192,6 +251,35 @@ export const test = base.extend<E2EOptions & E2EFixtures>({
       // Skip when the test already failed or never opened a page.
       if (testInfo.status !== testInfo.expectedStatus || page.url() === 'about:blank') return;
       await expectNoAxeViolations(page, `${page.url()} at the end of the test`);
+    },
+    { auto: true },
+  ],
+
+  // E013 AC9: no page of any test, in either language, breaks under the Content-Security-Policy.
+  // Watches the test's own context and every context the test opens with `browser.newContext()`.
+  cspViolations: [
+    async ({ browser, context }, provide, testInfo) => {
+      const found: CspViolation[] = [];
+      await watchCspViolations(context, found);
+      const newContext = browser.newContext.bind(browser);
+      browser.newContext = (async (...args: Parameters<typeof newContext>) => {
+        const opened = await newContext(...args);
+        await watchCspViolations(opened, found);
+        return opened;
+      }) as typeof browser.newContext;
+
+      await provide({ all: () => found, drain: () => found.splice(0) });
+
+      browser.newContext = newContext;
+      // A test that failed already says why; its violations would only add noise.
+      if (testInfo.status !== testInfo.expectedStatus) return;
+      expect(
+        found.map(
+          ({ directive, blocked, page, sample }) =>
+            `${directive} blocked ${blocked}${sample ? ` (${sample})` : ''} on ${page}`,
+        ),
+        'Content-Security-Policy violations in the browser',
+      ).toEqual([]);
     },
     { auto: true },
   ],

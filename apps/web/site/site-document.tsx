@@ -5,7 +5,7 @@ import { SiteHeader } from './site-header';
 
 /**
  * The document of a site page, for the root layout of a language (F064). The language is the
- * path's, so the layouts never ask the request for it and every page is built once, at build time.
+ * path's, so the layouts never ask the request for it: every visitor gets the same page.
  * `data-theme="client"` and the touch density are the public look (`@fivvi/ui`'s README, Themes);
  * the body's canvas is the base style's.
  */
