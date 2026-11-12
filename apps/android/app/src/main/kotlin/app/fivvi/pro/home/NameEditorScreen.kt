@@ -12,9 +12,7 @@ import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
@@ -33,9 +31,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import app.fivvi.core.R
+import app.fivvi.core.kit.FieldErrorLine
+import app.fivvi.core.kit.FivviField
+import app.fivvi.core.kit.PillButton
+import app.fivvi.core.kit.PillButtonStyle
 import app.fivvi.designtokens.Spacing
-import app.fivvi.designtokens.body
 import app.fivvi.designtokens.headline
 
 /**
@@ -54,43 +56,43 @@ fun NameEditorScreen(editor: NameEditor, actions: ProfileActions, modifier: Modi
     ) {
         Row(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.space2),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(
+            PillButton(
+                text = stringResource(R.string.common_cancel),
                 onClick = actions.onCancelName,
-                enabled = !editor.saving,
                 modifier = Modifier.testTag(ProfileTags.NAME_CANCEL),
-            ) {
-                Text(stringResource(R.string.common_cancel))
-            }
+                style = PillButtonStyle.Text,
+                enabled = !editor.saving,
+            )
             Text(
                 text = stringResource(R.string.my_profile_edit_name),
-                modifier = Modifier.weight(1f, fill = false).testTag(ProfileTags.NAME_EDITOR).semantics { heading() },
+                modifier = Modifier.weight(1f).testTag(ProfileTags.NAME_EDITOR).semantics { heading() },
                 style = MaterialTheme.typography.headline,
+                textAlign = TextAlign.Center,
             )
-            TextButton(
+            PillButton(
+                text = stringResource(R.string.my_profile_save),
                 onClick = actions.onSaveName,
-                enabled = !editor.saving,
                 modifier = Modifier.testTag(ProfileTags.NAME_SAVE),
-            ) {
-                Text(stringResource(R.string.my_profile_save))
-            }
+                enabled = !editor.saving,
+            )
         }
         val error = editor.error
-        OutlinedTextField(
+        val message = error?.let { stringResource(it.message) }
+        FivviField(
             value = editor.input,
             onValueChange = actions.onNameInput,
+            label = stringResource(R.string.my_profile_name_label),
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.space2)
                 .focusRequester(focus)
                 .semantics { contentType = ContentType.PersonFullName }
                 .testTag(ProfileTags.NAME_INPUT),
+            error = message,
+            // Under the field, not as its supporting text: a field merges what it contains, and the message needs its own tag.
+            showsErrorMessage = false,
             enabled = !editor.saving,
-            label = { Text(stringResource(R.string.my_profile_name_label)) },
-            singleLine = true,
-            isError = error != null,
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.Words,
                 keyboardType = KeyboardType.Text,
@@ -98,14 +100,10 @@ fun NameEditorScreen(editor: NameEditor, actions: ProfileActions, modifier: Modi
             ),
             keyboardActions = KeyboardActions(onDone = { actions.onSaveName() }),
         )
-        // Under the field, not as its supporting text: a field merges what it contains, and the message needs its own tag.
-        if (error != null) {
-            Text(
-                text = stringResource(error.message),
-                modifier = Modifier.padding(horizontal = Spacing.space2).testTag(ProfileTags.NAME_ERROR)
-                    .semantics { liveRegion = LiveRegionMode.Assertive },
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.body,
+        if (message != null) {
+            FieldErrorLine(
+                message = message,
+                modifier = Modifier.testTag(ProfileTags.NAME_ERROR).semantics { liveRegion = LiveRegionMode.Assertive },
             )
         }
     }

@@ -29,8 +29,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fivvi.api.models.MeWorkspace
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.LanguageViewModel
+import app.fivvi.core.R as CoreR
 import app.fivvi.core.observability.Observability
 import app.fivvi.core.signin.SignInActions
+import app.fivvi.core.signin.SignInLogo
 import app.fivvi.core.signin.SignInScreen
 import app.fivvi.core.signin.SignInViewModel
 import app.fivvi.core.theme.FivviTheme
@@ -108,7 +110,13 @@ class MainActivity : ComponentActivity() {
             // Signed out, the choice is kept on the device and saved on the account at sign-in (AC4, AC5).
             onChooseLanguage = dependencies.languagePreference::choose,
         )
-        SignInScreen(state, actions, showsSignedOutNotice = showsSignedOutNotice)
+        SignInScreen(
+            state,
+            actions,
+            showsSignedOutNotice = showsSignedOutNotice,
+            // The Fivvi Pro day dial, light in light mode and dark in dark mode, in place of a letter mark (E020).
+            logo = SignInLogo(R.drawable.fivvi_pro_dial_light, R.drawable.fivvi_pro_dial_dark, CoreR.string.app_name),
+        )
     }
 
     // The system browser, never a web view: creating a workspace happens on the web only (F002 AC10).

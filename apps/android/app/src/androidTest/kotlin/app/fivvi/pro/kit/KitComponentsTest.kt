@@ -26,6 +26,8 @@ import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
@@ -43,6 +45,7 @@ import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
 import app.fivvi.core.kit.CardRadius
+import app.fivvi.core.kit.FieldErrorLine
 import app.fivvi.core.kit.FivviCard
 import app.fivvi.core.kit.FivviField
 import app.fivvi.core.kit.GroupGap
@@ -177,6 +180,25 @@ class KitComponentsTest(
         assertFalse("the corner is round", primary.isFilled(2.dp.px(), 2.dp.px(), fill))
         val danger = compose.onNodeWithTag("Danger").pixels()
         assertTrue("danger has its own fill", danger.isFilled(danger.width / 2, 2.dp.px(), mode.tokens.actionDangerBg))
+    }
+
+    // The accent fill (#E6164A) is 4.11:1 on the canvas, below the 4.5:1 of text; the token for text in the accent is
+    // accentText, so the label of a text pill is drawn in it, never in the fill.
+    @Test
+    fun E020_AC14_theLabelOfATextPillIsInTheAccentTextColourNotTheFill() {
+        show { PillButton("Text", onClick = {}, Modifier.testTag("text"), style = PillButtonStyle.Text) }
+
+        val pixels = compose.onNodeWithTag("text").pixels()
+        var text = 0
+        var fill = 0
+        for (y in 0 until pixels.height) {
+            for (x in 0 until pixels.width) {
+                if (pixels.isFilled(x, y, tokens.accentText, 0.02f)) text++
+                if (pixels.isFilled(x, y, tokens.accentFill, 0.02f)) fill++
+            }
+        }
+        assertTrue("the label is in the accent text colour", text > 0)
+        assertEquals("no pixel of the label is in the fill colour", 0, fill)
     }
 
     @Test
@@ -649,6 +671,53 @@ class KitComponentsTest(
         val iconTop = (text.top - field.top).px()
         val drawn = (iconTop until iconTop + 16.dp.px()).any { y -> iconArea.any { x -> pixels[x, y].near(red, 0.1f) } }
         assertTrue("a warning icon in front of the message", drawn)
+    }
+
+    // #632: a screen that tags the message, or keeps it out of the field's own text, draws the message itself.
+    @Test
+    fun E020_AC14_aFieldCanLeaveItsMessageToTheScreenAndTheHelpShowsUnderItWithoutOne() {
+        val message = label(R.string.clients_add_dialog_errors_email_required)
+        val help = label(R.string.sign_in_code_help)
+        show {
+            Column {
+                FivviField(
+                    "x@example.com",
+                    {},
+                    label(R.string.clients_add_dialog_email_label),
+                    Modifier.testTag("outside"),
+                    error = message,
+                    showsErrorMessage = false,
+                )
+                FieldErrorLine(message, Modifier.testTag("line"))
+                FivviField("", {}, label(R.string.sign_in_code_label), Modifier.testTag("helped"), help = help)
+            }
+        }
+
+        // The field is in error and read as such, but its own text is the label only; the line is the tagged message.
+        compose.onNodeWithTag("outside").assert(SemanticsMatcher.expectValue(SemanticsProperties.Error, message))
+        compose.onNodeWithTag("outside")
+            .assertTextEquals(label(R.string.clients_add_dialog_email_label), "x@example.com")
+        compose.onNodeWithTag("line").assertTextEquals(message)
+        compose.onNodeWithTag("helped").assertTextContains(help)
+    }
+
+    @Test
+    fun E020_AC14_aListRowShowsAChevronOnlyWhenAskedTo() {
+        show {
+            InsetGroupedList {
+                row { ListRow("Klanten", Modifier.testTag("with"), onClick = {}, chevron = true) }
+                row { ListRow("Profiel", Modifier.testTag("without"), onClick = {}) }
+            }
+        }
+
+        val drawn = { tag: String ->
+            val pixels = compose.onNodeWithTag(tag).pixels()
+            val decorative = mode.tokens.fillDecorative
+            val columns = (pixels.width - 40.dp.px()) until (pixels.width - 8.dp.px())
+            (0 until pixels.height).any { y -> columns.any { x -> pixels[x, y].near(decorative, 0.05f) } }
+        }
+        assertTrue("the row with a chevron draws it at the end", drawn("with"))
+        assertFalse("the other has none", drawn("without"))
     }
 
     @Test
