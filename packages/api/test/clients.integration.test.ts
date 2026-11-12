@@ -339,6 +339,7 @@ describe('F006 add, list, read and edit clients', () => {
     const mail = createMemoryTransport();
     const requestSignIn = vi.fn(async () => {
       await mail.send({ to: 'x@example.com', subject: 'x', html: '', text: '' } as never);
+      return 'requested' as const;
     });
     const server = api({ requestSignIn });
     const accounts = (await admin.db.select({ id: authUsers.id }).from(authUsers)).length;
@@ -785,6 +786,7 @@ describe('F006 add, list, read and edit clients', () => {
     const mail = createMemoryTransport();
     const requestSignIn = vi.fn(async () => {
       await mail.send({ to: 'x@example.com', subject: 'x', html: '', text: '' } as never);
+      return 'requested' as const;
     });
     const server = api({ requestSignIn });
     const mark = (await (

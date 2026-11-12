@@ -37,7 +37,7 @@ Agents read the ADRs relevant to their change before starting (`WORKFLOW.md §4`
 | [027](ADR-027-a-cron-every-5-minutes.md) | A cron every 5 minutes (Railway's minimum) for the waitlist's closing-time email; the daily work stays daily; amends ADR-010 | Proposed |
 | [028](ADR-028-transactional-email-through-lettermint.md) | Transactional email through Lettermint (Dutch, EU-only) instead of Brevo: tracking off and no `List-Unsubscribe` on transactional mail; two routes (sign-in, other), Free until pilot setup then Starter, Scaleway TEM as fallback; amends ADR-009 | Accepted |
 | [029](ADR-029-design-v2.md) | Design v2: iOS 26 with Liquid Glass, Material 3 Expressive, shadcn/ui, one Calendar-and-Fitness theme; replaces the iOS minimum of ADR-003; the accent is amended by ADR-031 and the contrast rule by ADR-032 | Accepted |
-| [030](ADR-030-public-website.md) | The public website lives in `apps/web` at fivvi.app, statically generated | Proposed |
+| [030](ADR-030-public-website.md) | The public website lives in `apps/web` at fivvi.app, rendered per request, the same for every visitor | Proposed |
 | [031](ADR-031-move-pink-is-the-only-accent.md) | Move pink is the only accent; drops the black-and-white alternative of ADR-029 | Accepted |
 | [032](ADR-032-secondary-text-in-the-native-apps.md) | Secondary text in the native apps: the one exception to ADR-029's contrast rule | Accepted |
 

@@ -76,7 +76,7 @@ public protocol APIProtocol: Sendable {
     func listMySessions(_ input: Operations.ListMySessions.Input) async throws -> Operations.ListMySessions.Output
     /// Ask for a sign-in email
     ///
-    /// Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for a request over the rate limits, so it never says who has an account.
+    /// Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for an address over its limit (3 requests per 15 minutes), so it never says who has an account. The app needs no bot check; every limit applies to it. A network over its limit (20 requests per hour) gets `429`, and nothing is sent.
     ///
     /// - Remark: HTTP `POST /v1/sign-in/request`.
     /// - Remark: Generated from `#/paths//v1/sign-in/request/post(requestSignIn)`.
@@ -354,6 +354,13 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/clients/{clientId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/{clientId}/patch(updateClient)`.
     func updateClient(_ input: Operations.UpdateClient.Input) async throws -> Operations.UpdateClient.Output
+    /// The access log of a workspace
+    ///
+    /// The access log of the workspace (the Owner only; a Trainer gets `403`): who exported, trashed, restored or purged which client, and from M7 who viewed or changed which note. This workspace’s entries only, newest first, one page at a time, optionally of one client and one action. Names are looked up now; a client who no longer exists reads as *Verwijderde klant* or *Deleted client* in the reader’s language. Entries hold IDs and a time, never a note’s text. Entries older than 12 months are deleted.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/access-log`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/access-log/get(listAccessLog)`.
+    func listAccessLog(_ input: Operations.ListAccessLog.Input) async throws -> Operations.ListAccessLog.Output
 }
 
 /// Convenience overloads for operation inputs.
@@ -477,7 +484,7 @@ extension APIProtocol {
     }
     /// Ask for a sign-in email
     ///
-    /// Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for a request over the rate limits, so it never says who has an account.
+    /// Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for an address over its limit (3 requests per 15 minutes), so it never says who has an account. The app needs no bot check; every limit applies to it. A network over its limit (20 requests per hour) gets `429`, and nothing is sent.
     ///
     /// - Remark: HTTP `POST /v1/sign-in/request`.
     /// - Remark: Generated from `#/paths//v1/sign-in/request/post(requestSignIn)`.
@@ -1099,6 +1106,23 @@ extension APIProtocol {
             path: path,
             headers: headers,
             body: body
+        ))
+    }
+    /// The access log of a workspace
+    ///
+    /// The access log of the workspace (the Owner only; a Trainer gets `403`): who exported, trashed, restored or purged which client, and from M7 who viewed or changed which note. This workspace’s entries only, newest first, one page at a time, optionally of one client and one action. Names are looked up now; a client who no longer exists reads as *Verwijderde klant* or *Deleted client* in the reader’s language. Entries hold IDs and a time, never a note’s text. Entries older than 12 months are deleted.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/access-log`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/access-log/get(listAccessLog)`.
+    public func listAccessLog(
+        path: Operations.ListAccessLog.Input.Path,
+        query: Operations.ListAccessLog.Input.Query = .init(),
+        headers: Operations.ListAccessLog.Input.Headers = .init()
+    ) async throws -> Operations.ListAccessLog.Output {
+        try await listAccessLog(Operations.ListAccessLog.Input(
+            path: path,
+            query: query,
+            headers: headers
         ))
     }
 }

@@ -109,7 +109,7 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F039 | Exercise Library | PLANNED | Must | M7, after G4 (+ iOS/Android) | F007 | ⬜ | ⬜ | §38 |
+| F039 | Exercise Library | IN PROGRESS | Must | M7, after G4 (+ iOS/Android) | F007 | ⬜ | ⬜ | §38 |
 | F040 | Custom Exercises | PLANNED | Must | M7, after G4 (+ iOS/Android) | F039 | ⬜ | ⬜ | §38 |
 | F041 | Workout Templates | PLANNED | Must | M7, after G4 (+ iOS/Android) | F039 | ⬜ | ⬜ | §39 (save a logged workout as template) |
 | F042 | Client Workouts | PLANNED | Must | M7, after G4 (+ iOS/Android) | F041, F006 | ⬜ | ⬜ | §40 |
@@ -141,7 +141,7 @@ Added in roadmap v1.19 (M11), before go-live; credit packs and credit plans, gro
 | F057 | Recurring Payments | IN PROGRESS | Must | M11 | E019, F059 | ⬜ | ⬜ | §94 (first payment + mandate, SEPA Direct Debit: proposal, QC06; exactly once) |
 | [F058](https://github.com/fivvi-app/fivvi/issues/495) | Single class pass | PLANNED | Must | M11 | F052, F031, E019, F059 | ⬜ | ⬜ | §95 (an offer kind of its own, bought ahead like credits, good for one group class; the owner sets the price, with a guideline that it costs more than a class in a membership or pack; an unused pass is never refunded; credits are used before a pass; cancellation and validity are open) |
 | F059 | Invoices and Billing Details | IN PROGRESS | Must | M11 | F006, F052 | ⬜ | ⬜ | §96 (company details, gapless numbers, credit notes) |
-| F060 | Failed Payments and Refunds | PLANNED | Must | M11 | F057, F059 | ⬜ | ⬜ | §94 |
+| F060 | Failed Payments and Refunds | IN PROGRESS | Must | M11 | F057, F059 | ⬜ | ⬜ | §94 |
 | F061 | Payouts and Reconciliation | PLANNED | Must (proposed, decision 9) | M11 | F057, F060 | ⬜ | ⬜ | §97 |
 | [F065](https://github.com/fivvi-app/fivvi/issues/606) | Payments Outside Fivvi: the Owner records a payment taken at the studio or by bank transfer on the client's profile, and a studio may take payments only at the studio, without Mollie | PLANNED | Must | M11 (+ iOS/Android; + Fivvi iOS/Android) | E019, F052, F053, F054, F055, F057, F059, F060 | ⬜ | ⬜ | §53, §91, §92, §94, §96, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) *Betaling buiten Fivvi* |
 

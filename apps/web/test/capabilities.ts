@@ -12,6 +12,8 @@ export const OWNER: Capabilities = [
   'clients.manage',
   'location.read',
   'settings.manage',
+  'join_link.view',
+  'join_link.renew',
 ];
 
 export const TRAINER: Capabilities = [
@@ -19,4 +21,5 @@ export const TRAINER: Capabilities = [
   'clients.view',
   'clients.manage',
   'location.read',
+  'join_link.view',
 ];

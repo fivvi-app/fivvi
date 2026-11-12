@@ -22,6 +22,7 @@ import {
   createSendEmail,
   createTrainerInvitationSender,
   EmailSendError,
+  emailIdempotencyKey,
 } from '@fivvi/email';
 import {
   createErrorReporter,
@@ -33,7 +34,7 @@ import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/databas
 import { asc, eq } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import { type ApiDependencies, createApp, NO_DEPENDENCIES } from '../src/index.ts';
-import { hashInvitationToken } from '../src/invitations/token.ts';
+import { hashInvitationToken, invitationEmailEvent } from '../src/invitations/token.ts';
 
 // F011 (spec #422), the first slice: the Owner invites a trainer by email, sees the pending
 // invitations, sends one again or withdraws it. Synthetic people: John (Owner) and Sarah (Trainer)
@@ -77,6 +78,17 @@ describe('F011 trainer invitations', () => {
   function setup(overrides: Partial<ApiDependencies> = {}) {
     const transport = createMemoryTransport();
     const clock = manualClock(START);
+    // A test sets `hooks.beforeSend` to look at the database at the moment the email goes out.
+    const hooks: { beforeSend?: () => Promise<void> } = {};
+    const sendInvitation = createTrainerInvitationSender({
+      sendEmail: createSendEmail({
+        transport,
+        sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
+        sleep: () => Promise.resolve(),
+        random: () => 0,
+      }),
+      appBaseUrl: () => BASE_URL,
+    });
     const dependencies: Partial<ApiDependencies> = {
       findSignedInAccount: async (headers) => {
         const id = headers.get('x-test-account');
@@ -94,19 +106,24 @@ describe('F011 trainer invitations', () => {
       },
       tenantScopes: createTenantScopes(() => app.db),
       // The same sender apps/web wires, over the capture transport.
-      sendTrainerInvitation: createTrainerInvitationSender({
-        sendEmail: createSendEmail({
-          transport,
-          sender: { email: 'noreply@fivvi.example.test', name: 'Fivvi' },
-          sleep: () => Promise.resolve(),
-          random: () => 0,
-        }),
-        appBaseUrl: () => BASE_URL,
-      }),
+      sendTrainerInvitation: async (mail) => {
+        await hooks.beforeSend?.();
+        await sendInvitation(mail);
+      },
       clock,
       ...overrides,
     };
-    return { server: createApp({ ...NO_DEPENDENCIES, ...dependencies }), transport, clock };
+    return { server: createApp({ ...NO_DEPENDENCIES, ...dependencies }), transport, clock, hooks };
+  }
+
+  /** An error reporter that keeps what it is told, for a test to look at. */
+  function reporter() {
+    const reported: unknown[] = [];
+    const errorReporter: ApiDependencies['errorReporter'] = {
+      ...createErrorReporter({ env: {} }),
+      captureError: (error) => void reported.push(error),
+    };
+    return { reported, errorReporter };
   }
 
   /** John's Gym (Dutch) with John (Owner, named) and Sarah (Trainer); Fit Studio with Mike. */
@@ -353,6 +370,19 @@ describe('F011 trainer invitations', () => {
       (await invite(server, gym.id, john, { ...valid, name: 'x'.repeat(120), emailLocale: 'en' }))
         .status,
     ).toBe(201);
+  });
+
+  it('F049 AC11: the idempotency key is built from EM-09 and the invitation with its token', async () => {
+    const { gym, john } = await world();
+    const { server, transport } = setup();
+    const created = (await (
+      await invite(server, gym.id, john, { name: 'Lisa', email: 'lisa@example.com' })
+    ).json()) as InvitationBody;
+    const [row] = await rowsOf(gym.id);
+
+    expect(transport.sent[0]?.idempotencyKey).toBe(
+      emailIdempotencyKey('EM-09', invitationEmailEvent(created.id, row?.tokenHash ?? '')),
+    );
   });
 
   it('AC7: resend sends a new link with a new expiry, and the old token stops working', async () => {
@@ -708,7 +738,8 @@ describe('F011 trainer invitations', () => {
   it('a failed send answers 500 and leaves nothing stored: no invitation without its email', async () => {
     const error = vi.spyOn(console, 'error').mockImplementation(() => {});
     const { gym, john } = await world();
-    const { server, transport } = setup();
+    const { reported, errorReporter } = reporter();
+    const { server, transport } = setup({ errorReporter });
     transport.failNext(new EmailSendError('memory: rejected', { retryable: false }));
 
     const response = await invite(server, gym.id, john, {
@@ -717,6 +748,8 @@ describe('F011 trainer invitations', () => {
     });
 
     expect(response.status).toBe(500);
+    // Only the failed send: the undo found its invitation and took it back.
+    expect(reported).toHaveLength(1);
     expect(await rowsOf(gym.id)).toEqual([]);
     // The address can be invited at once; the failed try did not block it or count for the limit.
     expect(
@@ -738,6 +771,168 @@ describe('F011 trainer invitations', () => {
     expect((await resend(server, gym.id, created.id, john)).status).toBe(500);
 
     expect((await rowsOf(gym.id))[0]?.tokenHash).toBe(before?.tokenHash);
+    error.mockRestore();
+  });
+
+  it('F049: the email goes out after the commit: the send sees the stored invitation', async () => {
+    const { gym, john } = await world();
+    const { server, transport, hooks } = setup();
+    const seen: { rows: number; hash: string | undefined }[] = [];
+    // `admin` is another connection: it sees the invitation only once the request committed it.
+    hooks.beforeSend = async () => {
+      const rows = await rowsOf(gym.id);
+      seen.push({ rows: rows.length, hash: rows[0]?.tokenHash });
+    };
+
+    const response = await invite(server, gym.id, john, {
+      name: 'Lisa',
+      email: 'lisa@example.com',
+    });
+
+    expect(response.status).toBe(201);
+    expect(transport.sent).toHaveLength(1);
+    const [row] = await rowsOf(gym.id);
+    expect(seen).toEqual([{ rows: 1, hash: row?.tokenHash }]);
+    expect(hashInvitationToken(tokenOf(transport.sent[0]?.links ?? []))).toBe(row?.tokenHash);
+  });
+
+  it('F049: a resend is emailed after the commit: the send sees the new token stored', async () => {
+    const { gym, john } = await world();
+    const { server, transport, hooks } = setup();
+    const created = (await (
+      await invite(server, gym.id, john, { name: 'Lisa', email: 'lisa@example.com' })
+    ).json()) as InvitationBody;
+    const [before] = await rowsOf(gym.id);
+    const seen: (string | undefined)[] = [];
+    hooks.beforeSend = async () => {
+      seen.push((await rowsOf(gym.id))[0]?.tokenHash);
+    };
+
+    expect((await resend(server, gym.id, created.id, john)).status).toBe(200);
+
+    const [after] = await rowsOf(gym.id);
+    expect(after?.tokenHash).not.toBe(before?.tokenHash);
+    expect(seen).toEqual([after?.tokenHash]);
+    expect(hashInvitationToken(tokenOf(transport.sent[1]?.links ?? []))).toBe(after?.tokenHash);
+  });
+
+  it('F049: a request that rolls back sends nothing', async () => {
+    const { gym, john, sarah } = await world();
+    const { server, transport } = setup();
+    await invite(server, gym.id, john, { name: 'Lisa', email: 'lisa@example.com' });
+    transport.sent.length = 0;
+
+    // A duplicate (409), a refusal (403), an invalid body (400) and a missing invitation (404).
+    expect(
+      (await invite(server, gym.id, john, { name: 'Lisa', email: 'lisa@example.com' })).status,
+    ).toBe(409);
+    expect(
+      (await invite(server, gym.id, sarah, { name: 'Tom', email: 'tom@example.com' })).status,
+    ).toBe(403);
+    expect(
+      (await invite(server, gym.id, john, { name: '', email: 'tom@example.com' })).status,
+    ).toBe(400);
+    expect(
+      (await resend(server, gym.id, '00000000-0000-4000-8000-000000000000', john)).status,
+    ).toBe(404);
+
+    expect(transport.sent).toEqual([]);
+  });
+
+  it('F049: a failed send undoes only that invitation, in its own workspace', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { gym, other, john, mike } = await world();
+    const { server, transport } = setup();
+    // Mike's gym has a pending invitation for the same address and John's gym another one.
+    await invite(server, other.id, mike, { name: 'Lisa', email: 'lisa@example.com' });
+    await invite(server, gym.id, john, { name: 'Tom', email: 'tom@example.com' });
+    transport.failNext(new EmailSendError('memory: rejected', { retryable: false }));
+
+    const response = await invite(server, gym.id, john, {
+      name: 'Lisa',
+      email: 'lisa@example.com',
+    });
+
+    expect(response.status).toBe(500);
+    expect((await rowsOf(gym.id)).map((row) => row.email)).toEqual(['tom@example.com']);
+    expect((await rowsOf(other.id)).map((row) => row.email)).toEqual(['lisa@example.com']);
+    error.mockRestore();
+  });
+
+  it('F049: a failed resend puts the old token, sending time and expiry back', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { gym, john } = await world();
+    const { server, transport, clock } = setup();
+    const created = (await (
+      await invite(server, gym.id, john, { name: 'Lisa', email: 'lisa@example.com' })
+    ).json()) as InvitationBody;
+    const [before] = await rowsOf(gym.id);
+    clock.set('2026-11-08T10:00:00.000Z');
+    transport.failNext(new EmailSendError('memory: rejected', { retryable: false }));
+
+    expect((await resend(server, gym.id, created.id, john)).status).toBe(500);
+
+    const [after] = await rowsOf(gym.id);
+    expect(after).toMatchObject({
+      tokenHash: before?.tokenHash,
+      sentAt: before?.sentAt,
+      expiresAt: before?.expiresAt,
+      status: 'pending',
+    });
+    error.mockRestore();
+  });
+
+  it('F049: a failed send does not delete an invitation that changed since: a newer token stays', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { gym, john } = await world();
+    const { reported, errorReporter } = reporter();
+    const { server, transport, hooks } = setup({ errorReporter });
+    // While the send is in flight another request resends the invitation: the row holds a newer token.
+    hooks.beforeSend = async () => {
+      await admin.db
+        .update(trainerInvitations)
+        .set({ tokenHash: 'newer-create-token-hash' })
+        .where(eq(trainerInvitations.organizationId, gym.id));
+    };
+    transport.failNext(new EmailSendError('memory: rejected', { retryable: false }));
+
+    const response = await invite(server, gym.id, john, {
+      name: 'Lisa',
+      email: 'lisa@example.com',
+    });
+
+    expect(response.status).toBe(500);
+    const rows = await rowsOf(gym.id);
+    expect(rows).toHaveLength(1);
+    expect(rows[0]?.tokenHash).toBe('newer-create-token-hash');
+    // The failed send, and the undo that found nothing of its own to take back.
+    expect(reported).toHaveLength(2);
+    error.mockRestore();
+  });
+
+  it('F049: a failed resend does not put the old token back over a newer one', async () => {
+    const error = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const { gym, john } = await world();
+    const { reported, errorReporter } = reporter();
+    const { server, transport, hooks } = setup({ errorReporter });
+    const created = (await (
+      await invite(server, gym.id, john, { name: 'Lisa', email: 'lisa@example.com' })
+    ).json()) as InvitationBody;
+    const [before] = await rowsOf(gym.id);
+    hooks.beforeSend = async () => {
+      await admin.db
+        .update(trainerInvitations)
+        .set({ tokenHash: 'newer-resend-token-hash' })
+        .where(eq(trainerInvitations.organizationId, gym.id));
+    };
+    transport.failNext(new EmailSendError('memory: rejected', { retryable: false }));
+
+    expect((await resend(server, gym.id, created.id, john)).status).toBe(500);
+
+    const [after] = await rowsOf(gym.id);
+    expect(after?.tokenHash).toBe('newer-resend-token-hash');
+    expect(reported).toHaveLength(2);
+    expect(after?.tokenHash).not.toBe(before?.tokenHash);
     error.mockRestore();
   });
 

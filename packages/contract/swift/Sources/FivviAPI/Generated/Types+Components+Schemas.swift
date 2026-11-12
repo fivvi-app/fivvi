@@ -371,6 +371,7 @@ extension Components {
                 case class_read = "class.read"
                 case joinLink_view = "join_link.view"
                 case joinLink_renew = "join_link.renew"
+                case accessLog_read = "access_log.read"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -511,6 +512,7 @@ extension Components {
                 case class_read = "class.read"
                 case joinLink_view = "join_link.view"
                 case joinLink_renew = "join_link.renew"
+                case accessLog_read = "access_log.read"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -1317,6 +1319,27 @@ extension Components {
                 case timeZone
                 case workspaceCount
                 case items
+            }
+        }
+        /// Too many requests from this network or this account in the last minutes or hour. Nothing was stored or sent. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/PublicRequestRateLimited`.
+        public struct PublicRequestRateLimited: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/PublicRequestRateLimited/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case rateLimited = "rate_limited"
+            }
+            /// - Remark: Generated from `#/components/schemas/PublicRequestRateLimited/code`.
+            public var code: Components.Schemas.PublicRequestRateLimited.CodePayload
+            /// Creates a new `PublicRequestRateLimited`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            public init(code: Components.Schemas.PublicRequestRateLimited.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
             }
         }
         /// Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019.
@@ -3552,6 +3575,133 @@ extension Components {
                 case email
                 case emailLocale
                 case clearEmailLocale
+            }
+        }
+        /// One page of the access log of a workspace.
+        ///
+        /// - Remark: Generated from `#/components/schemas/AccessLogList`.
+        public struct AccessLogList: Codable, Hashable, Sendable {
+            /// This page of entries, newest first.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogList/items`.
+            public var items: [Components.Schemas.AccessLogEntry]
+            /// How many entries match, over all pages.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogList/total`.
+            public var total: Swift.Int
+            /// Creates a new `AccessLogList`.
+            ///
+            /// - Parameters:
+            ///   - items: This page of entries, newest first.
+            ///   - total: How many entries match, over all pages.
+            public init(
+                items: [Components.Schemas.AccessLogEntry],
+                total: Swift.Int
+            ) {
+                self.items = items
+                self.total = total
+            }
+            public enum CodingKeys: String, CodingKey {
+                case items
+                case total
+            }
+        }
+        /// One entry of the access log: who did what to which client, and when. IDs, names and a time; no free text, never note content.
+        ///
+        /// - Remark: Generated from `#/components/schemas/AccessLogEntry`.
+        public struct AccessLogEntry: Codable, Hashable, Sendable {
+            /// The entry ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogEntry/id`.
+            public var id: Swift.String
+            /// When it happened, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogEntry/occurredAt`.
+            public var occurredAt: Foundation.Date
+            /// What was done: `client.exported`, `client.trashed`, `client.restored`, `client.purged`, `workspace.exported`, `client.retention_kept`, and from M7 `note.viewed` and `note.changed`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogEntry/action`.
+            @frozen public enum ActionPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case client_exported = "client.exported"
+                case client_trashed = "client.trashed"
+                case client_restored = "client.restored"
+                case client_purged = "client.purged"
+                case workspace_exported = "workspace.exported"
+                case client_retentionKept = "client.retention_kept"
+                case note_viewed = "note.viewed"
+                case note_changed = "note.changed"
+            }
+            /// What was done: `client.exported`, `client.trashed`, `client.restored`, `client.purged`, `workspace.exported`, `client.retention_kept`, and from M7 `note.viewed` and `note.changed`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogEntry/action`.
+            public var action: Components.Schemas.AccessLogEntry.ActionPayload
+            /// The team member who did it. `null` for what the daily cleanup does by itself. The ID stays when the team member has left the team.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogEntry/actorTeamMemberId`.
+            public var actorTeamMemberId: Swift.String?
+            /// The team member’s name now (their email address when they have given none). `null` when there is no team member, or when they have left the team.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogEntry/actorName`.
+            public var actorName: Swift.String?
+            /// The client the action was about; `null` for an action about no client (`workspace.exported`). The ID stays after the client is deleted, so the list can still be filtered by it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogEntry/clientId`.
+            public var clientId: Swift.String?
+            /// The client’s name now. `null` for an action about no client. A client that no longer exists reads as *Verwijderde klant* or *Deleted client*, in the language of the reader (their stored language, else `Accept-Language`, else English); `clientRemoved` is `true` then.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogEntry/clientName`.
+            public var clientName: Swift.String?
+            /// `true` when the entry is about a client who no longer exists.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogEntry/clientRemoved`.
+            public var clientRemoved: Swift.Bool
+            /// The note’s ID for `note.viewed` and `note.changed`; `null` for any other action. The log never holds a note’s text.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogEntry/objectId`.
+            public var objectId: Swift.String?
+            /// Creates a new `AccessLogEntry`.
+            ///
+            /// - Parameters:
+            ///   - id: The entry ID.
+            ///   - occurredAt: When it happened, a UTC instant.
+            ///   - action: What was done: `client.exported`, `client.trashed`, `client.restored`, `client.purged`, `workspace.exported`, `client.retention_kept`, and from M7 `note.viewed` and `note.changed`.
+            ///   - actorTeamMemberId: The team member who did it. `null` for what the daily cleanup does by itself. The ID stays when the team member has left the team.
+            ///   - actorName: The team member’s name now (their email address when they have given none). `null` when there is no team member, or when they have left the team.
+            ///   - clientId: The client the action was about; `null` for an action about no client (`workspace.exported`). The ID stays after the client is deleted, so the list can still be filtered by it.
+            ///   - clientName: The client’s name now. `null` for an action about no client. A client that no longer exists reads as *Verwijderde klant* or *Deleted client*, in the language of the reader (their stored language, else `Accept-Language`, else English); `clientRemoved` is `true` then.
+            ///   - clientRemoved: `true` when the entry is about a client who no longer exists.
+            ///   - objectId: The note’s ID for `note.viewed` and `note.changed`; `null` for any other action. The log never holds a note’s text.
+            public init(
+                id: Swift.String,
+                occurredAt: Foundation.Date,
+                action: Components.Schemas.AccessLogEntry.ActionPayload,
+                actorTeamMemberId: Swift.String? = nil,
+                actorName: Swift.String? = nil,
+                clientId: Swift.String? = nil,
+                clientName: Swift.String? = nil,
+                clientRemoved: Swift.Bool,
+                objectId: Swift.String? = nil
+            ) {
+                self.id = id
+                self.occurredAt = occurredAt
+                self.action = action
+                self.actorTeamMemberId = actorTeamMemberId
+                self.actorName = actorName
+                self.clientId = clientId
+                self.clientName = clientName
+                self.clientRemoved = clientRemoved
+                self.objectId = objectId
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case occurredAt
+                case action
+                case actorTeamMemberId
+                case actorName
+                case clientId
+                case clientName
+                case clientRemoved
+                case objectId
             }
         }
     }

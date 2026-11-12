@@ -263,6 +263,7 @@ describe('AC5: no tracking, no redirects, no List-Unsubscribe', () => {
           props: template.previewProps,
           to: { email: 'anna@example.com' },
           locale,
+          event: 'check',
         });
       }
       expect(transport.sent).toHaveLength(2);

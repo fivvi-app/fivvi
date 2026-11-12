@@ -4,7 +4,7 @@ This is the **single wording source** for every user-facing string on every surf
 
 What each concept **is** lives in the domain glossary, [`GLOSSARY.md`](../../GLOSSARY.md) at the repo root (English canonical terms, definitions, words to avoid). This file says how those terms are **worded** in nl-NL and en.
 
-- **Status:** v0.17, started in M0 (`ROADMAP.md §4.2`). The owner decided the nine open terms on 2026-10-29 by choosing the standard Dutch wording, and on the same day the wording of *single class* and *client*. Terms marked ⚠️ are still open (see [§8 Open questions](#8-open-questions)); v0.14 adds the join link, join request and waitlist closing time terms of ADR-026 as ⚠️; v0.16 adds *guest / introducé* 🔜 as ⚠️; v0.17 renames *single class* to *single class pass*, an offer kind of its own, with its UI names ⚠️.
+- **Status:** v0.19, started in M0 (`ROADMAP.md §4.2`). The owner decided the nine open terms on 2026-10-29 by choosing the standard Dutch wording, and on the same day the wording of *single class* and *client*. Terms marked ⚠️ are still open (see [§8 Open questions](#8-open-questions)); v0.14 adds the join link, join request and waitlist closing time terms of ADR-026 as ⚠️; v0.16 adds *guest / introducé* 🔜 as ⚠️; v0.17 renames *single class* to *single class pass*, an offer kind of its own, with its UI names ⚠️. v0.18 adds the workspace's word for trainers (F068). v0.19 adds the exercise library terms *retired exercise* and *exercise type*.
 - **Scope:** UI strings, emails, notifications, validation messages, empty states, the client timetable and join pages and QR posters. Legal documents (privacy policy, terms, verwerkersovereenkomst) follow their own register and are out of scope.
 - **Catalogs:** `packages/i18n/nl-NL.json` and `packages/i18n/en.json` (ICU MessageFormat, ADR-008). Native catalogs (`.xcstrings`, `strings.xml`) are generated from them and are never edited by hand.
 - **Precedence:** `PRODUCT.md` owns requirements. This file owns terminology, tone and copy style. Where it deliberately differs from example copy in `PRODUCT.md`, [§7](#7-deviations-from-productmd-example-copy) lists why.
@@ -138,6 +138,14 @@ Timestamps are stored in UTC. Render them in the **workspace timezone** (default
 "booking.full": "Full"
 ```
 
+- **The workspace's word** (F068) is six plain placeholders, because the native exporters reject ICU `select`: `{word}` and `{words}` (*instructeur, instructeurs* · *instructor, instructors*), `{Word}` and `{Words}` with a capital start (*Instructeur* · *Instructor*), and `{aWord}` and `{AWord}` with the article (*een instructeur, Een instructeur* · *an instructor, An instructor*). Use the capital form at the start of a message and the lowercase form inside a sentence. Never build a compound from the placeholder (*profiel van de {word}*, not *{word}sprofiel*). `{trainer}` stays a person's name (`email.privateSession.trainer`). The words themselves are the `trainerWord.<choice>.<form>` messages; `trainerWordForms(choice, locale)` turns a workspace's choice and the reader's language into the values.
+
+```json
+"roles.trainerLabel": "{Word}"
+"team.example": "{Word} nodig"
+"team.example": "{Word} needed"
+```
+
 ---
 
 ## 4. Term table
@@ -161,7 +169,8 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 | role | rol (de, rollen) | No custom roles in MVP. The MVP roles are Eigenaar and Trainer. |
 | Owner | Eigenaar (de, eigenaren) | ❌ *baas, beheerder* (that's Admin 🔜 7.0), *owner* (NL). |
 | Admin 🔜 7.0 | Beheerder (de, beheerders) | A later role, not in the MVP (owner decision, 2026-10-20): no strings until it is built. ❌ NL: *admin, administrator, manager*. |
-| Trainer | Trainer (de, trainers) | ❌ *coach, instructeur, docent, PT* (as a role name). "Personal trainer" is fine in marketing copy, not as a role. |
+| Trainer | Trainer (de, trainers) | The **role** is Trainer: in code, routes, the API's role values and the permission matrix. The **UI of a workspace** says the workspace's word (next row), never *trainer* literally (screens with no workspace, the public website and Fivvi's own team emails are the exceptions); the `no-literal-trainer` check fails on a message that does. ❌ *PT* (as a role name). "Personal trainer" is fine in marketing copy (the public website), not as a role. |
+| Workspace's word | trainer (de, trainers), instructeur (de, instructeurs), docent (de, docenten), coach (de, coaches) | What a workspace calls its trainers on every screen, in emails and on the QR poster. EN: *trainer, instructor, teacher, coach* (plurals *trainers, instructors, teachers, coaches*). One of these four per workspace (`trainer` by default), in the reader's language: Dutch *instructeur* is English *instructor* at the same place on the same screen. A message uses the placeholders of §3.3, never a compound: *profiel van de trainer*, ❌ *trainersprofiel*. Screens with no workspace (sign-in, *Mijn profiel*, rows from several workspaces together, the apps' no-workspace screen) and the public website don't use it. ❌ *coach, instructeur, docent* hard-coded as a role name. |
 | client | klant (de, klanten) | ❌ NL: *cliënt* (sounds medical), *lid, sporter, deelnemer* (see *participant*), *gebruiker*. ❌ EN: *customer, member, user, athlete, guest*. A client who has a membership is a *klant met een abonnement* / *client with a membership*, never a *lid* / *member*. |
 | participant | deelnemer (de, deelnemers) | ❌ EN: *attendee, student*. ❌ NL: *cursist, leerling*. |
 | independent trainer | zelfstandig trainer | ❌ *zzp'er, freelancer* in UI. |
@@ -258,7 +267,9 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 | exercise library | oefeningenbibliotheek (de); screen title **Oefeningen** | EN: *Exercise library*; screen title *Exercises*. |
 | custom exercise | eigen oefening | ❌ *aangepaste oefening, custom oefening*. |
 | target muscles | spiergroepen | Field in the exercise library. EN: *Target muscles*. |
-| equipment | materiaal (het) | Field in the exercise library. ❌ *apparatuur, benodigdheden, equipment*. |
+| equipment | materiaal (het) | Field in the exercise library, not in the first version (it comes later). ❌ *apparatuur, benodigdheden, equipment*. |
+| retired exercise | uit de bibliotheek gehaald | An exercise Fivvi no longer offers; it stays in templates and past workouts. Use it as a status, not as an action on a trainer's own exercise. EN: *retired*. ❌ *verwijderd*, *gearchiveerd*, *uitgefaseerd* (nothing is deleted). |
+| exercise type | soort (de) | What a set records: *Gewicht × herhalingen*, *Alleen herhalingen*, *Tijd*, *Afstand + tijd* (EN: *Weight × reps*, *Reps only*, *Time*, *Distance + time*). Table column: *Soort* / *Type*. ❌ *type*. |
 | aliases | andere namen | Alternative names used for search. EN UI: *Also known as*. |
 | set | set (de, sets) | ❌ *serie, reeks, ronde*. |
 | rep | herhaling (de, herhalingen) | Compact tables: *herh.* / *reps*. Set lines use `62,5 kg × 8` with no word. ❌ NL: *reps, keer*. See the recurrence note in §4.2. |
@@ -305,7 +316,7 @@ Definitions live in the root [`GLOSSARY.md`](../../GLOSSARY.md); look a term up 
 | Classes | Lessen |
 | Open Gym | Open Gym |
 | Workouts | Trainingen |
-| Trainers | Trainers |
+| Trainers | Trainers *(the workspace's word, plural: Instructeurs, Docenten, Coaches)* |
 | Booking links | Boekingslinks |
 | Settings | Instellingen |
 
@@ -540,3 +551,5 @@ Marked ⚠️ in §4.9 since v0.17: *single class pass*. It is an offer kind of 
 | 2026-10-31 | 0.15 | The client app at go-live (roadmap v1.31): the brand rule says the client app is *Fivvi* (it was "of Release 1.2"), and the *Home* row is no longer marked 🔜 1.2. Terminology is unchanged. |
 | 2026-11-06 | 0.16 | Bring a friend, parked in Release 4.0 (roadmap v1.37, `PRODUCT.md §66`): §4.9 adds *guest* (*introducé*) 🔜 4.0 as ⚠️. *Guest* is back with a new meaning only, a friend a client brings to a class; a client is still never a guest, so the 0.6 change and the *client* row stand. |
 | 2026-11-09 | 0.17 | The owner decided that the single class is a **single class pass**, an offer kind of its own (four kinds), bought ahead and good for one group class, not a credit pack (roadmap decision 9, F058 reopened). §4.9: the *single class* row becomes *single class pass*; the Dutch and English UI names are ⚠️ (*losse sessie* of 0.12 may carry over, not decided; no string exists yet). |
+| 2026-11-11 | 0.18 | F068, the workspace's word for its trainers (spec #588): the *Trainer* row says the role is Trainer and the UI uses the workspace's word; new row *Workspace's word* with the four words in both languages (*trainer, instructeur, docent, coach* · *trainer, instructor, teacher, coach*); §3.3 gets the six placeholders of the word and the rule against compounds; the navigation entry follows the word. The old ❌ list of the *Trainer* row (*coach, instructeur, docent*) goes: they are the workspace's word now. |
+| 2026-11-11 | 0.19 | Exercise library (F039): §4.6 adds *retired exercise* (*uit de bibliotheek gehaald*) and *exercise type* (*soort*), notes that *equipment* (*materiaal*) comes later, and fixes the Dutch names of the four exercise types and the fourteen muscle groups in the catalogs (`exercises.types.*`, `exercises.muscleGroups.*`). |

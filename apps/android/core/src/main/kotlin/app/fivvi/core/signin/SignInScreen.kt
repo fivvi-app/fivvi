@@ -1,22 +1,21 @@
 package app.fivvi.core.signin
 
+import androidx.annotation.DrawableRes
 import androidx.annotation.StringRes
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -27,6 +26,7 @@ import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
@@ -37,9 +37,17 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.LanguageSwitch
 import app.fivvi.core.R
+import app.fivvi.core.kit.FieldErrorLine
+import app.fivvi.core.kit.FivviField
+import app.fivvi.core.kit.PillButton
+import app.fivvi.core.kit.PillButtonStack
+import app.fivvi.core.kit.PillButtonStyle
+import app.fivvi.core.theme.LocalDarkTheme
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
 import app.fivvi.designtokens.title1
@@ -49,6 +57,9 @@ import app.fivvi.designtokens.title2
 object SignInTags {
     /** The app's name above the title, for an app that names itself on the screen (Fivvi). */
     const val APP_NAME = "signIn.appName"
+
+    /** The app's icon above the title, for an app that shows it (Fivvi Pro). */
+    const val LOGO = "signIn.logo"
     const val TITLE = "signIn.title"
     const val NOTICE = "signIn.notice"
     const val EMAIL = "signIn.email"
@@ -67,6 +78,12 @@ object SignInTags {
     const val LANGUAGE = "signIn.language"
 }
 
+/**
+ * An app's icon on the sign-in: the picture in each mode and its accessible name. It is an image in the screen, apart from
+ * the launcher icon. [light] shows in light mode and [dark] in dark mode, as the brand files are drawn for each.
+ */
+class SignInLogo(@DrawableRes val light: Int, @DrawableRes val dark: Int, @StringRes val name: Int)
+
 /** What the screen does for the person: the view model's functions, or tests' stand-ins. */
 class SignInActions(
     val onEmailChange: (String) -> Unit,
@@ -80,11 +97,15 @@ class SignInActions(
     val onChooseLanguage: (AppLanguage) -> Unit = {},
 )
 
+/** The icon above the title: 84 dp on the email step, 64 dp on the code step (the prototype's *Inloggen (TM-01)*). */
+private val EmailStepLogoSize = 84.dp
+private val CodeStepLogoSize = 64.dp
+
 /**
  * TM-01: the email step and the code step. Scrolls, so text at the largest font scale wraps instead of being cut off.
  * [showsSignedOutNotice]: the API stopped accepting the token, which the screen says above the form (AC9). [appName]
  * is the string resource of the app's name, shown above the title by the app that names itself on this screen (Fivvi,
- * E017); Fivvi Pro passes none.
+ * E017); [logo] is the app's icon, shown above the title by the app that has one (Fivvi Pro, E020). Either may be absent.
  */
 @Composable
 fun SignInScreen(
@@ -93,6 +114,7 @@ fun SignInScreen(
     modifier: Modifier = Modifier,
     showsSignedOutNotice: Boolean = false,
     @StringRes appName: Int? = null,
+    logo: SignInLogo? = null,
 ) {
     // One call site per step for all its states, so the field keeps its focus while a request is under way.
     val busy = state is SignInState.Sending || state is SignInState.Checking || state is SignInState.Resending
@@ -106,20 +128,12 @@ fun SignInScreen(
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         val atCodeStep = state !is SignInState.EmailEntry && state !is SignInState.Sending
+        if (logo != null) Logo(logo, if (atCodeStep) CodeStepLogoSize else EmailStepLogoSize)
         if (appName != null) AppName(appName)
         Title(if (atCodeStep) R.string.sign_in_check_email_title else R.string.sign_in_title)
         if (showsSignedOutNotice) Notice()
         if (atCodeStep) CodeStep(state, busy, actions) else EmailStep(state, busy, actions)
-        val error = (state as? SignInState.EmailEntry)?.error ?: (state as? SignInState.CodeEntry)?.error
         LanguageSwitch(SignInTags.LANGUAGE, actions.language, actions.onChooseLanguage)
-        if (error != null) {
-            ErrorText(error)
-            if (error ==
-                SignInError.NoConnection
-            ) {
-                SecondaryButton(R.string.common_retry, SignInTags.RETRY, actions.onRetry)
-            }
-        }
     }
 }
 
@@ -129,25 +143,33 @@ private fun EmailStep(state: SignInState, busy: Boolean, actions: SignInActions)
     val focus = remember { FocusRequester() }
     // Back from the code step, or after a request: the field is ready. Not at the first start, which stays quiet.
     LaunchedEffect(busy) { if (!busy && state.email.isNotEmpty()) focus.requestFocus() }
-    OutlinedTextField(
+    FivviField(
         value = state.email,
         onValueChange = actions.onEmailChange,
+        label = stringResource(R.string.sign_in_email_label),
         modifier = Modifier
-            .fillMaxWidth()
             .focusRequester(focus)
             .semantics { contentType = ContentType.EmailAddress }
             .testTag(SignInTags.EMAIL),
+        error = error?.let { stringResource(it.message) },
+        showsErrorMessage = false,
         enabled = !busy,
-        label = { Text(stringResource(R.string.sign_in_email_label)) },
-        singleLine = true,
-        isError = error != null,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email, imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = { actions.onSendCode() }),
     )
+    if (error != null) ErrorLine(error)
     if (busy) {
         Loading()
     } else {
-        PrimaryButton(R.string.sign_in_send_code, SignInTags.SEND, state.email.isNotBlank(), actions.onSendCode)
+        PillButtonStack {
+            PillButton(
+                text = stringResource(R.string.sign_in_send_code),
+                onClick = actions.onSendCode,
+                modifier = Modifier.testTag(SignInTags.SEND),
+                enabled = state.email.isNotBlank(),
+            )
+            if (error == SignInError.NoConnection) RetryButton(actions.onRetry)
+        }
     }
 }
 
@@ -162,25 +184,27 @@ private fun CodeStep(state: SignInState, busy: Boolean, actions: SignInActions) 
     Text(
         text = stringResource(R.string.sign_in_check_email_body_app, state.email),
         style = MaterialTheme.typography.body,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center,
         modifier = Modifier.fillMaxWidth().testTag(SignInTags.CHECK_EMAIL),
     )
-    OutlinedTextField(
+    FivviField(
         value = code,
         onValueChange = actions.onCodeChange,
+        label = stringResource(R.string.sign_in_code_label),
         modifier = Modifier
-            .fillMaxWidth()
             .focusRequester(focus)
             // The phone's one-time-code autofill (SMS) fills this field, like a paste: digits only, six of them.
             .semantics { contentType = ContentType.SmsOtpCode }
             .testTag(SignInTags.CODE),
+        error = codeEntry?.error?.let { stringResource(it.message) },
+        showsErrorMessage = false,
+        help = stringResource(R.string.sign_in_code_help),
         enabled = !busy,
-        label = { Text(stringResource(R.string.sign_in_code_label)) },
-        supportingText = { Text(stringResource(R.string.sign_in_code_help)) },
-        singleLine = true,
-        isError = codeEntry?.error != null,
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number, imeAction = ImeAction.Done),
         keyboardActions = KeyboardActions(onDone = { actions.onSubmitCode() }),
     )
+    codeEntry?.error?.let { ErrorLine(it) }
     if (codeEntry?.resent == true) {
         Text(
             text = stringResource(R.string.sign_in_resent, state.email),
@@ -194,10 +218,38 @@ private fun CodeStep(state: SignInState, busy: Boolean, actions: SignInActions) 
     if (busy) {
         Loading()
     } else {
-        PrimaryButton(R.string.sign_in_submit_code, SignInTags.SUBMIT, code.length == CODE_LENGTH, actions.onSubmitCode)
-        SecondaryButton(R.string.sign_in_resend, SignInTags.RESEND, actions.onResend)
-        SecondaryButton(R.string.sign_in_change_email, SignInTags.CHANGE_EMAIL, actions.onChangeEmail)
+        PillButtonStack {
+            PillButton(
+                text = stringResource(R.string.sign_in_submit_code),
+                onClick = actions.onSubmitCode,
+                modifier = Modifier.testTag(SignInTags.SUBMIT),
+                enabled = code.length == CODE_LENGTH,
+            )
+            if (codeEntry?.error == SignInError.NoConnection) RetryButton(actions.onRetry)
+            PillButton(
+                text = stringResource(R.string.sign_in_resend),
+                onClick = actions.onResend,
+                modifier = Modifier.testTag(SignInTags.RESEND),
+                style = PillButtonStyle.Tonal,
+            )
+            PillButton(
+                text = stringResource(R.string.sign_in_change_email),
+                onClick = actions.onChangeEmail,
+                modifier = Modifier.testTag(SignInTags.CHANGE_EMAIL),
+                style = PillButtonStyle.Text,
+            )
+        }
     }
+}
+
+// The icon is an image in the screen, in the version of the mode shown, named for a screen reader.
+@Composable
+private fun Logo(logo: SignInLogo, size: Dp) {
+    Image(
+        painter = painterResource(if (LocalDarkTheme.current) logo.dark else logo.light),
+        contentDescription = stringResource(logo.name),
+        modifier = Modifier.size(size).testTag(SignInTags.LOGO),
+    )
 }
 
 @Composable
@@ -216,6 +268,7 @@ private fun Title(@StringRes text: Int) {
         text = stringResource(text),
         modifier = Modifier.fillMaxWidth().testTag(SignInTags.TITLE).semantics { heading() },
         style = MaterialTheme.typography.title1,
+        textAlign = TextAlign.Center,
     )
 }
 
@@ -232,13 +285,22 @@ private fun Notice() {
     )
 }
 
+// What went wrong, under the field it belongs to: the warning icon and the words, announced when they appear.
 @Composable
-private fun ErrorText(error: SignInError) {
-    Text(
-        text = stringResource(error.message),
-        modifier = Modifier.fillMaxWidth().testTag(SignInTags.ERROR).semantics { liveRegion = LiveRegionMode.Polite },
-        color = MaterialTheme.colorScheme.error,
-        style = MaterialTheme.typography.body,
+private fun ErrorLine(error: SignInError) {
+    FieldErrorLine(
+        message = stringResource(error.message),
+        modifier = Modifier.testTag(SignInTags.ERROR).semantics { liveRegion = LiveRegionMode.Polite },
+    )
+}
+
+@Composable
+private fun RetryButton(onClick: () -> Unit) {
+    PillButton(
+        text = stringResource(R.string.common_retry),
+        onClick = onClick,
+        modifier = Modifier.testTag(SignInTags.RETRY),
+        style = PillButtonStyle.Tonal,
     )
 }
 
@@ -252,24 +314,6 @@ private fun Loading() {
             liveRegion = LiveRegionMode.Polite
         },
     )
-}
-
-@Composable
-private fun PrimaryButton(@StringRes label: Int, tag: String, enabled: Boolean, onClick: () -> Unit) {
-    Button(
-        onClick = onClick,
-        enabled = enabled,
-        modifier = Modifier.fillMaxWidth().heightIn(min = Spacing.space12).testTag(tag),
-    ) {
-        Text(stringResource(label), textAlign = TextAlign.Center)
-    }
-}
-
-@Composable
-private fun SecondaryButton(@StringRes label: Int, tag: String, onClick: () -> Unit) {
-    OutlinedButton(onClick = onClick, modifier = Modifier.fillMaxWidth().heightIn(min = Spacing.space12).testTag(tag)) {
-        Text(stringResource(label), textAlign = TextAlign.Center)
-    }
 }
 
 private val SignInError.message: Int

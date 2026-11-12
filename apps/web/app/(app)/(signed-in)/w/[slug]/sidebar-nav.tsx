@@ -21,6 +21,10 @@ const icons = {
       <path d="M3.5 20c.8-3.6 3.3-5.5 6.5-5.5 1.6 0 3 .5 4.1 1.4M18 13v6M15 16h6" />
     </>
   ),
+  // The prototype's `link` icon (`app.js`).
+  joinLink: (
+    <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+  ),
   settings: <path d="M4 20l1-4.5L16 4.5l3.5 3.5-11 11z" />,
 } satisfies Record<string, ReactNode>;
 

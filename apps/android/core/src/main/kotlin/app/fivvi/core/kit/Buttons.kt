@@ -57,7 +57,15 @@ fun PillButton(
 
         PillButtonStyle.Tonal -> FilledTonalButton(onClick, sized, enabled, shape = CircleShape, content = { label() })
 
-        PillButtonStyle.Text -> TextButton(onClick, sized, enabled, shape = CircleShape, content = { label() })
+        PillButtonStyle.Text -> TextButton(
+            onClick,
+            sized,
+            enabled,
+            shape = CircleShape,
+            // The label is text in the accent: accentText, which reaches 4.5:1 on the canvas; the fill does not (4.11:1).
+            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.tokens.accentText),
+            content = { label() },
+        )
 
         PillButtonStyle.Danger -> Button(
             onClick,

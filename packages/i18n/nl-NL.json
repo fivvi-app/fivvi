@@ -149,6 +149,25 @@
     "title": "Geen toegang",
     "body": "Je hebt geen toegang tot deze pagina. Vraag de eigenaar van {workspace}."
   },
+  "joinLink": {
+    "title": "Aanmeldlink",
+    "body": "Voor nieuwe klanten: ze loggen in en vragen of ze klant mogen worden. De eigenaar keurt elk verzoek goed.",
+    "copy": "Link kopiëren",
+    "copied": "Link gekopieerd.",
+    "renew": "Vernieuwen",
+    "renewDialog": {
+      "title": "Aanmeldlink vernieuwen?",
+      "body": "De huidige link en de QR-codes ervan werken daarna niet meer. Verzoeken die al zijn verstuurd blijven staan.",
+      "confirm": "Vernieuwen",
+      "cancel": "Terug"
+    },
+    "renewed": "De aanmeldlink is vernieuwd.",
+    "errors": {
+      "copy": "Kopiëren is niet gelukt. Selecteer de link en kopieer hem zelf.",
+      "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
+      "generic": "Er ging iets mis. Probeer het opnieuw."
+    }
+  },
   "workspaceNav": {
     "label": "Hoofdnavigatie",
     "settings": "Instellingen",
@@ -160,7 +179,8 @@
     "clients": "Klanten",
     "new": "Nieuw",
     "newMenu": "Nieuw maken",
-    "newClient": "Klant"
+    "newClient": "Klant",
+    "joinLink": "Aanmeldlink"
   },
   "workspaceSwitcher": {
     "newWorkspace": "+ Nieuwe werkruimte"
@@ -263,7 +283,42 @@
   },
   "roles": {
     "owner": "Eigenaar",
-    "trainer": "Trainer"
+    "trainer": "Trainer",
+    "trainerLabel": "{Word}"
+  },
+  "trainerWord": {
+    "trainer": {
+      "word": "trainer",
+      "words": "trainers",
+      "wordCap": "Trainer",
+      "wordsCap": "Trainers",
+      "aWord": "een trainer",
+      "aWordCap": "Een trainer"
+    },
+    "instructeur": {
+      "word": "instructeur",
+      "words": "instructeurs",
+      "wordCap": "Instructeur",
+      "wordsCap": "Instructeurs",
+      "aWord": "een instructeur",
+      "aWordCap": "Een instructeur"
+    },
+    "docent": {
+      "word": "docent",
+      "words": "docenten",
+      "wordCap": "Docent",
+      "wordsCap": "Docenten",
+      "aWord": "een docent",
+      "aWordCap": "Een docent"
+    },
+    "coach": {
+      "word": "coach",
+      "words": "coaches",
+      "wordCap": "Coach",
+      "wordsCap": "Coaches",
+      "aWord": "een coach",
+      "aWordCap": "Een coach"
+    }
   },
   "myProfile": {
     "title": "Mijn profiel",
@@ -422,6 +477,9 @@
       "tooManyRows": "Dit bestand heeft meer dan 5.000 rijen.",
       "unreadable": "We kunnen dit bestand niet lezen. Gebruik het sjabloon (.xlsx) of een UTF-8 CSV."
     }
+  },
+  "accessLog": {
+    "deletedClient": "Verwijderde klant"
   },
   "noWorkspace": {
     "title": "Vraag je studio om de aanmeldlink.",
@@ -968,11 +1026,7 @@
       "privacy": "Privacyverklaring",
       "terms": "Algemene voorwaarden",
       "subProcessors": "Subverwerkers",
-      "tradeName": "{name}, handelend onder de naam Fivvi",
-      "kvk": "KvK-nummer",
-      "vat": "Btw-nummer",
-      "address": "Adres",
-      "phone": "Telefoon of WhatsApp"
+      "tradeName": "{name}, handelend onder de naam Fivvi"
     },
     "cta": {
       "heading": "Hoe ziet jouw dag eruit in Fivvi?",
@@ -1146,6 +1200,154 @@
         "noConnection": "Je aanvraag is niet verstuurd: er is geen verbinding. Controleer je internet en probeer het opnieuw.",
         "failed": "Je aanvraag is niet verstuurd. Probeer het later opnieuw, of mail ons op {email}."
       }
+    }
+  },
+  "exercises": {
+    "names": {
+      "benchPress": "Bankdrukken",
+      "inclineBenchPress": "Schuine bankdrukken",
+      "declineBenchPress": "Bankdrukken negatief",
+      "dumbbellBenchPress": "Dumbbell bankdrukken",
+      "inclineDumbbellPress": "Schuine dumbbell press",
+      "closeGripBenchPress": "Bankdrukken smalle greep",
+      "dumbbellFly": "Dumbbell flyes",
+      "cableFly": "Kabel flyes",
+      "machineChestPress": "Chest press (machine)",
+      "pecDeck": "Pec deck",
+      "dumbbellPullover": "Pullover",
+      "pushUp": "Opdrukken",
+      "inclinePushUp": "Opdrukken op verhoging",
+      "kneePushUp": "Opdrukken op de knieën",
+      "dips": "Dips",
+      "deadlift": "Deadlift",
+      "romanianDeadlift": "Roemeense deadlift",
+      "singleLegRomanianDeadlift": "Roemeense deadlift op één been",
+      "sumoDeadlift": "Sumo deadlift",
+      "trapBarDeadlift": "Trap bar deadlift",
+      "barbellRow": "Halter roeien",
+      "dumbbellRow": "Dumbbell roeien",
+      "seatedCableRow": "Kabel roeien",
+      "machineRow": "Roeien (machine)",
+      "tBarRow": "T-bar roeien",
+      "latPulldown": "Lat pulldown",
+      "closeGripLatPulldown": "Lat pulldown smalle greep",
+      "straightArmPulldown": "Pulldown met gestrekte armen",
+      "pullUp": "Pull-up",
+      "chinUp": "Chin-up",
+      "assistedPullUp": "Pull-up met ondersteuning",
+      "invertedRow": "Australian pull-up",
+      "backExtension": "Rugstrekken",
+      "goodMorning": "Good morning",
+      "shrug": "Shrugs",
+      "superman": "Superman",
+      "facePull": "Face pull",
+      "overheadPress": "Overhead press",
+      "dumbbellShoulderPress": "Dumbbell schouderdrukken",
+      "machineShoulderPress": "Schouderdrukken (machine)",
+      "arnoldPress": "Arnold press",
+      "landminePress": "Landmine press",
+      "lateralRaise": "Zijwaarts heffen",
+      "cableLateralRaise": "Zijwaarts heffen aan de kabel",
+      "frontRaise": "Voorwaarts heffen",
+      "rearDeltFly": "Reverse flyes",
+      "uprightRow": "Upright row",
+      "bicepsCurl": "Biceps curl",
+      "barbellCurl": "Halter curl",
+      "hammerCurl": "Hammer curl",
+      "preacherCurl": "Preacher curl",
+      "cableCurl": "Kabel curl",
+      "tricepsPushdown": "Triceps pushdown",
+      "overheadTricepsExtension": "Triceps extension boven het hoofd",
+      "skullCrusher": "Skull crusher",
+      "benchDip": "Bankdips",
+      "wristCurl": "Pols curl",
+      "farmersWalk": "Farmer's walk",
+      "backSquat": "Squat",
+      "frontSquat": "Front squat",
+      "gobletSquat": "Goblet squat",
+      "boxSquat": "Box squat",
+      "smithMachineSquat": "Squat in de Smith machine",
+      "bodyweightSquat": "Squat zonder gewicht",
+      "jumpSquat": "Jump squats",
+      "legPress": "Beenpers",
+      "hackSquat": "Hack squat",
+      "lunge": "Lunges",
+      "walkingLunge": "Walking lunges",
+      "reverseLunge": "Achterwaartse lunges",
+      "bulgarianSplitSquat": "Bulgaarse split squat",
+      "stepUp": "Step-ups",
+      "legExtension": "Leg extension",
+      "lyingLegCurl": "Leg curl liggend",
+      "seatedLegCurl": "Leg curl zittend",
+      "nordicHamstringCurl": "Nordic hamstring curl",
+      "wallSit": "Wall sit",
+      "hipThrust": "Hip thrust",
+      "gluteBridge": "Glute bridge",
+      "singleLegGluteBridge": "Glute bridge op één been",
+      "cableGluteKickback": "Kickback aan de kabel",
+      "hipAbductionMachine": "Abductie (machine)",
+      "hipAdductionMachine": "Adductie (machine)",
+      "copenhagenPlank": "Copenhagen plank",
+      "kettlebellSwing": "Kettlebell swing",
+      "standingCalfRaise": "Kuitheffen staand",
+      "seatedCalfRaise": "Kuitheffen zittend",
+      "plank": "Plank",
+      "sidePlank": "Zijplank",
+      "hollowHold": "Hollow hold",
+      "crunch": "Crunches",
+      "sitUp": "Sit-ups",
+      "bicycleCrunch": "Fietscrunches",
+      "cableCrunch": "Kabel crunch",
+      "deadBug": "Dead bug",
+      "birdDog": "Bird dog",
+      "hangingLegRaise": "Hangend benen heffen",
+      "lyingLegRaise": "Liggend benen heffen",
+      "russianTwist": "Russian twist",
+      "abWheelRollout": "Ab wheel rollout",
+      "pallofPress": "Pallof press",
+      "mountainClimber": "Mountain climbers",
+      "burpee": "Burpees",
+      "thruster": "Thruster",
+      "powerClean": "Clean",
+      "turkishGetUp": "Turkish get-up",
+      "wallBall": "Wall balls",
+      "boxJump": "Box jumps",
+      "bearCrawl": "Bear crawl",
+      "jumpingJack": "Jumping jacks",
+      "highKnees": "High knees",
+      "jumpRope": "Touwtjespringen",
+      "rowingMachine": "Roeien",
+      "skiErgometer": "Ski-ergometer",
+      "running": "Hardlopen",
+      "treadmillRun": "Hardlopen op de loopband",
+      "walking": "Wandelen",
+      "inclineWalk": "Wandelen op een helling",
+      "stationaryBike": "Fietsen (hometrainer)",
+      "airBike": "Air bike",
+      "elliptical": "Crosstrainer",
+      "stairClimber": "Traploper"
+    },
+    "muscleGroups": {
+      "chest": "borst",
+      "back": "rug",
+      "shoulders": "schouders",
+      "biceps": "biceps",
+      "triceps": "triceps",
+      "forearms": "onderarmen",
+      "quadriceps": "quadriceps",
+      "hamstrings": "hamstrings",
+      "glutes": "billen",
+      "calves": "kuiten",
+      "adductors": "adductoren",
+      "core": "core",
+      "cardio": "conditie",
+      "fullBody": "hele lichaam"
+    },
+    "types": {
+      "weightReps": "Gewicht × herhalingen",
+      "repsOnly": "Alleen herhalingen",
+      "time": "Tijd",
+      "distanceTime": "Afstand + tijd"
     }
   }
 }

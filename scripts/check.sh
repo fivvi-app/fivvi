@@ -125,7 +125,8 @@ commit_messages() {
 }
 
 # Vendored skills are checked against upstream instead. The runbooks and the restore-drill log are held to more: a link
-# to a section must find its heading too (scripts/doc-anchors.mjs, E016 #1041).
+# to a section must find its heading too (scripts/doc-anchors.mjs, E016 #1041). The lists of OBSERVABILITY.md that
+# features append to stay one entry per line and in order (scripts/doc-lists.mjs, E001 #1271).
 doc_links() {
   local file target rc=0
   while IFS= read -r file; do
@@ -135,6 +136,7 @@ doc_links() {
     done < <(grep -oE '\]\([^)[:space:]]+\)' "$file" | sed -E 's/^\]\((.*)\)$/\1/' | grep -vE '^[a-z]+:|^#|^<' || true)
   done < <(git ls-files '*.md' | while IFS= read -r f; do d="${f%/*}"; [ -f "$d/.upstream" ] || echo "$f"; done)
   node "$ROOT/scripts/doc-anchors.mjs" "$ROOT" || rc=1
+  node "$ROOT/scripts/doc-lists.mjs" "$ROOT" || rc=1
   return "$rc"
 }
 
