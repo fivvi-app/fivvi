@@ -2,8 +2,8 @@
 
 | | |
 |---|---|
-| **Status** | Proposed |
-| **Date** | 2026-10-31 |
+| **Status** | Proposed; amended 2026-11-12 (a flaky test is quarantined first) |
+| **Date** | 2026-10-31; amended 2026-11-12 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | Amends ADR-018 (decisions 4 and 5, and the "flaky check" consequence); builds on ADR-016, ADR-021, ADR-023; AGENTS.md (Push and merge); the `work` skill (`queue-removed`, Factory); bug #353 |
 
@@ -23,6 +23,18 @@ When the queue removes a PR for a cause **outside the PR** (the failing check al
 4. **Once only.** A commit is re-queued after a fix at most once. If the queue removes it again, the owner decides, as before.
 5. A cause **in** the PR is unchanged: fix it, push, review, smoke, merge.
 
+> **Amended (12 November 2026): a flaky test is quarantined first and fixed within the week.** From 24 October to 12 November 2026 the queue removed PRs 35 times for failed checks, against 287 merges, and about 26 merged PRs went into flaky tests and runners. Step 2 made every removed PR wait a full ticket round, the diagnosis and the real fix, before its re-queue. Most of those failures were tests that pass and fail on the same code: tests that ran close to their timeout, races in UI tests, an e2e checkbox. `TESTING.md §8` already allows a quarantine with a linked issue, an owner and a date, for at most one week, and never for tenant isolation, concurrency or permission tests. No PR used it, because a quarantined test was a skipped test, and nothing kept it honest.
+>
+> When the cause is a **flaky test** that `TESTING.md §8` lets us quarantine:
+>
+> 1. **Evidence first.** A test counts as flaky only when it failed and also passed on the same code: the same commit, or the same tree in a merge group and on `main`, with both run ids in the bug. A test that fails every time is broken, not flaky: steps 1 to 5 above apply.
+> 2. **Two issues.** The factory files (or finds) the bug for the real fix, as in step 1, and files a quarantine ticket that names the bug and blocks the removed PR's issue (`issue.sh block <n> --by <quarantine ticket>`). The quarantine ticket is small: it adds the test to the quarantine list. Once it is merged and closed, the re-queue of step 3 runs as before, with `pr.sh merge <pr> --after <quarantine ticket>`. The bug does not block the PR.
+> 3. **A quarantined test still runs.** Each test runner (Vitest, Playwright, XCTest, Compose, Maestro) reads one quarantine list; every entry names the test, its bug and an end date at most 7 days after it was added. The required jobs leave the listed tests out, and a job that is not required (`Quarantine`) runs exactly those tests on every CI run, so their results stay visible and the fix can show it works there. A quarantined test is moved, not skipped, so "never delete, skip or weaken a test" (`AGENTS.md`, `TESTING.md §1`) still holds.
+> 4. **The date is enforced, not remembered.** `scripts/check.sh` (and so `Checks (Linux)`) fails when an entry has no bug, no end date, an end date more than 7 days after it was added, or an end date that has passed, or when it lists a tenant isolation, concurrency or permission test. An expired entry therefore stops every PR until its bug is fixed: the fix, which takes the test off the list, is ready work the factory builds before other tickets, as a bug that blocks a removed PR is (step 2).
+> 5. **Not for runners and services.** A cause that is no test (no macOS runner, a mirror or download that fails, a timed-out job) is not quarantined: steps 1 to 5 apply, and the retries of #1268 stay.
+>
+> Rejected: retrying a failed test once in every runner (it hides flakes, as before); letting the merge queue ignore a flaky test without a list (nobody would know which tests are trusted).
+
 How it works:
 
 - **`pr.sh merge <pr> [--after <bug>]`.** With `--after`, the gate condition "not removed from the queue" also passes when `<bug>` is closed with the state reason completed, blocks the issue the PR closes, was closed after the removal (`RemovedFromMergeQueueEvent.createdAt`), and the PR body has no earlier re-queue line for this head commit. Every failed condition is named in the refusal, which is recorded as any refusal. Anything unreadable fails closed. Without `--after` a removed commit is refused, as before.
@@ -38,6 +50,10 @@ How it works:
   - A removal whose cause is wrongly judged "outside" costs one extra queue run; the second removal goes to the owner.
   - `fixed_blockers` costs one more read for an issue whose PR was removed.
 - **Follow-ups:** the owner may read the `re-queued` lines in PR bodies after the fact.
+- *Amendment of 12 November 2026:*
+  - **Positive:** a PR removed by a flaky test waits for a small quarantine PR, not for the full fix; the flaky test keeps running where everyone can see it; the one-week rule of `TESTING.md §8` is checked by a script instead of remembered.
+  - **Negative:** a test in quarantine guards nothing for up to a week; an expired entry fails every PR until its fix is merged; each test runner needs its own list reader, and the `Quarantine` job costs runner minutes.
+  - **Follow-ups:** the quarantine lists, the `check.sh` rule and the `Quarantine` job per runner, `TESTING.md §8`, `WORKFLOW.md §7`, and the `work` skill's `queue-removed` step (the quarantine ticket) are tickets of their own; the ones that touch CI, the skill or the files that skip tests are owner-only. Until the list of a runner exists, its flaky tests go through steps 1 to 5 as before.
 
 ## Alternatives considered
 
