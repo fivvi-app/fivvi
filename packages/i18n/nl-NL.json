@@ -1299,9 +1299,9 @@
       "treadmillRun": "Hardlopen op de loopband",
       "walking": "Wandelen",
       "inclineWalk": "Wandelen op een helling",
-      "stationaryBike": "Fietsen (fitnessfiets)",
+      "stationaryBike": "Fietsen (hometrainer)",
       "airBike": "Air bike",
-      "elliptical": "Elliptical",
+      "elliptical": "Crosstrainer",
       "stairClimber": "Traploper"
     },
     "muscleGroups": {

@@ -855,7 +855,7 @@ export const EXERCISE_LIBRARY: readonly LibraryExercise[] = [
     key: 'elliptical',
     type: 'distance-time',
     muscleGroups: ['cardio'],
-    aliases: ['crosstrainer', 'cross trainer', 'elliptical trainer', 'elliptical machine'],
+    aliases: ['cross trainer', 'elliptical trainer', 'elliptical machine'],
     retired: false,
   },
   {
