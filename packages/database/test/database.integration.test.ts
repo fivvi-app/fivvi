@@ -993,6 +993,47 @@ describe('E004 database', () => {
       });
     });
 
+    it('AC13: runs again after an Owner changed a series’ time or ended it: no second series at the old time, no date twice', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: WEDNESDAY });
+        const series = await tx.$count(classSeries);
+        const dates = await tx.$count(sessions);
+        // "This and following" on Kracht's Tuesday: the series moves to 19:30 (its dates with it)...
+        await tx.execute(
+          sql`update class_series set local_start_time = '19:30'
+              where rrule = 'FREQ=WEEKLY;BYDAY=TU' and group_class_id in
+                (select id from group_classes where name_nl = 'Kracht')`,
+        );
+        await seed(tx, { now: WEDNESDAY });
+        expect(await tx.$count(classSeries)).toBe(series);
+        expect(await tx.$count(sessions)).toBe(dates);
+
+        // A later release seed (a fortnight on) adds the new dates at the series' own time.
+        const fortnight = new Date('2026-11-18T12:00:00Z');
+        await seed(tx, { now: fortnight });
+        expect(await tx.$count(classSeries)).toBe(series);
+        const datesFortnightOn = await tx.$count(sessions);
+        const [latest] = await rows<{ time: string }>(
+          tx,
+          sql`select to_char(s.starts_at at time zone 'Europe/Amsterdam', 'HH24:MI') as time
+              from sessions s join class_series cs on cs.id = s.series_id
+              where cs.rrule = 'FREQ=WEEKLY;BYDAY=TU' and cs.local_start_time = '19:30'
+              order by s.occurrence_date desc limit 1`,
+        );
+        expect(latest?.time).toBe('19:30');
+
+        // ...and Mobility's Wednesday series ended on 11 November (a split made a later one).
+        await tx.execute(
+          sql`update class_series set ends_on = '2026-11-11'
+              where rrule = 'FREQ=WEEKLY;BYDAY=WE' and group_class_id in
+                (select id from group_classes where name_nl = 'Mobility')`,
+        );
+        await seed(tx, { now: fortnight });
+        expect(await tx.$count(classSeries)).toBe(series);
+        expect(await tx.$count(sessions)).toBe(datesFortnightOn);
+      });
+    });
+
     it('AC13: no series in production', async () => {
       await withRollback(db, async (tx) => {
         await seed(tx, { production: true, now: WEDNESDAY });

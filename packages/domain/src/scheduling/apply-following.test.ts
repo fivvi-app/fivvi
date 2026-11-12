@@ -17,6 +17,9 @@ const KRACHT: SeriesState = {
   materializedUntil: '2026-12-28',
 };
 
+/** Monday 5 October 2026: the day before the first date. */
+const TODAY = '2026-10-05';
+
 const DATES = [
   '2026-10-06',
   '2026-10-13',
@@ -57,7 +60,7 @@ function existing(overrides: Record<string, Partial<SeriesDate>> = {}): SeriesDa
 
 describe('F022 AC5: this and following', () => {
   it('AC5: capacity 10 from 13 October splits the series and updates every unchanged date from 13 October', () => {
-    const result = applyThisAndFollowing(KRACHT, '2026-10-13', { capacity: 10 }, existing());
+    const result = applyThisAndFollowing(KRACHT, '2026-10-13', { capacity: 10 }, existing(), TODAY);
     if (result.outcome !== 'applied') throw new Error('expected it to apply');
     expect(result.split).toBe(true);
     // The earlier series ends on 6 October, the new one starts on 13 October.
@@ -80,6 +83,7 @@ describe('F022 AC5: this and following', () => {
       '2026-10-13',
       { capacity: 10 },
       existing({ '2026-10-20': { detachedFields: ['time'] } }),
+      TODAY,
     );
     if (result.outcome !== 'applied') throw new Error('expected it to apply');
     expect(result.keptDates).toBe(1);
@@ -95,6 +99,7 @@ describe('F022 AC5: this and following', () => {
       '2026-10-13',
       { capacity: 10 },
       existing({ '2026-11-03': { cancelled: true } }),
+      TODAY,
     );
     if (result.outcome !== 'applied') throw new Error('expected it to apply');
     expect(result.updates.map((u) => u.occurrenceDate)).not.toContain('2026-11-03');
@@ -102,7 +107,7 @@ describe('F022 AC5: this and following', () => {
   });
 
   it('dates before the chosen one are not touched', () => {
-    const result = applyThisAndFollowing(KRACHT, '2026-11-03', { capacity: 10 }, existing());
+    const result = applyThisAndFollowing(KRACHT, '2026-11-03', { capacity: 10 }, existing(), TODAY);
     if (result.outcome !== 'applied') throw new Error('expected it to apply');
     expect(result.earlierEndsOn).toBe('2026-10-27');
     expect(result.updates.map((u) => u.occurrenceDate)).toEqual(DATES.slice(4));
@@ -115,6 +120,7 @@ describe('F022 AC5: this and following', () => {
       '2026-10-13',
       { localStartTime: '18:30' },
       existing(),
+      TODAY,
     );
     if (result.outcome !== 'applied') throw new Error('expected it to apply');
     const by = Object.fromEntries(
@@ -132,6 +138,7 @@ describe('F022 AC5: this and following', () => {
       '2026-10-13',
       { capacity: 10 },
       existing({ '2026-10-13': { detachedFields: ['capacity'] } }),
+      TODAY,
     );
     if (result.outcome !== 'applied') throw new Error('expected it to apply');
     expect(result.keptDates).toBe(0);
@@ -152,6 +159,7 @@ describe('F022 AC5: this and following', () => {
       '2026-10-13',
       { capacity: 10 },
       existing({ '2026-10-13': own }),
+      TODAY,
     );
     if (result.outcome !== 'applied') throw new Error('expected it to apply');
     // Capacity was touched: back to the series (10). Time was not: still its own, still marked.
@@ -160,7 +168,7 @@ describe('F022 AC5: this and following', () => {
   });
 
   it('from the first date of the series nothing is split: the series itself changes', () => {
-    const result = applyThisAndFollowing(KRACHT, '2026-10-06', { capacity: 10 }, existing());
+    const result = applyThisAndFollowing(KRACHT, '2026-10-06', { capacity: 10 }, existing(), TODAY);
     if (result.outcome !== 'applied') throw new Error('expected it to apply');
     expect(result.split).toBe(false);
     expect(result.earlierEndsOn).toBeNull();
@@ -174,6 +182,7 @@ describe('F022 AC5: this and following', () => {
       '2026-10-13',
       { trainerProfileId: null },
       existing(),
+      TODAY,
     );
     if (result.outcome !== 'applied') throw new Error('expected it to apply');
     expect(result.later.trainerProfileId).toBeNull();
@@ -186,6 +195,7 @@ describe('F022 AC5: this and following', () => {
       '2026-10-13',
       { capacity: 10 },
       existing(),
+      TODAY,
     );
     if (result.outcome !== 'applied') throw new Error('expected it to apply');
     expect(result.later.endsOn).toBe('2026-12-22');
@@ -208,12 +218,70 @@ describe('F022 AC5: this and following', () => {
         ...stored(occurrenceDate),
       }),
     );
-    expect(applyThisAndFollowing(sunday, '2027-03-21', { localStartTime: '02:30' }, dates)).toEqual(
-      {
-        outcome: 'refused',
-        reason: 'time-does-not-exist',
-        date: '2027-03-28',
-      },
-    );
+    expect(
+      applyThisAndFollowing(sunday, '2027-03-21', { localStartTime: '02:30' }, dates, TODAY),
+    ).toEqual({
+      outcome: 'refused',
+      reason: 'time-does-not-exist',
+      date: '2027-03-28',
+    });
   });
+
+  it('refuses a start the clocks skip on a date beyond the stored end, up to 12 weeks from today', () => {
+    // Sundays from 25 October 2026, filled to 16 January 2027; today is 10 January, so the 12 weeks
+    // ahead reach 3 April and 28 March 2027 (clocks forward at 02:00) is one of the dates.
+    const sunday: SeriesState = {
+      ...KRACHT,
+      rrule: 'FREQ=WEEKLY;BYDAY=SU',
+      localStartTime: '10:00',
+      startsOn: '2026-10-25',
+      materializedUntil: '2027-01-16',
+    };
+    const dates = ['2027-01-03', '2027-01-10'].map((occurrenceDate) => ({
+      id: occurrenceDate,
+      occurrenceDate,
+      detachedFields: [] as SeriesDate['detachedFields'],
+      cancelled: false,
+      ...stored(occurrenceDate),
+    }));
+    expect(
+      applyThisAndFollowing(sunday, '2027-01-10', { localStartTime: '02:30' }, dates, '2027-01-10'),
+    ).toEqual({ outcome: 'refused', reason: 'time-does-not-exist', date: '2027-03-28' });
+  });
+
+  it('answers the day the calendar is filled to: the later of the stored end and 12 weeks from today', () => {
+    const result = applyThisAndFollowing(KRACHT, '2026-10-13', { capacity: 10 }, existing(), TODAY);
+    if (result.outcome !== 'applied') throw new Error('expected it to apply');
+    expect(result.materializedUntil).toBe('2026-12-28');
+    const later = applyThisAndFollowing(
+      { ...KRACHT, materializedUntil: '2026-10-27' },
+      '2026-10-13',
+      { capacity: 10 },
+      existing(),
+      TODAY,
+    );
+    if (later.outcome !== 'applied') throw new Error('expected it to apply');
+    // 5 October + 83 days.
+    expect(later.materializedUntil).toBe('2026-12-27');
+  });
+
+  it('refuses a chosen date before today: past dates of a series are not changed', () => {
+    expect(
+      applyThisAndFollowing(KRACHT, '2026-10-13', { capacity: 10 }, existing(), '2026-10-14'),
+    ).toEqual({ outcome: 'refused', reason: 'date-in-past' });
+    // Today itself is fine.
+    expect(
+      applyThisAndFollowing(KRACHT, '2026-10-13', { capacity: 10 }, existing(), '2026-10-13')
+        .outcome,
+    ).toBe('applied');
+  });
+
+  it.each([14, 241, 62, 60.5])(
+    'refuses a length of %s minutes: 15 to 240 in whole steps of 5',
+    (durationMinutes) => {
+      expect(
+        applyThisAndFollowing(KRACHT, '2026-10-13', { durationMinutes }, existing(), TODAY),
+      ).toEqual({ outcome: 'refused', reason: 'invalid-duration' });
+    },
+  );
 });

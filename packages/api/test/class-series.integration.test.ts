@@ -89,7 +89,7 @@ describe('F022 weekly class series through the API', () => {
   /** Kracht with Sarah, scheduled every Tuesday from 6 October 2026 at 18:00. */
   async function aWeeklyClass(overrides = {}) {
     const world = await groupClassWorld(admin);
-    const { server } = setup(overrides);
+    const { server, clock } = setup(overrides);
     const { groupClass } = (await (
       await createClass(server, world.gym.id, world.john, kracht(world.sarahRole.id))
     ).json()) as CreatedClassBody;
@@ -98,7 +98,14 @@ describe('F022 weekly class series through the API', () => {
       localStart: '18:00',
       repeat: 'weekly',
     });
-    return { ...world, server, groupClass, response, first: (await response.json()) as Dated };
+    return {
+      ...world,
+      server,
+      clock,
+      groupClass,
+      response,
+      first: (await response.json()) as Dated,
+    };
   }
 
   const dateOn = async (workspaceId: string, day: string) => {
@@ -590,6 +597,90 @@ describe('F022 weekly class series through the API', () => {
       });
       expect(await storedDates(world.gym.id)).toEqual(before);
       expect(await storedSeries(world.gym.id)).toHaveLength(1);
+    });
+  });
+
+  describe('AC7, AC5: this and following reaches the dates the calendar is filled with', () => {
+    it('AC7: a start the clocks skip on a date the 12 weeks ahead of today reach, past the stored end, is refused and nothing changes', async () => {
+      const world = await groupClassWorld(admin);
+      const { server, clock } = setup();
+      const { groupClass } = (await (
+        await createClass(server, world.gym.id, world.john, kracht())
+      ).json()) as CreatedClassBody;
+      // Sundays from 25 October 2026 at 10:00: 12 dates to 10 January, filled to 16 January 2027.
+      await scheduleClass(server, world.gym.id, groupClass.id, world.john, {
+        localDate: '2026-10-25',
+        localStart: '10:00',
+        repeat: 'weekly',
+      });
+      // The daily task has not run since: on 10 January the 12 weeks ahead end on 3 April, and
+      // 28 March (02:00 to 03:00 does not exist) is one of the Sundays in them.
+      clock.set('2027-01-10T08:00:00.000Z');
+      const target = await dateOn(world.gym.id, '2027-01-10');
+      const before = await storedDates(world.gym.id);
+      const seriesBefore = await storedSeries(world.gym.id);
+
+      const response = await updateDate(server, world.gym.id, target.id, world.john, {
+        version: 1,
+        localStart: '02:30',
+        localEnd: '03:30',
+        scope: 'following',
+      });
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({
+        code: 'validation_failed',
+        issues: [{ path: 'localStart', code: 'time_does_not_exist', date: '2027-03-28' }],
+      });
+      expect(await storedDates(world.gym.id)).toEqual(before);
+      expect(await storedSeries(world.gym.id)).toEqual(seriesBefore);
+    });
+
+    it('AC5: a change on a date of the series fills the calendar 12 weeks from today, not only to the stored end', async () => {
+      const world = await groupClassWorld(admin);
+      const { server, clock } = setup();
+      const { groupClass } = (await (
+        await createClass(server, world.gym.id, world.john, kracht())
+      ).json()) as CreatedClassBody;
+      await scheduleClass(server, world.gym.id, groupClass.id, world.john, {
+        localDate: '2026-10-25',
+        localStart: '10:00',
+        repeat: 'weekly',
+      });
+      clock.set('2027-01-10T08:00:00.000Z');
+      const target = await dateOn(world.gym.id, '2027-01-10');
+
+      const response = await updateDate(server, world.gym.id, target.id, world.john, {
+        version: 1,
+        capacity: 10,
+        scope: 'following',
+      });
+
+      expect(response.status).toBe(200);
+      const days = (await storedDates(world.gym.id)).map((d) => d.occurrenceDate);
+      // 10 January + 83 days is 3 April 2027, a Saturday: the last Sunday in it is 28 March.
+      expect(days.at(-1)).toBe('2027-03-28');
+    });
+
+    it('a date before today is refused on the scope, as a first date in the past is, and nothing changes', async () => {
+      const { gym, john, server, clock } = await aWeeklyClass();
+      const target = await dateOn(gym.id, '2026-10-06');
+      const before = await storedDates(gym.id);
+      clock.set('2026-10-08T10:00:00.000Z');
+
+      const response = await updateDate(server, gym.id, target.id, john, {
+        version: 1,
+        capacity: 10,
+        scope: 'following',
+      });
+
+      expect(response.status).toBe(400);
+      expect(await response.json()).toEqual({
+        code: 'validation_failed',
+        issues: [{ path: 'scope', code: 'date_in_past' }],
+      });
+      expect(await storedDates(gym.id)).toEqual(before);
+      expect(await storedSeries(gym.id)).toHaveLength(1);
     });
   });
 

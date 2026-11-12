@@ -3,7 +3,7 @@
 // domain wrote, and ask `expandSeries`, `materialize` and `applyThisAndFollowing` for dates. This
 // test reads every source file outside `packages/domain` (TypeScript, Swift and Kotlin) and fails
 // when one imports a recurrence library or spells a rule (`FREQ=`, `BYDAY`, `RRule`), except the
-// few files that only store or document the rule text, listed below with the reason.
+// few lines that only store or document the rule text, listed below with the reason.
 
 import { readdirSync, readFileSync } from 'node:fs';
 import path from 'node:path';
@@ -12,15 +12,33 @@ import { describe, expect, it } from 'vitest';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 
-/** Files outside the domain that may spell a rule, and why. Anything else that does fails the test. */
-const ALLOWED: Readonly<Record<string, string>> = {
-  'packages/database/src/schema/class-series.ts':
-    'the table documents its rule column and the migration checks its syntax',
-  'packages/database/src/seed.ts':
-    'writes the seeded timetable as rule text; the package cannot import the domain',
-  'packages/database/src/testing/factories.ts': 'a test factory stores a default rule text',
-  'packages/api/src/routes/group-classes.ts': 'OpenAPI descriptions of the stored rule text',
-  'packages/api/src/routes/sessions.ts': 'OpenAPI descriptions of the stored rule text',
+/**
+ * The lines outside the domain that may spell a rule, and why: per file, the shape of the lines
+ * allowed. Any other line of those files, and any other file, that spells a rule fails the test.
+ * No file is let through whole.
+ */
+const ALLOWED: Readonly<Record<string, { reason: string; lines: RegExp }>> = {
+  'packages/database/src/schema/class-series.ts': {
+    reason: 'the table documents its rule column and its check constraint writes the syntax',
+    lines: /^\s*\*|\bsql`\$\{table\.rrule\} ~ '\^FREQ=WEEKLY;BYDAY=/,
+  },
+  'packages/database/src/seed.ts': {
+    reason:
+      'writes the seeded series as rule text; the package cannot import the domain (it depends on this package)',
+    lines: /RRULE writes them|const rrule = `FREQ=WEEKLY;BYDAY=\$\{/,
+  },
+  'packages/database/src/testing/factories.ts': {
+    reason: 'a test factory stores a default rule text',
+    lines: /rrule: options\.rrule \?\? 'FREQ=WEEKLY;BYDAY=TU'/,
+  },
+  'packages/api/src/routes/group-classes.ts': {
+    reason: 'an OpenAPI description of the stored rule text',
+    lines: /^\s*description: /,
+  },
+  'packages/api/src/routes/sessions.ts': {
+    reason: 'an OpenAPI description of the stored rule text',
+    lines: /^\s*description: /,
+  },
 };
 
 /** A recurrence library, imported or required. */
@@ -54,8 +72,12 @@ function ruleViolations(sources: Readonly<Record<string, string>>): string[] {
   return Object.entries(sources).flatMap(([file, text]) => {
     if (file.startsWith('packages/domain/') || isTest(file)) return [];
     if (LIBRARY.test(text)) return [`${file}: imports a recurrence library`];
-    if (RULE_TEXT.test(text) && !(file in ALLOWED)) return [`${file}: spells a recurrence rule`];
-    return [];
+    const allowed = ALLOWED[file]?.lines;
+    const spelled = text
+      .split('\n')
+      .map((line, index) => ({ line, number: index + 1 }))
+      .filter(({ line }) => RULE_TEXT.test(line) && !allowed?.test(line));
+    return spelled.map(({ number }) => `${file}:${number}: spells a recurrence rule`);
   });
 }
 
@@ -93,6 +115,19 @@ describe('the checker', () => {
     ]);
   });
 
+  it('AC10: a listed file is not let through whole: a line that is not the listed shape fails', () => {
+    expect(
+      ruleViolations({
+        'packages/api/src/routes/group-classes.ts':
+          "      description: 'FREQ=WEEKLY',\nconst weekly = rule.startsWith('FREQ=WEEKLY');",
+        'packages/database/src/seed.ts': "const rrule = 'FREQ=WEEKLY;BYDAY=TU';",
+      }),
+    ).toEqual([
+      'packages/api/src/routes/group-classes.ts:2: spells a recurrence rule',
+      'packages/database/src/seed.ts:1: spells a recurrence rule',
+    ]);
+  });
+
   it('AC10: fails on a rule spelled out in the web, the apps or the API', () => {
     expect(
       ruleViolations({
@@ -104,10 +139,11 @@ describe('the checker', () => {
     ).toHaveLength(4);
   });
 
-  it('lets the listed files store and document the rule text, and tests spell it', () => {
+  it('lets the listed lines store and document the rule text, and tests spell it', () => {
     expect(
       ruleViolations({
-        'packages/database/src/seed.ts': "const rrule = 'FREQ=WEEKLY;BYDAY=TU';",
+        'packages/database/src/seed.ts': 'const rrule = `FREQ=WEEKLY;BYDAY=$' + '{code}`;',
+        'packages/api/src/routes/sessions.ts': "      description: 'The weekly rule: FREQ=WEEKLY',",
         'packages/api/test/class-series.integration.test.ts': "'FREQ=WEEKLY;BYDAY=TU'",
         'apps/ios/FivviTests/SeriesTests.swift': 'let rule = "FREQ=WEEKLY;BYDAY=TU"',
       }),

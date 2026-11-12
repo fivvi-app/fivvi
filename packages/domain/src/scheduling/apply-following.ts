@@ -1,5 +1,6 @@
 import { expandEach } from './expand-series.ts';
-import type { SeriesFacts } from './series-rule.ts';
+import { GROUP_CLASS_LIMITS } from './group-class.ts';
+import { horizonEnd, type SeriesFacts } from './series-rule.ts';
 import { addDays } from './zoned-time.ts';
 
 // "This and following classes" (F022, CO-04, ADR-012): the series changes from a date on. The
@@ -70,10 +71,20 @@ export type ApplyFollowingDecision =
       readonly moves: readonly string[];
       /** Dates from the chosen date on that keep their own changes (CO-04 says how many). */
       readonly keptDates: number;
+      /** The day the calendar is kept filled to after the change: every date up to it was checked. */
+      readonly materializedUntil: string;
     }
   | {
       readonly outcome: 'refused';
-      readonly reason: 'time-does-not-exist' | 'invalid-rule' | 'invalid-date' | 'invalid-time';
+      readonly reason:
+        | 'time-does-not-exist'
+        | 'invalid-rule'
+        | 'invalid-date'
+        | 'invalid-time'
+        /** The chosen date is before `today`: past dates of a series are not changed (out of scope in #428). */
+        | 'date-in-past'
+        /** The new length is not 15 to 240 minutes in whole steps of 5. */
+        | 'invalid-duration';
       readonly date?: string;
     };
 
@@ -81,16 +92,31 @@ export type ApplyFollowingDecision =
  * Applies `change` to the series from `fromDate` (a date of the series) on. Dates that were
  * changed on their own (any detached field), and cancelled ones, are left as they are; the chosen
  * date always takes the change, as the Owner asked for it there (a field of its own that the change
- * does not touch stays its own). Refuses, changing nothing, a start
- * the clocks skip on one of the dates it would reach (the dates the series has, or that are
- * planned: up to `materializedUntil`).
+ * does not touch stays its own). Refuses, changing nothing: a chosen date before `today` (local
+ * date, out of scope in #428), a length that is no whole step, and a start the clocks skip on one
+ * of the dates it would reach: the dates the series has and every date up to the day the calendar
+ * is kept filled to (`materializedUntil` of the result), which is later than the stored one when
+ * the series has not been filled for a while.
  */
 export function applyThisAndFollowing(
   series: SeriesState,
   fromDate: string,
   change: SeriesChange,
   existing: readonly SeriesDate[],
+  today: string,
 ): ApplyFollowingDecision {
+  const { duration } = GROUP_CLASS_LIMITS;
+  if (
+    change.durationMinutes !== undefined &&
+    (!Number.isInteger(change.durationMinutes) ||
+      change.durationMinutes < duration.min ||
+      change.durationMinutes > duration.max ||
+      change.durationMinutes % duration.step !== 0)
+  ) {
+    return { outcome: 'refused', reason: 'invalid-duration' };
+  }
+  if (fromDate < today) return { outcome: 'refused', reason: 'date-in-past' };
+
   const split = fromDate > series.startsOn;
   const later: SeriesState = {
     ...series,
@@ -104,6 +130,7 @@ export function applyThisAndFollowing(
   const reached = existing.filter((date) => date.occurrenceDate >= fromDate);
   const through = [
     series.materializedUntil ?? fromDate,
+    horizonEnd(today),
     ...reached.map((d) => d.occurrenceDate),
   ].reduce((latest, date) => (date > latest ? date : latest), fromDate);
   const expansion = expandEach(later, fromDate, through);
@@ -156,5 +183,6 @@ export function applyThisAndFollowing(
     updates,
     moves: split ? reached.map((date) => date.id) : [],
     keptDates,
+    materializedUntil: through,
   };
 }

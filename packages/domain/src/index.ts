@@ -281,6 +281,11 @@ export {
   type PersonalSessionTimes,
 } from './scheduling/personal-day.ts';
 export {
+  type PlanWeeklySeriesDecision,
+  type PlanWeeklySeriesFacts,
+  planWeeklySeries,
+} from './scheduling/plan-series.ts';
+export {
   confirmationLanguage,
   type PlanPrivateSessionDecision,
   type PlanPrivateSessionFacts,

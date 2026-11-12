@@ -1,4 +1,4 @@
-import { and, eq, gte, inArray, isNull, lt, sql } from 'drizzle-orm';
+import { and, asc, eq, gte, inArray, isNull, lt, sql } from 'drizzle-orm';
 import type { DatabaseExecutor } from './client.ts';
 import { FIXTURE_INVITATION_VALIDITY_MS } from './invitation-validity.ts';
 import {
@@ -784,10 +784,15 @@ async function seedGroupClasses(
     if (!current) throw new Error('The seed did not find a class.');
     for (const date of plan.dates) {
       const rrule = `FREQ=WEEKLY;BYDAY=${WEEKDAY_CODES[date.weekday - 1]}`;
-      const [found] = await db
+      // The series of this class and weekday, whatever its time and end are now: an Owner can
+      // change a series with "this and following" (it moves to another time, or is split and ends),
+      // and a later seed must not make a second one at the old time.
+      const found = await db
         .select({
           id: classSeries.id,
           startsOn: classSeries.startsOn,
+          endsOn: classSeries.endsOn,
+          localStartTime: classSeries.localStartTime,
           trainerProfileId: classSeries.trainerProfileId,
           capacity: classSeries.capacity,
           durationMinutes: classSeries.durationMinutes,
@@ -798,65 +803,72 @@ async function seedGroupClasses(
             eq(classSeries.organizationId, workspaceId),
             eq(classSeries.groupClassId, groupClassId),
             eq(classSeries.rrule, rrule),
-            eq(classSeries.localStartTime, date.start),
-            isNull(classSeries.endsOn),
           ),
         )
-        .limit(1);
-      const series =
-        found ??
-        (
+        .orderBy(asc(classSeries.startsOn));
+      const [made] =
+        found.length > 0
+          ? []
+          : await db
+              .insert(classSeries)
+              .values({
+                organizationId: workspaceId,
+                groupClassId,
+                rrule,
+                localStartTime: date.start,
+                durationMinutes: current.durationMinutes,
+                timeZone: tz,
+                trainerProfileId: current.defaultTrainerProfileId,
+                capacity: current.capacity,
+                startsOn: addDaysTo(monday, date.weekday - 1),
+                materializedUntil: through,
+              })
+              .returning({
+                id: classSeries.id,
+                startsOn: classSeries.startsOn,
+                endsOn: classSeries.endsOn,
+                localStartTime: classSeries.localStartTime,
+                trainerProfileId: classSeries.trainerProfileId,
+                capacity: classSeries.capacity,
+                durationMinutes: classSeries.durationMinutes,
+              });
+      // Each series is filled with its own time and defaults, up to its end when it has one.
+      for (const series of made ? [made] : found) {
+        const last = series.endsOn !== null && series.endsOn < through ? series.endsOn : through;
+        const start = series.localStartTime.slice(0, 5);
+        const days: string[] = [];
+        for (let day = series.startsOn; day <= last; day = addDaysTo(day, 7)) days.push(day);
+        if (days.length > 0) {
           await db
-            .insert(classSeries)
-            .values({
-              organizationId: workspaceId,
-              groupClassId,
-              rrule,
-              localStartTime: date.start,
-              durationMinutes: current.durationMinutes,
-              timeZone: tz,
-              trainerProfileId: current.defaultTrainerProfileId,
-              capacity: current.capacity,
-              startsOn: addDaysTo(monday, date.weekday - 1),
-              materializedUntil: through,
-            })
-            .returning({
-              id: classSeries.id,
-              startsOn: classSeries.startsOn,
-              trainerProfileId: classSeries.trainerProfileId,
-              capacity: classSeries.capacity,
-              durationMinutes: classSeries.durationMinutes,
-            })
-        )[0];
-      if (!series) throw new Error('The seed did not store a series.');
-      const days: string[] = [];
-      for (let day = series.startsOn; day <= through; day = addDaysTo(day, 7)) days.push(day);
-      if (days.length === 0) continue;
-      await db
-        .insert(sessions)
-        .values(
-          days.map((day) => {
-            const startsAt = sql`(${day}::date + ${date.start}::time) at time zone ${tz}`;
-            return {
-              organizationId: workspaceId,
-              type: 'group' as const,
-              groupClassId,
-              seriesId: series.id,
-              occurrenceDate: day,
-              trainerProfileId: series.trainerProfileId,
-              locationId: location.id,
-              startsAt: startsAt as never,
-              endsAt: sql`(${startsAt}) + ${series.durationMinutes} * interval '1 minute'` as never,
-              capacity: series.capacity,
-              createdByTeamMemberId: plannedBy,
-            };
-          }),
-        )
-        .onConflictDoNothing();
-      await db
-        .update(classSeries)
-        .set({ materializedUntil: through })
-        .where(and(eq(classSeries.id, series.id), lt(classSeries.materializedUntil, through)));
+            .insert(sessions)
+            .values(
+              days.map((day) => {
+                const startsAt = sql`(${day}::date + ${start}::time) at time zone ${tz}`;
+                return {
+                  organizationId: workspaceId,
+                  type: 'group' as const,
+                  groupClassId,
+                  seriesId: series.id,
+                  occurrenceDate: day,
+                  trainerProfileId: series.trainerProfileId,
+                  locationId: location.id,
+                  startsAt: startsAt as never,
+                  endsAt:
+                    sql`(${startsAt}) + ${series.durationMinutes} * interval '1 minute'` as never,
+                  capacity: series.capacity,
+                  createdByTeamMemberId: plannedBy,
+                };
+              }),
+            )
+            .onConflictDoNothing();
+        }
+        if (series.endsOn === null) {
+          await db
+            .update(classSeries)
+            .set({ materializedUntil: through })
+            .where(and(eq(classSeries.id, series.id), lt(classSeries.materializedUntil, through)));
+        }
+      }
     }
   }
 }

@@ -29,19 +29,16 @@ import {
   type DetachedField,
   decideGroupDateEdit,
   defaultLocation,
-  expandSeries,
   GROUP_CLASS_LIMITS,
-  horizonEnd,
   instantToWallClock,
   localDateOf,
   materialize,
+  type PlanWeeklySeriesDecision,
+  type PlanWeeklySeriesFacts,
   parseWeeklyRule,
+  planWeeklySeries,
   type SeriesChange,
-  type SeriesFacts,
-  type SeriesOccurrence,
   scheduleClassOnDate,
-  weekdayOf,
-  weeklyRule,
 } from '@fivvi/domain';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
 import { defineRoute, type WorkspaceEnv } from '../access.ts';
@@ -386,8 +383,9 @@ const UpdateGroupClassDateBodySchema = z
           'earlier one ends the week before, a new one starts on this date) and every date from ' +
           'here on takes the new start, length and capacity, except dates that were changed on ' +
           'their own, which stay as they are (`keptDates` says how many). A date that is in no ' +
-          'series answers `400` on `scope` (`not_in_series`); a start the clocks skip on one of ' +
-          'the dates it would reach answers `400` on `localStart` (`time_does_not_exist`) with ' +
+          'series answers `400` on `scope` (`not_in_series`), and so does a date before today ' +
+          '(`date_in_past`: past dates of a series are not changed); a start the clocks skip on ' +
+          'one of the dates it would reach, up to the end of the 12 weeks ahead, answers `400` on `localStart` (`time_does_not_exist`) with ' +
           'that `date`, and nothing is changed; a length that is not 15 to 240 minutes in steps ' +
           'of 5 answers `400` on `localEnd` (`invalid_duration`).',
       }),
@@ -744,59 +742,35 @@ function shownSeries(series: ClassSeriesView) {
   };
 }
 
-/** A weekly series decided but not stored: the rule, its 12 dates and the day the calendar is filled to. */
-interface PlannedSeries {
-  readonly facts: SeriesFacts;
-  readonly occurrences: readonly SeriesOccurrence[];
-  readonly materializedUntil: string;
-}
+/** A weekly series decided by the domain but not stored: the rule, its 12 dates and the day the calendar is filled to. */
+type PlannedSeries = Extract<PlanWeeklySeriesDecision, { outcome: 'planned' }>;
 
 /**
- * The weekly series for a first date (F022): the rule is the weekday of `localDate` at
- * `localStart`, and the 12 weeks from `localDate` are expanded by the domain. Refuses, before
- * anything is stored, a first date in the past (past dates are not made again, out of scope in
- * #428) and a start that the clocks skip on one of the dates (`time_does_not_exist`, with the date).
+ * The weekly series for a first date (F022): the domain plans it (`planWeeklySeries`); this turns
+ * a refusal into the contract's validation error. Nothing is stored before the refusal.
  */
-function planWeeklySeries(input: {
-  localDate: string;
-  localStart: string;
-  durationMinutes: number;
-  timeZone: string;
-  now: Date;
-  prefix: string;
-}) {
-  const { prefix } = input;
-  if (input.localDate < localDateOf(input.now, input.timeZone)) {
-    return { outcome: 'refused' as const, answer: invalid(`${prefix}localDate`, 'date_in_past') };
+function weeklySeriesFor(
+  input: PlanWeeklySeriesFacts & { prefix: string },
+):
+  | { outcome: 'planned'; plan: PlannedSeries }
+  | { outcome: 'refused'; answer: ReturnType<typeof invalid> } {
+  const { prefix, ...facts } = input;
+  const decision = planWeeklySeries(facts);
+  if (decision.outcome === 'planned') return { outcome: 'planned', plan: decision };
+  switch (decision.reason) {
+    case 'date-in-past':
+      return { outcome: 'refused', answer: invalid(`${prefix}localDate`, 'date_in_past') };
+    case 'invalid-date':
+      return { outcome: 'refused', answer: invalid(`${prefix}localDate`, 'invalid_date') };
+    case 'time-does-not-exist':
+      return {
+        outcome: 'refused',
+        answer: invalid(`${prefix}localStart`, 'time_does_not_exist', decision.date),
+      };
+    case 'invalid-time':
+      // The request schema and `scheduleClassOnDate` rule this out before this runs.
+      throw new Error(`A refusal the request rules out reached the handler: ${decision.reason}.`);
   }
-  const weekday = weekdayOf(input.localDate);
-  if (!weekday) {
-    return { outcome: 'refused' as const, answer: invalid(`${prefix}localDate`, 'invalid_date') };
-  }
-  const facts: SeriesFacts = {
-    rrule: weeklyRule(weekday),
-    localStartTime: input.localStart,
-    durationMinutes: input.durationMinutes,
-    timeZone: input.timeZone,
-    startsOn: input.localDate,
-    endsOn: null,
-  };
-  const materializedUntil = horizonEnd(input.localDate);
-  const expanded = expandSeries(facts, input.localDate, materializedUntil);
-  if (expanded.outcome === 'refused') {
-    if (expanded.reason !== 'time-does-not-exist') {
-      // The request schema and `scheduleClassOnDate` rule these out before this runs.
-      throw new Error(`A refusal the request rules out reached the handler: ${expanded.reason}.`);
-    }
-    return {
-      outcome: 'refused' as const,
-      answer: invalid(`${prefix}localStart`, 'time_does_not_exist', expanded.date),
-    };
-  }
-  return {
-    outcome: 'planned' as const,
-    plan: { facts, occurrences: expanded.occurrences, materializedUntil } satisfies PlannedSeries,
-  };
 }
 
 /** Stores the series and its dates (the first one is the date the Owner chose); returns that first date and how many were made. */
@@ -927,7 +901,7 @@ export function registerGroupClasses(app: OpenAPIHono) {
     if (plan?.outcome === 'refused') return c.json(...refusalOfDate(plan.reason, 'firstDate.'));
     const weekly =
       body.firstDate?.repeat === 'weekly' && plan?.outcome === 'scheduled'
-        ? planWeeklySeries({
+        ? weeklySeriesFor({
             localDate: body.firstDate.localDate,
             localStart: body.firstDate.localStart,
             durationMinutes: body.durationMinutes,
@@ -1062,7 +1036,7 @@ export function registerGroupClasses(app: OpenAPIHono) {
     }
     const weekly =
       body.repeat === 'weekly'
-        ? planWeeklySeries({
+        ? weeklySeriesFor({
             localDate: body.localDate,
             localStart: body.localStart,
             durationMinutes: groupClass.durationMinutes,
@@ -1165,16 +1139,6 @@ export function registerGroupClasses(app: OpenAPIHono) {
       const stored = await findClassSeries(scope, series.id);
       if (!stored) return c.json(NOT_FOUND, 404);
       const durationMinutes = (decision.endsAt.getTime() - decision.startsAt.getTime()) / 60_000;
-      const { duration } = LIMITS;
-      if (
-        timeChanged &&
-        (!Number.isInteger(durationMinutes) ||
-          durationMinutes < duration.min ||
-          durationMinutes > duration.max ||
-          durationMinutes % duration.step !== 0)
-      ) {
-        return c.json(invalid('localEnd', 'invalid_duration'), 400);
-      }
       const change: SeriesChange = {
         ...(timeChanged
           ? {
@@ -1185,8 +1149,9 @@ export function registerGroupClasses(app: OpenAPIHono) {
         ...(capacityChanged ? { capacity: decision.capacity } : {}),
       };
       const dates = await listSeriesDates(scope, stored.id);
+      const today = localDateOf(clock.now(), workspace.timeZone);
       const applied = applyThisAndFollowing(
-        { ...stored, materializedUntil: stored.materializedUntil },
+        stored,
         series.occurrenceDate,
         change,
         dates.map((date) => ({
@@ -1199,21 +1164,26 @@ export function registerGroupClasses(app: OpenAPIHono) {
           trainerProfileId: date.trainerProfileId,
           capacity: date.capacity,
         })),
+        today,
       );
       if (applied.outcome === 'refused') {
-        if (applied.reason !== 'time-does-not-exist') {
-          throw new Error(
-            `A refusal the request rules out reached the handler: ${applied.reason}.`,
-          );
+        switch (applied.reason) {
+          case 'time-does-not-exist':
+            return c.json(invalid('localStart', 'time_does_not_exist', applied.date), 400);
+          case 'invalid-duration':
+            return c.json(invalid('localEnd', 'invalid_duration'), 400);
+          case 'date-in-past':
+            return c.json(invalid('scope', 'date_in_past'), 400);
+          default:
+            throw new Error(
+              `A refusal the request rules out reached the handler: ${applied.reason}.`,
+            );
         }
-        return c.json(invalid('localStart', 'time_does_not_exist', applied.date), 400);
       }
 
       // Every change below is rolled back with the request when it ends in a refusal (the `409`).
-      const today = localDateOf(clock.now(), workspace.timeZone);
-      const through = [stored.materializedUntil, horizonEnd(today)].reduce((a, b) =>
-        a > b ? a : b,
-      );
+      // The domain checked every date up to `through`, so none is dropped when the calendar is filled.
+      const through = applied.materializedUntil;
       let seriesId = stored.id;
       if (applied.split) {
         const later = await createClassSeries(scope, {
