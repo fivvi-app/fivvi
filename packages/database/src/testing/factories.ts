@@ -8,7 +8,10 @@ import {
   groupClasses,
   locations,
   organizations,
+  paymentChargebacks,
   paymentCustomers,
+  paymentRefundStatusChanges,
+  paymentRefunds,
   paymentStatusChanges,
   payments,
   sessionParticipants,
@@ -406,4 +409,80 @@ export async function addPaymentCustomer(
     'payment customer',
   );
   return { id: row.id, clientId };
+}
+
+/**
+ * A refund of a payment of the workspace (F060), requested and with its first status line
+ * (`null → requested`). The payment (with its client) is made for it unless `paymentId` is given;
+ * `clientId` must then be the payment's client.
+ */
+export async function addPaymentRefund(
+  db: Pick<DatabaseExecutor, 'insert'>,
+  options: {
+    workspaceId: string;
+    paymentId?: string;
+    clientId?: string;
+    amountCents?: number;
+    requestedByTeamMemberId?: string | null;
+  },
+): Promise<{ id: string; paymentId: string; clientId: string }> {
+  const payment =
+    options.paymentId && options.clientId
+      ? { id: options.paymentId, clientId: options.clientId }
+      : await addPayment(db, { workspaceId: options.workspaceId });
+  const refund = first(
+    await db
+      .insert(paymentRefunds)
+      .values({
+        organizationId: options.workspaceId,
+        paymentId: payment.id,
+        clientId: payment.clientId,
+        amountCents: options.amountCents ?? 2000,
+        requestedByTeamMemberId: options.requestedByTeamMemberId ?? null,
+      })
+      .returning({ id: paymentRefunds.id }),
+    'payment refund',
+  );
+  await db.insert(paymentRefundStatusChanges).values({
+    organizationId: options.workspaceId,
+    refundId: refund.id,
+    clientId: payment.clientId,
+    fromStatus: null,
+    toStatus: 'requested',
+    occurredAt: new Date(),
+    source: 'job',
+  });
+  return { id: refund.id, paymentId: payment.id, clientId: payment.clientId };
+}
+
+/** A reversal (chargeback) of a payment of the workspace (F060); the payment is made unless given. */
+export async function addPaymentChargeback(
+  db: Pick<DatabaseExecutor, 'insert'>,
+  options: {
+    workspaceId: string;
+    paymentId?: string;
+    clientId?: string;
+    amountCents?: number;
+  },
+): Promise<{ id: string; paymentId: string; clientId: string }> {
+  const payment =
+    options.paymentId && options.clientId
+      ? { id: options.paymentId, clientId: options.clientId }
+      : await addPayment(db, { workspaceId: options.workspaceId });
+  const row = first(
+    await db
+      .insert(paymentChargebacks)
+      .values({
+        organizationId: options.workspaceId,
+        paymentId: payment.id,
+        clientId: payment.clientId,
+        providerChargebackId: uniqueMarker('chb'),
+        amountCents: options.amountCents ?? 4950,
+        bankReason: 'MD01',
+        receivedAt: new Date(),
+      })
+      .returning({ id: paymentChargebacks.id }),
+    'payment chargeback',
+  );
+  return { id: row.id, paymentId: payment.id, clientId: payment.clientId };
 }

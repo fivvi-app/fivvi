@@ -9,7 +9,12 @@ import {
   type DatabaseClient,
 } from '@fivvi/database';
 import { addTeamRole, createWorkspace } from '@fivvi/database/testing';
-import { createMemoryTransport, createSendEmail, type MemoryTransport } from '@fivvi/email';
+import {
+  createMemoryTransport,
+  createSendEmail,
+  emailIdempotencyKey,
+  type MemoryTransport,
+} from '@fivvi/email';
 import { messages } from '@fivvi/i18n';
 import {
   createErrorReporter,
@@ -283,6 +288,34 @@ describe('F005 change your own email address', () => {
         expect(transport.sent.some((sent) => sent.to.email === sarah.email)).toBe(false);
       },
     );
+
+    it('F049 AC11: each request has its own idempotency key, made of EM-34 and the request', async () => {
+      const sarah = await account(unique('sarah'));
+      const newEmail = unique('sarah.jansen');
+
+      const storedCodeHash = async () =>
+        (
+          await client.db
+            .select({ codeHash: authVerifications.codeHash })
+            .from(authVerifications)
+            .where(eq(authVerifications.identifier, `change-email:${sarah.id}`))
+        )[0]?.codeHash;
+
+      // `askForCode` clears the transport first, so each call has the one email of its request.
+      const first = (await askForCode(sarah.cookie, newEmail)).email?.idempotencyKey;
+      const firstCodeHash = await storedCodeHash();
+      const second = (await askForCode(sarah.cookie, newEmail)).email?.idempotencyKey;
+      const secondCodeHash = await storedCodeHash();
+
+      expect(first).toMatch(
+        /^[0-9a-f]{8}-[0-9a-f]{4}-5[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+      );
+      expect(second).not.toBe(first);
+      // The event is the request's stored code hash, not a random value: the key follows the row.
+      expect(firstCodeHash).toEqual(expect.any(String));
+      expect(first).toBe(emailIdempotencyKey('EM-34', firstCodeHash ?? ''));
+      expect(second).toBe(emailIdempotencyKey('EM-34', secondCodeHash ?? ''));
+    });
 
     it('answers 202 with an empty body', async () => {
       const sarah = await account(unique('sarah'));

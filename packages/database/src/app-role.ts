@@ -44,6 +44,10 @@ export const APP_TABLE_PRIVILEGES: Readonly<Record<string, readonly Privilege[]>
   payment_customers: ALL,
   payments: ALL,
   payment_status_changes: ALL,
+  // Refunds and reversals (F060): the refund's status lines are append-only by a trigger too.
+  payment_refunds: ALL,
+  payment_refund_status_changes: ALL,
+  payment_chargebacks: ALL,
 };
 
 /**

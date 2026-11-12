@@ -1,5 +1,5 @@
 {
-  "id": "7b3843c6-71d8-4b7a-9e90-9fa2c2de4866",
+  "id": "d037275a-2efb-4fc6-a691-045fc9b8f535",
   "prevId": "36b77ba4-41ef-43aa-b628-ba710c36ff10",
   "version": "7",
   "dialect": "postgresql",
@@ -436,93 +436,6 @@
         "auth_verifications_locale_supported": {
           "name": "auth_verifications_locale_supported",
           "value": "\"auth_verifications\".\"locale\" IS NULL OR \"auth_verifications\".\"locale\" IN ('nl-NL', 'en')"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.exercise_library": {
-      "name": "exercise_library",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "key": {
-          "name": "key",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "type": {
-          "name": "type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "muscle_groups": {
-          "name": "muscle_groups",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "aliases": {
-          "name": "aliases",
-          "type": "text[]",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "'{}'::text[]"
-        },
-        "retired": {
-          "name": "retired",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "exercise_library_key_unique": {
-          "name": "exercise_library_key_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "key"
-          ]
-        }
-      },
-      "policies": {},
-      "checkConstraints": {
-        "exercise_library_key_format": {
-          "name": "exercise_library_key_format",
-          "value": "\"exercise_library\".\"key\" ~ '^[a-z][a-z0-9]*(-[a-z0-9]+)*$'"
-        },
-        "exercise_library_type_known": {
-          "name": "exercise_library_type_known",
-          "value": "\"exercise_library\".\"type\" in ('weight-reps', 'reps-only', 'time', 'distance-time')"
-        },
-        "exercise_library_muscle_groups_known": {
-          "name": "exercise_library_muscle_groups_known",
-          "value": "cardinality(\"exercise_library\".\"muscle_groups\") >= 1 and \"exercise_library\".\"muscle_groups\" <@ array['chest', 'back', 'shoulders', 'biceps', 'triceps', 'forearms', 'quadriceps', 'hamstrings', 'glutes', 'calves', 'adductors', 'core', 'cardio', 'full-body']::text[]"
         }
       },
       "isRLSEnabled": false
@@ -1643,6 +1556,618 @@
         "payments_description_valid": {
           "name": "payments_description_valid",
           "value": "btrim(\"payments\".\"description\") <> '' AND char_length(\"payments\".\"description\") <= 255"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.payment_chargebacks": {
+      "name": "payment_chargebacks",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payment_id": {
+          "name": "payment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_chargeback_id": {
+          "name": "provider_chargeback_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "bank_reason": {
+          "name": "bank_reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "received_at": {
+          "name": "received_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "payment_chargebacks_provider_chargeback_id_unique": {
+          "name": "payment_chargebacks_provider_chargeback_id_unique",
+          "columns": [
+            {
+              "expression": "provider_chargeback_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "payment_chargebacks_organization_id_payment_id_idx": {
+          "name": "payment_chargebacks_organization_id_payment_id_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "payment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "received_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "payment_chargebacks_organization_id_organizations_id_fk": {
+          "name": "payment_chargebacks_organization_id_organizations_id_fk",
+          "tableFrom": "payment_chargebacks",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "payment_chargebacks_payment_fk": {
+          "name": "payment_chargebacks_payment_fk",
+          "tableFrom": "payment_chargebacks",
+          "tableTo": "payments",
+          "columnsFrom": [
+            "organization_id",
+            "payment_id",
+            "client_id"
+          ],
+          "columnsTo": [
+            "organization_id",
+            "id",
+            "client_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "payment_chargebacks_organization_id_id_unique": {
+          "name": "payment_chargebacks_organization_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "organization_id",
+            "id"
+          ]
+        }
+      },
+      "policies": {
+        "payment_chargebacks_workspace": {
+          "name": "payment_chargebacks_workspace",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "fivvi_app"
+          ],
+          "using": "\"payment_chargebacks\".\"organization_id\" = ANY (app_workspace_ids())",
+          "withCheck": "\"payment_chargebacks\".\"organization_id\" = ANY (app_workspace_ids())"
+        },
+        "payment_chargebacks_client": {
+          "name": "payment_chargebacks_client",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "fivvi_app"
+          ],
+          "using": "app_client_id() IS NULL OR \"payment_chargebacks\".\"client_id\" = app_client_id()",
+          "withCheck": "app_client_id() IS NULL OR \"payment_chargebacks\".\"client_id\" = app_client_id()"
+        }
+      },
+      "checkConstraints": {
+        "payment_chargebacks_amount_cents_positive": {
+          "name": "payment_chargebacks_amount_cents_positive",
+          "value": "\"payment_chargebacks\".\"amount_cents\" >= 1"
+        },
+        "payment_chargebacks_provider_chargeback_id_valid": {
+          "name": "payment_chargebacks_provider_chargeback_id_valid",
+          "value": "btrim(\"payment_chargebacks\".\"provider_chargeback_id\") <> ''"
+        },
+        "payment_chargebacks_bank_reason_valid": {
+          "name": "payment_chargebacks_bank_reason_valid",
+          "value": "\"payment_chargebacks\".\"bank_reason\" IS NULL OR btrim(\"payment_chargebacks\".\"bank_reason\") <> ''"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.payment_refund_status_changes": {
+      "name": "payment_refund_status_changes",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "refund_id": {
+          "name": "refund_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "from_status": {
+          "name": "from_status",
+          "type": "payment_refund_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "to_status": {
+          "name": "to_status",
+          "type": "payment_refund_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "occurred_at": {
+          "name": "occurred_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "source": {
+          "name": "source",
+          "type": "payment_status_source",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "provider_event_id": {
+          "name": "provider_event_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "payment_refund_status_changes_organization_id_refund_id_idx": {
+          "name": "payment_refund_status_changes_organization_id_refund_id_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "refund_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "occurred_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "payment_refund_status_changes_organization_id_organizations_id_fk": {
+          "name": "payment_refund_status_changes_organization_id_organizations_id_fk",
+          "tableFrom": "payment_refund_status_changes",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "payment_refund_status_changes_refund_fk": {
+          "name": "payment_refund_status_changes_refund_fk",
+          "tableFrom": "payment_refund_status_changes",
+          "tableTo": "payment_refunds",
+          "columnsFrom": [
+            "organization_id",
+            "refund_id",
+            "client_id"
+          ],
+          "columnsTo": [
+            "organization_id",
+            "id",
+            "client_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "payment_refund_status_changes_organization_id_id_unique": {
+          "name": "payment_refund_status_changes_organization_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "organization_id",
+            "id"
+          ]
+        },
+        "payment_refund_status_changes_refund_id_to_status_unique": {
+          "name": "payment_refund_status_changes_refund_id_to_status_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "refund_id",
+            "to_status"
+          ]
+        }
+      },
+      "policies": {
+        "payment_refund_status_changes_workspace": {
+          "name": "payment_refund_status_changes_workspace",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "fivvi_app"
+          ],
+          "using": "\"payment_refund_status_changes\".\"organization_id\" = ANY (app_workspace_ids())",
+          "withCheck": "\"payment_refund_status_changes\".\"organization_id\" = ANY (app_workspace_ids())"
+        },
+        "payment_refund_status_changes_client": {
+          "name": "payment_refund_status_changes_client",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "fivvi_app"
+          ],
+          "using": "app_client_id() IS NULL OR \"payment_refund_status_changes\".\"client_id\" = app_client_id()",
+          "withCheck": "app_client_id() IS NULL OR \"payment_refund_status_changes\".\"client_id\" = app_client_id()"
+        }
+      },
+      "checkConstraints": {
+        "payment_refund_status_changes_from_differs": {
+          "name": "payment_refund_status_changes_from_differs",
+          "value": "\"payment_refund_status_changes\".\"from_status\" IS NULL OR \"payment_refund_status_changes\".\"from_status\" <> \"payment_refund_status_changes\".\"to_status\""
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.payment_refunds": {
+      "name": "payment_refunds",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "payment_id": {
+          "name": "payment_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "client_id": {
+          "name": "client_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "amount_cents": {
+          "name": "amount_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "reason": {
+          "name": "reason",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "revoke_credits": {
+          "name": "revoke_credits",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "provider_refund_id": {
+          "name": "provider_refund_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "requested_by_team_member_id": {
+          "name": "requested_by_team_member_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "payment_refund_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'requested'"
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "payment_refunds_provider_refund_id_unique": {
+          "name": "payment_refunds_provider_refund_id_unique",
+          "columns": [
+            {
+              "expression": "provider_refund_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "payment_refunds_organization_id_payment_id_idx": {
+          "name": "payment_refunds_organization_id_payment_id_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "payment_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "created_at",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "payment_refunds_organization_id_organizations_id_fk": {
+          "name": "payment_refunds_organization_id_organizations_id_fk",
+          "tableFrom": "payment_refunds",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "payment_refunds_payment_fk": {
+          "name": "payment_refunds_payment_fk",
+          "tableFrom": "payment_refunds",
+          "tableTo": "payments",
+          "columnsFrom": [
+            "organization_id",
+            "payment_id",
+            "client_id"
+          ],
+          "columnsTo": [
+            "organization_id",
+            "id",
+            "client_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "payment_refunds_requested_by_fk": {
+          "name": "payment_refunds_requested_by_fk",
+          "tableFrom": "payment_refunds",
+          "tableTo": "team_members",
+          "columnsFrom": [
+            "organization_id",
+            "requested_by_team_member_id"
+          ],
+          "columnsTo": [
+            "organization_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "payment_refunds_organization_id_id_unique": {
+          "name": "payment_refunds_organization_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "organization_id",
+            "id"
+          ]
+        },
+        "payment_refunds_organization_id_id_client_id_unique": {
+          "name": "payment_refunds_organization_id_id_client_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "organization_id",
+            "id",
+            "client_id"
+          ]
+        }
+      },
+      "policies": {
+        "payment_refunds_workspace": {
+          "name": "payment_refunds_workspace",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "fivvi_app"
+          ],
+          "using": "\"payment_refunds\".\"organization_id\" = ANY (app_workspace_ids())",
+          "withCheck": "\"payment_refunds\".\"organization_id\" = ANY (app_workspace_ids())"
+        },
+        "payment_refunds_client": {
+          "name": "payment_refunds_client",
+          "as": "RESTRICTIVE",
+          "for": "ALL",
+          "to": [
+            "fivvi_app"
+          ],
+          "using": "app_client_id() IS NULL OR \"payment_refunds\".\"client_id\" = app_client_id()",
+          "withCheck": "app_client_id() IS NULL OR \"payment_refunds\".\"client_id\" = app_client_id()"
+        }
+      },
+      "checkConstraints": {
+        "payment_refunds_amount_cents_positive": {
+          "name": "payment_refunds_amount_cents_positive",
+          "value": "\"payment_refunds\".\"amount_cents\" >= 1"
+        },
+        "payment_refunds_reason_valid": {
+          "name": "payment_refunds_reason_valid",
+          "value": "\"payment_refunds\".\"reason\" IS NULL OR (btrim(\"payment_refunds\".\"reason\") <> '' AND char_length(\"payment_refunds\".\"reason\") <= 500)"
+        },
+        "payment_refunds_provider_refund_id_valid": {
+          "name": "payment_refunds_provider_refund_id_valid",
+          "value": "\"payment_refunds\".\"provider_refund_id\" IS NULL OR btrim(\"payment_refunds\".\"provider_refund_id\") <> ''"
         }
       },
       "isRLSEnabled": false
@@ -2928,6 +3453,18 @@
         "webhook",
         "fetch",
         "job"
+      ]
+    },
+    "public.payment_refund_status": {
+      "name": "payment_refund_status",
+      "schema": "public",
+      "values": [
+        "requested",
+        "queued",
+        "pending",
+        "refunded",
+        "failed",
+        "canceled"
       ]
     },
     "public.attendance_status": {

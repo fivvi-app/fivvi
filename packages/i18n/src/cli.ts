@@ -1,4 +1,4 @@
-// Usage: node src/cli.ts generate | check [parity|icu|generated]… [--root <dir>]
+// Usage: node src/cli.ts generate | check [parity|icu|generated|no-literal-trainer]… [--root <dir>]
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { type CheckName, checkNames, runChecks } from './tools/checks.ts';
@@ -47,7 +47,9 @@ async function main(argv: string[]): Promise<number> {
     return failed ? 1 : 0;
   }
 
-  console.error('Usage: node src/cli.ts generate | check [parity|icu|generated]… [--root <dir>]');
+  console.error(
+    'Usage: node src/cli.ts generate | check [parity|icu|generated|no-literal-trainer]… [--root <dir>]',
+  );
   return 2;
 }
 

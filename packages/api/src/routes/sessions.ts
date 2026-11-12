@@ -29,7 +29,7 @@ import {
   NOT_FOUND,
   validationErrorResponse,
 } from '../errors.ts';
-import { privateSessionEmailKey } from '../sessions/email-key.ts';
+import { privateSessionEmailEvent } from '../sessions/email-event.ts';
 import { LocationSchema } from './locations.ts';
 
 // The sessions of a workspace (F020, spec #425): a team member plans a private session, reads one,
@@ -533,7 +533,7 @@ function invalidTime(
 /**
  * The mail to a client about a session, EM-11 for a new one and EM-04 when `previous` says where it
  * was: the language (the client's, then the workspace's), the place and the trainer as the session
- * has them now. The key follows the session and its version, so each change has its own.
+ * has them now. The event follows the session and its version, so each change has its own key.
  */
 function mailAbout(
   client: { email: string; name: string; emailLocale: Locale | null },
@@ -554,7 +554,7 @@ function mailAbout(
     ...(previous ? { previous } : {}),
     location: { name: session.location.name, address: session.location.address },
     trainerName: session.trainer?.name.trim() ? session.trainer.name : null,
-    idempotencyKey: privateSessionEmailKey(session.id, session.version),
+    event: privateSessionEmailEvent(session.id, session.version),
   };
 }
 

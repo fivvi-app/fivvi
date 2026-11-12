@@ -111,11 +111,13 @@ describe('E005 i18n checks', () => {
       writeFile(path.join(root, 'en.json'), JSON.stringify(messages));
 
     it('passes right after generating', async () => {
-      const results = await runChecks(root);
+      // A small catalog of its own, so the committed allowlist would only report stale entries.
+      const results = await runChecks(root, undefined, { allowlist: [] });
       expect(results.map((r) => [r.name, r.problems])).toEqual([
         ['parity', []],
         ['icu', []],
         ['generated', []],
+        ['no-literal-trainer', []],
       ]);
     });
 
@@ -203,6 +205,7 @@ describe('E005 i18n checks', () => {
       expect(output).toContain('✓ i18n parity');
       expect(output).toContain('✓ i18n icu');
       expect(output).toContain('✓ i18n generated');
+      expect(output).toContain('✓ i18n no-literal-trainer');
       expect(code).toBe(0);
     });
 
@@ -215,6 +218,19 @@ describe('E005 i18n checks', () => {
       const { code, output } = await run('check', 'parity');
       expect(output).toContain('✗ i18n parity: 1 problem(s)');
       expect(output).toContain('"hello.onlyInDutch" is in nl-NL.json but missing from en.json');
+      expect(code).toBe(1);
+    });
+
+    it('F068 AC6: exits non-zero when a new message says trainer literally', async () => {
+      for (const file of ['nl-NL.json', 'en.json']) {
+        const full = path.join(root, file);
+        const catalog = JSON.parse(await readFile(full, 'utf8'));
+        catalog.hello.brandNew = file === 'en.json' ? 'Your trainer' : 'Je trainer';
+        await writeFile(full, JSON.stringify(catalog));
+      }
+      const { code, output } = await run('check', 'no-literal-trainer');
+      expect(output).toContain('✗ i18n no-literal-trainer: 1 problem(s)');
+      expect(output).toContain('"hello.brandNew" says "trainer" literally');
       expect(code).toBe(1);
     });
 

@@ -4785,7 +4785,7 @@
       }
     },
     "roles.trainer" : {
-      "comment" : "Role label of a Trainer of a workspace, shown as a plain label.",
+      "comment" : "OLD role label of a Trainer, shown as a plain label with the literal word trainer. Kept until the web, iOS and Android use roles.trainerLabel (F068, ticket #751 removes it).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {
@@ -4798,6 +4798,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Trainer"
+          }
+        }
+      }
+    },
+    "roles.trainerLabel" : {
+      "comment" : "Role label of a Trainer of a workspace, shown as a plain label, in the workspace's word (F068): {Word} is the word with a capital start, e.g. Instructeur / Instructor. The role itself stays Trainer.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@"
           }
         }
       }
@@ -6611,6 +6629,438 @@
     },
     "team.title" : {
       "comment" : "Title of the Trainers page (TW-06), which lists the team of the workspace, and its browser tab title.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainers"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainers"
+          }
+        }
+      }
+    },
+    "trainerWord.coach.aWord" : {
+      "comment" : "The workspace's word 'coach' (F068), the singular with its article, lowercase, for use inside a sentence (placeholder {aWord}); English chooses a or an. One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "a coach"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "een coach"
+          }
+        }
+      }
+    },
+    "trainerWord.coach.aWordCap" : {
+      "comment" : "The workspace's word 'coach' (F068), the singular with its article and a capital start, for the start of a message (placeholder {AWord}); English chooses A or An. One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A coach"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een coach"
+          }
+        }
+      }
+    },
+    "trainerWord.coach.word" : {
+      "comment" : "The workspace's word 'coach' (F068), the singular, lowercase, for use inside a sentence (placeholder {word}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "coach"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "coach"
+          }
+        }
+      }
+    },
+    "trainerWord.coach.wordCap" : {
+      "comment" : "The workspace's word 'coach' (F068), the singular with a capital start, for the start of a message (placeholder {Word}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coach"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coach"
+          }
+        }
+      }
+    },
+    "trainerWord.coach.words" : {
+      "comment" : "The workspace's word 'coach' (F068), the plural, lowercase, for use inside a sentence (placeholder {words}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "coaches"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "coaches"
+          }
+        }
+      }
+    },
+    "trainerWord.coach.wordsCap" : {
+      "comment" : "The workspace's word 'coach' (F068), the plural with a capital start, for the start of a message (placeholder {Words}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coaches"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Coaches"
+          }
+        }
+      }
+    },
+    "trainerWord.docent.aWord" : {
+      "comment" : "The workspace's word 'docent / teacher' (F068), the singular with its article, lowercase, for use inside a sentence (placeholder {aWord}); English chooses a or an. One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "a teacher"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "een docent"
+          }
+        }
+      }
+    },
+    "trainerWord.docent.aWordCap" : {
+      "comment" : "The workspace's word 'docent / teacher' (F068), the singular with its article and a capital start, for the start of a message (placeholder {AWord}); English chooses A or An. One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A teacher"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een docent"
+          }
+        }
+      }
+    },
+    "trainerWord.docent.word" : {
+      "comment" : "The workspace's word 'docent / teacher' (F068), the singular, lowercase, for use inside a sentence (placeholder {word}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "teacher"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "docent"
+          }
+        }
+      }
+    },
+    "trainerWord.docent.wordCap" : {
+      "comment" : "The workspace's word 'docent / teacher' (F068), the singular with a capital start, for the start of a message (placeholder {Word}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teacher"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Docent"
+          }
+        }
+      }
+    },
+    "trainerWord.docent.words" : {
+      "comment" : "The workspace's word 'docent / teacher' (F068), the plural, lowercase, for use inside a sentence (placeholder {words}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "teachers"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "docenten"
+          }
+        }
+      }
+    },
+    "trainerWord.docent.wordsCap" : {
+      "comment" : "The workspace's word 'docent / teacher' (F068), the plural with a capital start, for the start of a message (placeholder {Words}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Teachers"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Docenten"
+          }
+        }
+      }
+    },
+    "trainerWord.instructeur.aWord" : {
+      "comment" : "The workspace's word 'instructeur / instructor' (F068), the singular with its article, lowercase, for use inside a sentence (placeholder {aWord}); English chooses a or an. One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "an instructor"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "een instructeur"
+          }
+        }
+      }
+    },
+    "trainerWord.instructeur.aWordCap" : {
+      "comment" : "The workspace's word 'instructeur / instructor' (F068), the singular with its article and a capital start, for the start of a message (placeholder {AWord}); English chooses A or An. One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "An instructor"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een instructeur"
+          }
+        }
+      }
+    },
+    "trainerWord.instructeur.word" : {
+      "comment" : "The workspace's word 'instructeur / instructor' (F068), the singular, lowercase, for use inside a sentence (placeholder {word}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "instructor"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "instructeur"
+          }
+        }
+      }
+    },
+    "trainerWord.instructeur.wordCap" : {
+      "comment" : "The workspace's word 'instructeur / instructor' (F068), the singular with a capital start, for the start of a message (placeholder {Word}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instructor"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instructeur"
+          }
+        }
+      }
+    },
+    "trainerWord.instructeur.words" : {
+      "comment" : "The workspace's word 'instructeur / instructor' (F068), the plural, lowercase, for use inside a sentence (placeholder {words}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "instructors"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "instructeurs"
+          }
+        }
+      }
+    },
+    "trainerWord.instructeur.wordsCap" : {
+      "comment" : "The workspace's word 'instructeur / instructor' (F068), the plural with a capital start, for the start of a message (placeholder {Words}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instructors"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Instructeurs"
+          }
+        }
+      }
+    },
+    "trainerWord.trainer.aWord" : {
+      "comment" : "The workspace's word 'trainer' (F068), the singular with its article, lowercase, for use inside a sentence (placeholder {aWord}); English chooses a or an. One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "a trainer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "een trainer"
+          }
+        }
+      }
+    },
+    "trainerWord.trainer.aWordCap" : {
+      "comment" : "The workspace's word 'trainer' (F068), the singular with its article and a capital start, for the start of a message (placeholder {AWord}); English chooses A or An. One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A trainer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een trainer"
+          }
+        }
+      }
+    },
+    "trainerWord.trainer.word" : {
+      "comment" : "The workspace's word 'trainer' (F068), the singular, lowercase, for use inside a sentence (placeholder {word}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trainer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trainer"
+          }
+        }
+      }
+    },
+    "trainerWord.trainer.wordCap" : {
+      "comment" : "The workspace's word 'trainer' (F068), the singular with a capital start, for the start of a message (placeholder {Word}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainer"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Trainer"
+          }
+        }
+      }
+    },
+    "trainerWord.trainer.words" : {
+      "comment" : "The workspace's word 'trainer' (F068), the plural, lowercase, for use inside a sentence (placeholder {words}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trainers"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "trainers"
+          }
+        }
+      }
+    },
+    "trainerWord.trainer.wordsCap" : {
+      "comment" : "The workspace's word 'trainer' (F068), the plural with a capital start, for the start of a message (placeholder {Words}). One of six forms of the word; the apps pass them as placeholders (trainerWordForms).",
       "extractionState" : "manual",
       "localizations" : {
         "en" : {

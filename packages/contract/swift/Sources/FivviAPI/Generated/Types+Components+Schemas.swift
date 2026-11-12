@@ -1319,6 +1319,27 @@ extension Components {
                 case items
             }
         }
+        /// Too many requests from this network or this account in the last minutes or hour. Nothing was stored or sent. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/PublicRequestRateLimited`.
+        public struct PublicRequestRateLimited: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/PublicRequestRateLimited/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case rateLimited = "rate_limited"
+            }
+            /// - Remark: Generated from `#/components/schemas/PublicRequestRateLimited/code`.
+            public var code: Components.Schemas.PublicRequestRateLimited.CodePayload
+            /// Creates a new `PublicRequestRateLimited`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            public init(code: Components.Schemas.PublicRequestRateLimited.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+            }
+        }
         /// Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019.
         ///
         /// - Remark: Generated from `#/components/schemas/SignInRequest`.

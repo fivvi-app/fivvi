@@ -32,6 +32,8 @@ export {
 export {
   TRAINER_WORDS,
   type TrainerWord,
+  type TrainerWordForms,
+  trainerWordForms,
 } from './trainer-word.ts';
 
 /** Message tree of the source catalog. `en.json` must have the same shape. */

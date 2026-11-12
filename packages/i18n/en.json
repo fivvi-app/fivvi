@@ -263,7 +263,42 @@
   },
   "roles": {
     "owner": "Owner",
-    "trainer": "Trainer"
+    "trainer": "Trainer",
+    "trainerLabel": "{Word}"
+  },
+  "trainerWord": {
+    "trainer": {
+      "word": "trainer",
+      "words": "trainers",
+      "wordCap": "Trainer",
+      "wordsCap": "Trainers",
+      "aWord": "a trainer",
+      "aWordCap": "A trainer"
+    },
+    "instructeur": {
+      "word": "instructor",
+      "words": "instructors",
+      "wordCap": "Instructor",
+      "wordsCap": "Instructors",
+      "aWord": "an instructor",
+      "aWordCap": "An instructor"
+    },
+    "docent": {
+      "word": "teacher",
+      "words": "teachers",
+      "wordCap": "Teacher",
+      "wordsCap": "Teachers",
+      "aWord": "a teacher",
+      "aWordCap": "A teacher"
+    },
+    "coach": {
+      "word": "coach",
+      "words": "coaches",
+      "wordCap": "Coach",
+      "wordsCap": "Coaches",
+      "aWord": "a coach",
+      "aWordCap": "A coach"
+    }
   },
   "myProfile": {
     "title": "My profile",
@@ -968,11 +1003,7 @@
       "privacy": "Privacy policy",
       "terms": "Terms of service",
       "subProcessors": "Sub-processors",
-      "tradeName": "{name}, trading as Fivvi",
-      "kvk": "Chamber of Commerce (KvK)",
-      "vat": "VAT number",
-      "address": "Address",
-      "phone": "Phone or WhatsApp"
+      "tradeName": "{name}, trading as Fivvi"
     },
     "cta": {
       "heading": "What does your day look like in Fivvi?",

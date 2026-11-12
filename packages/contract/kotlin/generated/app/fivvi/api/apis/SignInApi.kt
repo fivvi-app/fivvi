@@ -7,6 +7,7 @@ import okhttp3.RequestBody
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+import app.fivvi.api.models.PublicRequestRateLimited
 import app.fivvi.api.models.SignInRequest
 import app.fivvi.api.models.SignInTokenRequest
 import app.fivvi.api.models.SignInTokenResponse
@@ -33,10 +34,11 @@ interface SignInApi {
     /**
      * POST v1/sign-in/request
      * Ask for a sign-in email
-     * Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for a request over the rate limits, so it never says who has an account.
+     * Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for an address over its limit (3 requests per 15 minutes), so it never says who has an account. The app needs no bot check; every limit applies to it. A network over its limit (20 requests per hour) gets &#x60;429&#x60;, and nothing is sent.
      * Responses:
      *  - 202: Accepted. The body is empty.
      *  - 400: The request did not match the contract.
+     *  - 429: Too many requests from this network in the last hour. Nothing was sent. Try again later.
      *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
      *
      * @param signInRequest 
