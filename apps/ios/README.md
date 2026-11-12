@@ -1,6 +1,6 @@
 # Fivvi Pro for iOS
 
-The native iOS app (ADR-003): Swift 6 with strict concurrency, SwiftUI, iOS 26 and up (the system's Liquid Glass, ADR-029), iPhone. For now it has one screen, *Hello*, which proves every layer is connected (E008, spec #34). It is the template for every later iOS screen.
+The native iOS app (ADR-003): Swift 6 with strict concurrency, SwiftUI, iOS 26 and up (the system's Liquid Glass, ADR-029), iPhone. It opens on the sign-in (F001) and, signed in, on the home, which names the workspace and leads to *Klanten* and *Profiel* (F002, F003, F006, F012). The home also still shows the *Hello* block that proved every layer is connected (E008, spec #34); it is the pattern of [A screen](#a-screen) and goes with #652. The sign-in, home, *Profiel* and *Klanten* screens still have the M0 look until they move to the kit of [The kit](#the-kit) (#629, #630); the system components (navigation bars, sheets, alerts) are Liquid Glass from the iOS 26 deployment target on.
 
 ```bash
 scripts/bootstrap.sh --mobile   # once: checks Xcode and an iPhone simulator, installs the pinned SwiftLint
