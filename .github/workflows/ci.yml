@@ -17,9 +17,16 @@ name: CI
 
 on:
   pull_request:
-  # The native jobs still run on a push to main when native paths changed (scripts/native-jobs.sh): main's caches
-  # (Gradle, the AVD snapshot, DerivedData) are written only by these runs, and a PR and a merge group read only main's
-  # and their own (E002 #242).
+  # A push to main only fills the caches that PRs and merge groups read, and nothing in it fails the run (ADR-018,
+  # amendment of 12 November 2026; E002 #1357). The merge group already passed on the same tree, and a flaky failure here
+  # would turn main red and hold back the deploy of development and production (Railway's "Wait for CI"). So on a push:
+  #   - the Linux jobs run as on a PR: turbo caches the tasks that passed (a failed task is left out, the others stay);
+  #   - the native jobs run only as far as they write main's caches (Gradle, the AVD snapshot, DerivedData; a PR and a merge
+  #     group read only main's and their own, E002 #242), when native paths changed (scripts/native-jobs.sh), without
+  #     their test suites, retries, gates or Maestro;
+  #   - every job has `continue-on-error: ${{ github.event_name == 'push' }}` (false on the other events), and the steps
+  #     whose failure would stop the cache from being saved carry it too. Changing that is a decision for an ADR.
+  # A PR, a merge group and workflow_dispatch run as before; the five required checks keep their names.
   push:
     branches: [main]
   merge_group:
@@ -45,6 +52,7 @@ jobs:
   changes:
     name: Detect changes
     runs-on: ubuntu-24.04
+    continue-on-error: ${{ github.event_name == 'push' }}
     timeout-minutes: 5
     outputs:
       ios: ${{ steps.filter.outputs.ios }}
@@ -109,6 +117,7 @@ jobs:
   checks:
     name: Checks (Linux)
     runs-on: ubuntu-24.04
+    continue-on-error: ${{ github.event_name == 'push' }}
     timeout-minutes: 15
     # Integration tests run against real Postgres, the same major version as
     # compose.yaml and Railway (TESTING.md §5.3). Tests create their own databases.
@@ -193,6 +202,7 @@ jobs:
       # One turbo run so independent tasks run in parallel. A failing task
       # doesn't stop the unrelated ones, so one run reports every failure.
       - name: Lint, typecheck, unit and integration tests, build, format and static checks
+        continue-on-error: ${{ github.event_name == 'push' }}
         run: >-
           pnpm exec turbo run lint typecheck test test:integration build format:check check
           --cache-dir=.turbo/cache
@@ -218,6 +228,7 @@ jobs:
     # passes as skipped, and "Detect changes" says why.
     if: needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-24.04
+    continue-on-error: ${{ github.event_name == 'push' }}
     # 15 minutes for the work itself (the last runs took 10 to 14) plus the 10 minutes the OS packages step may spend
     # on its retries (#1311), so the job is never cancelled in the middle of one.
     timeout-minutes: 25
@@ -290,6 +301,7 @@ jobs:
 
       # Builds the web app, then runs every spec in nl-NL and en with axe checks.
       - name: Web e2e (nl-NL and en)
+        continue-on-error: ${{ github.event_name == 'push' }}
         run: pnpm exec turbo run test:e2e --cache-dir=.turbo/cache
 
       # Only on failure: artifact storage counts against the free quota.
@@ -322,6 +334,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.ios == 'true'
     runs-on: macos-15
+    continue-on-error: ${{ github.event_name == 'push' }}
     # The longest build of the last 10 green runs took 322 s (5.4 min), so 12 minutes is 2.2 times that (#393).
     # Detect changes (5) + this (12) + iOS tests (38) + the report job (2) = 57, under the merge queue's check
     # timeout (ADR-018). If no runner takes this job, GitHub cancels it after 15 minutes and ios-build-retry builds once
@@ -385,6 +398,7 @@ jobs:
 
       # What the two test jobs run: the .xctestrun and the build products, packed in a tar to keep the file modes.
       - name: Upload the test bundle
+        if: github.event_name != 'push'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ios-test-bundle
@@ -424,8 +438,9 @@ jobs:
   ios-build-retry:
     name: iOS build (retry)
     needs: [changes, ios-build]
-    if: ${{ !cancelled() && needs.changes.outputs.ios == 'true' && needs.ios-build.result == 'abandoned' }}
+    if: ${{ !cancelled() && github.event_name != 'push' && needs.changes.outputs.ios == 'true' && needs.ios-build.result == 'abandoned' }}
     runs-on: macos-15
+    continue-on-error: ${{ github.event_name == 'push' }}
     # As "iOS build".
     timeout-minutes: 12
     permissions:
@@ -486,6 +501,7 @@ jobs:
 
       # What the two test jobs run: the .xctestrun and the build products, packed in a tar to keep the file modes.
       - name: Upload the test bundle
+        if: github.event_name != 'push'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: ios-test-bundle
@@ -518,8 +534,9 @@ jobs:
     needs: [ios-build, ios-build-retry]
     # Start from whichever build succeeded (the retry runs only when the first was abandoned); !cancelled() because a
     # skipped retry would skip this job.
-    if: ${{ !cancelled() && (needs.ios-build.result == 'success' || needs.ios-build-retry.result == 'success') }}
+    if: ${{ !cancelled() && github.event_name != 'push' && (needs.ios-build.result == 'success' || needs.ios-build-retry.result == 'success') }}
     runs-on: macos-15
+    continue-on-error: ${{ github.event_name == 'push' }}
     # A healthy run takes 14-21 min (#393), of which the simulator boot and settle is up to 4 min (xcodebuild 11-17). A test that hangs fails
     # after its own allowance (scripts/test-ios.sh), so this is the backstop for the whole job: the deadline there
     # (1790 s, counted from the start of xcodebuild) + its grace (60 s) + what the job spends outside the deadline (at
@@ -580,8 +597,9 @@ jobs:
     name: iOS tests (retry plan)
     needs: ios-tests
     # !cancelled(): a run that somebody cancelled is not retried.
-    if: ${{ !cancelled() && needs.ios-tests.result != 'success' && needs.ios-tests.result != 'skipped' }}
+    if: ${{ !cancelled() && github.event_name != 'push' && needs.ios-tests.result != 'success' && needs.ios-tests.result != 'skipped' }}
     runs-on: ubuntu-24.04
+    continue-on-error: ${{ github.event_name == 'push' }}
     timeout-minutes: 2
     permissions:
       contents: read
@@ -606,8 +624,9 @@ jobs:
   ios-tests-retry:
     name: iOS tests (${{ matrix.locale }}) (retry)
     needs: ios-tests-plan
-    if: ${{ !cancelled() && needs.ios-tests-plan.outputs.locales != '' && needs.ios-tests-plan.outputs.locales != '[]' }}
+    if: ${{ !cancelled() && github.event_name != 'push' && needs.ios-tests-plan.outputs.locales != '' && needs.ios-tests-plan.outputs.locales != '[]' }}
     runs-on: macos-15
+    continue-on-error: ${{ github.event_name == 'push' }}
     # As "iOS tests".
     timeout-minutes: 38
     permissions:
@@ -671,8 +690,9 @@ jobs:
   ios:
     name: iOS
     needs: [changes, ios-build, ios-build-retry, ios-tests, ios-tests-plan, ios-tests-retry]
-    if: always() && needs.changes.outputs.ios == 'true'
+    if: always() && needs.changes.outputs.ios == 'true' && github.event_name != 'push'
     runs-on: ubuntu-24.04
+    continue-on-error: ${{ github.event_name == 'push' }}
     # Only reads the results of the jobs it needs; short, so the chain of a native check stays under the queue timeout.
     timeout-minutes: 2
     permissions:
@@ -705,6 +725,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.android == 'true'
     runs-on: ubuntu-24.04
+    continue-on-error: ${{ github.event_name == 'push' }}
     # Measured 0.8 to 4.6 minutes in the last 46 runs (the slowest: run 41674310293): 12 is
     # 2.6 x that and keeps the Android chain under the merge queue's check timeout (150, ADR-018; #519).
     timeout-minutes: 12
@@ -735,9 +756,11 @@ jobs:
         run: scripts/android.sh build
 
       - name: Debug app for Maestro
+        if: github.event_name != 'push'
         run: scripts/android.sh maestro-apk
 
       - name: Upload the debug app
+        if: github.event_name != 'push'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: android-maestro-apk
@@ -769,6 +792,7 @@ jobs:
     needs: changes
     if: needs.changes.outputs.android == 'true'
     runs-on: ubuntu-24.04
+    continue-on-error: ${{ github.event_name == 'push' }}
     timeout-minutes: 40
     permissions:
       contents: read
@@ -837,6 +861,7 @@ jobs:
         run: scripts/android.sh emulator
 
       - name: Unit tests, release bundle and Compose UI tests
+        if: github.event_name != 'push'
         timeout-minutes: 25
         run: scripts/android.sh verify
 
@@ -872,8 +897,9 @@ jobs:
   android-maestro:
     name: Android Maestro
     needs: [changes, android-build]
-    if: needs.changes.outputs.android == 'true'
+    if: needs.changes.outputs.android == 'true' && github.event_name != 'push'
     runs-on: ubuntu-24.04
+    continue-on-error: ${{ github.event_name == 'push' }}
     # The setup before the Maestro step (3 minutes measured, the emulator boot is capped at 10), the step (30) and the
     # steps after it; still bounds a hung run (#519).
     timeout-minutes: 40
@@ -1001,8 +1027,9 @@ jobs:
   android:
     name: Android
     needs: [changes, android-build, android-tests, android-maestro]
-    if: always() && needs.changes.outputs.android == 'true'
+    if: always() && needs.changes.outputs.android == 'true' && github.event_name != 'push'
     runs-on: ubuntu-24.04
+    continue-on-error: ${{ github.event_name == 'push' }}
     # Only reads the results of the jobs it needs; short, so the chain of a native check stays under the queue timeout.
     timeout-minutes: 2
     steps:
