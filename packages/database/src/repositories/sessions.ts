@@ -1,6 +1,7 @@
 import { and, asc, eq, gte, ne, sql } from 'drizzle-orm';
 import {
   authUsers,
+  classSeries,
   clients,
   groupClasses,
   sessionParticipants,
@@ -46,6 +47,21 @@ export interface SessionGroupClassView {
   readonly nameEn: string | null;
 }
 
+/**
+ * The weekly series a class date belongs to (F022): enough for "Part of: Kracht, every Tuesday
+ * 18:00" and "Changed from the series: time". The rule is the series' weekly rule text.
+ */
+export interface SessionSeriesView {
+  readonly id: string;
+  readonly rrule: string;
+  /** The series' wall-clock start, `HH:mm`. */
+  readonly localStartTime: string;
+  /** The local date in the rule this session stands for, `YYYY-MM-DD`. */
+  readonly occurrenceDate: string;
+  /** What was changed on this date alone: `time`, `trainer`, `capacity`, `location`. */
+  readonly detachedFields: string[];
+}
+
 /** A session as the team sees it: instants in UTC, the location, the trainer and who takes part. */
 export interface SessionView {
   readonly id: string;
@@ -61,6 +77,8 @@ export interface SessionView {
   readonly trainer: SessionTrainerView | null;
   /** The class of a class date (F021); `null` for the other kinds. */
   readonly groupClass: SessionGroupClassView | null;
+  /** The weekly series of a class date (F022); `null` for a date on its own and for the other kinds. */
+  readonly series: SessionSeriesView | null;
   /** In the order they were added. */
   readonly participants: SessionParticipantView[];
   /**
@@ -115,12 +133,24 @@ export async function findSession(
       trainerProfileId: sessions.trainerProfileId,
       updatedByTeamMemberId: sessions.updatedByTeamMemberId,
       groupClassId: sessions.groupClassId,
+      seriesId: sessions.seriesId,
+      occurrenceDate: sessions.occurrenceDate,
+      detachedFields: sessions.detachedFields,
     })
     .from(sessions)
     .where(and(eq(sessions.organizationId, scope.workspaceId), eq(sessions.id, sessionId)))
     .limit(1);
   if (!row) return undefined;
-  const { locationId, trainerProfileId, updatedByTeamMemberId, groupClassId, ...session } = row;
+  const {
+    locationId,
+    trainerProfileId,
+    updatedByTeamMemberId,
+    groupClassId,
+    seriesId,
+    occurrenceDate,
+    detachedFields,
+    ...session
+  } = row;
   const location = await findLocation(scope, locationId);
   // The composite foreign key keeps the location in the workspace and not null: it is there.
   if (!location) throw new Error('The location of a session was not found.');
@@ -166,6 +196,19 @@ export async function findSession(
           ),
         )
     : [];
+  const [series] =
+    seriesId && occurrenceDate
+      ? await db
+          .select({
+            id: classSeries.id,
+            rrule: classSeries.rrule,
+            localStartTime: classSeries.localStartTime,
+          })
+          .from(classSeries)
+          .where(
+            and(eq(classSeries.organizationId, scope.workspaceId), eq(classSeries.id, seriesId)),
+          )
+      : [];
   const participants = await db
     .select({
       clientId: clients.id,
@@ -192,6 +235,14 @@ export async function findSession(
     location,
     trainer: trainer ?? null,
     groupClass: groupClass ?? null,
+    series: series
+      ? {
+          ...series,
+          localStartTime: series.localStartTime.slice(0, 5),
+          occurrenceDate: occurrenceDate ?? '',
+          detachedFields,
+        }
+      : null,
     participants,
     lastChangedBy: lastChangedBy ?? null,
   };

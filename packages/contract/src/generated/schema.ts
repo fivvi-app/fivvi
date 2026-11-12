@@ -727,9 +727,29 @@ export interface paths {
         put?: never;
         /**
          * Put a class on a date
-         * @description Schedules the class on a date (the Owner only): a `group` session at the local start, taking the class’s trainer, capacity and duration (a trainer or capacity in the request wins for this date; `trainerId: null` plans it without a trainer) and the workspace’s default location, stored and answered as UTC instants plus the workspace’s time zone. A start the clocks skip answers `400` on `localStart` (`time_does_not_exist`); one they repeat takes the first. A class or trainer that is not in the workspace answers `404`.
+         * @description Schedules the class on a date (the Owner only): a `group` session at the local start, taking the class’s trainer, capacity and duration (a trainer or capacity in the request wins for this date; `trainerId: null` plans it without a trainer) and the workspace’s default location, stored and answered as UTC instants plus the workspace’s time zone. A start the clocks skip answers `400` on `localStart` (`time_does_not_exist`); one they repeat takes the first. With `repeat: weekly` (F022) it also makes the weekly series and its next 12 weeks of dates in the same transaction; the answer is the first date with `datesAdded`. A class or trainer that is not in the workspace answers `404`.
          */
         post: operations["scheduleGroupClassDate"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/group-classes/{classId}/series": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The weekly series of a class
+         * @description The weekly series of the class that still run (no end, or an end that is today or later), in the order they start (TW-03 *Reeksen*). The Owner only: a Trainer gets `403`, and reads the series of a date on the date itself (`Session.series`). A class that is not in the workspace answers `404`.
+         */
+        get: operations["listGroupClassSeries"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -877,6 +897,8 @@ export interface components {
                 path: string;
                 /** @description Machine-readable issue code. */
                 code: string;
+                /** @description The local date (`YYYY-MM-DD`) the issue is about, when the field alone does not say: the first date of a weekly class whose start the clocks skip (`time_does_not_exist`). */
+                date?: string;
             }[];
         };
         /** @description The signed-in account. */
@@ -1495,6 +1517,7 @@ export interface components {
             location: components["schemas"]["Location"];
             trainer?: components["schemas"]["SessionTrainer"];
             groupClass?: components["schemas"]["SessionGroupClass"];
+            series?: components["schemas"]["SessionSeries"];
             /** @description The clients in the session, in the order they were added. One for a private session; none for a class date until bookings exist (M5). */
             participants: components["schemas"]["SessionParticipant"][];
         };
@@ -1519,6 +1542,25 @@ export interface components {
             nameNl: string;
             /** @description The class’s English name, `null` without one. Show it to a viewer whose language is English, else the Dutch name (`pickContentLanguage`). */
             nameEn: string | null;
+        };
+        /** @description The weekly series of a class date (F022); left out for a date on its own. */
+        SessionSeries: {
+            /**
+             * Format: uuid
+             * @description The series ID.
+             */
+            id: string;
+            /**
+             * @description The weekday of the weekly rule, as RRULE writes it: `TU` is every Tuesday.
+             * @enum {string}
+             */
+            weekday: "MO" | "TU" | "WE" | "TH" | "FR" | "SA" | "SU";
+            /** @description The series’ start on the wall clock of the workspace’s time zone: `HH:mm`. */
+            localStartTime: string;
+            /** @description The local date in the series’ rule this date stands for: `YYYY-MM-DD`. */
+            occurrenceDate: string;
+            /** @description What was changed on this date alone (CO-01: *Aangepast t.o.v. de reeks*); empty when the date follows its series. A change of the series from an earlier date leaves these dates as they are. */
+            changedFields: ("time" | "trainer" | "capacity" | "location")[];
         };
         /** @description A client’s place in a session. */
         SessionParticipant: {
@@ -1659,6 +1701,8 @@ export interface components {
         CreatedGroupClass: {
             groupClass: components["schemas"]["GroupClass"];
             firstDate?: components["schemas"]["Session"] & unknown;
+            /** @description How many dates the class got: 12 when the `firstDate` repeats weekly (“12 groepslessen toegevoegd”); left out otherwise. */
+            datesAdded?: number;
         };
         /** @description A class to create: the Dutch name, optionally an English one, descriptions, the usual trainer, capacity and duration, and optionally its first date. */
         CreateGroupClassRequest: {
@@ -1692,6 +1736,11 @@ export interface components {
             localDate: string;
             /** @description The start in the workspace’s time zone: `HH:mm`, 24 hours. */
             localStart: string;
+            /**
+             * @description *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
+             * @enum {string}
+             */
+            repeat?: "none" | "weekly";
         };
         /** @description Changes a class: every field left out stays as it is. Dates already planned keep their own trainer, capacity and times (they were copied when they were planned). Other fields are ignored. */
         UpdateGroupClassRequest: {
@@ -1713,6 +1762,11 @@ export interface components {
             /** @description The new duration, 15 to 240 minutes in steps of 5. */
             durationMinutes?: number;
         };
+        /** @description The class date that was scheduled, with how many dates a weekly repeat made. */
+        ScheduledClassDate: components["schemas"]["Session"] & {
+            /** @description How many dates the request made: 12 for a weekly repeat (“12 groepslessen toegevoegd”); left out for one date. The session is the first of them. */
+            datesAdded?: number;
+        };
         /** @description A class on a date: a local date and start; the end follows from the class’s duration. */
         ScheduleGroupClassDateRequest: {
             /** @description The date in the workspace’s time zone: `YYYY-MM-DD`. A date that is none (30 February) answers `400` on `localDate`. */
@@ -1727,10 +1781,57 @@ export interface components {
             /** @description The capacity of this date, 1 to 100. Leave it out for the class’s. */
             capacity?: number;
             /**
-             * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+             * @description *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
+             * @enum {string}
+             */
+            repeat?: "none" | "weekly";
+            /**
+             * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event (and `class_series_created` for a weekly repeat) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
              * @enum {string}
              */
             surface?: "ios" | "android";
+        };
+        /** @description A weekly series of a class: “Every Tuesday 18:00–19:00 · Sarah · 8 spots, from 6 October”. Its dates are class dates (`Session`) with a `series`. */
+        ClassSeries: {
+            /**
+             * Format: uuid
+             * @description The series ID.
+             */
+            id: string;
+            /**
+             * Format: uuid
+             * @description The class the series is of.
+             */
+            groupClassId: string;
+            /** @description The weekly rule: `FREQ=WEEKLY;BYDAY=XX`, one weekday (M4 knows no other). */
+            rrule: string;
+            /**
+             * @description The weekday of the rule: `TU` is every Tuesday.
+             * @enum {string}
+             */
+            weekday: "MO" | "TU" | "WE" | "TH" | "FR" | "SA" | "SU";
+            /** @description The start on the wall clock of `timeZone`: `HH:mm`. It stays so across daylight saving time. */
+            localStartTime: string;
+            /** @description How long each date lasts. */
+            durationMinutes: number;
+            /** @description The IANA time zone the rule is read in. */
+            timeZone: string;
+            trainer?: components["schemas"]["SessionTrainer"] & unknown;
+            /** @description The capacity its dates start with. */
+            capacity: number;
+            /** @description The first day it may have a date: `YYYY-MM-DD`. */
+            startsOn: string;
+            /** @description The last day it may have a date; left out for a series that runs until it is stopped. A series ends the week before a later series that took over from a date on. */
+            endsOn?: string;
+            /** @description The last day the calendar was filled to: `YYYY-MM-DD`. */
+            materializedUntil: string;
+            /** @description Raised by every change of the series. */
+            version: number;
+        };
+        /** @description The class date with its changes, and how many other dates kept their own. */
+        UpdatedClassDate: components["schemas"]["Session"] & {
+            /** @description With `scope: following`: how many dates from this one on were changed on their own and kept as they are (CO-04). Left out for `scope: this`. */
+            keptDates?: number;
         };
         /** @description The date was changed since the version in the request; nothing was written. `session` is the date as it is now, to show the reloaded values. Contains no user-facing text. */
         ClassDateChanged: {
@@ -1748,6 +1849,16 @@ export interface components {
             localEnd?: string;
             /** @description The new capacity of this date, 1 to 100. Leave it out to keep it. */
             capacity?: number;
+            /**
+             * @description *Wijzigen voor* / *Apply to* (F022, CO-04): `this` (the default) changes this date only and, for a date of a series, marks what differs (`Session.series.changedFields`). `following` changes the series from this date on: the series is split here (the earlier one ends the week before, a new one starts on this date) and every date from here on takes the new start, length and capacity, except dates that were changed on their own, which stay as they are (`keptDates` says how many). A date that is in no series answers `400` on `scope` (`not_in_series`); a start the clocks skip on one of the dates it would reach answers `400` on `localStart` (`time_does_not_exist`) with that `date`, and nothing is changed; a length that is not 15 to 240 minutes in steps of 5 answers `400` on `localEnd` (`invalid_duration`).
+             * @enum {string}
+             */
+            scope?: "this" | "following";
+            /**
+             * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event (for `scope: following`) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+             * @enum {string}
+             */
+            surface?: "ios" | "android";
         };
         /** @description The join link (*aanmeldlink*) of a workspace: where a new client asks to become a client. */
         JoinLink: {
@@ -4193,7 +4304,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Session"];
+                    "application/json": components["schemas"]["UpdatedClassDate"];
                 };
             };
             /** @description The request did not match the contract. */
@@ -4554,13 +4665,83 @@ export interface operations {
             };
         };
         responses: {
-            /** @description The class was scheduled. */
+            /** @description The class was scheduled; with a weekly repeat, its first date and how many were made. */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Session"];
+                    "application/json": components["schemas"]["ScheduledClassDate"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    listGroupClassSeries: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The class ID. */
+                classId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The series. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ClassSeries"][];
                 };
             };
             /** @description The request did not match the contract. */

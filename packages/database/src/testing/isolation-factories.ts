@@ -11,6 +11,7 @@ import {
   trainerProfiles,
 } from '../schema/index.ts';
 import {
+  addClassSeries,
   addClient,
   addGroupClass,
   addPayment,
@@ -112,6 +113,11 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
   group_classes: {
     scopeColumn: 'organization_id',
     create: (db, workspaceId) => addGroupClass(db, { workspaceId }),
+  },
+  // A weekly series of a class made for the workspace (its dates are `sessions` rows).
+  class_series: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addClassSeries(db, { workspaceId }),
   },
   // A private session with a trainer of the workspace, planned by an Owner of it, and its one client.
   sessions: {

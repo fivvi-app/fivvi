@@ -13,6 +13,7 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   authRateLimits,
   authUsers,
+  classSeries,
   clients,
   createDatabase,
   type DatabaseClient,
@@ -783,7 +784,8 @@ describe('E004 database', () => {
       );
     }
 
-    function seededDates(tx: DatabaseExecutor) {
+    /** The dates of the synthetic weeks from 1 November, up to `until` (a local date, excluded). */
+    function seededDates(tx: DatabaseExecutor, until = '2026-11-09') {
       return rows<{
         name: string;
         day: string;
@@ -807,7 +809,7 @@ describe('E004 database', () => {
             left join team_members tm on tm.id = tp.team_member_id
             left join auth_users u on u.id = tm.account_id
             -- the dates of the synthetic weeks, not the two of the personal calendar's day (F013)
-            where s.starts_at >= '2026-11-01'
+            where s.starts_at >= '2026-11-01' and s.starts_at < ${until}::date
             order by s.starts_at`,
       );
     }
@@ -840,7 +842,7 @@ describe('E004 database', () => {
         expect(dates.length).toBeGreaterThanOrEqual(3);
         for (const date of dates) {
           expect(date).toMatchObject({ type: 'group', location: "John's Gym" });
-          expect(date.day >= '2026-11-02' && date.day <= '2026-11-06').toBe(true);
+          expect(date.day >= '2026-11-02' && date.day <= '2026-11-08').toBe(true);
         }
         expect(new Set(dates.map(({ name }) => name)).size).toBe(3);
         // Every date copied its class: the trainer, the capacity and the length.
@@ -860,14 +862,19 @@ describe('E004 database', () => {
       });
     });
 
-    it('AC12: seeds the dates of the next week when the seed runs in it, once per week, and the classes once', async () => {
+    it('AC12: the next week is there already from the weekly series, and a run in it adds no date twice, and no class', async () => {
       await withRollback(db, async (tx) => {
         await seed(tx, { now: WEDNESDAY });
-        const first = (await seededDates(tx)).length;
+        const firstWeek = (await seededDates(tx)).length;
+        const nextWeek = (await seededDates(tx, '2026-11-16')).length - firstWeek;
+        expect(nextWeek).toBe(firstWeek);
+        const before = await tx.$count(sessions, eq(sessions.type, 'group'));
         await seed(tx, { now: new Date('2026-11-11T12:00:00Z') });
         await seed(tx, { now: new Date('2026-11-11T12:00:00Z') });
 
-        expect((await seededDates(tx)).length).toBe(first * 2);
+        expect((await seededDates(tx, '2026-11-16')).length).toBe(firstWeek * 2);
+        // A week later only the end of the horizon moved, by one week of dates.
+        expect(await tx.$count(sessions, eq(sessions.type, 'group'))).toBe(before + firstWeek);
         expect(await seededClasses(tx)).toHaveLength(3);
       });
     });
@@ -890,6 +897,107 @@ describe('E004 database', () => {
         await seed(tx, { production: true, now: WEDNESDAY });
 
         expect(await tx.$count(groupClasses)).toBe(0);
+      });
+    });
+  });
+
+  describe('F022 seed the weekly timetable', () => {
+    // Wednesday 4 November 2026: the week of Monday 2 November.
+    const WEDNESDAY = new Date('2026-11-04T12:00:00Z');
+
+    function weeklySeries(tx: DatabaseExecutor) {
+      return rows<{
+        name: string;
+        rrule: string;
+        time: string;
+        trainer: string | null;
+        startsOn: string;
+        endsOn: string | null;
+        materializedUntil: string;
+        dates: number;
+      }>(
+        tx,
+        sql`select gc.name_nl as name, cs.rrule, to_char(cs.local_start_time, 'HH24:MI') as time,
+                   u.name as trainer, cs.starts_on::text as "startsOn", cs.ends_on::text as "endsOn",
+                   cs.materialized_until::text as "materializedUntil",
+                   (select count(*)::int from sessions s where s.series_id = cs.id) as dates
+            from class_series cs
+            join group_classes gc on gc.id = cs.group_class_id
+            join organizations o on o.id = cs.organization_id and o.slug = 'johns-gym'
+            left join trainer_profiles tp on tp.id = cs.trainer_profile_id
+            left join team_members tm on tm.id = tp.team_member_id
+            left join auth_users u on u.id = tm.account_id
+            order by cs.rrule, cs.local_start_time`,
+      );
+    }
+
+    it('AC13: John’s Gym has a week from weekly series: six classes, two trainers, one without a trainer, 12 weeks ahead', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: WEDNESDAY });
+
+        const series = await weeklySeries(tx);
+        expect(series).toHaveLength(6);
+        expect(new Set(series.map(({ trainer }) => trainer).filter(Boolean))).toEqual(
+          new Set(['Sarah', 'Tom']),
+        );
+        expect(series.filter(({ trainer }) => trainer === null)).toHaveLength(2);
+        expect(
+          new Set(series.filter(({ trainer }) => trainer === null).map(({ name }) => name)),
+        ).toEqual(new Set(['Bootcamp']));
+        for (const one of series) {
+          expect(one).toMatchObject({ endsOn: null, materializedUntil: '2027-01-26' });
+          expect(one.rrule).toMatch(/^FREQ=WEEKLY;BYDAY=(MO|TU|WE|TH|FR|SA|SU)$/);
+          // From its weekday of the week to the horizon: 12 or 13 dates, one a week.
+          expect([12, 13]).toContain(one.dates);
+        }
+        const kracht = series.filter(({ name }) => name === 'Kracht');
+        expect(kracht.map(({ rrule, time, startsOn }) => [rrule, time, startsOn])).toEqual([
+          ['FREQ=WEEKLY;BYDAY=TH', '18:00', '2026-11-05'],
+          ['FREQ=WEEKLY;BYDAY=TU', '18:00', '2026-11-03'],
+        ]);
+      });
+    });
+
+    it('AC13: the times stay on the wall clock across the clocks changing: Kracht at 18:00 in Amsterdam all the way to March', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: new Date('2027-01-06T12:00:00Z') });
+        const times = await rows<{ day: string; time: string }>(
+          tx,
+          sql`select s.occurrence_date::text as day,
+                     to_char(s.starts_at at time zone 'Europe/Amsterdam', 'HH24:MI') as time
+              from sessions s join class_series cs on cs.id = s.series_id
+              where cs.rrule = 'FREQ=WEEKLY;BYDAY=TU' and cs.local_start_time = '18:00'`,
+        );
+        expect(times.length).toBeGreaterThanOrEqual(12);
+        expect(times.every(({ time }) => time === '18:00')).toBe(true);
+        expect(times.map(({ day }) => day)).toContain('2027-03-30');
+      });
+    });
+
+    it('AC13: runs again without making a date twice or resetting one an Owner changed or cancelled', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { now: WEDNESDAY });
+        const before = await tx.$count(sessions);
+        await tx.execute(
+          sql`update sessions set status = 'cancelled', capacity = 3, detached_fields = '{capacity}'
+              where occurrence_date = '2026-11-10'`,
+        );
+        await seed(tx, { now: WEDNESDAY });
+
+        expect(await tx.$count(sessions)).toBe(before);
+        const [changed] = await rows<{ status: string; capacity: number }>(
+          tx,
+          sql`select status, capacity from sessions where occurrence_date = '2026-11-10'`,
+        );
+        expect(changed).toEqual({ status: 'cancelled', capacity: 3 });
+      });
+    });
+
+    it('AC13: no series in production', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { production: true, now: WEDNESDAY });
+
+        expect(await tx.$count(classSeries)).toBe(0);
       });
     });
   });

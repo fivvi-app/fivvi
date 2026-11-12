@@ -35,6 +35,8 @@ import kotlinx.serialization.Contextual
  * @param localStart The new start, `HH:mm` in the workspace’s time zone. Leave it out to keep it.
  * @param localEnd The new end, `HH:mm` on the same day as the start. Leave it out to keep its time of day: a start moved alone does not move the end with it, and one moved to or past the unchanged end is refused like any end. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`.
  * @param capacity The new capacity of this date, 1 to 100. Leave it out to keep it.
+ * @param scope *Wijzigen voor* / *Apply to* (F022, CO-04): `this` (the default) changes this date only and, for a date of a series, marks what differs (`Session.series.changedFields`). `following` changes the series from this date on: the series is split here (the earlier one ends the week before, a new one starts on this date) and every date from here on takes the new start, length and capacity, except dates that were changed on their own, which stay as they are (`keptDates` says how many). A date that is in no series answers `400` on `scope` (`not_in_series`); a start the clocks skip on one of the dates it would reach answers `400` on `localStart` (`time_does_not_exist`) with that `date`, and nothing is changed; a length that is not 15 to 240 minutes in steps of 5 answers `400` on `localEnd` (`invalid_duration`).
+ * @param surface The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event (for `scope: following`) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
  */
 @Serializable
 
@@ -54,10 +56,38 @@ data class UpdateGroupClassDateRequest (
 
     /* The new capacity of this date, 1 to 100. Leave it out to keep it. */
     @SerialName(value = "capacity")
-    val capacity: kotlin.Int? = null
+    val capacity: kotlin.Int? = null,
+
+    /* *Wijzigen voor* / *Apply to* (F022, CO-04): `this` (the default) changes this date only and, for a date of a series, marks what differs (`Session.series.changedFields`). `following` changes the series from this date on: the series is split here (the earlier one ends the week before, a new one starts on this date) and every date from here on takes the new start, length and capacity, except dates that were changed on their own, which stay as they are (`keptDates` says how many). A date that is in no series answers `400` on `scope` (`not_in_series`); a start the clocks skip on one of the dates it would reach answers `400` on `localStart` (`time_does_not_exist`) with that `date`, and nothing is changed; a length that is not 15 to 240 minutes in steps of 5 answers `400` on `localEnd` (`invalid_duration`). */
+    @SerialName(value = "scope")
+    val scope: UpdateGroupClassDateRequest.Scope? = null,
+
+    /* The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event (for `scope: following`) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it. */
+    @SerialName(value = "surface")
+    val surface: UpdateGroupClassDateRequest.Surface? = null
 
 ) {
 
+    /**
+     * *Wijzigen voor* / *Apply to* (F022, CO-04): `this` (the default) changes this date only and, for a date of a series, marks what differs (`Session.series.changedFields`). `following` changes the series from this date on: the series is split here (the earlier one ends the week before, a new one starts on this date) and every date from here on takes the new start, length and capacity, except dates that were changed on their own, which stay as they are (`keptDates` says how many). A date that is in no series answers `400` on `scope` (`not_in_series`); a start the clocks skip on one of the dates it would reach answers `400` on `localStart` (`time_does_not_exist`) with that `date`, and nothing is changed; a length that is not 15 to 240 minutes in steps of 5 answers `400` on `localEnd` (`invalid_duration`).
+     *
+     * Values: THIS,FOLLOWING
+     */
+    @Serializable
+    enum class Scope(val value: kotlin.String) {
+        @SerialName(value = "this") THIS("this"),
+        @SerialName(value = "following") FOLLOWING("following");
+    }
+    /**
+     * The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event (for `scope: following`) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+     *
+     * Values: IOS,ANDROID
+     */
+    @Serializable
+    enum class Surface(val value: kotlin.String) {
+        @SerialName(value = "ios") IOS("ios"),
+        @SerialName(value = "android") ANDROID("android");
+    }
 
 }
 

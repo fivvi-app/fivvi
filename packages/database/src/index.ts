@@ -39,6 +39,22 @@ export {
   setPreferredLocale,
 } from './repositories/accounts.ts';
 export {
+  type ClassSeriesChanges,
+  type ClassSeriesView,
+  createClassSeries,
+  createSeriesDates,
+  findClassSeries,
+  listActiveClassSeries,
+  listSeriesDates,
+  moveDatesToSeries,
+  type NewClassSeries,
+  type NewSeriesDate,
+  type SeriesDateRow,
+  type SeriesDateUpdate,
+  updateClassSeries,
+  updateSeriesDates,
+} from './repositories/class-series.ts';
+export {
   type ClientChanges,
   type ClientPage,
   type ClientView,
@@ -133,6 +149,7 @@ export {
   type SessionGroupClassView,
   type SessionParticipantView,
   type SessionReschedule,
+  type SessionSeriesView,
   type SessionStatus,
   type SessionTrainerView,
   type SessionType,

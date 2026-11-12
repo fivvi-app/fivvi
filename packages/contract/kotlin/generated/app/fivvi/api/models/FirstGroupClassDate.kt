@@ -33,6 +33,7 @@ import kotlinx.serialization.Contextual
  *
  * @param localDate The date in the workspace’s time zone: `YYYY-MM-DD`.
  * @param localStart The start in the workspace’s time zone: `HH:mm`, 24 hours.
+ * @param repeat *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
  */
 @Serializable
 
@@ -44,10 +45,24 @@ data class FirstGroupClassDate (
 
     /* The start in the workspace’s time zone: `HH:mm`, 24 hours. */
     @SerialName(value = "localStart")
-    val localStart: kotlin.String
+    val localStart: kotlin.String,
+
+    /* *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created. */
+    @SerialName(value = "repeat")
+    val repeat: FirstGroupClassDate.Repeat? = null
 
 ) {
 
+    /**
+     * *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
+     *
+     * Values: NONE,WEEKLY
+     */
+    @Serializable
+    enum class Repeat(val value: kotlin.String) {
+        @SerialName(value = "none") NONE("none"),
+        @SerialName(value = "weekly") WEEKLY("weekly");
+    }
 
 }
 

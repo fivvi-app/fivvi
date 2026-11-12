@@ -8,6 +8,14 @@ export const ValidationErrorSchema = z
       z.object({
         path: z.string().openapi({ description: 'Dot-separated path of the invalid field.' }),
         code: z.string().openapi({ description: 'Machine-readable issue code.' }),
+        date: z
+          .string()
+          .optional()
+          .openapi({
+            description:
+              'The local date (`YYYY-MM-DD`) the issue is about, when the field alone does not say: ' +
+              'the first date of a weekly class whose start the clocks skip (`time_does_not_exist`).',
+          }),
       }),
     ),
   })

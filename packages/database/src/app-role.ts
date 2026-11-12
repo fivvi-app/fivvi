@@ -35,6 +35,7 @@ export const APP_TABLE_PRIVILEGES: Readonly<Record<string, readonly Privilege[]>
   locations: ALL,
   trainer_invitations: ALL,
   group_classes: ALL,
+  class_series: ALL,
   sessions: ALL,
   session_participants: ALL,
   // The payment ledger (E019): the status lines are append-only by a trigger, not by privilege, so

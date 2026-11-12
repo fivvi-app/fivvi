@@ -198,3 +198,26 @@ export const kracht = (trainerId?: string) => ({
   capacity: 8,
   durationMinutes: 60,
 });
+
+/** A weekly series as the API shows it (F022). */
+export interface SeriesBody {
+  id: string;
+  rrule: string;
+  weekday: string;
+  localStartTime: string;
+  durationMinutes: number;
+  timeZone: string;
+  trainer?: { id: string; name: string };
+  capacity: number;
+  startsOn: string;
+  endsOn?: string;
+  materializedUntil: string;
+  version: number;
+}
+
+export const listSeries = (
+  server: GroupClassServer,
+  workspaceId: string,
+  classId: string,
+  who?: { id: string },
+) => call(server, 'GET', `${classes(workspaceId)}/${classId}/series`, who);

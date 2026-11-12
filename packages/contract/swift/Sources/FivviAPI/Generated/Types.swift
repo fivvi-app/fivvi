@@ -307,11 +307,18 @@ public protocol APIProtocol: Sendable {
     func updateGroupClass(_ input: Operations.UpdateGroupClass.Input) async throws -> Operations.UpdateGroupClass.Output
     /// Put a class on a date
     ///
-    /// Schedules the class on a date (the Owner only): a `group` session at the local start, taking the class’s trainer, capacity and duration (a trainer or capacity in the request wins for this date; `trainerId: null` plans it without a trainer) and the workspace’s default location, stored and answered as UTC instants plus the workspace’s time zone. A start the clocks skip answers `400` on `localStart` (`time_does_not_exist`); one they repeat takes the first. A class or trainer that is not in the workspace answers `404`.
+    /// Schedules the class on a date (the Owner only): a `group` session at the local start, taking the class’s trainer, capacity and duration (a trainer or capacity in the request wins for this date; `trainerId: null` plans it without a trainer) and the workspace’s default location, stored and answered as UTC instants plus the workspace’s time zone. A start the clocks skip answers `400` on `localStart` (`time_does_not_exist`); one they repeat takes the first. With `repeat: weekly` (F022) it also makes the weekly series and its next 12 weeks of dates in the same transaction; the answer is the first date with `datesAdded`. A class or trainer that is not in the workspace answers `404`.
     ///
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/group-classes/{classId}/dates`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/{classId}/dates/post(scheduleGroupClassDate)`.
     func scheduleGroupClassDate(_ input: Operations.ScheduleGroupClassDate.Input) async throws -> Operations.ScheduleGroupClassDate.Output
+    /// The weekly series of a class
+    ///
+    /// The weekly series of the class that still run (no end, or an end that is today or later), in the order they start (TW-03 *Reeksen*). The Owner only: a Trainer gets `403`, and reads the series of a date on the date itself (`Session.series`). A class that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/group-classes/{classId}/series`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/{classId}/series/get(listGroupClassSeries)`.
+    func listGroupClassSeries(_ input: Operations.ListGroupClassSeries.Input) async throws -> Operations.ListGroupClassSeries.Output
     /// The join link of a workspace
     ///
     /// The workspace’s join link in full and when it was last renewed. The Owner and the Trainers may read it, to send it to a new client; a client of the workspace gets `403`, a person with no place in it `404`.
@@ -988,7 +995,7 @@ extension APIProtocol {
     }
     /// Put a class on a date
     ///
-    /// Schedules the class on a date (the Owner only): a `group` session at the local start, taking the class’s trainer, capacity and duration (a trainer or capacity in the request wins for this date; `trainerId: null` plans it without a trainer) and the workspace’s default location, stored and answered as UTC instants plus the workspace’s time zone. A start the clocks skip answers `400` on `localStart` (`time_does_not_exist`); one they repeat takes the first. A class or trainer that is not in the workspace answers `404`.
+    /// Schedules the class on a date (the Owner only): a `group` session at the local start, taking the class’s trainer, capacity and duration (a trainer or capacity in the request wins for this date; `trainerId: null` plans it without a trainer) and the workspace’s default location, stored and answered as UTC instants plus the workspace’s time zone. A start the clocks skip answers `400` on `localStart` (`time_does_not_exist`); one they repeat takes the first. With `repeat: weekly` (F022) it also makes the weekly series and its next 12 weeks of dates in the same transaction; the answer is the first date with `datesAdded`. A class or trainer that is not in the workspace answers `404`.
     ///
     /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/group-classes/{classId}/dates`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/{classId}/dates/post(scheduleGroupClassDate)`.
@@ -1001,6 +1008,21 @@ extension APIProtocol {
             path: path,
             headers: headers,
             body: body
+        ))
+    }
+    /// The weekly series of a class
+    ///
+    /// The weekly series of the class that still run (no end, or an end that is today or later), in the order they start (TW-03 *Reeksen*). The Owner only: a Trainer gets `403`, and reads the series of a date on the date itself (`Session.series`). A class that is not in the workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/group-classes/{classId}/series`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/group-classes/{classId}/series/get(listGroupClassSeries)`.
+    public func listGroupClassSeries(
+        path: Operations.ListGroupClassSeries.Input.Path,
+        headers: Operations.ListGroupClassSeries.Input.Headers = .init()
+    ) async throws -> Operations.ListGroupClassSeries.Output {
+        try await listGroupClassSeries(Operations.ListGroupClassSeries.Input(
+            path: path,
+            headers: headers
         ))
     }
     /// The join link of a workspace

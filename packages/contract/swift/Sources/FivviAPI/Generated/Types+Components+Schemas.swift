@@ -202,21 +202,29 @@ extension Components {
                 ///
                 /// - Remark: Generated from `#/components/schemas/ValidationError/IssuesPayload/code`.
                 public var code: Swift.String
+                /// The local date (`YYYY-MM-DD`) the issue is about, when the field alone does not say: the first date of a weekly class whose start the clocks skip (`time_does_not_exist`).
+                ///
+                /// - Remark: Generated from `#/components/schemas/ValidationError/IssuesPayload/date`.
+                public var date: Swift.String?
                 /// Creates a new `IssuesPayloadPayload`.
                 ///
                 /// - Parameters:
                 ///   - path: Dot-separated path of the invalid field.
                 ///   - code: Machine-readable issue code.
+                ///   - date: The local date (`YYYY-MM-DD`) the issue is about, when the field alone does not say: the first date of a weekly class whose start the clocks skip (`time_does_not_exist`).
                 public init(
                     path: Swift.String,
-                    code: Swift.String
+                    code: Swift.String,
+                    date: Swift.String? = nil
                 ) {
                     self.path = path
                     self.code = code
+                    self.date = date
                 }
                 public enum CodingKeys: String, CodingKey {
                     case path
                     case code
+                    case date
                 }
             }
             /// - Remark: Generated from `#/components/schemas/ValidationError/issues`.
@@ -2314,6 +2322,8 @@ extension Components {
             public var trainer: Components.Schemas.SessionTrainer?
             /// - Remark: Generated from `#/components/schemas/Session/groupClass`.
             public var groupClass: Components.Schemas.SessionGroupClass?
+            /// - Remark: Generated from `#/components/schemas/Session/series`.
+            public var series: Components.Schemas.SessionSeries?
             /// The clients in the session, in the order they were added. One for a private session; none for a class date until bookings exist (M5).
             ///
             /// - Remark: Generated from `#/components/schemas/Session/participants`.
@@ -2332,6 +2342,7 @@ extension Components {
             ///   - location:
             ///   - trainer:
             ///   - groupClass:
+            ///   - series:
             ///   - participants: The clients in the session, in the order they were added. One for a private session; none for a class date until bookings exist (M5).
             public init(
                 id: Swift.String,
@@ -2345,6 +2356,7 @@ extension Components {
                 location: Components.Schemas.Location,
                 trainer: Components.Schemas.SessionTrainer? = nil,
                 groupClass: Components.Schemas.SessionGroupClass? = nil,
+                series: Components.Schemas.SessionSeries? = nil,
                 participants: [Components.Schemas.SessionParticipant]
             ) {
                 self.id = id
@@ -2358,6 +2370,7 @@ extension Components {
                 self.location = location
                 self.trainer = trainer
                 self.groupClass = groupClass
+                self.series = series
                 self.participants = participants
             }
             public enum CodingKeys: String, CodingKey {
@@ -2372,6 +2385,7 @@ extension Components {
                 case location
                 case trainer
                 case groupClass
+                case series
                 case participants
             }
         }
@@ -2439,6 +2453,82 @@ extension Components {
                 case id
                 case nameNl
                 case nameEn
+            }
+        }
+        /// The weekly series of a class date (F022); left out for a date on its own.
+        ///
+        /// - Remark: Generated from `#/components/schemas/SessionSeries`.
+        public struct SessionSeries: Codable, Hashable, Sendable {
+            /// The series ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionSeries/id`.
+            public var id: Swift.String
+            /// The weekday of the weekly rule, as RRULE writes it: `TU` is every Tuesday.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionSeries/weekday`.
+            @frozen public enum WeekdayPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case mo = "MO"
+                case tu = "TU"
+                case we = "WE"
+                case th = "TH"
+                case fr = "FR"
+                case sa = "SA"
+                case su = "SU"
+            }
+            /// The weekday of the weekly rule, as RRULE writes it: `TU` is every Tuesday.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionSeries/weekday`.
+            public var weekday: Components.Schemas.SessionSeries.WeekdayPayload
+            /// The series’ start on the wall clock of the workspace’s time zone: `HH:mm`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionSeries/localStartTime`.
+            public var localStartTime: Swift.String
+            /// The local date in the series’ rule this date stands for: `YYYY-MM-DD`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionSeries/occurrenceDate`.
+            public var occurrenceDate: Swift.String
+            /// - Remark: Generated from `#/components/schemas/SessionSeries/ChangedFieldsPayload`.
+            @frozen public enum ChangedFieldsPayloadPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case time = "time"
+                case trainer = "trainer"
+                case capacity = "capacity"
+                case location = "location"
+            }
+            /// What was changed on this date alone (CO-01: *Aangepast t.o.v. de reeks*); empty when the date follows its series. A change of the series from an earlier date leaves these dates as they are.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionSeries/changedFields`.
+            public typealias ChangedFieldsPayload = [Components.Schemas.SessionSeries.ChangedFieldsPayloadPayload]
+            /// What was changed on this date alone (CO-01: *Aangepast t.o.v. de reeks*); empty when the date follows its series. A change of the series from an earlier date leaves these dates as they are.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionSeries/changedFields`.
+            public var changedFields: Components.Schemas.SessionSeries.ChangedFieldsPayload
+            /// Creates a new `SessionSeries`.
+            ///
+            /// - Parameters:
+            ///   - id: The series ID.
+            ///   - weekday: The weekday of the weekly rule, as RRULE writes it: `TU` is every Tuesday.
+            ///   - localStartTime: The series’ start on the wall clock of the workspace’s time zone: `HH:mm`.
+            ///   - occurrenceDate: The local date in the series’ rule this date stands for: `YYYY-MM-DD`.
+            ///   - changedFields: What was changed on this date alone (CO-01: *Aangepast t.o.v. de reeks*); empty when the date follows its series. A change of the series from an earlier date leaves these dates as they are.
+            public init(
+                id: Swift.String,
+                weekday: Components.Schemas.SessionSeries.WeekdayPayload,
+                localStartTime: Swift.String,
+                occurrenceDate: Swift.String,
+                changedFields: Components.Schemas.SessionSeries.ChangedFieldsPayload
+            ) {
+                self.id = id
+                self.weekday = weekday
+                self.localStartTime = localStartTime
+                self.occurrenceDate = occurrenceDate
+                self.changedFields = changedFields
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case weekday
+                case localStartTime
+                case occurrenceDate
+                case changedFields
             }
         }
         /// A client’s place in a session.
@@ -2956,21 +3046,29 @@ extension Components {
             }
             /// - Remark: Generated from `#/components/schemas/CreatedGroupClass/firstDate`.
             public var firstDate: Components.Schemas.CreatedGroupClass.FirstDatePayload?
+            /// How many dates the class got: 12 when the `firstDate` repeats weekly (“12 groepslessen toegevoegd”); left out otherwise.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreatedGroupClass/datesAdded`.
+            public var datesAdded: Swift.Int?
             /// Creates a new `CreatedGroupClass`.
             ///
             /// - Parameters:
             ///   - groupClass:
             ///   - firstDate:
+            ///   - datesAdded: How many dates the class got: 12 when the `firstDate` repeats weekly (“12 groepslessen toegevoegd”); left out otherwise.
             public init(
                 groupClass: Components.Schemas.GroupClass,
-                firstDate: Components.Schemas.CreatedGroupClass.FirstDatePayload? = nil
+                firstDate: Components.Schemas.CreatedGroupClass.FirstDatePayload? = nil,
+                datesAdded: Swift.Int? = nil
             ) {
                 self.groupClass = groupClass
                 self.firstDate = firstDate
+                self.datesAdded = datesAdded
             }
             public enum CodingKeys: String, CodingKey {
                 case groupClass
                 case firstDate
+                case datesAdded
             }
         }
         /// A class to create: the Dutch name, optionally an English one, descriptions, the usual trainer, capacity and duration, and optionally its first date.
@@ -3075,21 +3173,36 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/FirstGroupClassDate/localStart`.
             public var localStart: Swift.String
+            /// *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FirstGroupClassDate/repeat`.
+            @frozen public enum RepeatPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case none = "none"
+                case weekly = "weekly"
+            }
+            /// *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FirstGroupClassDate/repeat`.
+            public var _repeat: Components.Schemas.FirstGroupClassDate.RepeatPayload?
             /// Creates a new `FirstGroupClassDate`.
             ///
             /// - Parameters:
             ///   - localDate: The date in the workspace’s time zone: `YYYY-MM-DD`.
             ///   - localStart: The start in the workspace’s time zone: `HH:mm`, 24 hours.
+            ///   - _repeat: *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
             public init(
                 localDate: Swift.String,
-                localStart: Swift.String
+                localStart: Swift.String,
+                _repeat: Components.Schemas.FirstGroupClassDate.RepeatPayload? = nil
             ) {
                 self.localDate = localDate
                 self.localStart = localStart
+                self._repeat = _repeat
             }
             public enum CodingKeys: String, CodingKey {
                 case localDate
                 case localStart
+                case _repeat = "repeat"
             }
         }
         /// Changes a class: every field left out stays as it is. Dates already planned keep their own trainer, capacity and times (they were copied when they were planned). Other fields are ignored.
@@ -3161,6 +3274,52 @@ extension Components {
                 case durationMinutes
             }
         }
+        /// The class date that was scheduled, with how many dates a weekly repeat made.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ScheduledClassDate`.
+        public struct ScheduledClassDate: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/ScheduledClassDate/value1`.
+            public var value1: Components.Schemas.Session
+            /// - Remark: Generated from `#/components/schemas/ScheduledClassDate/value2`.
+            public struct Value2Payload: Codable, Hashable, Sendable {
+                /// How many dates the request made: 12 for a weekly repeat (“12 groepslessen toegevoegd”); left out for one date. The session is the first of them.
+                ///
+                /// - Remark: Generated from `#/components/schemas/ScheduledClassDate/value2/datesAdded`.
+                public var datesAdded: Swift.Int?
+                /// Creates a new `Value2Payload`.
+                ///
+                /// - Parameters:
+                ///   - datesAdded: How many dates the request made: 12 for a weekly repeat (“12 groepslessen toegevoegd”); left out for one date. The session is the first of them.
+                public init(datesAdded: Swift.Int? = nil) {
+                    self.datesAdded = datesAdded
+                }
+                public enum CodingKeys: String, CodingKey {
+                    case datesAdded
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/ScheduledClassDate/value2`.
+            public var value2: Components.Schemas.ScheduledClassDate.Value2Payload
+            /// Creates a new `ScheduledClassDate`.
+            ///
+            /// - Parameters:
+            ///   - value1:
+            ///   - value2:
+            public init(
+                value1: Components.Schemas.Session,
+                value2: Components.Schemas.ScheduledClassDate.Value2Payload
+            ) {
+                self.value1 = value1
+                self.value2 = value2
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                self.value1 = try .init(from: decoder)
+                self.value2 = try .init(from: decoder)
+            }
+            public func encode(to encoder: any Swift.Encoder) throws {
+                try self.value1.encode(to: encoder)
+                try self.value2.encode(to: encoder)
+            }
+        }
         /// A class on a date: a local date and start; the end follows from the class’s duration.
         ///
         /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest`.
@@ -3181,14 +3340,25 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/capacity`.
             public var capacity: Swift.Int?
-            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            /// *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/repeat`.
+            @frozen public enum RepeatPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case none = "none"
+                case weekly = "weekly"
+            }
+            /// *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/repeat`.
+            public var _repeat: Components.Schemas.ScheduleGroupClassDateRequest.RepeatPayload?
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event (and `class_series_created` for a weekly repeat) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             ///
             /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/surface`.
             @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
                 case ios = "ios"
                 case android = "android"
             }
-            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event (and `class_series_created` for a weekly repeat) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             ///
             /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/surface`.
             public var surface: Components.Schemas.ScheduleGroupClassDateRequest.SurfacePayload?
@@ -3199,18 +3369,21 @@ extension Components {
             ///   - localStart: The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first.
             ///   - trainerId: The trainer of this date, a team-member ID from `GET …/trainers`. Leave it out for the class’s usual trainer; `null` plans the date as *Trainer nodig*.
             ///   - capacity: The capacity of this date, 1 to 100. Leave it out for the class’s.
-            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///   - _repeat: *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event (and `class_series_created` for a weekly repeat) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             public init(
                 localDate: Swift.String,
                 localStart: Swift.String,
                 trainerId: Swift.String? = nil,
                 capacity: Swift.Int? = nil,
+                _repeat: Components.Schemas.ScheduleGroupClassDateRequest.RepeatPayload? = nil,
                 surface: Components.Schemas.ScheduleGroupClassDateRequest.SurfacePayload? = nil
             ) {
                 self.localDate = localDate
                 self.localStart = localStart
                 self.trainerId = trainerId
                 self.capacity = capacity
+                self._repeat = _repeat
                 self.surface = surface
             }
             public enum CodingKeys: String, CodingKey {
@@ -3218,7 +3391,210 @@ extension Components {
                 case localStart
                 case trainerId
                 case capacity
+                case _repeat = "repeat"
                 case surface
+            }
+        }
+        /// A weekly series of a class: “Every Tuesday 18:00–19:00 · Sarah · 8 spots, from 6 October”. Its dates are class dates (`Session`) with a `series`.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ClassSeries`.
+        public struct ClassSeries: Codable, Hashable, Sendable {
+            /// The series ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/id`.
+            public var id: Swift.String
+            /// The class the series is of.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/groupClassId`.
+            public var groupClassId: Swift.String
+            /// The weekly rule: `FREQ=WEEKLY;BYDAY=XX`, one weekday (M4 knows no other).
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/rrule`.
+            public var rrule: Swift.String
+            /// The weekday of the rule: `TU` is every Tuesday.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/weekday`.
+            @frozen public enum WeekdayPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case mo = "MO"
+                case tu = "TU"
+                case we = "WE"
+                case th = "TH"
+                case fr = "FR"
+                case sa = "SA"
+                case su = "SU"
+            }
+            /// The weekday of the rule: `TU` is every Tuesday.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/weekday`.
+            public var weekday: Components.Schemas.ClassSeries.WeekdayPayload
+            /// The start on the wall clock of `timeZone`: `HH:mm`. It stays so across daylight saving time.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/localStartTime`.
+            public var localStartTime: Swift.String
+            /// How long each date lasts.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/durationMinutes`.
+            public var durationMinutes: Swift.Int
+            /// The IANA time zone the rule is read in.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/timeZone`.
+            public var timeZone: Swift.String
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/trainer`.
+            public struct TrainerPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/ClassSeries/trainer/value1`.
+                public var value1: Components.Schemas.SessionTrainer
+                /// The usual trainer of its dates. Left out for *Trainer nodig*.
+                ///
+                /// - Remark: Generated from `#/components/schemas/ClassSeries/trainer/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `TrainerPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The usual trainer of its dates. Left out for *Trainer nodig*.
+                public init(
+                    value1: Components.Schemas.SessionTrainer,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/trainer`.
+            public var trainer: Components.Schemas.ClassSeries.TrainerPayload?
+            /// The capacity its dates start with.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/capacity`.
+            public var capacity: Swift.Int
+            /// The first day it may have a date: `YYYY-MM-DD`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/startsOn`.
+            public var startsOn: Swift.String
+            /// The last day it may have a date; left out for a series that runs until it is stopped. A series ends the week before a later series that took over from a date on.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/endsOn`.
+            public var endsOn: Swift.String?
+            /// The last day the calendar was filled to: `YYYY-MM-DD`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/materializedUntil`.
+            public var materializedUntil: Swift.String
+            /// Raised by every change of the series.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/version`.
+            public var version: Swift.Int
+            /// Creates a new `ClassSeries`.
+            ///
+            /// - Parameters:
+            ///   - id: The series ID.
+            ///   - groupClassId: The class the series is of.
+            ///   - rrule: The weekly rule: `FREQ=WEEKLY;BYDAY=XX`, one weekday (M4 knows no other).
+            ///   - weekday: The weekday of the rule: `TU` is every Tuesday.
+            ///   - localStartTime: The start on the wall clock of `timeZone`: `HH:mm`. It stays so across daylight saving time.
+            ///   - durationMinutes: How long each date lasts.
+            ///   - timeZone: The IANA time zone the rule is read in.
+            ///   - trainer:
+            ///   - capacity: The capacity its dates start with.
+            ///   - startsOn: The first day it may have a date: `YYYY-MM-DD`.
+            ///   - endsOn: The last day it may have a date; left out for a series that runs until it is stopped. A series ends the week before a later series that took over from a date on.
+            ///   - materializedUntil: The last day the calendar was filled to: `YYYY-MM-DD`.
+            ///   - version: Raised by every change of the series.
+            public init(
+                id: Swift.String,
+                groupClassId: Swift.String,
+                rrule: Swift.String,
+                weekday: Components.Schemas.ClassSeries.WeekdayPayload,
+                localStartTime: Swift.String,
+                durationMinutes: Swift.Int,
+                timeZone: Swift.String,
+                trainer: Components.Schemas.ClassSeries.TrainerPayload? = nil,
+                capacity: Swift.Int,
+                startsOn: Swift.String,
+                endsOn: Swift.String? = nil,
+                materializedUntil: Swift.String,
+                version: Swift.Int
+            ) {
+                self.id = id
+                self.groupClassId = groupClassId
+                self.rrule = rrule
+                self.weekday = weekday
+                self.localStartTime = localStartTime
+                self.durationMinutes = durationMinutes
+                self.timeZone = timeZone
+                self.trainer = trainer
+                self.capacity = capacity
+                self.startsOn = startsOn
+                self.endsOn = endsOn
+                self.materializedUntil = materializedUntil
+                self.version = version
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case groupClassId
+                case rrule
+                case weekday
+                case localStartTime
+                case durationMinutes
+                case timeZone
+                case trainer
+                case capacity
+                case startsOn
+                case endsOn
+                case materializedUntil
+                case version
+            }
+        }
+        /// The class date with its changes, and how many other dates kept their own.
+        ///
+        /// - Remark: Generated from `#/components/schemas/UpdatedClassDate`.
+        public struct UpdatedClassDate: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/UpdatedClassDate/value1`.
+            public var value1: Components.Schemas.Session
+            /// - Remark: Generated from `#/components/schemas/UpdatedClassDate/value2`.
+            public struct Value2Payload: Codable, Hashable, Sendable {
+                /// With `scope: following`: how many dates from this one on were changed on their own and kept as they are (CO-04). Left out for `scope: this`.
+                ///
+                /// - Remark: Generated from `#/components/schemas/UpdatedClassDate/value2/keptDates`.
+                public var keptDates: Swift.Int?
+                /// Creates a new `Value2Payload`.
+                ///
+                /// - Parameters:
+                ///   - keptDates: With `scope: following`: how many dates from this one on were changed on their own and kept as they are (CO-04). Left out for `scope: this`.
+                public init(keptDates: Swift.Int? = nil) {
+                    self.keptDates = keptDates
+                }
+                public enum CodingKeys: String, CodingKey {
+                    case keptDates
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/UpdatedClassDate/value2`.
+            public var value2: Components.Schemas.UpdatedClassDate.Value2Payload
+            /// Creates a new `UpdatedClassDate`.
+            ///
+            /// - Parameters:
+            ///   - value1:
+            ///   - value2:
+            public init(
+                value1: Components.Schemas.Session,
+                value2: Components.Schemas.UpdatedClassDate.Value2Payload
+            ) {
+                self.value1 = value1
+                self.value2 = value2
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                self.value1 = try .init(from: decoder)
+                self.value2 = try .init(from: decoder)
+            }
+            public func encode(to encoder: any Swift.Encoder) throws {
+                try self.value1.encode(to: encoder)
+                try self.value2.encode(to: encoder)
             }
         }
         /// The date was changed since the version in the request; nothing was written. `session` is the date as it is now, to show the reloaded values. Contains no user-facing text.
@@ -3270,6 +3646,28 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/capacity`.
             public var capacity: Swift.Int?
+            /// *Wijzigen voor* / *Apply to* (F022, CO-04): `this` (the default) changes this date only and, for a date of a series, marks what differs (`Session.series.changedFields`). `following` changes the series from this date on: the series is split here (the earlier one ends the week before, a new one starts on this date) and every date from here on takes the new start, length and capacity, except dates that were changed on their own, which stay as they are (`keptDates` says how many). A date that is in no series answers `400` on `scope` (`not_in_series`); a start the clocks skip on one of the dates it would reach answers `400` on `localStart` (`time_does_not_exist`) with that `date`, and nothing is changed; a length that is not 15 to 240 minutes in steps of 5 answers `400` on `localEnd` (`invalid_duration`).
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/scope`.
+            @frozen public enum ScopePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case this = "this"
+                case following = "following"
+            }
+            /// *Wijzigen voor* / *Apply to* (F022, CO-04): `this` (the default) changes this date only and, for a date of a series, marks what differs (`Session.series.changedFields`). `following` changes the series from this date on: the series is split here (the earlier one ends the week before, a new one starts on this date) and every date from here on takes the new start, length and capacity, except dates that were changed on their own, which stay as they are (`keptDates` says how many). A date that is in no series answers `400` on `scope` (`not_in_series`); a start the clocks skip on one of the dates it would reach answers `400` on `localStart` (`time_does_not_exist`) with that `date`, and nothing is changed; a length that is not 15 to 240 minutes in steps of 5 answers `400` on `localEnd` (`invalid_duration`).
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/scope`.
+            public var scope: Components.Schemas.UpdateGroupClassDateRequest.ScopePayload?
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event (for `scope: following`) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event (for `scope: following`) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/surface`.
+            public var surface: Components.Schemas.UpdateGroupClassDateRequest.SurfacePayload?
             /// Creates a new `UpdateGroupClassDateRequest`.
             ///
             /// - Parameters:
@@ -3277,22 +3675,30 @@ extension Components {
             ///   - localStart: The new start, `HH:mm` in the workspace’s time zone. Leave it out to keep it.
             ///   - localEnd: The new end, `HH:mm` on the same day as the start. Leave it out to keep its time of day: a start moved alone does not move the end with it, and one moved to or past the unchanged end is refused like any end. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`.
             ///   - capacity: The new capacity of this date, 1 to 100. Leave it out to keep it.
+            ///   - scope: *Wijzigen voor* / *Apply to* (F022, CO-04): `this` (the default) changes this date only and, for a date of a series, marks what differs (`Session.series.changedFields`). `following` changes the series from this date on: the series is split here (the earlier one ends the week before, a new one starts on this date) and every date from here on takes the new start, length and capacity, except dates that were changed on their own, which stay as they are (`keptDates` says how many). A date that is in no series answers `400` on `scope` (`not_in_series`); a start the clocks skip on one of the dates it would reach answers `400` on `localStart` (`time_does_not_exist`) with that `date`, and nothing is changed; a length that is not 15 to 240 minutes in steps of 5 answers `400` on `localEnd` (`invalid_duration`).
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event (for `scope: following`) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             public init(
                 version: Swift.Int,
                 localStart: Swift.String? = nil,
                 localEnd: Swift.String? = nil,
-                capacity: Swift.Int? = nil
+                capacity: Swift.Int? = nil,
+                scope: Components.Schemas.UpdateGroupClassDateRequest.ScopePayload? = nil,
+                surface: Components.Schemas.UpdateGroupClassDateRequest.SurfacePayload? = nil
             ) {
                 self.version = version
                 self.localStart = localStart
                 self.localEnd = localEnd
                 self.capacity = capacity
+                self.scope = scope
+                self.surface = surface
             }
             public enum CodingKeys: String, CodingKey {
                 case version
                 case localStart
                 case localEnd
                 case capacity
+                case scope
+                case surface
             }
         }
         /// The join link (*aanmeldlink*) of a workspace: where a new client asks to become a client.
