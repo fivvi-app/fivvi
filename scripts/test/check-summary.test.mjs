@@ -361,6 +361,13 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     );
     for (const fake of ['docker', 'shellcheck'])
       write(join(bin(), fake), '#!/bin/sh\nexit 0\n', 0o755);
+    // sleep notes that a run slept (the e2e queue polls with it): a test that holds the queue can then
+    // let go after the first poll, not after a time that a loaded machine can outlast.
+    write(
+      join(bin(), 'sleep'),
+      '#!/bin/sh\n[ -z "${FAKE_RUNS:-}" ] || touch "$FAKE_RUNS/slept"\nexec /bin/sleep "$@"\n',
+      0o755,
+    );
 
     mkdirSync(join(repo(), 'scripts'), { recursive: true });
     mkdirSync(join(repo(), '.githooks'));
@@ -432,6 +439,8 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       encoding: 'utf8',
       cwd: repo(),
       env: { ...gitEnv(), PATH: `${bin()}:${process.env.PATH}`, FAKE_RUNS: dir, ...extraEnv },
+      // A run that hangs fails its test instead of the whole suite.
+      timeout: 120_000,
     });
     const file = join(repo(), '.work/check-summary.json');
     const forced = join(dir, 'turbo-force');
@@ -617,17 +626,34 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       symlinkSync(String(pid), lock());
     };
     const deadPid = () => spawnSync('true').pid;
+    // A live process whose command line names check.sh, for as long as the test needs it.
     const runningCheck = (seconds) =>
       spawn('bash', ['-c', `sleep ${seconds}; :`, 'scripts/check.sh'], { stdio: 'ignore' });
+    // The same, but it ends after the run under test has polled the queue once (the fake sleep leaves a mark).
+    const checkUntilPolled = (slept) =>
+      spawn(
+        'bash',
+        [
+          '-c',
+          'for _ in $(seq 600); do [ -e "$1" ] && exit 0; /bin/sleep 0.1; done',
+          'scripts/check.sh',
+          slept,
+        ],
+        { stdio: 'ignore' },
+      );
     const fast = { E2E_QUEUE_POLL_SECONDS: '0.2' };
 
     it('AC2: waits for the check.sh whose suite runs, says so, and then runs its own', () => {
-      const holder = runningCheck(2);
+      let holder;
       try {
         const result = check(
           { unit: unit(), integration, e2e },
           ['--all'],
-          holdLock(holder.pid),
+          () => {
+            // The next run's directory is runs-<n - 1> once check() has counted it.
+            holder = checkUntilPolled(join(base, `runs-${n - 1}`, 'slept'));
+            holdLock(holder.pid)();
+          },
           fast,
         );
         assert.equal(result.status, 0, result.stdout);
@@ -638,7 +664,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
         assert.match(result.stdout, /✓ e2e tests/);
         assert.ok(!lockExists(), 'released at the end');
       } finally {
-        holder.kill();
+        holder?.kill();
       }
     });
 
@@ -658,7 +684,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     });
 
     it('AC2: gives up after the queue timeout, names the holder, runs no e2e and leaves the holder its lock', () => {
-      const holder = runningCheck(20);
+      const holder = runningCheck(120);
       try {
         const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(holder.pid), {
           ...fast,
@@ -686,7 +712,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     });
 
     it('AC2: a run without e2e (--fast, or no web change) never waits for the queue', () => {
-      const holder = runningCheck(20);
+      const holder = runningCheck(120);
       try {
         const result = check(
           { unit: unit(), integration, e2e },
@@ -747,6 +773,22 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       result.summary.suites.find((s) => s.name === 'api'),
       suite('api', 'unit', 'pass', 29, 0, 0),
     );
+  });
+
+  it('E001 #1336: shows the failure of a task with a very long log without minutes of processing', () => {
+    // bash 3.2 (macOS) takes minutes to replace the newlines of a log of 4000 lines in one expansion; a failing
+    // root test run (about 200 KB) made check.sh look hung for 40 minutes in a factory run.
+    const longLog = Array.from({ length: 6000 }, (_, i) => `//:test:root: line ${i} of a long log`);
+    const result = check({
+      unit: {
+        lines: [...longLog, '//#test:root:  ERROR  command (/x) pnpm run test exited (1)'],
+        exit: 1,
+      },
+      integration,
+      e2e,
+    });
+    assert.equal(result.status, 1, result.stderr);
+    assert.match(result.stdout, /\n {4}\/\/:test:root: line 5999 of a long log\n/);
   });
 
   it('E002 #112 AC1: shows the output of a failing root test run', () => {

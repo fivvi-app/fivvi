@@ -138,7 +138,7 @@ check() {
     echo "✓ $name"
   else
     echo "✗ $name"
-    [ -z "$out" ] || { out="$(failure_output "$out")"; printf '    %s\n' "${out//$'\n'/$'\n'    }"; }
+    [ -z "$out" ] || failure_output "$out" | sed 's/^/    /'
     FAILED=1
   fi
 }
