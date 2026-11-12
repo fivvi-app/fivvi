@@ -216,7 +216,7 @@ public struct SignInView: View {
                     .focused($focus, equals: .code)
                     .textFieldStyle(.plain)
                     .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
-                        .contentShape(Rectangle())
+                    .contentShape(Rectangle())
                     .disabled(model.state == .checkingCode || model.state == .resendingCode)
                     .accessibilityIdentifier("signIn.code")
                 }

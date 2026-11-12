@@ -26,6 +26,7 @@ struct ProfileView: View {
     var onSelect: (String) -> Void = { _ in }
     /// Opens a page of the website in the system browser (F064 AC17); the home passes its `openURL`.
     let openLink: (URL) -> Void
+    @Environment(\.dynamicTypeSize) var dynamicTypeSize
 
     var body: some View {
         LargeTitleScreen(title: model.catalog[.profileTitle], titleIdentifier: "profile.title") {
@@ -51,7 +52,7 @@ struct ProfileView: View {
                 ProgressView()
                     .tint(Tokens.Colors.textSecondary)
                     .frame(maxWidth: .infinity)
-                    .profileRow()
+                    .insetRowLayout()
                     .accessibilityLabel(model.catalog[.commonLoading])
                     .accessibilityIdentifier("profile.loading")
             }
@@ -102,7 +103,7 @@ struct ProfileView: View {
                         .accessibilityIdentifier("profile.nameSaved")
                 }
             }
-            .profileRow()
+            .insetRowLayout()
             VStack(alignment: .leading, spacing: Tokens.Spacing.space1) {
                 Text(model.catalog[.myProfileEmailLabel])
                     .font(.system(Tokens.TextStyle.footnote))
@@ -114,7 +115,7 @@ struct ProfileView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("profile.email")
             }
-            .profileRow()
+            .insetRowLayout()
         }
     }
 
@@ -137,7 +138,7 @@ struct ProfileView: View {
                                 .accessibilityHidden(true)
                         }
                     }
-                    .profileRow()
+                    .insetRowLayout()
                 }
                 .buttonStyle(.insetRow)
                 .accessibilityAddTraits(language.catalog.locale == locale ? .isSelected : [])
@@ -148,7 +149,7 @@ struct ProfileView: View {
                     .font(.system(Tokens.TextStyle.footnote))
                     .foregroundStyle(Tokens.Colors.statusDangerText)
                     .fixedSize(horizontal: false, vertical: true)
-                    .profileRow()
+                    .insetRowLayout()
                     .accessibilityIdentifier("profile.language.error")
             }
         }
@@ -177,17 +178,7 @@ struct ProfileView: View {
                 }
             }
             .frame(maxWidth: .infinity)
-            .profileRow()
+            .insetRowLayout()
         }
-    }
-}
-
-extension View {
-    /// The padding of a row of a *Profiel* group: the kit's rows (`InsetRow`) have the same.
-    func profileRow() -> some View {
-        padding(.horizontal, Tokens.Spacing.space4)
-            .padding(.vertical, 11)
-            .frame(maxWidth: .infinity, minHeight: InsetGroupStyle.rowMinHeight, alignment: .leading)
-            .contentShape(Rectangle())
     }
 }

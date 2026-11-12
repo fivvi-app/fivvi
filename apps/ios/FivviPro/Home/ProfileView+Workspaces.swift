@@ -17,7 +17,8 @@ extension ProfileView {
         }
     }
 
-    /// The name and the role; with more than one workspace the whole row is a button with a check on the current one.
+    /// The mark, the name and the role; with more than one workspace the whole row is a button with a check on the
+    /// current one.
     @ViewBuilder private func workspaceRow(_ entry: ProfileViewModel.Entry, switchable: Bool) -> some View {
         if switchable {
             let isCurrent = entry.id == current
@@ -28,43 +29,67 @@ extension ProfileView {
                 guard !model.isSaving else { return }
                 onSelect(entry.id)
             } label: {
-                HStack {
-                    workspaceText(entry)
-                    Spacer()
-                    if isCurrent {
-                        Image(systemName: "checkmark")
-                            .foregroundStyle(Tokens.Colors.accentText)
-                            .accessibilityHidden(true)
-                    }
+                HStack(spacing: Tokens.Spacing.space3) {
+                    workspaceContent(entry)
+                    // The slot stays when there is no check, so the roles of all rows end in one column.
+                    Image(systemName: "checkmark")
+                        .foregroundStyle(Tokens.Colors.accentText)
+                        .opacity(isCurrent ? 1 : 0)
+                        .frame(width: Metrics.checkSlot)
+                        .accessibilityHidden(true)
                 }
-                .profileRow()
+                .insetRowLayout()
             }
             .buttonStyle(.insetRow)
             .accessibilityAddTraits(isCurrent ? .isSelected : [])
             .accessibilityIdentifier("profile.workspace.\(entry.slug)")
         } else {
-            workspaceText(entry)
-                .profileRow()
+            workspaceContent(entry)
+                .insetRowLayout()
         }
     }
 
+    /// TM-04: a 36 pt rounded mark in the workspace's colour (decorative: no initials, because the tokens guarantee
+    /// 3:1 for the colour, not 4.5:1 for white text on it), the name, and the role at the trailing end. At the
+    /// accessibility text sizes the role goes under the name, as there is no room next to it.
+    private func workspaceContent(_ entry: ProfileViewModel.Entry) -> some View {
+        HStack(spacing: Tokens.Spacing.space3) {
+            RoundedRectangle(cornerRadius: Tokens.Radius.md, style: .continuous)
+                .fill(Tokens.workspaceColor(for: entry.id))
+                .frame(width: Metrics.mark, height: Metrics.mark)
+                .accessibilityHidden(true)
+            workspaceText(entry)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .accessibilityElement(children: .contain)
+    }
+
     private func workspaceText(_ entry: ProfileViewModel.Entry) -> some View {
-        VStack(alignment: .leading, spacing: Tokens.Spacing.space1) {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Tokens.Spacing.space1))
+            : AnyLayout(HStackLayout(spacing: Tokens.Spacing.space2))
+        return layout {
             Text(entry.name)
                 .font(.system(Tokens.TextStyle.body))
                 .foregroundStyle(Tokens.Colors.textPrimary)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: dynamicTypeSize.isAccessibilitySize ? nil : .infinity, alignment: .leading)
                 .accessibilityIdentifier("profile.workspaceName.\(entry.slug)")
             Text(entry.role)
                 .font(.system(Tokens.TextStyle.subhead))
                 .foregroundStyle(Tokens.Colors.textSecondary)
-                .multilineTextAlignment(.leading)
+                .multilineTextAlignment(.trailing)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("profile.workspaceRole.\(entry.slug)")
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .accessibilityElement(children: .contain)
+    }
+
+    private enum Metrics {
+        /// The workspace's colour mark.
+        static let mark: CGFloat = 36
+        /// The room of the check on the current workspace.
+        static let checkSlot: CGFloat = 20
     }
 
     /// *Ik geef zelf ook trainingen in …*: it shows what the API accepted and waits while saving; a tap sends the
@@ -74,7 +99,7 @@ extension ProfileView {
             trainsHereToggle(entry)
             trainsHereStatus(entry)
         }
-        .profileRow()
+        .insetRowLayout()
     }
 
     private func trainsHereToggle(_ entry: ProfileViewModel.Entry) -> some View {

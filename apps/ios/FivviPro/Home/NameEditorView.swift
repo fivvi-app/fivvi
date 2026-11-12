@@ -57,6 +57,8 @@ struct NameEditorView: View {
                 }
             }
         }
+        // The bar's buttons are text: in the text-safe accent (4.5:1 in both modes), not the app's fill accent.
+        .tint(Tokens.Colors.accentText)
         .environment(\.locale, model.catalog.formattingLocale)
         .interactiveDismissDisabled(saving)
         .onAppear { focused = true }

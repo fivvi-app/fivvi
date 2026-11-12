@@ -1,3 +1,4 @@
+import FivviDesignTokens
 import XCTest
 
 /// What the sign-in UI tests share: the wait for an element and the checks of a screen's layout.
@@ -49,6 +50,47 @@ class SignInUITestCase: XCTestCase {
                 return true
             }
             XCTFail("\(issue.auditType) on \(issue.element?.identifier ?? "-"): \(issue.detailedDescription)")
+            return true
+        }
+    }
+
+    /// The accessibility audit with the contrast check, for a screen in `style`. Text-field clipping of typed text is not
+    /// counted (see `assertReadable`). A contrast issue is accepted only on text drawn in the secondary text token
+    /// (`textSecondary`, E020 AC3 and AC15): the element's strongest pixels are compared with the token resolved for the
+    /// mode, on the canvas and on the group's surface. Text scrolled under the navigation bar is blended with the bar's
+    /// glass, so the audit's pixels are not the text's own: a contrast issue on an element that reaches into the bar is
+    /// not counted. The sheet's *Annuleren* and *Opslaan* are the system's own glass bar buttons (and *Naam wijzigen*
+    /// its bar title): the audit flags the buttons whatever the colour of their text (*Annuleren* with the accent and with the label colour, as black on the
+    /// glass is flagged too, so it measures the glass and not the text), so a contrast issue on an element in
+    /// `systemBarItems` is not counted either, nor is the Dynamic Type one (the text of a bar item doesn't scale with
+    /// the text size, which is the system's) and, for the title in the bar, the "may be clipped" one; the text is the text-safe accent (`NameEditorView`). Any other issue fails.
+    func auditWithContrast(_ app: XCUIApplication, style: UIUserInterfaceStyle, _ context: String) throws {
+        let secondary = RGB(Tokens.Colors.textSecondary, in: style)
+        let systemBarItems: Set<String> = ["profile.nameCancel", "profile.nameSave", "profile.nameEditor"]
+        let barBottom = app.navigationBars.firstMatch.frame.maxY
+        let backgrounds = [RGB(Tokens.Colors.bgCanvas, in: style), RGB(Tokens.Colors.bgSurface, in: style)]
+        try app.performAccessibilityAudit(
+            for: [.textClipped, .dynamicType, .hitRegion, .contrast]
+        ) { issue in
+            if issue.auditType == .textClipped, let field = issue.element, field.elementType == .textField,
+               let typed = field.value as? String, !typed.isEmpty, typed != field.placeholderValue {
+                return true
+            }
+            if [.contrast, .dynamicType, .textClipped].contains(issue.auditType), let element = issue.element,
+               systemBarItems.contains(element.identifier) {
+                return true
+            }
+            if issue.auditType == .contrast, let element = issue.element, element.elementType == .staticText,
+               let colours = try? ScreenColours(app) {
+                if element.frame.minY < barBottom { return true }
+                let frame = element.frame.insetBy(dx: 1, dy: 1)
+                let isSecondary = backgrounds.contains {
+                    colours.foreground(in: frame, on: $0).distance(to: secondary) <= 8
+                }
+                if isSecondary { return true }
+            }
+            XCTFail("\(context): \(issue.auditType) on \(issue.element?.identifier ?? "-") "
+                + "(\(issue.element?.label ?? "-")): \(issue.detailedDescription)")
             return true
         }
     }
