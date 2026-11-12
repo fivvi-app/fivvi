@@ -37,14 +37,11 @@ export const LOCAL_MIN_WORKERS = 2;
 /**
  * Workers of a local run (#1336). Playwright's default is half the cores, which is right for a
  * machine that runs only the suite. A factory run starts 4-6 builders and each runs its own
- * check.sh, and the load average goes to 20-45 on a 10-core Mac. The heaviest tests (axe and
- * computed-style sweeps, a dozen screens in light and dark in one test) took 33-46 s there against
- * 6-10 s alone at a load of 25-35, and ran into Playwright's 30 s limit. Their time is browser work
- * (page.evaluate for axe and styles, about 55-60 % of the heaviest tests; navigations and page
- * creation most of the rest), so it grows with the CPU the other processes use. A worker is taken
- * to need about a core and a half (Chromium and the page's server), so the suite takes the cores
- * the load leaves free, divided by that, between the minimum and the default. One worker alone
- * passed all of the heaviest tests at a load of 25-37.
+ * check.sh; the load average goes to 20-45 on a 10-core Mac and the heaviest tests, whose time is
+ * browser CPU, take several times as long as alone (the measurements:
+ * docs/engineering/TESTING.md §8, "Locally the suite does not compete with itself"). A worker is
+ * taken to need about a core and a half (Chromium and the page's server), so the suite takes the
+ * cores the load leaves free, divided by that, between the minimum and the default.
  */
 export function localWorkers({ cores, load1 }: Host): number {
   const fromFreeCores = Math.floor((cores - load1) / 1.5);

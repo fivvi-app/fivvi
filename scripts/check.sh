@@ -67,18 +67,17 @@ acquire_lock() {
   echo "✗ could not take the lock ${LOCK#"$ROOT"/}: another scripts/check.sh started at the same time. Run this again."
   exit 1
 }
-# One web e2e suite at a time on the machine (#1336). A factory run has 4-6 builders, each running its own check.sh: their
-# suites together load the machine (load average 20-45) until the heaviest tests (axe, a dozen screens in light and dark
-# in one test) take 3-5 times as long as alone (6-10 s alone at load 25-35, 33-46 s in a loaded suite) and run into
-# Playwright's 30 s limit, in changes that leave apps/web alone. The suites queue on a lock in the main checkout's .work/,
-# shared by every worktree: the same symbolic link to the pid of its owner as above, and a stale one is taken over the same
-# way. Only the suite itself holds it, not the other checks. E2E_QUEUE_TIMEOUT_SECONDS (default 2400) bounds the wait and
-# E2E_QUEUE_POLL_SECONDS (default 5) the polling.
+# One web e2e suite at a time on the machine (#1336). A factory run has 4-6 builders, each running its own check.sh, and their
+# suites together load the machine until timing-sensitive tests fail (the measurements: docs/engineering/TESTING.md §8, "Locally the
+# suite does not compete with itself"). The suites queue on a lock in the main checkout's .work/, shared by every worktree: the same symbolic link to the pid
+# of its owner as above, and a stale one is taken over the same way, at most three times. Only the suite itself holds it, not
+# the other checks, and a suite that is a turbo cache hit (it replays a log, loads nothing) does not wait.
+# E2E_QUEUE_TIMEOUT_SECONDS (default 2400) bounds the wait and E2E_QUEUE_POLL_SECONDS (default 5) the polling.
 E2E_LOCK="$MAIN_ROOT/.work/e2e.lock"
 OWN_E2E_LOCK=false
 E2E_QUEUE_ERROR=""
 acquire_e2e_queue() {
-  local holder started waited_at timeout="${E2E_QUEUE_TIMEOUT_SECONDS:-2400}" poll="${E2E_QUEUE_POLL_SECONDS:-5}"
+  local holder started waited_at takeovers=0 timeout="${E2E_QUEUE_TIMEOUT_SECONDS:-2400}" poll="${E2E_QUEUE_POLL_SECONDS:-5}"
   mkdir -p "$MAIN_ROOT/.work"
   [ ! -e "$E2E_LOCK" ] || [ -L "$E2E_LOCK" ] || rm -rf "$E2E_LOCK"
   started=$SECONDS
@@ -87,6 +86,13 @@ acquire_e2e_queue() {
     if ln -sn "$$" "$E2E_LOCK" 2>/dev/null; then OWN_E2E_LOCK=true; return 0; fi
     holder="$(readlink "$E2E_LOCK" 2>/dev/null || true)"
     if [ -z "$holder" ] || ! is_check_sh "$holder"; then
+      # A stale lock (or none, and `ln` failed for another reason: an unwritable .work). Three takeovers, as acquire_lock
+      # makes, then stop: otherwise a lock that cannot be removed, or a directory that cannot be written, spins here for good.
+      takeovers=$((takeovers + 1))
+      if [ "$takeovers" -gt 3 ]; then
+        E2E_QUEUE_ERROR="could not take the e2e queue ${E2E_LOCK}: tried to take over a stale lock 3 times and failed (is ${E2E_LOCK%/*} writable?). Run this again, or delete the lock."
+        return 1
+      fi
       [ "$(readlink "$E2E_LOCK" 2>/dev/null || true)" != "$holder" ] || rm -f "$E2E_LOCK"
       continue
     fi
@@ -104,6 +110,13 @@ acquire_e2e_queue() {
 release_e2e_queue() {
   ! $OWN_E2E_LOCK || [ "$(readlink "$E2E_LOCK" 2>/dev/null || true)" != "$$" ] || rm -f "$E2E_LOCK"
   OWN_E2E_LOCK=false
+}
+# Whether turbo has the e2e suite cached for this commit (a dry run, a fraction of a second): the run then replays a log and
+# loads nothing, so it does not wait for the queue. A forced run (TURBO_FORCE=1) runs the suite, whatever the cache holds.
+e2e_cached() {
+  [ -z "${TURBO_FORCE:-}" ] || return 1
+  E2E_PORT="$(e2e_port "$ROOT")" pnpm turbo run test:e2e --dry=json 2>/dev/null \
+    | jq -e '[.tasks[] | select(.task == "test:e2e")] | length > 0 and all(.cache.status == "HIT")' >/dev/null 2>&1
 }
 e2e_not_queued() { echo "$E2E_QUEUE_ERROR"; return 1; }
 
@@ -322,7 +335,7 @@ fi
 if ! $FAST; then
   if [ "$(plan_flag e2e)" = true ]; then
     RAN_E2E=true
-    if acquire_e2e_queue; then
+    if e2e_cached || acquire_e2e_queue; then
       check "e2e tests (port $(e2e_port "$ROOT"))" e2e_tests
       release_e2e_queue
     else

@@ -347,6 +347,8 @@ describe('E002 #112 check.sh prints and writes the test summary', () => {
     write(
       join(bin(), 'pnpm'),
       `#!/usr/bin/env bash
+# turbo's dry run (check.sh asks whether the e2e suite is a cache hit): the scenario's answer, if it has one.
+case "$*" in *"--dry=json"*) cat "$FAKE_RUNS/dry.json" 2>/dev/null; exit 0 ;; esac
 printf '%s\\n' "\${TURBO_FORCE:-}" >> "$FAKE_RUNS/turbo-force"
 case "$*" in
   *"run lint"*) name=unit ;;
@@ -435,10 +437,11 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     }
     rmSync(join(repo(), '.work'), { recursive: true, force: true });
     setup();
-    const result = spawnSync(join(repo(), 'scripts/check.sh'), args, {
+    const { CHECK_FROM: from = repo(), ...env } = extraEnv;
+    const result = spawnSync(join(from, 'scripts/check.sh'), args, {
       encoding: 'utf8',
-      cwd: repo(),
-      env: { ...gitEnv(), PATH: `${bin()}:${process.env.PATH}`, FAKE_RUNS: dir, ...extraEnv },
+      cwd: from,
+      env: { ...gitEnv(), PATH: `${bin()}:${process.env.PATH}`, FAKE_RUNS: dir, ...env },
       // A run that hangs fails its test instead of the whole suite.
       timeout: 120_000,
     });
@@ -609,6 +612,67 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
   });
 
   describe('E001 #1336: one e2e suite at a time on the machine', () => {
+    // Several worktrees running their suites at once load the machine until tests time out (the measurements:
+    // docs/engineering/TESTING.md §8). The suites queue on a lock shared by all worktrees (the main checkout's
+    // .work/e2e.lock), a symbolic link to the pid of the check.sh whose suite runs.
+    const lock = () => join(repo(), '.work/check.lock');
+    const lockExists = () => {
+      try {
+        lstatSync(lock());
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    const holdLock = (pid) => () => {
+      mkdirSync(join(repo(), '.work'), { recursive: true });
+      symlinkSync(String(pid), lock());
+    };
+    const deadPid = () => spawnSync('true').pid;
+    // A live process whose command line names check.sh, like a check.sh run, for as long as the test needs it.
+    const runningCheck = () =>
+      spawn('bash', ['-c', 'sleep 20; :', 'scripts/check.sh'], { stdio: 'ignore' });
+
+    it('stops when another check.sh holds the lock, runs nothing, and leaves the lock to its holder', () => {
+      const holder = runningCheck();
+      try {
+        const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(holder.pid));
+        assert.equal(result.status, 1, result.stdout);
+        assert.match(
+          result.stdout,
+          new RegExp(`another scripts/check\\.sh runs in this worktree \\(pid ${holder.pid}\\)`),
+        );
+        assert.match(result.stdout, /delete \.work\/check\.lock/);
+        assert.doesNotMatch(result.stdout, /✓/);
+        assert.equal(result.summary, null);
+        assert.ok(lockExists(), 'the holder keeps its lock');
+      } finally {
+        holder.kill();
+      }
+    });
+
+    it('takes over the lock of a check.sh that is gone', () => {
+      const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(deadPid()));
+      assert.equal(result.status, 0, result.stdout);
+      assert.ok(!lockExists(), 'released at the end');
+    });
+
+    it('takes over a lock whose pid now belongs to a process that is not a check.sh', () => {
+      // After a kill -9 the pid can be reused: this test process is alive and is not a check.sh.
+      const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(process.pid));
+      assert.equal(result.status, 0, result.stdout);
+      assert.ok(!lockExists(), 'released at the end');
+    });
+
+    it('releases the lock when the run passes and when it fails', () => {
+      assert.equal(check({ unit: unit(), integration, e2e }).status, 0);
+      assert.ok(!lockExists());
+      assert.equal(check({ unit: failingUnit, integration, e2e }).status, 1);
+      assert.ok(!lockExists());
+    });
+  });
+
+  describe('E001 #1336: one e2e suite at a time on the machine', () => {
     // Several worktrees running their suites at once load the machine until timing-sensitive tests time out
     // (a factory run with 4-6 builders, load average 20-45). The suites queue on a lock shared by all worktrees
     // (the main checkout's .work/e2e.lock), a symbolic link to the pid of the check.sh whose suite runs.
@@ -697,6 +761,114 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
         assert.equal(result.summary.suites.find((s) => s.kind === 'e2e').status, 'not-run');
       } finally {
         holder.kill();
+      }
+    });
+
+    it('AC2: stops after three failed takeovers of a stale queue lock instead of spinning', () => {
+      // A stale lock (its pid is gone) that cannot be removed: rm fails on it, as on a read-only .work.
+      const failingRm = join(base, 'failing-rm');
+      mkdirSync(failingRm, { recursive: true });
+      write(
+        join(failingRm, 'rm'),
+        '#!/bin/sh\ncase "$*" in *e2e.lock*) exit 1 ;; esac\nexec /bin/rm "$@"\n',
+        0o755,
+      );
+      const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(deadPid()), {
+        ...fast,
+        PATH: `${failingRm}:${bin()}:${process.env.PATH}`,
+      });
+      assert.equal(result.status, 1, result.stdout);
+      assert.match(result.stdout, /✗ e2e tests/);
+      assert.match(result.stdout, /could not take the e2e queue .*e2e\.lock.* 3 times/);
+      assert.equal(result.summary.suites.find((s) => s.kind === 'e2e').status, 'not-run');
+    });
+
+    it('AC2: the queue is shared by the worktrees: a run in a linked worktree waits for a lock in the main checkout', () => {
+      const linked = join(base, 'linked-worktree');
+      git('worktree', 'add', '--quiet', '--detach', linked);
+      mkdirSync(join(linked, 'node_modules'), { recursive: true });
+      let holder;
+      try {
+        const dir = join(base, `runs-${n}`);
+        const result = check(
+          { unit: unit(), integration, e2e },
+          ['--all'],
+          () => {
+            holder = checkUntilPolled(join(dir, 'slept'));
+            holdLock(holder.pid)();
+          },
+          { ...fast, CHECK_FROM: linked },
+        );
+        assert.equal(result.status, 0, result.stdout);
+        assert.match(
+          result.stdout,
+          new RegExp(`waiting for the e2e queue: the suite of pid ${holder.pid} runs`),
+        );
+        assert.match(result.stdout, /✓ e2e tests/);
+        assert.ok(!lockExists(), 'released at the end');
+        assert.ok(
+          !existsSync(join(linked, '.work/e2e.lock')),
+          'no queue of its own in the worktree',
+        );
+      } finally {
+        holder?.kill();
+        git('worktree', 'remove', '--force', linked);
+      }
+    });
+
+    const dryRun = (status) =>
+      JSON.stringify({
+        tasks: [
+          { taskId: '@fivvi/web#build', task: 'build', cache: { status: 'MISS' } },
+          { taskId: '@fivvi/web#test:e2e', task: 'test:e2e', cache: { status } },
+        ],
+      });
+    const withDryRun = (status) => () => {
+      write(join(base, `runs-${n - 1}`, 'dry.json'), dryRun(status));
+    };
+
+    it('AC2: a suite that is a turbo cache hit replays its log at once and does not wait for the queue', () => {
+      const holder = runningCheck(120);
+      try {
+        const result = check(
+          { unit: unit(), integration, e2e },
+          ['--all'],
+          () => {
+            withDryRun('HIT')();
+            holdLock(holder.pid)();
+          },
+          fast,
+        );
+        assert.equal(result.status, 0, result.stdout);
+        assert.doesNotMatch(result.stdout, /waiting for the e2e queue/);
+        assert.match(result.stdout, /✓ e2e tests/);
+        assert.ok(lockExists(), 'the holder keeps its lock');
+      } finally {
+        holder.kill();
+      }
+    });
+
+    it('AC2: a cache miss, and a forced run, still wait for the queue', () => {
+      for (const [status, extraEnv] of [
+        ['MISS', {}],
+        ['HIT', { TURBO_FORCE: '1' }],
+      ]) {
+        const holder = runningCheck(120);
+        try {
+          const result = check(
+            { unit: unit(), integration, e2e },
+            ['--all'],
+            () => {
+              withDryRun(status)();
+              holdLock(holder.pid)();
+            },
+            { ...fast, ...extraEnv, E2E_QUEUE_TIMEOUT_SECONDS: '1' },
+          );
+          assert.equal(result.status, 1, `${status}: ${result.stdout}`);
+          assert.match(result.stdout, /still held by pid/);
+        } finally {
+          holder.kill();
+        }
       }
     });
 

@@ -43,9 +43,8 @@ describe('#1301 e2e run settings', () => {
   });
 });
 
-// #1336: several worktrees ran their suites at once (load average 20-45 on a 10-core Mac) and the
-// heaviest tests took 3-5 times as long as alone (6-10 s alone, 33-46 s in the loaded suite) and hit
-// Playwright's 30 s limit. A suite that starts on a busy machine takes fewer workers.
+// #1336: several worktrees ran their suites at once and the heaviest tests timed out (the measurements:
+// docs/engineering/TESTING.md §8). A suite that starts on a busy machine takes fewer workers.
 describe('#1336 localWorkers', () => {
   it("is Playwright's default, half the cores, on an idle machine", () => {
     expect(localWorkers({ cores: 10, load1: 0 })).toBe(5);
