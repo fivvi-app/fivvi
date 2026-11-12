@@ -186,17 +186,24 @@ class ClientsLookTest(
 
     // The one text-contrast result the tokens allow (ADR-032, `native-secondary-text` in packages/design-tokens): the secondary
     // text of the native apps in light mode, `color.text.secondary` (#85858B), is 3.3:1 on the canvas and 3.7:1 on cards, not
-    // 4.5:1. Only a TextContrastCheck result whose foreground is that colour in light mode is accepted; in dark mode the
-    // secondary text is held to 4.5:1, and any other colour, check or element still fails.
+    // 4.5:1, and the floor the ADR sets is 3:1. Only a TextContrastCheck result whose foreground colour (the result's metadata,
+    // not its message) is that colour and whose ratio is at least 3:1 is accepted, and only in light mode; in dark mode the
+    // secondary text is held to 4.5:1, and any other colour, check or element, or a lower ratio, still fails.
     private fun secondaryTextInLightMode() = object : BaseMatcher<AccessibilityViewCheckResult>() {
-        private val grey = "#%06X".format(mode.tokens.textSecondary.toArgb() and 0xFFFFFF)
+        private val grey = mode.tokens.textSecondary.toArgb() and RGB
 
-        override fun matches(actual: Any?) = !mode.dark && actual is AccessibilityViewCheckResult &&
-            actual.accessibilityHierarchyCheck == TextContrastCheck::class.java &&
-            actual.message.contains("estimated foreground color of $grey")
+        override fun matches(actual: Any?): Boolean {
+            if (mode.dark || actual !is AccessibilityViewCheckResult) return false
+            if (actual.accessibilityHierarchyCheck != TextContrastCheck::class.java) return false
+            val metadata = actual.metadata ?: return false
+            if (!metadata.containsKey(TextContrastCheck.KEY_FOREGROUND_COLOR)) return false
+            if (!metadata.containsKey(TextContrastCheck.KEY_CONTRAST_RATIO)) return false
+            return metadata.getInt(TextContrastCheck.KEY_FOREGROUND_COLOR) and RGB == grey &&
+                metadata.getDouble(TextContrastCheck.KEY_CONTRAST_RATIO) >= MIN_SECONDARY_CONTRAST
+        }
 
         override fun describeTo(description: Description) {
-            description.appendText("a text contrast result of the secondary text colour in light mode")
+            description.appendText("a text contrast result of the secondary text colour, at least 3:1, in light mode")
         }
     }
 
@@ -210,6 +217,15 @@ class ClientsLookTest(
                 .setSuppressingResultMatcher(secondaryTextInLightMode()),
         )
         compose.onRoot().tryPerformAccessibilityChecks()
+    }
+
+    // The forms scroll: the checks see what is drawn, so the parts below the fold (the language list, the note) are checked
+    // by scrolling to the last of them and running the checks again.
+    private fun assertAccessibleAfterScrolling(vararg lastTags: String) {
+        assertAccessible()
+        lastTags.forEach { compose.onNodeWithTag(it, useUnmergedTree = true).performScrollTo() }
+        compose.waitForIdle()
+        assertAccessible()
     }
 
     @Test
@@ -238,7 +254,7 @@ class ClientsLookTest(
                 AddClientActions({}, {}, fieldActions),
             )
         }
-        assertAccessible()
+        assertAccessibleAfterScrolling(AddClientTags.DESCRIPTION)
     }
 
     @Test
@@ -252,7 +268,7 @@ class ClientsLookTest(
                 ClientProfileActions({}, {}, {}, {}, {}, {}, {}, fieldActions),
             )
         }
-        assertAccessible()
+        assertAccessibleAfterScrolling("${ClientProfileTags.EDIT_PREFIX}.language.en")
     }
 
     @Test
@@ -296,6 +312,9 @@ class ClientsLookTest(
     }
 
     companion object {
+        private const val RGB = 0xFFFFFF
+        private const val MIN_SECONDARY_CONTRAST = 3.0
+
         @JvmStatic
         @Parameterized.Parameters(name = "{0}")
         fun modesAndLanguages() = Mode.entries.flatMap { mode ->
