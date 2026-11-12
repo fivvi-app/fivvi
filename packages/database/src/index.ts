@@ -29,6 +29,16 @@ export {
 export { findSystemGreeting, type SystemGreetingView } from './queries/system-greetings.ts';
 export { recordWrongSignInCode } from './queries/verifications.ts';
 export {
+  type AccessLogActionName,
+  type AccessLogEntryRecord,
+  type AccessLogItem,
+  type AccessLogPage,
+  type AccessLogQuery,
+  accessLogStore,
+  appendAccessLog,
+  listAccessLog,
+} from './repositories/access-log.ts';
+export {
   findAccountForInvitation,
   findAccountIdByEmail,
   findBookingEmails,
@@ -51,6 +61,11 @@ export {
   searchClients,
   updateClient,
 } from './repositories/clients.ts';
+export {
+  appendDeletionLog,
+  type DeletionLogEntryRecord,
+  deletionLogStore,
+} from './repositories/deletion-log.ts';
 export {
   type ClassDateChanges,
   type ClassDateUpdate,

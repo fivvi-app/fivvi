@@ -824,6 +824,26 @@ export interface paths {
         patch: operations["updateClient"];
         trace?: never;
     };
+    "/v1/workspaces/{workspaceId}/access-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The access log of a workspace
+         * @description The access log of the workspace (the Owner only; a Trainer gets `403`): who exported, trashed, restored or purged which client, and from M7 who viewed or changed which note. This workspace’s entries only, newest first, one page at a time, optionally of one client and one action. Names are looked up now; a client who no longer exists reads as *Verwijderde klant* or *Deleted client* in the reader’s language. Entries hold IDs and a time, never a note’s text. Entries older than 12 months are deleted.
+         */
+        get: operations["listAccessLog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -925,7 +945,7 @@ export interface components {
              */
             role: "owner" | "trainer";
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "access_log.read")[];
         };
         /**
          * @description The word the product uses for the people who teach in the workspace: `trainer`, `instructeur`, `docent` or `coach`. It is only a label shown to the team and the clients, in their own language; the role stays `trainer` in the API and nobody’s rights depend on it. Every workspace starts on `trainer`.
@@ -963,7 +983,7 @@ export interface components {
              */
             role: "owner" | "trainer";
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "access_log.read")[];
             /** @description Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner. */
             trainsHere: boolean;
         };
@@ -1843,6 +1863,52 @@ export interface components {
             emailLocale?: "nl-NL" | "en" | null;
             /** @description `true` makes the client follow the workspace’s default language for emails. `false`, `null` or left out does not. Together with an `emailLocale` it answers `400`. */
             clearEmailLocale?: boolean | null;
+        };
+        /** @description One page of the access log of a workspace. */
+        AccessLogList: {
+            /** @description This page of entries, newest first. */
+            items: components["schemas"]["AccessLogEntry"][];
+            /** @description How many entries match, over all pages. */
+            total: number;
+        };
+        /** @description One entry of the access log: who did what to which client, and when. IDs, names and a time; no free text, never note content. */
+        AccessLogEntry: {
+            /**
+             * Format: uuid
+             * @description The entry ID.
+             */
+            id: string;
+            /**
+             * Format: date-time
+             * @description When it happened, a UTC instant.
+             */
+            occurredAt: string;
+            /**
+             * @description What was done: `client.exported`, `client.trashed`, `client.restored`, `client.purged`, `workspace.exported`, `client.retention_kept`, and from M7 `note.viewed` and `note.changed`.
+             * @enum {string}
+             */
+            action: "client.exported" | "client.trashed" | "client.restored" | "client.purged" | "workspace.exported" | "client.retention_kept" | "note.viewed" | "note.changed";
+            /**
+             * Format: uuid
+             * @description The team member who did it. `null` for what the daily cleanup does by itself. The ID stays when the team member has left the team.
+             */
+            actorTeamMemberId: string | null;
+            /** @description The team member’s name now (their email address when they have given none). `null` when there is no team member, or when they have left the team. */
+            actorName: string | null;
+            /**
+             * Format: uuid
+             * @description The client the action was about; `null` for an action about no client (`workspace.exported`). The ID stays after the client is deleted, so the list can still be filtered by it.
+             */
+            clientId: string | null;
+            /** @description The client’s name now. `null` for an action about no client. A client that no longer exists reads as *Verwijderde klant* or *Deleted client*, in the language of the reader (their stored language, else `Accept-Language`, else English); `clientRemoved` is `true` then. */
+            clientName: string | null;
+            /** @description `true` when the entry is about a client who no longer exists. */
+            clientRemoved: boolean;
+            /**
+             * Format: uuid
+             * @description The note’s ID for `note.viewed` and `note.changed`; `null` for any other action. The log never holds a note’s text.
+             */
+            objectId: string | null;
         };
     };
     responses: never;
@@ -5046,6 +5112,83 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClientExists"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    listAccessLog: {
+        parameters: {
+            query?: {
+                /** @description Only the entries about this client. Also finds those of a client who is deleted since. An ID that belongs to no client of this workspace finds nothing. */
+                clientId?: string;
+                /** @description Only the entries of this action. */
+                action?: "client.exported" | "client.trashed" | "client.restored" | "client.purged" | "workspace.exported" | "client.retention_kept" | "note.viewed" | "note.changed";
+                /** @description How many entries a page holds, 1 to 100; 50 by default. */
+                pageSize?: number;
+                /** @description Which page, counted from 1, newest first; 1 by default. */
+                page?: number;
+            };
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of the access log. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessLogList"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */

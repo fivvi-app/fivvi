@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Button
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -22,6 +21,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import app.fivvi.core.R
+import app.fivvi.core.kit.PillButton
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
 import java.time.Instant
@@ -82,8 +82,10 @@ fun LoadError(@StringRes message: Int, errorTag: String, retryTag: String, onRet
             style = MaterialTheme.typography.body,
             textAlign = TextAlign.Center,
         )
-        Button(onClick = onRetry, modifier = Modifier.testTag(retryTag)) {
-            Text(stringResource(R.string.common_retry))
-        }
+        PillButton(
+            text = stringResource(R.string.common_retry),
+            onClick = onRetry,
+            modifier = Modifier.testTag(retryTag),
+        )
     }
 }

@@ -37,6 +37,7 @@ describe('F004 permission matrix', () => {
       'class.read',
       'join_link.view',
       'join_link.renew',
+      'access_log.read',
     ]);
     expect(capabilitiesOf('owner')).toEqual(CAPABILITIES);
     expect(capabilitiesOf('trainer')).toEqual(TRAINER_CAPABILITIES);
@@ -68,6 +69,8 @@ describe('F004 permission matrix', () => {
     // F029: the whole team reads the join link to send it to a new client, only the Owner renews it.
     expect(rolesWith('join_link.view')).toEqual(['owner', 'trainer']);
     expect(rolesWith('join_link.renew')).toEqual(['owner']);
+    // E014: only the Owner reads the access log (AC6; retention-policy.md §3.4).
+    expect(rolesWith('access_log.read')).toEqual(['owner']);
   });
 
   it('AC9: has no admin role', () => {
