@@ -1,6 +1,17 @@
 import { sql } from 'drizzle-orm';
-import { check, foreignKey, index, integer, pgEnum, unique, uuid } from 'drizzle-orm/pg-core';
+import {
+  check,
+  date,
+  foreignKey,
+  index,
+  integer,
+  pgEnum,
+  text,
+  unique,
+  uuid,
+} from 'drizzle-orm/pg-core';
 import { businessTable } from './business-table.ts';
+import { classSeries } from './class-series.ts';
 import { instant, timestamps } from './columns.ts';
 import { groupClasses } from './group-classes.ts';
 import { locations } from './locations.ts';
@@ -47,8 +58,11 @@ export const attendanceStatus = pgEnum('attendance_status', [
  *   dates don't set it. Cleared the same way when that team member is removed.
  * - `group_class_id` is the class of a group session (F021: required for `type = group`, a check)
  *   and empty for the other kinds. The date keeps its own trainer, capacity, start and end.
- * - `series_id` is empty here; recurring series (F022) point it at their series without a
- *   migration of existing rows.
+ * - `series_id` points a class date at its weekly series (F022, `class_series`), empty for a date
+ *   put on the calendar on its own. `occurrence_date` is the local date in the series' rule (unique
+ *   per series, so the daily task can never make a date twice); `detached_fields` lists what was
+ *   changed on this date alone (`time`, `trainer`, `capacity`, `location`), which a change of the
+ *   series from a date on leaves alone.
  * - `version` starts at 1 and is raised by every change, for optimistic concurrency (reschedule,
  *   AC8 of the spec): the writer says which version it read.
  *
@@ -66,6 +80,8 @@ export const sessions = businessTable(
     endsAt: instant('ends_at').notNull(),
     capacity: integer('capacity').notNull(),
     seriesId: uuid('series_id'),
+    occurrenceDate: date('occurrence_date', { mode: 'string' }),
+    detachedFields: text('detached_fields').array().notNull().default(sql`'{}'::text[]`),
     groupClassId: uuid('group_class_id'),
     version: integer('version').notNull().default(1),
     createdByTeamMemberId: uuid('created_by_team_member_id'),
@@ -104,6 +120,21 @@ export const sessions = businessTable(
       columns: [table.organizationId, table.groupClassId],
       foreignColumns: [groupClasses.organizationId, groupClasses.id],
     }),
+    foreignKey({
+      name: 'sessions_series_fk',
+      columns: [table.organizationId, table.seriesId],
+      foreignColumns: [classSeries.organizationId, classSeries.id],
+    }),
+    // One date per day of a series: the materialization is idempotent.
+    unique('sessions_series_id_occurrence_date_unique').on(table.seriesId, table.occurrenceDate),
+    check(
+      'sessions_series_has_occurrence_date',
+      sql`(${table.seriesId} IS NULL) = (${table.occurrenceDate} IS NULL)`,
+    ),
+    check(
+      'sessions_detached_fields_valid',
+      sql`${table.detachedFields} <@ ARRAY['time', 'trainer', 'capacity', 'location']::text[]`,
+    ),
     foreignKey({
       name: 'sessions_created_by_fk',
       columns: [table.organizationId, table.createdByTeamMemberId],

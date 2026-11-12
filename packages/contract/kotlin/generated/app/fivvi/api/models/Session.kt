@@ -26,6 +26,7 @@ package app.fivvi.api.models
 import app.fivvi.api.models.Location
 import app.fivvi.api.models.SessionGroupClass
 import app.fivvi.api.models.SessionParticipant
+import app.fivvi.api.models.SessionSeries
 import app.fivvi.api.models.SessionTrainer
 
 import kotlinx.serialization.Serializable
@@ -47,6 +48,7 @@ import kotlinx.serialization.Contextual
  * @param participants The clients in the session, in the order they were added. One for a private session; none for a class date until bookings exist (M5).
  * @param trainer 
  * @param groupClass 
+ * @param series 
  */
 @Serializable
 
@@ -95,7 +97,10 @@ data class Session (
     val trainer: SessionTrainer? = null,
 
     @SerialName(value = "groupClass")
-    val groupClass: SessionGroupClass? = null
+    val groupClass: SessionGroupClass? = null,
+
+    @SerialName(value = "series")
+    val series: SessionSeries? = null
 
 ) {
 

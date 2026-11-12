@@ -154,6 +154,10 @@
                 "code": {
                   "type": "string",
                   "description": "Machine-readable issue code."
+                },
+                "date": {
+                  "type": "string",
+                  "description": "The local date (`YYYY-MM-DD`) the issue is about, when the field alone does not say: the first date of a weekly class whose start the clocks skip (`time_does_not_exist`)."
                 }
               },
               "required": [
@@ -1576,6 +1580,9 @@
           "groupClass": {
             "$ref": "#/components/schemas/SessionGroupClass"
           },
+          "series": {
+            "$ref": "#/components/schemas/SessionSeries"
+          },
           "participants": {
             "type": "array",
             "items": {
@@ -1643,6 +1650,58 @@
           "nameEn"
         ],
         "description": "The class of a class date (F021); left out for the other kinds."
+      },
+      "SessionSeries": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The series ID."
+          },
+          "weekday": {
+            "type": "string",
+            "enum": [
+              "MO",
+              "TU",
+              "WE",
+              "TH",
+              "FR",
+              "SA",
+              "SU"
+            ],
+            "description": "The weekday of the weekly rule, as RRULE writes it: `TU` is every Tuesday."
+          },
+          "localStartTime": {
+            "type": "string",
+            "description": "The series’ start on the wall clock of the workspace’s time zone: `HH:mm`."
+          },
+          "occurrenceDate": {
+            "type": "string",
+            "description": "The local date in the series’ rule this date stands for: `YYYY-MM-DD`."
+          },
+          "changedFields": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "enum": [
+                "time",
+                "trainer",
+                "capacity",
+                "location"
+              ]
+            },
+            "description": "What was changed on this date alone (CO-01: *Aangepast t.o.v. de reeks*); empty when the date follows its series. A change of the series from an earlier date leaves these dates as they are."
+          }
+        },
+        "required": [
+          "id",
+          "weekday",
+          "localStartTime",
+          "occurrenceDate",
+          "changedFields"
+        ],
+        "description": "The weekly series of a class date (F022); left out for a date on its own."
       },
       "SessionParticipant": {
         "type": "object",
@@ -1962,6 +2021,10 @@
                 "description": "The first date, when the request had a `firstDate`."
               }
             ]
+          },
+          "datesAdded": {
+            "type": "integer",
+            "description": "How many dates the class got: 12 when the `firstDate` repeats weekly (“12 groepslessen toegevoegd”); left out otherwise."
           }
         },
         "required": [
@@ -2044,6 +2107,14 @@
             "type": "string",
             "pattern": "^\\d{2}:\\d{2}$",
             "description": "The start in the workspace’s time zone: `HH:mm`, 24 hours."
+          },
+          "repeat": {
+            "type": "string",
+            "enum": [
+              "none",
+              "weekly"
+            ],
+            "description": "*Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created."
           }
         },
         "required": [
@@ -2099,6 +2170,23 @@
         },
         "description": "Changes a class: every field left out stays as it is. Dates already planned keep their own trainer, capacity and times (they were copied when they were planned). Other fields are ignored."
       },
+      "ScheduledClassDate": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Session"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "datesAdded": {
+                "type": "integer",
+                "description": "How many dates the request made: 12 for a weekly repeat (“12 groepslessen toegevoegd”); left out for one date. The session is the first of them."
+              }
+            }
+          }
+        ],
+        "description": "The class date that was scheduled, with how many dates a weekly repeat made."
+      },
       "ScheduleGroupClassDateRequest": {
         "type": "object",
         "properties": {
@@ -2126,13 +2214,21 @@
             "maximum": 100,
             "description": "The capacity of this date, 1 to 100. Leave it out for the class’s."
           },
+          "repeat": {
+            "type": "string",
+            "enum": [
+              "none",
+              "weekly"
+            ],
+            "description": "*Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created."
+          },
           "surface": {
             "type": "string",
             "enum": [
               "ios",
               "android"
             ],
-            "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it."
+            "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event (and `class_series_created` for a weekly repeat) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it."
           }
         },
         "required": [
@@ -2140,6 +2236,111 @@
           "localStart"
         ],
         "description": "A class on a date: a local date and start; the end follows from the class’s duration."
+      },
+      "ClassSeries": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The series ID."
+          },
+          "groupClassId": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The class the series is of."
+          },
+          "rrule": {
+            "type": "string",
+            "description": "The weekly rule: `FREQ=WEEKLY;BYDAY=XX`, one weekday (M4 knows no other)."
+          },
+          "weekday": {
+            "type": "string",
+            "enum": [
+              "MO",
+              "TU",
+              "WE",
+              "TH",
+              "FR",
+              "SA",
+              "SU"
+            ],
+            "description": "The weekday of the rule: `TU` is every Tuesday."
+          },
+          "localStartTime": {
+            "type": "string",
+            "description": "The start on the wall clock of `timeZone`: `HH:mm`. It stays so across daylight saving time."
+          },
+          "durationMinutes": {
+            "type": "integer",
+            "description": "How long each date lasts."
+          },
+          "timeZone": {
+            "type": "string",
+            "description": "The IANA time zone the rule is read in."
+          },
+          "trainer": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/SessionTrainer"
+              },
+              {
+                "description": "The usual trainer of its dates. Left out for *Trainer nodig*."
+              }
+            ]
+          },
+          "capacity": {
+            "type": "integer",
+            "description": "The capacity its dates start with."
+          },
+          "startsOn": {
+            "type": "string",
+            "description": "The first day it may have a date: `YYYY-MM-DD`."
+          },
+          "endsOn": {
+            "type": "string",
+            "description": "The last day it may have a date; left out for a series that runs until it is stopped. A series ends the week before a later series that took over from a date on."
+          },
+          "materializedUntil": {
+            "type": "string",
+            "description": "The last day the calendar was filled to: `YYYY-MM-DD`."
+          },
+          "version": {
+            "type": "integer",
+            "description": "Raised by every change of the series."
+          }
+        },
+        "required": [
+          "id",
+          "groupClassId",
+          "rrule",
+          "weekday",
+          "localStartTime",
+          "durationMinutes",
+          "timeZone",
+          "capacity",
+          "startsOn",
+          "materializedUntil",
+          "version"
+        ],
+        "description": "A weekly series of a class: “Every Tuesday 18:00–19:00 · Sarah · 8 spots, from 6 October”. Its dates are class dates (`Session`) with a `series`."
+      },
+      "UpdatedClassDate": {
+        "allOf": [
+          {
+            "$ref": "#/components/schemas/Session"
+          },
+          {
+            "type": "object",
+            "properties": {
+              "keptDates": {
+                "type": "integer",
+                "description": "With `scope: following`: how many dates from this one on were changed on their own and kept as they are (CO-04). Left out for `scope: this`."
+              }
+            }
+          }
+        ],
+        "description": "The class date with its changes, and how many other dates kept their own."
       },
       "ClassDateChanged": {
         "type": "object",
@@ -2183,6 +2384,22 @@
             "minimum": 1,
             "maximum": 100,
             "description": "The new capacity of this date, 1 to 100. Leave it out to keep it."
+          },
+          "scope": {
+            "type": "string",
+            "enum": [
+              "this",
+              "following"
+            ],
+            "description": "*Wijzigen voor* / *Apply to* (F022, CO-04): `this` (the default) changes this date only and, for a date of a series, marks what differs (`Session.series.changedFields`). `following` changes the series from this date on: the series is split here (the earlier one ends the week before, a new one starts on this date) and every date from here on takes the new start, length and capacity, except dates that were changed on their own, which stay as they are (`keptDates` says how many). A date that is in no series answers `400` on `scope` (`not_in_series`), and so does a date before today (`date_in_past`: past dates of a series are not changed); a start the clocks skip on one of the dates it would reach, up to the end of the 12 weeks ahead, answers `400` on `localStart` (`time_does_not_exist`) with that `date`, and nothing is changed; a length that is not 15 to 240 minutes in steps of 5 answers `400` on `localEnd` (`invalid_duration`)."
+          },
+          "surface": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android"
+            ],
+            "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event (for `scope: following`) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it."
           }
         },
         "required": [
@@ -5942,7 +6159,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Session"
+                  "$ref": "#/components/schemas/UpdatedClassDate"
                 }
               }
             }
@@ -6469,7 +6686,7 @@
           "group-classes"
         ],
         "summary": "Put a class on a date",
-        "description": "Schedules the class on a date (the Owner only): a `group` session at the local start, taking the class’s trainer, capacity and duration (a trainer or capacity in the request wins for this date; `trainerId: null` plans it without a trainer) and the workspace’s default location, stored and answered as UTC instants plus the workspace’s time zone. A start the clocks skip answers `400` on `localStart` (`time_does_not_exist`); one they repeat takes the first. A class or trainer that is not in the workspace answers `404`.",
+        "description": "Schedules the class on a date (the Owner only): a `group` session at the local start, taking the class’s trainer, capacity and duration (a trainer or capacity in the request wins for this date; `trainerId: null` plans it without a trainer) and the workspace’s default location, stored and answered as UTC instants plus the workspace’s time zone. A start the clocks skip answers `400` on `localStart` (`time_does_not_exist`); one they repeat takes the first. With `repeat: weekly` (F022) it also makes the weekly series and its next 12 weeks of dates in the same transaction; the answer is the first date with `datesAdded`. A class or trainer that is not in the workspace answers `404`.",
         "security": [
           {
             "cookieAuth": []
@@ -6522,11 +6739,127 @@
         },
         "responses": {
           "201": {
-            "description": "The class was scheduled.",
+            "description": "The class was scheduled; with a weekly repeat, its first date and how many were made.",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/Session"
+                  "$ref": "#/components/schemas/ScheduledClassDate"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/group-classes/{classId}/series": {
+      "get": {
+        "operationId": "listGroupClassSeries",
+        "tags": [
+          "group-classes"
+        ],
+        "summary": "The weekly series of a class",
+        "description": "The weekly series of the class that still run (no end, or an end that is today or later), in the order they start (TW-03 *Reeksen*). The Owner only: a Trainer gets `403`, and reads the series of a date on the date itself (`Session.series`). A class that is not in the workspace answers `404`.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "class.manage",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The class ID."
+            },
+            "required": true,
+            "description": "The class ID.",
+            "name": "classId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The series.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ClassSeries"
+                  }
                 }
               }
             }

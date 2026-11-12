@@ -4,6 +4,7 @@ import type { DatabaseExecutor } from '../client.ts';
 import { FIXTURE_INVITATION_VALIDITY_MS } from '../invitation-validity.ts';
 import {
   authUsers,
+  classSeries,
   clients,
   groupClasses,
   locations,
@@ -263,6 +264,53 @@ export async function addGroupClass(
 }
 
 /**
+ * A weekly series of a class (F022): every Tuesday 18:00 Amsterdam time for 60 minutes, 8 places,
+ * no usual trainer, from Tuesday 6 October 2026 with the calendar filled to 28 December, unless the
+ * test says otherwise. It makes a class for it unless `groupClassId` is given. It adds no dates.
+ */
+export async function addClassSeries(
+  db: Pick<DatabaseExecutor, 'insert'>,
+  options: {
+    workspaceId: string;
+    groupClassId?: string;
+    rrule?: string;
+    localStartTime?: string;
+    durationMinutes?: number;
+    timeZone?: string;
+    trainerProfileId?: string | null;
+    capacity?: number;
+    startsOn?: string;
+    endsOn?: string | null;
+    materializedUntil?: string;
+    version?: number;
+  },
+): Promise<{ id: string; groupClassId: string }> {
+  const groupClassId =
+    options.groupClassId ?? (await addGroupClass(db, { workspaceId: options.workspaceId })).id;
+  const row = first(
+    await db
+      .insert(classSeries)
+      .values({
+        organizationId: options.workspaceId,
+        groupClassId,
+        rrule: options.rrule ?? 'FREQ=WEEKLY;BYDAY=TU',
+        localStartTime: options.localStartTime ?? '18:00',
+        durationMinutes: options.durationMinutes ?? 60,
+        timeZone: options.timeZone ?? 'Europe/Amsterdam',
+        trainerProfileId: options.trainerProfileId ?? null,
+        capacity: options.capacity ?? 8,
+        startsOn: options.startsOn ?? '2026-10-06',
+        endsOn: options.endsOn ?? null,
+        materializedUntil: options.materializedUntil ?? '2026-12-28',
+        version: options.version ?? 1,
+      })
+      .returning({ id: classSeries.id }),
+    'class series',
+  );
+  return { id: row.id, groupClassId };
+}
+
+/**
  * A private session of a workspace (F020) with one participant, a client of it. Unless the test
  * says otherwise: at the workspace's default location, for the given trainer profile (none when
  * not given), planned by nobody, an hour long, starting at the given instant (default: a week
@@ -283,6 +331,8 @@ export async function addSession(
     locationId?: string;
     type?: 'private' | 'group' | 'open_gym';
     groupClassId?: string | null;
+    /** The weekly series this class date belongs to (F022), with the local date it stands for. */
+    series?: { id: string; occurrenceDate: string; detachedFields?: string[] };
     status?: 'scheduled' | 'cancelled';
     startsAt?: Date;
     durationMinutes?: number;
@@ -320,6 +370,9 @@ export async function addSession(
         trainerProfileId: options.trainerProfileId ?? null,
         locationId,
         groupClassId,
+        seriesId: options.series?.id ?? null,
+        occurrenceDate: options.series?.occurrenceDate ?? null,
+        detachedFields: options.series?.detachedFields ?? [],
         startsAt,
         endsAt,
         capacity: options.capacity ?? (type === 'private' ? 1 : 10),

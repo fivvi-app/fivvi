@@ -33,6 +33,7 @@ import kotlinx.serialization.Contextual
  *
  * @param path Dot-separated path of the invalid field.
  * @param code Machine-readable issue code.
+ * @param date The local date (`YYYY-MM-DD`) the issue is about, when the field alone does not say: the first date of a weekly class whose start the clocks skip (`time_does_not_exist`).
  */
 @Serializable
 
@@ -44,7 +45,11 @@ data class ValidationErrorIssuesInner (
 
     /* Machine-readable issue code. */
     @SerialName(value = "code")
-    val code: kotlin.String
+    val code: kotlin.String,
+
+    /* The local date (`YYYY-MM-DD`) the issue is about, when the field alone does not say: the first date of a weekly class whose start the clocks skip (`time_does_not_exist`). */
+    @SerialName(value = "date")
+    val date: kotlin.String? = null
 
 ) {
 

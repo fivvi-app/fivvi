@@ -210,6 +210,8 @@ export interface ClassDateChanges {
   readonly startsAt: Date;
   readonly endsAt: Date;
   readonly capacity: number;
+  /** What the date differs in from its series now (F022); left out leaves the column as it is. */
+  readonly detachedFields?: readonly string[];
 }
 
 export type ClassDateUpdate =
@@ -235,6 +237,7 @@ export async function updateClassDate(
       startsAt: changes.startsAt,
       endsAt: changes.endsAt,
       capacity: changes.capacity,
+      ...(changes.detachedFields ? { detachedFields: [...changes.detachedFields] } : {}),
       version: sql`${sessions.version} + 1`,
     })
     .where(
