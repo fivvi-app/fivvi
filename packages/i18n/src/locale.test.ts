@@ -5,6 +5,7 @@ import {
   resolveClientCommunicationLanguage,
   resolveCommunicationLanguage,
   resolveInterfaceLanguage,
+  resolveInternalCommunicationLanguage,
   resolveSignInCommunicationLanguage,
 } from './locale.ts';
 
@@ -236,5 +237,32 @@ describe('AC11: client communication language: account preference, client langua
   it('never uses the device languages of the client', () => {
     const sources = { requested: ['en-GB'], workspaceDefault: 'nl-NL' } as const;
     expect(resolveClientCommunicationLanguage(sources)).toBe('nl-NL');
+  });
+});
+
+// F049 AC4: the language of the emails to Mark Jansen and Anna de Vries, clients of John's Gym.
+describe('F049 AC4: client email language for Mark Jansen and Anna de Vries', () => {
+  it('EN: Mark’s account prefers English, John’s Gym defaults to Dutch', () => {
+    expect(
+      resolveClientCommunicationLanguage({
+        accountPreference: 'en',
+        clientLanguage: null,
+        workspaceDefault: 'nl-NL',
+      }),
+    ).toBe('en');
+  });
+
+  it('NL: Anna has no preference and no language for emails, so the workspace default applies', () => {
+    expect(
+      resolveClientCommunicationLanguage({
+        accountPreference: null,
+        clientLanguage: null,
+        workspaceDefault: 'nl-NL',
+      }),
+    ).toBe('nl-NL');
+  });
+
+  it('writes to the team itself in Dutch', () => {
+    expect(resolveInternalCommunicationLanguage()).toBe('nl-NL');
   });
 });

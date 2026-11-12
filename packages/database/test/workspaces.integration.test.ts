@@ -1,5 +1,5 @@
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   authUsers,
@@ -8,6 +8,7 @@ import {
   createWorkspaceWithOwner,
   type DatabaseClient,
   findWorkspace,
+  listClientWorkspaces,
   listMyWorkspaces,
   listTeamWorkspaces,
   organizations,
@@ -66,6 +67,7 @@ describe('F002 creating a workspace', () => {
       slug: 'johns-gym',
       defaultLocale: 'nl-NL',
       timeZone: 'Europe/Amsterdam',
+      trainerWord: 'trainer',
     });
     const [row] = await admin.db
       .select()
@@ -207,11 +209,64 @@ describe('F002 creating a workspace', () => {
 
     const [row] = await admin.db.select().from(organizations).where(eq(organizations.id, owned.id));
     expect(listed).toEqual([
-      { id: owned.id, name: row?.name, slug: row?.slug, role: 'owner', trainsHere: false },
+      {
+        id: owned.id,
+        name: row?.name,
+        slug: row?.slug,
+        trainerWord: 'trainer',
+        role: 'owner',
+        trainsHere: false,
+      },
     ]);
     expect(fromAny).toEqual(listed);
     expect(JSON.stringify([listed, fromAny])).not.toContain(stranger.id);
     expect(JSON.stringify([listed, fromAny])).not.toContain(clientOf.id);
+  });
+
+  it('F030 AC11: lists the workspaces the account has a client relationship in, by name, and no other', async () => {
+    const zeta = await createWorkspace(admin.db, { label: 'zeta-studio' });
+    const alpha = await createWorkspace(admin.db, { label: 'alpha-gym' });
+    const teamOnly = await createWorkspace(admin.db);
+    const stranger = await createWorkspace(admin.db);
+    const account = await createAccount(admin.db, { label: 'two-gyms' });
+    await addClient(admin.db, { workspaceId: zeta.id, accountId: account.id });
+    await addClient(admin.db, { workspaceId: alpha.id, accountId: account.id });
+    await addTeamRole(admin.db, {
+      workspaceId: teamOnly.id,
+      accountId: account.id,
+      role: 'trainer',
+    });
+    // A client record of the same workspace that no account is linked to is nobody's here.
+    await addClient(admin.db, { workspaceId: stranger.id });
+
+    const listed = await scopes().inAccountScope(
+      { accountId: account.id, workspaces: 'any' },
+      (scope) => listClientWorkspaces(scope),
+    );
+    // A scope that holds team workspaces only lists no client workspace.
+    const fromTeam = await scopes().inAccountScope(
+      { accountId: account.id, workspaces: 'team' },
+      (scope) => listClientWorkspaces(scope),
+    );
+
+    expect(listed).toEqual([
+      { id: alpha.id, name: alpha.marker, slug: alpha.marker, trainerWord: 'trainer' },
+      { id: zeta.id, name: zeta.marker, slug: zeta.marker, trainerWord: 'trainer' },
+    ]);
+    expect(fromTeam).toEqual([]);
+    expect(JSON.stringify(listed)).not.toContain(teamOnly.id);
+    expect(JSON.stringify(listed)).not.toContain(stranger.id);
+  });
+
+  it('F030 AC11: an account without a client relationship has an empty list', async () => {
+    const account = await createAccount(admin.db, { label: 'mark' });
+
+    const listed = await scopes().inAccountScope(
+      { accountId: account.id, workspaces: 'any' },
+      (scope) => listClientWorkspaces(scope),
+    );
+
+    expect(listed).toEqual([]);
   });
 
   it('F005 AC3: the Owner of a new workspace has a trainer profile when the creator trains, and lists it', async () => {
@@ -287,8 +342,66 @@ describe('F002 reading and renaming a workspace', () => {
         slug: workspace.marker,
         defaultLocale: 'nl-NL',
         timeZone: 'Europe/Amsterdam',
+        trainerWord: 'trainer',
       },
     });
+  });
+
+  it('F068 AC1: changes the workspace’s word, read back by every list, and nothing else', async () => {
+    const workspace = await createWorkspace(admin.db);
+    const owner = await ownerOf(workspace.id);
+    await addClient(admin.db, { workspaceId: workspace.id, accountId: owner.id });
+
+    const entry = await scopes().inWorkspaceScope(
+      { accountId: owner.id, workspaceId: workspace.id, admit: () => 'team' },
+      (scope) => updateWorkspace(scope, { trainerWord: 'instructeur' }),
+    );
+
+    expect(entry).toMatchObject({
+      status: 'entered',
+      value: { id: workspace.id, name: workspace.marker, trainerWord: 'instructeur' },
+    });
+    const team = await scopes().inAccountScope(
+      { accountId: owner.id, workspaces: 'any' },
+      (scope) => listTeamWorkspaces(scope),
+    );
+    const clientOf = await scopes().inAccountScope(
+      { accountId: owner.id, workspaces: 'any' },
+      (scope) => listClientWorkspaces(scope),
+    );
+    expect(team.map(({ trainerWord }) => trainerWord)).toEqual(['instructeur']);
+    expect(clientOf.map(({ trainerWord }) => trainerWord)).toEqual(['instructeur']);
+    const [row] = await admin.db
+      .select()
+      .from(organizations)
+      .where(eq(organizations.id, workspace.id));
+    expect(row).toMatchObject({ name: workspace.marker, defaultLocale: 'nl-NL' });
+  });
+
+  it('F068 AC1: a change of the word touches no other workspace', async () => {
+    const mine = await createWorkspace(admin.db);
+    const other = await createWorkspace(admin.db);
+    const owner = await ownerOf(mine.id);
+
+    await scopes().inWorkspaceScope(
+      { accountId: owner.id, workspaceId: mine.id, admit: () => 'team' },
+      (scope) => updateWorkspace(scope, { trainerWord: 'docent' }),
+    );
+
+    const [row] = await admin.db
+      .select({ trainerWord: organizations.trainerWord })
+      .from(organizations)
+      .where(eq(organizations.id, other.id));
+    expect(row?.trainerWord).toBe('trainer');
+  });
+
+  it('F068: the database refuses a word outside the four choices', async () => {
+    const workspace = await createWorkspace(admin.db);
+    await expect(
+      admin.db.execute(
+        sql`update organizations set trainer_word = 'teacher' where id = ${workspace.id}`,
+      ),
+    ).rejects.toThrow();
   });
 
   it('AC6: a rename changes the name and never the slug', async () => {

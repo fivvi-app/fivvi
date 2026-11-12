@@ -38,5 +38,6 @@ export const emailChangeCodeEmail: EmailTemplate<EmailChangeCodeEmailProps> = {
       <Text style={textStyle}>{ctx.t('email.emailChangeCode.ignore')}</Text>
     </>
   ),
+  userContent: [],
   previewProps: { code: '482915', expiresInMinutes: 15 },
 };

@@ -276,10 +276,14 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MeResponse/canCreateWorkspace`.
             public var canCreateWorkspace: Swift.Bool
-            /// The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed.
+            /// The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed here, but under `clientWorkspaces`.
             ///
             /// - Remark: Generated from `#/components/schemas/MeResponse/workspaces`.
             public var workspaces: [Components.Schemas.MeWorkspace]
+            /// The workspaces where the account has a joined client relationship, by name; a workspace it is both a team member and a client of is listed here too. Empty when it has none. Until join requests and invitations exist (F029, F032), a client record linked to the account counts as joined. A workspace the account has only asked to join is not listed.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeResponse/clientWorkspaces`.
+            public var clientWorkspaces: [Components.Schemas.MeClientWorkspace]
             /// Creates a new `MeResponse`.
             ///
             /// - Parameters:
@@ -289,7 +293,8 @@ extension Components {
             ///   - preferredLocale: The language stored on the account; null until one is stored.
             ///   - bookingEmails: Whether the person gets an email when a client books or cancels a class they teach (F050). On for every account until they switch it off. It belongs to the account, so it is the same in every workspace.
             ///   - canCreateWorkspace: Whether the account may set up a workspace: it is on the sign-up allowlist, whether or not it has a workspace already. With no workspace, the first-run screen shows when this is true and the no-access page when it is false. The web and the apps never decide this by rules of their own.
-            ///   - workspaces: The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed.
+            ///   - workspaces: The workspaces the account has a team role in, by name. Empty when it has none. Workspaces it is only a client of are not listed here, but under `clientWorkspaces`.
+            ///   - clientWorkspaces: The workspaces where the account has a joined client relationship, by name; a workspace it is both a team member and a client of is listed here too. Empty when it has none. Until join requests and invitations exist (F029, F032), a client record linked to the account counts as joined. A workspace the account has only asked to join is not listed.
             public init(
                 id: Swift.String,
                 email: Swift.String,
@@ -297,7 +302,8 @@ extension Components {
                 preferredLocale: Components.Schemas.MeResponse.PreferredLocalePayload? = nil,
                 bookingEmails: Swift.Bool,
                 canCreateWorkspace: Swift.Bool,
-                workspaces: [Components.Schemas.MeWorkspace]
+                workspaces: [Components.Schemas.MeWorkspace],
+                clientWorkspaces: [Components.Schemas.MeClientWorkspace]
             ) {
                 self.id = id
                 self.email = email
@@ -306,6 +312,7 @@ extension Components {
                 self.bookingEmails = bookingEmails
                 self.canCreateWorkspace = canCreateWorkspace
                 self.workspaces = workspaces
+                self.clientWorkspaces = clientWorkspaces
             }
             public enum CodingKeys: String, CodingKey {
                 case id
@@ -315,6 +322,7 @@ extension Components {
                 case bookingEmails
                 case canCreateWorkspace
                 case workspaces
+                case clientWorkspaces
             }
         }
         /// A workspace the account has a team role in.
@@ -333,6 +341,8 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MeWorkspace/slug`.
             public var slug: Swift.String
+            /// - Remark: Generated from `#/components/schemas/MeWorkspace/trainerWord`.
+            public var trainerWord: Components.Schemas.TrainerWord
             /// What the account is in the workspace; shown as a label, never decided on.
             ///
             /// - Remark: Generated from `#/components/schemas/MeWorkspace/role`.
@@ -376,18 +386,21 @@ extension Components {
             ///   - id: The workspace ID.
             ///   - name: The name shown in the product.
             ///   - slug: The URL name: `/w/{slug}` on the web.
+            ///   - trainerWord:
             ///   - role: What the account is in the workspace; shown as a label, never decided on.
             ///   - capabilities: What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             public init(
                 id: Swift.String,
                 name: Swift.String,
                 slug: Swift.String,
+                trainerWord: Components.Schemas.TrainerWord,
                 role: Components.Schemas.MeWorkspace.RolePayload,
                 capabilities: Components.Schemas.MeWorkspace.CapabilitiesPayload
             ) {
                 self.id = id
                 self.name = name
                 self.slug = slug
+                self.trainerWord = trainerWord
                 self.role = role
                 self.capabilities = capabilities
             }
@@ -395,8 +408,61 @@ extension Components {
                 case id
                 case name
                 case slug
+                case trainerWord
                 case role
                 case capabilities
+            }
+        }
+        /// The word the product uses for the people who teach in the workspace: `trainer`, `instructeur`, `docent` or `coach`. It is only a label shown to the team and the clients, in their own language; the role stays `trainer` in the API and nobody’s rights depend on it. Every workspace starts on `trainer`.
+        ///
+        /// - Remark: Generated from `#/components/schemas/TrainerWord`.
+        @frozen public enum TrainerWord: String, Codable, Hashable, Sendable, CaseIterable {
+            case trainer = "trainer"
+            case instructeur = "instructeur"
+            case docent = "docent"
+            case coach = "coach"
+        }
+        /// A workspace the account is a client of: its ID, URL name, name and the word it uses for its trainers (F068), nothing more. The account’s own client record in it is the only thing that lists it.
+        ///
+        /// - Remark: Generated from `#/components/schemas/MeClientWorkspace`.
+        public struct MeClientWorkspace: Codable, Hashable, Sendable {
+            /// The workspace ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeClientWorkspace/id`.
+            public var id: Swift.String
+            /// The URL name: `/w/{slug}` on the web.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeClientWorkspace/slug`.
+            public var slug: Swift.String
+            /// The name shown in the product.
+            ///
+            /// - Remark: Generated from `#/components/schemas/MeClientWorkspace/name`.
+            public var name: Swift.String
+            /// - Remark: Generated from `#/components/schemas/MeClientWorkspace/trainerWord`.
+            public var trainerWord: Components.Schemas.TrainerWord
+            /// Creates a new `MeClientWorkspace`.
+            ///
+            /// - Parameters:
+            ///   - id: The workspace ID.
+            ///   - slug: The URL name: `/w/{slug}` on the web.
+            ///   - name: The name shown in the product.
+            ///   - trainerWord:
+            public init(
+                id: Swift.String,
+                slug: Swift.String,
+                name: Swift.String,
+                trainerWord: Components.Schemas.TrainerWord
+            ) {
+                self.id = id
+                self.slug = slug
+                self.name = name
+                self.trainerWord = trainerWord
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case slug
+                case name
+                case trainerWord
             }
         }
         /// A workspace the account is on the team of.
@@ -415,6 +481,8 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MyWorkspace/slug`.
             public var slug: Swift.String
+            /// - Remark: Generated from `#/components/schemas/MyWorkspace/trainerWord`.
+            public var trainerWord: Components.Schemas.TrainerWord
             /// What the account is on the team; shown as a label, never decided on.
             ///
             /// - Remark: Generated from `#/components/schemas/MyWorkspace/role`.
@@ -462,6 +530,7 @@ extension Components {
             ///   - workspaceId: The workspace ID.
             ///   - name: The name shown in the product.
             ///   - slug: The URL name: `/w/{slug}` on the web.
+            ///   - trainerWord:
             ///   - role: What the account is on the team; shown as a label, never decided on.
             ///   - capabilities: What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///   - trainsHere: Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner.
@@ -469,6 +538,7 @@ extension Components {
                 workspaceId: Swift.String,
                 name: Swift.String,
                 slug: Swift.String,
+                trainerWord: Components.Schemas.TrainerWord,
                 role: Components.Schemas.MyWorkspace.RolePayload,
                 capabilities: Components.Schemas.MyWorkspace.CapabilitiesPayload,
                 trainsHere: Swift.Bool
@@ -476,6 +546,7 @@ extension Components {
                 self.workspaceId = workspaceId
                 self.name = name
                 self.slug = slug
+                self.trainerWord = trainerWord
                 self.role = role
                 self.capabilities = capabilities
                 self.trainsHere = trainsHere
@@ -484,6 +555,7 @@ extension Components {
                 case workspaceId
                 case name
                 case slug
+                case trainerWord
                 case role
                 case capabilities
                 case trainsHere
@@ -493,7 +565,7 @@ extension Components {
         ///
         /// - Remark: Generated from `#/components/schemas/UpdateMeRequest`.
         public struct UpdateMeRequest: Codable, Hashable, Sendable {
-            /// The person’s own name, as shown in every workspace they are on: trimmed, at least one and at most 80 characters. Empty, blank or longer answers `400` with a field error.
+            /// The person’s own name, as shown in every workspace they are on: trimmed, at least one and at most 120 characters. Empty, blank or longer answers `400` with a field error.
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateMeRequest/name`.
             public var name: Swift.String?
@@ -526,7 +598,7 @@ extension Components {
             /// Creates a new `UpdateMeRequest`.
             ///
             /// - Parameters:
-            ///   - name: The person’s own name, as shown in every workspace they are on: trimmed, at least one and at most 80 characters. Empty, blank or longer answers `400` with a field error.
+            ///   - name: The person’s own name, as shown in every workspace they are on: trimmed, at least one and at most 120 characters. Empty, blank or longer answers `400` with a field error.
             ///   - preferredLocale: The language to store on the account, for its screens and emails: `nl-NL` or `en`. Any other value, a browser’s `nl-BE` included, is refused with `400`.
             ///   - bookingEmails: Whether to get an email when a client books or cancels a class the person teaches: `true` or `false`, stored on the account and the same in every workspace. Anything that is not a boolean answers `400` with a field error.
             ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token that changes `preferredLocale` records the `language_changed` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
@@ -1247,6 +1319,27 @@ extension Components {
                 case items
             }
         }
+        /// Too many requests from this network or this account in the last minutes or hour. Nothing was stored or sent. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/PublicRequestRateLimited`.
+        public struct PublicRequestRateLimited: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/PublicRequestRateLimited/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case rateLimited = "rate_limited"
+            }
+            /// - Remark: Generated from `#/components/schemas/PublicRequestRateLimited/code`.
+            public var code: Components.Schemas.PublicRequestRateLimited.CodePayload
+            /// Creates a new `PublicRequestRateLimited`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            public init(code: Components.Schemas.PublicRequestRateLimited.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+            }
+        }
         /// Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019.
         ///
         /// - Remark: Generated from `#/components/schemas/SignInRequest`.
@@ -1486,6 +1579,8 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/Workspace/timeZone`.
             public var timeZone: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Workspace/trainerWord`.
+            public var trainerWord: Components.Schemas.TrainerWord
             /// Creates a new `Workspace`.
             ///
             /// - Parameters:
@@ -1494,18 +1589,21 @@ extension Components {
             ///   - slug: The URL name, made from the name when the workspace is created and never changed by a rename. Lower case letters, digits and hyphens.
             ///   - defaultLocale:
             ///   - timeZone: The IANA time zone dates and times are shown in, for example `Europe/Amsterdam`.
+            ///   - trainerWord:
             public init(
                 id: Swift.String,
                 name: Swift.String,
                 slug: Swift.String,
                 defaultLocale: Components.Schemas.Locale,
-                timeZone: Swift.String
+                timeZone: Swift.String,
+                trainerWord: Components.Schemas.TrainerWord
             ) {
                 self.id = id
                 self.name = name
                 self.slug = slug
                 self.defaultLocale = defaultLocale
                 self.timeZone = timeZone
+                self.trainerWord = trainerWord
             }
             public enum CodingKeys: String, CodingKey {
                 case id
@@ -1513,6 +1611,7 @@ extension Components {
                 case slug
                 case defaultLocale
                 case timeZone
+                case trainerWord
             }
         }
         /// Creates a workspace for the caller, who becomes its Owner. Nothing else is asked: the default language, the time zone and the slug are the platform’s defaults.
@@ -1544,7 +1643,7 @@ extension Components {
                 case personName
             }
         }
-        /// Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), or both. The slug stays, so links keep working. Other fields are ignored.
+        /// Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), the word it uses for its trainers (`trainerWord`, F068), or any of them. The slug stays, so links keep working. Other fields are ignored.
         ///
         /// - Remark: Generated from `#/components/schemas/UpdateWorkspaceRequest`.
         public struct UpdateWorkspaceRequest: Codable, Hashable, Sendable {
@@ -1554,21 +1653,27 @@ extension Components {
             public var name: Swift.String?
             /// - Remark: Generated from `#/components/schemas/UpdateWorkspaceRequest/defaultLocale`.
             public var defaultLocale: Components.Schemas.Locale?
+            /// - Remark: Generated from `#/components/schemas/UpdateWorkspaceRequest/trainerWord`.
+            public var trainerWord: Components.Schemas.TrainerWord?
             /// Creates a new `UpdateWorkspaceRequest`.
             ///
             /// - Parameters:
             ///   - name: The new name, as the product shows it from now on.
             ///   - defaultLocale:
+            ///   - trainerWord:
             public init(
                 name: Swift.String? = nil,
-                defaultLocale: Components.Schemas.Locale? = nil
+                defaultLocale: Components.Schemas.Locale? = nil,
+                trainerWord: Components.Schemas.TrainerWord? = nil
             ) {
                 self.name = name
                 self.defaultLocale = defaultLocale
+                self.trainerWord = trainerWord
             }
             public enum CodingKeys: String, CodingKey {
                 case name
                 case defaultLocale
+                case trainerWord
             }
         }
         /// Who sent the report that the person switched workspace.

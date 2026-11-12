@@ -4,6 +4,7 @@ export {
   type CatalogCheckInput,
   type CatalogEntry,
   catalog,
+  catalogIdOf,
   checkCatalog,
   type EmailAudience,
   type InternalEntry,
@@ -29,6 +30,7 @@ export {
   type EnvironmentSendEmailOptions,
   isProductionEnvironment,
 } from './environment.ts';
+export { emailIdempotencyKey } from './idempotency-key.ts';
 export {
   createLettermintTransport,
   type LettermintTransportOptions,
@@ -47,10 +49,12 @@ export { createConfiguredTransport } from './provider.ts';
 export {
   createEmailContext,
   type EmailContext,
+  type EmailFrame,
   type EmailMessageKey,
   type EmailTemplate,
   type RenderedEmail,
   renderEmail,
+  type UserContentProp,
 } from './render.tsx';
 export { defaultRetryPolicy, type RetryPolicy } from './retry.ts';
 export {
@@ -60,6 +64,7 @@ export {
   type SendEmail,
   type SendEmailOptions,
   type SendEmailResult,
+  type SentEvent,
 } from './send.ts';
 export {
   type DemoRequestEmailProps,

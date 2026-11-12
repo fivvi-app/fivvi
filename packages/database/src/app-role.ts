@@ -37,6 +37,15 @@ export const APP_TABLE_PRIVILEGES: Readonly<Record<string, readonly Privilege[]>
   group_classes: ALL,
   sessions: ALL,
   session_participants: ALL,
+  // The payment ledger (E019): the status lines are append-only by a trigger, not by privilege, so
+  // the isolation suite can aim updates and deletes at other workspaces' rows.
+  payment_customers: ALL,
+  payments: ALL,
+  payment_status_changes: ALL,
+  // Refunds and reversals (F060): the refund's status lines are append-only by a trigger too.
+  payment_refunds: ALL,
+  payment_refund_status_changes: ALL,
+  payment_chargebacks: ALL,
 };
 
 /**

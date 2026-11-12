@@ -60,7 +60,8 @@ test.describe('F005 my name', () => {
     await expect(page.locator('#person-name-error')).toHaveText(copy.myProfile.errors.nameRequired);
     await expect(name).toHaveAttribute('aria-invalid', 'true');
     await expectNoAxeViolations(page, `TW-09 with a refused name in ${appLocale}`);
-    await name.fill('x'.repeat(81));
+    // 120 characters are allowed (F030); one more is refused.
+    await name.fill('x'.repeat(121));
     await page.getByRole('button', { name: copy.myProfile.save }).click();
     await expect(page.locator('#person-name-error')).toHaveText(copy.myProfile.errors.nameTooLong);
     expect(((await (await page.request.get('/api/v1/me')).json()) as { name: string }).name).toBe(
@@ -342,7 +343,10 @@ test.describe('F050 booking emails switch', () => {
       route.request().method() === 'PATCH' ? route.abort() : route.continue(),
     );
 
-    await box.uncheck();
+    // `click()`, not `uncheck()`: `uncheck()` re-reads the box after its click and fails when the
+    // aborted save has already put the box back (#1290). The alert below proves the click was
+    // saved (and failed), the box is asserted checked again afterwards.
+    await box.click();
 
     await expect(page.getByRole('main').getByRole('alert')).toHaveText(
       copy.myProfile.errors.noConnection,

@@ -9,6 +9,10 @@ import {
 } from '../src/index.ts';
 import {
   addClient,
+  addPayment,
+  addPaymentChargeback,
+  addPaymentCustomer,
+  addPaymentRefund,
   addSession,
   addTeamRole,
   createAccount,
@@ -96,6 +100,13 @@ async function seedScenario(admin: DatabaseExecutor): Promise<Scenario> {
   // A session of A with Sam's client in it, so a context that names Sam's client has a place to see
   // (`session_participants` has the client policy, F020), next to the other client's session.
   await addSession(admin, { workspaceId: a, clientId: clientInA });
+  // The same for the payment tables (E019): they have the client policy too.
+  const paymentInA = await addPayment(admin, { workspaceId: a, clientId: clientInA });
+  await addPaymentCustomer(admin, { workspaceId: a, clientId: clientInA });
+  // And the refund and the reversal of that payment (F060): the client policy covers them too.
+  const refundTarget = { workspaceId: a, paymentId: paymentInA.id, clientId: clientInA };
+  await addPaymentRefund(admin, refundTarget);
+  await addPaymentChargeback(admin, refundTarget);
   const all: Scenario['rows'] = {};
   for (const [table, factory] of Object.entries(isolationFactories)) {
     const found = await visible(admin, table, factory);

@@ -126,6 +126,41 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     locale: property.enum(['nl-NL', 'en']),
     surface: property.enum(['web', 'ios', 'android']),
   },
+  // F049: an email was sent. The catalog ID of the email (`EM-11`; an internal email, which goes to
+  // no client, trainer or owner, has its key) and its language only. The distinct ID is random for
+  // each event (`anonymousDistinctId()`), so nothing leads to the recipient: no address, name,
+  // account or workspace. A new catalog entry adds its ID here (`apps/web/server/email-sent.test.ts`
+  // fails until it does).
+  email_sent: {
+    email_id: property.enum([
+      'EM-02',
+      'EM-03',
+      'EM-04',
+      'EM-05',
+      'EM-06',
+      'EM-07',
+      'EM-08',
+      'EM-09',
+      'EM-10',
+      'EM-11',
+      'EM-12',
+      'EM-13',
+      'EM-14',
+      'EM-15',
+      'EM-16',
+      'EM-17',
+      'EM-18',
+      'EM-19',
+      'EM-20',
+      'EM-21',
+      'EM-22',
+      'EM-23',
+      'EM-34',
+      'demo-request',
+      'hello',
+    ]),
+    language: property.enum(['nl-NL', 'en']),
+  },
   // E013: a public request was refused by one of the guard's rules (spec #467). The rule and the
   // platform only; the distinct ID is random for each event (`anonymousDistinctId()`), so nothing
   // leads to the account. No email address, IP address, account ID or workspace name, nothing that
@@ -139,6 +174,8 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
       'join_request_pending',
       'join_requests_capped',
       'booking_churn',
+      'sign_in_address',
+      'sign_in_ip',
     ]),
     platform: property.enum(['web', 'ios', 'android']),
   },

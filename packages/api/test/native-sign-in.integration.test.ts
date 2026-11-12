@@ -22,6 +22,7 @@ import {
   type ProductEventTransport,
   type SentProductEvent,
 } from '@fivvi/observability';
+import { createBackgroundTasks } from '@fivvi/testing/background-tasks';
 import { freezeSystemTime } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
 import { eq, notInArray } from 'drizzle-orm';
@@ -54,7 +55,7 @@ describe('F001N native sign-in through the API', () => {
   let client: DatabaseClient;
   const transport = createMemoryTransport();
   /** The work a sign-in request does after its answer; `requestSignIn` waits for it. */
-  const pending: Promise<void>[] = [];
+  const tasks = createBackgroundTasks();
   let allowlist = parseSignUpAllowlist(undefined);
 
   /** The API as apps/web wires it: every sign-in dependency is `packages/auth`'s. */
@@ -72,7 +73,7 @@ describe('F001N native sign-in through the API', () => {
       secret: SECRET,
       baseURL: ORIGIN,
       signUpAllowlist: allowlist,
-      runInBackground: (task) => pending.push(task),
+      runInBackground: tasks.run,
       sendEmail:
         overrides.sendEmail ??
         createSendEmail({
@@ -118,7 +119,7 @@ describe('F001N native sign-in through the API', () => {
     app?: ReturnType<typeof api>['app'],
   ) {
     const response = await post('/v1/sign-in/request', { email, locale }, headers, app);
-    await Promise.all(pending.splice(0));
+    await tasks.settle();
     return response;
   }
 
@@ -171,7 +172,7 @@ describe('F001N native sign-in through the API', () => {
   /** Asks the web's sign-in page for a code and waits for the email to be sent. */
   async function webRequestSignIn(email = 'owner@example.com', locale: Locale = 'en') {
     const response = await webPost('/sign-in/code/request', { email, locale });
-    await Promise.all(pending.splice(0));
+    await tasks.settle();
     return response;
   }
 
@@ -222,8 +223,9 @@ describe('F001N native sign-in through the API', () => {
   beforeEach(async () => {
     // Every test runs at T0, so no result depends on the real clock; `passTime` moves it.
     freezeSystemTime(T0);
+    // Wait for the email an earlier test left in flight before the transport is cleared (#1275).
+    await tasks.reset();
     transport.clear();
-    pending.length = 0;
     allowlist = parseSignUpAllowlist(undefined);
     await client.db.delete(authVerifications);
     await client.db.delete(authRateLimits);
@@ -358,11 +360,13 @@ describe('F001N native sign-in through the API', () => {
         preferredLocale: 'nl-NL',
         bookingEmails: true,
         canCreateWorkspace: false,
+        clientWorkspaces: [],
         workspaces: [
           {
             id: gym?.id,
             name: "John's Gym",
             slug: 'johns-gym',
+            trainerWord: 'trainer',
             role: 'owner',
             capabilities: capabilitiesOf('owner'),
           },
@@ -728,8 +732,81 @@ describe('F001N native sign-in through the API', () => {
         'x-real-ip': '203.0.113.7',
       });
 
-      expect(limited.status).toBe(202);
+      expect(limited.status).toBe(429);
+      expect(await limited.json()).toEqual({ code: 'rate_limited' });
       expect(transport.sent).toEqual([]);
+    });
+
+    describe('E013: an app call carries no bot check, and the limits hold for it', () => {
+      const TEST_NET = { 'x-real-ip': '192.0.2.10' };
+
+      it('AC3: an app call without a Turnstile token succeeds and sends the email', async () => {
+        allowlist = parseSignUpAllowlist('mark@example.com');
+
+        const response = await requestSignIn('mark@example.com', 'en', TEST_NET);
+
+        expect(response.status).toBe(202);
+        expect(transport.sent).toHaveLength(1);
+      });
+
+      it.each([
+        ['a new address', 'mark@example.com'],
+        ['an existing one', 'owner@example.com'],
+      ])(
+        'AC4: the 4th call for %s within 15 minutes answers 202 like an allowed one and sends nothing',
+        async (_, address) => {
+          allowlist = parseSignUpAllowlist('mark@example.com');
+          const allowed = await answer(await requestSignIn(address, 'en', TEST_NET));
+          await requestSignIn(address, 'en', TEST_NET);
+          await requestSignIn(address, 'en', TEST_NET);
+          expect(transport.sent).toHaveLength(3);
+
+          const fourth = await answer(await requestSignIn(address, 'en', TEST_NET));
+
+          expect(fourth).toEqual(allowed);
+          expect(transport.sent).toHaveLength(3);
+        },
+      );
+
+      it('AC4: the 21st call from one IP address within an hour answers 429 rate_limited and sends nothing', async () => {
+        for (let i = 0; i < 20; i++) {
+          expect((await requestSignIn(`nobody${i}@example.com`, 'en', TEST_NET)).status).toBe(202);
+        }
+
+        const limited = await requestSignIn('owner@example.com', 'en', TEST_NET);
+
+        expect(limited.status).toBe(429);
+        expect(await limited.json()).toEqual({ code: 'rate_limited' });
+        expect(limited.headers.getSetCookie()).toEqual([]);
+        expect(transport.sent).toEqual([]);
+      });
+
+      it('AC4: web and apps share the IP limit of a network', async () => {
+        const web = createAuth({
+          db: client.db,
+          secret: SECRET,
+          baseURL: ORIGIN,
+          runInBackground: tasks.run,
+          sendEmail: createSendEmail({
+            transport,
+            sender: { email: 'noreply@fivvi.app', name: 'Fivvi' },
+          }),
+        });
+        for (let i = 0; i < 20; i++) {
+          await web.handler(
+            new Request(`${ORIGIN}/api/auth/sign-in/code/request`, {
+              method: 'POST',
+              headers: { 'content-type': 'application/json', origin: ORIGIN, ...TEST_NET },
+              body: JSON.stringify({ email: `nobody${i}@example.com` }),
+            }),
+          );
+        }
+
+        const limited = await requestSignIn('owner@example.com', 'en', TEST_NET);
+
+        expect(limited.status).toBe(429);
+        expect(transport.sent).toEqual([]);
+      });
     });
   });
 
@@ -988,7 +1065,7 @@ describe('F001N native sign-in through the API', () => {
         sendEmail: () => Promise.reject(new Error(`Lettermint rejected ${EMAIL}`)),
       });
       await failing.app.request('/v1/sign-in/request', jsonPost({ email: EMAIL, locale: 'en' }));
-      await Promise.all(pending.splice(0));
+      await tasks.settle();
 
       const token = await signInWithToken(EMAIL);
       const code = codeOf();
@@ -1065,7 +1142,7 @@ describe('F001N native sign-in through the API', () => {
         '/v1/sign-in/request',
         jsonPost({ email: EMAIL, locale: 'nl-NL' }),
       );
-      await Promise.all(pending.splice(0));
+      await tasks.settle();
       await errorReporter.flush();
 
       expect(response.status).toBe(202);
@@ -1237,20 +1314,48 @@ describe('F001N native sign-in through the API', () => {
 
       it('a request over the address limit or the IP limit records no sign_in_requested', async () => {
         const server = tracked();
+        const requests = () => names().filter((name) => name === 'sign_in_requested');
         for (let i = 0; i < 3; i++) await requestSignIn(EMAIL, 'en', CLIENT, server.app);
-        expect(posthog.events).toHaveLength(3);
+        expect(requests()).toHaveLength(3);
         await requestSignIn(EMAIL, 'en', CLIENT, server.app);
-        expect(posthog.events).toHaveLength(3);
+        expect(requests()).toHaveLength(3);
 
         posthog.events.length = 0;
         const other = { 'x-real-ip': '203.0.113.20' };
         for (let i = 0; i < 20; i++) {
           await requestSignIn(`nobody${i}@example.com`, 'en', other, server.app);
         }
-        expect(posthog.events).toHaveLength(20);
+        expect(requests()).toHaveLength(20);
         await requestSignIn('nobody20@example.com', 'en', other, server.app);
-        expect(posthog.events).toHaveLength(20);
+        expect(requests()).toHaveLength(20);
       });
+
+      it.each([
+        ['an Android app', 'okhttp/5.0 FivviPro/1.0 (Android 16)', 'android'],
+        ['an iOS app', 'FivviPro/1.0 CFNetwork/3860 Darwin/26.0', 'ios'],
+      ])(
+        'E013 AC11: a refusal by a sign-in limit records the rule and the platform (%s)',
+        async (_, userAgent, platform) => {
+          const server = tracked();
+          const from = { 'x-real-ip': '192.0.2.10', 'user-agent': userAgent };
+          for (let i = 0; i < 4; i++) await requestSignIn(EMAIL, 'en', from, server.app);
+          for (let i = 0; i < 16; i++) {
+            await requestSignIn(`nobody${i}@example.com`, 'en', from, server.app);
+          }
+          await requestSignIn('nobody-more@example.com', 'en', from, server.app);
+
+          const refusals = posthog.events
+            .filter(({ event }) => event === 'public_request_refused')
+            .map(({ properties }) => properties);
+
+          expect(refusals).toEqual([
+            { ...SDK_PROPERTIES, rule: 'sign_in_address', platform },
+            { ...SDK_PROPERTIES, rule: 'sign_in_ip', platform },
+          ]);
+          expectNoPersonalData([userAgent], sent());
+          expect(sent()).not.toContain('192.0.2.10');
+        },
+      );
 
       it("the events leave through the API's flush after each request, not through Better Auth's handler", async () => {
         const server = tracked();

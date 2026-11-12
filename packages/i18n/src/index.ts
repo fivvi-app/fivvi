@@ -16,6 +16,7 @@ export { pickContentLanguage } from './content-language.ts';
 export {
   type ClientCommunicationLanguageSources,
   type CommunicationLanguageSources,
+  type EmailLanguage,
   type InterfaceLanguageSources,
   isLocale,
   matchLocale,
@@ -23,10 +24,17 @@ export {
   resolveClientCommunicationLanguage,
   resolveCommunicationLanguage,
   resolveInterfaceLanguage,
+  resolveInternalCommunicationLanguage,
   resolveSignInCommunicationLanguage,
   SIGN_IN_LANGUAGE_COOKIE,
   type SignInCommunicationLanguageSources,
 } from './locale.ts';
+export {
+  TRAINER_WORDS,
+  type TrainerWord,
+  type TrainerWordForms,
+  trainerWordForms,
+} from './trainer-word.ts';
 
 /** Message tree of the source catalog. `en.json` must have the same shape. */
 export type Messages = typeof nlNL;

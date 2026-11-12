@@ -2,8 +2,10 @@ import { locales } from '../config.ts';
 import { analyze } from './analyze.ts';
 import { type CatalogSet, readCatalogSet } from './catalog.ts';
 import { CatalogError, renderNativeCatalogs, staleNativeCatalogs } from './generate.ts';
+import { literalTrainerProblems } from './no-literal-trainer.ts';
+import { type TrainerAllowlist, trainerAllowlist } from './no-literal-trainer-allowlist.ts';
 
-export const checkNames = ['parity', 'icu', 'generated'] as const;
+export const checkNames = ['parity', 'icu', 'generated', 'no-literal-trainer'] as const;
 export type CheckName = (typeof checkNames)[number];
 
 export interface CheckResult {
@@ -19,11 +21,13 @@ export interface CheckResult {
  *   names are valid and map to unique Android resource names.
  * - `icu`: every message is valid ICU in the subset the native exporters support.
  * - `generated`: the committed native catalogs match the JSON.
+ * - `no-literal-trainer`: no message says *trainer* literally unless the allowlist gives a
+ *   reason (F068, spec #588): the UI uses the workspace's word.
  */
 export async function runChecks(
   root: string,
   names: readonly CheckName[] = checkNames,
-  set?: CatalogSet,
+  { set, allowlist = trainerAllowlist }: { set?: CatalogSet; allowlist?: TrainerAllowlist } = {},
 ): Promise<CheckResult[]> {
   const analysis = analyze(set ?? (await readCatalogSet(root)));
   const results: CheckResult[] = [];
@@ -41,6 +45,13 @@ export async function runChecks(
           name,
           problems: analysis.icu,
           summary: `${locales.reduce((n, locale) => n + analysis.compiled[locale].size, 0)} messages`,
+        });
+        break;
+      case 'no-literal-trainer':
+        results.push({
+          name,
+          problems: literalTrainerProblems(analysis, allowlist),
+          summary: `${allowlist.length} allowlist entries, each with a reason`,
         });
         break;
       case 'generated': {

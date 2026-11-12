@@ -105,6 +105,7 @@ describe('F001 TypeScript client: GET /v1/me', () => {
       bookingEmails: true,
       canCreateWorkspace: true,
       workspaces: [],
+      clientWorkspaces: [],
     });
 
     const withoutLanguage = await meClient({ ...account, preferredLocale: null }).GET('/v1/me');
@@ -123,6 +124,10 @@ describe('F001 TypeScript client: GET /v1/me', () => {
     expect(data?.name).toBeNull();
     expect(data?.canCreateWorkspace).toBe(true);
     expect(data?.workspaces).toEqual([]);
+    // F030: the client workspaces are a typed list of ID, slug and name.
+    const clientWorkspaces: { id: string; slug: string; name: string }[] | undefined =
+      data?.clientWorkspaces;
+    expect(clientWorkspaces).toEqual([]);
   });
 
   it('returns the typed 401 on GET /v1/me when nobody is signed in', async () => {
@@ -150,7 +155,7 @@ describe('F001N TypeScript client: native sign-in', () => {
       tenantScopes,
       requestSignIn: ({ email, locale }) => {
         requests.push({ email, locale });
-        return Promise.resolve();
+        return Promise.resolve('requested');
       },
       exchangeSignInCode: async ({ code }) => (code === '123456' ? 'token-1' : undefined),
       findSignedInAccount: async (headers) =>
@@ -190,6 +195,7 @@ describe('F001N TypeScript client: native sign-in', () => {
       bookingEmails: true,
       canCreateWorkspace: false,
       workspaces: [],
+      clientWorkspaces: [],
     });
     expect((await api.POST('/v1/sign-out', { headers })).response.status).toBe(204);
   });

@@ -6,10 +6,12 @@ import {
   type Locale,
   type MessageKey,
   messages,
+  pickContentLanguage,
 } from '@fivvi/i18n';
 import type { ReactElement } from 'react';
 import { render } from 'react-email';
 import { createTranslator } from 'use-intl/core';
+import { defaultButtonPath, EmailFrameLayout, type FrameKind } from './components/frames.tsx';
 import { EmailLayout } from './components/layout.tsx';
 
 /** Email copy lives under `email.*` in the catalogs; the native exporters skip it. */
@@ -27,12 +29,20 @@ export interface EmailContext {
   t: Translate;
   /** Formats an instant with a shared format from `@fivvi/i18n`, in `timeZone`. */
   formatDateTime: (instant: Date, format: DateTimeFormatName) => string;
+  /**
+   * A name or text the team typed in both languages (a class name), in the recipient's language
+   * by F021's rule: the English text when the recipient reads English and there is one, else the
+   * Dutch text. Shown as typed, never machine-translated.
+   */
+  pickContent: (nl: string, en: string | null | undefined) => string;
 }
 
 export interface EmailContextOptions {
   locale: Locale;
   /** The workspace or user time zone. Default: Europe/Amsterdam. */
   timeZone?: string;
+  /** Called with the key of every message the template asks for. The checks of F049 read it. */
+  onTranslate?: (key: EmailMessageKey) => void;
 }
 
 /**
@@ -43,6 +53,7 @@ export interface EmailContextOptions {
 export function createEmailContext({
   locale,
   timeZone = defaultTimeZone,
+  onTranslate,
 }: EmailContextOptions): EmailContext {
   const lang = formattingLocales[locale];
   const translator = createTranslator({
@@ -58,11 +69,40 @@ export function createEmailContext({
     lang,
     timeZone,
     // use-intl types `values` per key; our keys are checked by EmailMessageKey instead.
-    t: (key, values) => translator(key as never, values as never),
+    t: (key, values) => {
+      onTranslate?.(key);
+      return translator(key as never, values as never);
+    },
     formatDateTime: (instant, format) =>
       new Intl.DateTimeFormat(lang, { ...dateTimeFormats[format], timeZone }).format(instant),
+    pickContent: (nl, en) => pickContentLanguage(locale, nl, en),
   };
 }
+
+/**
+ * The frame of an email that is about a workspace (F049): the workspace's name at the top, the
+ * content, one primary button to the client web and the footer that says why the person got it.
+ * A template without a frame (the sign-in email, the trainer invitation) gets the plain layout.
+ */
+export interface EmailFrame<Props> {
+  /** `client` for an email to a client, `team` for one to a trainer or an owner. */
+  kind: FrameKind;
+  /** The workspace's name as typed; the frame shows it and never changes it. */
+  workspaceName: (props: Props) => string;
+  /** The label of the button. Default: `email.frame.button`. */
+  buttonLabel?: EmailMessageKey;
+  /** Where the button leads, relative to `https://fivvi.app/`; it can't leave that host. Default: `home`, the signed-in home. */
+  buttonPath?: (props: Props) => string;
+}
+
+/**
+ * A prop that holds text people typed, which the catalog checks (F049 AC6) fill with markup to
+ * prove it is escaped and shown as typed: the prop's name, or a pair of props for a name written
+ * in Dutch and English (a class name), shown by `ctx.pickContent`.
+ */
+export type UserContentProp<Props> =
+  | (keyof Props & string)
+  | { nl: keyof Props & string; en: keyof Props & string };
 
 /**
  * One email type. There is one template per type, never one per language (ADR-009):
@@ -77,6 +117,14 @@ export interface EmailTemplate<Props> {
   preview: (ctx: EmailContext, props: Props) => string;
   /** The content between the layout's header and footer. */
   render: (ctx: EmailContext, props: Props) => ReactElement;
+  /** Set for every email about a workspace; leave out for an email without one. */
+  frame?: EmailFrame<Props>;
+  /**
+   * The props that hold text a person typed (a name, an owner's message), `[]` for none. The
+   * catalog suite renders the template with `<b>` and `&` in each, in both languages, and fails
+   * when one is not escaped, not shown as typed, or not in the recipient's language.
+   */
+  userContent: readonly UserContentProp<Props>[];
   /** Sample props for the preview script. Obviously fake data only. */
   previewProps: Props;
 }
@@ -94,9 +142,24 @@ export async function renderEmail<Props>(
 ): Promise<RenderedEmail> {
   const ctx = createEmailContext(options);
   const subject = template.subject(ctx, props);
-  const element = (
-    <EmailLayout ctx={ctx} subject={subject} preview={template.preview(ctx, props)}>
-      {template.render(ctx, props)}
+  const preview = template.preview(ctx, props);
+  const content = template.render(ctx, props);
+  const { frame } = template;
+  const element = frame ? (
+    <EmailFrameLayout
+      kind={frame.kind}
+      ctx={ctx}
+      subject={subject}
+      preview={preview}
+      workspaceName={frame.workspaceName(props)}
+      buttonLabel={frame.buttonLabel ?? 'email.frame.button'}
+      buttonPath={frame.buttonPath?.(props) ?? defaultButtonPath}
+    >
+      {content}
+    </EmailFrameLayout>
+  ) : (
+    <EmailLayout ctx={ctx} subject={subject} preview={preview}>
+      {content}
     </EmailLayout>
   );
   const [html, text] = await Promise.all([render(element), render(element, { plainText: true })]);

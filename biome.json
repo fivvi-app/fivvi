@@ -77,6 +77,19 @@
   },
   "overrides": [
     {
+      "includes": [
+        "**",
+        "!packages/i18n/src/locale.ts",
+        "!**/*.test.ts",
+        "!**/*.test.tsx",
+        "!**/*.spec.ts",
+        "!**/*.spec.tsx",
+        "!**/e2e/**",
+        "!**/test/**"
+      ],
+      "plugins": ["packages/i18n/lint/email-language-cast.grit"]
+    },
+    {
       "includes": ["packages/api/src/**"],
       "plugins": ["packages/api/lint/repository-only-imports.grit"]
     },

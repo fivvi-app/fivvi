@@ -4,6 +4,7 @@ Transactional email (ADR-009): React Email templates, localized from `packages/i
 
 ```ts
 import { createConfiguredTransport, createSendEmail, helloEmail, readEmailConfig } from '@fivvi/email';
+import { resolveClientCommunicationLanguage } from '@fivvi/i18n';
 
 // Lettermint: LETTERMINT_API_TOKEN, both routes and the sender are required
 const config = readEmailConfig();
@@ -16,8 +17,12 @@ await sendEmail({
   template: helloEmail,
   props: { firstName: 'Anna', sentAt },
   to: { email: 'anna@example.com', name: 'Anna' },
-  locale: 'nl-NL', // resolveCommunicationLanguage() from @fivvi/i18n
+  // Only an EmailLanguage from a resolver of @fivvi/i18n type-checks; a plain 'nl-NL' does not (F049).
+  locale: resolveClientCommunicationLanguage({ workspaceDefault: 'nl-NL' }),
   timeZone: 'Europe/Amsterdam', // the workspace time zone
+  // The event that causes this email (F049): the idempotency key is built from the template's
+  // catalog ID and this text, so the same email for the same event goes out once.
+  event: `${booking.id}:${booking.version}`,
 });
 ```
 
@@ -25,10 +30,13 @@ await sendEmail({
 |---|---|
 | `src/catalog.ts` | The email catalog (F049): every email by ID (EM-01 … EM-23, EM-34), with audience, owner features, subject keys, status and template; `templates` is derived from it |
 | `src/templates/` | One template per email type, registered in the catalog |
-| `src/trainer-invitation-sender.ts` | `createTrainerInvitationSender()`: EM-09 (F011) in the language it is given, linking to `/invitations/{token}`; `apps/web` wires it into the API, which cannot import `.tsx` templates itself. `sendEmail` takes an optional `idempotencyKey` per send |
+| `src/template-checks.ts` | The checks every catalog email must pass (F049 AC2, AC5, AC6): `checkRendering`, `checkLinks`, `checkContent`, `checkSyntheticData`; each returns the problems it finds |
+| `src/preview.ts` | The pages of the local preview: the catalog's entries, each active email in both languages as HTML and text |
+| `src/trainer-invitation-sender.ts` | `createTrainerInvitationSender()`: EM-09 (F011) in the language it is given, linking to `/invitations/{token}`; `apps/web` wires it into the API, which cannot import `.tsx` templates itself. The mail it takes carries an `event`, not a key |
 | `src/private-session-sender.ts` | `createPrivateSessionSender()`: EM-11 (F020), the client's confirmation of a private session, or EM-04, the notice that it moved (a mail with `previous`), in the language it is given and the workspace's time zone, with the address written the Dutch way; `apps/web` wires it into the API, which sends it after the session is committed |
 | `src/demo-request-sender.ts` | `createDemoRequestSender()`: the website's demo request (F064) as one email to the address it is given (the support address; `apps/web` picks it, `server/demo-request-recipient.ts`), always in Dutch, listing the visitor's answers and the language of the page they used; nothing goes to the visitor; `apps/web` wires it into the API, which cannot import `.tsx` templates itself |
-| `src/components/layout.tsx` | The shell every email shares: `<html lang>`, `<title>`, preview line, footer |
+| `src/components/layout.tsx` | The plain shell of an email without a workspace (sign-in, trainer invitation): `<html lang>`, `<title>`, preview line, footer |
+| `src/components/frames.tsx` | `EmailFrameLayout` and its named forms `ClientEmailLayout` and `TeamEmailLayout` (F049): the workspace's name at the top, the content, one button to `https://fivvi.app/home`, the footer |
 | `src/render.tsx` | `renderEmail()` and the per-locale context (`t`, `formatDateTime`) |
 | `src/send.ts` | `createSendEmail()`: render, send, inline retry |
 | `src/lettermint.ts` | Lettermint transport (`POST /v1/send`), the route per template |
@@ -47,6 +55,7 @@ await sendEmail({
 - User content (names, class names) is passed as a placeholder value and rendered as text; React escapes it.
 - A template has `subject`, `preview` (the inbox preview line: put the key fact in it), `render` (the content inside the layout) and `previewProps` (obviously fake data for the preview).
 - Plain styles for now; E007 brings the design tokens.
+- **Frames** (F049): an email about a workspace sets `frame: { kind: 'client' | 'team', workspaceName: (props) => props.workspaceName }` on its template. `renderEmail` then wraps the content in the client frame (workspace's name on top, one primary button to the signed-in home (`https://fivvi.app/home`), the footer "Je krijgt deze e-mail omdat je klant bent bij {workspace}.", "Vragen? Neem contact op met {workspace}.", then "Verstuurd via Fivvi") or the team frame (the same, with "… omdat je in het team van {workspace} zit."). Don't put your own footer or workspace header in the content. The button label defaults to `email.frame.button`; `buttonLabel` and `buttonPath: (props) => 'bookings'` (relative to `https://fivvi.app/`; a path to another host throws) change them. Leave `frame` out for the sign-in email (ADR-019) and the trainer invitation (its recipient is not on the team yet): they keep the plain layout. The workspace's name is user content and is shown as typed.
 
 ## The email catalog
 
@@ -68,7 +77,8 @@ Internal emails (the demo request to Fivvi's own inbox, the developer sample) ar
 2. Export it from `src/templates/index.ts`.
 3. In `catalog.ts`, import it and change the entry of its ID: `status: 'active'`, `template: register(yourEmail)`, and `subjectKeys` set to the keys that now exist (they must exist in both languages).
 4. A new email that has no reserved ID takes the number after the highest allocated anywhere (EM-35 today), not just in `catalog.ts`: the prototype's `docs/design/prototype-v2/more-email.js` already allocates EM-24 to EM-34 for the M6, M9 and M11 emails (for example EM-28 in #481), most of them not yet in the catalog. Use another number only when the feature's spec already allocated one. Add it to `catalog` as `active` in the same change.
-5. Run `pnpm --filter @fivvi/email test`: the catalog test, the generic render test for both languages and the preview pick it up without another list.
+5. Declare `userContent` on the template: the props that hold text a person typed (a name, an owner's message), or `[]`. A class name written in Dutch and English is a pair, `{ nl: 'className', en: 'classNameEn' }`, shown with `ctx.pickContent(nl, en)` (F021's rule: the English name when the recipient reads English and there is one, else the Dutch one). The type fails without it.
+6. Run `pnpm --filter @fivvi/email test`: the catalog suite (below), the generic render test for both languages and the preview pick it up without another list.
 
 ## Sending
 
@@ -82,9 +92,10 @@ Internal emails (the demo request to Fivvi's own inbox, the developer sample) ar
 | Other 4xx (invalid address, 401 wrong token, 403, 422, …) | No |
 
 - At most **3 attempts**, full-jitter exponential backoff (≤ 250 ms, then ≤ 500 ms), so the waits add at most 0.75 s. The worst case, three timeouts, holds the request for about 16 s; Lettermint normally answers well within a second.
-- Every send gets a UUID **idempotency key**, reused on each retry. Lettermint (ADR-028) keeps a key for 24 hours: the same key and body return the same `message_id` (`202`), and the same key with another body is `409` (`duplicate`; on a retry it counts as maybe sent). Checked against the live API on 2 November 2026. Its `409` also covers a `5xx` whose outcome was unknown, so after one a retry may count as sent when the email was not: the user can ask for a new email, which gets a new key. `422` (for example `text` under 3 characters) and `401` and `403` are final.
+- Every send carries its **catalog ID** and the **event** that caused it (`event`, a string such as `{sessionId}:{version}`). The UUID **idempotency key** is built from the two (`emailIdempotencyKey('EM-11', event)`, SHA-256 shaped like a UUID, so it reveals neither), so the same email for the same event twice reaches the provider with one key and goes out once; a template that is not in the catalog is refused. The key is reused on each retry. Lettermint (ADR-028) keeps a key for 24 hours: the same key and body return the same `message_id` (`202`), and the same key with another body is `409` (`duplicate`; on a retry it counts as maybe sent). Checked against the live API on 2 November 2026. Its `409` also covers a `5xx` whose outcome was unknown, so after one a retry may count as sent when the email was not: the user can ask for a new email, which gets a new key. `422` (for example `text` under 3 characters) and `401` and `403` are final.
 - After the last attempt it throws `EmailSendError`. Its `message` holds only the provider, status and error code (never the recipient, content or API key), so it is safe to log and to report to Sentry (E009). The provider's own message is in `detail`.
 - `onRetry` is called before each retry, for logging.
+- `onSent` is called once after the provider accepted a send, with the catalog ID and the language only (`SentEvent`): `apps/web` records the product event `email_sent` there (`server/email-sent.ts`). If `onSent` throws, the send still succeeds (the email is delivered, and a retry would send it twice) and the error goes to `onSentError` (`apps/web` reports it to Sentry). A caller sends **after the commit** of the change that caused it (`afterCommit` in `packages/api`) so a rolled-back change sends nothing. The trainer invitation (EM-09) does too, but a failed send undoes it: the API deletes the new invitation, or puts the old token back on a resend, in a transaction of its own and answers `500`, so a failed send leaves no invitation without its email (F011).
 
 Transports implement `EmailTransport` (`send(email) → { messageId }`, one attempt). Swapping Lettermint for another provider means writing one transport; templates and callers don't change.
 
@@ -120,7 +131,7 @@ pnpm email:preview --port 3200 --time-zone UTC
 pnpm email:send-test --to you@example.com --locale en [--name Anna] [--time-zone Europe/Amsterdam]
 ```
 
-- **Preview** renders every template in both locales with its `previewProps`, as HTML and as plain text (`/hello/nl-NL`, `/hello/en.txt`). It restarts when a file changes; reload the page. We don't use React Email's `email dev`: it installs `@react-email/ui` and a separate Next.js app with npm at run time, outside our lockfile and pnpm's release-age check.
+- **Preview** reads the catalog (`src/preview.ts`) and shows every email in both locales with its `previewProps` (synthetic data only, no database), as HTML and as plain text (`/hello/nl-NL`, `/hello/en.txt`); the index also lists the reserved and retired IDs. It restarts when a file changes; reload the page. We don't use React Email's `email dev`: it installs `@react-email/ui` and a separate Next.js app with npm at run time, outside our lockfile and pnpm's release-age check.
 - **Send test** sends the `hello` template through Lettermint to one address and prints the Lettermint message id. It is the G1 delivery check; it counts against the monthly limit.
 
 ## Sending-domain check
@@ -168,8 +179,12 @@ pnpm --filter @fivvi/email test
 | File | Proves |
 |---|---|
 | `src/catalog.test.ts` | The catalog: every template file is in it, every `active` entry has a template, unique IDs, EM-01 … EM-23 and EM-34 present, subject keys exist in both languages |
+| `src/catalog.test.ts` (checks) | The checklist for every active entry, internal emails included, without a change when one is added: AC2 both languages from catalog keys with the same keys and placeholders, a subject of at most 78 characters, a plain-text part; AC5 links to `https://fivvi.app` only, no tracking pixel, tracking parameter, redirect or tracker path, no `List-Unsubscribe` on the message; AC6 `<b>` and `&` in user content shown as typed, a class name by F021's rule; the preview data is synthetic |
+| `src/template-checks.test.tsx` | Each check fails for a template that breaks its rule |
+| `src/preview.test.ts` | AC7: the preview shows every catalog email in both languages, HTML and text, and reads no database |
 | `src/templates/templates.test.ts` | Every template renders in nl-NL and en with no missing keys or placeholders; hello: subject, preview, text and HTML from the catalog, Europe/Amsterdam dates in both locales (summer, winter, around midnight), escaping of user content |
-| `src/send.test.ts` | `sendEmail` with the memory transport: locale, idempotency keys, retry decisions, link capture |
+| `src/send.test.ts` | `sendEmail` with the memory transport: locale, retry decisions, link capture; F049 AC11: the key is built from the catalog ID and the event, the same on every attempt, a template outside the catalog is refused, `onSent` carries the catalog ID and the language only and runs once per accepted send |
+| `src/idempotency-key.test.ts` | The key: a UUID shape, the same for the same catalog ID and event, another for either changed |
 | `src/lettermint.test.ts` | The Lettermint request (mocked HTTP client): route per template, sender and recipient format, tag, idempotency key; retry on 5xx, network errors, timeouts and 429 with `Retry-After`; `409` as duplicate; no retry on 401, 403 and 422; no token or recipient in errors |
 | `src/retry.test.ts`, `src/config.test.ts` | Backoff maths; config validation without leaking the key |
 | `src/sending-domain.test.ts` | The sending-domain check against fake DNS answers: SPF (Return-Path CNAME or root `include:`), both DKIM CNAMEs, DMARC `p=quarantine`/`reject`; each failure named; exit codes; no report address printed |

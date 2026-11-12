@@ -1,14 +1,11 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
+import { jqOutput } from './jq.mjs';
 
 const PHASE_JQ = join(import.meta.dirname, '../flow-phase.jq');
 
-const decide = (facts) =>
-  JSON.parse(
-    execFileSync('jq', ['-c', '-f', PHASE_JQ], { input: JSON.stringify(facts), encoding: 'utf8' }),
-  );
+const decide = (facts) => JSON.parse(jqOutput(['-c', '-f', PHASE_JQ], JSON.stringify(facts)));
 
 const BEFORE_REMOVAL = '2026-10-31T09:00:00Z';
 const REMOVED_AT = '2026-10-31T10:00:00Z';

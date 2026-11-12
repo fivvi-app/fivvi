@@ -170,11 +170,18 @@ export interface TokenOwner {
   workspaceId: string;
   /** The clients whose data it is. Empty for the workspace itself and its team's data. */
   clientIds: ReadonlySet<string>;
+  /**
+   * The token is the name or the URL name of the workspace itself, which a list of workspaces
+   * shows to everyone with a place in it (`clientWorkspaces` of `GET /v1/me`, F030): the
+   * workspace's id was always shown with it. The team's and the clients' data are not listed.
+   */
+  listed?: boolean;
 }
 
 /**
  * Whether the response of a call may hold this token. A refused call shows no record at all; a
- * team member sees their workspace; a client sees the workspace's id and their own records.
+ * team member sees their workspace; a client sees the workspace's id and their own records, and
+ * on an account route also the name and URL name of the workspaces it is a client of.
  */
 export function mayShow(facts: CallFacts, token: string, owner: TokenOwner): boolean {
   const expected = expectedCall(facts);
@@ -191,7 +198,9 @@ export function mayShow(facts: CallFacts, token: string, owner: TokenOwner): boo
     if (!place) return false;
     const mode = access.workspaces ?? 'any';
     if (mode !== 'client' && place.teamRole) return true;
-    if (mode !== 'team' && place.clientId) return isOwnOrWorkspace(token, owner, place);
+    if (mode !== 'team' && place.clientId) {
+      return owner.listed === true || isOwnOrWorkspace(token, owner, place);
+    }
     return false;
   }
   return true;
