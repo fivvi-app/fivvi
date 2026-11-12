@@ -15,31 +15,27 @@ struct NameEditorView: View {
 
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: Tokens.Spacing.space3) {
-                TextField(
-                    model.catalog[.myProfileNameLabel],
-                    text: Binding(get: { model.editor?.input ?? "" }, set: { model.enterName($0) })
-                )
-                .textContentType(.name)
-                .textInputAutocapitalization(.words)
-                .submitLabel(.done)
-                .focused($focused)
-                .disabled(saving)
-                .onSubmit { Task { await model.saveName() } }
-                .textFieldFrame()
-                .accessibilityIdentifier("profile.nameInput")
-                if let message = model.nameMessage {
-                    Text(message)
-                        .font(.system(Tokens.TextStyle.footnote))
-                        .foregroundStyle(Tokens.Colors.statusDangerFg)
-                        .fixedSize(horizontal: false, vertical: true)
-                        .accessibilityIdentifier("profile.nameError")
+            InsetGroupedList {
+                InsetGroup {
+                    FormField(label: model.catalog[.myProfileNameLabel], error: model.nameMessage) {
+                        TextField(
+                            model.catalog[.myProfileNameLabel],
+                            text: Binding(get: { model.editor?.input ?? "" }, set: { model.enterName($0) })
+                        )
+                        .textContentType(.name)
+                        .textInputAutocapitalization(.words)
+                        .submitLabel(.done)
+                        .focused($focused)
+                        .disabled(saving)
+                        .onSubmit { Task { await model.saveName() } }
+                        .textFieldStyle(.plain)
+                        .frame(minHeight: 44)
+                        .accessibilityIdentifier("profile.nameInput")
+                    }
                 }
-                Spacer(minLength: 0)
+                .padding(.top, Tokens.Spacing.space4)
             }
-            .padding(Tokens.Spacing.gutter)
-            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-            .background(Tokens.Colors.bgCanvas)
+            .fivviCanvas()
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
@@ -49,7 +45,7 @@ struct NameEditorView: View {
                 }
                 ToolbarItem(placement: .principal) {
                     Text(model.catalog[.myProfileEditName])
-                        .font(.headline)
+                        .font(.system(Tokens.TextStyle.headline))
                         .foregroundStyle(Tokens.Colors.textPrimary)
                         .accessibilityAddTraits(.isHeader)
                         .accessibilityIdentifier("profile.nameEditor")

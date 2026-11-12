@@ -1,22 +1,19 @@
 import SwiftUI
 import FivviDesignTokens
 import FivviStrings
+import FivviUI
 
 /// The *Mijn werkruimtes* section of `ProfileView` (TM-04): a row for each workspace the person is on the team of, with
 /// the switch *Ik geef zelf ook trainingen in …* where the API lists `team.manage` (F005), and, with more than one
 /// workspace, the check and the tap that switch the current workspace (F012).
 extension ProfileView {
     func workspacesSection(_ entries: [ProfileViewModel.Entry]) -> some View {
-        Section {
+        InsetGroup(header: model.catalog[.myProfileWorkspacesTitle], headerIdentifier: "profile.workspacesTitle") {
             ForEach(entries) { entry in
                 workspaceRow(entry, switchable: entries.count > 1)
                 // The switch is a row of its own: a tap on its label moves it only when the `Toggle` is the whole row.
                 if entry.canSwitchTrainsHere { trainsHere(entry) }
             }
-        } header: {
-            Text(model.catalog[.myProfileWorkspacesTitle])
-                .accessibilityAddTraits(.isHeader)
-                .accessibilityIdentifier("profile.workspacesTitle")
         }
     }
 
@@ -25,6 +22,10 @@ extension ProfileView {
         if switchable {
             let isCurrent = entry.id == current
             Button {
+                // Like the back button, a row does nothing while a save is under way: leaving *Profiel* would hide how
+                // it went. (A drag across the screen that ends on a row counts as its tap now that the rows are a
+                // group of the kit's.)
+                guard !model.isSaving else { return }
                 onSelect(entry.id)
             } label: {
                 HStack {
@@ -32,18 +33,18 @@ extension ProfileView {
                     Spacer()
                     if isCurrent {
                         Image(systemName: "checkmark")
-                            .foregroundStyle(Tokens.Colors.actionPrimaryBg)
+                            .foregroundStyle(Tokens.Colors.accentText)
                             .accessibilityHidden(true)
                     }
                 }
-                .frame(minHeight: 44)
-                .contentShape(Rectangle())
+                .profileRow()
             }
-            .buttonStyle(.plain)
+            .buttonStyle(.insetRow)
             .accessibilityAddTraits(isCurrent ? .isSelected : [])
             .accessibilityIdentifier("profile.workspace.\(entry.slug)")
         } else {
             workspaceText(entry)
+                .profileRow()
         }
     }
 
@@ -56,7 +57,7 @@ extension ProfileView {
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("profile.workspaceName.\(entry.slug)")
             Text(entry.role)
-                .font(.system(Tokens.TextStyle.label))
+                .font(.system(Tokens.TextStyle.subhead))
                 .foregroundStyle(Tokens.Colors.textSecondary)
                 .multilineTextAlignment(.leading)
                 .fixedSize(horizontal: false, vertical: true)
@@ -68,7 +69,15 @@ extension ProfileView {
 
     /// *Ik geef zelf ook trainingen in …*: it shows what the API accepted and waits while saving; a tap sends the
     /// change and the switch moves only when the API accepted it.
-    @ViewBuilder private func trainsHere(_ entry: ProfileViewModel.Entry) -> some View {
+    private func trainsHere(_ entry: ProfileViewModel.Entry) -> some View {
+        VStack(alignment: .leading, spacing: Tokens.Spacing.space1) {
+            trainsHereToggle(entry)
+            trainsHereStatus(entry)
+        }
+        .profileRow()
+    }
+
+    private func trainsHereToggle(_ entry: ProfileViewModel.Entry) -> some View {
         Toggle(isOn: Binding(
             get: { entry.trainsHere },
             set: { trains in Task { await model.setTrainsHere(trains, in: entry.id) } }
@@ -78,7 +87,7 @@ extension ProfileView {
                 .foregroundStyle(Tokens.Colors.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
         }
-        .tint(Tokens.Colors.actionPrimaryBg)
+        .tint(Tokens.Colors.accentFill)
         .disabled(entry.change == .saving)
         // A tap on the label moves the switch too (SwiftUI's `Toggle` on iOS only takes the control itself), so the whole
         // row is the touch target. A tap on the control is the `Toggle`'s own; a second change while one is saving is
@@ -87,15 +96,18 @@ extension ProfileView {
         .contentShape(Rectangle())
         .onTapGesture { Task { await model.setTrainsHere(!entry.trainsHere, in: entry.id) } }
         .accessibilityIdentifier("profile.trainsHere.\(entry.slug)")
+    }
+
+    @ViewBuilder private func trainsHereStatus(_ entry: ProfileViewModel.Entry) -> some View {
         switch entry.change {
         case .saved:
             line(model.catalog[.profileTrainsHereSaved], color: Tokens.Colors.textSecondary)
                 .accessibilityIdentifier("profile.trainsHereSaved.\(entry.slug)")
         case .noConnection:
-            line(model.catalog[.profileTrainsHereErrorsNoConnection], color: Tokens.Colors.statusDangerFg)
+            line(model.catalog[.profileTrainsHereErrorsNoConnection], color: Tokens.Colors.statusDangerText)
                 .accessibilityIdentifier("profile.trainsHereError.\(entry.slug)")
         case .failed:
-            line(model.catalog[.profileTrainsHereErrorsGeneric], color: Tokens.Colors.statusDangerFg)
+            line(model.catalog[.profileTrainsHereErrorsGeneric], color: Tokens.Colors.statusDangerText)
                 .accessibilityIdentifier("profile.trainsHereError.\(entry.slug)")
         case .idle, .saving:
             EmptyView()

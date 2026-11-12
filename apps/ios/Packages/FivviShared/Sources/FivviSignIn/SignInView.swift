@@ -6,11 +6,26 @@ import FivviSession
 import FivviStrings
 import FivviUI
 
+/// The app's day dial above the title (E020 #629): an image of the app with its accessible name. Each app passes its
+/// own (Fivvi Pro: the day dial with PRO), so the screen shows no letter mark.
+public struct SignInLogo {
+    public let image: Image
+    /// The accessible name, a catalog text.
+    public let label: String
+
+    public init(image: Image, label: String) {
+        self.image = image
+        self.label = label
+    }
+}
+
 /// TM-01: one screen with two steps, the email step and the code step. Colours and text styles come from the design
-/// tokens, text from the catalog; text wraps and every control keeps a 44 pt touch target.
+/// tokens, text from the catalog; text wraps and every control keeps a 44 pt touch target. The dial (84 pt, 64 pt on
+/// the code step) sits centred above the title; the fields are in an inset group and the buttons are the kit's pills.
 public struct SignInView: View {
     @State private var model: SignInViewModel
     private let language: AppLanguage
+    private let logo: (Catalog) -> SignInLogo
     @FocusState private var focus: Field?
     @Environment(\.dynamicTypeSize) private var dynamicTypeSize
 
@@ -20,46 +35,47 @@ public struct SignInView: View {
 
     public init(
         api: any APIProtocol, store: any SessionStore, language: AppLanguage, afterRejection: Bool,
-        onSignedIn: @escaping () -> Void
+        logo: @escaping (Catalog) -> SignInLogo, onSignedIn: @escaping () -> Void
     ) {
         _model = State(initialValue: SignInViewModel(
             api: api, store: store, catalog: language.catalog, showsSignedOutNotice: afterRejection,
             onSignedIn: onSignedIn
         ))
         self.language = language
+        self.logo = logo
+    }
+
+    private enum Metrics {
+        static let emailStepLogo: CGFloat = 84
+        static let codeStepLogo: CGFloat = 64
     }
 
     public var body: some View {
         ScrollView {
-            VStack(alignment: .leading, spacing: Tokens.Spacing.space6) {
+            VStack(alignment: .leading, spacing: Tokens.Spacing.space5) {
                 languageSwitch
-                Text(model.catalog[.signInTitle])
-                    .font(.system(Tokens.TextStyle.display, weight: .semibold))
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
-                    .accessibilityIdentifier("signIn.title")
+                header
                 if model.showsSignedOutNotice {
                     Text(model.catalog[.signInSignedOutNotice])
                         .font(.system(Tokens.TextStyle.body))
+                        .multilineTextAlignment(.center)
                         .fixedSize(horizontal: false, vertical: true)
+                        .frame(maxWidth: .infinity)
                         .accessibilityIdentifier("signIn.notice")
                 }
                 step
                 if let message = model.failureText {
-                    messageCard(
-                        message, foreground: Tokens.Colors.statusDangerFg, background: Tokens.Colors.bgSurface,
-                        id: "signIn.error"
-                    )
+                    StatusMessage(text: message, kind: .error, id: "signIn.error")
                     if model.canRetry {
-                        Button {
-                            Task { await model.retry() }
-                        } label: {
-                            Text(model.catalog[.commonRetry])
-                                .multilineTextAlignment(.center)
-                                .fixedSize(horizontal: false, vertical: true)
+                        PillButtonStack {
+                            Button {
+                                Task { await model.retry() }
+                            } label: {
+                                pillLabel(model.catalog[.commonRetry])
+                            }
+                            .buttonStyle(.pill(.tonal))
+                            .accessibilityIdentifier("signIn.retry")
                         }
-                        .buttonStyle(.secondaryAction)
-                        .accessibilityIdentifier("signIn.retry")
                     }
                 }
             }
@@ -113,66 +129,100 @@ public struct SignInView: View {
         }
     }
 
+    /// The dial and the heading of the step: the title on the email step, *Check je e-mail* on the code step.
+    private var header: some View {
+        let onCodeStep = isCodeStep
+        let mark = logo(model.catalog)
+        let size = onCodeStep ? Metrics.codeStepLogo : Metrics.emailStepLogo
+        return VStack(spacing: Tokens.Spacing.space4) {
+            mark.image
+                .resizable()
+                .scaledToFit()
+                .frame(width: size, height: size)
+                .accessibilityLabel(mark.label)
+                .accessibilityAddTraits(.isImage)
+                .accessibilityIdentifier("signIn.logo")
+            Text(model.catalog[onCodeStep ? .signInCheckEmailTitle : .signInTitle])
+                .font(.system(Tokens.TextStyle.title1, weight: .bold))
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier(onCodeStep ? "signIn.checkEmailTitle" : "signIn.title")
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, Tokens.Spacing.space4)
+    }
+
+    private var isCodeStep: Bool {
+        switch model.state {
+        case .enteringCode, .checkingCode, .resendingCode: true
+        case .enteringEmail, .sendingCode: false
+        }
+    }
+
     private var emailStep: some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.space4) {
-            fieldLabel(.signInEmailLabel)
-            TextField(model.catalog[.signInEmailLabel], text: $model.email)
-                .keyboardType(.emailAddress)
-                .textContentType(.emailAddress)
-                .textInputAutocapitalization(.never)
-                .autocorrectionDisabled()
-                .submitLabel(.go)
-                .accessibilityLabel(model.catalog[.signInEmailLabel])
-                .focused($focus, equals: .email)
-                .textFieldFrame()
-                .disabled(model.state == .sendingCode)
-                .onSubmit { Task { await model.requestCode() } }
-                .accessibilityIdentifier("signIn.email")
+            InsetGroup {
+                FormField(label: model.catalog[.signInEmailLabel]) {
+                    TextField(model.catalog[.signInEmailLabel], text: $model.email)
+                        .keyboardType(.emailAddress)
+                        .textContentType(.emailAddress)
+                        .textInputAutocapitalization(.never)
+                        .autocorrectionDisabled()
+                        .submitLabel(.go)
+                        .focused($focus, equals: .email)
+                        .textFieldStyle(.plain)
+                        .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                        .contentShape(Rectangle())
+                        .disabled(model.state == .sendingCode)
+                        .onSubmit { Task { await model.requestCode() } }
+                        .accessibilityIdentifier("signIn.email")
+                }
+            }
             if model.state == .sendingCode {
                 loading
             } else {
-                Button {
-                    Task { await model.requestCode() }
-                } label: {
-                    Text(model.catalog[.signInSendCode])
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
+                PillButtonStack {
+                    Button {
+                        Task { await model.requestCode() }
+                    } label: {
+                        pillLabel(model.catalog[.signInSendCode])
+                    }
+                    .buttonStyle(.pill(.filled))
+                    .accessibilityIdentifier("signIn.send")
                 }
-                .buttonStyle(.primaryAction)
-                .accessibilityIdentifier("signIn.send")
             }
         }
     }
 
     private var codeStep: some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.space4) {
-            Text(model.catalog[.signInCheckEmailTitle])
-                .font(.system(Tokens.TextStyle.title2, weight: .semibold))
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityAddTraits(.isHeader)
             Text(model.checkEmailText)
                 .font(.system(Tokens.TextStyle.body))
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("signIn.checkEmail")
-            fieldLabel(.signInCodeLabel)
-            TextField(model.catalog[.signInCodeLabel], text: Binding(get: { model.code }, set: { model.enterCode($0) }))
-                .keyboardType(.numberPad)
-                .textContentType(.oneTimeCode)
-                .autocorrectionDisabled()
-                .accessibilityLabel(model.catalog[.signInCodeLabel])
-                .focused($focus, equals: .code)
-                .textFieldFrame()
-                .disabled(model.state == .checkingCode || model.state == .resendingCode)
-                .accessibilityIdentifier("signIn.code")
-            Text(model.catalog[.signInCodeHelp])
-                .font(.system(Tokens.TextStyle.footnote))
                 .foregroundStyle(Tokens.Colors.textSecondary)
+                .multilineTextAlignment(.center)
                 .fixedSize(horizontal: false, vertical: true)
+                .frame(maxWidth: .infinity)
+                .accessibilityIdentifier("signIn.checkEmail")
+            InsetGroup(footer: model.catalog[.signInCodeHelp]) {
+                FormField(label: model.catalog[.signInCodeLabel]) {
+                    TextField(
+                        model.catalog[.signInCodeLabel],
+                        text: Binding(get: { model.code }, set: { model.enterCode($0) })
+                    )
+                    .keyboardType(.numberPad)
+                    .textContentType(.oneTimeCode)
+                    .autocorrectionDisabled()
+                    .focused($focus, equals: .code)
+                    .textFieldStyle(.plain)
+                    .frame(maxWidth: .infinity, minHeight: 44, alignment: .leading)
+                        .contentShape(Rectangle())
+                    .disabled(model.state == .checkingCode || model.state == .resendingCode)
+                    .accessibilityIdentifier("signIn.code")
+                }
+            }
             if let resent = model.resentText {
-                messageCard(
-                    resent, foreground: Tokens.Colors.statusSuccessText, background: Tokens.Colors.statusSuccessBg,
-                    id: "signIn.resent"
-                )
+                StatusMessage(text: resent, kind: .success, id: "signIn.resent")
             }
             if model.state == .checkingCode || model.state == .resendingCode {
                 loading
@@ -183,54 +233,38 @@ public struct SignInView: View {
     }
 
     /// Check the code, ask for a new email, or go back to change the address.
-    @ViewBuilder private var codeActions: some View {
-        Button {
-            Task { await model.submitCode() }
-        } label: {
-            Text(model.catalog[.signInSubmitCode])
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
+    private var codeActions: some View {
+        PillButtonStack {
+            Button {
+                Task { await model.submitCode() }
+            } label: {
+                pillLabel(model.catalog[.signInSubmitCode])
+            }
+            .buttonStyle(.pill(.filled))
+            .disabled(!model.isCodeComplete)
+            .accessibilityIdentifier("signIn.submit")
+            Button {
+                Task { await model.resendCode() }
+            } label: {
+                pillLabel(model.catalog[.signInResend])
+            }
+            .buttonStyle(.pill(.tonal))
+            .accessibilityIdentifier("signIn.resend")
+            Button {
+                model.changeEmail()
+            } label: {
+                pillLabel(model.catalog[.signInChangeEmail])
+            }
+            .buttonStyle(.pill(.tonal))
+            .accessibilityIdentifier("signIn.changeEmail")
         }
-        .buttonStyle(.primaryAction)
-        .disabled(!model.isCodeComplete)
-        .accessibilityIdentifier("signIn.submit")
-        Button {
-            Task { await model.resendCode() }
-        } label: {
-            Text(model.catalog[.signInResend])
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .buttonStyle(.secondaryAction)
-        .accessibilityIdentifier("signIn.resend")
-        Button {
-            model.changeEmail()
-        } label: {
-            Text(model.catalog[.signInChangeEmail])
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .buttonStyle(.secondaryAction)
-        .accessibilityIdentifier("signIn.changeEmail")
     }
 
-    /// A message under the form: a rounded surface that wraps its text.
-    private func messageCard(_ text: String, foreground: Color, background: Color, id: String) -> some View {
+    private func pillLabel(_ text: String) -> some View {
         Text(text)
-            .font(.system(Tokens.TextStyle.body))
-            .foregroundStyle(foreground)
+            .multilineTextAlignment(.center)
             .fixedSize(horizontal: false, vertical: true)
-            .padding(Tokens.Spacing.space3)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(background, in: RoundedRectangle(cornerRadius: Tokens.Radius.md, style: .continuous))
-            .accessibilityIdentifier(id)
-    }
-
-    private func fieldLabel(_ key: StringKey) -> some View {
-        Text(model.catalog[key])
-            .font(.system(Tokens.TextStyle.label, weight: .semibold))
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibilityHidden(true)
+            .frame(maxWidth: .infinity)
     }
 
     private var loading: some View {

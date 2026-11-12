@@ -55,12 +55,18 @@ extension InsetGroupedList where Header == EmptyView {
 /// One group of an `InsetGroupedList`: rows in a card of radius 26, separated by hairlines inset from the leading edge,
 /// with an optional small header above and a note below.
 public struct InsetGroup<Content: View>: View {
-    public init(header: String? = nil, footer: String? = nil, @ViewBuilder content: () -> Content) {
+    public init(
+        header: String? = nil, headerIdentifier: String? = nil, footer: String? = nil,
+        @ViewBuilder content: () -> Content
+    ) {
         self.header = header
+        self.headerIdentifier = headerIdentifier
         self.footer = footer
         self.content = content()
     }
     public var header: String?
+    /// The header's accessibility identifier, for a screen with test ids for its group titles.
+    public var headerIdentifier: String?
     public var footer: String?
     @ViewBuilder public let content: Content
     @Environment(\.displayScale) private var displayScale
@@ -74,6 +80,7 @@ public struct InsetGroup<Content: View>: View {
                     .foregroundStyle(Tokens.Colors.textSecondary)
                     .padding(.horizontal, Tokens.Spacing.space5)
                     .accessibilityAddTraits(.isHeader)
+                    .accessibilityIdentifier(headerIdentifier ?? "")
             }
             Group(subviews: content) { rows in
                 VStack(spacing: 0) {

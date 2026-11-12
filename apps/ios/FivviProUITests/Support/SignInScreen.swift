@@ -7,6 +7,10 @@ struct SignInScreen {
     let app: XCUIApplication
 
     var title: XCUIElement { app.staticTexts["signIn.title"] }
+    /// The Fivvi Pro day dial above the title.
+    var logo: XCUIElement { app.images["signIn.logo"] }
+    /// *Check je e-mail*, the heading of the code step.
+    var checkEmailTitle: XCUIElement { app.staticTexts["signIn.checkEmailTitle"] }
     var notice: XCUIElement { app.staticTexts["signIn.notice"] }
     var email: XCUIElement { app.textFields["signIn.email"] }
     var sendCode: XCUIElement { app.buttons["signIn.send"] }
