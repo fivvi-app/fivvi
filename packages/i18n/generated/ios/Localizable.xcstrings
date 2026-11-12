@@ -1903,7 +1903,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Crosstrainer"
+            "value" : "Elliptical"
           }
         }
       }
@@ -3042,7 +3042,7 @@
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Fietsen (hometrainer)"
+            "value" : "Fietsen (fitnessfiets)"
           }
         }
       }

@@ -131,7 +131,7 @@
     <string name="exercises_names_dumbbell_pullover">Pullover</string>
     <string name="exercises_names_dumbbell_row">Dumbbell roeien</string>
     <string name="exercises_names_dumbbell_shoulder_press">Dumbbell schouderdrukken</string>
-    <string name="exercises_names_elliptical">Crosstrainer</string>
+    <string name="exercises_names_elliptical">Elliptical</string>
     <string name="exercises_names_face_pull">Face pull</string>
     <string name="exercises_names_farmers_walk">Farmer\'s walk</string>
     <string name="exercises_names_front_raise">Voorwaarts heffen</string>
@@ -198,7 +198,7 @@
     <string name="exercises_names_smith_machine_squat">Squat in de Smith machine</string>
     <string name="exercises_names_stair_climber">Traploper</string>
     <string name="exercises_names_standing_calf_raise">Kuitheffen staand</string>
-    <string name="exercises_names_stationary_bike">Fietsen (hometrainer)</string>
+    <string name="exercises_names_stationary_bike">Fietsen (fitnessfiets)</string>
     <string name="exercises_names_step_up">Step-ups</string>
     <string name="exercises_names_straight_arm_pulldown">Pulldown met gestrekte armen</string>
     <string name="exercises_names_sumo_deadlift">Sumo deadlift</string>
