@@ -5,6 +5,8 @@ import {
   CI_GLOBAL_TIMEOUT_MINUTES,
   CI_WORKERS,
   e2eRun,
+  LOCAL_MIN_WORKERS,
+  localWorkers,
   type TestOutcome,
   testState,
   timeoutAnnotation,
@@ -20,12 +22,13 @@ describe('#1301 e2e run settings', () => {
     // added up to 1156 s of a 594 s run). More than that is the point of the setting.
     expect(CI_WORKERS).toBeGreaterThan(2);
     expect(e2eRun(true).workers).toBe(CI_WORKERS);
-    expect(e2eRun(false).workers).toBeUndefined();
+    // Locally the workers follow the machine's load (#1336, below); CI ignores it.
+    expect(e2eRun(true, { cores: 10, load1: 40 }).workers).toBe(CI_WORKERS);
   });
 
   it('limits the suite on CI only, in milliseconds', () => {
     expect(e2eRun(true).globalTimeout).toBe(CI_GLOBAL_TIMEOUT_MINUTES * 60_000);
-    expect(e2eRun(false).globalTimeout).toBeUndefined();
+    expect(e2eRun(false, { cores: 10, load1: 0 }).globalTimeout).toBeUndefined();
   });
 
   it('stops the suite before the CI job is cancelled, with time left for its report', () => {
@@ -37,6 +40,39 @@ describe('#1301 e2e run settings', () => {
     const jobMinutes = Number(/timeout-minutes: (\d+)/.exec(job)?.[1]);
     // Setup and build take about 1 minute; the report and the artifacts a little more.
     expect(jobMinutes - CI_GLOBAL_TIMEOUT_MINUTES).toBeGreaterThanOrEqual(2);
+  });
+});
+
+// #1336: several worktrees ran their suites at once (load average 20-45 on a 10-core Mac) and the
+// heaviest tests took 3-5 times as long as alone (6-10 s alone, 33-46 s in the loaded suite) and hit
+// Playwright's 30 s limit. A suite that starts on a busy machine takes fewer workers.
+describe('#1336 localWorkers', () => {
+  it("is Playwright's default, half the cores, on an idle machine", () => {
+    expect(localWorkers({ cores: 10, load1: 0 })).toBe(5);
+    expect(localWorkers({ cores: 8, load1: 0.5 })).toBe(4);
+  });
+
+  it('takes fewer workers as the machine gets busier', () => {
+    const idle = localWorkers({ cores: 10, load1: 0 });
+    const busy = localWorkers({ cores: 10, load1: 5 });
+    expect(busy).toBeLessThan(idle);
+    expect(busy).toBeGreaterThanOrEqual(LOCAL_MIN_WORKERS);
+  });
+
+  it('never goes below the minimum, whatever the load (a loaded machine still finishes)', () => {
+    expect(LOCAL_MIN_WORKERS).toBeGreaterThanOrEqual(1);
+    expect(localWorkers({ cores: 10, load1: 45 })).toBe(LOCAL_MIN_WORKERS);
+    expect(localWorkers({ cores: 10, load1: 1000 })).toBe(LOCAL_MIN_WORKERS);
+  });
+
+  it('never goes above half the cores, and keeps the minimum on a small machine', () => {
+    expect(localWorkers({ cores: 4, load1: 0 })).toBe(LOCAL_MIN_WORKERS);
+    expect(localWorkers({ cores: 64, load1: 0 })).toBe(32);
+  });
+
+  it('is what the suite uses locally, from the load it starts under', () => {
+    expect(e2eRun(false, { cores: 10, load1: 0 }).workers).toBe(5);
+    expect(e2eRun(false, { cores: 10, load1: 30 }).workers).toBe(LOCAL_MIN_WORKERS);
   });
 });
 

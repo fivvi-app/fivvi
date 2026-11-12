@@ -17,7 +17,8 @@
 # At the end it prints a table of the tests each suite passed, failed and skipped and writes it as JSON to
 # .work/check-summary.json (git-ignored, in this checkout). Quote that summary in reports; don't retype counts
 # from the output (scripts/test-summary.sh). A suite the table lists as failed fails the run, whatever exit code its check
-# gave (#570). One run per worktree: a second one stops (.work/check.lock). The decision is scripts/affected.mjs, which CI's "Detect changes" job runs too.
+# gave (#570). One run per worktree: a second one stops (.work/check.lock). One web e2e suite at a time on the machine: the
+# others wait their turn (the main checkout's .work/e2e.lock, #1336). The decision is scripts/affected.mjs, which CI's "Detect changes" job runs too.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$ROOT/scripts/_shellcheck.sh"
@@ -66,9 +67,50 @@ acquire_lock() {
   echo "✗ could not take the lock ${LOCK#"$ROOT"/}: another scripts/check.sh started at the same time. Run this again."
   exit 1
 }
+# One web e2e suite at a time on the machine (#1336). A factory run has 4-6 builders, each running its own check.sh: their
+# suites together load the machine (load average 20-45) until the heaviest tests (axe, a dozen screens in light and dark
+# in one test) take 3-5 times as long as alone (6-10 s alone at load 25-35, 33-46 s in a loaded suite) and run into
+# Playwright's 30 s limit, in changes that leave apps/web alone. The suites queue on a lock in the main checkout's .work/,
+# shared by every worktree: the same symbolic link to the pid of its owner as above, and a stale one is taken over the same
+# way. Only the suite itself holds it, not the other checks. E2E_QUEUE_TIMEOUT_SECONDS (default 2400) bounds the wait and
+# E2E_QUEUE_POLL_SECONDS (default 5) the polling.
+E2E_LOCK="$MAIN_ROOT/.work/e2e.lock"
+OWN_E2E_LOCK=false
+E2E_QUEUE_ERROR=""
+acquire_e2e_queue() {
+  local holder started waited_at timeout="${E2E_QUEUE_TIMEOUT_SECONDS:-2400}" poll="${E2E_QUEUE_POLL_SECONDS:-5}"
+  mkdir -p "$MAIN_ROOT/.work"
+  [ ! -e "$E2E_LOCK" ] || [ -L "$E2E_LOCK" ] || rm -rf "$E2E_LOCK"
+  started=$SECONDS
+  waited_at=-60
+  while :; do
+    if ln -sn "$$" "$E2E_LOCK" 2>/dev/null; then OWN_E2E_LOCK=true; return 0; fi
+    holder="$(readlink "$E2E_LOCK" 2>/dev/null || true)"
+    if [ -z "$holder" ] || ! is_check_sh "$holder"; then
+      [ "$(readlink "$E2E_LOCK" 2>/dev/null || true)" != "$holder" ] || rm -f "$E2E_LOCK"
+      continue
+    fi
+    if [ $((SECONDS - started)) -ge "$timeout" ]; then
+      E2E_QUEUE_ERROR="the e2e queue is still held by pid $holder after $((SECONDS - started)) s: the suite of another check.sh runs. Run this again later, or raise E2E_QUEUE_TIMEOUT_SECONDS. If none runs, delete ${E2E_LOCK}."
+      return 1
+    fi
+    if [ $((SECONDS - waited_at)) -ge 60 ]; then
+      echo "… waiting for the e2e queue: the suite of pid $holder runs ($((SECONDS - started)) s so far); one suite at a time keeps the machine from timing out tests (#1336)"
+      waited_at=$SECONDS
+    fi
+    sleep "$poll"
+  done
+}
+release_e2e_queue() {
+  ! $OWN_E2E_LOCK || [ "$(readlink "$E2E_LOCK" 2>/dev/null || true)" != "$$" ] || rm -f "$E2E_LOCK"
+  OWN_E2E_LOCK=false
+}
+e2e_not_queued() { echo "$E2E_QUEUE_ERROR"; return 1; }
+
 release() {
   rm -rf "$LOG_DIR"
   ! $OWN_LOCK || [ "$(readlink "$LOCK" 2>/dev/null || true)" != "$$" ] || rm -f "$LOCK"
+  release_e2e_queue
 }
 on_exit release
 acquire_lock
@@ -280,7 +322,12 @@ fi
 if ! $FAST; then
   if [ "$(plan_flag e2e)" = true ]; then
     RAN_E2E=true
-    check "e2e tests (port $(e2e_port "$ROOT"))" e2e_tests
+    if acquire_e2e_queue; then
+      check "e2e tests (port $(e2e_port "$ROOT"))" e2e_tests
+      release_e2e_queue
+    else
+      check "e2e tests (port $(e2e_port "$ROOT"))" e2e_not_queued
+    fi
   else
     skipped "e2e tests" "no web change"
   fi

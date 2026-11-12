@@ -599,6 +599,110 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     });
   });
 
+  describe('E001 #1336: one e2e suite at a time on the machine', () => {
+    // Several worktrees running their suites at once load the machine until timing-sensitive tests time out
+    // (a factory run with 4-6 builders, load average 20-45). The suites queue on a lock shared by all worktrees
+    // (the main checkout's .work/e2e.lock), a symbolic link to the pid of the check.sh whose suite runs.
+    const lock = () => join(repo(), '.work/e2e.lock');
+    const lockExists = () => {
+      try {
+        lstatSync(lock());
+        return true;
+      } catch {
+        return false;
+      }
+    };
+    const holdLock = (pid) => () => {
+      mkdirSync(join(repo(), '.work'), { recursive: true });
+      symlinkSync(String(pid), lock());
+    };
+    const deadPid = () => spawnSync('true').pid;
+    const runningCheck = (seconds) =>
+      spawn('bash', ['-c', `sleep ${seconds}; :`, 'scripts/check.sh'], { stdio: 'ignore' });
+    const fast = { E2E_QUEUE_POLL_SECONDS: '0.2' };
+
+    it('AC2: waits for the check.sh whose suite runs, says so, and then runs its own', () => {
+      const holder = runningCheck(2);
+      try {
+        const result = check(
+          { unit: unit(), integration, e2e },
+          ['--all'],
+          holdLock(holder.pid),
+          fast,
+        );
+        assert.equal(result.status, 0, result.stdout);
+        assert.match(
+          result.stdout,
+          new RegExp(`waiting for the e2e queue: the suite of pid ${holder.pid} runs`),
+        );
+        assert.match(result.stdout, /✓ e2e tests/);
+        assert.ok(!lockExists(), 'released at the end');
+      } finally {
+        holder.kill();
+      }
+    });
+
+    it('AC2: runs at once when nobody holds the queue, and prints no waiting line', () => {
+      const result = check({ unit: unit(), integration, e2e }, ['--all'], () => {}, fast);
+      assert.equal(result.status, 0, result.stdout);
+      assert.doesNotMatch(result.stdout, /waiting for the e2e queue/);
+    });
+
+    it('AC2: takes over the queue of a check.sh that is gone, and of a pid that is not a check.sh now', () => {
+      for (const pid of [deadPid(), process.pid]) {
+        const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(pid), fast);
+        assert.equal(result.status, 0, result.stdout);
+        assert.doesNotMatch(result.stdout, /waiting for the e2e queue/);
+        assert.ok(!lockExists(), 'released at the end');
+      }
+    });
+
+    it('AC2: gives up after the queue timeout, names the holder, runs no e2e and leaves the holder its lock', () => {
+      const holder = runningCheck(20);
+      try {
+        const result = check({ unit: unit(), integration, e2e }, ['--all'], holdLock(holder.pid), {
+          ...fast,
+          E2E_QUEUE_TIMEOUT_SECONDS: '1',
+        });
+        assert.equal(result.status, 1, result.stdout);
+        assert.match(result.stdout, /✗ e2e tests/);
+        assert.match(result.stdout, new RegExp(`still held by pid ${holder.pid} after 1 s`));
+        assert.ok(lockExists(), 'the holder keeps its lock');
+        assert.equal(result.summary.suites.find((s) => s.kind === 'e2e').status, 'not-run');
+      } finally {
+        holder.kill();
+      }
+    });
+
+    it('AC2: releases the queue when the suite passes and when it fails', () => {
+      assert.equal(check({ unit: unit(), integration, e2e }, ['--all'], () => {}, fast).status, 0);
+      assert.ok(!lockExists());
+      const e2eFails = { lines: playwright('  14 passed (3.2s)', '  1 failed'), exit: 1 };
+      assert.equal(
+        check({ unit: unit(), integration, e2e: e2eFails }, ['--all'], () => {}, fast).status,
+        1,
+      );
+      assert.ok(!lockExists());
+    });
+
+    it('AC2: a run without e2e (--fast, or no web change) never waits for the queue', () => {
+      const holder = runningCheck(20);
+      try {
+        const result = check(
+          { unit: unit(), integration, e2e },
+          ['--all', '--fast'],
+          holdLock(holder.pid),
+          fast,
+        );
+        assert.equal(result.status, 0, result.stdout);
+        assert.doesNotMatch(result.stdout, /waiting for the e2e queue/);
+        assert.ok(lockExists(), 'the holder keeps its lock');
+      } finally {
+        holder.kill();
+      }
+    });
+  });
+
   it('E002 #570 AC1: the rerun of a failed e2e suite is check.sh itself, forced, which sets the e2e port', () => {
     const e2eFails = { lines: playwright('  14 passed (3.2s)', '  1 failed'), exit: 0 };
     const result = check({ unit: unit(), integration, e2e: e2eFails });
