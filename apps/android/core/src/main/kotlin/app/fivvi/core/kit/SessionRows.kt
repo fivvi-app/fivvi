@@ -70,8 +70,8 @@ fun SessionAvatar(type: SessionType, letters: String, modifier: Modifier = Modif
     }
 }
 
-/** The size of the large avatar at the top of a client's profile (the prototype's `lg` avatar). */
-val AvatarSizeLarge: Dp = 88.dp
+/** The size of the large avatar at the top of a client's profile (the prototype's `.av.lg`, 84). */
+val AvatarSizeLarge: Dp = 84.dp
 
 /** The letters of a person's avatar: the first letters of the first and the last word of the name, in capitals. */
 fun initialsOf(name: String): String {
@@ -82,8 +82,10 @@ fun initialsOf(name: String): String {
 }
 
 /**
- * The avatar of a person, a client in the lists and on the profile: the cookie of a private session (the prototype's
- * client avatar) with the [name]'s initials. Decorative: the row or the heading names the person.
+ * The avatar of a person, a client in the lists and on the profile: the cookie of a private session with the [name]'s
+ * initials. The prototype's client avatar is a 40 dp rounded square with white initials on the client's colour; this
+ * follows the private-session avatar, with the letters in the tint's text colour, because white on a client colour does
+ * not reach the 4.5:1 of AC3. Decorative: the row or the heading names the person.
  */
 @Composable
 fun PersonAvatar(name: String, modifier: Modifier = Modifier, size: Dp = AvatarSize) {

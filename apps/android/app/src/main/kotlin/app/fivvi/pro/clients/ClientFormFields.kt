@@ -3,31 +3,23 @@ package app.fivvi.pro.clients
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.autofill.ContentType
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentType
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
@@ -36,15 +28,14 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import app.fivvi.api.models.Locale
 import app.fivvi.core.R
+import app.fivvi.core.kit.CheckListRow
 import app.fivvi.core.kit.FieldErrorLine
 import app.fivvi.core.kit.FivviField
 import app.fivvi.core.kit.InsetGroupedList
 import app.fivvi.core.kit.PillButton
 import app.fivvi.core.kit.PillButtonStack
 import app.fivvi.core.kit.PillButtonStyle
-import app.fivvi.core.theme.tokens
 import app.fivvi.designtokens.Spacing
-import app.fivvi.designtokens.body
 import app.fivvi.designtokens.subhead
 
 /** What the fields of the add and the edit form show besides the input: the messages of the last answer of the API. */
@@ -201,31 +192,13 @@ private fun LanguageChoices(
         InsetGroupedList(Modifier.selectableGroup()) {
             CHOICE_TAGS.forEachIndexed { index, (choice, key) ->
                 row {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .defaultMinSize(minHeight = Spacing.space12)
-                            .selectable(
-                                selected = choice == selected,
-                                enabled = enabled,
-                                role = Role.RadioButton,
-                                onClick = { onChange(choice) },
-                            )
-                            .testTag("$tag.language.$key")
-                            .padding(horizontal = Spacing.space4, vertical = Spacing.space3),
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        verticalAlignment = Alignment.CenterVertically,
-                    ) {
-                        Text(labels[index], style = MaterialTheme.typography.body)
-                        if (choice == selected) {
-                            Icon(
-                                painterResource(R.drawable.ic_check),
-                                contentDescription = null,
-                                modifier = Modifier.size(Spacing.space6),
-                                tint = MaterialTheme.tokens.accentText,
-                            )
-                        }
-                    }
+                    CheckListRow(
+                        label = labels[index],
+                        selected = choice == selected,
+                        onClick = { onChange(choice) },
+                        tag = "$tag.language.$key",
+                        enabled = enabled,
+                    )
                 }
             }
         }

@@ -1,13 +1,16 @@
 package app.fivvi.pro.clients
 
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.tryPerformAccessibilityChecks
 import androidx.compose.ui.unit.dp
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.Locale
@@ -20,7 +23,13 @@ import app.fivvi.pro.kit.near
 import app.fivvi.pro.kit.pixels
 import app.fivvi.pro.kit.px
 import app.fivvi.pro.kit.showKit
+import com.google.android.apps.common.testing.accessibility.framework.AccessibilityCheckResult.AccessibilityCheckResultType
+import com.google.android.apps.common.testing.accessibility.framework.AccessibilityViewCheckResult
+import com.google.android.apps.common.testing.accessibility.framework.checks.TextContrastCheck
+import com.google.android.apps.common.testing.accessibility.framework.integrations.espresso.AccessibilityValidator
 import java.time.Instant
+import org.hamcrest.BaseMatcher
+import org.hamcrest.Description
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -50,6 +59,8 @@ class ClientsLookTest(
         onOpen = {},
         onAdd = {},
     )
+
+    private val annaForm = ClientForm("Anna de Vries", "anna@example.com")
 
     private val fieldActions = ClientFormActions({}, {}, {}, {}, {}, {})
 
@@ -87,15 +98,21 @@ class ClientsLookTest(
         assertTrue("the card differs from the canvas", !mode.tokens.bgCanvas.near(card, 0.02f))
     }
 
-    // A pill: the corner of its box shows the canvas behind it, the middle of its end does not.
-    private fun assertIsAPill(tag: String) {
-        val pixels = compose.onNodeWithTag(tag, useUnmergedTree = true).pixels()
-        val canvas = mode.tokens.bgCanvas
-        assertTrue("$tag has a round corner, got ${pixels[1, 1]}", pixels[1, 1].near(canvas, 0.02f))
+    // The prototype's Android action button (styles.css .fab): 60 dp high, corners of 20 dp (not a pill: 7 dp in from the corner
+    // is inside a 20 dp corner and outside a 30 dp one), primaryContainer under the text.
+    private fun assertIsTheAddButton() {
+        val add = compose.onNodeWithTag(ClientsTags.ADD)
+        add.assertHeightIsEqualTo(60.dp)
+        val scheme = if (mode.dark) DarkColorScheme else LightColorScheme
+        val pixels = add.pixels()
+        assertTrue("the corner shows the canvas, got ${pixels[1, 1]}", pixels[1, 1].near(mode.tokens.bgCanvas, 0.02f))
+        val inner = pixels[7.dp.px(), 7.dp.px()]
         assertTrue(
-            "$tag is filled at its end, got ${pixels[pixels.width - pixels.height / 2, pixels.height / 2]}",
-            !pixels[pixels.width - pixels.height / 2, pixels.height / 2].near(canvas, 0.02f),
+            "7 dp in from the corner is the button's (radius 20, not 30), got $inner",
+            inner.near(scheme.primaryContainer, 0.02f),
         )
+        val end = pixels[pixels.width - 8.dp.px(), pixels.height / 2]
+        assertTrue("the button is primaryContainer, got $end", end.near(scheme.primaryContainer, 0.02f))
     }
 
     @Test
@@ -134,8 +151,7 @@ class ClientsLookTest(
         assertOnACard("${ClientsTags.ROW}.${mark.id}", share = 0.95f)
         compose.onNodeWithTag("${ClientsTags.ROW_AVATAR}.${anna.id}", useUnmergedTree = true)
             .assertWidthIsEqualTo(44.dp).assertHeightIsEqualTo(44.dp)
-        compose.onNodeWithTag(ClientsTags.ADD).assertHeightIsAtLeast(48.dp)
-        assertIsAPill(ClientsTags.ADD)
+        assertIsTheAddButton()
     }
 
     @Test
@@ -155,7 +171,7 @@ class ClientsLookTest(
         showProfile()
 
         val avatar = compose.onNodeWithTag(ClientProfileTags.AVATAR, useUnmergedTree = true)
-        avatar.assertWidthIsEqualTo(88.dp)
+        avatar.assertWidthIsEqualTo(84.dp)
         val screen = compose.onRoot().getUnclippedBoundsInRoot()
         val box = avatar.getUnclippedBoundsInRoot()
         assertTrue("the avatar is centred", kotlin.math.abs((box.left + box.right).value - screen.right.value) <= 2f)
@@ -166,6 +182,77 @@ class ClientsLookTest(
         assertOnACard("${ClientProfileTags.EMAIL}.row", atStart = true)
         assertOnACard("${ClientProfileTags.LANGUAGE}.row", atStart = true)
         compose.onNodeWithTag(ClientProfileTags.EDIT).assertHeightIsAtLeast(48.dp)
+    }
+
+    // The one text-contrast result the tokens allow (ADR-032, `native-secondary-text` in packages/design-tokens): the secondary
+    // text of the native apps in light mode, `color.text.secondary` (#85858B), is 3.3:1 on the canvas and 3.7:1 on cards, not
+    // 4.5:1. Only a TextContrastCheck result whose foreground is that colour in light mode is accepted; in dark mode the
+    // secondary text is held to 4.5:1, and any other colour, check or element still fails.
+    private fun secondaryTextInLightMode() = object : BaseMatcher<AccessibilityViewCheckResult>() {
+        private val grey = "#%06X".format(mode.tokens.textSecondary.toArgb() and 0xFFFFFF)
+
+        override fun matches(actual: Any?) = !mode.dark && actual is AccessibilityViewCheckResult &&
+            actual.accessibilityHierarchyCheck == TextContrastCheck::class.java &&
+            actual.message.contains("estimated foreground color of $grey")
+
+        override fun describeTo(description: Description) {
+            description.appendText("a text contrast result of the secondary text colour in light mode")
+        }
+    }
+
+    // AC15: the accessibility checks of Google's framework (touch target size, speakable text, text contrast and the rest)
+    // run over the whole screen, in this mode and language, and fail the test on a warning or an error.
+    private fun assertAccessible() {
+        compose.enableAccessibilityChecks(
+            AccessibilityValidator()
+                .setRunChecksFromRootView(true)
+                .setThrowExceptionFor(AccessibilityCheckResultType.WARNING)
+                .setSuppressingResultMatcher(secondaryTextInLightMode()),
+        )
+        compose.onRoot().tryPerformAccessibilityChecks()
+    }
+
+    @Test
+    fun E020_AC15_klantenPassesTheAccessibilityChecks() {
+        showList()
+        assertAccessible()
+    }
+
+    @Test
+    fun E020_AC15_theClientProfilePassesTheAccessibilityChecks() {
+        showProfile()
+        assertAccessible()
+    }
+
+    @Test
+    fun E020_AC15_theNewClientFormPassesTheAccessibilityChecks() {
+        compose.showKit(mode, language) {
+            AddClientScreen(
+                AddClientState(
+                    form = ClientForm(name = "", email = "carla"),
+                    nameError = NameError.Required,
+                    emailError = EmailError.Invalid,
+                    duplicate = Duplicate(anna.id, "Anna de Vries"),
+                ),
+                Locale.NL_NL,
+                AddClientActions({}, {}, fieldActions),
+            )
+        }
+        assertAccessible()
+    }
+
+    @Test
+    fun E020_AC15_theEditFormPassesTheAccessibilityChecks() {
+        compose.showKit(mode, language) {
+            ClientProfileScreen(
+                ClientProfileState.Loaded(anna, ClientEdit(annaForm, nameError = NameError.TooLong)),
+                Locale.NL_NL,
+                "John's Gym",
+                null,
+                ClientProfileActions({}, {}, {}, {}, {}, {}, {}, fieldActions),
+            )
+        }
+        assertAccessible()
     }
 
     @Test

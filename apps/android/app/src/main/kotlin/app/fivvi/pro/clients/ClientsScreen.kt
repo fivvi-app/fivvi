@@ -12,7 +12,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExtendedFloatingActionButton
 import androidx.compose.material3.Icon
@@ -31,6 +31,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.dp
 import app.fivvi.api.models.Client
 import app.fivvi.core.R
 import app.fivvi.core.kit.AvatarSize
@@ -89,10 +90,14 @@ data class ClientsActions(
     val onAdd: (() -> Unit)?,
 )
 
+/** The height and the corner radius of *+ Nieuwe klant*: the prototype's Android action button (`.fab`, styles.css). */
+private val AddButtonHeight = 60.dp
+private val AddButtonRadius = 20.dp
+
 /**
  * *Klanten* / *Clients* (TM-02, F006 AC6, AC12) in the look of the prototype: the back button, the large title, the
  * pill search field (matches name and address as you type, in the API) and the list in one rounded group, a shaped avatar
- * with the name and the address on each row, with pull to refresh; *+ Nieuwe klant* is the pill action when
+ * with the name and the address on each row, with pull to refresh; *+ Nieuwe klant* is the 60 dp action button with 20 dp corners in the container colour when
  * [ClientsActions.onAdd] is given. States (`information-architecture.md §9.5`): skeleton rows while loading (and a line
  * after 10 s), the error with *Opnieuw proberen*, the empty state with its action, the list read before with its time
  * when the connection is gone, and the no-permission text.
@@ -114,10 +119,10 @@ fun ClientsScreen(
             actions.onAdd?.let { add ->
                 ExtendedFloatingActionButton(
                     onClick = add,
-                    modifier = Modifier.testTag(ClientsTags.ADD),
-                    shape = CircleShape,
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary,
+                    modifier = Modifier.height(AddButtonHeight).testTag(ClientsTags.ADD),
+                    shape = RoundedCornerShape(AddButtonRadius),
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     icon = { Icon(painterResource(R.drawable.ic_add), contentDescription = null) },
                     text = { Text(stringResource(R.string.clients_new_client)) },
                 )
