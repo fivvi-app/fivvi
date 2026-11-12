@@ -149,6 +149,25 @@
     "title": "Geen toegang",
     "body": "Je hebt geen toegang tot deze pagina. Vraag de eigenaar van {workspace}."
   },
+  "joinLink": {
+    "title": "Aanmeldlink",
+    "body": "Voor nieuwe klanten: ze loggen in en vragen of ze klant mogen worden. De eigenaar keurt elk verzoek goed.",
+    "copy": "Link kopiëren",
+    "copied": "Link gekopieerd.",
+    "renew": "Vernieuwen",
+    "renewDialog": {
+      "title": "Aanmeldlink vernieuwen?",
+      "body": "De huidige link en de QR-codes ervan werken daarna niet meer. Verzoeken die al zijn verstuurd blijven staan.",
+      "confirm": "Vernieuwen",
+      "cancel": "Terug"
+    },
+    "renewed": "De aanmeldlink is vernieuwd.",
+    "errors": {
+      "copy": "Kopiëren is niet gelukt. Selecteer de link en kopieer hem zelf.",
+      "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
+      "generic": "Er ging iets mis. Probeer het opnieuw."
+    }
+  },
   "workspaceNav": {
     "label": "Hoofdnavigatie",
     "settings": "Instellingen",
@@ -160,7 +179,8 @@
     "clients": "Klanten",
     "new": "Nieuw",
     "newMenu": "Nieuw maken",
-    "newClient": "Klant"
+    "newClient": "Klant",
+    "joinLink": "Aanmeldlink"
   },
   "workspaceSwitcher": {
     "newWorkspace": "+ Nieuwe werkruimte"

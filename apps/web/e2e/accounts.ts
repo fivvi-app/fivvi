@@ -117,6 +117,21 @@ export async function createGymWithTrainer(
   }
 }
 
+/** The join code stored for the workspace with the URL name `slug`, on the e2e app server's database (F029). */
+export async function joinCodeOf(slug: string): Promise<string> {
+  const client = createDatabase({ url: databaseUrl(appServer.database), maxConnections: 1 });
+  try {
+    const [row] = await client.db
+      .select({ joinCode: organizations.joinCode })
+      .from(organizations)
+      .where(eq(organizations.slug, slug));
+    if (!row) throw new Error(`No workspace ${slug} on the e2e database.`);
+    return row.joinCode;
+  } finally {
+    await client.close();
+  }
+}
+
 /**
  * Puts the existing account `email` on the team of the workspace with the URL name `slug`, on
  * the e2e app server's database (the team page lists it; inviting people is F011). A Trainer

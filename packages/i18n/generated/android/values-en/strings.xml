@@ -71,6 +71,19 @@
     <string name="home_open_web">Open Fivvi in the browser</string>
     <string name="home_set_up_on_web">Set up your workspace on the web.</string>
     <string name="home_signed_in_as">Signed in as %1$s</string>
+    <string name="join_link_body">For new clients: they sign in and ask to join. The owner approves each request.</string>
+    <string name="join_link_copied">Link copied.</string>
+    <string name="join_link_copy">Copy link</string>
+    <string name="join_link_errors_copy">Copying didn\'t work. Select the link and copy it yourself.</string>
+    <string name="join_link_errors_generic">Something went wrong. Try again.</string>
+    <string name="join_link_errors_no_connection">No connection. Check your internet and try again.</string>
+    <string name="join_link_renew">Renew</string>
+    <string name="join_link_renew_dialog_body">The current link and its QR codes will stop working. Requests already sent stay.</string>
+    <string name="join_link_renew_dialog_cancel">Go back</string>
+    <string name="join_link_renew_dialog_confirm">Renew</string>
+    <string name="join_link_renew_dialog_title">Renew the join link?</string>
+    <string name="join_link_renewed">The join link has been renewed.</string>
+    <string name="join_link_title">Join link</string>
     <string name="my_profile_booking_emails_help">You get an email when a client books or cancels.</string>
     <string name="my_profile_booking_emails_label">Emails about bookings in my classes</string>
     <string name="my_profile_details_title">Your details</string>
@@ -291,6 +304,7 @@
     <string name="welcome_workspace_name_label">Name of your gym or business</string>
     <string name="workspace_home_description">The overview of your gym or business will appear here soon.</string>
     <string name="workspace_nav_clients">Clients</string>
+    <string name="workspace_nav_join_link">Join link</string>
     <string name="workspace_nav_label">Main navigation</string>
     <string name="workspace_nav_new">New</string>
     <string name="workspace_nav_new_client">Client</string>

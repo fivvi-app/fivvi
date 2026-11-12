@@ -118,6 +118,39 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     expect(html).not.toContain('/trainers');
   });
 
+  it('F029: the Owner and a Trainer have the Aanmeldlink in the navigation, between Trainers and Settings', () => {
+    const frame = (teamRole: 'owner' | 'trainer', capabilities: typeof OWNER) =>
+      render(
+        locale,
+        <WorkspaceFrame
+          name="John's Gym"
+          slug="johns-gym"
+          teamRole={teamRole}
+          workspaces={[]}
+          canCreateWorkspace={false}
+          capabilities={capabilities}
+          personName={null}
+        >
+          <hr />
+        </WorkspaceFrame>,
+      );
+    const link = new RegExp(
+      `<a[^>]*href="/w/johns-gym/join-link"[^>]*>${NAV_ICON}<span[^>]*>${escapeHtml(copy.workspaceNav.joinLink)}</span></a>`,
+    );
+
+    const owner = frame('owner', OWNER);
+    expect(owner).toMatch(link);
+    expect(owner.indexOf('/w/johns-gym/trainers')).toBeLessThan(
+      owner.indexOf('/w/johns-gym/join-link'),
+    );
+    expect(owner.indexOf('/w/johns-gym/join-link')).toBeLessThan(
+      owner.indexOf('/w/johns-gym/settings/general'),
+    );
+    expect(frame('trainer', TRAINER)).toMatch(link);
+    // The section follows the capability, not the role.
+    expect(frame('owner', [])).not.toContain('/join-link');
+  });
+
   it('F004 AC9: the navigation follows the capability list, not the role name', () => {
     const ownerWithoutCapabilities = render(
       locale,
