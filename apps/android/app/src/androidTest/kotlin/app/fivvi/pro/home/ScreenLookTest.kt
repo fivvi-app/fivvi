@@ -1,6 +1,9 @@
 package app.fivvi.pro.home
 
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
@@ -10,8 +13,10 @@ import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
 import app.fivvi.core.me.workspaceIdOf
+import app.fivvi.designtokens.workspaceColor
 import app.fivvi.pro.hello.HelloState
 import app.fivvi.pro.kit.Mode
+import app.fivvi.pro.kit.isFilled
 import app.fivvi.pro.kit.near
 import app.fivvi.pro.kit.pixels
 import app.fivvi.pro.kit.showKit
@@ -111,6 +116,35 @@ class ScreenLookTest(
         assertRowIsACard("${ProfileTags.TRAINS_HERE}.${workspace.slug}")
         assertRowIsACard("${ProfileTags.LANGUAGE}.${language.tag}")
         assertRowIsACard(ProfileTags.SUPPORT)
+    }
+
+    // The prototype's Werkruimtes row (app.js, SCREENS.profile): a 36 dp mark in the workspace's colour first, then the name, and the
+    // role at the trailing end (TM-04), not under the name.
+    @Test
+    fun E020_AC15_aWorkspaceRowStartsWithAMarkInItsColourAndEndsWithTheRole() {
+        showProfile()
+        val mark = "${ProfileTags.WORKSPACE_MARK}.${workspace.slug}"
+        compose.onNodeWithTag(mark, useUnmergedTree = true).performScrollTo()
+
+        compose.onNodeWithTag(mark, useUnmergedTree = true).assertWidthIsEqualTo(36.dp).assertHeightIsEqualTo(36.dp)
+        val colour = mode.tokens.workspaceColor(workspace.id.toString())
+        val pixels = compose.onNodeWithTag(mark, useUnmergedTree = true).pixels()
+        assertTrue(
+            "the mark is in the workspace colour $colour, got ${pixels[pixels.width / 2, 3]}",
+            pixels.isFilled(pixels.width / 2, 3, colour, 0.02f),
+        )
+
+        val name = compose.onNodeWithTag("${ProfileTags.WORKSPACE_NAME}.${workspace.slug}", useUnmergedTree = true)
+            .getUnclippedBoundsInRoot()
+        val role = compose.onNodeWithTag("${ProfileTags.WORKSPACE_ROLE}.${workspace.slug}", useUnmergedTree = true)
+            .getUnclippedBoundsInRoot()
+        val row = compose.onNodeWithTag("${ProfileTags.WORKSPACE}.${workspace.slug}", useUnmergedTree = true)
+            .getUnclippedBoundsInRoot()
+        val markBounds = compose.onNodeWithTag(mark, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertTrue("the mark comes before the name", markBounds.right <= name.left)
+        assertTrue("the role is to the right of the name, not under it", role.left >= name.right)
+        assertTrue("the role is at the end of the row", row.right - role.right <= 24.dp)
+        assertTrue("the role is on the line of the name", role.top < name.bottom)
     }
 
     companion object {

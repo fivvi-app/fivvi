@@ -2,6 +2,7 @@ package app.fivvi.pro.home
 
 import androidx.activity.compose.BackHandler
 import androidx.annotation.StringRes
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.indication
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
@@ -37,6 +39,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
@@ -44,6 +47,7 @@ import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.LanguageList
 import app.fivvi.core.R
@@ -59,6 +63,7 @@ import app.fivvi.designtokens.body
 import app.fivvi.designtokens.headline
 import app.fivvi.designtokens.subhead
 import app.fivvi.designtokens.title1
+import app.fivvi.designtokens.workspaceColor
 import java.util.UUID
 
 /** Test tags, shared with the iOS accessibility identifiers and the Maestro flows. */
@@ -105,6 +110,9 @@ object ProfileTags {
     const val WORKSPACE = "profile.workspace"
     const val WORKSPACE_NAME = "profile.workspaceName"
     const val WORKSPACE_ROLE = "profile.workspaceRole"
+
+    /** The mark at the start of a row, in the workspace's colour: `profile.workspaceMark.<slug>` (decorative, no text). */
+    const val WORKSPACE_MARK = "profile.workspaceMark"
 }
 
 /** What the person can do on *Profiel*; the view model answers each. */
@@ -308,7 +316,9 @@ private fun Details(state: ProfileState.Loaded, onEditName: () -> Unit) {
     }
 }
 
-// The name and the role; with more than one workspace the whole row is the button (`profile.workspace.<slug>`), with a
+private val WorkspaceMarkSize = 36.dp
+
+// The mark, the name and, at the trailing end, the role; with more than one workspace the whole row is the button (`profile.workspace.<slug>`), with a
 // check and the selected state on the current one. The row does not merge its two lines into itself (unlike a Material
 // button), so they keep their own tags for the flows that read them. Its role is a tab, as a Material navigation item's
 // is: only then does Compose report the selected state as the accessibility node's `selected`, which is what the shared
@@ -355,25 +365,30 @@ private fun WorkspaceRow(workspace: ProfileWorkspace, roleLabel: String, isCurre
                 },
             )
             .padding(horizontal = Spacing.space4, vertical = Spacing.space3),
-        horizontalArrangement = Arrangement.SpaceBetween,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.space3),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(Spacing.space1),
-        ) {
-            Text(
-                text = workspace.name,
-                modifier = Modifier.testTag("${ProfileTags.WORKSPACE_NAME}.${workspace.slug}"),
-                style = MaterialTheme.typography.headline,
-            )
-            Text(
-                text = roleLabel,
-                modifier = Modifier.testTag("${ProfileTags.WORKSPACE_ROLE}.${workspace.slug}"),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                style = MaterialTheme.typography.subhead,
-            )
-        }
+        // The prototype's 36 dp mark in the workspace's colour, picked from its ID (the same function on every platform).
+        // Decorative: the row names the workspace, and the colour is never the only signal.
+        Box(
+            Modifier
+                .size(WorkspaceMarkSize)
+                .background(MaterialTheme.tokens.workspaceColor(workspace.id.toString()), RoundedCornerShape(12.dp))
+                .testTag("${ProfileTags.WORKSPACE_MARK}.${workspace.slug}")
+                .clearAndSetSemantics { },
+        )
+        Text(
+            text = workspace.name,
+            modifier = Modifier.weight(1f).testTag("${ProfileTags.WORKSPACE_NAME}.${workspace.slug}"),
+            style = MaterialTheme.typography.headline,
+        )
+        // TM-04: the role sits at the trailing end of the row, not under the name.
+        Text(
+            text = roleLabel,
+            modifier = Modifier.testTag("${ProfileTags.WORKSPACE_ROLE}.${workspace.slug}"),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            style = MaterialTheme.typography.subhead,
+        )
         if (onSelect != null && isCurrent) {
             Icon(
                 painterResource(R.drawable.ic_check),

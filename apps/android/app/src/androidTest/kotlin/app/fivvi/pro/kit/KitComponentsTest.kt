@@ -182,6 +182,25 @@ class KitComponentsTest(
         assertTrue("danger has its own fill", danger.isFilled(danger.width / 2, 2.dp.px(), mode.tokens.actionDangerBg))
     }
 
+    // The accent fill (#E6164A) is 4.11:1 on the canvas, below the 4.5:1 of text; the token for text in the accent is
+    // accentText, so the label of a text pill is drawn in it, never in the fill.
+    @Test
+    fun E020_AC14_theLabelOfATextPillIsInTheAccentTextColourNotTheFill() {
+        show { PillButton("Text", onClick = {}, Modifier.testTag("text"), style = PillButtonStyle.Text) }
+
+        val pixels = compose.onNodeWithTag("text").pixels()
+        var text = 0
+        var fill = 0
+        for (y in 0 until pixels.height) {
+            for (x in 0 until pixels.width) {
+                if (pixels.isFilled(x, y, tokens.accentText, 0.02f)) text++
+                if (pixels.isFilled(x, y, tokens.accentFill, 0.02f)) fill++
+            }
+        }
+        assertTrue("the label is in the accent text colour", text > 0)
+        assertEquals("no pixel of the label is in the fill colour", 0, fill)
+    }
+
     @Test
     fun E020_AC14_stackedPillButtonsKeepTheirFullHeightWith10dpBetween() {
         show {

@@ -31,7 +31,8 @@ private val ErrorIconSize = 16.dp
  * say it too, and a screen reader reads the message as the field's error. The caller words the message; none is made here.
  * [help] is a line under the field while it has no message of its own. With `showsErrorMessage = false` the field turns
  * red and is read as in error, but the message is not drawn: the caller puts a [FieldErrorLine] under it, where it can
- * tag it and keep it out of the field's own text.
+ * tag it and keep it out of the field's own text. The field then draws no message of its own, so the [help] shows
+ * also while there is an [error].
  */
 @Composable
 fun FivviField(
