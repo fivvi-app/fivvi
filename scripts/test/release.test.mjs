@@ -17,9 +17,12 @@ import {
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, beforeEach, describe, it } from 'node:test';
+import { readRecorder, UNCOVERED_MESSAGE, uncovered } from './turbo-inputs.mjs';
 
 const ROOT = join(import.meta.dirname, '../..');
 const RELEASE = join(ROOT, 'scripts/release.sh');
+// The iOS files these tests read: turbo caches `//#test:root` by its `inputs`, so each must be one of them (#594).
+const { reads: iosReads, note: noteRead } = readRecorder('apps/ios/');
 
 const base = mkdtempSync(join(tmpdir(), 'release-test-'));
 after(() => rmSync(base, { recursive: true, force: true }));
@@ -570,7 +573,7 @@ const workflow = readFileSync(join(WORKFLOWS, 'release.yml'), 'utf8');
 /** The text of each job of the workflow, by id. */
 const jobs = () => {
   const section = workflow.slice(workflow.indexOf('\njobs:\n') + 7);
-  const parts = section.split(/^  ([a-z][a-z0-9-]*):$/m);
+  const parts = section.split(/^ {2}([a-z][a-z0-9-]*):$/m);
   const result = {};
   for (let i = 1; i < parts.length; i += 2) result[parts[i]] = parts[i + 1];
   return result;
@@ -750,7 +753,9 @@ describe('E017 AC4: one build number per run, from the run', () => {
 describe('E017 AC6: the release name the app sends', () => {
   it('E017 AC6: the lane builds it the way ErrorReporting.swift does: <bundle ID>@<version>+<build>', () => {
     const swift = readFileSync(
-      join(ROOT, 'apps/ios/Packages/FivviShared/Sources/FivviObservability/ErrorReporting.swift'),
+      noteRead(
+        join(ROOT, 'apps/ios/Packages/FivviShared/Sources/FivviObservability/ErrorReporting.swift'),
+      ),
       'utf8',
     );
     assert.match(swift, /release = "\\\(bundleID\)@\\\(version\)\+\\\(build\)"/);
@@ -977,5 +982,12 @@ describe('#437 E017: the iOS jobs run on the image and Xcode that CI tests the a
     const { 'ios-tests': tests, ios } = jobs();
     assert.match(tests, /^ {4}name: iOS tests$/m);
     assert.match(ios, /^ {4}name: iOS release$/m);
+  });
+});
+
+describe('E017 #594: a change to an iOS file these tests read is not served from the test cache', () => {
+  it('turbo.json lists as inputs of the root tests every file of apps/ios read above', () => {
+    assert.ok(iosReads.size >= 1, 'the tests read an iOS file');
+    assert.deepEqual(uncovered([...iosReads]), [], UNCOVERED_MESSAGE);
   });
 });

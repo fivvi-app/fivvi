@@ -19,8 +19,12 @@ import { basename, dirname, join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
 
 import { SOURCE_PATHS } from '../ios-mtimes.mjs';
+import { readRecorder, UNCOVERED_MESSAGE, uncovered } from './turbo-inputs.mjs';
 
 const SCRIPTS = join(import.meta.dirname, '..');
+// The iOS and Maestro files these tests read: turbo caches `//#test:root` by its `inputs`, so each must be one of them
+// (the last test of the file, #594).
+const { reads: nativeReads, note: noteRead } = readRecorder('apps/ios/', 'e2e/maestro/');
 const lib = (expression) =>
   execFileSync('bash', ['-c', `source "${SCRIPTS}/_lib.sh"; ${expression}`], {
     encoding: 'utf8',
@@ -1198,7 +1202,7 @@ describe('iOS local Swift packages (apps/ios)', () => {
     // directories share a name (the design tokens and the API client were both `swift`) can't both link.
     const root = join(SCRIPTS, '..');
     const ios = join(root, 'apps/ios');
-    const project = readFileSync(join(ios, 'FivviPro.xcodeproj/project.pbxproj'), 'utf8');
+    const project = readFileSync(noteRead(join(ios, 'FivviPro.xcodeproj/project.pbxproj')), 'utf8');
     const packages = [
       ...project.matchAll(/isa = XCLocalSwiftPackageReference;\s*relativePath = "?([^";]+)"?;/g),
     ].map(([, dir]) => join(ios, dir));
@@ -1206,7 +1210,7 @@ describe('iOS local Swift packages (apps/ios)', () => {
       assert.ok(packages.includes(join(root, dir)), `the app links ${dir}`);
     }
     for (const dir of packages) {
-      assert.ok(existsSync(join(dir, 'Package.swift')), `${dir} has a Package.swift`);
+      assert.ok(existsSync(noteRead(join(dir, 'Package.swift'))), `${dir} has a Package.swift`);
     }
     const identities = packages.map((dir) => basename(dir).toLowerCase());
     assert.deepEqual([...new Set(identities)], identities, `package identities: ${identities}`);
@@ -1217,16 +1221,16 @@ describe('iOS simulator signing (apps/ios/Config)', () => {
   it('#224: Debug and Release both include Simulator.xcconfig, which signs simulator builds ad hoc with the entitlements', () => {
     const config = join(SCRIPTS, '../apps/ios/Config');
     for (const name of ['Debug', 'Release']) {
-      const xcconfig = readFileSync(join(config, `${name}.xcconfig`), 'utf8');
+      const xcconfig = readFileSync(noteRead(join(config, `${name}.xcconfig`)), 'utf8');
       assert.match(xcconfig, /^#include "Simulator\.xcconfig"$/m, `${name}.xcconfig`);
     }
-    const simulator = readFileSync(join(config, 'Simulator.xcconfig'), 'utf8');
+    const simulator = readFileSync(noteRead(join(config, 'Simulator.xcconfig')), 'utf8');
     assert.match(simulator, /^CODE_SIGN_IDENTITY\[sdk=iphonesimulator\*\] = -$/m);
     assert.match(
       simulator,
       /^CODE_SIGN_ENTITLEMENTS\[sdk=iphonesimulator\*\] = Config\/Simulator\.entitlements$/m,
     );
-    assert.ok(existsSync(join(config, 'Simulator.entitlements')));
+    assert.ok(existsSync(noteRead(join(config, 'Simulator.entitlements'))));
   });
 });
 
@@ -1956,7 +1960,7 @@ esac`;
       // The fake Lettermint server (F001, #131), which maestro.sh runs as it is.
       'apps/web/e2e/fake-lettermint.ts',
     ]) {
-      cpSync(join(SCRIPTS, '..', path), join(repo, path), { recursive: true });
+      cpSync(noteRead(join(SCRIPTS, '..', path)), join(repo, path), { recursive: true });
     }
     // FAKE_LETTERMINT_LISTEN_DELAY_MS=<ms> (#379): the copy of the fake Lettermint server starts to listen only after that long, as a
     // process that is slow to start under load does. The real file is not changed; the copy must still have these two lines.
@@ -2965,7 +2969,7 @@ esac`,
 
     it('D: nl runs every UI test and en skips only the locale-independent ones', () => {
       const plan = JSON.parse(
-        readFileSync(join(SCRIPTS, '../apps/ios/FivviPro.xctestplan'), 'utf8'),
+        readFileSync(noteRead(join(SCRIPTS, '../apps/ios/FivviPro.xctestplan')), 'utf8'),
       );
       const [nl, en] = ['nl', 'en'].map((name) => plan.configurations.find((c) => c.name === name));
 
@@ -4924,7 +4928,7 @@ describe('E008 #95 ios-device.sh runs the Debug app on a real iPhone', () => {
       'apps/ios/Config/Info-Debug.plist',
       'packages/i18n/generated/ios',
     ]) {
-      cpSync(join(SCRIPTS, '..', path), join(repo, path), { recursive: true });
+      cpSync(noteRead(join(SCRIPTS, '..', path)), join(repo, path), { recursive: true });
     }
     execFileSync('git', ['-C', repo, 'add', '.']);
     execFileSync('git', [
@@ -5164,7 +5168,9 @@ sed -nE "s#.*<key>$2</key><string>([^<]*)</string>.*#\\1#p" "\${@: -1}"`,
 // Maestro names each flow's report folder after the flow (its `name`, else the file name), and CI uploads those
 // folders: actions/upload-artifact rejects paths with " : < > | * ? \ or line breaks. Maestro turns / into _.
 describe('Maestro flows', () => {
+  // The tests list the folder and read most of its files.
   const flows = join(SCRIPTS, '../e2e/maestro');
+  noteRead(flows);
 
   it('have names that upload-artifact accepts as paths', () => {
     const files = readdirSync(flows).filter(
@@ -5335,7 +5341,7 @@ describe('Maestro flows', () => {
         '--include=*.kt',
         '--',
         name,
-        join(SCRIPTS, '..', dir),
+        noteRead(join(SCRIPTS, '..', dir), /\.(swift|kt)$/),
       ]);
       assert.equal(found.status, 1, `${name} is in ${dir}`);
     }
@@ -5704,5 +5710,16 @@ describe('#413 the iOS gate says when no hosted runner picked a part up, and has
       assert.match(text, /re-queu/i, file);
       assert.match(text, /#413/, file);
     }
+  });
+});
+
+describe('E017 #594: a change to an iOS or Maestro file these tests read is not served from the test cache', () => {
+  it('turbo.json lists as inputs of the root tests every file of apps/ios and e2e/maestro read above', () => {
+    for (const prefix of ['apps/ios/', 'e2e/maestro/'])
+      assert.ok(
+        [...nativeReads].filter((file) => file.startsWith(prefix)).length > 2,
+        `the tests read files of ${prefix}`,
+      );
+    assert.deepEqual(uncovered([...nativeReads]), [], UNCOVERED_MESSAGE);
   });
 });
