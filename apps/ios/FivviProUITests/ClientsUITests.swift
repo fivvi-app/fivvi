@@ -9,7 +9,7 @@ final class ClientsUITests: SignInUITestCase {
     private let clientsPath = "/api/v1/workspaces/7c1d2e3f-0000-4000-8000-000000000000/clients"
 
     /// Sarah (synthetic): Trainer of John's Gym.
-    private func launchAsSarah() throws -> (SignInScreen, StubServer) {
+    func launchAsSarah() throws -> (SignInScreen, StubServer) {
         let server = try StubServer(
             .greeting(key: "hello.title"),
             signIn: StubServer.SignIn(email: "trainer@example.com", workspaceName: "John's Gym", role: "trainer")
@@ -36,7 +36,7 @@ final class ClientsUITests: SignInUITestCase {
         ).firstMatch
     }
 
-    private func openClients(_ screen: SignInScreen) {
+    func openClients(_ screen: SignInScreen) {
         let open = screen.app.buttons["home.openClients"]
         XCTAssertTrue(open.waitUntilExists(timeout: timeout))
         XCTAssertTrue(open.tap(until: screen.app.descendants(matching: .any)["clients.list"], timeout: timeout))
@@ -110,7 +110,9 @@ final class ClientsUITests: SignInUITestCase {
         openClients(screen)
         let add = app.buttons["clients.add"]
         XCTAssertTrue(add.waitUntilExists(timeout: timeout))
-        try assertTouchTarget(add, on: screen)
+        // A button of the navigation bar: the system sets its size (a 36 pt glass circle on iOS 26) and its hit region,
+        // which the audit of ClientsAccessibilityUITests checks; it is no floating button of ours any more.
+        XCTAssertTrue(app.navigationBars.buttons["clients.add"].exists, "the add button is in the bar")
         XCTAssertEqual(add.label, catalog["clients.newClient"])
 
         add.tap()
@@ -175,35 +177,6 @@ final class ClientsUITests: SignInUITestCase {
         XCTAssertEqual(posts.count, 1)
     }
 
-    func test_F006_AC2_aMissingNameAndAMissingOrInvalidEmailAddressAreRefusedWithAFieldMessage() throws {
-        let catalog = TestCatalog.configured
-        let (screen, server) = try launchAsSarah()
-        let app = screen.app
-        openClients(screen)
-        app.buttons["clients.add"].tap()
-        XCTAssertTrue(app.buttons["clients.add.submit"].waitUntilExists(timeout: timeout))
-
-        app.buttons["clients.add.submit"].tap()
-        let nameError = app.staticTexts["clients.add.nameError"]
-        XCTAssertTrue(nameError.waitUntilExists(timeout: timeout))
-        XCTAssertEqual(nameError.label, catalog["clients.addDialog.errors.nameRequired"])
-
-        screen.type("Eva Smit", into: app.textFields["clients.add.name"])
-        app.buttons["clients.add.submit"].tap()
-        let missing = app.staticTexts["clients.add.emailError"]
-        XCTAssertTrue(missing.waitUntilExists(timeout: timeout), "a name alone is not enough")
-        XCTAssertEqual(missing.label, catalog["clients.addDialog.errors.emailInvalid"])
-        XCTAssertFalse(app.staticTexts["clients.add.nameError"].exists)
-
-        screen.type("not-an-address", into: app.textFields["clients.add.email"])
-        app.buttons["clients.add.submit"].tap()
-        let emailError = app.staticTexts["clients.add.emailError"]
-        XCTAssertTrue(emailError.waitUntilExists(timeout: timeout))
-        XCTAssertEqual(emailError.label, catalog["clients.addDialog.errors.emailInvalid"])
-        XCTAssertFalse(app.staticTexts["clients.add.nameError"].exists)
-        XCTAssertTrue(server.requests.filter { $0.method == "POST" }.isEmpty, "nothing is sent")
-    }
-
     func test_F006_AC7_anEmailAddressOfAnotherClientOffersThatClientOnEditToo() throws {
         let catalog = TestCatalog.configured
         let (screen, server) = try launchAsSarah()
@@ -248,9 +221,11 @@ final class ClientsUITests: SignInUITestCase {
         replaceText(in: app.textFields["clientProfile.edit.email"], with: "")
         app.buttons["clientProfile.edit.save"].tap()
 
-        let emailError = app.staticTexts["clientProfile.edit.emailError"]
-        XCTAssertTrue(emailError.waitUntilExists(timeout: timeout))
-        XCTAssertEqual(emailError.label, catalog["clients.addDialog.errors.emailInvalid"])
+        let email = app.textFields["clientProfile.edit.email"]
+        let invalid = catalog["clients.addDialog.errors.emailInvalid"]
+        XCTAssertTrue(Polling.until(timeout: timeout, interval: 0.2) {
+            email.label == "\(catalog["clients.addDialog.emailLabel"]), \(invalid)"
+        })
         XCTAssertTrue(server.requests.filter { $0.method == "PATCH" }.isEmpty, "nothing is sent")
         app.buttons["clientProfile.edit.close"].tap()
         XCTAssertEqual(app.staticTexts["clientProfile.email"].label, "anna@example.com")

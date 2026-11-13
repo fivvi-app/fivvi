@@ -60,17 +60,21 @@ extension InsetGroupedList where Header == EmptyView {
 public struct InsetGroup<Content: View>: View {
     public init(
         header: String? = nil, headerIdentifier: String? = nil, footer: String? = nil,
-        @ViewBuilder content: () -> Content
+        separatorInset: CGFloat = InsetGroupStyle.separatorInset, @ViewBuilder content: () -> Content
     ) {
         self.header = header
         self.headerIdentifier = headerIdentifier
         self.footer = footer
+        self.separatorInset = separatorInset
         self.content = content()
     }
     public var header: String?
     /// The header's accessibility identifier, for a screen with test ids for its group titles.
     public var headerIdentifier: String?
     public var footer: String?
+    /// How far the separators start from the leading edge: the rows' text (`InsetGroupStyle.separatorInset`), or past
+    /// an avatar or a mark in front of it (the prototype's `--inset`: 68 pt for a 40 pt avatar).
+    public var separatorInset: CGFloat
     @ViewBuilder public let content: Content
     @Environment(\.displayScale) private var displayScale
 
@@ -100,7 +104,7 @@ public struct InsetGroup<Content: View>: View {
                             Rectangle()
                                 .fill(Tokens.Colors.borderDefault)
                                 .frame(height: 1 / displayScale)
-                                .padding(.leading, InsetGroupStyle.separatorInset)
+                                .padding(.leading, separatorInset)
                         }
                         row
                     }
