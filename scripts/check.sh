@@ -250,6 +250,8 @@ check "file emails" "$ROOT/scripts/emails.sh" files
 check "file secrets" "$ROOT/scripts/secrets.sh" files
 check "secrets in tests" node "$ROOT/scripts/secrets-in-tests.mjs"
 check "doc links" doc_links
+# The quarantine lists (ADR-025, amendment of 12 November 2026): whatever changed, because an entry expires with the date.
+check "quarantine lists" node "$ROOT/scripts/quarantine.mjs"
 if [ "$(plan_flag root)" = true ]; then
   check "shell syntax" syntax
   check "shellcheck" shellcheck_all
