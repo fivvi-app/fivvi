@@ -91,13 +91,27 @@ export const composeTarget = (test, { root = defaultRoot() } = {}) => {
   return null;
 };
 
-/** The names of the annotations in the lines directly above `index`, and on the line itself before `keyword`. */
+/** The simple name of every annotation in `text`: `@Isolation` and `@app.fivvi.core.quarantine.Isolation` are both Isolation. */
+const annotationNames = (text) => [...text.matchAll(/@(?:\w+\.)*(\w+)/g)].map((m) => m[1]);
+
+/**
+ * The names of the annotations of the declaration at `index`: those on the line itself before the keyword, and those on the
+ * lines directly above, also above an annotation whose arguments run over several lines (`@Test(` ... `)`).
+ */
 const annotationsAt = (lines, index) => {
   const names = [];
-  const same = lines[index].match(/^\s*((?:@\w+(?:\([^)]*\))?\s+)*)/)?.[1] ?? '';
-  for (const m of same.matchAll(/@(\w+)/g)) names.push(m[1]);
-  for (let i = index - 1; i >= 0 && lines[i].trim().startsWith('@'); i--)
-    for (const m of lines[i].matchAll(/@(\w+)/g)) names.push(m[1]);
+  const same = lines[index].match(/^\s*((?:@[\w.]+(?:\([^)]*\))?\s+)*)/)?.[1] ?? '';
+  names.push(...annotationNames(same));
+  // Walking up, `depth` is the number of closing brackets not yet matched by an opening one: inside the arguments of an
+  // annotation (depth > 0) a line is part of it, and the annotation starts on the line that closes the count.
+  let depth = 0;
+  for (let i = index - 1; i >= 0; i--) {
+    const line = lines[i].trim();
+    const balance = (line.match(/\)/g) ?? []).length - (line.match(/\(/g) ?? []).length;
+    if (depth === 0 && !line.startsWith('@') && balance <= 0) break;
+    depth = Math.max(0, depth + balance);
+    if (depth === 0 && line.startsWith('@')) names.push(...annotationNames(line));
+  }
   return names;
 };
 

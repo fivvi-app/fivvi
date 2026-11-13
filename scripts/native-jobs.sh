@@ -27,7 +27,7 @@ usage() { usage_of "$0"; }
 # Maestro flows in e2e/maestro, which read their sign-in code from the fake Lettermint server (apps/web/e2e/fake-lettermint.ts)
 # out of the sign-in email (EM-08, packages/email/src/templates/sign-in.tsx).
 IOS_PATHS='^(apps/ios|packages/contract/swift|packages/i18n/generated/ios|packages/design-tokens/FivviDesignTokens)/|^apps/Version\.xcconfig$|^scripts/(test-ios|_ios)\.sh$|^scripts/ios-mtimes\.mjs$'
-ANDROID_PATHS='^(apps/android|packages/contract/kotlin|packages/i18n/generated/android|packages/design-tokens/kotlin|e2e/maestro)/|^apps/Version\.xcconfig$|^apps/web/e2e/fake-lettermint\.ts$|^packages/email/src/templates/sign-in\.tsx$|^packages/email/src/environment\.ts$|^packages/database/src/(scripts/)?reset-rate-limits\.ts$|^scripts/(android|_android|maestro)\.sh$'
+ANDROID_PATHS='^(apps/android|packages/contract/kotlin|packages/i18n/generated/android|packages/design-tokens/kotlin|e2e/maestro)/|^apps/Version\.xcconfig$|^apps/web/e2e/fake-lettermint\.ts$|^packages/email/src/templates/sign-in\.tsx$|^packages/email/src/environment\.ts$|^packages/database/src/(scripts/)?reset-rate-limits\.ts$|^scripts/(android|_android|maestro)\.sh$|^scripts/quarantine-android\.mjs$'
 
 EVENT=""
 FORCE=false

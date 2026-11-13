@@ -3,6 +3,7 @@ package app.fivvi.pro.clients
 import app.fivvi.api.models.AddClientRequest
 import app.fivvi.api.models.Client
 import app.fivvi.core.me.workspaceIdOf
+import app.fivvi.core.quarantine.Concurrency
 import app.fivvi.core.quarantine.Permission
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
@@ -273,6 +274,7 @@ class AddClientViewModelTest {
     }
 
     @Test
+    @Concurrency
     fun test_F006_AC12_theFormIsOnlySentOnceWhileItIsPending() {
         val viewModel = viewModel()
         viewModel.onNameChange("Mark")

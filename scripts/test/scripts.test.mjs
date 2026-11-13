@@ -204,6 +204,8 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       'scripts/android.sh',
       'scripts/_android.sh',
       'scripts/maestro.sh',
+      // The reader of the Compose and Maestro quarantine lists (E002 #1363) selects the tests of both Android jobs.
+      'scripts/quarantine-android.mjs',
     ]) {
       assert.ok(runs('android', path), path);
     }
@@ -3858,6 +3860,19 @@ esac`,
       );
       assert.match(script, /isFailOnNoMatchingTests = false/);
       assert.match(script, /replace\('#', '\.'\)/);
+    });
+
+    it('AC1: a parameterized unit test is left out, or selected, by its listed name: the pattern also matches method[nl-NL]', () => {
+      const script = readFileSync(
+        join(SCRIPTS, '..', 'apps/android/gradle/quarantine.init.gradle.kts'),
+        'utf8',
+      );
+      // Gradle matches a pattern against the whole name, and JUnit4 names a parameterized test `method[nl-NL]`.
+      assert.match(script, /for \(pattern in listOf\(method, "\$method\[\*\]"\)\)/);
+      assert.match(
+        script,
+        /if \(only\) includeTestsMatching\(pattern\) else excludeTestsMatching\(pattern\)/,
+      );
     });
   });
 

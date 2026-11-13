@@ -357,6 +357,7 @@ class ClientsScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
 
     // AC10, AC12: the API refuses the save (403): the edit closes, as the add form does, and Bewerken is hidden.
     @Test
+    @Permission
     fun test_F006_AC12_aSaveTheApiRefusesClosesTheEditAndHidesBewerken() {
         launch()
         openClients()

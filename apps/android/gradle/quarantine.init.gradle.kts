@@ -14,9 +14,12 @@ allprojects {
             // A module without a listed test has nothing to run with `only`.
             isFailOnNoMatchingTests = false
             for (name in listed) {
-                // Gradle names a method `Class.method`.
-                val pattern = name.replace('#', '.')
-                if (only) includeTestsMatching(pattern) else excludeTestsMatching(pattern)
+                // Gradle names a method `Class.method` and matches a pattern against the whole name; JUnit4 names a
+                // parameterized one `Class.method[nl-NL]`, so a listed method also matches with its parameters.
+                val method = name.replace('#', '.')
+                for (pattern in listOf(method, "$method[*]")) {
+                    if (only) includeTestsMatching(pattern) else excludeTestsMatching(pattern)
+                }
             }
         }
     }

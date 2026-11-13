@@ -368,6 +368,7 @@ class ProfileViewModelTest {
 
     // F005 AC5: the API refuses a Trainer's switch (403) or a lost place (404): the list is read again.
     @Test
+    @Permission
     fun test_F005_AC5_aRefusedSwitchReadsTheListAgain() {
         api.answerAccount()
         api.answerAccount()

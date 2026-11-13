@@ -210,6 +210,38 @@ describe('#1363 the Compose and Maestro lists', () => {
       assert.match(problemsOf('compose', 'p.BBTest#b', files)[0], /@isolation/);
     });
 
+    it('a marker written fully qualified, or above a multi-line annotation, is read too', () => {
+      const text = `package p
+
+class CCTest {
+    @app.fivvi.core.quarantine.Isolation
+    @Test
+    fun qualified() {}
+
+    @Permission
+    @Test(
+        timeout = 1000,
+    )
+    fun multiLine() {}
+
+    @Concurrency
+    @Suppress("A", "B")
+    @Test(timeout = 1000)
+    fun sameLine() {}
+
+    @Test(
+        timeout = 1000,
+    )
+    fun unmarked() {}
+}
+`;
+      const files = { kotlin: { 'app/src/test/kotlin/p/CCTest.kt': text } };
+      assert.match(problemsOf('compose', 'p.CCTest#qualified', files)[0], /@isolation/);
+      assert.match(problemsOf('compose', 'p.CCTest#multiLine', files)[0], /@permission/);
+      assert.match(problemsOf('compose', 'p.CCTest#sameLine', files)[0], /@concurrency/);
+      assert.deepEqual(problemsOf('compose', 'p.CCTest#unmarked', files), []);
+    });
+
     it('a Maestro flow whose tags hold isolation, concurrency or permission is marked, as a list or inline', () => {
       const files = {
         flows: {
@@ -374,6 +406,37 @@ describe('#1363 the Compose and Maestro lists', () => {
         for (const tag of tags.matchAll(/- (\S+)/g))
           assert.ok(MARKERS.includes(`@${tag[1]}`), `${file}: ${tag[1]}`);
       }
+    });
+
+    it('AC2: the refused-call, double-submit and profile tests of this repository carry their marker (TESTING.md §8)', () => {
+      const marked = (runner, test, marker) =>
+        assert.match(
+          markerProblems(runner, test, { root: REPO, markers: MARKERS })[0] ?? '',
+          new RegExp(marker),
+          test,
+        );
+      const pro = 'app.fivvi.pro';
+      marked(
+        'compose',
+        `${pro}.clients.ClientsScreenTest#test_F006_AC12_aSaveTheApiRefusesClosesTheEditAndHidesBewerken`,
+        '@permission',
+      );
+      marked(
+        'compose',
+        `${pro}.clients.ClientsFlowTest#test_F006_AC12_aRefusedSaveHidesOnlyManageAndKeepsViewWhenTheAccountReadFails`,
+        '@permission',
+      );
+      marked(
+        'compose',
+        `${pro}.home.ProfileViewModelTest#test_F005_AC5_aRefusedSwitchReadsTheListAgain`,
+        '@permission',
+      );
+      marked(
+        'compose',
+        `${pro}.clients.AddClientViewModelTest#test_F006_AC12_theFormIsOnlySentOnceWhileItIsPending`,
+        '@concurrency',
+      );
+      marked('maestro', 'profile', '@permission');
     });
 
     it('AC3: the lists in the checkout name tests that exist (the Quarantine job fails on one that does not)', () => {

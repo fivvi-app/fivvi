@@ -21,6 +21,7 @@ import app.fivvi.core.appLanguageParameters
 import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.core.quarantine.Isolation
+import app.fivvi.core.quarantine.Permission
 import app.fivvi.pro.capabilities.WorkspaceCapabilities
 import app.fivvi.pro.home.FakeWorkspacesApi
 import app.fivvi.pro.localizedString
@@ -99,6 +100,7 @@ class ClientsFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lan
     // A 403 on the save is about clients.manage: Bewerken goes and stays hidden even when the account read fails, and
     // clients.view stays listed (WorkspaceCapabilities: "a read that fails leaves the action hidden").
     @Test
+    @Permission
     fun test_F006_AC12_aRefusedSaveHidesOnlyManageAndKeepsViewWhenTheAccountReadFails() {
         val anna = clientOf("Anna de Vries", "anna@example.com")
         clients.clients += anna

@@ -1078,7 +1078,7 @@ jobs:
   # is NOT a required check and must never become one, runs exactly the listed tests, so their results stay visible and the
   # fix can show it works here. It passes when the lists are empty, and then does nothing but read them: no SDK, no emulator, no
   # web build. A failing listed test fails this job and no other. Like the other native test suites it does not run on a push to
-  # main. FIVVI_QUARANTINE=only selects the listed tests; the web part of the Quarantine job is the job `quarantine` (above).
+  # main. FIVVI_QUARANTINE=only selects the listed tests.
   quarantine-android:
     name: Quarantine (Android)
     # No native test suite runs on a push to main ("Android tests", "Android Maestro"): the lists are read on the other events.
