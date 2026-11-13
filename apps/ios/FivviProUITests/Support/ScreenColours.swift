@@ -88,28 +88,31 @@ struct ScreenColours {
         return RGB(red: Int(pixels[offset]), green: Int(pixels[offset + 1]), blue: Int(pixels[offset + 2]))
     }
 
+    /// Every device pixel in `rect` (points), left to right, top to bottom.
+    private func colours(in rect: CGRect) -> [RGB] {
+        var found: [RGB] = []
+        for top in stride(from: rect.minY, to: rect.maxY, by: 1 / scale) {
+            for left in stride(from: rect.minX, to: rect.maxX, by: 1 / scale) {
+                found.append(colour(at: CGPoint(x: left, y: top)))
+            }
+        }
+        return found
+    }
+
     /// The colour in `rect` that differs most from `background`: for text on a flat background, the text colour
     /// (anti-aliased edges are blends, the strokes' insides are the colour itself).
     func foreground(in rect: CGRect, on background: RGB) -> RGB {
-        var furthest = background
-        for top in stride(from: rect.minY, to: rect.maxY, by: 1 / scale) {
-            for left in stride(from: rect.minX, to: rect.maxX, by: 1 / scale) {
-                let colour = colour(at: CGPoint(x: left, y: top))
-                if colour.distance(to: background) > furthest.distance(to: background) { furthest = colour }
-            }
+        colours(in: rect).reduce(background) { furthest, colour in
+            colour.distance(to: background) > furthest.distance(to: background) ? colour : furthest
         }
-        return furthest
     }
 
     /// The colour that covers most of `rect`: for text, the background actually drawn behind it (the text strokes
     /// are a small part of the frame).
     func dominant(in rect: CGRect) -> RGB {
         var counts: [Int: Int] = [:]
-        for top in stride(from: rect.minY, to: rect.maxY, by: 1 / scale) {
-            for left in stride(from: rect.minX, to: rect.maxX, by: 1 / scale) {
-                let colour = colour(at: CGPoint(x: left, y: top))
-                counts[(colour.red << 16) | (colour.green << 8) | colour.blue, default: 0] += 1
-            }
+        for colour in colours(in: rect) {
+            counts[(colour.red << 16) | (colour.green << 8) | colour.blue, default: 0] += 1
         }
         let key = counts.max { $0.value < $1.value }?.key ?? 0
         return RGB(red: (key >> 16) & 255, green: (key >> 8) & 255, blue: key & 255)

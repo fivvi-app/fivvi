@@ -113,8 +113,9 @@ class SignInUITestCase: XCTestCase {
     /// element comes first, although each passes on the canvas and the card in `contrast-pairs.json`: it reads the pixels
     /// around the text; so the colour behind the text, measured as the most common colour of the frame, must be the
     /// canvas or the card, and the text one of those tokens' colours passing 4.5:1 on it), or the tonal pill's label
-    /// (`PillButtonKind.tonal`: the link text token on the tonal fill at 4.5:1 or more). Text on any other background
-    /// (the accent, a status colour, a tint) is never accepted, whatever its colour. The token text is accepted on iOS 26
+    /// (`PillButtonKind.tonal`: the link text token at 4.5:1 or more on the tonal fill, which must be what is drawn
+    /// behind the label). Text on any other background (the accent, a status colour, a tint) is never accepted,
+    /// whatever its colour. The token text is accepted on iOS 26
     /// only; iOS 27 does not misread it.
     func textPasses(
         _ element: XCUIElement, in colours: ScreenColours, style: UIUserInterfaceStyle, backgrounds: [RGB],
@@ -138,6 +139,7 @@ class SignInUITestCase: XCTestCase {
         guard element.elementType == .button else { return false }
         let fill = RGB(Tokens.Colors.actionTonalBg, in: style)
         let label = element.frame.insetBy(dx: element.frame.width * 0.2, dy: element.frame.height * 0.25)
+        guard colours.dominant(in: label).distance(to: fill) <= 8 else { return false }
         let text = colours.foreground(in: label, on: fill)
         return text.distance(to: RGB(Tokens.Colors.textLink, in: style)) <= 8 && text.contrast(with: fill) >= 4.5
     }

@@ -77,6 +77,19 @@ final class SignInAccessibilityUITests: SignInUITestCase {
             screen.settle(screen.sendCode)
             let colours = try ScreenColours(screen.app)
             let backgrounds = [RGB(Tokens.Colors.bgCanvas, in: style), RGB(Tokens.Colors.bgSurface, in: style)]
+            // The precondition: the pill is on screen, above the keyboard, enabled, and drawn in the accent fill, so
+            // the rejection below is the acceptance's and not a covered or missed frame.
+            let keyboard = screen.app.keyboards.firstMatch
+            XCTAssertTrue(screen.sendCode.isEnabled, "the primary pill is enabled, \(mode)")
+            XCTAssertTrue(
+                !keyboard.exists || screen.sendCode.frame.maxY <= keyboard.frame.minY,
+                "the primary pill is not under the keyboard, \(mode)"
+            )
+            let drawn = colours.dominant(in: screen.sendCode.frame.insetBy(dx: 1, dy: 1))
+            XCTAssertLessThanOrEqual(
+                drawn.distance(to: RGB(Tokens.Colors.actionPrimaryBg, in: style)), 8,
+                "the pill is drawn in the accent fill (\(drawn)), \(mode)"
+            )
             let passes = textPasses(
                 screen.sendCode, in: colours, style: style, backgrounds: backgrounds,
                 secondary: RGB(Tokens.Colors.textSecondary, in: style)
