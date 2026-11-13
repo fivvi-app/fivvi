@@ -421,11 +421,13 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     execFileSync('git', ['-C', repo(), ...args], { encoding: 'utf8', env: gitEnv() });
 
   let n = 0;
-  const check = (runs, args = ['--all'], setup = () => {}, extraEnv = {}) => {
+  const check = (runs, args = ['--all'], setup = () => {}, extraEnv = {}, timeout = undefined) => {
     const dir = join(base, `runs-${n++}`);
     mkdirSync(dir);
-    for (const [name, { lines, exit = 0 }] of Object.entries(runs)) {
-      write(join(dir, `${name}.log`), `${lines.join('\n')}\n`);
+    for (const [name, { lines, exit = 0, latin1 = false }] of Object.entries(runs)) {
+      // latin1: the log keeps a byte that is not UTF-8 (a \xff in the text of a failure).
+      const text = `${lines.join('\n')}\n`;
+      write(join(dir, `${name}.log`), latin1 ? Buffer.from(text, 'latin1') : text);
       write(join(dir, `${name}.exit`), `${exit}\n`);
     }
     rmSync(join(repo(), '.work'), { recursive: true, force: true });
@@ -433,6 +435,8 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     const result = spawnSync(join(repo(), 'scripts/check.sh'), args, {
       encoding: 'utf8',
       cwd: repo(),
+      timeout,
+      killSignal: 'SIGKILL',
       env: { ...gitEnv(), PATH: `${bin()}:${process.env.PATH}`, FAKE_RUNS: dir, ...extraEnv },
     });
     const file = join(repo(), '.work/check-summary.json');
@@ -801,6 +805,88 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       assert.doesNotMatch(result.stdout, /⚠️/);
       assert.equal(readFileSync(log(), 'utf8').trim(), 'pinned');
     });
+  });
+
+  it('E001 #1368 AC1/AC2: a failed check with a 20,000-line log is indented in linear time, under bash 3.2', (t) => {
+    // macOS /bin/bash is 3.2, whose ${var//$'\n'/...} is quadratic: 2,000 lines took 96 s and 8,000 never finished.
+    if (!existsSync('/bin/bash')) return t.skip('no /bin/bash');
+    const bash = join(base, 'bash-3');
+    mkdirSync(bash, { recursive: true });
+    if (!existsSync(join(bash, 'bash'))) symlinkSync('/bin/bash', join(bash, 'bash'));
+    const lines = Array.from({ length: 20000 }, (_, i) => `e2e line ${i}: ${'x'.repeat(30)}`);
+    // The 60 s timeout is the assert on time: the quadratic substitution never finished 8,000 lines.
+    const result = check(
+      { unit: unit(), integration, e2e: { lines, exit: 1 } },
+      ['--all'],
+      () => {},
+      { PATH: `${bash}:${bin()}:${process.env.PATH}` },
+      60_000,
+    );
+    assert.equal(result.status, 1);
+    const shown = result.stdout.split('\n');
+    assert.ok(
+      shown.includes('    e2e line 0: ' + 'x'.repeat(30)),
+      'the first line is indented by four spaces',
+    );
+    assert.ok(shown.includes('    e2e line 19999: ' + 'x'.repeat(30)), 'so is the last');
+  });
+
+  it('E001 #1368: a failed check whose log has a non-UTF-8 byte is still shown, and the summary is still printed (bash 3.2, UTF-8 locale)', (t) => {
+    // BSD sed in a UTF-8 locale fails on an illegal byte; under set -e and pipefail that ended check.sh with no output.
+    if (!existsSync('/bin/bash')) return t.skip('no /bin/bash');
+    const bash = join(base, 'bash-3');
+    mkdirSync(bash, { recursive: true });
+    if (!existsSync(join(bash, 'bash'))) symlinkSync('/bin/bash', join(bash, 'bash'));
+    const result = check(
+      {
+        unit: unit(),
+        integration,
+        e2e: {
+          // Shaped like turbo's: the failure line, the footer, and a line of the failed task with the byte.
+          lines: [
+            '@fivvi/web:test:e2e: e2e before',
+            '@fivvi/web#test:e2e:  ERROR  command (/x/web) pnpm run test:e2e exited (1)',
+            '',
+            ' Tasks:    0 successful, 1 total',
+            'Failed:    @fivvi/web#test:e2e',
+            '@fivvi/web:test:e2e: e2e bad byte: \xff here',
+            '@fivvi/web:test:e2e: e2e after',
+            '@fivvi/api:test: api failure output',
+            '@fivvi/api#test:  ERROR  command (/x/api) pnpm run test exited (1)',
+          ],
+          exit: 1,
+          latin1: true,
+        },
+      },
+      ['--all'],
+      () => {},
+      { PATH: `${bash}:${bin()}:${process.env.PATH}`, LC_ALL: 'en_US.UTF-8' },
+      60_000,
+    );
+    assert.equal(result.status, 1, result.stderr);
+    const shown = result.stdout.split('\n');
+    assert.ok(
+      shown.includes(
+        '    @fivvi/web#test:e2e:  ERROR  command (/x/web) pnpm run test:e2e exited (1)',
+      ),
+      'the failure line is shown, indented',
+    );
+    assert.ok(
+      shown.includes('    @fivvi/web:test:e2e: e2e before'),
+      'the lines before the byte are shown',
+    );
+    assert.ok(
+      shown.some((l) => l.startsWith('    @fivvi/web:test:e2e: e2e bad byte: ')),
+      'so is the line with the byte',
+    );
+    assert.ok(shown.includes('    @fivvi/web:test:e2e: e2e after'), 'so are the lines after it');
+    // sed stopping at the byte would drop the prefix of a task whose ERROR line comes after it.
+    assert.ok(
+      shown.includes('    @fivvi/api:test: api failure output'),
+      'so is the output of a second failed task',
+    );
+    assert.doesNotMatch(result.stderr, /illegal byte/, 'no tool complains about the byte');
+    assert.match(result.stdout, /^root +/m, 'the summary table is printed');
   });
 
   it('E002 #112 AC1: is git-ignored: the summary goes to .work/', () => {
