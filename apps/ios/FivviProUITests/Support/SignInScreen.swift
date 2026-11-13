@@ -49,10 +49,16 @@ struct SignInScreen {
         ))
     }
 
-    /// Types `text` into `field` once a tap has given it keyboard focus.
+    /// Types `text` into `field` once a tap has given it keyboard focus, and checks that all of it arrived
+    /// (`XCUIElement.enter`). The code field acts on its last digit, so what it holds afterwards says nothing: it
+    /// gets the typing alone.
     func type(_ text: String, into field: XCUIElement) {
-        field.focus()
-        field.typeText(text)
+        if field.identifier == "signIn.code" {
+            field.focus()
+            field.typeText(text)
+        } else {
+            field.enter(text)
+        }
     }
 
     /// Gets from TM-01 to the code step: types the address and asks for the code.
