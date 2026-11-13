@@ -95,28 +95,31 @@ final class ProfileEditUITests: SignInUITestCase {
         let input = app.textFields["profile.nameInput"]
         XCTAssertTrue(input.waitUntilExists(timeout: timeout))
 
+        // The field shows the message under it (E020 AC14); VoiceOver reads it once, after the field's label.
+        let label = catalog["myProfile.nameLabel"]
+        func labelled(_ message: String) -> String { "\(label), \(message)" }
         type("   ", replacing: input)
         app.buttons["profile.nameSave"].tap()
-        let error = app.staticTexts["profile.nameError"]
-        XCTAssertTrue(error.waitUntilExists(timeout: timeout))
-        XCTAssertEqual(error.label, catalog["myProfile.errors.nameRequired"])
+        XCTAssertTrue(Polling.until(timeout: timeout, interval: 0.2) {
+            input.label == labelled(catalog["myProfile.errors.nameRequired"])
+        })
         XCTAssertEqual(value(input), "   ", "what was typed stays")
 
         type(String(repeating: "x", count: 81), replacing: input)
         app.buttons["profile.nameSave"].tap()
         XCTAssertTrue(Polling.until(timeout: timeout, interval: 0.2) {
-            error.exists && error.label == catalog["myProfile.errors.nameTooLong"]
+            input.exists && input.label == labelled(catalog["myProfile.errors.nameTooLong"])
         })
 
         server.setOffline(true)
         app.buttons["profile.nameSave"].tap()
         XCTAssertTrue(Polling.until(timeout: timeout, interval: 0.2) {
-            error.exists && error.label == catalog["myProfile.errors.noConnection"]
+            input.exists && input.label == labelled(catalog["myProfile.errors.noConnection"])
         })
         server.setOffline(false)
 
         type("Sarah Bakker", replacing: input)
-        XCTAssertFalse(error.exists, "typing clears the message")
+        XCTAssertEqual(input.label, label, "typing clears the message")
         app.buttons["profile.nameSave"].tap()
         XCTAssertTrue(Polling.until(timeout: timeout, interval: 0.2) { app.buttons["profile.name"].exists })
         XCTAssertEqual(app.buttons["profile.name"].label, "Sarah Bakker")
