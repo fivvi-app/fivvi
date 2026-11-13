@@ -1,5 +1,5 @@
 import { Button, Link, Text } from 'react-email';
-import { textStyle } from '../components/layout.tsx';
+import { buttonStyle, linkStyle, textStyle } from '../components/layout.tsx';
 import type { EmailTemplate } from '../render.tsx';
 
 export interface SignInEmailProps {
@@ -18,16 +18,6 @@ const codeStyle = {
   fontWeight: 700,
   letterSpacing: '6px',
   lineHeight: '40px',
-} as const;
-
-const buttonStyle = {
-  backgroundColor: '#18181b',
-  borderRadius: '6px',
-  color: '#ffffff',
-  display: 'inline-block',
-  fontSize: '16px',
-  padding: '12px 20px',
-  textDecoration: 'none',
 } as const;
 
 const urlStyle = {
@@ -55,7 +45,9 @@ export const signInEmail: EmailTemplate<SignInEmailProps> = {
         {ctx.t('email.signIn.linkButton')}
       </Button>
       <Text style={urlStyle}>
-        <Link href={url}>{url}</Link>
+        <Link style={linkStyle} href={url}>
+          {url}
+        </Link>
       </Text>
       <Text style={textStyle}>{ctx.t('email.signIn.validity', { minutes: expiresInMinutes })}</Text>
       <Text style={textStyle}>{ctx.t('email.signIn.ignore')}</Text>

@@ -1,3 +1,4 @@
+import { emailColours } from '@fivvi/design-tokens/email-colours';
 import { type Locale, locales, messages } from '@fivvi/i18n';
 import { describe, expect, it } from 'vitest';
 import { templates } from '../catalog.ts';
@@ -123,5 +124,88 @@ describe('E006 hello template', () => {
         expect(html, `${locale} ${key}`).toContain(fixed);
       }
     }
+  });
+});
+
+// E020 AC16 (spec #590): the emails read their colours from the generated tokens.
+describe('E020 AC16: the button uses the accent', () => {
+  const zinc = ['#18181b', '#f4f4f5', '#e4e4e7', '#71717a', '#27272a', '#fafafa'];
+  const channel = (hex: string, at: number) => {
+    const c = Number.parseInt(hex.slice(at, at + 2), 16) / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  const luminance = (hex: string) =>
+    0.2126 * channel(hex, 1) + 0.7152 * channel(hex, 3) + 0.0722 * channel(hex, 5);
+  const contrast = (a: string, b: string) => {
+    const [lighter = 0, darker = 0] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (lighter + 0.05) / (darker + 0.05);
+  };
+  /** The inline style of every element that has one, as property maps. */
+  const styles = (html: string) =>
+    [...html.matchAll(/<(\w+)[^>]*?\sstyle="([^"]*)"/g)].map(([, tag, style]) => ({
+      tag: tag ?? '',
+      props: new Map(
+        (style ?? '').split(';').flatMap((declaration) => {
+          const [name, ...value] = declaration.split(':');
+          return name ? [[name.trim(), value.join(':').trim().toLowerCase()] as const] : [];
+        }),
+      ),
+    }));
+
+  const cases = all.flatMap((template) => locales.map((locale) => [template.id, locale] as const));
+
+  it.each(cases)(
+    '%s in %s: no zinc, and every colour is a token of the email',
+    async (id, locale) => {
+      const template = all.find((t) => t.id === id) as EmailTemplate<unknown>;
+      const { html } = await renderEmail(template, template.previewProps, { locale });
+      const allowed = new Set<string>(Object.values(emailColours));
+      for (const hex of zinc) expect(html.toLowerCase(), hex).not.toContain(hex);
+      for (const { props } of styles(html)) {
+        for (const name of ['color', 'background-color', 'border-color']) {
+          const value = props.get(name);
+          if (value) expect(allowed, `${id} ${name}: ${value}`).toContain(value);
+        }
+      }
+    },
+  );
+
+  it.each(cases)(
+    '%s in %s: the button is the accent, with the on-accent label',
+    async (id, locale) => {
+      const template = all.find((t) => t.id === id) as EmailTemplate<unknown>;
+      const { html } = await renderEmail(template, template.previewProps, { locale });
+      const buttons = styles(html).filter(
+        ({ props }) => props.get('display') === 'inline-block' && props.has('background-color'),
+      );
+      for (const { props } of buttons) {
+        expect(props.get('background-color')).toBe(emailColours.accent);
+        expect(props.get('color')).toBe(emailColours.onAccent);
+      }
+    },
+  );
+
+  it('sign-in and the trainer invitation have a button, so the check above is not empty', async () => {
+    for (const id of ['sign-in', 'trainer-invitation']) {
+      const template = all.find((t) => t.id === id) as EmailTemplate<unknown>;
+      const { html } = await renderEmail(template, template.previewProps, { locale: 'nl-NL' });
+      expect(html.toLowerCase()).toContain(`background-color:${emailColours.accent}`);
+    }
+  });
+
+  it.each(cases)('%s in %s: the rendered colours pass the contrast rule', async (id, locale) => {
+    const template = all.find((t) => t.id === id) as EmailTemplate<unknown>;
+    const { html } = await renderEmail(template, template.previewProps, { locale });
+    for (const { props } of styles(html)) {
+      const foreground = props.get('color');
+      if (!foreground) continue;
+      // Text on its own fill is checked against it; other text sits on the card.
+      const background = props.get('background-color') ?? emailColours.surface;
+      expect(
+        contrast(foreground, background),
+        `${id}: ${foreground} on ${background}`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(contrast(emailColours.text, emailColours.canvas)).toBeGreaterThanOrEqual(4.5);
   });
 });
