@@ -246,7 +246,8 @@
       "intro": "A private session has been planned for you at {workspace}.",
       "when": "When: {date}, {start} to {end}",
       "where": "Where: {location}",
-      "trainer": "Trainer: {trainer}"
+      "trainer": "Trainer: {trainer}",
+      "togetherWith": "Together with: {name}"
     },
     "privateSessionMoved": {
       "subject": "Change: your session has moved to {newDate}",

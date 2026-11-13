@@ -287,11 +287,14 @@ export {
   type PersonalSessionTimes,
 } from './scheduling/personal-day.ts';
 export {
+  clientFirstName,
   confirmationLanguage,
+  isDuoSession,
   type PlanPrivateSessionDecision,
   type PlanPrivateSessionFacts,
   type PlanPrivateSessionRefusal,
   PRIVATE_SESSION_DURATIONS,
+  PRIVATE_SESSION_MAX_CLIENTS,
   planPrivateSession,
   type ReschedulePrivateSessionDecision,
   type ReschedulePrivateSessionFacts,

@@ -15,8 +15,28 @@ import { wallClockToInstant } from './zoned-time.ts';
 /** The durations of a private session: minutes, in steps (PS-01: chips 45, 60, 90 or another value). */
 export const PRIVATE_SESSION_DURATIONS = { min: 15, max: 240, step: 5 } as const;
 
-/** A private session has one place: the client's. */
-const PRIVATE_SESSION_CAPACITY = 1;
+/**
+ * A private session has one place, the client's, or two when it is a duo (F066, spec #586): a
+ * trainer and two clients. Never more.
+ */
+export const PRIVATE_SESSION_MAX_CLIENTS = 2;
+
+/**
+ * The first name of a client, the only part of another client's name a duo's emails and a client's
+ * own views show (F066, AC1, AC10): the first word of the name as the record has it. `Anna de
+ * Vries` is `Anna`; a name of one word is that word.
+ */
+export function clientFirstName(name: string): string {
+  return name.trim().split(/\s+/)[0] ?? '';
+}
+
+/**
+ * Whether a session is a duo: it has two active participants (not cancelled). Nothing stores a
+ * separate type, so every filter, count and rule of a private session keeps working (F066).
+ */
+export function isDuoSession(activeParticipants: number): boolean {
+  return activeParticipants === PRIVATE_SESSION_MAX_CLIENTS;
+}
 
 const MINUTE_MS = 60_000;
 
@@ -39,6 +59,12 @@ export interface PlanPrivateSessionFacts {
   readonly now: Date;
   /** The workspace's locations: the session takes the default one (F016). */
   readonly locations: readonly { readonly id: string; readonly isDefault: boolean }[];
+  /**
+   * The clients of the session, the first and then the second of a duo (F066). Left out for the
+   * one-client session of F020 (the caller stores its client itself). A duo has exactly two
+   * different clients.
+   */
+  readonly clientIds?: readonly string[];
 }
 
 export type PlanPrivateSessionRefusal =
@@ -46,6 +72,8 @@ export type PlanPrivateSessionRefusal =
   | 'not-allowed'
   /** The team member named as trainer does not train in the workspace. */
   | 'unknown-trainer'
+  /** The clients are none, more than two, or the same one twice (F066: a duo is two different clients). */
+  | 'invalid-clients'
   | 'invalid-duration'
   /** The date is no calendar date. */
   | 'invalid-date'
@@ -127,6 +155,9 @@ function placeInTime(input: {
  *
  * A past start is allowed (a trainer enters a session afterwards); it is reported, so the caller
  * can warn and skip the confirmation email.
+ *
+ * With `clientIds` of two, the session is a duo (F066): its capacity is 2, and the same client
+ * twice (or a third) is refused as `invalid-clients`, after the right and the trainer.
  */
 export function planPrivateSession(facts: PlanPrivateSessionFacts): PlanPrivateSessionDecision {
   const { actor } = facts;
@@ -138,6 +169,15 @@ export function planPrivateSession(facts: PlanPrivateSessionFacts): PlanPrivateS
     return { outcome: 'refused', reason: 'not-allowed' };
   }
   if (!facts.trainerTrains) return { outcome: 'refused', reason: 'unknown-trainer' };
+  const clientIds = facts.clientIds ?? [];
+  if (
+    facts.clientIds !== undefined &&
+    (clientIds.length < 1 ||
+      clientIds.length > PRIVATE_SESSION_MAX_CLIENTS ||
+      new Set(clientIds).size !== clientIds.length)
+  ) {
+    return { outcome: 'refused', reason: 'invalid-clients' };
+  }
   const placed = placeInTime(facts);
   if (placed.outcome === 'refused') return placed;
   return {
@@ -146,7 +186,7 @@ export function planPrivateSession(facts: PlanPrivateSessionFacts): PlanPrivateS
     locationId: defaultLocation({ locations: facts.locations }).id,
     startsAt: placed.startsAt,
     endsAt: placed.endsAt,
-    capacity: PRIVATE_SESSION_CAPACITY,
+    capacity: Math.max(clientIds.length, 1),
     past: placed.past,
     repeatedStart: placed.repeatedStart,
   };
@@ -174,7 +214,7 @@ export interface ReschedulePrivateSessionFacts {
 }
 
 export type ReschedulePrivateSessionRefusal =
-  | Exclude<PlanPrivateSessionRefusal, 'unknown-trainer'>
+  | Exclude<PlanPrivateSessionRefusal, 'unknown-trainer' | 'invalid-clients'>
   /** The session was cancelled (F026): a cancelled session stays as it is. */
   | 'not-scheduled'
   /** Someone changed the session after the version the person saw (AC8). */

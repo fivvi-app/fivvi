@@ -595,7 +595,7 @@ export interface paths {
         put?: never;
         /**
          * Plan a private session
-         * @description Plans a private session for a client with a trainer (an Owner for any trainer of the workspace, a Trainer for themself; another trainer answers `403`) at the workspace’s default location. The date and start are wall-clock time in the workspace’s time zone; the session is stored and answered as UTC instants plus that zone. A past session is saved (`past`). A client or trainer that is not in the workspace (or a trainer who does not train) answers `404`; an invalid duration, date or time, or a start the clocks skip answers `400` with the field in `issues`. When `notify` is on and the session is not in the past, EM-11 goes to the client after the session is committed, in the client’s email language, else the workspace’s default.
+         * @description Plans a private session for a client, or a duo session for two clients (`secondClientId`, F066), with a trainer (an Owner for any trainer of the workspace, a Trainer for themself; another trainer answers `403`) at the workspace’s default location. The date and start are wall-clock time in the workspace’s time zone; the session is stored and answered as UTC instants plus that zone. A past session is saved (`past`). A client or trainer that is not in the workspace (or a trainer who does not train) answers `404`; an invalid duration, date or time, or a start the clocks skip answers `400` with the field in `issues`. When `notify` is on and the session is not in the past, EM-11 goes to the client after the session is committed, in the client’s email language, else the workspace’s default; for a duo, to each client in their own language, naming the other by first name only. The same client twice answers `400` on `secondClientId`; a second client that is not in the workspace answers `404`. Only a team member plans a duo: no client route plans, books or joins one.
          */
         post: operations["createPrivateSession"];
         delete?: never;
@@ -1082,8 +1082,10 @@ export interface components {
             /** @description The class name in the viewer’s language, for a group class: the English name for a viewer whose language is English and a class that has one, else the Dutch name (`pickContentLanguage`). The language is the account’s stored language, else the first supported one of `Accept-Language`, else English (ADR-017). Left out for a private session and Open Gym. */
             className?: string;
             location?: components["schemas"]["Location"];
-            /** @description The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail. */
+            /** @description The client’s display name, for a private session; left out for the other kinds. It is the name in the workspace’s client record and holds no contact detail. A duo (F066) reads as one session: the two names joined with ` & `, as in *Lisa Bakker & Eva Kok*; `clients` has them apart. */
             clientName?: string;
+            /** @description The clients of a private session, in the order they were added: one, or two for a duo (F066, a session with two clients who have not cancelled). A client who cancelled is left out, so a duo that lost one reads as the one-client session it has become; a cancelled session keeps its clients. Left out for the other kinds. The session counts once in `summary` and in every list, whatever it holds. */
+            clients?: components["schemas"]["PersonalSessionClient"][];
         };
         /** @description The workspace an item of the personal view is in. */
         PersonalWorkspace: {
@@ -1127,6 +1129,16 @@ export interface components {
             street: string;
             city: string;
         } | null;
+        /** @description A client in a private session of the day. */
+        PersonalSessionClient: {
+            /**
+             * Format: uuid
+             * @description The client ID.
+             */
+            clientId: string;
+            /** @description The client’s display name. */
+            name: string;
+        };
         /** @description *4 sessies · 09:00–19:00*, and how many of them are done. */
         MyDaySummary: {
             /** @description The items of the day, cancelled ones counted. */
@@ -1508,14 +1520,14 @@ export interface components {
             endsAt: string;
             /** @description The workspace’s IANA time zone, e.g. `Europe/Amsterdam`: the instants are shown in it (ADR-012). */
             timeZone: string;
-            /** @description 1 for a private session; the date’s own capacity for a class date. */
+            /** @description 1 for a private session, 2 for a duo (F066); the date’s own capacity for a class date. */
             capacity: number;
             /** @description Raised by every change; a change says the version it read. Starts at 1. */
             version: number;
             location: components["schemas"]["Location"];
             trainer?: components["schemas"]["SessionTrainer"];
             groupClass?: components["schemas"]["SessionGroupClass"];
-            /** @description The clients in the session, in the order they were added. One for a private session; none for a class date until bookings exist (M5). */
+            /** @description The clients in the session, in the order they were added. One for a private session, two for a duo (F066: a session with two clients who have not cancelled); none for a class date until bookings exist (M5). */
             participants: components["schemas"]["SessionParticipant"][];
         };
         /** @description Left out when the session has no trainer (the trainer’s profile ended). */
@@ -1555,13 +1567,18 @@ export interface components {
              */
             attendanceStatus: "booked" | "attended" | "cancelled" | "no_show";
         };
-        /** @description A private session to plan: one client, one trainer, a local date, start and length. */
+        /** @description A private session to plan: one client, or two for a duo, one trainer, a local date, start and length. */
         PlanPrivateSessionRequest: {
             /**
              * Format: uuid
              * @description The client of the workspace the session is for.
              */
             clientId: string;
+            /**
+             * Format: uuid
+             * @description The second client of a duo session (F066): another client of the workspace, never the same as `clientId` (`400` on `secondClientId` with the code `same_client`). Leave it out for a one-client session. The session is stored once, as a private session with two participants and a capacity of 2, and each client gets EM-11 in their own language, naming the other by first name only.
+             */
+            secondClientId?: string;
             /**
              * Format: uuid
              * @description The trainer’s team-member ID, from `GET …/trainers`. Leave it out to plan for yourself (the caller must train in the workspace). An Owner may plan for any trainer of the workspace, a Trainer only for themself (`403` otherwise).
@@ -1573,7 +1590,7 @@ export interface components {
             localStart: string;
             /** @description The length in minutes: 15 to 240 in steps of 5. Any other value answers `400` on `durationMinutes`. */
             durationMinutes: number;
-            /** @description Whether to email the client the confirmation (EM-11). Not sent for a session that starts in the past, whatever this says. */
+            /** @description Whether to email the client the confirmation (EM-11), each client of a duo their own. Not sent for a session that starts in the past, whatever this says. */
             notify: boolean;
             /**
              * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.

@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { and, eq } from 'drizzle-orm';
+import { and, eq, sql } from 'drizzle-orm';
 import type { DatabaseExecutor } from '../client.ts';
 import { FIXTURE_INVITATION_VALIDITY_MS } from '../invitation-validity.ts';
 import {
@@ -279,6 +279,8 @@ export async function addSession(
   options: {
     workspaceId: string;
     clientId?: string;
+    /** A second client makes it a duo (F066): capacity 2 and a second participant, `booked`. */
+    secondClientId?: string;
     participant?: boolean;
     trainerProfileId?: string | null;
     createdByTeamMemberId?: string | null;
@@ -326,7 +328,9 @@ export async function addSession(
         groupClassId,
         startsAt,
         endsAt,
-        capacity: options.capacity ?? (type === 'private' ? 1 : 10),
+        capacity:
+          options.capacity ??
+          (type === 'private' ? (options.secondClientId === undefined ? 1 : 2) : 10),
         createdByTeamMemberId: options.createdByTeamMemberId ?? null,
         updatedByTeamMemberId:
           options.updatedByTeamMemberId ?? options.createdByTeamMemberId ?? null,
@@ -341,6 +345,15 @@ export async function addSession(
       sessionId: session.id,
       clientId: options.clientId ?? (await addClient(db, { workspaceId: options.workspaceId })).id,
     });
+    if (options.secondClientId !== undefined) {
+      await db.insert(sessionParticipants).values({
+        organizationId: options.workspaceId,
+        sessionId: session.id,
+        clientId: options.secondClientId,
+        // After the first, also inside one transaction (where `now()` does not move).
+        createdAt: sql`clock_timestamp()`,
+      });
+    }
   }
   return { id: session.id, startsAt, endsAt, locationId };
 }

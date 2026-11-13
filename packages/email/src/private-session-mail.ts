@@ -26,12 +26,17 @@ export interface PrivateSessionMail {
   /** The trainer's name as the account has it; `null` when the account has none (the line is left out). */
   trainerName: string | null;
   /**
+   * The other client of a duo (F066), by first name only: never a surname, an email address or any
+   * other detail. Left out for a one-client session.
+   */
+  togetherWith?: string;
+  /**
    * Where the session was before, when the mail says it moved (EM-04, a reschedule); `startsAt` and
    * `endsAt` are then the new time. Left out for a new session (EM-11).
    */
   previous?: { startsAt: Date; endsAt: Date };
   /**
-   * The event behind the mail, `{sessionId}:{version}`: one per session and version, so the same
+   * The event behind the mail, `{sessionId}:{version}`, with `:{clientId}` added for the client of a duo: one per session, version and client, so the same
    * send repeated reaches the provider with one idempotency key and goes out once (F049).
    */
   event: string;

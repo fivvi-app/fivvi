@@ -246,7 +246,8 @@
       "intro": "Er is een privésessie voor je gepland bij {workspace}.",
       "when": "Wanneer: {date}, {start} tot {end}",
       "where": "Waar: {location}",
-      "trainer": "Trainer: {trainer}"
+      "trainer": "Trainer: {trainer}",
+      "togetherWith": "Samen met: {name}"
     },
     "privateSessionMoved": {
       "subject": "Wijziging: je sessie is verplaatst naar {newDate}",
