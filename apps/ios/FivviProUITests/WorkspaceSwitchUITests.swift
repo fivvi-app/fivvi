@@ -37,6 +37,23 @@ final class WorkspaceSwitchUITests: SignInUITestCase {
         return Polling.until(timeout: timeout, interval: 0.3) { element.exists && element.label == name }
     }
 
+    /// Chooses the workspace of `row` (one of the buttons of *Mijn werkruimtes*) and returns whether the home shows
+    /// `name` for it. The row is let to come to rest first, and a tap that had no effect is done again: the profile
+    /// has just loaded and drawn its rows, and on a slow simulator the press lands while they still settle and the
+    /// tap is dropped, the way the row was seen pressed and the screen did not change (#1305; the same as #596 for the
+    /// buttons that open a screen). A second choice of the same workspace changes nothing.
+    private func switchWorkspace(
+        _ row: String, to name: String, in screen: SignInScreen, file: StaticString = #filePath, line: UInt = #line
+    ) -> Bool {
+        let button = screen.app.buttons[row]
+        XCTAssertTrue(button.waitUntilExists(timeout: timeout), "\(row) is not on screen", file: file, line: line)
+        screen.settle(button)
+        let shown = screen.app.staticTexts.matching(
+            NSPredicate(format: "identifier == 'home.workspaceName' AND label == %@", name)
+        ).firstMatch
+        return button.tap(until: shown, timeout: timeout)
+    }
+
     /// The clients on screen, found by the name a row starts with.
     private func clientRow(_ name: String, in app: XCUIApplication) -> XCUIElement {
         app.buttons.matching(
@@ -53,7 +70,7 @@ final class WorkspaceSwitchUITests: SignInUITestCase {
         XCTAssertFalse(try app.buttons[own].hasTrait(.selected))
         try assertTouchTarget(app.buttons[own], on: screen)
 
-        app.buttons[own].tap()
+        XCTAssertTrue(switchWorkspace(own, to: "Sarah Personal Training", in: screen))
 
         // Back on the first tab, whose header shows the workspace, and *Klanten* holds only its clients.
         XCTAssertTrue(waitForWorkspace("Sarah Personal Training", in: screen))
@@ -75,11 +92,11 @@ final class WorkspaceSwitchUITests: SignInUITestCase {
         let (screen, _) = try launchAsSarah()
         let app = screen.app
         openProfile(screen)
-        app.buttons[own].tap()
+        XCTAssertTrue(switchWorkspace(own, to: "Sarah Personal Training", in: screen))
         XCTAssertTrue(waitForWorkspace("Sarah Personal Training", in: screen))
         openProfile(screen)
 
-        app.buttons[johns].tap()
+        XCTAssertTrue(switchWorkspace(johns, to: "John's Gym", in: screen))
 
         XCTAssertTrue(waitForWorkspace("John's Gym", in: screen))
         XCTAssertTrue(app.buttons["home.openClients"].tap(until: clientRow("Anna de Vries", in: app), timeout: timeout))
@@ -103,7 +120,7 @@ final class WorkspaceSwitchUITests: SignInUITestCase {
     func test_F012_AC7_appOpensLastWorkspace() throws {
         let (screen, server) = try launchAsSarah()
         openProfile(screen)
-        screen.app.buttons[own].tap()
+        XCTAssertTrue(switchWorkspace(own, to: "Sarah Personal Training", in: screen))
         XCTAssertTrue(waitForWorkspace("Sarah Personal Training", in: screen))
         screen.app.terminate()
 
@@ -115,7 +132,7 @@ final class WorkspaceSwitchUITests: SignInUITestCase {
     func test_F012_AC7_theLastWorkspaceSurvivesASignOutAndSignIn() throws {
         let (screen, server) = try launchAsSarah()
         openProfile(screen)
-        screen.app.buttons[own].tap()
+        XCTAssertTrue(switchWorkspace(own, to: "Sarah Personal Training", in: screen))
         XCTAssertTrue(waitForWorkspace("Sarah Personal Training", in: screen))
 
         screen.signOut.tap()
@@ -128,7 +145,7 @@ final class WorkspaceSwitchUITests: SignInUITestCase {
     func test_F012_AC5_aRememberedWorkspaceTheTeamLostFallsBackWithoutAnError() throws {
         let (screen, server) = try launchAsSarah()
         openProfile(screen)
-        screen.app.buttons[own].tap()
+        XCTAssertTrue(switchWorkspace(own, to: "Sarah Personal Training", in: screen))
         XCTAssertTrue(waitForWorkspace("Sarah Personal Training", in: screen))
         screen.app.terminate()
 
@@ -144,7 +161,7 @@ final class WorkspaceSwitchUITests: SignInUITestCase {
         let catalog = TestCatalog.configured
         let (screen, server) = try launchAsSarah()
         openProfile(screen)
-        screen.app.buttons[own].tap()
+        XCTAssertTrue(switchWorkspace(own, to: "Sarah Personal Training", in: screen))
         XCTAssertTrue(waitForWorkspace("Sarah Personal Training", in: screen))
         screen.app.terminate()
 
@@ -166,7 +183,7 @@ final class WorkspaceSwitchUITests: SignInUITestCase {
         XCTAssertEqual(open.label, catalog["profile.title"])
         XCTAssertTrue(open.tap(until: app.buttons[own], timeout: timeout))
 
-        app.buttons[own].tap()
+        XCTAssertTrue(switchWorkspace(own, to: "Sarah Personal Training", in: screen))
 
         XCTAssertTrue(waitForWorkspace("Sarah Personal Training", in: screen))
         XCTAssertEqual(open.label, catalog["profile.title"], "the language is personal, not the workspace's")
@@ -188,7 +205,7 @@ final class WorkspaceSwitchUITests: SignInUITestCase {
         XCTAssertEqual(app.staticTexts["profile.workspaceRole.workspace-1"].label, catalog["roles.owner"])
 
         // The new-client action follows the role of the workspace on screen: both roles may manage clients.
-        app.buttons[own].tap()
+        XCTAssertTrue(switchWorkspace(own, to: "Sarah Personal Training", in: screen))
         XCTAssertTrue(waitForWorkspace("Sarah Personal Training", in: screen))
         XCTAssertTrue(app.buttons["home.openClients"].tap(until: app.buttons["clients.add"], timeout: timeout))
     }
