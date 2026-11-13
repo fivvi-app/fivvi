@@ -47,7 +47,7 @@ describe('E002 #1361 Playwright and the quarantine list', { timeout: 120_000 }, 
   let all: string[];
   beforeAll(() => {
     all = list([]);
-  });
+  }, 120_000);
   afterAll(() => {
     all = [];
   });

@@ -350,6 +350,8 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
           !['Detect changes', 'Checks (Linux)', 'E2E (Linux)', 'iOS', 'Android'].includes(name),
       ),
       [
+        // Not required, and never to be: the listed flaky tests run here (E002 #1361, TESTING.md §8).
+        'Quarantine',
         'iOS build',
         'iOS build (retry)',
         'iOS tests (${{ matrix.locale }})',
