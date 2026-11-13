@@ -15,7 +15,7 @@ import { vitestTestNamePattern } from '../../../scripts/quarantine.mjs';
  * Both presets read the quarantine list `quarantine/vitest.txt` (ADR-025, TESTING.md §8; scripts/quarantine.mjs): a listed
  * test is left out, which is what the required CI jobs and every local run do, and with `FIVVI_QUARANTINE=only` (the
  * `Quarantine` job) exactly the listed tests run. A test is named by its full name, the titles of its describe blocks and
- * its own joined by a space. The list is empty unless a flaky test is in quarantine; turbo takes it as an input of the
+ * its own joined by ` > `. The list is empty unless a flaky test is in quarantine; turbo takes it as an input of the
  * test tasks (turbo.json).
  */
 

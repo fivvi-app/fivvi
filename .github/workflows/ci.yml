@@ -346,13 +346,19 @@ jobs:
   # Quarantine (E002 #1361, ADR-025 amendment of 12 November 2026, TESTING.md §8). A flaky test on a quarantine list
   # (quarantine/vitest.txt, quarantine/playwright.txt) is left out of "Checks (Linux)" and "E2E (Linux)" (the shared Vitest
   # preset and apps/web/playwright.config.ts read the list), and this job, which is NOT a required check and must never become
-  # one, runs exactly the listed tests on every run, so their results stay visible and the fix can show it works here. It
-  # passes when the lists are empty, and then does nothing but read them: no install, no Postgres use, no browser. A failing
-  # listed test fails this job and no other; on a push to main the job cannot fail the run, as every job (above).
-  # scripts/quarantine.mjs --count says which runner has entries; FIVVI_QUARANTINE=only selects the listed tests.
+  # one, runs exactly the listed tests on every run, so their results stay visible and the fix can show it works here.
+  # THIS JOB NEVER FAILS. A red check holds back the merge gate (scripts/merge-gate.jq counts any check that is not a
+  # success), `pr.sh ready`, the failing count of `flow.sh` and the Railway preview, which waits on every check suite
+  # (.railway/railway.ts), and the quarantine exists to unblock exactly those. So a listed test that fails, or a step that
+  # cannot run it, ends as a `::warning` annotation and a line in the job summary (the last step), with the job green.
+  # Every step that can fail has `continue-on-error: true` on every event, and each test step runs whatever happened to
+  # the other one (`!cancelled()`). Only a cancelled run is cancelled. It passes when the lists are empty, and then does
+  # nothing but read them: no install, no Postgres use, no browser. scripts/quarantine.mjs --count says which runner has
+  # entries; FIVVI_QUARANTINE=only selects the listed tests.
   quarantine:
     name: Quarantine
     runs-on: ubuntu-24.04
+    # Never fails, on any event; the push-run rules (ADR-018) hold as for every job.
     continue-on-error: ${{ github.event_name == 'push' }}
     # The work only: install 5 + Vitest 12 + build 8 + Chromium 5 + its OS packages 10 + e2e 14 make 54 on a push, with about
     # 3 minutes outside the steps. Nothing waits for this job, so no chain of timeouts (ADR-018) includes it.
@@ -390,43 +396,53 @@ jobs:
             echo "playwright=$playwright"
             if [[ "$vitest" != '0' || "$playwright" != '0' ]]; then echo 'any=true'; else echo 'any=false'; fi
           } >>"$GITHUB_OUTPUT"
-          {
-            echo '### Quarantine'
-            echo "- Vitest: $vitest listed test(s)"
-            echo "- Playwright: $playwright listed test(s)"
-            if [[ "$vitest" == '0' && "$playwright" == '0' ]]; then echo 'Nothing is quarantined: nothing to run.'; fi
-          } >>"${GITHUB_STEP_SUMMARY:-/dev/null}"
+          if [[ "$vitest" == '0' && "$playwright" == '0' ]]; then
+            {
+              echo '### Quarantine'
+              echo 'Nothing is quarantined: the lists of Vitest and Playwright are empty, so there is nothing to run.'
+            } >>"${GITHUB_STEP_SUMMARY:-/dev/null}"
+          fi
 
       - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
         if: steps.lists.outputs.any == 'true'
+        continue-on-error: true
 
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         if: steps.lists.outputs.any == 'true'
+        continue-on-error: true
         with:
           node-version-file: .nvmrc
           cache: pnpm
 
       - name: Install dependencies
+        id: install
         if: steps.lists.outputs.any == 'true'
         timeout-minutes: ${{ github.event_name == 'push' && 5 || 360 }}
+        continue-on-error: true
         run: pnpm install --frozen-lockfile
 
       # Every package's unit and integration tests, each with the preset that reads the list. The two runs and every
-      # package run to the end, so the job reports every listed test that fails.
+      # package run to the end, so the job reports every listed test that fails; the log is read by the last step.
       - name: Vitest, the listed tests only
-        if: steps.lists.outputs.vitest != '0'
+        id: vitest
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.lists.outputs.vitest != '0' }}
         timeout-minutes: ${{ github.event_name == 'push' && 12 || 360 }}
+        continue-on-error: true
+        shell: bash
         env:
           FIVVI_QUARANTINE: only
         run: |
-          status=0
-          pnpm -r --no-bail --if-present run test || status=1
-          pnpm -r --no-bail --if-present run test:integration || status=1
-          exit "$status"
+          {
+            status=0
+            pnpm -r --no-bail --if-present run test || status=1
+            pnpm -r --no-bail --if-present run test:integration || status=1
+            exit "$status"
+          } 2>&1 | tee "$RUNNER_TEMP/quarantine-vitest.log"
 
       # Restore only, as E2E (Linux) does: that job and Checks (Linux) save the caches.
       - name: Restore turbo cache
-        if: steps.lists.outputs.playwright != '0'
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.lists.outputs.playwright != '0' }}
+        continue-on-error: true
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: |
@@ -437,45 +453,56 @@ jobs:
 
       - name: Read Playwright version
         id: playwright
-        if: steps.lists.outputs.playwright != '0'
+        if: ${{ !cancelled() && steps.install.outcome == 'success' && steps.lists.outputs.playwright != '0' }}
+        continue-on-error: true
         run: echo "version=$(pnpm --filter @fivvi/web exec playwright --version | awk '{print $2}')" >>"$GITHUB_OUTPUT"
 
       - name: Restore Playwright browsers
         id: playwright-cache
-        if: steps.lists.outputs.playwright != '0'
+        if: ${{ !cancelled() && steps.playwright.outcome == 'success' }}
+        continue-on-error: true
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.cache/ms-playwright
           key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}
 
       - name: Install Chromium
-        if: steps.lists.outputs.playwright != '0' && steps.playwright-cache.outputs.cache-hit != 'true'
+        id: chromium
+        if: ${{ !cancelled() && steps.playwright.outcome == 'success' && steps.playwright-cache.outputs.cache-hit != 'true' }}
         timeout-minutes: ${{ github.event_name == 'push' && 5 || 360 }}
+        continue-on-error: true
         run: pnpm --filter @fivvi/web exec playwright install --only-shell chromium
 
       - name: Install Chromium's OS packages
-        if: steps.lists.outputs.playwright != '0'
+        id: os-packages
+        if: ${{ !cancelled() && steps.playwright.outcome == 'success' }}
         # Worst case: 4 tries of about 1.5 minutes, plus 90 seconds of waiting between them.
         timeout-minutes: 10
+        continue-on-error: true
         run: scripts/playwright-deps.sh
 
       # The build apart from the tests: `turbo run test:e2e` would take FIVVI_QUARANTINE into its hash and, with the cache,
       # could skip the run; the job must run the listed tests every time.
       - name: Build the web app
-        if: steps.lists.outputs.playwright != '0'
+        id: build
+        if: ${{ !cancelled() && steps.playwright.outcome == 'success' }}
         timeout-minutes: ${{ github.event_name == 'push' && 8 || 360 }}
+        continue-on-error: true
         run: pnpm exec turbo run build --filter=@fivvi/web --cache-dir=.turbo/cache
 
       - name: Web e2e (nl-NL and en), the listed tests only
         id: e2e
-        if: steps.lists.outputs.playwright != '0'
+        if: ${{ !cancelled() && steps.build.outcome == 'success' && steps.os-packages.outcome == 'success' && steps.chromium.outcome != 'failure' }}
         timeout-minutes: ${{ github.event_name == 'push' && 14 || 360 }}
+        continue-on-error: true
+        shell: bash
         env:
           FIVVI_QUARANTINE: only
-        run: pnpm --filter @fivvi/web run test:e2e
+        run: pnpm --filter @fivvi/web run test:e2e 2>&1 | tee "$RUNNER_TEMP/quarantine-playwright.log"
 
       - name: Upload Playwright report
-        if: steps.lists.outputs.playwright != '0' && failure() && steps.e2e.outcome == 'failure'
+        if: ${{ !cancelled() && steps.e2e.outcome == 'failure' }}
+        continue-on-error: true
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: playwright-report-quarantine
@@ -485,6 +512,42 @@ jobs:
           retention-days: 7
           if-no-files-found: ignore
 
+      # The result of the job: which list, which tests failed, or that all passed. A failing runner is a warning
+      # annotation, never a failed check (see the top of this job).
+      - name: Report the quarantined tests
+        if: ${{ !cancelled() && steps.lists.outputs.any == 'true' }}
+        continue-on-error: true
+        shell: bash
+        env:
+          INSTALL: ${{ steps.install.outcome }}
+          VITEST_LISTED: ${{ steps.lists.outputs.vitest }}
+          VITEST: ${{ steps.vitest.outcome }}
+          PLAYWRIGHT_LISTED: ${{ steps.lists.outputs.playwright }}
+          E2E: ${{ steps.e2e.outcome }}
+        run: |
+          summary="${GITHUB_STEP_SUMMARY:-/dev/null}"
+          echo '### Quarantine' >>"$summary"
+          # report <runner> <listed> <outcome> <log> <pattern of a failed test's line>
+          report() {
+            local runner="$1" listed="$2" outcome="$3" log="$4" pattern="$5" failed
+            if [[ "$listed" == '0' ]]; then
+              echo "- $runner: nothing listed" >>"$summary"
+            elif [[ "$outcome" == 'success' ]]; then
+              echo "- $runner: all $listed quarantined test(s) passed" >>"$summary"
+            elif [[ "$outcome" == 'failure' ]]; then
+              failed="$(grep -E "$pattern" "$log" 2>/dev/null | sed -E 's/^ +//; s/\x1b\[[0-9;]*m//g' | sort -u | head -20 || true)"
+              echo "- $runner: **$listed listed, and the quarantined tests failed**" >>"$summary"
+              if [[ -n "$failed" ]]; then
+                printf '\n```\n%s\n```\n' "$failed" >>"$summary"
+              fi
+              echo "::warning title=Quarantine ($runner)::the listed tests of $runner failed (the check stays green: a quarantined test never blocks). $(printf '%s' "$failed" | tr '\n' ';' | cut -c1-400 | sed 's/%/%25/g')"
+            else
+              echo "- $runner: $listed listed, but the tests did not run ($outcome): see the steps of this job" >>"$summary"
+              echo "::warning title=Quarantine ($runner)::$listed listed test(s) of $runner did not run ($outcome); see the steps of this job"
+            fi
+          }
+          report Vitest "$VITEST_LISTED" "$VITEST" "$RUNNER_TEMP/quarantine-vitest.log" '^ *(FAIL|×) '
+          report Playwright "$PLAYWRIGHT_LISTED" "$E2E" "$RUNNER_TEMP/quarantine-playwright.log" '^ +[0-9]+\) \['
 
   # iOS (E008, E002, #293). Three parts and the gate "iOS": one job builds once and packs the test bundle, two jobs run
   # the Dutch and the English test pass from it at the same time, each on its own simulator (a cold run was 16 of 21

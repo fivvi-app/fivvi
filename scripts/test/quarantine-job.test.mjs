@@ -63,27 +63,84 @@ describe('#1361 AC2 the Quarantine job', () => {
     assert.match(lists, /scripts\/quarantine\.mjs --count playwright/);
     assert.equal(stepIf(checkout), '');
     assert.equal(stepIf(lists), '');
-    for (const step of rest) {
+    // The setup steps ask for entries in either list; each step after them is guarded by an earlier step that did, so with
+    // empty lists they are all skipped.
+    const setup = rest.slice(0, 3);
+    for (const step of setup) assert.equal(stepIf(step), "steps.lists.outputs.any == 'true'");
+    for (const step of rest.slice(3)) {
       assert.match(
         stepIf(step),
-        /^steps\.lists\.outputs\.(any == 'true'|(vitest|playwright) != '0')/,
+        /steps\.(lists\.outputs\.(any|vitest|playwright)|install|playwright|build|e2e)\b/,
         step.match(/- (name|uses): (.+)/)?.[2],
       );
     }
   });
 
   it('runs the listed tests of each runner with FIVVI_QUARANTINE=only, and only when its list has entries', () => {
-    const vitest = steps(quarantine).find((step) =>
-      /name: Vitest, the listed tests only/.test(step),
-    );
-    assert.match(vitest, /^ {8}if: steps\.lists\.outputs\.vitest != '0'$/m);
+    const vitest = steps(quarantine).find((step) => /id: vitest/.test(step));
+    assert.match(vitest, /steps\.lists\.outputs\.vitest != '0'/);
     assert.match(vitest, /^ {10}FIVVI_QUARANTINE: only$/m);
     assert.match(vitest, /pnpm -r --no-bail --if-present run test \|\| status=1/);
     assert.match(vitest, /pnpm -r --no-bail --if-present run test:integration \|\| status=1/);
+    assert.match(vitest, /tee "\$RUNNER_TEMP\/quarantine-vitest\.log"/);
+    // The Playwright steps start from its list: a setup step that waits for it, and the test step after the setup.
+    const setup = steps(quarantine).find((step) => /id: playwright\n/.test(step));
+    assert.match(setup, /steps\.lists\.outputs\.playwright != '0'/);
     const e2e = steps(quarantine).find((step) => /id: e2e/.test(step));
-    assert.match(e2e, /^ {8}if: steps\.lists\.outputs\.playwright != '0'$/m);
     assert.match(e2e, /^ {10}FIVVI_QUARANTINE: only$/m);
-    assert.match(e2e, /run: pnpm --filter @fivvi\/web run test:e2e$/m);
+    assert.match(
+      e2e,
+      /run: pnpm --filter @fivvi\/web run test:e2e 2>&1 \| tee "\$RUNNER_TEMP\/quarantine-playwright\.log"$/m,
+    );
+  });
+
+  it('THE JOB NEVER FAILS: no step that can fail ends the job red, on any event', () => {
+    const [checkout, lists, ...rest] = steps(quarantine);
+    assert.ok(checkout && lists);
+    // Every step but the two that only read the checkout and the lists (which cannot fail on a list that passed the rule)
+    // is continue-on-error: true, for every event (a literal, not the push expression).
+    for (const step of rest) {
+      assert.match(step, /^ {8}continue-on-error: true$/m, step.match(/- (name|uses): (.+)/)?.[2]);
+    }
+    // Nothing makes the job fail on purpose.
+    assert.doesNotMatch(code(quarantine), /exit 1\b/);
+  });
+
+  it('both test steps run after the other one failed, and neither is skipped by the other', () => {
+    const vitest = steps(quarantine).find((step) => /id: vitest/.test(step));
+    const e2e = steps(quarantine).find((step) => /id: e2e/.test(step));
+    // `!cancelled()`: a step with a condition without a status function runs only while every step before it succeeded.
+    assert.match(
+      stepIf(vitest),
+      /^\$\{\{ !cancelled\(\) && steps\.install\.outcome == 'success' && /,
+    );
+    assert.match(stepIf(e2e), /^\$\{\{ !cancelled\(\) && steps\.build\.outcome == 'success' && /);
+    // The condition of one test step never reads the other's result, so a failure of one cannot stop the other.
+    assert.doesNotMatch(stepIf(vitest), /steps\.(e2e|build|playwright|chromium|os-packages)\b/);
+    assert.doesNotMatch(stepIf(e2e), /steps\.vitest\b/);
+    // The setup of the Playwright run does not wait for Vitest either.
+    for (const step of steps(quarantine).filter((step) =>
+      /id: (playwright|playwright-cache|chromium|os-packages|build)\n/.test(step),
+    ))
+      assert.doesNotMatch(stepIf(step), /steps\.vitest\b/);
+  });
+
+  it('the last step reports the result in the job summary and as one warning per failing runner', () => {
+    const all = steps(quarantine);
+    const report = all.at(-1);
+    assert.match(report, /name: Report the quarantined tests/);
+    assert.match(stepIf(report), /^\$\{\{ !cancelled\(\) && /);
+    assert.match(report, /VITEST: \$\{\{ steps\.vitest\.outcome \}\}/);
+    assert.match(report, /E2E: \$\{\{ steps\.e2e\.outcome \}\}/);
+    assert.match(report, /GITHUB_STEP_SUMMARY/);
+    assert.match(report, /quarantined test\(s\) passed/);
+    assert.match(report, /::warning title=Quarantine \(\$runner\)::/);
+    // A failing test is a warning, never an error annotation or a failed step.
+    assert.doesNotMatch(report, /::error/);
+    assert.doesNotMatch(code(report), /exit 1\b/);
+    // It reads what the test steps logged.
+    assert.match(report, /quarantine-vitest\.log/);
+    assert.match(report, /quarantine-playwright\.log/);
   });
 
   it('the required jobs never set FIVVI_QUARANTINE: they leave the listed tests out', () => {
@@ -109,5 +166,13 @@ describe('#1361 AC2 the Quarantine job', () => {
     assert.match(row, /quarantine\/playwright\.txt/);
     assert.match(row, /FIVVI_QUARANTINE=only/);
     assert.match(row, /empty/);
+    // The job never fails, and where its results show (#1361).
+    assert.match(row, /\*\*It never fails\.\*\*/);
+    assert.match(row, /job summary/);
+    assert.match(row, /::warning/);
+    const testing = read('docs/engineering/TESTING.md');
+    assert.match(testing, /\*\*It never fails, also when a listed test does:\*\*/);
+    assert.match(testing, /in the job summary/);
+    assert.match(testing, /`::warning` annotation/);
   });
 });

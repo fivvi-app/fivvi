@@ -311,6 +311,7 @@ describe('#293 AC5 AC6 AC12: everything', () => {
       // E002 #1361: the Vitest quarantine list and the reader of both lists.
       'quarantine/vitest.txt',
       'scripts/quarantine.mjs',
+      'scripts/quarantine.d.mts',
     ]) {
       const result = decide([path]);
       assert.equal(result.all, true, path);

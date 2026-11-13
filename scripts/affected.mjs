@@ -40,7 +40,7 @@ const WORKSPACE_SETUP = [
   // The Vitest quarantine list (E002 #1361): the preset leaves its tests out of every package's run, and scripts/quarantine.mjs
   // is the reader of it and of the Playwright list.
   /^quarantine\/vitest\.txt$/,
-  /^scripts\/quarantine\.mjs$/,
+  /^scripts\/quarantine\.(mjs|d\.mts)$/,
 ];
 
 // Markdown that is not documentation only: root tests read it (agent rules, the READMEs whose app IDs are checked, the

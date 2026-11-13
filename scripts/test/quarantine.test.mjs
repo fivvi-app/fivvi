@@ -218,6 +218,10 @@ describe('#1360 the lists in this repository', () => {
     // The lists start empty and hold an entry only while a flaky test is in quarantine (#1361: the readers need a list
     // that can hold one, so this no longer asserts that they are empty). Today's date: an entry that expired fails.
     assert.deepEqual(checkQuarantine({ dir }), []);
+    // Only Vitest and Playwright have a reader (#1361). An entry in another list passes the rule and quarantines nothing,
+    // so those stay empty until their readers come (#1362 XCTest, #1363 Compose and Maestro).
+    for (const runner of ['xctest', 'compose', 'maestro'])
+      assert.deepEqual(readList(runner, { dir }), [], `${runner} has no reader yet: no entry`);
     // The root tests read the lists, so turbo must take them as inputs of //#test:root.
     assert.deepEqual(
       uncovered(LISTS.map((runner) => `quarantine/${runner}.txt`)),
@@ -395,6 +399,10 @@ describe('#1361 the list readers', () => {
       assert.ok(tasks[task].inputs.includes('$TURBO_DEFAULT$'), task);
       assert.ok(tasks[task].env.includes('FIVVI_QUARANTINE'), task);
     }
+    // The typecheck of every package that imports the reader sees its types: a stale result must not be replayed.
+    assert.ok(tasks.typecheck.inputs.includes('$TURBO_DEFAULT$'));
+    for (const file of ['quarantine.mjs', 'quarantine.d.mts'])
+      assert.ok(tasks.typecheck.inputs.includes(`$TURBO_ROOT$/scripts/${file}`), file);
     assert.ok(tasks['test:e2e'].inputs.includes('$TURBO_ROOT$/quarantine/playwright.txt'));
     assert.ok(tasks['test:e2e'].inputs.includes('$TURBO_ROOT$/scripts/quarantine.mjs'));
     assert.ok(tasks['test:e2e'].env.includes('FIVVI_QUARANTINE'));
