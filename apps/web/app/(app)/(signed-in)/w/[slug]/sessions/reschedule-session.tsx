@@ -28,7 +28,6 @@ import { WhenFields, type WhenValue } from './when-fields';
 /** The client of the session, as far as moving it needs: the name, and the language of the email. */
 export interface MovedClient {
   name: string;
-  email: string;
   emailLocale: Locale | null;
 }
 

@@ -1,3 +1,4 @@
+import { PRIVATE_SESSION_DURATIONS } from '@fivvi/domain/private-session-durations';
 import { instantToWallClock, wallClockToInstant } from '@fivvi/domain/zoned-time';
 
 // What the session forms (PS-01, PS-05) tell before anything is saved: where the session ends, and
@@ -5,8 +6,16 @@ import { instantToWallClock, wallClockToInstant } from '@fivvi/domain/zoned-time
 // (`wallClockToInstant`, ADR-012), the one the API applies when it saves; nothing is decided here.
 // The API still has the last word and its refusals are shown too (`sessions-client.ts`).
 
-/** The lengths a private session can have, in minutes: 15 to 240 in steps of 5 (`PRIVATE_SESSION_DURATIONS`). */
-export const DURATIONS: readonly number[] = Array.from({ length: 46 }, (_, i) => 15 + i * 5);
+/** The lengths a private session can have, in minutes: the domain's range (`PRIVATE_SESSION_DURATIONS`). */
+export const DURATIONS: readonly number[] = Array.from(
+  {
+    length:
+      (PRIVATE_SESSION_DURATIONS.max - PRIVATE_SESSION_DURATIONS.min) /
+        PRIVATE_SESSION_DURATIONS.step +
+      1,
+  },
+  (_, i) => PRIVATE_SESSION_DURATIONS.min + i * PRIVATE_SESSION_DURATIONS.step,
+);
 
 /** The chips of the form; any other length is chosen from the list. */
 export const DURATION_CHIPS = [45, 60, 90] as const;

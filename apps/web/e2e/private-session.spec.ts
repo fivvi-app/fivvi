@@ -160,7 +160,9 @@ test.describe('F020 private sessions on the web', () => {
     await expect(
       panel.getByText(copy.sessions.form.trainerMe.replace('{name}', 'Sarah')),
     ).toBeVisible();
-    await expect(panel.getByRole('combobox', { name: /Trainer/ })).toHaveCount(0);
+    await expect(
+      panel.getByRole('combobox', { name: trainerWordForms('trainer', appLocale).Word }),
+    ).toHaveCount(0);
     await expectNoAxeViolations(page, `PS-01 empty in ${appLocale}`);
 
     await pickClient(panel, 'ann', 'Anna de Vries');

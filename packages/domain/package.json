@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./private-session-durations": "./src/scheduling/private-session-durations.ts",
     "./zoned-time": "./src/scheduling/zoned-time.ts",
     "./testing": "./src/payments/testing/index.ts"
   },

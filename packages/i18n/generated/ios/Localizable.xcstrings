@@ -5184,13 +5184,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "+ New client \"%1$@\""
+            "value" : "+ New client ‘%1$@’"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "+ Nieuwe klant \"%1$@\""
+            "value" : "+ Nieuwe klant ‘%1$@’"
           }
         }
       }

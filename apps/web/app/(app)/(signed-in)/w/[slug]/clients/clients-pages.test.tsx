@@ -219,7 +219,7 @@ describe.each(locales)('F006 TW-01 Clients in %s', (locale) => {
     expect(html.indexOf('/sessions/s2')).toBeLessThan(html.indexOf('/sessions/s3'));
     expect(html).toContain('Sarah');
     expect(html).toContain('Tom');
-    // 09:30 on 1 October: summer time, an hour and a half after the instant's hour in UTC.
+    // 09:30 on 1 October: summer time, two hours after the instant's hour in UTC.
     expect(html).toContain('09:30');
   });
 

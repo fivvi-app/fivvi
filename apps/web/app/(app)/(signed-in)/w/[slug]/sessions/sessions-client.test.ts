@@ -46,7 +46,7 @@ describe('F020 sessions client: planning', () => {
 
     const result = await planPrivateSession('w1', input, fetchFn);
 
-    expect(result).toEqual({ ok: true, session, past: false, confirmationEmail: true });
+    expect(result).toEqual({ ok: true, session });
     const [url, init] = fetchFn.mock.calls[0] ?? [];
     expect(url).toBe('/api/v1/workspaces/w1/sessions/private');
     expect(init?.method).toBe('POST');
@@ -66,7 +66,7 @@ describe('F020 sessions client: planning', () => {
     expect(JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body))).toMatchObject({ trainerId: 't2' });
   });
 
-  it('AC5: a past session is saved and says so', async () => {
+  it('AC5: a past session is saved like any other (the form warned about it before)', async () => {
     const fetchFn = reply(201, {
       session,
       past: true,
@@ -74,11 +74,7 @@ describe('F020 sessions client: planning', () => {
       confirmationEmail: false,
     });
 
-    expect(await planPrivateSession('w1', input, fetchFn)).toMatchObject({
-      ok: true,
-      past: true,
-      confirmationEmail: false,
-    });
+    expect(await planPrivateSession('w1', input, fetchFn)).toEqual({ ok: true, session });
   });
 
   it('AC4: a start the clocks skip is worded on the start field', async () => {
@@ -159,7 +155,7 @@ describe('F020 sessions client: rescheduling', () => {
 
     const result = await reschedulePrivateSession('w1', 's1', move, fetchFn);
 
-    expect(result).toEqual({ ok: true, session: moved, past: false, changeEmail: true });
+    expect(result).toEqual({ ok: true, session: moved });
     const [url, init] = fetchFn.mock.calls[0] ?? [];
     expect(url).toBe('/api/v1/workspaces/w1/sessions/s1/reschedule');
     expect(JSON.parse(String(init?.body))).toEqual(move);

@@ -478,7 +478,7 @@
       "clientNone": "Geen klanten gevonden.",
       "clientChange": "Wijzigen",
       "clientNew": "+ Nieuwe klant",
-      "clientNewNamed": "+ Nieuwe klant \"{query}\"",
+      "clientNewNamed": "+ Nieuwe klant ‘{query}’",
       "newClientTitle": "Nieuwe klant",
       "newClientAdd": "Klant toevoegen",
       "newClientCancel": "Annuleren",

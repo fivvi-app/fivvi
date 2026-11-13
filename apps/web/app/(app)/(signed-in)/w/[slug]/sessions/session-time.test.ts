@@ -1,3 +1,4 @@
+import { PRIVATE_SESSION_DURATIONS } from '@fivvi/domain/private-session-durations';
 import { describe, expect, it } from 'vitest';
 import { DURATIONS, previewTimes, wallClockOf } from './session-time';
 
@@ -64,10 +65,10 @@ describe('F020 PS-05 session time: the values a stored session fills the form wi
 });
 
 describe('F020 durations', () => {
-  it('lists 15 to 240 minutes in steps of 5, as the API accepts them', () => {
-    expect(DURATIONS[0]).toBe(15);
-    expect(DURATIONS.at(-1)).toBe(240);
-    expect(DURATIONS).toHaveLength(46);
-    expect(DURATIONS.every((minutes) => minutes % 5 === 0)).toBe(true);
+  it('lists every length the API accepts: the domain\'s range, minimum to maximum in steps', () => {
+    const { min, max, step } = PRIVATE_SESSION_DURATIONS;
+    const accepted: number[] = [];
+    for (let minutes = min; minutes <= max; minutes += step) accepted.push(minutes);
+    expect(DURATIONS).toEqual(accepted);
   });
 });

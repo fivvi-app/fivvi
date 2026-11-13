@@ -305,7 +305,7 @@
     <string name="sessions_form_client_exists">There\'s already a client with this email: %1$s.</string>
     <string name="sessions_form_client_label">Client</string>
     <string name="sessions_form_client_new">+ New client</string>
-    <string name="sessions_form_client_new_named">+ New client \"%1$s\"</string>
+    <string name="sessions_form_client_new_named">+ New client ‘%1$s’</string>
     <string name="sessions_form_client_none">No clients found.</string>
     <string name="sessions_form_client_results">Clients</string>
     <string name="sessions_form_client_search">Search by name or email</string>

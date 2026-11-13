@@ -370,7 +370,7 @@
     <string name="sessions_form_client_exists">Er is al een klant met dit e-mailadres: %1$s.</string>
     <string name="sessions_form_client_label">Klant</string>
     <string name="sessions_form_client_new">+ Nieuwe klant</string>
-    <string name="sessions_form_client_new_named">+ Nieuwe klant \"%1$s\"</string>
+    <string name="sessions_form_client_new_named">+ Nieuwe klant ‘%1$s’</string>
     <string name="sessions_form_client_none">Geen klanten gevonden.</string>
     <string name="sessions_form_client_results">Klanten</string>
     <string name="sessions_form_client_search">Zoek op naam of e-mail</string>

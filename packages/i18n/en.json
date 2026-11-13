@@ -478,7 +478,7 @@
       "clientNone": "No clients found.",
       "clientChange": "Change",
       "clientNew": "+ New client",
-      "clientNewNamed": "+ New client \"{query}\"",
+      "clientNewNamed": "+ New client ‘{query}’",
       "newClientTitle": "New client",
       "newClientAdd": "Add client",
       "newClientCancel": "Cancel",

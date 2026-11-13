@@ -29,17 +29,11 @@ type Refused =
   | { ok: false; reason: 'noConnection' | 'generic' };
 
 export type PlanResult =
-  | {
-      ok: true;
-      session: Session;
-      /** The start is in the past: saved, and no email goes out. */
-      past: boolean;
-      confirmationEmail: boolean;
-    }
+  | { ok: true; session: Session }
   | Refused;
 
 export type RescheduleResult =
-  | { ok: true; session: Session; past: boolean; changeEmail: boolean }
+  | { ok: true; session: Session }
   /** `session_changed`: someone else changed it first; `session_cancelled`: it was cancelled. Nothing was stored. */
   | {
       ok: false;
@@ -76,12 +70,7 @@ export async function planPrivateSession(
   if (answered.status !== 201) return refusal(answered.status, answered.body);
   const planned = answered.body as Schemas['PlannedPrivateSession'] | null;
   if (!planned?.session) return { ok: false, reason: 'generic' };
-  return {
-    ok: true,
-    session: planned.session,
-    past: planned.past,
-    confirmationEmail: planned.confirmationEmail,
-  };
+  return { ok: true, session: planned.session };
 }
 
 /**
@@ -110,7 +99,7 @@ export async function reschedulePrivateSession(
   if (answered.status === 200) {
     const moved = answered.body as Schemas['ReschedulePrivateSessionResult'] | null;
     if (!moved?.session) return { ok: false, reason: 'generic' };
-    return { ok: true, session: moved.session, past: moved.past, changeEmail: moved.changeEmail };
+    return { ok: true, session: moved.session };
   }
   if (answered.status === 409) {
     const conflict = answered.body as Schemas['SessionConflict'] | null;
