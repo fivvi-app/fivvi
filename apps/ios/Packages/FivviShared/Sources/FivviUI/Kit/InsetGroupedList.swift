@@ -60,12 +60,14 @@ extension InsetGroupedList where Header == EmptyView {
 public struct InsetGroup<Content: View>: View {
     public init(
         header: String? = nil, headerIdentifier: String? = nil, footer: String? = nil,
-        separatorInset: CGFloat = InsetGroupStyle.separatorInset, @ViewBuilder content: () -> Content
+        separatorInset: CGFloat = InsetGroupStyle.separatorInset, lazy: Bool = false,
+        @ViewBuilder content: () -> Content
     ) {
         self.header = header
         self.headerIdentifier = headerIdentifier
         self.footer = footer
         self.separatorInset = separatorInset
+        self.lazy = lazy
         self.content = content()
     }
     public var header: String?
@@ -75,6 +77,9 @@ public struct InsetGroup<Content: View>: View {
     /// How far the separators start from the leading edge: the rows' text (`InsetGroupStyle.separatorInset`), or past
     /// an avatar or a mark in front of it (the prototype's `--inset`: 68 pt for a 40 pt avatar).
     public var separatorInset: CGFloat
+    /// Whether the rows are made only when they come on screen (a `LazyVStack`), for a list that pages: a row's `.task`
+    /// then runs when it is reached, not for every row at once. A short group of a few rows keeps the plain stack.
+    public var lazy: Bool
     @ViewBuilder public let content: Content
     @Environment(\.displayScale) private var displayScale
 
@@ -92,22 +97,29 @@ public struct InsetGroup<Content: View>: View {
         }
     }
 
+    /// The rows with a hairline between them.
+    @ViewBuilder private func separated(_ rows: SubviewsCollection) -> some View {
+        ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
+            if index > 0 {
+                Rectangle()
+                    .fill(Tokens.Colors.borderDefault)
+                    .frame(height: 1 / displayScale)
+                    .padding(.leading, separatorInset)
+            }
+            row
+        }
+    }
+
     public var body: some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.space2) {
             if let header {
                 headerText(header)
             }
             Group(subviews: content) { rows in
-                VStack(spacing: 0) {
-                    ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
-                        if index > 0 {
-                            Rectangle()
-                                .fill(Tokens.Colors.borderDefault)
-                                .frame(height: 1 / displayScale)
-                                .padding(.leading, separatorInset)
-                        }
-                        row
-                    }
+                if lazy {
+                    LazyVStack(spacing: 0) { separated(rows) }
+                } else {
+                    VStack(spacing: 0) { separated(rows) }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)

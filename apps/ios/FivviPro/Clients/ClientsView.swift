@@ -87,13 +87,13 @@ struct ClientsView: View {
         await model.search(searchText)
     }
 
-    /// The prototype's action: a prominent glass button in the bar with a person and a plus (`.gb.prom`). Its name is the
-    /// text, which the icon-only label keeps for VoiceOver.
+    /// The prototype's action: a prominent glass button in the bar with a plus (`.gb.prom`, `ic("plus")`). Its name is
+    /// the text, which the icon-only label keeps for VoiceOver.
     private var newClientButton: some View {
         Button {
             newClient = model.newClientForm()
         } label: {
-            Label(catalog[.clientsNewClient], systemImage: "person.badge.plus")
+            Label(catalog[.clientsNewClient], systemImage: "plus")
         }
         .buttonStyle(.glassProminent)
         .tint(Tokens.Colors.accentFill)
@@ -155,7 +155,8 @@ struct ClientsView: View {
         if model.clients.isEmpty {
             emptyState
         } else {
-            InsetGroup(separatorInset: Tokens.Spacing.space4 + avatar + Tokens.Spacing.space3) {
+            // Lazy: the next page loads when the last row comes on screen, not when the list opens.
+            InsetGroup(separatorInset: Tokens.Spacing.space4 + avatar + Tokens.Spacing.space3, lazy: true) {
                 ForEach(model.clients, id: \.id) { client in
                     row(client)
                 }

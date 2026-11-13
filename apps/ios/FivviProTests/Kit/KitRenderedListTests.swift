@@ -62,4 +62,55 @@ extension KitRenderedTests {
         XCTAssertEqual(PersonAvatarMetrics.initials(of: "   "), "")
         XCTAssertEqual(PersonAvatarMetrics.initials(of: ""), "")
     }
+
+    // MARK: Search pill
+
+    /// The search field of a list (E020 TM-02) is at least 44 pt high, at the width it is given. Its pill shape and fill
+    /// are the system's own and not drawn outside a screen (as with glass), so no pixels are checked.
+    func test_E020_AC14_aSearchPillIsAtLeast44PtHigh() throws {
+        for style in styles {
+            let pill = SearchPill(text: .constant(""), prompt: "Zoek", identifier: "search")
+            let view = try RenderedView(pill, width: 300, style: style)
+            XCTAssertGreaterThanOrEqual(view.size.height, SearchPillMetrics.minHeight, "height, \(mode(style))")
+            XCTAssertEqual(view.size.width, 300, accuracy: 0.5, "width, \(mode(style))")
+        }
+    }
+
+    /// The system's search text field: its id, its name and the search key, and a clear button that empties the text the
+    /// screen holds.
+    func test_E020_AC14_aSearchPillIsTheSystemsSearchFieldWithAClearButton() throws {
+        var text = "Vries"
+        let binding = Binding(get: { text }, set: { text = $0 })
+        let scene = try XCTUnwrap(UIApplication.shared.connectedScenes.compactMap { $0 as? UIWindowScene }.first)
+        let window = UIWindow(windowScene: scene)
+        window.frame = CGRect(x: 0, y: 0, width: 300, height: 100)
+        window.rootViewController = UIHostingController(
+            rootView: SearchPill(text: binding, prompt: "Zoek", identifier: "search")
+        )
+        window.makeKeyAndVisible()
+        defer { window.isHidden = true }
+        RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.3))
+
+        let field = try XCTUnwrap(searchField(in: try XCTUnwrap(window.rootViewController?.view)), "a UISearchTextField")
+        XCTAssertEqual(field.text, "Vries")
+        XCTAssertEqual(field.accessibilityIdentifier, "search")
+        XCTAssertEqual(field.accessibilityLabel, "Zoek")
+        XCTAssertTrue(field.accessibilityTraits.contains(.searchField))
+        XCTAssertEqual(field.returnKeyType, .search)
+        XCTAssertEqual(field.clearButtonMode, .whileEditing)
+
+        field.text = "Vries Anna"
+        field.sendActions(for: .editingChanged)
+        XCTAssertEqual(text, "Vries Anna", "typing reaches the screen")
+        XCTAssertEqual(field.delegate?.textFieldShouldClear?(field), true)
+        XCTAssertEqual(text, "", "the clear button empties the search")
+    }
+
+    private func searchField(in view: UIView) -> UISearchTextField? {
+        if let field = view as? UISearchTextField { return field }
+        for subview in view.subviews {
+            if let found = searchField(in: subview) { return found }
+        }
+        return nil
+    }
 }
