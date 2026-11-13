@@ -12,7 +12,6 @@ final class HelloUITests: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
-        AppLifecycle.testCase = self
         try TestPlanSkips.skipIfListed(self)
     }
 

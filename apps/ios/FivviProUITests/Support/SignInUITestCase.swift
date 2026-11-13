@@ -13,7 +13,6 @@ class SignInUITestCase: XCTestCase {
 
     override func setUpWithError() throws {
         continueAfterFailure = false
-        AppLifecycle.testCase = self
     }
 
     /// `element` is at least the minimum touch target, compared in the screen's device pixels (`TouchTarget`).
