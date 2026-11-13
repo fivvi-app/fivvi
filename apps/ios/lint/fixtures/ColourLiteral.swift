@@ -52,7 +52,7 @@ struct ColourLiteral: View {
             Rectangle().fill(.tint)
             Rectangle().fill(Color.clear)
             Text(title).background(.ultraThinMaterial)
-            Button(title) {}.buttonStyle(.borderedProminent)
+            Button(title) {}.buttonStyle(.primaryAction)
             Text(title).font(.title).padding(.horizontal).frame(maxWidth: .infinity)
             // Text(title).foregroundStyle(Color.red) in a comment is fine
         }

@@ -91,7 +91,8 @@ extension KitRenderedTests {
         defer { window.isHidden = true }
         RunLoop.main.run(until: Date(timeIntervalSinceNow: 0.3))
 
-        let field = try XCTUnwrap(searchField(in: try XCTUnwrap(window.rootViewController?.view)), "a UISearchTextField")
+        let root = try XCTUnwrap(window.rootViewController?.view)
+        let field = try XCTUnwrap(searchField(in: root), "a UISearchTextField")
         XCTAssertEqual(field.text, "Vries")
         XCTAssertEqual(field.accessibilityIdentifier, "search")
         XCTAssertEqual(field.accessibilityLabel, "Zoek")

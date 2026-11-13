@@ -97,10 +97,11 @@ public struct InsetGroup<Content: View>: View {
         }
     }
 
-    /// The rows with a hairline between them.
+    /// The rows with a hairline between them. A row keeps its own identity (not its place) when the rows change, so a
+    /// row's `.task` runs again for a row that is new in the list, such as the last one after a search.
     @ViewBuilder private func separated(_ rows: SubviewsCollection) -> some View {
-        ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
-            if index > 0 {
+        ForEach(rows) { row in
+            if row.id != rows.first?.id {
                 Rectangle()
                     .fill(Tokens.Colors.borderDefault)
                     .frame(height: 1 / displayScale)
