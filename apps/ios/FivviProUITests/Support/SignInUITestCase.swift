@@ -55,12 +55,14 @@ class SignInUITestCase: XCTestCase {
     }
 
     /// The accessibility audit with the contrast check, for a screen in `style`. Text-field clipping of typed text is not
-    /// counted (see `assertReadable`). A contrast issue is accepted only on text drawn in the secondary text token
+    /// counted (see `assertReadable`). A contrast issue is accepted on text drawn in the secondary text token
     /// (`textSecondary`, E020 AC3 and AC15): the element's strongest pixels are compared with the token resolved for the
     /// mode, on the canvas and on the group's surface. Text scrolled under the navigation bar is blended with the bar's
     /// glass, so the audit's pixels are not the text's own: a contrast issue on an element that reaches into the bar is
     /// not counted. The text may be a static text or the label of a button (the sign-in's language options). A tonal
-    /// pill button is accepted when its label on screen is the link text token on the tonal fill at 4.5:1 or more.
+    /// pill button is accepted when its label on screen is the link text token on the tonal fill at 4.5:1 or more, and
+    /// a static text or button when it is one of the primary, link or status text tokens, measured at 4.5:1 or more on
+    /// the canvas or the card (`textPasses`).
     ///
     /// `systemBarItems` are the system's own glass bar buttons and bar title of a sheet (the name sheet's *Annuleren*,
     /// *Opslaan* and *Naam wijzigen*). The audit flags them whatever the colour of their text (*Annuleren* with the accent
@@ -94,26 +96,44 @@ class SignInUITestCase: XCTestCase {
             }
             if issue.auditType == .contrast, let element = issue.element,
                [.staticText, .button].contains(element.elementType),
-               let colours = try? ScreenColours(app) {
-                if element.frame.minY < barBottom { return true }
-                let frame = element.frame.insetBy(dx: 1, dy: 1)
-                let isSecondary = backgrounds.contains {
-                    colours.foreground(in: frame, on: $0).distance(to: secondary) <= 8
-                }
-                if isSecondary { return true }
-                // The tonal pill's label (`PillButtonKind.tonal`): the audit flags it, so measure it here: the link
-                // text token on the tonal fill, which must be the pixels on screen and pass 4.5:1.
-                if element.elementType == .button {
-                    let fill = RGB(Tokens.Colors.actionTonalBg, in: style)
-                    let label = element.frame.insetBy(dx: element.frame.width * 0.2, dy: element.frame.height * 0.25)
-                    let text = colours.foreground(in: label, on: fill)
-                    if text.distance(to: RGB(Tokens.Colors.textLink, in: style)) <= 8,
-                       text.contrast(with: fill) >= 4.5 { return true }
-                }
+               let colours = try? ScreenColours(app),
+               element.frame.minY < barBottom
+               || self.textPasses(element, in: colours, style: style, backgrounds: backgrounds, secondary: secondary) {
+                return true
             }
             XCTFail("\(context): \(issue.auditType) on \(issue.element?.identifier ?? "-") "
                 + "(\(issue.element?.label ?? "-")): \(issue.detailedDescription)")
             return true
         }
+    }
+
+    /// Whether the text or button label of `element`, as drawn, is accepted although the audit flagged its contrast: the
+    /// secondary text token (see `auditWithContrast`), a text token measured at 4.5:1 or more on the canvas or the card
+    /// (on iOS 26 the audit also flags text in the primary, the link and the status text tokens, whichever element comes
+    /// first, although each passes on those backgrounds in `contrast-pairs.json`: it reads the pixels around the text; so
+    /// the pixels must be one of those tokens' colours and pass 4.5:1 on the background they are drawn on), or the tonal
+    /// pill's label (`PillButtonKind.tonal`: the link text token on the tonal fill at 4.5:1 or more).
+    private func textPasses(
+        _ element: XCUIElement, in colours: ScreenColours, style: UIUserInterfaceStyle, backgrounds: [RGB],
+        secondary: RGB
+    ) -> Bool {
+        let frame = element.frame.insetBy(dx: 1, dy: 1)
+        if backgrounds.contains(where: { colours.foreground(in: frame, on: $0).distance(to: secondary) <= 8 }) {
+            return true
+        }
+        let inks = [
+            Tokens.Colors.textPrimary, Tokens.Colors.textLink, Tokens.Colors.statusDangerText,
+            Tokens.Colors.statusSuccessText, Tokens.Colors.statusWarningText
+        ].map { RGB($0, in: style) }
+        let isInk = backgrounds.contains { background in
+            let text = colours.foreground(in: frame, on: background)
+            return text.contrast(with: background) >= 4.5 && inks.contains { text.distance(to: $0) <= 8 }
+        }
+        if isInk { return true }
+        guard element.elementType == .button else { return false }
+        let fill = RGB(Tokens.Colors.actionTonalBg, in: style)
+        let label = element.frame.insetBy(dx: element.frame.width * 0.2, dy: element.frame.height * 0.25)
+        let text = colours.foreground(in: label, on: fill)
+        return text.distance(to: RGB(Tokens.Colors.textLink, in: style)) <= 8 && text.contrast(with: fill) >= 4.5
     }
 }

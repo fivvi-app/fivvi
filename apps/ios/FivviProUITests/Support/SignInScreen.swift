@@ -90,12 +90,20 @@ struct SignInScreen {
     }
 
     /// Taps `element` once it has stopped moving (the keyboard and the messages shift the layout for a moment), after
-    /// scrolling the screen up until it can be hit: at the largest text size the keyboard of the code field covers the
-    /// buttons below it.
+    /// scrolling the screen up until it can be hit and the keyboard is not over it: at the largest text size the keyboard
+    /// of the code field covers the buttons below it. (On iOS 26 `isHittable` is true for a button under the keyboard,
+    /// which then takes the tap: the keyboard's frame is checked too.)
     func tap(_ element: XCUIElement, scrollingUpTo attempts: Int = 6) {
         settle(element)
-        scrollUp(until: { element.isHittable }, attempts: attempts)
+        scrollUp(until: { element.isHittable && !isUnderKeyboard(element) }, attempts: attempts)
         element.tap()
+    }
+
+    /// Whether the keyboard, when it is up, covers the middle of `element`: the keyboard's frame ends above the
+    /// bottom of the window (the globe and dictation row), so anything from its top edge down is under it.
+    private func isUnderKeyboard(_ element: XCUIElement) -> Bool {
+        let keyboard = app.keyboards.firstMatch
+        return keyboard.exists && element.frame.midY >= keyboard.frame.minY
     }
 
     /// Drags the screen up until `isDone`, at most `attempts` times. The drag stays above the keyboard: a swipe on the
