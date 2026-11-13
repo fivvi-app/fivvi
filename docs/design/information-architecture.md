@@ -381,21 +381,34 @@ Every email exists in `nl-NL` and `en` with one template structure (`§51, §74`
 
 **Recipient language** (communication language, [ADR-017](../decisions/ADR-017-language-policy.md)): stored user preference → language chosen at booking (also stored as the account's preference at the first verified booking, `PRODUCT.md §3, §26`) → workspace default. For trainer invitations it's the language picked for the invitee → workspace default (`§49`). For the sign-in email (EM-08) it's the stored preference → the interface language of the screen that asked ([ADR-019](../decisions/ADR-019-sign-in-communication-language.md)); there is no workspace default outside a workspace.
 
-| ID | NL subject (proposed) | EN subject (proposed) | To | Trigger | Features |
+| ID | NL subject | EN subject | To | Trigger | Features |
 |---|---|---|---|---|---|
-| EM-01 | Bevestig je boeking bij {workspace} | Confirm your booking at {workspace} | Client | PB-03 submitted (hold created) | F030, F049 |
-| EM-02 | Je boeking is bevestigd: {class}, {date} | Your booking is confirmed: {class}, {date} | Client | Booking confirmed | F031, F049 |
-| EM-03 | Je boeking is geannuleerd | Your booking has been cancelled | Client | Client cancels (CW-03) | F026, F049 |
-| EM-04 | Wijziging: {class} op {date} | Change: {class} on {date} | Booked clients; private-session client | Time or location changed (PS-05, CO-04) | F026, F049 |
-| EM-05 | {class} op {date} gaat niet door | {class} on {date} is cancelled | Booked clients | Occurrence cancelled (CO-03) | F026, F049 |
-| EM-06 | Nieuwe boeking: {name} voor {class} | New booking: {name} for {class} | Assigned trainer | Booking confirmed | F050 |
-| EM-07 | Afmelding: {name} voor {class} | Cancellation: {name} for {class} | Assigned trainer | Client cancels | F050 |
+| EM-01 | *retired* (ADR-026) | | — | The hold confirmation, replaced by booking at once ([ADR-026](../decisions/ADR-026-clients-sign-in-and-are-approved-to-book.md)); the ID stays taken | — |
+| EM-02 | Je boeking is bevestigd: {class}, {date} | Your booking is confirmed: {class}, {date} | Client | A booking is made, also by moving up from the waitlist or by the team | F031, F062, F028 |
+| EM-03 | Je boeking is geannuleerd: {class}, {date} | Your booking has been cancelled: {class}, {date} | Client | The client cancels (CW-03); the variant "door {workspace}" when the team removes them | F031, F028 |
+| EM-04 | Wijziging: {class} op {date} / Wijziging: je sessie is verplaatst naar {newDate} | Change: {class} on {date} / Change: your session has moved to {newDate} | Client | A booked class date or a private session moves (PS-05, CO-04) | F020, F031 |
+| EM-05 | {class} op {date} gaat niet door / Je sessie op {date} is geannuleerd | {class} on {date} is cancelled / Your session on {date} has been cancelled | Client | A class date (CO-03) or a private session is cancelled | F026 |
+| EM-06 | Nieuwe boeking: {name} voor {class} op {date} | New booking: {name} for {class} on {date} | Trainer | A client books or moves up from the waitlist | F050 |
+| EM-07 | Geannuleerd: {name} voor {class} op {date} | Cancelled: {name} for {class} on {date} | Trainer | A client cancels a booking | F050 |
 | EM-08 | Je inlogcode voor Fivvi | Your sign-in code for Fivvi | Anyone signing in | Sign-in requested | F001 |
-| EM-09 | {inviter} nodigt je uit voor {workspace} | {inviter} invited you to {workspace} | Invited trainer | Invitation sent | F011 |
-| EM-10 ⚑ | Je valt in: {class} op {date} | You're covering: {class} on {date} | Substitute trainer | Substitution (CO-02) | F024 — **not in `§51`**, see [QE01](open-questions.md#qe01) |
-| EM-11 ⚑ | Nieuwe afspraak: {date} om {time} | New appointment: {date} at {time} | Private-session client | Private session created (PS-01) | F020 — **not in `§51`**, see [QE02](open-questions.md#qe02) |
-| EM-12 | Je training staat klaar, {client} | Your workout is ready, {client} | Client | Trainer confirms WL-08 share | F045, F048, F049; `§51` |
-| EM-34 | Je code om je e-mailadres te wijzigen | Your code to change your email address | The new address of the account (sent to that address only) | Change of own email address requested (F005) | F005, F033, F049 |
+| EM-09 | {inviter} nodigt je uit voor {workspace} | {inviter} invited you to {workspace} | Invited trainer | Trainer invitation sent | F011 |
+| EM-10 ⚑ | Je valt in: {class} op {date} | You're covering: {class} on {date} | Trainer | Substitution (CO-02). **Not in `§51`**, see [QE01](open-questions.md#qe01) | F024 |
+| EM-11 ⚑ | Nieuwe afspraak: {date} om {time} | New appointment: {date} at {time} | Client | A private session is planned (PS-01). **Not in `§51`**, see [QE02](open-questions.md#qe02) | F020 |
+| EM-12 | Je training staat klaar, {client} | Your workout is ready, {client} | Client | The trainer confirms the share (WL-08, M7); `§51` | F045 |
+| EM-13 | Andere trainer: je sessie op {date} / {class} op {date} | New trainer: your session on {date} / {class} on {date} | Client | A trainer change or a substitution (owner decision, 4 November 2026) | F023, F024 |
+| EM-14 | {workspace} heeft je toegevoegd als klant | {workspace} added you as a client | Client | A client invitation | F032 |
+| EM-15 | Nieuw aanmeldverzoek van {name} | New join request from {name} | Owner | A join request arrives | F029 |
+| EM-16 | Je aanmeldverzoek bij {workspace} | Your join request to {workspace} | Client | The request is declined (short, neutral) | F029 |
+| EM-17 | Je bent klant bij {workspace} | You're now a client of {workspace} | Client | The request is approved | F029 |
+| EM-18 | Je staat op de wachtlijst: {class}, {date} | You're on the waitlist: {class}, {date} | Client | Joining a waitlist, with the position | F062 |
+| EM-19 | Geen plek gekregen: {class}, {date} | You didn't get a spot: {class}, {date} | Client | The waitlist's closing time passes | F062 |
+| EM-20 | *reserved*: taken off the waitlist, with the reason | | Client | Reserved for M11 (skipped) | F062 |
+| EM-21 | {name} vraagt je sessie op {date} te annuleren | {name} asks to cancel the session on {date} | Trainer | A client asks to cancel a private session (owner decision, 4 November 2026) | F033 |
+| EM-22 | Je sessie op {date} gaat door | Your session on {date} is going ahead | Client | The trainer keeps the session after a request, with their reply | F033 |
+| EM-23 | Je bent niet meer klant bij {workspace} | You're no longer a client of {workspace} | Client | The Owner removes a client | F032 |
+| EM-34 | Je code om je e-mailadres te wijzigen | Your code to change your email address | Account holder | Change of own email address requested (F005); sent to the new address only | F005, F033 |
+
+The table is the catalog of [`packages/email`](../../packages/email/src/catalog.ts) in words: `packages/email/src/catalog-docs.test.ts` fails when an ID, an audience, an owner feature or a built subject differs between the two, or when a retired entry is not marked retired. M11 adds the commerce emails from EM-24 on. A subject in italics marks an ID that is retired or reserved.
 
 - Emails **never** say "magic link". The button is *Boeking bevestigen* / *Confirm booking*, and the code is shown underneath.
 - Free text from the owner (e.g. the optional message on a class cancellation, CO-03) is inserted **as typed** and not translated (`§3`). The template marks it as a quote from the workspace.
