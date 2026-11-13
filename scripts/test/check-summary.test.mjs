@@ -420,7 +420,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     execFileSync('git', ['-C', repo(), ...args], { encoding: 'utf8', env: gitEnv() });
 
   let n = 0;
-  const check = (runs, args = ['--all'], setup = () => {}, extraEnv = {}) => {
+  const check = (runs, args = ['--all'], setup = () => {}, extraEnv = {}, timeout = undefined) => {
     const dir = join(base, `runs-${n++}`);
     mkdirSync(dir);
     for (const [name, { lines, exit = 0 }] of Object.entries(runs)) {
@@ -432,6 +432,8 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     const result = spawnSync(join(repo(), 'scripts/check.sh'), args, {
       encoding: 'utf8',
       cwd: repo(),
+      timeout,
+      killSignal: 'SIGKILL',
       env: { ...gitEnv(), PATH: `${bin()}:${process.env.PATH}`, FAKE_RUNS: dir, ...extraEnv },
     });
     const file = join(repo(), '.work/check-summary.json');
@@ -800,6 +802,32 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       assert.doesNotMatch(result.stdout, /⚠️/);
       assert.equal(readFileSync(log(), 'utf8').trim(), 'pinned');
     });
+  });
+
+  it('E001 #1368 AC1/AC2: a failed check with a 20,000-line log is indented in linear time, under bash 3.2', (t) => {
+    // macOS /bin/bash is 3.2, whose ${var//$'\n'/...} is quadratic: 2,000 lines took 96 s and 8,000 never finished.
+    if (!existsSync('/bin/bash')) return t.skip('no /bin/bash');
+    const bash = join(base, 'bash-3');
+    mkdirSync(bash, { recursive: true });
+    if (!existsSync(join(bash, 'bash'))) symlinkSync('/bin/bash', join(bash, 'bash'));
+    const lines = Array.from({ length: 20000 }, (_, i) => `e2e line ${i}: ${'x'.repeat(30)}`);
+    const started = Date.now();
+    const result = check(
+      { unit: unit(), integration, e2e: { lines, exit: 1 } },
+      ['--all'],
+      () => {},
+      { PATH: `${bash}:${bin()}:${process.env.PATH}` },
+      60_000,
+    );
+    const seconds = (Date.now() - started) / 1000;
+    assert.equal(result.status, 1);
+    const shown = result.stdout.split('\n');
+    assert.ok(
+      shown.includes('    e2e line 0: ' + 'x'.repeat(30)),
+      'the first line is indented by four spaces',
+    );
+    assert.ok(shown.includes('    e2e line 19999: ' + 'x'.repeat(30)), 'so is the last');
+    assert.ok(seconds < 30, `took ${seconds} s`);
   });
 
   it('E002 #112 AC1: is git-ignored: the summary goes to .work/', () => {

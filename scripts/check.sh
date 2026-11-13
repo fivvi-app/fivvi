@@ -96,7 +96,9 @@ check() {
     echo "✓ $name"
   else
     echo "✗ $name"
-    [ -z "$out" ] || { out="$(failure_output "$out")"; printf '    %s\n' "${out//$'\n'/$'\n'    }"; }
+    # Indented with sed, not ${out//$'\n'/...}: bash 3.2's (macOS /bin/bash) substitution is quadratic in the length of the
+    # string, and a failed e2e run prints thousands of lines: check.sh spun for hours holding the lock (#1368).
+    [ -z "$out" ] || failure_output "$out" | sed 's/^/    /'
     FAILED=1
   fi
 }
