@@ -203,7 +203,10 @@ describe('#293 check.sh runs the checks a change can affect', () => {
         entries: tags.map((tag, idx) => ({ idx, version: '7', when: idx, tag, breakpoints: true })),
       });
     const snapshot = (n, id, prevId) =>
-      write(join(repo(), migrations, 'meta', `000${n}_snapshot.json`), JSON.stringify({ id, prevId }));
+      write(
+        join(repo(), migrations, 'meta', `000${n}_snapshot.json`),
+        JSON.stringify({ id, prevId }),
+      );
     const zero = '00000000-0000-4000-8000-000000000000';
     const one = '00000000-0000-4000-8000-000000000001';
     // main has 0000 and 0001; the branch adds its own 0001.
