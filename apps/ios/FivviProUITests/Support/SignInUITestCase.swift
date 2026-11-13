@@ -108,28 +108,33 @@ class SignInUITestCase: XCTestCase {
     }
 
     /// Whether the text or button label of `element`, as drawn, is accepted although the audit flagged its contrast: the
-    /// secondary text token (see `auditWithContrast`), a text token measured at 4.5:1 or more on the canvas or the card
-    /// (on iOS 26 the audit also flags text in the primary, the link and the status text tokens, whichever element comes
-    /// first, although each passes on those backgrounds in `contrast-pairs.json`: it reads the pixels around the text; so
-    /// the pixels must be one of those tokens' colours and pass 4.5:1 on the background they are drawn on), or the tonal
-    /// pill's label (`PillButtonKind.tonal`: the link text token on the tonal fill at 4.5:1 or more).
-    private func textPasses(
+    /// secondary text token (see `auditWithContrast`), a text token measured at 4.5:1 or more on the background drawn
+    /// behind it (on iOS 26 the audit also flags text in the primary, the link and the status text tokens, whichever
+    /// element comes first, although each passes on the canvas and the card in `contrast-pairs.json`: it reads the pixels
+    /// around the text; so the colour behind the text, measured as the most common colour of the frame, must be the
+    /// canvas or the card, and the text one of those tokens' colours passing 4.5:1 on it), or the tonal pill's label
+    /// (`PillButtonKind.tonal`: the link text token on the tonal fill at 4.5:1 or more). Text on any other background
+    /// (the accent, a status colour, a tint) is never accepted, whatever its colour. The token text is accepted on iOS 26
+    /// only; iOS 27 does not misread it.
+    func textPasses(
         _ element: XCUIElement, in colours: ScreenColours, style: UIUserInterfaceStyle, backgrounds: [RGB],
         secondary: RGB
     ) -> Bool {
         let frame = element.frame.insetBy(dx: 1, dy: 1)
-        if backgrounds.contains(where: { colours.foreground(in: frame, on: $0).distance(to: secondary) <= 8 }) {
-            return true
+        let drawn = colours.dominant(in: frame)
+        if backgrounds.contains(where: { drawn.distance(to: $0) <= 8 }) {
+            let text = colours.foreground(in: frame, on: drawn)
+            if text.distance(to: secondary) <= 8 { return true }
+            if #unavailable(iOS 27) {
+                let inks = [
+                    Tokens.Colors.textPrimary, Tokens.Colors.textLink, Tokens.Colors.statusDangerText,
+                    Tokens.Colors.statusSuccessText, Tokens.Colors.statusWarningText
+                ].map { RGB($0, in: style) }
+                if text.contrast(with: drawn) >= 4.5, inks.contains(where: { text.distance(to: $0) <= 8 }) {
+                    return true
+                }
+            }
         }
-        let inks = [
-            Tokens.Colors.textPrimary, Tokens.Colors.textLink, Tokens.Colors.statusDangerText,
-            Tokens.Colors.statusSuccessText, Tokens.Colors.statusWarningText
-        ].map { RGB($0, in: style) }
-        let isInk = backgrounds.contains { background in
-            let text = colours.foreground(in: frame, on: background)
-            return text.contrast(with: background) >= 4.5 && inks.contains { text.distance(to: $0) <= 8 }
-        }
-        if isInk { return true }
         guard element.elementType == .button else { return false }
         let fill = RGB(Tokens.Colors.actionTonalBg, in: style)
         let label = element.frame.insetBy(dx: element.frame.width * 0.2, dy: element.frame.height * 0.25)

@@ -100,4 +100,18 @@ struct ScreenColours {
         }
         return furthest
     }
+
+    /// The colour that covers most of `rect`: for text, the background actually drawn behind it (the text strokes
+    /// are a small part of the frame).
+    func dominant(in rect: CGRect) -> RGB {
+        var counts: [Int: Int] = [:]
+        for top in stride(from: rect.minY, to: rect.maxY, by: 1 / scale) {
+            for left in stride(from: rect.minX, to: rect.maxX, by: 1 / scale) {
+                let colour = colour(at: CGPoint(x: left, y: top))
+                counts[(colour.red << 16) | (colour.green << 8) | colour.blue, default: 0] += 1
+            }
+        }
+        let key = counts.max { $0.value < $1.value }?.key ?? 0
+        return RGB(red: (key >> 16) & 255, green: (key >> 8) & 255, blue: key & 255)
+    }
 }

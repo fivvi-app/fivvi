@@ -96,6 +96,7 @@ struct SignInScreen {
     func tap(_ element: XCUIElement, scrollingUpTo attempts: Int = 6) {
         settle(element)
         scrollUp(until: { element.isHittable && !isUnderKeyboard(element) }, attempts: attempts)
+        XCTAssertFalse(isUnderKeyboard(element), "\(element.identifier) is under the keyboard: the tap would hit a key")
         element.tap()
     }
 
