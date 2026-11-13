@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // The app icon of Fivvi Pro on both platforms, generated from one source: the day dial B2, the owner's choice of
-// 8 November 2026 (E020, #666; the vv wordmark stays the brand logo, only the app icon is the dial). Three layers in a
-// 100 x 100 box: the background gradient, the track (a ring around the middle) and the five sectors of the dial. The
-// five `d` strings below are copied unchanged from docs/design/brand/day-dial/b2/layers/3-five.svg (the owner keeps the
+// 8 November 2026 (E020, #666; the vv wordmark stays the brand logo, only the app icon is the dial). Four layers in a
+// 100 x 100 box: the background gradient, the track (a ring around the middle), the five sectors of the dial and, for
+// Fivvi Pro only, PRO in the centre, drawn on top as round strokes (E020, #672).
+// The five `d` strings below are copied unchanged from docs/design/brand/day-dial/b2/layers/3-five.svg (the owner keeps the
 // drawn shapes, never a redraw). They are copied, not read from the brand folder at run time, because the root tests
 // are cached by turbo on their `inputs` (turbo.json), which do not list docs/design/brand. The track is a circle
 // (centre 50, 50, radius 25.5, stroke 7.14), drawn here as the ring between the radii 21.93 and 29.07. The colours are
@@ -14,8 +15,9 @@
 //
 // Output (generated, never edited by hand):
 //   apps/ios/FivviPro/Assets.xcassets/AppIcon.appiconset/AppIcon{,-Dark,-Tinted}.png   1024 px, RGB without alpha
-//                                        (App Store): fivvi-day-dial-b2-{light,dark,tinted}.svg without the rounded
-//                                        clip, which iOS applies itself; with the soft shadow under the sectors
+//                                        (App Store): the fivvi-day-dial-b2-pro-{light,dark,tinted}.svg previews (with
+//                                        PRO) without the rounded clip, which iOS applies itself; with the soft shadow
+//                                        under the sectors, none under PRO
 //   apps/android/app/src/main/res/drawable/ic_launcher_{background,foreground,monochrome}.xml, vector layers
 //   apps/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml   the adaptive icon with its monochrome layer
 //   apps/android/app/src/main/ic_launcher-playstore.png                512 px, RGB (Google Play listing)
@@ -390,7 +392,6 @@ const trackCommands = parsePath(TRACK_PATH);
  */
 const proCommands = (extra = [1, 0, 0, 1, 0, 0]) => {
   const middle = DESIGN / 2;
-  const [a, , , , e, f] = extra;
   return PRO.letters.map(({ d, at: [dx, dy] }) => {
     const placed = transformPath(parsePath(d), [
       PRO.scale,
@@ -400,7 +401,7 @@ const proCommands = (extra = [1, 0, 0, 1, 0, 0]) => {
       middle + PRO.scale * dx,
       middle + PRO.scale * dy,
     ]);
-    return transformPath(placed, [a, 0, 0, a, e, f]);
+    return transformPath(placed, extra);
   });
 };
 
