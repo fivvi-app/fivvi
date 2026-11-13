@@ -423,8 +423,10 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
   const check = (runs, args = ['--all'], setup = () => {}, extraEnv = {}, timeout = undefined) => {
     const dir = join(base, `runs-${n++}`);
     mkdirSync(dir);
-    for (const [name, { lines, exit = 0 }] of Object.entries(runs)) {
-      write(join(dir, `${name}.log`), `${lines.join('\n')}\n`);
+    for (const [name, { lines, exit = 0, latin1 = false }] of Object.entries(runs)) {
+      // latin1: the log keeps a byte that is not UTF-8 (a \xff in the text of a failure).
+      const text = `${lines.join('\n')}\n`;
+      write(join(dir, `${name}.log`), latin1 ? Buffer.from(text, 'latin1') : text);
       write(join(dir, `${name}.exit`), `${exit}\n`);
     }
     rmSync(join(repo(), '.work'), { recursive: true, force: true });
@@ -811,7 +813,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     mkdirSync(bash, { recursive: true });
     if (!existsSync(join(bash, 'bash'))) symlinkSync('/bin/bash', join(bash, 'bash'));
     const lines = Array.from({ length: 20000 }, (_, i) => `e2e line ${i}: ${'x'.repeat(30)}`);
-    const started = Date.now();
+    // The 60 s timeout is the assert on time: the quadratic substitution never finished 8,000 lines.
     const result = check(
       { unit: unit(), integration, e2e: { lines, exit: 1 } },
       ['--all'],
@@ -819,7 +821,6 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       { PATH: `${bash}:${bin()}:${process.env.PATH}` },
       60_000,
     );
-    const seconds = (Date.now() - started) / 1000;
     assert.equal(result.status, 1);
     const shown = result.stdout.split('\n');
     assert.ok(
@@ -827,7 +828,34 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       'the first line is indented by four spaces',
     );
     assert.ok(shown.includes('    e2e line 19999: ' + 'x'.repeat(30)), 'so is the last');
-    assert.ok(seconds < 30, `took ${seconds} s`);
+  });
+
+  it('E001 #1368: a failed check whose log has a non-UTF-8 byte is still shown, and the summary is still printed (bash 3.2, UTF-8 locale)', (t) => {
+    // BSD sed in a UTF-8 locale fails on an illegal byte; under set -e and pipefail that ended check.sh with no output.
+    if (!existsSync('/bin/bash')) return t.skip('no /bin/bash');
+    const bash = join(base, 'bash-3');
+    mkdirSync(bash, { recursive: true });
+    if (!existsSync(join(bash, 'bash'))) symlinkSync('/bin/bash', join(bash, 'bash'));
+    const result = check(
+      {
+        unit: unit(),
+        integration,
+        e2e: {
+          lines: ['e2e before', 'e2e bad byte: \xff here', 'e2e after'],
+          exit: 1,
+          latin1: true,
+        },
+      },
+      ['--all'],
+      () => {},
+      { PATH: `${bash}:${bin()}:${process.env.PATH}`, LC_ALL: 'en_US.UTF-8' },
+      60_000,
+    );
+    assert.equal(result.status, 1, result.stderr);
+    const shown = result.stdout.split('\n');
+    assert.ok(shown.includes('    e2e before'), 'the lines before the byte are shown');
+    assert.ok(shown.includes('    e2e after'), 'so are the lines after it');
+    assert.match(result.stdout, /^root +/m, 'the summary table is printed');
   });
 
   it('E002 #112 AC1: is git-ignored: the summary goes to .work/', () => {

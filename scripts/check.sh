@@ -97,8 +97,13 @@ check() {
   else
     echo "✗ $name"
     # Indented with sed, not ${out//$'\n'/...}: bash 3.2's (macOS /bin/bash) substitution is quadratic in the length of the
-    # string, and a failed e2e run prints thousands of lines: check.sh spun for hours holding the lock (#1368).
-    [ -z "$out" ] || failure_output "$out" | sed 's/^/    /'
+    # string, and a failed e2e run prints thousands of lines: check.sh spun for hours holding the lock (#1368). Only the
+    # indenting is a pipe, and LC_ALL=C keeps BSD sed from failing on a byte that is not UTF-8 (under pipefail that would
+    # end check.sh before the summary).
+    if [ -n "$out" ]; then
+      out="$(failure_output "$out")"
+      printf '%s\n' "$out" | LC_ALL=C sed 's/^/    /'
+    fi
     FAILED=1
   fi
 }
