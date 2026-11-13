@@ -213,7 +213,10 @@ jobs:
       # One turbo run so independent tasks run in parallel. A failing task
       # doesn't stop the unrelated ones, so one run reports every failure.
       - name: Lint, typecheck, unit and integration tests, build, format and static checks
-        timeout-minutes: ${{ github.event_name == 'push' && 10 || 360 }}
+        # On a push only (E002 #1357): a hang fails this step, which continue-on-error covers, instead of the job timeout
+        # cancelling the job and the run. The slowest of 34 push runs of main took 620 s here (3 took 10 minutes or more),
+        # and the job spends about 1 minute outside this step: 13 + 1 leaves 1 of the job's 15 minutes for the cache save.
+        timeout-minutes: ${{ github.event_name == 'push' && 13 || 360 }}
         continue-on-error: ${{ github.event_name == 'push' }}
         run: >-
           pnpm exec turbo run lint typecheck test test:integration build format:check check
@@ -242,8 +245,12 @@ jobs:
     runs-on: ubuntu-24.04
     continue-on-error: ${{ github.event_name == 'push' }}
     # 15 minutes for the work itself (the last runs took 10 to 14) plus the 10 minutes the OS packages step may spend
-    # on its retries (#1311), so the job is never cancelled in the middle of one.
-    timeout-minutes: 25
+    # on its retries (#1311), so the job is never cancelled in the middle of one. On a push (E002 #1357) the work step may
+    # take 20 minutes (below), so the job gets 35: about 1 minute outside the steps, the worst case of the OS packages step
+    # (10) and the work step (20) make 31, and 4 minutes remain for the post steps (the Playwright report, the caches). A
+    # push is not in the merge queue's chain of timeouts (150, ADR-018), so this lengthens no queue wait; a pull request,
+    # a merge group and workflow_dispatch keep 25.
+    timeout-minutes: ${{ github.event_name == 'push' && 35 || 25 }}
     # The e2e servers each create and migrate their own database on it (apps/web/e2e/serve.ts).
     services:
       postgres:
@@ -316,7 +323,9 @@ jobs:
       # Builds the web app, then runs every spec in nl-NL and en with axe checks.
       - name: Web e2e (nl-NL and en)
         id: e2e
-        timeout-minutes: ${{ github.event_name == 'push' && 12 || 360 }}
+        # On a push only (E002 #1357), as the turbo step of "Checks (Linux)". The slowest of 32 push runs of main took 754 s
+        # here (7 took 12 minutes or more); 20 minutes is 1.6 times that, and fits the job's 35 with the OS packages step.
+        timeout-minutes: ${{ github.event_name == 'push' && 20 || 360 }}
         continue-on-error: ${{ github.event_name == 'push' }}
         run: pnpm exec turbo run test:e2e --cache-dir=.turbo/cache
 

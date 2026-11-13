@@ -166,7 +166,14 @@ describe('E002 #1357 the push run of CI on main', () => {
       /scripts\/android\.sh (setup|build|emulator|verify|maestro-apk)/,
       /scripts\/maestro\.sh /,
     ];
-    const jobMinutes = (job) => Number(job.match(/^ {4}timeout-minutes: (\d+)$/m)[1]);
+    // The job timeout of a push run: a number, or `push && N || M` (N on a push, M on the other events).
+    const jobMinutes = (job) => {
+      const value = job.match(/^ {4}timeout-minutes: (.+)$/m)[1];
+      if (/^\d+$/.test(value)) return Number(value);
+      const match = value.match(/^\$\{\{ github\.event_name == 'push' && (\d+) \|\| (\d+) \}\}$/);
+      assert.ok(match, `a job timeout is a number or the push expression: ${value}`);
+      return Number(match[1]);
+    };
     // The step timeout on a push: a number, or the expression `push && N || 360`.
     const pushMinutes = (step) => {
       const value = step.match(/^ {8}timeout-minutes: (.+)$/m)?.[1];
@@ -240,6 +247,31 @@ describe('E002 #1357 the push run of CI on main', () => {
     );
   });
 
+  it('the push timeouts of the turbo steps hold the slowest measured push runs, and the E2E job is longer on a push only', () => {
+    // Measured over the push runs of main that ended in success or failure: Checks (Linux) took up to 620 s in its turbo
+    // step (3 of 34 runs took 10 minutes or more), E2E (Linux) up to 754 s (7 of 32 took 12 minutes or more); a job spends
+    // about 1 minute outside its long step.
+    const minutes = (step) =>
+      Number(step.match(/^ {8}timeout-minutes: .* && (\d+) \|\| 360 \}\}$/m)?.[1]);
+    const turbo = (job) => steps(jobs[job]).find((step) => /pnpm exec turbo run/.test(step));
+    const checksStep = minutes(turbo('checks'));
+    const e2eStep = minutes(turbo('e2e'));
+    assert.ok(checksStep * 60 >= 1.2 * 620, `Checks (Linux) turbo step: ${checksStep} minutes`);
+    assert.ok(e2eStep * 60 >= 1.2 * 754, `E2E (Linux) turbo step: ${e2eStep} minutes`);
+    // Checks (Linux): the step, the minute outside it and the cache save fit the job's 15 minutes.
+    assert.ok(checksStep + 1 + 1 <= 15);
+    // E2E (Linux): 35 minutes on a push, 25 on the other events (the job's timeout before this ticket); the push job holds
+    // the minute outside the steps, the worst case of the OS packages step (10), the work step and 2 minutes for the post steps.
+    assert.match(
+      jobs.e2e,
+      /^ {4}timeout-minutes: \$\{\{ github\.event_name == 'push' && 35 \|\| 25 \}\}$/m,
+    );
+    assert.ok(1 + 10 + e2eStep + 2 <= 35);
+    // The comments tie the numbers to the measured runs.
+    assert.match(ci, /slowest of 34 push runs of main took 620 s/);
+    assert.match(ci, /slowest of 32 push runs of main took 754 s/);
+  });
+
   it('the required checks keep their names', () => {
     const names = [...ci.matchAll(/^ {4}name: (.+)$/gm)].map((match) => match[1]);
     for (const required of ['Detect changes', 'Checks (Linux)', 'E2E (Linux)', 'iOS', 'Android']) {
@@ -302,7 +334,7 @@ describe('E002 #1357 the docs describe the push run', () => {
     assert.doesNotMatch(section, /The check of `main` itself is the daily full run/);
   });
 
-  it('ENVIRONMENTS.md §4 says the deploy of development and production waits on a push run that cannot fail', () => {
+  it('ENVIRONMENTS.md §4 says the deploy of development and production waits on a push run that only fills caches, and what is still open', () => {
     const environments = read('docs/engineering/ENVIRONMENTS.md');
     const section = environments.slice(
       environments.indexOf('## 4. From PR to production'),
