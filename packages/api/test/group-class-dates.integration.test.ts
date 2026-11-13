@@ -247,7 +247,7 @@ describe('F021 edit one date of a class', () => {
     expect((await stored(privateSession.id))?.version).toBe(1);
   });
 
-  it('AC8: another workspace’s date answers 404 and is not changed', async () => {
+  it('@isolation AC8: another workspace’s date answers 404 and is not changed', async () => {
     const { server, date } = await aDate();
     const elsewhere = await groupClassWorld(admin);
 

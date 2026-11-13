@@ -89,7 +89,7 @@ test.describe('F029 the Aanmeldlink page', () => {
     await expect(joinLink).toHaveText(new RegExp(`/j/${after}$`));
   });
 
-  test('AC7: no requests tab for a Trainer', async ({
+  test('@permission AC7: no requests tab for a Trainer', async ({
     page,
     context,
     appLocale,

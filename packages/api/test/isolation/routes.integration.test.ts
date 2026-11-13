@@ -9,7 +9,7 @@ import { runIsolationSuite } from './suite.ts';
 
 type Scenario = Awaited<ReturnType<typeof seedScenario>>;
 
-describe('E011 isolation suite', () => {
+describe('@isolation E011 isolation suite', () => {
   let world: World;
 
   beforeAll(async () => {
@@ -34,7 +34,7 @@ describe('E011 isolation suite', () => {
   );
 });
 
-describe('F002 the route that creates a workspace, in the isolation suite', () => {
+describe('@isolation F002 the route that creates a workspace, in the isolation suite', () => {
   let world: World;
 
   beforeAll(async () => {
@@ -79,7 +79,7 @@ describe('F002 the route that creates a workspace, in the isolation suite', () =
   );
 });
 
-describe('E011 account routes', () => {
+describe('@isolation E011 account routes', () => {
   let world: World;
   let s: Scenario;
   let clientInC: string;

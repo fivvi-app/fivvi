@@ -98,7 +98,7 @@ describe('E019 payment ledger', () => {
     return undefined;
   }
 
-  it('AC5: two requests for one business key at once make one payment', async () => {
+  it('@concurrency AC5: two requests for one business key at once make one payment', async () => {
     const { workspaceId, inScope } = await gym();
     const clientId = await newClient(workspaceId)();
     const results = await Promise.all(
@@ -119,7 +119,7 @@ describe('E019 payment ledger', () => {
     ).toHaveLength(1);
   });
 
-  it('AC7: two status changes at once write one line', async () => {
+  it('@concurrency AC7: two status changes at once write one line', async () => {
     const { workspaceId, inScope } = await gym();
     const clientId = await newClient(workspaceId)();
     const { payment } = await inScope((scope) => insertPayment(scope, input(clientId)));

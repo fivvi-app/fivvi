@@ -32,7 +32,7 @@ const teamOnly = (place: Place) => (place.teamRole ? ('team' as const) : undefin
 const clientOnly = (place: Place) => (place.clientId ? ('client' as const) : undefined);
 const teamOrClient = (place: Place) => teamOnly(place) ?? clientOnly(place);
 
-describe('E011 the tenant scope of a request transaction', () => {
+describe('@isolation E011 the tenant scope of a request transaction', () => {
   let database: TestDatabase;
   let admin: DatabaseClient;
   let app: DatabaseClient;

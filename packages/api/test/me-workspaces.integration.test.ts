@@ -135,7 +135,7 @@ describe('F003 GET /v1/me/workspaces', () => {
     expect(required).toContain('trainsHere');
   });
 
-  it('does not list a workspace the account is only a client of, nor anyone else’s', async () => {
+  it('@isolation does not list a workspace the account is only a client of, nor anyone else’s', async () => {
     const gym = await createWorkspace(admin.db, { label: 'gym' });
     const clientOf = await createWorkspace(admin.db, { label: 'client-of' });
     const elsewhere = await createWorkspace(admin.db, { label: 'elsewhere' });
@@ -159,7 +159,7 @@ describe('F003 GET /v1/me/workspaces', () => {
     expect(await response.json()).toEqual([]);
   });
 
-  it('answers 401 to anonymous', async () => {
+  it('@permission answers 401 to anonymous', async () => {
     expect((await get()).status).toBe(401);
   });
 
@@ -171,7 +171,7 @@ describe('F003 GET /v1/me/workspaces', () => {
   });
 });
 
-describe('F004 capabilities on GET /v1/me/workspaces', () => {
+describe('@permission F004 capabilities on GET /v1/me/workspaces', () => {
   it('AC8: Sarah has every Owner capability in her own workspace and Trainer ones in John’s Gym', async () => {
     const gym = await createWorkspace(admin.db, { label: 'johns-gym' });
     const own = await createWorkspace(admin.db, { label: 'sarah-training' });

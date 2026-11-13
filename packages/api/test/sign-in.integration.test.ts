@@ -837,7 +837,7 @@ describe('F001 sign in with the emailed code through the API', () => {
       expect(response.headers.getSetCookie()).toEqual([]);
     });
 
-    it('guesses made in parallel are counted too', async () => {
+    it('@concurrency guesses made in parallel are counted too', async () => {
       await requestCode('owner@example.com', 'en');
       const { code } = readEmail();
       const wrong = wrongCodeFor(code);
@@ -1432,7 +1432,7 @@ describe('F001 sign in with the emailed code through the API', () => {
       expect(transport.sent).toHaveLength(3);
     });
 
-    it('AC10: requests made in parallel are all counted', async () => {
+    it('@concurrency AC10: requests made in parallel are all counted', async () => {
       const { server } = startAt();
 
       await Promise.all(
@@ -1850,7 +1850,7 @@ describe('F001 sign in with the emailed code through the API', () => {
       expect(sessionCookie(confirm)).toBeUndefined();
     });
 
-    it('AC4: a link works once, even when the button is pressed twice at the same time', async () => {
+    it('@concurrency AC4: a link works once, even when the button is pressed twice at the same time', async () => {
       await requestCode('owner@example.com', 'en');
       const { token } = readEmail();
 

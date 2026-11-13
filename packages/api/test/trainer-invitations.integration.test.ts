@@ -461,7 +461,7 @@ describe('F011 trainer invitations', () => {
     ).toBe(201);
   });
 
-  it('AC7: an invitation that is not there, is closed or is another workspace’s can not be sent or withdrawn', async () => {
+  it('@isolation AC7: an invitation that is not there, is closed or is another workspace’s can not be sent or withdrawn', async () => {
     const { gym, other, john, mike, mikeRole } = await world();
     const { server, transport } = setup();
     const accepted = await addTrainerInvitation(admin.db, {
@@ -704,7 +704,7 @@ describe('F011 trainer invitations', () => {
     ).toBe(201);
   });
 
-  it('AC10: invitations made at the same moment still stop at 20', async () => {
+  it('@concurrency AC10: invitations made at the same moment still stop at 20', async () => {
     const { gym, john } = await world();
     const { server } = setup();
 

@@ -200,7 +200,7 @@ describe('F050 bookingEmails on GET and PATCH /v1/me', () => {
     expect((await stored(sarah.id))?.bookingEmails).toBe(true);
   });
 
-  it('AC6: nobody signed in gets 401, on GET and on PATCH', async () => {
+  it('@permission AC6: nobody signed in gets 401, on GET and on PATCH', async () => {
     expect((await patch(undefined, { bookingEmails: false })).status).toBe(401);
     expect((await api().request('/v1/me')).status).toBe(401);
   });

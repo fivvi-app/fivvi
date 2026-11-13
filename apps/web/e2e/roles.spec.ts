@@ -23,7 +23,7 @@ interface TeamMember {
   role: string;
 }
 
-test.describe('F004 roles on the web', () => {
+test.describe('@permission F004 roles on the web', () => {
   test.beforeEach(async ({ context }) => {
     await context.setExtraHTTPHeaders(clientIpHeaders());
   });

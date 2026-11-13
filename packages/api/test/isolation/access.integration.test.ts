@@ -21,7 +21,7 @@ const protectedOperations = Object.entries(contract.paths).flatMap(([path, item]
     })),
 );
 
-describe('E011 access', () => {
+describe('@isolation E011 access', () => {
   it('AC7: anonymous gets 401 on every workspace and account route', async () => {
     // Nobody is signed in: the default dependencies resolve no account.
     const app = createApp(NO_DEPENDENCIES);
@@ -57,7 +57,7 @@ const NO_SUCH_WORKSPACE = '0197c0de-0000-7000-8000-0000000000ff';
 // required name, and a query that is no page number. The other routes ignore them.
 const INVALID_REQUESTS = [{}, { query: '?page=abc', body: { unexpected: true } }] as const;
 
-describe('E011 the caller’s place in the workspace', () => {
+describe('@isolation E011 the caller’s place in the workspace', () => {
   let world: World;
   let s: Scenario;
   const inWorkspace = (workspaceId: string, route: string) =>
