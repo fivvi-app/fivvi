@@ -60,7 +60,7 @@ Entry points: `@fivvi/database` (client, schema, queries, `pingDatabase`, `HELLO
 
 Rules:
 
-- **Two PRs, one number.** When a merge of `main` brings a migration with the number of yours, `scripts/check.sh` fails on it ("database migrations"). Merge `main`, then run `node scripts/db-renumber.mjs` from the repository root: it renames your migrations after main's last, rewrites the journal and the snapshot chain, keeps the SQL, and refuses a migration that has already run in a database it is given (`--database-url`). Don't renumber by hand.
+- **Two PRs, one number.** When a merge of `main` brings a migration with the number of yours, `scripts/check.sh` fails on it ("database migrations"). Merge `main`, then run `node scripts/db-renumber.mjs`; the steps and what it refuses are in [docs/agents/build.md](../../docs/agents/build.md) (**Database migrations**). Don't renumber by hand.
 - **Forward-only.** Never edit or delete a migration that has been merged; fix mistakes with a new one. Destructive changes go expand → migrate → contract.
 - **Plain SQL** for what Drizzle can't express (RLS policies, triggers, functions): `pnpm --filter @fivvi/database exec drizzle-kit generate --custom --name <what>` creates an empty migration to write it in.
 - `migrations/` is generated: Biome skips it; never hand-edit `meta/`.

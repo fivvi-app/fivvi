@@ -459,22 +459,12 @@ describe('#1273 renumbering the migrations of a branch', () => {
       );
     });
 
-    it('says when no database was checked', () => {
+    it('says that no database was checked, and that the PR’s own preview database is not one of them', () => {
       clash();
       const result = run('--base', 'main');
-      assert.match(result.stdout, /database/i);
+      assert.match(result.stdout, /database: not checked/);
+      assert.match(result.stdout, /preview database is not checked/);
+      assert.doesNotMatch(result.stdout, /preview url/i);
     });
-  });
-});
-
-describe('#1273 check.sh runs the check', () => {
-  it('runs the migration check with the hygiene checks, with the command in its message', () => {
-    const check = readFileSync(join(import.meta.dirname, '..', 'check.sh'), 'utf8');
-    assert.ok(
-      check.includes(
-        'check "database migrations" node "$ROOT/scripts/db-renumber.mjs" check --base',
-      ),
-      'check.sh does not run db-renumber.mjs check',
-    );
   });
 });

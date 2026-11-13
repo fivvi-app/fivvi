@@ -194,6 +194,51 @@ describe('#293 check.sh runs the checks a change can affect', () => {
     assert.match(fixed.stdout, /✓ doc links/);
   });
 
+  it('#1273: the database migrations check fails on a clashing migration, with the command to run, and passes without one', () => {
+    const migrations = 'packages/database/migrations';
+    const journal = (tags) =>
+      JSON.stringify({
+        version: '7',
+        dialect: 'postgresql',
+        entries: tags.map((tag, idx) => ({ idx, version: '7', when: idx, tag, breakpoints: true })),
+      });
+    const snapshot = (n, id, prevId) =>
+      write(join(repo(), migrations, 'meta', `000${n}_snapshot.json`), JSON.stringify({ id, prevId }));
+    const zero = '00000000-0000-4000-8000-000000000000';
+    const one = '00000000-0000-4000-8000-000000000001';
+    // main has 0000 and 0001; the branch adds its own 0001.
+    const before = git('rev-parse', 'HEAD').trim();
+    write(join(repo(), migrations, '0000_init.sql'), 'SELECT 1;\n');
+    write(join(repo(), migrations, '0001_main.sql'), 'SELECT 1;\n');
+    write(join(repo(), migrations, 'meta/_journal.json'), journal(['0000_init', '0001_main']));
+    snapshot(0, zero, '00000000-0000-0000-0000-000000000000');
+    snapshot(1, one, zero);
+    git('add', '.');
+    git('commit', '--quiet', '-m', 'feat(F020): main migrations');
+    const main = git('rev-parse', 'HEAD').trim();
+    git('update-ref', 'refs/remotes/origin/main', main);
+    try {
+      const clean = run([]);
+      assert.equal(clean.status, 0, clean.stdout);
+      assert.match(clean.stdout, /✓ database migrations/);
+
+      write(join(repo(), migrations, '0001_own.sql'), 'SELECT 2;\n');
+      write(
+        join(repo(), migrations, 'meta/_journal.json'),
+        journal(['0000_init', '0001_main', '0001_own']),
+      );
+      snapshot(1, one, zero);
+      const clash = run([]);
+      assert.equal(clash.status, 1, clash.stdout);
+      assert.match(clash.stdout, /✗ database migrations/);
+      assert.match(clash.stdout, /0001_own/);
+      assert.match(clash.stdout, /node scripts\/db-renumber\.mjs/);
+    } finally {
+      git('update-ref', 'refs/remotes/origin/main', before);
+      git('reset', '--quiet', '--hard', before);
+    }
+  });
+
   it('AC3: a change to one package runs lint, types, unit tests and build for it and its dependents only', () => {
     const result = run(['packages/ui/src/button.ts']);
     assert.equal(result.status, 0, result.stdout);

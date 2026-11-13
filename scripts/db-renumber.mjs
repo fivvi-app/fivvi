@@ -284,7 +284,7 @@ export const renumberMigrations = ({
     notes.push('database: the migration history has none of these migrations.');
   } else
     notes.push(
-      'database: not checked. A migration that already ran in a preview or other database cannot be renumbered; pass --database-url <url> to check one (needs psql).',
+      'database: not checked (pass --database-url <url> of a local database to check one; needs psql). The PR’s own preview database is not checked: once the PR has deployed, its preview has run the old-numbered migration.',
     );
 
   // The snapshots: the branch's changes applied onto main's last snapshot, one step at a time.
