@@ -12,6 +12,7 @@ final class KitGalleryUITests: XCTestCase {
 
     override func setUp() async throws {
         continueAfterFailure = false
+        AppLifecycle.testCase = self
     }
 
     func test_E020_AC8_systemLiquidGlassComponents() throws {
