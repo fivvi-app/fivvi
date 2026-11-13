@@ -28,9 +28,7 @@ type Refused =
   | { ok: false; reason: 'home' }
   | { ok: false; reason: 'noConnection' | 'generic' };
 
-export type PlanResult =
-  | { ok: true; session: Session }
-  | Refused;
+export type PlanResult = { ok: true; session: Session } | Refused;
 
 export type RescheduleResult =
   | { ok: true; session: Session }

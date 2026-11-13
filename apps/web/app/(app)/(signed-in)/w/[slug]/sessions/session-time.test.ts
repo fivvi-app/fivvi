@@ -65,7 +65,7 @@ describe('F020 PS-05 session time: the values a stored session fills the form wi
 });
 
 describe('F020 durations', () => {
-  it('lists every length the API accepts: the domain\'s range, minimum to maximum in steps', () => {
+  it("lists every length the API accepts: the domain's range, minimum to maximum in steps", () => {
     const { min, max, step } = PRIVATE_SESSION_DURATIONS;
     const accepted: number[] = [];
     for (let minutes = min; minutes <= max; minutes += step) accepted.push(minutes);
