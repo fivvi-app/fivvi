@@ -278,6 +278,7 @@ describe('F013 the personal read model', () => {
         capacity: 1,
         location: expect.objectContaining({ name: w.gym.marker, address: null }),
         clientName: 'Anna de Vries',
+        clients: [{ clientId: expect.any(String), name: 'Anna de Vries' }],
         classNameNl: null,
         classNameEn: null,
         booked: 1,
