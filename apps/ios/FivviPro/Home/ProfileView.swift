@@ -27,6 +27,8 @@ struct ProfileView: View {
     /// Opens a page of the website in the system browser (F064 AC17); the home passes its `openURL`.
     let openLink: (URL) -> Void
     @Environment(\.dynamicTypeSize) var dynamicTypeSize
+    /// The room of the check on a workspace row; it grows with the text size, like the check (a symbol).
+    @ScaledMetric(relativeTo: .body) var checkSlot: CGFloat = 20
 
     var body: some View {
         LargeTitleScreen(title: model.catalog[.profileTitle], titleIdentifier: "profile.title") {

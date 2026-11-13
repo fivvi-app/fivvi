@@ -35,7 +35,7 @@ extension ProfileView {
                     Image(systemName: "checkmark")
                         .foregroundStyle(Tokens.Colors.accentText)
                         .opacity(isCurrent ? 1 : 0)
-                        .frame(width: Metrics.checkSlot)
+                        .frame(width: checkSlot)
                         .accessibilityHidden(true)
                 }
                 .insetRowLayout()
@@ -79,7 +79,7 @@ extension ProfileView {
             Text(entry.role)
                 .font(.system(Tokens.TextStyle.subhead))
                 .foregroundStyle(Tokens.Colors.textSecondary)
-                .multilineTextAlignment(.trailing)
+                .multilineTextAlignment(dynamicTypeSize.isAccessibilitySize ? .leading : .trailing)
                 .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier("profile.workspaceRole.\(entry.slug)")
         }
@@ -88,8 +88,6 @@ extension ProfileView {
     private enum Metrics {
         /// The workspace's colour mark.
         static let mark: CGFloat = 36
-        /// The room of the check on the current workspace.
-        static let checkSlot: CGFloat = 20
     }
 
     /// *Ik geef zelf ook trainingen in …*: it shows what the API accepted and waits while saving; a tap sends the

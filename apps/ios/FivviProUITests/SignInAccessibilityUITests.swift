@@ -34,6 +34,35 @@ final class SignInAccessibilityUITests: SignInUITestCase {
         try assertReadable(screen, [screen.signedInAs, screen.signOut, screen.greeting])
     }
 
+    /// E020 AC15: the audit with the contrast check on both steps of TM-01 (with their messages) and on the signed-in
+    /// home, in light and dark. Only the secondary text token is accepted as low contrast (`auditWithContrast`).
+    func test_E020_AC15_signInAndHomePassTheAccessibilityAuditInLightAndDark() throws {
+        let server = try StubServer(.greeting(key: "hello.title"))
+        for (mode, style) in [("light", UIUserInterfaceStyle.light), ("dark", .dark)] {
+            let screen = SignInScreen.launch(against: server, session: .rejectedToken, appearance: mode)
+            XCTAssertTrue(screen.notice.waitUntilExists(timeout: timeout), mode)
+            screen.settle(screen.sendCode)
+            try auditWithContrast(screen.app, style: style, "email step, \(mode)")
+
+            try screen.requestCodeOfflineThenRetry(for: server.signIn.email, on: server) {
+                // The keyboard of the email field covers the button: the audit reads pixels, so bring it into view.
+                screen.scrollIntoView(screen.retry)
+                try auditWithContrast(screen.app, style: style, "lost connection, \(mode)")
+            }
+            screen.type("000000", into: screen.code)
+            XCTAssertTrue(screen.error.waitUntilExists(timeout: timeout), mode)
+            screen.settle(screen.error)
+            screen.scrollIntoView(screen.changeEmail)
+            try auditWithContrast(screen.app, style: style, "code step with its error, \(mode)")
+
+            screen.type(server.signIn.code, into: screen.code)
+            XCTAssertTrue(screen.signedInAs.waitUntilExists(timeout: timeout), mode)
+            screen.settle(screen.signOut)
+            try auditWithContrast(screen.app, style: style, "home, \(mode)")
+            screen.app.terminate()
+        }
+    }
+
     /// Every button keeps the 44 pt touch target, at the default text size.
     func test_F001N_AC15_touchTargets() throws {
         let server = try StubServer(.greeting(key: "hello.title"))

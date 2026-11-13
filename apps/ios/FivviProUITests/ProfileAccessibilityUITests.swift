@@ -2,7 +2,8 @@ import XCTest
 
 /// E020 AC15: the accessibility audit of *Profiel* (the workspaces with their mark and role, the switch *Ik geef zelf
 /// ook trainingen in …* with its message, the language with its error) and of the name sheet with its error, in light and
-/// dark. The audit includes the contrast check, which accepts only the secondary text token (`auditWithContrast`).
+/// dark. The audit includes the contrast check, which accepts only the secondary text token, and exempts only the name
+/// sheet's system bar buttons and title, each for the issues listed at `auditWithContrast`.
 @MainActor
 final class ProfileAccessibilityUITests: SignInUITestCase {
     private func launchAsSarah(appearance: String, against server: StubServer) -> SignInScreen {
@@ -73,7 +74,11 @@ final class ProfileAccessibilityUITests: SignInUITestCase {
             XCTAssertTrue(Polling.until(timeout: timeout, interval: 0.2) { input.label.hasSuffix(message) }, mode)
             screen.settle(input)
 
-            try auditWithContrast(app, style: style, "name sheet with its error, \(mode)")
+            try auditWithContrast(
+                app, style: style, "name sheet with its error, \(mode)",
+                systemBarItems: ["profile.nameCancel", "profile.nameSave", "profile.nameEditor"],
+                systemBarTitle: "profile.nameEditor"
+            )
             app.terminate()
         }
     }

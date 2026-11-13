@@ -28,6 +28,19 @@ struct RGB: Equatable, CustomStringConvertible {
         max(abs(red - other.red), abs(green - other.green), abs(blue - other.blue))
     }
 
+    /// The WCAG contrast ratio between this colour and `other` (1 to 21).
+    func contrast(with other: RGB) -> Double {
+        func luminance(_ rgb: RGB) -> Double {
+            func linear(_ channel: Int) -> Double {
+                let value = Double(channel) / 255
+                return value <= 0.03928 ? value / 12.92 : pow((value + 0.055) / 1.055, 2.4)
+            }
+            return 0.2126 * linear(rgb.red) + 0.7152 * linear(rgb.green) + 0.0722 * linear(rgb.blue)
+        }
+        let (lighter, darker) = (max(luminance(self), luminance(other)), min(luminance(self), luminance(other)))
+        return (lighter + 0.05) / (darker + 0.05)
+    }
+
     var description: String { String(format: "#%02X%02X%02X", red, green, blue) }
 }
 
