@@ -8,7 +8,8 @@ import XCTest
 /// the timeout.
 enum Polling {
     /// Whether `condition` held within `timeout` seconds; checks it once more at the deadline. `now` and `wait` are
-    /// the clock and the pause between checks, which `PollingTests` replaces so they don't sleep.
+    /// the clock and the pause between checks, which `PollingTests` and `PollingTypingTests` replace so they
+    /// don't sleep.
     @discardableResult
     static func until(
         timeout: TimeInterval,
