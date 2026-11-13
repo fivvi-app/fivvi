@@ -51,7 +51,7 @@ extension XCUIElement {
     }
 
     /// What the text field holds: nil when it is not there, and "" for an empty field, where `value` is its placeholder.
-    var text: String? {
+    var fieldText: String? {
         guard exists, let value = value as? String else { return nil }
         return value == placeholderValue ? "" : value
     }
@@ -66,28 +66,31 @@ extension XCUIElement {
         focus(file: file, line: line)
         if replacing { clear(file: file, line: line) }
         if text.isEmpty { return }
-        let before = self.text ?? ""
+        let before = fieldText ?? ""
         let result = Polling.typing(
-            text, expecting: before + text, type: { typeText($0) }, read: { self.text },
-            report: { attempt, attempts in
-                XCTContext.runActivity(
-                    named: Polling.typingWarning(identifier: identifier, attempt: attempt, of: attempts)
-                ) { _ in }
-            }
+            text, expecting: before + text, type: { typeText($0) }, read: { fieldText },
+            report: reportRepeatedTyping
         )
         if case .dropped(let held) = result {
             XCTFail("typing \"\(text)\" into \(identifier) left \"\(held)\" in it", file: file, line: line)
         }
     }
 
+    /// Leaves the `::warning::flaky` activity of repeated typing in the test's result, named after the field.
+    private func reportRepeatedTyping(_ attempt: Int, _ attempts: Int) {
+        XCTContext.runActivity(
+            named: Polling.typingWarning(identifier: identifier, attempt: attempt, of: attempts)
+        ) { _ in }
+    }
+
     /// Deletes what the field holds, once more for the letters a loaded runner left.
     private func clear(file: StaticString, line: UInt) {
         for _ in 0..<3 {
-            guard let held = text, !held.isEmpty else { return }
+            guard let held = fieldText, !held.isEmpty else { return }
             typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: held.count))
-            _ = Polling.until(timeout: 1) { (self.text ?? "").count < held.count }
+            _ = Polling.until(timeout: 1) { (self.fieldText ?? "").count < held.count }
         }
-        if let held = text, !held.isEmpty {
+        if let held = fieldText, !held.isEmpty {
             XCTFail("\(identifier) still holds \"\(held)\" after deleting it", file: file, line: line)
         }
     }

@@ -53,7 +53,7 @@ struct SignInScreen {
     /// (`XCUIElement.enter`). The code field acts on its last digit, so what it holds afterwards says nothing: it
     /// gets the typing alone.
     func type(_ text: String, into field: XCUIElement) {
-        if field.identifier == "signIn.code" {
+        if field.identifier == code.identifier {
             field.focus()
             field.typeText(text)
         } else {
