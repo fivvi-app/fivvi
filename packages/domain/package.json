@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./zoned-time": "./src/scheduling/zoned-time.ts",
     "./testing": "./src/payments/testing/index.ts"
   },
   "scripts": {

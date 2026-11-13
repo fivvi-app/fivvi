@@ -5,6 +5,7 @@ import { Avatar } from '@fivvi/ui/kit/avatar';
 import type { Route } from 'next';
 import Link from 'next/link';
 import { useTranslations } from 'next-intl';
+import { useSessionFormat } from '../sessions/use-session-format';
 import { initials } from '../workspace-initials';
 import { EditClient } from './edit-client';
 
@@ -15,9 +16,12 @@ import { EditClient } from './edit-client';
  * parts come with the features that own them; none shows as an empty tab. *Bewerken*
  * (TW-02, AC7) is shown to a person who may edit clients (`clients.manage`) and opens the
  * quick-add form with the client's values. `added` is the short confirmation after a quick add.
+ * *Komende sessies* (F020) lists the client's next private sessions with the date, the time and
+ * the trainer (when it has one), each opening its page, or says that none are planned.
  */
 export function ClientProfile({
   client,
+  upcoming,
   workspaceId,
   slug,
   canEdit,
@@ -25,6 +29,8 @@ export function ClientProfile({
   added,
 }: {
   client: Schemas['Client'];
+  /** The client's next private sessions (F020, AC9): at most 5, soonest first. */
+  upcoming: Schemas['UpcomingSessions'];
   workspaceId: string;
   slug: string;
   /** The person has `clients.manage`. */
@@ -36,6 +42,7 @@ export function ClientProfile({
   const t = useTranslations('clients');
   const names = useTranslations('clients.languageNames');
   const form = useTranslations('clients.addDialog');
+  const { day, time } = useSessionFormat(upcoming.timeZone);
   const language =
     client.emailLocale === 'nl-NL'
       ? form('localeNl')
@@ -91,6 +98,41 @@ export function ClientProfile({
                 <dt className="text-muted-foreground">{t('profile.localeLabel')}</dt>
                 <dd>{language}</dd>
               </dl>
+            </CardContent>
+          </Card>
+        </section>
+        <section aria-labelledby="client-upcoming">
+          <Card>
+            <CardHeader>
+              <CardTitle>
+                <h2 id="client-upcoming" className="text-[15px] font-semibold">
+                  {t('profile.upcomingTitle')}
+                </h2>
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              {upcoming.sessions.length === 0 ? (
+                <p className="text-sm text-muted-foreground">{t('profile.upcomingEmpty')}</p>
+              ) : (
+                <ul className="grid gap-1.5 text-sm">
+                  {upcoming.sessions.map((session) => (
+                    <li key={session.id} className="flex flex-wrap gap-x-3">
+                      <Link
+                        href={`/w/${slug}/sessions/${session.id}` as Route}
+                        className="underline underline-offset-4"
+                      >
+                        {t('profile.upcomingWhen', {
+                          date: day(session.startsAt),
+                          time: time(session.startsAt),
+                        })}
+                      </Link>
+                      {session.trainer ? (
+                        <span className="text-muted-foreground">{session.trainer.name}</span>
+                      ) : null}
+                    </li>
+                  ))}
+                </ul>
+              )}
             </CardContent>
           </Card>
         </section>
