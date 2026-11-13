@@ -1,9 +1,9 @@
 import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
-import { type locales, messages } from '@fivvi/i18n';
 import { describe, expect, it } from 'vitest';
 import { type CatalogEntry, catalog } from './catalog.ts';
 import { checkEmailTable, parseEmailTable } from './catalog-docs.ts';
+import { messageOf } from './template-checks.ts';
 
 const informationArchitecture = readFileSync(
   fileURLToPath(new URL('../../../docs/design/information-architecture.md', import.meta.url)),
@@ -13,17 +13,10 @@ const informationArchitecture = readFileSync(
 /** The subjects a template is built with: the catalog's subject keys, read from both catalogs. */
 function builtSubjects(entry: CatalogEntry): { nl: string; en: string }[] {
   if (entry.status !== 'active') return [];
-  const read = (locale: (typeof locales)[number], key: string): string =>
-    String(
-      key
-        .split('.')
-        .reduce<unknown>(
-          (node, part) =>
-            node && typeof node === 'object' ? (node as Record<string, unknown>)[part] : undefined,
-          messages[locale],
-        ),
-    );
-  return entry.subjectKeys.map((key) => ({ nl: read('nl-NL', key), en: read('en', key) }));
+  return entry.subjectKeys.map((key) => ({
+    nl: messageOf('nl-NL', key) ?? '',
+    en: messageOf('en', key) ?? '',
+  }));
 }
 
 type CatalogLike = Parameters<typeof checkEmailTable>[1];

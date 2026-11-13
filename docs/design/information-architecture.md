@@ -410,7 +410,7 @@ Every email exists in `nl-NL` and `en` with one template structure (`§51, §74`
 
 The table is the catalog of [`packages/email`](../../packages/email/src/catalog.ts) in words: `packages/email/src/catalog-docs.test.ts` fails when an ID, an audience, an owner feature or a built subject differs between the two, or when a retired entry is not marked retired. M11 adds the commerce emails from EM-24 on. A subject in italics marks an ID that is retired or reserved.
 
-- Emails **never** say "magic link". The button is *Boeking bevestigen* / *Confirm booking*, and the code is shown underneath.
+- Emails **never** say "magic link". The sign-in email (EM-08) shows the code first, and below it a link worded *Inloggen* / *Sign in*.
 - Free text from the owner (e.g. the optional message on a class cancellation, CO-03) is inserted **as typed** and not translated (`§3`). The template marks it as a quote from the workspace.
 
 ---

@@ -20,7 +20,7 @@ export interface EmailTableRow {
 }
 
 /** What the "To" column says for each audience of the catalog. */
-export const audienceLabels: Record<EmailAudience, string> = {
+const audienceLabels: Record<EmailAudience, string> = {
   client: 'Client',
   trainer: 'Trainer',
   owner: 'Owner',
