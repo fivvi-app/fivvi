@@ -13,7 +13,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, before, describe, it } from 'node:test';
 import { UNCOVERED_MESSAGE, uncovered } from './turbo-inputs.mjs';
-import { checkQuarantine, LISTS, MARKERS, MAX_DAYS } from '../quarantine.mjs';
+import {
+  checkQuarantine,
+  LISTS,
+  MARKERS,
+  MAX_DAYS,
+  quarantineMode,
+  quarantineSelection,
+  readList,
+  vitestTestNamePattern,
+} from '../quarantine.mjs';
 
 const SCRIPT = join(import.meta.dirname, '..', 'quarantine.mjs');
 const REPO = join(import.meta.dirname, '..', '..');
@@ -203,16 +212,12 @@ describe('#1360 the quarantine rule', () => {
 });
 
 describe('#1360 the lists in this repository', () => {
-  it('AC1: there is one list per runner, outside every guardrail path, and each starts empty', () => {
+  it('AC1: there is one list per runner, outside every guardrail path, and each passes the rule', () => {
     const dir = join(REPO, 'quarantine');
     assert.deepEqual(readdirSync(dir).sort(), LISTS.map((runner) => `${runner}.txt`).sort());
-    for (const runner of LISTS) {
-      const entries = readFileSync(join(dir, `${runner}.txt`), 'utf8')
-        .split('\n')
-        .filter((line) => line.trim() !== '' && !line.startsWith('#'));
-      assert.deepEqual(entries, [], `${runner} starts empty`);
-    }
-    assert.deepEqual(checkQuarantine({ dir, today: TODAY }), []);
+    // The lists start empty and hold an entry only while a flaky test is in quarantine (#1361: the readers need a list
+    // that can hold one, so this no longer asserts that they are empty). Today's date: an entry that expired fails.
+    assert.deepEqual(checkQuarantine({ dir }), []);
     // The root tests read the lists, so turbo must take them as inputs of //#test:root.
     assert.deepEqual(
       uncovered(LISTS.map((runner) => `quarantine/${runner}.txt`)),
@@ -256,5 +261,161 @@ describe('#1360 the lists in this repository', () => {
     const text = readFileSync(join(REPO, 'AGENTS.md'), 'utf8');
     const line = text.split('\n').find((l) => l.startsWith('- Risk is decided by'));
     assert.match(line, /tooling such as[^;]*, quarantine lists/);
+  });
+});
+
+// Spec #1356, ticket #1361: the readers of Vitest and Playwright. An entry is a test's full name as the runner prints it,
+// without the file or the project: the titles of its describe blocks and its own, joined by ` > ` (Vitest) or ` › `
+// (Playwright, whose grep title joins them with a space and ends with the test's tags).
+describe('#1361 the list readers', () => {
+  before(() => {
+    base = realpathSync(mkdtempSync(join(tmpdir(), 'quarantine-readers-')));
+  });
+  after(() => rmSync(base, { recursive: true, force: true }));
+
+  const ENTRIES = [
+    'clients > lists (all) clients | #1400 | 2026-11-12 | 2026-11-19',
+    'sign-in sends a code | #1401 | 2026-11-12 | 2026-11-19',
+  ];
+
+  it('readList returns the entries and skips comments and blank lines', () => {
+    const dir = folder({ vitest: ['# a comment', '', ...ENTRIES] });
+    assert.deepEqual(readList('vitest', { dir }), [
+      {
+        test: 'clients > lists (all) clients',
+        bug: '#1400',
+        added: '2026-11-12',
+        end: '2026-11-19',
+      },
+      { test: 'sign-in sends a code', bug: '#1401', added: '2026-11-12', end: '2026-11-19' },
+    ]);
+  });
+
+  it('readList of a list or a folder that does not exist is empty', () => {
+    assert.deepEqual(readList('vitest', { dir: join(base, 'nothing-here') }), []);
+    assert.deepEqual(readList('maestro', { dir: folder({ vitest: ENTRIES }) }), []);
+  });
+
+  it('the mode is only the listed tests with FIVVI_QUARANTINE=only, and leaving them out otherwise', () => {
+    assert.equal(quarantineMode({ FIVVI_QUARANTINE: 'only' }), 'only');
+    assert.equal(quarantineMode({}), 'exclude');
+    assert.equal(quarantineMode({ FIVVI_QUARANTINE: '' }), 'exclude');
+    assert.throws(() => quarantineMode({ FIVVI_QUARANTINE: 'on' }), /FIVVI_QUARANTINE/);
+  });
+
+  it('an empty list leaves every test in the required jobs, and selects nothing in the Quarantine job', () => {
+    const dir = folder({ vitest: [] });
+    const out = quarantineSelection('vitest', { dir, mode: 'exclude' });
+    assert.equal(out.exclude, undefined);
+    assert.equal(out.only, undefined);
+    const only = quarantineSelection('vitest', { dir, mode: 'only' });
+    assert.equal(only.exclude, undefined);
+    assert.equal(only.only.test('anything at all'), false);
+    assert.equal(only.only.test(''), false);
+  });
+
+  it('a Vitest entry matches the full name of exactly that test, not a longer or a shorter one', () => {
+    const dir = folder({ vitest: ENTRIES });
+    const { only } = quarantineSelection('vitest', { dir, mode: 'only' });
+    assert.ok(only.test('clients > lists (all) clients'));
+    assert.ok(only.test('sign-in sends a code'));
+    assert.equal(only.test('sign-in sends a code twice'), false);
+    assert.equal(only.test('other sign-in sends a code'), false);
+    assert.equal(only.test('clients > lists (all) clients and more'), false);
+    // The characters of a regular expression in a name mean themselves.
+    assert.equal(only.test('clients > lists (all) clientsss'), false);
+    assert.equal(only.test('clients > lists all clients'), false);
+  });
+
+  it('the Vitest pattern of the required jobs rejects the listed tests and accepts every other one', () => {
+    const dir = folder({ vitest: ENTRIES });
+    const pattern = vitestTestNamePattern({ dir, mode: 'exclude' });
+    assert.equal(pattern.test('clients > lists (all) clients'), false);
+    assert.equal(pattern.test('sign-in sends a code'), false);
+    assert.ok(pattern.test('sign-in sends a code twice'));
+    assert.ok(pattern.test('billing pays an invoice'));
+    const only = vitestTestNamePattern({ dir, mode: 'only' });
+    assert.ok(only.test('sign-in sends a code'));
+    assert.equal(only.test('billing pays an invoice'), false);
+  });
+
+  it('with no entry the required jobs take no pattern at all, and the Quarantine job one that matches nothing', () => {
+    const dir = folder({ vitest: [] });
+    assert.equal(vitestTestNamePattern({ dir, mode: 'exclude' }), undefined);
+    assert.equal(vitestTestNamePattern({ dir, mode: 'only' }).test('a test'), false);
+  });
+
+  it('a Playwright entry matches the title of its test in every project, also with the tags Playwright appends', () => {
+    const dir = folder({
+      playwright: [
+        'clients › lists (all) clients | #1400 | 2026-11-12 | 2026-11-19',
+        'sign-in sends a code | #1401 | 2026-11-12 | 2026-11-19',
+      ],
+    });
+    const { only, exclude } = quarantineSelection('playwright', { dir, mode: 'exclude' });
+    assert.equal(only, undefined);
+    // Playwright's grep title: the project, the file, the describe titles and the test (with a leading space where the
+    // empty title of the root is part of it).
+    for (const [project, lead] of [
+      ['nl-NL', ' '],
+      ['en', ''],
+      ['en', ' '],
+    ]) {
+      const title = (name) => `${lead}${project} a.spec.ts ${name}`;
+      assert.ok(exclude.test(title('sign-in sends a code')));
+      assert.ok(exclude.test(title('sign-in sends a code @smoke @smoke')));
+      assert.ok(exclude.test(title('clients lists (all) clients')));
+      assert.equal(exclude.test(title('clients › lists (all) clients')), false);
+      assert.equal(exclude.test(title('sign-in sends a code twice')), false);
+      assert.equal(exclude.test(title('other sign-in sends a code')), false);
+      assert.equal(exclude.test(title('sends a code')), false);
+    }
+  });
+
+  it('--count prints how many entries a list has: the Quarantine job runs a runner only when it has some', () => {
+    const run = (dir, ...args) =>
+      spawnSync('node', [SCRIPT, '--count', ...args], {
+        encoding: 'utf8',
+        env: { ...process.env, FIVVI_QUARANTINE_DIR: dir },
+      });
+    const dir = folder({ vitest: ['# comment', ...ENTRIES], playwright: [] });
+    assert.equal(run(dir, 'vitest').stdout, '2\n');
+    assert.equal(run(dir, 'playwright').stdout, '0\n');
+    assert.equal(run(dir, 'xctest').stdout, '0\n');
+    const bad = run(dir, 'jest');
+    assert.equal(bad.status, 2);
+    assert.match(bad.stderr, /needs a runner/);
+  });
+
+  it('turbo takes the lists and the reader as inputs of the tests it caches, and the mode as their environment', () => {
+    const { tasks } = JSON.parse(readFileSync(join(REPO, 'turbo.json'), 'utf8'));
+    for (const task of ['test', 'test:integration']) {
+      assert.ok(tasks[task].inputs.includes('$TURBO_ROOT$/quarantine/vitest.txt'), task);
+      assert.ok(tasks[task].inputs.includes('$TURBO_ROOT$/scripts/quarantine.mjs'), task);
+      assert.ok(tasks[task].inputs.includes('$TURBO_DEFAULT$'), task);
+      assert.ok(tasks[task].env.includes('FIVVI_QUARANTINE'), task);
+    }
+    assert.ok(tasks['test:e2e'].inputs.includes('$TURBO_ROOT$/quarantine/playwright.txt'));
+    assert.ok(tasks['test:e2e'].inputs.includes('$TURBO_ROOT$/scripts/quarantine.mjs'));
+    assert.ok(tasks['test:e2e'].env.includes('FIVVI_QUARANTINE'));
+    // A package that lists the inputs of its test task itself replaces the root's, so it needs them too.
+    for (const dir of ['apps/web', 'apps/cron']) {
+      const { inputs } = JSON.parse(readFileSync(join(REPO, dir, 'turbo.json'), 'utf8')).tasks.test;
+      for (const input of [
+        '$TURBO_ROOT$/quarantine/vitest.txt',
+        '$TURBO_ROOT$/scripts/quarantine.mjs',
+        '$TURBO_ROOT$/packages/testing/src/vitest.ts',
+      ])
+        assert.ok(inputs.includes(input), `${dir}: ${input}`);
+    }
+  });
+
+  it('a runner without a reader has no selection', () => {
+    assert.throws(() => quarantineSelection('xctest', { dir: folder({}) }), /no list reader/);
+  });
+
+  it('the selection of another runner is its own: a Vitest entry does not touch Playwright', () => {
+    const dir = folder({ vitest: ENTRIES, playwright: [] });
+    assert.equal(quarantineSelection('playwright', { dir, mode: 'exclude' }).exclude, undefined);
   });
 });

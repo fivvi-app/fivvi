@@ -135,6 +135,14 @@ describe('#293 AC3 AC4: packages and their dependents', () => {
     assert.equal(result.all, false);
   });
 
+  it('E002 #1361: the Playwright quarantine list is an input of the web app, so its e2e tests run again', () => {
+    const result = decide(['quarantine/playwright.txt']);
+    assert.ok(result.packages.includes('@fivvi/web'));
+    assert.equal(result.e2e, true);
+    assert.equal(result.all, false);
+    assert.equal(decide(['quarantine/xctest.txt']).e2e, false);
+  });
+
   it('E016: the restore drill script and its library are inputs of the database package, whose integration test runs the script', () => {
     for (const path of ['scripts/restore-drill.sh', 'scripts/_lib.sh']) {
       const result = decide([path]);
@@ -300,6 +308,9 @@ describe('#293 AC5 AC6 AC12: everything', () => {
       'biome.json',
       '.nvmrc',
       'packages/testing/src/vitest.ts',
+      // E002 #1361: the Vitest quarantine list and the reader of both lists.
+      'quarantine/vitest.txt',
+      'scripts/quarantine.mjs',
     ]) {
       const result = decide([path]);
       assert.equal(result.all, true, path);
