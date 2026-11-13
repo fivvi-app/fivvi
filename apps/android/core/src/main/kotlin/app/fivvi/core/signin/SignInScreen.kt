@@ -51,14 +51,10 @@ import app.fivvi.core.theme.LocalDarkTheme
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
 import app.fivvi.designtokens.title1
-import app.fivvi.designtokens.title2
 
 /** Test tags, shared with the iOS accessibility identifiers and the Maestro flows. */
 object SignInTags {
-    /** The app's name above the title, for an app that names itself on the screen (Fivvi). */
-    const val APP_NAME = "signIn.appName"
-
-    /** The app's icon above the title, for an app that shows it (Fivvi Pro). */
+    /** The app's icon above the title: the Fivvi Pro dial or the plain Fivvi one. */
     const val LOGO = "signIn.logo"
     const val TITLE = "signIn.title"
     const val NOTICE = "signIn.notice"
@@ -103,9 +99,8 @@ private val CodeStepLogoSize = 64.dp
 
 /**
  * TM-01: the email step and the code step. Scrolls, so text at the largest font scale wraps instead of being cut off.
- * [showsSignedOutNotice]: the API stopped accepting the token, which the screen says above the form (AC9). [appName]
- * is the string resource of the app's name, shown above the title by the app that names itself on this screen (Fivvi,
- * E017); [logo] is the app's icon, shown above the title by the app that has one (Fivvi Pro, E020). Either may be absent.
+ * [showsSignedOutNotice]: the API stopped accepting the token, which the screen says above the form (AC9). [logo] is the
+ * app's icon, shown above the title (E020): the Fivvi Pro day dial in Fivvi Pro, the plain day dial in Fivvi. It may be absent.
  */
 @Composable
 fun SignInScreen(
@@ -113,7 +108,6 @@ fun SignInScreen(
     actions: SignInActions,
     modifier: Modifier = Modifier,
     showsSignedOutNotice: Boolean = false,
-    @StringRes appName: Int? = null,
     logo: SignInLogo? = null,
 ) {
     // One call site per step for all its states, so the field keeps its focus while a request is under way.
@@ -129,7 +123,6 @@ fun SignInScreen(
     ) {
         val atCodeStep = state !is SignInState.EmailEntry && state !is SignInState.Sending
         if (logo != null) Logo(logo, if (atCodeStep) CodeStepLogoSize else EmailStepLogoSize)
-        if (appName != null) AppName(appName)
         Title(if (atCodeStep) R.string.sign_in_check_email_title else R.string.sign_in_title)
         if (showsSignedOutNotice) Notice()
         if (atCodeStep) CodeStep(state, busy, actions) else EmailStep(state, busy, actions)
@@ -249,16 +242,6 @@ private fun Logo(logo: SignInLogo, size: Dp) {
         painter = painterResource(if (LocalDarkTheme.current) logo.dark else logo.light),
         contentDescription = stringResource(logo.name),
         modifier = Modifier.size(size).testTag(SignInTags.LOGO),
-    )
-}
-
-@Composable
-private fun AppName(@StringRes text: Int) {
-    Text(
-        text = stringResource(text),
-        modifier = Modifier.fillMaxWidth().testTag(SignInTags.APP_NAME),
-        style = MaterialTheme.typography.title2,
-        textAlign = TextAlign.Center,
     )
 }
 

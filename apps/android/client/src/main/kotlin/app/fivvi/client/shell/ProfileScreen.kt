@@ -1,6 +1,5 @@
 package app.fivvi.client.shell
 
-import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
@@ -27,7 +26,9 @@ import app.fivvi.client.account.AccountState
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.LanguageList
 import app.fivvi.core.R
-import app.fivvi.core.kit.InsetGroupedList
+import app.fivvi.core.kit.AvatarSizeLarge
+import app.fivvi.core.kit.FieldErrorLine
+import app.fivvi.core.kit.PersonAvatar
 import app.fivvi.core.kit.PillButton
 import app.fivvi.core.kit.PillButtonStyle
 import app.fivvi.core.ui.LoadError
@@ -43,6 +44,7 @@ object ProfileTags {
     const val LOADING = "profile.loading"
     const val ERROR = "profile.error"
     const val RETRY = "profile.retry"
+    const val AVATAR = "profile.avatar"
     const val NAME = "profile.name"
     const val EMAIL = "profile.email"
 
@@ -65,9 +67,9 @@ class ProfileActions(
 )
 
 /**
- * *Profiel* / *Profile*: the name and the email address (read-only; editing is F033), *Taal* (Nederlands · English, saved
- * on the account, F010; offered once the account has loaded), *Uitloggen* and the app's [version]. Scrolls, so text at the
- * largest font scale wraps.
+ * *Profiel* / *Profile* in the v2 look (*Profiel en tegoed*): the large title, the avatar with the name and the email address
+ * centred under it (read-only; editing is F033), *Taal* (Nederlands · English, saved on the account, F010; offered once the
+ * account has loaded) as a grouped list, *Uitloggen* and the app's [version]. Scrolls, so text at the largest font scale wraps.
  */
 @Composable
 fun ProfileScreen(state: AccountState, actions: ProfileActions, version: String) {
@@ -76,20 +78,16 @@ fun ProfileScreen(state: AccountState, actions: ProfileActions, version: String)
         return
     }
     Column(
-        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.space6),
+        modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.space4),
         verticalArrangement = Arrangement.spacedBy(Spacing.space4),
     ) {
         Text(
             text = stringResource(R.string.client_nav_profile),
-            modifier = Modifier.testTag(ProfileTags.TITLE).semantics { heading() },
+            modifier = Modifier.padding(horizontal = Spacing.space1).testTag(ProfileTags.TITLE).semantics { heading() },
             style = MaterialTheme.typography.title1,
         )
         when (state) {
-            is AccountState.Loaded -> InsetGroupedList {
-                state.name?.let { name -> row { Detail(R.string.my_profile_name_label, name, ProfileTags.NAME) } }
-                row { Detail(R.string.my_profile_email_label, state.email, ProfileTags.EMAIL) }
-            }
-
+            is AccountState.Loaded -> Identity(state)
             else -> Loading()
         }
         // Taal is offered once the account has loaded (F010 AC3): the stored language of the opening read is adopted when it
@@ -97,19 +95,17 @@ fun ProfileScreen(state: AccountState, actions: ProfileActions, version: String)
         if (state is AccountState.Loaded) {
             Text(
                 text = stringResource(R.string.profile_language),
-                modifier = Modifier.testTag(ProfileTags.LANGUAGE).semantics { heading() },
-                style = MaterialTheme.typography.title2,
+                modifier = Modifier.padding(start = Spacing.space4).testTag(ProfileTags.LANGUAGE)
+                    .semantics { heading() },
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                style = MaterialTheme.typography.subhead,
             )
             LanguageList(ProfileTags.LANGUAGE, actions.language, actions.onChooseLanguage)
         }
         if (actions.languageSaveFailed) {
-            Text(
-                text = stringResource(R.string.user_menu_error),
-                modifier = Modifier.testTag(ProfileTags.LANGUAGE_ERROR).semantics {
-                    liveRegion = LiveRegionMode.Polite
-                },
-                color = MaterialTheme.colorScheme.error,
-                style = MaterialTheme.typography.body,
+            FieldErrorLine(
+                message = stringResource(R.string.user_menu_error),
+                modifier = Modifier.padding(horizontal = Spacing.space4).testTag(ProfileTags.LANGUAGE_ERROR),
             )
         }
         SignOutButton(actions)
@@ -123,16 +119,31 @@ fun ProfileScreen(state: AccountState, actions: ProfileActions, version: String)
     }
 }
 
-// A label and its value, one row of the grouped list, read out one after the other: "Naam", "Anna de Vries".
+// The prototype's header: the large avatar, then the name and the email address, all centred. An account without a name shows
+// only its address, and the avatar takes its letter.
 @Composable
-private fun Detail(@StringRes label: Int, value: String, tag: String) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = Spacing.space4, vertical = Spacing.space3)) {
+private fun Identity(state: AccountState.Loaded) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.space1),
+    ) {
+        PersonAvatar(state.name ?: state.email, Modifier.testTag(ProfileTags.AVATAR), AvatarSizeLarge)
+        state.name?.let { name ->
+            Text(
+                text = name,
+                modifier = Modifier.fillMaxWidth().padding(top = Spacing.space2).testTag(ProfileTags.NAME),
+                style = MaterialTheme.typography.title2,
+                textAlign = TextAlign.Center,
+            )
+        }
         Text(
-            text = stringResource(label),
-            style = MaterialTheme.typography.subhead,
+            text = state.email,
+            modifier = Modifier.fillMaxWidth().testTag(ProfileTags.EMAIL),
+            style = MaterialTheme.typography.body,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
         )
-        Text(text = value, modifier = Modifier.testTag(tag), style = MaterialTheme.typography.body)
     }
 }
 
