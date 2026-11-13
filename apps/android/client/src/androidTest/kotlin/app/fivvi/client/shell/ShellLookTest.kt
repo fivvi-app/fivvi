@@ -1,11 +1,13 @@
 package app.fivvi.client.shell
 
-import androidx.compose.ui.graphics.toArgb
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
-import androidx.compose.ui.test.junit4.accessibility.enableAccessibilityChecks
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
@@ -14,6 +16,7 @@ import androidx.compose.ui.test.tryPerformAccessibilityChecks
 import androidx.compose.ui.unit.dp
 import app.fivvi.client.Mode
 import app.fivvi.client.account.AccountState
+import app.fivvi.client.enableLookAccessibilityChecks
 import app.fivvi.client.near
 import app.fivvi.client.pixels
 import app.fivvi.client.px
@@ -22,12 +25,7 @@ import app.fivvi.core.AppLanguage
 import app.fivvi.core.appLanguageParameters
 import app.fivvi.designtokens.DarkColorScheme
 import app.fivvi.designtokens.LightColorScheme
-import com.google.android.apps.common.testing.accessibility.framework.AccessibilityCheckResult.AccessibilityCheckResultType
-import com.google.android.apps.common.testing.accessibility.framework.AccessibilityViewCheckResult
-import com.google.android.apps.common.testing.accessibility.framework.checks.TextContrastCheck
-import com.google.android.apps.common.testing.accessibility.framework.integrations.espresso.AccessibilityValidator
-import org.hamcrest.BaseMatcher
-import org.hamcrest.Description
+import kotlin.math.abs
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -101,8 +99,6 @@ class ShellLookTest(
         assertTrue("the address is centred", abs((email.left + email.right).value - width) <= 2f)
     }
 
-    private fun abs(value: Float) = kotlin.math.abs(value)
-
     @Test
     fun E020_AC15_theLanguagesAreRowsOnTheCardColourAndSigningOutIsAPill() {
         showProfile()
@@ -110,9 +106,30 @@ class ShellLookTest(
         assertOnACard("${ProfileTags.LANGUAGE}.nl-NL")
         assertOnACard("${ProfileTags.LANGUAGE}.en")
         compose.onNodeWithTag(ProfileTags.SIGN_OUT).performScrollTo().assertHeightIsAtLeast(48.dp)
-        // A pill: 7 dp in from the corner is outside a 50 dp-high pill's corner circle, so the canvas shows there.
+        // A pill, not a 20 dp corner: 7 dp in from the left edge the top edge of a 48 dp-high pill's end circle (radius 24 dp)
+        // is 7.1 dp down and that of a 20 dp corner 4.8 dp down, so at 6 dp down the canvas shows only through a pill.
+        compose.onNodeWithTag(ProfileTags.SIGN_OUT).assertHeightIsEqualTo(48.dp)
         val pixels = compose.onNodeWithTag(ProfileTags.SIGN_OUT).pixels()
-        assertTrue("the corner shows the canvas, got ${pixels[1, 1]}", pixels[1, 1].near(mode.tokens.bgCanvas, 0.02f))
+        val inCorner = pixels[7.dp.px(), 6.dp.px()]
+        assertTrue(
+            "a pill shows the canvas 7 dp in and 6 dp down, got $inCorner",
+            inCorner.near(mode.tokens.bgCanvas, 0.02f),
+        )
+        val beside = pixels[pixels.width / 2, pixels.height / 2]
+        assertTrue("the button itself is not the canvas", !beside.near(mode.tokens.bgCanvas, 0.02f))
+    }
+
+    // A failed save of the language is read out when it appears (a Polite live region on the message, as the screen was before
+    // the kit's line), and nothing separates the message from its warning icon: the line sits where the kit puts it, 16 dp
+    // in from the screen's margin of 16 dp, the icon's 16 dp and the 4 dp gap before the words.
+    @Test
+    fun E020_AC15_theLanguageErrorIsAPoliteLiveRegionRightNextToItsIcon() {
+        showProfile(languageSaveFailed = true)
+
+        val error = compose.onNodeWithTag(ProfileTags.LANGUAGE_ERROR, useUnmergedTree = true).performScrollTo()
+        error.assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+        val left = error.getUnclippedBoundsInRoot().left.value
+        assertTrue("the message starts 4 dp after the icon (36 dp from the edge), not at $left", abs(left - 36f) <= 1f)
     }
 
     @Test
@@ -138,37 +155,10 @@ class ShellLookTest(
         assertTrue("the line sits on the card colour", line[2, 2].near(mode.tokens.bgSurface, 0.02f))
     }
 
-    // The one text-contrast result the tokens allow (ADR-032, `native-secondary-text` in packages/design-tokens): the secondary
-    // text of the native apps in light mode, `color.text.secondary` (#85858B), is 3.3:1 on the canvas and 3.7:1 on cards, not
-    // 4.5:1, and the floor the ADR sets is 3:1. Only a TextContrastCheck result whose foreground colour (the result's metadata,
-    // not its message) is that colour and whose ratio is at least 3:1 is accepted, and only in light mode.
-    private fun secondaryTextInLightMode() = object : BaseMatcher<AccessibilityViewCheckResult>() {
-        private val grey = mode.tokens.textSecondary.toArgb() and RGB
-
-        override fun matches(actual: Any?): Boolean {
-            if (mode.dark || actual !is AccessibilityViewCheckResult) return false
-            if (actual.accessibilityHierarchyCheck != TextContrastCheck::class.java) return false
-            val metadata = actual.metadata ?: return false
-            if (!metadata.containsKey(TextContrastCheck.KEY_FOREGROUND_COLOR)) return false
-            if (!metadata.containsKey(TextContrastCheck.KEY_CONTRAST_RATIO)) return false
-            return metadata.getInt(TextContrastCheck.KEY_FOREGROUND_COLOR) and RGB == grey &&
-                metadata.getDouble(TextContrastCheck.KEY_CONTRAST_RATIO) >= MIN_SECONDARY_CONTRAST
-        }
-
-        override fun describeTo(description: Description) {
-            description.appendText("a text contrast result of the secondary text colour, at least 3:1, in light mode")
-        }
-    }
-
     // AC15: the accessibility checks of Google's framework run over the whole screen, in this mode and language, and fail the
     // test on a warning or an error. The screen scrolls: it is checked again after scrolling to its last element.
     private fun assertAccessible(vararg lastTags: String) {
-        compose.enableAccessibilityChecks(
-            AccessibilityValidator()
-                .setRunChecksFromRootView(true)
-                .setThrowExceptionFor(AccessibilityCheckResultType.WARNING)
-                .setSuppressingResultMatcher(secondaryTextInLightMode()),
-        )
+        compose.enableLookAccessibilityChecks(mode)
         compose.onRoot().tryPerformAccessibilityChecks()
         lastTags.forEach { compose.onNodeWithTag(it, useUnmergedTree = true).performScrollTo() }
         if (lastTags.isNotEmpty()) {
@@ -190,9 +180,6 @@ class ShellLookTest(
     }
 
     companion object {
-        private const val RGB = 0xFFFFFF
-        private const val MIN_SECONDARY_CONTRAST = 3.0
-
         @JvmStatic
         @Parameterized.Parameters(name = "{0}")
         fun modesAndLanguages() = Mode.entries.flatMap { mode ->

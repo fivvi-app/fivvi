@@ -7,8 +7,11 @@ import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.tryPerformAccessibilityChecks
 import androidx.compose.ui.unit.dp
 import app.fivvi.client.Mode
+import app.fivvi.client.enableLookAccessibilityChecks
 import app.fivvi.client.pixels
 import app.fivvi.client.showInMode
 import app.fivvi.core.AppLanguage
@@ -80,6 +83,25 @@ class SignInLogoTest(
         compose.onNodeWithText("PRO").assertDoesNotExist()
         compose.onNodeWithText("Fivvi Pro").assertDoesNotExist()
         compose.onNodeWithText("Fivvi").assertDoesNotExist()
+    }
+
+    // AC15: the accessibility checks of Google's framework (touch targets, speakable text, text contrast and the rest) run over
+    // the whole screen of each sign-in step as it opens, in this mode and language, and fail the test on a warning or an error.
+    // The code step's field is focused, so its label is in the accent (accentText, 4.5:1; the fill is 4.11:1).
+    @Test
+    fun E020_AC15_theEmailStepPassesTheAccessibilityChecks() {
+        show(SignInState.EmailEntry())
+
+        compose.enableLookAccessibilityChecks(mode)
+        compose.onRoot().tryPerformAccessibilityChecks()
+    }
+
+    @Test
+    fun E020_AC15_theCodeStepPassesTheAccessibilityChecks() {
+        show(SignInState.CodeEntry("anna@example.com"))
+
+        compose.enableLookAccessibilityChecks(mode)
+        compose.onRoot().tryPerformAccessibilityChecks()
     }
 
     companion object {

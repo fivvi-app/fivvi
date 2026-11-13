@@ -103,9 +103,12 @@ fun ProfileScreen(state: AccountState, actions: ProfileActions, version: String)
             LanguageList(ProfileTags.LANGUAGE, actions.language, actions.onChooseLanguage)
         }
         if (actions.languageSaveFailed) {
+            // Read out when it appears. The line is the kit's, with nothing between the icon and the words.
             FieldErrorLine(
                 message = stringResource(R.string.user_menu_error),
-                modifier = Modifier.padding(horizontal = Spacing.space4).testTag(ProfileTags.LANGUAGE_ERROR),
+                modifier = Modifier.testTag(ProfileTags.LANGUAGE_ERROR).semantics {
+                    liveRegion = LiveRegionMode.Polite
+                },
             )
         }
         SignOutButton(actions)
