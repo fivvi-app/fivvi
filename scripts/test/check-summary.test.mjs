@@ -841,7 +841,18 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
         unit: unit(),
         integration,
         e2e: {
-          lines: ['e2e before', 'e2e bad byte: \xff here', 'e2e after'],
+          // Shaped like turbo's: the failure line, the footer, and a line of the failed task with the byte.
+          lines: [
+            '@fivvi/web:test:e2e: e2e before',
+            '@fivvi/web#test:e2e:  ERROR  command (/x/web) pnpm run test:e2e exited (1)',
+            '',
+            ' Tasks:    0 successful, 1 total',
+            'Failed:    @fivvi/web#test:e2e',
+            '@fivvi/web:test:e2e: e2e bad byte: \xff here',
+            '@fivvi/web:test:e2e: e2e after',
+            '@fivvi/api:test: api failure output',
+            '@fivvi/api#test:  ERROR  command (/x/api) pnpm run test exited (1)',
+          ],
           exit: 1,
           latin1: true,
         },
@@ -853,8 +864,27 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
     );
     assert.equal(result.status, 1, result.stderr);
     const shown = result.stdout.split('\n');
-    assert.ok(shown.includes('    e2e before'), 'the lines before the byte are shown');
-    assert.ok(shown.includes('    e2e after'), 'so are the lines after it');
+    assert.ok(
+      shown.includes(
+        '    @fivvi/web#test:e2e:  ERROR  command (/x/web) pnpm run test:e2e exited (1)',
+      ),
+      'the failure line is shown, indented',
+    );
+    assert.ok(
+      shown.includes('    @fivvi/web:test:e2e: e2e before'),
+      'the lines before the byte are shown',
+    );
+    assert.ok(
+      shown.some((l) => l.startsWith('    @fivvi/web:test:e2e: e2e bad byte: ')),
+      'so is the line with the byte',
+    );
+    assert.ok(shown.includes('    @fivvi/web:test:e2e: e2e after'), 'so are the lines after it');
+    // sed stopping at the byte would drop the prefix of a task whose ERROR line comes after it.
+    assert.ok(
+      shown.includes('    @fivvi/api:test: api failure output'),
+      'so is the output of a second failed task',
+    );
+    assert.doesNotMatch(result.stderr, /illegal byte/, 'no tool complains about the byte');
     assert.match(result.stdout, /^root +/m, 'the summary table is printed');
   });
 
