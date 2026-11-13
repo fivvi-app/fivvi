@@ -10,6 +10,7 @@ import app.fivvi.api.models.MyWorkspace
 import app.fivvi.api.models.TrainerWord
 import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.me.workspaceIdOf
+import app.fivvi.core.quarantine.Permission
 import app.fivvi.pro.home.FakeTrainersApi
 import app.fivvi.pro.home.ProfileRole
 import app.fivvi.pro.home.ProfileState
@@ -72,6 +73,7 @@ class WorkspaceCapabilitiesTest {
 
     // F004 AC10: an action guarded by clients.manage is shown when the API lists it for the workspace, and not when it doesn't.
     @Test
+    @Permission
     fun test_F004_AC10_newClientActionFollowsCapability() {
         helper.replace(
             listOf(
@@ -91,6 +93,7 @@ class WorkspaceCapabilitiesTest {
     }
 
     @Test
+    @Permission
     fun test_F004_AC10_aWorkspaceTheApiDidNotListShowsNothing() {
         helper.replace(listOf(workspace("John's Gym", Role.OWNER, CLIENTS_PERIOD_MANAGE)))
 
@@ -158,6 +161,7 @@ class WorkspaceCapabilitiesTest {
 
     // F004: a 403 means the list on the phone is out of date. The action is hidden at once and the account is read again.
     @Test
+    @Permission
     fun test_F004_forbiddenHidesTheActionAndRefreshesTheCapabilities() {
         helper.replace(listOf(workspace("John's Gym", Role.OWNER, CLIENTS_PERIOD_VIEW, CLIENTS_PERIOD_MANAGE)))
         // The refresh finds the person is a trainer without client rights now.
@@ -171,6 +175,7 @@ class WorkspaceCapabilitiesTest {
     }
 
     @Test
+    @Permission
     fun test_F004_aRefreshThatListsTheCapabilityShowsTheActionAgain() {
         helper.replace(listOf(workspace("John's Gym", Role.OWNER, CLIENTS_PERIOD_MANAGE)))
         answerAccount(workspace("John's Gym", Role.OWNER, CLIENTS_PERIOD_MANAGE))
@@ -181,6 +186,7 @@ class WorkspaceCapabilitiesTest {
     }
 
     @Test
+    @Permission
     fun test_F004_forbiddenHidesTheActionEvenWhenTheRefreshFails() {
         helper.replace(listOf(workspace("John's Gym", Role.OWNER, CLIENTS_PERIOD_MANAGE)))
         api.answers += { throw IOException("offline") }
@@ -192,6 +198,7 @@ class WorkspaceCapabilitiesTest {
     }
 
     @Test
+    @Permission
     fun test_F004_otherAnswersChangeNothing() {
         helper.replace(listOf(workspace("John's Gym", Role.OWNER, CLIENTS_PERIOD_MANAGE)))
 

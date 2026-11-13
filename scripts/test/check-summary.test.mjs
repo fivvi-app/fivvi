@@ -388,6 +388,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       'doc-anchors.mjs',
       'doc-lists.mjs',
       'quarantine.mjs',
+      'quarantine-android.mjs',
     ]) {
       copyFileSync(join(SCRIPTS, file), join(repo(), 'scripts', file));
     }

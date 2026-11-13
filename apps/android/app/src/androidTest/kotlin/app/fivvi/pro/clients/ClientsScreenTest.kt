@@ -21,6 +21,7 @@ import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
 import app.fivvi.core.me.FakeMeApi
+import app.fivvi.core.quarantine.Permission
 import app.fivvi.pro.AppRule
 import app.fivvi.pro.UI_TIMEOUT_MILLIS
 import app.fivvi.pro.hello.FakeHelloApi
@@ -429,6 +430,7 @@ class ClientsScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
     }
 
     @Test
+    @Permission
     fun test_F006_AC10_aListTheApiRefusesShowsTheNoPermissionText() {
         launch()
         // The refusal makes the capability helper read the account again.

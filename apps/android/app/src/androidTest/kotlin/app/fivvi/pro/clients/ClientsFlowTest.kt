@@ -20,6 +20,7 @@ import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
 import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.me.workspaceIdOf
+import app.fivvi.core.quarantine.Isolation
 import app.fivvi.pro.capabilities.WorkspaceCapabilities
 import app.fivvi.pro.home.FakeWorkspacesApi
 import app.fivvi.pro.localizedString
@@ -47,6 +48,7 @@ class ClientsFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private val lan
 
     // F003 AC6: the home shows another workspace after the foreground read; Klanten lists that one, not the first.
     @Test
+    @Isolation
     fun test_F006_AC12_aWorkspaceSwitchListsTheNewWorkspacesClients() {
         clients.clients += clientOf("Anna de Vries", "anna@example.com")
         val shown = mutableStateOf(gym)

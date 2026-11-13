@@ -16,8 +16,9 @@
 // The rule fails on an entry without a bug, an added date or an end date, an end date more than 7 days after the added
 // date, an end date that has passed (an expired entry stops every PR until its fix takes the test off the list), and on
 // a test whose name carries a marker of a kind that is never quarantined: tenant isolation (`@isolation`), concurrency
-// (`@concurrency`) or permission (`@permission`) tests. Vitest and Playwright put the marker in the test title; the form
-// for the other runners is chosen with their list readers.
+// (`@concurrency`) or permission (`@permission`) tests. Vitest and Playwright put the marker in the test title; a Compose
+// test has the annotation @Isolation, @Concurrency or @Permission and a Maestro flow the tag `isolation`, `concurrency` or
+// `permission` in its header, which scripts/quarantine-android.mjs reads from the source; XCTest's form comes with its reader.
 //
 //   node scripts/quarantine.mjs [dir]   check the lists in dir (default: quarantine/ of this checkout); prints one
 //                                       line per problem and exits 1 on any.
@@ -27,6 +28,7 @@
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { markerProblems } from './quarantine-android.mjs';
 
 /** The runners that have a list: quarantine/<runner>.txt. */
 export const LISTS = ['vitest', 'playwright', 'xctest', 'compose', 'maestro'];
@@ -101,6 +103,7 @@ const checkEntry = (line, today) => {
 export const checkQuarantine = ({
   dir = join(import.meta.dirname, '..', 'quarantine'),
   today = todayUtc(),
+  root = join(import.meta.dirname, '..'),
 } = {}) => {
   if (!existsSync(dir)) return [];
   const problems = [];
@@ -120,6 +123,9 @@ export const checkQuarantine = ({
         const where = `${file}:${i + 1}`;
         for (const problem of checkEntry(line, today)) problems.push(`${where}: ${problem}`);
         const test = line.split('|')[0].trim();
+        // Compose and Maestro tests carry their marker in the source (scripts/quarantine-android.mjs), not in the name.
+        for (const problem of markerProblems(runner, test, { root, markers: MARKERS }))
+          problems.push(`${where}: ${problem}`);
         if (seen.has(test)) problems.push(`${where}: "${test}" is listed twice`);
         seen.add(test);
       });
