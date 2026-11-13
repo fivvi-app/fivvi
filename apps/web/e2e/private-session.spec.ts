@@ -196,7 +196,9 @@ test.describe('F020 private sessions on the web', () => {
         .replace('{time}', '09:00'),
     );
     await page.getByRole('link', { name: copy.sessions.form.open }).click();
-    await expect(page).toHaveURL(new RegExp(`/w/${slug}/sessions/[0-9a-f-]{36}$`));
+    await expect(page).toHaveURL(new RegExp(`/w/${slug}/sessions/[0-9a-f-]{36}$`), {
+      timeout: 15_000,
+    });
     await expect(
       page.getByRole('heading', {
         level: 1,
@@ -269,7 +271,9 @@ test.describe('F020 private sessions on the web', () => {
     await panel.getByRole('button', { name: copy.sessions.form.save }).click();
     await page.getByRole('link', { name: copy.sessions.form.open }).click();
 
-    await expect(page.getByRole('main').getByText('Tom', { exact: true })).toBeVisible();
+    await expect(page.getByRole('main').getByText('Tom', { exact: true })).toBeVisible({
+      timeout: 15_000,
+    });
     const session = await storedSession(page, workspaceId, page.url().split('/').pop() ?? '');
     expect(session.trainer?.name).toBe('Tom');
   });

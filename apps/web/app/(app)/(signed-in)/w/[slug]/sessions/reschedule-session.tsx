@@ -55,7 +55,9 @@ export function RescheduleSession({
   const t = useTranslations('sessions.page');
   const { day, time } = useSessionFormat(session.timeZone);
   const [open, setOpen] = useState(false);
-  const [moved, setMoved] = useState<string | null>(null);
+  const [moved, setMoved] = useState<{ message: string; session: Session } | null>(null);
+  // The page reloads after a move; until it has, the session the person moved is the newest one.
+  const current = moved && moved.session.version > session.version ? moved.session : session;
 
   return (
     <>
@@ -67,20 +69,23 @@ export function RescheduleSession({
           role="status"
           className="rounded-lg bg-status-success-bg px-3 py-2 text-sm font-semibold text-status-success-text"
         >
-          {moved}
+          {moved.message}
         </p>
       ) : null}
       <Dialog open={open} onOpenChange={setOpen}>
         {open ? (
           <RescheduleForm
             workspaceId={workspaceId}
-            session={session}
+            session={current}
             client={client}
             defaultLocale={defaultLocale}
             close={() => setOpen(false)}
             moved={(result) => {
               setOpen(false);
-              setMoved(t('moved', { date: day(result.startsAt), time: time(result.startsAt) }));
+              setMoved({
+                message: t('moved', { date: day(result.startsAt), time: time(result.startsAt) }),
+                session: result,
+              });
             }}
           />
         ) : null}

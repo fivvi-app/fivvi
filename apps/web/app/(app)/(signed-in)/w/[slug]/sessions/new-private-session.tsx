@@ -27,7 +27,7 @@ import { ErrorLine } from '@fivvi/ui/kit/error-line';
 import { Toast } from '@fivvi/ui/kit/toast';
 import type { Route } from 'next';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import {
   createContext,
@@ -92,7 +92,11 @@ export function NewSessionProvider({
   const [openFn] = useState(() => () => setOpen(true));
   const [saved, setSaved] = useState<Saved | null>(null);
 
-  // The snackbar goes by itself; *Openen* is for the moment it is there.
+  // The snackbar goes by itself; *Openen* is for the moment it is there. It also goes once the
+  // person is on another page (the session's own, or whichever they went to).
+  const pathname = usePathname();
+  // biome-ignore lint/correctness/useExhaustiveDependencies: a new page ends the snackbar of the old one.
+  useEffect(() => setSaved(null), [pathname]);
   useEffect(() => {
     if (!saved) return;
     const timer = setTimeout(() => setSaved(null), 15_000);
@@ -112,22 +116,18 @@ export function NewSessionProvider({
           }}
         />
       ) : null}
-      <SavedSnackbar saved={saved} dismiss={() => setSaved(null)} />
+      <SavedSnackbar saved={saved} />
     </OpenNewSession>
   );
 }
 
-function SavedSnackbar({ saved, dismiss }: { saved: Saved | null; dismiss: () => void }) {
+function SavedSnackbar({ saved }: { saved: Saved | null }) {
   const t = useTranslations('sessions.form');
   if (!saved) return null;
   return (
     <Toast>
       <span>{saved.message}</span>
-      <Link
-        href={saved.href as Route}
-        onClick={dismiss}
-        className="font-bold underline underline-offset-4"
-      >
+      <Link href={saved.href as Route} className="font-bold underline underline-offset-4">
         {t('open')}
       </Link>
     </Toast>
