@@ -573,7 +573,7 @@ const workflow = readFileSync(join(WORKFLOWS, 'release.yml'), 'utf8');
 /** The text of each job of the workflow, by id. */
 const jobs = () => {
   const section = workflow.slice(workflow.indexOf('\njobs:\n') + 7);
-  const parts = section.split(/^ {2}([a-z][a-z0-9-]*):$/m);
+  const parts = section.split(/^  ([a-z][a-z0-9-]*):$/m);
   const result = {};
   for (let i = 1; i < parts.length; i += 2) result[parts[i]] = parts[i + 1];
   return result;

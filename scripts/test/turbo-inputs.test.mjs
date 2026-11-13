@@ -1,7 +1,14 @@
 import assert from 'node:assert/strict';
+import { rmSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
-import { readRecorder, rootTestInputs, uncovered, uncoveredBy } from './turbo-inputs.mjs';
+import {
+  filesUnder,
+  readRecorder,
+  rootTestInputs,
+  uncovered,
+  uncoveredBy,
+} from './turbo-inputs.mjs';
 
 const ROOT = join(import.meta.dirname, '..', '..');
 
@@ -53,11 +60,33 @@ describe('E017 #576: the turbo inputs check of the root tests', () => {
     );
   });
 
-  it('skips build output inside a folder and a path that does not exist', () => {
+  it('skips build output inside a folder, and records a path that does not exist, as a read of it fails the test', () => {
     const { reads, note } = readRecorder('apps/ios/');
     note('apps/ios');
     note('apps/ios/nothing.swift');
     assert.ok(reads.has('apps/ios/README.md'));
+    assert.ok(reads.has('apps/ios/nothing.swift'));
     assert.ok(![...reads].some((file) => file.includes('/.build/')));
+  });
+
+  it('records only the files git sees in a folder, not one it ignores, such as .DS_Store', () => {
+    const ignored = join(ROOT, 'apps/ios/Config/.DS_Store');
+    writeFileSync(ignored, '');
+    try {
+      const { reads, note } = readRecorder('apps/ios/');
+      note('apps/ios/Config');
+      assert.ok(reads.has('apps/ios/Config/Debug.xcconfig'));
+      assert.ok(!reads.has('apps/ios/Config/.DS_Store'));
+      assert.ok(!filesUnder('apps/ios/Config').includes('apps/ios/Config/.DS_Store'));
+    } finally {
+      rmSync(ignored, { force: true });
+    }
+  });
+
+  it('lists the files under a folder that a filter accepts, as relative paths', () => {
+    assert.deepEqual(
+      filesUnder('apps/ios/Config', (name) => name.endsWith('.xcconfig')).sort(),
+      ['Debug', 'Release', 'Simulator'].map((name) => `apps/ios/Config/${name}.xcconfig`),
+    );
   });
 });

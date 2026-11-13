@@ -1,5 +1,6 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join, matchesGlob, relative, resolve } from 'node:path';
+import { execFileSync } from 'node:child_process';
+import { readFileSync, statSync } from 'node:fs';
+import { basename, join, matchesGlob, relative, resolve } from 'node:path';
 
 // turbo caches `//#test:root` by its `inputs` (turbo.json), so a file a root test reads must be one of them: otherwise
 // a change to it can pass from the cache without the test running. Each test file that reads files outside `scripts/`
@@ -27,6 +28,22 @@ export const UNCOVERED_MESSAGE = 'add these to the inputs of //#test:root in tur
 const BUILD_DIRS = ['.build', 'build', '.gradle', 'node_modules', 'DerivedData'];
 
 /**
+ * The files (paths relative to the repository root) under the folder `dir` that git sees (tracked, or new and not
+ * ignored, so no `.DS_Store` and no build output), whose name `accept` takes.
+ */
+export const filesUnder = (dir, accept = () => true) =>
+  execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard', '--', dir], {
+    cwd: ROOT,
+    encoding: 'utf8',
+    maxBuffer: 64 * 1024 * 1024,
+  })
+    .split('\0')
+    .filter(Boolean)
+    .filter((file) => !file.split('/').some((part) => BUILD_DIRS.includes(part)))
+    .filter((file) => statSync(join(ROOT, file), { throwIfNoEntry: false })?.isFile())
+    .filter((file) => accept(basename(file)));
+
+/**
  * Records the files a test reads under `prefixes` (paths relative to the repository root, such as 'apps/ios/'), for
  * `uncovered`. `note(path)` takes an absolute or a relative path, a file or a folder (a folder stands for every file in
  * it, as a recursive copy reads them; `pattern`, a RegExp, keeps the files a recursive grep with `--include` reads),
@@ -41,8 +58,7 @@ export const readRecorder = (...prefixes) => {
     if (!statSync(join(ROOT, file), { throwIfNoEntry: false })?.isDirectory()) {
       if (!pattern || pattern.test(file)) reads.add(file);
     } else
-      for (const name of readdirSync(join(ROOT, file)))
-        if (!BUILD_DIRS.includes(name)) record(join(file, name), pattern);
+      for (const found of filesUnder(file)) if (!pattern || pattern.test(found)) reads.add(found);
   };
   return {
     reads,
