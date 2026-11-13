@@ -29,18 +29,19 @@ const BUILD_DIRS = ['.build', 'build', '.gradle', 'node_modules', 'DerivedData']
 
 /**
  * The files (paths relative to the repository root) under the folder `dir` that git sees (tracked, or new and not
- * ignored, so no `.DS_Store` and no build output), whose name `accept` takes.
+ * ignored, so no `.DS_Store` and no build output), whose name `accept` takes. `root` is the repository to look in (the
+ * real one unless a test gives its own).
  */
-export const filesUnder = (dir, accept = () => true) =>
+export const filesUnder = (dir, accept = () => true, root = ROOT) =>
   execFileSync('git', ['ls-files', '-z', '--cached', '--others', '--exclude-standard', '--', dir], {
-    cwd: ROOT,
+    cwd: root,
     encoding: 'utf8',
     maxBuffer: 64 * 1024 * 1024,
   })
     .split('\0')
     .filter(Boolean)
     .filter((file) => !file.split('/').some((part) => BUILD_DIRS.includes(part)))
-    .filter((file) => statSync(join(ROOT, file), { throwIfNoEntry: false })?.isFile())
+    .filter((file) => statSync(join(root, file), { throwIfNoEntry: false })?.isFile())
     .filter((file) => accept(basename(file)));
 
 /**

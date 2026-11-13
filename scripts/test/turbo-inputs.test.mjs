@@ -1,5 +1,7 @@
 import assert from 'node:assert/strict';
-import { rmSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
 import {
@@ -69,17 +71,22 @@ describe('E017 #576: the turbo inputs check of the root tests', () => {
     assert.ok(![...reads].some((file) => file.includes('/.build/')));
   });
 
-  it('records only the files git sees in a folder, not one it ignores, such as .DS_Store', () => {
-    const ignored = join(ROOT, 'apps/ios/Config/.DS_Store');
-    writeFileSync(ignored, '');
+  it('lists only the files git sees in a folder, not one it ignores, such as .DS_Store', () => {
+    // A repository of its own in a temporary folder: the real tree is read by other tests at the same time.
+    const repo = mkdtempSync(join(tmpdir(), 'turbo-inputs-'));
     try {
-      const { reads, note } = readRecorder('apps/ios/');
-      note('apps/ios/Config');
-      assert.ok(reads.has('apps/ios/Config/Debug.xcconfig'));
-      assert.ok(!reads.has('apps/ios/Config/.DS_Store'));
-      assert.ok(!filesUnder('apps/ios/Config').includes('apps/ios/Config/.DS_Store'));
+      const git = (...args) => execFileSync('git', args, { cwd: repo, stdio: 'ignore' });
+      git('init', '--quiet');
+      mkdirSync(join(repo, 'Config'));
+      writeFileSync(join(repo, '.gitignore'), '.DS_Store\n');
+      writeFileSync(join(repo, 'Config/Debug.xcconfig'), '');
+      writeFileSync(join(repo, 'Config/.DS_Store'), '');
+      assert.deepEqual(
+        filesUnder('Config', () => true, repo),
+        ['Config/Debug.xcconfig'],
+      );
     } finally {
-      rmSync(ignored, { force: true });
+      rmSync(repo, { recursive: true, force: true });
     }
   });
 
