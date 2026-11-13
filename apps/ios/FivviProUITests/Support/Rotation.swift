@@ -3,8 +3,9 @@ import XCTest
 
 /// Turning the device in a UI test and waiting for the app to follow (#1305). `XCUIDevice.shared.orientation = …`
 /// returns before the app's window has turned, and on a loaded simulator the app can come up in the old orientation and
-/// turn a moment later, or not at all until the device is turned again. A test that reads the window at once sees the
-/// old shape and fails on a state it did not wait for.
+/// turn a moment later. It may also stay in the old one until the device is turned again; nothing shows that it does,
+/// so `apply` turns the device again when a wait runs out. A test that reads the window at once sees the old shape and
+/// fails on a state it did not wait for.
 enum Rotation {
     /// Whether a window of `frame` is laid out for `orientation`: wider than high in landscape, otherwise not. A window
     /// that is not there yet (no frame) is laid out for none.
