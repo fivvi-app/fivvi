@@ -250,6 +250,8 @@ check "file emails" "$ROOT/scripts/emails.sh" files
 check "file secrets" "$ROOT/scripts/secrets.sh" files
 check "secrets in tests" node "$ROOT/scripts/secrets-in-tests.mjs"
 check "doc links" doc_links
+# Two PRs that add a migration take the same number; the second one is moved with the script, not by hand (E001 #1273).
+check "database migrations" node "$ROOT/scripts/db-renumber.mjs" check --base "origin/$(default_branch)"
 if [ "$(plan_flag root)" = true ]; then
   check "shell syntax" syntax
   check "shellcheck" shellcheck_all

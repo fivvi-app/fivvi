@@ -87,6 +87,7 @@ describe('#293 check.sh runs the checks a change can affect', () => {
       'affected.mjs',
       'doc-anchors.mjs',
       'doc-lists.mjs',
+      'db-renumber.mjs',
     ])
       copyFileSync(join(SCRIPTS, file), join(repo(), 'scripts', file));
     // The hygiene checks are not under test here, only that they run: each logs its name.
@@ -206,7 +207,7 @@ describe('#293 check.sh runs the checks a change can affect', () => {
   });
 
   it('AC4: a change to packages/database runs the integration tests of it and of what depends on it, and the web e2e tests', () => {
-    const result = run(['packages/database/migrations/0001_x.sql']);
+    const result = run(['packages/database/src/schema.ts']);
     assert.equal(result.status, 0, result.stdout);
     const integration = result.turbo.find((call) => call.includes('test:integration'));
     assert.ok(integration, result.turbo.join('\n'));
@@ -266,7 +267,7 @@ describe('#293 check.sh runs the checks a change can affect', () => {
 
   it('--fast still skips the integration and e2e tests, also with --all', () => {
     for (const args of [['--fast'], ['--all', '--fast'], ['--fast', '--all']]) {
-      const result = run(['packages/database/migrations/0001_x.sql'], args);
+      const result = run(['packages/database/src/schema.ts'], args);
       assert.equal(result.status, 0, result.stdout);
       assert.ok(
         !result.turbo.some((c) => c.includes('test:integration') || c.includes('test:e2e')),
