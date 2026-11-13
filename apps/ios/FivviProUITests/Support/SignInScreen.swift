@@ -15,7 +15,10 @@ struct SignInScreen {
     var email: XCUIElement { app.textFields["signIn.email"] }
     var sendCode: XCUIElement { app.buttons["signIn.send"] }
     var checkEmail: XCUIElement { app.staticTexts["signIn.checkEmail"] }
-    var code: XCUIElement { app.textFields["signIn.code"] }
+    /// The identifier of the code field; `type` compares against it without resolving the element, which is not on
+    /// screen at the email step.
+    static let codeIdentifier = "signIn.code"
+    var code: XCUIElement { app.textFields[Self.codeIdentifier] }
     var submit: XCUIElement { app.buttons["signIn.submit"] }
     var error: XCUIElement { app.staticTexts["signIn.error"] }
     var retry: XCUIElement { app.buttons["signIn.retry"] }
@@ -53,7 +56,7 @@ struct SignInScreen {
     /// (`XCUIElement.enter`). The code field acts on its last digit, so what it holds afterwards says nothing: it
     /// gets the typing alone.
     func type(_ text: String, into field: XCUIElement) {
-        if field.identifier == code.identifier {
+        if field.identifier == Self.codeIdentifier {
             field.focus()
             field.typeText(text)
         } else {
