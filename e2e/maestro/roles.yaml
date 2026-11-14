@@ -8,6 +8,9 @@
 # language. They have no default here: a flow's own env default would win over the value maestro.sh passes.
 appId: ${APP_ID}
 name: AC10 Profiel shows my role per workspace
+# Never quarantined (TESTING.md §8): scripts/quarantine.mjs reads this tag.
+tags:
+  - permission
 env:
   # The Android application id and the iOS bundle id.
   APP_ID: app.fivvi.pro

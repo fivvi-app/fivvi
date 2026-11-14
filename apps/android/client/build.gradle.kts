@@ -56,6 +56,8 @@ android {
     val sharedFakes = listOf("src/testShared/kotlin", "../core/src/testShared/kotlin")
     sourceSets.getByName("test").kotlin.directories.addAll(sharedFakes)
     sourceSets.getByName("androidTest").kotlin.directories.addAll(sharedFakes)
+    // The filter that leaves the quarantined Compose UI tests out, or runs only them (E002 #1363, scripts/_android.sh).
+    sourceSets.getByName("androidTest").kotlin.directories.add("../core/src/androidTestShared/kotlin")
     androidResources {
         localeFilters += listOf("nl", "en")
     }

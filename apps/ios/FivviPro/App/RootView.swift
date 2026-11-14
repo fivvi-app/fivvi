@@ -18,9 +18,11 @@ struct RootView: View {
     var body: some View {
         switch session.state {
         case let .signedOut(afterRejection):
-            SignInView(api: api, store: store, language: language, afterRejection: afterRejection) {
-                session.signedIn()
-            }
+            SignInView(
+                api: api, store: store, language: language, afterRejection: afterRejection,
+                logo: { ProLogo.logo(catalog: $0) },
+                onSignedIn: { session.signedIn() }
+            )
         case .signedIn:
             HomeView(
                 api: api, store: store, language: language,

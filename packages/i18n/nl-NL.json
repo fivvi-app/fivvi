@@ -234,8 +234,8 @@
     },
     "trainerInvitation": {
       "subject": "{inviter} nodigt je uit voor {workspace}",
-      "preview": "Je bent uitgenodigd om trainer te worden bij {workspace}.",
-      "intro": "{inviter} nodigt je uit om trainer te worden bij {workspace}.",
+      "preview": "Je bent uitgenodigd om {aWord} te worden bij {workspace}.",
+      "intro": "{inviter} nodigt je uit om {aWord} te worden bij {workspace}.",
       "button": "Uitnodiging bekijken",
       "validity": "Deze uitnodiging is geldig tot {date}.",
       "ignore": "Verwacht je deze e-mail niet? Dan kun je hem negeren."
@@ -246,7 +246,7 @@
       "intro": "Er is een privésessie voor je gepland bij {workspace}.",
       "when": "Wanneer: {date}, {start} tot {end}",
       "where": "Waar: {location}",
-      "trainer": "Trainer: {trainer}"
+      "trainer": "{Word}: {trainer}"
     },
     "privateSessionMoved": {
       "subject": "Wijziging: je sessie is verplaatst naar {newDate}",
