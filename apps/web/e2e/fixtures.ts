@@ -80,8 +80,9 @@ async function watchCspViolations(context: BrowserContext, found: CspViolation[]
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa'];
 
 /**
- * The most axe runs one check makes. A run is repeated while it found violations and a CSS
- * transition or animation started during it; the last run's result counts.
+ * The most axe runs one check makes. A run is repeated while it found violations and the page
+ * was animating around it (something running when axe began, something started during it, or
+ * something running when it was done); the last run's result counts.
  */
 const MAX_AXE_RUNS = 3;
 

@@ -151,9 +151,11 @@ test.describe('F001 axe check waits for animations (#203)', () => {
     page,
   }) => {
     // The page plays the sequence by counting the check's looks at `document.getAnimations()`:
-    // the first (the end of the wait) finds nothing and starts a fade, with the event the frame
-    // would bring; the third (after axe) finds the fade finished. 8 s of linear fade keeps the
-    // opacity near 0.05 (about 1.4:1) for as long as axe reads.
+    // the first (the end of the wait) finds nothing and starts a fade, with a synthetic
+    // 'transitionrun' standing in for the frame's own; the third (after axe) finds the fade
+    // finished. The browser's own 'transitionrun' is held back: it would arrive during the axe
+    // run and make the check rerun for the wrong reason (the old check passed the test then). 8 s
+    // of linear fade keeps the opacity near 0.05 (about 1.4:1) for as long as axe reads.
     await page.setContent(`<!doctype html>
       <html lang="en">
         <head>
@@ -166,6 +168,9 @@ test.describe('F001 axe check waits for animations (#203)', () => {
         <body>
           <main><button type="button">Hydrated just now</button></main>
           <script>
+            document.addEventListener('transitionrun', (event) => {
+              if (event.isTrusted) event.stopImmediatePropagation();
+            }, true);
             const getAnimations = Document.prototype.getAnimations;
             let looks = 0;
             Document.prototype.getAnimations = function (...args) {
