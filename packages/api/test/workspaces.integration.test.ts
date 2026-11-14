@@ -6,6 +6,8 @@ import {
   createTenantScopes,
   type DatabaseClient,
   locations,
+  offers,
+  offerVersions,
   organizations,
   type SignedInAccount,
   teamMembers,
@@ -146,6 +148,87 @@ describe('F002 POST /v1/workspaces', () => {
       await admin.db.select().from(teamMembers).where(eq(teamMembers.accountId, sarah.id)),
     ).toEqual([expect.objectContaining({ organizationId: body.id, role: 'owner' })]);
     expect(await nameOf(sarah.id)).toBe('Sarah');
+  });
+
+  it('AC1 (F052): a new workspace gets exactly the three default plans, switched off, without a price or a VAT rate, in NL and EN', async () => {
+    const sarah = await account();
+
+    const response = await create(sarah, { name: 'Offers Gym' });
+
+    expect(response.status).toBe(201);
+    const body = (await response.json()) as WorkspaceBody;
+    const stored = await admin.db
+      .select({
+        kind: offers.kind,
+        creditKind: offers.creditKind,
+        status: offers.status,
+        origin: offers.origin,
+        nameNl: offerVersions.nameNl,
+        nameEn: offerVersions.nameEn,
+        priceCents: offerVersions.priceCents,
+        vatRateBasisPoints: offerVersions.vatRateBasisPoints,
+        cutoffMinutes: offerVersions.cutoffMinutes,
+      })
+      .from(offers)
+      .innerJoin(offerVersions, eq(offerVersions.id, offers.currentVersionId))
+      .where(eq(offers.organizationId, body.id))
+      .orderBy(offerVersions.nameNl);
+    const unpriced = {
+      status: 'off',
+      origin: 'default',
+      priceCents: null,
+      vatRateBasisPoints: null,
+    };
+    expect(stored).toEqual([
+      {
+        ...unpriced,
+        kind: 'membership',
+        creditKind: null,
+        nameNl: 'Abonnement',
+        nameEn: 'Membership',
+        cutoffMinutes: 720,
+      },
+      {
+        ...unpriced,
+        kind: 'credit_pack',
+        creditKind: 'group',
+        nameNl: 'Groepscreditpakket',
+        nameEn: 'Group credit pack',
+        cutoffMinutes: 720,
+      },
+      {
+        ...unpriced,
+        kind: 'credit_plan',
+        creditKind: 'private',
+        nameNl: 'Privécreditabonnement',
+        nameEn: 'Private credit plan',
+        cutoffMinutes: 1440,
+      },
+    ]);
+  });
+
+  it('AC1 (F052): a failure in the request leaves no offer behind', async () => {
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+    const unlucky = await account();
+    const before = await admin.db.$count(offers);
+    const versionsBefore = await admin.db.$count(offerVersions);
+    const failing: ProductEvents = {
+      enabled: true,
+      track: () => {
+        throw new Error('the event failed');
+      },
+      flush: () => Promise.resolve(),
+    };
+
+    const response = await create(
+      unlucky,
+      { name: 'Unlucky Offers Gym' },
+      api({ productEvents: failing }),
+    );
+
+    expect(response.status).toBe(500);
+    expect(await admin.db.$count(offers)).toBe(before);
+    expect(await admin.db.$count(offerVersions)).toBe(versionsBefore);
   });
 
   it('AC3 (F005): the creator gets a trainer profile, in the same transaction, and no one else does', async () => {
