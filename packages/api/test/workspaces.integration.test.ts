@@ -211,6 +211,7 @@ describe('F002 POST /v1/workspaces', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const unlucky = await account();
     const before = await admin.db.$count(offers);
+    const versionsBefore = await admin.db.$count(offerVersions);
     const failing: ProductEvents = {
       enabled: true,
       track: () => {
@@ -227,7 +228,7 @@ describe('F002 POST /v1/workspaces', () => {
 
     expect(response.status).toBe(500);
     expect(await admin.db.$count(offers)).toBe(before);
-    expect(await admin.db.$count(offerVersions)).toBe(before);
+    expect(await admin.db.$count(offerVersions)).toBe(versionsBefore);
   });
 
   it('AC3 (F005): the creator gets a trainer profile, in the same transaction, and no one else does', async () => {

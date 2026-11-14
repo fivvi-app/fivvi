@@ -165,9 +165,12 @@ export async function createOffer(scope: WorkspaceScope, offer: NewOffer): Promi
   return (await insertOffer(executorOf(scope), scope.workspaceId, offer)).id;
 }
 
-/** The workspace's offers with their current versions, by name in Dutch. */
-export async function listOffers(scope: WorkspaceScope): Promise<OfferView[]> {
-  const rows = await executorOf(scope)
+async function selectOffers(
+  db: Pick<DatabaseExecutor, 'select'>,
+  workspaceId: string,
+  offerId?: string,
+): Promise<OfferView[]> {
+  const rows = await db
     .select(columns)
     .from(offers)
     .innerJoin(
@@ -177,16 +180,60 @@ export async function listOffers(scope: WorkspaceScope): Promise<OfferView[]> {
         eq(offerVersions.id, offers.currentVersionId),
       ),
     )
-    .where(eq(offers.organizationId, scope.workspaceId))
+    .where(
+      and(
+        eq(offers.organizationId, workspaceId),
+        offerId === undefined ? undefined : eq(offers.id, offerId),
+      ),
+    )
     .orderBy(asc(offerVersions.nameNl), asc(offers.id));
   return rows.map(viewOf);
 }
 
+/** The workspace's offers with their current versions, by name in Dutch. */
+export function listOffers(scope: WorkspaceScope): Promise<OfferView[]> {
+  return selectOffers(executorOf(scope), scope.workspaceId);
+}
+
 /**
- * Saves a change of an offer as a new version, the next number, and makes it the offer's current
- * one; the versions before it stay as they were. The caller has decided the terms are valid. The
- * offer row is locked first, so two changes at once get two numbers, one after the other.
- * `undefined` when the workspace has no such offer.
+ * Writes a new version of an offer, the next number, and makes it the offer's current one; the
+ * versions before it stay as they were. The offer row is locked first, so two changes at once get
+ * two numbers, one after the other. `false` when the workspace has no such offer. On an executor
+ * that is in a transaction when the caller changes more than the version (the key to the current
+ * version is deferred). Used by `addOfferVersion` and by the seed.
+ */
+export async function appendOfferVersion(
+  db: DatabaseExecutor,
+  organizationId: string,
+  offerId: string,
+  terms: OfferTerms,
+): Promise<boolean> {
+  const [locked] = await db
+    .select({ id: offers.id })
+    .from(offers)
+    .where(and(eq(offers.organizationId, organizationId), eq(offers.id, offerId)))
+    .for('update');
+  if (!locked) return false;
+  const [latest] = await db
+    .select({ version: sql<number>`coalesce(max(${offerVersions.version}), 0)` })
+    .from(offerVersions)
+    .where(
+      and(eq(offerVersions.organizationId, organizationId), eq(offerVersions.offerId, offerId)),
+    );
+  const versionId = randomUUID();
+  await db
+    .insert(offerVersions)
+    .values(versionValues(organizationId, offerId, versionId, (latest?.version ?? 0) + 1, terms));
+  await db
+    .update(offers)
+    .set({ currentVersionId: versionId })
+    .where(and(eq(offers.organizationId, organizationId), eq(offers.id, offerId)));
+  return true;
+}
+
+/**
+ * Saves a change of an offer as a new version that becomes its current one. The caller has
+ * decided the terms are valid. `undefined` when the workspace has no such offer.
  */
 export async function addOfferVersion(
   scope: WorkspaceScope,
@@ -194,29 +241,8 @@ export async function addOfferVersion(
   terms: OfferTerms,
 ): Promise<OfferView | undefined> {
   const db = executorOf(scope);
-  const [locked] = await db
-    .select({ id: offers.id })
-    .from(offers)
-    .where(and(eq(offers.organizationId, scope.workspaceId), eq(offers.id, offerId)))
-    .for('update');
-  if (!locked) return undefined;
-  const [latest] = await db
-    .select({ version: sql<number>`coalesce(max(${offerVersions.version}), 0)` })
-    .from(offerVersions)
-    .where(
-      and(eq(offerVersions.organizationId, scope.workspaceId), eq(offerVersions.offerId, offerId)),
-    );
-  const versionId = randomUUID();
-  await db
-    .insert(offerVersions)
-    .values(
-      versionValues(scope.workspaceId, offerId, versionId, (latest?.version ?? 0) + 1, terms),
-    );
-  await db
-    .update(offers)
-    .set({ currentVersionId: versionId })
-    .where(and(eq(offers.organizationId, scope.workspaceId), eq(offers.id, offerId)));
-  return (await listOffers(scope)).find((offer) => offer.id === offerId);
+  if (!(await appendOfferVersion(db, scope.workspaceId, offerId, terms))) return undefined;
+  return (await selectOffers(db, scope.workspaceId, offerId))[0];
 }
 
 /** Every version of one offer of the workspace, oldest first: what an agreement may still point at. */

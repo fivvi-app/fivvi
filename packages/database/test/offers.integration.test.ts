@@ -460,13 +460,13 @@ describe('F052 offers', () => {
             .set({ priceCents: 1 })
             .where(eq(offerVersions.id, versionId));
         }),
-      ).rejects.toThrow();
+      ).rejects.toMatchObject({ cause: { message: expect.stringMatching(/immutable/) } });
       await expect(
         inScope(async (scope) => {
           const db = executorOf(scope);
           await db.delete(offerVersions).where(eq(offerVersions.id, versionId));
         }),
-      ).rejects.toThrow();
+      ).rejects.toMatchObject({ cause: { message: expect.stringMatching(/immutable/) } });
 
       const [stored] = await admin.db
         .select({ priceCents: offerVersions.priceCents })

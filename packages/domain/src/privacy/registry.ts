@@ -243,13 +243,13 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     table: 'offers',
     personal: false,
     reason:
-      'An offer of a workspace: its kind, status and origin, and which version is current (F052). Prices and terms, nothing about a person. Deleted with the workspace.',
+      'An offer of a workspace: its kind, status and origin, and which version is current (F052). Prices and terms, nothing about a person. Kept as long as the workspace is; an offer is archived, never deleted.',
   },
   {
     table: 'offer_versions',
     personal: false,
     reason:
-      'An immutable version of an offer: names, descriptions, the price in euro cents, the VAT rate and the terms of its kind (F052). Nothing about a person: the offer’s text is the owner’s, written for clients in general.',
+      'An immutable version of an offer: names, descriptions, the price in euro cents, the VAT rate and the terms of its kind (F052). Nothing about a person: the offer’s text is the owner’s, written for clients in general. Never changed or deleted: a trigger refuses it for every role, so every price a client ever agreed to stays explainable.',
   },
   {
     table: 'sessions',

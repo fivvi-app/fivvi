@@ -2,7 +2,7 @@ import { and, eq, gte, inArray, isNull, lt, sql } from 'drizzle-orm';
 import type { DatabaseExecutor } from './client.ts';
 import { defaultOfferPlans } from './default-offers.ts';
 import { FIXTURE_INVITATION_VALIDITY_MS } from './invitation-validity.ts';
-import { insertOffer, type NewOffer } from './repositories/offers.ts';
+import { appendOfferVersion, insertOffer, type NewOffer } from './repositories/offers.ts';
 import {
   authUsers,
   clients,
@@ -325,6 +325,36 @@ async function seedOffers(
     // The offer and its version point at each other: one transaction, the key is checked at commit.
     if (!found) await db.transaction((tx) => insertOffer(tx, workspaceId, offer));
   };
+  // A database that had John's Gym before offers did got the default plans from the migration's
+  // backfill, unpriced and off. Where such a copy is still untouched (off, version 1, no price),
+  // a new version gives it the seed's price and switches it on; what an owner changed stays.
+  const price = async (workspaceId: string, offer: NewOffer) => {
+    if (offer.defaultPlan === null) return;
+    const [untouched] = await db
+      .select({ id: offers.id })
+      .from(offers)
+      .innerJoin(
+        offerVersions,
+        and(
+          eq(offerVersions.organizationId, offers.organizationId),
+          eq(offerVersions.id, offers.currentVersionId),
+        ),
+      )
+      .where(
+        and(
+          eq(offers.organizationId, workspaceId),
+          eq(offers.defaultPlan, offer.defaultPlan),
+          eq(offers.status, 'off'),
+          eq(offerVersions.version, 1),
+          isNull(offerVersions.priceCents),
+        ),
+      );
+    if (!untouched) return;
+    await db.transaction(async (tx) => {
+      await appendOfferVersion(tx, workspaceId, untouched.id, offer.terms);
+      await tx.update(offers).set({ status: 'on' }).where(eq(offers.id, untouched.id));
+    });
+  };
   for (const plan of defaultOfferPlans()) {
     const priced: NewOffer = {
       ...plan,
@@ -336,6 +366,7 @@ async function seedOffers(
       },
     };
     await make(workspaces.gym, priced, plan.terms.nameNl);
+    await price(workspaces.gym, priced);
     for (const other of workspaces.others) await make(other, plan, plan.terms.nameNl);
   }
   for (const offer of SEED_OWNER_OFFERS) await make(workspaces.gym, offer, offer.terms.nameNl);
