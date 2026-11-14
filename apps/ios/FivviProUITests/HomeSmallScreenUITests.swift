@@ -28,6 +28,20 @@ final class HomeSmallScreenUITests: SignInUITestCase {
         let screen = SignInScreen.launch(
             against: server, session: .signedIn, textSize: AppLaunch.largestTextSize
         )
+        // The device turns before the app starts, and on a loaded simulator the app still comes up in the old
+        // orientation and turns after: its window decides, so wait for it before anything is measured (#1305).
+        XCTAssertTrue(
+            Rotation.apply(
+                orientation, timeout: timeout, window: { screen.app.windows.firstMatch.frame },
+                rotate: { XCUIDevice.shared.orientation = $0 },
+                report: { attempt, attempts in
+                    XCTContext.runActivity(
+                        named: Rotation.warning(orientation, attempt: attempt, of: attempts)
+                    ) { _ in }
+                }
+            ),
+            "the app did not turn to \(orientation)"
+        )
         for element in [screen.greeting, screen.account, screen.signedInAs, screen.signOut] {
             XCTAssertTrue(element.waitUntilExists(timeout: timeout), "\(element.identifier) is not on screen")
             screen.settle(element)
