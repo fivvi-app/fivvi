@@ -1,4 +1,5 @@
-// How the web e2e suite runs on CI (playwright.config.ts) and what it says when it hits its limit (#1301).
+// How the web e2e suite runs on CI and locally (playwright.config.ts) and what it says when it hits its limit (#1301).
+import { availableParallelism, loadavg } from 'node:os';
 
 /**
  * Workers on CI. Playwright's default is half the cores, so 2 on the 4 vCPU runner of a public
@@ -24,11 +25,39 @@ export interface E2ERun {
   globalTimeout: number | undefined;
 }
 
-/** The workers and the global limit of the suite: CI's own, and Playwright's defaults elsewhere. */
-export function e2eRun(ci: boolean): E2ERun {
+/** What the workers locally depend on: the cores of the machine and its load average over the last minute. */
+export interface Host {
+  cores: number;
+  load1: number;
+}
+
+/** The fewest workers a local suite takes, however busy the machine: it still finishes, slowly. */
+export const LOCAL_MIN_WORKERS = 2;
+
+/**
+ * Workers of a local run (#1336). Playwright's default is half the cores, which is right for a
+ * machine that runs only the suite. A factory run starts 4-6 builders and each runs its own
+ * check.sh; the load average goes to 20-45 on a 10-core Mac and the heaviest tests, whose time is
+ * browser CPU, take several times as long as alone (the measurements:
+ * docs/engineering/TESTING.md §8, "Locally the suite does not compete with itself"). A worker is
+ * taken to need about a core and a half (Chromium and the page's server), so the suite takes the
+ * cores the load leaves free, divided by that, between the minimum and the default.
+ */
+export function localWorkers({ cores, load1 }: Host): number {
+  const fromFreeCores = Math.floor((cores - load1) / 1.5);
+  return Math.max(LOCAL_MIN_WORKERS, Math.min(Math.floor(cores / 2), fromFreeCores));
+}
+
+/** The machine this runs on. */
+function thisHost(): Host {
+  return { cores: availableParallelism(), load1: loadavg()[0] ?? 0 };
+}
+
+/** The workers and the global limit of the suite: CI's own, and by the machine's load elsewhere. */
+export function e2eRun(ci: boolean, host: Host = thisHost()): E2ERun {
   return ci
     ? { workers: CI_WORKERS, globalTimeout: CI_GLOBAL_TIMEOUT_MINUTES * 60_000 }
-    : { workers: undefined, globalTimeout: undefined };
+    : { workers: localWorkers(host), globalTimeout: undefined };
 }
 
 /**
