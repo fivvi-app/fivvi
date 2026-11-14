@@ -6,6 +6,7 @@ export * from './exercise-library.ts';
 export * from './group-classes.ts';
 export * from './job-runs.ts';
 export * from './locations.ts';
+export * from './offers.ts';
 export * from './organizations.ts';
 export * from './payments.ts';
 export * from './refunds.ts';

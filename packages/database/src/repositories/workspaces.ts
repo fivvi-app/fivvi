@@ -16,6 +16,7 @@ import {
   type TenantScope,
   type WorkspaceScope,
 } from '../tenant-scope.ts';
+import { insertOffer, type NewOffer } from './offers.ts';
 
 // Creating a workspace (F002, ADR-022). The row of a workspace is out of reach of the RLS policy
 // `organizations_workspace` until its id is in the request's context, and the id of a workspace
@@ -67,10 +68,16 @@ export interface NewWorkspace {
   readonly ownerName?: string;
   /** Whether the Owner trains here: the rule of `packages/domain` (F005), made in the same transaction. */
   readonly ownerTrains: boolean;
+  /**
+   * The default plans (F052): the template of `packages/domain` (`defaultOffers()`), which this
+   * package cannot import. Each is copied into the workspace as an offer of its own, so a later
+   * change of the template never reaches it. Required, so no caller forgets them (AC1).
+   */
+  readonly defaultOffers: readonly NewOffer[];
 }
 
 /**
- * Creates the workspace, its one location (F015), the account's Owner role in it (with a trainer
+ * Creates the workspace, its one location (F015), its default plans (F052), the account's Owner role in it (with a trainer
  * profile when the creator trains, F005) and, when given, the account's name, in
  * the scope's transaction: a failure later in the request rolls all of it back. `undefined` when
  * the slug is taken (the caller tries the next one; a workspace of someone else can't be seen,
@@ -118,6 +125,9 @@ export async function createWorkspaceWithOwner(
     type: 'organization_location',
     isDefault: true,
   });
+  // The default plans, switched off and without a price (F052 AC1): in this transaction, so a
+  // workspace never exists without them.
+  for (const offer of input.defaultOffers) await insertOffer(db, id, offer);
   const [owner] = await db
     .insert(teamMembers)
     .values({ organizationId: id, accountId, role: 'owner' })

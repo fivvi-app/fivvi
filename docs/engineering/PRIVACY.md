@@ -63,6 +63,8 @@ Deleted when a terminated workspace is purged.
 | `job_runs` | The cron job’s run records: task name, times and outcome, never content. A daily task deletes rows after 90 days (E012). |
 | `system_greetings` | System data read by every workspace: the i18n key of a greeting (M1). |
 | `exercise_library` | The exercise library, the same for every workspace: an exercise’s key, type, muscle groups and search aliases (F039). The names are in `packages/i18n`. Nothing about any workspace or person. |
+| `offers` | An offer of a workspace: its kind, status and origin, and which version is current (F052). Prices and terms, nothing about a person. Kept as long as the workspace is; an offer is archived, never deleted. |
+| `offer_versions` | An immutable version of an offer: names, descriptions, the price in euro cents, the VAT rate and the terms of its kind (F052). Nothing about a person: the offer’s text is the owner’s, written for clients in general. Never changed or deleted: a trigger refuses it for every role, so every price a client ever agreed to stays explainable. |
 
 ## Retention periods
 

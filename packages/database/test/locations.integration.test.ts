@@ -21,7 +21,12 @@ import {
   type WorkspaceScope,
 } from '../src/index.ts';
 import { migrationsFolder, runMigrations } from '../src/migrate.ts';
-import { addTeamRole, createAccount, createWorkspace } from '../src/testing/index.ts';
+import {
+  addTeamRole,
+  createAccount,
+  createWorkspace,
+  testDefaultOffers,
+} from '../src/testing/index.ts';
 
 // The locations of a workspace (F015, spec #424): the table, the creation with the workspace, the
 // backfill and the repository functions, as the app role where RLS applies.
@@ -172,6 +177,7 @@ describe('F015 locations', () => {
           defaultLocale: 'nl-NL',
           timeZone: 'Europe/Amsterdam',
           ownerTrains: true,
+          defaultOffers: testDefaultOffers(),
         }),
     );
     const workspaceId = created?.id ?? '';
@@ -202,6 +208,7 @@ describe('F015 locations', () => {
           defaultLocale: 'nl-NL',
           timeZone: 'Europe/Amsterdam',
           ownerTrains: false,
+          defaultOffers: testDefaultOffers(),
         }),
     );
     expect(again).toBeUndefined();
