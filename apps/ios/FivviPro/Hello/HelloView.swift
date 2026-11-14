@@ -11,9 +11,7 @@ struct HelloView: View {
     let model: HelloViewModel
 
     var body: some View {
-        content
-            .padding(Tokens.Spacing.gutter)
-            .frame(maxWidth: .infinity)
+        Card { content.frame(maxWidth: .infinity) }
             .foregroundStyle(Tokens.Colors.textPrimary)
             .environment(\.locale, model.catalog.formattingLocale)
             .task(id: model.catalog.locale) { await model.load() }
@@ -41,15 +39,18 @@ struct HelloView: View {
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("hello.error")
-                Button {
-                    Task { await model.load() }
-                } label: {
-                    Text(model.catalog[.commonRetry])
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
+                PillButtonStack {
+                    Button {
+                        Task { await model.load() }
+                    } label: {
+                        Text(model.catalog[.commonRetry])
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.pill(.filled))
+                    .accessibilityIdentifier("hello.retry")
                 }
-                .buttonStyle(.primaryAction)
-                .accessibilityIdentifier("hello.retry")
             }
         }
     }

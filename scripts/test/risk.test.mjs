@@ -223,6 +223,14 @@ describe('risk of a pull request', () => {
       'Package.resolved',
     ],
     infrastructure: ['Dockerfile', 'apps/cron/Dockerfile.cron', '.railway/railway.ts'],
+    // The quarantine lists (ADR-025, amendment of 12 November 2026, step 6; spec #1356): outside every guardrail path.
+    quarantine: [
+      'quarantine/vitest.txt',
+      'quarantine/playwright.txt',
+      'quarantine/xctest.txt',
+      'quarantine/compose.txt',
+      'quarantine/maestro.txt',
+    ],
   };
 
   // ADR-021, spec #292: these groups are agent-queueable ("high"); every other group is owner-only ("owner").
@@ -234,6 +242,7 @@ describe('risk of a pull request', () => {
     'infrastructure',
     'billing',
     'tooling',
+    'quarantine',
   ];
 
   for (const [group, files] of Object.entries(groups)) {
@@ -833,6 +842,7 @@ describe('high-risk paths', () => {
       'dependencies',
       'health-notes',
       'infrastructure',
+      'quarantine',
       'tenant-data',
       'tooling',
     ]);

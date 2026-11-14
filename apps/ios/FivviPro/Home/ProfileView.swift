@@ -26,62 +26,53 @@ struct ProfileView: View {
     var onSelect: (String) -> Void = { _ in }
     /// Opens a page of the website in the system browser (F064 AC17); the home passes its `openURL`.
     let openLink: (URL) -> Void
+    @Environment(\.dynamicTypeSize) var dynamicTypeSize
+    /// The room of the check on a workspace row; it grows with the text size, like the check (a symbol).
+    @ScaledMetric(relativeTo: .body) var checkSlot: CGFloat = 20
 
     var body: some View {
-        content
-            .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .background(Tokens.Colors.bgCanvas)
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(model.isSaving)
-            .sheet(isPresented: Binding(
-                get: { model.editor != nil },
-                set: { if !$0 { model.cancelEditingName() } }
-            )) {
-                NameEditorView(model: model)
-            }
-            .toolbar {
-                ToolbarItem(placement: .principal) {
-                    Text(model.catalog[.profileTitle])
-                        .font(.headline)
-                        .foregroundStyle(Tokens.Colors.textPrimary)
-                        .accessibilityAddTraits(.isHeader)
-                        .accessibilityIdentifier("profile.title")
-                }
-            }
-            .environment(\.locale, model.catalog.formattingLocale)
-            .task { await model.load() }
-            .onReturnToForeground { await model.refresh() }
+        LargeTitleScreen(title: model.catalog[.profileTitle], titleIdentifier: "profile.title") {
+            content
+        }
+        .navigationBarBackButtonHidden(model.isSaving)
+        .sheet(isPresented: Binding(
+            get: { model.editor != nil },
+            set: { if !$0 { model.cancelEditingName() } }
+        )) {
+            NameEditorView(model: model)
+        }
+        .environment(\.locale, model.catalog.formattingLocale)
+        .task { await model.load() }
+        .onReturnToForeground { await model.refresh() }
     }
 
-    private var content: some View {
-        List {
-            if let account = model.account, case .loaded = model.state { detailsSection(account) }
-            switch model.state {
-            case .loading:
-                Section {
-                    ProgressView()
-                        .tint(Tokens.Colors.textSecondary)
-                        .frame(maxWidth: .infinity)
-                        .accessibilityLabel(model.catalog[.commonLoading])
-                        .accessibilityIdentifier("profile.loading")
-                }
-            case let .loaded(entries):
-                workspacesSection(entries)
-            case .failed:
-                failedSection
+    @ViewBuilder private var content: some View {
+        if let account = model.account, case .loaded = model.state { detailsSection(account) }
+        switch model.state {
+        case .loading:
+            InsetGroup {
+                ProgressView()
+                    .tint(Tokens.Colors.textSecondary)
+                    .frame(maxWidth: .infinity)
+                    .insetRowLayout()
+                    .accessibilityLabel(model.catalog[.commonLoading])
+                    .accessibilityIdentifier("profile.loading")
             }
-            languageSection
-            siteLinksSection
+        case let .loaded(entries):
+            workspacesSection(entries)
+        case .failed:
+            failedSection
         }
-        .scrollContentBackground(.hidden)
+        languageSection
+        siteLinksSection
     }
 
     /// The name (tap to change it) and the email address, which is read-only: changing it is out of scope (F001).
     private func detailsSection(_ account: ProfileViewModel.Account) -> some View {
-        Section {
+        InsetGroup(header: model.catalog[.myProfileDetailsTitle], headerIdentifier: "profile.detailsTitle") {
             VStack(alignment: .leading, spacing: Tokens.Spacing.space1) {
                 Text(model.catalog[.myProfileNameLabel])
-                    .font(.system(Tokens.TextStyle.label))
+                    .font(.system(Tokens.TextStyle.footnote))
                     .foregroundStyle(Tokens.Colors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                 // The name itself is the button, so the one element that opens the sheet has both the id and the name.
@@ -92,10 +83,12 @@ struct ProfileView: View {
                         Text(account.name ?? model.catalog[.myProfileEditName])
                             .font(.system(Tokens.TextStyle.body))
                             .foregroundStyle(Tokens.Colors.textPrimary)
+                            .multilineTextAlignment(.leading)
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundStyle(Tokens.Colors.textSecondary)
+                        Image(systemName: "chevron.forward")
+                            .font(.system(Tokens.TextStyle.footnote, weight: .semibold))
+                            .foregroundStyle(Tokens.Colors.fillDecorative)
                             .accessibilityHidden(true)
                     }
                     .frame(minHeight: 44)
@@ -112,9 +105,10 @@ struct ProfileView: View {
                         .accessibilityIdentifier("profile.nameSaved")
                 }
             }
+            .insetRowLayout()
             VStack(alignment: .leading, spacing: Tokens.Spacing.space1) {
                 Text(model.catalog[.myProfileEmailLabel])
-                    .font(.system(Tokens.TextStyle.label))
+                    .font(.system(Tokens.TextStyle.footnote))
                     .foregroundStyle(Tokens.Colors.textSecondary)
                     .fixedSize(horizontal: false, vertical: true)
                 Text(account.email)
@@ -123,15 +117,12 @@ struct ProfileView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("profile.email")
             }
-        } header: {
-            Text(model.catalog[.myProfileDetailsTitle])
-                .accessibilityAddTraits(.isHeader)
-                .accessibilityIdentifier("profile.detailsTitle")
+            .insetRowLayout()
         }
     }
 
     private var languageSection: some View {
-        Section {
+        InsetGroup(header: model.catalog[.profileLanguage], headerIdentifier: "profile.language") {
             ForEach(Components.Schemas.Locale.allCases, id: \.self) { locale in
                 Button {
                     language.choose(locale)
@@ -145,51 +136,51 @@ struct ProfileView: View {
                         Spacer()
                         if language.catalog.locale == locale {
                             Image(systemName: "checkmark")
-                                .foregroundStyle(Tokens.Colors.actionPrimaryBg)
+                                .foregroundStyle(Tokens.Colors.accentText)
                                 .accessibilityHidden(true)
                         }
                     }
-                    .frame(minHeight: 44)
-                    .contentShape(Rectangle())
+                    .insetRowLayout()
                 }
-                .buttonStyle(.plain)
+                .buttonStyle(.insetRow)
                 .accessibilityAddTraits(language.catalog.locale == locale ? .isSelected : [])
                 .accessibilityIdentifier("profile.language.\(locale.rawValue)")
             }
             if language.saveFailed {
                 Text(model.catalog[.userMenuError])
                     .font(.system(Tokens.TextStyle.footnote))
-                    .foregroundStyle(Tokens.Colors.statusDangerFg)
+                    .foregroundStyle(Tokens.Colors.statusDangerText)
                     .fixedSize(horizontal: false, vertical: true)
+                    .insetRowLayout()
                     .accessibilityIdentifier("profile.language.error")
             }
-        } header: {
-            Text(model.catalog[.profileLanguage])
-                .accessibilityAddTraits(.isHeader)
-                .accessibilityIdentifier("profile.language")
         }
     }
 
     private var failedSection: some View {
-        Section {
-            VStack(spacing: Tokens.Spacing.space6) {
+        InsetGroup {
+            VStack(spacing: Tokens.Spacing.space4) {
                 Text(model.catalog[.profileError])
                     .font(.system(Tokens.TextStyle.body))
                     .foregroundStyle(Tokens.Colors.textPrimary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
                     .accessibilityIdentifier("profile.error")
-                Button {
-                    Task { await model.load() }
-                } label: {
-                    Text(model.catalog[.commonRetry])
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
+                PillButtonStack {
+                    Button {
+                        Task { await model.load() }
+                    } label: {
+                        Text(model.catalog[.commonRetry])
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.pill(.filled))
+                    .accessibilityIdentifier("profile.retry")
                 }
-                .buttonStyle(.primaryAction)
-                .accessibilityIdentifier("profile.retry")
             }
             .frame(maxWidth: .infinity)
+            .insetRowLayout()
         }
     }
 }

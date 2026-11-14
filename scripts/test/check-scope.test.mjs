@@ -88,6 +88,7 @@ describe('#293 check.sh runs the checks a change can affect', () => {
       'doc-anchors.mjs',
       'doc-lists.mjs',
       'db-renumber.mjs',
+      'quarantine.mjs',
     ])
       copyFileSync(join(SCRIPTS, file), join(repo(), 'scripts', file));
     // The hygiene checks are not under test here, only that they run: each logs its name.
@@ -145,6 +146,7 @@ describe('#293 check.sh runs the checks a change can affect', () => {
     for (const call of HYGIENE)
       assert.ok(result.calls.includes(call), `${call} ran: ${result.calls.join(' | ')}`);
     assert.match(result.stdout, /✓ doc links/);
+    assert.match(result.stdout, /✓ quarantine lists/);
   };
 
   it('AC1: a change to scripts runs shellcheck, the root script tests and the hygiene checks, and skips the suites', () => {
@@ -176,6 +178,17 @@ describe('#293 check.sh runs the checks a change can affect', () => {
     assert.match(result.stdout, /shellcheck: skipped \(not affected\)/);
     for (const suite of result.summary.suites)
       assert.equal(suite.status, 'skipped (not affected)', suite.name);
+  });
+
+  it('#1360 AC2: an expired quarantine entry fails check.sh whatever changed, also a Markdown-only change', () => {
+    write(
+      join(repo(), 'quarantine/vitest.txt'),
+      'a flaky test | #1400 | 2020-01-01 | 2020-01-08\n',
+    );
+    const result = run(['docs/product/PRODUCT.md']);
+    assert.equal(result.status, 1, result.stdout);
+    assert.match(result.stdout, /✗ quarantine lists/);
+    assert.match(result.stdout, /vitest\.txt:1: expired on 2020-01-08/);
   });
 
   it('#1041 AC7: the doc links check fails on a runbook link to a heading that does not exist, and passes when it does', () => {

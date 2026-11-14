@@ -113,10 +113,19 @@ describe('#1311 ci.yml: the E2E job installs the OS packages through the retry',
     const stepMinutes = Number(step.match(/timeout-minutes: (\d+)/)?.[1]);
     assert.ok(stepMinutes > 0, 'the step has a timeout-minutes');
     const job = ci.slice(ci.indexOf('\n  e2e:\n'));
-    const jobMinutes = Number(job.match(/timeout-minutes: (\d+)/)?.[1]);
+    // The job limit: 25 for a pull request, a merge group and workflow_dispatch; on a push (E002 #1357) the work step may
+    // take 20 minutes, so the limit is 35 (`push && 35 || 25`).
+    const limit = job.match(
+      /^ {4}timeout-minutes: (?:(\d+)|\$\{\{ github\.event_name == 'push' && (\d+) \|\| (\d+) \}\})$/m,
+    );
+    assert.ok(limit, 'the job has a timeout-minutes');
+    const [jobMinutes, pushMinutes] = limit[1]
+      ? [Number(limit[1]), Number(limit[1])]
+      : [Number(limit[3]), Number(limit[2])];
     assert.ok(
       jobMinutes >= 15 + stepMinutes,
       'the job limit is 15 minutes of work plus the retry step',
     );
+    assert.ok(pushMinutes >= jobMinutes, 'a push gets at least as long as the other events');
   });
 });

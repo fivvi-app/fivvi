@@ -34,9 +34,19 @@ describe('#1301 e2e run settings', () => {
       'utf8',
     );
     const job = workflow.slice(workflow.indexOf('\n  e2e:\n'));
-    const jobMinutes = Number(/timeout-minutes: (\d+)/.exec(job)?.[1]);
-    // Setup and build take about 1 minute; the report and the artifacts a little more.
-    expect(jobMinutes - CI_GLOBAL_TIMEOUT_MINUTES).toBeGreaterThanOrEqual(2);
+    // The job's own limit, at the job's indentation (a step's `timeout-minutes` sits deeper): a plain number, or
+    // `push && N || M` (N on a push, M on a pull request, a merge group and workflow_dispatch). The rule holds for both.
+    const limit =
+      /^ {4}timeout-minutes: (?:(\d+)|\$\{\{ github\.event_name == 'push' && (\d+) \|\| (\d+) \}\})$/m.exec(
+        job,
+      );
+    expect(limit, 'the e2e job has a timeout-minutes of its own').not.toBeNull();
+    const jobMinutes = limit?.[1] ? [Number(limit[1])] : [Number(limit?.[2]), Number(limit?.[3])];
+    expect(jobMinutes).toHaveLength(limit?.[1] ? 1 : 2);
+    for (const minutes of jobMinutes) {
+      // Setup and build take about 1 minute; the report and the artifacts a little more.
+      expect(minutes - CI_GLOBAL_TIMEOUT_MINUTES).toBeGreaterThanOrEqual(2);
+    }
   });
 });
 

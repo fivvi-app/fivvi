@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // The app icon of Fivvi Pro on both platforms, generated from one source: the day dial B2, the owner's choice of
-// 8 November 2026 (E020, #666; the vv wordmark stays the brand logo, only the app icon is the dial). Three layers in a
-// 100 x 100 box: the background gradient, the track (a ring around the middle) and the five sectors of the dial. The
-// five `d` strings below are copied unchanged from docs/design/brand/day-dial/b2/layers/3-five.svg (the owner keeps the
+// 8 November 2026 (E020, #666; the vv wordmark stays the brand logo, only the app icon is the dial). Four layers in a
+// 100 x 100 box: the background gradient, the track (a ring around the middle), the five sectors of the dial and, for
+// Fivvi Pro only, PRO in the centre, drawn on top as round strokes (E020, #672).
+// The five `d` strings below are copied unchanged from docs/design/brand/day-dial/b2/layers/3-five.svg (the owner keeps the
 // drawn shapes, never a redraw). They are copied, not read from the brand folder at run time, because the root tests
 // are cached by turbo on their `inputs` (turbo.json), which do not list docs/design/brand. The track is a circle
 // (centre 50, 50, radius 25.5, stroke 7.14), drawn here as the ring between the radii 21.93 and 29.07. The colours are
@@ -14,14 +15,21 @@
 //
 // Output (generated, never edited by hand):
 //   apps/ios/FivviPro/Assets.xcassets/AppIcon.appiconset/AppIcon{,-Dark,-Tinted}.png   1024 px, RGB without alpha
-//                                        (App Store): fivvi-day-dial-b2-{light,dark,tinted}.svg without the rounded
-//                                        clip, which iOS applies itself; with the soft shadow under the sectors
+//                                        (App Store): the fivvi-day-dial-b2-pro-{light,dark,tinted}.svg previews (with
+//                                        PRO) without the rounded clip, which iOS applies itself; with the soft shadow
+//                                        under the sectors, none under PRO
 //   apps/android/app/src/main/res/drawable/ic_launcher_{background,foreground,monochrome}.xml, vector layers
 //   apps/android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml   the adaptive icon with its monochrome layer
 //   apps/android/app/src/main/ic_launcher-playstore.png                512 px, RGB (Google Play listing)
 //   apps/android/client/src/main/...   the same four files for Fivvi, the client app (E017 #504): the plain day dial B2,
 //                                        the owner's choice of 8 November 2026 (docs/design/brand/README.md, "The app
-//                                        icon"); Fivvi Pro gets B2 with PRO on top later (#672)
+//                                        icon"), without PRO
+//
+// Fivvi Pro is B2 with PRO in the empty centre of the dial (owner, 8 November 2026; E020 #672): rounded monoline strokes
+// from the path data of docs/design/brand/day-dial/b2-pro/layers/4-pro.svg, copied unchanged like the five (PRO below),
+// `#1C1C1E` in the light icon and white in the dark and tinted ones, on top of everything and with no shadow (only the
+// five cast one). On Android they are strokes of the foreground and monochrome layers at the dial's 0.72 dp a unit;
+// the PNGs outline them (strokeOutline).
 //
 // No dependency: the path is parsed and flattened here, and the PNG is rasterised and encoded with Node's zlib.
 import { mkdirSync, writeFileSync } from 'node:fs';
@@ -48,6 +56,30 @@ export const FIVE_PATHS = [
   `M29.77 77.33 A34 34 0 0 1 22.67 70.23 Q21.32 68.25 23.34 66.97 L33.63 60.42 Q35.66 59.13 37.08 61.05 A17 17 0 0 0 38.95 62.92 Q40.87 64.34 39.58 66.37 L33.03 76.66 Q31.75 78.68 29.77 77.33Z`,
 ];
 
+/**
+ * PRO in the centre of Fivvi Pro's dial, from docs/design/brand/day-dial/b2-pro/layers/4-pro.svg: in a letter box 10
+ * tall, scaled by `scale` about the middle of the design (50, 50), drawn as strokes of `width` (2.63 x 0.95 = 2.5 in
+ * the design) with round caps and joins. Each letter's `d` is in its own box, which starts at `at` (the box of the O is
+ * given by its ellipse, so its `at` is zero). The P and R data are copied unchanged, the O's numbers are the file's
+ * `<ellipse>`; copied, not read from the brand folder, for the reason above.
+ */
+const P_PATH = 'M0 10 L0 0 L3.4 0 A2.9 2.9 0 0 1 3.4 5.8 L0 5.8';
+const O_ELLIPSE = { cx: 9.8, cy: 0, rx: 3.6, ry: 5 };
+export const PRO = {
+  scale: 0.95,
+  width: 2.63,
+  ellipse: O_ELLIPSE,
+  letters: [
+    { d: P_PATH, at: [-13.5, -5] },
+    { d: `${P_PATH} M2.6 5.8 L6.1 10`, at: [-3.6, -5] },
+    {
+      // the ellipse as two half turns (an arc cannot be a full ellipse), starting at its left end
+      d: `M${O_ELLIPSE.cx - O_ELLIPSE.rx} ${O_ELLIPSE.cy} A${O_ELLIPSE.rx} ${O_ELLIPSE.ry} 0 1 1 ${O_ELLIPSE.cx + O_ELLIPSE.rx} ${O_ELLIPSE.cy} A${O_ELLIPSE.rx} ${O_ELLIPSE.ry} 0 1 1 ${O_ELLIPSE.cx - O_ELLIPSE.rx} ${O_ELLIPSE.cy}`,
+      at: [0, 0],
+    },
+  ],
+};
+
 /** The track: a circle in the design, stroked; its outline is the ring between the two radii. */
 const TRACK = { centre: DESIGN / 2, radius: 25.5, width: 7.14 };
 /** The ring as path data: the outer circle clockwise on screen like the sectors, the inner one back, so that it is a ring. */
@@ -65,26 +97,30 @@ const LOGO = {
   pinkBottom: '#c8103d',
   trackLight: '#e4e4ea',
   white: '#ffffff',
+  ink: '#1c1c1e',
 };
-/** The three appearances: background gradient (top right to bottom left), track, the sectors and the shadow's opacity. */
+/** The three appearances: background gradient (top right to bottom left), track, the sectors, the shadow's opacity and the colour of PRO. */
 const APPEARANCES = {
   light: {
     background: ['#ffffff', '#ececf1'],
     track: { colour: LOGO.trackLight, alpha: 1 },
     five: [LOGO.pinkTop, LOGO.pinkBottom],
     shadow: 0.1,
+    pro: LOGO.ink,
   },
   dark: {
     background: ['#2c2c2e', '#0b0b0c'],
     track: { colour: LOGO.white, alpha: 0x1a / 255 },
     five: [LOGO.pinkTop, LOGO.pinkBottom],
     shadow: 0.35,
+    pro: LOGO.white,
   },
   tinted: {
     background: ['#4a4a4e', '#1e1e20'],
     track: { colour: LOGO.white, alpha: 0x1f / 255 },
     five: [LOGO.white, LOGO.white],
     shadow: 0.35,
+    pro: LOGO.white,
   },
 };
 /** The background gradient of the SVGs in objectBoundingBox units, from the top right to the bottom left. */
@@ -308,11 +344,66 @@ export function coverage(polylines, size, samples = 4) {
   return counts.map((count) => count / (samples * samples));
 }
 
+/**
+ * The outline of polylines stroked `width` wide with round caps and joins, as polygons for `coverage` to fill by the
+ * non-zero rule: a rectangle along every segment and a disc at every vertex (the caps at the ends, the round joins in
+ * the corners, and on a flattened curve the little wedges between the rectangles). Every polygon runs the same way,
+ * so where they overlap the union is filled once, never cut out. The polylines are open; a closed one repeats its
+ * first point at the end.
+ */
+export function strokeOutline(polylines, width, tolerance = 0.02) {
+  const half = width / 2;
+  // the discs are inscribed polygons that stay within `tolerance` of the circle
+  const corners = Math.max(8, Math.ceil(Math.PI / Math.acos(Math.max(0, 1 - tolerance / half))));
+  const disc = ([x, y]) =>
+    Array.from({ length: corners }, (_, k) => [
+      x + half * Math.cos((2 * Math.PI * k) / corners),
+      y + half * Math.sin((2 * Math.PI * k) / corners),
+    ]);
+  const polygons = [];
+  for (const polyline of polylines) {
+    for (const point of polyline) polygons.push(disc(point));
+    for (let k = 0; k + 1 < polyline.length; k++) {
+      const [[x0, y0], [x1, y1]] = [polyline[k], polyline[k + 1]];
+      const length = Math.hypot(x1 - x0, y1 - y0);
+      if (length === 0) continue;
+      const [nx, ny] = [(-(y1 - y0) / length) * half, ((x1 - x0) / length) * half];
+      // the same way round as the discs
+      polygons.push([
+        [x0 + nx, y0 + ny],
+        [x0 - nx, y0 - ny],
+        [x1 - nx, y1 - ny],
+        [x1 + nx, y1 + ny],
+      ]);
+    }
+  }
+  return polygons;
+}
+
 // ---- The day dial in the app icons ----------------------------------------------------------------------------------
 
 /** The sectors and the ring in the coordinates of the design (100 x 100, y down). */
 const fiveCommands = FIVE_PATHS.map(parsePath);
 const trackCommands = parsePath(TRACK_PATH);
+
+/**
+ * PRO's letters in the 100 unit design: each box moved to its place, then scaled by `PRO.scale` about the middle
+ * (SVG: `translate(50 50) scale(0.95)` and the letter's own `translate`), then by `extra`, a matrix, for the target.
+ */
+const proCommands = (extra = [1, 0, 0, 1, 0, 0]) => {
+  const middle = DESIGN / 2;
+  return PRO.letters.map(({ d, at: [dx, dy] }) => {
+    const placed = transformPath(parsePath(d), [
+      PRO.scale,
+      0,
+      0,
+      PRO.scale,
+      middle + PRO.scale * dx,
+      middle + PRO.scale * dy,
+    ]);
+    return transformPath(placed, extra);
+  });
+};
 
 /** The polylines of `commands` in the pixels of a `size` px icon. */
 const inPixels = (commands, size) =>
@@ -339,6 +430,9 @@ function androidDial() {
   return {
     track: transformPath(trackCommands, matrix),
     five: fiveCommands.map((commands) => transformPath(commands, matrix)),
+    // PRO at the same scale, so it keeps the proportion it has on iOS; its stroke is `PRO.width x PRO.scale` units
+    pro: proCommands(matrix),
+    proWidth: PRO.width * PRO.scale * scale,
   };
 }
 
@@ -399,9 +493,10 @@ function blur(values, size, sigma) {
 
 /**
  * One appearance as a `size` px square (RGB, row by row): the background gradient, the track over it, the soft shadow
- * of the five, and each sector with its own gradient from its top to its bottom, all anti-aliased.
+ * of the five, and each sector with its own gradient from its top to its bottom, then PRO (`withPro`: Fivvi Pro's icon),
+ * all anti-aliased.
  */
-function raster(size, { background, track, five, shadow }) {
+function raster(size, { background, track, five, shadow, pro }, withPro) {
   const scale = size / DESIGN;
   const sectors = fiveCommands.map((commands) => inPixels(commands, size));
   const fills = sectors.map((polylines) => {
@@ -415,6 +510,17 @@ function raster(size, { background, track, five, shadow }) {
     .flat()
     .map((polyline) => polyline.map(([x, y]) => [x, y + SHADOW.dy * scale]));
   const shade = blur(coverage(shifted, size), size, SHADOW.deviation * scale);
+  // PRO: round strokes in pixels, on top of everything, with no shadow
+  const letters =
+    withPro &&
+    coverage(
+      strokeOutline(
+        proCommands([scale, 0, 0, scale, 0, 0]).flatMap((commands) => flatten(commands, 0.02)),
+        PRO.width * PRO.scale * scale,
+      ),
+      size,
+    );
+  const proColour = rgb(pro);
   const gradient = linearGradient(BACKGROUND_VECTOR, background);
   const trackColour = rgb(track.colour);
   const pixels = Buffer.alloc(size * size * 3);
@@ -428,6 +534,7 @@ function raster(size, { background, track, five, shadow }) {
       covered.forEach((share, s) => {
         if (share[i] > 0) colour = mix(colour, fill[s], share[i]);
       });
+      if (letters && letters[i] > 0) colour = mix(colour, proColour, letters[i]);
       colour.forEach((value, channel) => {
         pixels[i * 3 + channel] = Math.round(value);
       });
@@ -505,6 +612,15 @@ const plainPath = (fill, d) => `    <path
         android:pathData="${d}" />
 `;
 
+/** A path drawn as a stroke of `width` with round caps and joins and no fill (PRO). */
+const strokePath = (colour, width, d) => `    <path
+        android:strokeColor="${colour}"
+        android:strokeWidth="${number(width)}"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="${d}" />
+`;
+
 /** A path filled with a linear gradient from (x1, y1) to (x2, y2) in the layer's coordinates (API 24 and up; the icon is 26+). */
 const gradientPath = (d, [x1, y1, x2, y2], stops) => `    <path android:pathData="${d}">
         <aapt:attr name="android:fillColor">
@@ -531,8 +647,8 @@ const backgroundVector = () =>
     AAPT,
   );
 
-/** The foreground layer: the track, then each sector with its own gradient over its own height. */
-function foregroundVector({ track, five }) {
+/** The foreground layer: the track, then each sector with its own gradient over its own height, then PRO if `withPro`. */
+function foregroundVector({ track, five, pro, proWidth }, withPro) {
   const { track: ring, five: stops } = APPEARANCES.light;
   return vector(
     'foreground',
@@ -543,29 +659,40 @@ function foregroundVector({ track, five }) {
           const x = GRID / 2;
           return gradientPath(pathData(commands), [x, top, x, bottom], stops);
         })
-        .join(''),
+        .join('') +
+      (withPro ? strokePath(argb(APPEARANCES.light.pro), proWidth, pathData(pro.flat())) : ''),
     AAPT,
   );
 }
 
-/** The monochrome layer: the track and the five as one shape; the ring and the sectors wind the same way, so nothing cancels. */
-const monochromeVector = ({ track, five }) =>
-  vector('monochrome', plainPath('#FF000000', pathData([...track, ...five.flat()])));
+/**
+ * The monochrome layer: the track and the five as one shape; the ring and the sectors wind the same way, so nothing
+ * cancels. PRO is a stroke in black on top, if `withPro`.
+ */
+const monochromeVector = ({ track, five, pro, proWidth }, withPro) =>
+  vector(
+    'monochrome',
+    plainPath('#FF000000', pathData([...track, ...five.flat()])) +
+      (withPro ? strokePath('#FF000000', proWidth, pathData(pro.flat())) : ''),
+  );
 
 const appIconSet = 'apps/ios/FivviPro/Assets.xcassets/AppIcon.appiconset';
 
 /** Every icon file as a map from its path in the repo to its content (a string or a Buffer). */
 export function renderIcons() {
   const dial = androidDial();
-  const png = (size, appearance) => encodePng(size, raster(size, appearance));
-  /** The files of an Android app's launcher icon (`module` is `app` for Fivvi Pro, `client` for Fivvi). */
-  const androidIcon = (module) => {
+  const png = (size, appearance, withPro) => encodePng(size, raster(size, appearance, withPro));
+  /** The files of an Android app's launcher icon (`module` is `app` for Fivvi Pro, `client` for Fivvi); only Pro has PRO. */
+  const androidIcon = (module, withPro) => {
     const res = `apps/android/${module}/src/main/res`;
     return [
-      [`apps/android/${module}/src/main/ic_launcher-playstore.png`, png(512, APPEARANCES.light)],
+      [
+        `apps/android/${module}/src/main/ic_launcher-playstore.png`,
+        png(512, APPEARANCES.light, withPro),
+      ],
       [`${res}/drawable/ic_launcher_background.xml`, backgroundVector()],
-      [`${res}/drawable/ic_launcher_foreground.xml`, foregroundVector(dial)],
-      [`${res}/drawable/ic_launcher_monochrome.xml`, monochromeVector(dial)],
+      [`${res}/drawable/ic_launcher_foreground.xml`, foregroundVector(dial, withPro)],
+      [`${res}/drawable/ic_launcher_monochrome.xml`, monochromeVector(dial, withPro)],
       [
         `${res}/mipmap-anydpi-v26/ic_launcher.xml`,
         `<?xml version="1.0" encoding="utf-8"?>
@@ -606,11 +733,11 @@ export function renderIcons() {
         2,
       )}\n`,
     ],
-    [`${appIconSet}/AppIcon.png`, png(1024, APPEARANCES.light)],
-    [`${appIconSet}/AppIcon-Dark.png`, png(1024, APPEARANCES.dark)],
-    [`${appIconSet}/AppIcon-Tinted.png`, png(1024, APPEARANCES.tinted)],
-    ...androidIcon('app'),
-    ...androidIcon('client'),
+    [`${appIconSet}/AppIcon.png`, png(1024, APPEARANCES.light, true)],
+    [`${appIconSet}/AppIcon-Dark.png`, png(1024, APPEARANCES.dark, true)],
+    [`${appIconSet}/AppIcon-Tinted.png`, png(1024, APPEARANCES.tinted, true)],
+    ...androidIcon('app', true),
+    ...androidIcon('client', false),
   ]);
 }
 
