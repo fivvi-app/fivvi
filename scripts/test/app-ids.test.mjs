@@ -1,20 +1,18 @@
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, it } from 'node:test';
-import { UNCOVERED_MESSAGE, uncovered } from './turbo-inputs.mjs';
+import { filesUnder, readRecorder, UNCOVERED_MESSAGE, uncovered } from './turbo-inputs.mjs';
 
 // E017 AC8 and E002 #242: the application ID of each native app is final (it can't change after the first upload),
 // and the app's README records it. That is checked here, on Linux, not by the native builds: CI doesn't run the
 // native jobs for a README-only change (scripts/native-jobs.sh), so no native build or test may read a README.
 
 const ROOT = join(import.meta.dirname, '..', '..');
-// The Android files this test reads: turbo caches `//#test:root` by its `inputs`, so each must be one of them (last test).
-const androidReads = new Set();
-const read = (path) => {
-  if (path.startsWith('apps/android/')) androidReads.add(path);
-  return readFileSync(join(ROOT, path), 'utf8');
-};
+// The native and Maestro files this test reads: turbo caches `//#test:root` by its `inputs`, so each must be one of
+// them (last test).
+const { reads: nativeReads, note } = readRecorder('apps/android/', 'apps/ios/', 'e2e/maestro/');
+const read = (path) => readFileSync(note(join(ROOT, path)), 'utf8');
 
 /** The ID a README records as final: "bundle ID `app.x` (final" (iOS) or "application ID `app.x` (final" (Android). */
 const recordedId = (readme, kind) =>
@@ -293,20 +291,12 @@ describe('E020 AC7: every iOS app targets iOS 26.0 and none opts out of Liquid G
 
 // scripts/native-jobs.sh ignores every .md path, so nothing a native build, test or lint reads may be a Markdown file.
 describe('E002 #242: no native build or test reads a Markdown file', () => {
-  const files = (dir, accept) => {
-    const found = [];
-    for (const name of readdirSync(join(ROOT, dir))) {
-      if (['.build', 'build', '.gradle', 'node_modules', 'DerivedData'].includes(name)) continue;
-      const path = join(dir, name);
-      if (statSync(join(ROOT, path)).isDirectory()) found.push(...files(path, accept));
-      else if (accept(name)) found.push(path);
-    }
-    return found;
-  };
   const sources = [
-    ...files('apps/ios', (name) => /\.(swift|pbxproj|xcconfig|xctestplan|plist|yml)$/.test(name)),
-    ...files('apps/android', (name) => /\.(kt|kts|gradle|properties|toml|xml)$/.test(name)),
-    ...files('e2e/maestro', (name) => /\.ya?ml$/.test(name)),
+    ...filesUnder('apps/ios', (name) =>
+      /\.(swift|pbxproj|xcconfig|xctestplan|plist|yml)$/.test(name),
+    ),
+    ...filesUnder('apps/android', (name) => /\.(kt|kts|gradle|properties|toml|xml)$/.test(name)),
+    ...filesUnder('e2e/maestro', (name) => /\.ya?ml$/.test(name)),
     ...['test-ios', '_ios', 'android', '_android', 'maestro'].map((name) => `scripts/${name}.sh`),
   ];
   const isComment = (line) => /^\s*(#|\/\/|\/\*|\*)/.test(line);
@@ -332,9 +322,13 @@ describe('E002 #242: no native build or test reads a Markdown file', () => {
   });
 });
 
-describe('E017 #576: a change to an Android file these tests read is not served from the test cache', () => {
-  it('turbo.json lists as inputs of the root tests every Android file read above', () => {
-    assert.ok(androidReads.size > 2, 'the tests read the Android files');
-    assert.deepEqual(uncovered([...androidReads]), [], UNCOVERED_MESSAGE);
+describe('E017 #576, #594: a change to a native or Maestro file these tests read is not served from the test cache', () => {
+  it('turbo.json lists as inputs of the root tests every Android, iOS and Maestro file read above', () => {
+    for (const prefix of ['apps/android/', 'apps/ios/', 'e2e/maestro/'])
+      assert.ok(
+        [...nativeReads].filter((file) => file.startsWith(prefix)).length > 2,
+        `the tests read files of ${prefix}`,
+      );
+    assert.deepEqual(uncovered([...nativeReads]), [], UNCOVERED_MESSAGE);
   });
 });
