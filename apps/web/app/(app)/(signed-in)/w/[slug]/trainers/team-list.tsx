@@ -2,6 +2,7 @@
 
 import { SIGNED_IN_HOME } from '@fivvi/auth/return-path';
 import type { Schemas } from '@fivvi/contract';
+import type { Locale } from '@fivvi/i18n';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -14,6 +15,7 @@ import {
 } from '@fivvi/ui/components/alert-dialog';
 import { Button } from '@fivvi/ui/components/button';
 import { Card } from '@fivvi/ui/components/card';
+import { Dialog } from '@fivvi/ui/components/dialog';
 import { NativeSelect, NativeSelectOption } from '@fivvi/ui/components/native-select';
 import { Avatar } from '@fivvi/ui/kit/avatar';
 import { ErrorLine } from '@fivvi/ui/kit/error-line';
@@ -21,10 +23,12 @@ import { PageShell } from '@fivvi/ui/kit/page-shell';
 import { StatusPill } from '@fivvi/ui/kit/status-pill';
 import { SuccessLine } from '@fivvi/ui/kit/success-line';
 import { useRouter } from 'next/navigation';
-import { useTranslations } from 'next-intl';
+import { useFormatter, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
 import { initials } from '../workspace-initials';
 import { changeTeamMemberRole } from './change-role-client';
+import { resendInvitation, type TrainerInvitation, withdrawInvitation } from './invitations-client';
+import { InviteTrainerDialogContent } from './invite-trainer-dialog';
 import { removeTeamMember } from './remove-team-member-client';
 
 type TeamMember = Schemas['TeamMember'];
@@ -51,8 +55,11 @@ const displayName = (member: TeamMember) => member.name || member.email;
  * API gives (sorted by name). With `team.manage` each row has the role menu *Rol: Eigenaar /
  * Trainer* and the row action *Remove from team*. Making someone Owner asks once, and so does
  * making yourself a Trainer; making another Owner a Trainer asks nothing. The last Owner's row has
- * neither the menu nor the action (F003 AC7, F004 AC5), and there is no add button (invitations
- * are F011). After a change the page asks the server again, so the list is what the API holds.
+ * neither the menu nor the action (F003 AC7, F004 AC5). With `team.invite` (the Owner, F011) the
+ * page has the button *Trainer uitnodigen* and lists the pending invitations under the team, each
+ * as *Uitgenodigd* with the date it was sent and the row actions *Opnieuw sturen* and *Intrekken*
+ * (which asks first). After a change the page asks the server again, so the list is what the API
+ * holds.
  * A team member who trains here (F005: every Trainer, and an Owner who also trains) has the
  * trainer badge next to their role. "You" is the row with the address of the signed-in account.
  */
@@ -63,6 +70,10 @@ export function TeamList({
   canManage,
   trainerIds,
   currentEmail,
+  canInvite = false,
+  invitations = [],
+  defaultLocale = 'nl-NL',
+  timeZone = 'Europe/Amsterdam',
 }: {
   workspaceId: string;
   workspaceName: string;
@@ -73,13 +84,26 @@ export function TeamList({
   trainerIds: readonly string[];
   /** The address the signed-in account signs in with. */
   currentEmail: string;
+  /** Whether the API lists `team.invite` for this person in this workspace (F011). */
+  canInvite?: boolean;
+  /** The pending invitations (`GET …/trainer-invitations`); empty for a person who can't invite. */
+  invitations?: readonly TrainerInvitation[];
+  /** The workspace's default language, named in the invite dialog's language menu. */
+  defaultLocale?: Locale;
+  /** The workspace's time zone, which the dates of the invitations are shown in. */
+  timeZone?: string;
 }) {
   const t = useTranslations('team');
   const roles = useTranslations('roles');
+  const format = useFormatter();
   const router = useRouter();
   const [asking, setAsking] = useState<Question | null>(null);
+  const [withdrawing, setWithdrawing] = useState<TrainerInvitation | null>(null);
+  const [inviting, setInviting] = useState(false);
   const [notice, setNotice] = useState<string | null>(null);
-  const [failure, setFailure] = useState<'noConnection' | 'generic' | 'lastOwner' | null>(null);
+  const [failure, setFailure] = useState<'noConnection' | 'generic' | 'lastOwner' | 'gone' | null>(
+    null,
+  );
   const [pending, setPending] = useState(false);
   // The buttons wait for the page to hydrate: a click before that would do nothing.
   const [ready, setReady] = useState(false);
@@ -103,6 +127,7 @@ export function TeamList({
     const result = await action();
     setPending(false);
     setAsking(null);
+    setWithdrawing(null);
     if (result.ok) {
       setNotice(done);
       return router.refresh();
@@ -111,8 +136,29 @@ export function TeamList({
     if (result.reason === 'home') return window.location.replace(SIGNED_IN_HOME);
     setFailure(result.reason);
     // Someone else changed the team first: show what the API holds now.
-    if (result.reason === 'lastOwner') router.refresh();
+    if (result.reason === 'lastOwner' || result.reason === 'gone') router.refresh();
   }
+
+  const sendAgain = (invitation: TrainerInvitation) =>
+    run(() => resendInvitation(workspaceId, invitation.id), t('invitations.sentAgain'));
+
+  const withdraw = (invitation: TrainerInvitation) =>
+    run(
+      () => withdrawInvitation(workspaceId, invitation.id),
+      t('invitations.withdrawn', { name: invitation.name }),
+    );
+
+  /** The invite dialog went through: show what it says and ask the server for the new list. */
+  function invited(confirmation: string) {
+    setInviting(false);
+    setFailure(null);
+    setNotice(confirmation);
+    router.refresh();
+  }
+
+  const teamNames = new Map(
+    members.map((member) => [member.email.toLowerCase(), displayName(member)]),
+  );
 
   const remove = (member: TeamMember) =>
     run(
@@ -144,10 +190,21 @@ export function TeamList({
 
   return (
     <PageShell>
-      <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold tracking-tight">{t('title')}</h1>
+        {canInvite ? (
+          <Button type="button" disabled={!ready} onClick={() => setInviting(true)}>
+            {t('invite.title')}
+          </Button>
+        ) : null}
+      </div>
       {notice ? <SuccessLine>{notice}</SuccessLine> : null}
       {failure ? (
-        <ErrorLine>{t(`errors.${failure}`, { workspace: workspaceName })}</ErrorLine>
+        <ErrorLine>
+          {failure === 'gone'
+            ? t('invitations.gone')
+            : t(`errors.${failure}`, { workspace: workspaceName })}
+        </ErrorLine>
       ) : null}
       <Card className="gap-0 py-0">
         <div className="overflow-x-auto">
@@ -216,6 +273,53 @@ export function TeamList({
                   </td>
                 </tr>
               ))}
+              {invitations.map((invitation) => (
+                <tr key={invitation.id} className="border-b last:border-b-0 hover:bg-muted/60">
+                  <td className={cell}>
+                    <span className="inline-flex items-center gap-2.5">
+                      <Avatar initials={initials(invitation.name)} />
+                      <span className="font-semibold text-muted-foreground">{invitation.name}</span>
+                    </span>
+                  </td>
+                  <td className={cell}>{invitation.email}</td>
+                  <td className={cell}>
+                    <div className="flex flex-wrap items-center gap-2">
+                      {roles('trainer')}
+                      <StatusPill>{t('invitations.status')}</StatusPill>
+                      <span className="text-muted-foreground">
+                        {format.dateTime(new Date(invitation.sentAt), {
+                          dateStyle: 'medium',
+                          timeZone,
+                        })}
+                      </span>
+                    </div>
+                  </td>
+                  <td className={`${cell} text-end`}>
+                    {canInvite ? (
+                      <div className="flex flex-wrap justify-end gap-1">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={!ready || pending}
+                          onClick={() => void sendAgain(invitation)}
+                        >
+                          {t('invitations.sendAgain')}
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          disabled={!ready || pending}
+                          onClick={() => setWithdrawing(invitation)}
+                        >
+                          {t('invitations.withdraw')}
+                        </Button>
+                      </div>
+                    ) : null}
+                  </td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -250,6 +354,46 @@ export function TeamList({
           </AlertDialogContent>
         ) : null}
       </AlertDialog>
+      <AlertDialog
+        open={withdrawing !== null}
+        onOpenChange={(open) => !open && setWithdrawing(null)}
+      >
+        {withdrawing ? (
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>{t('invitations.withdrawDialog.title')}</AlertDialogTitle>
+              <AlertDialogDescription>
+                {t('invitations.withdrawDialog.body', { email: withdrawing.email })}
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>{t('invitations.withdrawDialog.cancel')}</AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                disabled={pending}
+                onClick={(event) => {
+                  event.preventDefault();
+                  void withdraw(withdrawing);
+                }}
+              >
+                {t('invitations.withdrawDialog.confirm')}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        ) : null}
+      </AlertDialog>
+      {canInvite ? (
+        <Dialog open={inviting} onOpenChange={setInviting}>
+          {inviting ? (
+            <InviteTrainerDialogContent
+              workspaceId={workspaceId}
+              defaultLocale={defaultLocale}
+              teamNames={teamNames}
+              done={invited}
+            />
+          ) : null}
+        </Dialog>
+      ) : null}
     </PageShell>
   );
 }

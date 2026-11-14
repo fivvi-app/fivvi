@@ -18,7 +18,8 @@ export async function generateMetadata(): Promise<Metadata> {
  * no-permission page naming the workspace (AC3); the API answers their team-list request with 403
  * as well. The team is read from `GET /v1/workspaces/{workspaceId}/team-members` and who trains from
  * `GET /v1/workspaces/{workspaceId}/trainers` (F005, the trainer badge), so the page shows what
- * the API holds.
+ * the API holds. With `team.invite` (the Owner, F011) it also reads the pending invitations from
+ * `GET /v1/workspaces/{workspaceId}/trainer-invitations`; a Trainer's page asks for none.
  */
 export default async function TrainersPage({ params }: PageProps<'/w/[slug]/trainers'>) {
   const { id, name, capabilities } = await workspaceOf((await params).slug);
@@ -35,6 +36,26 @@ export default async function TrainersPage({ params }: PageProps<'/w/[slug]/trai
   });
   if (!trainers) throw new Error('GET /v1/workspaces/{workspaceId}/trainers did not answer.');
   const { email } = await currentMe();
+  const canInvite = capabilities.includes('team.invite');
+  const authorization = cookie ? { cookie } : {};
+  const invitations = canInvite
+    ? await apiClient.GET('/v1/workspaces/{workspaceId}/trainer-invitations', {
+        params: { path: { workspaceId: id } },
+        headers: authorization,
+      })
+    : undefined;
+  if (canInvite && !invitations?.data) {
+    throw new Error('GET /v1/workspaces/{workspaceId}/trainer-invitations did not answer.');
+  }
+  const workspace = canInvite
+    ? await apiClient.GET('/v1/workspaces/{workspaceId}', {
+        params: { path: { workspaceId: id } },
+        headers: authorization,
+      })
+    : undefined;
+  if (canInvite && !workspace?.data) {
+    throw new Error('GET /v1/workspaces/{workspaceId} did not answer.');
+  }
   return (
     <TeamList
       workspaceId={id}
@@ -43,6 +64,11 @@ export default async function TrainersPage({ params }: PageProps<'/w/[slug]/trai
       canManage={capabilities.includes('team.manage')}
       trainerIds={trainers.map(({ id: teamMemberId }) => teamMemberId)}
       currentEmail={email}
+      canInvite={canInvite}
+      invitations={invitations?.data ?? []}
+      {...(workspace?.data
+        ? { defaultLocale: workspace.data.defaultLocale, timeZone: workspace.data.timeZone }
+        : {})}
     />
   );
 }

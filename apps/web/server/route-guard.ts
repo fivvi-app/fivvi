@@ -16,6 +16,9 @@ import { requestHostname, securityHeaders } from './security-headers';
 /** The public website's miniatures and screens (`public/site-images`, F064): images, no data. */
 const SITE_IMAGES = '/site-images';
 
+/** The invitation page of a trainer invitation (F011): `/invitations/{token}`. */
+const INVITATION_PAGE = '/invitations';
+
 /** The site's Open Graph images, generated at build time (`app/site-og`, F064 AC12). */
 const SITE_SHARE_IMAGES = '/site-og';
 
@@ -23,12 +26,21 @@ const SITE_SHARE_IMAGES = '/site-og';
  * Pages and routes that need no sign-in (AC13): the public website's pages (`site/routes.ts`, in
  * both languages), the sign-in page with its confirm step, the API (every route there decides for
  * itself: the health check and the hello route are open, `/api/v1/me` answers 401 and Better
- * Auth's own endpoints are how people sign in) and the public booking pages. Everything else is a
+ * Auth's own endpoints are how people sign in), the public booking pages and the invitation page
+ * (`/invitations/{token}`, F011: it tells anyone that an invitation is no longer valid, and sends a
+ * visitor with a valid one to sign in and back). Everything else is a
  * trainer-web page that needs sign-in, so a new page is guarded until it is listed here. Keep this
  * list in step with the `(signed-in)` route group (`app/(app)/(signed-in)/layout.tsx`), which holds
  * the pages that need sign-in and show *Sign out*.
  */
-const PUBLIC_PREFIXES = [SIGN_IN_PAGE, '/book', '/api', SITE_IMAGES, SITE_SHARE_IMAGES];
+const PUBLIC_PREFIXES = [
+  SIGN_IN_PAGE,
+  '/book',
+  INVITATION_PAGE,
+  '/api',
+  SITE_IMAGES,
+  SITE_SHARE_IMAGES,
+];
 
 /**
  * Files fetched without a session: the app-link association files (E017 AC5), which the phone's
