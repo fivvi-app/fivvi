@@ -50,7 +50,8 @@ final class SessionClockTests: XCTestCase {
         let format = SessionFormat(locale: catalog.formattingLocale, timeZone: amsterdam)
         let start = SessionFixtures.at("2026-11-19", "09:05")
         XCTAssertEqual(format.time(start), "09:05")
-        XCTAssertEqual(format.day(start), language == .nlNL ? "donderdag 19 november" : "Thursday 19 November")
+        XCTAssertEqual(format.day(start), language == .nlNL ? "do 19 nov" : "Thu 19 Nov")
+        XCTAssertEqual(format.dayYear(start), language == .nlNL ? "do 19 nov 2026" : "Thu, 19 Nov 2026")
         XCTAssertEqual(
             format.longDay(start), language == .nlNL ? "donderdag 19 november 2026" : "Thursday, 19 November 2026"
         )

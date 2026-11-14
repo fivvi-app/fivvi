@@ -143,7 +143,7 @@ final class NewSessionViewModelTests: XCTestCase {
         XCTAssertNotNil(model.client)
     }
 
-    func test_F020_AC5_aStartTheClocksSkipIsWordedAsTheAPIRefusedItAndTheInputStays() async {
+    func test_F020_AC4_aStartTheClocksSkipIsWordedAsTheAPIRefusedItAndTheInputStays() async {
         let api = SessionFixtures.api()
         api.sessions.fail(.plan, with: .badRequest(path: "localStart", code: "time_does_not_exist"))
         let model = form(api)

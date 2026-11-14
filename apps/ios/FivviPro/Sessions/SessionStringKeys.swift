@@ -2,7 +2,6 @@ import FivviStrings
 
 /// The i18n keys of the private session screens (F020, packages/i18n/{nl-NL,en}.json).
 extension StringKey {
-    static let newMenu = StringKey("workspaceNav.newMenu")
     static let newLabel = StringKey("workspaceNav.new")
     static let newPrivateSession = StringKey("workspaceNav.newPrivateSession")
 
@@ -43,8 +42,6 @@ extension StringKey {
     static let sessionErrorsTimeDoesNotExist = StringKey("sessions.form.errors.timeDoesNotExist")
     static let sessionErrorsNoPermission = StringKey("sessions.form.errors.noPermission")
     static let sessionErrorsNotSaved = StringKey("sessions.form.errors.notSaved")
-    static let sessionNotesRepeatedTime = StringKey("sessions.form.notes.repeatedTime")
-    static let sessionNotesPast = StringKey("sessions.form.notes.past")
 
     static let sessionPageHeading = StringKey("sessions.page.heading")
     static let sessionPageTimeRange = StringKey("sessions.page.timeRange")

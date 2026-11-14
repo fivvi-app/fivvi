@@ -38,4 +38,13 @@ final class SessionTeamTests: XCTestCase {
         )
         XCTAssertNil(SessionTeam.myTrainerID(trainers: trainers, members: nil, email: "x@example.com", name: nil))
     }
+
+    func test_F020_AC10_whenTheTeamWasAskedForButNotReadNobodyIsToldByName() {
+        XCTAssertNil(
+            SessionTeam.myTrainerID(
+                trainers: trainers, members: nil, teamRequested: true, email: "x@example.com", name: "Owner"
+            ),
+            "a namesake could be taken for the person"
+        )
+    }
 }

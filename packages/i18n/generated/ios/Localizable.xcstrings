@@ -5840,7 +5840,7 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "You're offline. You can only plan once you're back online."
+            "value" : "You're offline. You can schedule once you're back online."
           }
         },
         "nl" : {

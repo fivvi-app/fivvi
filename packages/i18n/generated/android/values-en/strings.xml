@@ -343,7 +343,7 @@
     <string name="sessions_form_notes_repeated_time">On %1$s, %2$s happens twice. We\'ll use the first one (summer time).</string>
     <string name="sessions_form_notify">Send %1$s a confirmation</string>
     <string name="sessions_form_notify_note">%1$s · %2$s</string>
-    <string name="sessions_form_offline">You\'re offline. You can only plan once you\'re back online.</string>
+    <string name="sessions_form_offline">You\'re offline. You can schedule once you\'re back online.</string>
     <string name="sessions_form_open">Open</string>
     <string name="sessions_form_save">Save</string>
     <string name="sessions_form_saved">Session with %1$s scheduled for %2$s at %3$s.</string>

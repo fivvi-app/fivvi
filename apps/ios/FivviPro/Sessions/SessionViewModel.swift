@@ -155,7 +155,8 @@ final class SessionViewModel {
         if myTrainerID == nil,
            let team = try? await SessionTeam.read(api: api, workspaceID: workspace.id, readTeam: readTeam) {
             myTrainerID = SessionTeam.myTrainerID(
-                trainers: team.trainers, members: team.members, email: email, name: accountName
+                trainers: team.trainers, members: team.members, teamRequested: team.teamRequested,
+                email: email, name: accountName
             )
         }
         guard clientRecord == nil, let id = client?.clientId else { return }

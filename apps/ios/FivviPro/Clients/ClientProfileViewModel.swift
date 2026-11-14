@@ -83,13 +83,19 @@ final class ClientProfileViewModel {
     var localeText: String {
         client.map { catalog.emailLanguage(of: $0, workspaceDefault: workspace.defaultLocale) } ?? ""
     }
-    /// *donderdag 24 september om 09:00*, in the workspace's time zone.
+    /// *do 24 sep om 09:00*, in the workspace's time zone.
     func upcomingText(_ session: Components.Schemas.UpcomingSession) -> String {
         let format = SessionFormat(
             locale: catalog.formattingLocale,
             timeZone: upcoming.flatMap { TimeZone(identifier: $0.timeZone) } ?? workspace.timeZone
         )
         return catalog.string(.clientProfileUpcomingWhen, format.day(session.startsAt), format.time(session.startsAt))
+    }
+
+    /// The trainer of a coming session, as the web shows `session.trainer.name`; nil without one.
+    func upcomingTrainerText(_ session: Components.Schemas.UpcomingSession) -> String? {
+        guard let name = session.trainer?.name, !name.isEmpty else { return nil }
+        return name
     }
 
     var noPermissionText: String { catalog.string(.noPermissionBody, workspace.name) }

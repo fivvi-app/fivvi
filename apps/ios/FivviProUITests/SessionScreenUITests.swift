@@ -16,6 +16,8 @@ final class SessionScreenUITests: PrivateSessionUITestCase {
         XCTAssertTrue(app.staticTexts["clientProfile.upcomingTitle"].waitUntilExists(timeout: timeout))
         XCTAssertEqual(app.staticTexts["clientProfile.upcomingTitle"].label, catalog["clients.profile.upcomingTitle"])
         XCTAssertFalse(app.staticTexts["clientProfile.upcomingEmpty"].exists)
+        let row = any("clientProfile.upcoming.\(StubSessionRoutes.seededSessionID)", in: app)
+        XCTAssertTrue(row.label.contains("Sarah Visser"), "the row names the trainer: \(row.label)")
 
         app.buttons["clientProfile.back"].tap()
         let mark = app.buttons.matching(

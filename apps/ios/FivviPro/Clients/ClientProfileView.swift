@@ -201,11 +201,20 @@ struct ClientProfileView: View {
                         onOpenSession(session.id)
                     } label: {
                         HStack {
-                            Text(model.upcomingText(session))
-                                .font(.system(Tokens.TextStyle.body))
-                                .foregroundStyle(Tokens.Colors.textPrimary)
-                                .multilineTextAlignment(.leading)
-                                .fixedSize(horizontal: false, vertical: true)
+                            VStack(alignment: .leading, spacing: Tokens.Spacing.space1) {
+                                Text(model.upcomingText(session))
+                                    .font(.system(Tokens.TextStyle.body))
+                                    .foregroundStyle(Tokens.Colors.textPrimary)
+                                    .multilineTextAlignment(.leading)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                if let trainer = model.upcomingTrainerText(session) {
+                                    Text(trainer)
+                                        .font(.system(Tokens.TextStyle.footnote))
+                                        .foregroundStyle(Tokens.Colors.textSecondary)
+                                        .multilineTextAlignment(.leading)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
+                            }
                             Spacer()
                             Image(systemName: "chevron.right")
                                 .foregroundStyle(Tokens.Colors.fillDecorative)

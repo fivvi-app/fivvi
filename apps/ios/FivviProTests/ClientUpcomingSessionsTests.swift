@@ -24,8 +24,9 @@ final class ClientUpcomingSessionsTests: XCTestCase {
         let anna = SessionFixtures.client(api, "Anna de Vries")
         let later = Date().addingTimeInterval(3 * 86_400)
         let sooner = Date().addingTimeInterval(86_400)
+        let sarah = Components.Schemas.SessionTrainer(id: "11111111-0000-4000-8000-000000000002", name: "Sarah Visser")
         api.sessions.seed(client: anna, start: later)
-        api.sessions.seed(client: anna, start: sooner)
+        api.sessions.seed(client: anna, start: sooner, trainer: sarah)
         api.sessions.seed(client: SessionFixtures.client(api, "Mark Jansen"), start: sooner)
         let screen = profile(api, "Anna de Vries")
         XCTAssertNil(screen.upcoming, "nothing before the read")
@@ -46,6 +47,8 @@ final class ClientUpcomingSessionsTests: XCTestCase {
                 format.time(coming[0].startsAt)
             )
         )
+        XCTAssertEqual(screen.upcomingTrainerText(coming[0]), "Sarah Visser", "date, time and trainer")
+        XCTAssertNil(screen.upcomingTrainerText(coming[1]), "a session without a trainer shows none")
     }
 
     func test_F020_AC9_aClientWithoutComingSessionsHasAnEmptyList() async {

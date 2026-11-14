@@ -63,14 +63,14 @@ struct SessionFormat {
         return formatter.string(from: date)
     }
 
-    /// *donderdag 24 september*
-    func day(_ date: Date) -> String { formatted(date, template: "EEEEdMMMM") }
+    /// *do 24 sep*, as the web words it.
+    func day(_ date: Date) -> String { formatted(date, template: "EEEdMMM") }
 
     /// *donderdag 24 september 2026*
     func longDay(_ date: Date) -> String { formatted(date, template: "EEEEdMMMMy") }
 
-    /// *24 sep 2026*
-    func dayYear(_ date: Date) -> String { formatted(date, template: "dMMMy") }
+    /// *do 24 sep 2026*
+    func dayYear(_ date: Date) -> String { formatted(date, template: "EEEdMMMy") }
 
     /// *09:30*, 24 hours.
     func time(_ date: Date) -> String { SessionClock.localStart(date, in: timeZone) }

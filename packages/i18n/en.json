@@ -475,7 +475,7 @@
       "description": "Choose a client and a time. The location is already filled in.",
       "close": "Close",
       "loadFailed": "The details couldn't be loaded.",
-      "offline": "You're offline. You can only plan once you're back online.",
+      "offline": "You're offline. You can schedule once you're back online.",
       "clientPlaceholder": "Choose a client",
       "clientLabel": "Client",
       "clientSearch": "Search by name or email",
