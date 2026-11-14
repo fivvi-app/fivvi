@@ -13,7 +13,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 /**
- * TW-02 Klantprofiel (`/w/{slug}/clients/{id}`, F006): the profile a quick add opens, with *Bewerken* to edit the client. A
+ * TW-02 Klantprofiel (`/w/{slug}/clients/{id}`, F006): the profile a quick add opens, with *Bewerken* to edit the client
+ * and the client's *Komende sessies* (F020, `GET …/upcoming-sessions`). A
  * person without `clients.view` sees the no-permission page; a client the workspace doesn't have is
  * a 404 (the API answers 404 for a client of another workspace too; an id that is no UUID too).
  */
@@ -39,10 +40,21 @@ export default async function ClientProfilePage({
     headers: authorization,
   });
   if (!workspace.data) throw new Error('GET /v1/workspaces/{workspaceId} did not answer.');
+  // The next sessions of the client (F020, AC9), for the overview.
+  const { data: upcoming } = await apiClient.GET(
+    '/v1/workspaces/{workspaceId}/clients/{clientId}/upcoming-sessions',
+    { params: { path: { workspaceId: id, clientId } }, headers: authorization },
+  );
+  if (!upcoming) {
+    throw new Error(
+      'GET /v1/workspaces/{workspaceId}/clients/{clientId}/upcoming-sessions did not answer.',
+    );
+  }
   const { added } = await searchParams;
   return (
     <ClientProfile
       client={client}
+      upcoming={upcoming}
       workspaceId={id}
       slug={slug}
       canEdit={capabilities.includes('clients.manage')}

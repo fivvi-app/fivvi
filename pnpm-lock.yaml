@@ -362,6 +362,9 @@ importers:
       '@fivvi/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@fivvi/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@fivvi/email':
         specifier: workspace:*
         version: link:../../packages/email

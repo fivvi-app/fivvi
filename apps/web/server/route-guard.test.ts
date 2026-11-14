@@ -137,7 +137,11 @@ describe('F001 AC13 route guard', () => {
       }).answer;
 
       expect(localeCookieOf(response)).toBeUndefined();
-      expect(response.headers.get('x-middleware-request-cookie')).toBeNull();
+      // The page is rendered for the request as it came (every request header is passed on since
+      // the request carries the Content-Security-Policy, E013), with the cookie untouched.
+      expect(response.headers.get('x-middleware-request-cookie')).toBe(
+        'better-auth.session_token=abc.def; NEXT_LOCALE=en',
+      );
     });
 
     it('leaves the cookie alone while no language is stored', async () => {
@@ -146,7 +150,11 @@ describe('F001 AC13 route guard', () => {
       }).answer;
 
       expect(localeCookieOf(response)).toBeUndefined();
-      expect(response.headers.get('x-middleware-request-cookie')).toBeNull();
+      // The page is rendered for the request as it came (every request header is passed on since
+      // the request carries the Content-Security-Policy, E013), with the cookie untouched.
+      expect(response.headers.get('x-middleware-request-cookie')).toBe(
+        'better-auth.session_token=abc.def; NEXT_LOCALE=en',
+      );
     });
 
     it('keeps the renewed sign-in session cookie as well', async () => {

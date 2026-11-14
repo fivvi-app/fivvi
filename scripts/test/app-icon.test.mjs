@@ -8,8 +8,10 @@ import {
   decodePng,
   FIVE_PATHS,
   flatten,
+  PRO,
   parsePath,
   renderIcons,
+  strokeOutline,
   transformPath,
 } from '../app-icon.mjs';
 import { UNCOVERED_MESSAGE, uncovered } from './turbo-inputs.mjs';
@@ -63,6 +65,12 @@ const androidPaths = (file) =>
     .map((element) => ({
       d: element.match(/android:pathData="([^"]+)"/)[1],
       fill: element.match(/android:fillColor="([^"]+)"/)?.[1],
+      stroke: {
+        colour: element.match(/android:strokeColor="([^"]+)"/)?.[1],
+        width: Number(element.match(/android:strokeWidth="([^"]+)"/)?.[1]),
+        cap: element.match(/android:strokeLineCap="([^"]+)"/)?.[1],
+        join: element.match(/android:strokeLineJoin="([^"]+)"/)?.[1],
+      },
       gradient: Object.fromEntries(
         [...element.matchAll(/android:(startX|startY|endX|endY)="([^"]+)"/g)].map(
           ([, key, value]) => [key, Number(value)],
@@ -271,6 +279,92 @@ describe('E020 AC1: the path data of the day dial is handled exactly', () => {
   });
 });
 
+describe('E020 #672 AC1: PRO is drawn from the path data of b2-pro/layers/4-pro.svg, as round strokes', () => {
+  /** The sum of the coverage: the area, in pixels, of what the polygons fill. */
+  const area = (polylines, size) =>
+    coverage(polylines, size).reduce((sum, share) => sum + share, 0);
+  const stroked = (d, width, size = 16) =>
+    coverage(strokeOutline(flatten(parsePath(d), 0.01), width), size);
+
+  it('strokes a line with a round cap beyond each end: a half disc, not a square', () => {
+    // a line from (2, 4) to (10, 4), 2 wide, on a 12 px grid
+    const line = stroked('M2 4 L10 4', 2, 12);
+    for (const x of [2, 5, 9]) {
+      close(line[3 * 12 + x], 1, 1e-9, `row 3, column ${x}`);
+      close(line[4 * 12 + x], 1, 1e-9, `row 4, column ${x}`);
+      close(line[2 * 12 + x], 0, 1e-9, `row 2, column ${x}`);
+      close(line[5 * 12 + x], 0, 1e-9, `row 5, column ${x}`);
+    }
+    // the cap is a half disc of radius 1: a quarter of it in each of the two pixels next to the end
+    close(line[3 * 12 + 1], Math.PI / 4, 0.03, 'a quarter disc');
+    close(line[4 * 12 + 10], Math.PI / 4, 0.03, 'a quarter disc at the other end');
+    close(line[3 * 12 + 0], 0, 1e-9, 'nothing beyond the cap');
+    close(line[4 * 12 + 11], 0, 1e-9, 'nothing beyond the cap, right');
+  });
+
+  it('rounds the outside of a corner and fills the inside once, whichever way the line runs', () => {
+    const corner = stroked('M2 2 L8 2 L8 8', 2, 12);
+    // a mitre would fill the whole pixel (8, 1) of the outer corner; a round join a quarter disc
+    close(corner[1 * 12 + 8], Math.PI / 4, 0.03, 'the outer corner is round');
+    close(corner[2 * 12 + 7], 1, 1e-9, 'the inside of the corner is filled');
+    assert.deepEqual(
+      [...stroked('M8 8 L8 2 L2 2', 2, 12)].map((v) => Math.round(v * 20)),
+      [...corner].map((v) => Math.round(v * 20)),
+    );
+  });
+
+  it('strokes a curve with its width all along: a half circle of radius 10 is pi x 10 x 2 and two caps', () => {
+    const half = flatten(parsePath('M10 20 A10 10 0 0 1 30 20'), 0.01);
+    // the length of the half circle times the width, plus the disc the two half-disc caps make
+    close(area(strokeOutline(half, 2), 40), Math.PI * 10 * 2 + Math.PI, 0.4, 'the area');
+    // the width is the same at the top of the arc: the 2 units from y = 9 to y = 11
+    const top = coverage(strokeOutline(half, 2), 40);
+    close(top[9 * 40 + 20], 1, 1e-9, 'the arc at the top, inside');
+    close(top[8 * 40 + 20], 0, 1e-9, 'and not outside it');
+  });
+
+  it('draws PRO from the path data of 4-pro.svg, copied unchanged', () => {
+    // The two `d` of the P and the R of that file, joined by a newline: their length and CRC-32 (not a secret).
+    // This fails when the copy in the script is touched.
+    const joined = PRO.letters
+      .slice(0, 2)
+      .map(({ d }) => d)
+      .join('\n');
+    assert.deepEqual([joined.length, crc32(joined)], [112, 436934462]);
+    // the O is an ellipse in the file, not a path; its numbers, and where each letter's box starts, from the file
+    assert.deepEqual(PRO.ellipse, { cx: 9.8, cy: 0, rx: 3.6, ry: 5 });
+    assert.deepEqual(
+      PRO.letters.map(({ at }) => at),
+      [
+        [-13.5, -5],
+        [-3.6, -5],
+        [0, 0],
+      ],
+    );
+    // 2.63 in the letter box, scaled by 0.95 about the middle: the stroke of 2.5 of the ticket
+    assert.deepEqual([PRO.scale, PRO.width], [0.95, 2.63]);
+    close(PRO.scale * PRO.width, 2.5, 0.005, 'the stroke width in the design');
+  });
+
+  it('PRO is 27 units wide and centred on the middle of the design: cap height 9.5, the letters 3.6 apart', () => {
+    const [p, r, o] = PRO.letters;
+    const [width, gap] = [27.0, 3.6];
+    assert.equal(p.at[0] + width / 2, 0, 'the row is centred');
+    // widths 6.3, 6.1 and 7.4 with 3.6 between them
+    close(r.at[0] - p.at[0], 6.3 + gap, 1e-9, 'P to R');
+    // the O's box is 7.4 wide around its ellipse (rx 3.6 is the line, the box allows for the stroke)
+    const box = PRO.ellipse.cx - 7.4 / 2;
+    close(box - r.at[0], 6.1 + gap, 1e-9, 'R to O');
+    close(PRO.ellipse.cx + 7.4 / 2 - p.at[0], width, 1e-9, 'the whole row');
+    assert.equal(
+      o.at.every((value) => value === 0),
+      true,
+    );
+    assert.equal(p.at[1] + 10 / 2, 0, 'the letter box of 10 is centred vertically');
+    close(PRO.scale * 10, 9.5, 1e-9, 'cap height');
+  });
+});
+
 describe('E017 AC8: the app icon is generated, not drawn by hand', () => {
   it('the committed icon files are what the script generates', () => {
     const files = renderIcons();
@@ -320,7 +414,8 @@ describe('E020 AC2: the iOS icons are the light, dark and tinted day dial', () =
     // the track at 1:30 on the dial, away from every sector
     near(at(png, 68.03, 31.97), rgb('#e4e4ea'), 1, 'the track');
     // inside the dial and outside it the background shows
-    near(at(png, 50, 50), backgroundAt('#ffffff', '#ececf1', 50, 50), 1, 'the middle');
+    // the middle of the dial holds PRO; the empty dial left of it shows the background
+    near(at(png, 30, 50), backgroundAt('#ffffff', '#ececf1', 30, 50), 1, 'inside the dial');
     near(
       at(png, 73.3, 26.7),
       backgroundAt('#ffffff', '#ececf1', 73.3, 26.7),
@@ -369,6 +464,61 @@ describe('E020 AC2: the iOS icons are the light, dark and tinted day dial', () =
     near(at(png, 68.03, 31.97), track, 1.5, 'the track');
     assert.deepEqual(at(png, 57.5, 20), [255, 255, 255], 'a white sector');
     assert.deepEqual(at(png, 57.5, 31), [255, 255, 255], 'a white sector');
+  });
+
+  describe('PRO in the middle of the dial (#672)', () => {
+    // the design is 100 wide; PRO is 0.95 of its letter boxes about (50, 50): the P's stem is at x 50 - 13.5 x 0.95
+    const STEM = 50 - 13.5 * 0.95;
+    const INK = {
+      'AppIcon.png': [28, 28, 30],
+      'AppIcon-Dark.png': [255, 255, 255],
+      'AppIcon-Tinted.png': [255, 255, 255],
+    };
+    const luminance = ([r, g, b]) => (r + g + b) / 3;
+    /** How many pixels of row y, from x0 to x1, are ink: darker than the middle grey for light, lighter for dark. */
+    const inkRun = (png, y, x0, x1, light) => {
+      let count = 0;
+      for (let x = x0; x < x1; x++)
+        if (light ? luminance(pixel(png, x, y)) < 128 : luminance(pixel(png, x, y)) > 200) count++;
+      return count;
+    };
+
+    for (const [name, ink] of Object.entries(INK)) {
+      it(`${name}: PRO is ${ink[0] === 255 ? 'white' : '#1C1C1E'}, in the stem of the P and the left of the O`, () => {
+        const png = ios(name);
+        assert.deepEqual(at(png, STEM, 50), ink, 'the stem of the P');
+        assert.deepEqual(at(png, 50 + 0.95 * (9.8 - 3.6), 50), ink, 'the left of the O');
+        // the top of the P's bowl, 0.95 x 5 above the middle
+        assert.deepEqual(at(png, 50 + 0.95 * (-13.5 + 1.5), 50 - 4.75), ink, 'the top of the P');
+      });
+    }
+
+    it('the stroke is 2.5 wide in the design, 25.6 px on the 1024 px icon, in light and in dark', () => {
+      const light = inkRun(ios('AppIcon.png'), 548, 340, 420, true);
+      const dark = inkRun(ios('AppIcon-Dark.png'), 548, 340, 420, false);
+      for (const run of [light, dark]) assert.ok(run >= 25 && run <= 27, `${run} px`);
+    });
+
+    it('the empty middle of the O and the space between the letters stay the background', () => {
+      const png = ios('AppIcon.png');
+      const o = 50 + 0.95 * 9.8;
+      near(at(png, o, 50), backgroundAt('#ffffff', '#ececf1', o, 50), 2, 'inside the O');
+      const between = 50 + 0.95 * (-3.6 - 1.8);
+      near(
+        at(png, between, 50),
+        backgroundAt('#ffffff', '#ececf1', between, 50),
+        2,
+        'between P and R',
+      );
+    });
+
+    it('PRO has round joins: the outer corner of the P is a quarter circle, not a square', () => {
+      const png = ios('AppIcon.png');
+      // the top left corner of the P: stem at x = STEM, bar at y = 50 - 4.75; 1.1 left and above it is outside a stroke
+      // of radius 1.25 (1.1 x 1.1 is 1.56 away) and inside a mitred one
+      const [x, y] = [STEM - 1.1, 50 - 4.75 - 1.1];
+      near(at(png, x, y), backgroundAt('#ffffff', '#ececf1', x, y), 2, 'the outer corner');
+    });
   });
 
   it('the asset catalog declares the light, dark and tinted icons, and the project builds it', () => {
@@ -425,29 +575,32 @@ describe('E020 AC3: the Android adaptive icon is the day dial in the safe zone',
 
   it('every point of the foreground and the monochrome layer is inside the 66 dp safe zone, control points included', () => {
     for (const name of ['foreground', 'monochrome']) {
-      for (const { d } of androidPaths(layer(name))) {
+      for (const { d, stroke } of androidPaths(layer(name))) {
+        // a stroke reaches half its width beyond the line
+        const half = Number.isNaN(stroke.width) ? 0 : stroke.width / 2;
         const points = androidPoints(d);
         assert.ok(points.length > 30, `${name}: ${points.length} numbers`);
         for (let i = 0; i < points.length; i += 2) {
           assert.ok(
-            Math.hypot(points[i] - 54, points[i + 1] - 54) <= 33,
+            Math.hypot(points[i] - 54, points[i + 1] - 54) <= 33 - half,
             `${name}: (${points[i]}, ${points[i + 1]}) is outside the safe zone`,
           );
         }
         // what a launcher draws lies inside too
         for (const polyline of flatten(parsePath(d), 0.01)) {
           for (const [x, y] of polyline)
-            assert.ok(Math.hypot(x - 54, y - 54) <= 33, `${name}: (${x}, ${y})`);
+            assert.ok(Math.hypot(x - 54, y - 54) <= 33 - half, `${name}: (${x}, ${y})`);
         }
       }
     }
   });
 
-  it('the foreground is the track and the five sectors, each with its own gradient from top to bottom', () => {
-    const [track, ...sectors] = androidPaths(layer('foreground'));
+  it('the foreground is the track and the five sectors, each with its own gradient from top to bottom, then PRO', () => {
+    const [track, ...rest] = androidPaths(layer('foreground'));
+    const sectors = rest.slice(0, 5);
 
     assert.equal(track.fill, '#FFE4E4EA');
-    assert.equal(sectors.length, 5);
+    assert.equal(rest.length, 6, 'the five sectors and PRO');
     sectors.forEach(({ d, gradient, colours }, i) => {
       assert.deepEqual(colours, ['#FFFF4F7B', '#FFC8103D']);
       const polyline = flatten(parsePath(d), 0.005)[0];
@@ -462,7 +615,7 @@ describe('E020 AC3: the Android adaptive icon is the day dial in the safe zone',
   });
 
   it('the sectors are the day dial: the same commands, every point moved by one scale about the middle', () => {
-    const sectors = androidPaths(layer('foreground')).slice(1);
+    const sectors = androidPaths(layer('foreground')).slice(1, 6);
     const original = FIVE_PATHS.map((d) => parsePath(d));
     const drawn = sectors.map(({ d }) => parsePath(d));
 
@@ -513,26 +666,76 @@ describe('E020 AC3: the Android adaptive icon is the day dial in the safe zone',
     assert.equal(filled[54 * 108 + 54 + Math.round(25.5 * ANDROID_SCALE)], 1);
   });
 
-  it('the monochrome layer is the track and the five as one black shape with no hole where they overlap', () => {
+  it('the monochrome layer is the track and the five as one black shape with no hole where they overlap, and PRO in black', () => {
     const paths = androidPaths(layer('monochrome'));
-    assert.equal(paths.length, 1);
+    assert.equal(paths.length, 2);
     assert.equal(paths[0].fill, '#FF000000');
+    assert.equal(paths[1].stroke.colour, '#FF000000');
 
     const mono = coverage(flatten(parsePath(paths[0].d), 0.01), 108);
-    for (const { d } of androidPaths(layer('foreground'))) {
+    for (const { d } of androidPaths(layer('foreground')).slice(0, 6)) {
       const part = coverage(flatten(parsePath(d), 0.01), 108);
       for (const [i, share] of part.entries()) {
         assert.ok(mono[i] >= share - 1e-9, `pixel ${i}: ${mono[i]} < ${share}`);
       }
     }
     // some pixel is on the track and in a sector at once
-    const [track, ...sectors] = androidPaths(layer('foreground')).map(({ d }) =>
-      coverage(flatten(parsePath(d), 0.01), 108),
-    );
+    const [track, ...sectors] = androidPaths(layer('foreground'))
+      .slice(0, 6)
+      .map(({ d }) => coverage(flatten(parsePath(d), 0.01), 108));
     assert.ok(
       track.some((share, i) => share === 1 && sectors.some((s) => s[i] === 1)),
       'no overlap to test',
     );
+  });
+
+  it('PRO is round strokes in the foreground and the monochrome layer, at 0.72 dp a unit like the dial', () => {
+    const scale = ANDROID_SCALE * PRO.scale;
+    const original = PRO.letters.map(({ d, at: [dx, dy] }) =>
+      parsePath(d).flatMap((command) =>
+        command.slice(1).map((value, k) => value + (k % 2 === 0 ? dx : dy)),
+      ),
+    );
+    for (const [name, colour] of [
+      ['foreground', '#FF1C1C1E'],
+      ['monochrome', '#FF000000'],
+    ]) {
+      const paths = androidPaths(layer(name));
+      const pro = paths.at(-1);
+      assert.equal(pro.fill, undefined, `${name}: PRO is a stroke, not a fill`);
+      assert.deepEqual(
+        [pro.stroke.colour, pro.stroke.cap, pro.stroke.join],
+        [colour, 'round', 'round'],
+        name,
+      );
+      // 2.63 x 0.95 x 0.72 dp: 2.5 design units at 0.72 dp a unit
+      close(pro.stroke.width, PRO.width * scale, 0.002, `${name}: the stroke width`);
+      close(pro.stroke.width, 2.5 * ANDROID_SCALE, 0.01, `${name}: 2.5 units at 0.72 dp`);
+      // the numbers are the data of the file, every point moved by the scale about the middle (54, 54)
+      const drawn = androidPoints(pro.d);
+      const expected = original.flat();
+      assert.equal(drawn.length, expected.length, `${name}: the same commands`);
+      for (const [k, value] of expected.entries())
+        close(drawn[k], 54 + value * scale, 0.002, `${name}: number ${k}`);
+    }
+  });
+
+  it('PRO fits inside the dial: well inside the track, and inside the 66 dp safe zone with its stroke', () => {
+    const pro = androidPaths(layer('foreground')).at(-1);
+    const half = pro.stroke.width / 2;
+    for (const polyline of flatten(parsePath(pro.d), 0.01)) {
+      for (const [x, y] of polyline) {
+        const reach = Math.hypot(x - 54, y - 54) + half;
+        assert.ok(reach <= 33, `(${x}, ${y}) reaches ${reach} dp`);
+        // the ring's inner edge is at 21.93 x 0.72 dp
+        assert.ok(reach < 21.93 * ANDROID_SCALE, `(${x}, ${y}) touches the track`);
+      }
+    }
+  });
+
+  it('the Play Store icon has PRO: the same dark P stem as the iOS icon, at 512 px', () => {
+    const png = decodePng(read(PLAY_ICON));
+    assert.deepEqual(at(png, 50 - 13.5 * 0.95, 50), [28, 28, 30]);
   });
 
   it('the Play Store icon is 512 px RGB, the light icon at half the size', () => {
@@ -550,14 +753,18 @@ describe('E017 #504: Fivvi, the client app, has the plain day dial B2 as its ico
   const CLIENT_PLAY_ICON = 'apps/android/client/src/main/ic_launcher-playstore.png';
   const CLIENT_RES = 'apps/android/client/src/main/res';
 
-  it('has the same adaptive layers as Fivvi Pro for now: the dial without PRO, generated from the same source', () => {
-    for (const name of ['background', 'foreground', 'monochrome']) {
+  /** An Android layer without its PRO stroke path (the one with a strokeColor), which only Fivvi Pro has. */
+  const withoutPro = (xml) => xml.replace(/ {4}<path\n {8}android:strokeColor[\s\S]*?\/>\n/, '');
+
+  it('has the layers of Fivvi Pro without PRO: the dial B2, generated from the same source', () => {
+    const background = 'drawable/ic_launcher_background.xml';
+    assert.equal(text(`${CLIENT_RES}/${background}`), text(`${RES}/${background}`));
+    for (const name of ['foreground', 'monochrome']) {
       const file = `drawable/ic_launcher_${name}.xml`;
-      assert.equal(
-        text(`${CLIENT_RES}/${file}`),
-        text(`${RES}/${file}`),
-        `${name}: the same layer`,
-      );
+      const pro = text(`${RES}/${file}`);
+      assert.notEqual(withoutPro(pro), pro, `${name}: Fivvi Pro has the PRO path`);
+      assert.equal(text(`${CLIENT_RES}/${file}`), withoutPro(pro), `${name}: the dial alone`);
+      assert.doesNotMatch(text(`${CLIENT_RES}/${file}`), /strokeColor/, `${name}: no PRO`);
     }
     const foreground = text(`${CLIENT_RES}/drawable/ic_launcher_foreground.xml`);
     assert.equal(foreground.match(/<path\b/g).length, 6, 'the track and the five sectors');
@@ -581,12 +788,15 @@ describe('E017 #504: Fivvi, the client app, has the plain day dial B2 as its ico
     );
   });
 
-  it('the Play Store icon is the 512 px light dial, the same as the one of Fivvi Pro', () => {
+  it('the Play Store icon is the 512 px light dial without PRO: the one of Fivvi Pro, outside the letters', () => {
     const png = decodePng(read(CLIENT_PLAY_ICON));
+    const pro = decodePng(read(PLAY_ICON));
 
     assert.deepEqual([png.width, png.height, png.colorType], [512, 512, 2]);
-    assert.deepEqual(read(CLIENT_PLAY_ICON), read(PLAY_ICON));
     near(pixel(png, 510, 1), rgb('#ffffff'), 3, 'the light background at the top right');
+    // the middle of the dial is empty here and holds the P's stem in Fivvi Pro
+    near(at(png, 50 - 13.5 * 0.95, 50), backgroundAt('#ffffff', '#ececf1', 36.7, 50), 2, 'no PRO');
+    assert.notDeepEqual(at(png, 50 - 13.5 * 0.95, 50), at(pro, 50 - 13.5 * 0.95, 50));
   });
 
   it('is part of what the generator writes, so the generated-files test covers it', () => {
@@ -597,6 +807,40 @@ describe('E017 #504: Fivvi, the client app, has the plain day dial B2 as its ico
       `${CLIENT_RES}/mipmap-anydpi-v26/ic_launcher.xml`,
     ])
       assert.ok(files.has(path), path);
+  });
+});
+
+describe('E020 #672 AC5: the five hours keep their soft shadow, and PRO has none', () => {
+  const plain = decodePng(read('apps/android/client/src/main/ic_launcher-playstore.png'));
+  const pro = decodePng(read(PLAY_ICON));
+  // The box of PRO (x 50 +- 12.8, y 50 +- 4.75) with its stroke (1.25) and one unit more; the shadow of the five
+  // (down by 1.2, blurred by 1.4, so about 4 units) does not reach it, and a shadow under PRO would reach 5 units beyond.
+  const inside = (x, y) => {
+    const [ux, uy] = [((x + 0.5) * 100) / 512, ((y + 0.5) * 100) / 512];
+    return ux > 35 && ux < 65 && uy > 43 && uy < 57;
+  };
+
+  it('Fivvi Pro differs from the plain dial only inside the box of the letters: no shadow around PRO', () => {
+    let changed = 0;
+    for (let y = 0; y < 512; y++) {
+      for (let x = 0; x < 512; x++) {
+        const [a, b] = [pixel(plain, x, y), pixel(pro, x, y)];
+        if (a.every((value, i) => value === b[i])) continue;
+        changed++;
+        assert.ok(inside(x, y), `(${x}, ${y}) changed outside PRO: ${a} to ${b}`);
+      }
+    }
+    assert.ok(changed > 1000, `${changed} pixels changed: PRO is drawn`);
+  });
+
+  it('the dial around the letters is the plain dial, the five with their shadow', () => {
+    // 2 units under the inner edge of the second sector, as in the iOS test, is darker than the bare background
+    const bare = backgroundAt('#ffffff', '#ececf1', 57.5, 36);
+    assert.ok(
+      at(pro, 57.5, 36).every((value, i) => value < bare[i] - 4),
+      'the shadow of the five',
+    );
+    assert.deepEqual(at(pro, 57.5, 36), at(plain, 57.5, 36));
   });
 });
 

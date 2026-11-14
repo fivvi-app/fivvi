@@ -204,6 +204,8 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       'scripts/android.sh',
       'scripts/_android.sh',
       'scripts/maestro.sh',
+      // The reader of the Compose and Maestro quarantine lists (E002 #1363) selects the tests of both Android jobs.
+      'scripts/quarantine-android.mjs',
     ]) {
       assert.ok(runs('android', path), path);
     }
@@ -358,6 +360,8 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
         'Android build',
         'Android tests',
         'Android Maestro',
+        // Not required, and never to be: the listed flaky Android tests run here (E002 #1363, TESTING.md §8).
+        'Quarantine (Android)',
       ],
     );
   });
@@ -2010,6 +2014,7 @@ done
     script(
       join(repo, 'apps/android/gradlew'),
       `echo "$*" >>"${state}/gradle.log"
+echo "$FIVVI_QUARANTINE_TESTS" >>"${state}/gradle-quarantine.log"
 case "$*" in
   *checkReleaseApiBaseUrl*-Pfivvi.releaseApiBaseUrl=*) [ "$FAKE_URL_CHECK" = accept ] || { echo 'Set fivvi.releaseApiBaseUrl (fake)'; exit 1; } ;;
   *connectedDebugAndroidTest*) ${outcome} ;;
@@ -3641,6 +3646,233 @@ esac`,
 
       assert.notEqual(run.status, 0);
       assert.match(run.output, /no APK at \/nonexistent\/app\.apk/);
+    });
+  });
+
+  describe('E002 #1363: android.sh and maestro.sh read the Compose and Maestro quarantine lists', () => {
+    const ENTRY = (test) => `${test} | #1400 | 2026-11-12 | 2026-11-19`;
+    const UNIT = 'app.fivvi.pro.home.HomeViewModelTest#test_a';
+    const SWITCH = 'app.fivvi.pro.home.WorkspaceSwitchTest#test_b';
+    const CLIENT = 'app.fivvi.client.ClientAppTest#test_c';
+    const kotlin = (klass, method) =>
+      `package ${klass.split('.').slice(0, -1).join('.')}\n\nclass ${klass.split('.').at(-1)} {\n    @Test\n    fun ${method}() {}\n}\n`;
+    /** Kotlin sources, flows and lists in the fake checkout; returns the checkout. */
+    const listed = (fake, { compose = [], maestro = [] } = {}) => {
+      const write = (path, text) => {
+        mkdirSync(dirname(join(fake.repo, path)), { recursive: true });
+        writeFileSync(join(fake.repo, path), text);
+      };
+      write(
+        'apps/android/app/src/test/kotlin/app/fivvi/pro/home/HomeViewModelTest.kt',
+        kotlin('app.fivvi.pro.home.HomeViewModelTest', 'test_a'),
+      );
+      write(
+        'apps/android/app/src/androidTest/kotlin/app/fivvi/pro/home/WorkspaceSwitchTest.kt',
+        kotlin('app.fivvi.pro.home.WorkspaceSwitchTest', 'test_b'),
+      );
+      write(
+        'apps/android/client/src/androidTest/kotlin/app/fivvi/client/ClientAppTest.kt',
+        kotlin('app.fivvi.client.ClientAppTest', 'test_c'),
+      );
+      for (const name of ['a', 'b', 'c'])
+        write(`e2e/maestro/${name}.yaml`, 'appId: x\n---\n- launchApp\n');
+      write('e2e/maestro/config.yaml', 'flows:\n  - "*"\n');
+      write('quarantine/compose.txt', `${compose.map(ENTRY).join('\n')}\n`);
+      write('quarantine/maestro.txt', `${maestro.map(ENTRY).join('\n')}\n`);
+      return fake;
+    };
+    const maestroRuns = (fake) =>
+      fake
+        .log('maestro')
+        .filter((line) => /^(--\S+ \S+ )*test /.test(line) || line.includes(' test '));
+    const gradle = (fake) =>
+      fake.log('gradle').map((line) => line.replace(/^--console=plain \S+ /, ''));
+
+    it('AC1: with empty lists nothing changes: plain Gradle runs, the whole Compose suite, the flow folder', async () => {
+      const fake = listed(checkout({ emulatorRunning: true }));
+      assert.equal((await fake.run('scripts/android.sh', ['verify'])).status, 0);
+      assert.ok(
+        !gradle(fake).some((line) => /init-script|notClass/.test(line)),
+        gradle(fake).join('\n'),
+      );
+      assert.ok(gradle(fake).some((line) => line === 'connectedDebugAndroidTest'));
+
+      assert.equal((await fake.run('scripts/maestro.sh', ['android'])).status, 0);
+      assert.equal(maestroRuns(fake).length, 2, 'one run per locale');
+      assert.ok(
+        maestroRuns(fake).every((line) => line.includes(`${fake.repo}/e2e/maestro `)),
+        maestroRuns(fake).join('\n'),
+      );
+    });
+
+    it('AC1: the required jobs leave the listed unit tests out and the listed Compose UI tests out', async () => {
+      const fake = listed(checkout({ emulatorRunning: true }), { compose: [UNIT, SWITCH] });
+
+      const run = await fake.run('scripts/android.sh', ['verify']);
+
+      assert.equal(run.status, 0, run.output);
+      const unit = gradle(fake).find(
+        (line) => line.includes('testDebugUnitTest') && line.includes('--init-script'),
+      );
+      assert.match(
+        unit,
+        /--init-script \S+\/apps\/android\/gradle\/quarantine\.init\.gradle\.kts testDebugUnitTest$/,
+      );
+      assert.ok(
+        fake.log('gradle-quarantine').includes(`${UNIT},${SWITCH}`),
+        fake.log('gradle-quarantine').join('|'),
+      );
+      const ui = gradle(fake).find((line) => line.startsWith('connectedDebugAndroidTest'));
+      const arg = (name) => `-Pandroid.testInstrumentationRunnerArguments.${name}`;
+      assert.equal(
+        ui,
+        `connectedDebugAndroidTest ${arg('filter')}=app.fivvi.core.quarantine.QuarantineRunFilter ${arg('quarantine')}=exclude ${arg('quarantineTests')}=${SWITCH}`,
+      );
+    });
+
+    it('AC1: with FIVVI_QUARANTINE=only, android.sh quarantine runs only the listed tests: the unit tests, then the UI tests of every module', async () => {
+      const fake = listed(checkout(), { compose: [UNIT, SWITCH, CLIENT] });
+
+      const run = await fake.run('scripts/android.sh', ['quarantine']);
+
+      assert.equal(run.status, 0, run.output);
+      assert.ok(fake.emulator().booted === false, 'stopped again');
+      assert.ok(fake.log('emulator').length > 0, 'the emulator was started for the UI tests');
+      const arg = (name) => `-Pandroid.testInstrumentationRunnerArguments.${name}`;
+      assert.deepEqual(
+        gradle(fake).filter((line) => line.includes('connected')),
+        [
+          `connectedDebugAndroidTest ${arg('filter')}=app.fivvi.core.quarantine.QuarantineRunFilter ${arg('quarantine')}=only ${arg('quarantineTests')}=${SWITCH},${CLIENT}`,
+        ],
+      );
+      assert.ok(gradle(fake).some((line) => /--init-script .* testDebugUnitTest$/.test(line)));
+      assert.ok(
+        !gradle(fake).some((line) => /ktlint|assembleDebug|bundleRelease|BuildInfoTest/.test(line)),
+        'no build or release steps',
+      );
+    });
+
+    it('AC1: android.sh quarantine with a list of unit tests only starts no emulator, and with an empty list runs nothing', async () => {
+      const unitOnly = listed(checkout(), { compose: [UNIT] });
+      assert.equal((await unitOnly.run('scripts/android.sh', ['quarantine'])).status, 0);
+      assert.equal(unitOnly.log('emulator').length, 0);
+      assert.ok(gradle(unitOnly).some((line) => line.includes('testDebugUnitTest')));
+      assert.ok(!gradle(unitOnly).some((line) => line.includes('connected')));
+
+      const none = listed(checkout());
+      const run = await none.run('scripts/android.sh', ['quarantine']);
+      assert.equal(run.status, 0, run.output);
+      assert.match(run.output, /lists no test: nothing to run/);
+      assert.equal(gradle(none).length, 0);
+    });
+
+    it('AC1: in the Quarantine job a listed test that names no test fails the run; in a required job it is a warning', async () => {
+      const gone = 'app.fivvi.pro.home.GoneTest#x';
+      const only = listed(checkout(), { compose: [gone] });
+      const run = await only.run('scripts/android.sh', ['quarantine']);
+      assert.equal(run.status, 1, run.output);
+      assert.match(run.output, /GoneTest#x is no test in apps\/android/);
+
+      const required = listed(checkout({ emulatorRunning: true }), { compose: [gone] });
+      const ok = await required.run('scripts/android.sh', ['verify']);
+      assert.equal(ok.status, 0, ok.output);
+      assert.match(ok.output, /warning: .*GoneTest#x is no test/);
+    });
+
+    it('AC1: maestro.sh android runs every flow but the listed ones, as files', async () => {
+      const fake = listed(checkout({ emulatorRunning: true }), { maestro: ['b'] });
+
+      const run = await fake.run('scripts/maestro.sh', ['android']);
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(run.output, /quarantine: 2 flow\(s\), without the 1 listed/);
+      const tests = maestroRuns(fake);
+      assert.equal(tests.length, 2, 'one run per locale');
+      for (const line of tests) {
+        assert.ok(
+          line.includes(`${fake.repo}/e2e/maestro/a.yaml ${fake.repo}/e2e/maestro/c.yaml `),
+          line,
+        );
+        assert.ok(!line.includes('b.yaml'), line);
+      }
+    });
+
+    it('AC1: with FIVVI_QUARANTINE=only maestro.sh android runs exactly the listed flows, in both locales', async () => {
+      const fake = listed(checkout({ emulatorRunning: true }), { maestro: ['b', 'c'] });
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], { FIVVI_QUARANTINE: 'only' });
+
+      assert.equal(run.status, 0, run.output);
+      const tests = maestroRuns(fake);
+      assert.equal(tests.length, 2);
+      for (const line of tests) {
+        assert.ok(
+          line.includes(`${fake.repo}/e2e/maestro/b.yaml ${fake.repo}/e2e/maestro/c.yaml `),
+          line,
+        );
+        assert.ok(!line.includes('a.yaml'), line);
+      }
+    });
+
+    it('AC1: maestro.sh android with FIVVI_QUARANTINE=only and an empty list starts nothing, and a listed flow that does not exist fails', async () => {
+      const empty = listed(checkout({ emulatorRunning: true }));
+      const run = await empty.run('scripts/maestro.sh', ['android'], { FIVVI_QUARANTINE: 'only' });
+      assert.equal(run.status, 0, run.output);
+      assert.match(run.output, /lists no flow: nothing to run/);
+      assert.equal(empty.log('maestro').length, 0);
+      assert.equal(empty.log('adb').length, 0, 'no device or web server was touched');
+
+      const gone = listed(checkout({ emulatorRunning: true }), { maestro: ['gone'] });
+      const failed = await gone.run('scripts/maestro.sh', ['android'], {
+        FIVVI_QUARANTINE: 'only',
+      });
+      assert.equal(failed.status, 1, failed.output);
+      assert.match(failed.output, /gone is no flow in e2e\/maestro/);
+      assert.equal(gone.log('maestro').length, 0);
+    });
+
+    it('AC1: a run with every flow on the list runs none, and maestro.sh ios ignores the Android list', async () => {
+      const all = listed(checkout({ emulatorRunning: true }), { maestro: ['a', 'b', 'c'] });
+      const run = await all.run('scripts/maestro.sh', ['android']);
+      assert.equal(run.status, 0, run.output);
+      assert.match(run.output, /every flow is on quarantine\/maestro\.txt/);
+      assert.equal(all.log('maestro').length, 0);
+
+      const ios = listed(checkout(), { maestro: ['b'] });
+      assert.equal((await ios.run('scripts/maestro.sh', ['ios'])).status, 0);
+      assert.ok(maestroRuns(ios).length > 0);
+      assert.ok(
+        maestroRuns(ios).every((line) => line.includes(`${ios.repo}/e2e/maestro `)),
+        maestroRuns(ios).join('\n'),
+      );
+    });
+
+    it('AC1: Gradle runs the init script that filters by the list: it excludes, or with FIVVI_QUARANTINE=only includes, each listed test', () => {
+      const script = readFileSync(
+        join(SCRIPTS, '..', 'apps/android/gradle/quarantine.init.gradle.kts'),
+        'utf8',
+      );
+      assert.match(script, /System\.getenv\("FIVVI_QUARANTINE_TESTS"\)/);
+      assert.match(script, /System\.getenv\("FIVVI_QUARANTINE"\) == "only"/);
+      assert.match(
+        script,
+        /if \(only\) includeTestsMatching\(pattern\) else excludeTestsMatching\(pattern\)/,
+      );
+      assert.match(script, /isFailOnNoMatchingTests = false/);
+      assert.match(script, /replace\('#', '\.'\)/);
+    });
+
+    it('AC1: a parameterized unit test is left out, or selected, by its listed name: the pattern also matches method[nl-NL]', () => {
+      const script = readFileSync(
+        join(SCRIPTS, '..', 'apps/android/gradle/quarantine.init.gradle.kts'),
+        'utf8',
+      );
+      // Gradle matches a pattern against the whole name, and JUnit4 names a parameterized test `method[nl-NL]`.
+      assert.match(script, /for \(pattern in listOf\(method, "\$method\[\*\]"\)\)/);
+      assert.match(
+        script,
+        /if \(only\) includeTestsMatching\(pattern\) else excludeTestsMatching\(pattern\)/,
+      );
     });
   });
 

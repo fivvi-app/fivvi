@@ -768,6 +768,39 @@ describe('F020 plan a private session', () => {
     });
   });
 
+  describe('F068 AC7, AC11: EM-11 names the role with the workspace’s word', () => {
+    it('Anna reads it in Dutch and Mark in English; a word changed later reaches the next email only', async () => {
+      const { gym, sarah, sarahRole, anna, mark } = await world({ defaultLocale: 'nl-NL' });
+      const { server, transport } = setup();
+      const setWord = (trainerWord: 'instructeur' | 'coach') =>
+        admin.db.update(organizations).set({ trainerWord }).where(eq(organizations.id, gym.id));
+
+      await setWord('instructeur');
+      await plan(server, gym.id, sarah, request({ clientId: anna.id, trainerId: sarahRole.id }));
+      await plan(
+        server,
+        gym.id,
+        sarah,
+        request({ clientId: mark.id, trainerId: sarahRole.id, localStart: '11:00' }),
+      );
+      await setWord('coach');
+      await plan(
+        server,
+        gym.id,
+        sarah,
+        request({ clientId: anna.id, trainerId: sarahRole.id, localStart: '13:00' }),
+      );
+
+      expect(transport.sent.map((email) => email.text)).toEqual([
+        expect.stringContaining('Instructeur: Sarah'),
+        expect.stringContaining('Instructor: Sarah'),
+        expect.stringContaining('Coach: Sarah'),
+      ]);
+      // The one sent first stays as it was.
+      expect(transport.sent[0]?.text).not.toContain('Coach');
+    });
+  });
+
   describe('AC11: who can reach the routes', () => {
     it('Mike (Owner of another workspace) gets 404 on both routes and nothing is stored', async () => {
       const { gym, mike, sarahRole, anna, sarah } = await world();

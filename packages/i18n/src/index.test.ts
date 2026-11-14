@@ -54,3 +54,18 @@ describe('E005 typed keys', () => {
     expect([key, unknown]).toHaveLength(2);
   });
 });
+
+describe('F020 quotes in UI copy (GLOSSARY §2.3)', () => {
+  const strings = (tree: object, path = ''): [string, string][] =>
+    Object.entries(tree).flatMap(([key, value]) =>
+      typeof value === 'string' ? [[`${path}${key}`, value]] : strings(value, `${path}${key}.`),
+    );
+
+  it.each(['nl-NL', 'en'] as const)(
+    '%s: no string uses straight double quotes; single curly quotes ‘…’ are the form',
+    (locale) => {
+      const straight = strings(messages[locale]).filter(([, text]) => text.includes('"'));
+      expect(straight.map(([key]) => key)).toEqual([]);
+    },
+  );
+});

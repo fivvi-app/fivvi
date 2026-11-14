@@ -40,7 +40,7 @@ The native outputs ship like `packages/contract`'s clients: committed sources th
 | `Tokens.Spacing`, `Tokens.Radius` | Points as `CGFloat`: `Tokens.Spacing.space4`, `Tokens.Spacing.gutter`, `Tokens.Radius.md` (use `.continuous` corners) |
 | `Tokens.TextStyle` | The `Font.TextStyle` of each type style: `.font(.system(Tokens.TextStyle.body))` |
 
-**Android** (`kotlin/generated/`, Compose Material 3 1.2 or later):
+**Android** (`kotlin/generated/`, Compose Material 3; the apps pin the `1.5` release candidate for Material 3 Expressive, [`apps/android`](../../apps/android/README.md)):
 
 | Generated | What |
 |---|---|

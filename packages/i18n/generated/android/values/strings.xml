@@ -66,6 +66,10 @@
     <!-- Brief confirmation (snackbar) after the edited client was saved. -->
     <string name="clients_profile_saved">Opgeslagen.</string>
     <string name="clients_profile_title">Klantprofiel</string>
+    <string name="clients_profile_upcoming_empty">Nog geen sessies gepland</string>
+    <string name="clients_profile_upcoming_title">Komende sessies</string>
+    <!-- One row of the client's upcoming sessions on the client profile: {date} is a short date such as "do 24 sep", {time} a 24-hour time. -->
+    <string name="clients_profile_upcoming_when">%1$s om %2$s</string>
     <string name="clients_search_placeholder">Zoek klant…</string>
     <!-- Title of the clients list (TM-02, TW-01) and the label of the way in to it. -->
     <string name="clients_title">Klanten</string>
@@ -361,6 +365,94 @@
     <string name="roles_trainer">Trainer</string>
     <!-- Role label of a Trainer of a workspace, shown as a plain label, in the workspace's word (F068): {Word} is the word with a capital start, e.g. Instructeur / Instructor. The role itself stays Trainer. -->
     <string name="roles_trainer_label">%1$s</string>
+    <string name="sessions_form_cancel">Annuleren</string>
+    <string name="sessions_form_client_change">Wijzigen</string>
+    <string name="sessions_form_client_exists">Er is al een klant met dit e-mailadres: %1$s.</string>
+    <string name="sessions_form_client_label">Klant</string>
+    <string name="sessions_form_client_new">+ Nieuwe klant</string>
+    <string name="sessions_form_client_new_named">+ Nieuwe klant ‘%1$s’</string>
+    <string name="sessions_form_client_none">Geen klanten gevonden.</string>
+    <string name="sessions_form_client_results">Klanten</string>
+    <string name="sessions_form_client_search">Zoek op naam of e-mail</string>
+    <string name="sessions_form_client_use">Die gebruiken</string>
+    <string name="sessions_form_close">Sluiten</string>
+    <string name="sessions_form_date_label">Datum</string>
+    <string name="sessions_form_description">Kies een klant en een moment. De locatie staat al ingevuld.</string>
+    <string name="sessions_form_discard">Weggooien</string>
+    <string name="sessions_form_discard_description">Wat je hebt ingevuld, wordt niet bewaard.</string>
+    <string name="sessions_form_discard_title">Wijzigingen weggooien?</string>
+    <string name="sessions_form_duration_label">Duur</string>
+    <string name="sessions_form_duration_minutes">%1$s min</string>
+    <string name="sessions_form_duration_other">Andere duur</string>
+    <!-- Under the start time of the new private session form (PS-01): when the session ends, from the start and the duration. {time} is a 24-hour time, e.g. 10:00. -->
+    <string name="sessions_form_ends_at">Eindigt om %1$s</string>
+    <!-- Same as sessions.form.endsAt, when the session ends after midnight, on the next day. -->
+    <string name="sessions_form_ends_at_next_day">Eindigt om %1$s (volgende dag)</string>
+    <string name="sessions_form_errors_choose_client">Kies een klant.</string>
+    <string name="sessions_form_errors_choose_trainer">Kies %1$s.</string>
+    <string name="sessions_form_errors_date_required">Kies een datum.</string>
+    <string name="sessions_form_errors_invalid_date">Deze datum bestaat niet.</string>
+    <string name="sessions_form_errors_invalid_time">Dit is geen geldige tijd.</string>
+    <string name="sessions_form_errors_no_permission">Je hebt geen rechten voor deze sessie.</string>
+    <string name="sessions_form_errors_not_saved">Niet opgeslagen. Controleer je verbinding en probeer het opnieuw.</string>
+    <string name="sessions_form_errors_start_required">Kies een begintijd.</string>
+    <!-- Shown under the start time when the clocks skip it because summer time starts (e.g. 02:30 on 28 March 2027). {date} is a full date. -->
+    <string name="sessions_form_errors_time_does_not_exist">Deze tijd bestaat niet op %1$s door de zomertijd.</string>
+    <string name="sessions_form_keep_editing">Verder bewerken</string>
+    <!-- The language an email goes out in, after the client's address (sessions.form.notifyNote) and in a sentence (sessions.reschedule.notifyNote): "in English". -->
+    <string name="sessions_form_language_en">in het Engels</string>
+    <!-- The language an email goes out in, after the client's address (sessions.form.notifyNote) and in a sentence (sessions.reschedule.notifyNote): "in Dutch". -->
+    <string name="sessions_form_language_nl">in het Nederlands</string>
+    <string name="sessions_form_load_failed">De gegevens konden niet worden geladen.</string>
+    <string name="sessions_form_location">Locatie: %1$s</string>
+    <string name="sessions_form_new_client_add">Klant toevoegen</string>
+    <string name="sessions_form_new_client_cancel">Annuleren</string>
+    <string name="sessions_form_new_client_title">Nieuwe klant</string>
+    <!-- Shown when the chosen start is before now. The session is saved afterwards, and the client gets no email. -->
+    <string name="sessions_form_notes_past">Deze tijd ligt in het verleden. De klant krijgt geen e-mail.</string>
+    <!-- Shown when the chosen time happens twice because the clocks go back at the end of summer time (e.g. 02:30 on 25 October 2026). The first one, in summer time, is used. {date} is a full date, {time} a 24-hour time. -->
+    <string name="sessions_form_notes_repeated_time">Op %1$s komt %2$s twee keer voor. We gebruiken de eerste keer (zomertijd).</string>
+    <string name="sessions_form_notify">%1$s een bevestiging sturen</string>
+    <!-- Under the checkbox that sends the client a confirmation: the client's email address, then the language of the email, e.g. "anna@example.com · in het Nederlands". -->
+    <string name="sessions_form_notify_note">%1$s · %2$s</string>
+    <string name="sessions_form_open">Openen</string>
+    <string name="sessions_form_save">Opslaan</string>
+    <!-- Message after a private session was saved. {client} is the client's name, {date} a short date such as "do 24 sep", {time} a 24-hour time. -->
+    <string name="sessions_form_saved">Sessie met %1$s gepland op %2$s om %3$s.</string>
+    <string name="sessions_form_start_label">Begin</string>
+    <string name="sessions_form_title">Nieuwe privésessie</string>
+    <string name="sessions_form_trainer_choose">Kies %1$s</string>
+    <string name="sessions_form_trainer_label">%1$s</string>
+    <string name="sessions_form_trainer_me">%1$s (ik)</string>
+    <string name="sessions_page_cancelled">Deze sessie is geannuleerd.</string>
+    <string name="sessions_page_client_label">Klant</string>
+    <string name="sessions_page_client_profile">Klantprofiel</string>
+    <string name="sessions_page_heading">Privésessie met %1$s</string>
+    <!-- Message after a session was moved. {date} is a short date, {time} a 24-hour time. -->
+    <string name="sessions_page_moved">Verplaatst naar %1$s om %2$s.</string>
+    <string name="sessions_page_no_trainer">Geen %1$s</string>
+    <string name="sessions_page_reschedule">Verplaatsen</string>
+    <string name="sessions_page_time_range">%1$s, %3$s–%2$s</string>
+    <string name="sessions_page_trainer_label">%1$s</string>
+    <string name="sessions_page_when_label">Wanneer</string>
+    <string name="sessions_page_where_label">Locatie</string>
+    <string name="sessions_reschedule_cancel">Annuleren</string>
+    <string name="sessions_reschedule_cancelled">Deze sessie is geannuleerd en kan niet worden verplaatst.</string>
+    <!-- Shown when someone else changed or moved the session while this form was open. {name} is that person. The form then shows the session as it is now. -->
+    <string name="sessions_reschedule_changed_by">Deze sessie is net gewijzigd door %1$s.</string>
+    <string name="sessions_reschedule_changed_by_unknown">Deze sessie is net gewijzigd.</string>
+    <!-- Top of the reschedule dialog: where the session is now. {date} is a short date with the year, {start} and {end} are 24-hour times. -->
+    <string name="sessions_reschedule_current">Nu: %1$s, %4$s–%2$s · %3$s</string>
+    <string name="sessions_reschedule_date_label">Nieuwe datum</string>
+    <string name="sessions_reschedule_location_unchanged">%1$s (ongewijzigd)</string>
+    <string name="sessions_reschedule_no_permission">Je hebt geen rechten meer voor deze sessie.</string>
+    <string name="sessions_reschedule_notify">%1$s informeren per e-mail</string>
+    <string name="sessions_reschedule_notify_note">%1$s krijgt de e-mail %2$s.</string>
+    <string name="sessions_reschedule_submit">Verplaatsen</string>
+    <string name="sessions_reschedule_submit_notify">Verplaatsen en informeren</string>
+    <string name="sessions_reschedule_subtitle">%1$s · Privésessie</string>
+    <string name="sessions_reschedule_title">Sessie verplaatsen</string>
+    <string name="sessions_title">Sessie</string>
     <!-- Shown on TW-08 when saving failed for any other reason. Nothing was changed. -->
     <string name="settings_general_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
     <!-- Under the name field on TW-08 when it is empty or only spaces. -->
@@ -631,6 +723,7 @@
     <string name="workspace_nav_new">Nieuw</string>
     <string name="workspace_nav_new_client">Klant</string>
     <string name="workspace_nav_new_menu">Nieuw maken</string>
+    <string name="workspace_nav_new_private_session">Privésessie</string>
     <!-- Navigation link to Settings (Instellingen). Shown to the Owner only (GLOSSARY §4.8). -->
     <string name="workspace_nav_settings">Instellingen</string>
     <string name="workspace_nav_settings_general">Algemeen</string>

@@ -22,6 +22,43 @@ final class SignInUITests: SignInUITestCase {
         try assertTouchTarget(screen.email, on: screen)
     }
 
+    /// Both steps show the Fivvi Pro day dial above the title, the accessible name *Fivvi Pro*, 64 pt on the code step,
+    /// in the light dial in light mode and the dark dial in dark mode (E020 #629, DECISIONS.md §2).
+    func test_E020_AC15_bothStepsShowTheFivviProDayDial() throws {
+        let catalog = TestCatalog.configured
+        let server = try StubServer(.greeting(key: "hello.title"))
+        for (mode, style) in [("light", UIUserInterfaceStyle.light), ("dark", .dark)] {
+            let screen = SignInScreen(app: AppLaunch.launch(
+                against: server, session: .signedOut, appearance: mode
+            ))
+            XCTAssertTrue(screen.email.waitUntilExists(timeout: timeout), mode)
+            screen.settle(screen.logo)
+            XCTAssertEqual(screen.logo.label, catalog["app.name"], "the accessible name, \(mode)")
+            XCTAssertLessThan(screen.logo.frame.maxY, screen.title.frame.minY, "the dial is above the title, \(mode)")
+            XCTAssertEqual(screen.logo.frame.width, 84, accuracy: 0.5, "email step, \(mode)")
+            XCTAssertEqual(screen.logo.frame.height, 84, accuracy: 0.5, "email step, \(mode)")
+            // Inside the icon's top edge: its background, light in light mode and dark in dark mode.
+            let colours = try ScreenColours(screen.app)
+            let logo = screen.logo.frame
+            let background = colours.colour(at: CGPoint(x: logo.midX, y: logo.minY + logo.height * 0.08))
+            if style == .dark {
+                XCTAssertLessThan(background.red, 90, "the dark dial in dark mode")
+            } else {
+                XCTAssertGreaterThan(background.red, 200, "the light dial in light mode")
+            }
+
+            screen.requestCode(for: server.signIn.email)
+            screen.settle(screen.logo)
+            XCTAssertEqual(screen.logo.label, catalog["app.name"], "code step, \(mode)")
+            XCTAssertEqual(screen.logo.frame.width, 64, accuracy: 0.5, "code step, \(mode)")
+            XCTAssertLessThan(
+                screen.logo.frame.maxY, screen.checkEmailTitle.frame.minY, "above Check je e-mail, \(mode)"
+            )
+            XCTAssertFalse(screen.app.staticTexts["F"].exists, "no letter mark, \(mode)")
+            screen.app.terminate()
+        }
+    }
+
     /// The whole chain: the email step, the code step (the sixth digit submits), the token in the Keychain and
     /// `GET /api/v1/me` with it.
     func test_F001N_AC3_sixthDigitSubmits() throws {
