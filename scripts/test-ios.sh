@@ -413,11 +413,11 @@ TEST_ALLOWANCE_MAX=180
 # Xcode 27.1 left no bundle and xcodebuild still running after 90 s), so after the grace it is killed and the run
 # fails either way, with or without a bundle. The deadline counts from the launch of xcodebuild, after the simulator
 # boot and settle. A healthy run takes 11-17 minutes of xcodebuild (#393: up to 1032 s; the CI step, with the settle,
-# up to 1252 s); the CI job's own timeout (38 minutes = 2280 s) stays above the deadline (1790 s) plus the grace (60 s)
+# up to 1252 s); the CI job's own timeout (44 minutes = 2640 s) stays above the deadline (2100 s) plus the grace (60 s)
 # and the 310 s the job spends outside the deadline (boot and settle, other steps, the reports and the upload), with
-# 120 s to spare. IOS_TEST_DEADLINE and IOS_TEST_DEADLINE_GRACE override them (the tests of
+# 170 s to spare. IOS_TEST_DEADLINE and IOS_TEST_DEADLINE_GRACE override them (the tests of
 # this script use short ones).
-TEST_DEADLINE=${IOS_TEST_DEADLINE:-1790}
+TEST_DEADLINE=${IOS_TEST_DEADLINE:-2100}
 TEST_DEADLINE_GRACE=${IOS_TEST_DEADLINE_GRACE:-60}
 
 run_tests() {

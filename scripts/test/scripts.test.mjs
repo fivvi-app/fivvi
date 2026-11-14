@@ -909,13 +909,13 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     );
     // Detect changes (5) + build + tests + the gate job (2) must end before the queue gives up on the check.
     const chain = 5 + minutes(iosBuild) + minutes(iosTests) + minutes(job('ios'));
-    assert.ok(chain <= 57, 'the chain is at most 57 minutes');
+    assert.ok(chain <= 63, 'the chain is at most 63 minutes');
     assert.ok(chain < queue, 'under the queue timeout');
     // #1268: a job that no runner takes is cancelled by GitHub after 15 minutes and tried once more, and the retry may
     // queue for a runner as long. The longest passing chain is that in both stages: Detect changes, the build (15 + 15 +
     // 12), the tests, and the gate. The tests stage starts only when the whole ios-tests matrix has ended (ios-tests-plan
-    // needs it), so the first part is the slower of the no-runner wait and the other language's full run (38), then the
-    // plan, the retry's wait and the retry (15 + 38). The queue's timeout and what pr.sh waits must outlast it.
+    // needs it), so the first part is the slower of the no-runner wait and the other language's full run (44), then the
+    // plan, the retry's wait and the retry (15 + 44). The queue's timeout and what pr.sh waits must outlast it.
     const noRunnerWait = 15;
     const retriedChain =
       5 +
@@ -925,7 +925,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
         noRunnerWait +
         minutes(job('ios-tests-retry'))) +
       minutes(job('ios'));
-    assert.equal(retriedChain, 142, 'the numbers in ci.yml, WORKFLOW.md and ADR-018 say 142');
+    assert.equal(retriedChain, 154, 'the numbers in ci.yml, WORKFLOW.md and ADR-018 say 154');
     assert.ok(retriedChain < queue, 'the retried chain is under the queue timeout');
     // pr.sh wait must outlast the chains, or it gives up on a run that still passes.
     const pr = readFileSync(join(SCRIPTS, 'pr.sh'), 'utf8');

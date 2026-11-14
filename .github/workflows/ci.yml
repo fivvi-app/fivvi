@@ -362,9 +362,9 @@ jobs:
     runs-on: macos-15
     continue-on-error: ${{ github.event_name == 'push' }}
     # The longest build of the last 10 green runs took 322 s (5.4 min), so 12 minutes is 2.2 times that (#393).
-    # Detect changes (5) + this (12) + iOS tests (38) + the report job (2) = 57, under the merge queue's check
+    # Detect changes (5) + this (12) + iOS tests (44) + the report job (2) = 63, under the merge queue's check
     # timeout (ADR-018). If no runner takes this job, GitHub cancels it after 15 minutes and ios-build-retry builds once
-    # more (see there for the longest chain, 142, and the queue's 150).
+    # more (see there for the longest chain, 154, and the queue's 160).
     timeout-minutes: 12
     permissions:
       contents: read
@@ -458,10 +458,10 @@ jobs:
   # tests start from whichever build succeeded; a run that somebody cancelled is not retried. A test pass that got no
   # runner is retried too (ios-tests-plan, ios-tests-retry below), and only that language, from the bundle that already
   # exists. Every retry may itself queue for a runner for 15 minutes, and ios-tests-plan waits for the whole ios-tests
-  # matrix, so the other language may run its full 38 minutes before the plan starts. The longest chain by the timeouts
-  # is therefore Detect changes 5 + (15 wait + 15 wait + 12 build) + (38 tests + 2 plan + 15 wait + 38 tests) + the gate
-  # 2 = 142 minutes, so the merge queue's check timeout is 150 (ADR-018), applied with
-  # `scripts/github-settings.sh apply`, and `pr.sh wait` gives a native run 155.
+  # matrix, so the other language may run its full 44 minutes before the plan starts. The longest chain by the timeouts
+  # is therefore Detect changes 5 + (15 wait + 15 wait + 12 build) + (44 tests + 2 plan + 15 wait + 44 tests) + the gate
+  # 2 = 154 minutes, so the merge queue's check timeout is 160 (ADR-018), applied with
+  # `scripts/github-settings.sh apply`, and `pr.sh wait` gives a native run 165.
   ios-build-retry:
     name: iOS build (retry)
     needs: [changes, ios-build]
@@ -567,12 +567,14 @@ jobs:
     continue-on-error: ${{ github.event_name == 'push' }}
     # A healthy run takes 14-21 min (#393), of which the simulator boot and settle is up to 4 min (xcodebuild 11-17). A test that hangs fails
     # after its own allowance (scripts/test-ios.sh), so this is the backstop for the whole job: the deadline there
-    # (1790 s, counted from the start of xcodebuild) + its grace (60 s) + what the job spends outside the deadline (at
+    # (2100 s, counted from the start of xcodebuild) + its grace (60 s) + what the job spends outside the deadline (at
     # most 245 s boot and settle, 33 s other steps, 15 s uploading the results, 17 s reports and cleanup after the
-    # grace: 310 s measured) + 2 min = 2280 s, so 38 min. Detect changes (5) + iOS build (12) + this (38) + the report job (2) = 57, under the merge queue's
+    # grace: 310 s measured) + 2 min = 2590 s, so 44 min. Detect changes (5) + iOS build (12) + this (44) + the report job (2) = 63, under the merge queue's
     # check timeout (ADR-018). Raising the deadline further means raising this, and a test fails when the
-    # numbers no longer fit.
-    timeout-minutes: 38
+    # numbers no longer fit. The deadline is 2100 s since #1389: the xcodebuild step of a run took 1170 to 1730 s on
+    # the runners of 13-14 November 2026 (median 1650 s, the interrupted ones at 1790 s or more), and a run may use at
+    # most 85 % of the deadline on a typical runner (TESTING.md §7.2).
+    timeout-minutes: 44
     permissions:
       contents: read
       actions: read # scripts/step-timings.sh reads this run's step durations
@@ -656,7 +658,7 @@ jobs:
     runs-on: macos-15
     continue-on-error: ${{ github.event_name == 'push' }}
     # As "iOS tests".
-    timeout-minutes: 38
+    timeout-minutes: 44
     permissions:
       contents: read
       actions: read # scripts/step-timings.sh reads this run's step durations
