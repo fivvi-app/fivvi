@@ -232,6 +232,20 @@
       "validity": "The code works for {minutes, plural, one {# minute} other {# minutes}}. You'll sign in to Fivvi with this email address from then on.",
       "ignore": "Didn't ask for this? You can ignore this email. Nothing will change."
     },
+    "emailChanged": {
+      "subject": "The email address of your Fivvi account has been changed",
+      "preview": "This email address no longer belongs to your Fivvi account.",
+      "intro": "The email address of your Fivvi account has just been changed. You no longer sign in with this email address; you sign in with the new one.",
+      "fine": "If you made this change, you don't need to do anything.",
+      "notYou": "Wasn't this you? Contact us right away through Help and contact on fivvi.app and we'll look into it."
+    },
+    "emailChangeTaken": {
+      "subject": "Someone wanted to use this email address for another Fivvi account",
+      "preview": "No code was sent and nothing has changed.",
+      "intro": "Someone asked for a code to use this email address for another Fivvi account. This email address already belongs to an account, so we sent no code.",
+      "unchanged": "Nothing has changed. Your account and your data were not touched and stay yours.",
+      "ignore": "You don't need to do anything. You can ignore this email."
+    },
     "trainerInvitation": {
       "subject": "{inviter} invited you to {workspace}",
       "preview": "You're invited to become a trainer at {workspace}.",

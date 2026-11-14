@@ -1138,7 +1138,7 @@ public enum Operations {
     }
     /// Ask for a code to change the signed-in account’s email address
     ///
-    /// Sends a 6-digit code to the new address (EM-34), in the account’s language. The address does not change until `POST /v1/me/email/confirm` accepts the code. The answer is `202` for every valid address, one that already has an account, and a request over the rate limits (3 in 15 minutes per account and per address, 20 an hour per network, as for sign-in), so it never says who has an account; only a free address under the limits gets an email. A new request replaces the earlier code. It acts on the signed-in account alone: no route changes anyone else’s address.
+    /// Sends a 6-digit code to the new address (EM-34), in the account’s language. The address does not change until `POST /v1/me/email/confirm` accepts the code. The answer is `202` for every valid address, one that already has an account, and a request over the rate limits (3 in 15 minutes per account and per address, 20 an hour per network, as for sign-in), so it never says who has an account; a free address under the limits gets the code, an address that already has an account gets a notice instead of a code (EM-36), and nothing is merged. A new request replaces the earlier code. It acts on the signed-in account alone: no route changes anyone else’s address.
     ///
     /// - Remark: HTTP `POST /v1/me/email/change`.
     /// - Remark: Generated from `#/paths//v1/me/email/change/post(requestEmailChange)`.
@@ -1404,7 +1404,7 @@ public enum Operations {
     }
     /// Confirm the code and change the signed-in account’s email address
     ///
-    /// With the right code the account’s address becomes the one the code was sent to, in every workspace at once, and every open sign-in session stays signed in. The sign-in codes and links sent to the old address stop working. Answers with the account, as `GET /v1/me` does. A wrong, used, replaced or expired code, five wrong codes, an address that has an account by now and a network over its limit all answer `422` and nothing changes.
+    /// With the right code the account’s address becomes the one the code was sent to, in every workspace at once, and every open sign-in session stays signed in. The sign-in codes and links sent to the old address stop working, and the old address gets a notice that it changed (EM-35). Workspaces, invitations and the sign-up allowlist stay as they were: they hang on the account and on the addresses they were written for. Answers with the account, as `GET /v1/me` does. A wrong, used, replaced or expired code, five wrong codes, an address that has an account by now and a network over its limit all answer `422` and nothing changes.
     ///
     /// - Remark: HTTP `POST /v1/me/email/confirm`.
     /// - Remark: Generated from `#/paths//v1/me/email/confirm/post(confirmEmailChange)`.

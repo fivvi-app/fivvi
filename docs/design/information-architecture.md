@@ -396,6 +396,8 @@ Every email exists in `nl-NL` and `en` with one template structure (`§51, §74`
 | EM-11 ⚑ | Nieuwe afspraak: {date} om {time} | New appointment: {date} at {time} | Private-session client | Private session created (PS-01) | F020 — **not in `§51`**, see [QE02](open-questions.md#qe02) |
 | EM-12 | Je training staat klaar, {client} | Your workout is ready, {client} | Client | Trainer confirms WL-08 share | F045, F048, F049; `§51` |
 | EM-34 | Je code om je e-mailadres te wijzigen | Your code to change your email address | The new address of the account (sent to that address only) | Change of own email address requested (F005) | F005, F033, F049 |
+| EM-35 | Het e-mailadres van je Fivvi-account is gewijzigd | The email address of your Fivvi account has been changed | The old address of the account (no link) | Change of own email address confirmed (F005) | F005, F033, F049 |
+| EM-36 | Iemand wilde dit e-mailadres voor een ander Fivvi-account gebruiken | Someone wanted to use this email address for another Fivvi account | An address that already has an account, instead of the code (EM-34) | Change of another account's email address to it requested (F005) | F005, F033, F049 |
 
 - Emails **never** say "magic link". The button is *Boeking bevestigen* / *Confirm booking*, and the code is shown underneath.
 - Free text from the owner (e.g. the optional message on a class cancellation, CO-03) is inserted **as typed** and not translated (`§3`). The template marks it as a quote from the workspace.

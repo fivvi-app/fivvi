@@ -77,13 +77,13 @@ describe('F049 AC1: the email catalog', () => {
     expect(templates).toHaveLength(onDisk.length);
   });
 
-  it('AC1: lists every email of the spec table, EM-01 … EM-23, and EM-34 once', () => {
+  it('AC1: lists every email of the spec table, EM-01 … EM-23, and EM-34 to EM-36 once', () => {
     const ids = catalog.map((entry) => entry.id);
     const expected = Array.from(
       { length: 23 },
       (_, index) => `EM-${String(index + 1).padStart(2, '0')}`,
     );
-    expect(ids).toEqual([...expected, 'EM-34']);
+    expect(ids).toEqual([...expected, 'EM-34', 'EM-35', 'EM-36']);
   });
 
   it('AC1: the existing templates are registered under their IDs', () => {
@@ -96,12 +96,22 @@ describe('F049 AC1: the email catalog', () => {
     expect(templateOf('EM-09')).toBe('trainer-invitation');
     expect(templateOf('EM-11')).toBe('private-session');
     expect(templateOf('EM-34')).toBe('email-change-code');
+    expect(templateOf('EM-35')).toBe('email-changed-notice');
+    expect(templateOf('EM-36')).toBe('email-change-taken-notice');
   });
 
   it('AC1: only the emails with a template today are active, EM-01 is retired, the rest reserved', () => {
     const byStatus = (status: string) =>
       catalog.filter((entry) => entry.status === status).map((entry) => entry.id);
-    expect(byStatus('active')).toEqual(['EM-04', 'EM-08', 'EM-09', 'EM-11', 'EM-34']);
+    expect(byStatus('active')).toEqual([
+      'EM-04',
+      'EM-08',
+      'EM-09',
+      'EM-11',
+      'EM-34',
+      'EM-35',
+      'EM-36',
+    ]);
     expect(byStatus('retired')).toEqual(['EM-01']);
     expect(byStatus('reserved')).toEqual([
       'EM-02',

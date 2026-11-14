@@ -1,5 +1,10 @@
 import { type Database, recordWrongSignInCode } from '@fivvi/database';
-import { emailChangeCodeEmail, type SendEmail } from '@fivvi/email';
+import {
+  emailChangeCodeEmail,
+  emailChangedNoticeEmail,
+  emailChangeTakenNoticeEmail,
+  type SendEmail,
+} from '@fivvi/email';
 import { parseAcceptLanguage, resolveSignInCommunicationLanguage } from '@fivvi/i18n';
 import type { BetterAuthPlugin } from 'better-auth';
 import { createAuthEndpoint } from 'better-auth/api';
@@ -42,6 +47,13 @@ const identifierFor = (accountId: string) => `${IDENTIFIER_PREFIX}${accountId}`;
 const codeHashOf = (secret: string, accountId: string, newEmail: string, code: string) =>
   hashSecretValue(secret, 'email-change-code', `${accountId}:${newEmail}:${code}`);
 
+/** The language of an email to `user`: their stored one, else the language of the request's page. */
+const localeOf = (user: object, acceptLanguage: string | null | undefined) =>
+  resolveSignInCommunicationLanguage({
+    recipientPreference: (user as { preferredLocale?: string | null }).preferredLocale,
+    page: { requested: parseAcceptLanguage(acceptLanguage) },
+  });
+
 /**
  * Changing the address of one's own account, verified by a code sent to the new address (F005,
  * spec #610; F033 reuses it). The sign-in code's machinery, in the same table: one
@@ -56,10 +68,13 @@ const codeHashOf = (secret: string, accountId: string, newEmail: string, code: s
  * account can only ever change its own address.
  *
  * - `requestEmailChangeCode` `{ userId, newEmail }`: always the same answer. A free address gets
- *   the code (EM-34); an address that already has an account, or is the account's own, gets
- *   nothing (the notice to its owner is the next ticket).
+ *   the code (EM-34); an address that already has an account gets a notice instead (EM-36), so
+ *   the answer gives nothing away and no code leaves for it; the account's own address gets
+ *   nothing.
  * - `confirmEmailChangeCode` `{ userId, code }`: the right code changes the address, keeps every
- *   session, and ends the sign-in codes and links of the old address.
+ *   session, ends the sign-in codes and links of the old address, and sends the old address the
+ *   notice that it changed (EM-35). Workspaces, invitations and the sign-up allowlist are not
+ *   touched: they hang on the account's ID and on the addresses they were written for (AC12, AC16).
  */
 export function changeEmailWithCode({
   db,
@@ -92,13 +107,22 @@ export function changeEmailWithCode({
             await internalAdapter.deleteVerificationByIdentifier(identifier);
             const user = await internalAdapter.findUserById(userId);
             if (!user || user.email === newEmail) return;
-            if (await internalAdapter.findUserByEmail(newEmail)) return;
+            const taken = await internalAdapter.findUserByEmail(newEmail);
+            if (taken) {
+              // The address has an account: its holder gets a notice instead of a code (AC8). No
+              // natural event: each request is its own, and the limits keep it from being a flood.
+              await sendEmail({
+                template: emailChangeTakenNoticeEmail,
+                props: {},
+                to: { email: newEmail },
+                locale: localeOf(taken.user, acceptLanguage),
+                event: crypto.randomUUID(),
+              });
+              return;
+            }
 
             const code = generateCode();
-            const locale = resolveSignInCommunicationLanguage({
-              recipientPreference: (user as { preferredLocale?: string | null }).preferredLocale,
-              page: { requested: parseAcceptLanguage(acceptLanguage) },
-            });
+            const locale = localeOf(user, acceptLanguage);
             // Better Auth's types don't know the fields the sign-in plugin adds to the row.
             const row = {
               identifier,
@@ -166,6 +190,19 @@ export function changeEmailWithCode({
           }
           // The codes and links sent to the old address before the change stop working (AC4).
           await internalAdapter.deleteVerificationByIdentifier(signInIdentifierFor(oldEmail));
+          // The old address hears of it (AC3), after the change is made and without holding up the
+          // answer; a failed send is reported and never undoes or fails the change. One event per
+          // change: the consumed verification.
+          const acceptLanguage = ctx.headers?.get('accept-language');
+          runSettled(runInBackground, reportError, async () => {
+            await sendEmail({
+              template: emailChangedNoticeEmail,
+              props: {},
+              to: { email: oldEmail },
+              locale: localeOf(user, acceptLanguage),
+              event: verification.id,
+            });
+          });
           return ctx.json({ email: newEmail });
         },
       ),
