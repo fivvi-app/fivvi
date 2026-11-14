@@ -130,7 +130,7 @@ const accountTokens = (accounts: Scenario['accounts']) =>
 const accountsOf = (s: Scenario, workspace: 'a' | 'b') =>
   s.accounts.filter((account) => new RegExp(`-${workspace}-[0-9a-f]{8}$`).test(account.marker));
 
-describe('AC12: trainer in A, owner of B, client of A', () => {
+describe('@isolation AC12: trainer in A, owner of B, client of A', () => {
   const { state, open, ask, lastObserved } = scene();
   const sam = () => state.s.actors.sam;
   const clientIdsOf = (asked: Asked) => asked.body.clients.map((client) => client.id).sort();
@@ -322,7 +322,7 @@ describe('AC12: trainer in A, owner of B, client of A', () => {
   });
 });
 
-describe('AC12: after Sam’s trainer role in A ends', () => {
+describe('@isolation AC12: after Sam’s trainer role in A ends', () => {
   const { state, open, ask, lastObserved } = scene();
   let ended: Scenario;
   const sam = () => ended.actors.sam;
@@ -400,7 +400,7 @@ describe('AC12: after Sam’s trainer role in A ends', () => {
   );
 });
 
-describe('AC12: every route, called as Sam', () => {
+describe('@isolation AC12: every route, called as Sam', () => {
   const { state, open } = scene();
 
   beforeAll(open);

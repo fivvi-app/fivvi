@@ -31,7 +31,12 @@ describe('F064 AC10 the legal texts are inputs of the web build and tests (turbo
   // #697: the tests also read every text of docs/legal, the registry of features and the brand files (subfolders too).
   it('lists them, and the other files of docs/ the tests read, as inputs of the tests', () => {
     expect(turbo.tasks?.test?.inputs).toEqual([
-      ...legal,
+      '$TURBO_DEFAULT$',
+      // E002 #1361: the preset and the Vitest quarantine list, which decide what the tests run.
+      '$TURBO_ROOT$/packages/testing/src/vitest.ts',
+      '$TURBO_ROOT$/scripts/quarantine.mjs',
+      '$TURBO_ROOT$/quarantine/vitest.txt',
+      ...legal.slice(1),
       '$TURBO_ROOT$/docs/legal/*.md',
       '$TURBO_ROOT$/docs/product/FEATURES.md',
       '$TURBO_ROOT$/docs/design/brand/**/*.svg',

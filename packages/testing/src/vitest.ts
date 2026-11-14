@@ -1,4 +1,5 @@
 import { defineConfig, mergeConfig, type ViteUserConfig } from 'vitest/config';
+import { vitestTestNamePattern } from '../../../scripts/quarantine.mjs';
 
 /**
  * Shared Vitest presets (TESTING.md §5). Every package's `vitest.config.ts` uses
@@ -10,6 +11,12 @@ import { defineConfig, mergeConfig, type ViteUserConfig } from 'vitest/config';
  * - `*.test.ts(x)`: unit (`pnpm test`). No database, no network.
  * - `*.integration.test.ts`: integration (`pnpm test:integration`). Real Postgres.
  * - `e2e/**`: Playwright (`pnpm test:e2e`), never Vitest.
+ *
+ * Both presets read the quarantine list `quarantine/vitest.txt` (ADR-025, TESTING.md §8; scripts/quarantine.mjs): a listed
+ * test is left out, which is what the required CI jobs and every local run do, and with `FIVVI_QUARANTINE=only` (the
+ * `Quarantine` job) exactly the listed tests run. A test is named by its full name, the titles of its describe blocks and
+ * its own joined by ` > `. The list is empty unless a flaky test is in quarantine; turbo takes it as an input of the
+ * test tasks (turbo.json).
  */
 
 const alwaysExcluded = ['**/node_modules/**', '**/.next/**', '**/dist/**', 'e2e/**'];
@@ -26,6 +33,8 @@ const shared = defineConfig({
     unstubGlobals: true,
     // Retries hide flaky tests; they are off for Vitest suites (TESTING.md §8).
     retry: 0,
+    // The quarantine list: undefined (no filter) while it is empty.
+    testNamePattern: vitestTestNamePattern(),
   },
 });
 

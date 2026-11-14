@@ -27,7 +27,7 @@ const document = (operations: Record<string, Record<string, unknown>>): Contract
   ),
 });
 
-describe('AC14: every operation declares access and has a case or is on the public list', () => {
+describe('@isolation AC14: every operation declares access and has a case or is on the public list', () => {
   it('holds for the committed openapi.json', () => {
     expect(accessCoverageProblems(contract, PUBLIC_ROUTES)).toEqual([]);
   });
@@ -85,7 +85,7 @@ describe('AC14: every operation declares access and has a case or is on the publ
   });
 });
 
-describe('AC14: every workspace and account route has an isolation case', () => {
+describe('@isolation AC14: every workspace and account route has an isolation case', () => {
   const caseNames = Object.keys(ISOLATION_CASES);
   const account = { 'x-access': { type: 'account' } };
   const workspace = {

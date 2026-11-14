@@ -454,7 +454,7 @@ describe('F002 POST /v1/workspaces', () => {
     expect(response.status).toBe(201);
   });
 
-  it('F012: two requests of one allowlisted account at once create two workspaces', async () => {
+  it('@concurrency F012: two requests of one allowlisted account at once create two workspaces', async () => {
     const eager = await account();
     const before = await counts();
 
