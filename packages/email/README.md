@@ -29,6 +29,7 @@ await sendEmail({
 | Path | What |
 |---|---|
 | `src/catalog.ts` | The email catalog (F049): every email by ID (EM-01 … EM-23, EM-34), with audience, owner features, subject keys, status and template; `templates` is derived from it |
+| `src/catalog-docs.ts` | `parseEmailTable` and `checkEmailTable`: the comparison of the information architecture's email table with the catalog |
 | `src/templates/` | One template per email type, registered in the catalog |
 | `src/template-checks.ts` | The checks every catalog email must pass (F049 AC2, AC5, AC6): `checkRendering`, `checkLinks`, `checkContent`, `checkSyntheticData`; each returns the problems it finds |
 | `src/preview.ts` | The pages of the local preview: the catalog's entries, each active email in both languages as HTML and text |
@@ -181,6 +182,7 @@ pnpm --filter @fivvi/email test
 |---|---|
 | `src/catalog.test.ts` | The catalog: every template file is in it, every `active` entry has a template, unique IDs, EM-01 … EM-23 and EM-34 present, subject keys exist in both languages |
 | `src/catalog.test.ts` (checks) | The checklist for every active entry, internal emails included, without a change when one is added: AC2 both languages from catalog keys with the same keys and placeholders, a subject of at most 78 characters, a plain-text part; AC5 links to `https://fivvi.app` only, no tracking pixel, tracking parameter, redirect or tracker path, no `List-Unsubscribe` on the message; AC6 `<b>` and `&` in user content shown as typed, a class name by F021's rule; the preview data is synthetic |
+| `src/catalog-docs.test.ts` | F049 AC10: the email table of `docs/design/information-architecture.md` §8 and the catalog have the same IDs, audiences, owner features and built subjects, EM-01 is marked retired, a table ID missing in the catalog or the reverse fails, and the table has no *reservering*, *afmelding* or *inschrijving* |
 | `src/template-checks.test.tsx` | Each check fails for a template that breaks its rule |
 | `src/preview.test.ts` | AC7: the preview shows every catalog email in both languages, HTML and text, and reads no database |
 | `src/templates/templates.test.ts` | Every template renders in nl-NL and en with no missing keys or placeholders; hello: subject, preview, text and HTML from the catalog, Europe/Amsterdam dates in both locales (summer, winter, around midnight), escaping of user content |
