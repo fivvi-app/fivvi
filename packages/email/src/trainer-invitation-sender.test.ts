@@ -10,6 +10,7 @@ const mail = {
   locale: english,
   inviterName: 'John',
   workspaceName: "John's Gym",
+  trainerWord: 'trainer' as const,
   timeZone: 'Europe/Amsterdam',
   token: 'token-for-a-test-not-real',
   expiresAt: new Date('2026-11-12T10:00:00Z'),
@@ -71,5 +72,16 @@ describe('F011 EM-09 sender', () => {
     await send({ ...mail, expiresAt: new Date('2026-11-12T23:30:00Z') });
 
     expect(transport.sent[0]?.text).toContain('valid until Friday, 13 November 2026');
+  });
+  it('F068 AC11: names the role with the word the mail has, and an email sent stays as it was', async () => {
+    const { transport, send } = setup(() => 'https://fivvi.example.test');
+
+    await send({ ...mail, trainerWord: 'docent' });
+    await send({ ...mail, trainerWord: 'coach', event: 'invitation-1:token-hash-2' });
+
+    // English: "a teacher", then "a coach"; the first email is not touched by the second.
+    expect(transport.sent[0]?.text).toContain('to become a teacher at');
+    expect(transport.sent[1]?.text).toContain('to become a coach at');
+    expect(transport.sent[0]?.text).toContain('to become a teacher at');
   });
 });

@@ -187,7 +187,7 @@ function usedForm(body: Body): (typeof FORMS)[number] {
   throw new Error('the message does not use the word');
 }
 
-/** Every text the message can show: one per plural branch, with the count and the forms filled in. */
+/** Every text the message can show: one per plural branch, with the count, the forms and any other value filled in. */
 function render(body: Body, forms: TrainerWordForms): string[] {
   return partLists(body).map((parts) =>
     parts
@@ -196,7 +196,8 @@ function render(body: Body, forms: TrainerWordForms): string[] {
           ? part.value
           : part.type === 'count'
             ? '2'
-            : (forms[part.name as keyof TrainerWordForms] ?? `{${part.name}}`),
+            : // A message may carry other values too (a person's name, a workspace): any stand-in will do.
+              (forms[part.name as keyof TrainerWordForms] ?? 'Sam'),
       )
       .join(''),
   );

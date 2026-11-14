@@ -1,8 +1,11 @@
-import { type Locale, locales, messages } from '@fivvi/i18n';
+import { type Locale, locales, messages, TRAINER_WORDS } from '@fivvi/i18n';
 import { describe, expect, it } from 'vitest';
 import { templates } from '../catalog.ts';
 import { createEmailContext, type EmailTemplate, renderEmail } from '../render.tsx';
 import { helloEmail } from './hello.tsx';
+import { privateSessionEmail } from './private-session.tsx';
+import { privateSessionMovedEmail } from './private-session-moved.tsx';
+import { trainerInvitationEmail } from './trainer-invitation.tsx';
 
 const all = templates as readonly EmailTemplate<unknown>[];
 
@@ -124,4 +127,109 @@ describe('E006 hello template', () => {
       }
     }
   });
+});
+
+describe('F068 AC7: the word in each email', () => {
+  const invitation = {
+    inviterName: 'John',
+    workspaceName: 'John’s Gym',
+    url: 'https://fivvi.example.com/invitations/test-token',
+    expiresAt: new Date('2026-11-12T10:00:00Z'),
+  };
+  const session = {
+    workspaceName: 'John’s Gym',
+    startsAt: new Date('2026-09-24T07:00:00Z'),
+    endsAt: new Date('2026-09-24T08:00:00Z'),
+    locationName: 'John’s Gym',
+    locationAddress: null,
+    trainerName: 'Sarah',
+  };
+  const moved = {
+    ...session,
+    previousStartsAt: new Date('2026-09-23T07:00:00Z'),
+    previousEndsAt: new Date('2026-09-23T08:00:00Z'),
+  };
+
+  // The expected sentences are spelled out, so a wrong form or article fails here.
+  const expected = {
+    'nl-NL': {
+      trainer: { invitation: 'om een trainer te worden bij', role: 'Trainer: Sarah' },
+      instructeur: { invitation: 'om een instructeur te worden bij', role: 'Instructeur: Sarah' },
+      docent: { invitation: 'om een docent te worden bij', role: 'Docent: Sarah' },
+      coach: { invitation: 'om een coach te worden bij', role: 'Coach: Sarah' },
+    },
+    en: {
+      trainer: { invitation: 'to become a trainer at', role: 'Trainer: Sarah' },
+      instructeur: { invitation: 'to become an instructor at', role: 'Instructor: Sarah' },
+      docent: { invitation: 'to become a teacher at', role: 'Teacher: Sarah' },
+      coach: { invitation: 'to become a coach at', role: 'Coach: Sarah' },
+    },
+  } as const;
+
+  const cases = locales.flatMap((locale) =>
+    TRAINER_WORDS.map((trainerWord) => [locale, trainerWord] as const),
+  );
+
+  it.each(cases)(
+    '%s, %s: the trainer invitation says the word in its preview and body',
+    async (locale, trainerWord) => {
+      const { invitation: sentence } = expected[locale][trainerWord];
+      const email = await renderEmail(
+        trainerInvitationEmail,
+        { ...invitation, trainerWord },
+        { locale },
+      );
+
+      expect(email.text).toContain(sentence);
+      expect(email.html).toContain(sentence);
+      // The line inbox lists show after the subject.
+      expect(
+        trainerInvitationEmail.preview(createEmailContext({ locale }), {
+          ...invitation,
+          trainerWord,
+        }),
+      ).toContain(sentence);
+      // Another word never shows.
+      for (const other of TRAINER_WORDS.filter((word) => word !== trainerWord)) {
+        expect(email.text).not.toContain(expected[locale][other].invitation);
+      }
+    },
+  );
+
+  it.each(cases)(
+    '%s, %s: the private session email names the role with the word',
+    async (locale, trainerWord) => {
+      const { role } = expected[locale][trainerWord];
+      const email = await renderEmail(privateSessionEmail, { ...session, trainerWord }, { locale });
+
+      expect(email.text).toContain(role);
+    },
+  );
+
+  it.each(cases)(
+    '%s, %s: the moved session email names the role with the word',
+    async (locale, trainerWord) => {
+      const { role } = expected[locale][trainerWord];
+      const email = await renderEmail(
+        privateSessionMovedEmail,
+        { ...moved, trainerWord },
+        { locale },
+      );
+
+      expect(email.text).toContain(role);
+    },
+  );
+
+  it.each(locales)(
+    '%s: the person’s name in the private session email stays a name',
+    async (locale) => {
+      const email = await renderEmail(
+        privateSessionEmail,
+        { ...session, trainerName: 'Coach Karel', trainerWord: 'docent' },
+        { locale },
+      );
+
+      expect(email.text).toContain(`${locale === 'en' ? 'Teacher' : 'Docent'}: Coach Karel`);
+    },
+  );
 });
