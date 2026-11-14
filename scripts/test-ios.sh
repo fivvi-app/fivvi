@@ -274,7 +274,7 @@ ui_tests() {
 
 # The text-dependent UI tests run in every configuration (nl and en); the others the test plan skips in some of them
 # (apps/ios/README.md, "Which tests run in which locale"). A UI test the plan skips in every configuration would run
-# nowhere, and a name that is no UI test (renamed, deleted) is a skip that does nothing. Only HelloUITests acts on the
+# nowhere, and a name that is no UI test (renamed, deleted) is a skip that does nothing. Only HomeUITests acts on the
 # list. The plan's own `skippedTests` and `selectedTests`, which Xcode writes when a test is unticked, apply to every
 # configuration, so they are refused: a test would run in no configuration without this check seeing it.
 test_plan_coverage() {
@@ -293,8 +293,8 @@ test_plan_coverage() {
   while read -r skip; do
     [ -n "$skip" ] || continue
     grep -qxF "$skip" <<<"$tests" || { echo "FivviPro.xctestplan skips $skip, which is not a UI test"; rc=1; continue; }
-    [[ "$skip" == HelloUITests/* ]] \
-      || { echo "FivviPro.xctestplan skips $skip, but only HelloUITests acts on FIVVI_SKIP_TESTS"; rc=1; }
+    [[ "$skip" == HomeUITests/* ]] \
+      || { echo "FivviPro.xctestplan skips $skip, but only HomeUITests acts on FIVVI_SKIP_TESTS"; rc=1; }
   done <<<"$(cut -d' ' -f2 <<<"$skips" | sort -u)"
   for test in $tests; do
     [ "$(grep -cE " $test\$" <<<"$skips")" -lt "$configs" ] \

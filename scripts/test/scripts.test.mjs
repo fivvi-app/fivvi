@@ -148,7 +148,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
 
   it('E008 AC9: the iOS job runs for the app and its generated inputs, including the Swift design tokens', () => {
     for (const path of [
-      'apps/ios/FivviPro/Hello/HelloView.swift',
+      'apps/ios/FivviPro/Home/HomeView.swift',
       'apps/Version.xcconfig',
       'packages/contract/swift/Sources/FivviAPI/Generated/Client.swift',
       'packages/i18n/generated/ios/Localizable.xcstrings',
@@ -190,7 +190,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       'packages/i18n/generated/android/values/strings.xml',
       'packages/design-tokens/kotlin/generated/app/fivvi/designtokens/Colors.kt',
       'e2e/maestro/anonymous.yaml',
-      'e2e/maestro/hello.yaml',
+      'e2e/maestro/home.yaml',
       'e2e/maestro/sign-in.yaml',
       'e2e/maestro/shared/sign-in.yaml',
       'e2e/maestro/shared/newest-code.js',
@@ -233,7 +233,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     const docs = [
       'apps/ios/README.md',
       'apps/android/README.md',
-      'apps/ios/FivviPro/Hello/NOTES.md',
+      'apps/ios/FivviPro/Home/NOTES.md',
       'e2e/maestro/README.md',
       'packages/contract/README.md',
       'packages/design-tokens/FivviDesignTokens/README.md',
@@ -979,7 +979,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
         /"check_response_timeout_minutes": (\d+)/,
       )[1],
     );
-    const maestroStep = 'Maestro flows (sign-in, anonymous and hello; nl-NL and en)';
+    const maestroStep = 'Maestro flows (sign-in, anonymous and home; nl-NL and en)';
     const maestroStepMinutes = stepMinutes(androidMaestro, maestroStep);
     // Run 41938461253 (PR #518, 10 flows): nl-NL 8m30s and en 8m34s of flows, 1 to 2 minutes of setup per locale, so about
     // 20 minutes and 11 s over the 20-minute cap; on main 18, 14 and 16 minutes. The step needs at least 1.5 x 20 minutes.
@@ -2188,7 +2188,7 @@ Caused by: java.io.IOException: Command failed (host:transport:emulator-5554): d
       {
         echo '<testsuites><testsuite name="Test Suite" tests="3" failures="2">'
         echo '<testcase id="AC9 first" name="AC9 first" file="e2e/maestro/profile-workspaces.yaml" status="ERROR"><failure>'"$msg1"'</failure></testcase>'
-        if [ -n "$second" ]; then echo '<testcase id="AC1 second" name="AC1 second" file="e2e/maestro/hello.yaml" status="ERROR"><failure>'"$msg2"'</failure></testcase>'; fi
+        if [ -n "$second" ]; then echo '<testcase id="AC1 second" name="AC1 second" file="e2e/maestro/home.yaml" status="ERROR"><failure>'"$msg2"'</failure></testcase>'; fi
         echo '<testcase id="AC13 third" name="AC13 third" file="e2e/maestro/anonymous.yaml" status="SUCCESS"/>'
         echo '</testsuite></testsuites>'
       } | { if [ "$FAKE_MAESTRO_ERROR" = no-file ]; then sed 's/ file="[^"]*"//'; else cat; fi; } >"$out"
@@ -2971,11 +2971,11 @@ esac`,
 
       assert.equal(skipList(nl), undefined);
       assert.deepEqual(skipList(en).value.split(',').sort(), [
-        'HelloUITests/test_E008_AC3_firstSupportedDeviceLanguageWins',
-        'HelloUITests/test_E008_AC3_perAppLanguageOverridesTheDevice',
-        'HelloUITests/test_E008_AC3_unsupportedDeviceLanguageShowsEnglish',
-        'HelloUITests/test_E008_AC6_usesTokenColoursInLightAndDark',
-        'HelloUITests/test_E008_AC7_largestTextSizeWraps',
+        'HomeUITests/test_E008_AC3_firstSupportedDeviceLanguageWins',
+        'HomeUITests/test_E008_AC3_perAppLanguageOverridesTheDevice',
+        'HomeUITests/test_E008_AC3_unsupportedDeviceLanguageShowsEnglish',
+        'HomeUITests/test_E008_AC6_usesTokenColoursInLightAndDark',
+        'HomeUITests/test_E008_AC7_largestTextSizeWraps',
       ]);
     });
 
@@ -2984,14 +2984,14 @@ esac`,
       editPlan(fake, ({ nl }) => {
         nl.options.environmentVariableEntries.push({
           key: 'FIVVI_SKIP_TESTS',
-          value: 'HelloUITests/test_E008_AC6_usesTokenColoursInLightAndDark',
+          value: 'HomeUITests/test_E008_AC6_usesTokenColoursInLightAndDark',
         });
       });
 
       const run = await fake.run('scripts/test-ios.sh');
 
       assert.equal(run.status, 1, run.output);
-      assert.match(run.output, /HelloUITests\/test_E008_AC6_usesTokenColoursInLightAndDark/);
+      assert.match(run.output, /HomeUITests\/test_E008_AC6_usesTokenColoursInLightAndDark/);
       assert.match(run.output, /runs in no configuration/);
       assert.deepEqual(commands(fake), []);
     });
@@ -2999,13 +2999,13 @@ esac`,
     it('D: fails when a configuration skips a test that no UI test class has', async () => {
       const fake = checkout();
       editPlan(fake, ({ en }) => {
-        skipList(en).value += ',HelloUITests/test_E008_AC9_renamedAway';
+        skipList(en).value += ',HomeUITests/test_E008_AC9_renamedAway';
       });
 
       const run = await fake.run('scripts/test-ios.sh');
 
       assert.equal(run.status, 1, run.output);
-      assert.match(run.output, /HelloUITests\/test_E008_AC9_renamedAway/);
+      assert.match(run.output, /HomeUITests\/test_E008_AC9_renamedAway/);
       assert.match(run.output, /is not a UI test/);
       assert.deepEqual(commands(fake), []);
     });
@@ -3014,7 +3014,7 @@ esac`,
       it(`D: fails when a test target of the plan has ${key}, which Xcode writes and which applies to every configuration`, async () => {
         const fake = checkout();
         const plan = JSON.parse(readFileSync(planPath(fake), 'utf8'));
-        plan.testTargets[1][key] = ['HelloUITests/test_E008_AC8_displayNameComesFromTheCatalog'];
+        plan.testTargets[1][key] = ['HomeUITests/test_E008_AC8_displayNameComesFromTheCatalog'];
         writeFileSync(planPath(fake), JSON.stringify(plan));
 
         const run = await fake.run('scripts/test-ios.sh');
@@ -3025,7 +3025,7 @@ esac`,
       });
     }
 
-    it('D: fails when the skip list names a test of a class other than HelloUITests, which would not skip it', async () => {
+    it('D: fails when the skip list names a test of a class other than HomeUITests, which would not skip it', async () => {
       const fake = checkout();
       editPlan(fake, ({ en }) => {
         skipList(en).value += ',TouchTargetTests/test_E008_AC4_44PointsMeetsTheTarget';
@@ -3036,7 +3036,7 @@ esac`,
       assert.equal(run.status, 1, run.output);
       assert.match(
         run.output,
-        /TouchTargetTests\/test_E008_AC4_44PointsMeetsTheTarget.*only HelloUITests/,
+        /TouchTargetTests\/test_E008_AC4_44PointsMeetsTheTarget.*only HomeUITests/,
       );
       assert.deepEqual(commands(fake), []);
     });
@@ -3055,7 +3055,7 @@ esac`,
       const run = await fake.run('scripts/test-ios.sh');
 
       assert.equal(run.status, 1, run.output);
-      assert.match(run.output, /ExtraTests\/test_E002_extra.*only HelloUITests/);
+      assert.match(run.output, /ExtraTests\/test_E002_extra.*only HomeUITests/);
       assert.doesNotMatch(run.output, /not a UI test/);
     });
 
@@ -3069,21 +3069,21 @@ esac`,
       for (const name of ['freeA', 'freeB']) {
         writeFileSync(
           join(dir, `${name}.swift`),
-          `func test_${name}() {}\nfinal class HelloUITests: XCTestCase {}\n`,
+          `func test_${name}() {}\nfinal class HomeUITests: XCTestCase {}\n`,
         );
       }
       editPlan(fake, ({ nl, en }) => {
         nl.options.environmentVariableEntries = nl.options.environmentVariableEntries.filter(
           (entry) => entry.key !== 'FIVVI_SKIP_TESTS',
         );
-        skipList(en).value = 'HelloUITests/test_freeA,HelloUITests/test_freeB';
+        skipList(en).value = 'HomeUITests/test_freeA,HomeUITests/test_freeB';
       });
 
       const run = await fake.run('scripts/test-ios.sh');
 
       assert.equal(run.status, 1, run.output);
       for (const name of ['freeA', 'freeB'])
-        assert.match(run.output, new RegExp(`HelloUITests/test_${name}, which is not a UI test`));
+        assert.match(run.output, new RegExp(`HomeUITests/test_${name}, which is not a UI test`));
     });
 
     it('A: reports the slowest tests of each locale from the one result bundle', async () => {
@@ -3102,8 +3102,8 @@ esac`,
         result,
         JSON.stringify({
           testNodes: [
-            test('HelloUITests/test_slowInNl()', 30, 2),
-            test('HelloUITests/test_slowInEn()', 3, 20),
+            test('HomeUITests/test_slowInNl()', 30, 2),
+            test('HomeUITests/test_slowInEn()', 3, 20),
           ],
         }),
       );
@@ -3117,11 +3117,11 @@ esac`,
       assert.equal(run.status, 0, run.output);
       assert.match(
         run.output,
-        /Slowest tests in nl \(seconds\):\n +HelloUITests\/test_slowInNl\(\) 30\n +HelloUITests\/test_slowInEn\(\) 3\n/,
+        /Slowest tests in nl \(seconds\):\n +HomeUITests\/test_slowInNl\(\) 30\n +HomeUITests\/test_slowInEn\(\) 3\n/,
       );
       assert.match(
         run.output,
-        /Slowest tests in en \(seconds\):\n +HelloUITests\/test_slowInEn\(\) 20\n +HelloUITests\/test_slowInNl\(\) 2\n/,
+        /Slowest tests in en \(seconds\):\n +HomeUITests\/test_slowInEn\(\) 20\n +HomeUITests\/test_slowInNl\(\) 2\n/,
       );
       const written = readFileSync(summary, 'utf8');
       assert.match(written, /### Slowest iOS tests in nl/);
@@ -3139,7 +3139,7 @@ esac`,
               testName: 'test_signIn()',
               targetName: 'FivviProUITests',
               failureText: 'XCTAssertTrue failed\nthe button was not found',
-              testIdentifierString: 'HelloUITests/test_signIn()',
+              testIdentifierString: 'HomeUITests/test_signIn()',
             },
           ],
         }),
@@ -3155,7 +3155,7 @@ esac`,
       assert.equal(run.status, 1, run.output);
       assert.match(
         run.output,
-        /Failed tests:\n +HelloUITests\/test_signIn\(\): XCTAssertTrue failed the button was not found\n/,
+        /Failed tests:\n +HomeUITests\/test_signIn\(\): XCTAssertTrue failed the button was not found\n/,
       );
       assert.equal(run.output.match(/test_signIn/g).length, 1, 'once for the one bundle');
       assert.match(readFileSync(summary, 'utf8'), /### Failed iOS tests\n[\s\S]*test_signIn/);
@@ -3169,11 +3169,8 @@ esac`,
         JSON.stringify({
           testFailures: [{ testName: id, failureText: `${id} broke`, testIdentifierString: id }],
         });
-      writeFileSync(
-        join(dir, 'TestResults-nl.xcresult.json'),
-        failure('HelloUITests/only_in_nl()'),
-      );
-      writeFileSync(join(dir, 'TestResults-en.xcresult.json'), failure('HelloTests/only_in_en()'));
+      writeFileSync(join(dir, 'TestResults-nl.xcresult.json'), failure('HomeUITests/only_in_nl()'));
+      writeFileSync(join(dir, 'TestResults-en.xcresult.json'), failure('HomeTests/only_in_en()'));
       const summary = join(fake.repo, '..', 'summary.md');
 
       const run = await fake.run('scripts/test-ios.sh', [], {
@@ -3186,11 +3183,11 @@ esac`,
       assert.equal(run.status, 1, run.output);
       assert.match(
         run.output,
-        /Failed tests in nl:\n +HelloUITests\/only_in_nl\(\): HelloUITests\/only_in_nl\(\) broke\n/,
+        /Failed tests in nl:\n +HomeUITests\/only_in_nl\(\): HomeUITests\/only_in_nl\(\) broke\n/,
       );
       assert.match(
         run.output,
-        /Failed tests in en:\n +HelloTests\/only_in_en\(\): HelloTests\/only_in_en\(\) broke\n/,
+        /Failed tests in en:\n +HomeTests\/only_in_en\(\): HomeTests\/only_in_en\(\) broke\n/,
       );
       assert.equal(run.output.match(/only_in_nl/g).length, 2, 'the nl failure once, not under en');
       const markdown = readFileSync(summary, 'utf8');
@@ -3353,7 +3350,7 @@ esac`,
           testNodes: [
             {
               nodeType: 'Test Case',
-              nodeIdentifier: 'HelloUITests/test_one()',
+              nodeIdentifier: 'HomeUITests/test_one()',
               durationInSeconds: 7,
             },
           ],
@@ -3366,14 +3363,8 @@ esac`,
       });
 
       assert.equal(run.status, 0, run.output);
-      assert.match(
-        run.output,
-        /Slowest tests in nl \(seconds\):\n +HelloUITests\/test_one\(\) 7\n/,
-      );
-      assert.match(
-        run.output,
-        /Slowest tests in en \(seconds\):\n +HelloUITests\/test_one\(\) 7\n/,
-      );
+      assert.match(run.output, /Slowest tests in nl \(seconds\):\n +HomeUITests\/test_one\(\) 7\n/);
+      assert.match(run.output, /Slowest tests in en \(seconds\):\n +HomeUITests\/test_one\(\) 7\n/);
     });
   });
 
@@ -4008,14 +3999,14 @@ esac`,
       assert.equal(run.status, 0, run.output);
       assert.match(
         run.output,
-        /the adb connection dropped \(device offline\) in 2 flow\(s\) in en; re-running them once: e2e\/maestro\/profile-workspaces\.yaml e2e\/maestro\/hello\.yaml/,
+        /the adb connection dropped \(device offline\) in 2 flow\(s\) in en; re-running them once: e2e\/maestro\/profile-workspaces\.yaml e2e\/maestro\/home\.yaml/,
       );
       const [nl, en, retry, ...more] = tests(fake);
       assert.equal(more.length, 0, tests(fake).join('\n'));
       assert.ok(nl.includes('android-nl-NL.xml') && en.includes('android-en.xml'));
       assert.ok(
         retry.includes('e2e/maestro/profile-workspaces.yaml') &&
-          retry.includes('e2e/maestro/hello.yaml') &&
+          retry.includes('e2e/maestro/home.yaml') &&
           !retry.includes('anonymous.yaml') &&
           retry.includes('android-en-retry.xml') &&
           retry.includes('--env DEVICE_LANGUAGE=en '),
@@ -4041,13 +4032,13 @@ esac`,
       assert.equal(run.status, 0, run.output);
       assert.match(
         run.output,
-        /the adb connection dropped \(device offline\) in 2 flow\(s\) in en; re-running them once: e2e\/maestro\/profile-workspaces\.yaml e2e\/maestro\/hello\.yaml/,
+        /the adb connection dropped \(device offline\) in 2 flow\(s\) in en; re-running them once: e2e\/maestro\/profile-workspaces\.yaml e2e\/maestro\/home\.yaml/,
       );
       const [, , retry, ...more] = tests(fake);
       assert.equal(more.length, 0, tests(fake).join('\n'));
       assert.ok(
         retry.includes('e2e/maestro/profile-workspaces.yaml') &&
-          retry.includes('e2e/maestro/hello.yaml') &&
+          retry.includes('e2e/maestro/home.yaml') &&
           !retry.includes('anonymous.yaml'),
         retry,
       );
@@ -4089,7 +4080,7 @@ esac`,
 
     it('reports the flows that pass only on the re-run as flaky, with a GitHub warning on CI only', async () => {
       const flaky =
-        /flaky: 2 flow\(s\) in en failed with a dropped adb connection and passed on the re-run: e2e\/maestro\/profile-workspaces\.yaml e2e\/maestro\/hello\.yaml/;
+        /flaky: 2 flow\(s\) in en failed with a dropped adb connection and passed on the re-run: e2e\/maestro\/profile-workspaces\.yaml e2e\/maestro\/home\.yaml/;
 
       const onCi = await checkout().run('scripts/maestro.sh', ['android'], {
         FAKE_MAESTRO_ERROR: 'offline',
@@ -4380,9 +4371,11 @@ esac`,
     assert.ok(fake.log('gradle').every((call) => !/(^| )--stop( |$)/.test(call)));
   });
 
-  // #89: the first locale's flow didn't see the greeting within its 20 s. The app's first screen calls
+  // #89: the first locale's flow didn't see the greeting within its 20 s. The app's first screen called
   // GET /api/v1/hello?locale=<its language>, and the flow started while Android was still busy after the framework
-  // restart that sets the device language (System UI stopped responding and its dialog covered the app).
+  // restart that sets the device language (System UI stopped responding and its dialog covered the app). The Hello
+  // screen is gone (E020 #652), the apps no longer call the route, and maestro.sh still asks it once per locale: it warms
+  // the server's first request up for the home's wait on GET /api/v1/me.
   const isFlow = (call) => / test /.test(` ${call} `) && call.startsWith('maestro ');
   const hello = (fake, locale) => `http://127.0.0.1:${fake.port}/api/v1/hello?locale=${locale}`;
 
@@ -4461,19 +4454,23 @@ esac`,
     ['maestro.sh android', ['android'], 'android'],
     ['maestro.sh ios', ['ios'], 'ios'],
   ]) {
-    // E008: the hello flow's title, next to F001's sign-in button text; no flow has a default for either.
-    it(`E008: ${name} passes each flow the hello title in the device language`, async () => {
+    // E008 (#652): the home flow's sign-out label, next to F001's sign-in button text; no flow has a default for either.
+    it(`E008: ${name} passes each flow the sign-out label in the device language`, async () => {
       const fake = checkout();
 
       const run = await fake.run('scripts/maestro.sh', args);
 
       assert.equal(run.status, 0, run.output);
       for (const locale of ['nl-NL', 'en']) {
-        const title = JSON.parse(
+        const label = JSON.parse(
           readFileSync(join(SCRIPTS, '../packages/i18n', `${locale}.json`), 'utf8'),
-        ).hello.title;
+        ).signOut.label;
         const flow = fake.log('maestro').find((call) => call.includes(`${prefix}-${locale}.xml`));
-        assert.ok(flow?.includes(`--env HELLO_TITLE=${title} `), `${locale}: ${flow}`);
+        assert.ok(flow?.includes(`--env SIGN_OUT_LABEL=${label} `), `${locale}: ${flow}`);
+        assert.ok(
+          !flow?.includes('HELLO_TITLE'),
+          `${locale}: the Hello screen's title is gone: ${flow}`,
+        );
         assert.ok(
           flow?.includes('--env SIGN_IN_SEND_CODE='),
           `${locale}: the sign-in button text too: ${flow}`,
@@ -5202,29 +5199,30 @@ describe('Maestro flows', () => {
 
   const parts = (file) => readFileSync(join(flows, file), 'utf8').split(/^---$/m);
 
-  // #89 and F001 (#216): the E008 hello screen sits behind sign-in, so the hello flow signs in first. It still fails
-  // when the greeting doesn't appear within 20 s, and then checks its text.
-  it('#89: hello signs in through the shared sub-flow, waits at most 20 s for the greeting and requires it', () => {
-    const steps = parts('hello.yaml')[1];
+  // #89 and F001 (#216), on the home that replaced the E008 hello screen (#652): the home sits behind sign-in, so the home
+  // flow signs in first. It still fails when the workspace's name doesn't appear within 20 s, and then checks its text
+  // and the sign-out label in the device language.
+  it('#89: home signs in through the shared sub-flow, waits at most 20 s for the workspace name and requires it', () => {
+    const steps = parts('home.yaml')[1];
     assert.match(steps, /^\s*- launchApp:\n\s+clearState: true\n/);
     const signIn = steps.match(/- runFlow:\n\s+file: shared\/sign-in\.yaml\n/);
     assert.ok(signIn, steps);
     assert.doesNotMatch(steps, /optional:\s*true/);
     const wait = steps.match(
-      /- extendedWaitUntil:\n\s+visible:\n\s+id: hello\\\.greeting\n\s+timeout: (\d+)\n/,
+      /- extendedWaitUntil:\n\s+visible:\n\s+id: home\\\.workspaceName\n\s+timeout: (\d+)\n/,
     );
     assert.ok(wait, steps);
-    assert.ok(signIn.index < wait.index, 'the greeting is awaited after signing in');
+    assert.ok(signIn.index < wait.index, 'the workspace name is awaited after signing in');
     assert.ok(Number(wait[1]) <= 20000, `timeout ${wait[1]} ms`);
     assert.match(
       steps.slice(wait.index),
-      /- assertVisible:\n\s+id: hello\\\.greeting\n\s+text: \$\{HELLO_TITLE\}\n/,
+      /- assertVisible:\n\s+id: home\\\.workspaceName\n\s+text: John's Gym\n(?:#.*\n)*- assertVisible:\n\s+text: \$\{SIGN_OUT_LABEL\}\n/,
     );
   });
 
-  // The flow's own `env:` default would win over --env, so the flow has none: maestro.sh must pass the title.
-  it('E008: the hello flow has no default for the title maestro.sh passes', () => {
-    assert.doesNotMatch(parts('hello.yaml')[0], /^\s+HELLO_TITLE:/m);
+  // The flow's own `env:` default would win over --env, so the flow has none: maestro.sh must pass the label.
+  it('E008: the home flow has no default for the sign-out label maestro.sh passes', () => {
+    assert.doesNotMatch(parts('home.yaml')[0], /^\s+SIGN_OUT_LABEL:/m);
   });
 
   it('F001: the sign-in flow signs in, stays signed in after a relaunch (AC8) and signs out (AC10)', () => {

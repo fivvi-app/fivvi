@@ -5,9 +5,10 @@ import FivviStrings
 import FivviSession
 import FivviLanguage
 import FivviUI
+import FivviObservability
 
 /// The signed-in home, a placeholder until the tab bar arrives. `GET /api/v1/me` decides what it shows (F002 AC10): the
-/// workspace's name with the hello block, the text to set a workspace up on the web with a button that opens trainer
+/// workspace's name as the large title, the text to set a workspace up on the web with a button that opens trainer
 /// web in the browser, or the no-access text. Under it always sit the address of the account that is signed in and the
 /// sign-out button; above it the button *Klanten* opens TM-02 when the capability helper allows `clients.view` (F006),
 /// and the button *Profiel* opens TM-04, the person's workspaces with their roles (F003). Choosing another workspace
@@ -21,7 +22,6 @@ struct HomeView: View {
     }
 
     @Environment(\.openURL) private var openURL
-    @State private var hello: HelloViewModel
     @State private var account: AccountViewModel
     @State private var profile: ProfileViewModel
     /// The clients of the workspace on screen, kept while the home lives so the list stays at hand (F006).
@@ -42,7 +42,6 @@ struct HomeView: View {
         onAccount: @escaping (String) -> Void,
         onSignedOut: @escaping (Bool) -> Void
     ) {
-        _hello = State(initialValue: HelloViewModel(api: api, catalog: language.catalog))
         _profile = State(initialValue: ProfileViewModel(api: api, catalog: language.catalog))
         _account = State(initialValue: AccountViewModel(
             api: api, store: store, onAccount: onAccount, onSignedOut: onSignedOut,
@@ -77,17 +76,12 @@ struct HomeView: View {
         return "home.title"
     }
 
-    /// One scroll for the whole screen, so the account block can't squeeze the hello block at the largest text size
+    /// One scroll for the whole screen, so the account block can't squeeze what is above it at the largest text size
     /// (#233): the large title, then the cards and the group of rows in the grouped list (E020 #629, *Vandaag* in
     /// the prototype), and the account's card last.
     private var screen: some View {
         LargeTitleScreen(title: title, titleIdentifier: titleIdentifier) {
             destination
-            // One hello block in one place, so it loads once whether /me is loading, failed or answered
-            // with a workspace; the other states have their own text instead.
-            if showsHello {
-                HelloView(model: hello)
-            }
             rows
             accountCard
         }
@@ -106,16 +100,8 @@ struct HomeView: View {
         // The clients' model follows the workspace the account shows: a new workspace is a new list, none is no list.
         .onChange(of: account.workspace, initial: true) { _, workspace in useWorkspace(workspace) }
         .onChange(of: language.catalog) { _, catalog in
-            hello.use(catalog)
             profile.use(catalog)
             clients?.use(catalog)
-        }
-    }
-
-    private var showsHello: Bool {
-        switch account.destination {
-        case nil, .workspace: true
-        case .setUpOnWeb, .noAccess: false
         }
     }
 
@@ -267,6 +253,8 @@ struct HomeView: View {
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity)
                     .accessibilityIdentifier("home.signedInAs")
+                    // The release check's crash, armed in TestFlight builds only (E017); no string, no control.
+                    .testFlightCrashTrigger()
             case .failed:
                 PillButtonStack {
                     Button {

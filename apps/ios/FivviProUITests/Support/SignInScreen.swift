@@ -23,11 +23,12 @@ struct SignInScreen {
     var resent: XCUIElement { app.staticTexts["signIn.resent"] }
     var changeEmail: XCUIElement { app.buttons["signIn.changeEmail"] }
     var loading: XCUIElement { app.activityIndicators["signIn.loading"] }
-    /// On the signed-in home: the account line, and the hello greeting the home keeps.
+    /// On the signed-in home: the account line.
     var signedInAs: XCUIElement { app.staticTexts["home.signedInAs"] }
     /// The block holding the account line and Sign out.
     var account: XCUIElement { app.otherElements["home.account"] }
-    var greeting: XCUIElement { app.staticTexts["hello.greeting"] }
+    /// The first row under the title, *Profiel*: it shows once the account has answered.
+    var profileRow: XCUIElement { app.buttons["home.openProfile"] }
     var homeRetry: XCUIElement { app.buttons["home.retry"] }
     var signOut: XCUIElement { app.buttons["home.signOut"] }
 

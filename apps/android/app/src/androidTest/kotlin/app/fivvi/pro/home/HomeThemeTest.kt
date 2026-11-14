@@ -1,4 +1,4 @@
-package app.fivvi.pro.hello
+package app.fivvi.pro.home
 
 import android.app.UiModeManager
 import android.content.Context
@@ -17,9 +17,11 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.filters.SdkSuppress
+import app.fivvi.core.me.FakeMeApi
 import app.fivvi.designtokens.DarkColorScheme
 import app.fivvi.designtokens.LightColorScheme
 import app.fivvi.pro.AppRule
+import app.fivvi.pro.hello.FakeHelloApi
 import java.io.IOException
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -29,12 +31,13 @@ import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.Parameterized
 
-// AC6 through the real activity: with the app in light or dark mode, the screen shows the colours of the generated
-// tokens' Material 3 colour scheme for that mode. The error state shows the canvas, text and the filled retry button.
+// AC6 (spec #34) through the real activity: with the app in light or dark mode, the screen shows the colours of the
+// generated tokens' Material 3 colour scheme for that mode. The home's error state shows the canvas, text and the filled
+// retry button. It was the Hello screen's test until that screen went (E020, #652); the proof is the same.
 // The night mode is set for this app only (API 31+; the test emulator runs API 35) and set back to the system's after.
 @SdkSuppress(minSdkVersion = Build.VERSION_CODES.S)
 @RunWith(Parameterized::class)
-class HelloThemeTest(
+class HomeThemeTest(
     @Suppress("UNUSED_PARAMETER") mode: String,
     private val nightMode: Int,
     private val scheme: ColorScheme,
@@ -54,11 +57,15 @@ class HelloThemeTest(
     @Test
     fun E008_AC6_usesTokenColorSchemeInLightAndDark() {
         uiModeManager.setApplicationNightMode(nightMode)
-        app.launch(FakeHelloApi().apply { answers += { throw IOException("offline") } }, device = listOf("nl-NL"))
+        app.launch(
+            FakeHelloApi(),
+            device = listOf("nl-NL"),
+            meApi = FakeMeApi().apply { answers += { throw IOException("offline") } },
+        )
 
-        val error = compose.onNodeWithTag(HelloTags.ERROR).fetchSemanticsNode().boundsInRoot
-        val retry = compose.onNodeWithTag(HelloTags.RETRY).fetchSemanticsNode().boundsInRoot
-        val label = compose.onNode(hasAnyAncestor(hasTestTag(HelloTags.RETRY)), useUnmergedTree = true)
+        val error = compose.onNodeWithTag(HomeTags.ERROR).fetchSemanticsNode().boundsInRoot
+        val retry = compose.onNodeWithTag(HomeTags.RETRY).fetchSemanticsNode().boundsInRoot
+        val label = compose.onNode(hasAnyAncestor(hasTestTag(HomeTags.RETRY)), useUnmergedTree = true)
             .fetchSemanticsNode().boundsInRoot
         val screen = compose.onRoot().captureToImage().toPixelMap()
 
