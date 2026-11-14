@@ -225,5 +225,18 @@
   "email.privateSessionMoved.preview": "Preview text that inbox lists show next to the subject of EM-04. {newDate} is the new day and time, built with email.privateSessionMoved.dateTime.",
   "email.privateSessionMoved.intro": "First sentence of EM-04. {workspace} is the name of the workspace (the gym) where the session is planned.",
   "email.privateSessionMoved.previously": "Line of EM-04 with the time before the move. {date} is the weekday and date with year, e.g. 'donderdag 24 september 2026'; {start} and {end} are the start and end time.",
-  "email.privateSessionMoved.now": "Line of EM-04 with the new time. {date} is the weekday and date with year; {start} and {end} are the start and end time."
+  "email.privateSessionMoved.now": "Line of EM-04 with the new time. {date} is the weekday and date with year; {start} and {end} are the start and end time.",
+  "sessions.form.endsAt": "Under the start time of the new private session form (PS-01): when the session ends, from the start and the duration. {time} is a 24-hour time, e.g. 10:00.",
+  "sessions.form.endsAtNextDay": "Same as sessions.form.endsAt, when the session ends after midnight, on the next day.",
+  "sessions.form.notifyNote": "Under the checkbox that sends the client a confirmation: the client's email address, then the language of the email, e.g. \"anna@example.com · in het Nederlands\".",
+  "sessions.form.languageNl": "The language an email goes out in, after the client's address (sessions.form.notifyNote) and in a sentence (sessions.reschedule.notifyNote): \"in Dutch\".",
+  "sessions.form.languageEn": "The language an email goes out in, after the client's address (sessions.form.notifyNote) and in a sentence (sessions.reschedule.notifyNote): \"in English\".",
+  "sessions.form.notes.repeatedTime": "Shown when the chosen time happens twice because the clocks go back at the end of summer time (e.g. 02:30 on 25 October 2026). The first one, in summer time, is used. {date} is a full date, {time} a 24-hour time.",
+  "sessions.form.errors.timeDoesNotExist": "Shown under the start time when the clocks skip it because summer time starts (e.g. 02:30 on 28 March 2027). {date} is a full date.",
+  "sessions.form.notes.past": "Shown when the chosen start is before now. The session is saved afterwards, and the client gets no email.",
+  "sessions.form.saved": "Message after a private session was saved. {client} is the client's name, {date} a short date such as \"do 24 sep\", {time} a 24-hour time.",
+  "sessions.reschedule.current": "Top of the reschedule dialog: where the session is now. {date} is a short date with the year, {start} and {end} are 24-hour times.",
+  "sessions.reschedule.changedBy": "Shown when someone else changed or moved the session while this form was open. {name} is that person. The form then shows the session as it is now.",
+  "sessions.page.moved": "Message after a session was moved. {date} is a short date, {time} a 24-hour time.",
+  "clients.profile.upcomingWhen": "One row of the client's upcoming sessions on the client profile: {date} is a short date such as \"do 24 sep\", {time} a 24-hour time."
 }
