@@ -1,4 +1,4 @@
-import { expect, test } from '@playwright/test';
+import { expect, test } from './fixtures';
 
 // PROOF ONLY (#1361): a deliberately failing spec on the quarantine list; reverted by the next commit.
 test.describe('quarantine proof (CI)', () => {
