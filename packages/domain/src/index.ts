@@ -262,6 +262,7 @@ export {
   RETENTION_BASIS,
   type RetentionKey,
   type RetentionPeriod,
+  retentionCutoff,
   retentionEndsAt,
 } from './privacy/retention.ts';
 export {

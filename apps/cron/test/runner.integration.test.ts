@@ -61,6 +61,29 @@ function task(
 const runs = () => db.select().from(jobRuns).orderBy(asc(jobRuns.startedAt), asc(jobRuns.taskName));
 
 describe('E012 cron runner', () => {
+  it('E014: records the counts a task reports in the message of its run, and only counts', async () => {
+    const { cron } = setup('2026-11-04T09:00:00Z');
+    const reporting: CronTask = {
+      name: 'reports-counts',
+      kind: 'daily',
+      run: async () => ({ counts: { deleted: 3, logged: 2 } }),
+    };
+    const silent = task('reports-nothing', 'daily', []);
+    const failing: CronTask = {
+      name: 'fails-after-counting',
+      kind: 'daily',
+      run: () => Promise.reject(new Error('anna@example.com')),
+    };
+
+    await cron([reporting, silent, failing]);
+
+    expect(Object.fromEntries((await runs()).map((run) => [run.taskName, run.message]))).toEqual({
+      'reports-counts': 'deleted=3, logged=2',
+      'reports-nothing': null,
+      'fails-after-counting': 'failed with Error',
+    });
+  });
+
   it('AC2: frequent tasks run every run, due daily tasks after them, each at most once', async () => {
     const { cron, clock } = setup('2026-11-04T09:00:00Z');
     const calls: string[] = [];

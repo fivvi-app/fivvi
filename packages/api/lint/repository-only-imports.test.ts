@@ -50,6 +50,8 @@ const FORBIDDEN: Record<string, string> = {
   'the access log table': "import { accessLog } from '@fivvi/database';",
   'the access log action enum': "import { accessLogAction } from '@fivvi/database';",
   'the deletion log table': "import { deletionLog } from '@fivvi/database';",
+  'the retention deletes, which run on a raw handle as the cron role (E014)':
+    "import { deleteClosedInvitations } from '@fivvi/database';",
   'the deletion log writer for a raw handle':
     "import { appendDeletionLog } from '@fivvi/database';",
   'the payments table': "import { payments } from '@fivvi/database';",

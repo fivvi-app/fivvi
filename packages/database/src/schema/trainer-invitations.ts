@@ -10,6 +10,7 @@ import {
   uniqueIndex,
   uuid,
 } from 'drizzle-orm/pg-core';
+import { CRON_ROLE } from '../cron-role.ts';
 import { businessTable } from './business-table.ts';
 import { instant, timestamps } from './columns.ts';
 import { teamMembers } from './tenancy.ts';
@@ -84,6 +85,21 @@ export const trainerInvitations = businessTable(
       for: 'select',
       to: APP_ROLE,
       using: sql`${table.email} = app_invitation_email()`,
+    }),
+    // The daily retention task (E014, R3) reads and deletes closed invitations of every workspace as
+    // the cron role, which sets no workspace context. It may do nothing else: the privileges list
+    // (`CRON_TABLE_PRIVILEGES`) grants SELECT and DELETE only, and the task deletes by age.
+    pgPolicy('trainer_invitations_cron_select', {
+      as: 'permissive',
+      for: 'select',
+      to: CRON_ROLE,
+      using: sql`true`,
+    }),
+    pgPolicy('trainer_invitations_cron_delete', {
+      as: 'permissive',
+      for: 'delete',
+      to: CRON_ROLE,
+      using: sql`true`,
     }),
     check('trainer_invitations_email_lowercase', sql`${table.email} = lower(${table.email})`),
     check(

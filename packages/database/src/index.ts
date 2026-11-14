@@ -139,6 +139,15 @@ export {
   refundLedger,
 } from './repositories/refunds.ts';
 export {
+  type DeletedRow,
+  deleteClosedInvitations,
+  deleteExpiredSessions,
+  deleteOldAccessLogEntries,
+  deleteOldDeletionLogEntries,
+  deleteOldRateLimits,
+  deleteSignInTokens,
+} from './repositories/retention.ts';
+export {
   type AttendanceStatus,
   createPrivateSession,
   findSession,

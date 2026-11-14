@@ -30,6 +30,15 @@ export const CRON_TABLE_PRIVILEGES: Readonly<Record<string, readonly Privilege[]
   // The deletion log (E014): the retention tasks write it and delete entries after 30 days. It
   // is platform data, but it has RLS on all the same (`deletion_log_cron` lets this role in).
   deletion_log: ['SELECT', 'INSERT', 'DELETE'],
+  // The retention tasks of E014 (`retention.*`): they find rows past their period and delete them,
+  // nothing else. Platform data (no RLS) ...
+  auth_verifications: ['SELECT', 'DELETE'],
+  auth_sessions: ['SELECT', 'DELETE'],
+  auth_rate_limits: ['SELECT', 'DELETE'],
+  // ... and business tables, which also have a policy for `fivvi_cron` (migration 0035): closed
+  // trainer invitations (R3) and access-log entries (R12).
+  trainer_invitations: ['SELECT', 'DELETE'],
+  access_log: ['SELECT', 'DELETE'],
 };
 
 /**

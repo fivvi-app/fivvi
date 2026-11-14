@@ -9,8 +9,16 @@ import {
   type DatabaseClient,
   jobRuns,
   pingDatabase,
+  trainerInvitations,
 } from '../src/index.ts';
 import { release } from '../src/release.ts';
+import {
+  addAccessLogEntry,
+  addTeamRole,
+  addTrainerInvitation,
+  createAccount,
+  createWorkspace,
+} from '../src/testing/index.ts';
 
 // E012 AC7: the cron's tasks connect as `fivvi_cron`, a login role that owns nothing, cannot
 // bypass RLS and can use only the tables a task declares. The test setup gives the role its
@@ -143,6 +151,63 @@ describe('E012 the cron role', () => {
       sql`select pg_try_advisory_xact_lock(hashtext('probe')) as locked`,
     );
     expect(rows).toEqual([{ locked: true }]);
+  });
+});
+
+describe('E014 the cron role and the retention tasks (ticket #1181)', () => {
+  it('AC16: reads and deletes the rows of the declared tables, sets no workspace and writes none', async () => {
+    const gym = await createWorkspace(owner.db, { label: 'johns-gym' });
+    const john = await addTeamRole(owner.db, {
+      workspaceId: gym.id,
+      accountId: (await createAccount(owner.db, { label: 'john', name: 'John' })).id,
+      role: 'owner',
+    });
+    const invitation = await addTrainerInvitation(owner.db, {
+      workspaceId: gym.id,
+      inviterTeamMemberId: john.id,
+      email: 'sarah@example.com',
+    });
+    const entry = await addAccessLogEntry(owner.db, { workspaceId: gym.id });
+
+    // The policies let the role see a business row without any workspace in its context ...
+    expect(await cron.db.select({ id: trainerInvitations.id }).from(trainerInvitations)).toEqual([
+      { id: invitation.id },
+    ]);
+    expect(await cron.db.execute(sql`select id from access_log`)).toMatchObject({
+      rows: [{ id: entry.id }],
+    });
+    // ... but it can change nothing of them, and reads no other business table.
+    await expect(cron.db.update(trainerInvitations).set({ name: 'Changed' })).rejects.toMatchObject(
+      DENIED,
+    );
+    await expect(
+      cron.db.execute(
+        sql`insert into access_log (organization_id, action, subject_client_id, actor_team_member_id) values (${gym.id}, 'client.exported', ${gym.id}, ${john.id})`,
+      ),
+    ).rejects.toMatchObject(DENIED);
+    await expect(cron.db.execute(sql`select 1 from clients`)).rejects.toMatchObject(DENIED);
+    await expect(cron.db.execute(sql`select 1 from team_members`)).rejects.toMatchObject(DENIED);
+
+    await cron.db.delete(trainerInvitations);
+    await cron.db.execute(sql`delete from access_log`);
+    expect(await owner.db.select().from(trainerInvitations)).toEqual([]);
+    expect((await owner.db.execute(sql`select 1 from access_log`)).rows).toEqual([]);
+  });
+
+  it('AC16: the platform tables of the retention tasks can be read and deleted from, not written', async () => {
+    for (const table of ['auth_verifications', 'auth_sessions', 'auth_rate_limits']) {
+      await cron.db.execute(sql`select 1 from ${sql.identifier(table)} limit 1`);
+      await cron.db.execute(sql`delete from ${sql.identifier(table)}`);
+    }
+    await expect(cron.db.execute(sql`update auth_rate_limits set count = 1`)).rejects.toMatchObject(
+      DENIED,
+    );
+    await expect(
+      cron.db.execute(
+        sql`insert into auth_rate_limits (key, count, window_ends_at) values ('probe', 1, now())`,
+      ),
+    ).rejects.toMatchObject(DENIED);
+    await expect(cron.db.execute(sql`select 1 from auth_users`)).rejects.toMatchObject(DENIED);
   });
 });
 
