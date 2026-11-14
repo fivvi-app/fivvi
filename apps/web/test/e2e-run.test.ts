@@ -50,6 +50,32 @@ describe('#1301 e2e run settings', () => {
       expect(minutes - CI_GLOBAL_TIMEOUT_MINUTES).toBeGreaterThanOrEqual(2);
     }
   });
+
+  // #1408 review: the OS packages step may spend its whole limit on its retries (#1311) before the suite starts, so the job
+  // has to cover that step, the suite's limit and 2 minutes for the setup, the build and the post steps. A job cancelled
+  // there prints no `::error` for the suite.
+  it('keeps the job alive for the OS packages step at its limit, then the suite at its limit', () => {
+    const workflow = readFileSync(
+      resolve(import.meta.dirname, '../../../.github/workflows/ci.yml'),
+      'utf8',
+    );
+    const job = workflow.slice(workflow.indexOf('\n  e2e:\n'));
+    const at = job.indexOf("- name: Install Chromium's OS packages");
+    expect(at, 'the e2e job has the OS packages step').not.toBe(-1);
+    const stepLimit = /timeout-minutes: (\d+)/.exec(job.slice(at, job.indexOf('\n\n', at)));
+    expect(stepLimit, 'the OS packages step has a timeout of its own').not.toBeNull();
+    const limit =
+      /^ {4}timeout-minutes: (?:(\d+)|\$\{\{ github\.event_name == 'push' && (\d+) \|\| (\d+) \}\})$/m.exec(
+        job,
+      );
+    expect(limit, 'the e2e job has a timeout-minutes of its own').not.toBeNull();
+    const jobMinutes = limit?.[1] ? [Number(limit[1])] : [Number(limit?.[2]), Number(limit?.[3])];
+    for (const minutes of jobMinutes) {
+      expect(minutes - Number(stepLimit?.[1]) - CI_GLOBAL_TIMEOUT_MINUTES).toBeGreaterThanOrEqual(
+        2,
+      );
+    }
+  });
 });
 
 // #1408: a limit of 12 minutes was passed by the slowest runners (the same ~700 tests took 7 to 12 minutes,

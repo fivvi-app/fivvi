@@ -244,13 +244,14 @@ jobs:
     if: needs.changes.outputs.e2e == 'true'
     runs-on: ubuntu-24.04
     continue-on-error: ${{ github.event_name == 'push' }}
-    # 15 minutes for the work itself (the last runs took 10 to 14) plus the 10 minutes the OS packages step may spend
-    # on its retries (#1311), so the job is never cancelled in the middle of one. On a push (E002 #1357) the work step may
-    # take 20 minutes (below), so the job gets 35: about 1 minute outside the steps, the worst case of the OS packages step
-    # (10) and the work step (20) make 31, and 4 minutes remain for the post steps (the Playwright report, the caches). A
-    # push is not in the merge queue's chain of timeouts (150, ADR-018), so this lengthens no queue wait; a pull request,
-    # a merge group and workflow_dispatch keep 25.
-    timeout-minutes: ${{ github.event_name == 'push' && 35 || 25 }}
+    # The suite stops itself after 17 minutes (apps/web/test/e2e-run.ts, #1408), and the OS packages step may spend 10 minutes on
+    # its retries (#1311) before it starts, so the job is never cancelled in the middle of either: about 1 minute for the
+    # setup and the build, the worst case of the OS packages step (10), the suite (17) and 2 minutes for the post steps (the
+    # Playwright report, the caches) make 30. On a push (E002 #1357) the work step may take 20 minutes (below), so the job
+    # gets 35: 1 + 10 + 20 make 31, and 4 minutes remain for the post steps. A push is not in the merge queue's chain of
+    # timeouts (150, ADR-018); for a pull request, a merge group and workflow_dispatch the chain is Detect changes 5 plus
+    # this job's 30, far below it.
+    timeout-minutes: ${{ github.event_name == 'push' && 35 || 30 }}
     # The e2e servers each create and migrate their own database on it (apps/web/e2e/serve.ts).
     services:
       postgres:
