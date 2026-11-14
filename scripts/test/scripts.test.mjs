@@ -3133,6 +3133,85 @@ esac`,
       assert.match(written, /### Slowest iOS tests in en/);
     });
 
+    it('#1389: reports the time of each test class, the biggest first, after a row for all of them', async () => {
+      const fake = checkout();
+      const result = join(fake.repo, '..', 'results.json');
+      const test = (name, nl, en) => ({
+        nodeType: 'Test Case',
+        nodeIdentifier: name,
+        durationInSeconds: (nl + en) / 2,
+        children: [
+          { nodeType: 'Test Plan Configuration', name: 'en', durationInSeconds: en },
+          { nodeType: 'Test Plan Configuration', name: 'nl', durationInSeconds: nl },
+        ],
+      });
+      writeFileSync(
+        result,
+        JSON.stringify({
+          testNodes: [
+            test('SignInUITests/test_a()', 30, 20),
+            test('SignInUITests/test_b()', 12, 8),
+            test('ClientsUITests/test_a()', 5, 40),
+            test('SessionTests/test_unit()', 0.2, 0.2),
+          ],
+        }),
+      );
+      const summary = join(fake.repo, '..', 'summary.md');
+
+      const run = await fake.run('scripts/test-ios.sh', [], {
+        FAKE_XCRESULT: result,
+        GITHUB_STEP_SUMMARY: summary,
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(
+        run.output,
+        /Test time by class in nl \(tests, seconds[^)]*\):\n +all 4 47\n +SignInUITests 2 42\n +ClientsUITests 1 5\n +SessionTests 1 0\n/,
+      );
+      assert.match(
+        run.output,
+        /Test time by class in en \(tests, seconds[^)]*\):\n +all 4 68\n +ClientsUITests 1 40\n +SignInUITests 2 28\n/,
+      );
+      const written = readFileSync(summary, 'utf8');
+      assert.match(written, /### iOS test time by class in nl\n\n\| Class \| Tests \| Seconds \|/);
+      assert.match(written, /\| SignInUITests \| 2 \| 28 \|/);
+    });
+
+    describe('#1389 the run says how much of its deadline it used', () => {
+      const testJob = async (env) => {
+        const fake = checkout();
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+        const summary = join(fake.repo, '..', 'summary.md');
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'nl'], {
+          GITHUB_STEP_SUMMARY: summary,
+          ...env,
+        });
+        return { run, summary };
+      };
+
+      it('prints the seconds and the share of the deadline, and puts them in the job summary, without a warning inside the budget', async () => {
+        const { run, summary } = await testJob({ IOS_TEST_DEADLINE: '3600' });
+
+        assert.equal(run.status, 0, run.output);
+        assert.match(run.output, /The nl tests ran \d+ s of the 3600 s deadline \(0 %\)/);
+        assert.doesNotMatch(run.output, /::warning::The nl tests/);
+        assert.match(
+          readFileSync(summary, 'utf8'),
+          /### iOS test budget in nl\n\nThe nl tests ran \d+ s of the 3600 s deadline/,
+        );
+      });
+
+      it('warns, and still passes, when the run used more of the deadline than the budget', async () => {
+        const { run } = await testJob({ IOS_TEST_DEADLINE: '3600', IOS_TEST_BUDGET_PERCENT: '-1' });
+
+        assert.equal(run.status, 0, run.output);
+        assert.match(
+          run.output,
+          /::warning::The nl tests ran \d+ s of the 3600 s deadline \(0 %\), over the -1 % that a run on a typical runner may use/,
+        );
+      });
+    });
+
     it('E002 #290: a failing run prints the failing tests, with their messages, from the result bundle, and still exits 1', async () => {
       const fake = checkout();
       const result = join(fake.repo, '..', 'results.json');
