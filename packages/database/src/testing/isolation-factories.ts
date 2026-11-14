@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import type { DatabaseExecutor } from '../client.ts';
 import {
   locations,
+  offerVersions,
   organizations,
   paymentRefundStatusChanges,
   paymentRefunds,
@@ -14,6 +15,7 @@ import {
   addAccessLogEntry,
   addClient,
   addGroupClass,
+  addOffer,
   addPayment,
   addPaymentChargeback,
   addPaymentCustomer,
@@ -113,6 +115,30 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
   group_classes: {
     scopeColumn: 'organization_id',
     create: (db, workspaceId) => addGroupClass(db, { workspaceId }),
+  },
+  // An owner-made offer with its first version (the version is its own row, covered by `offer_versions`).
+  offers: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addOffer(db, { workspaceId }),
+  },
+  // The second version of an offer made for the workspace (the offer's current one stays the first).
+  offer_versions: {
+    scopeColumn: 'organization_id',
+    create: async (db, workspaceId) => {
+      const offer = await addOffer(db, { workspaceId });
+      const [row] = await db
+        .insert(offerVersions)
+        .values({
+          organizationId: workspaceId,
+          offerId: offer.id,
+          version: 2,
+          nameNl: uniqueMarker('abonnement'),
+          cutoffMinutes: 720,
+        })
+        .returning({ id: offerVersions.id });
+      if (!row) throw new Error('offer version was not created.');
+      return row;
+    },
   },
   // A private session with a trainer of the workspace, planned by an Owner of it, and its one client.
   sessions: {

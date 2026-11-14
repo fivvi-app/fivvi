@@ -1,11 +1,15 @@
 import { and, eq, gte, inArray, isNull, lt, sql } from 'drizzle-orm';
 import type { DatabaseExecutor } from './client.ts';
+import { defaultOfferPlans } from './default-offers.ts';
 import { FIXTURE_INVITATION_VALIDITY_MS } from './invitation-validity.ts';
+import { insertOffer, type NewOffer } from './repositories/offers.ts';
 import {
   authUsers,
   clients,
   groupClasses,
   locations,
+  offers,
+  offerVersions,
   organizations,
   sessionParticipants,
   sessions,
@@ -244,6 +248,97 @@ export async function seed(db: DatabaseExecutor, options: SeedOptions = {}): Pro
     now: options.now ?? new Date(),
   });
   await seedPersonalCalendar(db, { gym, personalTraining });
+  await seedOffers(db, { gym, others: [personalTraining, fitStudio] });
+}
+
+/** The prices of the seed, in euro cents including 21 % VAT: synthetic, as every seeded number. */
+const SEED_PRICES: Readonly<Record<string, number>> = {
+  membership: 7900,
+  group_credit_pack: 15000,
+  private_credit_plan: 26000,
+};
+
+/** The two offers John's Gym makes itself (F052 AC15), so previews can sell every kind. */
+const SEED_OWNER_OFFERS: readonly NewOffer[] = [
+  {
+    kind: 'credit_pack',
+    creditKind: 'private',
+    defaultPlan: null,
+    status: 'on',
+    terms: {
+      nameNl: 'Privécreditpakket',
+      nameEn: 'Private credit pack',
+      credits: 5,
+      validity: { amount: 3, unit: 'month' },
+      cutoffMinutes: 1440,
+      priceCents: 32500,
+      vatRateBasisPoints: 2100,
+      renewalWindowDays: 30,
+    },
+  },
+  {
+    kind: 'single_class_pass',
+    creditKind: null,
+    defaultPlan: null,
+    status: 'on',
+    terms: {
+      nameNl: 'Losse sessie',
+      nameEn: 'Single class pass',
+      cutoffMinutes: 720,
+      priceCents: 1800,
+      vatRateBasisPoints: 2100,
+    },
+  },
+];
+
+/**
+ * The offers of the seeded workspaces (F052, spec #468, AC15; this runs only outside production,
+ * `seed` returns first there). John's Gym gets the three default plans priced and switched on, plus
+ * one owner-made private credit pack and one single class pass, so previews can sell every kind.
+ * The other workspaces get the three default plans as a new workspace does: switched off, without
+ * a price. Idempotent: a default plan is there when the workspace has its key, an owner-made offer
+ * when a version of it has the same Dutch name; what an owner changed since stays.
+ */
+async function seedOffers(
+  db: DatabaseExecutor,
+  workspaces: { gym: string; others: readonly string[] },
+): Promise<void> {
+  const make = async (workspaceId: string, offer: NewOffer, named: string) => {
+    const [found] = await db
+      .select({ id: offers.id })
+      .from(offers)
+      .innerJoin(
+        offerVersions,
+        and(
+          eq(offerVersions.offerId, offers.id),
+          eq(offerVersions.organizationId, offers.organizationId),
+        ),
+      )
+      .where(
+        and(
+          eq(offers.organizationId, workspaceId),
+          offer.defaultPlan === null
+            ? eq(offerVersions.nameNl, named)
+            : eq(offers.defaultPlan, offer.defaultPlan),
+        ),
+      );
+    // The offer and its version point at each other: one transaction, the key is checked at commit.
+    if (!found) await db.transaction((tx) => insertOffer(tx, workspaceId, offer));
+  };
+  for (const plan of defaultOfferPlans()) {
+    const priced: NewOffer = {
+      ...plan,
+      status: 'on',
+      terms: {
+        ...plan.terms,
+        priceCents: SEED_PRICES[plan.defaultPlan ?? ''] ?? null,
+        vatRateBasisPoints: 2100,
+      },
+    };
+    await make(workspaces.gym, priced, plan.terms.nameNl);
+    for (const other of workspaces.others) await make(other, plan, plan.terms.nameNl);
+  }
+  for (const offer of SEED_OWNER_OFFERS) await make(workspaces.gym, offer, offer.terms.nameNl);
 }
 
 /**

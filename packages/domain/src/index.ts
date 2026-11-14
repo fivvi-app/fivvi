@@ -10,6 +10,14 @@ export {
   type NewClientFacts,
 } from './clients/new-client.ts';
 export {
+  DEFAULT_PLAN_KEYS,
+  DEFAULT_PLANS,
+  type DefaultPlan,
+  type DefaultPlanKey,
+  type DefaultPlanTerms,
+  defaultOffers,
+} from './commerce/default-offers.ts';
+export {
   type BillingDetails,
   type BillingDetailsDecision,
   type BillingDetailsInput,

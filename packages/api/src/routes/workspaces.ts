@@ -1,6 +1,7 @@
 import { createWorkspaceWithOwner, findWorkspace, updateWorkspace } from '@fivvi/database';
 import {
   canCreateWorkspace,
+  defaultOffers,
   NAME_MAX_LENGTH,
   PERSON_NAME_MAX_LENGTH,
   slugCandidates,
@@ -291,6 +292,8 @@ export function registerWorkspaces(app: OpenAPIHono) {
         slug,
         // The creator is the Owner and trains in the gym they set up (F005 AC3).
         ownerTrains: startsWithTrainerProfile('owner', { creator: true }),
+        // The three default plans, switched off and without a price (F052 AC1); a copy per workspace.
+        defaultOffers: defaultOffers(),
         ...(personName === undefined ? {} : { ownerName: personName }),
       });
       if (!workspace) continue;

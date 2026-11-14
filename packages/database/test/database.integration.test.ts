@@ -21,6 +21,8 @@ import {
   groupClasses,
   HELLO_GREETING,
   locations,
+  offers,
+  offerVersions,
   organizations,
   pingDatabase,
   sessionParticipants,
@@ -519,6 +521,121 @@ describe('E004 database', () => {
         await seed(tx, { production: true });
 
         expect(await tx.$count(locations)).toBe(0);
+      });
+    });
+  });
+
+  describe('F052 seed offers', () => {
+    const offersOf = (tx: DatabaseExecutor, slug: string) =>
+      tx
+        .select({
+          kind: offers.kind,
+          creditKind: offers.creditKind,
+          status: offers.status,
+          origin: offers.origin,
+          nameNl: offerVersions.nameNl,
+          priceCents: offerVersions.priceCents,
+          vatRateBasisPoints: offerVersions.vatRateBasisPoints,
+        })
+        .from(offers)
+        .innerJoin(offerVersions, eq(offerVersions.id, offers.currentVersionId))
+        .innerJoin(organizations, eq(organizations.id, offers.organizationId))
+        .where(eq(organizations.slug, slug))
+        .orderBy(offerVersions.nameNl);
+
+    it('AC15: gives John’s Gym the three defaults priced and switched on, plus an owner-made private credit pack and a single class pass, once', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        await seed(tx);
+
+        expect(await offersOf(tx, 'johns-gym')).toEqual([
+          expect.objectContaining({
+            kind: 'membership',
+            nameNl: 'Abonnement',
+            status: 'on',
+            origin: 'default',
+            priceCents: 7900,
+            vatRateBasisPoints: 2100,
+          }),
+          expect.objectContaining({
+            kind: 'credit_pack',
+            creditKind: 'group',
+            nameNl: 'Groepscreditpakket',
+            status: 'on',
+            origin: 'default',
+            priceCents: 15000,
+          }),
+          expect.objectContaining({
+            kind: 'single_class_pass',
+            nameNl: 'Losse sessie',
+            status: 'on',
+            origin: 'owner',
+            priceCents: 1800,
+          }),
+          expect.objectContaining({
+            kind: 'credit_plan',
+            creditKind: 'private',
+            nameNl: 'Privécreditabonnement',
+            status: 'on',
+            origin: 'default',
+            priceCents: 26000,
+          }),
+          expect.objectContaining({
+            kind: 'credit_pack',
+            creditKind: 'private',
+            nameNl: 'Privécreditpakket',
+            status: 'on',
+            origin: 'owner',
+            priceCents: 32500,
+          }),
+        ]);
+        expect(await tx.$count(offers)).toBe(5 + 3 + 3);
+      });
+    });
+
+    it('AC1: the other seeded workspaces get the three defaults as a new workspace does: off, without a price', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+
+        for (const slug of ['fit-studio', 'sarah-personal-training']) {
+          const seeded = await offersOf(tx, slug);
+          expect(
+            seeded.map((offer) => offer.nameNl),
+            slug,
+          ).toEqual(['Abonnement', 'Groepscreditpakket', 'Privécreditabonnement']);
+          for (const offer of seeded) {
+            expect(offer).toMatchObject({
+              status: 'off',
+              origin: 'default',
+              priceCents: null,
+              vatRateBasisPoints: null,
+            });
+          }
+        }
+      });
+    });
+
+    it('AC15: leaves what an owner changed alone when it runs again', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        await tx.update(offers).set({ status: 'off' }).where(eq(offers.defaultPlan, 'membership'));
+        await seed(tx);
+
+        expect(
+          await tx.$count(
+            offers,
+            and(eq(offers.defaultPlan, 'membership'), eq(offers.status, 'on')),
+          ),
+        ).toBe(0);
+        expect(await tx.$count(offers)).toBe(5 + 3 + 3);
+      });
+    });
+
+    it('AC15: seeds no offer in production', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { production: true });
+
+        expect(await tx.$count(offers)).toBe(0);
       });
     });
   });

@@ -15,7 +15,13 @@ import {
   teamMembers,
   updateWorkspace,
 } from '../src/index.ts';
-import { addClient, addTeamRole, createAccount, createWorkspace } from '../src/testing/index.ts';
+import {
+  addClient,
+  addTeamRole,
+  createAccount,
+  createWorkspace,
+  testDefaultOffers,
+} from '../src/testing/index.ts';
 
 // The repository functions that create a workspace (F002, #277, ADR-022) as the app role: RLS
 // applies, so a create has to put the new workspace in the request's context before it inserts.
@@ -24,6 +30,7 @@ const DEFAULTS = {
   defaultLocale: 'nl-NL',
   timeZone: 'Europe/Amsterdam',
   ownerTrains: false,
+  defaultOffers: testDefaultOffers(),
 } as const;
 
 describe('F002 creating a workspace', () => {
@@ -278,6 +285,7 @@ describe('F002 creating a workspace', () => {
         name: "John's Gym",
         slug: 'johns-gym-trains',
         ownerTrains: true,
+        defaultOffers: testDefaultOffers(),
       });
     });
     const listed = await scopes().inAccountScope(

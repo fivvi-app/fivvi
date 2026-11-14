@@ -238,6 +238,19 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     retention: 'FORMER_TRAINER',
     note: 'A class. Without its usual trainer once the trainer’s profile is removed; the class itself stays with the workspace.',
   },
+  // Offers (F052, spec #468): what a workspace sells and on which terms; no person is named.
+  {
+    table: 'offers',
+    personal: false,
+    reason:
+      'An offer of a workspace: its kind, status and origin, and which version is current (F052). Prices and terms, nothing about a person. Deleted with the workspace.',
+  },
+  {
+    table: 'offer_versions',
+    personal: false,
+    reason:
+      'An immutable version of an offer: names, descriptions, the price in euro cents, the VAT rate and the terms of its kind (F052). Nothing about a person: the offer’s text is the owner’s, written for clients in general.',
+  },
   {
     table: 'sessions',
     personal: true,
