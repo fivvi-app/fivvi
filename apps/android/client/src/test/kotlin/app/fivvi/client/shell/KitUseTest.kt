@@ -23,13 +23,14 @@ class KitUseTest {
     }
 
     @Test
-    fun E017_profielSignsOutWithAPillButtonAndListsNameAndEmailInAGroupedList() {
+    fun E020_profielSignsOutWithAPillButtonAndShowsTheKitAvatarAndLanguageList() {
         val profile = source("ProfileScreen.kt")
 
         assertTrue(profile.contains("import app.fivvi.core.kit.PillButton\n"))
         assertTrue(profile.contains("PillButton("))
-        assertTrue(profile.contains("import app.fivvi.core.kit.InsetGroupedList\n"))
-        assertTrue(profile.contains("InsetGroupedList"))
+        assertTrue(profile.contains("import app.fivvi.core.kit.PersonAvatar\n"))
+        assertTrue(profile.contains("PersonAvatar("))
+        assertTrue(profile.contains("LanguageList("))
     }
 
     @Test

@@ -10,6 +10,7 @@ import { brandFiles } from '../scripts/brand-icons.ts';
 const webRoot = path.resolve(import.meta.dirname, '..');
 const brandDir = path.resolve(webRoot, '../../docs/design/brand');
 const ANDROID_DIAL = '../android/app/src/main/res/drawable-nodpi/fivvi_pro_dial';
+const ANDROID_CLIENT_DIAL = '../android/client/src/main/res/drawable-nodpi/fivvi_dial';
 const brand = (name: string) => readFileSync(path.join(brandDir, name));
 
 /** The width and height of a PNG: the IHDR chunk after the 8-byte signature. */
@@ -39,6 +40,8 @@ describe('#669 the brand files of the website', () => {
     expect(Object.keys(files).sort()).toEqual([
       '../android/app/src/main/res/drawable-nodpi/fivvi_pro_dial_dark.png',
       '../android/app/src/main/res/drawable-nodpi/fivvi_pro_dial_light.png',
+      '../android/client/src/main/res/drawable-nodpi/fivvi_dial_dark.png',
+      '../android/client/src/main/res/drawable-nodpi/fivvi_dial_light.png',
       'app/apple-icon.png',
       'app/favicon.ico',
       'app/icon.png',
@@ -102,6 +105,21 @@ describe('#669 the brand files of the website', () => {
     expect(firstPixel(light)[3]).toBe(0);
     expect(firstPixel(dark)[3]).toBe(0);
     expect(light.equals(dark)).toBe(false);
+  });
+
+  it('makes the plain Fivvi dial of the client app sign-in on Android, light and dark, 512 px, from the b2 SVGs (E020, #634)', async () => {
+    const files = await brandFiles();
+    const light = files[`${ANDROID_CLIENT_DIAL}_light.png`] as Buffer;
+    const dark = files[`${ANDROID_CLIENT_DIAL}_dark.png`] as Buffer;
+
+    expect(pngSize(light)).toEqual([512, 512]);
+    expect(pngSize(dark)).toEqual([512, 512]);
+    expect(firstPixel(light)[3]).toBe(0);
+    expect(firstPixel(dark)[3]).toBe(0);
+    expect(light.equals(dark)).toBe(false);
+    // The plain dial, never the Fivvi Pro one with its PRO label.
+    expect(light.equals(files[`${ANDROID_DIAL}_light.png`] as Buffer)).toBe(false);
+    expect(dark.equals(files[`${ANDROID_DIAL}_dark.png`] as Buffer)).toBe(false);
   });
 
   it('keeps the rounded corners of the favicon, but fills the whole square for iOS, which rounds it itself', async () => {

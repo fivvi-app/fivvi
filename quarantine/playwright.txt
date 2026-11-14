@@ -1,4 +1,6 @@
 # Quarantine list: Playwright (web e2e tests).
 # One entry per line: test | bug | added | end   (full test name | #issue of the bug | YYYY-MM-DD | YYYY-MM-DD, at most 7 days after added)
+# The test name is its full name as Playwright prints it, without file or project: the titles of its describe blocks and its own, joined by ` › ` (checkout › pays an invoice).
+# An entry covers the test in every project (nl-NL and en).
 # The dates are UTC days: the rule compares them with today's date in UTC.
 # Rules and evidence: docs/engineering/TESTING.md section 8, checked by scripts/quarantine.mjs. A quarantined test still runs.

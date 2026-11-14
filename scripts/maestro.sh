@@ -47,6 +47,9 @@ usage() { usage_of "$0"; }
 LOCALES="nl-NL en"
 PORT="${E2E_PORT:-$(e2e_port "$ROOT")}"
 REPORTS="$ROOT/e2e/maestro/build"
+# What `maestro test` runs: the folder, whose config.yaml picks every flow, or (Android, a flow on quarantine/maestro.txt,
+# E002 #1363) the flow files: all but the listed ones, or only them with FIVVI_QUARANTINE=only.
+FLOW_TARGETS=("$ROOT/e2e/maestro")
 SERVER_PID=""
 LETTERMINT_PID=""
 LETTERMINT_PORT=$((PORT + 2000))
@@ -436,7 +439,7 @@ run_locale() {
   # Both die: this runs as `run_locale … || failed=…`, where set -e is off, and a run without its texts is worthless.
   set_flow_env "$locale" || die "the i18n catalog lacks a text the $locale flows need (packages/i18n)"
   start_clearing
-  "$@" test "$ROOT/e2e/maestro" "${FLOW_ENV[@]}" \
+  "$@" test "${FLOW_TARGETS[@]}" "${FLOW_ENV[@]}" \
     --format junit --output "$REPORTS/$report.xml" --test-output-dir "$REPORTS/$report" || status=$?
   if [ "$status" -ne 0 ] && [ "$status" -ne 130 ] && [ -f "$REPORTS/$report.xml" ] \
     && flows="$(adb_dropped_flows "$REPORTS/$report.xml" "$REPORTS/$report")"; then
@@ -476,6 +479,26 @@ cleanup() {
   stop_android
 }
 
+# Sets FLOW_TARGETS from quarantine/maestro.txt; fails (so the run ends, successfully) when there is no flow to run. A list
+# that names a flow that doesn't exist fails the run with FIVVI_QUARANTINE=only (the Quarantine job runs what the list says).
+select_flows() {
+  local count flows flow
+  count="$(node "$ROOT/scripts/quarantine-android.mjs" count maestro)" || die "the quarantine list could not be read"
+  if [ "$count" = 0 ]; then
+    [ "${FIVVI_QUARANTINE:-}" != only ] || { echo "maestro.sh: quarantine/maestro.txt lists no flow: nothing to run"; return 1; }
+    return 0
+  fi
+  flows="$(node "$ROOT/scripts/quarantine-android.mjs" flows)" || die "quarantine/maestro.txt lists a flow that does not exist"
+  [ -n "$flows" ] || { echo "maestro.sh: every flow is on quarantine/maestro.txt: nothing to run"; return 1; }
+  FLOW_TARGETS=()
+  while IFS= read -r flow; do FLOW_TARGETS+=("$ROOT/$flow"); done <<<"$flows"
+  if [ "${FIVVI_QUARANTINE:-}" = only ]; then
+    echo "maestro.sh: quarantine: only the ${#FLOW_TARGETS[@]} listed flow(s)"
+  else
+    echo "maestro.sh: quarantine: ${#FLOW_TARGETS[@]} flow(s), without the $count listed"
+  fi
+}
+
 # The APK installed by --apk, installed again on an emulator relaunched after a language switch (empty: built by Gradle).
 APK=""
 
@@ -489,6 +512,7 @@ cmd_android() {
   android_env
   command -v maestro >/dev/null || die "Maestro not found — run scripts/bootstrap.sh --mobile"
   cd "$ROOT"
+  select_flows || return 0
   on_exit cleanup
   start_stack
   start_emulator

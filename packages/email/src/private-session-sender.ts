@@ -28,6 +28,7 @@ export function createPrivateSessionSender({
         ? `${address.street} ${address.houseNumber}${address.houseNumberAddition ? ` ${address.houseNumberAddition}` : ''}, ${address.postcode} ${address.city}`
         : null,
       trainerName: mail.trainerName,
+      trainerWord: mail.trainerWord,
     };
     const delivery = {
       to: mail.to,

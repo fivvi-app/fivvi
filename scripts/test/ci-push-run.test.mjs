@@ -33,6 +33,7 @@ describe('E002 #1357 the push run of CI on main', () => {
       'changes',
       'checks',
       'e2e',
+      'quarantine',
       'ios-build',
       'ios-build-retry',
       'ios-tests',
@@ -43,6 +44,7 @@ describe('E002 #1357 the push run of CI on main', () => {
       'android-tests',
       'android-maestro',
       'android',
+      'quarantine-android',
     ]);
   });
 
@@ -106,7 +108,14 @@ describe('E002 #1357 the push run of CI on main', () => {
         );
       }
     }
-    assert.deepEqual(found, ['ios-tests', 'ios-tests-retry', 'android-tests', 'android-maestro']);
+    assert.deepEqual(found, [
+      'ios-tests',
+      'ios-tests-retry',
+      'android-tests',
+      'android-maestro',
+      // The Quarantine (Android) job, itself skipped on a push (E002 #1363).
+      'quarantine-android',
+    ]);
   });
 
   it('the plan and the retries of the iOS jobs, and the gates, are skipped on a push', () => {
@@ -162,6 +171,9 @@ describe('E002 #1357 the push run of CI on main', () => {
       /pnpm exec turbo run/,
       /playwright install /,
       /scripts\/playwright-deps\.sh/,
+      // The Quarantine job (E002 #1361): the listed Vitest tests and the listed Playwright tests, run without turbo.
+      /pnpm -r /,
+      /pnpm --filter @fivvi\/web run test:e2e/,
       /scripts\/test-ios\.sh /,
       /scripts\/android\.sh (setup|build|emulator|verify|maestro-apk)/,
       /scripts\/maestro\.sh /,
