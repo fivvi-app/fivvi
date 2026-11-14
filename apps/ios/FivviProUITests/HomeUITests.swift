@@ -90,9 +90,11 @@ final class HomeUITests: SignInUITestCase {
     }
 
     func test_E008_AC4_serverErrorShowsRetry() throws {
+        let catalog = TestCatalog.configured
         let (screen, _) = try launch(status: 503)
 
         XCTAssertTrue(screen.homeRetry.waitUntilExists(timeout: timeout))
+        XCTAssertEqual(screen.homeRetry.label, catalog["common.retry"])
         XCTAssertFalse(screen.signedInAs.exists)
         XCTAssertFalse(screen.app.staticTexts["home.workspaceName"].exists)
     }
