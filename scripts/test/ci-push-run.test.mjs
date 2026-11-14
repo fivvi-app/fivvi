@@ -272,11 +272,11 @@ describe('E002 #1357 the push run of CI on main', () => {
     assert.ok(e2eStep * 60 >= 1.2 * 754, `E2E (Linux) turbo step: ${e2eStep} minutes`);
     // Checks (Linux): the step, the minute outside it and the cache save fit the job's 15 minutes.
     assert.ok(checksStep + 1 + 1 <= 15);
-    // E2E (Linux): 35 minutes on a push, 25 on the other events (the job's timeout before this ticket); the push job holds
-    // the minute outside the steps, the worst case of the OS packages step (10), the work step and 2 minutes for the post steps.
+    // E2E (Linux): 35 minutes on a push, 30 on the other events (#1408: 1 + the OS packages step 10 + the suite's 17 + 2); the push
+    // job holds the minute outside the steps, the worst case of the OS packages step (10), the work step and 2 minutes for the post steps.
     assert.match(
       jobs.e2e,
-      /^ {4}timeout-minutes: \$\{\{ github\.event_name == 'push' && 35 \|\| 25 \}\}$/m,
+      /^ {4}timeout-minutes: \$\{\{ github\.event_name == 'push' && 35 \|\| 30 \}\}$/m,
     );
     assert.ok(1 + 10 + e2eStep + 2 <= 35);
     // The comments tie the numbers to the measured runs.
