@@ -53,13 +53,9 @@ struct HomeView: View {
         self.welcomeURL = welcomeURL
     }
 
-    /// One scroll for the whole screen, so the account block can't squeeze the hello block at the largest text size
-    /// (#233). The spacers share what is left when both fit (the hello block centred above the account block) and give
-    /// way when not.
     var body: some View {
         NavigationStack(path: $path) {
             screen
-                .toolbar(.hidden, for: .navigationBar)
                 .navigationDestination(for: Route.self) { route in
                     switch route {
                     case .clients: clientsScreen
@@ -70,29 +66,31 @@ struct HomeView: View {
         }
     }
 
+    /// The workspace's name is the large title; before it is known, or with none, the app's name is.
+    private var title: String {
+        if case let .workspace(name) = account.destination { return name }
+        return catalog[.appName]
+    }
+
+    private var titleIdentifier: String {
+        if case .workspace = account.destination { return "home.workspaceName" }
+        return "home.title"
+    }
+
+    /// One scroll for the whole screen, so the account block can't squeeze the hello block at the largest text size
+    /// (#233): the large title, then the cards and the group of rows in the grouped list (E020 #629, *Vandaag* in
+    /// the prototype), and the account's card last.
     private var screen: some View {
-        GeometryReader { proxy in
-            ScrollView {
-                VStack(spacing: 0) {
-                    Spacer(minLength: 0)
-                    VStack(spacing: Tokens.Spacing.space4) {
-                        destination
-                        clientsLink
-                        profileLink
-                        // One hello block in one place, so it loads once whether /me is loading, failed or answered
-                        // with a workspace; the other states have their own text instead.
-                        if showsHello {
-                            HelloView(model: hello)
-                                .padding(.horizontal, Tokens.Spacing.gutter)
-                        }
-                    }
-                    Spacer(minLength: 0)
-                    accountLine
-                }
-                .frame(minHeight: proxy.size.height)
+        LargeTitleScreen(title: title, titleIdentifier: titleIdentifier) {
+            destination
+            // One hello block in one place, so it loads once whether /me is loading, failed or answered
+            // with a workspace; the other states have their own text instead.
+            if showsHello {
+                HelloView(model: hello)
             }
+            rows
+            accountCard
         }
-        .background(Tokens.Colors.bgCanvas)
         // A language chosen before signing in, or in iOS Settings, is saved first; then the account's stored language is
         // read, so an older stored one can't override it (F010).
         .task {
@@ -121,47 +119,39 @@ struct HomeView: View {
         }
     }
 
+    /// What `GET /api/v1/me` says besides the workspace's name (the title): the text to set one up on the web, or the
+    /// no-access text.
     @ViewBuilder private var destination: some View {
         switch account.destination {
-        case let .workspace(name):
-            VStack(spacing: Tokens.Spacing.space4) {
-                Text(name)
-                    .font(.system(Tokens.TextStyle.title2, weight: .semibold))
-                    .foregroundStyle(Tokens.Colors.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
-                    .accessibilityIdentifier("home.workspaceName")
-            }
-            .padding(.horizontal, Tokens.Spacing.gutter)
         case .setUpOnWeb:
-            VStack(spacing: Tokens.Spacing.space6) {
-                message(catalog[.setUpOnWeb], id: "home.setUpOnWeb")
-                // Opens the system browser, never a web view.
-                Button {
-                    openURL(welcomeURL)
-                } label: {
-                    Text(catalog[.openWeb])
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
+            Card {
+                VStack(alignment: .leading, spacing: Tokens.Spacing.space4) {
+                    message(catalog[.setUpOnWeb], id: "home.setUpOnWeb")
+                    // Opens the system browser, never a web view.
+                    PillButtonStack {
+                        Button {
+                            openURL(welcomeURL)
+                        } label: {
+                            pillLabel(catalog[.openWeb])
+                        }
+                        .buttonStyle(.pill(.filled))
+                        .accessibilityIdentifier("home.openWeb")
+                    }
                 }
-                .buttonStyle(.primaryAction)
-                .accessibilityIdentifier("home.openWeb")
             }
-            .padding(.horizontal, Tokens.Spacing.gutter)
         case .noAccess:
-            VStack(spacing: Tokens.Spacing.space4) {
-                Text(catalog[.noAccessTitle])
-                    .font(.system(Tokens.TextStyle.title2, weight: .semibold))
-                    .foregroundStyle(Tokens.Colors.textPrimary)
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-                    .accessibilityAddTraits(.isHeader)
-                    .accessibilityIdentifier("home.noAccessTitle")
-                message(catalog[.noAccessBody], id: "home.noAccess")
+            Card {
+                VStack(alignment: .leading, spacing: Tokens.Spacing.space2) {
+                    Text(catalog[.noAccessTitle])
+                        .font(.system(Tokens.TextStyle.title2, weight: .semibold))
+                        .foregroundStyle(Tokens.Colors.textPrimary)
+                        .fixedSize(horizontal: false, vertical: true)
+                        .accessibilityAddTraits(.isHeader)
+                        .accessibilityIdentifier("home.noAccessTitle")
+                    message(catalog[.noAccessBody], id: "home.noAccess")
+                }
             }
-            .padding(.horizontal, Tokens.Spacing.gutter)
-        case nil:
+        case .workspace, nil:
             EmptyView()
         }
     }
@@ -170,18 +160,28 @@ struct HomeView: View {
         Text(text)
             .font(.system(Tokens.TextStyle.body))
             .foregroundStyle(Tokens.Colors.textPrimary)
-            .multilineTextAlignment(.center)
+            .multilineTextAlignment(.leading)
             .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity, alignment: .leading)
             .accessibilityIdentifier(id)
     }
 
-    private var accountLine: some View {
-        VStack(spacing: Tokens.Spacing.space4) {
-            accountState
-            signOut
+    private func pillLabel(_ text: String) -> some View {
+        Text(text)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity)
+    }
+
+    /// The signed-in address and Sign out, in a card of their own at the end.
+    private var accountCard: some View {
+        Card {
+            VStack(spacing: Tokens.Spacing.space2) {
+                accountState
+                signOut
+            }
+            .frame(maxWidth: .infinity)
         }
-        .padding(Tokens.Spacing.gutter)
-        .frame(maxWidth: .infinity)
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("home.account")
     }
@@ -200,28 +200,23 @@ struct HomeView: View {
         )
     }
 
-    /// *Klanten* (TM-02): the workspace's clients, for whoever the helper lets see them.
-    @ViewBuilder private var clientsLink: some View {
-        if clients != nil, account.capabilities.allows(.clients_view) {
-            NavigationLink(value: Route.clients) {
-                Text(catalog[.clientsTitle])
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+    /// *Klanten* (TM-02), for whoever the helper lets see them, and *Profiel* (TM-04): the person's workspaces with
+    /// their role. Rows of a group, with a chevron.
+    private var rows: some View {
+        InsetGroup {
+            if clients != nil, account.capabilities.allows(.clients_view) {
+                NavigationLink(value: Route.clients) {
+                    InsetRow(title: catalog[.clientsTitle], showsChevron: true)
+                }
+                .buttonStyle(.insetRow)
+                .accessibilityIdentifier("home.openClients")
             }
-            .buttonStyle(.secondaryAction)
-            .accessibilityIdentifier("home.openClients")
+            NavigationLink(value: Route.profile) {
+                InsetRow(title: catalog[.profileTitle], showsChevron: true)
+            }
+            .buttonStyle(.insetRow)
+            .accessibilityIdentifier("home.openProfile")
         }
-    }
-
-    /// *Profiel* (TM-04): the person's workspaces with their role.
-    private var profileLink: some View {
-        NavigationLink(value: Route.profile) {
-            Text(catalog[.profileTitle])
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
-        }
-        .buttonStyle(.secondaryAction)
-        .accessibilityIdentifier("home.openProfile")
     }
 
     private var profileScreen: some View {
@@ -244,15 +239,15 @@ struct HomeView: View {
                 .accessibilityLabel(catalog[.commonLoading])
                 .accessibilityIdentifier("home.signingOut")
         } else {
-            Button {
-                Task { await account.signOut() }
-            } label: {
-                Text(catalog[.signOutLabel])
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+            PillButtonStack {
+                Button {
+                    Task { await account.signOut() }
+                } label: {
+                    pillLabel(catalog[.signOutLabel])
+                }
+                .buttonStyle(.pill(.tonal))
+                .accessibilityIdentifier("home.signOut")
             }
-            .buttonStyle(.secondaryAction)
-            .accessibilityIdentifier("home.signOut")
         }
     }
 
@@ -270,17 +265,18 @@ struct HomeView: View {
                     .foregroundStyle(Tokens.Colors.textPrimary)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
+                    .frame(maxWidth: .infinity)
                     .accessibilityIdentifier("home.signedInAs")
             case .failed:
-                Button {
-                    Task { await account.load() }
-                } label: {
-                    Text(catalog[.commonRetry])
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
+                PillButtonStack {
+                    Button {
+                        Task { await account.load() }
+                    } label: {
+                        pillLabel(catalog[.commonRetry])
+                    }
+                    .buttonStyle(.pill(.filled))
+                    .accessibilityIdentifier("home.retry")
                 }
-                .buttonStyle(.primaryAction)
-                .accessibilityIdentifier("home.retry")
             }
         }
     }
