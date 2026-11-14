@@ -218,9 +218,9 @@ describe('#1360 the lists in this repository', () => {
     // The lists start empty and hold an entry only while a flaky test is in quarantine (#1361: the readers need a list
     // that can hold one, so this no longer asserts that they are empty). Today's date: an entry that expired fails.
     assert.deepEqual(checkQuarantine({ dir }), []);
-    // Only Vitest and Playwright have a reader (#1361). An entry in another list passes the rule and quarantines nothing,
-    // so those stay empty until their readers come (#1362 XCTest, #1363 Compose and Maestro).
-    for (const runner of ['xctest', 'compose', 'maestro'])
+    // Vitest, Playwright (#1361), Compose and Maestro (#1363) have a reader. An entry in the list of a runner without one
+    // passes the rule and quarantines nothing, so XCTest stays empty until its reader comes (#1362).
+    for (const runner of ['xctest'])
       assert.deepEqual(readList(runner, { dir }), [], `${runner} has no reader yet: no entry`);
     // The root tests read the lists, so turbo must take them as inputs of //#test:root.
     assert.deepEqual(

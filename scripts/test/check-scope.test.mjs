@@ -88,6 +88,7 @@ describe('#293 check.sh runs the checks a change can affect', () => {
       'doc-anchors.mjs',
       'doc-lists.mjs',
       'quarantine.mjs',
+      'quarantine-android.mjs',
     ])
       copyFileSync(join(SCRIPTS, file), join(repo(), 'scripts', file));
     // The hygiene checks are not under test here, only that they run: each logs its name.

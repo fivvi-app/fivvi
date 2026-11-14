@@ -409,3 +409,40 @@ describe('#1361 AC2 the Quarantine job', () => {
     assert.match(testing, /`github-actions`/);
   });
 });
+
+// #1363's job follows the same rules (E002 #1361, the design decision of the coordinator): never red, literal timeouts under
+// the job's, a report in the summary and as warnings.
+describe('#1361 the Quarantine (Android) job follows the rules of the Quarantine job', () => {
+  const android = jobs['quarantine-android'];
+  const [, , ...rest] = steps(android);
+
+  it('never fails: every step after the lists is continue-on-error', () => {
+    for (const step of rest)
+      assert.match(step, /^ {8}continue-on-error: true$/m, step.match(/- (name|uses): (.+)/)?.[2]);
+  });
+
+  it('has literal step timeouts that add up to less than the job’s', () => {
+    const jobMinutes = Number(android.match(/^ {4}timeout-minutes: (.+)$/m)[1]);
+    assert.ok(Number.isInteger(jobMinutes));
+    let sum = 0;
+    for (const step of steps(android)) {
+      const value = step.match(/^ {8}timeout-minutes: (.+)$/m)?.[1];
+      if (value === undefined) continue;
+      assert.match(value, /^\d+$/, value);
+      sum += Number(value);
+    }
+    assert.ok(sum < jobMinutes - 2, `${sum} minutes of steps in a job of ${jobMinutes}`);
+  });
+
+  it('reports Compose and Maestro in the summary and as warnings, never as an error', () => {
+    const report = steps(android).at(-1);
+    assert.match(report, /name: Report the quarantined tests/);
+    assert.match(stepIf(report), /^\$\{\{ !cancelled\(\) && /);
+    assert.match(report, /COMPOSE: \$\{\{ steps\.compose\.outcome \}\}/);
+    assert.match(report, /FLOWS: \$\{\{ steps\.flows\.outcome \}\}/);
+    assert.match(report, /GITHUB_STEP_SUMMARY/);
+    assert.match(report, /::warning title=Quarantine \(\$runner\)::/);
+    assert.doesNotMatch(report, /::error/);
+    assert.doesNotMatch(code(report), /exit 1\b/);
+  });
+});
