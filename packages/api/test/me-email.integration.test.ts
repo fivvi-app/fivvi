@@ -800,7 +800,7 @@ describe('F005 change your own email address', () => {
   });
 
   describe('AC10: own account only; anonymous 401', () => {
-    it('answers 401 without a session on both routes', async () => {
+    it('@permission answers 401 without a session on both routes', async () => {
       for (const response of [
         await requestChange(undefined, unique('new')),
         await confirmChange(undefined, '123456'),
@@ -811,7 +811,7 @@ describe('F005 change your own email address', () => {
       expect(transport.sent).toHaveLength(0);
     });
 
-    it('answers 401 for a bearer token that is no session', async () => {
+    it('@permission answers 401 for a bearer token that is no session', async () => {
       const response = await requestChange(undefined, unique('new'), {
         authorization: 'Bearer not-a-real-token',
       });

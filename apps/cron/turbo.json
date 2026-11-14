@@ -5,6 +5,9 @@
     "test": {
       "inputs": [
         "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/packages/testing/src/vitest.ts",
+        "$TURBO_ROOT$/scripts/quarantine.mjs",
+        "$TURBO_ROOT$/quarantine/vitest.txt",
         "$TURBO_ROOT$/.railway/railway.ts",
         "$TURBO_ROOT$/docs/engineering/ENVIRONMENTS.md"
       ]

@@ -4,14 +4,19 @@ import FivviDesignTokens
 /// The title of a screen (E020 AC8): the large title at 34 pt (`Tokens.TextStyle.display`) in bold, with the date in
 /// capitals above it where the prototype has one (*Vandaag*) and a line under it.
 public struct LargeTitleHeader: View {
-    public init(title: String, eyebrow: String? = nil, subtitle: String? = nil) {
+    public init(
+        title: String, eyebrow: String? = nil, subtitle: String? = nil, titleIdentifier: String = "largeTitle.title"
+    ) {
         self.title = title
         self.eyebrow = eyebrow
         self.subtitle = subtitle
+        self.titleIdentifier = titleIdentifier
     }
     public let title: String
     public var eyebrow: String?
     public var subtitle: String?
+    /// The title's accessibility identifier: a screen with its own test ids for its title passes it.
+    public var titleIdentifier = "largeTitle.title"
 
     public var body: some View {
         VStack(alignment: .leading, spacing: 0) {
@@ -27,7 +32,7 @@ public struct LargeTitleHeader: View {
                 .font(.system(Tokens.TextStyle.display, weight: .bold))
                 .foregroundStyle(Tokens.Colors.textPrimary)
                 .accessibilityAddTraits(.isHeader)
-                .accessibilityIdentifier("largeTitle.title")
+                .accessibilityIdentifier(titleIdentifier)
             if let subtitle {
                 Text(subtitle)
                     .font(.system(Tokens.TextStyle.subhead))
@@ -46,20 +51,25 @@ public struct LargeTitleHeader: View {
 /// scrolled away, the bar shows it inline, as in the prototype. The bar's buttons, the tab bar and any sheet are the
 /// system's, so they are Liquid Glass without anything here drawing it.
 public struct LargeTitleScreen<Content: View>: View {
-    public init(title: String, eyebrow: String? = nil, subtitle: String? = nil, @ViewBuilder content: () -> Content) {
+    public init(
+        title: String, eyebrow: String? = nil, subtitle: String? = nil, titleIdentifier: String = "largeTitle.title",
+        @ViewBuilder content: () -> Content
+    ) {
         self.title = title
         self.eyebrow = eyebrow
         self.subtitle = subtitle
+        self.titleIdentifier = titleIdentifier
         self.content = content()
     }
     public let title: String
     public var eyebrow: String?
     public var subtitle: String?
+    public var titleIdentifier = "largeTitle.title"
     @ViewBuilder public let content: Content
 
     public var body: some View {
         InsetGroupedList {
-            LargeTitleHeader(title: title, eyebrow: eyebrow, subtitle: subtitle)
+            LargeTitleHeader(title: title, eyebrow: eyebrow, subtitle: subtitle, titleIdentifier: titleIdentifier)
         } content: {
             content
         }

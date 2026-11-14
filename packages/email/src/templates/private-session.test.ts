@@ -11,6 +11,7 @@ const props = {
   locationName: "John's Gym",
   locationAddress: 'Voorbeeldstraat 1, 1234 AB Amsterdam',
   trainerName: 'Sarah',
+  trainerWord: 'trainer' as const,
 };
 
 describe('F020 EM-11 private session email', () => {

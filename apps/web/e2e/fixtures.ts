@@ -80,8 +80,9 @@ async function watchCspViolations(context: BrowserContext, found: CspViolation[]
 const WCAG_TAGS = ['wcag2a', 'wcag2aa', 'wcag21a', 'wcag21aa', 'wcag22a', 'wcag22aa'];
 
 /**
- * The most axe runs one check makes. A run is repeated while it found violations and a CSS
- * transition or animation started during it; the last run's result counts.
+ * The most axe runs one check makes. A run is repeated while it found violations and the page
+ * was animating around it (something running when axe began, something started during it, or
+ * something running when it was done); the last run's result counts.
  */
 const MAX_AXE_RUNS = 3;
 
@@ -194,8 +195,9 @@ interface AxeViolationSummary {
  * Fails when axe finds accessibility violations on the page. Every test gets this on its
  * final page automatically; call it yourself for states in between (an open dialog, the
  * page before a language switch). It waits for running finite animations first (`settleTimeoutMs`
- * caps the wait), and repeats the run when a CSS transition or animation started while axe was
- * looking or is still running when axe is done, so a fade never counts as a violation.
+ * caps the wait), and repeats the run when a CSS transition or animation was already running when
+ * axe began, started while axe was looking or is still running when axe is done, so a fade never
+ * counts as a violation.
  */
 export async function expectNoAxeViolations(
   page: Page,
@@ -220,11 +222,13 @@ export async function expectNoAxeViolations(
       help,
       targets: nodes.map((node) => node.target.join(' ')),
     }));
-    // Trust the result unless something started animating while axe was reading the page, or is
-    // animating now (its start event may not have come yet).
+    // Trust the result unless something was already animating when axe began (a fade can start in
+    // the moment between the wait and `before`, with its event already in `before`, and be over
+    // by `after`, #1386), started animating while axe was reading the page, or is animating now
+    // (its start event may not have come yet).
     if (found.length === 0) break;
     const after = await animationActivity(page);
-    if (after.started === before.started && after.running === 0) break;
+    if (before.running === 0 && after.started === before.started && after.running === 0) break;
   }
   expect(found, `axe violations on ${state}`).toEqual([]);
 }

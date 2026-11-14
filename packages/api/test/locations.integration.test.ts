@@ -341,7 +341,7 @@ describe('F015 the locations of a workspace', () => {
     });
   });
 
-  it('AC6: Sarah (Trainer) reads (200) and cannot update (403)', async () => {
+  it('@permission AC6: Sarah (Trainer) reads (200) and cannot update (403)', async () => {
     const { gym, sarah, locationId } = await world();
 
     const read = await list(gym.id, sarah);
@@ -355,7 +355,7 @@ describe('F015 the locations of a workspace', () => {
     expect(row?.name).toBe(gym.marker);
   });
 
-  it('AC7: Mike (Owner of Fit Studio) gets 404 on every John’s Gym location route; anonymous 401; Anna (client only) 403', async () => {
+  it('@isolation @permission AC7: Mike (Owner of Fit Studio) gets 404 on every John’s Gym location route; anonymous 401; Anna (client only) 403', async () => {
     const { gym, other, mike, anna, locationId, otherLocationId } = await world();
 
     const answers = [

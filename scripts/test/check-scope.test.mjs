@@ -87,6 +87,9 @@ describe('#293 check.sh runs the checks a change can affect', () => {
       'affected.mjs',
       'doc-anchors.mjs',
       'doc-lists.mjs',
+      'db-renumber.mjs',
+      'quarantine.mjs',
+      'quarantine-android.mjs',
     ])
       copyFileSync(join(SCRIPTS, file), join(repo(), 'scripts', file));
     // The hygiene checks are not under test here, only that they run: each logs its name.
@@ -144,6 +147,7 @@ describe('#293 check.sh runs the checks a change can affect', () => {
     for (const call of HYGIENE)
       assert.ok(result.calls.includes(call), `${call} ran: ${result.calls.join(' | ')}`);
     assert.match(result.stdout, /✓ doc links/);
+    assert.match(result.stdout, /✓ quarantine lists/);
   };
 
   it('AC1: a change to scripts runs shellcheck, the root script tests and the hygiene checks, and skips the suites', () => {
@@ -177,6 +181,17 @@ describe('#293 check.sh runs the checks a change can affect', () => {
       assert.equal(suite.status, 'skipped (not affected)', suite.name);
   });
 
+  it('#1360 AC2: an expired quarantine entry fails check.sh whatever changed, also a Markdown-only change', () => {
+    write(
+      join(repo(), 'quarantine/vitest.txt'),
+      'a flaky test | #1400 | 2020-01-01 | 2020-01-08\n',
+    );
+    const result = run(['docs/product/PRODUCT.md']);
+    assert.equal(result.status, 1, result.stdout);
+    assert.match(result.stdout, /✗ quarantine lists/);
+    assert.match(result.stdout, /vitest\.txt:1: expired on 2020-01-08/);
+  });
+
   it('#1041 AC7: the doc links check fails on a runbook link to a heading that does not exist, and passes when it does', () => {
     const runbooks = 'docs/engineering/RUNBOOKS.md';
     write(join(repo(), runbooks), '# Runbooks\n\n## Rollback\n\n[up](#rollback) [bad](#restore)\n');
@@ -193,6 +208,54 @@ describe('#293 check.sh runs the checks a change can affect', () => {
     assert.match(fixed.stdout, /✓ doc links/);
   });
 
+  it('#1273: the database migrations check fails on a clashing migration, with the command to run, and passes without one', () => {
+    const migrations = 'packages/database/migrations';
+    const journal = (tags) =>
+      JSON.stringify({
+        version: '7',
+        dialect: 'postgresql',
+        entries: tags.map((tag, idx) => ({ idx, version: '7', when: idx, tag, breakpoints: true })),
+      });
+    const snapshot = (n, id, prevId) =>
+      write(
+        join(repo(), migrations, 'meta', `000${n}_snapshot.json`),
+        JSON.stringify({ id, prevId }),
+      );
+    const zero = '00000000-0000-4000-8000-000000000000';
+    const one = '00000000-0000-4000-8000-000000000001';
+    // main has 0000 and 0001; the branch adds its own 0001.
+    const before = git('rev-parse', 'HEAD').trim();
+    write(join(repo(), migrations, '0000_init.sql'), 'SELECT 1;\n');
+    write(join(repo(), migrations, '0001_main.sql'), 'SELECT 1;\n');
+    write(join(repo(), migrations, 'meta/_journal.json'), journal(['0000_init', '0001_main']));
+    snapshot(0, zero, '00000000-0000-0000-0000-000000000000');
+    snapshot(1, one, zero);
+    git('add', '.');
+    git('commit', '--quiet', '-m', 'feat(F020): main migrations');
+    const main = git('rev-parse', 'HEAD').trim();
+    git('update-ref', 'refs/remotes/origin/main', main);
+    try {
+      const clean = run([]);
+      assert.equal(clean.status, 0, clean.stdout);
+      assert.match(clean.stdout, /✓ database migrations/);
+
+      write(join(repo(), migrations, '0001_own.sql'), 'SELECT 2;\n');
+      write(
+        join(repo(), migrations, 'meta/_journal.json'),
+        journal(['0000_init', '0001_main', '0001_own']),
+      );
+      snapshot(1, one, zero);
+      const clash = run([]);
+      assert.equal(clash.status, 1, clash.stdout);
+      assert.match(clash.stdout, /✗ database migrations/);
+      assert.match(clash.stdout, /0001_own/);
+      assert.match(clash.stdout, /node scripts\/db-renumber\.mjs/);
+    } finally {
+      git('update-ref', 'refs/remotes/origin/main', before);
+      git('reset', '--quiet', '--hard', before);
+    }
+  });
+
   it('AC3: a change to one package runs lint, types, unit tests and build for it and its dependents only', () => {
     const result = run(['packages/ui/src/button.ts']);
     assert.equal(result.status, 0, result.stdout);
@@ -206,7 +269,7 @@ describe('#293 check.sh runs the checks a change can affect', () => {
   });
 
   it('AC4: a change to packages/database runs the integration tests of it and of what depends on it, and the web e2e tests', () => {
-    const result = run(['packages/database/migrations/0001_x.sql']);
+    const result = run(['packages/database/src/schema.ts']);
     assert.equal(result.status, 0, result.stdout);
     const integration = result.turbo.find((call) => call.includes('test:integration'));
     assert.ok(integration, result.turbo.join('\n'));
@@ -266,7 +329,7 @@ describe('#293 check.sh runs the checks a change can affect', () => {
 
   it('--fast still skips the integration and e2e tests, also with --all', () => {
     for (const args of [['--fast'], ['--all', '--fast'], ['--fast', '--all']]) {
-      const result = run(['packages/database/migrations/0001_x.sql'], args);
+      const result = run(['packages/database/src/schema.ts'], args);
       assert.equal(result.status, 0, result.stdout);
       assert.ok(
         !result.turbo.some((c) => c.includes('test:integration') || c.includes('test:e2e')),

@@ -29,6 +29,7 @@ await sendEmail({
 | Path | What |
 |---|---|
 | `src/catalog.ts` | The email catalog (F049): every email by ID (EM-01 … EM-23, EM-34), with audience, owner features, subject keys, status and template; `templates` is derived from it |
+| `src/catalog-docs.ts` | `parseEmailTable` and `checkEmailTable`: the comparison of the information architecture's email table with the catalog |
 | `src/templates/` | One template per email type, registered in the catalog |
 | `src/template-checks.ts` | The checks every catalog email must pass (F049 AC2, AC5, AC6): `checkRendering`, `checkLinks`, `checkContent`, `checkSyntheticData`; each returns the problems it finds |
 | `src/preview.ts` | The pages of the local preview: the catalog's entries, each active email in both languages as HTML and text |
@@ -55,6 +56,7 @@ await sendEmail({
 - User content (names, class names) is passed as a placeholder value and rendered as text; React escapes it.
 - A template has `subject`, `preview` (the inbox preview line: put the key fact in it), `render` (the content inside the layout) and `previewProps` (obviously fake data for the preview).
 - Plain styles for now; E007 brings the design tokens.
+- **The workspace's word** (F068): an email that names the role (the trainer invitation, the private session emails) takes `trainerWord` with its template data, read from the workspace when the mail is built, and spreads `trainerWordForms(trainerWord, ctx.locale)` into `ctx.t` for the placeholders `{word}`, `{aWord}`, `{Word}` and so on; the recipient's language comes from the mail, as for every email. An email already sent never changes; the next one follows the workspace.
 - **Frames** (F049): an email about a workspace sets `frame: { kind: 'client' | 'team', workspaceName: (props) => props.workspaceName }` on its template. `renderEmail` then wraps the content in the client frame (workspace's name on top, one primary button to the signed-in home (`https://fivvi.app/home`), the footer "Je krijgt deze e-mail omdat je klant bent bij {workspace}.", "Vragen? Neem contact op met {workspace}.", then "Verstuurd via Fivvi") or the team frame (the same, with "… omdat je in het team van {workspace} zit."). Don't put your own footer or workspace header in the content. The button label defaults to `email.frame.button`; `buttonLabel` and `buttonPath: (props) => 'bookings'` (relative to `https://fivvi.app/`; a path to another host throws) change them. Leave `frame` out for the sign-in email (ADR-019) and the trainer invitation (its recipient is not on the team yet): they keep the plain layout. The workspace's name is user content and is shown as typed.
 
 ## The email catalog
@@ -180,6 +182,7 @@ pnpm --filter @fivvi/email test
 |---|---|
 | `src/catalog.test.ts` | The catalog: every template file is in it, every `active` entry has a template, unique IDs, EM-01 … EM-23 and EM-34 present, subject keys exist in both languages |
 | `src/catalog.test.ts` (checks) | The checklist for every active entry, internal emails included, without a change when one is added: AC2 both languages from catalog keys with the same keys and placeholders, a subject of at most 78 characters, a plain-text part; AC5 links to `https://fivvi.app` only, no tracking pixel, tracking parameter, redirect or tracker path, no `List-Unsubscribe` on the message; AC6 `<b>` and `&` in user content shown as typed, a class name by F021's rule; the preview data is synthetic |
+| `src/catalog-docs.test.ts` | F049 AC10: the email table of `docs/design/information-architecture.md` §8 and the catalog have the same IDs, audiences, owner features and built subjects, EM-01 is marked retired, a table ID missing in the catalog or the reverse fails, and the table has no *reservering*, *afmelding* or *inschrijving* |
 | `src/template-checks.test.tsx` | Each check fails for a template that breaks its rule |
 | `src/preview.test.ts` | AC7: the preview shows every catalog email in both languages, HTML and text, and reads no database |
 | `src/templates/templates.test.ts` | Every template renders in nl-NL and en with no missing keys or placeholders; hello: subject, preview, text and HTML from the catalog, Europe/Amsterdam dates in both locales (summer, winter, around midnight), escaping of user content |

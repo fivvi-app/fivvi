@@ -1,3 +1,4 @@
+import { type TrainerWord, trainerWordForms } from '@fivvi/i18n';
 import { Text } from 'react-email';
 import { textStyle } from '../components/layout.tsx';
 import type { EmailTemplate } from '../render.tsx';
@@ -17,6 +18,8 @@ export interface PrivateSessionEmailProps {
    * session: the line is left out.
    */
   togetherWith?: string | null;
+  /** The workspace's word for the people who teach, as it is when the email is sent (F068). */
+  trainerWord: TrainerWord;
 }
 
 /**
@@ -40,7 +43,16 @@ export const privateSessionEmail: EmailTemplate<PrivateSessionEmailProps> = {
     }),
   render: (
     ctx,
-    { workspaceName, startsAt, endsAt, locationName, locationAddress, trainerName, togetherWith },
+    {
+      workspaceName,
+      startsAt,
+      endsAt,
+      locationName,
+      locationAddress,
+      trainerName,
+      trainerWord,
+      togetherWith,
+    },
   ) => (
     <>
       <Text style={textStyle}>
@@ -60,7 +72,10 @@ export const privateSessionEmail: EmailTemplate<PrivateSessionEmailProps> = {
       </Text>
       {trainerName ? (
         <Text style={textStyle}>
-          {ctx.t('email.privateSession.trainer', { trainer: trainerName })}
+          {ctx.t('email.privateSession.trainer', {
+            trainer: trainerName,
+            ...trainerWordForms(trainerWord, ctx.locale),
+          })}
         </Text>
       ) : null}
       {togetherWith ? (
@@ -79,5 +94,6 @@ export const privateSessionEmail: EmailTemplate<PrivateSessionEmailProps> = {
     locationName: 'John’s Gym',
     locationAddress: 'Voorbeeldstraat 1, 1234 AB Amsterdam',
     trainerName: 'Sarah',
+    trainerWord: 'trainer',
   },
 };
