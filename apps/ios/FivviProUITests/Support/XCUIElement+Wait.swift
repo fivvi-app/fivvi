@@ -49,4 +49,49 @@ extension XCUIElement {
         )
         XCTAssertTrue(focused, "\(identifier) has no keyboard focus after a tap", file: file, line: line)
     }
+
+    /// What the text field holds: nil when it is not there, and "" for an empty field, where `value` is its placeholder.
+    var fieldText: String? {
+        guard exists, let value = value as? String else { return nil }
+        return value == placeholderValue ? "" : value
+    }
+
+    /// Taps the field until it has keyboard focus, types `text` after what it holds (`replacing`: in place of it) and
+    /// checks that all of it arrived. On a loaded CI simulator the keyboard now and then drops the end of what is typed:
+    /// `typeText("Anna")` left "An" (#1380). The missing end is typed again, reported as a `::warning::flaky`
+    /// activity (`Polling.typing`), and a field that still lacks letters fails here, with what it holds, not at some
+    /// assertion further on. Not for a field that acts on the last character (the sign-in code), whose value after
+    /// typing says nothing.
+    func enter(_ text: String, replacing: Bool = false, file: StaticString = #filePath, line: UInt = #line) {
+        focus(file: file, line: line)
+        if replacing { clear(file: file, line: line) }
+        if text.isEmpty { return }
+        let before = fieldText ?? ""
+        let result = Polling.typing(
+            text, expecting: before + text, type: { typeText($0) }, read: { fieldText },
+            report: reportRepeatedTyping
+        )
+        if case .dropped(let held) = result {
+            XCTFail("typing \"\(text)\" into \(identifier) left \"\(held)\" in it", file: file, line: line)
+        }
+    }
+
+    /// Leaves the `::warning::flaky` activity of repeated typing in the test's result, named after the field.
+    private func reportRepeatedTyping(_ attempt: Int, _ attempts: Int) {
+        XCTContext.runActivity(
+            named: Polling.typingWarning(identifier: identifier, attempt: attempt, of: attempts)
+        ) { _ in }
+    }
+
+    /// Deletes what the field holds, once more for the letters a loaded runner left.
+    private func clear(file: StaticString, line: UInt) {
+        for _ in 0..<3 {
+            guard let held = fieldText, !held.isEmpty else { return }
+            typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: held.count))
+            _ = Polling.until(timeout: 1) { (self.fieldText ?? "").count < held.count }
+        }
+        if let held = fieldText, !held.isEmpty {
+            XCTFail("\(identifier) still holds \"\(held)\" after deleting it", file: file, line: line)
+        }
+    }
 }

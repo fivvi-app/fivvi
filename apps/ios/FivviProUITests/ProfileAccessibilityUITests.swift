@@ -67,8 +67,7 @@ final class ProfileAccessibilityUITests: SignInUITestCase {
             app.buttons["profile.name"].tap()
             let input = app.textFields["profile.nameInput"]
             XCTAssertTrue(input.waitUntilExists(timeout: timeout), mode)
-            input.focus()
-            input.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: 5) + "   ")
+            input.enter("   ", replacing: true)
             app.buttons["profile.nameSave"].tap()
             let message = TestCatalog.configured["myProfile.errors.nameRequired"]
             XCTAssertTrue(Polling.until(timeout: timeout, interval: 0.2) { input.label.hasSuffix(message) }, mode)

@@ -145,8 +145,7 @@ final class KitGalleryUITests: XCTestCase {
         try assertTheRoundControlsAreSolidAndTakeATapNearTheRim(screen)
 
         screen.scrollBack(toLowerHalf: screen.invalidField)
-        screen.invalidField.focus()
-        screen.invalidField.typeText("Anna")
+        screen.invalidField.enter("Anna")
         XCTAssertEqual(screen.invalidField.value as? String, "Anna", "the error doesn't replace the typed text")
 
         // The toast: its text shows, and it goes away by itself.
