@@ -4,6 +4,7 @@ import app.fivvi.api.models.MyWorkspace
 import app.fivvi.api.models.MyWorkspace.Role
 import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.me.workspaceIdOf
+import app.fivvi.core.quarantine.Permission
 import java.io.IOException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -313,6 +314,7 @@ class ProfileViewModelTest {
 
     // F004 AC10: an Owner the API lists without team.manage has no switch, a Trainer with it has one: the role decides nothing.
     @Test
+    @Permission
     fun test_F004_AC10_theSwitchFollowsTheCapabilityNotTheRole() {
         api.answerAccount()
         api.answerWorkspaces(
@@ -366,6 +368,7 @@ class ProfileViewModelTest {
 
     // F005 AC5: the API refuses a Trainer's switch (403) or a lost place (404): the list is read again.
     @Test
+    @Permission
     fun test_F005_AC5_aRefusedSwitchReadsTheListAgain() {
         api.answerAccount()
         api.answerAccount()

@@ -43,6 +43,7 @@ describe('E002 #1357 the push run of CI on main', () => {
       'android-tests',
       'android-maestro',
       'android',
+      'quarantine-android',
     ]);
   });
 
@@ -106,7 +107,14 @@ describe('E002 #1357 the push run of CI on main', () => {
         );
       }
     }
-    assert.deepEqual(found, ['ios-tests', 'ios-tests-retry', 'android-tests', 'android-maestro']);
+    assert.deepEqual(found, [
+      'ios-tests',
+      'ios-tests-retry',
+      'android-tests',
+      'android-maestro',
+      // The Quarantine (Android) job, itself skipped on a push (E002 #1363).
+      'quarantine-android',
+    ]);
   });
 
   it('the plan and the retries of the iOS jobs, and the gates, are skipped on a push', () => {

@@ -1071,3 +1071,169 @@ jobs:
         env:
           RESULTS: ${{ join(needs.*.result, ' ') }}
         run: scripts/native-gate.sh Android true $RESULTS
+
+  # Quarantine, the Android part (E002 #1363, ADR-025 amendment of 12 November 2026, TESTING.md §8). A flaky test on
+  # quarantine/compose.txt (the Android unit tests and the Compose UI tests) or quarantine/maestro.txt (a Maestro flow) is left
+  # out of "Android tests" and "Android Maestro" (android.sh and maestro.sh read the lists), and this job, which
+  # is NOT a required check and must never become one, runs exactly the listed tests, so their results stay visible and the
+  # fix can show it works here. It passes when the lists are empty, and then does nothing but read them: no SDK, no emulator, no
+  # web build. A failing listed test fails this job and no other. Like the other native test suites it does not run on a push to
+  # main. FIVVI_QUARANTINE=only selects the listed tests.
+  quarantine-android:
+    name: Quarantine (Android)
+    # No native test suite runs on a push to main ("Android tests", "Android Maestro"): the lists are read on the other events.
+    if: github.event_name != 'push'
+    runs-on: ubuntu-24.04
+    continue-on-error: ${{ github.event_name == 'push' }}
+    # The work only: setup 10 + the Compose tests 25 + the Maestro flows 30, with about 5 minutes outside the steps. Nothing
+    # waits for this job, so no chain of timeouts (ADR-018) includes it.
+    timeout-minutes: 90
+    env:
+      FIVVI_QUARANTINE: only
+      # The port the debug app for Maestro has baked in (scripts/android.sh maestro-apk).
+      E2E_PORT: '3100'
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Runs before any install, on the Node the runner has (scripts/quarantine-android.mjs imports nothing else).
+      - id: lists
+        name: Read the quarantine lists
+        run: |
+          set -euo pipefail
+          compose="$(node scripts/quarantine-android.mjs count compose)"
+          maestro="$(node scripts/quarantine-android.mjs count maestro)"
+          {
+            echo "compose=$compose"
+            echo "maestro=$maestro"
+            if [[ "$compose" != '0' || "$maestro" != '0' ]]; then echo 'any=true'; else echo 'any=false'; fi
+          } >>"$GITHUB_OUTPUT"
+          {
+            echo '### Quarantine (Android)'
+            echo "- Compose: $compose listed test(s)"
+            echo "- Maestro: $maestro listed flow(s)"
+            if [[ "$compose" == '0' && "$maestro" == '0' ]]; then echo 'Nothing is quarantined: nothing to run.'; fi
+          } >>"${GITHUB_STEP_SUMMARY:-/dev/null}"
+
+      # The emulator creates a 6 GB data partition on its first boot and needs 7.4 GB free for it; Gradle and the web build
+      # need more. These preinstalled toolchains aren't used by this job.
+      - name: Free disk space
+        if: steps.lists.outputs.any == 'true'
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+        if: steps.lists.outputs.maestro != '0'
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        if: steps.lists.outputs.maestro != '0'
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      # Gradle builds the app, and Maestro needs a JDK.
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        if: steps.lists.outputs.any == 'true'
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      # Caches Gradle's dependencies and wrapper; main's cache is readable by every PR.
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+        if: steps.lists.outputs.any == 'true'
+
+      - name: Enable KVM
+        if: steps.lists.outputs.any == 'true'
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          sudo udevadm settle
+          ls -l /dev/kvm || true
+          if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
+            echo '::error::/dev/kvm is not usable by the runner user'
+            exit 1
+          fi
+
+      - name: Install dependencies
+        if: steps.lists.outputs.maestro != '0'
+        timeout-minutes: 5
+        run: pnpm install --frozen-lockfile
+
+      # Reuses the web build from the latest "Checks (Linux)" cache when nothing changed. Restore only.
+      - name: Restore turbo cache
+        if: steps.lists.outputs.maestro != '0'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .turbo/cache
+            apps/web/.next/cache
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
+
+      - name: Android SDK packages, emulator and Maestro
+        if: steps.lists.outputs.any == 'true'
+        timeout-minutes: 15
+        run: scripts/android.sh setup
+
+      - id: avd
+        name: Emulator cache key
+        if: steps.lists.outputs.any == 'true'
+        run: echo "key=$(scripts/android.sh avd-key)" >> "$GITHUB_OUTPUT"
+
+      # The AVD with the snapshot of its booted state, the same key as "Android tests" (see there): restored, never saved by
+      # this job, whose emulator is a copy of theirs.
+      - name: Restore the emulator
+        if: steps.lists.outputs.any == 'true'
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.android/avd
+          key: avd-v2-${{ runner.os }}-${{ steps.avd.outputs.key }}
+
+      - name: Boot the emulator
+        if: steps.lists.outputs.any == 'true'
+        timeout-minutes: 10
+        env:
+          AVD_SNAPSHOT: '1'
+          EMULATOR_BOOT_TIMEOUT: '480'
+        run: scripts/android.sh emulator
+
+      # The listed unit tests, then the listed Compose UI tests on the emulator.
+      - name: Compose, the listed tests only
+        if: steps.lists.outputs.compose != '0'
+        timeout-minutes: 25
+        run: scripts/android.sh quarantine
+
+      # The debug app with the API address of this job's web server, then the listed flows in nl-NL and en. A failed Compose
+      # step does not skip the flows: the job reports every listed test that fails.
+      - name: Debug app for Maestro
+        if: ${{ !cancelled() && steps.lists.outputs.maestro != '0' }}
+        timeout-minutes: 10
+        run: scripts/android.sh maestro-apk
+
+      - name: Maestro, the listed flows only
+        if: ${{ !cancelled() && steps.lists.outputs.maestro != '0' }}
+        timeout-minutes: 30
+        run: scripts/maestro.sh android --apk
+
+      - name: Stop the emulator
+        if: ${{ always() && steps.lists.outputs.any == 'true' }}
+        run: scripts/android.sh stop
+
+      - name: Upload Quarantine (Android) reports
+        if: ${{ always() && steps.lists.outputs.any == 'true' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-quarantine-reports
+          path: |
+            apps/android/app/build/reports/
+            apps/android/client/build/reports/
+            apps/android/app/build/outputs/androidTest-results/
+            apps/android/build/emulator.log*
+            e2e/maestro/build/
+          retention-days: 7
+          if-no-files-found: ignore

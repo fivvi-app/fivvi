@@ -19,6 +19,7 @@ import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
 import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.me.workspaceIdOf
+import app.fivvi.core.quarantine.Permission
 import app.fivvi.pro.AppRule
 import app.fivvi.pro.UI_TIMEOUT_MILLIS
 import app.fivvi.pro.clients.ClientsTags
@@ -241,6 +242,7 @@ class WorkspaceSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
     // AC11: the actions follow what the API lists for the workspace the app is in. Sarah is a Trainer in John's Gym, with
     // no right to add clients there.
     @Test
+    @Permission
     fun test_F012_AC11_actionsFollowWorkspaceRole() {
         answerAccountAsSarah(
             3,

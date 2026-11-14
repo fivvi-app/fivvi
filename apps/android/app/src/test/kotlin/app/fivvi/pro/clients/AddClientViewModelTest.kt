@@ -3,6 +3,8 @@ package app.fivvi.pro.clients
 import app.fivvi.api.models.AddClientRequest
 import app.fivvi.api.models.Client
 import app.fivvi.core.me.workspaceIdOf
+import app.fivvi.core.quarantine.Concurrency
+import app.fivvi.core.quarantine.Permission
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -259,6 +261,7 @@ class AddClientViewModelTest {
 
     // F004 AC10: a 403 hides *+ Nieuwe klant* at once through the capability helper.
     @Test
+    @Permission
     fun test_F006_AC12_aRefusedAddTellsTheCapabilityHelperAndClosesTheForm() {
         api.addAnswers += { api.status(403) }
         val viewModel = viewModel()
@@ -271,6 +274,7 @@ class AddClientViewModelTest {
     }
 
     @Test
+    @Concurrency
     fun test_F006_AC12_theFormIsOnlySentOnceWhileItIsPending() {
         val viewModel = viewModel()
         viewModel.onNameChange("Mark")

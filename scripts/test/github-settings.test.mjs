@@ -59,6 +59,8 @@ describe('the versioned GitHub settings', () => {
         'Android build',
         'Android tests',
         'Android Maestro',
+        // Not required, and never to be: the listed flaky Android tests run here (E002 #1363, TESTING.md §8).
+        'Quarantine (Android)',
       ],
     );
   });

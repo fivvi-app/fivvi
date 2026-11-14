@@ -15,6 +15,9 @@
 # checked state (Android: Role.Switch, iOS: a Toggle).
 appId: ${APP_ID}
 name: AC1 AC4 AC5 AC17 Profiel changes my name, the I also train here switch and has the help and privacy rows
+# Never quarantined (TESTING.md §8): scripts/quarantine.mjs reads this tag.
+tags:
+  - permission
 env:
   # The Android application id and the iOS bundle id.
   APP_ID: app.fivvi.pro

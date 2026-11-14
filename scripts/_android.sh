@@ -86,6 +86,37 @@ gradle() {
   (cd "$ANDROID_DIR" && ./gradlew --console=plain "-Dorg.gradle.daemon.registry.base=$GRADLE_DAEMONS" "$@")
 }
 
+# The quarantine lists of Compose and Maestro (E002 #1363, TESTING.md §8): scripts/quarantine-android.mjs reads them, and
+# FIVVI_QUARANTINE=only (the Quarantine job) selects the listed tests, otherwise they are left out.
+quarantine_android() { node "$ROOT/scripts/quarantine-android.mjs" "$@"; }
+
+# Gradle with the unit tests of the list left out, or with only them: apps/android/gradle/quarantine.init.gradle.kts
+# filters every Test task by the names in FIVVI_QUARANTINE_TESTS. Plain gradle while the list is empty.
+gradle_tests() {
+  local tests
+  tests="$(quarantine_android tests)" || return 1
+  if [ -z "$tests" ]; then gradle "$@"; return; fi
+  FIVVI_QUARANTINE_TESTS="$tests" gradle --init-script "$ANDROID_DIR/gradle/quarantine.init.gradle.kts" "$@"
+}
+
+# The Compose UI tests on the connected device, without the listed ones, or with FIVVI_QUARANTINE=only exactly them: the
+# instrumentation runner loads QuarantineRunFilter (:core's androidTestShared), which reads the mode and the list from its
+# arguments. A run with no listed test is the whole suite, and with only nothing.
+gradle_connected() {
+  local ui mode=exclude
+  ui="$(quarantine_android ui)" || return 1
+  [ "${FIVVI_QUARANTINE:-}" != only ] || mode=only
+  if [ -z "$ui" ]; then
+    [ "$mode" = exclude ] || return 0
+    gradle connectedDebugAndroidTest
+    return
+  fi
+  gradle connectedDebugAndroidTest \
+    "-Pandroid.testInstrumentationRunnerArguments.filter=app.fivvi.core.quarantine.QuarantineRunFilter" \
+    "-Pandroid.testInstrumentationRunnerArguments.quarantine=$mode" \
+    "-Pandroid.testInstrumentationRunnerArguments.quarantineTests=$ui"
+}
+
 # Stops the Gradle daemons of this checkout after a run that used them, unless KEEP_DEVICE=1.
 stop_gradle() {
   [ "$GRADLE_STARTED" = true ] && [ "${KEEP_DEVICE:-}" != 1 ] || return 0
