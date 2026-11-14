@@ -310,6 +310,7 @@ async function invitationMail(
     // The Owner's name as the account has it; the address when the account has no name yet.
     inviterName: account.name.trim() === '' ? account.email : account.name,
     workspaceName: workspace.name,
+    trainerWord: workspace.trainerWord,
     timeZone: workspace.timeZone,
     token: token.value,
     expiresAt: invitation.expiresAt,

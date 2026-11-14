@@ -24,6 +24,7 @@ const mail = {
     },
   },
   trainerName: 'Sarah',
+  trainerWord: 'trainer' as const,
   event: 'session-1:1',
 };
 
@@ -90,6 +91,19 @@ describe('F020 EM-11 sender', () => {
 
     expect(transport.sent[0]?.text).toContain("Waar: John's Gym");
     expect(transport.sent[0]?.text).not.toContain('Voorbeeldstraat');
+  });
+
+  it('F068 AC11: names the role with the word the mail has, and an email sent stays as it was', async () => {
+    const { transport, send } = setup();
+
+    await send({ ...mail, trainerWord: 'instructeur' });
+    await send({ ...mail, trainerWord: 'coach', event: 'session-1:2' });
+    await send({ ...mail, trainerWord: 'docent', locale: english, event: 'session-1:3' });
+
+    expect(transport.sent[0]?.text).toContain('Instructeur: Sarah');
+    expect(transport.sent[1]?.text).toContain('Coach: Sarah');
+    expect(transport.sent[2]?.text).toContain('Teacher: Sarah');
+    expect(transport.sent[0]?.text).toContain('Instructeur: Sarah');
   });
 
   describe('EM-04, when the mail says the session moved', () => {

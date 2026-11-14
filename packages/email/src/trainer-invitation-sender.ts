@@ -27,6 +27,7 @@ export function createTrainerInvitationSender({
       props: {
         inviterName: mail.inviterName,
         workspaceName: mail.workspaceName,
+        trainerWord: mail.trainerWord,
         url: `${appBaseUrl().replace(/\/+$/, '')}/invitations/${mail.token}`,
         expiresAt: mail.expiresAt,
       },

@@ -234,8 +234,8 @@
     },
     "trainerInvitation": {
       "subject": "{inviter} invited you to {workspace}",
-      "preview": "You're invited to become a trainer at {workspace}.",
-      "intro": "{inviter} invited you to become a trainer at {workspace}.",
+      "preview": "You're invited to become {aWord} at {workspace}.",
+      "intro": "{inviter} invited you to become {aWord} at {workspace}.",
       "button": "View invitation",
       "validity": "This invitation is valid until {date}.",
       "ignore": "Not expecting this email? You can ignore it."
@@ -246,7 +246,7 @@
       "intro": "A private session has been planned for you at {workspace}.",
       "when": "When: {date}, {start} to {end}",
       "where": "Where: {location}",
-      "trainer": "Trainer: {trainer}"
+      "trainer": "{Word}: {trainer}"
     },
     "privateSessionMoved": {
       "subject": "Change: your session has moved to {newDate}",

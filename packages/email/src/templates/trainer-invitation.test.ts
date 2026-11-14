@@ -6,6 +6,7 @@ import { trainerInvitationEmail } from './trainer-invitation.tsx';
 const props = {
   inviterName: 'John',
   workspaceName: "John's Gym",
+  trainerWord: 'trainer' as const,
   url: 'https://fivvi.example.com/invitations/test-token',
   // 23:30 UTC on 12 November is 00:30 on 13 November in Amsterdam (CET, UTC+1).
   expiresAt: new Date('2026-11-12T23:30:00Z'),
@@ -43,7 +44,7 @@ describe('F011 EM-09 trainer invitation email', () => {
   );
 
   it.each([
-    ['nl-NL', 'John nodigt je uit om trainer te worden bij John’s Gym.'],
+    ['nl-NL', 'John nodigt je uit om een trainer te worden bij John’s Gym.'],
     ['en', 'John invited you to become a trainer at John’s Gym.'],
   ] as const)(
     'AC1: %s names the inviter and the workspace in the sentence',
