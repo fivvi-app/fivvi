@@ -171,11 +171,13 @@ describe.each(locales)('F006 TW-01 Clients in %s', (locale) => {
     added = false,
     defaultLocale: 'nl-NL' | 'en' = 'nl-NL',
     canEdit = true,
+    sessions: Schemas['UpcomingSession'][] = [],
   ) =>
     render(
       locale,
       <ClientProfile
         client={client}
+        upcoming={{ clientId: client.id, timeZone: 'Europe/Amsterdam', sessions }}
         workspaceId="w1"
         slug="johns-gym"
         canEdit={canEdit}
@@ -183,6 +185,50 @@ describe.each(locales)('F006 TW-01 Clients in %s', (locale) => {
         added={added}
       />,
     );
+
+  const upcomingSession = (id: string, startsAt: string, trainer?: string) => ({
+    id,
+    startsAt,
+    endsAt: new Date(new Date(startsAt).getTime() + 3_600_000).toISOString(),
+    ...(trainer ? { trainer: { id: 't1', name: trainer } } : {}),
+  });
+  const wall = (instant: string, options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat(locale === 'en' ? 'en-GB' : 'nl-NL', {
+      timeZone: 'Europe/Amsterdam',
+      ...options,
+    }).format(new Date(instant));
+
+  it('F020 AC9: the overview lists the upcoming sessions in the order given, each with its date, time, trainer and page', () => {
+    const html = profile(anna, false, 'nl-NL', true, [
+      upcomingSession('s1', '2026-09-24T07:00:00.000Z', 'Sarah'),
+      upcomingSession('s2', '2026-09-25T08:00:00.000Z', 'Tom'),
+      upcomingSession('s3', '2026-10-01T07:30:00.000Z'),
+    ]);
+
+    expect(html).toContain(escapeHtml(copy.clients.profile.upcomingTitle));
+    expect(html).not.toContain(escapeHtml(copy.clients.profile.upcomingEmpty));
+    const first = copy.clients.profile.upcomingWhen
+      .replace(
+        '{date}',
+        wall('2026-09-24T07:00:00.000Z', { weekday: 'short', day: 'numeric', month: 'short' }),
+      )
+      .replace('{time}', '09:00');
+    expect(html).toContain(`href="/w/johns-gym/sessions/s1"`);
+    expect(html).toContain(escapeHtml(first));
+    expect(html.indexOf('/sessions/s1')).toBeLessThan(html.indexOf('/sessions/s2'));
+    expect(html.indexOf('/sessions/s2')).toBeLessThan(html.indexOf('/sessions/s3'));
+    expect(html).toContain('Sarah');
+    expect(html).toContain('Tom');
+    // 09:30 on 1 October: summer time, two hours after the instant's hour in UTC.
+    expect(html).toContain('09:30');
+  });
+
+  it('F020 AC9: a client without upcoming sessions shows the empty text', () => {
+    const html = profile(mark);
+
+    expect(html).toContain(escapeHtml(copy.clients.profile.upcomingEmpty));
+    expect(html).not.toContain('/sessions/');
+  });
 
   it('AC1: a client without a language follows the workspace’s default, which the profile names', () => {
     const dutch = profile(mark);
@@ -247,12 +293,17 @@ describe.each(locales)('F006 TW-01 Clients in %s', (locale) => {
     );
   });
 
-  it('no placeholder tabs: the profile has the overview only', () => {
+  it('no placeholder tabs: the profile has the overview and the upcoming sessions (F020) only', () => {
     const html = profile(anna);
 
     expect(html).not.toContain('role="tab"');
     expect(html).not.toContain('role="tablist"');
-    expect(html.match(/<h2/g)).toHaveLength(1);
+    expect(
+      html.match(/<h2[^>]*>(.*?)<\/h2>/g)?.map((heading) => heading.replace(/<[^>]*>/g, '')),
+    ).toEqual([
+      escapeHtml(copy.clients.profile.overview),
+      escapeHtml(copy.clients.profile.upcomingTitle),
+    ]);
   });
 
   it('AC2: the email address is a required field in the copy, with a message for a missing one', () => {
