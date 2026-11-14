@@ -436,13 +436,21 @@ jobs:
         shell: bash
         env:
           FIVVI_QUARANTINE: only
+          # No colour codes in the log the report step reads.
+          NO_COLOR: '1'
+          FORCE_COLOR: '0'
+        # The step ends 0 whatever the tests did, and writes their real exit status as its output `status`: a failed step
+        # under continue-on-error would still add a red "Process completed with exit code 1" annotation to the green check.
         run: |
+          set +e
           {
             status=0
             pnpm -r --no-bail --if-present run test --reporter=default || status=1
             pnpm -r --no-bail --if-present run test:integration --reporter=default || status=1
             exit "$status"
           } 2>&1 | tee "$RUNNER_TEMP/quarantine-vitest.log"
+          echo "status=${PIPESTATUS[0]}" >>"$GITHUB_OUTPUT"
+          exit 0
 
       # Restore only, as E2E (Linux) does: that job and Checks (Linux) save the caches.
       - name: Restore turbo cache
@@ -505,10 +513,17 @@ jobs:
         shell: bash
         env:
           FIVVI_QUARANTINE: only
-        run: pnpm --filter @fivvi/web run test:e2e --retries=0 --reporter=list,html,./e2e/timeout-reporter.ts 2>&1 | tee "$RUNNER_TEMP/quarantine-playwright.log"
+          NO_COLOR: '1'
+          FORCE_COLOR: '0'
+        # Ends 0 and writes the real exit status as its output `status`, as the Vitest step does.
+        run: |
+          set +e
+          pnpm --filter @fivvi/web run test:e2e --retries=0 --reporter=list,html,./e2e/timeout-reporter.ts 2>&1 | tee "$RUNNER_TEMP/quarantine-playwright.log"
+          echo "status=${PIPESTATUS[0]}" >>"$GITHUB_OUTPUT"
+          exit 0
 
       - name: Upload Playwright report
-        if: ${{ !cancelled() && steps.e2e.outcome == 'failure' }}
+        if: ${{ !cancelled() && steps.e2e.outputs.status != '' && steps.e2e.outputs.status != '0' }}
         continue-on-error: true
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
@@ -529,32 +544,38 @@ jobs:
           INSTALL: ${{ steps.install.outcome }}
           VITEST_LISTED: ${{ steps.lists.outputs.vitest }}
           VITEST: ${{ steps.vitest.outcome }}
+          VITEST_STATUS: ${{ steps.vitest.outputs.status }}
           PLAYWRIGHT_LISTED: ${{ steps.lists.outputs.playwright }}
           E2E: ${{ steps.e2e.outcome }}
+          E2E_STATUS: ${{ steps.e2e.outputs.status }}
         run: |
           summary="${GITHUB_STEP_SUMMARY:-/dev/null}"
           echo '### Quarantine' >>"$summary"
-          # report <runner> <listed> <outcome> <log> <pattern of a failed test's line>
+          # report <runner> <listed> <step outcome> <exit status of the tests> <log> <pattern of a failed test's line>
+          # The test steps end 0 themselves and write the real exit status of the tests; an empty status with an outcome of
+          # failure is a step that did not finish (its timeout), and `skipped` is a step that did not start.
           report() {
-            local runner="$1" listed="$2" outcome="$3" log="$4" pattern="$5" failed
+            local runner="$1" listed="$2" outcome="$3" status="$4" log="$5" pattern="$6" failed
             if [[ "$listed" == '0' ]]; then
               echo "- $runner: nothing listed" >>"$summary"
-            elif [[ "$outcome" == 'success' ]]; then
+            elif [[ "$status" == '0' ]]; then
               echo "- $runner: all $listed quarantined test(s) passed" >>"$summary"
-            elif [[ "$outcome" == 'failure' ]]; then
-              failed="$(grep -E "$pattern" "$log" 2>/dev/null | sed -E 's/^(apps|packages)\/[^ ]+ [^ ]+: //; s/^ +//; s/\x1b\[[0-9;]*m//g' | sort -u | head -20 || true)"
+            elif [[ -n "$status" ]]; then
+              # Colour codes first (the log has none when NO_COLOR works, and a runner may add them anyway), then the lines of
+              # failed tests, without pnpm's own summary of a failed recursive run (`× "pnpm recursive run" failed in 1 packages`).
+              failed="$(sed -E 's/\x1b\[[0-9;]*m//g' "$log" 2>/dev/null | grep -E "$pattern" | grep -v 'pnpm recursive run' | sed -E 's/^(apps|packages)\/[^ ]+ [^ ]+: //; s/^ +//' | sort -u | head -20 || true)"
               echo "- $runner: **$listed listed, and the quarantined tests failed**" >>"$summary"
               if [[ -n "$failed" ]]; then
                 printf '\n```\n%s\n```\n' "$failed" >>"$summary"
               fi
               echo "::warning title=Quarantine ($runner)::the listed tests of $runner failed (the check stays green: a quarantined test never blocks). $(printf '%s' "$failed" | tr '\n' ';' | cut -c1-400 | sed 's/%/%25/g')"
             else
-              echo "- $runner: $listed listed, but the tests did not run ($outcome): see the steps of this job" >>"$summary"
-              echo "::warning title=Quarantine ($runner)::$listed listed test(s) of $runner did not run ($outcome); see the steps of this job"
+              echo "- $runner: $listed listed, but the tests did not run to the end ($outcome): see the steps of this job" >>"$summary"
+              echo "::warning title=Quarantine ($runner)::$listed listed test(s) of $runner did not run to the end ($outcome); see the steps of this job"
             fi
           }
-          report Vitest "$VITEST_LISTED" "$VITEST" "$RUNNER_TEMP/quarantine-vitest.log" '^((apps|packages)/[^ ]+ [^ ]+: )? *(FAIL|×) '
-          report Playwright "$PLAYWRIGHT_LISTED" "$E2E" "$RUNNER_TEMP/quarantine-playwright.log" '^((apps|packages)/[^ ]+ [^ ]+: )? +[0-9]+\) \['
+          report Vitest "$VITEST_LISTED" "$VITEST" "$VITEST_STATUS" "$RUNNER_TEMP/quarantine-vitest.log" '^((apps|packages)/[^ ]+ [^ ]+: )? *(FAIL|×) '
+          report Playwright "$PLAYWRIGHT_LISTED" "$E2E" "$E2E_STATUS" "$RUNNER_TEMP/quarantine-playwright.log" '^((apps|packages)/[^ ]+ [^ ]+: )? +[0-9]+\) \['
 
   # iOS (E008, E002, #293). Three parts and the gate "iOS": one job builds once and packs the test bundle, two jobs run
   # the Dutch and the English test pass from it at the same time, each on its own simulator (a cold run was 16 of 21

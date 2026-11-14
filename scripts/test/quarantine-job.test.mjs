@@ -98,7 +98,7 @@ describe('#1361 AC2 the Quarantine job', () => {
     assert.match(e2e, /^ {10}FIVVI_QUARANTINE: only$/m);
     assert.match(
       e2e,
-      /run: pnpm --filter @fivvi\/web run test:e2e --retries=0 --reporter=list,html,\.\/e2e\/timeout-reporter\.ts 2>&1 \| tee "\$RUNNER_TEMP\/quarantine-playwright\.log"$/m,
+      /^ {10}pnpm --filter @fivvi\/web run test:e2e --retries=0 --reporter=list,html,\.\/e2e\/timeout-reporter\.ts 2>&1 \| tee "\$RUNNER_TEMP\/quarantine-playwright\.log"$/m,
     );
   });
 
@@ -234,7 +234,14 @@ describe('#1361 AC2 the Quarantine job', () => {
     it('names the failed tests of Vitest, also when pnpm -r prefixes the lines, and of Playwright; the status stays 0', () => {
       const result = run(
         { vitest: VITEST_LOG, playwright: PLAYWRIGHT_LOG },
-        { VITEST_LISTED: '1', VITEST: 'failure', PLAYWRIGHT_LISTED: '1', E2E: 'failure' },
+        {
+          VITEST_LISTED: '1',
+          VITEST: 'success',
+          VITEST_STATUS: '1',
+          PLAYWRIGHT_LISTED: '1',
+          E2E: 'success',
+          E2E_STATUS: '1',
+        },
       );
       assert.equal(result.status, 0);
       assert.match(result.summary, /Vitest: \*\*1 listed, and the quarantined tests failed\*\*/);
@@ -266,7 +273,14 @@ describe('#1361 AC2 the Quarantine job', () => {
     it('says all passed, and that a runner did not run, without a failure', () => {
       const passed = run(
         {},
-        { VITEST_LISTED: '2', VITEST: 'success', PLAYWRIGHT_LISTED: '0', E2E: 'skipped' },
+        {
+          VITEST_LISTED: '2',
+          VITEST: 'success',
+          VITEST_STATUS: '0',
+          PLAYWRIGHT_LISTED: '0',
+          E2E: 'skipped',
+          E2E_STATUS: '',
+        },
       );
       assert.equal(passed.status, 0);
       assert.match(passed.summary, /Vitest: all 2 quarantined test\(s\) passed/);
@@ -274,14 +288,89 @@ describe('#1361 AC2 the Quarantine job', () => {
       assert.equal(passed.out, '');
       const skipped = run(
         {},
-        { VITEST_LISTED: '0', VITEST: 'skipped', PLAYWRIGHT_LISTED: '1', E2E: 'skipped' },
+        {
+          VITEST_LISTED: '0',
+          VITEST: 'skipped',
+          VITEST_STATUS: '',
+          PLAYWRIGHT_LISTED: '1',
+          E2E: 'skipped',
+          E2E_STATUS: '',
+        },
       );
       assert.equal(skipped.status, 0);
       assert.match(
         skipped.out,
-        /::warning title=Quarantine \(Playwright\)::.*did not run \(skipped\)/,
+        /::warning title=Quarantine \(Playwright\)::.*did not run to the end \(skipped\)/,
       );
     });
+
+    it('names the failed Vitest test of a real CI log, with colour codes, and not the line pnpm adds for the failed run', () => {
+      const esc = String.fromCharCode(27);
+      const real = [
+        `packages/testing test:  ${esc}[41m${esc}[1m FAIL ${esc}[22m${esc}[49m src/quarantine-proof.test.ts > quarantine proof (CI) > a deliberately failing test`,
+        'packages/testing test: AssertionError: expected 1 to be 2',
+        'packages/testing test: Failed Tests 1',
+        ' ELIFECYCLE  Command failed with exit code 1.',
+        ' × "pnpm recursive run" failed in 1 packages',
+      ].join('\n');
+      const result = run(
+        { vitest: real },
+        {
+          VITEST_LISTED: '1',
+          VITEST: 'success',
+          VITEST_STATUS: '1',
+          PLAYWRIGHT_LISTED: '0',
+          E2E: 'skipped',
+          E2E_STATUS: '',
+        },
+      );
+      assert.equal(result.status, 0);
+      assert.match(
+        result.summary,
+        /^FAIL {2}src\/quarantine-proof\.test\.ts > quarantine proof \(CI\) > a deliberately failing test$/m,
+      );
+      assert.doesNotMatch(result.summary, /recursive run/);
+      assert.doesNotMatch(result.out, /recursive run/);
+      assert.doesNotMatch(result.summary + result.out, new RegExp(`${esc}\\[`));
+      assert.match(
+        result.out,
+        /::warning title=Quarantine \(Vitest\)::.*quarantine proof \(CI\) > a deliberately failing test/,
+      );
+    });
+
+    it('a step that did not finish (a timeout: no status) is a warning, not a pass', () => {
+      const result = run(
+        {},
+        {
+          VITEST_LISTED: '1',
+          VITEST: 'failure',
+          VITEST_STATUS: '',
+          PLAYWRIGHT_LISTED: '0',
+          E2E: 'skipped',
+          E2E_STATUS: '',
+        },
+      );
+      assert.match(
+        result.out,
+        /::warning title=Quarantine \(Vitest\)::.*did not run to the end \(failure\)/,
+      );
+    });
+  });
+
+  it('the two test steps end 0 themselves and write the real exit status, so no red "exit code 1" annotation sits under the green check', () => {
+    for (const id of ['vitest', 'e2e']) {
+      const step = steps(quarantine).find((s) => new RegExp(`id: ${id}\n`).test(s));
+      assert.match(step, /^ {10}set \+e$/m, id);
+      assert.match(step, /echo "status=\$\{PIPESTATUS\[0\]\}" >>"\$GITHUB_OUTPUT"/, id);
+      assert.match(step, /^ {10}exit 0$/m, id);
+      assert.match(step, /^ {10}NO_COLOR: '1'$/m, id);
+    }
+    const report = steps(quarantine).at(-1);
+    assert.match(report, /VITEST_STATUS: \$\{\{ steps\.vitest\.outputs\.status \}\}/);
+    assert.match(report, /E2E_STATUS: \$\{\{ steps\.e2e\.outputs\.status \}\}/);
+    // The Playwright report is uploaded from the real exit status, not from the outcome of a step that always ends 0.
+    const upload = steps(quarantine).find((s) => /playwright-report-quarantine/.test(s));
+    assert.match(stepIf(upload), /steps\.e2e\.outputs\.status != '0'/);
   });
 
   it('the required jobs never set FIVVI_QUARANTINE: they leave the listed tests out', () => {
