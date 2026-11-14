@@ -65,6 +65,6 @@ Each version has:
 
 The five are the hours at 11, 12, 3, 6 and 7 on the dial, clockwise from the top. The pink is the gradient of the app icon (`#FF4F7B` to `#C8103D`); white on the pink and tinted previews.
 
-## Still to do
+## In the apps
 
-- The app icons in `apps/ios` and `apps/android` still show the placeholder "F": `scripts/app-icon.mjs` will draw the day dial B2 (issue #666), and then PRO in its centre, since these are the Fivvi Pro apps (issue #672).
+`scripts/app-icon.mjs` (`pnpm app-icon`) draws the app icons from this folder's data: Fivvi Pro's icons are B2 with PRO (the iOS light, dark and tinted icons, the Android adaptive icon with its monochrome layer, the Play icon), and the client app Fivvi's are the plain B2. PRO is copied unchanged from `day-dial/b2-pro/layers/4-pro.svg`; `scripts/test/app-icon.test.mjs` fails when a committed icon differs from what the script generates.

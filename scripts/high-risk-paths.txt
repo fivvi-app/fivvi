@@ -22,6 +22,10 @@
 @agent-queue billing
 # Tooling: test and build configs, lint rules, drift and contrast checks, native and release helper scripts, TESTING.md.
 @agent-queue tooling
+# Quarantine (ADR-025, amendment of 12 November 2026): the lists of flaky tests, one per test runner, in quarantine/.
+# They are outside every guardrail path; scripts/quarantine.mjs limits what they may hold (7 days, a bug, no isolation,
+# concurrency or permission test). The list readers, the rule and the Quarantine job stay owner-only.
+@agent-queue quarantine
 #
 # One rule per line: <group> <pattern>. Patterns are case-insensitive globs; `*` matches within one path segment. A
 # pattern that starts with `/` is anchored at the repo root, any other matches at every depth. A pattern also matches
@@ -147,6 +151,8 @@ tooling               /scripts/test/release*.test.mjs
 tooling               /scripts/test/app-icon.test.mjs
 tooling               /scripts/test/app-ids.test.mjs
 tooling               /scripts/test/dockerfile.test.mjs
+# The quarantine lists, one file per test runner (quarantine/vitest.txt, playwright.txt, xctest.txt, compose.txt, maestro.txt).
+quarantine            /quarantine
 dependencies          package.json
 dependencies          /pnpm-lock.yaml
 dependencies          /pnpm-workspace.yaml

@@ -154,7 +154,14 @@ check() {
     echo "✓ $name"
   else
     echo "✗ $name"
-    [ -z "$out" ] || failure_output "$out" | sed 's/^/    /'
+    # Indented with sed, not ${out//$'\n'/...}: bash 3.2's (macOS /bin/bash) substitution is quadratic in the length of the
+    # string, and a failed e2e run prints thousands of lines: check.sh spun for hours holding the lock (#1368). Both the
+    # filter and the indenting run under LC_ALL=C: BSD sed in a UTF-8 locale stops at a byte that is not UTF-8, which
+    # would drop the lines after it (and under pipefail end check.sh before the summary).
+    if [ -n "$out" ]; then
+      out="$(LC_ALL=C failure_output "$out")"
+      printf '%s\n' "$out" | LC_ALL=C sed 's/^/    /'
+    fi
     FAILED=1
   fi
 }
@@ -308,6 +315,8 @@ check "file emails" "$ROOT/scripts/emails.sh" files
 check "file secrets" "$ROOT/scripts/secrets.sh" files
 check "secrets in tests" node "$ROOT/scripts/secrets-in-tests.mjs"
 check "doc links" doc_links
+# The quarantine lists (ADR-025, amendment of 12 November 2026): whatever changed, because an entry expires with the date.
+check "quarantine lists" node "$ROOT/scripts/quarantine.mjs"
 if [ "$(plan_flag root)" = true ]; then
   check "shell syntax" syntax
   check "shellcheck" shellcheck_all
