@@ -1,5 +1,5 @@
 import { parseArgs } from 'node:util';
-import type { DatabaseClient } from './client.ts';
+import type pg from 'pg';
 import {
   checkMarkers,
   compareCounts,
@@ -31,9 +31,15 @@ export const USAGE = [
 
 export interface RestoreDeps {
   /** Opens the privileged connection whose URL is in the environment variable `variable`. */
-  open(variable: string): DatabaseClient;
+  open(variable: string): RestoreConnection;
   /** Where a line of output goes. */
   out(line: string): void;
+}
+
+/** A privileged connection of `pg`: the pool and the way to close it. */
+export interface RestoreConnection {
+  pool: pg.Pool;
+  close(): Promise<void>;
 }
 
 /** Thrown for a mistake in the arguments; its message is safe to print. */
@@ -68,7 +74,7 @@ function label(value: string | undefined, fallback: string, option: string): str
 async function withDatabase<T>(
   deps: RestoreDeps,
   variable: string,
-  run: (client: DatabaseClient) => Promise<T>,
+  run: (client: RestoreConnection) => Promise<T>,
 ): Promise<T> {
   const client = deps.open(variable);
   try {
@@ -114,13 +120,13 @@ async function run(argv: readonly string[], deps: RestoreDeps): Promise<number> 
     if (!MARKER_KINDS.includes(kind)) throw new UsageError('--kind is "before" or "after".');
     const at = parseTime(values.at);
     const variable = required(values['database-url-env'], '--database-url-env');
-    await withDatabase(deps, variable, (client) => writeMarker(client.db, kind, at));
+    await withDatabase(deps, variable, (client) => writeMarker(client.pool, kind, at));
     deps.out(`Marker ${kind} written for ${at.toISOString()}.`);
     return 0;
   }
   if (command === 'markers' && subcommand === 'check') {
     const variable = required(values['database-url-env'], '--database-url-env');
-    const report = await withDatabase(deps, variable, (client) => checkMarkers(client.db));
+    const report = await withDatabase(deps, variable, (client) => checkMarkers(client.pool));
     deps.out(`Marker before the point: ${report.before ? 'found' : 'missing'}.`);
     deps.out(`Marker after the point: ${report.after ? 'found' : 'absent'}.`);
     deps.out(report.ok ? 'Markers: passed.' : 'Markers: failed.');
@@ -128,7 +134,7 @@ async function run(argv: readonly string[], deps: RestoreDeps): Promise<number> 
   }
   if (command === 'markers' && subcommand === 'remove') {
     const variable = required(values['database-url-env'], '--database-url-env');
-    const removed = await withDatabase(deps, variable, (client) => removeDrill(client.db));
+    const removed = await withDatabase(deps, variable, (client) => removeDrill(client.pool));
     deps.out(removed ? 'Drill table removed.' : 'No drill table to remove.');
     return 0;
   }
@@ -140,8 +146,12 @@ async function run(argv: readonly string[], deps: RestoreDeps): Promise<number> 
       source: label(values['source-name'], 'source', '--source-name'),
       restored: label(values['restored-name'], 'restored', '--restored-name'),
     };
-    const source = await withDatabase(deps, sourceVariable, (client) => countTables(client.db, at));
-    const restored = await withDatabase(deps, restoredVariable, (client) => countTables(client.db));
+    const source = await withDatabase(deps, sourceVariable, (client) =>
+      countTables(client.pool, at),
+    );
+    const restored = await withDatabase(deps, restoredVariable, (client) =>
+      countTables(client.pool),
+    );
     const comparison = compareCounts(source, restored);
     deps.out(`Row counts of ${names.source} and ${names.restored}, point ${at.toISOString()}.`);
     for (const line of formatCounts(comparison, names)) deps.out(line);

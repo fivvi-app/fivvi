@@ -8,6 +8,7 @@ import {
   onServer,
 } from '@fivvi/testing/database/server';
 import { sql } from 'drizzle-orm';
+import type pg from 'pg';
 import { afterEach, describe, expect, inject, it } from 'vitest';
 import { createDatabase, type DatabaseClient } from '../src/index.ts';
 import {
@@ -69,6 +70,9 @@ async function openSource(): Promise<Pair> {
   return pair;
 }
 
+/** The `pg` pool under a handle: the restore module talks to `pg` directly (#1309). */
+const raw = (client: DatabaseClient) => (client.db as unknown as { $client: pg.Pool }).$client;
+
 async function now(db: DatabaseClient): Promise<Date> {
   const { rows } = await db.db.execute<{ now: Date }>(sql`select clock_timestamp() as now`);
   return new Date(rows[0]?.now as Date);
@@ -88,28 +92,32 @@ describe('E016 the drill markers', () => {
   it('AC2: finds the marker before the point and not the one after, in a database restored between them', async () => {
     const pair = await openSource();
     const point = await now(pair.source);
-    await writeMarker(pair.source.db, 'before', point);
+    await writeMarker(raw(pair.source), 'before', point);
     const restored = await pair.restore();
-    await writeMarker(pair.source.db, 'after', point);
+    await writeMarker(raw(pair.source), 'after', point);
 
-    expect(await checkMarkers(restored.client.db)).toEqual({
+    expect(await checkMarkers(raw(restored.client))).toEqual({
       before: true,
       after: false,
       ok: true,
     });
-    expect(await checkMarkers(pair.source.db)).toEqual({ before: true, after: true, ok: false });
+    expect(await checkMarkers(raw(pair.source))).toEqual({ before: true, after: true, ok: false });
   });
 
   it('AC2: a database without the drill table holds neither marker', async () => {
     const pair = await openSource();
 
-    expect(await checkMarkers(pair.source.db)).toEqual({ before: false, after: false, ok: false });
+    expect(await checkMarkers(raw(pair.source))).toEqual({
+      before: false,
+      after: false,
+      ok: false,
+    });
   });
 
   it('AC2: writing a marker again replaces it', async () => {
     const pair = await openSource();
-    await writeMarker(pair.source.db, 'before', new Date('2026-11-10T09:00:00Z'));
-    await writeMarker(pair.source.db, 'before', new Date('2026-11-10T10:00:00Z'));
+    await writeMarker(raw(pair.source), 'before', new Date('2026-11-10T09:00:00Z'));
+    await writeMarker(raw(pair.source), 'before', new Date('2026-11-10T10:00:00Z'));
 
     const { rows } = await pair.source.db.execute<{ n: string }>(
       sql`select count(*)::text as n from ${sql.identifier(DRILL_TABLE)}`,
@@ -119,12 +127,12 @@ describe('E016 the drill markers', () => {
 
   it('AC2: the cleanup removes the drill table and its markers, and a second one is harmless', async () => {
     const pair = await openSource();
-    await writeMarker(pair.source.db, 'before', FIXED);
+    await writeMarker(raw(pair.source), 'before', FIXED);
     expect(await tableExists(pair.source)).toBe(true);
 
-    expect(await removeDrill(pair.source.db)).toBe(true);
+    expect(await removeDrill(raw(pair.source))).toBe(true);
     expect(await tableExists(pair.source)).toBe(false);
-    expect(await removeDrill(pair.source.db)).toBe(false);
+    expect(await removeDrill(raw(pair.source))).toBe(false);
   });
 
   it('AC2: the drill table is owned by the connection role and the app role cannot read it', async () => {
@@ -132,7 +140,7 @@ describe('E016 the drill markers', () => {
     cleanups.push(() => database.drop());
     const owner = createDatabase({ url: database.url, maxConnections: 1 });
     cleanups.push(() => owner.close());
-    await writeMarker(owner.db, 'before', FIXED);
+    await writeMarker(raw(owner), 'before', FIXED);
     const { rows: owners } = await owner.db.execute<{ owned: boolean }>(
       sql`select tableowner = current_user as owned from pg_tables where schemaname = 'public' and tablename = ${DRILL_TABLE}`,
     );
@@ -150,13 +158,13 @@ describe('E016 the row counts', () => {
   it('AC2: an identical restore passes, with the drill table left out', async () => {
     const pair = await openSource();
     await createWorkspace(pair.source.db);
-    await writeMarker(pair.source.db, 'before', FIXED);
+    await writeMarker(raw(pair.source), 'before', FIXED);
     const restored = await pair.restore();
     const point = await now(pair.source);
 
     const comparison = compareCounts(
-      await countTables(pair.source.db, point),
-      await countTables(restored.client.db),
+      await countTables(raw(pair.source), point),
+      await countTables(raw(restored.client)),
     );
 
     expect(countsPass(comparison)).toBe(true);
@@ -175,8 +183,8 @@ describe('E016 the row counts', () => {
     await createWorkspace(pair.source.db);
 
     const comparison = compareCounts(
-      await countTables(pair.source.db, point),
-      await countTables(restored.client.db),
+      await countTables(raw(pair.source), point),
+      await countTables(raw(restored.client)),
     );
 
     const organizations = comparison.find((entry) => entry.table === 'public.organizations');
@@ -198,8 +206,8 @@ describe('E016 the row counts', () => {
     await createWorkspace(restored.client.db);
 
     const comparison = compareCounts(
-      await countTables(pair.source.db, point),
-      await countTables(restored.client.db),
+      await countTables(raw(pair.source), point),
+      await countTables(raw(restored.client)),
     );
 
     expect(countsPass(comparison)).toBe(false);
@@ -214,7 +222,7 @@ describe('E016 the row counts', () => {
     const app = createDatabase({ url: database.appUrl, maxConnections: 1 });
     cleanups.push(() => app.close());
 
-    await expect(countTables(app.db)).rejects.toThrow('cannot count every row');
+    await expect(countTables(raw(app))).rejects.toThrow('cannot count every row');
   });
 });
 
@@ -229,10 +237,9 @@ describe('E016 the command line', () => {
     process.env.RESTORE_TEST_SOURCE = pair.sourceUrl;
     if (restoredUrl) process.env.RESTORE_TEST_RESTORED = restoredUrl;
     const lines: string[] = [];
-    const { openPrivilegedDatabase } = await import('../src/privileged.ts');
+    const { openPrivilegedPool } = await import('../src/privileged-access.ts');
     const code = await runRestore(argv, {
-      open: (variable) =>
-        openPrivilegedDatabase('restore', { variable, log: (m) => lines.push(m) }),
+      open: (variable) => openPrivilegedPool('restore', { variable, log: (m) => lines.push(m) }),
       out: (line) => lines.push(line),
     });
     return { code, output: lines.join('\n') };
