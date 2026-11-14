@@ -3,3 +3,4 @@
 # The test name is its full name as Vitest prints it, without file or project: the titles of its describe blocks and its own, joined by ` > ` (checkout > pays an invoice).
 # The dates are UTC days: the rule compares them with today's date in UTC.
 # Rules and evidence: docs/engineering/TESTING.md section 8, checked by scripts/quarantine.mjs. A quarantined test still runs.
+quarantine proof (CI) > a deliberately failing test | #1361 | 2026-11-14 | 2026-11-21

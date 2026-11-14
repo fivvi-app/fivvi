@@ -4,3 +4,4 @@
 # An entry covers the test in every project (nl-NL and en).
 # The dates are UTC days: the rule compares them with today's date in UTC.
 # Rules and evidence: docs/engineering/TESTING.md section 8, checked by scripts/quarantine.mjs. A quarantined test still runs.
+quarantine proof (CI) › a deliberately failing test | #1361 | 2026-11-14 | 2026-11-21
