@@ -10,20 +10,20 @@ import FivviDesignTokens
 /// the blocks take their texts as parameters.
 @MainActor
 final class KitRenderedTests: XCTestCase {
-    private let styles: [UIUserInterfaceStyle] = [.light, .dark]
-    private let sample = "Anna de Vries"
+    let styles: [UIUserInterfaceStyle] = [.light, .dark]
+    let sample = "Anna de Vries"
     private let longSample = "Aanwezig"
 
-    private func mode(_ style: UIUserInterfaceStyle) -> String { style == .dark ? "dark" : "light" }
+    func mode(_ style: UIUserInterfaceStyle) -> String { style == .dark ? "dark" : "light" }
 
     /// The pixel at `point` is `token` in `style`.
-    private func assertPixel(
+    func assertPixel(
         _ view: RenderedView, at point: CGPoint, is token: Color, _ style: UIUserInterfaceStyle, _ message: String
     ) {
         assertColour(view.colour(at: point), is: Pixel(token, in: style), "\(message) at \(point), \(mode(style))")
     }
 
-    private func pixel(_ token: Color, _ style: UIUserInterfaceStyle) -> Pixel { Pixel(token, in: style) }
+    func pixel(_ token: Color, _ style: UIUserInterfaceStyle) -> Pixel { Pixel(token, in: style) }
 
     // MARK: Card and inset group
 

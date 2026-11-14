@@ -24,10 +24,11 @@ struct ClientRoute: Hashable, Identifiable {
     }
 }
 
-/// *Klanten* / *Clients* (TM-02, F006): a large title, the search field, the clients sorted by name, pull to refresh
-/// and *+ Nieuwe klant*, a floating button, when the capability helper allows `clients.manage`. A row opens TM-03.
-/// Skeleton rows load, a failure says so with *Opnieuw proberen*, and a phone without a connection keeps the list it
-/// has with its age.
+/// *Klanten* / *Clients* (TM-02, F006, E020): the large title, the search field under it, and the clients sorted by name
+/// as avatar rows (name, email address, chevron) in one rounded group on the grouped canvas; pull to refresh; *+ Nieuwe
+/// klant* in the navigation bar, as the prototype's action, when the capability helper allows `clients.manage`. A row
+/// opens TM-03. Skeleton rows load, a failure says so with *Opnieuw proberen*, and a phone without a connection keeps
+/// the list it has with its age.
 struct ClientsView: View {
     let model: ClientsViewModel
     let language: AppLanguage
@@ -40,40 +41,41 @@ struct ClientsView: View {
     @State private var newClient: ClientFormViewModel?
     /// The client to open once the sheet that added or found them is gone.
     @State private var afterSheet: ClientRoute?
+    /// The avatar of a row; it grows with the text size, and the separators start after it.
+    @ScaledMetric(relativeTo: .body) private var avatar = PersonAvatarMetrics.row
 
     private var catalog: Catalog { model.catalog }
 
     var body: some View {
-        List { content }
+        LargeTitleScreen(title: catalog[.clientsTitle], titleIdentifier: "clients.title") {
+            VStack(alignment: .leading, spacing: Tokens.Spacing.space6) {
+                SearchPill(
+                    text: $searchText, prompt: catalog[.clientsSearchPlaceholder], identifier: "clients.search"
+                )
+                .tint(Tokens.Colors.accentText)
+                content
+            }
+            .accessibilityElement(children: .contain)
             .accessibilityIdentifier("clients.list")
-            .listStyle(.plain)
-            // Scrolling puts the keyboard of the search field away at once; a tap elsewhere would open a row.
-            .scrollDismissesKeyboard(.immediately)
-            .scrollContentBackground(.hidden)
-            .background(Tokens.Colors.bgCanvas)
-            .navigationTitle(catalog[.clientsTitle])
-            .navigationBarTitleDisplayMode(.large)
-            .searchable(
-                text: $searchText, placement: .navigationBarDrawer(displayMode: .always),
-                prompt: catalog[.clientsSearchPlaceholder]
-            )
-            .searchFieldIdentifier("clients.search")
-            // Not in the navigation bar: while the search is active iOS replaces the bar with the search field, and the
-            // action stays at hand, as the floating button of the Android app.
-            .safeAreaInset(edge: .bottom, alignment: .trailing) {
-                if capabilities.allows(.clients_manage) { newClientButton }
+        }
+        // Scrolling puts the keyboard of the search field away at once; a tap elsewhere would open a row.
+        .scrollDismissesKeyboard(.immediately)
+        .toolbar {
+            if capabilities.allows(.clients_manage) {
+                ToolbarItem(placement: .primaryAction) { newClientButton }
             }
-            .refreshable { await model.refresh() }
-            .task(id: searchText) { await searchChanged() }
-            .task(id: model.state == .loading) { await model.watchSlowLoading() }
-            .onReturnToForeground { await model.refresh() }
-            .onChange(of: language.catalog) { _, catalog in model.use(catalog) }
-            .sheet(item: $newClient, onDismiss: openClientAfterSheet) { form in
-                NavigationStack { newClientForm(form) }
-                    .presentationDetents([.large])
-            }
-            .environment(\.locale, catalog.formattingLocale)
-            .countingRenders("ClientsView")
+        }
+        .refreshable { await model.refresh() }
+        .task(id: searchText) { await searchChanged() }
+        .task(id: model.state == .loading) { await model.watchSlowLoading() }
+        .onReturnToForeground { await model.refresh() }
+        .onChange(of: language.catalog) { _, catalog in model.use(catalog) }
+        .sheet(item: $newClient, onDismiss: openClientAfterSheet) { form in
+            NavigationStack { newClientForm(form) }
+                .presentationDetents([.large])
+        }
+        .environment(\.locale, catalog.formattingLocale)
+        .countingRenders("ClientsView")
     }
 
     /// Typing waits a moment for the next letter; coming back to the screen reads the list again at once.
@@ -85,16 +87,16 @@ struct ClientsView: View {
         await model.search(searchText)
     }
 
+    /// The prototype's action: a prominent glass button in the bar with a plus (`.gb.prom`, `ic("plus")`). Its name is
+    /// the text, which the icon-only label keeps for VoiceOver.
     private var newClientButton: some View {
         Button {
             newClient = model.newClientForm()
         } label: {
             Label(catalog[.clientsNewClient], systemImage: "plus")
-                .multilineTextAlignment(.center)
-                .fixedSize(horizontal: false, vertical: true)
         }
-        .buttonStyle(.primaryAction)
-        .padding(Tokens.Spacing.gutter)
+        .buttonStyle(.glassProminent)
+        .tint(Tokens.Colors.accentFill)
         .accessibilityIdentifier("clients.add")
     }
 
@@ -127,8 +129,10 @@ struct ClientsView: View {
     @ViewBuilder private var content: some View {
         switch model.state {
         case .loading:
-            SkeletonRows(label: catalog[.commonLoading], id: "clients.loading")
-                .listRowSeparator(.hidden)
+            InsetGroup {
+                SkeletonRows(label: catalog[.commonLoading], id: "clients.loading")
+                    .insetRowLayout()
+            }
             if model.loadingSlow {
                 StatusMessage(text: catalog[.commonLoadingSlow], kind: .info, id: "clients.loadingSlow")
             }
@@ -151,8 +155,11 @@ struct ClientsView: View {
         if model.clients.isEmpty {
             emptyState
         } else {
-            ForEach(model.clients, id: \.id) { client in
-                row(client)
+            // Lazy: the next page loads when the last row comes on screen, not when the list opens.
+            InsetGroup(separatorInset: Tokens.Spacing.space4 + avatar + Tokens.Spacing.space3, lazy: true) {
+                ForEach(model.clients, id: \.id) { client in
+                    row(client)
+                }
             }
             if model.hasMore {
                 ProgressView()
@@ -165,36 +172,46 @@ struct ClientsView: View {
     }
 
     private var failure: some View {
-        VStack(alignment: .leading, spacing: Tokens.Spacing.space4) {
-            StatusMessage(text: catalog[.clientsLoadError], kind: .error, id: "clients.error")
-            Button {
-                Task { await model.load() }
-            } label: {
-                Text(catalog[.commonRetry])
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
+        InsetGroup {
+            VStack(spacing: Tokens.Spacing.space4) {
+                StatusMessage(text: catalog[.clientsLoadError], kind: .error, id: "clients.error")
+                PillButtonStack {
+                    Button {
+                        Task { await model.load() }
+                    } label: {
+                        Text(catalog[.commonRetry])
+                            .multilineTextAlignment(.center)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity)
+                    }
+                    .buttonStyle(.pill(.filled))
+                    .accessibilityIdentifier("clients.retry")
+                }
             }
-            .buttonStyle(.primaryAction)
-            .accessibilityIdentifier("clients.retry")
+            .insetRowLayout()
         }
     }
 
-    /// "Nog geen klanten. Voeg je eerste klant toe." with the add action, or "Geen klanten gevonden." for a search.
+    /// "Nog geen klanten. Voeg je eerste klant toe." or "Geen klanten gevonden." for a search.
     @ViewBuilder private var emptyState: some View {
         if model.query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-            VStack(alignment: .leading, spacing: Tokens.Spacing.space4) {
+            InsetGroup {
                 Text(catalog[.clientsEmpty])
                     .font(.system(Tokens.TextStyle.body))
                     .foregroundStyle(Tokens.Colors.textPrimary)
                     .fixedSize(horizontal: false, vertical: true)
+                    .insetRowLayout()
                     .accessibilityIdentifier("clients.empty")
             }
         } else {
-            Text(catalog[.clientsNoResults])
-                .font(.system(Tokens.TextStyle.body))
-                .foregroundStyle(Tokens.Colors.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier("clients.noResults")
+            InsetGroup {
+                Text(catalog[.clientsNoResults])
+                    .font(.system(Tokens.TextStyle.body))
+                    .foregroundStyle(Tokens.Colors.textSecondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .insetRowLayout()
+                    .accessibilityIdentifier("clients.noResults")
+            }
         }
     }
 
@@ -202,30 +219,30 @@ struct ClientsView: View {
         Button {
             onOpen(ClientRoute(client: client))
         } label: {
-            HStack {
-                VStack(alignment: .leading, spacing: Tokens.Spacing.space1) {
+            HStack(spacing: Tokens.Spacing.space3) {
+                PersonAvatar(name: client.name)
+                VStack(alignment: .leading, spacing: 2) {
                     Text(client.name)
-                        .font(.system(Tokens.TextStyle.body))
+                        .font(.system(Tokens.TextStyle.body, weight: .semibold))
                         .foregroundStyle(Tokens.Colors.textPrimary)
-                        .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("clients.rowName.\(client.id)")
                     Text(client.email)
-                        .font(.system(Tokens.TextStyle.label))
+                        .font(.system(Tokens.TextStyle.subhead))
                         .foregroundStyle(Tokens.Colors.textSecondary)
-                        .multilineTextAlignment(.leading)
                         .fixedSize(horizontal: false, vertical: true)
                         .accessibilityIdentifier("clients.rowEmail.\(client.id)")
                 }
-                Spacer()
-                Image(systemName: "chevron.right")
+                Spacer(minLength: Tokens.Spacing.space2)
+                Image(systemName: "chevron.forward")
+                    .font(.system(Tokens.TextStyle.footnote, weight: .semibold))
                     .foregroundStyle(Tokens.Colors.fillDecorative)
                     .accessibilityHidden(true)
             }
-            .frame(minHeight: 44)
-            .contentShape(Rectangle())
+            .multilineTextAlignment(.leading)
+            .insetRowLayout()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.insetRow)
         .accessibilityIdentifier("clients.row.\(client.id)")
         .task { await model.loadMore(after: client) }
     }

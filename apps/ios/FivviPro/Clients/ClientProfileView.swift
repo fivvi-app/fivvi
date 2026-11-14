@@ -31,11 +31,13 @@ struct ClientProfileScreen: View {
     }
 }
 
-/// *Klantprofiel* / *Client profile* (TM-03, F006): the client's name as the title, the section *Overzicht* with name,
-/// email address and language for emails, and *Bewerken* in the bar for whoever may manage clients (the capability
-/// helper decides). The other parts of the profile come with the features that own them; no empty placeholders. The
-/// bar's back button is our own (`clientProfile.back`, the id the Maestro flow taps; SwiftUI can't give the system's
-/// one an id): the chevron and the title of the list, as the system's shows (IA §5.2), with the swipe back kept.
+/// *Klantprofiel* / *Client profile* (TM-03, F006, E020): the client's avatar (84 pt) and name centred at the top, the
+/// section *Overzicht* below as an inset group with name, email address and language for emails (the labels at the start
+/// of their rows, the values at the end), and *Bewerken* in the bar for whoever may manage clients (the capability helper
+/// decides). The other parts of the profile come with the features that own them; no empty placeholders. The bar's back
+/// button is our own (`clientProfile.back`, the id the Maestro flow taps; SwiftUI can't give the system's one an id): the
+/// chevron and the title of the list, as the system's shows (IA §5.2), with the swipe back kept. The bar shows the name
+/// once it has scrolled out of sight.
 struct ClientProfileView: View {
     let model: ClientProfileViewModel
     let language: AppLanguage
@@ -43,6 +45,7 @@ struct ClientProfileView: View {
     /// *Anna de Vries openen* in the edit form: the profile of that client replaces this one.
     let onOpenExisting: (String) -> Void
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var editing: ClientFormViewModel?
     /// The client to open once the edit sheet is gone.
     @State private var afterSheet: String?
@@ -50,37 +53,52 @@ struct ClientProfileView: View {
     private var catalog: Catalog { model.catalog }
 
     var body: some View {
-        List { content }
-            .listStyle(.insetGrouped)
-            .scrollContentBackground(.hidden)
-            .background(Tokens.Colors.bgCanvas)
-            .navigationTitle(model.title)
-            .navigationBarTitleDisplayMode(.inline)
-            .navigationBarBackButtonHidden(true)
-            .background(KeepSwipeBack())
-            .toolbar {
-                ToolbarItem(placement: .navigationBarLeading) { backButton }
-                ToolbarItem(placement: .principal) {
-                    Text(model.title)
-                        .font(.headline)
-                        .lineLimit(1)
-                        .accessibilityAddTraits(.isHeader)
-                        .accessibilityIdentifier("clientProfile.title")
-                }
-                if capabilities.allows(.clients_manage), model.state == .loaded {
-                    ToolbarItem(placement: .primaryAction) { editButton }
-                }
+        InsetGroupedList {
+            header
+        } content: {
+            content
+        }
+        .fivviCanvas()
+        .inlineTitleOnceScrolledAway(model.title)
+        .navigationBarBackButtonHidden(true)
+        .background(KeepSwipeBack())
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) { backButton }
+            if capabilities.allows(.clients_manage), model.state == .loaded {
+                ToolbarItem(placement: .primaryAction) { editButton }
             }
-            .refreshable { await model.refresh() }
-            .task(id: model.state == .loading) { await model.watchSlowLoading() }
-            .task { if model.state == .loading { await model.load() } else { await model.refresh() } }
-            .onReturnToForeground { await model.refresh() }
-            .onChange(of: language.catalog) { _, catalog in model.use(catalog) }
-            .sheet(item: $editing, onDismiss: openClientAfterSheet) { form in
-                NavigationStack { editForm(form) }
-                    .presentationDetents([.large])
+        }
+        .refreshable { await model.refresh() }
+        .task(id: model.state == .loading) { await model.watchSlowLoading() }
+        .task { if model.state == .loading { await model.load() } else { await model.refresh() } }
+        .onReturnToForeground { await model.refresh() }
+        .onChange(of: language.catalog) { _, catalog in model.use(catalog) }
+        .sheet(item: $editing, onDismiss: openClientAfterSheet) { form in
+            NavigationStack { editForm(form) }
+                .presentationDetents([.large])
+        }
+        .environment(\.locale, catalog.formattingLocale)
+    }
+
+    /// The avatar and the name, centred (the prototype's `h1` at 28 pt). The avatar needs the name, so a profile that is
+    /// still loading by ID shows the screen's own title only.
+    private var header: some View {
+        VStack(spacing: Tokens.Spacing.space3) {
+            if let client = model.client {
+                PersonAvatar(name: client.name, size: PersonAvatarMetrics.large)
             }
-            .environment(\.locale, catalog.formattingLocale)
+            Text(model.title)
+                .font(.system(Tokens.TextStyle.title1, weight: .bold))
+                .foregroundStyle(Tokens.Colors.textPrimary)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+                .accessibilityAddTraits(.isHeader)
+                .accessibilityIdentifier("clientProfile.title")
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.horizontal, Tokens.Spacing.space5)
+        .padding(.top, 6)
+        .padding(.bottom, Tokens.Spacing.space5)
     }
 
     private var backButton: some View {
@@ -92,6 +110,7 @@ struct ClientProfileView: View {
                     .fontWeight(.semibold)
                 Text(catalog[.clientsTitle])
                     .lineLimit(1)
+                    .accessibilityIdentifier("clientProfile.backTitle")
             }
             .frame(minWidth: 44, minHeight: 44, alignment: .leading)
             .contentShape(Rectangle())
@@ -101,9 +120,12 @@ struct ClientProfileView: View {
         .accessibilityIdentifier("clientProfile.back")
     }
 
+    /// The prototype's pencil in the bar; its name is the text.
     private var editButton: some View {
-        Button(catalog[.clientProfileEdit]) {
+        Button {
             editing = model.editForm()
+        } label: {
+            Label(catalog[.clientProfileEdit], systemImage: "pencil")
         }
         .accessibilityIdentifier("clientProfile.edit")
     }
@@ -136,22 +158,31 @@ struct ClientProfileView: View {
     @ViewBuilder private var content: some View {
         switch model.state {
         case .loading:
-            SkeletonRows(label: catalog[.commonLoading], id: "clientProfile.loading")
+            InsetGroup {
+                SkeletonRows(label: catalog[.commonLoading], id: "clientProfile.loading")
+                    .insetRowLayout()
+            }
             if model.loadingSlow {
                 StatusMessage(text: catalog[.commonLoadingSlow], kind: .info, id: "clientProfile.loadingSlow")
             }
         case .failed:
-            VStack(alignment: .leading, spacing: Tokens.Spacing.space4) {
-                StatusMessage(text: catalog[.clientsLoadError], kind: .error, id: "clientProfile.error")
-                Button {
-                    Task { await model.load() }
-                } label: {
-                    Text(catalog[.commonRetry])
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
+            InsetGroup {
+                VStack(spacing: Tokens.Spacing.space4) {
+                    StatusMessage(text: catalog[.clientsLoadError], kind: .error, id: "clientProfile.error")
+                    PillButtonStack {
+                        Button {
+                            Task { await model.load() }
+                        } label: {
+                            Text(catalog[.commonRetry])
+                                .multilineTextAlignment(.center)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.pill(.filled))
+                        .accessibilityIdentifier("clientProfile.retry")
+                    }
                 }
-                .buttonStyle(.primaryAction)
-                .accessibilityIdentifier("clientProfile.retry")
+                .insetRowLayout()
             }
         case .noPermission:
             StatusMessage(text: catalog[.noPermissionTitle], kind: .info, id: "clientProfile.noPermissionTitle")
@@ -169,30 +200,33 @@ struct ClientProfileView: View {
         if let saved = model.savedText {
             StatusMessage(text: saved, kind: .success, id: "clientProfile.saved")
         }
-        Section {
+        InsetGroup(header: catalog[.clientProfileOverview], headerIdentifier: "clientProfile.overview") {
             fact(catalog[.clientProfileNameLabel], model.client?.name ?? "", id: "clientProfile.name")
             fact(catalog[.clientProfileEmailLabel], model.emailText, id: "clientProfile.email")
             fact(catalog[.clientProfileLocaleLabel], model.localeText, id: "clientProfile.language")
-        } header: {
-            Text(catalog[.clientProfileOverview])
-                .accessibilityAddTraits(.isHeader)
-                .accessibilityIdentifier("clientProfile.overview")
         }
     }
 
-    private func fact(_ label: String, _ value: String, id: String) -> some View {
-        VStack(alignment: .leading, spacing: Tokens.Spacing.space1) {
+    /// A row of the overview: the label at the start, the value at the end (the prototype's `kv` row); at the
+    /// accessibility sizes the value goes under its label, so neither is squeezed.
+    @ViewBuilder private func fact(_ label: String, _ value: String, id: String) -> some View {
+        let layout = dynamicTypeSize.isAccessibilitySize
+            ? AnyLayout(VStackLayout(alignment: .leading, spacing: Tokens.Spacing.space1))
+            : AnyLayout(HStackLayout(alignment: .firstTextBaseline, spacing: Tokens.Spacing.space3))
+        layout {
             Text(label)
-                .font(.system(Tokens.TextStyle.label))
-                .foregroundStyle(Tokens.Colors.textSecondary)
-                .fixedSize(horizontal: false, vertical: true)
-            Text(value)
                 .font(.system(Tokens.TextStyle.body))
                 .foregroundStyle(Tokens.Colors.textPrimary)
                 .fixedSize(horizontal: false, vertical: true)
+            if !dynamicTypeSize.isAccessibilitySize { Spacer(minLength: Tokens.Spacing.space2) }
+            Text(value)
+                .font(.system(Tokens.TextStyle.body))
+                .foregroundStyle(Tokens.Colors.textSecondary)
+                .multilineTextAlignment(dynamicTypeSize.isAccessibilitySize ? .leading : .trailing)
+                .fixedSize(horizontal: false, vertical: true)
                 .accessibilityIdentifier(id)
         }
-        .frame(maxWidth: .infinity, alignment: .leading)
+        .insetRowLayout()
     }
 }
 

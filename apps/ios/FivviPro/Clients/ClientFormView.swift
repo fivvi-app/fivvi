@@ -6,12 +6,13 @@ import FivviUI
 
 extension ClientFormViewModel: Identifiable {}
 
-/// The form of a sheet that adds a client (*+ Nieuwe klant*) or edits one (*Bewerken*): *Naam* (focused, required),
-/// *E-mailadres (optioneel)*, *Taal voor e-mails* with *Standaard (Nederlands)* preselected, and *Annuleren* and the
-/// save button in the bar (F006 AC1 to AC3, AC7), where the keyboard doesn't cover them. Field messages sit under their
-/// field; a failed save keeps the input; a duplicate email address offers the existing client. Text wraps, every
-/// control keeps a 44 pt touch target. The test ids start with `idPrefix` (`clients.add` or `clientProfile.edit`), as
-/// on Android.
+/// The form of a sheet that adds a client (*+ Nieuwe klant*) or edits one (*Bewerken*): *Naam* (focused, required) and
+/// *E-mailadres* as the fields of one inset group, *Taal voor e-mails* with *Standaard (Nederlands)* preselected as a
+/// group of its own, and *Annuleren* and the save button in the bar (F006 AC1 to AC3, AC7), where the keyboard doesn't
+/// cover them. A field with a message turns red and shows it under it, and VoiceOver reads it after the field's label;
+/// a failed save keeps the input; a duplicate email address offers the existing client. Text wraps, every control
+/// keeps a 44 pt touch target. The test ids start with `idPrefix` (`clients.add` or `clientProfile.edit`), as on
+/// Android.
 struct ClientFormView: View {
     @Bindable var model: ClientFormViewModel
     let idPrefix: String
@@ -27,31 +28,30 @@ struct ClientFormView: View {
     @FocusState private var nameFocused: Bool
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: Tokens.Spacing.space5) {
+        InsetGroupedList {
+            InsetGroup {
                 nameField
                 emailField
-                if let offer = model.existsText { existingOffer(offer) }
-                localeChoice
-                if let failed = model.saveFailedText {
-                    StatusMessage(text: failed, kind: .error, id: "\(idPrefix).failed")
-                }
-                if model.noPermission {
-                    StatusMessage(text: model.noPermissionText, kind: .error, id: "\(idPrefix).noPermission")
-                }
             }
-            .padding(Tokens.Spacing.gutter)
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.top, Tokens.Spacing.space4)
+            if let offer = model.existsText { existingOffer(offer) }
+            localeChoice
+            if let failed = model.saveFailedText {
+                StatusMessage(text: failed, kind: .error, id: "\(idPrefix).failed")
+            }
+            if model.noPermission {
+                StatusMessage(text: model.noPermissionText, kind: .error, id: "\(idPrefix).noPermission")
+            }
         }
+        .fivviCanvas()
         .scrollDismissesKeyboard(.interactively)
-        .foregroundStyle(Tokens.Colors.textPrimary)
-        .background(Tokens.Colors.bgCanvas)
         .navigationTitle(title)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .principal) {
                 Text(title)
-                    .font(.headline)
+                    .font(.system(Tokens.TextStyle.headline))
+                    .foregroundStyle(Tokens.Colors.textPrimary)
                     .accessibilityAddTraits(.isHeader)
                     .accessibilityIdentifier("\(idPrefix).title")
             }
@@ -61,36 +61,34 @@ struct ClientFormView: View {
             }
             ToolbarItem(placement: .confirmationAction) { submit }
         }
+        // The bar's buttons are text: in the text-safe accent (4.5:1 in both modes), not the app's fill accent.
+        .tint(Tokens.Colors.accentText)
         .environment(\.locale, model.catalog.formattingLocale)
         .onAppear { if model.mode == .add { nameFocused = true } }
     }
 
     private var nameField: some View {
-        VStack(alignment: .leading, spacing: Tokens.Spacing.space2) {
-            fieldLabel(model.catalog[.clientsNameLabel])
+        FormField(label: model.catalog[.clientsNameLabel], error: model.nameErrorText) {
             TextField(model.catalog[.clientsNameLabel], text: $model.name)
                 .textInputAutocapitalization(.words)
                 .submitLabel(.next)
-                .accessibilityLabel(model.catalog[.clientsNameLabel])
                 .focused($nameFocused)
-                .textFieldFrame()
+                .textFieldStyle(.plain)
+                .frame(minHeight: 44)
                 .accessibilityIdentifier("\(idPrefix).name")
-            fieldError(model.nameErrorText, id: "\(idPrefix).nameError")
         }
     }
 
     private var emailField: some View {
-        VStack(alignment: .leading, spacing: Tokens.Spacing.space2) {
-            fieldLabel(model.catalog[.clientsEmailLabel])
+        FormField(label: model.catalog[.clientsEmailLabel], error: model.emailErrorText) {
             TextField(model.catalog[.clientsEmailLabel], text: $model.email)
                 .keyboardType(.emailAddress)
                 .textContentType(.emailAddress)
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled()
-                .accessibilityLabel(model.catalog[.clientsEmailLabel])
-                .textFieldFrame()
+                .textFieldStyle(.plain)
+                .frame(minHeight: 44)
                 .accessibilityIdentifier("\(idPrefix).email")
-            fieldError(model.emailErrorText, id: "\(idPrefix).emailError")
         }
     }
 
@@ -99,40 +97,42 @@ struct ClientFormView: View {
     private func existingOffer(_ text: String) -> some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.space3) {
             StatusMessage(text: text, kind: .info, id: "\(idPrefix).duplicate")
-            if let open = model.openExistingText, let existing = model.existing {
-                Button {
-                    onOpenExisting(existing.id)
-                } label: {
-                    Text(open)
-                        .multilineTextAlignment(.center)
-                        .fixedSize(horizontal: false, vertical: true)
+            PillButtonStack {
+                if let open = model.openExistingText, let existing = model.existing {
+                    Button {
+                        onOpenExisting(existing.id)
+                    } label: {
+                        pillLabel(open)
+                    }
+                    .buttonStyle(.pill(.tonal))
+                    .accessibilityIdentifier("\(idPrefix).openExisting")
                 }
-                .buttonStyle(.secondaryAction)
-                .accessibilityIdentifier("\(idPrefix).openExisting")
+                Button {
+                    model.useAnotherEmail()
+                } label: {
+                    pillLabel(model.catalog[.clientsOtherEmail])
+                }
+                .buttonStyle(.pill(.tonal))
+                .accessibilityIdentifier("\(idPrefix).otherEmail")
             }
-            Button {
-                model.useAnotherEmail()
-            } label: {
-                Text(model.catalog[.clientsOtherEmail])
-                    .multilineTextAlignment(.center)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .buttonStyle(.secondaryAction)
-            .accessibilityIdentifier("\(idPrefix).otherEmail")
         }
+    }
+
+    private func pillLabel(_ text: String) -> some View {
+        Text(text)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
+            .frame(maxWidth: .infinity)
     }
 
     /// *Standaard (Nederlands)*, *Nederlands*, *English*: a check mark on the one chosen.
     private var localeChoice: some View {
-        VStack(alignment: .leading, spacing: Tokens.Spacing.space1) {
-            fieldLabel(model.catalog[.clientsLocaleLabel])
-                .accessibilityAddTraits(.isHeader)
+        InsetGroup(header: model.catalog[.clientsLocaleLabel]) {
             localeOption(model.defaultLocaleText, locale: nil, id: "default")
             ForEach(ClientLocale.allCases, id: \.self) { locale in
                 localeOption(model.catalog.languageChoice(locale), locale: locale, id: locale.rawValue)
             }
         }
-        .accessibilityElement(children: .contain)
     }
 
     private func localeOption(_ text: String, locale: ClientLocale?, id: String) -> some View {
@@ -148,14 +148,13 @@ struct ClientFormView: View {
                 Spacer()
                 if model.locale == locale {
                     Image(systemName: "checkmark")
-                        .foregroundStyle(Tokens.Colors.actionPrimaryBg)
+                        .foregroundStyle(Tokens.Colors.accentText)
                         .accessibilityHidden(true)
                 }
             }
-            .frame(minHeight: 44)
-            .contentShape(Rectangle())
+            .insetRowLayout()
         }
-        .buttonStyle(.plain)
+        .buttonStyle(.insetRow)
         .accessibilityAddTraits(model.locale == locale ? .isSelected : [])
         .accessibilityIdentifier("\(idPrefix).language.\(id)")
     }
@@ -172,23 +171,6 @@ struct ClientFormView: View {
             }
             .fontWeight(.semibold)
             .accessibilityIdentifier("\(idPrefix).\(submitID)")
-        }
-    }
-
-    private func fieldLabel(_ text: String) -> some View {
-        Text(text)
-            .font(.system(Tokens.TextStyle.label, weight: .semibold))
-            .fixedSize(horizontal: false, vertical: true)
-            .accessibilityHidden(true)
-    }
-
-    @ViewBuilder private func fieldError(_ text: String?, id: String) -> some View {
-        if let text {
-            Text(text)
-                .font(.system(Tokens.TextStyle.footnote))
-                .foregroundStyle(Tokens.Colors.statusDangerFg)
-                .fixedSize(horizontal: false, vertical: true)
-                .accessibilityIdentifier(id)
         }
     }
 }
