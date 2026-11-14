@@ -90,7 +90,7 @@ class SignInLogoTest(
         show(SignInState.EmailEntry())
 
         compose.onNodeWithText("F").assertDoesNotExist()
-        compose.onNodeWithTag(SignInTags.APP_NAME).assertDoesNotExist()
+        compose.onNodeWithText("Fivvi Pro").assertDoesNotExist()
     }
 
     companion object {

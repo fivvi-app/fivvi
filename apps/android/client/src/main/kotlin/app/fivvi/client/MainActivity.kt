@@ -28,9 +28,9 @@ import app.fivvi.client.shell.NoWorkspaceScreen
 import app.fivvi.client.shell.ProfileActions
 import app.fivvi.client.shell.ProfileScreen
 import app.fivvi.client.shell.Tab
+import app.fivvi.client.signin.ClientSignInLogo
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.LanguageViewModel
-import app.fivvi.core.R as CoreR
 import app.fivvi.core.observability.Observability
 import app.fivvi.core.signin.SignInActions
 import app.fivvi.core.signin.SignInScreen
@@ -97,8 +97,8 @@ class MainActivity : ComponentActivity() {
             // Signed out, the choice is kept on the device and saved on the account at sign-in (AC4, AC5).
             onChooseLanguage = dependencies.languagePreference::choose,
         )
-        // The screen names the app, Fivvi, from the catalogs (E017).
-        SignInScreen(state, actions, showsSignedOutNotice = showsSignedOutNotice, appName = CoreR.string.app_title)
+        // The plain Fivvi day dial, named Fivvi, above the title of both steps (E020).
+        SignInScreen(state, actions, showsSignedOutNotice = showsSignedOutNotice, logo = ClientSignInLogo)
     }
 
     // The tabs: Home · Boeken · Profiel. Until a client belongs to a workspace (F029, F032) Home and Boeken show the
