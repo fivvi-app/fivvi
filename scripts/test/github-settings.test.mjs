@@ -101,7 +101,7 @@ describe('the versioned GitHub settings', () => {
       max_entries_to_merge: 1,
       min_entries_to_merge: 1,
       min_entries_to_merge_wait_minutes: 5,
-      check_response_timeout_minutes: 150,
+      check_response_timeout_minutes: 160,
     });
     const ci = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8');
     // The job timeouts as ci.yml sets them (job-level, four spaces): the longest native job starts after
