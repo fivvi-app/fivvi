@@ -109,13 +109,14 @@ test.describe('F001 axe check waits for animations (#203)', () => {
   }) => {
     // The page holds back `transitionrun`, as a frame that has not been drawn yet would, and
     // starts a fade-in on the first style read after the check arms it (that is axe's, not the
-    // settle wait's). No frame passes before axe reads the start of the fade: about 1.4:1.
+    // settle wait's). No frame passes before axe reads the start of the fade: about 1.4:1. The
+    // fade is long enough to still run when a loaded machine has axe done (#1386).
     await page.setContent(`<!doctype html>
       <html lang="en">
         <head>
           <title>Late fade</title>
           <style>
-            button { color: #000; background: #fff; opacity: 0.05; transition: opacity 600ms linear; }
+            button { color: #000; background: #fff; opacity: 0.05; transition: opacity 3s linear; }
             button.on { opacity: 1; }
           </style>
         </head>
@@ -140,6 +141,51 @@ test.describe('F001 axe check waits for animations (#203)', () => {
     });
 
     await expectNoAxeViolations(page, 'a fade whose event has not come');
+  });
+
+  // #1386. A fade can start in the moment between the end of the wait and the first look at what
+  // is animating: its `transitionrun` has come by then, and the fade is running, so `before`
+  // already holds both. Axe reads the page in the middle of it, and when the fade is over by the
+  // time axe is done, "nothing started and nothing runs" is true and the read would be trusted.
+  test('#1386: reruns when a fade was already running when axe began, and is over when it is done', async ({
+    page,
+  }) => {
+    // The page plays the sequence by counting the check's looks at `document.getAnimations()`:
+    // the first (the end of the wait) finds nothing and starts a fade, with the event the frame
+    // would bring; the third (after axe) finds the fade finished. 8 s of linear fade keeps the
+    // opacity near 0.05 (about 1.4:1) for as long as axe reads.
+    await page.setContent(`<!doctype html>
+      <html lang="en">
+        <head>
+          <title>Fade begun between the wait and the first look</title>
+          <style>
+            button { color: #000; background: #fff; opacity: 0.05; transition: opacity 8s linear; }
+            button.on { opacity: 1; }
+          </style>
+        </head>
+        <body>
+          <main><button type="button">Hydrated just now</button></main>
+          <script>
+            const getAnimations = Document.prototype.getAnimations;
+            let looks = 0;
+            Document.prototype.getAnimations = function (...args) {
+              looks += 1;
+              if (looks === 1) {
+                const found = getAnimations.apply(this, args);
+                document.querySelector('button').classList.add('on');
+                document.dispatchEvent(new Event('transitionrun'));
+                return found;
+              }
+              if (looks === 3) {
+                for (const animation of getAnimations.apply(this, args)) animation.finish();
+              }
+              return getAnimations.apply(this, args);
+            };
+          </script>
+        </body>
+      </html>`);
+
+    await expectNoAxeViolations(page, 'a fade begun between the wait and the first look');
   });
 
   test('AC3: still fails on a real contrast problem, also while a fade is running', async ({
