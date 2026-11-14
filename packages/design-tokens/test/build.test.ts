@@ -3,6 +3,7 @@ import { compile } from 'tailwindcss';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
   clientColours,
+  emailOutputs,
   kotlinOutputs,
   renderOutputs,
   shadcnColours,
@@ -34,10 +35,34 @@ describe('E007 design tokens build', () => {
     outputs = await renderOutputs(source);
   });
 
+  it('E020 AC16: generates the colours of the emails, in light mode, as TypeScript that follows the tokens', () => {
+    const emailColours = output(emailOutputs.colours);
+    const { light } = customProperties(output(webOutputs.tokens));
+    // An email client ignores dark mode and CSS variables, so the email package gets the light values as literals.
+    const expected = {
+      canvas: 'color.bg.canvas',
+      surface: 'color.bg.surface',
+      text: 'color.text.primary',
+      secondaryText: 'color.web.client.secondary',
+      border: 'color.border.default',
+      link: 'color.text.link',
+      accent: 'color.action.primary.bg',
+      onAccent: 'color.action.primary.fg',
+    };
+    for (const [name, token] of Object.entries(expected)) {
+      const value = light.get(cssName(token));
+      expect(value, token).toMatch(hex);
+      expect(emailColours, name).toContain(`${name}: '${value}',`);
+    }
+    expect(emailColours).toContain('GENERATED');
+    expect(emailColours).not.toMatch(/zinc|#18181b|#71717a/i);
+  });
+
   it('AC1: generates CSS, Tailwind theme, Swift and Kotlin with light and dark for every semantic colour', () => {
     expect([...outputs.keys()].sort()).toEqual(
       [
         ...Object.values(webOutputs),
+        ...Object.values(emailOutputs),
         ...Object.values(swiftOutputs),
         ...Object.values(kotlinOutputs),
       ].sort(),

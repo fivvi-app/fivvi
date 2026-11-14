@@ -3,7 +3,13 @@ import { cp, mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { kotlinOutputs, swiftOutputs, swiftPackageDir, webOutputs } from '../src/build.ts';
+import {
+  emailOutputs,
+  kotlinOutputs,
+  swiftOutputs,
+  swiftPackageDir,
+  webOutputs,
+} from '../src/build.ts';
 import { sourceFiles, type TokenTree } from '../src/source.ts';
 import { withoutToken, withValue } from './tokens.ts';
 
@@ -63,8 +69,10 @@ describe('E007 design tokens check (what `pnpm check` runs)', {
     );
 
     const stale = await run('check');
-    expect(stale.output).toContain('✗ design-tokens generated: 4 problem(s)');
+    expect(stale.output).toContain('✗ design-tokens generated: 5 problem(s)');
     expect(stale.output).toContain(`${webOutputs.tokens} is out of date`);
+    // The emails take the accent from the same token (E020 AC16), so their colours go stale with it.
+    expect(stale.output).toContain(`${emailOutputs.colours} is out of date`);
     expect(stale.output).toContain(`${swiftOutputs.colors} is out of date`);
     expect(stale.output).toContain(`${kotlinOutputs.colors} is out of date`);
     expect(stale.output).toContain('Run `pnpm --filter @fivvi/design-tokens generate`');

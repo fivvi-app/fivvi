@@ -9,6 +9,7 @@
     "./client.css": "./generated/web/client.css",
     "./theme.css": "./generated/web/theme.css",
     "./source": "./src/source.ts",
+    "./email-colours": "./generated/email/colours.ts",
     "./workspace-colour": "./src/workspace-colour.ts"
   },
   "scripts": {

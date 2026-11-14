@@ -1,28 +1,48 @@
+import { emailColours } from '@fivvi/design-tokens/email-colours';
 import type { ReactNode } from 'react';
 import { Body, Container, Head, Hr, Html, Preview, Section, Text } from 'react-email';
 import type { EmailContext } from '../render.tsx';
 
-// Plain inline styles until the design tokens exist (E007). Email clients ignore most CSS,
-// so keep it to fonts, colours and spacing.
+// Plain inline styles. Email clients ignore most CSS, so keep it to fonts, colours and spacing.
+// Every colour is a generated design token (`@fivvi/design-tokens/email-colours`, E020 AC16): no
+// colour is written here, so the accent follows the tokens.
 const styles = {
   body: {
-    backgroundColor: '#f4f4f5',
+    backgroundColor: emailColours.canvas,
     fontFamily:
       '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
     margin: 0,
     padding: '24px 0',
   },
   container: {
-    backgroundColor: '#ffffff',
+    backgroundColor: emailColours.surface,
     borderRadius: '8px',
     maxWidth: '560px',
     padding: '32px',
   },
-  hr: { borderColor: '#e4e4e7', margin: '24px 0 16px' },
-  footer: { color: '#71717a', fontSize: '12px', lineHeight: '18px', margin: 0 },
+  hr: { borderColor: emailColours.border, margin: '24px 0 16px' },
+  footer: { color: emailColours.secondaryText, fontSize: '12px', lineHeight: '18px', margin: 0 },
 } as const;
 
-export const textStyle = { color: '#18181b', fontSize: '16px', lineHeight: '24px' } as const;
+export const textStyle = {
+  color: emailColours.text,
+  fontSize: '16px',
+  lineHeight: '24px',
+} as const;
+
+/** A link in the text: the accent as text, which the token pairs hold at 4.5:1 on the card. */
+export const linkStyle = { color: emailColours.link } as const;
+
+/** The one primary button of an email: the accent fill with the on-accent label. */
+export const buttonStyle = {
+  backgroundColor: emailColours.accent,
+  borderRadius: '6px',
+  color: emailColours.onAccent,
+  display: 'inline-block',
+  fontSize: '16px',
+  padding: '12px 20px',
+  textDecoration: 'none',
+} as const;
 
 interface EmailLayoutProps {
   ctx: EmailContext;
