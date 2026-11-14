@@ -1,6 +1,5 @@
 import {
   appendDeletionLog,
-  type DatabaseExecutor,
   type DeletedRow,
   deleteClosedInvitations,
   deleteExpiredSessions,
@@ -51,50 +50,47 @@ async function logDeletions(
 
 const deleted = (count: number): CronTaskReport => ({ counts: { deleted: count } });
 
-function daily(
-  name: string,
-  run: (ctx: CronTaskContext, db: DatabaseExecutor) => Promise<CronTaskReport>,
-): CronTask {
-  return { name, kind: 'daily', run: (ctx) => run(ctx, ctx.db) };
+function daily(name: string, run: (ctx: CronTaskContext) => Promise<CronTaskReport>): CronTask {
+  return { name, kind: 'daily', run };
 }
 
 /** The retention tasks of E014 that need nothing but what exists today. */
 export function createRetentionTasks(): CronTask[] {
   return [
     // R2: sign-in codes and links, 24 hours after they expired (use deletes the row at once).
-    daily('retention.sign-in-tokens', async ({ now }, db) =>
+    daily('retention.sign-in-tokens', async ({ now, db }) =>
       deleted(
         await deleteSignInTokens(db, retentionCutoff(now, RETENTION.SIGN_IN_TOKEN_AFTER_EXPIRY)),
       ),
     ),
     // R3: trainer invitations, 30 days after they expired, were withdrawn, declined or accepted.
-    daily('retention.invitations', async (ctx, db) => {
+    daily('retention.invitations', async (ctx) => {
       const rows = await deleteClosedInvitations(
-        db,
+        ctx.db,
         retentionCutoff(ctx.now, RETENTION.TRAINER_INVITATION_AFTER_CLOSING),
       );
       await logDeletions(ctx, 'trainer_invitations', rows);
       return deleted(rows.length);
     }),
     // R14: rate-limit rows, 24 hours after they were last written.
-    daily('retention.rate-limits', async ({ now }, db) =>
+    daily('retention.rate-limits', async ({ now, db }) =>
       deleted(await deleteOldRateLimits(db, retentionCutoff(now, RETENTION.RATE_LIMIT))),
     ),
     // R12: access-log entries, 12 months after they were written.
-    daily('retention.access-log', async (ctx, db) => {
+    daily('retention.access-log', async (ctx) => {
       const rows = await deleteOldAccessLogEntries(
-        db,
+        ctx.db,
         retentionCutoff(ctx.now, RETENTION.ACCESS_LOG),
       );
       await logDeletions(ctx, 'access_log', rows);
       return deleted(rows.length);
     }),
     // §3.5: deletion-log entries, 30 days after they were written. Its own deletions are not logged.
-    daily('retention.deletion-log', async ({ now }, db) =>
+    daily('retention.deletion-log', async ({ now, db }) =>
       deleted(await deleteOldDeletionLogEntries(db, retentionCutoff(now, RETENTION.DELETION_LOG))),
     ),
     // R10 (Q26): sign-in sessions that expired, 30 days after their last use.
-    daily('retention.sessions', async ({ now }, db) =>
+    daily('retention.sessions', async ({ now, db }) =>
       deleted(
         await deleteExpiredSessions(
           db,

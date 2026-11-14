@@ -265,7 +265,7 @@ A task that throws is reported with two tags, and a crash of the run itself (the
 
 | Tag | Value |
 |---|---|
-| `cron.task` | The task's name, lowercase words with hyphens (`lettermint-usage`, `job-runs-retention`). Never a record or a person |
+| `cron.task` | The task's name, lowercase words with hyphens, and a group before a dot for a group of tasks (`lettermint-usage`, `job-runs-retention`, `retention.sign-in-tokens`). Never a record or a person |
 | `cron.run_id` | The UUID of the run (one start of the cron). It is the `run_id` of that run's rows in `job_runs` and in the log line `Cron started: run <uuid>.` |
 
 The scrubber allows only these two tags and `route` (§2): any other tag is dropped, so a tag can never carry personal data. The message of a failed task is not stored in `job_runs` (it could hold personal data); the run record only has the type of the error.
@@ -280,7 +280,7 @@ Every task that ran, and every daily task that was skipped because another run h
 | `task_name` | The task, as in the Sentry tag |
 | `started_at`, `finished_at` | UTC |
 | `outcome` | `succeeded`, `failed` or `skipped` |
-| `message` | A short note without personal data: `failed with TypeError`, or why a task was skipped. Empty on success |
+| `message` | A short note without personal data: `failed with TypeError`, or why a task was skipped. Empty on success, except for a retention task (`retention.*`, E014): it writes how many rows it deleted, `deleted=N`, and nothing else |
 
 Read it in the Railway dashboard (the `postgres` service of the environment, its *Data* tab; Postgres has no public address, so there is no `psql` from a laptop), or locally with `psql` on the development database. Examples:
 

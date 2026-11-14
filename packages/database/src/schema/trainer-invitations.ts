@@ -88,7 +88,8 @@ export const trainerInvitations = businessTable(
     }),
     // The daily retention task (E014, R3) reads and deletes closed invitations of every workspace as
     // the cron role, which sets no workspace context. It may do nothing else: the privileges list
-    // (`CRON_TABLE_PRIVILEGES`) grants SELECT and DELETE only, and the task deletes by age.
+    // (`CRON_TABLE_PRIVILEGES`) grants DELETE, and `CRON_SELECT_COLUMNS` SELECT on a few columns
+    // (not the address or the token hash); the task deletes by age.
     pgPolicy('trainer_invitations_cron_select', {
       as: 'permissive',
       for: 'select',

@@ -28,7 +28,7 @@ export const EXTRA_POLICIES: Record<string, string[]> = {
   team_members: ['team_members_own_account'],
   // The narrow read-only doors of a person with an invitation (F011): by the hash of the link's
   // token, and by the address the sign-in gate asks about. See migration 0020.
-  // The daily retention tasks (E014, migration 0035) run as the cron role, which sets no workspace:
+  // The daily retention tasks (E014, migration `retention_cron_policies`) run as the cron role, which sets no workspace:
   // it may read and delete the rows of these two business tables, nothing else (SELECT and DELETE
   // are all `CRON_TABLE_PRIVILEGES` grants it).
   trainer_invitations: [
