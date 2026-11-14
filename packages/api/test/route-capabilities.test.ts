@@ -36,7 +36,7 @@ const workspaceRoute = (access: object): ContractDocument => ({
   },
 });
 
-describe('F004 route capabilities', () => {
+describe('@permission F004 route capabilities', () => {
   it('AC1: every workspace-scoped route in openapi.json declares a capability', () => {
     const workspaceRoutes = describeOperations(contract).filter(
       ({ access }) => access?.type === 'workspace',

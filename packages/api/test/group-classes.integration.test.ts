@@ -200,7 +200,7 @@ describe('F021 group classes through the API', () => {
       }
     });
 
-    it('refuses a trainer who does not train in the workspace, or who is in another workspace, with 404 and stores nothing', async () => {
+    it('@isolation refuses a trainer who does not train in the workspace, or who is in another workspace, with 404 and stores nothing', async () => {
       const { gym, john, mikeRole } = await groupClassWorld(admin);
       const { server } = setup();
 
@@ -288,7 +288,7 @@ describe('F021 group classes through the API', () => {
       );
     });
 
-    it('answers 404 for a class that does not exist, or is another workspace’s', async () => {
+    it('@isolation answers 404 for a class that does not exist, or is another workspace’s', async () => {
       const { gym, other, john } = await groupClassWorld(admin);
       const { server } = setup();
       const theirs = await addGroupClass(admin.db, { workspaceId: other.id });
@@ -621,7 +621,7 @@ describe('F021 group classes through the API', () => {
   });
 
   describe('AC7: a Trainer reads and cannot manage', () => {
-    it('Sarah lists and reads classes and opens a class date, and gets 403 on create, edit and schedule', async () => {
+    it('@permission Sarah lists and reads classes and opens a class date, and gets 403 on create, edit and schedule', async () => {
       const { gym, john, sarah, sarahRole } = await groupClassWorld(admin);
       const { server } = setup();
       const { groupClass } = (await (
@@ -668,7 +668,7 @@ describe('F021 group classes through the API', () => {
   });
 
   describe('AC8: other workspaces and anonymous callers', () => {
-    it('Mike gets 404 on every John’s Gym class and class-date route; anonymous callers get 401', async () => {
+    it('@isolation @permission Mike gets 404 on every John’s Gym class and class-date route; anonymous callers get 401', async () => {
       const { gym, john, mike } = await groupClassWorld(admin);
       const { server } = setup();
       const { groupClass } = (await (
@@ -702,7 +702,7 @@ describe('F021 group classes through the API', () => {
       expect(await storedSessions(gym.id)).toHaveLength(1);
     });
 
-    it('a client of the workspace gets 403 on the team’s class routes', async () => {
+    it('@permission a client of the workspace gets 403 on the team’s class routes', async () => {
       const { gym, annaAccount } = await groupClassWorld(admin);
       const { server } = setup();
 

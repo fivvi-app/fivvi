@@ -21,6 +21,16 @@
 //
 //   node scripts/quarantine.mjs [dir]   check the lists in dir (default: quarantine/ of this checkout); prints one
 //                                       line per problem and exits 1 on any.
+//   node scripts/quarantine.mjs --count <runner>
+//                                       prints the number of entries in the list of the runner: the Quarantine job of
+//                                       ci.yml reads it to run a runner's tests only when it has some.
+//
+// The readers (E002 #1361): `quarantineSelection(runner)` is what Vitest (the shared preset, packages/testing) and Playwright
+// (apps/web/playwright.config.ts) call. It reads the list of its runner, with the parser the rule uses, and returns the
+// pattern of the listed tests: `exclude` in the required jobs (`Checks (Linux)`, `E2E (Linux)`), which leave them out, and
+// `only` in the `Quarantine` job (FIVVI_QUARANTINE=only), which runs exactly them. A test is named by its full name, as
+// each runner prints it, without file or project: the titles of its describe blocks and its own, joined by ` > ` for Vitest
+// (`checkout > pays an invoice`) and by ` › ` for Playwright (`checkout › pays an invoice`).
 //
 // scripts/check.sh runs it whatever changed, and `Checks (Linux)` runs it as the turbo task //#check:quarantine, which
 // turbo.json keeps out of its cache: a cached result would not run again when only the date passes.
@@ -35,6 +45,10 @@ export const MARKERS = ['@isolation', '@concurrency', '@permission'];
 /** The longest a test stays on the list, in days from the day it was added. */
 export const MAX_DAYS = 7;
 
+/** Where the lists are: this checkout's quarantine/, or FIVVI_QUARANTINE_DIR (the tests of the readers). */
+const defaultDir = () =>
+  process.env.FIVVI_QUARANTINE_DIR || join(import.meta.dirname, '..', 'quarantine');
+
 const FIELDS = ['test', 'bug', 'added date', 'end date'];
 const DAY = 24 * 60 * 60 * 1000;
 const MARKER = new RegExp(`(?<![\\w@])(${MARKERS.join('|')})(?![\\w-])`);
@@ -47,6 +61,13 @@ const parseDate = (text) => {
 };
 
 const todayUtc = () => new Date().toISOString().slice(0, 10);
+
+/** The entry lines of a list with their line numbers: comments and blank lines are left out. */
+const entryLines = (text) =>
+  text
+    .split('\n')
+    .map((raw, i) => ({ number: i + 1, line: raw.trim() }))
+    .filter(({ line }) => line !== '' && !line.startsWith('#'));
 
 /** The problems of one entry line, without the position. */
 const checkEntry = (line, today) => {
@@ -112,22 +133,93 @@ export const checkQuarantine = ({
       continue;
     }
     const seen = new Set();
-    readFileSync(join(dir, file), 'utf8')
-      .split('\n')
-      .forEach((raw, i) => {
-        const line = raw.trim();
-        if (line === '' || line.startsWith('#')) return;
-        const where = `${file}:${i + 1}`;
-        for (const problem of checkEntry(line, today)) problems.push(`${where}: ${problem}`);
-        const test = line.split('|')[0].trim();
-        if (seen.has(test)) problems.push(`${where}: "${test}" is listed twice`);
-        seen.add(test);
-      });
+    for (const { number, line } of entryLines(readFileSync(join(dir, file), 'utf8'))) {
+      const where = `${file}:${number}`;
+      for (const problem of checkEntry(line, today)) problems.push(`${where}: ${problem}`);
+      const test = line.split('|')[0].trim();
+      if (seen.has(test)) problems.push(`${where}: "${test}" is listed twice`);
+      seen.add(test);
+    }
   }
   return problems;
 };
 
+/**
+ * The entries of the list of `runner` in `dir`: [{test, bug, added, end}], without checking them (checkQuarantine does).
+ * A folder or a list that does not exist has none.
+ */
+export const readList = (runner, { dir = defaultDir() } = {}) => {
+  const file = join(dir, `${runner}.txt`);
+  if (!existsSync(file)) return [];
+  return entryLines(readFileSync(file, 'utf8')).map(({ line }) => {
+    const [test = '', bug = '', added = '', end = ''] = line.split('|').map((part) => part.trim());
+    return { test, bug, added, end };
+  });
+};
+
+/**
+ * 'only' in the Quarantine job (FIVVI_QUARANTINE=only): run exactly the listed tests. 'exclude' otherwise: the required
+ * jobs, and every local run, leave them out.
+ */
+export const quarantineMode = (env = process.env) => {
+  const value = env.FIVVI_QUARANTINE ?? '';
+  if (value === '') return 'exclude';
+  if (value === 'only') return 'only';
+  throw new Error(`FIVVI_QUARANTINE must be "only" or not set, not "${value}"`);
+};
+
+const escapeRegExp = (text) => text.replace(/[.*+?^${}()|[\]\\/]/g, '\\$&');
+// What a runner's own pattern needs of an entry. Vitest matches the titles joined by ` > `. Playwright greps a title of its
+// own: the project, the file and then the titles of the describe blocks and the test, joined by a space (a leading space
+// when the root's empty title is part of it, which depends on where Playwright greps) and followed by the tags it finds
+// in them (`@smoke`, also the ones the title already has).
+const FORM = {
+  vitest: { head: '^', name: (test) => test, tail: '' },
+  playwright: {
+    head: '^ ?\\S+ \\S+ ',
+    name: (test) => test.replaceAll(' › ', ' '),
+    tail: '(?: @\\S+)*',
+  },
+};
+
+/**
+ * What a runner's selection is, from the list of `runner`: `only` is the pattern of exactly the listed tests, set in mode
+ * 'only' (a pattern that matches nothing when the list is empty); `exclude` is the same pattern in mode 'exclude', set
+ * when the list has an entry. Playwright takes them as `grep` and `grepInvert`.
+ */
+export const quarantineSelection = (
+  runner,
+  { dir = defaultDir(), mode = quarantineMode() } = {},
+) => {
+  const form = FORM[runner];
+  if (!form) throw new Error(`${runner} has no list reader (${Object.keys(FORM).join(', ')})`);
+  const names = readList(runner, { dir }).map(({ test }) => escapeRegExp(form.name(test)));
+  const listed =
+    names.length > 0 ? new RegExp(`${form.head}(?:${names.join('|')})${form.tail}$`) : undefined;
+  if (mode === 'only') return { only: listed ?? /(?!)/, exclude: undefined };
+  return { only: undefined, exclude: listed };
+};
+
+/**
+ * Vitest's `testNamePattern` (it has no inverse): the listed tests in mode 'only', everything but them in mode 'exclude',
+ * and undefined (no filter) when the required jobs have nothing to leave out.
+ */
+export const vitestTestNamePattern = (options) => {
+  const { only, exclude } = quarantineSelection('vitest', options);
+  if (only) return only;
+  return exclude ? new RegExp(`^(?!${exclude.source})`) : undefined;
+};
+
 function main() {
+  if (process.argv[2] === '--count') {
+    const runner = process.argv[3];
+    if (!LISTS.includes(runner)) {
+      console.error(`--count needs a runner: ${LISTS.join(', ')}`);
+      process.exit(2);
+    }
+    console.log(readList(runner).length);
+    return;
+  }
   const dir = process.argv[2];
   const problems = checkQuarantine(dir ? { dir } : {});
   if (problems.length === 0) {

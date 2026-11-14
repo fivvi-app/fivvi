@@ -186,7 +186,7 @@ describe('F015 the address lookup route', () => {
     expect(addressLookup.lookup).not.toHaveBeenCalled();
   });
 
-  it('AC16: Owner only: a Trainer gets 403, a client 403, a person of another workspace 404, anonymous 401', async () => {
+  it('@isolation @permission AC16: Owner only: a Trainer gets 403, a client 403, a person of another workspace 404, anonymous 401', async () => {
     const { gym, john, sarah, anna, mike } = await world();
     const addressLookup = stub(FOUND);
     const server = api({ addressLookup });
@@ -203,7 +203,7 @@ describe('F015 the address lookup route', () => {
     expect(addressLookup.lookup).toHaveBeenCalledTimes(1);
   });
 
-  it('AC16: a refused caller learns nothing from the query: a bad query is still 403 for a Trainer', async () => {
+  it('@permission AC16: a refused caller learns nothing from the query: a bad query is still 403 for a Trainer', async () => {
     const { gym, sarah } = await world();
     const response = await lookup(gym.id, sarah, '?postcode=x&houseNumber=y');
     expect(response.status).toBe(403);

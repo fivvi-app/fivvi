@@ -255,7 +255,7 @@ test.describe('F010 language', () => {
     );
   });
 
-  test('AC8: a Trainer has no Language, sees the no-permission page, and the route answers 403', async ({
+  test('@permission AC8: a Trainer has no Language, sees the no-permission page, and the route answers 403', async ({
     page,
     appLocale,
     messages: copy,

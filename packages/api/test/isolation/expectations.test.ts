@@ -27,7 +27,7 @@ const call = (access: XAccess, rest: Partial<CallFacts> = {}): CallFacts => ({
   ...rest,
 });
 
-describe('the expected answer of a route, from its access and the caller’s place', () => {
+describe('@isolation the expected answer of a route, from its access and the caller’s place', () => {
   it.each([
     ['anonymous', ownerOnly, { signedIn: false }, 401],
     ['no place in the workspace', team, { places: { b: { teamRole: 'owner' } } }, 404],
@@ -85,7 +85,7 @@ describe('the expected answer of a route, from its access and the caller’s pla
   });
 });
 
-describe('a route that creates the caller’s workspace (F002, F012)', () => {
+describe('@isolation a route that creates the caller’s workspace (F002, F012)', () => {
   const creates = (rest: Partial<CallFacts> = {}) =>
     call(
       { type: 'account', workspaces: 'team' },
@@ -148,7 +148,7 @@ describe('a route that creates the caller’s workspace (F002, F012)', () => {
   });
 });
 
-describe('what a call may change', () => {
+describe('@isolation what a call may change', () => {
   const owner = { places: { a: { teamRole: 'owner' as const } } };
   const row = (workspaceId: string, clientId?: string) => ({ workspaceId, clientId });
 
@@ -207,7 +207,7 @@ describe('what a call may change', () => {
   });
 });
 
-describe('what a successful read must show', () => {
+describe('@isolation what a successful read must show', () => {
   const token = (workspaceId: string, ...clientIds: string[]) => ({
     workspaceId,
     clientIds: new Set(clientIds),
@@ -258,7 +258,7 @@ describe('what a successful read must show', () => {
   });
 });
 
-describe('what a response may show', () => {
+describe('@isolation what a response may show', () => {
   const token = (workspaceId: string, ...clientIds: string[]) => ({
     workspaceId,
     clientIds: new Set(clientIds),
@@ -333,7 +333,7 @@ describe('what a response may show', () => {
   });
 });
 
-describe('the markers in a text', () => {
+describe('@isolation the markers in a text', () => {
   it('finds what uniqueMarker makes, in a name, an email and a sentence', () => {
     const [a, b, c] = [uniqueMarker('note'), uniqueMarker('a-owner'), uniqueMarker('account')];
 

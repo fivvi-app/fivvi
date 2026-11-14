@@ -51,6 +51,8 @@ describe('the versioned GitHub settings', () => {
     assert.deepEqual(
       jobs.filter((name) => !required.includes(name)),
       [
+        // Not required, and never to be: the listed flaky tests run here (E002 #1361, TESTING.md §8).
+        'Quarantine',
         'iOS build',
         'iOS build (retry)',
         'iOS tests (${{ matrix.locale }})',

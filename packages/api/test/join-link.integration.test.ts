@@ -227,7 +227,7 @@ describe('F029 the join link of a workspace', () => {
     expect(await storedCode(gym.id)).toEqual(before);
   });
 
-  it('AC8: Mike (Owner of Fit Studio) gets 404 on both of John’s Gym routes; anonymous calls get 401; an account with no place in John’s Gym gets 404', async () => {
+  it('@isolation @permission AC8: Mike (Owner of Fit Studio) gets 404 on both of John’s Gym routes; anonymous calls get 401; an account with no place in John’s Gym gets 404', async () => {
     const { gym, mike, anna } = await world();
     const before = await storedCode(gym.id);
 

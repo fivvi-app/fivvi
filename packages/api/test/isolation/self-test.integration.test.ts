@@ -158,7 +158,7 @@ function registerLeakyRoutes(world: World) {
   world.api.route('/', app);
 }
 
-describe('E011 the suite can fail', () => {
+describe('@isolation E011 the suite can fail', () => {
   let world: World;
 
   beforeAll(async () => {
@@ -270,7 +270,7 @@ describe('E011 the suite can fail', () => {
   );
 });
 
-describe('E011 the suite cannot go quiet', () => {
+describe('@isolation E011 the suite cannot go quiet', () => {
   let world: World;
 
   beforeAll(async () => {
@@ -300,7 +300,7 @@ describe('E011 the suite cannot go quiet', () => {
   );
 });
 
-describe('F015 the suite and a read that reads no record', () => {
+describe('@isolation F015 the suite and a read that reads no record', () => {
   let world: World;
 
   beforeAll(async () => {

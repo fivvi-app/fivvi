@@ -177,7 +177,7 @@ describe('F005 PATCH /v1/me name', () => {
     expect(await storedName(sarah.id)).toBe('Sara');
   });
 
-  it('AC1: nobody signed in gets 401', async () => {
+  it('@permission AC1: nobody signed in gets 401', async () => {
     const res = await patch(undefined, { name: 'Sarah' });
 
     expect(res.status).toBe(401);
@@ -412,7 +412,7 @@ describe('F005 PUT and DELETE /v1/workspaces/{workspaceId}/trainer-profile', () 
     ).toHaveLength(1);
   });
 
-  it('AC5: Sarah, Trainer of John’s Gym, gets 403 there; in her own workspace, where she is Owner, it works', async () => {
+  it('@permission AC5: Sarah, Trainer of John’s Gym, gets 403 there; in her own workspace, where she is Owner, it works', async () => {
     const { gym, own, sarah, sarahOwn, sarahRole } = await world();
     expect(await profileIds(own.id)).not.toContain(sarahOwn.id);
 

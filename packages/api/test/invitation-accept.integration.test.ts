@@ -401,7 +401,7 @@ describe('F011 answering a trainer invitation', () => {
       expect(await teamRolesOf(lisaAccount.id)).toEqual([]);
     });
 
-    it('an account with another address cannot accept or decline (403) and nothing changes; the read shows the masked address', async () => {
+    it('@permission an account with another address cannot accept or decline (403) and nothing changes; the read shows the masked address', async () => {
       const w = await world();
       const server = setup();
       const lisa = await invitation(w, { email: 'lisa@example.com' });
@@ -475,7 +475,7 @@ describe('F011 answering a trainer invitation', () => {
       expect(await response.json()).toMatchObject({ inviterName: null });
     });
 
-    it('answers accept and decline 401 without a session, for a valid, a used and an unknown token alike', async () => {
+    it('@permission answers accept and decline 401 without a session, for a valid, a used and an unknown token alike', async () => {
       const w = await world();
       const server = setup();
       const valid = await invitation(w);
@@ -492,7 +492,7 @@ describe('F011 answering a trainer invitation', () => {
     });
   });
 
-  it('AC11: two parallel accepts of one invitation create one team-member record', async () => {
+  it('@concurrency AC11: two parallel accepts of one invitation create one team-member record', async () => {
     const w = await world();
     const server = setup();
     const tom = await createAccount(admin.db, { label: 'tom' });

@@ -93,7 +93,7 @@ describe('F060 refunds and reversals', () => {
     return payment;
   }
 
-  it('AC9: two refund requests at once cannot both pass a bound only one fits within', async () => {
+  it('@concurrency AC9: two refund requests at once cannot both pass a bound only one fits within', async () => {
     const { workspaceId, teamMemberId, inScope } = await gym();
     const payment = await paidPayment(workspaceId);
     const results = await Promise.all(
@@ -152,7 +152,7 @@ describe('F060 refunds and reversals', () => {
     expect(lines.map((line) => line.to)).toEqual(['requested']);
   });
 
-  it('AC13: two status changes at once write one line', async () => {
+  it('@concurrency AC13: two status changes at once write one line', async () => {
     const { workspaceId, inScope } = await gym();
     const refund = await addPaymentRefund(admin.db, { workspaceId });
     const change = {
@@ -330,7 +330,7 @@ describe('F060 refunds and reversals', () => {
     expect(await violated(insert({}))).toBe('payment_chargebacks_provider_chargeback_id_unique');
   });
 
-  it('AC13: the same reversal reported at once is stored once', async () => {
+  it('@concurrency AC13: the same reversal reported at once is stored once', async () => {
     const { workspaceId, inScope } = await gym();
     const payment = await paidPayment(workspaceId);
     const results = await Promise.all(
