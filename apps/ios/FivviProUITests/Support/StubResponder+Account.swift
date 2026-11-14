@@ -76,7 +76,7 @@ extension Responder {
     }
 
     static func isWorkspaceRoute(_ path: String) -> Bool {
-        path.hasPrefix("/api/v1/workspaces/") && !path.contains("/clients")
+        path.hasPrefix("/api/v1/workspaces/") && path.split(separator: "/").count == 4
     }
 
     /// `GET /api/v1/me`, `PATCH /api/v1/me`, `GET /api/v1/me/workspaces`, `GET /api/v1/workspaces/{id}` and the trainer

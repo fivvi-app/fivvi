@@ -307,6 +307,7 @@
     <string name="sessions_form_client_new">+ New client</string>
     <string name="sessions_form_client_new_named">+ New client ‘%1$s’</string>
     <string name="sessions_form_client_none">No clients found.</string>
+    <string name="sessions_form_client_placeholder">Choose a client</string>
     <string name="sessions_form_client_results">Clients</string>
     <string name="sessions_form_client_search">Search by name or email</string>
     <string name="sessions_form_client_use">Use them</string>
@@ -342,6 +343,7 @@
     <string name="sessions_form_notes_repeated_time">On %1$s, %2$s happens twice. We\'ll use the first one (summer time).</string>
     <string name="sessions_form_notify">Send %1$s a confirmation</string>
     <string name="sessions_form_notify_note">%1$s · %2$s</string>
+    <string name="sessions_form_offline">You\'re offline. You can only plan once you\'re back online.</string>
     <string name="sessions_form_open">Open</string>
     <string name="sessions_form_save">Save</string>
     <string name="sessions_form_saved">Session with %1$s scheduled for %2$s at %3$s.</string>
@@ -354,13 +356,16 @@
     <string name="sessions_page_client_label">Client</string>
     <string name="sessions_page_client_profile">Client profile</string>
     <string name="sessions_page_heading">Private session with %1$s</string>
+    <string name="sessions_page_more">More</string>
     <string name="sessions_page_moved">Moved to %1$s at %2$s.</string>
     <string name="sessions_page_no_trainer">No %1$s</string>
     <string name="sessions_page_reschedule">Reschedule</string>
+    <string name="sessions_page_route">Route</string>
     <string name="sessions_page_time_range">%1$s, %3$s–%2$s</string>
     <string name="sessions_page_trainer_label">%1$s</string>
     <string name="sessions_page_when_label">When</string>
     <string name="sessions_page_where_label">Location</string>
+    <string name="sessions_page_you">You</string>
     <string name="sessions_reschedule_cancel">Cancel</string>
     <string name="sessions_reschedule_cancelled">This session is cancelled and can\'t be moved.</string>
     <string name="sessions_reschedule_changed_by">This session was just changed by %1$s.</string>

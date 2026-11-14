@@ -372,6 +372,8 @@
     <string name="sessions_form_client_new">+ Nieuwe klant</string>
     <string name="sessions_form_client_new_named">+ Nieuwe klant ‘%1$s’</string>
     <string name="sessions_form_client_none">Geen klanten gevonden.</string>
+    <!-- The client row of the new private session form of the native apps, before a client is chosen. Tapping it opens the client list. -->
+    <string name="sessions_form_client_placeholder">Kies een klant</string>
     <string name="sessions_form_client_results">Klanten</string>
     <string name="sessions_form_client_search">Zoek op naam of e-mail</string>
     <string name="sessions_form_client_use">Die gebruiken</string>
@@ -415,6 +417,8 @@
     <string name="sessions_form_notify">%1$s een bevestiging sturen</string>
     <!-- Under the checkbox that sends the client a confirmation: the client's email address, then the language of the email, e.g. "anna@example.com · in het Nederlands". -->
     <string name="sessions_form_notify_note">%1$s · %2$s</string>
+    <!-- Shown on the new private session form of the native apps when the app can't reach the server; Save is off. Nothing is saved until the connection is back. -->
+    <string name="sessions_form_offline">Je bent offline. Plannen kan pas als je weer verbinding hebt.</string>
     <string name="sessions_form_open">Openen</string>
     <string name="sessions_form_save">Opslaan</string>
     <!-- Message after a private session was saved. {client} is the client's name, {date} a short date such as "do 24 sep", {time} a 24-hour time. -->
@@ -428,14 +432,20 @@
     <string name="sessions_page_client_label">Klant</string>
     <string name="sessions_page_client_profile">Klantprofiel</string>
     <string name="sessions_page_heading">Privésessie met %1$s</string>
+    <!-- Accessibility name of the ⋯ menu on the session screen of the native apps (Reschedule, Client profile). -->
+    <string name="sessions_page_more">Meer</string>
     <!-- Message after a session was moved. {date} is a short date, {time} a 24-hour time. -->
     <string name="sessions_page_moved">Verplaatst naar %1$s om %2$s.</string>
     <string name="sessions_page_no_trainer">Geen %1$s</string>
     <string name="sessions_page_reschedule">Verplaatsen</string>
+    <!-- Button on the session screen of the native apps, next to the location: opens the route to the location's address in the maps app. -->
+    <string name="sessions_page_route">Route</string>
     <string name="sessions_page_time_range">%1$s, %3$s–%2$s</string>
     <string name="sessions_page_trainer_label">%1$s</string>
     <string name="sessions_page_when_label">Wanneer</string>
     <string name="sessions_page_where_label">Locatie</string>
+    <!-- On the session screen, the trainer row when the person looking is the trainer: "You" (Dutch "Jij"), instead of their name. -->
+    <string name="sessions_page_you">Jij</string>
     <string name="sessions_reschedule_cancel">Annuleren</string>
     <string name="sessions_reschedule_cancelled">Deze sessie is geannuleerd en kan niet worden verplaatst.</string>
     <!-- Shown when someone else changed or moved the session while this form was open. {name} is that person. The form then shows the session as it is now. -->

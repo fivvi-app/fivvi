@@ -6,6 +6,7 @@ final class Responder: @unchecked Sendable {
     let lock = NSLock()
     let signIn: StubServer.SignIn
     let clientRoutes: StubClientRoutes
+    let sessionRoutes: StubSessionRoutes
     var currentAnswer: StubServer.Answer
     var received: [StubServer.Request] = []
     var held: [(connection: NWConnection, locale: String?)] = []
@@ -26,6 +27,7 @@ final class Responder: @unchecked Sendable {
         currentAnswer = answer
         self.signIn = signIn
         clientRoutes = StubClientRoutes(empty: signIn.hasNoClients)
+        sessionRoutes = StubSessionRoutes(signIn: signIn, clients: clientRoutes)
         storedLocale = signIn.preferredLocale
         storedName = signIn.name
     }
@@ -202,7 +204,9 @@ final class Responder: @unchecked Sendable {
                 connection, method: method, path: path, authorization: authorization, fields: stringFields
             )
         default:
-            let reply = clientReply(method: method, path: path, query: query, body: json, authorization: authorization)
+            let reply = StubSessionRoutes.isSessionRoute(path)
+                ? sessionReply(method: method, path: path, body: json, authorization: authorization)
+                : clientReply(method: method, path: path, query: query, body: json, authorization: authorization)
             answerClientRoute(connection, method: method, path: path, reply: reply)
         }
     }
@@ -215,6 +219,14 @@ final class Responder: @unchecked Sendable {
         let status = reply.status
         let answer: @Sendable () -> Void = { [self] in send(connection, status: status, json: json) }
         if !holdClientRead(method: method, path: path, answer: answer) { answer() }
+    }
+
+    /// The session routes (F020) for a signed-in caller; any other path is unknown.
+    func sessionReply(
+        method: String, path: String, body: [String: Any], authorization: String?
+    ) -> (status: Int, json: [String: Any]?) {
+        guard authorization == "Bearer \(signIn.token)" else { return (401, Self.notSignedIn) }
+        return sessionRoutes.respond(method: method, path: path, body: body) ?? (404, nil)
     }
 
     /// The client routes (F006) for a signed-in caller; any other path is unknown.

@@ -67,6 +67,14 @@ final class StubClientRoutes: @unchecked Sendable {
         }
     }
 
+    /// The name of a client of workspace `id`, for the session routes (a session names its client).
+    func name(ofClient clientID: String, inWorkspace id: String) -> String? {
+        lock.withLock {
+            workspace = id
+            return find(clientID)?["name"] as? String
+        }
+    }
+
     private func fold(_ text: String) -> String {
         text.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: nil)
     }

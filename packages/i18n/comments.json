@@ -237,6 +237,11 @@
   "sessions.form.saved": "Message after a private session was saved. {client} is the client's name, {date} a short date such as \"do 24 sep\", {time} a 24-hour time.",
   "sessions.reschedule.current": "Top of the reschedule dialog: where the session is now. {date} is a short date with the year, {start} and {end} are 24-hour times.",
   "sessions.reschedule.changedBy": "Shown when someone else changed or moved the session while this form was open. {name} is that person. The form then shows the session as it is now.",
+  "sessions.page.route": "Button on the session screen of the native apps, next to the location: opens the route to the location's address in the maps app.",
+  "sessions.page.you": "On the session screen, the trainer row when the person looking is the trainer: \"You\" (Dutch \"Jij\"), instead of their name.",
+  "sessions.page.more": "Accessibility name of the \u22ef menu on the session screen of the native apps (Reschedule, Client profile).",
+  "sessions.form.offline": "Shown on the new private session form of the native apps when the app can't reach the server; Save is off. Nothing is saved until the connection is back.",
+  "sessions.form.clientPlaceholder": "The client row of the new private session form of the native apps, before a client is chosen. Tapping it opens the client list.",
   "sessions.page.moved": "Message after a session was moved. {date} is a short date, {time} a 24-hour time.",
   "clients.profile.upcomingWhen": "One row of the client's upcoming sessions on the client profile: {date} is a short date such as \"do 24 sep\", {time} a 24-hour time."
 }

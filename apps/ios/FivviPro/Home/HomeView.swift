@@ -14,24 +14,28 @@ import FivviUI
 /// there makes it the current one and returns here, the first tab (F012): its name shows on this screen.
 struct HomeView: View {
     /// The screens above the home; emptying the path returns to it (switching workspace resets the stack, F012).
-    private enum Route: Hashable {
+    enum Route: Hashable {
         case clients, profile
         /// A client's profile (TM-03), opened from the list, after an addition or by ID.
         case client(ClientRoute)
+        /// A private session's screen (TD-02), by ID: after planning one, and from *Komende sessies* of a profile.
+        case session(String)
     }
 
     @Environment(\.openURL) private var openURL
     @State private var hello: HelloViewModel
-    @State private var account: AccountViewModel
+    @State var account: AccountViewModel
     @State private var profile: ProfileViewModel
     /// The clients of the workspace on screen, kept while the home lives so the list stays at hand (F006).
-    @State private var clients: ClientsViewModel?
-    @State private var path: [Route] = []
-    private let api: any APIProtocol
-    private let language: AppLanguage
+    @State var clients: ClientsViewModel?
+    @State var path: [Route] = []
+    /// PS-04, while its sheet is open (F020).
+    @State var newSession: NewSessionViewModel?
+    let api: any APIProtocol
+    let language: AppLanguage
     private let welcomeURL: URL
 
-    private var catalog: Catalog { language.catalog }
+    var catalog: Catalog { language.catalog }
 
     /// `welcomeURL` is trainer web's first-run screen, which the set-up button opens in the system browser.
     /// `onAccount` is told the account's ID once `GET /api/v1/me` has answered; the app passes it to error reporting.
@@ -61,6 +65,7 @@ struct HomeView: View {
                     case .clients: clientsScreen
                     case .profile: profileScreen
                     case let .client(route): clientProfileScreen(route)
+                    case let .session(id): sessionScreen(id)
                     }
                 }
         }
@@ -105,6 +110,8 @@ struct HomeView: View {
         }
         // The clients' model follows the workspace the account shows: a new workspace is a new list, none is no list.
         .onChange(of: account.workspace, initial: true) { _, workspace in useWorkspace(workspace) }
+        .toolbar { newMenu }
+        .sheet(item: $newSession) { form in newSessionSheet(form) }
         .onChange(of: language.catalog) { _, catalog in
             hello.use(catalog)
             profile.use(catalog)
@@ -301,7 +308,8 @@ extension HomeView {
                 onOpenExisting: { id in
                     guard let last = path.indices.last else { return }
                     path[last] = .client(ClientRoute(id: id))
-                }
+                },
+                onOpenSession: { path.append(.session($0)) }
             )
             .id(route.id)
         }

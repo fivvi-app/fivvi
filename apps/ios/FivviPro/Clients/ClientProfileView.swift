@@ -12,21 +12,24 @@ struct ClientProfileScreen: View {
     let language: AppLanguage
     let capabilities: WorkspaceCapabilities
     let onOpenExisting: (String) -> Void
+    let onOpenSession: (String) -> Void
 
     init(
         model list: ClientsViewModel, route: ClientRoute, language: AppLanguage, capabilities: WorkspaceCapabilities,
-        onOpenExisting: @escaping (String) -> Void
+        onOpenExisting: @escaping (String) -> Void, onOpenSession: @escaping (String) -> Void
     ) {
         _model = State(initialValue: route.client.map { list.profile(of: $0, justAdded: route.justAdded) }
             ?? list.profile(id: route.id))
         self.language = language
         self.capabilities = capabilities
         self.onOpenExisting = onOpenExisting
+        self.onOpenSession = onOpenSession
     }
 
     var body: some View {
         ClientProfileView(
-            model: model, language: language, capabilities: capabilities, onOpenExisting: onOpenExisting
+            model: model, language: language, capabilities: capabilities, onOpenExisting: onOpenExisting,
+            onOpenSession: onOpenSession
         )
     }
 }
@@ -42,6 +45,8 @@ struct ClientProfileView: View {
     let capabilities: WorkspaceCapabilities
     /// *Anna de Vries openen* in the edit form: the profile of that client replaces this one.
     let onOpenExisting: (String) -> Void
+    /// A row of *Komende sessies*: the session's screen (TD-02).
+    let onOpenSession: (String) -> Void
     @Environment(\.dismiss) private var dismiss
     @State private var editing: ClientFormViewModel?
     /// The client to open once the edit sheet is gone.
@@ -177,6 +182,46 @@ struct ClientProfileView: View {
             Text(catalog[.clientProfileOverview])
                 .accessibilityAddTraits(.isHeader)
                 .accessibilityIdentifier("clientProfile.overview")
+        }
+        upcomingSessions
+    }
+
+    /// *Komende sessies*: the next private sessions, each opening its screen, or the empty text.
+    @ViewBuilder private var upcomingSessions: some View {
+        if let upcoming = model.upcoming {
+            Section {
+                if upcoming.sessions.isEmpty {
+                    Text(catalog[.clientProfileUpcomingEmpty])
+                        .font(.system(Tokens.TextStyle.body))
+                        .foregroundStyle(Tokens.Colors.textSecondary)
+                        .accessibilityIdentifier("clientProfile.upcomingEmpty")
+                }
+                ForEach(upcoming.sessions, id: \.id) { session in
+                    Button {
+                        onOpenSession(session.id)
+                    } label: {
+                        HStack {
+                            Text(model.upcomingText(session))
+                                .font(.system(Tokens.TextStyle.body))
+                                .foregroundStyle(Tokens.Colors.textPrimary)
+                                .multilineTextAlignment(.leading)
+                                .fixedSize(horizontal: false, vertical: true)
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                                .foregroundStyle(Tokens.Colors.fillDecorative)
+                                .accessibilityHidden(true)
+                        }
+                        .frame(minHeight: 44)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("clientProfile.upcoming.\(session.id)")
+                }
+            } header: {
+                Text(catalog[.clientProfileUpcomingTitle])
+                    .accessibilityAddTraits(.isHeader)
+                    .accessibilityIdentifier("clientProfile.upcomingTitle")
+            }
         }
     }
 
