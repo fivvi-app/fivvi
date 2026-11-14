@@ -197,7 +197,12 @@ test.describe('F015 Settings → Location (TW-08)', () => {
     expect((await locationsOf(page, slug))[0]?.name).toBe("John's Gym");
   });
 
-  test('AC6: Trainer has no Settings', async ({ page, context, appLocale, messages: copy }) => {
+  test('@permission AC6: Trainer has no Settings', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
     const john = newAddress('john');
     const sarah = newAddress('sarah');
     await createAccount(john, undefined, 'John');

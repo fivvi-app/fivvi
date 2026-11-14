@@ -4,16 +4,19 @@ import { Button } from '@fivvi/ui/components/button';
 import { useTranslations } from 'next-intl';
 import { type KeyboardEvent, useEffect, useRef, useState } from 'react';
 import { useOpenAddClient } from './clients/add-client-dialog';
+import { useOpenNewSession } from './sessions/new-private-session';
 
 /**
  * **+ Nieuw** in the top bar of a workspace's frame (`information-architecture.md §4.1`): a menu
- * of what the person may create. Only *Klant* exists so far (F006, from `clients.manage`); the
- * sessions and classes join it with their features. *Klant* opens the quick-add dialog of the
- * list. Without anything to create the frame doesn't show the menu.
+ * of what the person may create: *Privésessie* (F020, from `session.private.manage.*`), which
+ * opens PS-01, and *Klant* (F006, from `clients.manage`), which opens the quick-add dialog of the
+ * list. The classes join them with their features. Without anything to create the frame doesn't
+ * show the menu.
  */
 export function NewMenu() {
   const t = useTranslations('workspaceNav');
   const openAddClient = useOpenAddClient();
+  const openNewSession = useOpenNewSession();
   const [open, setOpen] = useState(false);
   // The button waits for the page to hydrate: a click before that would be lost.
   const [ready, setReady] = useState(false);
@@ -37,7 +40,7 @@ export function NewMenu() {
     toggle.current?.focus();
   }
 
-  if (!openAddClient) return null;
+  if (!openAddClient && !openNewSession) return null;
 
   return (
     // biome-ignore lint/a11y/noStaticElementInteractions: Escape closes the open menu; the controls inside are buttons.
@@ -67,19 +70,36 @@ export function NewMenu() {
           aria-label={t('newMenu')}
           className="absolute right-0 z-10 mt-1 grid min-w-40 gap-1 rounded-lg border bg-background p-1 shadow-md"
         >
-          <li>
-            <Button
-              type="button"
-              variant="ghost"
-              className="w-full justify-start"
-              onClick={() => {
-                setOpen(false);
-                openAddClient();
-              }}
-            >
-              {t('newClient')}
-            </Button>
-          </li>
+          {openNewSession ? (
+            <li>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full justify-start"
+                onClick={() => {
+                  setOpen(false);
+                  openNewSession();
+                }}
+              >
+                {t('newPrivateSession')}
+              </Button>
+            </li>
+          ) : null}
+          {openAddClient ? (
+            <li>
+              <Button
+                type="button"
+                variant="ghost"
+                className="w-full justify-start"
+                onClick={() => {
+                  setOpen(false);
+                  openAddClient();
+                }}
+              >
+                {t('newClient')}
+              </Button>
+            </li>
+          ) : null}
         </ul>
       ) : null}
     </div>

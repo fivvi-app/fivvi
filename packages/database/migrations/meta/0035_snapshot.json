@@ -1,6 +1,6 @@
 {
   "id": "1a1da8db-cc8c-4e7c-9e58-02fb8fb677e9",
-  "prevId": "99310bd3-7f34-47df-af7b-a0c1ad669058",
+  "prevId": "8166a701-cd43-4ae8-a824-54309c56f205",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1235,6 +1235,452 @@
         "locations_address_text_valid": {
           "name": "locations_address_text_valid",
           "value": "(\"locations\".\"street\" IS NULL OR (btrim(\"locations\".\"street\") <> '' AND char_length(\"locations\".\"street\") <= 120))\n        AND (\"locations\".\"city\" IS NULL OR (btrim(\"locations\".\"city\") <> '' AND char_length(\"locations\".\"city\") <= 120))\n        AND (\"locations\".\"house_number_addition\" IS NULL OR (btrim(\"locations\".\"house_number_addition\") <> '' AND char_length(\"locations\".\"house_number_addition\") <= 10))"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.offer_versions": {
+      "name": "offer_versions",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "offer_id": {
+          "name": "offer_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name_nl": {
+          "name": "name_nl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "name_en": {
+          "name": "name_en",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description_nl": {
+          "name": "description_nl",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "description_en": {
+          "name": "description_en",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "price_cents": {
+          "name": "price_cents",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "vat_rate_basis_points": {
+          "name": "vat_rate_basis_points",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "billing_cycle": {
+          "name": "billing_cycle",
+          "type": "offer_billing_cycle",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "term_months": {
+          "name": "term_months",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "minimum_term_months": {
+          "name": "minimum_term_months",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "end_of_term": {
+          "name": "end_of_term",
+          "type": "offer_end_of_term",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "classes_per_week": {
+          "name": "classes_per_week",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "credits": {
+          "name": "credits",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "validity_amount": {
+          "name": "validity_amount",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "validity_unit": {
+          "name": "validity_unit",
+          "type": "offer_validity_unit",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "carry_over_limit": {
+          "name": "carry_over_limit",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "once_per_client": {
+          "name": "once_per_client",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "members_only": {
+          "name": "members_only",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": false
+        },
+        "cutoff_minutes": {
+          "name": "cutoff_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "makeups_per_month": {
+          "name": "makeups_per_month",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "returns_per_month": {
+          "name": "returns_per_month",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "covered_class_ids": {
+          "name": "covered_class_ids",
+          "type": "uuid[]",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "renewal_window_days": {
+          "name": "renewal_window_days",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "offer_versions_organization_id_organizations_id_fk": {
+          "name": "offer_versions_organization_id_organizations_id_fk",
+          "tableFrom": "offer_versions",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "offer_versions_offer_fk": {
+          "name": "offer_versions_offer_fk",
+          "tableFrom": "offer_versions",
+          "tableTo": "offers",
+          "columnsFrom": [
+            "organization_id",
+            "offer_id"
+          ],
+          "columnsTo": [
+            "organization_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "offer_versions_organization_id_id_unique": {
+          "name": "offer_versions_organization_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "organization_id",
+            "id"
+          ]
+        },
+        "offer_versions_organization_id_id_offer_id_unique": {
+          "name": "offer_versions_organization_id_id_offer_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "organization_id",
+            "id",
+            "offer_id"
+          ]
+        },
+        "offer_versions_organization_id_offer_id_version_unique": {
+          "name": "offer_versions_organization_id_offer_id_version_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "organization_id",
+            "offer_id",
+            "version"
+          ]
+        }
+      },
+      "policies": {
+        "offer_versions_workspace": {
+          "name": "offer_versions_workspace",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "fivvi_app"
+          ],
+          "using": "\"offer_versions\".\"organization_id\" = ANY (app_workspace_ids())",
+          "withCheck": "\"offer_versions\".\"organization_id\" = ANY (app_workspace_ids())"
+        }
+      },
+      "checkConstraints": {
+        "offer_versions_version_valid": {
+          "name": "offer_versions_version_valid",
+          "value": "\"offer_versions\".\"version\" >= 1"
+        },
+        "offer_versions_name_nl_valid": {
+          "name": "offer_versions_name_nl_valid",
+          "value": "btrim(\"offer_versions\".\"name_nl\") <> '' AND char_length(\"offer_versions\".\"name_nl\") <= 80"
+        },
+        "offer_versions_name_en_valid": {
+          "name": "offer_versions_name_en_valid",
+          "value": "\"offer_versions\".\"name_en\" IS NULL OR (btrim(\"offer_versions\".\"name_en\") <> '' AND char_length(\"offer_versions\".\"name_en\") <= 80)"
+        },
+        "offer_versions_descriptions_valid": {
+          "name": "offer_versions_descriptions_valid",
+          "value": "(\"offer_versions\".\"description_nl\" IS NULL OR (btrim(\"offer_versions\".\"description_nl\") <> '' AND char_length(\"offer_versions\".\"description_nl\") <= 500))\n        AND (\"offer_versions\".\"description_en\" IS NULL OR (btrim(\"offer_versions\".\"description_en\") <> '' AND char_length(\"offer_versions\".\"description_en\") <= 500))"
+        },
+        "offer_versions_price_valid": {
+          "name": "offer_versions_price_valid",
+          "value": "\"offer_versions\".\"price_cents\" IS NULL OR \"offer_versions\".\"price_cents\" BETWEEN 1 AND 1000000"
+        },
+        "offer_versions_vat_rate_valid": {
+          "name": "offer_versions_vat_rate_valid",
+          "value": "\"offer_versions\".\"vat_rate_basis_points\" IS NULL OR \"offer_versions\".\"vat_rate_basis_points\" IN (2100, 900)"
+        },
+        "offer_versions_terms_valid": {
+          "name": "offer_versions_terms_valid",
+          "value": "(\"offer_versions\".\"term_months\" IS NULL OR \"offer_versions\".\"term_months\" BETWEEN 1 AND 24)\n        AND (\"offer_versions\".\"minimum_term_months\" IS NULL OR \"offer_versions\".\"minimum_term_months\" BETWEEN 0 AND 12)\n        AND (\"offer_versions\".\"classes_per_week\" IS NULL OR \"offer_versions\".\"classes_per_week\" BETWEEN 1 AND 7)\n        AND (\"offer_versions\".\"credits\" IS NULL OR \"offer_versions\".\"credits\" BETWEEN 1 AND 200)\n        AND (\"offer_versions\".\"carry_over_limit\" IS NULL OR \"offer_versions\".\"carry_over_limit\" BETWEEN 0 AND 50)\n        AND (\"offer_versions\".\"makeups_per_month\" IS NULL OR \"offer_versions\".\"makeups_per_month\" BETWEEN 0 AND 10)\n        AND (\"offer_versions\".\"returns_per_month\" IS NULL OR \"offer_versions\".\"returns_per_month\" >= 0)\n        AND (\"offer_versions\".\"renewal_window_days\" IS NULL OR \"offer_versions\".\"renewal_window_days\" BETWEEN 0 AND 365)"
+        },
+        "offer_versions_validity_valid": {
+          "name": "offer_versions_validity_valid",
+          "value": "(\"offer_versions\".\"validity_amount\" IS NULL) = (\"offer_versions\".\"validity_unit\" IS NULL)\n        AND (\"offer_versions\".\"validity_amount\" IS NULL OR \"offer_versions\".\"validity_amount\" >= 1)"
+        },
+        "offer_versions_cutoff_valid": {
+          "name": "offer_versions_cutoff_valid",
+          "value": "\"offer_versions\".\"cutoff_minutes\" BETWEEN 0 AND 4320 AND \"offer_versions\".\"cutoff_minutes\" % 60 = 0"
+        },
+        "offer_versions_covered_class_ids_valid": {
+          "name": "offer_versions_covered_class_ids_valid",
+          "value": "\"offer_versions\".\"covered_class_ids\" IS NULL OR cardinality(\"offer_versions\".\"covered_class_ids\") >= 1"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.offers": {
+      "name": "offers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kind": {
+          "name": "kind",
+          "type": "offer_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "credit_kind": {
+          "name": "credit_kind",
+          "type": "offer_credit_kind",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "status": {
+          "name": "status",
+          "type": "offer_status",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'off'"
+        },
+        "origin": {
+          "name": "origin",
+          "type": "offer_origin",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "default_plan": {
+          "name": "default_plan",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "current_version_id": {
+          "name": "current_version_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {
+        "offers_organization_id_organizations_id_fk": {
+          "name": "offers_organization_id_organizations_id_fk",
+          "tableFrom": "offers",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "offers_current_version_fk": {
+          "name": "offers_current_version_fk",
+          "tableFrom": "offers",
+          "tableTo": "offer_versions",
+          "columnsFrom": [
+            "organization_id",
+            "current_version_id",
+            "id"
+          ],
+          "columnsTo": [
+            "organization_id",
+            "id",
+            "offer_id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "offers_organization_id_id_unique": {
+          "name": "offers_organization_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "organization_id",
+            "id"
+          ]
+        },
+        "offers_organization_id_default_plan_unique": {
+          "name": "offers_organization_id_default_plan_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "organization_id",
+            "default_plan"
+          ]
+        }
+      },
+      "policies": {
+        "offers_workspace": {
+          "name": "offers_workspace",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "fivvi_app"
+          ],
+          "using": "\"offers\".\"organization_id\" = ANY (app_workspace_ids())",
+          "withCheck": "\"offers\".\"organization_id\" = ANY (app_workspace_ids())"
+        }
+      },
+      "checkConstraints": {
+        "offers_credit_kind_valid": {
+          "name": "offers_credit_kind_valid",
+          "value": "(\"offers\".\"kind\" IN ('credit_pack', 'credit_plan')) = (\"offers\".\"credit_kind\" IS NOT NULL)"
+        },
+        "offers_default_plan_valid": {
+          "name": "offers_default_plan_valid",
+          "value": "(\"offers\".\"origin\" = 'default') = (\"offers\".\"default_plan\" IS NOT NULL)\n        AND (\"offers\".\"default_plan\" IS NULL OR btrim(\"offers\".\"default_plan\") <> '')"
         }
       },
       "isRLSEnabled": false
@@ -3813,6 +4259,66 @@
         "outdoor",
         "online",
         "other"
+      ]
+    },
+    "public.offer_billing_cycle": {
+      "name": "offer_billing_cycle",
+      "schema": "public",
+      "values": [
+        "month",
+        "four_weeks"
+      ]
+    },
+    "public.offer_credit_kind": {
+      "name": "offer_credit_kind",
+      "schema": "public",
+      "values": [
+        "group",
+        "private"
+      ]
+    },
+    "public.offer_end_of_term": {
+      "name": "offer_end_of_term",
+      "schema": "public",
+      "values": [
+        "stop",
+        "continue"
+      ]
+    },
+    "public.offer_kind": {
+      "name": "offer_kind",
+      "schema": "public",
+      "values": [
+        "membership",
+        "credit_pack",
+        "credit_plan",
+        "single_class_pass"
+      ]
+    },
+    "public.offer_origin": {
+      "name": "offer_origin",
+      "schema": "public",
+      "values": [
+        "default",
+        "owner"
+      ]
+    },
+    "public.offer_status": {
+      "name": "offer_status",
+      "schema": "public",
+      "values": [
+        "off",
+        "on",
+        "archived"
+      ]
+    },
+    "public.offer_validity_unit": {
+      "name": "offer_validity_unit",
+      "schema": "public",
+      "values": [
+        "day",
+        "week",
+        "month"
       ]
     },
     "public.trainer_word": {

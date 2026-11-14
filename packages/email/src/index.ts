@@ -71,6 +71,8 @@ export {
   demoRequestEmail,
   type EmailChangeCodeEmailProps,
   emailChangeCodeEmail,
+  emailChangedNoticeEmail,
+  emailChangeTakenNoticeEmail,
   type HelloEmailProps,
   helloEmail,
   type PrivateSessionEmailProps,

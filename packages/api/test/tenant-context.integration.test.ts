@@ -16,7 +16,7 @@ interface Row {
 
 const Rows = z.looseObject({}).openapi('ForgottenScopeRows');
 
-describe('F003 AC10: requests run with only the account’s workspace IDs', () => {
+describe('@isolation F003 AC10: requests run with only the account’s workspace IDs', () => {
   let world: World;
   let s: Awaited<ReturnType<typeof seedScenario>>;
 
