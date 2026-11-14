@@ -203,7 +203,7 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
 
       expect(html).toMatch(
         new RegExp(
-          `Lisa(?:</span>)+</td><td[^>]*>lisa@example.com</td><td[^>]*>.*?${copy.roles.trainer}.*?<span[^>]*data-slot="status-pill"[^>]*>${copy.team.invitations.status}</span>.*?>\\d{1,2} \\p{L}+\\.? 2026</span>`,
+          `Lisa(?:</span>)+</td><td[^>]*>lisa@example.com</td><td[^>]*>.*?${copy.roles.trainer}.*?<span[^>]*data-slot="status-pill"[^>]*>${copy.team.invitations.status}</span>.*?>\\p{L}+,? \\d{1,2} \\p{L}+\\.? 2026</span>`,
           'u',
         ),
       );

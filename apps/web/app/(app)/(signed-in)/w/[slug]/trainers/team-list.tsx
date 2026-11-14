@@ -287,10 +287,7 @@ export function TeamList({
                       {roles('trainer')}
                       <StatusPill>{t('invitations.status')}</StatusPill>
                       <span className="text-muted-foreground">
-                        {format.dateTime(new Date(invitation.sentAt), {
-                          dateStyle: 'medium',
-                          timeZone,
-                        })}
+                        {format.dateTime(new Date(invitation.sentAt), 'dateWithYear', { timeZone })}
                       </span>
                     </div>
                   </td>

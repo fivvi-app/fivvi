@@ -194,7 +194,8 @@ test.describe('F011 trainer invitations on the web', () => {
 
     // Signed out with a valid invitation: sign-in first, then back to the invitation.
     await expect(page).toHaveURL(/\/login\?returnTo=%2Finvitations%2F/);
-    await signInWithCode(page, copy, lisa);
+    // Lisa has EM-09 already, so the sign-in code is her second email.
+    await signInWithCode(page, copy, lisa, 2);
     await expect(page).toHaveURL(`/invitations/${token}`);
     await expect(
       page.getByRole('heading', { level: 1, name: copy.invitation.title }),
@@ -289,6 +290,11 @@ test.describe('F011 trainer invitations on the web', () => {
     // Signing out brings the visitor to sign in, and back to this invitation after it.
     await page.getByRole('button', { name: copy.invitation.signOutAndContinue }).click();
     await expect(page).toHaveURL(/\/login\?returnTo=%2Finvitations%2F/);
+    // Lisa, whose address it is, signs in (her second email: EM-09 came first) and is back at the
+    // invitation, which she can answer.
+    await signInWithCode(page, copy, lisa, 2);
+    await expect(page).toHaveURL(`/invitations/${token}`);
+    await expect(page.getByRole('button', { name: copy.invitation.accept })).toBeVisible();
 
     // John withdraws the invitation: its link now says it is no longer valid, to anyone.
     const johns = await browser.newContext({ baseURL, extraHTTPHeaders: clientIpHeaders() });

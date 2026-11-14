@@ -1,5 +1,4 @@
 import { loginPath } from '@fivvi/auth/return-path';
-import { maskEmail, normalizeEmail } from '@fivvi/domain';
 import type { Metadata, Route } from 'next';
 import { headers } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -19,28 +18,32 @@ export async function generateMetadata(): Promise<Metadata> {
  * sign-in: a visitor who is not signed in goes to TW-10 and comes back here (`returnTo`). Signed in
  * with the address the invitation is for, the person answers it; with another address they read the
  * masked address and can sign out. What is read of the invitation (`GET /v1/invitations/{token}`)
- * is the workspace's name, the inviter's name and the masked address, and nothing else.
+ * is the workspace's name, the inviter's name, the masked address and whether it is for the signed-in
+ * account (`forYou`), and nothing else.
  */
 export default async function InvitationPage({ params }: PageProps<'/invitations/[token]'>) {
   const { token } = await params;
+  const requestHeaders = await headers();
+  const cookie = requestHeaders.get('cookie');
   const { data: preview, response } = await apiClient.GET('/v1/invitations/{token}', {
     params: { path: { token } },
+    headers: cookie ? { cookie } : {},
   });
   if (response.status === 404 || response.status === 400) {
     return <InvitationCard token={token} initial={{ kind: 'noLongerValid' }} />;
   }
   if (!preview) throw new Error(`GET /v1/invitations/{token} answered ${response.status}.`);
-  const me = await loadMe(apiClient, await headers());
+  const me = await loadMe(apiClient, requestHeaders);
   if (!me) redirect(loginPath(`/invitations/${encodeURIComponent(token)}`, '') as Route);
-  // The API refuses any other account whatever this says; the mask only decides what to show first.
-  const view: InvitationView =
-    maskEmail(normalizeEmail(me.email)) === preview.maskedEmail
-      ? {
-          kind: 'question',
-          workspaceName: preview.workspaceName,
-          inviterName: preview.inviterName,
-          maskedEmail: preview.maskedEmail,
-        }
-      : { kind: 'wrongAccount', maskedEmail: preview.maskedEmail };
+  // The API says whether the invitation is for this account (`forYou`) and refuses any other
+  // account when it answers; this only decides what to show first.
+  const view: InvitationView = preview.forYou
+    ? {
+        kind: 'question',
+        workspaceName: preview.workspaceName,
+        inviterName: preview.inviterName,
+        maskedEmail: preview.maskedEmail,
+      }
+    : { kind: 'wrongAccount', maskedEmail: preview.maskedEmail };
   return <InvitationCard token={token} initial={view} />;
 }

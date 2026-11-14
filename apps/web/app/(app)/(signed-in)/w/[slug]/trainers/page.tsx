@@ -25,34 +25,21 @@ export default async function TrainersPage({ params }: PageProps<'/w/[slug]/trai
   const { id, name, capabilities } = await workspaceOf((await params).slug);
   if (!capabilities.includes('team.view')) return <NoPermission workspace={name} />;
   const cookie = (await headers()).get('cookie');
-  const { data } = await apiClient.GET('/v1/workspaces/{workspaceId}/team-members', {
-    params: { path: { workspaceId: id } },
-    headers: cookie ? { cookie } : {},
-  });
-  if (!data) throw new Error('GET /v1/workspaces/{workspaceId}/team-members did not answer.');
-  const { data: trainers } = await apiClient.GET('/v1/workspaces/{workspaceId}/trainers', {
-    params: { path: { workspaceId: id } },
-    headers: cookie ? { cookie } : {},
-  });
-  if (!trainers) throw new Error('GET /v1/workspaces/{workspaceId}/trainers did not answer.');
-  const { email } = await currentMe();
-  const canInvite = capabilities.includes('team.invite');
   const authorization = cookie ? { cookie } : {};
-  const invitations = canInvite
-    ? await apiClient.GET('/v1/workspaces/{workspaceId}/trainer-invitations', {
-        params: { path: { workspaceId: id } },
-        headers: authorization,
-      })
-    : undefined;
+  const path = { params: { path: { workspaceId: id } }, headers: authorization };
+  const canInvite = capabilities.includes('team.invite');
+  const [{ data }, { data: trainers }, { email }, invitations, workspace] = await Promise.all([
+    apiClient.GET('/v1/workspaces/{workspaceId}/team-members', path),
+    apiClient.GET('/v1/workspaces/{workspaceId}/trainers', path),
+    currentMe(),
+    canInvite ? apiClient.GET('/v1/workspaces/{workspaceId}/trainer-invitations', path) : undefined,
+    canInvite ? apiClient.GET('/v1/workspaces/{workspaceId}', path) : undefined,
+  ]);
+  if (!data) throw new Error('GET /v1/workspaces/{workspaceId}/team-members did not answer.');
+  if (!trainers) throw new Error('GET /v1/workspaces/{workspaceId}/trainers did not answer.');
   if (canInvite && !invitations?.data) {
     throw new Error('GET /v1/workspaces/{workspaceId}/trainer-invitations did not answer.');
   }
-  const workspace = canInvite
-    ? await apiClient.GET('/v1/workspaces/{workspaceId}', {
-        params: { path: { workspaceId: id } },
-        headers: authorization,
-      })
-    : undefined;
   if (canInvite && !workspace?.data) {
     throw new Error('GET /v1/workspaces/{workspaceId} did not answer.');
   }

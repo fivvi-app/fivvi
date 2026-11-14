@@ -230,6 +230,7 @@ describe('F011 answering a trainer invitation', () => {
       workspaceName: w.gym.marker,
       inviterName: 'John',
       maskedEmail: 'l***@example.com',
+      forYou: true,
     });
 
     const response = await request(
@@ -451,7 +452,12 @@ describe('F011 answering a trainer invitation', () => {
 
       expect(response.status).toBe(200);
       const body = (await response.json()) as Record<string, unknown>;
-      expect(Object.keys(body).sort()).toEqual(['inviterName', 'maskedEmail', 'workspaceName']);
+      expect(Object.keys(body).sort()).toEqual([
+        'forYou',
+        'inviterName',
+        'maskedEmail',
+        'workspaceName',
+      ]);
       const text = JSON.stringify(body);
       for (const secret of [
         w.gym.id,
@@ -463,6 +469,32 @@ describe('F011 answering a trainer invitation', () => {
       ]) {
         expect(text).not.toContain(secret);
       }
+    });
+
+    it('says whether the invitation is for the signed-in account: yes for the invited address, no for another account, an unverified address and nobody', async () => {
+      const w = await world();
+      const server = setup();
+      const lisaAccount = await createAccount(admin.db, { label: 'lisa-for-you' });
+      const unverified = await createAccount(admin.db, { label: 'lisa-for-you-unverified' });
+      await admin.db
+        .update(authUsers)
+        .set({ emailVerified: false })
+        .where(eq(authUsers.id, unverified.id));
+      const tom = await createAccount(admin.db, { label: 'tom-for-you' });
+      // Another person whose address masks the same way (first letter and domain).
+      const lookalike = await createAccount(admin.db, { label: 'lara-for-you' });
+      const forLisa = await invitation(w, { email: lisaAccount.email });
+      const forUnverified = await invitation(w, { email: unverified.email });
+
+      const forYou = async (token: string, who?: { id: string }) =>
+        ((await (await read(server, token, who)).json()) as { forYou: boolean }).forYou;
+
+      expect(await forYou(forLisa.token, lisaAccount)).toBe(true);
+      expect(await forYou(forLisa.token, tom)).toBe(false);
+      expect(await forYou(forLisa.token, lookalike)).toBe(false);
+      expect(await forYou(forLisa.token, w.mike)).toBe(false);
+      expect(await forYou(forLisa.token)).toBe(false);
+      expect(await forYou(forUnverified.token, unverified)).toBe(false);
     });
 
     it('says null for an inviter who has no name yet, never the address', async () => {
@@ -614,6 +646,7 @@ describe('F011 answering a trainer invitation', () => {
       'workspaceName',
       'inviterName',
       'maskedEmail',
+      'forYou',
     ]);
   });
 });
