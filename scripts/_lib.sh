@@ -105,7 +105,8 @@ slice_tickets() { [ ! -f "$(slice_file "$1")" ] || grep -E '^[0-9]+$' "$(slice_f
 slice_primary() {
   local file p newest="" live_newest=""
   for file in "$NOTES_DIR"/*/slice; do
-    [ -f "$file" ] && grep -qxF "$1" "$file" || continue
+    [ -f "$file" ] || continue
+    grep -qxF "$1" "$file" || continue
     if [ -z "$newest" ] || [ "$file" -nt "$newest" ]; then newest="$file"; fi
     p="$(basename "$(dirname "$file")")"
     if [ -n "$(git -C "$MAIN_ROOT" for-each-ref --count=1 "refs/heads/*/$p-*" "refs/remotes/origin/*/$p-*")" ]; then

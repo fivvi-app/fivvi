@@ -721,7 +721,7 @@ cmd_slice() {
   local first file t="$3" rest
   first="$(slice_primary "$1")"
   file="$(slice_file "$first")"
-  [ -f "$file" ] && grep -qxF "$1" "$file" || die "#$1 is in no slice"
+  { [ -f "$file" ] && grep -qxF "$1" "$file"; } || die "#$1 is in no slice"
   grep -qxF "$t" "$file" || die "#$t is not in the slice of #$1 ($(slice_line "$1"))"
   [ "$t" != "$first" ] || die "#$t is the ticket the branch of the slice is named after: it stays; drop another ticket"
   rest="$(grep -vxF "$t" "$file")"
