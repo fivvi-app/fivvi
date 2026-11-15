@@ -477,6 +477,19 @@ describe('risk of a pull request', () => {
     }
   });
 
+  it('ADR-033 AC8: a workflow whose name also matches billing is high with both the billing and the ci reason', () => {
+    const file = '.github/workflows/billing.yml';
+    const result = pr([file]);
+    assert.equal(result.risk, 'high');
+    assert.equal(result.reasons.length, 2);
+    for (const group of ['billing', 'ci']) {
+      assert.ok(
+        result.reasons.some((r) => r.startsWith(`${file}: ${group} (`)),
+        `${file}: ${group}`,
+      );
+    }
+  });
+
   it('ADR-033 AC8: only the workflow files are carved out of .github; actions, agents and other files stay core', () => {
     for (const file of [
       '.github/workflows/sub/ci.yml',
