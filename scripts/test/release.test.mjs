@@ -176,20 +176,38 @@ describe('E017 AC3: the native suites run first, in both locales', () => {
     assert.deepEqual(calls(), []);
   });
 
-  it('E017 AC3: the Android suites run in order and the second does not start after the first fails', () => {
+  it('E017 AC3: the Android tests run pnpm test:android and nothing else, and stop at its failure', () => {
     fake('pnpm', '[ "$1" != test:android ] || exit 1');
     const result = run(RELEASE, ['tests', 'android'], DISPATCH_ON_MAIN);
     assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /test:android/);
     assert.deepEqual(calls(), ['pnpm test:android']);
 
     fake('pnpm');
     assert.equal(run(RELEASE, ['tests', 'android'], DISPATCH_ON_MAIN).status, 0);
-    assert.deepEqual(calls().slice(1), ['pnpm test:android', 'pnpm test:maestro']);
+    assert.deepEqual(calls().slice(1), ['pnpm test:android']);
   });
 
-  it('E017 AC3: Android takes no locale: both locales run in the one job', () => {
+  it('E017 AC3: the Android Maestro flows run pnpm test:maestro on its own, like the CI job Android Maestro', () => {
+    fake('pnpm', '[ "$1" != test:maestro ] || exit 1');
+    const result = run(RELEASE, ['tests', 'android-maestro'], DISPATCH_ON_MAIN);
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /test:maestro/);
+    assert.deepEqual(calls(), ['pnpm test:maestro']);
+
     fake('pnpm');
-    assert.notEqual(run(RELEASE, ['tests', 'android', 'nl'], DISPATCH_ON_MAIN).status, 0);
+    assert.equal(run(RELEASE, ['tests', 'android-maestro'], DISPATCH_ON_MAIN).status, 0);
+    assert.deepEqual(calls().slice(1), ['pnpm test:maestro']);
+  });
+
+  it('E017 AC3: the Android suites take no argument: the Maestro job runs both locales', () => {
+    fake('pnpm');
+    for (const args of [
+      ['android', 'nl'],
+      ['android-maestro', 'nl'],
+      ['android-maestro', 'nl', 'en'],
+    ])
+      assert.notEqual(run(RELEASE, ['tests', ...args], DISPATCH_ON_MAIN).status, 0, args.join(' '));
     assert.deepEqual(calls(), []);
   });
 
@@ -692,32 +710,47 @@ describe('E017 AC3: what a run refuses and what stops it', () => {
   });
 
   it('E017 AC3: no upload when a native suite fails: the release job needs the test job of both platforms, and only cleanup runs after a failure', () => {
-    const { prepare, 'ios-tests': tests, 'android-tests': androidTests, ios } = jobs();
+    const {
+      prepare,
+      'ios-tests': tests,
+      'android-tests': androidTests,
+      'android-maestro': maestro,
+      ios,
+    } = jobs();
     assert.match(tests, /^ {4}needs: prepare$/m);
     assert.match(tests, /run: scripts\/release\.sh tests ios \$\{\{ matrix\.locale \}\}/);
     // The native suites of both platforms run first (spec #169, AC3): the secret job waits for the iOS and the Android
     // tests, so a failing Android suite uploads no iOS build either. #191's Android job needs both as well.
     assert.match(androidTests, /^ {4}needs: prepare$/m);
     assert.match(androidTests, /^ {4}runs-on: ubuntu-\d+\.\d+$/m);
-    assert.match(androidTests, /run: scripts\/release\.sh tests android/);
-    assert.ok(!/inputs\.ios/.test(androidTests), 'the Android suites run for every release run');
+    assert.match(androidTests, /run: scripts\/release\.sh tests android$/m);
+    assert.match(maestro, /^ {4}needs: prepare$/m);
+    assert.match(maestro, /^ {4}runs-on: ubuntu-\d+\.\d+$/m);
+    assert.match(maestro, /run: scripts\/release\.sh tests android-maestro$/m);
+    assert.ok(
+      !/inputs\.ios/.test(androidTests + maestro),
+      'the Android suites run for every release run',
+    );
     // Both native suites always run: neither test job carries an `if:` on an input, so a later job that needs them is
     // never skipped because a platform was left out of the run.
     for (const [name, job] of [
       ['ios-tests', tests],
       ['android-tests', androidTests],
+      ['android-maestro', maestro],
     ])
       assert.ok(!/^ {4}if:.*\binputs\./m.test(job), `${name} must not be gated on an input`);
-    assert.match(ios, /^ {4}needs: \[prepare, ios-tests, android-tests\]$/m);
+    assert.match(ios, /^ {4}needs: \[prepare, ios-tests, android-tests, android-maestro\]$/m);
     assert.ok(!/ios-release-test-results|android-release-test-results/.test(ios));
-    // The Android suites need the emulator set up the way ci.yml does it.
-    for (const command of [
-      'scripts/android.sh setup',
-      'scripts/android.sh emulator',
-      'scripts/android.sh stop',
-    ])
-      assert.ok(androidTests.includes(command), command);
-    assert.match(androidTests, /actions\/setup-java@/);
+    // Both Android test jobs need the emulator set up the way ci.yml does it.
+    for (const job of [androidTests, maestro]) {
+      for (const command of [
+        'scripts/android.sh setup',
+        'scripts/android.sh emulator',
+        'scripts/android.sh stop',
+      ])
+        assert.ok(job.includes(command), command);
+      assert.match(job, /actions\/setup-java@/);
+    }
     // Nothing that runs after a failure uploads: `always()`, `failure()` and `cancelled()` appear only on cleanup, on
     // stopping the emulator and on the upload of the test reports.
     const afterFailure = (text) =>
@@ -730,12 +763,13 @@ describe('E017 AC3: what a run refuses and what stops it', () => {
       afterFailure(tests).map((step) => step.name),
       ['Upload test results'],
     );
-    assert.deepEqual(
-      afterFailure(androidTests).map((step) => step.name),
-      ['Stop the emulator', 'Upload test results'],
-    );
+    for (const job of [androidTests, maestro])
+      assert.deepEqual(
+        afterFailure(job).map((step) => step.name),
+        ['Stop the emulator', 'Upload test results'],
+      );
     assert.ok(!/(always|failure|cancelled)\(\)/.test(prepare));
-    for (const job of [prepare, tests, androidTests, ios])
+    for (const job of [prepare, tests, androidTests, maestro, ios])
       assert.ok(!/continue-on-error/.test(job));
     assert.ok(
       !/^ {4}if: .*(always|failure|cancelled)\(\)/m.test(ios),
@@ -749,7 +783,7 @@ describe('E017 AC3: what a run refuses and what stops it', () => {
     assert.match(tests, /^ {6}fail-fast: false$/m);
     assert.match(tests, /^ {8}locale: \[nl, en\]$/m);
     // `needs` on a matrix job waits for every leg and needs all of them to succeed, so a failing locale stops the release.
-    assert.match(ios, /^ {4}needs: \[prepare, ios-tests, android-tests\]$/m);
+    assert.match(ios, /^ {4}needs: \[prepare, ios-tests, android-tests, android-maestro\]$/m);
     assert.ok(
       !/^ {4}if: .*(always|failure|cancelled)\(\)/m.test(ios),
       'no condition that lets a failed leg through',
@@ -779,6 +813,75 @@ describe('E017 AC3: what a run refuses and what stops it', () => {
       minutes(jobs()['ios-tests']) >= build + testsOfCi,
       `${minutes(jobs()['ios-tests'])} minutes for a build (${build}) and the tests of one locale (${testsOfCi})`,
     );
+  });
+});
+
+describe('E017 AC3: the Android test jobs fit what they run, like the Android jobs of CI', () => {
+  const minutes = (text) => Number(text.match(/^ {4}timeout-minutes: (\d+)$/m)[1]);
+  const stepMinutes = (job, name) =>
+    Number(
+      steps(job)
+        .find((step) => step.name === name)
+        .text.match(/^ {8}timeout-minutes: (\d+)$/m)[1],
+    );
+  const ci = readFileSync(join(WORKFLOWS, 'ci.yml'), 'utf8');
+  const ciJobs = (id) => ci.slice(ci.indexOf(`\n  ${id}:\n`) + 1).split(/\n  [a-z-]+:\n/)[0];
+
+  it('the Android tests (ktlint, build, unit tests, Compose UI tests) are a job of their own, apart from the Maestro flows', () => {
+    const { 'android-tests': androidTests, 'android-maestro': maestro } = jobs();
+    assert.match(androidTests, /^ {4}name: Android tests$/m);
+    assert.match(maestro, /^ {4}name: Android Maestro$/m);
+    assert.ok(!/release\.sh tests android-maestro/.test(androidTests));
+    assert.ok(!/release\.sh tests android$/m.test(maestro));
+    assert.ok(
+      !/pnpm test:maestro|maestro\.sh/.test(workflow.replace(/^\s*#.*$/gm, '')),
+      'only through release.sh',
+    );
+  });
+
+  it('the tests job holds the build and the unit and Compose UI tests: no lower than CI’s Android build and Android tests', () => {
+    const { 'android-tests': androidTests } = jobs();
+    const build = stepMinutes(ciJobs('android-build'), 'ktlint, checks and debug build');
+    const verify = stepMinutes(
+      ciJobs('android-tests'),
+      'Unit tests, release bundle and Compose UI tests',
+    );
+    assert.ok(
+      stepMinutes(androidTests, 'ktlint, build, unit tests and Compose UI tests') >= build + verify,
+      'the step',
+    );
+    assert.ok(minutes(androidTests) >= minutes(ciJobs('android-tests')), 'the job');
+    // The step has to fit in the job with the setup and the emulator boot (10 at most) before it.
+    assert.ok(
+      minutes(androidTests) >=
+        stepMinutes(androidTests, 'ktlint, build, unit tests and Compose UI tests') + 10 + 5,
+    );
+  });
+
+  it('the Maestro job holds both locales: no lower than the Maestro step and the job of CI', () => {
+    const { 'android-maestro': maestro } = jobs();
+    const flows = stepMinutes(maestro, 'Maestro flows (nl-NL and en)');
+    assert.ok(
+      flows >=
+        stepMinutes(
+          ciJobs('android-maestro'),
+          'Maestro flows (sign-in, anonymous and home; nl-NL and en)',
+        ),
+    );
+    assert.ok(minutes(maestro) >= minutes(ciJobs('android-maestro')), 'the job');
+    assert.ok(minutes(maestro) >= flows + 10 + 5, 'the job holds the step, the boot and the setup');
+  });
+
+  it('no Android test step outgrows its job, and the two jobs do not run in series', () => {
+    const { 'android-tests': androidTests, 'android-maestro': maestro } = jobs();
+    for (const job of [androidTests, maestro]) {
+      const total = steps(job)
+        .map((step) => Number(step.text.match(/^ {8}timeout-minutes: (\d+)$/m)?.[1] ?? 0))
+        .reduce((a, b) => a + b, 0);
+      assert.ok(total < minutes(job), `${total} minutes of steps in a job of ${minutes(job)}`);
+    }
+    assert.match(androidTests, /^ {4}needs: prepare$/m);
+    assert.match(maestro, /^ {4}needs: prepare$/m);
   });
 });
 
@@ -844,8 +947,14 @@ describe('E017 AC6: the release name the app sends', () => {
 
 describe('E017 AC7: secrets stay in the release job', () => {
   it('E017 AC7: only the release job reads secrets, each in the step that needs it, none in a command line', () => {
-    const { prepare, 'ios-tests': tests, 'android-tests': androidTests, ios } = jobs();
-    for (const job of [prepare, tests, androidTests]) assert.ok(!job.includes('secrets.'));
+    const {
+      prepare,
+      'ios-tests': tests,
+      'android-tests': androidTests,
+      'android-maestro': maestro,
+      ios,
+    } = jobs();
+    for (const job of [prepare, tests, androidTests, maestro]) assert.ok(!job.includes('secrets.'));
     assert.match(ios, /^ {4}environment: release$/m);
     const readers = steps(ios).filter((step) => step.text.includes('secrets.'));
     assert.deepEqual(
