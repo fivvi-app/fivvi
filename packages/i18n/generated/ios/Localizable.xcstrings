@@ -4000,6 +4000,40 @@
         }
       }
     },
+    "myDay.spokenJoin" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@, %2$@"
+          }
+        }
+      }
+    },
+    "myDay.spokenTime" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ to %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ tot %1$@"
+          }
+        }
+      }
+    },
     "myDay.summary" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -4074,6 +4108,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Geen sessies"
+          }
+        }
+      }
+    },
+    "myDay.timeRange" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@–%1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@–%1$@"
           }
         }
       }
@@ -4186,6 +4237,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Privésessie"
+          }
+        }
+      }
+    },
+    "myDay.typeWithDetail" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ · %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%2$@ · %1$@"
           }
         }
       }

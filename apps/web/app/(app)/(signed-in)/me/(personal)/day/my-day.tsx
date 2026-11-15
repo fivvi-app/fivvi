@@ -54,14 +54,16 @@ export function MyDayView({ day, now }: { day: Day; now: Date }) {
       <Link
         href={`/w/${item.workspace.slug}/sessions/${item.sessionId}` as Route}
         className={`${rowClass} ${past || cancelled ? 'text-muted-foreground' : ''}`}
+        // One screen-reader element per row, with a pause between its parts (`02-trainer-today.md`).
+        aria-label={spoken(item, title, detail, cancelled)}
       >
         <span className="w-24 shrink-0 pt-px text-sm font-medium tabular-nums">
-          {when.time(item.startsAt)}–{when.time(item.endsAt)}
+          {t('timeRange', { start: when.time(item.startsAt), end: when.time(item.endsAt) })}
         </span>
         <span className="grid min-w-0 flex-1 gap-0.5">
           <span className={`truncate font-medium ${cancelled ? 'line-through' : ''}`}>{title}</span>
           <span className="truncate text-sm text-muted-foreground">
-            {detail ? `${typeOf(item)} · ${detail}` : typeOf(item)}
+            {detail ? t('typeWithDetail', { type: typeOf(item), detail }) : typeOf(item)}
           </span>
           {day.workspaceCount > 1 ? (
             <span className="truncate text-sm text-muted-foreground">{item.workspace.name}</span>
@@ -70,6 +72,19 @@ export function MyDayView({ day, now }: { day: Day; now: Date }) {
         </span>
       </Link>
     );
+  }
+
+  /** "09:00 tot 10:00, Anna, privésessie, Studio Zuid, Sarah Personal Training": the row as one phrase. */
+  function spoken(item: Item, title: string, detail: string | undefined, cancelled: boolean) {
+    const parts = [
+      t('spokenTime', { start: when.time(item.startsAt), end: when.time(item.endsAt) }),
+      title,
+      typeOf(item),
+      detail,
+      day.workspaceCount > 1 ? item.workspace.name : undefined,
+      cancelled ? t('cancelled') : undefined,
+    ].filter((part): part is string => Boolean(part));
+    return parts.reduce((first, next) => t('spokenJoin', { first, next }));
   }
 
   function typeOf(item: Item) {

@@ -124,17 +124,28 @@ test.describe('F013 Mijn dag on the web', () => {
     const main = page.getByRole('main');
     await expect(main.getByRole('link')).toHaveCount(3);
     const row = (client: string) => main.getByRole('link', { name: new RegExp(client) });
+    const spokenTime = (start: string, end: string) =>
+      copy.myDay.spokenTime.replace('{start}', start).replace('{end}', end);
     await expect(row('Anna de Vries')).toContainText('09:00–10:00');
+    // One screen-reader element per row, with a pause between its parts.
+    await expect(row('Anna de Vries')).toHaveAccessibleName(
+      new RegExp(
+        `^${spokenTime('09:00', '10:00')}, Anna de Vries, ${copy.myDay.typePrivate}(, [^,]+)?, ${PERSONAL}$`,
+      ),
+    );
     await expect(row('Anna de Vries')).toContainText(copy.myDay.typePrivate);
     await expect(row('Anna de Vries')).toContainText(PERSONAL);
     await expect(row('Anna de Vries')).toHaveAttribute(
       'href',
       new RegExp(`^/w/trainer-gym-[0-9a-f]{8}/sessions/${anna.id}$`),
     );
-    await expect(row('11:00–12:00')).toContainText('Mark Jansen');
-    await expect(row('11:00–12:00')).toContainText(GYM);
-    await expect(row('11:00–12:00')).toHaveAttribute('href', `/w/${gymSlug}/sessions/${mark.id}`);
-    await expect(row('18:00–19:00')).toContainText('Mark Jansen');
+    await expect(row(spokenTime('11:00', '12:00'))).toContainText('Mark Jansen');
+    await expect(row(spokenTime('11:00', '12:00'))).toContainText(GYM);
+    await expect(row(spokenTime('11:00', '12:00'))).toHaveAttribute(
+      'href',
+      `/w/${gymSlug}/sessions/${mark.id}`,
+    );
+    await expect(row(spokenTime('18:00', '19:00'))).toContainText('Mark Jansen');
     await expect(main.getByText(/^3 \S+ · 09:00–19:00$/)).toBeVisible();
 
     // The data path: the page is what the API answers for the day, not a stub.
@@ -227,7 +238,13 @@ test.describe('F013 Mijn dag on the web', () => {
     const { mark } = await sarahsDay(page);
     await page.reload();
 
-    await page.getByRole('link', { name: /Mark Jansen.*11:00|11:00.*Mark Jansen/ }).click();
+    await page
+      .getByRole('link', {
+        name: new RegExp(
+          `^${copy.myDay.spokenTime.replace('{start}', '11:00').replace('{end}', '12:00')}, Mark Jansen`,
+        ),
+      })
+      .click();
 
     await expect(page).toHaveURL(`/w/${gymSlug}/sessions/${mark.id}`);
     await expect(

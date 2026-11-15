@@ -94,6 +94,8 @@ describe.each(locales)('F013 Mijn dag in %s', (locale) => {
   const formatting = locale === 'en' ? 'en-GB' : 'nl-NL';
   const view = (overrides: Partial<Day> = {}) =>
     render(locale, <MyDayView day={{ ...day, ...overrides }} now={now} />);
+  /** The page as seen: without the spoken phrases of the rows (`aria-label`), which repeat their text. */
+  const seen = (html: string) => html.replace(/ aria-label="[^"]*"/g, '');
   /** The links of the list, in order, as `href=text` of their visible text. */
   const rows = (html: string) =>
     [...html.matchAll(/<a[^>]*href="([^"]*)"[^>]*>(.*?)<\/a>/g)].map(([, href, inner]) => [
@@ -121,7 +123,7 @@ describe.each(locales)('F013 Mijn dag in %s', (locale) => {
   });
 
   it('AC1: Straks on top with the minutes, Anna once, then the others in time order, each with its type in words', () => {
-    const html = view();
+    const html = seen(view());
 
     expect(html).toContain(copy.nextUpcoming.replace('{minutes}', '25'));
     expect(html.match(/Anna de Vries/g)).toHaveLength(1);
@@ -152,7 +154,7 @@ describe.each(locales)('F013 Mijn dag in %s', (locale) => {
   });
 
   it('AC1: a cancelled session stays, struck through, with Geannuleerd; the others are not struck through', () => {
-    const html = view();
+    const html = seen(view());
     const cancelled = rows(html).findIndex(([href]) => href?.endsWith('s-kracht-cancelled'));
 
     expect(cancelled).toBe(3);
@@ -162,22 +164,70 @@ describe.each(locales)('F013 Mijn dag in %s', (locale) => {
   });
 
   it('AC2: every row names its workspace with several workspaces, and none with one', () => {
-    const several = view();
+    const several = seen(view());
     expect(several.match(/Sarah Personal Training/g)).toHaveLength(1);
     expect(several.match(/John&#x27;s Gym</g)).toHaveLength(3);
 
-    const one = view({
-      workspaceCount: 1,
-      items: [mark, kracht].map((item) => ({ ...item, workspace: gym })),
-      next: undefined,
-      summary: {
-        count: 2,
-        done: 0,
-        firstStartsAt: mark.startsAt,
-        lastEndsAt: kracht.endsAt,
-      },
-    });
+    const one = seen(
+      view({
+        workspaceCount: 1,
+        items: [mark, kracht].map((item) => ({ ...item, workspace: gym })),
+        next: undefined,
+        summary: {
+          count: 2,
+          done: 0,
+          firstStartsAt: mark.startsAt,
+          lastEndsAt: kracht.endsAt,
+        },
+      }),
+    );
     expect(one).not.toContain('John&#x27;s Gym</');
+  });
+
+  it('AC9: a row reads as one phrase with a pause between its parts', () => {
+    const labels = (html: string) =>
+      [...html.matchAll(/<a[^>]*aria-label="([^"]*)"/g)].map(([, label]) => label);
+    const spoken = (start: string, end: string) =>
+      copy.spokenTime.replace('{start}', start).replace('{end}', end);
+    const join = (...parts: string[]) => parts.reduce((a, b) => `${a}, ${b}`);
+
+    expect(labels(view()).map((label) => label?.replaceAll('&#x27;', "'"))).toEqual([
+      join(spoken('09:00', '10:00'), 'Anna de Vries', copy.typePrivate, 'Studio Zuid', own.name),
+      join(
+        spoken('11:00', '12:00'),
+        'Mark Jansen',
+        copy.typePrivate,
+        "John's Gym Centrum",
+        gym.name,
+      ),
+      join(
+        spoken('15:00', '16:00'),
+        'Kracht',
+        copy.typeGroup,
+        copy.booked.replace('{booked}', '0').replace('{capacity}', '8'),
+        gym.name,
+      ),
+      join(
+        spoken('18:00', '19:00'),
+        'Kracht',
+        copy.typeGroup,
+        copy.booked.replace('{booked}', '0').replace('{capacity}', '8'),
+        gym.name,
+        copy.cancelled,
+      ),
+    ]);
+  });
+
+  it('AC2: with one workspace the phrase leaves its name out', () => {
+    const html = view({
+      workspaceCount: 1,
+      items: [{ ...mark, workspace: gym }],
+      next: undefined,
+      summary: { count: 1, done: 0, firstStartsAt: mark.startsAt, lastEndsAt: mark.endsAt },
+    });
+
+    expect(html).toMatch(/aria-label="[^"]*Mark Jansen[^"]*"/);
+    expect(html.match(/aria-label="([^"]*)"/)?.[1]).toMatch(/Gym Centrum$/);
   });
 
   it('AC9: a row is one touch-sized link (44 px) in one column', () => {
