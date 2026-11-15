@@ -136,7 +136,7 @@ jobs:
     # The unit tests and the Compose UI tests of the platform that is not being released, as `pnpm test:android` runs them
     # (TESTING.md §7.2): ktlint and the checks, the build, the unit tests (nl-NL and en), the signed release bundle and the
     # Compose UI tests on an emulator. A job of its own like CI's `Android build` and `Android tests`, next to the Maestro
-    # flows below: both suites and the emulator boots in one job outgrew the step's 35 minutes (run 43717147404, 15
+    # flows below: both suites and the emulator boot in one job outgrew the step's 35 minutes (run 43717147404, 15
     # November 2026: the Compose UI tests took 21 min, the Maestro flows in nl-NL 8.5 min, and the flows in en were still
     # running when the step was cut off). Set up like the jobs of ci.yml, which have the reasons for each step. No secret
     # here. Every release job waits for this job and the Maestro job, so a failing Android suite uploads no build of any
@@ -256,9 +256,9 @@ jobs:
     # after the other. A job of its own like CI's `Android Maestro`, so it runs next to the Android tests instead of
     # behind them. No secret here; every release job waits for it.
     runs-on: ubuntu-24.04
-    # What the job spends: the setup before the emulator boots (5 min), the boot (10 at most), the step (35, below) and the
-    # steps after it (5): 5 + 10 + 35 + 5 = 55. CI's `Android Maestro` has 40, with the app already built.
-    timeout-minutes: 55
+    # What the job spends: the setup before the emulator boots (5 min), the boot (10 at most), the step (40, below) and the
+    # steps after it (5): 5 + 10 + 40 + 5 = 60. CI's `Android Maestro` has 40, with the app already built.
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -334,11 +334,13 @@ jobs:
           EMULATOR_BOOT_TIMEOUT: '480'
         run: scripts/android.sh emulator
 
-      # CI runs this step in 14 to 20 minutes with a prebuilt app and gives it 30. Here the step also builds the debug app,
-      # and nl-NL took 8.5 minutes in run 43717147404, so both languages take about 17: 35 minutes hold the build and a
-      # slow runner, and a step that hangs ends the job (the job's 55 is the sum of its steps' budgets).
+      # CI gives the flows of both languages 30 minutes with a prebuilt app (14 to 20 measured). Here the step also builds
+      # the debug app and starts the stack, as `pnpm test:maestro` does, so the build gets 10 more, as the tests step above
+      # gets for its build: 30 + 10 = 40. Measured in run 43717147404: nl-NL alone took about 11 minutes from the start of
+      # the step (1 min 40 s for the stack and the build with a warm Gradle cache, then 9 min 18 s of flows), so both
+      # languages take about 21 minutes, more with a cold Gradle cache. A step that hangs ends the job.
       - name: Maestro flows (nl-NL and en)
-        timeout-minutes: 35
+        timeout-minutes: 40
         run: scripts/release.sh tests android-maestro
 
       # The emulator must not be running when the cache of it is saved.

@@ -858,15 +858,17 @@ describe('E017 AC3: the Android test jobs fit what they run, like the Android jo
     );
   });
 
-  it('the Maestro job holds both locales: no lower than the Maestro step and the job of CI', () => {
+  it('the Maestro job holds both locales and the debug build: the CI step (30) plus the build allowance (10), in a job that holds the step, the boot and the setup', () => {
     const { 'android-maestro': maestro } = jobs();
     const flows = stepMinutes(maestro, 'Maestro flows (nl-NL and en)');
+    const ciFlows = stepMinutes(
+      ciJobs('android-maestro'),
+      'Maestro flows (sign-in, anonymous and home; nl-NL and en)',
+    );
+    const build = stepMinutes(ciJobs('android-build'), 'ktlint, checks and debug build');
     assert.ok(
-      flows >=
-        stepMinutes(
-          ciJobs('android-maestro'),
-          'Maestro flows (sign-in, anonymous and home; nl-NL and en)',
-        ),
+      flows >= ciFlows + build,
+      `${flows} minutes for flows (${ciFlows}) and a build (${build})`,
     );
     assert.ok(minutes(maestro) >= minutes(ciJobs('android-maestro')), 'the job');
     assert.ok(minutes(maestro) >= flows + 10 + 5, 'the job holds the step, the boot and the setup');
