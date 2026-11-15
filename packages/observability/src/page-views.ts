@@ -4,6 +4,7 @@ import type {
   PostHogConfig,
 } from 'posthog-js/dist/module.slim.no-external';
 import type { PostHogTarget } from './config.ts';
+import { redactInvitationToken } from './invitation-token.ts';
 
 export { type PageViewsConfig, type PostHogTarget, readPageViewsConfig } from './config.ts';
 
@@ -97,6 +98,7 @@ async function startPostHog({ key, host }: PostHogTarget): Promise<PostHog> {
  * posthog-js's `before_send`: lets only page views leave, with the allowlisted properties and
  * the URL cut down to its path. Drops the query string, fragment, page title, referrer,
  * campaign parameters and person properties, which can hold names, email addresses or notes.
+ * The token of an invitation link in the path is replaced by `{token}`.
  */
 export function scrubPageView(result: CaptureResult): CaptureResult | null {
   if (result.event !== '$pageview') return null;
@@ -111,9 +113,9 @@ export function scrubPageView(result: CaptureResult): CaptureResult | null {
     ...(result.timestamp && { timestamp: result.timestamp }),
     properties: {
       ...properties,
-      $current_url: `${url.origin}${url.pathname}`,
+      $current_url: `${url.origin}${redactInvitationToken(url.pathname)}`,
       $host: url.host,
-      $pathname: url.pathname,
+      $pathname: redactInvitationToken(url.pathname),
     },
   };
 }

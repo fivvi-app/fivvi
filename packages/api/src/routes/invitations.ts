@@ -34,7 +34,7 @@ import { MyWorkspaceSchema } from './me.ts';
 // `inInvitationScope`, which finds the invitation by the token's hash and only then opens its
 // workspace. The rules (open, expired, whose address) are `decideInvitationAnswer` of @fivvi/domain.
 //
-// The read is anonymous. Accepting and declining need a signed-in account, and judge that
+// The read needs no session (with one, it also says whether the invitation is for that account). Accepting and declining need a signed-in account, and judge that
 // themselves, as `signOut` does: the sign-in session is what proves the address, and an anonymous
 // call answers 401 before anything about the token is looked up. An invitation that is expired,
 // withdrawn, used or unknown is one neutral `404` for everyone, so a link says nothing about whom
@@ -71,10 +71,17 @@ const InvitationPreviewSchema = z
         'domain (`l***@example.com`), so a person signed in with another address can see which ' +
         'to use.',
     }),
+    forYou: z.boolean().openapi({
+      description:
+        'Whether the signed-in account may answer this invitation: its verified address is the ' +
+        'one the invitation is for. `false` for another account, an address that is not ' +
+        'verified, and when nobody is signed in.',
+    }),
   })
   .openapi('InvitationPreview', {
     description:
-      'What the link of a valid invitation shows to anyone who holds it, signed in or not.',
+      'What the link of a valid invitation shows to anyone who holds it, signed in or not. ' +
+      '`forYou` is the one part that depends on who asks.',
   });
 
 const notFoundResponse = (description: string) => ({
@@ -107,7 +114,8 @@ const getInvitationRoute = defineRoute(
     summary: 'What an invitation link is for',
     description:
       'Anyone with the link (signed in or not) reads the name of the workspace that invites, the ' +
-      'name of the inviter and the masked address the invitation is for, and nothing else. An ' +
+      'name of the inviter, the masked address the invitation is for and, when a session is sent, ' +
+      'whether the invitation is for that account (`forYou`), and nothing else. An ' +
       'invitation that is expired, withdrawn, used or unknown answers one neutral `404`.',
     request: { params: TokenParamsSchema },
     responses: {
@@ -186,9 +194,12 @@ export function registerInvitations(app: OpenAPIHono, dependencies: ApiDependenc
 
   app.openapi(getInvitationRoute, async (c) => {
     const { token } = c.req.valid('param');
+    // A session is optional here: it only tells whether the invitation is for this account.
+    const account = await dependencies.findSignedInAccount(c.req.raw.headers);
     const entry = await tenantScopes.inInvitationScope(
       {
         tokenHash: hashInvitationToken(token),
+        ...(account ? { accountId: account.id } : {}),
         // The workspace is opened only for an invitation that can still be answered.
         admit: ({ invitation }) => (isInvitationOpen(invitation, clock.now()) ? 'enter' : 'closed'),
       },
@@ -200,10 +211,16 @@ export function registerInvitations(app: OpenAPIHono, dependencies: ApiDependenc
         const inviterName = (
           await findTeamMemberName(scope, invitation.inviterTeamMemberId)
         )?.trim();
+        const accountFacts = account ? await findAccountForInvitation(scope) : undefined;
+        const forYou =
+          accountFacts !== undefined &&
+          decideInvitationAnswer({ invitation, now: clock.now(), account: accountFacts })
+            .outcome === 'allowed';
         return {
           workspaceName: workspace.name,
           inviterName: inviterName ? inviterName : null,
           maskedEmail: maskEmail(invitation.email),
+          forYou,
         };
       },
     );
