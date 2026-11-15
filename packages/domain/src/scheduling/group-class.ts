@@ -1,4 +1,5 @@
 import { defaultLocation } from '../locations/default-location.ts';
+import { GROUP_CLASS_LIMITS } from './group-class-limits.ts';
 import { instantToWallClock, wallClockToInstant } from './zoned-time.ts';
 
 // A group class on a date (F021, spec #427): the rules the API applies before it stores a group
@@ -8,13 +9,7 @@ import { instantToWallClock, wallClockToInstant } from './zoned-time.ts';
 // copied onto the date, so a later change of the class does not change a date already planned
 // (AC9). Who may do this is the route's access (`class.manage`, F004's matrix), not decided here.
 
-/** The limits of a class and its dates (spec #427, open question 2). */
-export const GROUP_CLASS_LIMITS = {
-  nameMaxLength: 80,
-  descriptionMaxLength: 500,
-  capacity: { min: 1, max: 100 },
-  duration: { min: 15, max: 240, step: 5 },
-} as const;
+export { GROUP_CLASS_LIMITS };
 
 const MINUTE_MS = 60_000;
 

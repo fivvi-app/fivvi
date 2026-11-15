@@ -177,10 +177,12 @@
     "workspaceWithRole": "{name} · {role}",
     "trainers": "Trainers",
     "clients": "Clients",
+    "classes": "Classes",
     "new": "New",
     "newMenu": "Create new",
     "newClient": "Client",
     "newPrivateSession": "Private session",
+    "newGroupClass": "Group class",
     "joinLink": "Join link"
   },
   "workspaceSwitcher": {
@@ -590,6 +592,115 @@
       "changedByUnknown": "This session was just changed.",
       "cancelled": "This session is cancelled and can't be moved.",
       "noPermission": "You no longer have permission for this session."
+    }
+  },
+  "classes": {
+    "title": "Classes",
+    "new": "New class",
+    "empty": "No classes yet. Create your first class.",
+    "nameColumn": "Class",
+    "trainerColumn": "{Word}",
+    "spotsColumn": "Spots",
+    "durationColumn": "Duration",
+    "trainerNeeded": "{Word} needed",
+    "spots": "{count, plural, one {# spot} other {# spots}}",
+    "minutes": "{minutes} min",
+    "page": {
+      "back": "All classes",
+      "facts": "{spots} · {duration}",
+      "descriptionTitle": "Description",
+      "noDescription": "No description yet.",
+      "schedule": "Schedule on a date"
+    },
+    "form": {
+      "title": "New class",
+      "description": "Name the class and set who teaches it, how many spots it has and how long it lasts.",
+      "close": "Close",
+      "nameSection": "Name and description",
+      "classSection": "The class",
+      "nameNlLabel": "Name (Dutch)",
+      "nameEnLabel": "Name (English, optional)",
+      "descriptionNlLabel": "Description (Dutch, optional)",
+      "descriptionEnLabel": "Description (English, optional)",
+      "trainerLabel": "{Word}",
+      "capacityLabel": "Capacity",
+      "durationLabel": "Duration (minutes)",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saved": "Class saved.",
+      "loadFailed": "The details couldn't be loaded.",
+      "errors": {
+        "nameRequired": "Enter the name in Dutch.",
+        "nameTooLong": "The name can have at most {max} characters.",
+        "descriptionTooLong": "The description can have at most {max} characters.",
+        "capacityInvalid": "Enter a capacity from {min} to {max}.",
+        "durationInvalid": "Enter a duration from {min} to {max} minutes, in steps of {step}.",
+        "noPermission": "You can't manage classes.",
+        "notSaved": "Not saved. Check your connection and try again."
+      }
+    },
+    "schedule": {
+      "title": "Schedule on a date",
+      "description": "Choose the date and the start. The duration, the location and the defaults come from the class.",
+      "close": "Close",
+      "classSection": "The class",
+      "whenSection": "When",
+      "classLabel": "Class",
+      "classChoose": "Choose a class",
+      "classNone": "You don't have any classes yet.",
+      "dateLabel": "Date",
+      "startLabel": "Start",
+      "endsAt": "Ends at {time}",
+      "endsAtNextDay": "Ends at {time} (next day)",
+      "trainerLabel": "{Word}",
+      "capacityLabel": "Capacity",
+      "location": "Location: {name}",
+      "cancel": "Cancel",
+      "save": "Schedule",
+      "saved": "Group class added",
+      "loadFailed": "The details couldn't be loaded.",
+      "errors": {
+        "classRequired": "Choose a class.",
+        "dateRequired": "Choose a date.",
+        "startRequired": "Choose a start time.",
+        "invalidDate": "This date doesn't exist.",
+        "invalidTime": "This isn't a valid time.",
+        "timeDoesNotExist": "This time doesn't exist on {date} because of daylight saving time.",
+        "capacityInvalid": "Enter a capacity from {min} to {max}.",
+        "noPermission": "You can't schedule classes.",
+        "notSaved": "Not saved. Check your connection and try again."
+      }
+    },
+    "date": {
+      "whenLabel": "When",
+      "whereLabel": "Location",
+      "trainerLabel": "{Word}",
+      "bookedLabel": "Bookings",
+      "timeRange": "{date}, {start}–{end}",
+      "booked": "{booked}/{capacity} booked · {free, plural, one {# spot free} other {# spots free}}",
+      "noBookings": "No bookings yet.",
+      "edit": "Edit",
+      "back": "All classes"
+    },
+    "edit": {
+      "title": "Edit class",
+      "description": "You're changing only {date}. The class itself and its other dates stay as they are.",
+      "close": "Close",
+      "startLabel": "Start",
+      "endLabel": "End",
+      "capacityLabel": "Capacity",
+      "cancel": "Cancel",
+      "save": "Save",
+      "saved": "Class saved.",
+      "errors": {
+        "invalidTime": "This isn't a valid time.",
+        "timeDoesNotExist": "This time doesn't exist on {date} because of daylight saving time.",
+        "endBeforeStart": "The end time must be after the start time.",
+        "capacityInvalid": "Enter a capacity from {min} to {max}.",
+        "noPermission": "You can't change this class any more.",
+        "notSaved": "Not saved. Check your connection and try again."
+      },
+      "changed": "This class was just changed. You now see the new details."
     }
   },
   "clientNav": {

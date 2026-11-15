@@ -41,6 +41,13 @@ export default async function WorkspaceLayout({
           trainerWord: trainerWordForms(trainerWord, catalogLocale(await getLocale())),
         }
       : undefined;
+  // *Lessen* and *Groepsles* in + Nieuw (F021), for a person who manages classes.
+  const groupClasses = capabilities.includes('class.manage')
+    ? {
+        workspaceId: id,
+        trainerWord: trainerWordForms(trainerWord, catalogLocale(await getLocale())),
+      }
+    : undefined;
   return (
     // The frame is compact; the dialogs and menus opened in it render in a portal, which would be
     // `<body>` at the touch density, so the portal host sits next to the frame at the same one (E020).
@@ -55,6 +62,7 @@ export default async function WorkspaceLayout({
         personName={me.name}
         quickAdd={quickAdd}
         newSession={newSession}
+        groupClasses={groupClasses}
       >
         {children}
       </WorkspaceFrame>

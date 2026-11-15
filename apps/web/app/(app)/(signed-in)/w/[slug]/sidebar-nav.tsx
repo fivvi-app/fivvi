@@ -15,6 +15,15 @@ const icons = {
       <path d="M17.5 14.6c2.2.3 3.6 1.9 4 4.4" />
     </>
   ),
+  // The prototype's `group` icon (`app.js`).
+  classes: (
+    <>
+      <circle cx="12" cy="8" r="3" />
+      <circle cx="5.5" cy="10" r="2.2" />
+      <circle cx="18.5" cy="10" r="2.2" />
+      <path d="M7 19c.6-3 2.5-4.5 5-4.5s4.4 1.5 5 4.5M2.5 18c.3-1.8 1.4-2.9 3-3.2M21.5 18c-.3-1.8-1.4-2.9-3-3.2" />
+    </>
+  ),
   trainers: (
     <>
       <circle cx="10" cy="8.5" r="3.5" />
