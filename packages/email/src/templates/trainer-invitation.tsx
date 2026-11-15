@@ -1,6 +1,6 @@
 import { type TrainerWord, trainerWordForms } from '@fivvi/i18n';
 import { Button, Link, Text } from 'react-email';
-import { textStyle } from '../components/layout.tsx';
+import { buttonStyle, linkStyle, textStyle } from '../components/layout.tsx';
 import type { EmailTemplate } from '../render.tsx';
 
 export interface TrainerInvitationEmailProps {
@@ -15,16 +15,6 @@ export interface TrainerInvitationEmailProps {
   /** The workspace's word for the people who teach, as it is when the email is sent (F068). */
   trainerWord: TrainerWord;
 }
-
-const buttonStyle = {
-  backgroundColor: '#18181b',
-  borderRadius: '6px',
-  color: '#ffffff',
-  display: 'inline-block',
-  fontSize: '16px',
-  padding: '12px 20px',
-  textDecoration: 'none',
-} as const;
 
 const urlStyle = {
   ...textStyle,
@@ -62,7 +52,9 @@ export const trainerInvitationEmail: EmailTemplate<TrainerInvitationEmailProps> 
         {ctx.t('email.trainerInvitation.button')}
       </Button>
       <Text style={urlStyle}>
-        <Link href={url}>{url}</Link>
+        <Link style={linkStyle} href={url}>
+          {url}
+        </Link>
       </Text>
       <Text style={textStyle}>
         {ctx.t('email.trainerInvitation.validity', {
