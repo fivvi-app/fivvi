@@ -21,6 +21,8 @@ final class Responder: @unchecked Sendable {
     var storedTrainerStatus: Int?
     var holdsClientReads = false
     var heldClientReads: [@Sendable () -> Void] = []
+    var holdsAccountReads = false
+    var heldAccountReads: [@Sendable () -> Void] = []
 
     init(_ answer: StubServer.Answer, signIn: StubServer.SignIn) {
         currentAnswer = answer
@@ -80,6 +82,24 @@ final class Responder: @unchecked Sendable {
             return hold ? [] : heldClientReads
         }
         waiting.forEach { $0() }
+    }
+
+    /// While true, `GET /api/v1/me` gets no answer until it is set to false (which answers the reads held).
+    func holdAccountReads(_ hold: Bool) {
+        let waiting: [@Sendable () -> Void] = lock.withLock {
+            holdsAccountReads = hold
+            defer { if !hold { heldAccountReads = [] } }
+            return hold ? [] : heldAccountReads
+        }
+        waiting.forEach { $0() }
+    }
+
+    /// Keeps `answer` for later when the account reads are on hold; returns whether it did.
+    func holdAccountRead(_ answer: @escaping @Sendable () -> Void) -> Bool {
+        lock.withLock {
+            if holdsAccountReads { heldAccountReads.append(answer) }
+            return holdsAccountReads
+        }
     }
 
     /// Keeps `answer` for later when it is the read of one client and reads are on hold; returns whether it did.

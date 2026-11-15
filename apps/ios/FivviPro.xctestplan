@@ -33,7 +33,7 @@
           },
           {
             "key" : "FIVVI_SKIP_TESTS",
-            "value" : "HelloUITests\/test_E008_AC3_unsupportedDeviceLanguageShowsEnglish,HelloUITests\/test_E008_AC3_firstSupportedDeviceLanguageWins,HelloUITests\/test_E008_AC3_perAppLanguageOverridesTheDevice,HelloUITests\/test_E008_AC6_usesTokenColoursInLightAndDark,HelloUITests\/test_E008_AC7_largestTextSizeWraps"
+            "value" : "HomeUITests\/test_E008_AC3_unsupportedDeviceLanguageShowsEnglish,HomeUITests\/test_E008_AC3_firstSupportedDeviceLanguageWins,HomeUITests\/test_E008_AC3_perAppLanguageOverridesTheDevice,HomeUITests\/test_E008_AC6_usesTokenColoursInLightAndDark,HomeUITests\/test_E008_AC7_largestTextSizeWraps"
           }
         ],
         "language" : "en",

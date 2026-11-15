@@ -1261,7 +1261,7 @@ jobs:
       # Both locales run one after the other: run 41938461253 (10 flows) took 19 min 47 s on a slow runner, 14 to 18
       # minutes on main. The 30 minutes are 1.5 x the slowest run (#519); the "Step durations" step shows how close a run
       # came and warns above 20 minutes (two thirds of the budget).
-      - name: Maestro flows (sign-in, anonymous and hello; nl-NL and en)
+      - name: Maestro flows (sign-in, anonymous and home; nl-NL and en)
         timeout-minutes: 30
         run: scripts/maestro.sh android --apk
 
@@ -1287,7 +1287,7 @@ jobs:
         continue-on-error: true
         env:
           GH_TOKEN: ${{ github.token }}
-        run: scripts/step-timings.sh "Maestro flows (sign-in, anonymous and hello; nl-NL and en)=30"
+        run: scripts/step-timings.sh "Maestro flows (sign-in, anonymous and home; nl-NL and en)=30"
 
   # The required check "Android": the combined result of the build, the tests and Maestro (AC17); skipped, and so passing,
   # when the native decision says the app's inputs didn't change.
