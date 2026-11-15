@@ -26,6 +26,9 @@
 # They are outside every guardrail path; scripts/quarantine.mjs limits what they may hold (7 days, a bug, no isolation,
 # concurrency or permission test). The list readers, the rule and the Quarantine job stay owner-only.
 @agent-queue quarantine
+# CI workflows (ADR-033 item 6, spec #1419; T12 of the processor agreement): .github/workflows/*.yml only. The rulesets,
+# the other files in .github, risk.sh, the merge gate, AGENTS.md, the agent definitions, hooks and scripts/test/ stay core.
+@agent-queue ci
 #
 # One rule per line: <group> <pattern>. Patterns are case-insensitive globs; `*` matches within one path segment. A
 # pattern that starts with `/` is anchored at the repo root, any other matches at every depth. A pattern also matches
@@ -72,6 +75,9 @@ guardrails            /docs/engineering/WORKFLOW.md
 # overrides the inputs of a task).
 guardrails            /package.json
 guardrails            turbo.json
+# The CI workflows are carved out of /.github below (group ci); a nested folder or another extension stays core.
+@except guardrails /.github/workflows/*.yml
+ci                    /.github/workflows/*.yml
 # The files that skip tests: Xcode test plans and schemes (a scheme names its test plan) and the iOS skip list.
 # project.pbxproj also carries every ordinary project change, so it stays low (ADR-021).
 guardrails            *.xcscheme
