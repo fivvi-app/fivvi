@@ -12,9 +12,14 @@
 #                                  each in a job of its own like CI's `iOS tests (nl)` and `(en)`, because both locales on one
 #                                  simulator no longer fit the job's timeout (E017). The locale is required: no caller runs
 #                                  both at once any more
-#   release.sh tests android       the Android suites on this commit, both locales in one job: pnpm test:android, then
-#                                  pnpm test:maestro. TESTING.md §7 requires both platforms in nl and en. Each suite stops
-#                                  at the first failure; a job that needs this one never starts, so nothing is uploaded
+#   release.sh tests android       the Android unit and Compose UI tests on this commit: pnpm test:android (ktlint and the
+#                                  checks, the build, the unit tests in nl-NL and en, the release bundle and the Compose UI
+#                                  tests on an emulator). The workflow runs it in its own job, like CI's `Android tests`
+#   release.sh tests android-maestro  the Android Maestro flows in nl-NL and en on this commit: pnpm test:maestro. The
+#                                  workflow runs it in a job of its own, like CI's `Android Maestro`, next to the one above:
+#                                  both suites on one emulator in one job outgrew the job's timeout (E017). TESTING.md §7
+#                                  requires both platforms in nl and en. Each stops at its first failure; a job that needs
+#                                  these never starts, so nothing is uploaded
 #   release.sh runners <part>...   the last job of a run (#437). The parts are the lines of `ios-parts.sh job`, `<job>=<result>`,
 #                                  for "iOS tests (nl)", "iOS tests (en)" and "iOS release". Says, as an error and in the run's summary, that a job
 #                                  got no GitHub-hosted macOS runner (`<job>=unacquired`: cancelled with no runner and no
@@ -69,6 +74,9 @@ tests() {
     android)
       [ $# -eq 1 ] || usage
       suite pnpm test:android
+      ;;
+    android-maestro)
+      [ $# -eq 1 ] || usage
       suite pnpm test:maestro
       ;;
     *) usage ;;
