@@ -40,6 +40,7 @@ Agents read the ADRs relevant to their change before starting (`WORKFLOW.md §4`
 | [030](ADR-030-public-website.md) | The public website lives in `apps/web` at fivvi.app, rendered per request, the same for every visitor | Proposed |
 | [031](ADR-031-move-pink-is-the-only-accent.md) | Move pink is the only accent; drops the black-and-white alternative of ADR-029 | Accepted |
 | [032](ADR-032-secondary-text-in-the-native-apps.md) | Secondary text in the native apps: the one exception to ADR-029's contrast rule | Accepted |
+| [033](ADR-033-go-live-mode.md) | Go-live mode: duo sessions and the single class pass after go-live; one PR per platform slice; the tests run once; backend and web builds off the Mac; review by risk and CI agent-queueable until pilot setup; amends ADR-016, ADR-018, ADR-023 and ADR-024 | Accepted |
 
 ADRs 001–015 were accepted by the owner on 22 September 2026 and written up in M0. ADR-011 was re-evaluated during the write-up and accepted in its new form (Railway) the same day. The *Alternatives considered* sections of those ADRs were reconstructed at write-up time from the roadmap rationale; they explain why the accepted choice fits, not a debate that was re-run.
 
