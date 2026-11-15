@@ -2085,9 +2085,11 @@ case "$*" in
     printf 'Build Timing Summary\\n\\nSwiftCompile (1 task) | 1.000 seconds\\n\\n** TEST BUILD SUCCEEDED **\\n' ;;
   test-without-building\\ *)
     # -enumerate-tests (#1433): the tests the configuration has, FAKE_ENUMERATION of them, written as xcodebuild's
-    # JSON to the -test-enumeration-output-path; FAKE_ENUMERATE=fail: it fails and writes nothing.
+    # JSON to the -test-enumeration-output-path; FAKE_ENUMERATE=fail: it fails and writes nothing; FAKE_ENUMERATE=stall:
+    # it never ends on its own, and on SIGINT it records that and ends with 130, like FAKE_RESULT=stall.
     case "$*" in *-enumerate-tests*)
       [ "$FAKE_ENUMERATE" != fail ] || exit 1
+      [ "$FAKE_ENUMERATE" != stall ] || exec perl -e '$SIG{INT} = sub { open my $f, ">", shift(@ARGV); print $f "SIGINT\\n"; close $f; exit 130 }; sleep 60' "${state}/sigint.log"
       out=; prev=; for a in "$@"; do [ "$prev" != -test-enumeration-output-path ] || out="$a"; prev="$a"; done
       jq -n --argjson n "\${FAKE_ENUMERATION:-0}" '{errors: [], values: [{disabledTests: [], testPlan: "FivviPro",
         enabledTests: [range($n) | {identifier: ("FivviProTests/Fake/test" + tostring + "()")}]}]}' >"$out"
@@ -3023,6 +3025,27 @@ esac`,
         assert.equal(testRuns(fake).length, 2);
         assert.match(run.output, /::error::The nl retried tests ran past the deadline of 2 s/);
         assert.deepEqual(fake.log('sigint'), ['SIGINT']);
+        assert.doesNotMatch(run.output, /✓ iOS tests/);
+      });
+
+      it('the test enumeration has a deadline of its own: an enumeration that hangs is interrupted, and the failed test is not retried', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'nl', { first: { failed: [[A]] }, retry: { passed: [A] } });
+
+        // IOS_TEST_DEADLINE stays at its default (large), so only the enumeration's own deadline can stop it.
+        const run = await retryTest(fake, ['--retry-failed'], {
+          FAKE_XCRESULT_DIR: dir,
+          FAKE_ENUMERATE: 'stall',
+          IOS_ENUMERATE_DEADLINE: '2',
+          IOS_TEST_DEADLINE_GRACE: '10',
+        });
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(run.output, /::error::The nl test enumeration ran past the deadline of 2 s/);
+        assert.deepEqual(fake.log('sigint'), ['SIGINT']);
+        assert.match(run.output, /Not retrying: .*cannot be enumerated/);
+        assert.equal(testRuns(fake).length, 1);
+        assert.equal(enumerations(fake).length, 1);
         assert.doesNotMatch(run.output, /✓ iOS tests/);
       });
 
