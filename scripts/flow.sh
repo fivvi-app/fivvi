@@ -20,13 +20,20 @@
 #                                           loses both (writes only on a difference; a missing label is created from
 #                                           .github/repo-settings.json; a failed read or write is a warning on stderr
 #                                           that changes neither the output nor the exit code). A failed read of the
-#                                           blockers is an error
+#                                           blockers is an error. It also reads the deploy status of the web service on
+#                                           Railway, development and production (#1415, the comment above deploy_items):
+#                                           a FAILED or CRASHED development deploy is the first line under "Ready for an
+#                                           agent", `Deploy bug: ...` when no open bug carries its marker, else
+#                                           `Build #n first: ...` (under "Waiting on the owner" while that bug waits on a
+#                                           human); a failing production deploy and a status it cannot read are lines
+#                                           under "Waiting on the owner", never work
 #   flow.sh idle                            exit 0 and "idle: nothing for an agent" (plus what waits on the owner) when no
 #                                           agent has anything to do: nothing under "Ready for an agent" in `next` and no
 #                                           issue assigned to you in a phase an agent acts on; exit 1 and what there is
 #                                           otherwise; exit 2 on every error (a bad argument and a missing tool
 #                                           included), never a false idle. A cheap check for the scheduled factory run,
-#                                           right after `lock acquire`. When idle it syncs the PR labels like `next`
+#                                           right after `lock acquire`. A failing development deploy (above) is work. When
+#                                           idle it syncs the PR labels like `next`
 #   flow.sh start <n> [--type <t>] [--force]  claim a ready ticket and create its <type>/<n>-<slug> worktree and notes;
 #                                           no limit on the tickets in progress, unless FIVVI_MAX_TICKETS (a positive
 #                                           integer) sets one: then it refuses at that many (--force to override)
@@ -356,9 +363,12 @@ cmd_next() {
   removals="$(removal_items)" || exit 1
   finished="$(finished_items "$mine")" || exit 1
   ready="$(ready_items "$specs" "$questions" "$removals" "$finished")" || exit 1
+  deploy_items
+  ready="$DEPLOY_WORK$ready"
   grep . <<<"$ready" || echo "(none)"
   echo "== Waiting on the owner"
   owner="$(owner_items "$specs" "$questions" "$removals")" || exit 1
+  owner="$DEPLOY_OWNER$owner"
   grep . <<<"$owner" || echo "(none)"
   sync_owner_labels "$owner"
   echo "== For the owner to read"
@@ -386,9 +396,92 @@ removal_reported() {
   done
 }
 
+# The deploy status of the web service on Railway (#1415): a failing deploy of development went unnoticed for two days
+# because nothing in the factory looked at it. `next` and `idle` read, once per run and environment, the list of
+# deployments with the read-only `railway deployment list -p <project> -e <env> -s web --json` (newest first) and nothing
+# else from Railway: no logs, no variables. The newest deployment that is not SKIPPED decides; FAILED and CRASHED count.
+#   development: work. A bug is tied to the failing deploy by DEPLOY_MARK in its body (open issues labelled bug). No such
+#     bug: `Deploy bug: ... file a bug ...` under Ready. An open bug in a phase an agent acts on: `Build #n first: ...`
+#     under Ready. An open bug that waits on a human (WAITING_PHASES): under Waiting on the owner.
+#   production: status only, under Waiting on the owner; an agent never gets work from it.
+#   unreadable (no railway CLI, logged out, the list fails or is not a list): one line per environment under Waiting on
+#     the owner; not work and not an error, so the GitHub part of `next` and `idle` is unaffected.
+DEPLOY_ENVS="development production"
+deploy_mark() { echo "<!-- fivvi:deploy-failed $1 -->"; }
+
+# One line, tab-separated, for the web deploy on environment $1: `ok`, `failed <status> <id> <commit> <createdAt>` (id and
+# commit shortened, `-` when Railway gives none) or `unknown <why>`. Never fails: an unreadable status is a value.
+deploy_state() {
+  local out row
+  if ! command -v railway >/dev/null 2>&1; then
+    printf 'unknown\tthe railway CLI is not installed (install it and run railway login)\n'
+    return 0
+  fi
+  if ! out="$(railway deployment list -p "$RAILWAY_PROJECT_ID" -e "$1" -s web --json 2>/dev/null)"; then
+    printf 'unknown\tthe railway CLI could not list the deployments (run railway login)\n'
+    return 0
+  fi
+  if ! row="$(jq -r '
+    def short($n): if . == null or . == "" then "-" else (. | tostring)[:$n] end;
+    if type != "array" then error("not a list") else . end
+    | [.[] | select(.status != "SKIPPED")] | first // null
+    | if . != null and (.status | IN("FAILED", "CRASHED")) then
+        ["failed", .status, (.id | short(8)), (.meta.commitHash | short(7)), (.createdAt | short(40))] | @tsv
+      else "ok" end' <<<"$out" 2>/dev/null)"; then
+    printf 'unknown\tthe railway CLI did not answer with a list of deployments\n'
+    return 0
+  fi
+  printf '%s\n' "$row"
+}
+
+# The number of the oldest open bug tied to the failing deploy of environment $1 by its marker; empty when there is none.
+# Fails when the read fails, so a failed read can't pass for "no bug".
+deploy_bug() {
+  local bugs
+  bugs="$(gh issue list --repo "$REPO" --label bug --state open --limit 500 --json number,body)" || return 1
+  jq -r --arg mark "$(deploy_mark "$1")" '[.[] | select((.body // "") | contains($mark)) | .number] | min // empty' <<<"$bugs"
+}
+
+# Sets DEPLOY_WORK (lines for Ready for an agent) and DEPLOY_OWNER (lines for Waiting on the owner), each line ending in
+# a newline, or empty. Dies when the bugs or the bug's facts can't be read.
+DEPLOY_WORK=""
+DEPLOY_OWNER=""
+deploy_items() {
+  local env row kind status id sha at what n f phase
+  DEPLOY_WORK="" DEPLOY_OWNER=""
+  for env in $DEPLOY_ENVS; do
+    row="$(deploy_state "$env")"
+    IFS=$'\t' read -r kind status id sha at <<<"$row"
+    case "$kind" in
+      ok) ;;
+      unknown) DEPLOY_OWNER+="Deploy status of web on $env unknown: $status"$'\n' ;;
+      failed)
+        what="web on $env is $status (deployment $id, commit $sha, $at)"
+        if [ "$env" != development ]; then
+          DEPLOY_OWNER+="$what: status only, the owner looks at it"$'\n'
+          continue
+        fi
+        n="$(deploy_bug "$env")" || die "could not read the open bugs"
+        if [ -z "$n" ]; then
+          DEPLOY_WORK+="Deploy bug: $what: file a bug with $(deploy_mark "$env") in its body (scripts/issue.sh create bug --title <t> --body-file -, with ## Acceptance criteria and the ready-for-agent label) and build it first"$'\n'
+          continue
+        fi
+        f="$(facts "$n")" || die "could not read #$n"
+        phase="$(facts_phase "$f")" || die "could not read the phase of #$n"
+        case "$WAITING_PHASES" in
+          *" $phase "*) DEPLOY_OWNER+="$what: bug #$n is $phase"$'\n' ;;
+          *) DEPLOY_WORK+="Build #$n first: $what"$'\n' ;;
+        esac ;;
+      *) die "could not read the deploy status of web on $env" ;;
+    esac
+  done
+}
+
 # The scan of `idle`: the first line is `work` or `idle`, then the lines that explain it. Dies when a read fails.
 idle_scan() {
   local specs questions ready mine owner removals finished work='' n phase heads title
+  deploy_items
+  work="$DEPLOY_WORK"
   mine="$(assigned_lines)" || exit 1
   while IFS='|' read -r n phase heads title; do
     [ -n "$n" ] || continue
@@ -407,6 +500,7 @@ idle_scan() {
     grep . <<<"$work"
   else
     owner="$(owner_items "$specs" "$questions" "$removals")" || exit 1
+    owner="$DEPLOY_OWNER$owner"
     echo idle
     echo "== Waiting on the owner"
     grep . <<<"$owner" || echo "(none)"
