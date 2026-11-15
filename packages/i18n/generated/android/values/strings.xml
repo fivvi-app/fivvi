@@ -266,6 +266,30 @@
     <string name="join_link_renew_dialog_title">Aanmeldlink vernieuwen?</string>
     <string name="join_link_renewed">De aanmeldlink is vernieuwd.</string>
     <string name="join_link_title">Aanmeldlink</string>
+    <string name="my_day_booked">%1$s/%2$s geboekt</string>
+    <string name="my_day_cancelled">Geannuleerd</string>
+    <string name="my_day_empty_never">Je hebt nog geen sessies. Je ziet ze hier zodra je bent ingepland.</string>
+    <string name="my_day_empty_next">Geen sessies vandaag. Je volgende sessie is op %1$s.</string>
+    <string name="my_day_empty_today">Geen sessies vandaag.</string>
+    <string name="my_day_list_label">Sessies van vandaag</string>
+    <string name="my_day_next_in_progress">Nu bezig</string>
+    <string name="my_day_next_upcoming">Straks · over %1$s min</string>
+    <string name="my_day_spoken_join">%1$s, %2$s</string>
+    <string name="my_day_spoken_time">%2$s tot %1$s</string>
+    <plurals name="my_day_summary">
+        <item quantity="one">%1$d sessie · %2$s–%3$s</item>
+        <item quantity="other">%1$d sessies · %2$s–%3$s</item>
+    </plurals>
+    <string name="my_day_summary_none">Geen sessies</string>
+    <string name="my_day_time_range">%2$s–%1$s</string>
+    <string name="my_day_title">Mijn dag</string>
+    <plurals name="my_day_tomorrow">
+        <item quantity="one">Morgen: %1$d sessie, eerste om %2$s</item>
+        <item quantity="other">Morgen: %1$d sessies, eerste om %2$s</item>
+    </plurals>
+    <string name="my_day_type_group">Groepsles</string>
+    <string name="my_day_type_private">Privésessie</string>
+    <string name="my_day_type_with_detail">%2$s · %1$s</string>
     <string name="my_profile_booking_emails_help">Je krijgt een e-mail als een klant boekt of annuleert.</string>
     <!-- Label of the checkbox on My profile (TW-09) that switches the emails for a client booking or cancelling in the person's own classes on or off (F050). On by default; the setting belongs to the account. -->
     <string name="my_profile_booking_emails_label">E-mails over boekingen in mijn lessen</string>
@@ -761,10 +785,13 @@
     <string name="workspace_nav_join_link">Aanmeldlink</string>
     <!-- Accessible name of the navigation of a workspace's pages, read by screen readers. -->
     <string name="workspace_nav_label">Hoofdnavigatie</string>
+    <string name="workspace_nav_my_calendar">Mijn agenda</string>
+    <string name="workspace_nav_my_day">Mijn dag</string>
     <string name="workspace_nav_new">Nieuw</string>
     <string name="workspace_nav_new_client">Klant</string>
     <string name="workspace_nav_new_menu">Nieuw maken</string>
     <string name="workspace_nav_new_private_session">Privésessie</string>
+    <string name="workspace_nav_personal">Persoonlijk</string>
     <!-- Navigation link to Settings (Instellingen). Shown to the Owner only (GLOSSARY §4.8). -->
     <string name="workspace_nav_settings">Instellingen</string>
     <string name="workspace_nav_settings_general">Algemeen</string>
