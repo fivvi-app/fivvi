@@ -370,23 +370,6 @@
         }
       }
     },
-    "classes.edit.close" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Close"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sluiten"
-          }
-        }
-      }
-    },
     "classes.edit.description" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -655,23 +638,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "De les"
-          }
-        }
-      }
-    },
-    "classes.form.close" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Close"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sluiten"
           }
         }
       }
@@ -1090,13 +1056,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%2$@ · %1$@"
+            "value" : "%3$@ · %2$@ · %1$@"
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "%2$@ · %1$@"
+            "value" : "%3$@ · %2$@ · %1$@"
           }
         }
       }
@@ -1233,23 +1199,6 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "De les"
-          }
-        }
-      }
-    },
-    "classes.schedule.close" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Close"
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "Sluiten"
           }
         }
       }

@@ -23,7 +23,6 @@
     <string name="classes_edit_cancel">Cancel</string>
     <string name="classes_edit_capacity_label">Capacity</string>
     <string name="classes_edit_changed">This class was just changed. You now see the new details.</string>
-    <string name="classes_edit_close">Close</string>
     <string name="classes_edit_description">You\'re changing only %1$s. The class itself and its other dates stay as they are.</string>
     <string name="classes_edit_end_label">End</string>
     <string name="classes_edit_errors_capacity_invalid">Enter a capacity from %2$s to %1$s.</string>
@@ -40,7 +39,6 @@
     <string name="classes_form_cancel">Cancel</string>
     <string name="classes_form_capacity_label">Capacity</string>
     <string name="classes_form_class_section">The class</string>
-    <string name="classes_form_close">Close</string>
     <string name="classes_form_description">Name the class and set who teaches it, how many spots it has and how long it lasts.</string>
     <string name="classes_form_description_en_label">Description (English, optional)</string>
     <string name="classes_form_description_nl_label">Description (Dutch, optional)</string>
@@ -65,7 +63,7 @@
     <string name="classes_new">New class</string>
     <string name="classes_page_back">All classes</string>
     <string name="classes_page_description_title">Description</string>
-    <string name="classes_page_facts">%2$s · %1$s</string>
+    <string name="classes_page_facts">%3$s · %2$s · %1$s</string>
     <string name="classes_page_no_description">No description yet.</string>
     <string name="classes_page_schedule">Schedule on a date</string>
     <string name="classes_schedule_cancel">Cancel</string>
@@ -74,7 +72,6 @@
     <string name="classes_schedule_class_label">Class</string>
     <string name="classes_schedule_class_none">You don\'t have any classes yet.</string>
     <string name="classes_schedule_class_section">The class</string>
-    <string name="classes_schedule_close">Close</string>
     <string name="classes_schedule_date_label">Date</string>
     <string name="classes_schedule_description">Choose the date and the start. The duration, the location and the defaults come from the class.</string>
     <string name="classes_schedule_ends_at">Ends at %1$s</string>

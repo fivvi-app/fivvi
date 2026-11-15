@@ -64,11 +64,10 @@ export function ClassView({
       <Card>
         <CardContent className="grid gap-3 text-sm">
           <p>
-            {groupClass.defaultTrainer
-              ? groupClass.defaultTrainer.name
-              : t('trainerNeeded', { ...trainerWord })}
-            {' · '}
             {t('page.facts', {
+              trainer: groupClass.defaultTrainer
+                ? groupClass.defaultTrainer.name
+                : t('trainerNeeded', { ...trainerWord }),
               spots: t('spots', { count: groupClass.capacity }),
               duration: t('minutes', { minutes: groupClass.durationMinutes }),
             })}

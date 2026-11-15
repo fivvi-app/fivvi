@@ -607,7 +607,7 @@
     "minutes": "{minutes} min",
     "page": {
       "back": "Alle lessen",
-      "facts": "{spots} · {duration}",
+      "facts": "{trainer} · {spots} · {duration}",
       "descriptionTitle": "Omschrijving",
       "noDescription": "Nog geen omschrijving.",
       "schedule": "Op een datum plannen"
@@ -615,7 +615,6 @@
     "form": {
       "title": "Nieuwe les",
       "description": "Geef de les een naam en stel in wie hem geeft, hoeveel plekken er zijn en hoe lang hij duurt.",
-      "close": "Sluiten",
       "nameSection": "Naam en omschrijving",
       "classSection": "De les",
       "nameNlLabel": "Naam (Nederlands)",
@@ -642,7 +641,6 @@
     "schedule": {
       "title": "Op een datum plannen",
       "description": "Kies de datum en het begin. De duur, de locatie en de standaardwaarden komen van de les.",
-      "close": "Sluiten",
       "classSection": "De les",
       "whenSection": "Wanneer",
       "classLabel": "Les",
@@ -685,7 +683,6 @@
     "edit": {
       "title": "Les wijzigen",
       "description": "Je wijzigt alleen {date}. De les zelf en de andere data blijven zoals ze zijn.",
-      "close": "Sluiten",
       "startLabel": "Begin",
       "endLabel": "Eind",
       "capacityLabel": "Capaciteit",

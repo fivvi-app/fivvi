@@ -393,3 +393,22 @@ export async function loadScheduleContext(
     return { ok: false, reason: 'failed' };
   }
 }
+
+export type TrainersResult =
+  | { ok: true; trainers: Trainer[] }
+  | { ok: false; reason: 'home' | 'failed' };
+
+/** Reads the workspace's trainers (`GET …/trainers`), for the form of a new class. */
+export async function loadTrainers(
+  workspaceId: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<TrainersResult> {
+  try {
+    const answer = await fetchFn(`/api/v1/workspaces/${workspaceId}/trainers`);
+    if ([401, 403, 404].includes(answer.status)) return { ok: false, reason: 'home' };
+    if (answer.status !== 200) return { ok: false, reason: 'failed' };
+    return { ok: true, trainers: (await answer.json()) as Trainer[] };
+  } catch {
+    return { ok: false, reason: 'failed' };
+  }
+}

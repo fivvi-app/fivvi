@@ -585,9 +585,7 @@ test.describe('F021 classes on the web', () => {
 
     // She reads CO-01 of any class date, with no actions.
     await page.goto(`/w/${slug}/classes/${kracht.id}/${date.id}`);
-    await expect(
-      page.getByRole('heading', { level: 1, name: appLocale === 'en' ? 'Kracht' : 'Kracht' }),
-    ).toBeVisible();
+    await expect(page.getByRole('heading', { level: 1, name: 'Kracht' })).toBeVisible();
     await expect(page.getByRole('main').getByText('18:00–19:00')).toBeVisible();
     await expect(page.getByRole('main').getByRole('button')).toHaveCount(0);
     await expect(page.getByRole('main').getByRole('link')).toHaveCount(0);

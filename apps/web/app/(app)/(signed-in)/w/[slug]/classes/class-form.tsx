@@ -24,7 +24,7 @@ import {
   type ClassInput,
   createClass,
   type GroupClass,
-  loadScheduleContext,
+  loadTrainers,
   type Trainer,
 } from './classes-client';
 import { FormSection, TextAreaField } from './form-section';
@@ -201,13 +201,13 @@ export function NewClassDialogContent({
 
   useEffect(() => {
     let current = true;
-    void loadScheduleContext(workspaceId).then((result) => {
+    void loadTrainers(workspaceId).then((result) => {
       if (!current) return;
       if (!result.ok) {
         if (result.reason === 'home') return window.location.replace(SIGNED_IN_HOME);
         return setLoaded({ status: 'failed' });
       }
-      setLoaded({ status: 'ready', trainers: result.context.trainers });
+      setLoaded({ status: 'ready', trainers: result.trainers });
     });
     return () => {
       current = false;

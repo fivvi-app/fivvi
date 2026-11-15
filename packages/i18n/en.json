@@ -607,7 +607,7 @@
     "minutes": "{minutes} min",
     "page": {
       "back": "All classes",
-      "facts": "{spots} · {duration}",
+      "facts": "{trainer} · {spots} · {duration}",
       "descriptionTitle": "Description",
       "noDescription": "No description yet.",
       "schedule": "Schedule on a date"
@@ -615,7 +615,6 @@
     "form": {
       "title": "New class",
       "description": "Name the class and set who teaches it, how many spots it has and how long it lasts.",
-      "close": "Close",
       "nameSection": "Name and description",
       "classSection": "The class",
       "nameNlLabel": "Name (Dutch)",
@@ -642,7 +641,6 @@
     "schedule": {
       "title": "Schedule on a date",
       "description": "Choose the date and the start. The duration, the location and the defaults come from the class.",
-      "close": "Close",
       "classSection": "The class",
       "whenSection": "When",
       "classLabel": "Class",
@@ -685,7 +683,6 @@
     "edit": {
       "title": "Edit class",
       "description": "You're changing only {date}. The class itself and its other dates stay as they are.",
-      "close": "Close",
       "startLabel": "Start",
       "endLabel": "End",
       "capacityLabel": "Capacity",

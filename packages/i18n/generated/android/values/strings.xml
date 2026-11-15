@@ -25,7 +25,6 @@
     <string name="classes_edit_cancel">Annuleren</string>
     <string name="classes_edit_capacity_label">Capaciteit</string>
     <string name="classes_edit_changed">Deze les is net gewijzigd. Je ziet nu de nieuwe gegevens.</string>
-    <string name="classes_edit_close">Sluiten</string>
     <string name="classes_edit_description">Je wijzigt alleen %1$s. De les zelf en de andere data blijven zoals ze zijn.</string>
     <string name="classes_edit_end_label">Eind</string>
     <string name="classes_edit_errors_capacity_invalid">Vul een capaciteit in van %2$s tot en met %1$s.</string>
@@ -42,7 +41,6 @@
     <string name="classes_form_cancel">Annuleren</string>
     <string name="classes_form_capacity_label">Capaciteit</string>
     <string name="classes_form_class_section">De les</string>
-    <string name="classes_form_close">Sluiten</string>
     <string name="classes_form_description">Geef de les een naam en stel in wie hem geeft, hoeveel plekken er zijn en hoe lang hij duurt.</string>
     <string name="classes_form_description_en_label">Omschrijving (Engels, optioneel)</string>
     <string name="classes_form_description_nl_label">Omschrijving (Nederlands, optioneel)</string>
@@ -67,7 +65,7 @@
     <string name="classes_new">Nieuwe les</string>
     <string name="classes_page_back">Alle lessen</string>
     <string name="classes_page_description_title">Omschrijving</string>
-    <string name="classes_page_facts">%2$s · %1$s</string>
+    <string name="classes_page_facts">%3$s · %2$s · %1$s</string>
     <string name="classes_page_no_description">Nog geen omschrijving.</string>
     <string name="classes_page_schedule">Op een datum plannen</string>
     <string name="classes_schedule_cancel">Annuleren</string>
@@ -76,7 +74,6 @@
     <string name="classes_schedule_class_label">Les</string>
     <string name="classes_schedule_class_none">Je hebt nog geen lessen.</string>
     <string name="classes_schedule_class_section">De les</string>
-    <string name="classes_schedule_close">Sluiten</string>
     <string name="classes_schedule_date_label">Datum</string>
     <string name="classes_schedule_description">Kies de datum en het begin. De duur, de locatie en de standaardwaarden komen van de les.</string>
     <string name="classes_schedule_ends_at">Eindigt om %1$s</string>

@@ -3,6 +3,7 @@ import {
   createClass,
   editClassDate,
   loadScheduleContext,
+  loadTrainers,
   scheduleClassDate,
   validateClass,
 } from './classes-client';
@@ -414,6 +415,26 @@ describe('F021 TW-03 classes client', () => {
           answers({ '/locations': new Response('{}', { status: 500 }) }),
         ),
       ).toEqual({ ok: false, reason: 'failed' });
+    });
+  });
+
+  describe('loadTrainers', () => {
+    it('reads only the trainers, whatever else the workspace has', async () => {
+      const fetchFn = reply(200, [{ id: 't1', name: 'Sarah' }]);
+      expect(await loadTrainers('w1', fetchFn)).toEqual({
+        ok: true,
+        trainers: [{ id: 't1', name: 'Sarah' }],
+      });
+      expect(fetchFn).toHaveBeenCalledTimes(1);
+      expect(String(fetchFn.mock.calls[0]?.[0])).toBe('/api/v1/workspaces/w1/trainers');
+    });
+
+    it('sends a person the API does not know to the signed-in home', async () => {
+      expect(await loadTrainers('w1', reply(403))).toEqual({ ok: false, reason: 'home' });
+    });
+
+    it('fails when the answer is not a success', async () => {
+      expect(await loadTrainers('w1', reply(500))).toEqual({ ok: false, reason: 'failed' });
     });
   });
 });
