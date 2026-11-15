@@ -76,6 +76,57 @@ describe.each(locales)('F002 workspace frame and settings in %s', (locale) => {
     expect(trainer).not.toContain(escapeHtml(copy.roles.owner));
   });
 
+  it('F013 AC9: a person with a trainer profile has the group Persoonlijk with Mijn dag and Mijn agenda, linking to the personal pages', () => {
+    const html = render(
+      locale,
+      <WorkspaceFrame
+        name="John's Gym"
+        slug="johns-gym"
+        teamRole="trainer"
+        workspaces={[]}
+        canCreateWorkspace={false}
+        capabilities={TRAINER}
+        personName={null}
+        personalPages
+      >
+        <hr />
+      </WorkspaceFrame>,
+    );
+
+    expect(html).toContain(escapeHtml(copy.workspaceNav.personal));
+    expect(html).toMatch(
+      new RegExp(
+        `<a[^>]*href="/me/day"[^>]*>${NAV_ICON}<span[^>]*>${copy.workspaceNav.myDay}</span>`,
+      ),
+    );
+    expect(html).toMatch(
+      new RegExp(
+        `<a[^>]*href="/me/calendar"[^>]*>${NAV_ICON}<span[^>]*>${copy.workspaceNav.myCalendar}</span>`,
+      ),
+    );
+  });
+
+  it('F013 AC12: without a trainer profile there is no Persoonlijk, no Mijn dag and no Mijn agenda', () => {
+    const html = render(
+      locale,
+      <WorkspaceFrame
+        name="John's Gym"
+        slug="johns-gym"
+        teamRole="owner"
+        workspaces={[]}
+        canCreateWorkspace={false}
+        capabilities={OWNER}
+        personName={null}
+      >
+        <hr />
+      </WorkspaceFrame>,
+    );
+
+    expect(html).not.toContain(escapeHtml(copy.workspaceNav.personal));
+    expect(html).not.toContain('/me/day');
+    expect(html).not.toContain('/me/calendar');
+  });
+
   it('F003 AC2: the Owner has Trainers in the navigation, linking to the Trainers page', () => {
     const html = render(
       locale,

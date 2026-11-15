@@ -8,6 +8,7 @@ export type Me = Schemas['MeResponse'];
 /** Where the signed-in home sends a person. */
 export type Destination =
   | { to: 'workspace'; slug: string }
+  | { to: 'my-day' }
   | { to: 'welcome' }
   | { to: 'no-access' };
 
@@ -17,14 +18,18 @@ export type Destination =
  * workspace first (an account that may create another one, F012, still goes to its workspace);
  * none and allowed to create one: TW-11; neither: the no-access page. Which workspace is
  * `startWorkspace`'s rule (F012): the one remembered in this browser (`rememberedSlug`, from the
- * `fivvi_last_workspace` cookie) while the account is on its team, else the first by name.
+ * `fivvi_last_workspace` cookie) while the account is on its team, else the first by name. Where
+ * in it is the role's home (F013, `information-architecture.md §4.2`): the Owner's is the
+ * workspace, the Trainer's is *Mijn dag*.
  */
 export function destinationOf(
   { canCreateWorkspace, workspaces }: Pick<Me, 'canCreateWorkspace' | 'workspaces'>,
   rememberedSlug?: string,
 ): Destination {
   const start = startWorkspace(workspaces, rememberedSlug);
-  if (start) return { to: 'workspace', slug: start.slug };
+  if (start) {
+    return start.role === 'trainer' ? { to: 'my-day' } : { to: 'workspace', slug: start.slug };
+  }
   return canCreateWorkspace ? { to: 'welcome' } : { to: 'no-access' };
 }
 
@@ -33,6 +38,8 @@ export function pathOf(destination: Destination): string {
   switch (destination.to) {
     case 'workspace':
       return `/w/${destination.slug}`;
+    case 'my-day':
+      return '/me/day';
     case 'welcome':
       return '/welcome';
     case 'no-access':

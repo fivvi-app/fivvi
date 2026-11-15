@@ -46,6 +46,8 @@ describe('#669 the brand files of the website', () => {
       'app/favicon.ico',
       'app/icon.png',
       'app/icon.svg',
+      'public/site-images/brand/app-icon-512.png',
+      'public/site-images/brand/app-icon-maskable-512.png',
       'public/site-images/brand/fivvi-day-dial-dark.svg',
       'public/site-images/brand/fivvi-day-dial.svg',
       'public/site-images/brand/fivvi-logo-dark.svg',
@@ -120,6 +122,19 @@ describe('#669 the brand files of the website', () => {
     // The plain dial, never the Fivvi Pro one with its PRO label.
     expect(light.equals(files[`${ANDROID_DIAL}_light.png`] as Buffer)).toBe(false);
     expect(dark.equals(files[`${ANDROID_DIAL}_dark.png`] as Buffer)).toBe(false);
+  });
+
+  it('F013 AC9: makes the icons of the web app manifest, 512 px: the favicon as drawn, and a maskable one that fills the whole square', async () => {
+    const files = await brandFiles();
+    const any = files['public/site-images/brand/app-icon-512.png'] as Buffer;
+    const maskable = files['public/site-images/brand/app-icon-maskable-512.png'] as Buffer;
+
+    expect(pngSize(any)).toEqual([512, 512]);
+    expect(pngSize(maskable)).toEqual([512, 512]);
+    // Like `app/icon.png`: the rounded corners of the drawing stay empty.
+    expect(firstPixel(any)[3]).toBe(0);
+    // A maskable icon is cropped by the phone to its own shape, so no corner may be empty.
+    expect(firstPixel(maskable)[3]).toBe(255);
   });
 
   it('keeps the rounded corners of the favicon, but fills the whole square for iOS, which rounds it itself', async () => {

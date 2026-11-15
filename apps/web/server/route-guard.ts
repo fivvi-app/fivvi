@@ -43,6 +43,8 @@ const PUBLIC_FILES: readonly string[] = [
   '/sitemap.xml',
   // The favicon files of `app/` (#669), which a browser fetches for any page, signed in or not.
   ...ICON_FILES,
+  // The web app manifest (F013 AC9): a browser fetches it without the sign-in cookie.
+  '/manifest.webmanifest',
 ];
 
 /** Whether `pathname` is open to anyone. Whole path segments only: `/booking` is not `/book`. */
