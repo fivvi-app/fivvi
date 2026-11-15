@@ -2086,6 +2086,8 @@ case "$*" in
   test-without-building\\ *)
     # FAKE_FAIL_CONFIGURATION=<locale>: only the run of that test-plan configuration fails.
     case "$*" in *"-only-test-configuration $FAKE_FAIL_CONFIGURATION"*) [ -z "$FAKE_FAIL_CONFIGURATION" ] || exit 1 ;; esac
+    # FAKE_RETRY_RESULT (#1433): the outcome of the run into a -retry result bundle, in place of FAKE_RESULT.
+    case "$*" in *-retry.xcresult*) [ -z "$FAKE_RETRY_RESULT" ] || FAKE_RESULT="$FAKE_RETRY_RESULT" ;; esac
     # FAKE_RESULT=stall: it never ends on its own, and on SIGINT it records that and ends with 130 (it has written its bundle).
     [ "$FAKE_RESULT" != stall ] || exec perl -e '$SIG{INT} = sub { open my $f, ">", shift(@ARGV); print $f "SIGINT\\n"; close $f; exit 130 }; sleep 60' "${state}/sigint.log"
     # FAKE_RESULT=stall-ignore-int: the same, but it ignores SIGINT, so only SIGKILL ends it.
@@ -2552,6 +2554,373 @@ esac`,
         const run = await fake.run('scripts/test-ios.sh', ['test', 'nl', '--bundle', moved]);
 
         assert.equal(run.status, 0, run.output);
+      });
+    });
+
+    // E017 #1433: `test <locale> --retry-failed` (only `release.sh tests ios` passes it) retries the failed UI tests once.
+    describe('E017 #1433: test <nl|en> --retry-failed retries only the failed UI tests, once', () => {
+      const UI = 'FivviProUITests';
+      const failure = (id, message = `${id} broke`, target = UI) => ({
+        testName: `${id.split('/')[1]}()`,
+        targetName: target,
+        failureText: message,
+        testIdentifierString: `${id}()`,
+        testIdentifierURL: `test://com.apple.xcode/FivviPro/${target}/${id}`,
+      });
+      const node = (id, result, target = UI) => ({
+        nodeType: 'Test Case',
+        nodeIdentifier: `${id}()`,
+        nodeIdentifierURL: `test://com.apple.xcode/FivviPro/${target}/${id}`,
+        result,
+        durationInSeconds: 1,
+      });
+      // The canned bundles of the first run and of the retry: `failed` are `[id, message?, target?]` of failed tests,
+      // `passed` the ids of tests that passed; the fake xcresulttool prints the file of the bundle it is asked about.
+      const canned = (fake, locale, { first, retry }) => {
+        const dir = join(fake.repo, '..', 'bundles');
+        mkdirSync(dir, { recursive: true });
+        const write = (name, { failed = [], passed = [], passedTarget = UI }) =>
+          writeFileSync(
+            join(dir, `${name}.xcresult.json`),
+            JSON.stringify({
+              testFailures: failed.map(([id, message, target]) => failure(id, message, target)),
+              testNodes: [
+                ...failed.map(([id, , target]) => node(id, 'Failed', target)),
+                ...passed.map((id) => node(id, 'Passed', passedTarget)),
+              ],
+            }),
+          );
+        if (first) write(`TestResults-${locale}`, first);
+        if (retry) write(`TestResults-${locale}-retry`, retry);
+        return dir;
+      };
+      const built = async () => {
+        const fake = checkout();
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+        return fake;
+      };
+      const testRuns = (fake) =>
+        fake.log('xcodebuild').filter((line) => line.startsWith('test-without-building '));
+      const retryTest = (fake, args, env = {}) =>
+        fake.run('scripts/test-ios.sh', ['test', 'nl', ...args], {
+          IOS_SIM_SETTLE: '0',
+          FAKE_RESULT: 'fail',
+          FAKE_RETRY_RESULT: 'pass',
+          ...env,
+        });
+      const A = 'SignInLanguageUITests/test_perAppLanguageWins';
+      const B = 'HomeSmallScreenUITests/test_largestTextSize';
+      const C = 'ProfileUITests/test_editName';
+      const D = 'ProfileUITests/test_editEmail';
+
+      it('retries exactly the failed UI tests, once, on the same simulator, in the same configuration; passes when all of them pass, and reports each as flaky with its first failure', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'nl', {
+          first: {
+            failed: [
+              [A, 'XCTAssertEqual failed: the app is in en'],
+              [B, 'Failed to get background assertion for target app'],
+            ],
+            passed: [C],
+          },
+          retry: { passed: [A, B] },
+        });
+        const summary = join(fake.repo, '..', 'summary.md');
+
+        const run = await retryTest(fake, ['--retry-failed'], {
+          FAKE_XCRESULT_DIR: dir,
+          GITHUB_STEP_SUMMARY: summary,
+        });
+
+        assert.equal(run.status, 0, run.output);
+        const runs = testRuns(fake);
+        assert.equal(runs.length, 2, 'the run and one retry');
+        assert.ok(!runs[0].includes('-only-testing'), 'the first run is the whole configuration');
+        const [, retry] = runs;
+        assert.match(retry, /-only-test-configuration nl\b/);
+        assert.match(retry, /-xctestrun \S*FivviPro\.xctestrun/);
+        assert.match(retry, /-resultBundlePath \.build\/TestResults-nl-retry\.xcresult\b/);
+        assert.equal(retry.match(/-destination (\S+)/)[1], runs[0].match(/-destination (\S+)/)[1]);
+        assert.deepEqual(
+          retry.match(/-only-testing:\S+/g).sort(),
+          [`-only-testing:${UI}/${B}`, `-only-testing:${UI}/${A}`].sort(),
+        );
+        assert.ok(!retry.includes('-skip-testing'));
+        assert.match(retry, /-test-timeouts-enabled YES/);
+        assert.match(retry, /-default-test-execution-time-allowance \d+/);
+        assert.match(retry, /-maximum-test-execution-time-allowance \d+/);
+        assert.equal(
+          fake.log('xcodebuild').filter((l) => l.startsWith('build-for-testing')).length,
+          1,
+        );
+        // The simulator is not booted, shut down or created again between the two runs.
+        assert.equal(fake.log('xcrun').filter((l) => l.startsWith('bootstatus')).length, 1);
+        assert.match(
+          run.output,
+          new RegExp(
+            `^::warning::.*flaky.*${A.replace('/', '\\/')}.*XCTAssertEqual failed: the app is in en`,
+            'm',
+          ),
+        );
+        assert.match(
+          run.output,
+          new RegExp(
+            `^::warning::.*flaky.*${B.replace('/', '\\/')}.*Failed to get background assertion`,
+            'm',
+          ),
+        );
+        assert.doesNotMatch(
+          run.output,
+          new RegExp(`::warning::.*${C}`),
+          'a test that passed first time is not flaky',
+        );
+        assert.match(run.output, /✓ iOS tests in nl/);
+        const markdown = readFileSync(summary, 'utf8');
+        assert.match(markdown, /### iOS tests that passed only on a retry in nl/);
+        assert.match(markdown, new RegExp(`${A}[\\s\\S]*the app is in en`));
+        assert.match(markdown, new RegExp(`${B}[\\s\\S]*Failed to get background assertion`));
+      });
+
+      it('does the same for en, from a downloaded bundle, with the options in either order', async () => {
+        for (const order of ['before', 'after']) {
+          const fake = await built();
+          const moved = join(fake.repo, 'downloaded.tar');
+          renameSync(join(fake.repo, 'apps/ios/.build/ios-test-bundle.tar'), moved);
+          const dir = canned(fake, 'en', { first: { failed: [[A]] }, retry: { passed: [A] } });
+          const options =
+            order === 'before'
+              ? ['--retry-failed', '--bundle', moved]
+              : ['--bundle', moved, '--retry-failed'];
+
+          const run = await fake.run('scripts/test-ios.sh', ['test', 'en', ...options], {
+            IOS_SIM_SETTLE: '0',
+            FAKE_RESULT: 'fail',
+            FAKE_RETRY_RESULT: 'pass',
+            FAKE_XCRESULT_DIR: dir,
+          });
+
+          assert.equal(run.status, 0, `${order}: ${run.output}`);
+          assert.equal(testRuns(fake).length, 2);
+          assert.match(
+            testRuns(fake)[1],
+            /-only-test-configuration en\b.*TestResults-en-retry\.xcresult/,
+          );
+        }
+      });
+
+      it('retries up to the bound of 3 failed UI tests', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'nl', {
+          first: { failed: [[A], [B], [C]] },
+          retry: { passed: [A, B, C] },
+        });
+
+        const run = await retryTest(fake, ['--retry-failed'], { FAKE_XCRESULT_DIR: dir });
+
+        assert.equal(run.status, 0, run.output);
+        assert.equal(testRuns(fake)[1].match(/-only-testing:/g).length, 3);
+      });
+
+      it('a plain test <locale>, as CI runs it, never retries', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'nl', { first: { failed: [[A]] }, retry: { passed: [A] } });
+
+        const run = await retryTest(fake, [], { FAKE_XCRESULT_DIR: dir });
+
+        assert.equal(run.status, 1, run.output);
+        assert.equal(testRuns(fake).length, 1);
+        assert.doesNotMatch(run.output, /flaky/);
+      });
+
+      it('a passing run does not retry anything, and reports nothing as flaky', async () => {
+        const fake = await built();
+
+        const run = await retryTest(fake, ['--retry-failed'], { FAKE_RESULT: 'pass' });
+
+        assert.equal(run.status, 0, run.output);
+        assert.equal(testRuns(fake).length, 1);
+        assert.doesNotMatch(run.output, /passed only on/);
+      });
+
+      for (const [name, first] of [
+        [
+          'a unit test failed',
+          { failed: [['HomeViewModelTests/test_loads', 'boom', 'FivviProTests']] },
+        ],
+        [
+          'a unit test failed next to a UI test',
+          { failed: [[A], ['HomeViewModelTests/test_loads', 'boom', 'FivviProTests']] },
+        ],
+        ['more UI tests failed than the bound of 3', { failed: [[A], [B], [C], [D]] }],
+        ['the failed tests cannot be read (the bundle lists none)', { failed: [] }],
+      ]) {
+        it(`no retry, and the run fails as before, when ${name}`, async () => {
+          const fake = await built();
+          const summary = join(fake.repo, '..', 'summary.md');
+          const dir = canned(fake, 'nl', {
+            first,
+            retry: { passed: [A, B, C, D] },
+          });
+
+          const run = await retryTest(fake, ['--retry-failed'], {
+            FAKE_XCRESULT_DIR: dir,
+            GITHUB_STEP_SUMMARY: summary,
+          });
+
+          assert.equal(run.status, 1, run.output);
+          assert.equal(testRuns(fake).length, 1, 'one run, no retry');
+          assert.match(run.output, /Not retrying: /);
+          assert.doesNotMatch(run.output, /::warning::flaky|passed only on/);
+        });
+      }
+
+      it('no retry when the result bundle cannot be read', async () => {
+        const fake = await built();
+        const bad = join(fake.repo, '..', 'bad.json');
+        writeFileSync(bad, 'this is not JSON');
+
+        const run = await retryTest(fake, ['--retry-failed'], { FAKE_XCRESULT: bad });
+
+        assert.equal(run.status, 1, run.output);
+        assert.equal(testRuns(fake).length, 1);
+        assert.match(run.output, /Not retrying: .*cannot be read/);
+      });
+
+      it('no retry when the first run hit its deadline (#305)', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'nl', { first: { failed: [[A]] }, retry: { passed: [A] } });
+
+        const run = await retryTest(fake, ['--retry-failed'], {
+          FAKE_RESULT: 'stall',
+          FAKE_XCRESULT_DIR: dir,
+          IOS_TEST_DEADLINE: '2',
+          IOS_TEST_DEADLINE_GRACE: '10',
+        });
+
+        assert.equal(run.status, 1, run.output);
+        assert.equal(testRuns(fake).length, 1);
+        assert.match(run.output, /::error::The nl tests ran past the deadline of 2 s/);
+        assert.match(run.output, /Not retrying: .*deadline/);
+      });
+
+      for (const [name, retry, retryResult, message] of [
+        [
+          'a retried test fails again',
+          { failed: [[A, 'still broken']], passed: [B] },
+          'fail',
+          /still broken/,
+        ],
+        ['the retry runs only some of the retried tests', { passed: [A] }, 'pass', /did not run/],
+        ['the retry runs none of them', {}, 'pass', /did not run/],
+        [
+          'a retried test is skipped',
+          { passed: [A], skipped: [B] },
+          'pass',
+          /did not run|did not pass/,
+        ],
+        [
+          'xcodebuild fails although every retried test passed',
+          { passed: [A, B] },
+          'fail',
+          /failed/,
+        ],
+        ["the retry's bundle cannot be read", undefined, 'pass', /did not run/],
+      ]) {
+        it(`the run fails when ${name}`, async () => {
+          const fake = await built();
+          const dir = canned(fake, 'nl', { first: { failed: [[A], [B]] }, retry });
+          if (retry?.skipped) {
+            const file = join(dir, 'TestResults-nl-retry.xcresult.json');
+            const bundle = JSON.parse(readFileSync(file, 'utf8'));
+            bundle.testNodes.push(...retry.skipped.map((id) => node(id, 'Skipped')));
+            writeFileSync(file, JSON.stringify(bundle));
+          }
+
+          const run = await retryTest(fake, ['--retry-failed'], {
+            FAKE_XCRESULT_DIR: dir,
+            FAKE_RETRY_RESULT: retryResult,
+          });
+
+          assert.equal(run.status, 1, run.output);
+          assert.equal(testRuns(fake).length, 2, 'retried once, not twice');
+          assert.match(run.output, message);
+          assert.doesNotMatch(run.output, /✓ iOS tests/);
+        });
+      }
+
+      it('a test that passed on the retry is not reported as flaky when another one failed again', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'nl', {
+          first: { failed: [[A], [B]] },
+          retry: { failed: [[A]], passed: [B] },
+        });
+
+        const run = await retryTest(fake, ['--retry-failed'], {
+          FAKE_XCRESULT_DIR: dir,
+          FAKE_RETRY_RESULT: 'fail',
+        });
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(
+          run.output,
+          /Failed tests in nl \(retry\):\n +SignInLanguageUITests\/test_perAppLanguageWins\(\)/,
+        );
+      });
+
+      it('the retry has a deadline of its own: a retry that hangs is interrupted, and fails', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'nl', { first: { failed: [[A]] }, retry: { passed: [A] } });
+
+        const run = await retryTest(fake, ['--retry-failed'], {
+          FAKE_XCRESULT_DIR: dir,
+          FAKE_RETRY_RESULT: 'stall',
+          IOS_RETRY_DEADLINE: '2',
+          IOS_TEST_DEADLINE_GRACE: '10',
+        });
+
+        assert.equal(run.status, 1, run.output);
+        assert.equal(testRuns(fake).length, 2);
+        assert.match(run.output, /::error::The nl retried tests ran past the deadline of 2 s/);
+        assert.deepEqual(fake.log('sigint'), ['SIGINT']);
+        assert.doesNotMatch(run.output, /✓ iOS tests/);
+      });
+
+      it('the first run keeps its own deadline: IOS_RETRY_DEADLINE does not shorten or lengthen it', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'nl', { first: { failed: [[A]] }, retry: { passed: [A] } });
+
+        const run = await retryTest(fake, ['--retry-failed'], {
+          FAKE_XCRESULT_DIR: dir,
+          IOS_RETRY_DEADLINE: '1',
+        });
+
+        assert.equal(run.status, 0, run.output);
+      });
+
+      it('shuts the simulator down at the end, as it does without a retry', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'nl', { first: { failed: [[A]] }, retry: { passed: [A] } });
+
+        await retryTest(fake, ['--retry-failed'], { FAKE_XCRESULT_DIR: dir });
+
+        assert.equal(fake.simulator('IPHONE-18').state, 'Shutdown');
+      });
+
+      it('--retry-failed belongs to test <locale>: build and the all-in-one run refuse it', async () => {
+        const fake = checkout();
+        assert.notEqual(
+          (await fake.run('scripts/test-ios.sh', ['build', '--retry-failed'])).status,
+          0,
+        );
+        assert.notEqual((await fake.run('scripts/test-ios.sh', ['--retry-failed'])).status, 0);
+        assert.notEqual(
+          (await fake.run('scripts/test-ios.sh', ['test', 'nl', '--retry'])).status,
+          0,
+        );
+        assert.notEqual(
+          (await fake.run('scripts/test-ios.sh', ['test', 'nl', '--bundle'])).status,
+          0,
+        );
       });
     });
 
