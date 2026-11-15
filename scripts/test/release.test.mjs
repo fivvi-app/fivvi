@@ -517,6 +517,57 @@ describe('E017 AC1: signing, archive and export with xcodebuild', () => {
   });
 });
 
+describe('E017 AC1: the profile of a release reaches the app target alone (apps/ios/Config)', () => {
+  // A build setting on the xcodebuild command line reaches every target, and the resource bundles of the local Swift
+  // packages refuse a provisioning profile. So the run passes FIVVI_RELEASE_PROFILE, and Release.xcconfig, which only the
+  // app target's Release configuration has as its base, turns it into that target's profile specifier.
+  const config = join(ROOT, 'apps/ios/Config');
+  const project = readFileSync(join(ROOT, 'apps/ios/FivviPro.xcodeproj/project.pbxproj'), 'utf8');
+
+  // The body of the `{ ... }` of the pbxproj object with this id (every object is one flat block of `key = value;` lines).
+  const object = (id) => {
+    const start = project.search(new RegExp(`^\\t\\t${id} /\\*[^\\n]*\\*/ = \\{$`, 'm'));
+    assert.notEqual(start, -1, `no object ${id} in the project`);
+    return project.slice(start, project.indexOf('\n\t\t};', start));
+  };
+
+  it('Release.xcconfig turns FIVVI_RELEASE_PROFILE into the profile specifier, and never sets the variable itself', () => {
+    const release = readFileSync(join(config, 'Release.xcconfig'), 'utf8');
+    assert.match(release, /^PROVISIONING_PROFILE_SPECIFIER = \$\(FIVVI_RELEASE_PROFILE\)$/m);
+    assert.ok(
+      !/^FIVVI_RELEASE_PROFILE\b/m.test(release),
+      'the profile comes from the command line, never from the file',
+    );
+  });
+
+  it('Release.xcconfig is the base of the Release configuration of the app target (app.fivvi.pro), and of no other configuration', () => {
+    const target = object(
+      project.match(/^\t\t(\w+) \/\* FivviPro \*\/ = \{\n\t\t\tisa = PBXNativeTarget;/m)?.[1],
+    );
+    const list = object(target.match(/buildConfigurationList = (\w+) /)?.[1]);
+    const names = [...list.matchAll(/^\t\t\t\t(\w+) \/\* (\w+) \*\/,$/gm)];
+    const release = names.find((m) => m[2] === 'Release');
+    assert.ok(release, "the app target's configuration list has a Release configuration");
+    const configuration = object(release[1]);
+    assert.match(
+      configuration,
+      /^\t\t\tbaseConfigurationReference = \w+ \/\* Release\.xcconfig \*\/;$/m,
+    );
+    assert.match(configuration, /^\t\t\t\tPRODUCT_BUNDLE_IDENTIFIER = app\.fivvi\.pro;$/m);
+    assert.equal(
+      project.match(/baseConfigurationReference = \w+ \/\* Release\.xcconfig \*\//g)?.length,
+      1,
+      'no other configuration has Release.xcconfig as its base',
+    );
+  });
+
+  it('no target or project setting names a provisioning profile, and Debug builds sign automatically', () => {
+    assert.ok(!project.includes('PROVISIONING_PROFILE_SPECIFIER'));
+    const debug = readFileSync(join(config, 'Debug.xcconfig'), 'utf8');
+    assert.ok(!debug.includes('PROVISIONING_PROFILE'), 'Debug builds sign automatically');
+  });
+});
+
 describe('E017 AC6: dSYMs to Sentry under the release name the app sends', () => {
   beforeEach(fakeTools);
 

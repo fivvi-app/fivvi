@@ -1236,30 +1236,6 @@ describe('iOS simulator signing (apps/ios/Config)', () => {
   });
 });
 
-describe('iOS release signing (apps/ios/Config, E017)', () => {
-  it('the profile of a release reaches the app target alone: Release.xcconfig turns FIVVI_RELEASE_PROFILE into its specifier', () => {
-    const config = join(SCRIPTS, '../apps/ios/Config');
-    const release = readFileSync(join(config, 'Release.xcconfig'), 'utf8');
-    assert.match(release, /^PROVISIONING_PROFILE_SPECIFIER = \$\(FIVVI_RELEASE_PROFILE\)$/m);
-    assert.ok(
-      !/^FIVVI_RELEASE_PROFILE\b/m.test(release),
-      'the profile comes from the command line, never from the file',
-    );
-    // Only the app target's Release configuration has Release.xcconfig as its base, and no target sets a profile of its own.
-    const project = readFileSync(
-      join(SCRIPTS, '../apps/ios/FivviPro.xcodeproj/project.pbxproj'),
-      'utf8',
-    );
-    assert.equal(
-      project.match(/baseConfigurationReference = \w+ \/\* Release\.xcconfig \*\//g)?.length,
-      1,
-    );
-    assert.ok(!project.includes('PROVISIONING_PROFILE_SPECIFIER'));
-    const debug = readFileSync(join(config, 'Debug.xcconfig'), 'utf8');
-    assert.ok(!debug.includes('PROVISIONING_PROFILE'), 'Debug builds sign automatically');
-  });
-});
-
 describe('usage', () => {
   it('prints the commands of every script, never its code', () => {
     for (const script of [
