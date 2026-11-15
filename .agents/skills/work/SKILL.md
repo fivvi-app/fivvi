@@ -40,7 +40,7 @@ You route; Matt Pocock's vendored skills do the work. Run every script, skill an
 | `needs-spec` | **Shape** on this issue; publish with `scripts/issue.sh update <n>` instead of creating a new one. Keep its intent and show the new body before writing. |
 | `needs-approval` | Report and stop: the owner approves the spec on GitHub with the `spec-approved` label. |
 | `needs-tickets` | **Shape** from step 3. If one PR is enough, add `## Acceptance criteria` and the `ready-for-agent` label to the spec itself. Adding ACs is a material change: `issue.sh update` removes `spec-approved`, so the spec waits for the owner to approve it again (`needs-approval`); report and stop, and **Build** it as a ticket once approved. Use `--minor` only for edits that change nothing material. |
-| `building` | **Build** every ready ticket in parallel (no fixed limit; start no more agents at once than the tool's rate limits allow, and build tickets that change the same files one after the other); `triage` tickets that aren't `ready-for-agent`, one at a time with the user. |
+| `building` | **Build** every ready ticket in parallel (at most 4 builders at once while the 1-minute load stays under about 50, [ADR-033](../../../docs/decisions/ADR-033-go-live-mode.md); start no more agents at once than the tool's rate limits allow, and build tickets that change the same files one after the other); `triage` tickets that aren't `ready-for-agent`, one at a time with the user. |
 | `needs-refinement`, `answered` | `.agents/skills/triage/SKILL.md` on it, one at a time with the user. |
 | `waiting` | Report and stop: the owner answers the `needs-info` question on the issue. |
 | `ready`, `in-progress` | **Build** (for `in-progress`, resume from the notes file and the worktree's commits) |
@@ -72,7 +72,7 @@ New work. Keep these steps in this conversation; don't delegate or compact betwe
 
 ## Build
 
-Per ticket; run independent tickets in parallel. There is no fixed limit; `flow.sh start` enforces one only when the session sets `FIVVI_MAX_TICKETS`. Start no more agents at once than the tool's rate limits allow, and build tickets that change the same files one after the other.
+Per ticket; run independent tickets in parallel. Run at most 4 builders at once while the 1-minute load (`uptime`) stays under about 50 ([ADR-033](../../../docs/decisions/ADR-033-go-live-mode.md)); count only builders actually running, not PRs that wait on CI or the owner. `flow.sh start` enforces a limit on tickets in progress only when the session sets `FIVVI_MAX_TICKETS`. Start no more agents at once than the tool's rate limits allow, and build tickets that change the same files one after the other.
 
 1. `scripts/flow.sh start <n>` claims it and creates its worktree and notes; it prints the worktree, notes path, `E2E_PORT` and a `Hint` (what this PR changes in `FEATURES.md`, if anything).
 2. A fresh `builder` subagent runs `.agents/skills/implement/SKILL.md` on the ticket, following `docs/agents/build.md`, with the issue number, worktree, notes path and hint. It builds test-first with `tdd` and commits; it does **not** review its own work. On `blocked`, stop this ticket and ask the user; when only the owner can answer and they aren't here (**Factory**), `triage` it to `needs-info`.

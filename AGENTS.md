@@ -38,7 +38,7 @@ This file is the one rule file for every agent: GitHub Copilot (VS Code and CLI)
 - **Deterministic first.** If a step can be a script, make it a script and call it; don't do it by hand or by prompt.
 - If a prerequisite is missing, run `scripts/bootstrap.sh` (`--api` adds Java and Swift, needed only to change the API; `--mobile` the native app toolchains).
 - **Always work in a worktree** (`scripts/flow.sh start <n>` or `scripts/wt.sh add <branch>`). Never edit or commit in the main checkout; an edit guard (`.claude/settings.json`) blocks edits on `main` and of generated files and vendored skills. Never get around it with shell commands.
-- Run `scripts/check.sh` before you call work done; `pr.sh create` runs it before every push.
+- Run `scripts/check.sh` before you call work done. `pr.sh create` runs `scripts/check.sh --fast` before every push (hygiene, lint, types, unit tests, static checks, build); the integration and e2e tests run only in CI, the gate, unless you pass `--full` ([ADR-033](docs/decisions/ADR-033-go-live-mode.md)).
 - **No hard-coded user-facing strings** on any platform. The only source is `packages/i18n/{nl-NL,en}.json`; native catalogs are generated. NL and EN in parity, with the terms of `GLOSSARY.md` worded as in `packages/i18n/GLOSSARY.md`.
 - **API changes go through the OpenAPI contract**; regenerate the TS/Swift/Kotlin clients in the same PR. Never hand-edit generated code.
 - Business logic lives in `packages/domain` (server-side). Native apps and web don't re-implement rules.

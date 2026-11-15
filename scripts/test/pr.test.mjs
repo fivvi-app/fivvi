@@ -1347,26 +1347,29 @@ describe('pr.sh create: which local check runs before the push', () => {
     return { ...result, checks: readFileSync(log, 'utf8').trim().split('\n').filter(Boolean) };
   };
 
-  it('runs the checks the change affects on the first push, when there is no PR yet', () => {
+  it('ADR-033 AC3: runs check.sh --fast (no integration or e2e tests) on the first push, when there is no PR yet', () => {
     const result = create(false);
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(result.checks, ['check.sh']);
-    assert.match(result.stdout, /affected checks: first push/);
+    assert.deepEqual(result.checks, ['check.sh --fast']);
+    assert.match(result.stdout, /fast checks: first push/);
   });
 
-  it('#293: runs the checks the change affects on a follow-up push too, and says why', () => {
+  it('ADR-033 AC3: runs check.sh --fast on a follow-up push too, and says why', () => {
     const result = create(true);
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(result.checks, ['check.sh']);
-    assert.match(result.stdout, /affected checks: follow-up push to PR #60/);
+    assert.deepEqual(result.checks, ['check.sh --fast']);
+    assert.match(result.stdout, /fast checks: follow-up push to PR #60/);
     assert.match(result.stdout, /CI is still the full gate/);
   });
 
-  it('runs everything (check.sh --all) on a follow-up push with --full', () => {
+  it('ADR-033 AC3: runs everything (check.sh --all) with --full, on a first push and on a follow-up push', () => {
     const result = create(true, ['--full']);
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(result.checks, ['check.sh --all']);
     assert.match(result.stdout, /full checks: --full/);
+    const first = create(false, ['--full']);
+    assert.equal(first.status, 0, first.stderr);
+    assert.deepEqual(first.checks, ['check.sh --all']);
   });
 
   it('does not push when the chosen check fails', () => {
