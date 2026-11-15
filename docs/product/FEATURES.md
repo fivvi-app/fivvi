@@ -14,7 +14,7 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | Release | Features | Released |
 |---|---|---|
-| MVP | 66 (F001–F069 without F034–F036, Open Gym, later) + 20 engineering enablers (E001–E020); F017–F019 (more locations) and M7 (F039–F048, F051, F069) come after go-live; trainer (Fivvi Pro) and, from M5, client (Fivvi) iOS and Android screens are built with their web features (the M8 native track) | 0 |
+| MVP | 66 (F001–F069 without F034–F036, Open Gym, later) + 20 engineering enablers (E001–E020); F017–F019 (more locations), M7 (F039–F048, F051, F069), F066 (duo sessions) and F058 (single class pass) come after go-live (the last two after G4, ADR-033); trainer (Fivvi Pro) and, from M5, client (Fivvi) iOS and Android screens are built with their web features (the M8 native track) | 0 |
 
 **Waitlist moved to the MVP (31 October 2026, [#150](https://github.com/fivvi-app/fivvi/issues/150)):** it was a Release 1.1 candidate. The owner placed it as **F062** in **M5** (31 October 2026, `ROADMAP.md` v1.29); the rules are in `PRODUCT.md §23`.
 
@@ -129,7 +129,7 @@ The single source of truth for feature status. A status changes **in the same PR
 
 ### Commerce
 
-Added in roadmap v1.19 (M11), before go-live; credit packs and credit plans, group and private, followed in v1.21 (owner, 21 October 2026). The subscription model and invoices ship together. The single class pass (F058) is an offer kind of its own, bought ahead; payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)).
+Added in roadmap v1.19 (M11), before go-live (F058 after G4, ADR-033); credit packs and credit plans, group and private, followed in v1.21 (owner, 21 October 2026). The subscription model and invoices ship together. The single class pass (F058, after G4, ADR-033) is an offer kind of its own, bought ahead; payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)).
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
