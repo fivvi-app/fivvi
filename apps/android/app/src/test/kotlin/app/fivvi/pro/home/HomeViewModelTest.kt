@@ -7,6 +7,7 @@ import app.fivvi.core.auth.InMemorySessionStore
 import app.fivvi.core.auth.Session
 import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.me.workspaceIdOf
+import app.fivvi.core.quarantine.Isolation
 import app.fivvi.core.signin.FakeSignInApi
 import app.fivvi.pro.workspace.CurrentWorkspace
 import app.fivvi.pro.workspace.InMemoryLastWorkspaceStore
@@ -286,6 +287,7 @@ class HomeViewModelTest {
     }
 
     @Test
+    @Isolation
     fun test_F012_AC6_aWorkspaceThePersonIsNotOnIsNotSwitchedTo() {
         api.answerAccount(workspaces = listOf("John's Gym", "Sarah Personal Training"))
         val viewModel = viewModel()

@@ -7,8 +7,8 @@ import XCTest
 /// apps/ios/README.md ("Which tests run in which locale") lists which tests and why.
 ///
 /// A test plan can't select tests per configuration (`skippedTests` is per test target), so the plan hands each
-/// configuration its list in this variable and `HelloUITests` skips what it names, which the results show as
-/// skipped. Only `HelloUITests` acts on the list. `scripts/test-ios.sh` checks that every name is a `HelloUITests`
+/// configuration its list in this variable and `HomeUITests` skips what it names, which the results show as
+/// skipped. Only `HomeUITests` acts on the list. `scripts/test-ios.sh` checks that every name is a `HomeUITests`
 /// test and that none is skipped in every configuration, so a test can't end up running nowhere.
 enum TestPlanSkips {
     static let variable = "FIVVI_SKIP_TESTS"
@@ -20,7 +20,7 @@ enum TestPlanSkips {
         try XCTSkipIf(skipped, "\(name) is not run in this configuration")
     }
 
-    /// "Class/test_name" for an `XCTestCase.name` such as "-[FivviProUITests.HelloUITests test_name]".
+    /// "Class/test_name" for an `XCTestCase.name` such as "-[FivviProUITests.HomeUITests test_name]".
     static func identifier(ofTestNamed name: String) -> String {
         let parts = name.dropFirst(2).dropLast().split(separator: " ")
         guard parts.count == 2, let type = parts[0].split(separator: ".").last else { return name }

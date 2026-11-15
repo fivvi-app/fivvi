@@ -59,7 +59,8 @@ function closingBrace(text: string, start: number): number {
   return text.length;
 }
 
-function messageOf(locale: Locale, key: string): string | undefined {
+/** The text of an i18n key in one locale, or `undefined` when the key is missing or not a string. */
+export function messageOf(locale: Locale, key: string): string | undefined {
   const value = key.split('.').reduce<unknown>((node, part) => {
     return node && typeof node === 'object' ? (node as Record<string, unknown>)[part] : undefined;
   }, messages[locale]);

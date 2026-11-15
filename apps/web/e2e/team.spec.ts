@@ -165,7 +165,7 @@ test.describe('F003 my workspaces and the role in the header', () => {
     await expectNoAxeViolations(page, `TW-06 with John not training in ${appLocale}`);
   });
 
-  test('AC3: Sarah has no Trainers in her navigation and the URL shows the no-permission page', async ({
+  test('@permission AC3: Sarah has no Trainers in her navigation and the URL shows the no-permission page', async ({
     page,
     context,
     appLocale,

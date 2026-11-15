@@ -29,7 +29,7 @@ async function workspace(tx: DatabaseExecutor): Promise<string> {
   return row.id;
 }
 
-describe('E011 tenancy core tables', () => {
+describe('@isolation E011 tenancy core tables', () => {
   let database: TestDatabase;
   let client: DatabaseClient;
   let db: DatabaseClient['db'];

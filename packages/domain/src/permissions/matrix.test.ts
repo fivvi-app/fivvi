@@ -18,7 +18,7 @@ const TRAINER_CAPABILITIES: readonly Capability[] = [
   'join_link.view',
 ];
 
-describe('F004 permission matrix', () => {
+describe('@permission F004 permission matrix', () => {
   it('AC1: Owner has every capability, Trainer only trainers.view, clients.view, clients.manage, location.read, session.private.manage.own, class.read and join_link.view', () => {
     expect(ROLES).toEqual(['owner', 'trainer']);
     expect(CAPABILITIES).toEqual([

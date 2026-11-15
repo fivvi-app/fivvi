@@ -111,6 +111,10 @@ tooling               /apps/android/core/build.gradle.kts
 tooling               /apps/android/client/build.gradle.kts
 tooling               /apps/android/gradle/*.gradle.kts
 tooling               /apps/android/settings.gradle.kts
+# The readers of the Android quarantine lists (E002 #1363): the JUnit filters of the unit and the Compose UI tests; the Gradle
+# init script next to them is covered by the *.gradle.kts rule above.
+tooling               /apps/android/core/src/testShared/kotlin/app/fivvi/core/quarantine/QuarantineFilter.kt
+tooling               /apps/android/core/src/androidTestShared/kotlin/app/fivvi/core/quarantine/QuarantineRunFilter.kt
 tooling               /e2e/maestro/config.yaml
 tooling               /apps/ios/lint
 tooling               .editorconfig

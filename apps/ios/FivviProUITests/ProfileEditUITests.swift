@@ -23,9 +23,7 @@ final class ProfileEditUITests: SignInUITestCase {
 
     /// Replaces what is in the name field with `text`.
     private func type(_ text: String, replacing field: XCUIElement) {
-        field.focus()
-        let current = field.value as? String ?? ""
-        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: current.count) + text)
+        field.enter(text, replacing: true)
     }
 
     private func value(_ element: XCUIElement) -> String? { element.value as? String }

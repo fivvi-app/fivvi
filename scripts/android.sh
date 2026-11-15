@@ -16,6 +16,9 @@
 #                         apps/android/build/maestro/app-debug.apk (MAESTRO_APK); maestro.sh android --apk installs it
 #   android.sh verify     the rest of test: unit tests (nl-NL and en; BuildInfoTest once more with build number 42), the
 #                         signed release App Bundle and the Compose UI tests on an emulator (CI's Android tests job)
+#   android.sh quarantine  the Android tests of quarantine/compose.txt only (unit tests and Compose UI tests; the Quarantine
+#                         job of CI), with FIVVI_QUARANTINE=only; does nothing while the list is empty. test, build... and
+#                         verify leave the listed tests out (E002 #1363, TESTING.md §8)
 #   android.sh emulator   boot the emulator headless and leave it running, so test and maestro.sh reuse it. With
 #                         AVD_SNAPSHOT=1 (CI) it boots from a saved snapshot, or cold when there is none or it
 #                         doesn't load, and then saves one
@@ -222,7 +225,7 @@ after_unit_tests() {
     :client:testDebugUnitTest --tests app.fivvi.client.BuildInfoTest -Pfivvi.buildNumber=42
   release_bundle_is_signed_with_the_upload_key
   start_emulator
-  gradle connectedDebugAndroidTest
+  gradle_connected
 }
 
 cmd_test() {
@@ -230,7 +233,7 @@ cmd_test() {
   android_env
   on_exit stop_android
   # shellcheck disable=SC2086 # BUILD_TASKS are space-separated task names
-  gradle $BUILD_TASKS testDebugUnitTest
+  gradle_tests $BUILD_TASKS testDebugUnitTest
   release_url_check_rejects_bad_addresses
   after_unit_tests
 }
@@ -248,8 +251,25 @@ cmd_verify() {
   [ $# -eq 0 ] || usage
   android_env
   on_exit stop_android
-  gradle testDebugUnitTest
+  gradle_tests testDebugUnitTest
   after_unit_tests
+}
+
+# The Quarantine job's part for Android (E002 #1363): the listed unit tests, then the listed Compose UI tests on an emulator.
+cmd_quarantine() {
+  [ $# -eq 0 ] || usage
+  export FIVVI_QUARANTINE=only
+  if [ "$(quarantine_android count compose)" = 0 ]; then
+    echo "quarantine/compose.txt lists no test: nothing to run"
+    return 0
+  fi
+  android_env
+  on_exit stop_android
+  gradle_tests testDebugUnitTest
+  if [ -n "$(quarantine_android ui-modules)" ]; then
+    start_emulator
+    gradle_connected
+  fi
 }
 
 # The debug app the Maestro flows install, built for the API address of that run's web server (maestro.sh android
@@ -289,6 +309,7 @@ case "${1:-}" in
   test) shift; cmd_test "$@" ;;
   build) shift; cmd_build "$@" ;;
   verify) shift; cmd_verify "$@" ;;
+  quarantine) shift; cmd_quarantine "$@" ;;
   maestro-apk) shift; cmd_maestro_apk "$@" ;;
   emulator) shift; cmd_emulator "$@" ;;
   stop) shift; cmd_stop "$@" ;;

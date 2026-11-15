@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { defaultTimeZone, formattingLocales, type Locale, locales } from '@fivvi/i18n';
 import { defineConfig, devices, type ReporterDescription } from '@playwright/test';
+import { quarantineSelection } from '../../scripts/quarantine.mjs';
 import type { E2EOptions } from './e2e/fixtures';
 import {
   ALLOWED_SIGN_UP_DOMAIN,
@@ -52,6 +53,10 @@ if (existsSync('../../packages/database/.env')) {
   process.loadEnvFile('../../packages/database/.env');
 }
 
+// The quarantine list quarantine/playwright.txt (ADR-025, TESTING.md §8; scripts/quarantine.mjs): a listed test is left out
+// (`E2E (Linux)`, and every local run), and with FIVVI_QUARANTINE=only (the `Quarantine` job) exactly the listed tests run.
+const { only: quarantined, exclude: leftOut } = quarantineSelection('playwright');
+
 const reporter: ReporterDescription[] = ci
   ? [['github'], ['list'], ['html', { open: 'never' }]]
   : [['list']];
@@ -70,6 +75,8 @@ export default defineConfig<E2EOptions>({
   // The workers and the limit, and why, are in test/e2e-run.ts. The budgets are not a CI gate: they
   // run by hand, with `--workers=1`, which overrides the workers here.
   ...e2eRun(ci),
+  grep: quarantined,
+  grepInvert: leftOut,
   // One retry in CI; a test that only passes on retry is reported as flaky (TESTING.md §8).
   retries: ci ? 1 : 0,
   reporter,

@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
-import { check, index, pgEnum, uuid } from 'drizzle-orm/pg-core';
+import { check, index, pgEnum, pgPolicy, uuid } from 'drizzle-orm/pg-core';
+import { CRON_ROLE } from '../cron-role.ts';
 import { businessTable } from './business-table.ts';
 import { instant, timestamps } from './columns.ts';
 
@@ -62,6 +63,21 @@ export const accessLog = businessTable(
     ),
     // The retention task deletes across workspaces by age.
     index('access_log_occurred_at_idx').on(table.occurredAt),
+    // The daily retention task (E014, R12) reads and deletes entries older than 12 months of every
+    // workspace as the cron role, which sets no workspace context. It may do nothing else (the
+    // privileges list grants SELECT and DELETE only).
+    pgPolicy('access_log_cron_select', {
+      as: 'permissive',
+      for: 'select',
+      to: CRON_ROLE,
+      using: sql`true`,
+    }),
+    pgPolicy('access_log_cron_delete', {
+      as: 'permissive',
+      for: 'delete',
+      to: CRON_ROLE,
+      using: sql`true`,
+    }),
     // A note entry names its note, no other entry does; the workspace export names no client, and
     // every other action does.
     check(

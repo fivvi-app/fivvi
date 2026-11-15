@@ -274,7 +274,7 @@ ui_tests() {
 
 # The text-dependent UI tests run in every configuration (nl and en); the others the test plan skips in some of them
 # (apps/ios/README.md, "Which tests run in which locale"). A UI test the plan skips in every configuration would run
-# nowhere, and a name that is no UI test (renamed, deleted) is a skip that does nothing. Only HelloUITests acts on the
+# nowhere, and a name that is no UI test (renamed, deleted) is a skip that does nothing. Only HomeUITests acts on the
 # list. The plan's own `skippedTests` and `selectedTests`, which Xcode writes when a test is unticked, apply to every
 # configuration, so they are refused: a test would run in no configuration without this check seeing it.
 test_plan_coverage() {
@@ -293,8 +293,8 @@ test_plan_coverage() {
   while read -r skip; do
     [ -n "$skip" ] || continue
     grep -qxF "$skip" <<<"$tests" || { echo "FivviPro.xctestplan skips $skip, which is not a UI test"; rc=1; continue; }
-    [[ "$skip" == HelloUITests/* ]] \
-      || { echo "FivviPro.xctestplan skips $skip, but only HelloUITests acts on FIVVI_SKIP_TESTS"; rc=1; }
+    [[ "$skip" == HomeUITests/* ]] \
+      || { echo "FivviPro.xctestplan skips $skip, but only HomeUITests acts on FIVVI_SKIP_TESTS"; rc=1; }
   done <<<"$(cut -d' ' -f2 <<<"$skips" | sort -u)"
   for test in $tests; do
     [ "$(grep -cE " $test\$" <<<"$skips")" -lt "$configs" ] \
@@ -413,11 +413,11 @@ TEST_ALLOWANCE_MAX=180
 # Xcode 27.1 left no bundle and xcodebuild still running after 90 s), so after the grace it is killed and the run
 # fails either way, with or without a bundle. The deadline counts from the launch of xcodebuild, after the simulator
 # boot and settle. A healthy run takes 11-17 minutes of xcodebuild (#393: up to 1032 s; the CI step, with the settle,
-# up to 1252 s); the CI job's own timeout (38 minutes = 2280 s) stays above the deadline (1790 s) plus the grace (60 s)
+# up to 1252 s); the CI job's own timeout (44 minutes = 2640 s) stays above the deadline (2100 s) plus the grace (60 s)
 # and the 310 s the job spends outside the deadline (boot and settle, other steps, the reports and the upload), with
-# 120 s to spare. IOS_TEST_DEADLINE and IOS_TEST_DEADLINE_GRACE override them (the tests of
+# 170 s to spare. IOS_TEST_DEADLINE and IOS_TEST_DEADLINE_GRACE override them (the tests of
 # this script use short ones).
-TEST_DEADLINE=${IOS_TEST_DEADLINE:-1790}
+TEST_DEADLINE=${IOS_TEST_DEADLINE:-2100}
 TEST_DEADLINE_GRACE=${IOS_TEST_DEADLINE_GRACE:-60}
 
 run_tests() {
@@ -506,6 +506,29 @@ report_slowest() { # <bundle> <locale>
     echo "$rows" | sed 's/^| /  /; s/ | / /; s/ |$//'
     summary "### Slowest iOS tests in $2" "" "| Test | Seconds |" "|---|--:|" "$rows" ""
   }
+  rows="$(slowest_classes "$1" 10 "$2")"
+  [ -z "$rows" ] || {
+    echo "Test time by class in $2 (tests, seconds; the first row is all of them):"
+    echo "$rows" | sed 's/^| /  /; s/ | / /g; s/ |$//'
+    summary "### iOS test time by class in $2" "" "| Class | Tests | Seconds |" "|---|--:|--:|" "$rows" ""
+  }
+}
+
+# How much of the deadline the run of the tests used, once the run ended (#1389): a run creeps towards its deadline as
+# tests are added (the en and nl steps of #1389 went from 1340 s to 1650 s in a day), and the interruption of #305 is
+# then the first sign. Above TEST_BUDGET_PERCENT of the deadline (TESTING.md §7.2) the run passes but warns, so the
+# next PR can speed the suite up or split it before a slow runner pushes a run over. Nothing when the run is not
+# timed (TEST_ELAPSED is set after the run of one locale).
+TEST_BUDGET_PERCENT=${IOS_TEST_BUDGET_PERCENT:-85}
+report_budget() { # <locale>
+  [ -n "${TEST_ELAPSED:-}" ] || return 0
+  local percent=$((TEST_ELAPSED * 100 / TEST_DEADLINE)) line
+  line="The $1 tests ran $TEST_ELAPSED s of the $TEST_DEADLINE s deadline ($percent %)"
+  echo "$line"
+  summary "### iOS test budget in $1" "" "$line" ""
+  if [ "$percent" -gt "$TEST_BUDGET_PERCENT" ]; then
+    echo "::warning::$line, over the $TEST_BUDGET_PERCENT % that a run on a typical runner may use; a slower runner pushes it past the deadline (#1389): speed the suite up or split it (TESTING.md §7.2)"
+  fi
 }
 
 # What failed, by name: `xcodebuild -quiet` only says TEST EXECUTE FAILED (#290). Once per result bundle, with the
@@ -568,8 +591,11 @@ if [ "$MODE" = test ]; then
   fi
   step "Unit and UI tests in $ONLY_LOCALE (simulator $udid)"
   tests=0
+  tests_started=$SECONDS
   run_tests "$udid" "$ONLY_LOCALE" || tests=1
+  TEST_ELAPSED=$((SECONDS - tests_started))
   report_slowest ".build/TestResults-$ONLY_LOCALE.xcresult" "$ONLY_LOCALE"
+  report_budget "$ONLY_LOCALE"
   report_flaky ".build/TestResults-$ONLY_LOCALE.xcresult"
   if [ "$tests" != 0 ]; then
     report_failed ".build/TestResults-$ONLY_LOCALE.xcresult" "$ONLY_LOCALE"

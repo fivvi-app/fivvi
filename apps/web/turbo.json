@@ -12,6 +12,9 @@
     "test": {
       "inputs": [
         "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/packages/testing/src/vitest.ts",
+        "$TURBO_ROOT$/scripts/quarantine.mjs",
+        "$TURBO_ROOT$/quarantine/vitest.txt",
         "$TURBO_ROOT$/docs/legal/privacy-policy.*.md",
         "$TURBO_ROOT$/docs/legal/terms.*.md",
         "$TURBO_ROOT$/docs/legal/*.md",
