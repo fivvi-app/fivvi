@@ -30,6 +30,14 @@
 #   flow.sh start <n> [--type <t>] [--force]  claim a ready ticket and create its <type>/<n>-<slug> worktree and notes;
 #                                           no limit on the tickets in progress, unless FIVVI_MAX_TICKETS (a positive
 #                                           integer) sets one: then it refuses at that many (--force to override)
+#   flow.sh start --slice <spec> <platform> [--type <t>] [--force]
+#                                           one PR per platform slice of a spec (ADR-033): claim up to 5 open, unblocked,
+#                                           ready-for-agent tickets of spec <spec> on one platform (backend, web, ios or
+#                                           android, read from the ticket titles and labels, scripts/slice.jq), plus a
+#                                           ticket blocked only by tickets of the slice, and make one worktree, branch
+#                                           (named after the first ticket) and notes file for them; the slice is recorded
+#                                           in .work/<first>/slice. status, next and finish treat every ticket of the
+#                                           slice like the first; pr.sh create closes each one
 #   flow.sh finish <n>                      after its PR is merged (it says so when the PR is still in
 #                                           the merge queue, or GitHub removed it): remove worktree, branches and the
 #                                           worktree's iOS simulator, close the issue, report what the spec needs next,
@@ -101,8 +109,11 @@ fetch_once() {
 # Every local or remote <type>/<n>-* branch.
 issue_branches() {
   fetch_once
-  git -C "$MAIN_ROOT" for-each-ref --format='%(refname)' "refs/heads/*/$1-*" "refs/remotes/origin/*/$1-*" \
-    | sed -E 's#^refs/(heads|remotes/origin)/##' | grep -E "^[a-z]+/$1-" | sort -u || true
+  # A ticket of a slice (ADR-033) has the branch of the slice, which is named after its first ticket.
+  local n
+  n="$(slice_primary "$1")"
+  git -C "$MAIN_ROOT" for-each-ref --format='%(refname)' "refs/heads/*/$n-*" "refs/remotes/origin/*/$n-*" \
+    | sed -E 's#^refs/(heads|remotes/origin)/##' | grep -E "^[a-z]+/$n-" | sort -u || true
 }
 
 pr_facts() {
@@ -205,11 +216,12 @@ facts() {
 }
 
 render() {
-  jq -r --arg notes "$2" --argjson d "$(jq -f "$PHASE_JQ" <<<"$1")" '
+  jq -r --arg notes "$2" --arg slice "${3:-}" --argjson d "$(jq -f "$PHASE_JQ" <<<"$1")" '
     def ref: "#\(.number) \(.state) — \(.title)";
     "#\(.number) \(.state) — \(.title)",
     "Labels: \(.labels | join(", "))",
     "Assignees: \(.assignees | join(", "))",
+    (if $slice != "" then "Slice: \($slice)" else empty end),
     (.parent // empty | "Parent: \(ref) · \(.open) of \(.total) tickets open"),
     (if (.blockers | length) == 0 then "Blocked by: none" else "Blocked by:", (.blockers[] | "  #\(.number) — \(.title)") end),
     (if (.children | length) == 0 then empty else "Tickets:",
@@ -223,12 +235,24 @@ render() {
     (if $d.hint != "" then "Hint: \($d.hint)" else empty end)' <<<"$1"
 }
 
-notes_of() { [ ! -f "$NOTES_DIR/$1/notes.md" ] || echo "$NOTES_DIR/$1/notes.md"; }
+# The notes file of issue $1, or of its slice (ADR-033): the slice keeps one, named after its first ticket.
+notes_of() {
+  local n
+  n="$(slice_primary "$1")"
+  [ ! -f "$NOTES_DIR/$n/notes.md" ] || echo "$NOTES_DIR/$n/notes.md"
+}
+
+# The tickets of the slice issue $1 belongs to as `#a #b #c`; empty when it is in none.
+slice_line() {
+  local t line=""
+  for t in $(slice_tickets "$(slice_primary "$1")"); do line+="${line:+ }#$t"; done
+  echo "$line"
+}
 
 cmd_status() {
   [ $# -eq 1 ] || usage
   is_number "$1"
-  render "$(facts "$1")" "$(notes_of "$1")"
+  render "$(facts "$1")" "$(notes_of "$1")" "$(slice_line "$1")"
 }
 
 cmd_facts() {
@@ -604,16 +628,102 @@ tickets_in_progress() {
     | sed -nE 's#^branch refs/heads/([a-z]+/[0-9]+-.*)$#\1#p' | wc -l | tr -d ' '
 }
 
+# The platforms of a slice (ADR-033) and the most tickets in one.
+SLICE_PLATFORMS="backend web ios android"
+SLICE_MAX_TICKETS=5
+
+# The open tickets of spec $1 that can be built now, as JSON [{number, title, labels, blockers}] for scripts/slice.jq:
+# ready-for-agent with acceptance criteria, not taken by someone else, not started (no branch), not held for a question
+# or a human; blockers are the numbers of the open blockers. Dies when a read fails.
+slice_candidates() {
+  local spec="$1" login="$2" t one out="[]"
+  for t in $(gh issue view "$spec" --repo "$REPO" --json subIssues \
+      --jq '.subIssues.nodes[] | select(.state == "OPEN") | .number'); do
+    [ -z "$(issue_branches "$t")" ] || continue
+    one="$(gh issue view "$t" --repo "$REPO" --json number,title,state,labels,assignees,body,blockedBy)" \
+      || die "could not read #$t"
+    out="$(jq -c --argjson t "$one" --arg me "$login" '
+      [$t.labels[].name] as $labels
+      | . + [$t | select($t.state == "OPEN" and ($labels | index("ready-for-agent"))
+          and ($labels | index("spec") | not) and ($labels | index("needs-info") | not)
+          and ($labels | index("ready-for-human") | not)
+          and ($t.assignees | all(.login == $me))
+          and (($t.body // "") | test("(^|\\n)#+\\s*acceptance criteria|(^|\\n)\\s*- \\[[ x]\\]"; "i")))
+        | {number, title, labels: $labels, blockers: [.blockedBy.nodes[] | select(.state == "OPEN") | .number]}]' <<<"$out")" \
+      || die "could not read #$t"
+  done
+  echo "$out"
+}
+
+# flow.sh start --slice <spec> <platform>: see the header. $3 is the branch type ("" for the default), $4 --force.
+cmd_start_slice() {
+  local spec="$1" platform="$2" type="$3" force="$4" max login candidates picked n t title labels branch wt hint d spec_labels
+  is_number "$spec"
+  case " $SLICE_PLATFORMS " in *" $platform "*) ;; *) die "platform must be one of: $SLICE_PLATFORMS" ;; esac
+  max="$(max_tickets)" || exit 1
+  login="$(me)" || exit 1
+  spec_labels="$(gh issue view "$spec" --repo "$REPO" --json labels --jq '.labels[].name')" || die "could not read #$spec"
+  grep -qxF "$APPROVED_LABEL" <<<"$spec_labels" \
+    || die "spec #$spec is not approved: the owner adds the $APPROVED_LABEL label before its tickets are built"
+  candidates="$(slice_candidates "$spec" "$login")" || exit 1
+  picked="$(jq -r -L "$ROOT/scripts" --arg platform "$platform" --argjson max "$SLICE_MAX_TICKETS" \
+    'include "slice"; pick($platform; $max) | .[]' <<<"$candidates")" \
+    || die "could not pick the tickets of the slice"
+  [ -n "$picked" ] || die "no ready, unblocked ticket of spec #$spec on $platform (scripts/issue.sh ready --parent $spec)"
+  t="$(head -n 1 <<<"$picked")"
+  title="$(jq -r --argjson t "$t" '.[] | select(.number == $t) | .title' <<<"$candidates")"
+  labels="$(jq -c --argjson t "$t" '.[] | select(.number == $t) | .labels' <<<"$candidates")"
+  if [ -n "$max" ] && [ "$(tickets_in_progress)" -ge "$max" ] && ! $force; then
+    die "$max tickets are already in progress (scripts/wt.sh list, FIVVI_MAX_TICKETS=$max); finish one first, unset FIVVI_MAX_TICKETS, or pass --force"
+  fi
+  if [ -z "$type" ]; then
+    if jq -e 'index("bug")' <<<"$labels" >/dev/null; then type=fix
+    elif [[ "$title" =~ ^\[E[0-9]+\] ]]; then type=chore
+    else type=feature
+    fi
+  fi
+  case " $BRANCH_TYPES " in *" $type "*) ;; *) die "--type must be one of: $BRANCH_TYPES" ;; esac
+  branch="$type/$t-$(slugify "$title")"
+  [ -z "$(worktree_of "$branch")" ] || die "$branch is already checked out in $(worktree_of "$branch")"
+
+  for n in $picked; do "$ROOT/scripts/issue.sh" claim "$n"; done
+  mkdir -p "$NOTES_DIR/$t"
+  echo "$picked" > "$(slice_file "$t")"
+  if [ ! -f "$NOTES_DIR/$t/notes.md" ]; then
+    {
+      printf '# Slice of spec #%s on %s (ADR-033)\n\n' "$spec" "$platform"
+      for n in $picked; do printf -- '- #%s %s\n' "$n" "$(jq -r --argjson n "$n" '.[] | select(.number == $n) | .title' <<<"$candidates")"; done
+    } > "$NOTES_DIR/$t/notes.md"
+  fi
+  "$ROOT/scripts/wt.sh" add "$branch"
+  wt="$(worktree_of "$branch")"
+  echo "Slice: $(slice_line "$t") (spec #$spec, $platform)"
+  echo "Worktree: $wt"
+  echo "Notes: $NOTES_DIR/$t/notes.md"
+  echo "E2E_PORT: $(e2e_port "$wt")"
+  for n in $picked; do
+    d="$(jq -f "$PHASE_JQ" <<<"$(facts "$n")")"
+    hint="$(jq -r .hint <<<"$d")"
+    [ -z "$hint" ] || echo "Hint (#$n): $hint"
+  done
+}
+
 cmd_start() {
-  local n="" type="" force=false f d phase branch wt title max login
+  local n="" type="" force=false f d phase branch wt title max login slice=()
   while [ $# -gt 0 ]; do
     case "$1" in
       --type) type="${2:?}"; shift ;;
       --force) force=true ;;
+      --slice) [ $# -ge 3 ] || usage; slice=("$2" "$3"); shift 2 ;;
       *) [ -z "$n" ] || usage; n="$1" ;;
     esac
     shift
   done
+  if [ ${#slice[@]} -gt 0 ]; then
+    [ -z "$n" ] || usage
+    cmd_start_slice "${slice[0]}" "${slice[1]}" "$type" "$force"
+    return
+  fi
   is_number "$n"
   max="$(max_tickets)" || exit 1
   f="$(facts "$n")"
@@ -656,7 +766,7 @@ cmd_start() {
 cmd_finish() {
   [ $# -eq 1 ] || usage
   is_number "$1"
-  local n="$1" f branch wt pr parent by_tickets d
+  local n="$1" f branch wt pr parent by_tickets d slice t
   f="$(facts "$n")"
   [ "$(jq '.branches | length' <<<"$f")" -gt 0 ] || die "#$n has no branches"
   # GitHub merges a PR in the merge queue by itself, so the cleanup waits for it; a removal needs a decision first.
@@ -682,7 +792,18 @@ cmd_finish() {
   done
   for branch in $(jq -r '.branches[].name' <<<"$f"); do "$ROOT/scripts/wt.sh" "done" "$branch"; done
 
-  if [ "$(gh issue view "$n" --repo "$REPO" --json state --jq .state)" != OPEN ]; then
+  # A slice PR (ADR-033) closes every ticket of the slice; whichever of them is finished, all are.
+  slice="$(slice_tickets "$(slice_primary "$n")")"
+  if [ -n "$slice" ]; then
+    pr="$(jq -r '[.branches[].pr.url] | join(", ")' <<<"$f")"
+    for t in $slice; do
+      if [ "$(gh issue view "$t" --repo "$REPO" --json state --jq .state)" = OPEN ]; then
+        "$ROOT/scripts/issue.sh" close "$t" --comment "Done in $pr."
+      fi
+      echo "✅ #$t done"
+    done
+    rm -rf "${NOTES_DIR:?}/$(slice_primary "$n")"
+  elif [ "$(gh issue view "$n" --repo "$REPO" --json state --jq .state)" != OPEN ]; then
     rm -rf "${NOTES_DIR:?}/$n"
     echo "✅ #$n done"
   elif [ "$by_tickets" = true ]; then

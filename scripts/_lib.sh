@@ -93,6 +93,22 @@ registered_worktrees() {
     END { emit() }'
 }
 
+# A platform slice of a spec (ADR-033): one branch and one PR for several tickets. `flow.sh start --slice` writes the
+# tickets, one number per line, first the one the branch is named after, to .work/<first>/slice (outside git, next to
+# the notes file).
+slice_file() { echo "$NOTES_DIR/$1/slice"; }
+# The tickets of the slice whose branch is named after issue $1, one per line; empty when $1 is no slice.
+slice_tickets() { [ ! -f "$(slice_file "$1")" ] || grep -E '^[0-9]+$' "$(slice_file "$1")" || true; }
+# The issue the branch of the slice is named after, for any ticket $1 of a slice; $1 itself when it is in none.
+slice_primary() {
+  local file
+  for file in "$NOTES_DIR"/*/slice; do
+    [ -f "$file" ] || continue
+    if grep -qxF "$1" "$file"; then basename "$(dirname "$file")"; return; fi
+  done
+  echo "$1"
+}
+
 new_worktree_path() { echo "$WORKTREES_DIR/$(echo "$1" | tr '/' '-')"; }
 
 branch_issue() { echo "$1" | sed -nE 's#^[a-z]+/([0-9]+)-.*#\1#p'; }
