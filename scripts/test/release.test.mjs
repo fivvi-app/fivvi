@@ -871,11 +871,18 @@ describe('E017 AC3: what a run refuses and what stops it', () => {
     const ciJobs = (id) => ci.slice(ci.indexOf(`\n  ${id}:\n`) + 1).split(/\n  [a-z-]+:\n/)[0];
     const build = minutes(ciJobs('ios-build'));
     const testsOfCi = minutes(ciJobs('ios-tests'));
-    // The retry's deadline and the grace, as scripts/test-ios.sh has them, plus a minute for what the job spends around
-    // the retry (the reports, the summary); the retry boots nothing and settles nothing.
+    // The retry's deadline, the enumeration's that shows the first run complete before it, and the grace of each, as
+    // scripts/test-ios.sh has them, plus a minute for what the job spends around the retry (the reports, the summary); the
+    // retry boots nothing and settles nothing.
     const testIos = readFileSync(join(ROOT, 'scripts/test-ios.sh'), 'utf8');
     const seconds = (name) => Number(testIos.match(new RegExp(`IOS_${name}:-(\\d+)`))[1]);
-    const retry = Math.ceil((seconds('RETRY_DEADLINE') + seconds('TEST_DEADLINE_GRACE') + 60) / 60);
+    const retry = Math.ceil(
+      (seconds('ENUMERATE_DEADLINE') +
+        seconds('RETRY_DEADLINE') +
+        2 * seconds('TEST_DEADLINE_GRACE') +
+        60) /
+        60,
+    );
     const timeout = minutes(jobs()['ios-tests']);
     assert.ok(
       timeout >= build + testsOfCi + retry,
@@ -892,10 +899,9 @@ describe('E017 AC3: what a run refuses and what stops it', () => {
     assert.equal(retried, retry, 'the retry in the comment');
     assert.ok(built >= build, 'the build in the comment');
     assert.ok(timeout >= total, `${timeout} minutes hold the ${total} of the comment`);
-    assert.ok(
-      comment.includes(`${seconds('RETRY_DEADLINE')} s`),
-      'the retry deadline in the comment',
-    );
+    for (const name of ['RETRY_DEADLINE', 'ENUMERATE_DEADLINE']) {
+      assert.ok(comment.includes(`${seconds(name)} s`), `${name} in the comment`);
+    }
   });
 
   it('E017 #1433: only the release retries failed UI tests: CI never passes --retry-failed', () => {

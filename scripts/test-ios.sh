@@ -472,11 +472,19 @@ run_xcodebuild() { # <simulator> <bundle> <deadline seconds> <what> [xcodebuild 
   return "$status"
 }
 
+# The arguments that select the tests of one locale's run: its test-plan configuration, and without the UI tests when the
+# locale isn't one of IOS_UI_LOCALES. Set in CONFIG_ARGS, for the run and for the count of the tests it runs.
+CONFIG_ARGS=()
+config_args() { # <locale>
+  CONFIG_ARGS=(-only-test-configuration "$1")
+  in_ui_locales "$1" || CONFIG_ARGS+=(-skip-testing:FivviProUITests)
+}
+
 run_tests() {
   local only=() bundle=$RESULTS
   if [ -n "${2:-}" ]; then
-    only=(-only-test-configuration "$2")
-    in_ui_locales "$2" || only+=(-skip-testing:FivviProUITests)
+    config_args "$2"
+    only=("${CONFIG_ARGS[@]}")
     bundle=".build/TestResults-$2.xcresult"
   fi
   run_xcodebuild "$1" "$bundle" "$TEST_DEADLINE" "${2:-nl and en} tests" ${only[@]+"${only[@]}"}
@@ -486,13 +494,60 @@ run_tests() {
 # only when at most RETRY_MAX_TESTS of them failed: more is a break, not a flake. Its own deadline, and the grace.
 RETRY_DEADLINE=${IOS_RETRY_DEADLINE:-600}
 RETRY_MAX_TESTS=3
+# Before a retry the first run is shown to be complete, by counting the tests its configuration has: xcodebuild
+# enumerates them in about 20 s (it starts the test host without running a test), and this deadline, and the grace, stop
+# an enumeration that hangs.
+ENUMERATE_DEADLINE=${IOS_ENUMERATE_DEADLINE:-120}
+
+# The number of tests that the run of locale $2 on simulator $1 has (what its -only-test-configuration and -skip-testing
+# select), counted by xcodebuild's own enumeration, which reads the .xctestrun like the run does. Nothing when it can't.
+enumerated_test_count() { # <simulator> <locale>
+  local out=".build/TestEnumeration-$2.json" bundle=".build/TestEnumeration-$2.xcresult" count=""
+  config_args "$2"
+  rm -rf "$out" "$bundle"
+  # The enumeration writes a result bundle of its own, which is never read: it is not the run's.
+  if run_xcodebuild "$1" "$bundle" "$ENUMERATE_DEADLINE" "$2 test enumeration" "${CONFIG_ARGS[@]}" \
+    -enumerate-tests -test-enumeration-style flat -test-enumeration-format json -test-enumeration-output-path "$out" >&2; then
+    count="$(jq -r '[.values[]?.enabledTests[]?] | length' "$out" 2>/dev/null || true)"
+  fi
+  rm -rf "$out" "$bundle"
+  [[ "$count" =~ ^[0-9]+$ ]] && [ "$count" -gt 0 ] && echo "$count"
+  return 0
+}
+
+# Whether the first run of locale $2 on simulator $1, with $3 failed tests listed, ran everything: its summary's failed
+# count is the $3 the reader found, and its total is the number of tests the configuration has. A run that aborts for a
+# reason that is no test (a lost connection to the test runner, a bundle that never started its tests) lists one failure
+# and never ran the rest, and that must not pass on the retry of the one failure. Prints why not, and returns 1.
+first_run_complete() { # <simulator> <locale> <listed failed tests>
+  local counts failed total expected
+  counts="$(run_counts ".build/TestResults-$2.xcresult")"
+  if [ -z "$counts" ]; then
+    echo "the counts of the tests cannot be read from .build/TestResults-$2.xcresult"
+    return 1
+  fi
+  IFS=$'\t' read -r failed total <<<"$counts"
+  if [ "$failed" != "$3" ]; then
+    echo "the summary counts $failed failed tests and the reader found $3, so a failure is not accounted for"
+    return 1
+  fi
+  expected="$(enumerated_test_count "$1" "$2")"
+  if [ -z "$expected" ]; then
+    echo "the tests of the $2 configuration cannot be enumerated, so the run is not shown to be complete"
+    return 1
+  fi
+  if [ "$total" != "$expected" ]; then
+    echo "the $2 run has $total tests of the $expected its configuration has: it did not run them all"
+    return 1
+  fi
+}
 
 # Retries the failed UI tests of the run of locale $2 on simulator $1, once. Returns 0 when every one of them ran and passed
 # in the retry (each is reported as flaky), 1 otherwise: with no retry, when the failed tests are not all UI tests or are
 # too many, when the run hit its deadline or the failed tests can't be read; and when the retry fails or leaves one out.
 retry_failed_ui_tests() { # <simulator> <locale>
   local udid=$1 locale=$2 first=".build/TestResults-$2.xcresult" retry=".build/TestResults-$2-retry.xcresult"
-  local rows kind id message ids="" others="" count=0 only=() outcomes result problems="" status=0 flaky=""
+  local rows reason kind id message ids="" others="" count=0 only=() outcomes result problems="" status=0 flaky=""
   if $RUN_TIMED_OUT; then
     echo "Not retrying: the $locale run hit its deadline, which is a stall and not a flaky test (#305)"
     return 1
@@ -516,6 +571,10 @@ retry_failed_ui_tests() { # <simulator> <locale>
   fi
   if [ "$count" -gt "$RETRY_MAX_TESTS" ]; then
     echo "Not retrying: $count UI tests failed, more than the $RETRY_MAX_TESTS a retry covers; that is a break, not a flaky test"
+    return 1
+  fi
+  if ! reason="$(first_run_complete "$udid" "$locale" "$count")"; then
+    echo "Not retrying: $reason"
     return 1
   fi
   for id in $ids; do only+=("-only-testing:FivviProUITests/$id"); done

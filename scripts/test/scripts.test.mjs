@@ -2084,10 +2084,20 @@ case "$*" in
     [ "$FAKE_XCTESTRUN" != two ] || touch .build/DerivedData/Build/Products/Other.xctestrun
     printf 'Build Timing Summary\\n\\nSwiftCompile (1 task) | 1.000 seconds\\n\\n** TEST BUILD SUCCEEDED **\\n' ;;
   test-without-building\\ *)
+    # -enumerate-tests (#1433): the tests the configuration has, FAKE_ENUMERATION of them, written as xcodebuild's
+    # JSON to the -test-enumeration-output-path; FAKE_ENUMERATE=fail: it fails and writes nothing.
+    case "$*" in *-enumerate-tests*)
+      [ "$FAKE_ENUMERATE" != fail ] || exit 1
+      out=; prev=; for a in "$@"; do [ "$prev" != -test-enumeration-output-path ] || out="$a"; prev="$a"; done
+      jq -n --argjson n "\${FAKE_ENUMERATION:-0}" '{errors: [], values: [{disabledTests: [], testPlan: "FivviPro",
+        enabledTests: [range($n) | {identifier: ("FivviProTests/Fake/test" + tostring + "()")}]}]}' >"$out"
+      exit 0 ;; esac
     # FAKE_FAIL_CONFIGURATION=<locale>: only the run of that test-plan configuration fails.
     case "$*" in *"-only-test-configuration $FAKE_FAIL_CONFIGURATION"*) [ -z "$FAKE_FAIL_CONFIGURATION" ] || exit 1 ;; esac
     # FAKE_RETRY_RESULT (#1433): the outcome of the run into a -retry result bundle, in place of FAKE_RESULT.
     case "$*" in *-retry.xcresult*) [ -z "$FAKE_RETRY_RESULT" ] || FAKE_RESULT="$FAKE_RETRY_RESULT" ;; esac
+    # FAKE_FIRST_RUN_SECONDS (#1433): the first run, not the retry, takes this many seconds (fractions allowed).
+    case "$*" in *-retry.xcresult*) ;; *) [ -z "$FAKE_FIRST_RUN_SECONDS" ] || perl -e 'select undef, undef, undef, shift' "$FAKE_FIRST_RUN_SECONDS" ;; esac
     # FAKE_RESULT=stall: it never ends on its own, and on SIGINT it records that and ends with 130 (it has written its bundle).
     [ "$FAKE_RESULT" != stall ] || exec perl -e '$SIG{INT} = sub { open my $f, ">", shift(@ARGV); print $f "SIGINT\\n"; close $f; exit 130 }; sleep 60' "${state}/sigint.log"
     # FAKE_RESULT=stall-ignore-int: the same, but it ignores SIGINT, so only SIGKILL ends it.
@@ -2579,10 +2589,24 @@ esac`,
       const canned = (fake, locale, { first, retry }) => {
         const dir = join(fake.repo, '..', 'bundles');
         mkdirSync(dir, { recursive: true });
-        const write = (name, { failed = [], passed = [], passedTarget = UI }) =>
+        // The summary's counts: failedTests (the failed tests, each once; `failedTests` overrides it), the passed ones and
+        // totalTestCount (`total` overrides it); `uncounted` leaves them out.
+        const write = (
+          name,
+          { failed = [], passed = [], passedTarget = UI, total, failedTests, uncounted = false },
+        ) =>
           writeFileSync(
             join(dir, `${name}.xcresult.json`),
             JSON.stringify({
+              ...(uncounted
+                ? {}
+                : {
+                    failedTests: failedTests ?? new Set(failed.map(([id]) => id)).size,
+                    passedTests: passed.length,
+                    skippedTests: 0,
+                    expectedFailures: 0,
+                    totalTestCount: total ?? new Set(failed.map(([id]) => id)).size + passed.length,
+                  }),
               testFailures: failed.map(([id, message, target]) => failure(id, message, target)),
               testNodes: [
                 ...failed.map(([id, , target]) => node(id, 'Failed', target)),
@@ -2600,14 +2624,29 @@ esac`,
         return fake;
       };
       const testRuns = (fake) =>
-        fake.log('xcodebuild').filter((line) => line.startsWith('test-without-building '));
-      const retryTest = (fake, args, env = {}) =>
-        fake.run('scripts/test-ios.sh', ['test', 'nl', ...args], {
+        fake
+          .log('xcodebuild')
+          .filter(
+            (line) =>
+              line.startsWith('test-without-building ') && !line.includes('-enumerate-tests'),
+          );
+      const enumerations = (fake) =>
+        fake.log('xcodebuild').filter((line) => line.includes('-enumerate-tests'));
+      // The fake enumeration has as many tests as the first run's summary counts (a run that ran them all), unless a test
+      // sets FAKE_ENUMERATION.
+      const retryTest = (fake, args, env = {}) => {
+        const first =
+          env.FAKE_XCRESULT_DIR && join(env.FAKE_XCRESULT_DIR, 'TestResults-nl.xcresult.json');
+        const counted =
+          first && existsSync(first) ? JSON.parse(readFileSync(first, 'utf8')).totalTestCount : 0;
+        return fake.run('scripts/test-ios.sh', ['test', 'nl', ...args], {
           IOS_SIM_SETTLE: '0',
           FAKE_RESULT: 'fail',
           FAKE_RETRY_RESULT: 'pass',
+          FAKE_ENUMERATION: String(counted ?? 0),
           ...env,
         });
+      };
       const A = 'SignInLanguageUITests/test_perAppLanguageWins';
       const B = 'HomeSmallScreenUITests/test_largestTextSize';
       const C = 'ProfileUITests/test_editName';
@@ -2636,6 +2675,18 @@ esac`,
         const runs = testRuns(fake);
         assert.equal(runs.length, 2, 'the run and one retry');
         assert.ok(!runs[0].includes('-only-testing'), 'the first run is the whole configuration');
+        // The completeness check counts the tests of the same configuration, from the same .xctestrun, on the same simulator.
+        const [enumerated, ...more] = enumerations(fake);
+        assert.equal(more.length, 0, 'enumerated once');
+        assert.match(enumerated, /-enumerate-tests/);
+        assert.match(enumerated, /-test-enumeration-format json/);
+        assert.match(enumerated, /-only-test-configuration nl\b/);
+        assert.match(enumerated, /-xctestrun \S*FivviPro\.xctestrun/);
+        assert.equal(
+          enumerated.match(/-destination (\S+)/)[1],
+          runs[0].match(/-destination (\S+)/)[1],
+        );
+        assert.doesNotMatch(enumerated, /-only-testing/);
         const [, retry] = runs;
         assert.match(retry, /-only-test-configuration nl\b/);
         assert.match(retry, /-xctestrun \S*FivviPro\.xctestrun/);
@@ -2697,6 +2748,7 @@ esac`,
             FAKE_RESULT: 'fail',
             FAKE_RETRY_RESULT: 'pass',
             FAKE_XCRESULT_DIR: dir,
+            FAKE_ENUMERATION: '1',
           });
 
           assert.equal(run.status, 0, `${order}: ${run.output}`);
@@ -2803,6 +2855,95 @@ esac`,
         assert.match(run.output, /Not retrying: .*deadline/);
       });
 
+      // Before a retry the first run is shown to be complete (#1433): a run that aborts for a reason that is no test lists one
+      // failed test and never ran the rest, and must not pass on the retry of that one.
+      for (const [name, first, env, message] of [
+        [
+          'the run has fewer tests than its configuration (the rest never ran)',
+          { failed: [[A]], passed: [B, C], total: 3 },
+          { FAKE_ENUMERATION: '389' },
+          /Not retrying: .*3 tests of the 389.*did not run them all/,
+        ],
+        [
+          'the run has more tests than the enumeration (the two disagree)',
+          { failed: [[A]], passed: [B, C] },
+          { FAKE_ENUMERATION: '2' },
+          /Not retrying: .*3 tests of the 2/,
+        ],
+        [
+          'the summary counts more failed tests than the reader found',
+          { failed: [[A]], passed: [B, C], failedTests: 2 },
+          {},
+          /Not retrying: .*summary counts 2 failed tests and the reader found 1/,
+        ],
+        [
+          'the summary counts fewer failed tests than the reader found',
+          { failed: [[A], [B]], failedTests: 1 },
+          {},
+          /Not retrying: .*summary counts 1 failed tests and the reader found 2/,
+        ],
+        [
+          'the summary has no counts',
+          { failed: [[A]], passed: [B], uncounted: true },
+          {},
+          /Not retrying: .*counts of the tests cannot be read/,
+        ],
+        [
+          'the tests of the configuration cannot be enumerated',
+          { failed: [[A]], passed: [B] },
+          { FAKE_ENUMERATE: 'fail' },
+          /Not retrying: .*cannot be enumerated/,
+        ],
+        [
+          'the enumeration lists no test',
+          { failed: [[A]], passed: [B] },
+          { FAKE_ENUMERATION: '0' },
+          /Not retrying: .*cannot be enumerated/,
+        ],
+      ]) {
+        it(`no retry, and the run fails as before, when ${name}`, async () => {
+          const fake = await built();
+          const summary = join(fake.repo, '..', 'summary.md');
+          const dir = canned(fake, 'nl', { first, retry: { passed: [A] } });
+
+          const run = await retryTest(fake, ['--retry-failed'], {
+            FAKE_XCRESULT_DIR: dir,
+            GITHUB_STEP_SUMMARY: summary,
+            ...env,
+          });
+
+          assert.equal(run.status, 1, run.output);
+          assert.equal(testRuns(fake).length, 1, 'one run, no retry');
+          assert.match(run.output, message);
+          assert.doesNotMatch(run.output, /::warning::flaky|passed only on|✓ iOS tests/);
+        });
+      }
+
+      it('counts the tests the run was given: -skip-testing of the UI tests is in the enumeration too', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'en', {
+          first: { failed: [[A]], passed: [B] },
+          retry: { passed: [A] },
+        });
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'en', '--retry-failed'], {
+          IOS_SIM_SETTLE: '0',
+          IOS_UI_LOCALES: 'nl',
+          FAKE_RESULT: 'fail',
+          FAKE_RETRY_RESULT: 'pass',
+          FAKE_XCRESULT_DIR: dir,
+          FAKE_ENUMERATION: '2',
+        });
+
+        // en is not a UI locale here, so the run skips the UI tests, and the enumeration is asked the same question.
+        const [first] = testRuns(fake);
+        const [enumerated] = enumerations(fake);
+        assert.match(first, /-skip-testing:FivviProUITests/);
+        assert.match(enumerated, /-skip-testing:FivviProUITests/);
+        assert.match(enumerated, /-only-test-configuration en\b/);
+        assert.equal(run.status, 0, run.output);
+      });
+
       for (const [name, retry, retryResult, message] of [
         [
           'a retried test fails again',
@@ -2885,16 +3026,21 @@ esac`,
         assert.doesNotMatch(run.output, /✓ iOS tests/);
       });
 
-      it('the first run keeps its own deadline: IOS_RETRY_DEADLINE does not shorten or lengthen it', async () => {
+      it('the first run keeps its own deadline: a short IOS_RETRY_DEADLINE does not interrupt it', async () => {
         const fake = await built();
         const dir = canned(fake, 'nl', { first: { failed: [[A]] }, retry: { passed: [A] } });
 
+        // The first run takes longer than the retry's deadline of 1 s, and ends well before its own.
         const run = await retryTest(fake, ['--retry-failed'], {
           FAKE_XCRESULT_DIR: dir,
+          FAKE_FIRST_RUN_SECONDS: '2.5',
           IOS_RETRY_DEADLINE: '1',
         });
 
+        assert.doesNotMatch(run.output, /past the deadline/);
+        assert.deepEqual(fake.log('sigint'), []);
         assert.equal(run.status, 0, run.output);
+        assert.equal(testRuns(fake).length, 2);
       });
 
       it('shuts the simulator down at the end, as it does without a retry', async () => {

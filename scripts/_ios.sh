@@ -243,6 +243,17 @@ failed_test_rows() {
     | group_by(.id)[] | .[0] | [(if .ui then "ui" else "other" end), .id, .message] | @tsv' 2>/dev/null || true
 }
 
+# What the result bundle $1 says about how many tests it has, for the retry of test-ios.sh (#1433): `<failed>\t<total>`, the
+# summary's failedTests and its totalTestCount (the sum of passed, failed, skipped and expected failures when it has none).
+# Nothing when the bundle can't be read or has no counts: a run that can't be counted is not shown to be complete.
+run_counts() {
+  xcrun xcresulttool get test-results summary --path "$1" 2>/dev/null | jq -r '
+    select((.failedTests | type) == "number")
+    | (.totalTestCount // ((.passedTests // 0) + .failedTests + (.skippedTests // 0) + (.expectedFailures // 0))) as $total
+    | select($total | type == "number")
+    | "\(.failedTests)\t\($total)"' 2>/dev/null || true
+}
+
 # The outcome of every UI test of the result bundle $1, one per line, tab-separated: `<class>/<method>` and `Passed`, or the
 # first result that is not (Failed, Skipped, ...). A test the bundle has more than once counts as passed only when every
 # one did. Nothing when the bundle can't be read: a test that is not listed did not run.
