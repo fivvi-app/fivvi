@@ -11,6 +11,9 @@
 # the same on both apps (the row ids end in the workspace's slug). The check on a row is its selected state.
 appId: ${APP_ID}
 name: AC6 AC7 Profiel switches workspace and the app reopens the last one
+# Never quarantined (TESTING.md §8): scripts/quarantine.mjs reads this tag.
+tags:
+  - isolation
 env:
   # The Android application id and the iOS bundle id.
   APP_ID: app.fivvi.pro

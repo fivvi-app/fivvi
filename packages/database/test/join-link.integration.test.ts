@@ -20,7 +20,12 @@ import {
   renewJoinLink,
 } from '../src/index.ts';
 import { migrationsFolder, runMigrations } from '../src/migrate.ts';
-import { addTeamRole, createAccount, createWorkspace } from '../src/testing/index.ts';
+import {
+  addTeamRole,
+  createAccount,
+  createWorkspace,
+  testDefaultOffers,
+} from '../src/testing/index.ts';
 
 // The join link of a workspace (F029, spec #484, ticket #898): the code and its renewal time on
 // `organizations`, the backfill of the older workspaces, and the two repository functions, as the
@@ -74,6 +79,7 @@ describe('F029 the join code of a workspace', () => {
           defaultLocale: 'nl-NL',
           timeZone: 'Europe/Amsterdam',
           ownerTrains: false,
+          defaultOffers: testDefaultOffers(),
         }),
     );
 

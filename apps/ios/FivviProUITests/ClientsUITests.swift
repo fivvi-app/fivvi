@@ -44,9 +44,7 @@ final class ClientsUITests: SignInUITestCase {
 
     /// Replaces what a text field holds.
     private func replaceText(in field: XCUIElement, with text: String) {
-        field.focus()
-        let current = (field.value as? String) ?? ""
-        field.typeText(String(repeating: XCUIKeyboardKey.delete.rawValue, count: current.count) + text)
+        field.enter(text, replacing: true)
     }
 
     func test_F006_AC12_listSearchAddEdit() throws {
@@ -75,8 +73,7 @@ final class ClientsUITests: SignInUITestCase {
         // Search: part of a name, whatever the case.
         let search = app.searchFields["clients.search"]
         XCTAssertTrue(search.exists, "the search field has the id Maestro looks for")
-        search.focus()
-        search.typeText("VRIE")
+        search.enter("VRIE")
         XCTAssertTrue(Polling.until(timeout: timeout, interval: 0.3) { !row("Mark Jansen", in: app).exists })
         XCTAssertTrue(row("Anna de Vries", in: app).exists)
         XCTAssertFalse(row("Sophie Bakker", in: app).exists)
@@ -126,7 +123,7 @@ final class ClientsUITests: SignInUITestCase {
             "Standaard (Nederlands) is offered first"
         )
         XCTAssertTrue(app.buttons["clients.add.language.default"].isSelected, "and preselected")
-        name.typeText("Bram Visser")
+        name.enter("Bram Visser")
         screen.type("bram@example.com", into: app.textFields["clients.add.email"])
         app.buttons["clients.add.submit"].tap()
 

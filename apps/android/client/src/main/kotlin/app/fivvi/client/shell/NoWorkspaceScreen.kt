@@ -21,6 +21,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import app.fivvi.client.account.AccountState
 import app.fivvi.core.R
 import app.fivvi.core.kit.FivviCard
@@ -48,8 +49,9 @@ val BookTags = NoWorkspaceTags("book")
 /**
  * *Home* and *Boeken* until the client belongs to a workspace (F029, F032): "Vraag je studio om de aanmeldlink." with
  * "Heb je de link al? Open hem op deze telefoon." When the account has a team role somewhere it also says "Ben je trainer
- * of eigenaar? Gebruik de app Fivvi Pro." and shows no team data (E017 AC3). Scrolls, so text at the largest font scale
- * wraps instead of being cut off.
+ * of eigenaar? Gebruik de app Fivvi Pro." and shows no team data (E017 AC3). In the v2 look (E020): the large title at the
+ * top of the grouped grey canvas and the lines in a card. Scrolls, so text at the largest font scale wraps instead of being
+ * cut off.
  */
 @Composable
 fun NoWorkspaceScreen(state: AccountState, tags: NoWorkspaceTags, onRetry: () -> Unit) {
@@ -59,9 +61,8 @@ fun NoWorkspaceScreen(state: AccountState, tags: NoWorkspaceTags, onRetry: () ->
         AccountState.Failed -> LoadError(R.string.sign_in_errors_generic, tags.error, tags.retry, onRetry)
 
         is AccountState.Loaded -> Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.space6),
-            verticalArrangement = Arrangement.spacedBy(Spacing.space4, Alignment.CenterVertically),
-            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(Spacing.space4),
+            verticalArrangement = Arrangement.spacedBy(Spacing.space4),
         ) {
             Line(R.string.no_workspace_title, tags.title, heading = true)
             FivviCard(Modifier.fillMaxWidth()) {
@@ -78,7 +79,8 @@ fun NoWorkspaceScreen(state: AccountState, tags: NoWorkspaceTags, onRetry: () ->
 private fun Line(@StringRes text: Int, tag: String, heading: Boolean = false) {
     Text(
         text = stringResource(text),
-        modifier = Modifier.fillMaxWidth().testTag(tag).semantics { if (heading) heading() },
+        modifier = Modifier.fillMaxWidth().padding(horizontal = if (heading) Spacing.space1 else 0.dp).testTag(tag)
+            .semantics { if (heading) heading() },
         style = if (heading) MaterialTheme.typography.title1 else MaterialTheme.typography.body,
     )
 }

@@ -16,7 +16,7 @@ import { runIsolationSuite } from './suite.ts';
 const SEED_DONE = '-- a seed ran';
 const REQUEST = '-- the route ran';
 
-describe('E011 the suite reads the stored rows once per call', () => {
+describe('@isolation E011 the suite reads the stored rows once per call', () => {
   let world: World;
 
   // A world of its own for each test: the suite seeds the same actors in every run.
@@ -149,7 +149,7 @@ describe('E011 the suite reads the stored rows once per call', () => {
   });
 });
 
-describe('E011 the harness records the tenant context only when asked (#678)', () => {
+describe('@isolation E011 the harness records the tenant context only when asked (#678)', () => {
   let observing: World;
   let quiet: World;
 

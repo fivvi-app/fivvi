@@ -8,7 +8,8 @@ import XCTest
 /// the timeout.
 enum Polling {
     /// Whether `condition` held within `timeout` seconds; checks it once more at the deadline. `now` and `wait` are
-    /// the clock and the pause between checks, which `PollingTests` replaces so they don't sleep.
+    /// the clock and the pause between checks, which `PollingTests` and `PollingTypingTests` replace so they
+    /// don't sleep.
     @discardableResult
     static func until(
         timeout: TimeInterval,
@@ -52,6 +53,59 @@ enum Polling {
             if until(timeout: timeout, interval: interval, now: now, wait: wait, condition: reached) { return true }
         }
         return false
+    }
+
+    /// How `typing` ended.
+    enum Typed: Equatable {
+        /// The field holds what it should, or something other than a start of it (the app changed the text: a capital,
+        /// a correction; that is for the test's own assertions).
+        case complete
+        /// The field still holds only the start of what it should after every try; `held` is what it holds.
+        case dropped(held: String)
+    }
+
+    /// Types `text` with `type` and waits up to `timeout` seconds for `read` to return `expected`; when the field holds
+    /// only the start of it, the keyboard dropped the rest (on a loaded runner `typeText("Anna")` left "An", #1380),
+    /// and the missing end is typed again, at most `attempts` times in all. A person sees the letters missing and types
+    /// them. The wait ends at once when the field holds something that is not a start of `expected`, or when `read` finds
+    /// nothing (the field is gone: a screen that moved on has nothing left to check). `report(attempt,
+    /// attempts)` runs just before every repeated typing: typing that only works on the second try is a flaky test and
+    /// must show as one (`TESTING.md §8`). `now` and `wait` are as in `until`.
+    static func typing(
+        _ text: String,
+        expecting expected: String,
+        attempts: Int = 3,
+        timeout: TimeInterval = 3,
+        interval: TimeInterval = 0.05,
+        now: () -> Date = Date.init,
+        wait: (TimeInterval) -> Void = { RunLoop.current.run(until: Date().addingTimeInterval($0)) },
+        type: (String) -> Void,
+        read: () -> String?,
+        report: (_ attempt: Int, _ attempts: Int) -> Void
+    ) -> Typed {
+        var pending = text
+        var held = ""
+        for attempt in 1...max(attempts, 1) {
+            if attempt > 1 { report(attempt, attempts) }
+            type(pending)
+            _ = until(timeout: timeout, interval: interval, now: now, wait: wait, condition: {
+                guard let read = read() else {
+                    held = expected  // the field is gone: nothing left to check
+                    return true
+                }
+                held = read
+                return held == expected || !expected.hasPrefix(held)
+            })
+            if held == expected || !expected.hasPrefix(held) { return .complete }
+            pending = String(expected.dropFirst(held.count))
+        }
+        return .dropped(held: held)
+    }
+
+    /// The title of the activity a repeated typing leaves in the test's result, as `warning` does for a tap.
+    static func typingWarning(identifier: String, attempt: Int, of attempts: Int) -> String {
+        "::warning::flaky: typing into \(identifier) dropped characters, typing the rest "
+            + "(try \(attempt) of \(attempts))"
     }
 
     /// The title of the activity a repeated tap leaves in the test's result, which `scripts/test-ios.sh` reports as

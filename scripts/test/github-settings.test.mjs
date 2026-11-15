@@ -51,6 +51,8 @@ describe('the versioned GitHub settings', () => {
     assert.deepEqual(
       jobs.filter((name) => !required.includes(name)),
       [
+        // Not required, and never to be: the listed flaky tests run here (E002 #1361, TESTING.md §8).
+        'Quarantine',
         'iOS build',
         'iOS build (retry)',
         'iOS tests (${{ matrix.locale }})',
@@ -59,6 +61,8 @@ describe('the versioned GitHub settings', () => {
         'Android build',
         'Android tests',
         'Android Maestro',
+        // Not required, and never to be: the listed flaky Android tests run here (E002 #1363, TESTING.md §8).
+        'Quarantine (Android)',
       ],
     );
   });
@@ -97,7 +101,7 @@ describe('the versioned GitHub settings', () => {
       max_entries_to_merge: 1,
       min_entries_to_merge: 1,
       min_entries_to_merge_wait_minutes: 5,
-      check_response_timeout_minutes: 150,
+      check_response_timeout_minutes: 160,
     });
     const ci = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8');
     // The job timeouts as ci.yml sets them (job-level, four spaces): the longest native job starts after

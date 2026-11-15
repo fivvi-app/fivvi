@@ -1,6 +1,7 @@
 package app.fivvi.client
 
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
@@ -90,11 +91,11 @@ class ClientAppTest(@Suppress("UNUSED_PARAMETER") tag: String, private val phone
     }
 
     @Test
-    fun E017_AC1_theSignInScreenShowsTheNameFivvi() {
+    fun E017_AC1_theSignInScreenShowsTheFivviIconNamedFivvi() {
         app.launch(device = listOf(phone.tag), session = Session(InMemorySessionStore()))
 
-        compose.waitUntilTagExists(SignInTags.APP_NAME)
-        compose.onNodeWithTag(SignInTags.APP_NAME).assertTextEquals(string(phone, R.string.app_title))
+        compose.waitUntilTagExists(SignInTags.LOGO)
+        compose.onNodeWithTag(SignInTags.LOGO).assertContentDescriptionEquals(string(phone, R.string.app_title))
         assertEquals("Fivvi", string(phone, R.string.app_title))
     }
 

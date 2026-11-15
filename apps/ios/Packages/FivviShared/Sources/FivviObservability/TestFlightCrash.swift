@@ -2,11 +2,11 @@ import SwiftUI
 
 /// A deliberate crash that only a TestFlight build can trigger (E017, #265), so the owner can prove that symbolicated
 /// frames reach Sentry (#192): a TestFlight build can't be crashed from outside, unlike Android's `adb shell am crash`.
-/// A long press on the home greeting calls it. Nothing else shows it: no string, no control, no accessibility element.
+/// A long press on the home's *Ingelogd als …* line calls it. Nothing else shows it: no string, no control, no accessibility element.
 /// App Store builds (production receipt), Debug, simulator and Xcode or ad hoc builds never arm it, and then the
 /// gesture isn't even attached to the view.
 public enum TestFlightCrash {
-    /// How long the greeting is held down; long enough that nobody triggers it by accident.
+    /// How long the line is held down; long enough that nobody triggers it by accident.
     static let holdDuration: TimeInterval = 5
 
     /// TestFlight builds carry a sandbox receipt; App Store builds have one named `receipt`.

@@ -99,7 +99,7 @@ export interface paths {
         put?: never;
         /**
          * Ask for a code to change the signed-in account’s email address
-         * @description Sends a 6-digit code to the new address (EM-34), in the account’s language. The address does not change until `POST /v1/me/email/confirm` accepts the code. The answer is `202` for every valid address, one that already has an account, and a request over the rate limits (3 in 15 minutes per account and per address, 20 an hour per network, as for sign-in), so it never says who has an account; only a free address under the limits gets an email. A new request replaces the earlier code. It acts on the signed-in account alone: no route changes anyone else’s address.
+         * @description Sends a 6-digit code to the new address (EM-34), in the account’s language. The address does not change until `POST /v1/me/email/confirm` accepts the code. The answer is `202` for every valid address, one that already has an account, and a request over the rate limits (3 in 15 minutes per account and per address, 20 an hour per network, as for sign-in), so it never says who has an account; a free address under the limits gets the code, an address that already has an account gets a notice instead of a code (EM-36), and nothing is merged. A new request replaces the earlier code. It acts on the signed-in account alone: no route changes anyone else’s address.
          */
         post: operations["requestEmailChange"];
         delete?: never;
@@ -119,7 +119,7 @@ export interface paths {
         put?: never;
         /**
          * Confirm the code and change the signed-in account’s email address
-         * @description With the right code the account’s address becomes the one the code was sent to, in every workspace at once, and every open sign-in session stays signed in. The sign-in codes and links sent to the old address stop working. Answers with the account, as `GET /v1/me` does. A wrong, used, replaced or expired code, five wrong codes, an address that has an account by now and a network over its limit all answer `422` and nothing changes.
+         * @description With the right code the account’s address becomes the one the code was sent to, in every workspace at once, and every open sign-in session stays signed in. The sign-in codes and links sent to the old address stop working, and the old address gets a notice that it changed (EM-35). Workspaces, invitations and the sign-up allowlist stay as they were: they hang on the account and on the addresses they were written for. Answers with the account, as `GET /v1/me` does. A wrong, used, replaced or expired code, five wrong codes, an address that has an account by now and a network over its limit all answer `422` and nothing changes.
          */
         post: operations["confirmEmailChange"];
         delete?: never;
@@ -429,7 +429,7 @@ export interface paths {
         };
         /**
          * What an invitation link is for
-         * @description Anyone with the link (signed in or not) reads the name of the workspace that invites, the name of the inviter and the masked address the invitation is for, and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`.
+         * @description Anyone with the link (signed in or not) reads the name of the workspace that invites, the name of the inviter, the masked address the invitation is for and, when a session is sent, whether the invitation is for that account (`forYou`), and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`.
          */
         get: operations["getInvitation"];
         put?: never;
@@ -1401,7 +1401,7 @@ export interface components {
              */
             emailLocale?: "nl-NL" | "en" | null;
         };
-        /** @description What the link of a valid invitation shows to anyone who holds it, signed in or not. */
+        /** @description What the link of a valid invitation shows to anyone who holds it, signed in or not. `forYou` is the one part that depends on who asks. */
         InvitationPreview: {
             /** @description The name of the workspace that invites. */
             workspaceName: string;
@@ -1409,6 +1409,8 @@ export interface components {
             inviterName: string | null;
             /** @description The address the invitation is for, hidden except for its first character and its domain (`l***@example.com`), so a person signed in with another address can see which to use. */
             maskedEmail: string;
+            /** @description Whether the signed-in account may answer this invitation: its verified address is the one the invitation is for. `false` for another account, an address that is not verified, and when nobody is signed in. */
+            forYou: boolean;
         };
         /** @description A team member who trains in the workspace. */
         Trainer: {

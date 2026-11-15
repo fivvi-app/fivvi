@@ -181,6 +181,11 @@ describe('risk of a pull request', () => {
       'apps/android/client/build.gradle.kts',
       'apps/android/gradle/android-library.gradle.kts',
       'apps/android/settings.gradle.kts',
+      // The readers of the Android quarantine lists (E002 #1363): the Gradle init script and the JUnit filters, as the
+      // Vitest and Playwright config readers are tooling.
+      'apps/android/gradle/quarantine.init.gradle.kts',
+      'apps/android/core/src/testShared/kotlin/app/fivvi/core/quarantine/QuarantineFilter.kt',
+      'apps/android/core/src/androidTestShared/kotlin/app/fivvi/core/quarantine/QuarantineRunFilter.kt',
       'e2e/maestro/config.yaml',
       '.editorconfig',
       'apps/android/.editorconfig',

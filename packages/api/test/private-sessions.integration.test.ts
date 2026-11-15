@@ -362,7 +362,7 @@ describe('F020 plan a private session', () => {
       ]);
     });
 
-    it('Sarah (Trainer) planning for Tom gets 403 and nothing is stored or sent', async () => {
+    it('@permission Sarah (Trainer) planning for Tom gets 403 and nothing is stored or sent', async () => {
       const { gym, sarah, tomRole, anna } = await world();
       const { server, transport } = setup();
 
@@ -646,7 +646,7 @@ describe('F020 plan a private session', () => {
       expect(transport.sent).toEqual([]);
     });
 
-    it('answers 404 for a client of another workspace and for one that does not exist', async () => {
+    it('@isolation answers 404 for a client of another workspace and for one that does not exist', async () => {
       const { gym, sarah, sarahRole, otherClient } = await world();
       const { server, transport } = setup();
 
@@ -768,8 +768,41 @@ describe('F020 plan a private session', () => {
     });
   });
 
+  describe('F068 AC7, AC11: EM-11 names the role with the workspace’s word', () => {
+    it('Anna reads it in Dutch and Mark in English; a word changed later reaches the next email only', async () => {
+      const { gym, sarah, sarahRole, anna, mark } = await world({ defaultLocale: 'nl-NL' });
+      const { server, transport } = setup();
+      const setWord = (trainerWord: 'instructeur' | 'coach') =>
+        admin.db.update(organizations).set({ trainerWord }).where(eq(organizations.id, gym.id));
+
+      await setWord('instructeur');
+      await plan(server, gym.id, sarah, request({ clientId: anna.id, trainerId: sarahRole.id }));
+      await plan(
+        server,
+        gym.id,
+        sarah,
+        request({ clientId: mark.id, trainerId: sarahRole.id, localStart: '11:00' }),
+      );
+      await setWord('coach');
+      await plan(
+        server,
+        gym.id,
+        sarah,
+        request({ clientId: anna.id, trainerId: sarahRole.id, localStart: '13:00' }),
+      );
+
+      expect(transport.sent.map((email) => email.text)).toEqual([
+        expect.stringContaining('Instructeur: Sarah'),
+        expect.stringContaining('Instructor: Sarah'),
+        expect.stringContaining('Coach: Sarah'),
+      ]);
+      // The one sent first stays as it was.
+      expect(transport.sent[0]?.text).not.toContain('Coach');
+    });
+  });
+
   describe('AC11: who can reach the routes', () => {
-    it('Mike (Owner of another workspace) gets 404 on both routes and nothing is stored', async () => {
+    it('@isolation Mike (Owner of another workspace) gets 404 on both routes and nothing is stored', async () => {
       const { gym, mike, sarahRole, anna, sarah } = await world();
       const { server } = setup();
       const session = await addSession(admin.db, { workspaceId: gym.id, clientId: anna.id });
@@ -789,7 +822,7 @@ describe('F020 plan a private session', () => {
       expect((await read(server, gym.id, session.id, sarah)).status).toBe(200);
     });
 
-    it('a session of another workspace is 404 for a team member, also by its ID in their own workspace path', async () => {
+    it('@isolation a session of another workspace is 404 for a team member, also by its ID in their own workspace path', async () => {
       const { gym, other, sarah, otherClient } = await world();
       const { server } = setup();
       const theirs = await addSession(admin.db, {
@@ -804,7 +837,7 @@ describe('F020 plan a private session', () => {
       expect((await read(server, gym.id, crypto.randomUUID(), sarah)).status).toBe(404);
     });
 
-    it('an anonymous call gets 401', async () => {
+    it('@permission an anonymous call gets 401', async () => {
       const { gym, sarahRole, anna } = await world();
       const { server } = setup();
       const session = await addSession(admin.db, { workspaceId: gym.id, clientId: anna.id });
@@ -822,7 +855,7 @@ describe('F020 plan a private session', () => {
       expect(await readOne.json()).toEqual({ code: 'not_signed_in' });
     });
 
-    it('a client account of the workspace is refused on the team routes (403: it has a place, not this access) and nothing is stored', async () => {
+    it('@permission a client account of the workspace is refused on the team routes (403: it has a place, not this access) and nothing is stored', async () => {
       const { gym, annaAccount, sarahRole, anna } = await world();
       const { server } = setup();
       const session = await addSession(admin.db, { workspaceId: gym.id, clientId: anna.id });
@@ -1288,7 +1321,7 @@ describe('F020 plan a private session', () => {
       ).toBe(200);
     });
 
-    it('AC8: two saves from the same version at the same moment: one 200, one 409, one email', async () => {
+    it('@concurrency AC8: two saves from the same version at the same moment: one 200, one 409, one email', async () => {
       const people = await world();
       const { gym, john, sarah } = people;
       const { server, transport } = setup();
@@ -1404,7 +1437,7 @@ describe('F020 plan a private session', () => {
       log.mockRestore();
     });
 
-    it('AC11: Mike gets 404, anonymous 401, Anna’s own account 403, and nothing changes', async () => {
+    it('@isolation @permission AC11: Mike gets 404, anonymous 401, Anna’s own account 403, and nothing changes', async () => {
       const people = await world();
       const { gym, mike, annaAccount } = people;
       const { server, transport } = setup();
@@ -1422,7 +1455,7 @@ describe('F020 plan a private session', () => {
       expect(transport.sent).toEqual([]);
     });
 
-    it('AC11: a session of another workspace is 404 in the caller’s own workspace path', async () => {
+    it('@isolation AC11: a session of another workspace is 404 in the caller’s own workspace path', async () => {
       const people = await world();
       const { server } = setup();
       const theirs = await addSession(admin.db, {

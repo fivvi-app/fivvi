@@ -180,6 +180,7 @@
     "new": "Nieuw",
     "newMenu": "Nieuw maken",
     "newClient": "Klant",
+    "newPrivateSession": "Privésessie",
     "joinLink": "Aanmeldlink"
   },
   "workspaceSwitcher": {
@@ -232,10 +233,24 @@
       "validity": "De code werkt {minutes, plural, one {# minuut} other {# minuten}}. Met dit e-mailadres log je daarna in bij Fivvi.",
       "ignore": "Heb je dit niet aangevraagd? Dan kun je deze e-mail negeren. Er verandert niets."
     },
+    "emailChanged": {
+      "subject": "Het e-mailadres van je Fivvi-account is gewijzigd",
+      "preview": "Dit e-mailadres hoort niet meer bij je Fivvi-account.",
+      "intro": "Het e-mailadres van je Fivvi-account is zojuist gewijzigd. Met dit e-mailadres log je niet meer in; dat doe je nu met het nieuwe e-mailadres.",
+      "fine": "Heb jij dit gedaan? Dan hoef je niets te doen.",
+      "notYou": "Was jij dit niet? Neem dan direct contact met ons op via Help en contact op fivvi.app, dan zoeken we het uit."
+    },
+    "emailChangeTaken": {
+      "subject": "Iemand wilde dit e-mailadres voor een ander Fivvi-account gebruiken",
+      "preview": "Er is geen code gestuurd en er is niets veranderd.",
+      "intro": "Iemand vroeg om een code om dit e-mailadres te gebruiken voor een ander Fivvi-account. Dit e-mailadres hoort al bij een account, dus we hebben geen code gestuurd.",
+      "unchanged": "Er is niets veranderd. Je account en je gegevens zijn niet aangepast en blijven van jou.",
+      "ignore": "Je hoeft niets te doen. Je kunt deze e-mail negeren."
+    },
     "trainerInvitation": {
       "subject": "{inviter} nodigt je uit voor {workspace}",
-      "preview": "Je bent uitgenodigd om trainer te worden bij {workspace}.",
-      "intro": "{inviter} nodigt je uit om trainer te worden bij {workspace}.",
+      "preview": "Je bent uitgenodigd om {aWord} te worden bij {workspace}.",
+      "intro": "{inviter} nodigt je uit om {aWord} te worden bij {workspace}.",
       "button": "Uitnodiging bekijken",
       "validity": "Deze uitnodiging is geldig tot {date}.",
       "ignore": "Verwacht je deze e-mail niet? Dan kun je hem negeren."
@@ -246,7 +261,7 @@
       "intro": "Er is een privésessie voor je gepland bij {workspace}.",
       "when": "Wanneer: {date}, {start} tot {end}",
       "where": "Waar: {location}",
-      "trainer": "Trainer: {trainer}"
+      "trainer": "{Word}: {trainer}"
     },
     "privateSessionMoved": {
       "subject": "Wijziging: je sessie is verplaatst naar {newDate}",
@@ -393,6 +408,44 @@
     },
     "badge": {
       "trainer": "Trainer"
+    },
+    "invite": {
+      "title": "Trainer uitnodigen",
+      "description": "We sturen een e-mail met een uitnodiging naar dit adres.",
+      "nameLabel": "Naam",
+      "emailLabel": "E-mailadres",
+      "localeLabel": "Taal van de e-mail",
+      "localeDefault": "Standaard van de werkruimte ({language})",
+      "localeNl": "Nederlands",
+      "localeEn": "English",
+      "submit": "Versturen",
+      "cancel": "Annuleren",
+      "sent": "Uitnodiging verstuurd naar {name}.",
+      "alreadyOnTeam": "{name} zit al in het team.",
+      "alreadyInvited": "Er staat al een uitnodiging open voor dit e-mailadres.",
+      "sendAgain": "Opnieuw sturen",
+      "errors": {
+        "nameRequired": "Vul een naam in.",
+        "nameTooLong": "Deze naam is te lang. Gebruik maximaal 120 tekens.",
+        "emailRequired": "Vul een e-mailadres in.",
+        "emailInvalid": "Vul een geldig e-mailadres in.",
+        "tooMany": "Je hebt in de laatste 24 uur al 20 uitnodigingen verstuurd. Probeer het later opnieuw.",
+        "notSent": "Niet verstuurd. Controleer je verbinding en probeer het opnieuw."
+      }
+    },
+    "invitations": {
+      "status": "Uitgenodigd",
+      "sendAgain": "Opnieuw sturen",
+      "sentAgain": "Uitnodiging opnieuw verstuurd",
+      "withdraw": "Intrekken",
+      "withdrawDialog": {
+        "title": "Uitnodiging intrekken?",
+        "body": "De link in de e-mail aan {email} werkt dan niet meer.",
+        "confirm": "Intrekken",
+        "cancel": "Terug"
+      },
+      "withdrawn": "Uitnodiging aan {name} ingetrokken.",
+      "gone": "Deze uitnodiging staat er niet meer."
     }
   },
   "clients": {
@@ -443,10 +496,101 @@
       "edit": "Bewerken",
       "editTitle": "Klant bewerken",
       "save": "Opslaan",
-      "saved": "Opgeslagen."
+      "saved": "Opgeslagen.",
+      "upcomingTitle": "Komende sessies",
+      "upcomingEmpty": "Nog geen sessies gepland",
+      "upcomingWhen": "{date} om {time}"
     },
     "newClient": "Nieuwe klant",
     "offline": "Je bent offline. Laatst bijgewerkt om {time}."
+  },
+  "sessions": {
+    "title": "Sessie",
+    "page": {
+      "heading": "Privésessie met {client}",
+      "whenLabel": "Wanneer",
+      "whereLabel": "Locatie",
+      "trainerLabel": "{Word}",
+      "clientLabel": "Klant",
+      "timeRange": "{date}, {start}–{end}",
+      "noTrainer": "Geen {word}",
+      "cancelled": "Deze sessie is geannuleerd.",
+      "reschedule": "Verplaatsen",
+      "clientProfile": "Klantprofiel",
+      "moved": "Verplaatst naar {date} om {time}."
+    },
+    "form": {
+      "title": "Nieuwe privésessie",
+      "description": "Kies een klant en een moment. De locatie staat al ingevuld.",
+      "close": "Sluiten",
+      "loadFailed": "De gegevens konden niet worden geladen.",
+      "clientLabel": "Klant",
+      "clientSearch": "Zoek op naam of e-mail",
+      "clientResults": "Klanten",
+      "clientNone": "Geen klanten gevonden.",
+      "clientChange": "Wijzigen",
+      "clientNew": "+ Nieuwe klant",
+      "clientNewNamed": "+ Nieuwe klant ‘{query}’",
+      "newClientTitle": "Nieuwe klant",
+      "newClientAdd": "Klant toevoegen",
+      "newClientCancel": "Annuleren",
+      "clientExists": "Er is al een klant met dit e-mailadres: {name}.",
+      "clientUse": "Die gebruiken",
+      "dateLabel": "Datum",
+      "startLabel": "Begin",
+      "durationLabel": "Duur",
+      "durationMinutes": "{minutes} min",
+      "durationOther": "Andere duur",
+      "endsAt": "Eindigt om {time}",
+      "endsAtNextDay": "Eindigt om {time} (volgende dag)",
+      "trainerLabel": "{Word}",
+      "trainerMe": "{name} (ik)",
+      "trainerChoose": "Kies {aWord}",
+      "location": "Locatie: {name}",
+      "notify": "{client} een bevestiging sturen",
+      "notifyNote": "{email} · {language}",
+      "languageNl": "in het Nederlands",
+      "languageEn": "in het Engels",
+      "cancel": "Annuleren",
+      "save": "Opslaan",
+      "discardTitle": "Wijzigingen weggooien?",
+      "discardDescription": "Wat je hebt ingevuld, wordt niet bewaard.",
+      "discard": "Weggooien",
+      "keepEditing": "Verder bewerken",
+      "saved": "Sessie met {client} gepland op {date} om {time}.",
+      "open": "Openen",
+      "errors": {
+        "chooseClient": "Kies een klant.",
+        "chooseTrainer": "Kies {aWord}.",
+        "dateRequired": "Kies een datum.",
+        "startRequired": "Kies een begintijd.",
+        "invalidDate": "Deze datum bestaat niet.",
+        "invalidTime": "Dit is geen geldige tijd.",
+        "timeDoesNotExist": "Deze tijd bestaat niet op {date} door de zomertijd.",
+        "noPermission": "Je hebt geen rechten voor deze sessie.",
+        "notSaved": "Niet opgeslagen. Controleer je verbinding en probeer het opnieuw."
+      },
+      "notes": {
+        "repeatedTime": "Op {date} komt {time} twee keer voor. We gebruiken de eerste keer (zomertijd).",
+        "past": "Deze tijd ligt in het verleden. De klant krijgt geen e-mail."
+      }
+    },
+    "reschedule": {
+      "title": "Sessie verplaatsen",
+      "subtitle": "{client} · Privésessie",
+      "current": "Nu: {date}, {start}–{end} · {location}",
+      "dateLabel": "Nieuwe datum",
+      "locationUnchanged": "{location} (ongewijzigd)",
+      "notify": "{client} informeren per e-mail",
+      "notifyNote": "{client} krijgt de e-mail {language}.",
+      "cancel": "Annuleren",
+      "submit": "Verplaatsen",
+      "submitNotify": "Verplaatsen en informeren",
+      "changedBy": "Deze sessie is net gewijzigd door {name}.",
+      "changedByUnknown": "Deze sessie is net gewijzigd.",
+      "cancelled": "Deze sessie is geannuleerd en kan niet worden verplaatst.",
+      "noPermission": "Je hebt geen rechten meer voor deze sessie."
+    }
   },
   "clientNav": {
     "label": "Hoofdnavigatie",
@@ -1348,6 +1492,21 @@
       "repsOnly": "Alleen herhalingen",
       "time": "Tijd",
       "distanceTime": "Afstand + tijd"
+    }
+  },
+  "invitation": {
+    "title": "Uitnodiging",
+    "intro": "{inviter} nodigt je uit om trainer te worden bij {workspace}.",
+    "introAnonymous": "Je bent uitgenodigd om trainer te worden bij {workspace}.",
+    "accept": "Accepteren",
+    "decline": "Afwijzen",
+    "declined": "Je hebt de uitnodiging afgewezen.",
+    "wrongAccount": "Deze uitnodiging is voor {maskedEmail}. Log uit en log in met dat e-mailadres.",
+    "signOutAndContinue": "Uitloggen en verder",
+    "noLongerValid": "Deze uitnodiging is niet meer geldig. Vraag om een nieuwe uitnodiging.",
+    "errors": {
+      "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
+      "generic": "Er ging iets mis. Probeer het opnieuw."
     }
   }
 }

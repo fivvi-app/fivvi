@@ -196,17 +196,23 @@ describe('E017 #504 AC4: two Android apps, distinct IDs, shared generated source
 
   it('pnpm test:android runs the unit and the Compose UI tests of every module, and the build number check of both apps', () => {
     const script = read('scripts/android.sh');
+    // gradle_tests and gradle_connected (scripts/_android.sh, E002 #1363) are gradle with the quarantine list applied.
+    const helpers = read('scripts/_android.sh');
     // An unqualified task runs in every module that has it, so a module added later is covered; a task of :app or :client
     // alone would leave the other app out.
-    const gradleLines = script.split('\n').filter((line) => /^\s*gradle\b/.test(line));
-    const unqualified = (task) =>
-      gradleLines.filter((line) => new RegExp(`(^|\\s)${task}(\\s|$)`).test(line.trim()));
+    const gradleLines = (text) =>
+      text.split('\n').filter((line) => /^\s*gradle(_tests|_connected)?\b/.test(line));
+    const unqualified = (lines, task) =>
+      lines.filter((line) => new RegExp(`(^|\\s)${task}(\\s|$)`).test(line.trim()));
     assert.equal(
-      unqualified('testDebugUnitTest').length,
-      2,
-      'test and verify run testDebugUnitTest',
+      unqualified(gradleLines(script), 'testDebugUnitTest').length,
+      3,
+      'test, verify and quarantine run testDebugUnitTest',
     );
-    assert.equal(unqualified('connectedDebugAndroidTest').length, 1);
+    // The two ways gradle_connected runs it, with and without the quarantine filter; neither names a module.
+    assert.equal(unqualified(gradleLines(helpers), 'connectedDebugAndroidTest').length, 2);
+    assert.doesNotMatch(`${script}${helpers}`, /:(app|client):connectedDebugAndroidTest/);
+    assert.match(script, /^ {2}gradle_connected$/m);
     assert.match(script, /--tests app\.fivvi\.pro\.BuildInfoTest/);
     assert.match(script, /:client:testDebugUnitTest --tests app\.fivvi\.client\.BuildInfoTest/);
   });

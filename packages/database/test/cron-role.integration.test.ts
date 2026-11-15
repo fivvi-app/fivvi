@@ -2,15 +2,23 @@ import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/databas
 import { CRON_ROLE_TEST_PASSWORD } from '@fivvi/testing/database/server';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { CRON_ROLE, CRON_TABLE_PRIVILEGES } from '../src/cron-role.ts';
+import { CRON_ROLE, CRON_SELECT_COLUMNS, CRON_TABLE_PRIVILEGES } from '../src/cron-role.ts';
 import {
   createCronDatabase,
   createDatabase,
   type DatabaseClient,
   jobRuns,
   pingDatabase,
+  trainerInvitations,
 } from '../src/index.ts';
 import { release } from '../src/release.ts';
+import {
+  addAccessLogEntry,
+  addTeamRole,
+  addTrainerInvitation,
+  createAccount,
+  createWorkspace,
+} from '../src/testing/index.ts';
 
 // E012 AC7: the cron's tasks connect as `fivvi_cron`, a login role that owns nothing, cannot
 // bypass RLS and can use only the tables a task declares. The test setup gives the role its
@@ -143,6 +151,108 @@ describe('E012 the cron role', () => {
       sql`select pg_try_advisory_xact_lock(hashtext('probe')) as locked`,
     );
     expect(rows).toEqual([{ locked: true }]);
+  });
+});
+
+describe('E014 the cron role and the retention tasks (ticket #1181)', () => {
+  it('AC16: reads and deletes the rows of the declared tables, sets no workspace and writes none', async () => {
+    const gym = await createWorkspace(owner.db, { label: 'johns-gym' });
+    const john = await addTeamRole(owner.db, {
+      workspaceId: gym.id,
+      accountId: (await createAccount(owner.db, { label: 'john', name: 'John' })).id,
+      role: 'owner',
+    });
+    const invitation = await addTrainerInvitation(owner.db, {
+      workspaceId: gym.id,
+      inviterTeamMemberId: john.id,
+      email: 'sarah@example.com',
+    });
+    const entry = await addAccessLogEntry(owner.db, { workspaceId: gym.id });
+
+    // The policies let the role see a business row without any workspace in its context ...
+    expect(await cron.db.select({ id: trainerInvitations.id }).from(trainerInvitations)).toEqual([
+      { id: invitation.id },
+    ]);
+    expect(await cron.db.execute(sql`select id from access_log`)).toMatchObject({
+      rows: [{ id: entry.id }],
+    });
+    // ... but it can change nothing of them, and reads no other business table.
+    await expect(cron.db.update(trainerInvitations).set({ name: 'Changed' })).rejects.toMatchObject(
+      DENIED,
+    );
+    await expect(
+      cron.db.execute(
+        sql`insert into access_log (organization_id, action, subject_client_id, actor_team_member_id) values (${gym.id}, 'client.exported', ${gym.id}, ${john.id})`,
+      ),
+    ).rejects.toMatchObject(DENIED);
+    await expect(cron.db.execute(sql`select 1 from clients`)).rejects.toMatchObject(DENIED);
+    await expect(cron.db.execute(sql`select 1 from team_members`)).rejects.toMatchObject(DENIED);
+
+    await cron.db.delete(trainerInvitations);
+    await cron.db.execute(sql`delete from access_log`);
+    expect(await owner.db.select().from(trainerInvitations)).toEqual([]);
+    expect((await owner.db.execute(sql`select 1 from access_log`)).rows).toEqual([]);
+  });
+
+  it('AC16: reads only the columns of CRON_SELECT_COLUMNS of the tables that hold tokens, addresses or IP addresses', async () => {
+    const { rows } = await owner.db.execute(
+      sql`select c.relname as table_name,
+                 array_agg(a.attname::text order by a.attname) filter (
+                   where has_column_privilege(${CRON_ROLE}, c.oid, a.attnum, 'SELECT')
+                 ) as readable
+          from pg_class c
+          join pg_namespace n on n.oid = c.relnamespace
+          join pg_attribute a on a.attrelid = c.oid and a.attnum > 0 and not a.attisdropped
+          where n.nspname = 'public' and c.relname in (${sql.join(
+            Object.keys(CRON_SELECT_COLUMNS).map((table) => sql`${table}`),
+            sql`, `,
+          )})
+          group by c.relname`,
+    );
+
+    expect(Object.fromEntries(rows.map((row) => [row.table_name, row.readable]))).toEqual(
+      Object.fromEntries(
+        Object.entries(CRON_SELECT_COLUMNS).map(([table, columns]) => [table, [...columns].sort()]),
+      ),
+    );
+  });
+
+  it('AC16: a SELECT of a token, an address or an IP address by the cron role is refused', async () => {
+    for (const [table, column] of [
+      ['auth_sessions', 'token'],
+      ['auth_sessions', 'ip_address'],
+      ['auth_sessions', 'user_agent'],
+      ['auth_verifications', 'identifier'],
+      ['auth_verifications', 'value'],
+      ['trainer_invitations', 'email'],
+      ['trainer_invitations', 'token_hash'],
+    ] as const) {
+      await expect(
+        cron.db.execute(sql`select ${sql.identifier(column)} from ${sql.identifier(table)}`),
+        `${table}.${column}`,
+      ).rejects.toMatchObject(DENIED);
+    }
+    // `select *` and a delete that reads such a column in its condition are refused too.
+    await expect(cron.db.execute(sql`select * from auth_sessions`)).rejects.toMatchObject(DENIED);
+    await expect(
+      cron.db.execute(sql`delete from trainer_invitations where email = 'sarah@example.com'`),
+    ).rejects.toMatchObject(DENIED);
+  });
+
+  it('AC16: the platform tables of the retention tasks can be read and deleted from, not written', async () => {
+    for (const table of ['auth_verifications', 'auth_sessions', 'auth_rate_limits']) {
+      await cron.db.execute(sql`select id from ${sql.identifier(table)} limit 1`);
+      await cron.db.execute(sql`delete from ${sql.identifier(table)}`);
+    }
+    await expect(cron.db.execute(sql`update auth_rate_limits set count = 1`)).rejects.toMatchObject(
+      DENIED,
+    );
+    await expect(
+      cron.db.execute(
+        sql`insert into auth_rate_limits (key, count, window_ends_at) values ('probe', 1, now())`,
+      ),
+    ).rejects.toMatchObject(DENIED);
+    await expect(cron.db.execute(sql`select 1 from auth_users`)).rejects.toMatchObject(DENIED);
   });
 });
 

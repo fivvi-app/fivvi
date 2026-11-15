@@ -2,6 +2,7 @@ import { randomBytes } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import type { DatabaseExecutor } from '../client.ts';
 import { FIXTURE_INVITATION_VALIDITY_MS } from '../invitation-validity.ts';
+import { insertOffer, type NewOffer, type OfferTerms } from '../repositories/offers.ts';
 import {
   accessLog,
   authUsers,
@@ -545,4 +546,42 @@ export async function addPaymentChargeback(
     'payment chargeback',
   );
   return { id: row.id, paymentId: payment.id, clientId: payment.clientId };
+}
+
+/**
+ * An owner-made offer of a workspace (F052) with its first version: by default a membership of
+ * 2 classes a week, 6 months, € 79,00 including 21 % VAT, switched off, with a Dutch name that
+ * carries a unique marker. The offer and its version point at each other and the key is checked
+ * at commit, so the two are written in one transaction (a savepoint inside a test's).
+ */
+export async function addOffer(
+  db: Pick<DatabaseExecutor, 'transaction'>,
+  options: {
+    workspaceId: string;
+    offer?: Partial<Omit<NewOffer, 'terms'>>;
+    terms?: Partial<OfferTerms>;
+  },
+): Promise<{ id: string; versionId: string; nameNl: string }> {
+  const nameNl = options.terms?.nameNl ?? uniqueMarker('abonnement');
+  const offer: NewOffer = {
+    kind: 'membership',
+    creditKind: null,
+    defaultPlan: null,
+    ...options.offer,
+    terms: {
+      classesPerWeek: 2,
+      termMonths: 6,
+      billingCycle: 'month',
+      endOfTerm: 'stop',
+      makeupsPerMonth: 2,
+      cutoffMinutes: 720,
+      renewalWindowDays: 30,
+      priceCents: 7900,
+      vatRateBasisPoints: 2100,
+      ...options.terms,
+      nameNl,
+    },
+  };
+  const written = await db.transaction((tx) => insertOffer(tx, options.workspaceId, offer));
+  return { ...written, nameNl };
 }

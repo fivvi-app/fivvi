@@ -9,7 +9,7 @@ import {
 import type { ErrorReporter } from '@fivvi/observability';
 import { and, eq, max, sql } from 'drizzle-orm';
 import { isDailyTaskDue } from './due.ts';
-import type { CronTask, CronTaskContext } from './task.ts';
+import type { CronTask, CronTaskContext, CronTaskReport } from './task.ts';
 
 export interface RunCronOptions {
   /** The privileged connection (ADR-006); daily tasks open a transaction on it. */
@@ -118,10 +118,16 @@ export async function runCron({
   }
 
   /** Runs the task body; a throw is reported and becomes a `failed` outcome. */
-  async function attempt(task: CronTask, body: () => Promise<void>): Promise<Settled> {
+  async function attempt(
+    task: CronTask,
+    // biome-ignore lint/suspicious/noConfusingVoidType: the result of `CronTask.run`.
+    body: () => Promise<CronTaskReport | void>,
+  ): Promise<Settled> {
     try {
-      await body();
-      return { outcome: 'succeeded' };
+      const report = await body();
+      return report
+        ? { outcome: 'succeeded', message: formatCounts(report) }
+        : { outcome: 'succeeded' };
     } catch (error) {
       errorReporter.captureError(error, {
         tags: { 'cron.task': task.name, 'cron.run_id': runId },
@@ -150,6 +156,13 @@ export async function runCron({
   }
 }
 
+/** `deleted=3, logged=2`: the words and numbers a task reported, never anything it read. */
+function formatCounts({ counts }: CronTaskReport): string {
+  return Object.entries(counts)
+    .map(([word, count]) => `${word}=${count}`)
+    .join(', ');
+}
+
 async function lastSuccess(db: DatabaseExecutor, taskName: string): Promise<Date | undefined> {
   const [row] = await db
     .select({ startedAt: max(jobRuns.startedAt) })
@@ -166,10 +179,13 @@ async function tryLock(tx: DatabaseExecutor, taskName: string): Promise<boolean>
   return result.rows[0]?.locked === true;
 }
 
+/** Words of lowercase letters, digits and hyphens that start with a letter, joined by dots. */
+const TASK_NAME = /^[a-z][a-z0-9-]*(\.[a-z][a-z0-9-]*)*$/;
+
 function assertUniqueNames(tasks: readonly CronTask[]): void {
   const seen = new Set<string>();
   for (const { name } of tasks) {
-    if (!/^[a-z][a-z0-9-]*$/.test(name)) throw new Error(`Invalid cron task name: ${name}`);
+    if (!TASK_NAME.test(name)) throw new Error(`Invalid cron task name: ${name}`);
     if (seen.has(name)) throw new Error(`Duplicate cron task: ${name}`);
     seen.add(name);
   }

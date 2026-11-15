@@ -904,7 +904,7 @@ describe('F013 the personal day and sessions through the API', () => {
       expect(body.items.map((item) => item.sessionId)).toEqual([session.id]);
     });
 
-    it('AC13: a client account gets an empty list, a session it takes part in is never listed; anonymous gets 401', async () => {
+    it('@permission AC13: a client account gets an empty list, a session it takes part in is never listed; anonymous gets 401', async () => {
       const w = await world();
       // Lisa takes part in a session of John's Gym; her account is a client of it, never its way in.
       const [lisaClient] = await admin.db

@@ -156,7 +156,7 @@ describe('F003 team list and removal', () => {
     ]);
   });
 
-  it('AC3: Trainer gets 403 on the team list and on removal, and nothing changes', async () => {
+  it('@permission AC3: Trainer gets 403 on the team list and on removal, and nothing changes', async () => {
     const { gym, sarah, johnRole, sarahRole } = await world();
     const before = await teamOf(gym.id);
 
@@ -224,7 +224,7 @@ describe('F003 team list and removal', () => {
     expect(before[0]).toMatchObject({ accountId: sarah.id, organizationId: gym.id });
   });
 
-  it('AC6: a removed trainer’s next request gets 404 on every route of the workspace', async () => {
+  it('@permission AC6: a removed trainer’s next request gets 404 on every route of the workspace', async () => {
     const { gym, john, sarah, sarahRole } = await world();
     const server = api();
     const read = () =>
@@ -263,7 +263,7 @@ describe('F003 team list and removal', () => {
     expect(await teamOf(gym.id)).toEqual([{ id: sarahRole.id, role: 'owner' }]);
   });
 
-  it('AC7: two Owners removing each other at once leave one Owner (committed transactions)', async () => {
+  it('@concurrency AC7: two Owners removing each other at once leave one Owner (committed transactions)', async () => {
     const gym = await createWorkspace(admin.db, { label: 'race' });
     const first = await createAccount(admin.db, { label: 'first' });
     const second = await createAccount(admin.db, { label: 'second' });
@@ -315,7 +315,7 @@ describe('F003 team list and removal', () => {
     expect(await admin.db.$count(teamMembers, eq(teamMembers.organizationId, gym.id))).toBe(1);
   });
 
-  it('AC8: another workspace’s Owner gets 404; anonymous gets 401', async () => {
+  it('@isolation @permission AC8: another workspace’s Owner gets 404; anonymous gets 401', async () => {
     const { gym, mike, johnRole, sarahRole } = await world();
     const before = await teamOf(gym.id);
     const server = api();

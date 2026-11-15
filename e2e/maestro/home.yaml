@@ -1,0 +1,30 @@
+# The signed-in home (E008 hello screen of spec #34, which it replaced, E020 #652), against the local stack, behind the
+# sign-in of F001: the flow signs in as the seeded account through the shared sub-flow, and the home shows what the
+# database holds, from GET /api/v1/me: the name of the workspace the account owns, as its title, and the sign-out button
+# in the device language. Elements are found by id: the Android testTag and the iOS accessibilityIdentifier, the same on
+# both apps (home.workspaceName). The workspace name is the seed's (packages/database), not a catalog text.
+# SIGN_OUT_LABEL, set by scripts/maestro.sh: signOut.label from packages/i18n in the device language. It has no default
+# here: a flow's own env default would win over the value maestro.sh passes.
+appId: ${APP_ID}
+name: AC1_AC2 the home shows the workspace from the database
+env:
+  # The Android application id and the iOS bundle id.
+  APP_ID: app.fivvi.pro
+  # The account the seed creates (packages/database).
+  EMAIL: owner@example.com
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: shared/sign-in.yaml
+- extendedWaitUntil:
+    visible:
+      id: home\.workspaceName
+    timeout: 20000
+- assertVisible:
+    id: home\.workspaceName
+    text: John's Gym
+# The label is matched on its own: in the Compose tree the home.signOut node has no text (the label sits on a child), so
+# id and text together never match on Android.
+- assertVisible:
+    text: ${SIGN_OUT_LABEL}

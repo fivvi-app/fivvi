@@ -335,7 +335,7 @@ describe('GET /v1/me', () => {
     expect(me).toMatchObject({ workspaces: [], clientWorkspaces: [] });
   });
 
-  it('F030 AC10: Mark gets the 404 of an unknown workspace on a workspace route, and anonymous gets 401', async () => {
+  it('@isolation @permission F030 AC10: Mark gets the 404 of an unknown workspace on a workspace route, and anonymous gets 401', async () => {
     const { cookie } = await accountSignedIn('mark-isolated@example.com', 'Mark');
     const gym = await createWorkspace(client.db, { label: 'johns-gym-hidden' });
     const unknown = '0197c0de-0000-7000-8000-00000000dead';
@@ -471,7 +471,7 @@ describe('GET /v1/me', () => {
       expect(await storedLocale(other.id)).toBeNull();
     });
 
-    it('AC1: nobody signed in gets 401 and nothing is stored', async () => {
+    it('@permission AC1: nobody signed in gets 401 and nothing is stored', async () => {
       const res = await patch(undefined, { preferredLocale: 'en' });
 
       expect(res.status).toBe(401);

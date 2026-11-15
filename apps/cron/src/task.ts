@@ -22,10 +22,26 @@ export interface CronTaskContext {
   errorReporter: Pick<ErrorReporter, 'captureError'>;
 }
 
+/**
+ * What a task that deletes or changes rows reports: how many, by a fixed word, never what. The
+ * runner writes it into `job_runs.message` (`deleted=3`), so a run's record holds counts and no
+ * content (E014, I2).
+ */
+export interface CronTaskReport {
+  counts: Readonly<Record<string, number>>;
+}
+
 export interface CronTask {
-  /** Lowercase words with hyphens. Unique; the key of the lock and of `job_runs`. */
+  /**
+   * Lowercase words with hyphens, optionally grouped as `group.task` (`retention.access-log`).
+   * Unique; the key of the lock and of `job_runs`.
+   */
   name: string;
   kind: CronTaskKind;
-  /** Throws to fail the run of this task: the runner reports and records it, the others go on. */
-  run(ctx: CronTaskContext): Promise<void>;
+  /**
+   * Throws to fail the run of this task: the runner reports and records it, the others go on. May
+   * return the counts it wants recorded (`CronTaskReport`).
+   */
+  // biome-ignore lint/suspicious/noConfusingVoidType: a task that reports nothing is `async () => {}`.
+  run(ctx: CronTaskContext): Promise<CronTaskReport | void>;
 }

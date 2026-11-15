@@ -204,6 +204,22 @@ slowest_tests() {
     | "| \(.id) | \(.seconds * 10 | round / 10) |"' 2>/dev/null || true
 }
 
+# The test classes of the result bundle $1 that took the most time, as table rows (`| class | tests | seconds |`), at most
+# $2, in the test-plan configuration $3 (as slowest_tests), after a row for all of them (`| all | tests | seconds |`):
+# the seconds of a class are the sum of its tests' durations. The slowest tests alone hid that most of a run is the
+# whole set of UI classes (#1389). Nothing when the bundle can't be read: a report never fails the run.
+slowest_classes() {
+  xcrun xcresulttool get test-results tests --path "$1" 2>/dev/null | jq -r --argjson n "$2" --arg config "$3" '
+    [.. | objects | select(.nodeType? == "Test Case") | . as $test
+      | [(.children // [])[] | select(.nodeType == "Test Plan Configuration")] as $configs
+      | (if $configs == [] then [$test] else [$configs[] | select(.name == $config)] end)[]
+      | {class: ($test.nodeIdentifier | split("/")[0]), seconds: .durationInSeconds} | select(.seconds != null)] as $rows
+    | ($rows | group_by(.class) | map({class: .[0].class, tests: length, seconds: (map(.seconds) | add)}) | sort_by(-.seconds)) as $classes
+    | select($classes != [])
+    | ($classes | map(.tests) | add) as $tests | ($classes | map(.seconds) | add) as $seconds
+    | "| all | \($tests) | \($seconds | round) |", ($classes[:$n][] | "| \(.class) | \(.tests) | \(.seconds | round) |")' 2>/dev/null || true
+}
+
 # The failed tests of the result bundle $1 as `<test>: <message>` lines (a message on one line), each once. Nothing when
 # the bundle can't be read: a report never changes the run's exit code (#290).
 failed_tests() {

@@ -4,12 +4,6 @@ import FivviAPI
 
 /// A stub of the generated client's `APIProtocol`, the view models' test seam (#34). It records what it was asked.
 actor StubAPI: APIProtocol {
-    enum Answer: Sendable {
-        case greeting(key: String)
-        case status(Int)
-        case offline
-    }
-
     /// What `requestSignIn` answers.
     enum SignInAnswer: Sendable {
         case accepted
@@ -87,7 +81,6 @@ actor StubAPI: APIProtocol {
         case hang
     }
 
-    private var answer: Answer
     private var signOutAnswer = SignOutAnswer.noContent
     private var signInAnswer = SignInAnswer.accepted
     private var exchangeAnswer = ExchangeAnswer.unauthorized
@@ -98,7 +91,6 @@ actor StubAPI: APIProtocol {
     let clients = StubClients()
     private var goneWorkspaces: Set<String> = []
     private var workspaceStatus: Int?
-    private(set) var requestedLocales: [Components.Schemas.Locale?] = []
     /// The bodies of every `requestSignIn`, `exchangeSignInCode` and the number of `getMe` calls so far.
     private(set) var signInRequests: [Components.Schemas.SignInRequest] = []
     private(set) var exchanges: [Components.Schemas.SignInTokenRequest] = []
@@ -123,10 +115,6 @@ actor StubAPI: APIProtocol {
 
     /// How many `signOut` calls are waiting for `releaseHangingSignOuts()`.
     var hangingSignOuts: Int { hanging.count }
-
-    init(_ answer: Answer = .offline) {
-        self.answer = answer
-    }
 
     func answerSignIn(with answer: SignInAnswer) {
         signInAnswer = answer
@@ -183,22 +171,6 @@ actor StubAPI: APIProtocol {
 
     func answerMe(with answer: MeAnswer) {
         meAnswer = answer
-    }
-
-    func answer(with answer: Answer) {
-        self.answer = answer
-    }
-
-    func getHello(_ input: Operations.GetHello.Input) async throws -> Operations.GetHello.Output {
-        requestedLocales.append(input.query.locale)
-        switch answer {
-        case let .greeting(key):
-            return .ok(.init(body: .json(.init(greetingKey: key, locale: input.query.locale ?? .en))))
-        case let .status(code):
-            return .undocumented(statusCode: code, .init())
-        case .offline:
-            throw URLError(.notConnectedToInternet)
-        }
     }
 
     func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
