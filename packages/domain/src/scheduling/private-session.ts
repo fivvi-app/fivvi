@@ -1,6 +1,7 @@
 import { type EmailLanguage, type Locale, resolveClientCommunicationLanguage } from '@fivvi/i18n';
 import { defaultLocation } from '../locations/default-location.ts';
 import { hasCapability, type Role } from '../permissions/matrix.ts';
+import { PRIVATE_SESSION_DURATIONS } from './private-session-durations.ts';
 import { wallClockToInstant } from './zoned-time.ts';
 
 // Planning a private session (F020, spec #425): the rules the API applies before it stores one.
@@ -12,8 +13,7 @@ import { wallClockToInstant } from './zoned-time.ts';
 // into UTC instants (ADR-012). The duration is elapsed time, so a session over the night the clocks
 // change is as long as the person asked and its wall-clock end moves with the change.
 
-/** The durations of a private session: minutes, in steps (PS-01: chips 45, 60, 90 or another value). */
-export const PRIVATE_SESSION_DURATIONS = { min: 15, max: 240, step: 5 } as const;
+export { PRIVATE_SESSION_DURATIONS };
 
 /** A private session has one place: the client's. */
 const PRIVATE_SESSION_CAPACITY = 1;

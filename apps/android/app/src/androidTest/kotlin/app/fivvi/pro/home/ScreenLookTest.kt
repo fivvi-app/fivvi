@@ -14,7 +14,6 @@ import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
 import app.fivvi.core.me.workspaceIdOf
 import app.fivvi.designtokens.workspaceColor
-import app.fivvi.pro.hello.HelloState
 import app.fivvi.pro.kit.Mode
 import app.fivvi.pro.kit.isFilled
 import app.fivvi.pro.kit.near
@@ -48,10 +47,8 @@ class ScreenLookTest(
 
     private fun showHome() = compose.showKit(mode, language) {
         HomeScreen(
-            HelloState.Loaded(R.string.hello_title),
             MeState.Loaded("john@example.com", HomeDestination.Workspace("John's Gym", workspace.id)),
             signingOut = false,
-            onRetryHello = {},
             onRetryMe = {},
             onSignOut = {},
             onOpenWeb = {},

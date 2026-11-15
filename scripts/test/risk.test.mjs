@@ -181,6 +181,11 @@ describe('risk of a pull request', () => {
       'apps/android/client/build.gradle.kts',
       'apps/android/gradle/android-library.gradle.kts',
       'apps/android/settings.gradle.kts',
+      // The readers of the Android quarantine lists (E002 #1363): the Gradle init script and the JUnit filters, as the
+      // Vitest and Playwright config readers are tooling.
+      'apps/android/gradle/quarantine.init.gradle.kts',
+      'apps/android/core/src/testShared/kotlin/app/fivvi/core/quarantine/QuarantineFilter.kt',
+      'apps/android/core/src/androidTestShared/kotlin/app/fivvi/core/quarantine/QuarantineRunFilter.kt',
       'e2e/maestro/config.yaml',
       '.editorconfig',
       'apps/android/.editorconfig',
@@ -223,6 +228,14 @@ describe('risk of a pull request', () => {
       'Package.resolved',
     ],
     infrastructure: ['Dockerfile', 'apps/cron/Dockerfile.cron', '.railway/railway.ts'],
+    // The quarantine lists (ADR-025, amendment of 12 November 2026, step 6; spec #1356): outside every guardrail path.
+    quarantine: [
+      'quarantine/vitest.txt',
+      'quarantine/playwright.txt',
+      'quarantine/xctest.txt',
+      'quarantine/compose.txt',
+      'quarantine/maestro.txt',
+    ],
   };
 
   // ADR-021, spec #292: these groups are agent-queueable ("high"); every other group is owner-only ("owner").
@@ -234,6 +247,7 @@ describe('risk of a pull request', () => {
     'infrastructure',
     'billing',
     'tooling',
+    'quarantine',
   ];
 
   for (const [group, files] of Object.entries(groups)) {
@@ -833,6 +847,7 @@ describe('high-risk paths', () => {
       'dependencies',
       'health-notes',
       'infrastructure',
+      'quarantine',
       'tenant-data',
       'tooling',
     ]);

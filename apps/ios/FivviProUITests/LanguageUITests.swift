@@ -52,7 +52,7 @@ final class LanguageUITests: SignInUITestCase {
         XCTAssertEqual(patches.map(\.authorization), ["Bearer \(server.signIn.token)"])
         XCTAssertFalse(screen.app.staticTexts["profile.language.error"].exists)
 
-        // Back on the home the greeting and the buttons are in it too, and the choice survives a restart.
+        // Back on the home the rows are in it too, and the choice survives a restart.
         screen.app.navigationBars.buttons.firstMatch.tap()
         XCTAssertTrue(Polling.until(timeout: timeout, interval: 0.2) { open.label == configured["profile.title"] })
         screen.app.terminate()

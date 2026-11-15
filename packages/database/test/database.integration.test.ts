@@ -21,6 +21,8 @@ import {
   groupClasses,
   HELLO_GREETING,
   locations,
+  offers,
+  offerVersions,
   organizations,
   pingDatabase,
   sessionParticipants,
@@ -519,6 +521,182 @@ describe('E004 database', () => {
         await seed(tx, { production: true });
 
         expect(await tx.$count(locations)).toBe(0);
+      });
+    });
+  });
+
+  describe('F052 seed offers', () => {
+    const offersOf = (tx: DatabaseExecutor, slug: string) =>
+      tx
+        .select({
+          kind: offers.kind,
+          creditKind: offers.creditKind,
+          status: offers.status,
+          origin: offers.origin,
+          nameNl: offerVersions.nameNl,
+          priceCents: offerVersions.priceCents,
+          vatRateBasisPoints: offerVersions.vatRateBasisPoints,
+        })
+        .from(offers)
+        .innerJoin(offerVersions, eq(offerVersions.id, offers.currentVersionId))
+        .innerJoin(organizations, eq(organizations.id, offers.organizationId))
+        .where(eq(organizations.slug, slug))
+        .orderBy(offerVersions.nameNl);
+
+    it('AC15: gives John’s Gym the three defaults priced and switched on, plus an owner-made private credit pack and a single class pass, once', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        await seed(tx);
+
+        expect(await offersOf(tx, 'johns-gym')).toEqual([
+          expect.objectContaining({
+            kind: 'membership',
+            nameNl: 'Abonnement',
+            status: 'on',
+            origin: 'default',
+            priceCents: 7900,
+            vatRateBasisPoints: 2100,
+          }),
+          expect.objectContaining({
+            kind: 'credit_pack',
+            creditKind: 'group',
+            nameNl: 'Groepscreditpakket',
+            status: 'on',
+            origin: 'default',
+            priceCents: 15000,
+          }),
+          expect.objectContaining({
+            kind: 'single_class_pass',
+            nameNl: 'Losse sessie',
+            status: 'on',
+            origin: 'owner',
+            priceCents: 1800,
+          }),
+          expect.objectContaining({
+            kind: 'credit_plan',
+            creditKind: 'private',
+            nameNl: 'Privécreditabonnement',
+            status: 'on',
+            origin: 'default',
+            priceCents: 26000,
+          }),
+          expect.objectContaining({
+            kind: 'credit_pack',
+            creditKind: 'private',
+            nameNl: 'Privécreditpakket',
+            status: 'on',
+            origin: 'owner',
+            priceCents: 32500,
+          }),
+        ]);
+        expect(await tx.$count(offers)).toBe(5 + 3 + 3);
+      });
+    });
+
+    it('AC1: the other seeded workspaces get the three defaults as a new workspace does: off, without a price', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+
+        for (const slug of ['fit-studio', 'sarah-personal-training']) {
+          const seeded = await offersOf(tx, slug);
+          expect(
+            seeded.map((offer) => offer.nameNl),
+            slug,
+          ).toEqual(['Abonnement', 'Groepscreditpakket', 'Privécreditabonnement']);
+          for (const offer of seeded) {
+            expect(offer).toMatchObject({
+              status: 'off',
+              origin: 'default',
+              priceCents: null,
+              vatRateBasisPoints: null,
+            });
+          }
+        }
+      });
+    });
+
+    it('AC15: leaves what an owner changed alone when it runs again', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx);
+        await tx.update(offers).set({ status: 'off' }).where(eq(offers.defaultPlan, 'membership'));
+        await seed(tx);
+
+        expect(
+          await tx.$count(
+            offers,
+            and(eq(offers.defaultPlan, 'membership'), eq(offers.status, 'on')),
+          ),
+        ).toBe(0);
+        expect(await tx.$count(offers)).toBe(5 + 3 + 3);
+      });
+    });
+
+    it('AC15: gives a John’s Gym that the migration backfilled its three defaults priced and on, and keeps what an owner changed', async () => {
+      const journal = await readJournal(migrationsFolder);
+      const index = journal.entries.findIndex((entry) => entry.tag === '0034_offers');
+      expect(index).toBeGreaterThanOrEqual(0);
+
+      const previous = await mkdtemp(join(tmpdir(), 'fivvi-migrations-'));
+      try {
+        await cp(migrationsFolder, previous, { recursive: true });
+        const before = { ...journal, entries: journal.entries.slice(0, index) };
+        await writeFile(join(previous, 'meta', '_journal.json'), JSON.stringify(before));
+
+        await withFreshDatabase(async (client) => {
+          await migrate(client.db, { migrationsFolder: previous });
+          await client.db.execute(
+            sql`insert into organizations (name, slug, default_locale, time_zone)
+                values ('John''s Gym', 'johns-gym', 'nl-NL', 'Europe/Amsterdam')`,
+          );
+          await runMigrations(client.db);
+          // The backfill: the three defaults, off, without a price.
+          expect(await offersOf(client.db, 'johns-gym')).toEqual(
+            ['Abonnement', 'Groepscreditpakket', 'Privécreditabonnement'].map((nameNl) =>
+              expect.objectContaining({ nameNl, status: 'off', priceCents: null }),
+            ),
+          );
+          // An owner already priced the group credit pack, then switched it off again.
+          await client.db.execute(
+            sql`update offers set status = 'archived' where default_plan = 'group_credit_pack'`,
+          );
+
+          await seed(client.db);
+          await seed(client.db);
+
+          const gym = await offersOf(client.db, 'johns-gym');
+          expect(gym.map((offer) => [offer.nameNl, offer.status, offer.priceCents])).toEqual([
+            ['Abonnement', 'on', 7900],
+            ['Groepscreditpakket', 'archived', null],
+            ['Losse sessie', 'on', 1800],
+            ['Privécreditabonnement', 'on', 26000],
+            ['Privécreditpakket', 'on', 32500],
+          ]);
+          // One new version each, not one per run; the first stays as it was.
+          expect(
+            await rows(
+              client.db,
+              sql`select d.default_plan, count(*)::int as versions, max(v.price_cents) as price
+                  from offers d join offer_versions v on v.offer_id = d.id
+                  where d.default_plan is not null and d.organization_id =
+                    (select id from organizations where slug = 'johns-gym')
+                  group by d.default_plan order by d.default_plan`,
+            ),
+          ).toEqual([
+            { default_plan: 'group_credit_pack', versions: 1, price: null },
+            { default_plan: 'membership', versions: 2, price: 7900 },
+            { default_plan: 'private_credit_plan', versions: 2, price: 26000 },
+          ]);
+        });
+      } finally {
+        await rm(previous, { recursive: true, force: true });
+      }
+    });
+
+    it('AC15: seeds no offer in production', async () => {
+      await withRollback(db, async (tx) => {
+        await seed(tx, { production: true });
+
+        expect(await tx.$count(offers)).toBe(0);
       });
     });
   });

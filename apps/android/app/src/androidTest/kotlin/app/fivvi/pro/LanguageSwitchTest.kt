@@ -35,11 +35,7 @@ class LanguageSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val 
     @get:Rule
     val app = AppRule()
 
-    // The greeting is asked again in the new language after a switch.
-    private val hello = FakeHelloApi().apply {
-        answerGreeting()
-        answerGreeting()
-    }
+    private val hello = FakeHelloApi()
     private val me = FakeMeApi()
     private val other = AppLanguage.entries.first { it != phone }
 

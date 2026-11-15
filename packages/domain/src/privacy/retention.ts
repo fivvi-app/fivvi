@@ -131,6 +131,43 @@ export function isRetentionOver(
   return now.getTime() >= retentionEndsAt(from, period, timeZone).getTime();
 }
 
+const DAY_MS = 24 * HOUR_MS;
+
+/**
+ * The cutoff of a period at `now`: a row whose period started at or before it is past its
+ * boundary (`isRetentionOver`), so a retention task deletes `where <start column> <= cutoff` and
+ * the SQL and the rule cannot disagree. **Never early**: no row is deleted before its period is
+ * over. Hours, days and years are exact to the millisecond; months subtract calendar months,
+ * which is one day late at most, when the day of the month does not exist in the earlier month
+ * (a start on 29 February 2024 ends on 28 February 2025, as the day is clamped, but is still
+ * kept on that day's cutoff of 28 February 2024).
+ */
+export function retentionCutoff(
+  now: Date,
+  period: RetentionPeriod,
+  timeZone: string = WORKSPACE_DEFAULTS.timeZone,
+): Date {
+  switch (period.unit) {
+    case 'hours':
+      return new Date(now.getTime() - period.amount * HOUR_MS);
+    case 'days':
+      return new Date(now.getTime() - period.amount * DAY_MS);
+    case 'months':
+      return addMonthsUtc(now, -period.amount);
+    case 'years-after-year-end': {
+      // The end moves in steps (each new year), so the latest start that is over is searched.
+      let over = now.getTime() - (period.amount + 2) * 366 * DAY_MS;
+      let notOver = now.getTime() + 1;
+      while (notOver - over > 1) {
+        const middle = over + Math.floor((notOver - over) / 2);
+        if (isRetentionOver(new Date(middle), period, now, timeZone)) over = middle;
+        else notOver = middle;
+      }
+      return new Date(over);
+    }
+  }
+}
+
 /** A period in words for `PRIVACY.md`: `24 hours`, `30 days`, `7 years after the end of the year`. */
 export function describeRetention(period: RetentionPeriod): string {
   const unit = period.unit === 'years-after-year-end' ? 'year' : period.unit.slice(0, -1);

@@ -1,3 +1,4 @@
+import { type TrainerWord, trainerWordForms } from '@fivvi/i18n';
 import { Text } from 'react-email';
 import { textStyle } from '../components/layout.tsx';
 import type { EmailContext, EmailTemplate } from '../render.tsx';
@@ -16,6 +17,8 @@ export interface PrivateSessionMovedEmailProps {
   locationAddress: string | null;
   /** The trainer's name, or `null` when the account has none: the line is left out. */
   trainerName: string | null;
+  /** The workspace's word for the people who teach, as it is when the email is sent (F068). */
+  trainerWord: TrainerWord;
 }
 
 /** "donderdag 24 september om 09:00": the day and the time, for the subject (a move can stay on its day). */
@@ -52,6 +55,7 @@ export const privateSessionMovedEmail: EmailTemplate<PrivateSessionMovedEmailPro
       locationName,
       locationAddress,
       trainerName,
+      trainerWord,
     },
   ) => (
     <>
@@ -79,7 +83,10 @@ export const privateSessionMovedEmail: EmailTemplate<PrivateSessionMovedEmailPro
       </Text>
       {trainerName ? (
         <Text style={textStyle}>
-          {ctx.t('email.privateSession.trainer', { trainer: trainerName })}
+          {ctx.t('email.privateSession.trainer', {
+            trainer: trainerName,
+            ...trainerWordForms(trainerWord, ctx.locale),
+          })}
         </Text>
       ) : null}
     </>
@@ -95,5 +102,6 @@ export const privateSessionMovedEmail: EmailTemplate<PrivateSessionMovedEmailPro
     locationName: 'John’s Gym',
     locationAddress: 'Voorbeeldstraat 1, 1234 AB Amsterdam',
     trainerName: 'Sarah',
+    trainerWord: 'trainer',
   },
 };

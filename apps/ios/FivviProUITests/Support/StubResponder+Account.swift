@@ -181,11 +181,15 @@ extension Responder {
     }
 
     func respondToMe(_ connection: NWConnection, authorization: String?) {
-        if let status = signIn.meStatus {
-            send(connection, status: status, json: nil)
-            return
+        nonisolated(unsafe) let account = account  // read once, by the one closure that answers
+        let answer: @Sendable () -> Void = { [self] in
+            if let status = signIn.meStatus {
+                send(connection, status: status, json: nil)
+                return
+            }
+            let works = authorization == "Bearer \(signIn.token)"
+            send(connection, status: works ? 200 : 401, json: works ? account : Self.notSignedIn)
         }
-        let works = authorization == "Bearer \(signIn.token)"
-        send(connection, status: works ? 200 : 401, json: works ? account : Self.notSignedIn)
+        if !holdAccountRead(answer) { answer() }
     }
 }

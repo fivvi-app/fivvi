@@ -21,6 +21,7 @@
     "@fivvi/auth": "workspace:*",
     "@fivvi/contract": "workspace:*",
     "@fivvi/database": "workspace:*",
+    "@fivvi/domain": "workspace:*",
     "@fivvi/email": "workspace:*",
     "@fivvi/i18n": "workspace:*",
     "@fivvi/observability": "workspace:*",

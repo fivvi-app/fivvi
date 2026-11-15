@@ -1,6 +1,6 @@
 # F001 native sign-in (spec #168), against the local stack: AC1 and AC3 (the code from the email signs in), AC8 (the app
 # stays signed in after it is closed and opened again) and AC10 (sign out goes back to TM-01), in the device language.
-# The sign-in itself is shared/sign-in.yaml, which the hello flow uses too. Elements are found by id: the Android testTag
+# The sign-in itself is shared/sign-in.yaml, which the home flow uses too. Elements are found by id: the Android testTag
 # and the iOS accessibilityIdentifier, the same on both apps.
 # SIGN_IN_SEND_CODE and LETTERMINT_URL, set by scripts/maestro.sh: signIn.sendCode from packages/i18n in the device language,
 # and the fake Lettermint server the code is read from. SIGN_IN_SEND_CODE has no default here: a flow's own env default would
