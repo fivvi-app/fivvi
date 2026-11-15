@@ -38,6 +38,11 @@
 #                                           (named after the first ticket) and notes file for them; the slice is recorded
 #                                           in .work/<first>/slice. status, next and finish treat every ticket of the
 #                                           slice like the first; pr.sh create closes each one
+#   flow.sh slice <n> --drop <t>            leave ticket <t> of the slice of <n> out of it (ADR-033): it was not built
+#                                           (blocked, or the rest above about 1,500 lines). It leaves .work/<first>/slice
+#                                           and is unassigned, so pr.sh create no longer closes it, finish leaves it
+#                                           open and a new slice can take it; not the first ticket, the branch is named
+#                                           after that one
 #   flow.sh finish <n>                      after its PR is merged (it says so when the PR is still in
 #                                           the merge queue, or GitHub removed it): remove worktree, branches and the
 #                                           worktree's iOS simulator, close the issue, report what the spec needs next,
@@ -634,7 +639,7 @@ SLICE_MAX_TICKETS=5
 
 # The open tickets of spec $1 that can be built now, as JSON [{number, title, labels, blockers}] for scripts/slice.jq:
 # ready-for-agent with acceptance criteria, not taken by someone else, not started (no branch), not held for a question
-# or a human; blockers are the numbers of the open blockers. Dies when a read fails.
+# or a human, and no bug (a bug has its PR of its own); blockers are the numbers of the open blockers. Dies when a read fails.
 slice_candidates() {
   local spec="$1" login="$2" t one out="[]"
   for t in $(gh issue view "$spec" --repo "$REPO" --json subIssues \
@@ -646,7 +651,7 @@ slice_candidates() {
       [$t.labels[].name] as $labels
       | . + [$t | select($t.state == "OPEN" and ($labels | index("ready-for-agent"))
           and ($labels | index("spec") | not) and ($labels | index("needs-info") | not)
-          and ($labels | index("ready-for-human") | not)
+          and ($labels | index("ready-for-human") | not) and ($labels | index("bug") | not)
           and ($t.assignees | all(.login == $me))
           and (($t.body // "") | test("(^|\\n)#+\\s*acceptance criteria|(^|\\n)\\s*- \\[[ x]\\]"; "i")))
         | {number, title, labels: $labels, blockers: [.blockedBy.nodes[] | select(.state == "OPEN") | .number]}]' <<<"$out")" \
@@ -706,6 +711,25 @@ cmd_start_slice() {
     hint="$(jq -r .hint <<<"$d")"
     [ -z "$hint" ] || echo "Hint (#$n): $hint"
   done
+}
+
+# flow.sh slice <n> --drop <t>: leave ticket <t> out of the slice <n> belongs to (see the header).
+cmd_slice() {
+  [ $# -eq 3 ] && [ "$2" = --drop ] || usage
+  is_number "$1"
+  is_number "$3"
+  local first file t="$3" rest
+  first="$(slice_primary "$1")"
+  file="$(slice_file "$first")"
+  [ -f "$file" ] && grep -qxF "$1" "$file" || die "#$1 is in no slice"
+  grep -qxF "$t" "$file" || die "#$t is not in the slice of #$1 ($(slice_line "$1"))"
+  [ "$t" != "$first" ] || die "#$t is the ticket the branch of the slice is named after: it stays; drop another ticket"
+  rest="$(grep -vxF "$t" "$file")"
+  printf '%s\n' "$rest" > "$file"
+  gh issue edit "$t" --repo "$REPO" --remove-assignee "${FIVVI_ASSIGNEE:-@me}" >/dev/null \
+    || die "could not unassign #$t (it is out of the slice anyway)"
+  [ ! -d "$NOTES_DIR/$first" ] || printf -- '- dropped #%s from the slice: not built, left for another slice\n' "$t" >> "$NOTES_DIR/$first/notes.md"
+  echo "Slice: $(slice_line "$first"); #$t dropped and unassigned"
 }
 
 cmd_start() {
@@ -953,5 +977,6 @@ case "${1:-}" in
   idle)   shift; cmd_idle "$@" ;;
   start)  shift; cmd_start "$@" ;;
   finish) shift; cmd_finish "$@" ;;
+  slice)  shift; cmd_slice "$@" ;;
   *) usage ;;
 esac

@@ -3,7 +3,7 @@
 
 # The platform of a ticket (input: {title, labels: [name]}): backend, web, ios, android, or null when it names none or
 # two. A single platform label (backend, web, ios or android) decides; otherwise the title, the way tickets are named
-# today: "Fivvi Pro iOS: …", "Fivvi Android: …", "Android: …" (iOS and Android); "Web: …", "Client web: …" and
+# today: "Fivvi Pro iOS: …", "Fivvi Android: …", "Android: …" (iOS and Android); "Web: …", "Client web: …", "Public web: …" and
 # "Foundation: … on the client web" (web); "… (API, domain)", "… through the API", "Owner invoices API: …",
 # "(DB, domain)", "(domain, cron)" (backend). iOS and Android win over web and backend: "Fivvi iOS: … (API)" is iOS.
 def platform:
@@ -16,7 +16,7 @@ def platform:
     elif $ios and $android then null
     elif $ios then "ios"
     elif $android then "android"
-    elif ($t | test("^web:"; "i")) or ($t | test("\\b(client|trainer|team) web\\b"; "i")) then "web"
+    elif ($t | test("^web:"; "i")) or ($t | test("\\b(client|trainer|team|public) web\\b"; "i")) then "web"
     elif $t | test("\\b(API|DB|domain|cron)\\b") then "backend"
     else null
     end;

@@ -12,6 +12,7 @@ import {
   readFileSync,
   realpathSync,
   rmSync,
+  utimesSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -42,6 +43,7 @@ describe('ADR-033 platform of a ticket (scripts/slice.jq)', () => {
       ['[F055] iOS: Fivvi opens the invitation link and joins the workspace', 'ios'],
       ['[F057] Client web: Home with my schedule (CW-02), the base of the client dashboard', 'web'],
       ['[F057] Web: Uitbetalingen (CM-09), the Owner’s payouts', 'web'],
+      ['[F057] Public web: the studio page with the class timetable', 'web'],
       ['[F057] Foundation: Boeken on the client web, the timetable /book/{slug} (PB-01)', 'web'],
       ['[F055] Foundation: a credit plan’s cycles and when credits expire (DB, domain)', 'backend'],
       [
@@ -249,7 +251,9 @@ describe('ADR-033 flow.sh start --slice', () => {
   const claimed = () =>
     gh
       .calls()
-      .filter((c) => c.args[0] === 'issue' && c.args[1] === 'edit')
+      .filter(
+        (c) => c.args[0] === 'issue' && c.args[1] === 'edit' && c.args.includes('--add-assignee'),
+      )
       .map((c) => Number(c.args[2]))
       .sort();
 
@@ -308,6 +312,47 @@ describe('ADR-033 flow.sh start --slice', () => {
     );
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /Hint \(#9006\): /);
+  });
+
+  it('leaves a bug out of the slice: it has its PR of its own', () => {
+    const result = start(
+      ['9000', 'android'],
+      [
+        ticketFacts(9001, '[F054] Fivvi Android: the Deze week card on Home'),
+        ticketFacts(9002, '[F054] Fivvi Android: the card crashes on rotation', {
+          labels: labels('ready-for-agent', 'bug'),
+        }),
+      ],
+    );
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(claimed(), [9001]);
+    assert.equal(readFileSync(join(sandbox.repo, '.work/9001/slice'), 'utf8'), '9001\n');
+  });
+
+  it('lets a new slice take a ticket that was dropped from an earlier one, and none still in it', () => {
+    sandbox.git('branch', 'feature/9001-android-home');
+    mkdirSync(join(sandbox.repo, '.work/9001'), { recursive: true });
+    writeFileSync(join(sandbox.repo, '.work/9001/slice'), '9001\n9002\n9003\n');
+    const tickets = [9001, 9002, 9003].map((n) => ticketFacts(n, `[F054] Android: card ${n}`));
+    const before = start(['9000', 'android'], tickets);
+    assert.notEqual(before.status, 0, 'every ticket still belongs to the slice that has a branch');
+    assert.match(before.stderr, /no ready, unblocked ticket of spec #9000 on android/);
+
+    const drop = spawnSync(
+      join(sandbox.repo, 'scripts/flow.sh'),
+      ['slice', '9002', '--drop', '9003'],
+      {
+        cwd: sandbox.repo,
+        encoding: 'utf8',
+        env: gh.env(rules(tickets)),
+      },
+    );
+    assert.equal(drop.status, 0, drop.stderr);
+    const result = start(['9000', 'android'], tickets);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(claimed(), [9003]);
+    assert.equal(readFileSync(join(sandbox.repo, '.work/9003/slice'), 'utf8'), '9003\n');
+    assert.equal(readFileSync(join(sandbox.repo, '.work/9001/slice'), 'utf8'), '9001\n9002\n');
   });
 
   it('refuses a platform that is not one of backend, web, ios, android', () => {
@@ -393,6 +438,23 @@ describe('ADR-033 pr.sh create for a slice', () => {
     assert.equal(result.edited, 'Body.\n\nCloses #9001\n\nCloses #9002');
   });
 
+  it('closes no ticket that flow.sh slice --drop took out of the slice', () => {
+    writeSlice(9001, 9002, 9003);
+    const drop = spawnSync(
+      join(sandbox.repo, 'scripts/flow.sh'),
+      ['slice', '9001', '--drop', '9002'],
+      {
+        cwd: sandbox.repo,
+        encoding: 'utf8',
+        env: gh.env([{ match: '^issue edit ', out: '' }]),
+      },
+    );
+    assert.equal(drop.status, 0, drop.stderr);
+    const result = create({ body: 'Body.' });
+    assert.equal(result.status, 0, result.stderr);
+    assert.equal(result.created, 'Body.\n\nCloses #9001\nCloses #9003');
+  });
+
   it('still closes only its own issue on a branch that is no slice', () => {
     const result = create({ body: 'Body.' });
     assert.equal(result.status, 0, result.stderr);
@@ -444,8 +506,9 @@ describe('ADR-033 flow.sh status and finish for a slice PR', () => {
   afterEach(() => rmSync(sandbox.base, { recursive: true, force: true }));
   after(() => gh.cleanup());
 
-  const run = (command, n, { prState = 'MERGED', states = {} } = {}) =>
-    spawnSync(join(sandbox.repo, 'scripts/flow.sh'), [command, String(n)], {
+  const run = (command, n, options = {}) => runFlow([command, String(n)], options);
+  const runFlow = (args, { prState = 'MERGED', states = {}, assigned = [] } = {}) =>
+    spawnSync(join(sandbox.repo, 'scripts/flow.sh'), args, {
       cwd: sandbox.repo,
       encoding: 'utf8',
       env: gh.env([
@@ -463,18 +526,23 @@ describe('ADR-033 flow.sh status and finish for a slice PR', () => {
             parent: null,
             blockedBy: { nodes: [] },
             subIssues: {
-              totalCount: 3,
-              nodes: [9001, 9002, 9003].map((number) => ({ number, state: 'OPEN' })),
+              totalCount: 4,
+              nodes: [9001, 9002, 9003, 9004].map((number) => ({ number, state: 'OPEN' })),
             },
           },
         },
-        ...[9001, 9002, 9003].map((number) => ({
+        ...[9001, 9002, 9003, 9004].map((number) => ({
           match: `^issue view ${number} `,
           out: ticketFacts(number, `[F054] Android: card ${number}`, {
             state: states[number] ?? 'OPEN',
-            assignees: [{ login: 'thekeyvan' }],
+            assignees: number < 9004 ? [{ login: 'thekeyvan' }] : [],
           }),
         })),
+        {
+          match: '^issue list .*--assignee',
+          out: assigned.map((number) => ({ number })),
+        },
+        { match: '^issue edit ', out: '' },
         {
           match: `^pr list .*--head ${BRANCH}`,
           out: [
@@ -491,6 +559,9 @@ describe('ADR-033 flow.sh status and finish for a slice PR', () => {
           ],
         },
         { match: '^issue close ', out: '' },
+        // What `next` also reads: nothing else is open.
+        { match: '^issue list .*--label (spec|needs-info|ready-for-agent)', out: [] },
+        { match: '^pr list .*--state (open|merged)', out: [] },
         {
           match: '^api graphql ',
           out: { data: { repository: { pullRequest: { reviewThreads: { nodes: [] } } } } },
@@ -525,6 +596,140 @@ describe('ADR-033 flow.sh status and finish for a slice PR', () => {
     assert.match(result.stdout, /#9001 done/);
     assert.match(result.stdout, /#9002 done/);
     assert.match(result.stdout, /#9003 done/);
+  });
+
+  it('finish leaves an open sibling ticket of the same spec outside the slice open', () => {
+    const result = run('finish', 9001);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(closedIssues(), [9001, 9002, 9003]);
+    assert.doesNotMatch(result.stdout, /#9004 done/);
+  });
+
+  it('finish closes no ticket that was dropped from the slice, and leaves it open', () => {
+    const drop = runFlow(['slice', '9002', '--drop', '9003']);
+    assert.equal(drop.status, 0, drop.stderr);
+    assert.equal(readFileSync(join(sandbox.repo, '.work/9001/slice'), 'utf8'), '9001\n9002\n');
+    assert.match(readFileSync(join(sandbox.repo, '.work/9001/notes.md'), 'utf8'), /dropped #9003/);
+    const unassigned = gh
+      .calls()
+      .filter(
+        (c) =>
+          c.args[0] === 'issue' && c.args[1] === 'edit' && c.args.includes('--remove-assignee'),
+      );
+    assert.deepEqual(
+      unassigned.map((c) => c.args[2]),
+      ['9003'],
+    );
+
+    const result = run('finish', 9002);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(closedIssues(), [9001, 9002]);
+    assert.doesNotMatch(result.stdout, /#9003 done/);
+    assert.equal(existsSync(join(sandbox.repo, '.work/9001')), false);
+  });
+
+  it('status of a dropped ticket no longer shows the slice, its branch or its PR', () => {
+    const drop = runFlow(['slice', '9001', '--drop', '9003']);
+    assert.equal(drop.status, 0, drop.stderr);
+    const result = run('status', 9003);
+    assert.equal(result.status, 0, result.stderr);
+    assert.doesNotMatch(result.stdout, /Slice:/);
+    assert.doesNotMatch(result.stdout, new RegExp(BRANCH));
+  });
+
+  it('drop refuses the first ticket, a ticket outside the slice and a ticket in no slice, changing nothing', () => {
+    for (const [args, message] of [
+      [
+        ['slice', '9002', '--drop', '9001'],
+        /#9001 is the ticket the branch of the slice is named after/,
+      ],
+      [['slice', '9001', '--drop', '9004'], /#9004 is not in the slice of #9001/],
+      [['slice', '9004', '--drop', '9001'], /#9004 is in no slice/],
+    ]) {
+      const result = runFlow(args);
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, message);
+    }
+    assert.equal(
+      readFileSync(join(sandbox.repo, '.work/9001/slice'), 'utf8'),
+      '9001\n9002\n9003\n',
+    );
+    assert.deepEqual(
+      gh.calls().filter((c) => c.args[1] === 'edit'),
+      [],
+    );
+  });
+
+  describe('which slice a ticket belongs to when several files list it', () => {
+    const primary = (n) =>
+      execFileSync(
+        'bash',
+        [
+          '-c',
+          `source "${join(sandbox.repo, 'scripts/_lib.sh')}"; slice_primary "$1"`,
+          'x',
+          String(n),
+        ],
+        { cwd: sandbox.repo, encoding: 'utf8' },
+      ).trim();
+    const writeSlice = (first, tickets, ageSeconds) => {
+      mkdirSync(join(sandbox.repo, '.work', String(first)), { recursive: true });
+      const file = join(sandbox.repo, '.work', String(first), 'slice');
+      writeFileSync(file, `${tickets.join('\n')}\n`);
+      const when = new Date(Date.now() - ageSeconds * 1000);
+      utimesSync(file, when, when);
+    };
+
+    it('prefers the slice whose branch still exists, however old its file is', () => {
+      writeSlice(9005, [9005, 9003], 10); // newer, no branch
+      writeSlice(9001, [9001, 9002, 9003], 1000); // older, has the branch
+      assert.equal(primary(9003), '9001');
+    });
+
+    it('takes the newest file when no branch exists for any of them, in either order', () => {
+      writeSlice(9005, [9005, 9007], 1000);
+      writeSlice(9006, [9006, 9007], 10);
+      assert.equal(primary(9007), '9006');
+      writeSlice(9005, [9005, 9007], 1);
+      assert.equal(primary(9007), '9005');
+    });
+
+    it('answers the ticket itself when no slice lists it', () => {
+      assert.equal(primary(9004), '9004');
+    });
+  });
+
+  describe('flow.sh next after the PR of the slice merged', () => {
+    const next = (assigned) => {
+      sandbox.git(
+        'worktree',
+        'add',
+        '--quiet',
+        join(sandbox.repo, '.worktrees/feature-9001-android-home'),
+        BRANCH,
+      );
+      return runFlow(['next'], { assigned });
+    };
+
+    it('prints Finish for the slice once, as the merged PR closed its tickets', () => {
+      const result = next([]);
+      assert.equal(result.status, 0, result.stderr);
+      const finish = result.stdout.split('\n').filter((line) => line.startsWith('Finish #'));
+      assert.equal(finish.length, 1, result.stdout);
+      assert.match(finish[0], /^Finish #9001 feature\/9001-android-home /);
+    });
+
+    it('shows every assigned ticket of the slice with its phase, and no Finish for them', () => {
+      const result = next([9001, 9002, 9003]);
+      assert.equal(result.status, 0, result.stderr);
+      for (const n of [9001, 9002, 9003]) {
+        assert.match(
+          result.stdout,
+          new RegExp(`^#${n} \\[F054\\] Android: card ${n} → merged$`, 'm'),
+        );
+      }
+      assert.doesNotMatch(result.stdout, /^Finish #/m);
+    });
   });
 
   it('finish waits while the PR of the slice is not merged, and changes nothing', () => {
