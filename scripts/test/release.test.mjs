@@ -401,12 +401,19 @@ describe('E017 AC1: signing, archive and export with xcodebuild', () => {
       'CODE_SIGN_STYLE=Manual',
       'CODE_SIGN_IDENTITY=Apple Distribution',
       'DEVELOPMENT_TEAM=TEAM0EXAMPLE',
-      `PROVISIONING_PROFILE_SPECIFIER=${PROFILE_FIELDS.Name}`,
+      `FIVVI_RELEASE_PROFILE=${PROFILE_FIELDS.Name}`,
       `OTHER_CODE_SIGN_FLAGS=--keychain ${keychain()}`,
     ]) {
       assert.ok(archive.includes(part), `missing: ${part}\n${archive}`);
     }
     assert.ok(!/CODE_SIGNING_ALLOWED=NO|Local\.xcconfig/.test(archive));
+    // A build setting on the command line reaches every target, the resource bundles of the local Swift packages too, and
+    // those refuse a provisioning profile ("does not support provisioning profiles"). The profile goes to the app alone,
+    // through FIVVI_RELEASE_PROFILE, which Release.xcconfig turns into the app target's profile specifier.
+    assert.ok(
+      !archive.includes('PROVISIONING_PROFILE_SPECIFIER'),
+      `a global profile specifier: ${archive}`,
+    );
     assert.ok(!calls().some((c) => /fastlane|bundle exec|gem /.test(c)));
   });
 
