@@ -71,6 +71,22 @@ export interface NewSessionProps {
   canAddClients: boolean;
   /** The workspace's word for the people who teach (F068), in the reader's language. */
   trainerWord: TrainerWordForms;
+  /**
+   * The personal pages (F013): the workspaces where the person may plan their own private
+   * sessions, which PS-01 offers first as **Werkruimte** (a plain line with one). The client
+   * list, the location and the save follow the one chosen; the fields above are the one it starts
+   * with. Left out in a workspace's own frame.
+   */
+  workspaces?: readonly PlanningWorkspace[];
+}
+
+/** A workspace PS-01 can plan in from the personal pages: what the form needs of it. */
+export interface PlanningWorkspace {
+  workspaceId: string;
+  slug: string;
+  name: string;
+  canAddClients: boolean;
+  trainerWord: TrainerWordForms;
 }
 
 /** What a saved session shows in the snackbar. */
@@ -142,16 +158,24 @@ type Loaded =
 const FIRST_DURATION = 60;
 
 function NewSessionPanel({
-  workspaceId,
-  slug,
+  workspaceId: startId,
+  slug: startSlug,
   email,
   personName,
   forAnyTrainer,
-  canAddClients,
-  trainerWord,
+  canAddClients: startCanAddClients,
+  trainerWord: startTrainerWord,
+  workspaces,
   close,
   planned,
 }: NewSessionProps & { close: () => void; planned: (saved: Saved) => void }) {
+  // From the personal pages the person picks the workspace first; the rest follows the choice.
+  const [chosenId, setChosenId] = useState(startId);
+  const chosen = workspaces?.find((workspace) => workspace.workspaceId === chosenId);
+  const workspaceId = chosen?.workspaceId ?? startId;
+  const slug = chosen?.slug ?? startSlug;
+  const canAddClients = chosen?.canAddClients ?? startCanAddClients;
+  const trainerWord = chosen?.trainerWord ?? startTrainerWord;
   const t = useTranslations('sessions.form');
   const e = useTranslations('sessions.form.errors');
   const common = useTranslations('common');
@@ -179,6 +203,9 @@ function NewSessionPanel({
 
   useEffect(() => {
     let current = true;
+    // Another workspace has its own clients, location and time zone.
+    setLoaded({ status: 'loading' });
+    setClient(null);
     void loadPlanningContext(workspaceId, { forAnyTrainer, email }).then((result) => {
       if (!current) return;
       if (!result.ok) {
@@ -298,6 +325,34 @@ function NewSessionPanel({
               <DialogDescription id="new-session-description">{t('description')}</DialogDescription>
             </DialogHeader>
             <div className="grid content-start gap-5 overflow-y-auto py-1 pr-1">
+              {workspaces ? (
+                workspaces.length > 1 ? (
+                  <div className="grid gap-1.5">
+                    <Label htmlFor="new-session-workspace">{t('workspaceLabel')}</Label>
+                    <NativeSelect
+                      id="new-session-workspace"
+                      name="workspaceId"
+                      value={workspaceId}
+                      className="w-full"
+                      onChange={(event) => setChosenId(event.target.value)}
+                    >
+                      {workspaces.map((workspace) => (
+                        <NativeSelectOption
+                          key={workspace.workspaceId}
+                          value={workspace.workspaceId}
+                        >
+                          {workspace.name}
+                        </NativeSelectOption>
+                      ))}
+                    </NativeSelect>
+                  </div>
+                ) : (
+                  <div className="grid gap-1.5">
+                    <span className="text-sm leading-none font-medium">{t('workspaceLabel')}</span>
+                    <p className="text-sm">{workspaces[0]?.name}</p>
+                  </div>
+                )
+              ) : null}
               {loaded.status === 'loading' ? (
                 <p className="text-sm text-muted-foreground">{common('loading')}</p>
               ) : loaded.status === 'failed' ? (
@@ -305,6 +360,7 @@ function NewSessionPanel({
               ) : (
                 <>
                   <ClientPicker
+                    key={workspaceId}
                     workspaceId={workspaceId}
                     defaultLocale={loaded.context.defaultLocale}
                     canAdd={canAddClients}
