@@ -5,6 +5,7 @@ import { type Analysis, analyze } from './analyze.ts';
 import { androidValuesDir, renderStringsXml } from './android.ts';
 import { type CatalogSet, readCatalogSet } from './catalog.ts';
 import {
+  clientInfoPlistKeys,
   infoPlistKeys,
   renderInfoPlistXcstrings,
   renderStringCatalogsAccessor,
@@ -33,7 +34,9 @@ export function isNativeKey(key: string): boolean {
 export function renderNativeCatalogs(fullAnalysis: Analysis): Map<string, string> {
   const problems = [...fullAnalysis.parity, ...fullAnalysis.icu];
   if (problems.length > 0) throw new CatalogError(problems);
-  const missing = [...new Set(Object.values(infoPlistKeys))].filter(
+  const missing = [
+    ...new Set([...Object.values(infoPlistKeys), ...Object.values(clientInfoPlistKeys)]),
+  ].filter(
     (key) => !fullAnalysis.keys.includes(key),
   );
   if (missing.length > 0) {
@@ -48,6 +51,10 @@ export function renderNativeCatalogs(fullAnalysis: Analysis): Map<string, string
   const files = new Map<string, string>();
   files.set(`${generatedDir}/ios/Localizable.xcstrings`, renderXcstrings(analysis));
   files.set(`${generatedDir}/ios/InfoPlist.xcstrings`, renderInfoPlistXcstrings(analysis));
+  files.set(
+    `${generatedDir}/ios/client/InfoPlist.xcstrings`,
+    renderInfoPlistXcstrings(analysis, clientInfoPlistKeys),
+  );
   files.set(`${generatedDir}/ios/FivviStringCatalogs.swift`, renderStringCatalogsAccessor());
   files.set(`${generatedDir}/ios/Package.swift`, renderStringCatalogsPackage());
   for (const locale of locales) {
