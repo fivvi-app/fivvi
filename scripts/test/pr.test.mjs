@@ -846,7 +846,10 @@ describe('pr.sh reviewed', () => {
       const head = git('rev-parse', 'HEAD');
       const result = reviewed(head, undefined, { args: ['--should-fix', '1'], risk: LOW });
       assert.equal(result.status, 0, result.stderr);
-      assert.match(result.bodies[0], /low risk: 1 should-fix finding left as a follow-up, ADR-033\)$/);
+      assert.match(
+        result.bodies[0],
+        /low risk: 1 should-fix finding left as a follow-up, ADR-033\)$/,
+      );
     });
 
     it('AC7: refuses a high-risk PR with the same findings and records nothing', () => {

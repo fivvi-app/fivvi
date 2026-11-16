@@ -100,7 +100,10 @@ describe('merge gate', () => {
 
     it('AC7: refuses a high-risk PR with the same record, naming why', () => {
       const decision = gate(
-        withFollowUps({ risk: 'high', reasons: ['packages/database/migrations/0004.sql: tenant-data'] }),
+        withFollowUps({
+          risk: 'high',
+          reasons: ['packages/database/migrations/0004.sql: tenant-data'],
+        }),
       );
       assert.equal(decision.merge, false);
       assert.deepEqual(failed(decision), ['self-review clean']);
