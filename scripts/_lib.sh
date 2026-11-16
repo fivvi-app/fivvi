@@ -97,6 +97,30 @@ registered_worktrees() {
     END { emit() }'
 }
 
+# A platform slice of a spec (ADR-033): one branch and one PR for several tickets. `flow.sh start --slice` writes the
+# tickets, one number per line, first the one the branch is named after, to .work/<first>/slice (outside git, next to
+# the notes file).
+slice_file() { echo "$NOTES_DIR/$1/slice"; }
+# The tickets of the slice whose branch is named after issue $1, one per line; empty when $1 is no slice.
+slice_tickets() { [ ! -f "$(slice_file "$1")" ] || grep -E '^[0-9]+$' "$(slice_file "$1")" || true; }
+# The issue the branch of the slice is named after, for any ticket $1 of a slice; $1 itself when it is in none. When
+# several slice files list $1 (a start that was abandoned and made again), the one whose branch still exists wins, then
+# the newest file, so the answer never depends on the order of the glob.
+slice_primary() {
+  local file p newest="" live_newest=""
+  for file in "$NOTES_DIR"/*/slice; do
+    [ -f "$file" ] || continue
+    grep -qxF "$1" "$file" || continue
+    if [ -z "$newest" ] || [ "$file" -nt "$newest" ]; then newest="$file"; fi
+    p="$(basename "$(dirname "$file")")"
+    if [ -n "$(git -C "$MAIN_ROOT" for-each-ref --count=1 "refs/heads/*/$p-*" "refs/remotes/origin/*/$p-*")" ]; then
+      if [ -z "$live_newest" ] || [ "$file" -nt "$live_newest" ]; then live_newest="$file"; fi
+    fi
+  done
+  file="${live_newest:-$newest}"
+  if [ -n "$file" ]; then basename "$(dirname "$file")"; else echo "$1"; fi
+}
+
 new_worktree_path() { echo "$WORKTREES_DIR/$(echo "$1" | tr '/' '-')"; }
 
 branch_issue() { echo "$1" | sed -nE 's#^[a-z]+/([0-9]+)-.*#\1#p'; }

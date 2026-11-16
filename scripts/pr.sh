@@ -5,7 +5,9 @@
 #   pr.sh create [--title <t>] [--body-file <f|->] [--ready] [--full] [--no-check]
 #                                                 check, push, then open a draft PR (or update the open one, changing only
 #                                                 what you pass); a new PR's title defaults to the issue title, its body
-#                                                 gets "Closes #<issue>", or "Refs #<issue>" for a spec that closes through
+#                                                 gets "Closes #<issue>" (one for each ticket of a slice, flow.sh start
+#                                                 --slice, ADR-033; it warns, and still pushes, when the branch changes more
+#                                                 than about 1,500 lines), or "Refs #<issue>" for a spec that closes through
 #                                                 its tickets (labelled spec or with sub-issues, and not built as its
 #                                                 own ticket; flow.sh status says when it is complete); a body that
 #                                                 closes such a spec is refused (#509). Every push runs scripts/check.sh --fast, the checks
@@ -150,8 +152,26 @@ body_closes_issue() {
   grep -qiE "(^|[^[:alnum:]])(close[sd]?|fix(e[sd])?|resolve[sd]?):?[[:space:]]+(${repo_re}#|https://github[.]com/${repo_re}/issues/|#)$1([^0-9]|$)"
 }
 
+# The lines the branch changes against the default branch, added plus deleted (binary files count 0); empty when git
+# cannot tell (no origin/<default>).
+changed_lines() {
+  local stat
+  stat="$(git diff --numstat "origin/$(default_branch)...HEAD" 2>/dev/null)" || return 0
+  awk '$1 ~ /^[0-9]+$/ { n += $1 + $2 } END { print n + 0 }' <<<"$stat"
+}
+
+# A PR that grew past about 1,500 changed lines (ADR-033): warn, never refuse.
+SLICE_MAX_LINES=1500
+warn_if_large() {
+  local lines
+  lines="$(changed_lines)"
+  [ -n "$lines" ] && [ "$lines" -gt "$SLICE_MAX_LINES" ] || return 0
+  echo "⚠ this branch changes $lines lines, more than about 1,500: a big PR is hard to review (ADR-033). Keep it if the slice" >&2
+  echo "  is one piece of work; otherwise leave the last tickets of the slice for a PR of their own. The push goes on." >&2
+}
+
 cmd_create() {
-  local title="" body="" body_set=false draft=true check=true full=false issue existing
+  local title="" body="" body_set=false draft=true check=true full=false issue existing slice closes t
   while [ $# -gt 0 ]; do
     case "$1" in
       --title) title="${2:?}"; shift ;;
@@ -174,7 +194,15 @@ cmd_create() {
     title="$(gh issue view "$issue" --repo "$REPO" --json title --jq .title)"
   fi
   if [ -n "$issue" ] && { [ -z "$existing" ] || $body_set; }; then
-    if issue_closes_through_tickets "$issue"; then
+    slice="$(slice_tickets "$issue")"
+    if [ -n "$slice" ]; then
+      # A platform slice closes every one of its tickets (ADR-033).
+      closes=""
+      for t in $slice; do
+        body_closes_issue "$t" <<<"$body" || closes="${closes:+$closes$'\n'}Closes #$t"
+      done
+      [ -z "$closes" ] || body="${body:+$body$'\n\n'}$closes"
+    elif issue_closes_through_tickets "$issue"; then
       # A spec closes through its tickets (flow.sh status: complete, then issue.sh close), never through a PR (#509).
       ! body_closes_issue "$issue" <<<"$body" \
         || die "spec #$issue closes through its tickets, not a PR: write Refs #$issue"
@@ -190,6 +218,7 @@ cmd_create() {
     else run_check --fast "follow-up push to PR #$existing; CI is still the full gate on this commit; --full runs everything here too"
     fi
   fi
+  warn_if_large
   local out
   out="$(git push --quiet -u origin HEAD 2>&1)" || { echo "$out" >&2; die "push failed"; }
 
