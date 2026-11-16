@@ -97,12 +97,24 @@ cd "$IOS_DIR"
 # The apps, each with its project, scheme, test plan and UI test target named after it. `use_app <app>` makes it the one
 # the functions below act on. The final bundle ID of each is a literal here, as in Android's BuildInfoTest; that the README
 # records the same ID is checked by scripts/test/app-ids.test.mjs, so a README edit is not a native change.
-APPS="FivviPro Fivvi"
+# Every Xcode project in apps/ios is an app: Fivvi Pro first, then the others by name (today Fivvi).
+APPS="FivviPro"
+for project in "$IOS_DIR"/*.xcodeproj; do
+  name="$(basename "$project" .xcodeproj)"
+  [ "$name" = FivviPro ] || APPS="$APPS $name"
+done
 APP=""
+APP_WORD="" APP_NOTE="" APP_TESTS="" APP_UNIT="" APP_IOS="" APP_TIME=""
 FINAL_BUNDLE_ID=""
 RESULT_STEM=""
 use_app() { # <app>
   APP=$1
+  # How the messages name the app: Fivvi Pro's read as they did when it was the only app, the others name themselves.
+  if [ "$APP" = FivviPro ]; then
+    APP_WORD="" APP_NOTE="" APP_TESTS="Tests" APP_UNIT="Unit" APP_IOS="iOS" APP_TIME="Test"
+  else
+    APP_WORD=" $APP" APP_NOTE=" ($APP)" APP_TESTS="$APP tests" APP_UNIT="$APP unit" APP_IOS="$APP" APP_TIME="$APP test"
+  fi
   case "$APP" in
     FivviPro) FINAL_BUNDLE_ID=app.fivvi.pro; RESULT_STEM=TestResults ;;
     Fivvi) FINAL_BUNDLE_ID=app.fivvi; RESULT_STEM=TestResults-Fivvi ;;
@@ -446,10 +458,13 @@ build_for_testing() {
 
 # Finds the one .xctestrun of the app (`use_app`) in the products and makes it XCTESTRUN.
 find_xctestrun() {
-  local found
-  found="$(find "$PRODUCTS" -maxdepth 1 -name "${APP}_*.xctestrun")"
-  { [ -n "$found" ] && [ "$(wc -l <<<"$found")" -eq 1 ]; } \
-    || { echo "expected exactly one $APP .xctestrun in $PRODUCTS, found: $(tr '\n' ' ' <<<"${found:-none}")"; return 1; }
+  local all found strays
+  all="$(find "$PRODUCTS" -maxdepth 1 -name '*.xctestrun')"
+  found="$(grep -E "/$APP[_.][^/]*$" <<<"$all" || true)"
+  # One file per app, and no other: a file of a renamed scheme or test plan is a mistake, not something to pick from.
+  strays="$(grep -vE "/($(tr ' ' '|' <<<"$APPS"))[_.][^/]*$" <<<"$all" || true)"
+  { [ -n "$found" ] && [ "$(wc -l <<<"$found")" -eq 1 ] && [ -z "$strays" ]; } \
+    || { echo "expected exactly one .xctestrun for $APP (and none for any other app) in $PRODUCTS, found: $(tr '\n' ' ' <<<"${all:-none}")"; return 1; }
   XCTESTRUN="$found"
 }
 
@@ -462,7 +477,7 @@ build_app_for_testing() {
   fi
   find_xctestrun || return 1
   timing="$(sed -n '/^Build Timing Summary/,$p' "$log" | head -n 40)"
-  [ -z "$timing" ] || { echo "$timing"; summary "### iOS build timing ($APP)" "" '```' "$timing" '```' ""; }
+  [ -z "$timing" ] || { echo "$timing"; summary "### iOS build timing$APP_NOTE" "" '```' "$timing" '```' ""; }
 }
 
 # Runs the test plan on simulator $1 without building, both configurations (nl and en) in one run: the simulator is
@@ -539,7 +554,7 @@ run_tests() {
     only=("${CONFIG_ARGS[@]}")
     bundle="$(result_bundle "$2")"
   fi
-  run_xcodebuild "$1" "$bundle" "$TEST_DEADLINE" "$APP ${2:-nl and en} tests" ${only[@]+"${only[@]}"}
+  run_xcodebuild "$1" "$bundle" "$TEST_DEADLINE" "${APP_WORD# }${APP_WORD:+ }${2:-nl and en} tests" ${only[@]+"${only[@]}"}
 }
 
 # E017 #1433: the retry of `test <locale> --retry-failed`. Only the failed UI tests (the target FivviProUITests), once, and
@@ -632,7 +647,7 @@ retry_failed_ui_tests() { # <simulator> <locale>
     return 1
   fi
   for id in $ids; do only+=("-only-testing:${APP}UITests/$id"); done
-  step "Retry the failed $APP UI tests in $locale (simulator $udid)"
+  step "Retry the failed$APP_WORD UI tests in $locale (simulator $udid)"
   echo "Retrying $count failed UI test(s) once in $locale:$ids"
   rm -rf "$retry"
   run_xcodebuild "$udid" "$retry" "$RETRY_DEADLINE" "$locale retried tests" -only-test-configuration "$locale" "${only[@]}" \
@@ -656,7 +671,7 @@ retry_failed_ui_tests() { # <simulator> <locale>
     echo "::warning::flaky: $id ($locale) failed in the first run and passed on its retry (#1433): ${message:0:500}"
     flaky="${flaky:+$flaky$'\n'}- \`$id\`: ${message:0:500}"
   done <<<"$rows"
-  summary "### iOS tests that passed only on a retry in $locale ($APP)" "" \
+  summary "### iOS tests that passed only on a retry in $locale$APP_NOTE" "" \
     "Each failed in the first run and passed on its retry: file a bug for each and quarantine it (TESTING.md §8)." \
     "$flaky" ""
 }
@@ -671,7 +686,7 @@ test_locales_in_parallel() {
   wait "$nl_pid" || status=1
   wait "$en_pid" || status=1
   for locale in $LOCALES; do
-    echo "::group::$APP tests in $locale"
+    echo "::group::$APP_TESTS in $locale"
     cat ".build/test-$APP-$locale.log"
     echo "::endgroup::"
   done
@@ -711,15 +726,15 @@ report_slowest() { # <bundle> <locale>
   local rows
   rows="$(slowest_tests "$1" 10 "$2")"
   [ -z "$rows" ] || {
-    echo "Slowest $APP tests in $2 (seconds):"
+    echo "Slowest$APP_WORD tests in $2 (seconds):"
     echo "$rows" | sed 's/^| /  /; s/ | / /; s/ |$//'
-    summary "### Slowest iOS tests in $2 ($APP)" "" "| Test | Seconds |" "|---|--:|" "$rows" ""
+    summary "### Slowest iOS tests in $2$APP_NOTE" "" "| Test | Seconds |" "|---|--:|" "$rows" ""
   }
   rows="$(slowest_classes "$1" 10 "$2")"
   [ -z "$rows" ] || {
-    echo "$APP test time by class in $2 (tests, seconds; the first row is all of them):"
+    echo "$APP_TIME time by class in $2 (tests, seconds; the first row is all of them):"
     echo "$rows" | sed 's/^| /  /; s/ | / /g; s/ |$//'
-    summary "### iOS test time by class in $2 ($APP)" "" "| Class | Tests | Seconds |" "|---|--:|--:|" "$rows" ""
+    summary "### iOS test time by class in $2$APP_NOTE" "" "| Class | Tests | Seconds |" "|---|--:|--:|" "$rows" ""
   }
 }
 
@@ -732,9 +747,9 @@ TEST_BUDGET_PERCENT=${IOS_TEST_BUDGET_PERCENT:-85}
 report_budget() { # <locale>
   [ -n "${TEST_ELAPSED:-}" ] || return 0
   local percent=$((TEST_ELAPSED * 100 / TEST_DEADLINE)) line
-  line="The $APP $1 tests ran $TEST_ELAPSED s of the $TEST_DEADLINE s deadline ($percent %)"
+  line="The${APP_WORD} $1 tests ran $TEST_ELAPSED s of the $TEST_DEADLINE s deadline ($percent %)"
   echo "$line"
-  summary "### iOS test budget in $1 ($APP)" "" "$line" ""
+  summary "### iOS test budget in $1$APP_NOTE" "" "$line" ""
   if [ "$percent" -gt "$TEST_BUDGET_PERCENT" ]; then
     echo "::warning::$line, over the $TEST_BUDGET_PERCENT % that a run on a typical runner may use; a slower runner pushes it past the deadline (#1389): speed the suite up or split it (TESTING.md §7.2)"
   fi
@@ -748,7 +763,7 @@ report_failed() { # <bundle> [locale]
   [ -z "$rows" ] || {
     echo "Failed tests${2:+ in $2}:"
     echo "  ${rows//$'\n'/$'\n  '}"
-    summary "### Failed $APP iOS tests${2:+ in $2}" "" '```' "$rows" '```' ""
+    summary "### Failed$APP_WORD iOS tests${2:+ in $2}" "" '```' "$rows" '```' ""
   }
 }
 
@@ -759,7 +774,7 @@ report_flaky() { # <bundle>
   rows="$(flaky_tests "$1")"
   [ -z "$rows" ] || {
     echo "$rows"
-    summary "### Flaky $APP iOS tests" "" "$(sed -e 's/^::warning:://' -e 's/^/- /' <<<"$rows")" ""
+    summary "### Flaky$APP_WORD iOS tests" "" "$(sed -e 's/^::warning:://' -e 's/^/- /' <<<"$rows")" ""
   }
 }
 
@@ -785,7 +800,7 @@ test_one_locale() { # <simulator>
   local tests=0 tests_started=$SECONDS bundle
   bundle="$(result_bundle "$ONLY_LOCALE")"
   rm -rf "$bundle" ".build/$RESULT_STEM-$ONLY_LOCALE-retry.xcresult"
-  step "$APP unit and UI tests in $ONLY_LOCALE (simulator $1)"
+  step "$APP_UNIT and UI tests in $ONLY_LOCALE (simulator $1)"
   run_tests "$1" "$ONLY_LOCALE" || tests=1
   TEST_ELAPSED=$((SECONDS - tests_started))
   report_slowest "$bundle" "$ONLY_LOCALE"
@@ -794,12 +809,12 @@ test_one_locale() { # <simulator>
   if [ "$tests" != 0 ]; then
     report_failed "$bundle" "$ONLY_LOCALE"
     if $RETRY_FAILED && retry_failed_ui_tests "$1" "$ONLY_LOCALE"; then
-      echo "✓ $APP tests in $ONLY_LOCALE (the failed UI tests passed on their retry)"
+      echo "✓ $APP_IOS tests in $ONLY_LOCALE (the failed UI tests passed on their retry)"
       return 0
     fi
     return 1
   fi
-  echo "✓ $APP tests in $ONLY_LOCALE"
+  echo "✓ $APP_IOS tests in $ONLY_LOCALE"
 }
 
 if [ "$MODE" = test ]; then
@@ -845,15 +860,15 @@ test_all_locales() { # <simulator> [second simulator]
   $all_ui || per_locale=true
   if $parallel; then
     $all_ui || ui_note=", UI tests in ${UI_LOCALES// / and } only"
-    step "$APP unit and UI tests in nl and en at the same time${ui_note:-} (simulators $1 and $2)"
+    step "$APP_UNIT and UI tests in nl and en at the same time${ui_note:-} (simulators $1 and $2)"
     test_locales_in_parallel "$1" "$2" || tests=1
   elif $all_ui; then
-    step "$APP unit and UI tests in nl and en (simulator $1)"
+    step "$APP_UNIT and UI tests in nl and en (simulator $1)"
     run_tests "$1" || tests=1
   else
     # The UI tests of the other locale are skipped: one run per locale, one after the other (a failing run doesn't stop
     # the next), each with its own result bundle.
-    step "$APP unit tests in nl and en, UI tests in ${UI_LOCALES// / and } only (simulator $1)"
+    step "$APP_UNIT tests in nl and en, UI tests in ${UI_LOCALES// / and } only (simulator $1)"
     for locale in $LOCALES; do run_tests "$1" "$locale" || tests=1; done
   fi
   for locale in $LOCALES; do
