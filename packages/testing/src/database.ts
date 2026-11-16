@@ -87,8 +87,8 @@ export interface TestPool extends pg.Pool {
  * dropped (#1443): `pool.end()` resolves before the sockets are closed, and the pool of an idle
  * client re-emits a backend ended by `DROP DATABASE ... WITH (FORCE)` or `pg_terminate_backend`
  * (`57P01`) as an `error` event with no listener, which Vitest reports as an unhandled error
- * while every test passes. This pool listens for that error (the pool replaces the connection on
- * the next query), and `close()` resolves only after every connection has ended.
+ * while every test passes. This pool ignores that one error (the pool replaces the connection on
+ * the next query) and rethrows any other, and `close()` resolves only after every connection has ended.
  */
 export function createTestPool(
   connectionString: string,
@@ -96,7 +96,10 @@ export function createTestPool(
 ): TestPool {
   const pool = new pg.Pool({ ...options, connectionString }) as TestPool;
   const ended: Promise<void>[] = [];
-  pool.on('error', () => {});
+  pool.on('error', (error: Error & { code?: string }) => {
+    // Only the end of a backend is expected; any other idle-client error must still surface.
+    if (error.code !== '57P01') throw error;
+  });
   pool.on('connect', (client) => {
     ended.push(new Promise((resolve) => client.once('end', () => resolve())));
   });

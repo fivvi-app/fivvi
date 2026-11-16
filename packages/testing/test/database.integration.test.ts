@@ -190,7 +190,7 @@ describe('E002 #1443 test pools', () => {
     await database?.drop();
   });
 
-  it('survives the backend of an idle client being terminated, and serves the next query', async () => {
+  it('AC2: survives the backend of an idle client being terminated, and serves the next query', async () => {
     // No error listener of its own: Vitest fails the run on an unhandled error (as in CI).
     const pool = createTestPool(database.url, { max: 1 });
     try {
@@ -208,7 +208,20 @@ describe('E002 #1443 test pools', () => {
     }
   });
 
-  it('closes its connections before close() resolves, so dropping the database ends none', async () => {
+  it('AC2: ignores only the 57P01 of an ended backend, any other idle-client error surfaces', async () => {
+    const pool = createTestPool(database.url, { max: 1 });
+    try {
+      const ended = Object.assign(new Error('terminating connection'), { code: '57P01' });
+      expect(() => pool.emit('error', ended)).not.toThrow();
+
+      const other = Object.assign(new Error('boom'), { code: '08006' });
+      expect(() => pool.emit('error', other)).toThrow('boom');
+    } finally {
+      await pool.close();
+    }
+  });
+
+  it('AC2: closes its connections before close() resolves, so dropping the database ends none', async () => {
     const pool = createTestPool(database.url, { max: 2 });
     const clients: pg.PoolClient[] = [];
     const ended: string[] = [];
@@ -216,8 +229,9 @@ describe('E002 #1443 test pools', () => {
       clients.push(client);
       client.once('end', () => ended.push('end'));
     });
-    await Promise.all([pool.query('select 1'), pool.query('select pg_sleep(0.05)')]);
-    expect(clients.length).toBeGreaterThan(0);
+    // Two concurrent queries on a pool of 2 hold two connections at once.
+    await Promise.all([pool.query('select pg_sleep(0)'), pool.query('select pg_sleep(0)')]);
+    expect(clients).toHaveLength(2);
 
     await pool.close();
 
