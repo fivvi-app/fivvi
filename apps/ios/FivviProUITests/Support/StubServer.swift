@@ -129,6 +129,12 @@ final class StubServer: Sendable {
         responder.sessionRoutes.changeSessionBySomeoneElse()
     }
 
+    /// While true, `GET /api/v1/me` gets no answer, so the loading state of the home stays on screen. Setting it to
+    /// false answers the reads held.
+    func holdAccountRequests(_ hold: Bool) {
+        responder.holdAccountReads(hold)
+    }
+
     /// While offline, every request is cut off without an answer, as a lost connection would (it is still recorded in
     /// `requests`).
     func setOffline(_ offline: Bool) {

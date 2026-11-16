@@ -51,6 +51,8 @@ describe('the versioned GitHub settings', () => {
     assert.deepEqual(
       jobs.filter((name) => !required.includes(name)),
       [
+        // Not required, and never to be: the listed flaky tests run here (E002 #1361, TESTING.md §8).
+        'Quarantine',
         'iOS build',
         'iOS build (retry)',
         'iOS tests (${{ matrix.locale }})',
@@ -95,11 +97,11 @@ describe('the versioned GitHub settings', () => {
     assert.deepEqual(queue.parameters, {
       merge_method: 'SQUASH',
       grouping_strategy: 'ALLGREEN',
-      max_entries_to_build: 3,
+      max_entries_to_build: 4,
       max_entries_to_merge: 1,
       min_entries_to_merge: 1,
       min_entries_to_merge_wait_minutes: 5,
-      check_response_timeout_minutes: 150,
+      check_response_timeout_minutes: 160,
     });
     const ci = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8');
     // The job timeouts as ci.yml sets them (job-level, four spaces): the longest native job starts after

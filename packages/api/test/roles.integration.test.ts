@@ -41,7 +41,7 @@ const ANY_ID = '0197c0de-0000-7000-8000-0000000000e1';
 // Stands for an invitation the test makes before the call that names it (F011).
 const INVITATION_ID = '0197c0de-0000-7000-8000-0000000000e2';
 
-describe('F004 roles on every workspace route', () => {
+describe('@permission F004 roles on every workspace route', () => {
   let database: TestDatabase;
   let admin: DatabaseClient;
   let app: DatabaseClient;
@@ -424,7 +424,7 @@ describe('F004 roles on every workspace route', () => {
     ]);
   });
 
-  it('AC5: racing demotions keep an Owner (own database, committed transactions)', async () => {
+  it('@concurrency AC5: racing demotions keep an Owner (own database, committed transactions)', async () => {
     const gym = await createWorkspace(admin.db, { label: 'race' });
     const first = await createAccount(admin.db, { label: 'first' });
     const second = await createAccount(admin.db, { label: 'second' });

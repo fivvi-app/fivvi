@@ -151,7 +151,7 @@ async function snapshot(admin: DatabaseExecutor): Promise<Record<string, string>
   return result;
 }
 
-describe('E011 RLS as the app role', () => {
+describe('@isolation E011 RLS as the app role', () => {
   let database: TestDatabase;
   let admin: DatabaseClient;
   let app: DatabaseClient;

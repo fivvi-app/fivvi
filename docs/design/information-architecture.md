@@ -407,6 +407,8 @@ Every email exists in `nl-NL` and `en` with one template structure (`§51, §74`
 | EM-22 | Je sessie op {date} gaat door | Your session on {date} is going ahead | Client | The trainer keeps the session after a request, with their reply | F033 |
 | EM-23 | Je bent niet meer klant bij {workspace} | You're no longer a client of {workspace} | Client | The Owner removes a client | F032 |
 | EM-34 | Je code om je e-mailadres te wijzigen | Your code to change your email address | Account holder | Change of own email address requested (F005); sent to the new address only | F005, F033 |
+| EM-35 | Het e-mailadres van je Fivvi-account is gewijzigd | The email address of your Fivvi account has been changed | Account holder | Change of own email address confirmed (F005); sent to the old address, no link | F005, F033 |
+| EM-36 | Iemand wilde dit e-mailadres voor een ander Fivvi-account gebruiken | Someone wanted to use this email address for another Fivvi account | Account holder | Another account's email address is requested (F005); sent instead of the code (EM-34) | F005, F033 |
 
 The table is the catalog of [`packages/email`](../../packages/email/src/catalog.ts) in words: `packages/email/src/catalog-docs.test.ts` fails when an ID, an audience, an owner feature or a built subject differs between the two, or when a retired entry is not marked retired. M11 adds the commerce emails from EM-24 on. A subject in italics marks an ID that is retired or reserved.
 

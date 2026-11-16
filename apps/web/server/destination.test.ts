@@ -55,8 +55,34 @@ describe('F002 where the signed-in home sends a person', () => {
   });
 
   it('F012 AC4: with several workspaces it goes to the remembered one (the rule itself is tested in start-workspace.test.ts)', () => {
+    // Two workspaces of an Owner: a Trainer's home is not a workspace (F013, below).
+    const ownedStudio = { ...studio, role: 'owner' } as const;
+
     expect(
-      destinationOf({ canCreateWorkspace: false, workspaces: [gym, studio] }, 'studio-zuid'),
+      destinationOf({ canCreateWorkspace: false, workspaces: [gym, ownedStudio] }, 'studio-zuid'),
     ).toEqual({ to: 'workspace', slug: 'studio-zuid' });
+  });
+
+  it("F013 AC9: a Trainer's home is Mijn dag, not the workspace; the Owner's stays the workspace", () => {
+    const destination = destinationOf({ canCreateWorkspace: false, workspaces: [studio] });
+
+    expect(destination).toEqual({ to: 'my-day' });
+    expect(pathOf(destination)).toBe('/me/day');
+    expect(destinationOf({ canCreateWorkspace: false, workspaces: [gym] })).toEqual({
+      to: 'workspace',
+      slug: 'johns-gym',
+    });
+  });
+
+  it('F013 AC9: the role home is the role in the workspace this browser opens: Trainer of one, Owner of another', () => {
+    const workspaces = [gym, studio];
+
+    expect(destinationOf({ canCreateWorkspace: false, workspaces }, 'studio-zuid')).toEqual({
+      to: 'my-day',
+    });
+    expect(destinationOf({ canCreateWorkspace: false, workspaces }, 'johns-gym')).toEqual({
+      to: 'workspace',
+      slug: 'johns-gym',
+    });
   });
 });

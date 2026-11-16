@@ -32,7 +32,7 @@ final class SignInAccessibilityUITests: SignInUITestCase {
 
         screen.type(server.signIn.code, into: screen.code)
         XCTAssertTrue(screen.signedInAs.waitUntilExists(timeout: timeout))
-        try assertReadable(screen, [screen.signedInAs, screen.signOut, screen.greeting])
+        try assertReadable(screen, [screen.signedInAs, screen.signOut, screen.profileRow])
     }
 
     /// E020 AC15: the audit with the contrast check on both steps of TM-01 (with their messages) and on the signed-in

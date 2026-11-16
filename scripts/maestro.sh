@@ -21,7 +21,7 @@
 # and, while it runs, every MAESTRO_CLEAR_EVERY seconds (default 20, shorter than one flow) by a background loop that stops
 # when the run ends, also on failure or Ctrl-C. Maestro reads e2e/maestro/config.yaml to pick the flows.
 #
-# Before the first flow, the web server has answered GET /api/v1/hello, the app's first request, in both locales.
+# Before the first flow, the web server has answered GET /api/v1/hello, a request that warms it up, in both locales.
 # When it ends, also on failure or Ctrl-C, it stops the emulator or simulator it booted and its Gradle daemons;
 # KEEP_DEVICE=1 leaves them running for the next run. On an emulator it didn't boot, it restores the language and the
 # error dialog setting, also when it had to relaunch that emulator (#584) and stops the relaunched one.
@@ -77,7 +77,7 @@ EMULATOR_RECOVERED=false
 DEVICE_RECOVER=""
 export MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true
 
-# The catalog text of a dotted key, e.g. `catalog en hello.title`: what the screen should show. Fails, with the key and
+# The catalog text of a dotted key, e.g. `catalog en signOut.label`: what the screen should show. Fails, with the key and
 # the locale on stderr, when the key is missing or is not a text (a renamed leaf would otherwise print "undefined").
 catalog() {
   # shellcheck disable=SC2016 # the `${key}` is a JavaScript template literal, not shell
@@ -108,7 +108,6 @@ set_flow_env() {
   [ "$1" != "nl-NL" ] || other="en"
   FLOW_ENV=()
   add_catalog_env SIGN_IN_SEND_CODE "$1" signIn.sendCode || return 1
-  add_catalog_env HELLO_TITLE "$1" hello.title || return 1
   add_catalog_env HOME_SET_UP_ON_WEB "$1" home.setUpOnWeb || return 1
   add_catalog_env ROLE_OWNER "$1" roles.owner || return 1
   add_catalog_env ROLE_TRAINER "$1" roles.trainer || return 1
@@ -179,8 +178,9 @@ clear_rate_limits() {
   pnpm db:reset-rate-limits >/dev/null || die "clearing the sign-in rate limits failed"
 }
 
-# The app's first screen asks GET /api/v1/hello?locale=<its language>. Ask it once per locale before the first flow,
-# so no flow waits on the server's first request, and stop here, not 20 s into a flow, when it doesn't answer (#89).
+# The server's first request is slow (the route, the database connection). Ask GET /api/v1/hello?locale=<language> once per
+# locale before the first flow, so no flow's 20 s wait is spent on it, and stop here, not 20 s into a flow, when it
+# doesn't answer (#89). The apps no longer call this route (the Hello screen went, E020 #652); it warms the same server.
 warm_up_hello() {
   local locale url
   for locale in $LOCALES; do

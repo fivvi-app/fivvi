@@ -1750,10 +1750,14 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       blockers = [],
       onGitHub = ['owner-queue', 'owner-decide'],
       rules = [],
+      bugs = [],
+      railway = {},
+      noRailway = false,
     } = scenario;
+    const withRailway = (base) => ({ ...base, ...gh.railway(railway) });
     return spawnSync(join(repo, 'scripts/flow.sh'), [command, ...args], {
       encoding: 'utf8',
-      env: {
+      env: (noRailway ? gh.withoutRailway : withRailway)({
         ...gh.env([
           ...failing.map((match) => ({ match, out: '', status: 1 })),
           ...rules,
@@ -1766,6 +1770,7 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
             out: assigned.map(({ number }) => ({ number })),
           },
           { match: '^issue list .*--label spec ', out: specs },
+          { match: '^issue list .*--label bug ', out: bugs },
           {
             match: '^issue list .*--label ready-for-agent',
             out: tickets,
@@ -1797,7 +1802,7 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
         FIVVI_NOW: NOW,
         GIT_TERMINAL_PROMPT: '0',
         ...env,
-      },
+      }),
     });
   };
   const readyOf = (stdout) =>
@@ -1876,6 +1881,285 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       assert.notEqual(result.status, 0);
       assert.match(result.stderr, /^error: could not read/m);
       assert.doesNotMatch(result.stdout, /\(none\)\n== Waiting/);
+    });
+  });
+
+  // #1415: a failing deploy of the web service on Railway development went unnoticed for two days. `next` and `idle`
+  // read the newest non-SKIPPED deployment of development and production, and nothing else from Railway.
+  describe('#1415 the deploy status of web on Railway', () => {
+    const PROJECT = '5ac2d844-191a-4671-9632-50b66817f648';
+    const MARK = '<!-- fivvi:deploy-failed development -->';
+    const deployment = (status, id, commit, createdAt) => ({
+      id,
+      status,
+      createdAt,
+      meta: { commitHash: commit, branch: 'main' },
+    });
+    const GOOD = deployment(
+      'SUCCESS',
+      'aaaaaaaa-0000-4000-8000-000000000001',
+      'c'.repeat(40),
+      '2026-10-20T09:00:00Z',
+    );
+    const BAD = deployment(
+      'FAILED',
+      '8a369478-1111-4222-8333-444444444444',
+      'd1e2f3a4b5c6'.repeat(3),
+      '2026-10-20T10:30:00Z',
+    );
+    const SKIPPED = deployment(
+      'SKIPPED',
+      'bbbbbbbb-0000-4000-8000-000000000002',
+      'e'.repeat(40),
+      '2026-10-20T11:00:00Z',
+    );
+    const ticket = issue(180, '[F003] Add a client', ['ready-for-agent']);
+    const FAILED_LINE =
+      'web on development is FAILED (deployment 8a369478, commit d1e2f3a, 2026-10-20T10:30:00Z)';
+    const bug = (number, body, names = ['bug', 'ready-for-agent'], extra = {}) => ({
+      ...issue(number, `Deploy of development fails (${number})`, names, { body, ...extra }),
+    });
+    const tied = (number, names, extra) =>
+      bug(number, `## Acceptance criteria\n\n${MARK}`, names, extra);
+    const waitingOf = (stdout) =>
+      stdout.slice(
+        stdout.indexOf('== Waiting on the owner'),
+        stdout.indexOf('== For the owner to read'),
+      );
+    const lookedUpBugs = () =>
+      gh
+        .calls()
+        .filter(({ args }) => args[0] === 'issue' && args[1] === 'list' && args.includes('bug'));
+
+    it('AC1: reads the list of development and of production with the read-only CLI call, and nothing else', () => {
+      const result = run('next', {
+        tickets: [ticket],
+        railway: { development: [GOOD], production: [GOOD] },
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(gh.railwayCalls(), [
+        `deployment list -p ${PROJECT} -e development -s web --json`,
+        `deployment list -p ${PROJECT} -e production -s web --json`,
+      ]);
+      const idle = run('idle', { railway: { development: [GOOD], production: [GOOD] } });
+      assert.equal(idle.status, 0, idle.stderr);
+      assert.equal(gh.railwayCalls().length, 2);
+      assert.equal(idle.stdout, 'idle: nothing for an agent\n== Waiting on the owner\n(none)\n');
+    });
+
+    it('lists nothing when the newest deployment passed, whatever the older ones did', () => {
+      const result = run('next', { tickets: [ticket], railway: { development: [GOOD, BAD] } });
+      assert.equal(readyOf(result.stdout), '== Ready for an agent\n#180 [F003] Add a client\n');
+      assert.equal(lookedUpBugs().length, 0);
+    });
+
+    it('skips SKIPPED deployments: a failed one behind them counts, a passed one behind them does not', () => {
+      const failed = run('next', { railway: { development: [SKIPPED, BAD, GOOD] } });
+      assert.match(readyOf(failed.stdout), new RegExp(FAILED_LINE.replace(/[()]/g, '\\$&')));
+      const fine = run('next', { railway: { development: [SKIPPED, GOOD, BAD] } });
+      assert.equal(readyOf(fine.stdout), '== Ready for an agent\n(none)\n');
+      const only = run('next', { railway: { development: [SKIPPED] } });
+      assert.equal(readyOf(only.stdout), '== Ready for an agent\n(none)\n');
+    });
+
+    it('AC2: a FAILED development deploy without a bug is the first thing under Ready, with how to file the bug', () => {
+      const result = run('next', { tickets: [ticket], railway: { development: [BAD, GOOD] } });
+      assert.equal(result.status, 0, result.stderr);
+      const [header, first, second] = readyOf(result.stdout).split('\n');
+      assert.equal(header, '== Ready for an agent');
+      assert.match(first, /^Deploy bug: /);
+      assert.ok(first.includes(FAILED_LINE), first);
+      assert.ok(first.includes(MARK), first);
+      assert.match(first, /scripts\/issue\.sh create bug/);
+      assert.equal(second, '#180 [F003] Add a client');
+    });
+
+    it('AC2: reports a CRASHED deploy like a FAILED one', () => {
+      const crashed = { ...BAD, status: 'CRASHED' };
+      const result = run('next', { railway: { development: [crashed] } });
+      assert.match(readyOf(result.stdout), /^Deploy bug: web on development is CRASHED \(/m);
+    });
+
+    it('AC2: does not report a deploy that is still building or deploying', () => {
+      for (const status of ['BUILDING', 'DEPLOYING', 'INITIALIZING', 'SLEEPING', 'REMOVED']) {
+        const result = run('next', { railway: { development: [{ ...BAD, status }] } });
+        assert.equal(readyOf(result.stdout), '== Ready for an agent\n(none)\n', status);
+      }
+    });
+
+    it('AC2: idle exits 1 and reports the deploy as work', () => {
+      const result = run('idle', { railway: { development: [BAD] } });
+      assert.equal(result.status, 1, result.stderr);
+      assert.match(
+        result.stdout,
+        /^Deploy bug: web on development is FAILED \(deployment 8a369478/m,
+      );
+      assert.doesNotMatch(result.stdout, /^idle/m);
+    });
+
+    it('AC3: with an open bug tied to it, says to build that bug first (the bug is ready work)', () => {
+      const result = run('next', {
+        tickets: [ticket],
+        bugs: [{ number: 1500, body: `x\n${MARK}` }],
+        others: [tied(1500, ['bug', 'ready-for-agent'])],
+        railway: { development: [BAD] },
+      });
+      assert.equal(result.status, 0, result.stderr);
+      const lines = readyOf(result.stdout).split('\n');
+      assert.equal(lines[1], `Build #1500 first: ${FAILED_LINE}`);
+      assert.equal(lines[2], '#180 [F003] Add a client');
+      assert.doesNotMatch(waitingOf(result.stdout), /#1500|FAILED/);
+    });
+
+    it('AC3: ignores a bug without the marker, and a closed one is not read at all', () => {
+      const result = run('next', {
+        bugs: [{ number: 1501, body: 'Some other bug' }],
+        others: [bug(1501, 'Some other bug')],
+        railway: { development: [BAD] },
+      });
+      assert.match(readyOf(result.stdout), /^Deploy bug: /m);
+      assert.equal(viewed(1501), false);
+      const asked = lookedUpBugs()[0].args;
+      assert.deepEqual(
+        [asked.includes('--state'), asked[asked.indexOf('--state') + 1]],
+        [true, 'open'],
+      );
+    });
+
+    it('AC3: with several bugs tied to it, builds the oldest', () => {
+      const result = run('next', {
+        bugs: [
+          { number: 1600, body: MARK },
+          { number: 1502, body: MARK },
+        ],
+        others: [tied(1502, ['bug', 'ready-for-agent']), tied(1600, ['bug', 'ready-for-agent'])],
+        railway: { development: [BAD] },
+      });
+      assert.match(readyOf(result.stdout), /^Build #1502 first: /m);
+    });
+
+    it('AC3: with a bug that waits on a human, lists it under Waiting on the owner, not as work', () => {
+      const scenario = {
+        bugs: [{ number: 1500, body: MARK }],
+        others: [tied(1500, ['bug', 'ready-for-human'])],
+        railway: { development: [BAD] },
+      };
+      const next = run('next', scenario);
+      assert.equal(readyOf(next.stdout), '== Ready for an agent\n(none)\n');
+      assert.match(
+        waitingOf(next.stdout),
+        new RegExp(`^${FAILED_LINE.replace(/[()]/g, '\\$&')}: bug #1500 is human$`, 'm'),
+      );
+      const idle = run('idle', scenario);
+      assert.equal(idle.status, 0, idle.stderr);
+      assert.match(
+        idle.stdout,
+        /^idle: nothing for an agent\n== Waiting on the owner\n.*bug #1500 is human/,
+      );
+    });
+
+    it('AC3: a bug that is in a phase an agent acts on keeps idle at exit 1', () => {
+      const result = run('idle', {
+        bugs: [{ number: 1500, body: MARK }],
+        others: [tied(1500, ['bug', 'ready-for-agent'])],
+        railway: { development: [BAD] },
+      });
+      assert.equal(result.status, 1, result.stderr);
+      assert.match(result.stdout, /^Build #1500 first: /m);
+    });
+
+    it('fails instead of listing nothing when the open bugs cannot be read', () => {
+      const result = run('next', {
+        railway: { development: [BAD] },
+        failing: ['^issue list .*--label bug '],
+      });
+      assert.notEqual(result.status, 0);
+      assert.match(result.stderr, /^error: could not read/m);
+      assert.equal(
+        run('idle', { railway: { development: [BAD] }, failing: ['^issue list .*--label bug '] })
+          .status,
+        2,
+      );
+    });
+
+    it('AC4: a FAILED production deploy is status only: Waiting on the owner, never work', () => {
+      const scenario = {
+        railway: { development: [GOOD], production: [{ ...BAD, status: 'CRASHED' }] },
+      };
+      const next = run('next', scenario);
+      assert.equal(readyOf(next.stdout), '== Ready for an agent\n(none)\n');
+      assert.match(
+        waitingOf(next.stdout),
+        /^web on production is CRASHED \(deployment 8a369478, commit d1e2f3a, 2026-10-20T10:30:00Z\)/m,
+      );
+      const idle = run('idle', scenario);
+      assert.equal(idle.status, 0, idle.stderr);
+      assert.match(
+        idle.stdout,
+        /^idle: nothing for an agent\n== Waiting on the owner\nweb on production is CRASHED/,
+      );
+      assert.equal(lookedUpBugs().length, 0);
+    });
+
+    it('AC4: development and production failing at once: the bug is work, production waits on the owner', () => {
+      const result = run('next', { railway: { development: [BAD], production: [BAD] } });
+      assert.match(readyOf(result.stdout), /^Deploy bug: web on development/m);
+      assert.doesNotMatch(readyOf(result.stdout), /production/);
+      assert.match(waitingOf(result.stdout), /^web on production is FAILED/m);
+    });
+
+    it('AC5: when the list fails (logged out), says so for each environment under Waiting; not work, not an error', () => {
+      const scenario = { tickets: [ticket], railway: { fail: ['development', 'production'] } };
+      const next = run('next', scenario);
+      assert.equal(next.status, 0, next.stderr);
+      assert.equal(readyOf(next.stdout), '== Ready for an agent\n#180 [F003] Add a client\n');
+      assert.match(
+        waitingOf(next.stdout),
+        /^Deploy status of web on development unknown: .*railway login/m,
+      );
+      assert.match(
+        waitingOf(next.stdout),
+        /^Deploy status of web on production unknown: .*railway login/m,
+      );
+      const idle = run('idle', { railway: { fail: ['development', 'production'] } });
+      assert.equal(idle.status, 0, idle.stderr);
+      assert.match(
+        idle.stdout,
+        /^idle: nothing for an agent\n== Waiting on the owner\nDeploy status of web on development unknown/,
+      );
+    });
+
+    it('AC5: when the railway CLI is missing, says so under Waiting and keeps the GitHub part working', () => {
+      const next = run('next', { tickets: [ticket], noRailway: true });
+      assert.equal(next.status, 0, next.stderr);
+      assert.equal(readyOf(next.stdout), '== Ready for an agent\n#180 [F003] Add a client\n');
+      assert.match(
+        waitingOf(next.stdout),
+        /^Deploy status of web on development unknown: .*not installed/m,
+      );
+      assert.match(waitingOf(next.stdout), /^Deploy status of web on production unknown: /m);
+      assert.equal(gh.railwayCalls().length, 0);
+      const idle = run('idle', { noRailway: true });
+      assert.equal(idle.status, 0, idle.stderr);
+      const work = run('idle', { tickets: [ticket], noRailway: true });
+      assert.equal(work.status, 1, work.stderr);
+      assert.equal(work.stdout, '#180 [F003] Add a client\n');
+    });
+
+    it('AC5: an answer that is not a deployment list counts as unreadable', () => {
+      for (const development of ['not json', '{"error":"x"}']) {
+        const result = run('next', { railway: { development } });
+        assert.equal(result.status, 0, result.stderr);
+        assert.equal(readyOf(result.stdout), '== Ready for an agent\n(none)\n');
+        assert.match(waitingOf(result.stdout), /^Deploy status of web on development unknown: /m);
+      }
+    });
+
+    it('AC5: one environment unreadable does not hide the other', () => {
+      const result = run('next', { railway: { fail: ['production'], development: [BAD] } });
+      assert.match(readyOf(result.stdout), /^Deploy bug: web on development/m);
+      assert.match(waitingOf(result.stdout), /^Deploy status of web on production unknown/m);
+      assert.doesNotMatch(waitingOf(result.stdout), /web on development/);
     });
   });
 

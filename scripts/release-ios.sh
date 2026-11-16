@@ -141,11 +141,15 @@ archive() {
   # Debug signing (Local.xcconfig, the team in the project) is not touched: the signing settings are given here, for this
   # archive only. Release.xcconfig has the production address, the Sentry DSN and the shared version. The packages are the
   # ones of the committed Package.resolved: a release never resolves a newer version.
+  # A setting on the command line applies to every target, and the resource bundles of the local Swift packages
+  # (apps/ios/Packages, packages/i18n/generated/ios) refuse a provisioning profile ("does not support provisioning
+  # profiles"). So the profile goes in FIVVI_RELEASE_PROFILE, which no target reads but the app's: Release.xcconfig turns it
+  # into the app's PROVISIONING_PROFILE_SPECIFIER.
   xcodebuild archive -project "$PROJECT" -scheme "$SCHEME" -configuration Release -destination generic/platform=iOS \
     -archivePath "$ARCHIVE" -clonedSourcePackagesDirPath "$ROOT/apps/ios/.build/SourcePackages" \
     -onlyUsePackageVersionsFromResolvedFile \
     CURRENT_PROJECT_VERSION="$number" CODE_SIGN_STYLE=Manual CODE_SIGN_IDENTITY="Apple Distribution" \
-    DEVELOPMENT_TEAM="$TEAM_ID" PROVISIONING_PROFILE_SPECIFIER="$PROFILE_NAME" OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN" \
+    DEVELOPMENT_TEAM="$TEAM_ID" FIVVI_RELEASE_PROFILE="$PROFILE_NAME" OTHER_CODE_SIGN_FLAGS="--keychain $KEYCHAIN" \
     || die "xcodebuild archive failed"
   [ "$(archived_value CFBundleVersion)" = "$number" ] \
     || die "the archive has build number $(archived_value CFBundleVersion), not $number of this run"

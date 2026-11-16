@@ -89,6 +89,20 @@ export {
   updateLocation,
 } from './repositories/locations.ts';
 export {
+  addOfferVersion,
+  createOffer,
+  insertOffer,
+  listOffers,
+  listOfferVersions,
+  type NewOffer,
+  type OfferCreditKind,
+  type OfferKind,
+  type OfferStatus,
+  type OfferTerms,
+  type OfferVersionView,
+  type OfferView,
+} from './repositories/offers.ts';
+export {
   findPayment,
   findProviderCustomerId,
   type InPaymentScope,
@@ -138,6 +152,15 @@ export {
   recordRefundStatusChange,
   refundLedger,
 } from './repositories/refunds.ts';
+export {
+  type DeletedRow,
+  deleteClosedInvitations,
+  deleteExpiredSessions,
+  deleteOldAccessLogEntries,
+  deleteOldDeletionLogEntries,
+  deleteOldRateLimits,
+  deleteSignInTokens,
+} from './repositories/retention.ts';
 export {
   type AttendanceStatus,
   createPrivateSession,

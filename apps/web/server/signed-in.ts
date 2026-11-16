@@ -7,6 +7,7 @@ import { LAST_WORKSPACE_COOKIE } from '../app/(app)/last-workspace';
 import { apiClient } from './api';
 import { type Destination, destinationOf, type Me, pathOf } from './destination';
 import { loadMe } from './me';
+import { trainsAnywhere } from './trains-anywhere';
 
 /**
  * Who is signed in and where they stand (`GET /v1/me`), for the pages that need sign-in. Asked
@@ -36,3 +37,19 @@ export function redirectTo(destination: Destination): never {
 export async function homeDestination(me: Me): Promise<Destination> {
   return destinationOf(me, (await cookies()).get(LAST_WORKSPACE_COOKIE)?.value);
 }
+
+/**
+ * Whether the signed-in person has a trainer profile somewhere (F013): the people who get the
+ * personal pages. Asked once per request.
+ */
+export const currentTrainsAnywhere = cache(async (): Promise<boolean> => {
+  const { workspaces } = await currentMe();
+  return trainsAnywhere(workspaces, async () => {
+    const cookie = (await headers()).get('cookie');
+    const { data } = await apiClient.GET('/v1/me/workspaces', {
+      headers: cookie ? { cookie } : {},
+    });
+    if (!data) throw new Error('GET /v1/me/workspaces did not answer with the workspaces.');
+    return data;
+  });
+});

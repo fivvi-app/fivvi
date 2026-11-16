@@ -28,7 +28,16 @@ export const EXTRA_POLICIES: Record<string, string[]> = {
   team_members: ['team_members_own_account'],
   // The narrow read-only doors of a person with an invitation (F011): by the hash of the link's
   // token, and by the address the sign-in gate asks about. See migration 0020.
-  trainer_invitations: ['trainer_invitations_by_token', 'trainer_invitations_by_email'],
+  // The daily retention tasks (E014, migration `retention_cron_policies`) run as the cron role, which sets no workspace:
+  // it may read and delete the rows of these two business tables, nothing else (SELECT and DELETE
+  // are all `CRON_TABLE_PRIVILEGES` grants it).
+  trainer_invitations: [
+    'trainer_invitations_by_token',
+    'trainer_invitations_by_email',
+    'trainer_invitations_cron_select',
+    'trainer_invitations_cron_delete',
+  ],
+  access_log: ['access_log_cron_select', 'access_log_cron_delete'],
 };
 
 export const RULES: TenancyRules = {
