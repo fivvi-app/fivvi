@@ -42,6 +42,12 @@ class LinkManifestTest {
         }
     }
 
+    // A link tapped while the app is open reaches the running activity (onNewIntent) instead of a second one.
+    @Test
+    fun E017_AC6_theActivityIsSingleTask() {
+        assertTrue(client.contains("""android:launchMode="singleTask""""))
+    }
+
     @Test
     fun E017_AC6_onlyTheLauncherAndTheVerifiedFilterExist() {
         assertEquals(2, filters(client).size)

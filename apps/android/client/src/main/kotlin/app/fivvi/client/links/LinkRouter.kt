@@ -30,6 +30,7 @@ class LinkRouter {
         // "/j/ABCD2345" splits into ["", "j", "ABCD2345"]: exactly one value after the kind.
         if (segments.size != 3 || segments[0].isNotEmpty() || segments[2].isEmpty()) return null
         val value = segments[2]
+        if (!CODE.matches(value)) return null
         val destination = when (segments[1]) {
             "j" -> LinkDestination.Join(value)
             "i" -> LinkDestination.Invitation(value)
@@ -46,5 +47,20 @@ class LinkRouter {
 
     private companion object {
         const val HOST = "fivvi.app"
+
+        // A join code is 8 characters of Crockford base32 and an invitation token 43 of base64url; the filter is the
+        // common shape of both, with room to grow.
+        val CODE = Regex("[A-Za-z0-9_-]{1,64}")
     }
 }
+
+/**
+ * The address a started or re-delivered activity intent carries, or `null` when it carries none to open: only a VIEW
+ * intent does, and not one Android hands over again when the app is opened from the Recents list
+ * (`FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY`), which would open a link already dismissed.
+ */
+fun linkUrl(action: String?, flags: Int, dataString: String?): String? =
+    if (action == "android.intent.action.VIEW" && flags and LAUNCHED_FROM_HISTORY == 0) dataString else null
+
+// Intent.FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY, spelled out so the rule runs in a plain unit test.
+private const val LAUNCHED_FROM_HISTORY = 0x00100000

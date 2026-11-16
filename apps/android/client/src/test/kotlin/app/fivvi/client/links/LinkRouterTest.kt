@@ -66,4 +66,38 @@ class LinkRouterTest {
         assertNull(router.open("not a url"))
         assertNull(router.open("https://fivvi.app/j/AB CD"))
     }
+
+    // The code is Crockford base32 (8 characters), the invitation token base64url (43 characters): anything else in the
+    // last segment is no code or token, so a crafted link never reaches a screen (or the browser button) as one.
+    @Test
+    fun E017_AC6_aCodeOrTokenWithOtherCharactersOrTooLongIsIgnored() {
+        listOf(
+            "https://fivvi.app/j/AB%20CD",
+            "https://fivvi.app/j/AB.CD",
+            "https://fivvi.app/j/AB+CD",
+            "https://fivvi.app/j/AB%2FCD",
+            "https://fivvi.app/j/%3Cscript%3E",
+            "https://fivvi.app/i/tok;1",
+            "https://fivvi.app/i/${"a".repeat(65)}",
+            "https://fivvi.app/j/${"A".repeat(65)}",
+        ).forEach { assertNull(it, router.open(it)) }
+    }
+
+    @Test
+    fun E017_AC6_theLongestTokenAndAllAllowedCharactersAreKept() {
+        val token = "Az09_-".repeat(10) + "abcd"
+        assertEquals(64, token.length)
+        assertEquals(LinkDestination.Invitation(token), router.open("https://fivvi.app/i/$token")?.destination)
+    }
+
+    // Opened again from the Recents list, Android hands the activity the intent that started it once more.
+    @Test
+    fun E017_AC6_aLinkIntentRelaunchedFromRecentsIsIgnored() {
+        val view = "android.intent.action.VIEW"
+        val url = "https://fivvi.app/j/ABCD2345"
+        assertEquals(url, linkUrl(view, 0, url))
+        assertNull(linkUrl(view, 0x00100000, url)) // FLAG_ACTIVITY_LAUNCHED_FROM_HISTORY
+        assertNull(linkUrl("android.intent.action.MAIN", 0, url))
+        assertNull(linkUrl(view, 0, null))
+    }
 }

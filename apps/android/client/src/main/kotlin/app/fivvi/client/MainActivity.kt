@@ -26,6 +26,7 @@ import app.fivvi.client.account.AccountViewModel
 import app.fivvi.client.links.LinkScreen
 import app.fivvi.client.links.LinkViewModel
 import app.fivvi.client.links.OpenedLink
+import app.fivvi.client.links.linkUrl
 import app.fivvi.client.shell.BookTags
 import app.fivvi.client.shell.ClientShell
 import app.fivvi.client.shell.HomeTags
@@ -60,7 +61,9 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val dependencies = (application as ClientApplication).dependencies
-        // The system restores a recreated activity's link through the view model; only a fresh start reads the intent.
+        // A recreated activity (a rotation, or after the system killed the process) gets its link from the view model's
+        // saved state and must not read the start intent again: that link may have been dismissed since. Only a fresh
+        // start reads it.
         if (savedInstanceState == null) openLink(intent)
         setContent {
             val language by dependencies.languagePreference.language.collectAsStateWithLifecycle()
@@ -90,7 +93,7 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun openLink(intent: Intent?) {
-        if (intent?.action == Intent.ACTION_VIEW) links.open(intent.dataString)
+        if (intent != null) links.open(linkUrl(intent.action, intent.flags, intent.dataString))
     }
 
     // The view models belong to one sign-in (the key holds its generation), so the next one starts fresh. The sign-in
