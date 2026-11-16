@@ -274,6 +274,19 @@ export {
   retentionEndsAt,
 } from './privacy/retention.ts';
 export {
+  type CalendarFilters,
+  type ClockChange,
+  clockChangeOn,
+  type FilterableItem,
+  filterCalendarItems,
+  layoutOverlaps,
+  mondayOf,
+  type OverlapBlock,
+  type PlacedInDay,
+  placeInDay,
+  weekDates,
+} from './scheduling/calendar-grid.ts';
+export {
   decideGroupDateEdit,
   GROUP_CLASS_LIMITS,
   type GroupDateEditDecision,
