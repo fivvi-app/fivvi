@@ -23,8 +23,17 @@ A ticket with a screen builds what the owner decided in the prototype. Before bu
 
 1. `builder` builds the ticket and commits; it does **not** run `code-review`. `implement` ends with a `code-review` call; here that step belongs to the reviewer, so skip it.
 2. `reviewer` reviews the head commit and reports its findings and the verdict.
-3. On must-fix or should-fix findings, a `builder` fixes them and the `reviewer` reviews the new head commit. At most two fix rounds; the review after the second is a **review-only round**: nothing more is fixed, and findings still open are listed in the notes file, so the PR stays for the owner.
-4. The review is **clean** when the reviewer's last review, on the last commit, has no must-fix or should-fix finding. Only the reviewer's verdict `clean on <sha>` lets `work` record it with `pr.sh reviewed`; the builder never claims it.
+3. On must-fix or should-fix findings, a `builder` fixes them and the `reviewer` reviews the new head commit. At most two fix rounds (one for a `low`-risk PR, whose should-fix findings don't need a round: **Review by risk**); the review after the last is a **review-only round**: nothing more is fixed, and findings still open are listed in the notes file, so the PR stays for the owner (a `low`-risk PR with no must-fix finding left is clean).
+4. The review is **clean** when the reviewer's last review, on the last commit, has no must-fix or should-fix finding; for a `low`-risk PR it is clean with no must-fix finding (**Review by risk**). Only the reviewer's verdict lets `work` record it with `pr.sh reviewed`; the builder never claims it.
+
+### Review by risk (ADR-033 item 5, until pilot setup)
+
+`scripts/risk.sh` decides which rule applies, never judgment, and it reads a PR: when the first review leaves no must-fix finding and only should-fix ones and the branch has no PR yet, `work` opens the draft with `pr.sh create` first to read the risk.
+
+- **`low` PR:** one `reviewer` pass on both axes and at most **one** fix round. Only must-fix findings block it. The reviewer reports `not clean on <sha>` as usual, with the number of must-fix and should-fix findings; with no must-fix finding left on the last commit, `work` counts the review as clean and records it with `pr.sh reviewed --should-fix <n>` (`n` = the should-fix findings still open; the record says so). The should-fix findings still open go to the notes file as follow-ups (file, line, what to change), so the PR merges with them open. The review after the one fix round is review-only, as after the second round below.
+- **`high` and `owner` PR:** as before: no must-fix or should-fix finding, up to two fix rounds. `pr.sh reviewed --should-fix` refuses these, and the merge gate refuses a record with should-fix findings left when the PR is not `low` (also when a later push made it high-risk).
+- A review still needs a `reviewer` verdict, for every risk: `pr.sh merge` refuses a PR without one. A fix round that changed the risk (it touched a high-risk path) is reviewed under the rule of the new risk.
+- The rule ends at pilot setup, with the other `@agent-queue` lines ([ADR-033](../decisions/ADR-033-go-live-mode.md)); from then on every review is full again.
 
 A new commit makes an earlier verdict stale: any fix, CI repair or merge of `origin/main` is followed by a review on the new head commit before `pr.sh reviewed`, scoped to what changed since the last review (**Review**, Scope). A branch that is merely behind `origin/main` needs no merge: the merge queue tests the PR on the latest `main` ([ADR-018](../decisions/ADR-018-merge-queue.md)); merge `origin/main` only to resolve a real conflict.
 
@@ -58,12 +67,12 @@ The `reviewer` runs `.agents/skills/code-review/SKILL.md` in the worktree on the
 - **Sources**: the spec is the ticket and its parent spec. Standards are `CODING_STANDARDS.md` (its checklist and the rules it links) and the instructions for the changed files; the skill's smell baseline applies under them. The spec axis also checks that the tests prove each acceptance criterion in NL and EN where the spec asks for both.
 - **Both axes in the reviewer itself**, one after the other: start no sub-agents for them. This replaces step 4 of `code-review`, which starts one per axis; each would start fresh and read the same diff and standards again.
 - **Findings** are marked `must-fix`, `should-fix` or `judgement`, each with file, line and what to change.
-- **Verdict**: `clean on <sha>` when no must-fix or should-fix finding is left on that commit, otherwise `not clean on <sha>`. It covers the whole branch: every commit was reviewed in some scope, and the findings of the last review are carried into this one.
+- **Verdict**: `clean on <sha>` when no must-fix or should-fix finding is left on that commit, otherwise `not clean on <sha>`; give the number of open must-fix and should-fix findings, because for a `low`-risk PR `work` counts a review with no must-fix finding as clean (**Review by risk**). It covers the whole branch: every commit was reviewed in some scope, and the findings of the last review are carried into this one.
 - **Report** in at most 15 lines: the head SHA, the scope (`full` or `since <sha>`), the findings and the verdict. In a review-only round, report only what is still open.
 
 ## Fix rounds (the builder again)
 
-A `builder` gets the reviewer's must-fix and should-fix findings (or the failing checks of a `merge_group` run, when the merge queue removed the PR) in its brief (judgement findings are optional), fixes them test-first when behaviour changes, runs `scripts/check.sh`, commits and reports as above. Never delete, skip or weaken a test to make a finding go away.
+A `builder` gets the reviewer's must-fix and should-fix findings (for a `low`-risk PR only the must-fix ones; its should-fix findings go to the notes file instead, **Review by risk**; or the failing checks of a `merge_group` run, when the merge queue removed the PR) in its brief (judgement findings are optional), fixes them test-first when behaviour changes, runs `scripts/check.sh`, commits and reports as above. Never delete, skip or weaken a test to make a finding go away.
 
 ## Usage
 

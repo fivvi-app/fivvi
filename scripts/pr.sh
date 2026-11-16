@@ -33,8 +33,12 @@
 #                                                 PR's own environment, <project>-pr-<n>. Without
 #                                                 the CLI, a preview whose status is success is only
 #                                                 health-checked; otherwise smoke fails with a hint
-#   pr.sh reviewed                                record in the PR body that both reviewers (standards and spec) found
-#                                                 nothing to fix on the PR's head commit; local HEAD must be that commit
+#   pr.sh reviewed [--should-fix <n>]             record in the PR body that both reviewers (standards and spec) found
+#                                                 nothing to fix on the PR's head commit; local HEAD must be that commit.
+#                                                 --should-fix <n>: the reviewer's last verdict is clean with n should-fix
+#                                                 findings left (review by risk, ADR-033 item 5, until pilot setup); only
+#                                                 for a PR scripts/risk.sh calls low, they go to the notes file as
+#                                                 follow-ups; a high-risk or owner-only PR is refused
 #   pr.sh merge [<pr>] [--after <bug>]            add a low-risk or high-risk (agent-queueable) PR to the merge queue
 #                                                 (ADR-018, ADR-021), which squash-merges it after testing it on the
 #                                                 latest main, only when every condition of the merge gate holds
@@ -571,17 +575,40 @@ cmd_smoke() {
   record "$pr" "$SMOKE_MARK" "$line"
 }
 
-# Run only when both reviewers report no must-fix or should-fix finding. A later push makes the record stale.
+# Run only when both reviewers report no must-fix finding, and no should-fix finding either unless the PR is low-risk
+# (review by risk, ADR-033 item 5, until pilot setup): --should-fix <n> says n of them are left, as follow-ups in the
+# notes file. The record says so, and the merge gate refuses it for a PR that is not low-risk then. A later push makes the
+# record stale.
 cmd_reviewed() {
-  [ $# -eq 0 ] || usage
-  local pr head local_head
+  local should_fix=0 pr head local_head risk suffix=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --should-fix) [[ "${2:-}" =~ ^[0-9]+$ ]] || usage; should_fix=$((10#$2)); shift ;;
+      *) usage ;;
+    esac
+    shift
+  done
   pr="$(current_pr)"
   [ -z "$(git status --porcelain)" ] || die "uncommitted changes: the reviewers did not see what is on the PR"
   head="$(head_of "$pr")"
   local_head="$(git rev-parse HEAD)"
   [ "$local_head" = "$head" ] \
     || die "local HEAD ${local_head:0:7} is not the PR head ${head:0:7}: push with scripts/pr.sh create, then review again"
-  record "$pr" "$REVIEW_MARK" "**$REVIEW_MARK:** standards and spec reviewers clean on \`$head\` ✅"
+  if [ "$should_fix" -gt 0 ]; then
+    risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || die "could not decide the risk of PR #$pr; nothing recorded"
+    case "$(jq -r .risk <<<"$risk")" in
+      low) ;;
+      high) die "PR #$pr is high-risk: its review is clean only without should-fix findings; fix them, then review again" ;;
+      owner) die "PR #$pr is owner-only: its review is clean only without should-fix findings; fix them, then review again" ;;
+      *) die "the risk of PR #$pr is unknown: its review is clean only without should-fix findings" ;;
+    esac
+    if [ "$should_fix" -eq 1 ]; then
+      suffix=" (low risk: 1 should-fix finding left as a follow-up, ADR-033)"
+    else
+      suffix=" (low risk: $should_fix should-fix findings left as follow-ups, ADR-033)"
+    fi
+  fi
+  record "$pr" "$REVIEW_MARK" "**$REVIEW_MARK:** standards and spec reviewers clean on \`$head\` ✅$suffix"
 }
 
 # The facts of scripts/merge-gate.jq that pr.sh ready reads too: the PR, its checks on the head commit, the required
