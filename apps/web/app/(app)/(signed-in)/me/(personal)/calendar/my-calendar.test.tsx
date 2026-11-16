@@ -177,6 +177,75 @@ describe.each(locales)('F013 Mijn agenda in %s', (locale) => {
     expect(view('week')).not.toContain('◐');
   });
 
+  // The day the clocks go back (25 October 2026) with a session on it and one on another day.
+  const clockWeek: Partial<Calendar> = {
+    from: '2026-10-19',
+    to: '2026-10-25',
+    items: [
+      { ...anna, startsAt: '2026-10-20T07:00:00.000Z', endsAt: '2026-10-20T08:00:00.000Z' },
+      {
+        ...mark,
+        startsAt: '2026-10-25T09:00:00.000Z',
+        endsAt: '2026-10-25T10:00:00.000Z',
+      },
+    ],
+  };
+
+  it('AC6: the day view with several workspaces marks the day the clocks change, in the heading', () => {
+    const html = view('day', clockWeek, { date: '2026-10-25' });
+    const heading = /<h2[^>]*>(.*?)<\/h2>/.exec(html)?.[1] ?? '';
+
+    expect(heading).toContain('◐');
+    expect(heading).toContain(copy.clockBack);
+    expect(html.match(/◐/g)).toHaveLength(1);
+    // A day on which they do not change carries no mark.
+    expect(view('day', clockWeek, { date: '2026-10-20' })).not.toContain('◐');
+  });
+
+  it('AC6: the list marks the day the clocks change with the note as text, not only a tooltip', () => {
+    const html = view('list', clockWeek, { date: '2026-10-25' });
+    const rows = (html.split('<tbody')[1] ?? '').split('<tr ').slice(1);
+    const [tuesday, sunday] = rows;
+
+    expect(rows).toHaveLength(2);
+    expect(tuesday).not.toContain('◐');
+    expect(tuesday).not.toContain(copy.clockBack);
+    expect(sunday).toContain('◐');
+    // The note is text of the cell (`title` does not show on touch), not an attribute.
+    expect(sunday).toMatch(new RegExp(`>${copy.clockBack}<`));
+  });
+
+  it('the list marks the day the clocks go forward too', () => {
+    const html = view(
+      'list',
+      {
+        from: '2026-03-23',
+        to: '2026-03-29',
+        items: [
+          { ...anna, startsAt: '2026-03-29T08:00:00.000Z', endsAt: '2026-03-29T09:00:00.000Z' },
+        ],
+      },
+      { date: '2026-03-29' },
+    );
+
+    expect(html).toMatch(new RegExp(`>${copy.clockForward}<`));
+  });
+
+  it('the workspace filter has one checkbox per workspace, however alike their names', () => {
+    const html = view(
+      'week',
+      {},
+      {
+        crew: [
+          { id: 'w-1', name: 'Studio' },
+          { id: 'w-2', name: 'Studio' },
+        ],
+      },
+    );
+
+    expect(html.match(/>Studio</g) ?? html.match(/\/>Studio/g)).toHaveLength(2);
+  });
+
   it('AC6: the week runs Monday to Sunday', () => {
     const html = view('week');
     const formatting = locale === 'en' ? 'en-GB' : 'nl-NL';

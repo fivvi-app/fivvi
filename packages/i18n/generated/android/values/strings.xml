@@ -284,7 +284,7 @@
     <string name="my_calendar_column_workspace">Werkruimte</string>
     <string name="my_calendar_empty_day">Geen sessies op deze dag.</string>
     <string name="my_calendar_empty_week">Geen sessies in deze week.</string>
-    <string name="my_calendar_filter_type">Type</string>
+    <string name="my_calendar_filter_type">Soort</string>
     <string name="my_calendar_filter_workspace">Werkruimte</string>
     <string name="my_calendar_grid_day">Agenda van %1$s</string>
     <string name="my_calendar_grid_week">Agenda van %1$s</string>

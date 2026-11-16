@@ -551,6 +551,29 @@ describe('E020 web kit', () => {
       expect(markup).toContain('height:240px');
     });
 
+    it('forces a width, to scroll sideways, only when there are many columns: one or two fit a phone', () => {
+      const columnsOf = (count: number) =>
+        Array.from({ length: count }, (_, index) => ({
+          key: `c${index}`,
+          header: `c${index}`,
+          blocks: [],
+        }));
+      const withColumns = (count: number) =>
+        html(
+          <WeekGrid
+            label="x"
+            firstHour={7}
+            endHour={9}
+            hourLabel={() => 'x'}
+            columns={columnsOf(count)}
+          />,
+        );
+
+      expect(withColumns(1)).not.toContain('min-w-176');
+      expect(withColumns(2)).not.toContain('min-w-176');
+      expect(withColumns(7)).toContain('min-w-176');
+    });
+
     it('places a block by its minutes: 09:00 is two hours of 48 px below 07:00, an hour is 48 px less 2', () => {
       const markup = html(grid);
 

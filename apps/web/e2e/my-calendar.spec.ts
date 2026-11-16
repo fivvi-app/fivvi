@@ -310,6 +310,16 @@ test.describe('F013 Mijn agenda on the web', () => {
     );
     expect(overflow, 'horizontal scroll').toBeLessThanOrEqual(0);
     await expectNoAxeViolations(page, `Mijn agenda at 390 px in ${appLocale}`);
+
+    // The day view, a column per workspace, fits the phone too: no sideways scroll.
+    await page.getByRole('button', { name: copy.myCalendar.viewDay }).click();
+    await expect(
+      page.getByRole('button', { name: copy.myCalendar.viewDay, pressed: true }),
+    ).toBeVisible();
+    const dayOverflow = await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(dayOverflow, 'horizontal scroll in the day view').toBeLessThanOrEqual(0);
   });
 
   test('AC11: Sarah plans an own private session with the Workspace field; the clients follow it', async ({

@@ -9,6 +9,7 @@ import {
   placeInDay,
   weekDates,
 } from '@fivvi/domain/calendar-grid';
+import { addDays } from '@fivvi/domain/zoned-time';
 import { Button } from '@fivvi/ui/components/button';
 import { sessionBlockVariants, WeekGrid, type WeekGridColumn } from '@fivvi/ui/kit/week-grid';
 import type { Route } from 'next';
@@ -111,11 +112,6 @@ export function MyCalendarView({
     return `/me/calendar?${query}` as Route;
   }
   const step = view === 'day' ? 1 : 7;
-  const shift = (days: number) => {
-    const moved = new Date(`${date}T12:00:00Z`);
-    moved.setUTCDate(moved.getUTCDate() + days);
-    return moved.toISOString().slice(0, 10);
-  };
 
   const inView = view === 'day' ? shown.filter((item) => dayOf(item) === date) : shown;
   const unfilteredInView = view === 'day' ? items.filter((item) => dayOf(item) === date) : items;
@@ -220,19 +216,42 @@ export function MyCalendarView({
     };
   }
 
+  /** The note of a day the clocks change, or none: *Wintertijd: de klok gaat 1 uur terug*. */
+  function clockNote(day: string) {
+    const kind = clockChangeOn(day, timeZone);
+    return kind ? t(kind === 'back' ? 'clockBack' : 'clockForward') : undefined;
+  }
+
+  /**
+   * The mark `◐` of a day the clocks change. In a tight header it comes with the note in the
+   * tooltip and for screen readers; where there is room (the heading, a list row) the note is
+   * text, since a tooltip does not show on a touch screen.
+   */
+  function clockMark(day: string, visible = false) {
+    const note = clockNote(day);
+    if (!note) return null;
+    if (visible) {
+      return (
+        <span className="mt-0.5 flex items-start gap-1 text-xs font-normal whitespace-normal text-muted-foreground">
+          <span aria-hidden="true">◐</span>
+          <span>{note}</span>
+        </span>
+      );
+    }
+    return (
+      <span title={note} className="ms-1">
+        <span aria-hidden="true">◐</span>
+        <span className="sr-only">{note}</span>
+      </span>
+    );
+  }
+
   /** A day's header: its short name and number, and on a day the clocks change the mark with its note. */
   function dayHeader(day: string) {
-    const change = clockChangeOn(day, timeZone);
-    const note = change ? t(change === 'back' ? 'clockBack' : 'clockForward') : undefined;
     return (
       <span>
         {dayText(day, { weekday: 'short', day: 'numeric' })}
-        {note ? (
-          <span title={note} className="ms-1">
-            <span aria-hidden="true">◐</span>
-            <span className="sr-only">{note}</span>
-          </span>
-        ) : null}
+        {clockMark(day)}
       </span>
     );
   }
@@ -254,7 +273,7 @@ export function MyCalendarView({
             <Link href={href(today)}>{t('today')}</Link>
           </Button>
           <Button variant="outline" size="icon" asChild>
-            <Link href={href(shift(-step))} aria-label={t('previous')}>
+            <Link href={href(addDays(date, -step))} aria-label={t('previous')}>
               <svg
                 aria-hidden="true"
                 viewBox="0 0 16 16"
@@ -269,7 +288,7 @@ export function MyCalendarView({
             </Link>
           </Button>
           <Button variant="outline" size="icon" asChild>
-            <Link href={href(shift(step))} aria-label={t('next')}>
+            <Link href={href(addDays(date, step))} aria-label={t('next')}>
               <svg
                 aria-hidden="true"
                 viewBox="0 0 16 16"
@@ -283,7 +302,11 @@ export function MyCalendarView({
               </svg>
             </Link>
           </Button>
-          <h2 className="min-w-0 flex-1 text-base font-semibold">{heading}</h2>
+          <h2 className="min-w-0 flex-1 text-base font-semibold">
+            {heading}
+            {/* The columns of the day view are workspaces, so the mark goes in the heading. */}
+            {view === 'day' && several ? clockMark(date, true) : null}
+          </h2>
           <fieldset className="flex gap-1" aria-label={t('views')}>
             {(['day', 'week', 'list'] as const).map((option) => (
               <Button
@@ -373,6 +396,7 @@ export function MyCalendarView({
                     <tr key={item.sessionId} className="border-b last:border-b-0">
                       <td className="px-3 py-2 whitespace-nowrap">
                         {dayText(dayOf(item), { weekday: 'short', day: 'numeric', month: 'short' })}
+                        {clockMark(dayOf(item), true)}
                       </td>
                       <td className="px-3 py-2 whitespace-nowrap tabular-nums">
                         {t('timeRange', {
@@ -417,8 +441,8 @@ function FilterBar({
   const t = useTranslations('myCalendar');
   const toggle = <V extends string>(list: readonly V[], value: V, on: boolean): V[] =>
     on ? list.filter((item) => item !== value) : [...list.filter((item) => item !== value), value];
-  const box = (label: string, checked: boolean, set: (on: boolean) => void) => (
-    <label key={label} className="flex min-h-11 items-center gap-2 text-sm md:min-h-8">
+  const box = (key: string, label: string, checked: boolean, set: (on: boolean) => void) => (
+    <label key={key} className="flex min-h-11 items-center gap-2 text-sm md:min-h-8">
       <input
         type="checkbox"
         className="size-4 accent-primary"
@@ -435,13 +459,13 @@ function FilterBar({
         <span aria-hidden="true" className="text-sm font-medium">
           {t('filterType')}
         </span>
-        {box(t('optionPrivate'), !filters.hiddenTypes.includes('private'), (on) =>
+        {box('private', t('optionPrivate'), !filters.hiddenTypes.includes('private'), (on) =>
           onChange({ ...filters, hiddenTypes: toggle(filters.hiddenTypes, 'private', on) }),
         )}
-        {box(t('optionGroup'), !filters.hiddenTypes.includes('group'), (on) =>
+        {box('group', t('optionGroup'), !filters.hiddenTypes.includes('group'), (on) =>
           onChange({ ...filters, hiddenTypes: toggle(filters.hiddenTypes, 'group', on) }),
         )}
-        {box(t('showCancelled'), filters.showCancelled, (on) =>
+        {box('cancelled', t('showCancelled'), filters.showCancelled, (on) =>
           onChange({ ...filters, showCancelled: on }),
         )}
       </fieldset>
@@ -452,11 +476,15 @@ function FilterBar({
             {t('filterWorkspace')}
           </span>
           {workspaces.map((workspace) =>
-            box(workspace.name, !filters.hiddenWorkspaceIds.includes(workspace.id), (on) =>
-              onChange({
-                ...filters,
-                hiddenWorkspaceIds: toggle(filters.hiddenWorkspaceIds, workspace.id, on),
-              }),
+            box(
+              workspace.id,
+              workspace.name,
+              !filters.hiddenWorkspaceIds.includes(workspace.id),
+              (on) =>
+                onChange({
+                  ...filters,
+                  hiddenWorkspaceIds: toggle(filters.hiddenWorkspaceIds, workspace.id, on),
+                }),
             ),
           )}
         </fieldset>

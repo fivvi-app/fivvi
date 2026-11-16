@@ -69,7 +69,7 @@ export function WeekGrid({
       tabIndex={0}
       className={cn('overflow-x-auto rounded-xl border bg-card', className)}
     >
-      <div className="min-w-176">
+      <div className={columns.length > 2 ? 'min-w-176' : undefined}>
         <div
           data-slot="week-grid-header"
           className="sticky top-0 z-10 grid border-b bg-card"
