@@ -69,9 +69,9 @@ SMOKE_MARK="Railway preview smoke check"
 REVIEW_MARK="Self-review"
 REFUSAL_MARK="Merge gate"
 NO_PREVIEW="no preview for this PR"
-# Railway: the project (named fivvi), the web service of its preview, and the only environments pr.sh smoke may touch,
-# `<project>-pr-<n>` (preview_env). Railway names the commit status of the web preview `<project> - <service>`.
-RAILWAY_PROJECT_ID="5ac2d844-191a-4671-9632-50b66817f648"
+# Railway: the project (named fivvi; its id is RAILWAY_PROJECT_ID in _lib.sh), the web service of its preview, and the only
+# environments pr.sh smoke may touch, `<project>-pr-<n>` (preview_env). Railway names the commit status of the web preview
+# `<project> - <service>`.
 RAILWAY_PROJECT_NAME="fivvi"
 RAILWAY_SERVICE="web"
 # Railway's commit status for the web preview, and how its description starts when Railway skipped the deploy because

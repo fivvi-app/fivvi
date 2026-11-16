@@ -27,6 +27,10 @@ OWNER_MERGE_LABEL="owner-merge"
 HIGH_RISK_MARK="High-risk agent merge"
 QUEUE_MARK="Merge queue"
 
+# The Railway project (named fivvi): scripts/pr.sh reads the deployment of a PR preview from it, scripts/flow.sh the deploy
+# status of the web service on development and production.
+RAILWAY_PROJECT_ID="5ac2d844-191a-4671-9632-50b66817f648"
+
 die() { echo "error: $*" >&2; exit 1; }
 
 # Prints the comment block at the top of a script (after the shebang and any shellcheck directives) and exits.
