@@ -34,11 +34,12 @@ import { MyWorkspaceSchema } from './me.ts';
 // `inInvitationScope`, which finds the invitation by the token's hash and only then opens its
 // workspace. The rules (open, expired, whose address) are `decideInvitationAnswer` of @fivvi/domain.
 //
-// The read needs no session (with one, it also says whether the invitation is for that account). Accepting and declining need a signed-in account, and judge that
-// themselves, as `signOut` does: the sign-in session is what proves the address, and an anonymous
-// call answers 401 before anything about the token is looked up. An invitation that is expired,
-// withdrawn, used or unknown is one neutral `404` for everyone, so a link says nothing about whom
-// it was for; the address (and its masked form) shows only for a valid one, and an account with another address
+// The read needs no session (with one, it also says whether the invitation is for that account).
+// Accepting and declining need a signed-in account, and judge that themselves, as `signOut` does:
+// the sign-in session is what proves the address, and an anonymous call answers 401 before
+// anything about the token is looked up. An invitation that is expired, withdrawn, used or unknown
+// is one neutral `404` for everyone, so a link says nothing about whom it was for; the address
+// (and its masked form) shows only for a valid one, and an account with another address
 // answers `403`. The token is never logged or put in an event.
 
 const SIGNED_IN: RouteConfig['security'] = [{ cookieAuth: [] }, { bearerAuth: [] }];
