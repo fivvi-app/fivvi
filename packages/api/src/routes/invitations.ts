@@ -38,7 +38,7 @@ import { MyWorkspaceSchema } from './me.ts';
 // themselves, as `signOut` does: the sign-in session is what proves the address, and an anonymous
 // call answers 401 before anything about the token is looked up. An invitation that is expired,
 // withdrawn, used or unknown is one neutral `404` for everyone, so a link says nothing about whom
-// it was for; the masked address shows only for a valid one, and an account with another address
+// it was for; the address (and its masked form) shows only for a valid one, and an account with another address
 // answers `403`. The token is never logged or put in an event.
 
 const SIGNED_IN: RouteConfig['security'] = [{ cookieAuth: [] }, { bearerAuth: [] }];
@@ -65,6 +65,12 @@ const InvitationPreviewSchema = z
           'The name of the Owner who invited, `null` while they have given none. Never their ' +
           'address.',
       }),
+    email: z.string().openapi({
+      description:
+        'The address the invitation is for, lower-cased: the sign-in screen opens with it filled ' +
+        'in (TW-10). Only a valid, open invitation tells it, to whoever presents its token; it ' +
+        'is never part of a link.',
+    }),
     maskedEmail: z.string().openapi({
       description:
         'The address the invitation is for, hidden except for its first character and its ' +
@@ -80,7 +86,8 @@ const InvitationPreviewSchema = z
   })
   .openapi('InvitationPreview', {
     description:
-      'What the link of a valid invitation shows to anyone who holds it, signed in or not. ' +
+      'What the link of a valid invitation shows to anyone who holds it, signed in or not: the ' +
+      'address it is for, so sign-in opens with it filled in, and the same address masked. ' +
       '`forYou` is the one part that depends on who asks.',
   });
 
@@ -114,9 +121,10 @@ const getInvitationRoute = defineRoute(
     summary: 'What an invitation link is for',
     description:
       'Anyone with the link (signed in or not) reads the name of the workspace that invites, the ' +
-      'name of the inviter, the masked address the invitation is for and, when a session is sent, ' +
-      'whether the invitation is for that account (`forYou`), and nothing else. An ' +
-      'invitation that is expired, withdrawn, used or unknown answers one neutral `404`.',
+      'name of the inviter, the address the invitation is for (also masked) and, when a session ' +
+      'is sent, whether the invitation is for that account (`forYou`), and nothing else. An ' +
+      'invitation that is expired, withdrawn, used or unknown answers one neutral `404`, with ' +
+      'no address.',
     request: { params: TokenParamsSchema },
     responses: {
       200: {
@@ -219,6 +227,7 @@ export function registerInvitations(app: OpenAPIHono, dependencies: ApiDependenc
         return {
           workspaceName: workspace.name,
           inviterName: inviterName ? inviterName : null,
+          email: invitation.email,
           maskedEmail: maskEmail(invitation.email),
           forYou,
         };

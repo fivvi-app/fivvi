@@ -1970,7 +1970,7 @@ extension Components {
                 case emailLocale
             }
         }
-        /// What the link of a valid invitation shows to anyone who holds it, signed in or not. `forYou` is the one part that depends on who asks.
+        /// What the link of a valid invitation shows to anyone who holds it, signed in or not: the address it is for, so sign-in opens with it filled in, and the same address masked. `forYou` is the one part that depends on who asks.
         ///
         /// - Remark: Generated from `#/components/schemas/InvitationPreview`.
         public struct InvitationPreview: Codable, Hashable, Sendable {
@@ -1982,6 +1982,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/InvitationPreview/inviterName`.
             public var inviterName: Swift.String?
+            /// The address the invitation is for, lower-cased: the sign-in screen opens with it filled in (TW-10). Only a valid, open invitation tells it, to whoever presents its token; it is never part of a link.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvitationPreview/email`.
+            public var email: Swift.String
             /// The address the invitation is for, hidden except for its first character and its domain (`l***@example.com`), so a person signed in with another address can see which to use.
             ///
             /// - Remark: Generated from `#/components/schemas/InvitationPreview/maskedEmail`.
@@ -1995,22 +1999,26 @@ extension Components {
             /// - Parameters:
             ///   - workspaceName: The name of the workspace that invites.
             ///   - inviterName: The name of the Owner who invited, `null` while they have given none. Never their address.
+            ///   - email: The address the invitation is for, lower-cased: the sign-in screen opens with it filled in (TW-10). Only a valid, open invitation tells it, to whoever presents its token; it is never part of a link.
             ///   - maskedEmail: The address the invitation is for, hidden except for its first character and its domain (`l***@example.com`), so a person signed in with another address can see which to use.
             ///   - forYou: Whether the signed-in account may answer this invitation: its verified address is the one the invitation is for. `false` for another account, an address that is not verified, and when nobody is signed in.
             public init(
                 workspaceName: Swift.String,
                 inviterName: Swift.String? = nil,
+                email: Swift.String,
                 maskedEmail: Swift.String,
                 forYou: Swift.Bool
             ) {
                 self.workspaceName = workspaceName
                 self.inviterName = inviterName
+                self.email = email
                 self.maskedEmail = maskedEmail
                 self.forYou = forYou
             }
             public enum CodingKeys: String, CodingKey {
                 case workspaceName
                 case inviterName
+                case email
                 case maskedEmail
                 case forYou
             }
