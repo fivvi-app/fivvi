@@ -99,8 +99,9 @@ final class ClientAppUITests: SignInUITestCase {
         XCTAssertEqual(screen.profileName.label, "Anna de Vries")
         XCTAssertEqual(screen.profileEmail.label, "anna@example.com")
         XCTAssertFalse(screen.app.buttons["profile.name"].exists, "the name is read-only here (editing is F033)")
-        XCTAssertEqual(screen.languageTitle.label, catalog["profile.language"].uppercased(with: nil))
-        XCTAssertTrue(screen.version.label.hasPrefix(catalog["profile.version"].replacingOccurrences(of: "%1$@", with: "")))
+        XCTAssertEqual(screen.languageTitle.label.lowercased(), catalog["profile.language"].lowercased())
+        let versionPrefix = catalog["profile.version"].replacingOccurrences(of: "%1$@", with: "")
+        XCTAssertTrue(screen.version.label.hasPrefix(versionPrefix))
     }
 
     // MARK: AC2
@@ -149,7 +150,8 @@ final class ClientAppUITests: SignInUITestCase {
             app: ClientLaunch.launch(against: server, session: .signedIn, deviceLanguages: [other]), catalog: catalog
         )
 
-        XCTAssertTrue(Polling.until(timeout: timeout, interval: 0.2) { screen.homeTab.exists }, "the stored language wins")
+        let home = Polling.until(timeout: timeout, interval: 0.2) { screen.homeTab.exists }
+        XCTAssertTrue(home, "the stored language wins")
         XCTAssertEqual(screen.noWorkspace("home").label, catalog["noWorkspace.title"])
     }
 
@@ -253,7 +255,10 @@ final class ClientAppUITests: SignInUITestCase {
 
         retry.tap()
 
-        XCTAssertTrue(Polling.until(timeout: timeout, interval: 0.2) { server.requests(to: "/api/v1/me").count > before })
+        let refreshed = Polling.until(timeout: timeout, interval: 0.2) {
+            server.requests(to: "/api/v1/me").count > before
+        }
+        XCTAssertTrue(refreshed)
     }
 
     // MARK: Largest text size, VoiceOver

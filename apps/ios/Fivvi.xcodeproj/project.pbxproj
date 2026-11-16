@@ -202,7 +202,7 @@
 				E50300000000000000000214 /* AppLaunch.swift */,
 			);
 			name = "Fivvi Pro UI test support";
-			path = ../FivviProUITests/Support;
+			path = FivviProUITests/Support;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */

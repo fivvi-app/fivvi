@@ -14,7 +14,8 @@ final class AppConfigurationTests: XCTestCase {
         let defaults = try XCTUnwrap(UserDefaults(suiteName: "AppConfigurationTests"))
         defaults.removePersistentDomain(forName: "AppConfigurationTests")
 
-        let url = AppConfiguration.apiBaseURL(info: ["FivviAPIBaseURL": "https://api.example.com/api"], defaults: defaults)
+        let info = ["FivviAPIBaseURL": "https://api.example.com/api"]
+        let url = AppConfiguration.apiBaseURL(info: info, defaults: defaults)
 
         XCTAssertEqual(url.absoluteString, "https://api.example.com/api")
     }
@@ -24,7 +25,8 @@ final class AppConfigurationTests: XCTestCase {
         defaults.removePersistentDomain(forName: "AppConfigurationTests.override")
         defaults.set("http://127.0.0.1:5000/api", forKey: AppConfiguration.apiBaseURLKey)
 
-        let url = AppConfiguration.apiBaseURL(info: ["FivviAPIBaseURL": "https://api.example.com/api"], defaults: defaults)
+        let info = ["FivviAPIBaseURL": "https://api.example.com/api"]
+        let url = AppConfiguration.apiBaseURL(info: info, defaults: defaults)
 
         XCTAssertEqual(url.absoluteString, "http://127.0.0.1:5000/api")
     }

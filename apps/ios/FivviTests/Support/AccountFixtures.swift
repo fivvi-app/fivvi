@@ -31,7 +31,8 @@ enum Accounts {
             "canCreateWorkspace": false, "workspaces": workspaces, "clientWorkspaces": [Any]()
         ]
         // swiftlint:disable:next force_try
-        return String(decoding: try! JSONSerialization.data(withJSONObject: account), as: UTF8.self)
+        let data = try! JSONSerialization.data(withJSONObject: account)
+        return String(bytes: data, encoding: .utf8) ?? ""
     }
 
     /// A client whose every answer is `transport`'s, with the bearer token of `store` added as in the app.

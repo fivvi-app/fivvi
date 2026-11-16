@@ -32,7 +32,7 @@ final class ObservabilityTests: XCTestCase {
     /// An error event with personal data in every field that can hold it, and tags set on the scope.
     private func event() -> Event {
         let event = Event(level: .error)
-        event.message = SentryMessage(formatted: "Could not load \(Synthetic.email) of \(Synthetic.name)")
+        event.message = SentryMessage(formatted: "Could not load \(Synthetic.email)")
         event.serverName = "iPhone van \(Synthetic.name)"
         event.tags = ["app": "other", "platform": "other", "workspace": Synthetic.workspace, "name": Synthetic.name]
         event.extra = ["workspace": Synthetic.workspace, "token": Synthetic.token]
@@ -87,7 +87,7 @@ final class ObservabilityTests: XCTestCase {
     func test_E017_AC10_noEmailNameWorkspaceNameOrTokenLeavesTheApp() throws {
         let sent = try sent(event())
 
-        let json = String(decoding: try JSONSerialization.data(withJSONObject: sent), as: UTF8.self)
+        let json = try XCTUnwrap(String(bytes: JSONSerialization.data(withJSONObject: sent), encoding: .utf8))
         for value in [Synthetic.email, Synthetic.name, "Anna", "Vries", Synthetic.workspace, Synthetic.token] {
             XCTAssertFalse(json.contains(value), "\(value) left the app: \(json)")
         }

@@ -1,6 +1,7 @@
 import FivviAPI
 import FivviLanguage
 import FivviSession
+import OpenAPIRuntime
 import XCTest
 
 @testable import Fivvi
@@ -47,7 +48,8 @@ final class AccountViewModelTests: XCTestCase {
         await model.load()
 
         XCTAssertEqual(model.state, .loaded(name: "Sarah", email: "trainer@example.com", hasTeamRole: true))
-        XCTAssertFalse(String(describing: model.state).contains("John's Gym"), "no workspace name in what the app holds")
+        let held = String(describing: model.state)
+        XCTAssertFalse(held.contains("John's Gym"), "no workspace name in what the app holds")
     }
 
     func test_E017_AC1_theAccountsIdIsToldForErrorReporting() async {
@@ -110,7 +112,7 @@ final class AccountViewModelTests: XCTestCase {
 
         await model(transport).load()
 
-        XCTAssertEqual(transport.requests.map(\.path), ["/api/v1/me"])
+        XCTAssertEqual(transport.requests.map(\.path), ["/v1/me"])
         XCTAssertEqual(transport.requests.map { $0.headerFields[.authorization] }, ["Bearer \(Accounts.token)"])
     }
 
@@ -124,7 +126,7 @@ final class AccountViewModelTests: XCTestCase {
         await model.signOut()
 
         XCTAssertNil(store.token, "the token is gone")
-        XCTAssertEqual(transport.requests.map(\.path), ["/api/v1/sign-out"])
+        XCTAssertEqual(transport.requests.map(\.path), ["/v1/sign-out"])
         XCTAssertEqual(transport.requests.map(\.method), [.post])
         XCTAssertEqual(
             transport.requests.map { $0.headerFields[.authorization] }, ["Bearer \(Accounts.token)"],
@@ -135,7 +137,7 @@ final class AccountViewModelTests: XCTestCase {
     }
 
     func test_E017_AC2_aRefusedTokenOfTheSignOutShowsTheNotice() async {
-        let model = model(StubTransport(status: .unauthorized, json: #"{"code":"not_signed_in"}"#))
+        let model = model(StubTransport(status: .unauthorized, json: #"{"code":"unauthorized"}"#))
 
         await model.signOut()
 

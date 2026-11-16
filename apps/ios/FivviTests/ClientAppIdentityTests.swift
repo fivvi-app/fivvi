@@ -15,7 +15,9 @@ final class ClientAppIdentityTests: XCTestCase {
     func test_E017_AC4_theNameUnderTheIconIsAppTitleInBothLanguages() throws {
         for language in ["nl", "en"] {
             let path = try XCTUnwrap(
-                Bundle.main.path(forResource: "InfoPlist", ofType: "strings", inDirectory: nil, forLocalization: language),
+                Bundle.main.path(
+                    forResource: "InfoPlist", ofType: "strings", inDirectory: nil, forLocalization: language
+                ),
                 "no InfoPlist.strings in \(language)"
             )
             let strings = try XCTUnwrap(NSDictionary(contentsOfFile: path) as? [String: String])

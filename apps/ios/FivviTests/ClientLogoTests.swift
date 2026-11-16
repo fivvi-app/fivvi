@@ -22,7 +22,13 @@ final class ClientLogoTests: XCTestCase {
         }
     }
 
-    private func pixel(of image: UIImage, column: Int, row: Int) throws -> (red: Int, green: Int, blue: Int) {
+    private struct Pixel {
+        let red: Int
+        let green: Int
+        let blue: Int
+    }
+
+    private func pixel(of image: UIImage, column: Int, row: Int) throws -> Pixel {
         let cgImage = try XCTUnwrap(image.cgImage?.cropping(to: CGRect(x: column, y: row, width: 1, height: 1)))
         var rgba = [UInt8](repeating: 0, count: 4)
         let space = try XCTUnwrap(CGColorSpace(name: CGColorSpace.sRGB))
@@ -35,7 +41,7 @@ final class ClientLogoTests: XCTestCase {
             return context != nil
         }
         XCTAssertTrue(drawn)
-        return (Int(rgba[0]), Int(rgba[1]), Int(rgba[2]))
+        return Pixel(red: Int(rgba[0]), green: Int(rgba[1]), blue: Int(rgba[2]))
     }
 
     private func brightness(of image: UIImage, column: Int, row: Int) throws -> Double {
