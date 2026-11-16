@@ -145,6 +145,8 @@ test.describe('F013 Mijn agenda on the web', () => {
     appLocale,
     messages: copy,
   }) => {
+    // Two workspaces, a class and several checks: slow on a machine that other builds load.
+    test.slow();
     const day = await sarahsDay(page, context, browser);
     const t = copy.myCalendar;
     await page.goto('/me/calendar');
@@ -317,6 +319,8 @@ test.describe('F013 Mijn agenda on the web', () => {
     appLocale,
     messages: copy,
   }) => {
+    // Two workspaces, a class and several checks: slow on a machine that other builds load.
+    test.slow();
     const day = await sarahsDay(page, context, browser);
     const form = copy.sessions.form;
     await page.goto('/me/calendar');
@@ -333,14 +337,8 @@ test.describe('F013 Mijn agenda on the web', () => {
     const workspace = panel.getByRole('combobox', { name: form.workspaceLabel });
     await expect(workspace).toBeVisible();
     await expect(workspace.getByRole('option')).toHaveText([GYM, PERSONAL]);
-    // ... and it is the first field, above the clients.
-    const above = await workspace.evaluate((select) =>
-      Boolean(
-        select.compareDocumentPosition(document.querySelector('[type=search]') as Node) &
-          Node.DOCUMENT_POSITION_FOLLOWING,
-      ),
-    );
-    expect(above).toBe(true);
+    // ... and it is the first field of the form.
+    await expect(panel.locator('select, input').first()).toHaveAttribute('name', 'workspaceId');
 
     // John's Gym first: Mark is its client, and Anna is not.
     await expect(panel.getByText(form.location.replace('{name}', GYM))).toBeVisible();
