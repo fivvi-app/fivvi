@@ -238,6 +238,30 @@
     <string name="join_link_renew_dialog_title">Renew the join link?</string>
     <string name="join_link_renewed">The join link has been renewed.</string>
     <string name="join_link_title">Join link</string>
+    <string name="my_day_booked">%1$s/%2$s booked</string>
+    <string name="my_day_cancelled">Cancelled</string>
+    <string name="my_day_empty_never">You don\'t have any sessions yet. You\'ll see them here as soon as you\'re scheduled.</string>
+    <string name="my_day_empty_next">No sessions today. Your next session is on %1$s.</string>
+    <string name="my_day_empty_today">No sessions today.</string>
+    <string name="my_day_list_label">Today\'s sessions</string>
+    <string name="my_day_next_in_progress">In progress</string>
+    <string name="my_day_next_upcoming">Up next · in %1$s min</string>
+    <string name="my_day_spoken_join">%1$s, %2$s</string>
+    <string name="my_day_spoken_time">%2$s to %1$s</string>
+    <plurals name="my_day_summary">
+        <item quantity="one">%1$d session · %2$s–%3$s</item>
+        <item quantity="other">%1$d sessions · %2$s–%3$s</item>
+    </plurals>
+    <string name="my_day_summary_none">No sessions</string>
+    <string name="my_day_time_range">%2$s–%1$s</string>
+    <string name="my_day_title">My day</string>
+    <plurals name="my_day_tomorrow">
+        <item quantity="one">Tomorrow: %1$d session, first at %2$s</item>
+        <item quantity="other">Tomorrow: %1$d sessions, first at %2$s</item>
+    </plurals>
+    <string name="my_day_type_group">Group class</string>
+    <string name="my_day_type_private">Private session</string>
+    <string name="my_day_type_with_detail">%2$s · %1$s</string>
     <string name="my_profile_booking_emails_help">You get an email when a client books or cancels.</string>
     <string name="my_profile_booking_emails_label">Emails about bookings in my classes</string>
     <string name="my_profile_details_title">Your details</string>
@@ -572,10 +596,13 @@
     <string name="workspace_nav_clients">Clients</string>
     <string name="workspace_nav_join_link">Join link</string>
     <string name="workspace_nav_label">Main navigation</string>
+    <string name="workspace_nav_my_calendar">My calendar</string>
+    <string name="workspace_nav_my_day">My day</string>
     <string name="workspace_nav_new">New</string>
     <string name="workspace_nav_new_client">Client</string>
     <string name="workspace_nav_new_menu">Create new</string>
     <string name="workspace_nav_new_private_session">Private session</string>
+    <string name="workspace_nav_personal">Personal</string>
     <string name="workspace_nav_settings">Settings</string>
     <string name="workspace_nav_settings_general">General</string>
     <string name="workspace_nav_settings_language">Language</string>

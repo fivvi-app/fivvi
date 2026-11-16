@@ -302,6 +302,24 @@ test.describe('F001 sign in on TW-10', () => {
     expect(await emailsTo(address)).toHaveLength(2);
   });
 
+  // #1436: the code step reused the email step's input, so the code field opened with the address in it.
+  test('the code field opens empty and focused after the email step', async ({
+    page,
+    messages: copy,
+  }) => {
+    const address = newAddress('owner');
+    await createAccount(address);
+
+    await page.goto('/login');
+    await page.getByLabel(copy.signIn.emailLabel).fill(address);
+    await page.getByRole('button', { name: copy.signIn.sendCode }).click();
+    await waitForEmail(address);
+
+    const code = page.getByLabel(copy.signIn.codeLabel);
+    await expect(code).toHaveValue('');
+    await expect(code).toBeFocused();
+  });
+
   test('changes the email address from the code step and keeps what was typed', async ({
     page,
     messages: copy,

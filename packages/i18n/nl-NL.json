@@ -181,7 +181,30 @@
     "newMenu": "Nieuw maken",
     "newClient": "Klant",
     "newPrivateSession": "Privésessie",
-    "joinLink": "Aanmeldlink"
+    "joinLink": "Aanmeldlink",
+    "personal": "Persoonlijk",
+    "myDay": "Mijn dag",
+    "myCalendar": "Mijn agenda"
+  },
+  "myDay": {
+    "title": "Mijn dag",
+    "summaryNone": "Geen sessies",
+    "summary": "{count, plural, one {# sessie} other {# sessies}} · {first}–{last}",
+    "listLabel": "Sessies van vandaag",
+    "nextUpcoming": "Straks · over {minutes} min",
+    "nextInProgress": "Nu bezig",
+    "typePrivate": "Privésessie",
+    "typeGroup": "Groepsles",
+    "booked": "{booked}/{capacity} geboekt",
+    "timeRange": "{start}–{end}",
+    "typeWithDetail": "{type} · {detail}",
+    "spokenTime": "{start} tot {end}",
+    "spokenJoin": "{first}, {next}",
+    "cancelled": "Geannuleerd",
+    "tomorrow": "Morgen: {count, plural, one {# sessie} other {# sessies}}, eerste om {time}",
+    "emptyToday": "Geen sessies vandaag.",
+    "emptyNext": "Geen sessies vandaag. Je volgende sessie is op {date}.",
+    "emptyNever": "Je hebt nog geen sessies. Je ziet ze hier zodra je bent ingepland."
   },
   "workspaceSwitcher": {
     "newWorkspace": "+ Nieuwe werkruimte"

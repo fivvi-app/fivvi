@@ -214,6 +214,8 @@ test.describe('F015 Settings → Location (TW-08)', () => {
     await page.goto(`/w/${slug}`);
     const nav = page.getByRole('navigation', { name: copy.workspaceNav.label });
     await expect(nav.getByRole('link')).toHaveText([
+      copy.workspaceNav.myDay,
+      copy.workspaceNav.myCalendar,
       copy.workspaceNav.clients,
       copy.workspaceNav.joinLink,
     ]);

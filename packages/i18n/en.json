@@ -181,7 +181,30 @@
     "newMenu": "Create new",
     "newClient": "Client",
     "newPrivateSession": "Private session",
-    "joinLink": "Join link"
+    "joinLink": "Join link",
+    "personal": "Personal",
+    "myDay": "My day",
+    "myCalendar": "My calendar"
+  },
+  "myDay": {
+    "title": "My day",
+    "summaryNone": "No sessions",
+    "summary": "{count, plural, one {# session} other {# sessions}} · {first}–{last}",
+    "listLabel": "Today's sessions",
+    "nextUpcoming": "Up next · in {minutes} min",
+    "nextInProgress": "In progress",
+    "typePrivate": "Private session",
+    "typeGroup": "Group class",
+    "booked": "{booked}/{capacity} booked",
+    "timeRange": "{start}–{end}",
+    "typeWithDetail": "{type} · {detail}",
+    "spokenTime": "{start} to {end}",
+    "spokenJoin": "{first}, {next}",
+    "cancelled": "Cancelled",
+    "tomorrow": "Tomorrow: {count, plural, one {# session} other {# sessions}}, first at {time}",
+    "emptyToday": "No sessions today.",
+    "emptyNext": "No sessions today. Your next session is on {date}.",
+    "emptyNever": "You don't have any sessions yet. You'll see them here as soon as you're scheduled."
   },
   "workspaceSwitcher": {
     "newWorkspace": "+ New workspace"
