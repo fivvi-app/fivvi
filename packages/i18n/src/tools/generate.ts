@@ -36,9 +36,7 @@ export function renderNativeCatalogs(fullAnalysis: Analysis): Map<string, string
   if (problems.length > 0) throw new CatalogError(problems);
   const missing = [
     ...new Set([...Object.values(infoPlistKeys), ...Object.values(clientInfoPlistKeys)]),
-  ].filter(
-    (key) => !fullAnalysis.keys.includes(key),
-  );
+  ].filter((key) => !fullAnalysis.keys.includes(key));
   if (missing.length > 0) {
     throw new CatalogError(
       missing.map(

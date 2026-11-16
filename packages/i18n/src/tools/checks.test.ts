@@ -132,7 +132,10 @@ describe('E005 i18n checks', () => {
     });
 
     it('E008 AC8: fails when app.name changed but InfoPlist.xcstrings was not regenerated', async () => {
-      await writeEn({ app: { name: 'Fivvi Pro app', title: 'Fivvi' }, hello: { title: 'Welcome' } });
+      await writeEn({
+        app: { name: 'Fivvi Pro app', title: 'Fivvi' },
+        hello: { title: 'Welcome' },
+      });
       const [generated] = await runChecks(root, ['generated']);
       expect(generated?.problems).toEqual([
         'generated/ios/Localizable.xcstrings is out of date',

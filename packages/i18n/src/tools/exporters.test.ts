@@ -429,7 +429,9 @@ describe('E006 server-only namespaces', () => {
   });
 
   it('still checks email keys for parity', () => {
-    const analysis = analyze(catalogSet(nl, { 'app.name': 'Fivvi', 'app.title': 'Fivvi', 'hello.title': 'Welcome' }));
+    const analysis = analyze(
+      catalogSet(nl, { 'app.name': 'Fivvi', 'app.title': 'Fivvi', 'hello.title': 'Welcome' }),
+    );
     expect(analysis.parity).toEqual([
       '"email.hello.subject" is in nl-NL.json but missing from en.json',
     ]);
@@ -460,7 +462,9 @@ describe('F064 the public website is server-only copy', () => {
   });
 
   it('still checks site keys for parity', () => {
-    const analysis = analyze(catalogSet(nl, { 'app.name': 'Fivvi', 'app.title': 'Fivvi', 'hello.title': 'Welcome' }));
+    const analysis = analyze(
+      catalogSet(nl, { 'app.name': 'Fivvi', 'app.title': 'Fivvi', 'hello.title': 'Welcome' }),
+    );
     expect(analysis.parity).toEqual([
       '"site.home.headline" is in nl-NL.json but missing from en.json',
     ]);
