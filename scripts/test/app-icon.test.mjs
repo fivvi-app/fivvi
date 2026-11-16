@@ -810,6 +810,66 @@ describe('E017 #504: Fivvi, the client app, has the plain day dial B2 as its ico
   });
 });
 
+describe('E017 #503: Fivvi on iOS has the plain day dial B2 as its icon', () => {
+  const CLIENT_SET = 'apps/ios/Fivvi/Assets.xcassets/AppIcon.appiconset';
+  const NAMES = ['AppIcon.png', 'AppIcon-Dark.png', 'AppIcon-Tinted.png'];
+  // The box of PRO (x 50 +- 12.8, y 50 +- 4.75) with its stroke (1.25) and one unit more, as in the Android test below.
+  const insidePro = (x, y, size) => {
+    const [ux, uy] = [((x + 0.5) * 100) / size, ((y + 0.5) * 100) / size];
+    return ux > 35 && ux < 65 && uy > 43 && uy < 57;
+  };
+
+  it('declares the light, dark and tinted 1024 px icons, as the one of Fivvi Pro does', () => {
+    assert.equal(text(`${CLIENT_SET}/Contents.json`), text(`${IOS_SET}/Contents.json`));
+    assert.equal(
+      text('apps/ios/Fivvi/Assets.xcassets/Contents.json'),
+      text('apps/ios/FivviPro/Assets.xcassets/Contents.json'),
+    );
+  });
+
+  for (const name of NAMES) {
+    it(`${name}: is Fivvi Pro's icon without PRO, the dial alone and unchanged outside the letters`, () => {
+      const plain = decodePng(read(`${CLIENT_SET}/${name}`));
+      const pro = decodePng(read(`${IOS_SET}/${name}`));
+      assert.deepEqual([plain.width, plain.height, plain.colorType], [1024, 1024, 2]);
+
+      let changed = 0;
+      const row = 1024 * 3;
+      for (let y = 0; y < 1024; y++) {
+        const [a, b] = [plain.pixels.subarray(y * row, (y + 1) * row), pro.pixels.subarray(y * row, (y + 1) * row)];
+        if (a.equals(b)) continue;
+        for (let x = 0; x < 1024; x++) {
+          if (a.subarray(x * 3, x * 3 + 3).equals(b.subarray(x * 3, x * 3 + 3))) continue;
+          changed++;
+          assert.ok(insidePro(x, y, 1024), `${name} (${x}, ${y}) changed outside PRO`);
+        }
+      }
+      assert.ok(changed > 4000, `${changed} pixels differ: Fivvi Pro draws PRO, Fivvi does not`);
+    });
+  }
+
+  it('the middle of the dial is empty and the five are the pink gradient, light and dark', () => {
+    const light = decodePng(read(`${CLIENT_SET}/AppIcon.png`));
+    const dark = decodePng(read(`${CLIENT_SET}/AppIcon-Dark.png`));
+    near(at(light, 50 - 13.5 * 0.95, 50), backgroundAt('#ffffff', '#ececf1', 36.7, 50), 2, 'no PRO');
+    near(at(dark, 50 - 13.5 * 0.95, 50), backgroundAt('#2c2c2e', '#0b0b0c', 36.7, 50), 2, 'no PRO');
+    // The first sector of the five, at about 11 o'clock, is pink in the light and the dark icon.
+    for (const png of [light, dark]) {
+      const [red, green] = at(png, 40.5, 24);
+      assert.ok(red > 200 && green < 120, `${at(png, 40.5, 24)} is pink`);
+    }
+  });
+
+  it('the app target takes the icon and is part of what the generator writes', () => {
+    const files = renderIcons();
+    for (const name of NAMES) assert.ok(files.has(`${CLIENT_SET}/${name}`), name);
+    assert.match(
+      text('apps/ios/Fivvi.xcodeproj/project.pbxproj'),
+      /ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;/,
+    );
+  });
+});
+
 describe('E020 #672 AC5: the five hours keep their soft shadow, and PRO has none', () => {
   const plain = decodePng(read('apps/android/client/src/main/ic_launcher-playstore.png'));
   const pro = decodePng(read(PLAY_ICON));

@@ -1,5 +1,11 @@
 #!/usr/bin/env bash
-# The iOS app's checks, the same steps as the `iOS` CI job (E008). `pnpm test:ios` runs this.
+# The iOS apps' checks, the same steps as the `iOS` CI job (E008). `pnpm test:ios` runs this.
+#
+# There are two apps (E017 #503): Fivvi Pro (`FivviPro.xcodeproj`, scheme and test plan `FivviPro`, bundle ID
+# `app.fivvi.pro`) and the client app Fivvi (`Fivvi.xcodeproj`, scheme and test plan `Fivvi`, bundle ID `app.fivvi`). Every
+# check below runs for each of them, and each has its own test run and result bundle (`TestResults-<locale>.xcresult` for
+# Fivvi Pro, `TestResults-Fivvi-<locale>.xcresult` for Fivvi) from one build in one DerivedData. A failure in either app
+# fails the script, and the other app's tests still run.
 #
 #   test-ios.sh   SwiftLint and its fixtures (literal text, colours, direct Sentry calls, also in apps/ios/Packages, the
 #                 code both apps share), the Debug and Release
@@ -87,6 +93,23 @@ for locale in $LOCALES; do in_ui_locales "$locale" || all_ui=false; done
 use_xcode || die "Xcode not found — run scripts/bootstrap.sh --mobile"
 [ "$MODE" = test ] || install_swiftlint || die "could not install SwiftLint — run scripts/bootstrap.sh --mobile"
 cd "$IOS_DIR"
+
+# The apps, each with its project, scheme, test plan and UI test target named after it. `use_app <app>` makes it the one
+# the functions below act on. The final bundle ID of each is a literal here, as in Android's BuildInfoTest; that the README
+# records the same ID is checked by scripts/test/app-ids.test.mjs, so a README edit is not a native change.
+APPS="FivviPro Fivvi"
+APP=""
+FINAL_BUNDLE_ID=""
+RESULT_STEM=""
+use_app() { # <app>
+  APP=$1
+  case "$APP" in
+    FivviPro) FINAL_BUNDLE_ID=app.fivvi.pro; RESULT_STEM=TestResults ;;
+    Fivvi) FINAL_BUNDLE_ID=app.fivvi; RESULT_STEM=TestResults-Fivvi ;;
+    *) die "unknown iOS app '$APP'; use one of: $APPS" ;;
+  esac
+}
+use_app FivviPro
 
 # Every line of a fixture marked `// expect: <rule>` must fail SwiftLint with that rule, naming the file and line; no
 # other line may fail with it. `lint_fixture` lints the fixture by path; `fixture_lines_match` compares a fixture with the
@@ -187,16 +210,16 @@ production_base_url_fixtures() {
 build_settings() {
   local configuration=$1
   shift
-  xcodebuild -project FivviPro.xcodeproj -target FivviPro -configuration "$configuration" -showBuildSettings \
+  xcodebuild -project "$APP.xcodeproj" -target "$APP" -configuration "$configuration" -showBuildSettings \
     -clonedSourcePackagesDirPath .build/SourcePackages "$@"
 }
 
 # A setting's value in the target's block of the output. Xcode first echoes the settings given on the command line
 # ("Build settings from command line:"), which says nothing about what the target resolves to, so only the block "Build
-# settings for action build and target FivviPro:" counts.
+# settings for action build and target <the app>:" counts.
 setting_of() {
-  awk -v key="$1" '
-    /^Build settings for action build and target FivviPro:/ { in_target = 1; next }
+  awk -v key="$1" -v target="$APP" '
+    $0 == "Build settings for action build and target " target ":" { in_target = 1; next }
     /^Build settings / { in_target = 0 }
     in_target && $1 == key && $2 == "=" { sub(/^[[:space:]]*[^[:space:]]+ = /, ""); print; exit }
   ' <<<"$2"
@@ -208,9 +231,7 @@ shared_setting() {
 }
 
 # E017 AC4 and AC8: a configuration resolves the version of apps/Version.xcconfig (the one Android reads), the default
-# build number 1 and the final bundle ID, app.fivvi.pro, a literal here as in Android's BuildInfoTest. (That the README
-# records the same ID is checked by scripts/test/app-ids.test.mjs, so a README edit is not a native change.)
-FINAL_BUNDLE_ID=app.fivvi.pro
+# build number 1 and the final bundle ID of the app (`use_app`), a literal there as in Android's BuildInfoTest.
 version_and_identifier() {
   local settings=$1 shared default version number id rc=0
   shared="$(shared_setting MARKETING_VERSION)"
@@ -265,7 +286,7 @@ release_configuration() {
 swift_packages() {
   local allowed resolved unexpected
   allowed='sentry-cocoa swift-collections swift-http-types swift-openapi-runtime swift-openapi-urlsession'
-  resolved="$(jq -er '.pins[].identity' FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved)" \
+  resolved="$(jq -er '.pins[].identity' "$APP.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved")" \
     || { echo "could not read the Swift packages from Package.resolved"; return 1; }
   unexpected="$(grep -vxF -f <(tr ' ' '\n' <<<"$allowed") <<<"$resolved" || true)"
   [ -z "$unexpected" ] || { echo "Swift packages not on the allowlist in scripts/test-ios.sh: $unexpected"; return 1; }
@@ -276,12 +297,12 @@ swift_packages() {
 plan_skips() {
   jq -r '.configurations[] | .name as $config
     | (.options.environmentVariableEntries // [])[] | select(.key == "FIVVI_SKIP_TESTS") | .value
-    | split(",")[] | gsub("^\\s+|\\s+$"; "") | select(. != "") | "\($config) \(.)"' FivviPro.xctestplan | sort -u
+    | split(",")[] | gsub("^\\s+|\\s+$"; "") | select(. != "") | "\($config) \(.)"' "$APP.xctestplan" | sort -u
 }
 
 # `Class/test_name` of every test of the UI test target.
 ui_tests() {
-  find FivviProUITests -name '*.swift' -exec awk '
+  find "${APP}UITests" -name '*.swift' -exec awk '
     FNR == 1 { class = "" }
     /^[[:space:]]*((private|fileprivate|internal|public|open|final)[[:space:]]+)*class[[:space:]]+[A-Za-z0-9_]+/ \
       && !/class[[:space:]]+(func|var|let)[[:space:]]/ {
@@ -298,25 +319,25 @@ ui_tests() {
 test_plan_coverage() {
   local tests skips configs rc=0 test skip filtered
   filtered="$(jq -r '.testTargets[] | .target.name as $target | ["skippedTests", "selectedTests"][] as $key
-    | select((.[$key] // []) | length > 0) | "\($target) \($key)"' FivviPro.xctestplan)"
+    | select((.[$key] // []) | length > 0) | "\($target) \($key)"' "$APP.xctestplan")"
   while read -r skip; do
     [ -n "$skip" ] || continue
-    echo "FivviPro.xctestplan: ${skip% *} has ${skip#* }, which applies to every configuration; skip tests per configuration in FIVVI_SKIP_TESTS"
+    echo "$APP.xctestplan: ${skip% *} has ${skip#* }, which applies to every configuration; skip tests per configuration in FIVVI_SKIP_TESTS"
     rc=1
   done <<<"$filtered"
   tests="$(ui_tests)"
   skips="$(plan_skips)"
-  configs="$(jq '.configurations | length' FivviPro.xctestplan)"
-  [ -n "$tests" ] || { echo "found no UI tests in FivviProUITests"; return 1; }
+  configs="$(jq '.configurations | length' "$APP.xctestplan")"
+  [ -n "$tests" ] || { echo "found no UI tests in ${APP}UITests"; return 1; }
   while read -r skip; do
     [ -n "$skip" ] || continue
-    grep -qxF "$skip" <<<"$tests" || { echo "FivviPro.xctestplan skips $skip, which is not a UI test"; rc=1; continue; }
+    grep -qxF "$skip" <<<"$tests" || { echo "$APP.xctestplan skips $skip, which is not a UI test"; rc=1; continue; }
     [[ "$skip" == HomeUITests/* ]] \
-      || { echo "FivviPro.xctestplan skips $skip, but only HomeUITests acts on FIVVI_SKIP_TESTS"; rc=1; }
+      || { echo "$APP.xctestplan skips $skip, but only HomeUITests acts on FIVVI_SKIP_TESTS"; rc=1; }
   done <<<"$(cut -d' ' -f2 <<<"$skips" | sort -u)"
   for test in $tests; do
     [ "$(grep -cE " $test\$" <<<"$skips")" -lt "$configs" ] \
-      || { echo "$test is skipped in every configuration of FivviPro.xctestplan: it runs in no configuration"; rc=1; }
+      || { echo "$test is skipped in every configuration of $APP.xctestplan: it runs in no configuration"; rc=1; }
   done
   return "$rc"
 }
@@ -335,14 +356,17 @@ plists_in_xcode_form() {
 # Xcode's string catalog sync, which every Xcode build and -exportLocalizations run, adds the strings a catalog lacks
 # (Info.plist keys such as CFBundleName) and rewrites it. The generated catalogs must already have them, or a build
 # changes tracked files (#95). A catalog the sync changed is restored, also when the run is interrupted.
-CATALOGS=("$ROOT"/packages/i18n/generated/ios/*.xcstrings)
+CATALOGS=("$ROOT"/packages/i18n/generated/ios/*.xcstrings "$ROOT"/packages/i18n/generated/ios/client/*.xcstrings)
 CATALOGS_BEFORE=.build/catalogs-before
+# The name a catalog is saved under: its path below packages/i18n/generated/ios, with the slash made a dash (the client
+# app's InfoPlist.xcstrings is in `client/`).
+catalog_key() { local path=${1#"$ROOT/packages/i18n/generated/ios/"}; echo "${path//\//-}"; }
 
 # Puts the catalogs back as they were and shows what the sync changed; fails if it changed any.
 restore_catalogs() {
   local catalog saved rc=0
   for catalog in "${CATALOGS[@]}"; do
-    saved="$CATALOGS_BEFORE/$(basename "$catalog")"
+    saved="$CATALOGS_BEFORE/$(catalog_key "$catalog")"
     cmp -s "$saved" "$catalog" && continue
     echo "Xcode's catalog sync changes ${catalog#"$ROOT"/}: generate what it adds (packages/i18n/src/tools/xcstrings.ts)"
     diff -u "$saved" "$catalog" || true
@@ -353,15 +377,18 @@ restore_catalogs() {
 }
 
 catalog_sync() {
-  local rc=0
+  local rc=0 catalog app
   rm -rf "$CATALOGS_BEFORE"
   mkdir -p "$CATALOGS_BEFORE"
-  cp "${CATALOGS[@]}" "$CATALOGS_BEFORE/"
+  for catalog in "${CATALOGS[@]}"; do cp "$catalog" "$CATALOGS_BEFORE/$(catalog_key "$catalog")"; done
   on_exit 'restore_catalogs || true'
-  xcodebuild -exportLocalizations -project FivviPro.xcodeproj -scheme FivviPro \
-    -localizationPath .build/Localizations -exportLanguage nl -exportLanguage en \
-    -clonedSourcePackagesDirPath .build/SourcePackages -derivedDataPath .build/DerivedData -quiet \
-    || { echo "xcodebuild -exportLocalizations failed"; rc=1; }
+  for app in $APPS; do
+    use_app "$app"
+    xcodebuild -exportLocalizations -project "$APP.xcodeproj" -scheme "$APP" \
+      -localizationPath ".build/Localizations-$APP" -exportLanguage nl -exportLanguage en \
+      -clonedSourcePackagesDirPath .build/SourcePackages -derivedDataPath .build/DerivedData -quiet \
+      || { echo "xcodebuild -exportLocalizations failed for $APP"; rc=1; }
+  done
   ON_EXIT=""
   restore_catalogs || rc=1
   return "$rc"
@@ -378,48 +405,72 @@ if [ "$MODE" != test ]; then
   step "SwiftLint's rules cover the shared packages (apps/ios/Packages)"
   lint_packages
   step "Every UI test runs in at least one test-plan configuration"
-  test_plan_coverage
+  for app in $APPS; do use_app "$app"; test_plan_coverage; done
   step "Debug and Release configurations"
   debug_configuration
   production_base_url_fixtures
-  release_configuration
-  version_and_identifier "$(build_settings Debug)"
-  build_number_from_outside
+  for app in $APPS; do
+    use_app "$app"
+    release_configuration
+    version_and_identifier "$(build_settings Debug)"
+    build_number_from_outside
+  done
   plists_in_xcode_form
   step "Swift packages (no analytics SDK)"
-  swift_packages
+  for app in $APPS; do use_app "$app"; swift_packages; done
   step "Xcode's string catalog sync leaves the generated catalogs unchanged"
   catalog_sync
 fi
 
-BUILD_ARGS=(-project FivviPro.xcodeproj -scheme FivviPro -testPlan FivviPro
-  -clonedSourcePackagesDirPath .build/SourcePackages -derivedDataPath .build/DerivedData)
+# Both apps are built into one DerivedData, so the Swift packages they share are built once.
+BUILD_ARGS=()
+build_args() {
+  BUILD_ARGS=(-project "$APP.xcodeproj" -scheme "$APP" -testPlan "$APP"
+    -clonedSourcePackagesDirPath .build/SourcePackages -derivedDataPath .build/DerivedData)
+}
 
-# Builds the app and its tests once, for the simulator $1; the build log goes to .build/build-for-testing.log and its
-# timing summary to the output and the job summary. Build/Products is restored from CI's cache, so an .xctestrun left
-# by an earlier build (a renamed scheme or test plan) is deleted first: afterwards exactly this build's one remains.
+# Builds the apps and their tests, one app after the other, for the simulator $1; the build log of each goes to
+# .build/build-for-testing-<app>.log and its timing summary to the output and the job summary. Build/Products is restored
+# from CI's cache, so an .xctestrun left by an earlier build (a renamed scheme or test plan) is deleted first: afterwards
+# exactly one .xctestrun of each app remains, named after its scheme and test plan (`<app>_<app>_<sdk>.xctestrun`).
 PRODUCTS=.build/DerivedData/Build/Products
 XCTESTRUN=""
 build_for_testing() {
-  local log=.build/build-for-testing.log timing found
+  local app
   rm -f "$PRODUCTS"/*.xctestrun
+  for app in $APPS; do
+    use_app "$app"
+    build_app_for_testing "$1" || return 1
+  done
+}
+
+# Finds the one .xctestrun of the app (`use_app`) in the products and makes it XCTESTRUN.
+find_xctestrun() {
+  local found
+  found="$(find "$PRODUCTS" -maxdepth 1 -name "${APP}_*.xctestrun")"
+  { [ -n "$found" ] && [ "$(wc -l <<<"$found")" -eq 1 ]; } \
+    || { echo "expected exactly one $APP .xctestrun in $PRODUCTS, found: $(tr '\n' ' ' <<<"${found:-none}")"; return 1; }
+  XCTESTRUN="$found"
+}
+
+build_app_for_testing() {
+  local log=".build/build-for-testing-$APP.log" timing
+  build_args
   if ! xcodebuild build-for-testing "${BUILD_ARGS[@]}" -destination "id=$1" -showBuildTimingSummary >"$log" 2>&1; then
     tail -n 300 "$log"
     return 1
   fi
-  found="$(find "$PRODUCTS" -maxdepth 1 -name '*.xctestrun')"
-  { [ -n "$found" ] && [ "$(wc -l <<<"$found")" -eq 1 ]; } \
-    || { echo "expected exactly one .xctestrun in $PRODUCTS after build-for-testing, found: $(tr '\n' ' ' <<<"${found:-none}")"; return 1; }
-  XCTESTRUN="$found"
+  find_xctestrun || return 1
   timing="$(sed -n '/^Build Timing Summary/,$p' "$log" | head -n 40)"
-  [ -z "$timing" ] || { echo "$timing"; summary "### iOS build timing" "" '```' "$timing" '```' ""; }
+  [ -z "$timing" ] || { echo "$timing"; summary "### iOS build timing ($APP)" "" '```' "$timing" '```' ""; }
 }
 
 # Runs the test plan on simulator $1 without building, both configurations (nl and en) in one run: the simulator is
 # prepared and the app installed once, and the one result bundle has each locale's results. With a locale in $2, runs
 # only that locale's configuration, into a bundle of its own, and without the UI tests when the locale isn't one of
 # IOS_UI_LOCALES.
-RESULTS=.build/TestResults-nl-en.xcresult
+# The result bundle of the app (`use_app`) for a locale, or for both ("nl-en") without one.
+result_bundle() { echo ".build/$RESULT_STEM-${1:-nl-en}.xcresult"; }
 # A test that hangs fails after this many seconds instead of stalling the job until its timeout (#305). The slowest
 # tests take 39 s locally (about twice that on a runner), so 2 minutes leaves clear headroom; XCTest rounds the
 # allowances up to whole minutes and never lets a test run past the maximum.
@@ -477,17 +528,18 @@ run_xcodebuild() { # <simulator> <bundle> <deadline seconds> <what> [xcodebuild 
 CONFIG_ARGS=()
 config_args() { # <locale>
   CONFIG_ARGS=(-only-test-configuration "$1")
-  in_ui_locales "$1" || CONFIG_ARGS+=(-skip-testing:FivviProUITests)
+  in_ui_locales "$1" || CONFIG_ARGS+=("-skip-testing:${APP}UITests")
 }
 
 run_tests() {
-  local only=() bundle=$RESULTS
+  local only=() bundle
+  bundle="$(result_bundle)"
   if [ -n "${2:-}" ]; then
     config_args "$2"
     only=("${CONFIG_ARGS[@]}")
-    bundle=".build/TestResults-$2.xcresult"
+    bundle="$(result_bundle "$2")"
   fi
-  run_xcodebuild "$1" "$bundle" "$TEST_DEADLINE" "${2:-nl and en} tests" ${only[@]+"${only[@]}"}
+  run_xcodebuild "$1" "$bundle" "$TEST_DEADLINE" "$APP ${2:-nl and en} tests" ${only[@]+"${only[@]}"}
 }
 
 # E017 #1433: the retry of `test <locale> --retry-failed`. Only the failed UI tests (the target FivviProUITests), once, and
@@ -502,7 +554,7 @@ ENUMERATE_DEADLINE=${IOS_ENUMERATE_DEADLINE:-120}
 # The number of tests that the run of locale $2 on simulator $1 has (what its -only-test-configuration and -skip-testing
 # select), counted by xcodebuild's own enumeration, which reads the .xctestrun like the run does. Nothing when it can't.
 enumerated_test_count() { # <simulator> <locale>
-  local out=".build/TestEnumeration-$2.json" bundle=".build/TestEnumeration-$2.xcresult" count=""
+  local out=".build/TestEnumeration-$APP-$2.json" bundle=".build/TestEnumeration-$APP-$2.xcresult" count=""
   config_args "$2"
   rm -rf "$out" "$bundle"
   # The enumeration writes a result bundle of its own, which is never read: it is not the run's.
@@ -521,9 +573,9 @@ enumerated_test_count() { # <simulator> <locale>
 # and never ran the rest, and that must not pass on the retry of the one failure. Prints why not, and returns 1.
 first_run_complete() { # <simulator> <locale> <listed failed tests>
   local counts failed total expected
-  counts="$(run_counts ".build/TestResults-$2.xcresult")"
+  counts="$(run_counts "$(result_bundle "$2")")"
   if [ -z "$counts" ]; then
-    echo "the counts of the tests cannot be read from .build/TestResults-$2.xcresult"
+    echo "the counts of the tests cannot be read from $(result_bundle "$2")"
     return 1
   fi
   IFS=$'\t' read -r failed total <<<"$counts"
@@ -546,7 +598,9 @@ first_run_complete() { # <simulator> <locale> <listed failed tests>
 # in the retry (each is reported as flaky), 1 otherwise: with no retry, when the failed tests are not all UI tests or are
 # too many, when the run hit its deadline or the failed tests can't be read; and when the retry fails or leaves one out.
 retry_failed_ui_tests() { # <simulator> <locale>
-  local udid=$1 locale=$2 first=".build/TestResults-$2.xcresult" retry=".build/TestResults-$2-retry.xcresult"
+  local udid=$1 locale=$2 first retry
+  first="$(result_bundle "$2")"
+  retry=".build/$RESULT_STEM-$2-retry.xcresult"
   local rows reason kind id message ids="" others="" count=0 only=() outcomes result problems="" status=0 flaky=""
   if $RUN_TIMED_OUT; then
     echo "Not retrying: the $locale run hit its deadline, which is a stall and not a flaky test (#305)"
@@ -577,8 +631,8 @@ retry_failed_ui_tests() { # <simulator> <locale>
     echo "Not retrying: $reason"
     return 1
   fi
-  for id in $ids; do only+=("-only-testing:FivviProUITests/$id"); done
-  step "Retry the failed UI tests in $locale (simulator $udid)"
+  for id in $ids; do only+=("-only-testing:${APP}UITests/$id"); done
+  step "Retry the failed $APP UI tests in $locale (simulator $udid)"
   echo "Retrying $count failed UI test(s) once in $locale:$ids"
   rm -rf "$retry"
   run_xcodebuild "$udid" "$retry" "$RETRY_DEADLINE" "$locale retried tests" -only-test-configuration "$locale" "${only[@]}" \
@@ -602,7 +656,7 @@ retry_failed_ui_tests() { # <simulator> <locale>
     echo "::warning::flaky: $id ($locale) failed in the first run and passed on its retry (#1433): ${message:0:500}"
     flaky="${flaky:+$flaky$'\n'}- \`$id\`: ${message:0:500}"
   done <<<"$rows"
-  summary "### iOS tests that passed only on a retry in $locale" "" \
+  summary "### iOS tests that passed only on a retry in $locale ($APP)" "" \
     "Each failed in the first run and passed on its retry: file a bug for each and quarantine it (TESTING.md §8)." \
     "$flaky" ""
 }
@@ -610,15 +664,15 @@ retry_failed_ui_tests() { # <simulator> <locale>
 # Runs nl on simulator $1 and en on simulator $2 at the same time, each with its output in a log, shown when it ends.
 test_locales_in_parallel() {
   local status=0 nl_pid en_pid locale
-  run_tests "$1" nl >.build/test-nl.log 2>&1 &
+  run_tests "$1" nl >".build/test-$APP-nl.log" 2>&1 &
   nl_pid=$!
-  run_tests "$2" en >.build/test-en.log 2>&1 &
+  run_tests "$2" en >".build/test-$APP-en.log" 2>&1 &
   en_pid=$!
   wait "$nl_pid" || status=1
   wait "$en_pid" || status=1
   for locale in $LOCALES; do
-    echo "::group::Tests in $locale"
-    cat ".build/test-$locale.log"
+    echo "::group::$APP tests in $locale"
+    cat ".build/test-$APP-$locale.log"
     echo "::endgroup::"
   done
   return $status
@@ -639,17 +693,17 @@ pack_bundle() {
   echo "Packed $(basename "$BUNDLE_TAR") ($(du -h "$BUNDLE_TAR" | cut -f1))"
 }
 
-# Unpacks the bundle of the build job in place of Build/Products and finds its one .xctestrun.
+# Unpacks the bundle of the build job in place of Build/Products and checks that it has the .xctestrun of each app.
 unpack_bundle() {
-  local file=${BUNDLE_FILE:-$BUNDLE_TAR} found
+  local file=${BUNDLE_FILE:-$BUNDLE_TAR} app
   [ -f "$file" ] || die "no test bundle at $file — run scripts/test-ios.sh build first (or pass --bundle <file>)"
   rm -rf .build/DerivedData/Build/Products
   mkdir -p .build/DerivedData/Build
   tar -xf "$file" -C .build/DerivedData/Build
-  found="$(find "$PRODUCTS" -maxdepth 1 -name '*.xctestrun')"
-  { [ -n "$found" ] && [ "$(wc -l <<<"$found")" -eq 1 ]; } \
-    || die "expected exactly one .xctestrun in the test bundle, found: $(tr '\n' ' ' <<<"${found:-none}")"
-  XCTESTRUN="$found"
+  for app in $APPS; do
+    use_app "$app"
+    find_xctestrun || die "the test bundle has no usable .xctestrun for $APP"
+  done
 }
 
 # The slowest tests and, when a run failed, the failed tests of the result bundle $1 in locale $2 (also in the job summary).
@@ -657,15 +711,15 @@ report_slowest() { # <bundle> <locale>
   local rows
   rows="$(slowest_tests "$1" 10 "$2")"
   [ -z "$rows" ] || {
-    echo "Slowest tests in $2 (seconds):"
+    echo "Slowest $APP tests in $2 (seconds):"
     echo "$rows" | sed 's/^| /  /; s/ | / /; s/ |$//'
-    summary "### Slowest iOS tests in $2" "" "| Test | Seconds |" "|---|--:|" "$rows" ""
+    summary "### Slowest iOS tests in $2 ($APP)" "" "| Test | Seconds |" "|---|--:|" "$rows" ""
   }
   rows="$(slowest_classes "$1" 10 "$2")"
   [ -z "$rows" ] || {
-    echo "Test time by class in $2 (tests, seconds; the first row is all of them):"
+    echo "$APP test time by class in $2 (tests, seconds; the first row is all of them):"
     echo "$rows" | sed 's/^| /  /; s/ | / /g; s/ |$//'
-    summary "### iOS test time by class in $2" "" "| Class | Tests | Seconds |" "|---|--:|--:|" "$rows" ""
+    summary "### iOS test time by class in $2 ($APP)" "" "| Class | Tests | Seconds |" "|---|--:|--:|" "$rows" ""
   }
 }
 
@@ -678,9 +732,9 @@ TEST_BUDGET_PERCENT=${IOS_TEST_BUDGET_PERCENT:-85}
 report_budget() { # <locale>
   [ -n "${TEST_ELAPSED:-}" ] || return 0
   local percent=$((TEST_ELAPSED * 100 / TEST_DEADLINE)) line
-  line="The $1 tests ran $TEST_ELAPSED s of the $TEST_DEADLINE s deadline ($percent %)"
+  line="The $APP $1 tests ran $TEST_ELAPSED s of the $TEST_DEADLINE s deadline ($percent %)"
   echo "$line"
-  summary "### iOS test budget in $1" "" "$line" ""
+  summary "### iOS test budget in $1 ($APP)" "" "$line" ""
   if [ "$percent" -gt "$TEST_BUDGET_PERCENT" ]; then
     echo "::warning::$line, over the $TEST_BUDGET_PERCENT % that a run on a typical runner may use; a slower runner pushes it past the deadline (#1389): speed the suite up or split it (TESTING.md §7.2)"
   fi
@@ -694,7 +748,7 @@ report_failed() { # <bundle> [locale]
   [ -z "$rows" ] || {
     echo "Failed tests${2:+ in $2}:"
     echo "  ${rows//$'\n'/$'\n  '}"
-    summary "### Failed iOS tests${2:+ in $2}" "" '```' "$rows" '```' ""
+    summary "### Failed $APP iOS tests${2:+ in $2}" "" '```' "$rows" '```' ""
   }
 }
 
@@ -705,7 +759,7 @@ report_flaky() { # <bundle>
   rows="$(flaky_tests "$1")"
   [ -z "$rows" ] || {
     echo "$rows"
-    summary "### Flaky iOS tests" "" "$(sed -e 's/^::warning:://' -e 's/^/- /' <<<"$rows")" ""
+    summary "### Flaky $APP iOS tests" "" "$(sed -e 's/^::warning:://' -e 's/^/- /' <<<"$rows")" ""
   }
 }
 
@@ -725,16 +779,39 @@ if [ "$MODE" = build ]; then
   exit 0
 fi
 
+# The run of one locale of the app (`use_app`) from the bundle of the build job: its tests and the reports on them. Returns
+# 1 when a test failed, also when its retry (`--retry-failed`) did not make it pass.
+test_one_locale() { # <simulator>
+  local tests=0 tests_started=$SECONDS bundle
+  bundle="$(result_bundle "$ONLY_LOCALE")"
+  rm -rf "$bundle" ".build/$RESULT_STEM-$ONLY_LOCALE-retry.xcresult"
+  step "$APP unit and UI tests in $ONLY_LOCALE (simulator $1)"
+  run_tests "$1" "$ONLY_LOCALE" || tests=1
+  TEST_ELAPSED=$((SECONDS - tests_started))
+  report_slowest "$bundle" "$ONLY_LOCALE"
+  report_budget "$ONLY_LOCALE"
+  report_flaky "$bundle"
+  if [ "$tests" != 0 ]; then
+    report_failed "$bundle" "$ONLY_LOCALE"
+    if $RETRY_FAILED && retry_failed_ui_tests "$1" "$ONLY_LOCALE"; then
+      echo "✓ $APP tests in $ONLY_LOCALE (the failed UI tests passed on their retry)"
+      return 0
+    fi
+    return 1
+  fi
+  echo "✓ $APP tests in $ONLY_LOCALE"
+}
+
 if [ "$MODE" = test ]; then
-  # One language from the bundle of the build job, on a simulator of its own. The simulator boots first and settles
-  # while the bundle is unpacked, as it did while the app built in the single job: a simulator that starts the first
-  # test right after its boot failed the one test that rotates the device in both jobs (#293).
+  # One language from the bundle of the build job, on a simulator of its own, for each app, one after the other. The
+  # simulator boots first and settles while the bundle is unpacked, as it did while the app built in the single job: a
+  # simulator that starts the first test right after its boot failed the one test that rotates the device in both jobs
+  # (#293). A failing app doesn't stop the next one.
   step "Boot the simulator (simulator $udid)"
   start_boot "$udid"
   booted_at=$SECONDS
   step "Unpack the test bundle"
   unpack_bundle
-  rm -rf ".build/TestResults-$ONLY_LOCALE.xcresult" ".build/TestResults-$ONLY_LOCALE-retry.xcresult"
   step "Wait for the simulator to settle"
   await_boots || die "a simulator did not boot"
   settle_left=$((${IOS_SIM_SETTLE:-150} - (SECONDS - booted_at)))
@@ -744,22 +821,13 @@ if [ "$MODE" = test ]; then
     echo "The simulator has been up for $((SECONDS - booted_at)) s; waiting $settle_left s more (IOS_SIM_SETTLE)"
     sleep "$settle_left"
   fi
-  step "Unit and UI tests in $ONLY_LOCALE (simulator $udid)"
-  tests=0
-  tests_started=$SECONDS
-  run_tests "$udid" "$ONLY_LOCALE" || tests=1
-  TEST_ELAPSED=$((SECONDS - tests_started))
-  report_slowest ".build/TestResults-$ONLY_LOCALE.xcresult" "$ONLY_LOCALE"
-  report_budget "$ONLY_LOCALE"
-  report_flaky ".build/TestResults-$ONLY_LOCALE.xcresult"
-  if [ "$tests" != 0 ]; then
-    report_failed ".build/TestResults-$ONLY_LOCALE.xcresult" "$ONLY_LOCALE"
-    if $RETRY_FAILED && retry_failed_ui_tests "$udid" "$ONLY_LOCALE"; then
-      echo "✓ iOS tests in $ONLY_LOCALE (the failed UI tests passed on their retry)"
-      exit 0
-    fi
-    exit 1
-  fi
+  failed_apps=""
+  for app in $APPS; do
+    use_app "$app"
+    find_xctestrun || die "the test bundle has no usable .xctestrun for $APP"
+    test_one_locale "$udid" || failed_apps="$failed_apps $APP"
+  done
+  [ -z "$failed_apps" ] || { echo "iOS tests failed in $ONLY_LOCALE for:$failed_apps"; exit 1; }
   echo "✓ iOS tests in $ONLY_LOCALE"
   exit 0
 fi
@@ -769,43 +837,54 @@ parallel=false
 if $parallel; then create_extra_simulator || die "could not create a second simulator"; fi
 extra="$EXTRA_SIMULATOR"
 
-# The simulators boot while the app builds.
+# The run of both locales of the app (`use_app`) on the simulator $1 (and $2 when the locales run at the same time), and the
+# reports on it. Returns 1 when a test failed.
+test_all_locales() { # <simulator> [second simulator]
+  local tests=0 per_locale=$parallel locale bundle
+  # One bundle per locale when the locales run at the same time or with different tests.
+  $all_ui || per_locale=true
+  if $parallel; then
+    $all_ui || ui_note=", UI tests in ${UI_LOCALES// / and } only"
+    step "$APP unit and UI tests in nl and en at the same time${ui_note:-} (simulators $1 and $2)"
+    test_locales_in_parallel "$1" "$2" || tests=1
+  elif $all_ui; then
+    step "$APP unit and UI tests in nl and en (simulator $1)"
+    run_tests "$1" || tests=1
+  else
+    # The UI tests of the other locale are skipped: one run per locale, one after the other (a failing run doesn't stop
+    # the next), each with its own result bundle.
+    step "$APP unit tests in nl and en, UI tests in ${UI_LOCALES// / and } only (simulator $1)"
+    for locale in $LOCALES; do run_tests "$1" "$locale" || tests=1; done
+  fi
+  for locale in $LOCALES; do
+    bundle="$(result_bundle)"
+    ! $per_locale || bundle="$(result_bundle "$locale")"
+    report_slowest "$bundle" "$locale"
+    ! $per_locale || report_flaky "$bundle"
+  done
+  $per_locale || report_flaky "$(result_bundle)"
+  if [ "$tests" != 0 ]; then
+    if $per_locale; then
+      for locale in $LOCALES; do report_failed "$(result_bundle "$locale")" "$locale"; done
+    else
+      report_failed "$(result_bundle)"
+    fi
+    return 1
+  fi
+}
+
+# The simulators boot while the apps build.
 rm -rf .build/TestResults*.xcresult
 start_boot "$udid"
 [ -z "$extra" ] || start_boot "$extra"
 step "Build for testing (simulator $udid)"
 build_for_testing "$udid"
 await_boots || die "a simulator did not boot"
-tests=0
-# One bundle per locale when the locales run at the same time or with different tests.
-per_locale=$parallel
-$all_ui || per_locale=true
-if $parallel; then
-  $all_ui || ui_note=", UI tests in ${UI_LOCALES// / and } only"
-  step "Unit and UI tests in nl and en at the same time${ui_note:-} (simulators $udid and $extra)"
-  test_locales_in_parallel "$udid" "$extra" || tests=1
-elif $all_ui; then
-  step "Unit and UI tests in nl and en (simulator $udid)"
-  run_tests "$udid" || tests=1
-else
-  # The UI tests of the other locale are skipped: one run per locale, one after the other (a failing run doesn't stop
-  # the next), each with its own result bundle.
-  step "Unit tests in nl and en, UI tests in ${UI_LOCALES// / and } only (simulator $udid)"
-  for locale in $LOCALES; do run_tests "$udid" "$locale" || tests=1; done
-fi
-for locale in $LOCALES; do
-  bundle="$RESULTS"
-  ! $per_locale || bundle=".build/TestResults-$locale.xcresult"
-  report_slowest "$bundle" "$locale"
-  ! $per_locale || report_flaky "$bundle"
+failed_apps=""
+for app in $APPS; do
+  use_app "$app"
+  find_xctestrun || die "the build has no usable .xctestrun for $APP"
+  test_all_locales "$udid" "$extra" || failed_apps="$failed_apps $APP"
 done
-$per_locale || report_flaky "$RESULTS"
-if [ "$tests" != 0 ]; then
-  if $per_locale; then
-    for locale in $LOCALES; do report_failed ".build/TestResults-$locale.xcresult" "$locale"; done
-  else
-    report_failed "$RESULTS"
-  fi
-  exit 1
-fi
+[ -z "$failed_apps" ] || { echo "iOS tests failed for:$failed_apps"; exit 1; }
 echo "✓ iOS"

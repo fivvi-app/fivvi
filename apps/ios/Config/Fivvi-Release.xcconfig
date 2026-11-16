@@ -1,0 +1,7 @@
+// Release of the client app Fivvi (E017 #503): the settings of Fivvi Pro's Release (the production API over HTTPS, the
+// Sentry DSN, the version of both apps), with the app's own Info.plist and entitlements. The App Store provisioning
+// profile of a release run is Release.xcconfig's FIVVI_RELEASE_PROFILE; the release lane of the client app (a ticket
+// of its own) passes the profile of `app.fivvi`.
+#include "Release.xcconfig"
+INFOPLIST_FILE = Config/Fivvi-Info.plist
+CODE_SIGN_ENTITLEMENTS[sdk=iphonesimulator*] = Config/Fivvi-Simulator.entitlements
