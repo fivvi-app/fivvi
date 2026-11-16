@@ -101,6 +101,7 @@
         "e2e/maestro/*.yml",
         "apps/ios/**/project.pbxproj",
         "apps/ios/FivviPro/Assets.xcassets/**",
+        "apps/ios/Fivvi/Assets.xcassets/**",
         "apps/ios/README.md",
         "apps/android/README.md",
         "apps/android/app/src/main/res/**",
