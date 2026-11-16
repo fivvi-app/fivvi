@@ -8,8 +8,9 @@
 #                                                 gets "Closes #<issue>", or "Refs #<issue>" for a spec that closes through
 #                                                 its tickets (labelled spec or with sub-issues, and not built as its
 #                                                 own ticket; flow.sh status says when it is complete); a body that
-#                                                 closes such a spec is refused (#509). Every push runs scripts/check.sh, the checks the
-#                                                 change can affect (#293); --full runs check.sh --all, everything
+#                                                 closes such a spec is refused (#509). Every push runs scripts/check.sh --fast, the checks
+#                                                 the change can affect without the integration and e2e tests, which run
+#                                                 in CI (ADR-033); --full runs check.sh --all, everything
 #   pr.sh ready                                   mark the draft ready for review, only when for the head commit every
 #                                                 CI check passed (the merge gate's rule), the clean review is recorded
 #                                                 (pr.sh reviewed) and so is the smoke check (pr.sh smoke); else names
@@ -96,11 +97,14 @@ current_pr() {
   echo "$pr"
 }
 
-# run_check [--all] [<why>]: scripts/check.sh for the change's affected set, or with --all for everything, announcing
-# which ran and why.
+# run_check [--all|--fast] [<why>]: scripts/check.sh for the change's affected set, with --fast without the integration
+# and e2e tests (ADR-033), or with --all for everything, announcing which ran and why.
 run_check() {
   local flag="" mode=affected
-  if [ "${1:-}" = --all ]; then flag=--all; mode=full; shift; fi
+  case "${1:-}" in
+    --all) flag=--all; mode=full; shift ;;
+    --fast) flag=--fast; mode=fast; shift ;;
+  esac
   echo "🔎 ${mode} checks${1:+: $1}"
   (cd "$(git rev-parse --show-toplevel)" && scripts/check.sh ${flag:+"$flag"}) || die "checks failed — fix them before opening or updating a PR"
 }
@@ -182,8 +186,8 @@ cmd_create() {
 
   if $check; then
     if $full; then run_check --all "--full"
-    elif [ -z "$existing" ]; then run_check "first push of the branch"
-    else run_check "follow-up push to PR #$existing; CI is still the full gate on this commit; --full runs everything here too"
+    elif [ -z "$existing" ]; then run_check --fast "first push of the branch; the integration and e2e tests run in CI (ADR-033)"
+    else run_check --fast "follow-up push to PR #$existing; CI is still the full gate on this commit; --full runs everything here too"
     fi
   fi
   local out
