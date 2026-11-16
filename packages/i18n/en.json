@@ -653,6 +653,11 @@
     "haveLink": "Got the link? Open it on this phone.",
     "teamHint": "Are you a trainer or owner? Use the Fivvi Pro app."
   },
+  "appLink": {
+    "soon": "We'll open this link in the app soon.",
+    "openInBrowser": "Open in the browser",
+    "back": "Back"
+  },
   "offers": {
     "summary": {
       "classesPerWeek": "{count, plural, one {# class a week} other {# classes a week}}",

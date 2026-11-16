@@ -7,6 +7,9 @@
     <string name="agreements_due_day_two">on the %1$snd</string>
     <string name="app_name">Fivvi Pro</string>
     <string name="app_title">Fivvi</string>
+    <string name="app_link_back">Back</string>
+    <string name="app_link_open_in_browser">Open in the browser</string>
+    <string name="app_link_soon">We\'ll open this link in the app soon.</string>
     <string name="client_nav_book">Book</string>
     <string name="client_nav_home">Home</string>
     <string name="client_nav_label">Main navigation</string>

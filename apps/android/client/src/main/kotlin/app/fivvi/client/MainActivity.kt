@@ -1,12 +1,14 @@
 package app.fivvi.client
 
 import android.content.Context
+import android.content.Intent
 import android.content.res.Configuration
 import android.os.Bundle
 import android.os.LocaleList
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
@@ -21,6 +23,9 @@ import androidx.compose.ui.semantics.testTagsAsResourceId
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fivvi.client.account.AccountViewModel
+import app.fivvi.client.links.LinkScreen
+import app.fivvi.client.links.LinkViewModel
+import app.fivvi.client.links.OpenedLink
 import app.fivvi.client.shell.BookTags
 import app.fivvi.client.shell.ClientShell
 import app.fivvi.client.shell.HomeTags
@@ -40,6 +45,9 @@ import app.fivvi.core.ui.Localized
 import app.fivvi.core.ui.OnForeground
 
 class MainActivity : ComponentActivity() {
+    // The join or invitation link the app was opened with (E017 #506). It waits here through the sign-in.
+    private val links: LinkViewModel by viewModels()
+
     // The resources follow the resolved language, not Android's own match: an unsupported device language would
     // otherwise get the default (Dutch) resources. A switch while the app runs re-renders in place (see [Localized]).
     override fun attachBaseContext(newBase: Context) {
@@ -52,6 +60,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         val dependencies = (application as ClientApplication).dependencies
+        // The system restores a recreated activity's link through the view model; only a fresh start reads the intent.
+        if (savedInstanceState == null) openLink(intent)
         setContent {
             val language by dependencies.languagePreference.language.collectAsStateWithLifecycle()
             Localized(language) {
@@ -61,7 +71,8 @@ class MainActivity : ComponentActivity() {
                         // App start: no token is the sign-in screen, with no authenticated call; a token is the tabs.
                         val auth by dependencies.session.state.collectAsStateWithLifecycle()
                         if (auth.signedIn) {
-                            Tabs(dependencies, key = "${auth.generation}")
+                            val link by links.link.collectAsStateWithLifecycle()
+                            Tabs(dependencies, key = "${auth.generation}", link = link, onDismissLink = links::dismiss)
                         } else {
                             SignIn(dependencies, key = "${auth.generation}", language, auth.afterRejection)
                         }
@@ -69,6 +80,17 @@ class MainActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    // The app is already open (singleTask) and a link is tapped: the same activity gets it.
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        // Not setIntent: the link is held by the view model, and a recreated activity must not read it again.
+        openLink(intent)
+    }
+
+    private fun openLink(intent: Intent?) {
+        if (intent?.action == Intent.ACTION_VIEW) links.open(intent.dataString)
     }
 
     // The view models belong to one sign-in (the key holds its generation), so the next one starts fresh. The sign-in
@@ -104,7 +126,7 @@ class MainActivity : ComponentActivity() {
     // The tabs: Home · Boeken · Profiel. Until a client belongs to a workspace (F029, F032) Home and Boeken show the
     // no-workspace state.
     @Composable
-    private fun Tabs(dependencies: ClientDependencies, key: String) {
+    private fun Tabs(dependencies: ClientDependencies, key: String, link: OpenedLink?, onDismissLink: () -> Unit) {
         // The stored language is adopted when `GET /v1/me` answers, on opening and on foreground (F010 AC2, AC5).
         val languages = viewModel(key = "language-$key") {
             LanguageViewModel(dependencies.meApi, dependencies.languagePreference)
@@ -130,24 +152,30 @@ class MainActivity : ComponentActivity() {
         OnForeground(languages::refresh)
         OnForeground(account::refresh)
 
-        ClientShell(online, selected, onSelect = { selected = it }) { tab ->
-            when (tab) {
-                Tab.HOME -> NoWorkspaceScreen(accountState, HomeTags, account::retry)
+        // A join or invitation link opened the app: its screen replaces the tabs until the person goes back (F029, F032
+        // give it their screens; until then it says the app opens the link soon, with a button to the browser).
+        if (link != null) {
+            LinkScreen(link, onOpenInBrowser = dependencies.browser::open, onBack = onDismissLink)
+        } else {
+            ClientShell(online, selected, onSelect = { selected = it }) { tab ->
+                when (tab) {
+                    Tab.HOME -> NoWorkspaceScreen(accountState, HomeTags, account::retry)
 
-                Tab.BOOK -> NoWorkspaceScreen(accountState, BookTags, account::retry)
+                    Tab.BOOK -> NoWorkspaceScreen(accountState, BookTags, account::retry)
 
-                Tab.PROFILE -> ProfileScreen(
-                    accountState,
-                    ProfileActions(
-                        onRetry = account::retry,
-                        language = language,
-                        languageSaveFailed = saveFailed,
-                        onChooseLanguage = languages::choose,
-                        onSignOut = account::signOut,
-                        signingOut = signingOut,
-                    ),
-                    version = BuildConfig.VERSION_NAME,
-                )
+                    Tab.PROFILE -> ProfileScreen(
+                        accountState,
+                        ProfileActions(
+                            onRetry = account::retry,
+                            language = language,
+                            languageSaveFailed = saveFailed,
+                            onChooseLanguage = languages::choose,
+                            onSignOut = account::signOut,
+                            signingOut = signingOut,
+                        ),
+                        version = BuildConfig.VERSION_NAME,
+                    )
+                }
             }
         }
     }
