@@ -836,7 +836,10 @@ describe('E017 #503: Fivvi on iOS has the plain day dial B2 as its icon', () => 
       let changed = 0;
       const row = 1024 * 3;
       for (let y = 0; y < 1024; y++) {
-        const [a, b] = [plain.pixels.subarray(y * row, (y + 1) * row), pro.pixels.subarray(y * row, (y + 1) * row)];
+        const [a, b] = [
+          plain.pixels.subarray(y * row, (y + 1) * row),
+          pro.pixels.subarray(y * row, (y + 1) * row),
+        ];
         if (a.equals(b)) continue;
         for (let x = 0; x < 1024; x++) {
           if (a.subarray(x * 3, x * 3 + 3).equals(b.subarray(x * 3, x * 3 + 3))) continue;
@@ -851,7 +854,12 @@ describe('E017 #503: Fivvi on iOS has the plain day dial B2 as its icon', () => 
   it('the middle of the dial is empty and the five are the pink gradient, light and dark', () => {
     const light = decodePng(read(`${CLIENT_SET}/AppIcon.png`));
     const dark = decodePng(read(`${CLIENT_SET}/AppIcon-Dark.png`));
-    near(at(light, 50 - 13.5 * 0.95, 50), backgroundAt('#ffffff', '#ececf1', 36.7, 50), 2, 'no PRO');
+    near(
+      at(light, 50 - 13.5 * 0.95, 50),
+      backgroundAt('#ffffff', '#ececf1', 36.7, 50),
+      2,
+      'no PRO',
+    );
     near(at(dark, 50 - 13.5 * 0.95, 50), backgroundAt('#2c2c2e', '#0b0b0c', 36.7, 50), 2, 'no PRO');
     // The first sector of the five, at about 11 o'clock, is pink in the light and the dark icon.
     for (const png of [light, dark]) {

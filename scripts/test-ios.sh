@@ -460,7 +460,7 @@ build_for_testing() {
 find_xctestrun() {
   local all found strays
   all="$(find "$PRODUCTS" -maxdepth 1 -name '*.xctestrun')"
-  found="$(grep -E "/$APP[_.][^/]*$" <<<"$all" || true)"
+  found="$(grep -E "/${APP}[_.][^/]*$" <<<"$all" || true)"
   # One file per app, and no other: a file of a renamed scheme or test plan is a mistake, not something to pick from.
   strays="$(grep -vE "/($(tr ' ' '|' <<<"$APPS"))[_.][^/]*$" <<<"$all" || true)"
   { [ -n "$found" ] && [ "$(wc -l <<<"$found")" -eq 1 ] && [ -z "$strays" ]; } \
