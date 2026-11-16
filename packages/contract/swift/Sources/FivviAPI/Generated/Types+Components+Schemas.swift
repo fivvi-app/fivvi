@@ -1970,7 +1970,7 @@ extension Components {
                 case emailLocale
             }
         }
-        /// What the link of a valid invitation shows to anyone who holds it, signed in or not.
+        /// What the link of a valid invitation shows to anyone who holds it, signed in or not. `forYou` is the one part that depends on who asks.
         ///
         /// - Remark: Generated from `#/components/schemas/InvitationPreview`.
         public struct InvitationPreview: Codable, Hashable, Sendable {
@@ -1986,25 +1986,33 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/InvitationPreview/maskedEmail`.
             public var maskedEmail: Swift.String
+            /// Whether the signed-in account may answer this invitation: its verified address is the one the invitation is for. `false` for another account, an address that is not verified, and when nobody is signed in.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvitationPreview/forYou`.
+            public var forYou: Swift.Bool
             /// Creates a new `InvitationPreview`.
             ///
             /// - Parameters:
             ///   - workspaceName: The name of the workspace that invites.
             ///   - inviterName: The name of the Owner who invited, `null` while they have given none. Never their address.
             ///   - maskedEmail: The address the invitation is for, hidden except for its first character and its domain (`l***@example.com`), so a person signed in with another address can see which to use.
+            ///   - forYou: Whether the signed-in account may answer this invitation: its verified address is the one the invitation is for. `false` for another account, an address that is not verified, and when nobody is signed in.
             public init(
                 workspaceName: Swift.String,
                 inviterName: Swift.String? = nil,
-                maskedEmail: Swift.String
+                maskedEmail: Swift.String,
+                forYou: Swift.Bool
             ) {
                 self.workspaceName = workspaceName
                 self.inviterName = inviterName
                 self.maskedEmail = maskedEmail
+                self.forYou = forYou
             }
             public enum CodingKeys: String, CodingKey {
                 case workspaceName
                 case inviterName
                 case maskedEmail
+                case forYou
             }
         }
         /// A team member who trains in the workspace.

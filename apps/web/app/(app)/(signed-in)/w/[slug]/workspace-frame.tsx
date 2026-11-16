@@ -21,8 +21,9 @@ import { WorkspaceSwitcher } from './workspace-switcher';
  * the language switch is below them (F010), and the sidebar footer shows the person's name as
  * entered (F005). With `clients.manage` (`quickAdd`) the top bar has **+ Nieuw** → *Klant*, which
  * opens the quick-add dialog (F006) that the list's *Klant toevoegen* opens as well; with a
- * session capability (`newSession`) it has *Privésessie* too, which opens PS-01 (F020). The rest of
- * the navigation comes with F013/F014.
+ * session capability (`newSession`) it has *Privésessie* too, which opens PS-01 (F020). A person
+ * with a trainer profile (`personalPages`) has the group *Persoonlijk* above the workspace's, with
+ * *Mijn dag* and *Mijn agenda* (F013). The rest of the navigation comes with F014.
  */
 export function WorkspaceFrame({
   name,
@@ -34,6 +35,7 @@ export function WorkspaceFrame({
   personName,
   quickAdd,
   newSession,
+  personalPages = false,
   children,
 }: {
   name: string;
@@ -51,6 +53,8 @@ export function WorkspaceFrame({
   quickAdd?: { workspaceId: string; defaultLocale: Locale };
   /** What PS-01 needs; given only to a person who may plan private sessions (F020). */
   newSession?: Omit<NewSessionProps, 'slug'>;
+  /** The person has a trainer profile in some workspace: the sidebar has *Persoonlijk* (F013). */
+  personalPages?: boolean;
   children: ReactNode;
 }) {
   const t = useTranslations('workspaceNav');
@@ -79,6 +83,15 @@ export function WorkspaceFrame({
       ],
     });
   }
+  const personal = personalPages
+    ? {
+        heading: t('personal'),
+        items: [
+          { href: '/me/day', label: t('myDay'), icon: 'day' },
+          { href: '/me/calendar', label: t('myCalendar'), icon: 'calendar' },
+        ] satisfies NavItem[],
+      }
+    : undefined;
   let content: ReactNode = children;
   if (quickAdd || newSession) {
     content = (
@@ -118,7 +131,7 @@ export function WorkspaceFrame({
           workspaces={workspaces}
           canCreateWorkspace={canCreateWorkspace}
         />
-        <SidebarNav label={t('label')} items={items} />
+        <SidebarNav label={t('label')} items={items} heading={name} personal={personal} />
         <div className="mt-auto flex items-center gap-2.5 border-t px-2 pt-2.5">
           {personName ? (
             <>

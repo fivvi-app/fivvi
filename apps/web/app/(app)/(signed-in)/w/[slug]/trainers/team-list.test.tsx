@@ -82,7 +82,7 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
     expect(html).toContain(copy.roles.trainer);
   });
 
-  it('AC4: a Trainer row has the remove action, and there is no add button', () => {
+  it('AC4: a Trainer row has the remove action, and a person who can not invite has no add button', () => {
     const html = list([john, sarah]);
 
     expect(html.match(new RegExp(escapeHtml(copy.team.remove), 'g'))).toHaveLength(1);
@@ -156,6 +156,80 @@ describe.each(locales)('F003 TW-06 Trainers in %s', (locale) => {
     expect(html).toMatch(/<main[^>]*data-slot="page-shell"/);
     expect(html).toMatch(/<h1[^>]*class="[^"]*text-xl[^"]*tracking-tight[^"]*"/);
     expect(html).toMatch(/<th[^>]*scope="col"[^>]*class="[^"]*text-muted-foreground[^"]*"/);
+  });
+
+  describe('F011 invitations', () => {
+    const lisa = {
+      id: 'i1',
+      name: 'Lisa',
+      email: 'lisa@example.com',
+      emailLocale: null,
+      sentAt: '2026-11-14T10:00:00.000Z',
+      expiresAt: '2026-11-21T10:00:00.000Z',
+    } as const;
+    const owner = (invitations: readonly (typeof lisa)[] = [lisa]) =>
+      render(
+        locale,
+        <TeamList
+          workspaceId="w1"
+          workspaceName="John's Gym"
+          members={[john, sarah]}
+          canManage
+          trainerIds={[]}
+          currentEmail="john@example.com"
+          canInvite
+          invitations={invitations}
+          defaultLocale="nl-NL"
+          timeZone="Europe/Amsterdam"
+        />,
+      );
+    const button = (label: string) =>
+      new RegExp(
+        `<button[^>]*type="button"[^>]*>${escapeHtml(label).replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}</button>`,
+      );
+
+    it('AC1: the Owner has the invite button at the top, beside the heading', () => {
+      const html = owner([]);
+
+      expect(html).toMatch(
+        new RegExp(
+          `<h1[^>]*>${escapeHtml(copy.team.title)}</h1>.*?<button[^>]*>${copy.team.invite.title}</button>`,
+        ),
+      );
+    });
+
+    it('AC1: a pending invitation is a row with the name, the address, Uitgenodigd and the date', () => {
+      const html = owner();
+
+      expect(html).toMatch(
+        new RegExp(
+          `Lisa(?:</span>)+</td><td[^>]*>lisa@example.com</td><td[^>]*>.*?${copy.roles.trainer}.*?<span[^>]*data-slot="status-pill"[^>]*>${copy.team.invitations.status}</span>.*?>\\p{L}+,? \\d{1,2} \\p{L}+\\.? 2026</span>`,
+          'u',
+        ),
+      );
+    });
+
+    it('AC7: its row has Opnieuw sturen and Intrekken, and the team rows keep theirs', () => {
+      const html = owner();
+
+      expect(html).toMatch(button(copy.team.invitations.sendAgain));
+      expect(html).toMatch(button(copy.team.invitations.withdraw));
+      expect(html.match(new RegExp(escapeHtml(copy.team.remove), 'g'))).toHaveLength(1);
+    });
+
+    it('AC9: without team.invite there is no invite button and no pending row', () => {
+      const html = list([john, sarah]);
+
+      expect(html).not.toContain(copy.team.invite.title);
+      expect(html).not.toContain(copy.team.invitations.status);
+    });
+
+    it('the withdraw question and the invite dialog are closed until asked for', () => {
+      const html = owner();
+
+      expect(html).not.toContain(copy.team.invitations.withdrawDialog.title);
+      expect(html).not.toContain(escapeHtml(copy.team.invite.description));
+    });
   });
 
   it('the copy has none of the forbidden words', () => {

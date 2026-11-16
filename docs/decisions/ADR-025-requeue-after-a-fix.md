@@ -34,6 +34,8 @@ When the queue removes a PR for a cause **outside the PR** (the failing check al
 > 5. **Not for runners and services.** A cause that is not a test (no macOS runner, a mirror or download that fails, a timed-out job) is not quarantined: decision steps 1 to 5 apply, and the retries of #1268 stay.
 > 6. **Who merges a quarantine.** The quarantine lists live outside every guardrail path and are a risk group of their own, `quarantine`, declared `@agent-queue` in `scripts/high-risk-paths.txt` until pilot setup, as `tooling` is. A quarantine ticket therefore goes through `pr.sh merge` like any agent-queueable PR, and is recorded as a high-risk agent merge for the owner to read. This loosens the guardrail on "the files that skip tests" for these lists only, because step 4 limits what a list may hold and step 3 keeps the tests running. The other files that skip tests (the Xcode test plans and schemes, `TestPlanSkips.swift`), the list readers, the `check.sh` rule and the `Quarantine` job stay owner-only.
 >
+> *Amended by ADR-033 (15 November 2026): the `Quarantine` jobs are in `ci.yml`, agent-queueable until pilot setup; the list readers, the rule and their tests stay owner-only.*
+>
 > Rejected: retrying a failed test once in every runner (it hides flakes, as before); letting the merge queue ignore a flaky test without a list (nobody would know which tests are trusted).
 
 How it works:
