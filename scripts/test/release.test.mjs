@@ -148,8 +148,12 @@ describe('E017 AC3: the native suites run first, in both locales', () => {
       writeFileSync(log, '');
       const result = run(RELEASE, ['tests', 'ios', locale], DISPATCH_ON_MAIN);
       assert.equal(result.status, 0, result.stderr);
-      // The two steps of CI's `iOS build` and `iOS tests (<locale>)`, in one job: no other locale, no all-in-one run.
-      assert.deepEqual(calls(), ['pnpm test:ios build', `pnpm test:ios test ${locale}`]);
+      // The two steps of CI's `iOS build` and `iOS tests (<locale>)`, in one job: no other locale, no all-in-one run. Only
+      // the release retries a failed UI test, once (#1433); CI's own calls stay without the flag.
+      assert.deepEqual(calls(), [
+        'pnpm test:ios build',
+        `pnpm test:ios test ${locale} --retry-failed`,
+      ]);
     }
   });
 
@@ -163,7 +167,7 @@ describe('E017 AC3: the native suites run first, in both locales', () => {
     const result = run(RELEASE, ['tests', 'ios', 'en'], DISPATCH_ON_MAIN);
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /test:ios test en/);
-    assert.deepEqual(calls(), ['pnpm test:ios build', 'pnpm test:ios test en']);
+    assert.deepEqual(calls(), ['pnpm test:ios build', 'pnpm test:ios test en --retry-failed']);
   });
 
   it('E017 AC3: iOS needs a locale of nl or en: none, another one or two is an error that runs nothing', () => {
@@ -850,7 +854,7 @@ describe('E017 AC3: what a run refuses and what stops it', () => {
     // The script runs the build and the tests of one locale; no single-language narrowing by variable or flag.
     const script = readFileSync(join(ROOT, 'scripts/release.sh'), 'utf8');
     assert.match(script, /suite pnpm test:ios build/);
-    assert.match(script, /suite pnpm test:ios test "\$2"/);
+    assert.match(script, /suite pnpm test:ios test "\$2" --retry-failed/);
     assert.ok(!/IOS_[A-Z_]*LOCALE|--locale|only-test-configuration/.test(script + workflow));
   });
 
@@ -861,16 +865,55 @@ describe('E017 AC3: what a run refuses and what stops it', () => {
     assert.match(upload.text, /apps\/ios\/\.build\/build-for-testing\.log/);
   });
 
-  it("E017 AC3: the job timeout holds the build and one locale's tests: no lower than the iOS tests job of CI plus its build", () => {
+  it("E017 AC3: the job timeout holds the build, one locale's tests and the retry of its failed UI tests (#1433)", () => {
     const minutes = (job) => Number(job.match(/^ {4}timeout-minutes: (\d+)$/m)[1]);
     const ci = readFileSync(join(WORKFLOWS, 'ci.yml'), 'utf8');
     const ciJobs = (id) => ci.slice(ci.indexOf(`\n  ${id}:\n`) + 1).split(/\n  [a-z-]+:\n/)[0];
     const build = minutes(ciJobs('ios-build'));
     const testsOfCi = minutes(ciJobs('ios-tests'));
-    assert.ok(
-      minutes(jobs()['ios-tests']) >= build + testsOfCi,
-      `${minutes(jobs()['ios-tests'])} minutes for a build (${build}) and the tests of one locale (${testsOfCi})`,
+    // The retry's deadline, the enumeration's that shows the first run complete before it, and the grace of each, as
+    // scripts/test-ios.sh has them, plus a minute for what the job spends around the retry (the reports, the summary); the
+    // retry boots nothing and settles nothing.
+    const testIos = readFileSync(join(ROOT, 'scripts/test-ios.sh'), 'utf8');
+    const seconds = (name) => Number(testIos.match(new RegExp(`IOS_${name}:-(\\d+)`))[1]);
+    const retry = Math.ceil(
+      (seconds('ENUMERATE_DEADLINE') +
+        seconds('RETRY_DEADLINE') +
+        2 * seconds('TEST_DEADLINE_GRACE') +
+        60) /
+        60,
     );
+    const timeout = minutes(jobs()['ios-tests']);
+    assert.ok(
+      timeout >= build + testsOfCi + retry,
+      `${timeout} minutes for a build (${build}), the tests of one locale (${testsOfCi}) and a retry (${retry})`,
+    );
+    // The comment above the timeout shows the sum, and it is the one this test checks: setup + build + tests + retry.
+    const comment = jobs()['ios-tests'].match(/(?:^ {4}#.*\n)+ {4}timeout-minutes:/m)[0];
+    const [, setup, built, tests, retried, total] = comment
+      .replace(/\n {4}#/g, '')
+      .match(/(\d+) \+ (\d+) \+ (\d+) \+ (\d+) = (\d+)/)
+      .map(Number);
+    assert.equal(setup + built + tests + retried, total, 'the sum in the comment adds up');
+    assert.equal(tests, testsOfCi, 'the tests of CI in the comment');
+    assert.equal(retried, retry, 'the retry in the comment');
+    assert.ok(built >= build, 'the build in the comment');
+    assert.ok(timeout >= total, `${timeout} minutes hold the ${total} of the comment`);
+    for (const name of ['RETRY_DEADLINE', 'ENUMERATE_DEADLINE']) {
+      assert.ok(comment.includes(`${seconds(name)} s`), `${name} in the comment`);
+    }
+  });
+
+  it('E017 #1433: only the release retries failed UI tests: CI never passes --retry-failed', () => {
+    for (const file of readdirSync(WORKFLOWS).filter(
+      (f) => /\.ya?ml$/.test(f) && f !== 'release.yml',
+    ))
+      assert.ok(
+        !/--retry-failed/.test(readFileSync(join(WORKFLOWS, file), 'utf8')),
+        `${file} runs the suite itself`,
+      );
+    const script = readFileSync(join(ROOT, 'scripts/release.sh'), 'utf8');
+    assert.match(script, /suite pnpm test:ios test "\$2" --retry-failed/);
   });
 });
 

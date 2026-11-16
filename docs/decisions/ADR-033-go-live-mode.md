@@ -2,7 +2,7 @@
 
 | | |
 |---|---|
-| **Status** | Accepted (2026-11-15). **Amends** ADR-016 (decision 3, what a clean review means for a low-risk PR), ADR-018 (group size of the merge queue), ADR-023 (CI workflows agent-queueable until pilot setup) and ADR-024 (what the local check runs before a push); duo sessions (F066) and the single class pass (F058) move after go-live (`ROADMAP.md` v1.43) |
+| **Status** | Accepted (2026-11-15). **Amends** ADR-016 (decision 3, what a clean review means for a low-risk PR), ADR-018 (group size of the merge queue), ADR-023 (CI workflows agent-queueable until pilot setup), ADR-024 (what the local check runs before a push) and ADR-025 (step 6: the Quarantine jobs are in ci.yml, agent-queueable); duo sessions (F066) and the single class pass (F058) move after go-live (`ROADMAP.md` v1.43) |
 | **Date** | 2026-11-15 |
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | ADR-016, ADR-018, ADR-021, ADR-023, ADR-024, ADR-025; `docs/legal/verwerkersovereenkomst.md` (measure T12); `docs/engineering/WORKFLOW.md`, `docs/agents/build.md`; the owner's other project, which ships many builds a day with one plain CI job |
