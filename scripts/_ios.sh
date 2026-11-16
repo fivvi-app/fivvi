@@ -228,6 +228,43 @@ failed_tests() {
     | unique[]' 2>/dev/null || true
 }
 
+# The failed tests of the result bundle $1 for the retry of test-ios.sh (#1433), one per line and once each, tab-separated:
+# `ui` or `other` (a test of the FivviProUITests target or any other, unit tests among them), the test as `<class>/<method>`
+# (the form `-only-testing:FivviProUITests/<class>/<method>` takes, no `()`) and the first failure's message on one line.
+# Nothing when the bundle can't be read or lists no failed test: the caller doesn't retry what it can't name.
+failed_test_rows() {
+  xcrun xcresulttool get test-results summary --path "$1" 2>/dev/null | jq -r '
+    [(.testFailures // [])[]
+      | ((.testIdentifierString // .testName // "") | sub("\\(\\)$"; "")) as $id
+      | select($id != "")
+      | {id: $id,
+         ui: (((.targetName // "") == "FivviProUITests") or ((.testIdentifierURL // "") | contains("/FivviProUITests/"))),
+         message: ((.failureText // "") | gsub("\\s+"; " "))}]
+    | group_by(.id)[] | .[0] | [(if .ui then "ui" else "other" end), .id, .message] | @tsv' 2>/dev/null || true
+}
+
+# What the result bundle $1 says about how many tests it has, for the retry of test-ios.sh (#1433): `<failed>\t<total>`, the
+# summary's failedTests and its totalTestCount (the sum of passed, failed, skipped and expected failures when it has none).
+# Nothing when the bundle can't be read or has no counts: a run that can't be counted is not shown to be complete.
+run_counts() {
+  xcrun xcresulttool get test-results summary --path "$1" 2>/dev/null | jq -r '
+    select((.failedTests | type) == "number")
+    | (.totalTestCount // ((.passedTests // 0) + .failedTests + (.skippedTests // 0) + (.expectedFailures // 0))) as $total
+    | select($total | type == "number")
+    | "\(.failedTests)\t\($total)"' 2>/dev/null || true
+}
+
+# The outcome of every UI test of the result bundle $1, one per line, tab-separated: `<class>/<method>` and `Passed`, or the
+# first result that is not (Failed, Skipped, ...). A test the bundle has more than once counts as passed only when every
+# one did. Nothing when the bundle can't be read: a test that is not listed did not run.
+ui_test_outcomes() {
+  xcrun xcresulttool get test-results tests --path "$1" --compact 2>/dev/null | jq -r '
+    [.. | objects | select(.nodeType? == "Test Case" and ((.nodeIdentifierURL // "") | contains("/FivviProUITests/")))
+      | {id: (.nodeIdentifier | sub("\\(\\)$"; "")), result: (.result // "unknown")}]
+    | group_by(.id)[]
+    | "\(.[0].id)\t\(if all(.[]; .result == "Passed") then "Passed" else ([.[].result | select(. != "Passed")] | first) end)"' 2>/dev/null || true
+}
+
 # The UI tests of the result bundle $1 that reported a flaky start, one line each: the `::warning::flaky…` activity the
 # test recorded, then ` in <test> (<test-plan configuration>)` (#388). `xcodebuild -quiet` drops what the tests print, so
 # the activities of the bundle are the only place the warning survives. Nothing when the bundle can't be read.

@@ -262,3 +262,14 @@ export function sessionExpiries(email: string): Promise<Date[]> {
     return rows.map((row) => row.expires_at);
   });
 }
+
+/**
+ * Cancels the session `sessionId`, on the e2e app server's database, as cancelling will (F026): the
+ * row stays and its status is `cancelled`. Until that feature exists, a spec that needs a cancelled
+ * session sets the status itself.
+ */
+export async function cancelSession(sessionId: string): Promise<void> {
+  await withPool((pool) =>
+    pool.query(`update sessions set status = 'cancelled' where id = $1`, [sessionId]),
+  );
+}

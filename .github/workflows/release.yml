@@ -76,7 +76,8 @@ jobs:
     # The native suite on this commit in nl and en (TESTING.md §7), one job per language like CI's `iOS tests (nl)` and
     # `(en)`: both on one simulator in one job outgrew the timeout (run 43699423823, 15 November 2026: the xcodebuild step
     # was still running after 2088 s when the job's 45 minutes ended). Each job builds once (`pnpm test:ios build`, with
-    # SwiftLint and the checks) and runs the tests of its language (`pnpm test:ios test <locale>`), as the step below does.
+    # SwiftLint and the checks) and runs the tests of its language (`pnpm test:ios test <locale> --retry-failed`: a
+    # failed UI test is retried once, unlike in CI), as the step below does.
     # No secret here, and no approval needed: the owner is asked to approve only a run whose tests passed. The release
     # jobs `need` this one, which waits for both languages and counts as failed when either failed. The image and Xcode
     # are pinned, and the same as the iOS jobs of ci.yml (#437): the release build needs Xcode 26 and the iOS 26 SDK,
@@ -88,9 +89,13 @@ jobs:
     # What the job spends: checkout and setup (3 min), SwiftLint, the checks and the build for testing with no cache of
     # DerivedData (15 min; CI's `iOS build` has 12 with its cache), then the tests of one language as `iOS tests (nl)` of
     # ci.yml has them: its 44 minutes, which are the deadline of the xcodebuild run (2100 s) + its grace (60 s) + the
-    # boot, the settle and the other steps (at most 310 s) + 2 min, 2590 s (ci.yml has the reasons). 3 + 15 + 44 = 62, so
-    # 65 minutes. Raising the deadline in scripts/test-ios.sh means raising this; a test fails when they no longer fit.
-    timeout-minutes: 65
+    # boot, the settle and the other steps (at most 310 s) + 2 min, 2590 s (ci.yml has the reasons), then the one retry
+    # of the failed UI tests that `release.sh tests ios` asks for (#1433): first the count of the tests the first run
+    # should have run, which shows it complete (the enumeration's deadline, IOS_ENUMERATE_DEADLINE, 120 s, + the grace,
+    # 60 s; it takes about 20 s), then the retry (its deadline, IOS_RETRY_DEADLINE, 600 s, + the grace, 60 s), + 60 s for
+    # its reports: 900 s, 15 minutes. 3 + 15 + 44 + 15 = 77, so 77 minutes. Raising a deadline in scripts/test-ios.sh
+    # means raising this; a test fails when they no longer fit.
+    timeout-minutes: 77
     strategy:
       # Both languages always run: a failing one doesn't hide the other's result.
       fail-fast: false

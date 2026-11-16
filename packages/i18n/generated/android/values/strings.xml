@@ -242,6 +242,17 @@
     <string name="home_set_up_on_web">Maak je werkruimte aan op het web.</string>
     <!-- Native apps only: line on the signed-in home placeholder that says which account is signed in. {email} is the account's email address, shown in full to its owner. -->
     <string name="home_signed_in_as">Ingelogd als %1$s</string>
+    <string name="invitation_accept">Accepteren</string>
+    <string name="invitation_decline">Afwijzen</string>
+    <string name="invitation_declined">Je hebt de uitnodiging afgewezen.</string>
+    <string name="invitation_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
+    <string name="invitation_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <string name="invitation_intro">%1$s nodigt je uit om trainer te worden bij %2$s.</string>
+    <string name="invitation_intro_anonymous">Je bent uitgenodigd om trainer te worden bij %1$s.</string>
+    <string name="invitation_no_longer_valid">Deze uitnodiging is niet meer geldig. Vraag om een nieuwe uitnodiging.</string>
+    <string name="invitation_sign_out_and_continue">Uitloggen en verder</string>
+    <string name="invitation_title">Uitnodiging</string>
+    <string name="invitation_wrong_account">Deze uitnodiging is voor %1$s. Log uit en log in met dat e-mailadres.</string>
     <string name="join_link_body">Voor nieuwe klanten: ze loggen in en vragen of ze klant mogen worden. De eigenaar keurt elk verzoek goed.</string>
     <string name="join_link_copied">Link gekopieerd.</string>
     <string name="join_link_copy">Link kopiëren</string>
@@ -255,6 +266,30 @@
     <string name="join_link_renew_dialog_title">Aanmeldlink vernieuwen?</string>
     <string name="join_link_renewed">De aanmeldlink is vernieuwd.</string>
     <string name="join_link_title">Aanmeldlink</string>
+    <string name="my_day_booked">%1$s/%2$s geboekt</string>
+    <string name="my_day_cancelled">Geannuleerd</string>
+    <string name="my_day_empty_never">Je hebt nog geen sessies. Je ziet ze hier zodra je bent ingepland.</string>
+    <string name="my_day_empty_next">Geen sessies vandaag. Je volgende sessie is op %1$s.</string>
+    <string name="my_day_empty_today">Geen sessies vandaag.</string>
+    <string name="my_day_list_label">Sessies van vandaag</string>
+    <string name="my_day_next_in_progress">Nu bezig</string>
+    <string name="my_day_next_upcoming">Straks · over %1$s min</string>
+    <string name="my_day_spoken_join">%1$s, %2$s</string>
+    <string name="my_day_spoken_time">%2$s tot %1$s</string>
+    <plurals name="my_day_summary">
+        <item quantity="one">%1$d sessie · %2$s–%3$s</item>
+        <item quantity="other">%1$d sessies · %2$s–%3$s</item>
+    </plurals>
+    <string name="my_day_summary_none">Geen sessies</string>
+    <string name="my_day_time_range">%2$s–%1$s</string>
+    <string name="my_day_title">Mijn dag</string>
+    <plurals name="my_day_tomorrow">
+        <item quantity="one">Morgen: %1$d sessie, eerste om %2$s</item>
+        <item quantity="other">Morgen: %1$d sessies, eerste om %2$s</item>
+    </plurals>
+    <string name="my_day_type_group">Groepsles</string>
+    <string name="my_day_type_private">Privésessie</string>
+    <string name="my_day_type_with_detail">%2$s · %1$s</string>
     <string name="my_profile_booking_emails_help">Je krijgt een e-mail als een klant boekt of annuleert.</string>
     <!-- Label of the checkbox on My profile (TW-09) that switches the emails for a client booking or cancelling in the person's own classes on or off (F050). On by default; the setting belongs to the account. -->
     <string name="my_profile_booking_emails_label">E-mails over boekingen in mijn lessen</string>
@@ -601,6 +636,36 @@
     <string name="team_errors_last_owner">%1$s moet minstens één eigenaar houden.</string>
     <!-- Shown on the Trainers page when removing a person failed because there is no connection. Nothing changed. -->
     <string name="team_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <string name="team_invitations_gone">Deze uitnodiging staat er niet meer.</string>
+    <string name="team_invitations_send_again">Opnieuw sturen</string>
+    <string name="team_invitations_sent_again">Uitnodiging opnieuw verstuurd</string>
+    <string name="team_invitations_status">Uitgenodigd</string>
+    <string name="team_invitations_withdraw">Intrekken</string>
+    <string name="team_invitations_withdraw_dialog_body">De link in de e-mail aan %1$s werkt dan niet meer.</string>
+    <string name="team_invitations_withdraw_dialog_cancel">Terug</string>
+    <string name="team_invitations_withdraw_dialog_confirm">Intrekken</string>
+    <string name="team_invitations_withdraw_dialog_title">Uitnodiging intrekken?</string>
+    <string name="team_invitations_withdrawn">Uitnodiging aan %1$s ingetrokken.</string>
+    <string name="team_invite_already_invited">Er staat al een uitnodiging open voor dit e-mailadres.</string>
+    <string name="team_invite_already_on_team">%1$s zit al in het team.</string>
+    <string name="team_invite_cancel">Annuleren</string>
+    <string name="team_invite_description">We sturen een e-mail met een uitnodiging naar dit adres.</string>
+    <string name="team_invite_email_label">E-mailadres</string>
+    <string name="team_invite_errors_email_invalid">Vul een geldig e-mailadres in.</string>
+    <string name="team_invite_errors_email_required">Vul een e-mailadres in.</string>
+    <string name="team_invite_errors_name_required">Vul een naam in.</string>
+    <string name="team_invite_errors_name_too_long">Deze naam is te lang. Gebruik maximaal 120 tekens.</string>
+    <string name="team_invite_errors_not_sent">Niet verstuurd. Controleer je verbinding en probeer het opnieuw.</string>
+    <string name="team_invite_errors_too_many">Je hebt in de laatste 24 uur al 20 uitnodigingen verstuurd. Probeer het later opnieuw.</string>
+    <string name="team_invite_locale_default">Standaard van de werkruimte (%1$s)</string>
+    <string name="team_invite_locale_en">English</string>
+    <string name="team_invite_locale_label">Taal van de e-mail</string>
+    <string name="team_invite_locale_nl">Nederlands</string>
+    <string name="team_invite_name_label">Naam</string>
+    <string name="team_invite_send_again">Opnieuw sturen</string>
+    <string name="team_invite_sent">Uitnodiging verstuurd naar %1$s.</string>
+    <string name="team_invite_submit">Versturen</string>
+    <string name="team_invite_title">Trainer uitnodigen</string>
     <string name="team_make_owner_dialog_body">Een eigenaar kan alles in %1$s, ook het team, de instellingen en het geld.</string>
     <string name="team_make_owner_dialog_cancel">Annuleren</string>
     <string name="team_make_owner_dialog_confirm">Eigenaar maken</string>
@@ -720,10 +785,13 @@
     <string name="workspace_nav_join_link">Aanmeldlink</string>
     <!-- Accessible name of the navigation of a workspace's pages, read by screen readers. -->
     <string name="workspace_nav_label">Hoofdnavigatie</string>
+    <string name="workspace_nav_my_calendar">Mijn agenda</string>
+    <string name="workspace_nav_my_day">Mijn dag</string>
     <string name="workspace_nav_new">Nieuw</string>
     <string name="workspace_nav_new_client">Klant</string>
     <string name="workspace_nav_new_menu">Nieuw maken</string>
     <string name="workspace_nav_new_private_session">Privésessie</string>
+    <string name="workspace_nav_personal">Persoonlijk</string>
     <!-- Navigation link to Settings (Instellingen). Shown to the Owner only (GLOSSARY §4.8). -->
     <string name="workspace_nav_settings">Instellingen</string>
     <string name="workspace_nav_settings_general">Algemeen</string>

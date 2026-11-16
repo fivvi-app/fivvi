@@ -1,6 +1,6 @@
 import { Fragment, type ReactNode } from 'react';
 import { Link, Text } from 'react-email';
-import { textStyle } from '../components/layout.tsx';
+import { linkStyle, textStyle } from '../components/layout.tsx';
 import type { DemoBusinessKind, DemoRequestMail, DemoTrainerCount } from '../demo-request-mail.ts';
 import type { EmailContext, EmailTemplate } from '../render.tsx';
 
@@ -72,7 +72,9 @@ export const demoRequestEmail: EmailTemplate<DemoRequestEmailProps> = {
       <Text style={textStyle}>{ctx.t('email.demoRequest.intro')}</Text>
       <Row label={ctx.t('email.demoRequest.nameLabel')}>{name}</Row>
       <Row label={ctx.t('email.demoRequest.emailLabel')}>
-        <Link href={`mailto:${email}`}>{email}</Link>
+        <Link style={linkStyle} href={`mailto:${email}`}>
+          {email}
+        </Link>
       </Row>
       <Row label={ctx.t('email.demoRequest.businessLabel')}>{businessLabel(ctx, businessKind)}</Row>
       <Row label={ctx.t('email.demoRequest.trainersLabel')}>{trainersLabel(ctx, trainerCount)}</Row>

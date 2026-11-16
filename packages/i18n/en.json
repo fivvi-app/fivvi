@@ -181,7 +181,30 @@
     "newMenu": "Create new",
     "newClient": "Client",
     "newPrivateSession": "Private session",
-    "joinLink": "Join link"
+    "joinLink": "Join link",
+    "personal": "Personal",
+    "myDay": "My day",
+    "myCalendar": "My calendar"
+  },
+  "myDay": {
+    "title": "My day",
+    "summaryNone": "No sessions",
+    "summary": "{count, plural, one {# session} other {# sessions}} · {first}–{last}",
+    "listLabel": "Today's sessions",
+    "nextUpcoming": "Up next · in {minutes} min",
+    "nextInProgress": "In progress",
+    "typePrivate": "Private session",
+    "typeGroup": "Group class",
+    "booked": "{booked}/{capacity} booked",
+    "timeRange": "{start}–{end}",
+    "typeWithDetail": "{type} · {detail}",
+    "spokenTime": "{start} to {end}",
+    "spokenJoin": "{first}, {next}",
+    "cancelled": "Cancelled",
+    "tomorrow": "Tomorrow: {count, plural, one {# session} other {# sessions}}, first at {time}",
+    "emptyToday": "No sessions today.",
+    "emptyNext": "No sessions today. Your next session is on {date}.",
+    "emptyNever": "You don't have any sessions yet. You'll see them here as soon as you're scheduled."
   },
   "workspaceSwitcher": {
     "newWorkspace": "+ New workspace"
@@ -408,6 +431,44 @@
     },
     "badge": {
       "trainer": "Trainer"
+    },
+    "invite": {
+      "title": "Invite trainer",
+      "description": "We'll email an invitation to this address.",
+      "nameLabel": "Name",
+      "emailLabel": "Email address",
+      "localeLabel": "Language of the email",
+      "localeDefault": "Workspace default ({language})",
+      "localeNl": "Nederlands",
+      "localeEn": "English",
+      "submit": "Send",
+      "cancel": "Cancel",
+      "sent": "Invitation sent to {name}.",
+      "alreadyOnTeam": "{name} is already on the team.",
+      "alreadyInvited": "An invitation to this email address is already open.",
+      "sendAgain": "Send again",
+      "errors": {
+        "nameRequired": "Enter a name.",
+        "nameTooLong": "This name is too long. Use at most 120 characters.",
+        "emailRequired": "Enter an email address.",
+        "emailInvalid": "Enter a valid email address.",
+        "tooMany": "You've already sent 20 invitations in the last 24 hours. Try again later.",
+        "notSent": "Not sent. Check your connection and try again."
+      }
+    },
+    "invitations": {
+      "status": "Invited",
+      "sendAgain": "Send again",
+      "sentAgain": "Invitation sent again",
+      "withdraw": "Withdraw",
+      "withdrawDialog": {
+        "title": "Withdraw invitation?",
+        "body": "The link in the email to {email} will stop working.",
+        "confirm": "Withdraw",
+        "cancel": "Back"
+      },
+      "withdrawn": "Invitation to {name} withdrawn.",
+      "gone": "This invitation is no longer there."
     }
   },
   "clients": {
@@ -1454,6 +1515,21 @@
       "repsOnly": "Reps only",
       "time": "Time",
       "distanceTime": "Distance + time"
+    }
+  },
+  "invitation": {
+    "title": "Invitation",
+    "intro": "{inviter} invited you to become a trainer at {workspace}.",
+    "introAnonymous": "You've been invited to become a trainer at {workspace}.",
+    "accept": "Accept",
+    "decline": "Decline",
+    "declined": "You declined the invitation.",
+    "wrongAccount": "This invitation is for {maskedEmail}. Sign out and sign in with that email address.",
+    "signOutAndContinue": "Sign out and continue",
+    "noLongerValid": "This invitation is no longer valid. Ask for a new invitation.",
+    "errors": {
+      "noConnection": "No connection. Check your internet and try again.",
+      "generic": "Something went wrong. Try again."
     }
   }
 }
