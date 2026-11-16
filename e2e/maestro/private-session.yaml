@@ -1,0 +1,105 @@
+# F020 native private sessions (spec #425, AC1, AC2, AC6, AC10 and the TD-02 design), against the local stack: Sarah (the
+# seeded trainer@example.com, a Trainer of John's Gym, which opens first) plans a session with Anna from + (PS-04), lands
+# on the session screen (TD-02), which shows the location with its Route button (John's Gym has a synthetic address) and
+# the workspace with the trainer, "Jij" or "You" for the person looking, moves it (PS-05, with the client notified) and
+# finds it under Komende sessies on Anna's profile (AC9). The sign-in is the shared sub-flow. Elements are found by id: the
+# Android testTag and the iOS accessibilityIdentifier, the same on both apps (home.new*, newSession.*, clientPicker.*,
+# session.*, reschedule.*, clientProfile.*). Texts differ by language, so the flow checks what both languages share (the
+# client's name, the workspace's name) and the ids. The date and the start are the form's own first values (the next full
+# hour), which the API accepts; no clock is read. The two platform tickets (iOS #445, Android #446) run this one flow.
+appId: ${APP_ID}
+name: AC1 AC2 AC6 AC9 AC10 Plan, open, move and find a private session
+env:
+  # The Android application id and the iOS bundle id.
+  APP_ID: app.fivvi.pro
+  # Sarah: seeded, a Trainer of John's Gym (packages/database/src/seed.ts).
+  EMAIL: trainer@example.com
+---
+- launchApp:
+    clearState: true
+- runFlow:
+    file: shared/sign-in.yaml
+# The + appears once the clients and the capabilities are loaded, so the flow first waits for the home's clients button
+# (home.openClients, on both apps) and then asks for the +.
+- extendedWaitUntil:
+    visible:
+      id: home\.openClients
+    timeout: 20000
+# AC1: + shows Privésessie for a team member who trains.
+- tapOn:
+    id: home\.new
+- tapOn:
+    id: home\.newPrivateSession
+- extendedWaitUntil:
+    visible:
+      id: newSession\.save
+    timeout: 20000
+# AC2: the trainer is fixed for a Trainer: a line with their own name, no list.
+- extendedWaitUntil:
+    visible:
+      id: newSession\.trainerFixed
+    timeout: 20000
+- assertNotVisible:
+    id: newSession\.trainer
+# The client: a searchable list.
+- tapOn:
+    id: newSession\.client
+- extendedWaitUntil:
+    visible:
+      id: clientPicker\.search
+    timeout: 20000
+- tapOn:
+    id: clientPicker\.search
+- inputText: Anna
+- extendedWaitUntil:
+    visible: .*Anna de Vries.*
+    timeout: 20000
+- tapOn: .*Anna de Vries.*
+- extendedWaitUntil:
+    visible:
+      id: newSession\.clientName
+      text: Anna de Vries
+    timeout: 20000
+- tapOn:
+    id: newSession\.save
+# AC10: the session screen opens with the data of the form: the client, the location with Route, the workspace with the
+# trainer.
+- extendedWaitUntil:
+    visible:
+      id: session\.title
+      text: .*Anna de Vries.*
+    timeout: 20000
+- assertVisible:
+    id: session\.location
+- assertVisible:
+    id: session\.route
+- assertVisible:
+    id: session\.workspace
+    text: John's Gym
+- assertVisible:
+    id: session\.trainer
+    text: (Jij|You)
+# AC6: moving it with the client notified (on by default for a session still to come).
+- tapOn:
+    id: session\.menu
+- tapOn:
+    id: session\.reschedule
+- extendedWaitUntil:
+    visible:
+      id: reschedule\.submit
+    timeout: 20000
+- tapOn:
+    id: reschedule\.submit
+- extendedWaitUntil:
+    visible:
+      id: session\.moved
+    timeout: 20000
+# AC9: Komende sessies on the profile of the client lists it.
+- tapOn:
+    id: session\.menu
+- tapOn:
+    id: session\.clientProfile
+- extendedWaitUntil:
+    visible:
+      id: clientProfile\.upcomingTitle
+    timeout: 20000

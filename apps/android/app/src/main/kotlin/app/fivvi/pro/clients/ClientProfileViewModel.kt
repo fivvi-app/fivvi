@@ -3,7 +3,9 @@ package app.fivvi.pro.clients
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import app.fivvi.api.apis.ClientsApi
+import app.fivvi.api.apis.SessionsApi
 import app.fivvi.api.models.Client
+import app.fivvi.api.models.UpcomingSessions
 import app.fivvi.api.models.UpdateClientRequest
 import java.io.IOException
 import java.net.HttpURLConnection.HTTP_FORBIDDEN
@@ -51,6 +53,10 @@ sealed interface ClientProfileState {
  * for an address another client has); nothing is checked here. The profile reads the client
  * again on opening and on [refresh]; a read that fails leaves the client on screen. [onNotAllowed] is told a 403 or 404 of
  * the read (`clients.view`), [onSaveNotAllowed] a 403 of the save (`clients.manage`), for the capability helper (F004 AC10).
+ *
+ * With a [sessionsApi] the profile also reads the client's next private sessions (*Komende sessies*, F020 AC9) after the
+ * client: [upcoming] is `null` until they are read, and stays what it was when a later read fails; the overview doesn't
+ * depend on it.
  */
 class ClientProfileViewModel(
     private val api: ClientsApi,
@@ -58,9 +64,14 @@ class ClientProfileViewModel(
     private val clientId: UUID,
     private val onNotAllowed: (Response<*>) -> Unit = {},
     private val onSaveNotAllowed: (Response<*>) -> Unit = {},
+    private val sessionsApi: SessionsApi? = null,
 ) : ViewModel() {
     private val _state = MutableStateFlow<ClientProfileState>(ClientProfileState.Loading)
     val state: StateFlow<ClientProfileState> = _state.asStateFlow()
+    private val _upcoming = MutableStateFlow<UpcomingSessions?>(null)
+
+    /** The client's coming private sessions, soonest first, once read (*Komende sessies*, F020 AC9). */
+    val upcoming: StateFlow<UpcomingSessions?> = _upcoming.asStateFlow()
     private var loading: Job? = null
 
     init {
@@ -90,9 +101,12 @@ class ClientProfileViewModel(
         }
         val client = response.body()?.takeIf { response.isSuccessful }
         when {
-            client != null -> _state.update {
-                (it as? ClientProfileState.Loaded)?.copy(client = client)
-                    ?: ClientProfileState.Loaded(client)
+            client != null -> {
+                _state.update {
+                    (it as? ClientProfileState.Loaded)?.copy(client = client)
+                        ?: ClientProfileState.Loaded(client)
+                }
+                readUpcoming()
             }
 
             response.code() == HTTP_FORBIDDEN || response.code() == HTTP_NOT_FOUND -> {
@@ -102,6 +116,24 @@ class ClientProfileViewModel(
 
             else -> failed()
         }
+    }
+
+    /** The person returns to the profile from a session's screen, which may have moved: read the sessions again. */
+    fun refreshUpcoming() {
+        viewModelScope.launch { readUpcoming() }
+    }
+
+    // A failed read leaves what was shown (or nothing).
+    private suspend fun readUpcoming() {
+        val api = sessionsApi ?: return
+        val response = try {
+            api.listClientUpcomingSessions(workspaceId, clientId)
+        } catch (_: IOException) {
+            return
+        } catch (_: SerializationException) {
+            return
+        }
+        response.body()?.takeIf { response.isSuccessful }?.let { _upcoming.value = it }
     }
 
     private fun failed() {

@@ -517,13 +517,18 @@
       "cancelled": "This session is cancelled.",
       "reschedule": "Reschedule",
       "clientProfile": "Client profile",
-      "moved": "Moved to {date} at {time}."
+      "moved": "Moved to {date} at {time}.",
+      "route": "Route",
+      "you": "You",
+      "more": "More"
     },
     "form": {
       "title": "New private session",
       "description": "Choose a client and a time. The location is already filled in.",
       "close": "Close",
       "loadFailed": "The details couldn't be loaded.",
+      "offline": "You're offline. You can schedule once you're back online.",
+      "clientPlaceholder": "Choose a client",
       "clientLabel": "Client",
       "clientSearch": "Search by name or email",
       "clientResults": "Clients",
@@ -553,6 +558,7 @@
       "languageEn": "in English",
       "cancel": "Cancel",
       "save": "Save",
+      "pickerDone": "Done",
       "discardTitle": "Discard changes?",
       "discardDescription": "What you entered won't be kept.",
       "discard": "Discard",

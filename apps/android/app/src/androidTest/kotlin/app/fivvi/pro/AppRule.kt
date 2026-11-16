@@ -10,8 +10,11 @@ import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import app.fivvi.api.apis.ClientsApi
 import app.fivvi.api.apis.HelloApi
+import app.fivvi.api.apis.LocationsApi
 import app.fivvi.api.apis.MeApi
+import app.fivvi.api.apis.SessionsApi
 import app.fivvi.api.apis.SignInApi
+import app.fivvi.api.apis.TeamApi
 import app.fivvi.api.apis.TrainersApi
 import app.fivvi.api.apis.WorkspacesApi
 import app.fivvi.api.models.MeResponse
@@ -28,6 +31,9 @@ import app.fivvi.core.signin.FakeSignInApi
 import app.fivvi.pro.clients.FakeClientsApi
 import app.fivvi.pro.home.FakeTrainersApi
 import app.fivvi.pro.home.FakeWorkspacesApi
+import app.fivvi.pro.sessions.FakeLocationsApi
+import app.fivvi.pro.sessions.FakeSessionsApi
+import app.fivvi.pro.sessions.FakeTeamApi
 import app.fivvi.pro.workspace.CurrentWorkspace
 import app.fivvi.pro.workspace.InMemoryLastWorkspaceStore
 import app.fivvi.pro.workspace.LastWorkspaceStore
@@ -53,6 +59,9 @@ class AppRule : ExternalResource() {
         workspacesApi: WorkspacesApi = FakeWorkspacesApi(),
         clientsApi: ClientsApi = FakeClientsApi(),
         trainersApi: TrainersApi = FakeTrainersApi(),
+        sessionsApi: SessionsApi = FakeSessionsApi(),
+        locationsApi: LocationsApi = FakeLocationsApi(),
+        teamApi: TeamApi = FakeTeamApi(),
         session: Session = Session(InMemorySessionStore("token-1")),
         signOutApi: (String) -> SignInApi = { signInApi },
         languageStore: LanguageStore = InMemoryLanguageStore(),
@@ -68,6 +77,9 @@ class AppRule : ExternalResource() {
             override val workspacesApi = workspacesApi
             override val clientsApi = clientsApi
             override val trainersApi = trainersApi
+            override val sessionsApi = sessionsApi
+            override val locationsApi = locationsApi
+            override val teamApi = teamApi
             override val session = session
 
             override fun signOutApi(token: String) = signOutApi(token)

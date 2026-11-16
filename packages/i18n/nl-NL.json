@@ -517,13 +517,18 @@
       "cancelled": "Deze sessie is geannuleerd.",
       "reschedule": "Verplaatsen",
       "clientProfile": "Klantprofiel",
-      "moved": "Verplaatst naar {date} om {time}."
+      "moved": "Verplaatst naar {date} om {time}.",
+      "route": "Route",
+      "you": "Jij",
+      "more": "Meer"
     },
     "form": {
       "title": "Nieuwe privésessie",
       "description": "Kies een klant en een moment. De locatie staat al ingevuld.",
       "close": "Sluiten",
       "loadFailed": "De gegevens konden niet worden geladen.",
+      "offline": "Je bent offline. Plannen kan pas als je weer verbinding hebt.",
+      "clientPlaceholder": "Kies een klant",
       "clientLabel": "Klant",
       "clientSearch": "Zoek op naam of e-mail",
       "clientResults": "Klanten",
@@ -553,6 +558,7 @@
       "languageEn": "in het Engels",
       "cancel": "Annuleren",
       "save": "Opslaan",
+      "pickerDone": "Klaar",
       "discardTitle": "Wijzigingen weggooien?",
       "discardDescription": "Wat je hebt ingevuld, wordt niet bewaard.",
       "discard": "Weggooien",
