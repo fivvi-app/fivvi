@@ -19,6 +19,7 @@ import app.fivvi.pro.clients.AddClientActions
 import app.fivvi.pro.clients.AddClientScreen
 import app.fivvi.pro.clients.AddClientViewModel
 import app.fivvi.pro.clients.ClientFormActions
+import app.fivvi.pro.clients.ClientsState
 import app.fivvi.pro.clients.clientsViewModel
 import java.io.IOException
 import java.util.UUID
@@ -144,7 +145,7 @@ fun NewSessionFlow(
                                 scope.launch {
                                     val found =
                                         list.let { shown ->
-                                            (shown as? app.fivvi.pro.clients.ClientsState.Loaded)?.clients
+                                            (shown as? ClientsState.Loaded)?.clients
                                         }
                                             ?.firstOrNull { it.id == existing.id }
                                             ?: read(apis, workspaceId, existing.id)
@@ -186,6 +187,7 @@ fun NewSessionFlow(
                 state = state,
                 forAnyTrainer = forAnyTrainer,
                 ownName = accountName ?: email,
+                workspaceName = workspaceName,
                 confirmingDiscard = confirmingDiscard,
                 onDismissDiscard = { confirmingDiscard = false },
                 onDiscard = {

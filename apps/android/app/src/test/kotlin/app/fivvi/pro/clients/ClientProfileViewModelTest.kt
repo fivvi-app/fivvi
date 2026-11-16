@@ -14,6 +14,7 @@ import java.io.IOException
 import java.time.OffsetDateTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -407,5 +408,20 @@ class ClientProfileViewModelTest {
         viewModel.refresh()
 
         assertEquals(listOf(one.id), viewModel.upcoming.value?.sessions?.map { it.id })
+    }
+
+    @Test
+    fun test_F020_AC9_theSessionsAreNotReadTwiceWhileTheProfileIsStillLoading() {
+        val dispatcher = StandardTestDispatcher()
+        Dispatchers.setMain(dispatcher)
+        val sessions = FakeSessionsApi()
+        val viewModel = ClientProfileViewModel(api, workspace, anna.id, sessionsApi = sessions)
+
+        // The first opening asks for the sessions at once, while the client is still being read.
+        viewModel.refreshUpcoming()
+        dispatcher.scheduler.advanceUntilIdle()
+
+        assertEquals(listOf(anna.id), sessions.upcomingRead)
+        assertEquals(emptyList<UpcomingSession>(), viewModel.upcoming.value?.sessions)
     }
 }

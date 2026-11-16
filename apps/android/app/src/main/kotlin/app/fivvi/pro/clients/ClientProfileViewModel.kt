@@ -118,8 +118,12 @@ class ClientProfileViewModel(
         }
     }
 
-    /** The person returns to the profile from a session's screen, which may have moved: read the sessions again. */
+    /**
+     * The person returns to the profile from a session's screen, which may have moved: read the sessions again. While the
+     * client is still being read (the first opening), that read asks for the sessions too and this one does nothing.
+     */
     fun refreshUpcoming() {
+        if (loading?.isActive == true) return
         viewModelScope.launch { readUpcoming() }
     }
 

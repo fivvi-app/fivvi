@@ -7,6 +7,7 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import app.fivvi.api.models.Client
@@ -80,6 +81,7 @@ class NewSessionScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
                 state = state,
                 forAnyTrainer = forAnyTrainer,
                 ownName = "Sarah",
+                workspaceName = "John's Gym",
                 confirmingDiscard = confirmingDiscard,
                 onDismissDiscard = { kept++ },
                 onDiscard = { discarded++ },
@@ -285,6 +287,14 @@ class NewSessionScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private va
         compose.onNodeWithTag(
             NewSessionTags.FAILED,
         ).assertTextEquals(string(R.string.sessions_form_errors_no_permission))
+    }
+
+    @Test
+    fun test_F020_AC2_aFormWithoutAccessSaysWhoToAskInTheWordsOfTheOtherScreens() {
+        show(ready(load = NewSessionLoad.NoPermission))
+
+        compose.onNodeWithTag(NewSessionTags.NO_PERMISSION).assertIsDisplayed()
+        compose.onNodeWithText(string(R.string.no_permission_body, "John's Gym")).assertIsDisplayed()
     }
 
     @Test

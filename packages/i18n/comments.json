@@ -244,6 +244,7 @@
   "sessions.form.notes.repeatedTime": "Shown when the chosen time happens twice because the clocks go back at the end of summer time (e.g. 02:30 on 25 October 2026). The first one, in summer time, is used. {date} is a full date, {time} a 24-hour time.",
   "sessions.form.errors.timeDoesNotExist": "Shown under the start time when the clocks skip it because summer time starts (e.g. 02:30 on 28 March 2027). {date} is a full date.",
   "sessions.form.notes.past": "Shown when the chosen start is before now. The session is saved afterwards, and the client gets no email.",
+  "sessions.form.pickerDone": "Confirm button of the date and the time picker of the session forms in the Android app.",
   "sessions.form.saved": "Message after a private session was saved. {client} is the client's name, {date} a short date such as \"do 24 sep\", {time} a 24-hour time.",
   "sessions.reschedule.current": "Top of the reschedule dialog: where the session is now. {date} is a short date with the year, {start} and {end} are 24-hour times.",
   "sessions.reschedule.changedBy": "Shown when someone else changed or moved the session while this form was open. {name} is that person. The form then shows the session as it is now.",
@@ -252,7 +253,6 @@
   "sessions.page.more": "Accessibility name of the \u22ef menu on the session screen of the native apps (Reschedule, Client profile).",
   "sessions.form.offline": "Shown on the new private session form of the native apps when the app can't reach the server; Save is off. Nothing is saved until the connection is back.",
   "sessions.form.clientPlaceholder": "The client row of the new private session form of the native apps, before a client is chosen. Tapping it opens the client list.",
-  "sessions.form.pickerDone": "Confirm button of the date and the time picker of the session forms in the Android app.",
   "sessions.page.moved": "Message after a session was moved. {date} is a short date, {time} a 24-hour time.",
   "clients.profile.upcomingWhen": "One row of the client's upcoming sessions on the client profile: {date} is a short date such as \"do 24 sep\", {time} a 24-hour time."
 }

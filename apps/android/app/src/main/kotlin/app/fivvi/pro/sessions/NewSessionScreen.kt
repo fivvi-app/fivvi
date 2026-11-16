@@ -82,13 +82,15 @@ class NewSessionActions(
  * *Opslaan* in the bar, then the client (a row that opens the searchable list), the date, the start, the length, *Eindigt
  * om…*, the trainer (an Owner chooses, a Trainer is fixed), the location and whether the client gets the confirmation.
  * Leaving with something entered asks first. Without a connection the form says so and *Opslaan* is off; nothing is
- * queued. [ownName] is the person's own name, which a Trainer sees on the fixed trainer row.
+ * queued. [ownName] is the person's own name, which a Trainer sees on the fixed trainer row; [workspaceName] is named when
+ * the person has no access.
  */
 @Composable
 fun NewSessionScreen(
     state: NewSessionState,
     forAnyTrainer: Boolean,
     ownName: String,
+    workspaceName: String,
     confirmingDiscard: Boolean,
     onDismissDiscard: () -> Unit,
     onDiscard: () -> Unit,
@@ -129,7 +131,7 @@ fun NewSessionScreen(
 
             NewSessionLoad.Offline -> Unit
 
-            NewSessionLoad.NoPermission -> NoPermission()
+            NewSessionLoad.NoPermission -> NoPermission(workspaceName)
 
             NewSessionLoad.Ready -> Fields(state, forAnyTrainer, ownName, forms, actions)
         }
@@ -186,9 +188,9 @@ internal fun Loading(tag: String) {
 }
 
 @Composable
-private fun NoPermission() {
+private fun NoPermission(workspaceName: String) {
     FivviCard(Modifier.fillMaxWidth().testTag(NewSessionTags.NO_PERMISSION)) {
-        Text(text = stringResource(R.string.sessions_form_errors_no_permission), style = MaterialTheme.typography.body)
+        Text(text = stringResource(R.string.no_permission_body, workspaceName), style = MaterialTheme.typography.body)
     }
 }
 

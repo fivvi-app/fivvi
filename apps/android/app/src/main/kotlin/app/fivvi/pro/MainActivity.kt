@@ -213,6 +213,12 @@ class MainActivity : ComponentActivity() {
         var profileOpenings by rememberSaveable { mutableIntStateOf(0) }
         // Each opening of PS-04 starts with an empty form.
         var newSessionOpenings by rememberSaveable { mutableIntStateOf(0) }
+        // Each opening of a session's screen reads the session again and shows no "moved" message of an earlier one.
+        var sessionOpenings by rememberSaveable { mutableIntStateOf(0) }
+        fun openSession(id: UUID, replacing: Boolean = false) {
+            sessionOpenings++
+            stack = Routes.push(if (replacing) Routes.pop(stack) else stack, Routes.session(id))
+        }
 
         // On foreground: is the workspace shown still the person's (F003 AC6)?
         OnForeground(me::refresh)
@@ -231,7 +237,12 @@ class MainActivity : ComponentActivity() {
         )
         if (route != null && shown != null) {
             // Each opening of PS-04 has state of its own: nothing of an earlier form comes back.
-            screens.SaveableStateProvider(if (route == Routes.NEW_SESSION) "$route-$newSessionOpenings" else route) {
+            val screenKey = when {
+                route == Routes.NEW_SESSION -> "$route-$newSessionOpenings"
+                Routes.sessionId(route) != null -> "$route-$sessionOpenings"
+                else -> route
+            }
+            screens.SaveableStateProvider(screenKey) {
                 when {
                     route == Routes.CLIENTS -> ClientsFlow(
                         dependencies.clientsApi,
@@ -242,7 +253,7 @@ class MainActivity : ComponentActivity() {
                         sessionKey = key,
                         onClose = { stack = Routes.pop(stack) },
                         sessionsApi = dependencies.sessionsApi,
-                        onOpenSession = { stack = Routes.push(stack, Routes.session(it)) },
+                        onOpenSession = ::openSession,
                     )
 
                     route == Routes.NEW_SESSION -> NewSessionFlow(
@@ -261,7 +272,7 @@ class MainActivity : ComponentActivity() {
                         opening = newSessionOpenings,
                         onClose = { stack = Routes.pop(stack) },
                         // Saved: the session's screen replaces the form, so back from it is the home.
-                        onSaved = { stack = Routes.push(Routes.pop(stack), Routes.session(it)) },
+                        onSaved = { openSession(it, replacing = true) },
                     )
 
                     Routes.sessionId(route) != null -> SessionFlow(
@@ -274,6 +285,7 @@ class MainActivity : ComponentActivity() {
                         email = email,
                         accountName = accountName,
                         sessionKey = key,
+                        opening = sessionOpenings,
                         onBack = { stack = Routes.pop(stack) },
                         onOpenClient = { stack = Routes.push(stack, Routes.client(it)) },
                         onRoute = ::openOnTheWeb,
@@ -288,7 +300,7 @@ class MainActivity : ComponentActivity() {
                         sessionKey = key,
                         onClose = { stack = Routes.pop(stack) },
                         sessionsApi = dependencies.sessionsApi,
-                        onOpenSession = { stack = Routes.push(stack, Routes.session(it)) },
+                        onOpenSession = ::openSession,
                         openClient = Routes.clientId(route),
                     )
                 }

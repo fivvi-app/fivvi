@@ -231,7 +231,7 @@ class PrivateSessionFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private 
         compose.onNodeWithTag(NewSessionTags.SAVE).assertIsEnabled()
     }
 
-    // AC1: leaving with something entered asks first; a form with nothing in it closes at once.
+    // PS-04 (information-architecture §5.2): leaving with something entered asks first; a form with nothing in it closes at once.
     @Test
     fun test_F020_AC1_leavingAFormWithAClientAsksToDiscard() {
         launchAsSarah()
@@ -351,6 +351,39 @@ class PrivateSessionFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private 
 
         app.pressBack()
         compose.waitUntilTagExists(ClientProfileTags.UPCOMING_TITLE)
+    }
+
+    // AC9: a session opened again from Komende sessies is read again, and shows nothing of the earlier opening.
+    @Test
+    fun test_F020_AC9_openingTheSameSessionAgainReadsItAgainAndForgetsTheMovedMessage() {
+        launchAsSarah()
+        openNewSession()
+        chooseClient(anna)
+        compose.onNodeWithTag(NewSessionTags.SAVE).performClick()
+        compose.waitUntilTagExists(SessionTags.MENU)
+        compose.onNodeWithTag(SessionTags.MENU).performClick()
+        compose.onNodeWithTag(SessionTags.RESCHEDULE).performClick()
+        compose.waitUntilTagExists(RescheduleTags.SUBMIT)
+        compose.onNodeWithTag(RescheduleTags.SUBMIT).performClick()
+        compose.waitUntilTagExists(SessionTags.MOVED)
+        val planned = sessions.sessions.values.single()
+        sessions.upcoming[anna.id] = UpcomingSessions(
+            anna.id,
+            "Europe/Amsterdam",
+            listOf(UpcomingSession(planned.id, planned.startsAt, planned.endsAt, planned.trainer)),
+        )
+        compose.onNodeWithTag(SessionTags.MENU).performClick()
+        compose.onNodeWithTag(SessionTags.CLIENT_PROFILE).performClick()
+        compose.waitUntilTagExists("${ClientProfileTags.UPCOMING}.${planned.id}")
+        // Someone else gave the session to Tom meanwhile.
+        sessions.sessions[planned.id] = sessionOf(planned.id, anna, tom, version = planned.version + 1)
+
+        compose.onNodeWithTag("${ClientProfileTags.UPCOMING}.${planned.id}").performClick()
+
+        compose.waitUntil(UI_TIMEOUT_MILLIS) {
+            runCatching { compose.onNodeWithTag(SessionTags.TRAINER).assertTextEquals("Tom") }.isSuccess
+        }
+        compose.onNodeWithTag(SessionTags.MOVED).assertDoesNotExist()
     }
 
     // The client list inside PS-04 is the one of Klanten: a search narrows it.
