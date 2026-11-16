@@ -1,8 +1,12 @@
-import { type Locale, locales, messages } from '@fivvi/i18n';
+import { emailColours } from '@fivvi/design-tokens/email-colours';
+import { type Locale, locales, messages, TRAINER_WORDS } from '@fivvi/i18n';
 import { describe, expect, it } from 'vitest';
 import { templates } from '../catalog.ts';
 import { createEmailContext, type EmailTemplate, renderEmail } from '../render.tsx';
 import { helloEmail } from './hello.tsx';
+import { privateSessionEmail } from './private-session.tsx';
+import { privateSessionMovedEmail } from './private-session-moved.tsx';
+import { trainerInvitationEmail } from './trainer-invitation.tsx';
 
 const all = templates as readonly EmailTemplate<unknown>[];
 
@@ -124,4 +128,192 @@ describe('E006 hello template', () => {
       }
     }
   });
+});
+
+// E020 AC16 (spec #590): the emails read their colours from the generated tokens.
+describe('E020 AC16: the button uses the accent', () => {
+  const zinc = ['#18181b', '#f4f4f5', '#e4e4e7', '#71717a', '#27272a', '#fafafa'];
+  const channel = (hex: string, at: number) => {
+    const c = Number.parseInt(hex.slice(at, at + 2), 16) / 255;
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
+  };
+  const luminance = (hex: string) =>
+    0.2126 * channel(hex, 1) + 0.7152 * channel(hex, 3) + 0.0722 * channel(hex, 5);
+  const contrast = (a: string, b: string) => {
+    const [lighter = 0, darker = 0] = [luminance(a), luminance(b)].sort((x, y) => y - x);
+    return (lighter + 0.05) / (darker + 0.05);
+  };
+  /** The inline style of every element that has one, as property maps. */
+  const styles = (html: string) =>
+    [...html.matchAll(/<(\w+)[^>]*?\sstyle="([^"]*)"/g)].map(([, tag, style]) => ({
+      tag: tag ?? '',
+      props: new Map(
+        (style ?? '').split(';').flatMap((declaration) => {
+          const [name, ...value] = declaration.split(':');
+          return name ? [[name.trim(), value.join(':').trim().toLowerCase()] as const] : [];
+        }),
+      ),
+    }));
+
+  const cases = all.flatMap((template) => locales.map((locale) => [template.id, locale] as const));
+
+  it.each(cases)(
+    '%s in %s: no zinc, and every colour is a token of the email',
+    async (id, locale) => {
+      const template = all.find((t) => t.id === id) as EmailTemplate<unknown>;
+      const { html } = await renderEmail(template, template.previewProps, { locale });
+      const allowed = new Set<string>(Object.values(emailColours));
+      for (const hex of zinc) expect(html.toLowerCase(), hex).not.toContain(hex);
+      for (const { props } of styles(html)) {
+        for (const name of ['color', 'background-color', 'border-color']) {
+          const value = props.get(name);
+          if (value) expect(allowed, `${id} ${name}: ${value}`).toContain(value);
+        }
+      }
+    },
+  );
+
+  it.each(cases)(
+    '%s in %s: the button is the accent, with the on-accent label',
+    async (id, locale) => {
+      const template = all.find((t) => t.id === id) as EmailTemplate<unknown>;
+      const { html } = await renderEmail(template, template.previewProps, { locale });
+      const buttons = styles(html).filter(
+        ({ props }) => props.get('display') === 'inline-block' && props.has('background-color'),
+      );
+      for (const { props } of buttons) {
+        expect(props.get('background-color')).toBe(emailColours.accent);
+        expect(props.get('color')).toBe(emailColours.onAccent);
+      }
+    },
+  );
+
+  it('sign-in and the trainer invitation have a button, so the check above is not empty', async () => {
+    for (const id of ['sign-in', 'trainer-invitation']) {
+      const template = all.find((t) => t.id === id) as EmailTemplate<unknown>;
+      const { html } = await renderEmail(template, template.previewProps, { locale: 'nl-NL' });
+      expect(html.toLowerCase()).toContain(`background-color:${emailColours.accent}`);
+    }
+  });
+
+  it.each(cases)('%s in %s: the rendered colours pass the contrast rule', async (id, locale) => {
+    const template = all.find((t) => t.id === id) as EmailTemplate<unknown>;
+    const { html } = await renderEmail(template, template.previewProps, { locale });
+    for (const { props } of styles(html)) {
+      const foreground = props.get('color');
+      if (!foreground) continue;
+      // Text on its own fill is checked against it; other text sits on the card.
+      const background = props.get('background-color') ?? emailColours.surface;
+      expect(
+        contrast(foreground, background),
+        `${id}: ${foreground} on ${background}`,
+      ).toBeGreaterThanOrEqual(4.5);
+    }
+    expect(contrast(emailColours.text, emailColours.canvas)).toBeGreaterThanOrEqual(4.5);
+  });
+});
+
+describe('F068 AC7: the word in each email', () => {
+  const invitation = {
+    inviterName: 'John',
+    workspaceName: 'John’s Gym',
+    url: 'https://fivvi.example.com/invitations/test-token',
+    expiresAt: new Date('2026-11-12T10:00:00Z'),
+  };
+  const session = {
+    workspaceName: 'John’s Gym',
+    startsAt: new Date('2026-09-24T07:00:00Z'),
+    endsAt: new Date('2026-09-24T08:00:00Z'),
+    locationName: 'John’s Gym',
+    locationAddress: null,
+    trainerName: 'Sarah',
+  };
+  const moved = {
+    ...session,
+    previousStartsAt: new Date('2026-09-23T07:00:00Z'),
+    previousEndsAt: new Date('2026-09-23T08:00:00Z'),
+  };
+
+  // The expected sentences are spelled out, so a wrong form or article fails here.
+  const expected = {
+    'nl-NL': {
+      trainer: { invitation: 'om een trainer te worden bij', role: 'Trainer: Sarah' },
+      instructeur: { invitation: 'om een instructeur te worden bij', role: 'Instructeur: Sarah' },
+      docent: { invitation: 'om een docent te worden bij', role: 'Docent: Sarah' },
+      coach: { invitation: 'om een coach te worden bij', role: 'Coach: Sarah' },
+    },
+    en: {
+      trainer: { invitation: 'to become a trainer at', role: 'Trainer: Sarah' },
+      instructeur: { invitation: 'to become an instructor at', role: 'Instructor: Sarah' },
+      docent: { invitation: 'to become a teacher at', role: 'Teacher: Sarah' },
+      coach: { invitation: 'to become a coach at', role: 'Coach: Sarah' },
+    },
+  } as const;
+
+  const cases = locales.flatMap((locale) =>
+    TRAINER_WORDS.map((trainerWord) => [locale, trainerWord] as const),
+  );
+
+  it.each(cases)(
+    '%s, %s: the trainer invitation says the word in its preview and body',
+    async (locale, trainerWord) => {
+      const { invitation: sentence } = expected[locale][trainerWord];
+      const email = await renderEmail(
+        trainerInvitationEmail,
+        { ...invitation, trainerWord },
+        { locale },
+      );
+
+      expect(email.text).toContain(sentence);
+      expect(email.html).toContain(sentence);
+      // The line inbox lists show after the subject.
+      expect(
+        trainerInvitationEmail.preview(createEmailContext({ locale }), {
+          ...invitation,
+          trainerWord,
+        }),
+      ).toContain(sentence);
+      // Another word never shows.
+      for (const other of TRAINER_WORDS.filter((word) => word !== trainerWord)) {
+        expect(email.text).not.toContain(expected[locale][other].invitation);
+      }
+    },
+  );
+
+  it.each(cases)(
+    '%s, %s: the private session email names the role with the word',
+    async (locale, trainerWord) => {
+      const { role } = expected[locale][trainerWord];
+      const email = await renderEmail(privateSessionEmail, { ...session, trainerWord }, { locale });
+
+      expect(email.text).toContain(role);
+    },
+  );
+
+  it.each(cases)(
+    '%s, %s: the moved session email names the role with the word',
+    async (locale, trainerWord) => {
+      const { role } = expected[locale][trainerWord];
+      const email = await renderEmail(
+        privateSessionMovedEmail,
+        { ...moved, trainerWord },
+        { locale },
+      );
+
+      expect(email.text).toContain(role);
+    },
+  );
+
+  it.each(locales)(
+    '%s: the person’s name in the private session email stays a name',
+    async (locale) => {
+      const email = await renderEmail(
+        privateSessionEmail,
+        { ...session, trainerName: 'Coach Karel', trainerWord: 'docent' },
+        { locale },
+      );
+
+      expect(email.text).toContain(`${locale === 'en' ? 'Teacher' : 'Docent'}: Coach Karel`);
+    },
+  );
 });

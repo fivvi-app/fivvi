@@ -148,7 +148,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
 
   it('E008 AC9: the iOS job runs for the app and its generated inputs, including the Swift design tokens', () => {
     for (const path of [
-      'apps/ios/FivviPro/Hello/HelloView.swift',
+      'apps/ios/FivviPro/Home/HomeView.swift',
       'apps/Version.xcconfig',
       'packages/contract/swift/Sources/FivviAPI/Generated/Client.swift',
       'packages/i18n/generated/ios/Localizable.xcstrings',
@@ -190,7 +190,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       'packages/i18n/generated/android/values/strings.xml',
       'packages/design-tokens/kotlin/generated/app/fivvi/designtokens/Colors.kt',
       'e2e/maestro/anonymous.yaml',
-      'e2e/maestro/hello.yaml',
+      'e2e/maestro/home.yaml',
       'e2e/maestro/sign-in.yaml',
       'e2e/maestro/shared/sign-in.yaml',
       'e2e/maestro/shared/newest-code.js',
@@ -204,6 +204,8 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       'scripts/android.sh',
       'scripts/_android.sh',
       'scripts/maestro.sh',
+      // The reader of the Compose and Maestro quarantine lists (E002 #1363) selects the tests of both Android jobs.
+      'scripts/quarantine-android.mjs',
     ]) {
       assert.ok(runs('android', path), path);
     }
@@ -233,7 +235,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     const docs = [
       'apps/ios/README.md',
       'apps/android/README.md',
-      'apps/ios/FivviPro/Hello/NOTES.md',
+      'apps/ios/FivviPro/Home/NOTES.md',
       'e2e/maestro/README.md',
       'packages/contract/README.md',
       'packages/design-tokens/FivviDesignTokens/README.md',
@@ -350,6 +352,8 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
           !['Detect changes', 'Checks (Linux)', 'E2E (Linux)', 'iOS', 'Android'].includes(name),
       ),
       [
+        // Not required, and never to be: the listed flaky tests run here (E002 #1361, TESTING.md §8).
+        'Quarantine',
         'iOS build',
         'iOS build (retry)',
         'iOS tests (${{ matrix.locale }})',
@@ -358,6 +362,8 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
         'Android build',
         'Android tests',
         'Android Maestro',
+        // Not required, and never to be: the listed flaky Android tests run here (E002 #1363, TESTING.md §8).
+        'Quarantine (Android)',
       ],
     );
   });
@@ -905,13 +911,13 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     );
     // Detect changes (5) + build + tests + the gate job (2) must end before the queue gives up on the check.
     const chain = 5 + minutes(iosBuild) + minutes(iosTests) + minutes(job('ios'));
-    assert.ok(chain <= 57, 'the chain is at most 57 minutes');
+    assert.ok(chain <= 63, 'the chain is at most 63 minutes');
     assert.ok(chain < queue, 'under the queue timeout');
     // #1268: a job that no runner takes is cancelled by GitHub after 15 minutes and tried once more, and the retry may
     // queue for a runner as long. The longest passing chain is that in both stages: Detect changes, the build (15 + 15 +
     // 12), the tests, and the gate. The tests stage starts only when the whole ios-tests matrix has ended (ios-tests-plan
-    // needs it), so the first part is the slower of the no-runner wait and the other language's full run (38), then the
-    // plan, the retry's wait and the retry (15 + 38). The queue's timeout and what pr.sh waits must outlast it.
+    // needs it), so the first part is the slower of the no-runner wait and the other language's full run (44), then the
+    // plan, the retry's wait and the retry (15 + 44). The queue's timeout and what pr.sh waits must outlast it.
     const noRunnerWait = 15;
     const retriedChain =
       5 +
@@ -921,7 +927,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
         noRunnerWait +
         minutes(job('ios-tests-retry'))) +
       minutes(job('ios'));
-    assert.equal(retriedChain, 142, 'the numbers in ci.yml, WORKFLOW.md and ADR-018 say 142');
+    assert.equal(retriedChain, 154, 'the numbers in ci.yml, WORKFLOW.md and ADR-018 say 154');
     assert.ok(retriedChain < queue, 'the retried chain is under the queue timeout');
     // pr.sh wait must outlast the chains, or it gives up on a run that still passes.
     const pr = readFileSync(join(SCRIPTS, 'pr.sh'), 'utf8');
@@ -979,7 +985,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
         /"check_response_timeout_minutes": (\d+)/,
       )[1],
     );
-    const maestroStep = 'Maestro flows (sign-in, anonymous and hello; nl-NL and en)';
+    const maestroStep = 'Maestro flows (sign-in, anonymous and home; nl-NL and en)';
     const maestroStepMinutes = stepMinutes(androidMaestro, maestroStep);
     // Run 41938461253 (PR #518, 10 flows): nl-NL 8m30s and en 8m34s of flows, 1 to 2 minutes of setup per locale, so about
     // 20 minutes and 11 s over the 20-minute cap; on main 18, 14 and 16 minutes. The step needs at least 1.5 x 20 minutes.
@@ -2010,6 +2016,7 @@ done
     script(
       join(repo, 'apps/android/gradlew'),
       `echo "$*" >>"${state}/gradle.log"
+echo "$FIVVI_QUARANTINE_TESTS" >>"${state}/gradle-quarantine.log"
 case "$*" in
   *checkReleaseApiBaseUrl*-Pfivvi.releaseApiBaseUrl=*) [ "$FAKE_URL_CHECK" = accept ] || { echo 'Set fivvi.releaseApiBaseUrl (fake)'; exit 1; } ;;
   *connectedDebugAndroidTest*) ${outcome} ;;
@@ -2077,8 +2084,22 @@ case "$*" in
     [ "$FAKE_XCTESTRUN" != two ] || touch .build/DerivedData/Build/Products/Other.xctestrun
     printf 'Build Timing Summary\\n\\nSwiftCompile (1 task) | 1.000 seconds\\n\\n** TEST BUILD SUCCEEDED **\\n' ;;
   test-without-building\\ *)
+    # -enumerate-tests (#1433): the tests the configuration has, FAKE_ENUMERATION of them, written as xcodebuild's
+    # JSON to the -test-enumeration-output-path; FAKE_ENUMERATE=fail: it fails and writes nothing; FAKE_ENUMERATE=stall:
+    # it never ends on its own, and on SIGINT it records that and ends with 130, like FAKE_RESULT=stall.
+    case "$*" in *-enumerate-tests*)
+      [ "$FAKE_ENUMERATE" != fail ] || exit 1
+      [ "$FAKE_ENUMERATE" != stall ] || exec perl -e '$SIG{INT} = sub { open my $f, ">", shift(@ARGV); print $f "SIGINT\\n"; close $f; exit 130 }; sleep 60' "${state}/sigint.log"
+      out=; prev=; for a in "$@"; do [ "$prev" != -test-enumeration-output-path ] || out="$a"; prev="$a"; done
+      jq -n --argjson n "\${FAKE_ENUMERATION:-0}" '{errors: [], values: [{disabledTests: [], testPlan: "FivviPro",
+        enabledTests: [range($n) | {identifier: ("FivviProTests/Fake/test" + tostring + "()")}]}]}' >"$out"
+      exit 0 ;; esac
     # FAKE_FAIL_CONFIGURATION=<locale>: only the run of that test-plan configuration fails.
     case "$*" in *"-only-test-configuration $FAKE_FAIL_CONFIGURATION"*) [ -z "$FAKE_FAIL_CONFIGURATION" ] || exit 1 ;; esac
+    # FAKE_RETRY_RESULT (#1433): the outcome of the run into a -retry result bundle, in place of FAKE_RESULT.
+    case "$*" in *-retry.xcresult*) [ -z "$FAKE_RETRY_RESULT" ] || FAKE_RESULT="$FAKE_RETRY_RESULT" ;; esac
+    # FAKE_FIRST_RUN_SECONDS (#1433): the first run, not the retry, takes this many seconds (fractions allowed).
+    case "$*" in *-retry.xcresult*) ;; *) [ -z "$FAKE_FIRST_RUN_SECONDS" ] || perl -e 'select undef, undef, undef, shift' "$FAKE_FIRST_RUN_SECONDS" ;; esac
     # FAKE_RESULT=stall: it never ends on its own, and on SIGINT it records that and ends with 130 (it has written its bundle).
     [ "$FAKE_RESULT" != stall ] || exec perl -e '$SIG{INT} = sub { open my $f, ">", shift(@ARGV); print $f "SIGINT\\n"; close $f; exit 130 }; sleep 60' "${state}/sigint.log"
     # FAKE_RESULT=stall-ignore-int: the same, but it ignores SIGINT, so only SIGKILL ends it.
@@ -2188,7 +2209,7 @@ Caused by: java.io.IOException: Command failed (host:transport:emulator-5554): d
       {
         echo '<testsuites><testsuite name="Test Suite" tests="3" failures="2">'
         echo '<testcase id="AC9 first" name="AC9 first" file="e2e/maestro/profile-workspaces.yaml" status="ERROR"><failure>'"$msg1"'</failure></testcase>'
-        if [ -n "$second" ]; then echo '<testcase id="AC1 second" name="AC1 second" file="e2e/maestro/hello.yaml" status="ERROR"><failure>'"$msg2"'</failure></testcase>'; fi
+        if [ -n "$second" ]; then echo '<testcase id="AC1 second" name="AC1 second" file="e2e/maestro/home.yaml" status="ERROR"><failure>'"$msg2"'</failure></testcase>'; fi
         echo '<testcase id="AC13 third" name="AC13 third" file="e2e/maestro/anonymous.yaml" status="SUCCESS"/>'
         echo '</testsuite></testsuites>'
       } | { if [ "$FAKE_MAESTRO_ERROR" = no-file ]; then sed 's/ file="[^"]*"//'; else cat; fi; } >"$out"
@@ -2545,6 +2566,530 @@ esac`,
         const run = await fake.run('scripts/test-ios.sh', ['test', 'nl', '--bundle', moved]);
 
         assert.equal(run.status, 0, run.output);
+      });
+    });
+
+    // E017 #1433: `test <locale> --retry-failed` (only `release.sh tests ios` passes it) retries the failed UI tests once.
+    describe('E017 #1433: test <nl|en> --retry-failed retries only the failed UI tests, once', () => {
+      const UI = 'FivviProUITests';
+      const failure = (id, message = `${id} broke`, target = UI) => ({
+        testName: `${id.split('/')[1]}()`,
+        targetName: target,
+        failureText: message,
+        testIdentifierString: `${id}()`,
+        testIdentifierURL: `test://com.apple.xcode/FivviPro/${target}/${id}`,
+      });
+      const node = (id, result, target = UI) => ({
+        nodeType: 'Test Case',
+        nodeIdentifier: `${id}()`,
+        nodeIdentifierURL: `test://com.apple.xcode/FivviPro/${target}/${id}`,
+        result,
+        durationInSeconds: 1,
+      });
+      // The canned bundles of the first run and of the retry: `failed` are `[id, message?, target?]` of failed tests,
+      // `passed` the ids of tests that passed; the fake xcresulttool prints the file of the bundle it is asked about.
+      const canned = (fake, locale, { first, retry }) => {
+        const dir = join(fake.repo, '..', 'bundles');
+        mkdirSync(dir, { recursive: true });
+        // The summary's counts: failedTests (the failed tests, each once; `failedTests` overrides it), the passed ones and
+        // totalTestCount (`total` overrides it); `uncounted` leaves them out.
+        const write = (
+          name,
+          { failed = [], passed = [], passedTarget = UI, total, failedTests, uncounted = false },
+        ) =>
+          writeFileSync(
+            join(dir, `${name}.xcresult.json`),
+            JSON.stringify({
+              ...(uncounted
+                ? {}
+                : {
+                    failedTests: failedTests ?? new Set(failed.map(([id]) => id)).size,
+                    passedTests: passed.length,
+                    skippedTests: 0,
+                    expectedFailures: 0,
+                    totalTestCount: total ?? new Set(failed.map(([id]) => id)).size + passed.length,
+                  }),
+              testFailures: failed.map(([id, message, target]) => failure(id, message, target)),
+              testNodes: [
+                ...failed.map(([id, , target]) => node(id, 'Failed', target)),
+                ...passed.map((id) => node(id, 'Passed', passedTarget)),
+              ],
+            }),
+          );
+        if (first) write(`TestResults-${locale}`, first);
+        if (retry) write(`TestResults-${locale}-retry`, retry);
+        return dir;
+      };
+      const built = async () => {
+        const fake = checkout();
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+        return fake;
+      };
+      const testRuns = (fake) =>
+        fake
+          .log('xcodebuild')
+          .filter(
+            (line) =>
+              line.startsWith('test-without-building ') && !line.includes('-enumerate-tests'),
+          );
+      const enumerations = (fake) =>
+        fake.log('xcodebuild').filter((line) => line.includes('-enumerate-tests'));
+      // The fake enumeration has as many tests as the first run's summary counts (a run that ran them all), unless a test
+      // sets FAKE_ENUMERATION.
+      const retryTest = (fake, args, env = {}) => {
+        const first =
+          env.FAKE_XCRESULT_DIR && join(env.FAKE_XCRESULT_DIR, 'TestResults-nl.xcresult.json');
+        const counted =
+          first && existsSync(first) ? JSON.parse(readFileSync(first, 'utf8')).totalTestCount : 0;
+        return fake.run('scripts/test-ios.sh', ['test', 'nl', ...args], {
+          IOS_SIM_SETTLE: '0',
+          FAKE_RESULT: 'fail',
+          FAKE_RETRY_RESULT: 'pass',
+          FAKE_ENUMERATION: String(counted ?? 0),
+          ...env,
+        });
+      };
+      const A = 'SignInLanguageUITests/test_perAppLanguageWins';
+      const B = 'HomeSmallScreenUITests/test_largestTextSize';
+      const C = 'ProfileUITests/test_editName';
+      const D = 'ProfileUITests/test_editEmail';
+
+      it('retries exactly the failed UI tests, once, on the same simulator, in the same configuration; passes when all of them pass, and reports each as flaky with its first failure', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'nl', {
+          first: {
+            failed: [
+              [A, 'XCTAssertEqual failed: the app is in en'],
+              [B, 'Failed to get background assertion for target app'],
+            ],
+            passed: [C],
+          },
+          retry: { passed: [A, B] },
+        });
+        const summary = join(fake.repo, '..', 'summary.md');
+
+        const run = await retryTest(fake, ['--retry-failed'], {
+          FAKE_XCRESULT_DIR: dir,
+          GITHUB_STEP_SUMMARY: summary,
+        });
+
+        assert.equal(run.status, 0, run.output);
+        const runs = testRuns(fake);
+        assert.equal(runs.length, 2, 'the run and one retry');
+        assert.ok(!runs[0].includes('-only-testing'), 'the first run is the whole configuration');
+        // The completeness check counts the tests of the same configuration, from the same .xctestrun, on the same simulator.
+        const [enumerated, ...more] = enumerations(fake);
+        assert.equal(more.length, 0, 'enumerated once');
+        assert.match(enumerated, /-enumerate-tests/);
+        assert.match(enumerated, /-test-enumeration-format json/);
+        assert.match(enumerated, /-only-test-configuration nl\b/);
+        assert.match(enumerated, /-xctestrun \S*FivviPro\.xctestrun/);
+        assert.equal(
+          enumerated.match(/-destination (\S+)/)[1],
+          runs[0].match(/-destination (\S+)/)[1],
+        );
+        assert.doesNotMatch(enumerated, /-only-testing/);
+        const [, retry] = runs;
+        assert.match(retry, /-only-test-configuration nl\b/);
+        assert.match(retry, /-xctestrun \S*FivviPro\.xctestrun/);
+        assert.match(retry, /-resultBundlePath \.build\/TestResults-nl-retry\.xcresult\b/);
+        assert.equal(retry.match(/-destination (\S+)/)[1], runs[0].match(/-destination (\S+)/)[1]);
+        assert.deepEqual(
+          retry.match(/-only-testing:\S+/g).sort(),
+          [`-only-testing:${UI}/${B}`, `-only-testing:${UI}/${A}`].sort(),
+        );
+        assert.ok(!retry.includes('-skip-testing'));
+        assert.match(retry, /-test-timeouts-enabled YES/);
+        assert.match(retry, /-default-test-execution-time-allowance \d+/);
+        assert.match(retry, /-maximum-test-execution-time-allowance \d+/);
+        assert.equal(
+          fake.log('xcodebuild').filter((l) => l.startsWith('build-for-testing')).length,
+          1,
+        );
+        // The simulator is not booted, shut down or created again between the two runs.
+        assert.equal(fake.log('xcrun').filter((l) => l.startsWith('bootstatus')).length, 1);
+        assert.match(
+          run.output,
+          new RegExp(
+            `^::warning::.*flaky.*${A.replace('/', '\\/')}.*XCTAssertEqual failed: the app is in en`,
+            'm',
+          ),
+        );
+        assert.match(
+          run.output,
+          new RegExp(
+            `^::warning::.*flaky.*${B.replace('/', '\\/')}.*Failed to get background assertion`,
+            'm',
+          ),
+        );
+        assert.doesNotMatch(
+          run.output,
+          new RegExp(`::warning::.*${C}`),
+          'a test that passed first time is not flaky',
+        );
+        assert.match(run.output, /✓ iOS tests in nl/);
+        const markdown = readFileSync(summary, 'utf8');
+        assert.match(markdown, /### iOS tests that passed only on a retry in nl/);
+        assert.match(markdown, new RegExp(`${A}[\\s\\S]*the app is in en`));
+        assert.match(markdown, new RegExp(`${B}[\\s\\S]*Failed to get background assertion`));
+      });
+
+      it('does the same for en, from a downloaded bundle, with the options in either order', async () => {
+        for (const order of ['before', 'after']) {
+          const fake = await built();
+          const moved = join(fake.repo, 'downloaded.tar');
+          renameSync(join(fake.repo, 'apps/ios/.build/ios-test-bundle.tar'), moved);
+          const dir = canned(fake, 'en', { first: { failed: [[A]] }, retry: { passed: [A] } });
+          const options =
+            order === 'before'
+              ? ['--retry-failed', '--bundle', moved]
+              : ['--bundle', moved, '--retry-failed'];
+
+          const run = await fake.run('scripts/test-ios.sh', ['test', 'en', ...options], {
+            IOS_SIM_SETTLE: '0',
+            FAKE_RESULT: 'fail',
+            FAKE_RETRY_RESULT: 'pass',
+            FAKE_XCRESULT_DIR: dir,
+            FAKE_ENUMERATION: '1',
+          });
+
+          assert.equal(run.status, 0, `${order}: ${run.output}`);
+          assert.equal(testRuns(fake).length, 2);
+          assert.match(
+            testRuns(fake)[1],
+            /-only-test-configuration en\b.*TestResults-en-retry\.xcresult/,
+          );
+        }
+      });
+
+      it('retries up to the bound of 3 failed UI tests', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'nl', {
+          first: { failed: [[A], [B], [C]] },
+          retry: { passed: [A, B, C] },
+        });
+
+        const run = await retryTest(fake, ['--retry-failed'], { FAKE_XCRESULT_DIR: dir });
+
+        assert.equal(run.status, 0, run.output);
+        assert.equal(testRuns(fake)[1].match(/-only-testing:/g).length, 3);
+      });
+
+      it('a plain test <locale>, as CI runs it, never retries', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'nl', { first: { failed: [[A]] }, retry: { passed: [A] } });
+
+        const run = await retryTest(fake, [], { FAKE_XCRESULT_DIR: dir });
+
+        assert.equal(run.status, 1, run.output);
+        assert.equal(testRuns(fake).length, 1);
+        assert.doesNotMatch(run.output, /flaky/);
+      });
+
+      it('a passing run does not retry anything, and reports nothing as flaky', async () => {
+        const fake = await built();
+
+        const run = await retryTest(fake, ['--retry-failed'], { FAKE_RESULT: 'pass' });
+
+        assert.equal(run.status, 0, run.output);
+        assert.equal(testRuns(fake).length, 1);
+        assert.doesNotMatch(run.output, /passed only on/);
+      });
+
+      for (const [name, first] of [
+        [
+          'a unit test failed',
+          { failed: [['HomeViewModelTests/test_loads', 'boom', 'FivviProTests']] },
+        ],
+        [
+          'a unit test failed next to a UI test',
+          { failed: [[A], ['HomeViewModelTests/test_loads', 'boom', 'FivviProTests']] },
+        ],
+        ['more UI tests failed than the bound of 3', { failed: [[A], [B], [C], [D]] }],
+        ['the failed tests cannot be read (the bundle lists none)', { failed: [] }],
+      ]) {
+        it(`no retry, and the run fails as before, when ${name}`, async () => {
+          const fake = await built();
+          const summary = join(fake.repo, '..', 'summary.md');
+          const dir = canned(fake, 'nl', {
+            first,
+            retry: { passed: [A, B, C, D] },
+          });
+
+          const run = await retryTest(fake, ['--retry-failed'], {
+            FAKE_XCRESULT_DIR: dir,
+            GITHUB_STEP_SUMMARY: summary,
+          });
+
+          assert.equal(run.status, 1, run.output);
+          assert.equal(testRuns(fake).length, 1, 'one run, no retry');
+          assert.match(run.output, /Not retrying: /);
+          assert.doesNotMatch(run.output, /::warning::flaky|passed only on/);
+        });
+      }
+
+      it('no retry when the result bundle cannot be read', async () => {
+        const fake = await built();
+        const bad = join(fake.repo, '..', 'bad.json');
+        writeFileSync(bad, 'this is not JSON');
+
+        const run = await retryTest(fake, ['--retry-failed'], { FAKE_XCRESULT: bad });
+
+        assert.equal(run.status, 1, run.output);
+        assert.equal(testRuns(fake).length, 1);
+        assert.match(run.output, /Not retrying: .*cannot be read/);
+      });
+
+      it('no retry when the first run hit its deadline (#305)', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'nl', { first: { failed: [[A]] }, retry: { passed: [A] } });
+
+        const run = await retryTest(fake, ['--retry-failed'], {
+          FAKE_RESULT: 'stall',
+          FAKE_XCRESULT_DIR: dir,
+          IOS_TEST_DEADLINE: '2',
+          IOS_TEST_DEADLINE_GRACE: '10',
+        });
+
+        assert.equal(run.status, 1, run.output);
+        assert.equal(testRuns(fake).length, 1);
+        assert.match(run.output, /::error::The nl tests ran past the deadline of 2 s/);
+        assert.match(run.output, /Not retrying: .*deadline/);
+      });
+
+      // Before a retry the first run is shown to be complete (#1433): a run that aborts for a reason that is no test lists one
+      // failed test and never ran the rest, and must not pass on the retry of that one.
+      for (const [name, first, env, message] of [
+        [
+          'the run has fewer tests than its configuration (the rest never ran)',
+          { failed: [[A]], passed: [B, C], total: 3 },
+          { FAKE_ENUMERATION: '389' },
+          /Not retrying: .*3 tests of the 389.*did not run them all/,
+        ],
+        [
+          'the run has more tests than the enumeration (the two disagree)',
+          { failed: [[A]], passed: [B, C] },
+          { FAKE_ENUMERATION: '2' },
+          /Not retrying: .*3 tests of the 2/,
+        ],
+        [
+          'the summary counts more failed tests than the reader found',
+          { failed: [[A]], passed: [B, C], failedTests: 2 },
+          {},
+          /Not retrying: .*summary counts 2 failed tests and the reader found 1/,
+        ],
+        [
+          'the summary counts fewer failed tests than the reader found',
+          { failed: [[A], [B]], failedTests: 1 },
+          {},
+          /Not retrying: .*summary counts 1 failed tests and the reader found 2/,
+        ],
+        [
+          'the summary has no counts',
+          { failed: [[A]], passed: [B], uncounted: true },
+          {},
+          /Not retrying: .*counts of the tests cannot be read/,
+        ],
+        [
+          'the tests of the configuration cannot be enumerated',
+          { failed: [[A]], passed: [B] },
+          { FAKE_ENUMERATE: 'fail' },
+          /Not retrying: .*cannot be enumerated/,
+        ],
+        [
+          'the enumeration lists no test',
+          { failed: [[A]], passed: [B] },
+          { FAKE_ENUMERATION: '0' },
+          /Not retrying: .*cannot be enumerated/,
+        ],
+      ]) {
+        it(`no retry, and the run fails as before, when ${name}`, async () => {
+          const fake = await built();
+          const summary = join(fake.repo, '..', 'summary.md');
+          const dir = canned(fake, 'nl', { first, retry: { passed: [A] } });
+
+          const run = await retryTest(fake, ['--retry-failed'], {
+            FAKE_XCRESULT_DIR: dir,
+            GITHUB_STEP_SUMMARY: summary,
+            ...env,
+          });
+
+          assert.equal(run.status, 1, run.output);
+          assert.equal(testRuns(fake).length, 1, 'one run, no retry');
+          assert.match(run.output, message);
+          assert.doesNotMatch(run.output, /::warning::flaky|passed only on|✓ iOS tests/);
+        });
+      }
+
+      it('counts the tests the run was given: -skip-testing of the UI tests is in the enumeration too', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'en', {
+          first: { failed: [[A]], passed: [B] },
+          retry: { passed: [A] },
+        });
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'en', '--retry-failed'], {
+          IOS_SIM_SETTLE: '0',
+          IOS_UI_LOCALES: 'nl',
+          FAKE_RESULT: 'fail',
+          FAKE_RETRY_RESULT: 'pass',
+          FAKE_XCRESULT_DIR: dir,
+          FAKE_ENUMERATION: '2',
+        });
+
+        // en is not a UI locale here, so the run skips the UI tests, and the enumeration is asked the same question.
+        const [first] = testRuns(fake);
+        const [enumerated] = enumerations(fake);
+        assert.match(first, /-skip-testing:FivviProUITests/);
+        assert.match(enumerated, /-skip-testing:FivviProUITests/);
+        assert.match(enumerated, /-only-test-configuration en\b/);
+        assert.equal(run.status, 0, run.output);
+      });
+
+      for (const [name, retry, retryResult, message] of [
+        [
+          'a retried test fails again',
+          { failed: [[A, 'still broken']], passed: [B] },
+          'fail',
+          /still broken/,
+        ],
+        ['the retry runs only some of the retried tests', { passed: [A] }, 'pass', /did not run/],
+        ['the retry runs none of them', {}, 'pass', /did not run/],
+        [
+          'a retried test is skipped',
+          { passed: [A], skipped: [B] },
+          'pass',
+          /did not run|did not pass/,
+        ],
+        [
+          'xcodebuild fails although every retried test passed',
+          { passed: [A, B] },
+          'fail',
+          /failed/,
+        ],
+        ["the retry's bundle cannot be read", undefined, 'pass', /did not run/],
+      ]) {
+        it(`the run fails when ${name}`, async () => {
+          const fake = await built();
+          const dir = canned(fake, 'nl', { first: { failed: [[A], [B]] }, retry });
+          if (retry?.skipped) {
+            const file = join(dir, 'TestResults-nl-retry.xcresult.json');
+            const bundle = JSON.parse(readFileSync(file, 'utf8'));
+            bundle.testNodes.push(...retry.skipped.map((id) => node(id, 'Skipped')));
+            writeFileSync(file, JSON.stringify(bundle));
+          }
+
+          const run = await retryTest(fake, ['--retry-failed'], {
+            FAKE_XCRESULT_DIR: dir,
+            FAKE_RETRY_RESULT: retryResult,
+          });
+
+          assert.equal(run.status, 1, run.output);
+          assert.equal(testRuns(fake).length, 2, 'retried once, not twice');
+          assert.match(run.output, message);
+          assert.doesNotMatch(run.output, /✓ iOS tests/);
+        });
+      }
+
+      it('a test that passed on the retry is not reported as flaky when another one failed again', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'nl', {
+          first: { failed: [[A], [B]] },
+          retry: { failed: [[A]], passed: [B] },
+        });
+
+        const run = await retryTest(fake, ['--retry-failed'], {
+          FAKE_XCRESULT_DIR: dir,
+          FAKE_RETRY_RESULT: 'fail',
+        });
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(
+          run.output,
+          /Failed tests in nl \(retry\):\n +SignInLanguageUITests\/test_perAppLanguageWins\(\)/,
+        );
+      });
+
+      it('the retry has a deadline of its own: a retry that hangs is interrupted, and fails', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'nl', { first: { failed: [[A]] }, retry: { passed: [A] } });
+
+        const run = await retryTest(fake, ['--retry-failed'], {
+          FAKE_XCRESULT_DIR: dir,
+          FAKE_RETRY_RESULT: 'stall',
+          IOS_RETRY_DEADLINE: '2',
+          IOS_TEST_DEADLINE_GRACE: '10',
+        });
+
+        assert.equal(run.status, 1, run.output);
+        assert.equal(testRuns(fake).length, 2);
+        assert.match(run.output, /::error::The nl retried tests ran past the deadline of 2 s/);
+        assert.deepEqual(fake.log('sigint'), ['SIGINT']);
+        assert.doesNotMatch(run.output, /✓ iOS tests/);
+      });
+
+      it('the test enumeration has a deadline of its own: an enumeration that hangs is interrupted, and the failed test is not retried', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'nl', { first: { failed: [[A]] }, retry: { passed: [A] } });
+
+        // IOS_TEST_DEADLINE stays at its default (large), so only the enumeration's own deadline can stop it.
+        const run = await retryTest(fake, ['--retry-failed'], {
+          FAKE_XCRESULT_DIR: dir,
+          FAKE_ENUMERATE: 'stall',
+          IOS_ENUMERATE_DEADLINE: '2',
+          IOS_TEST_DEADLINE_GRACE: '10',
+        });
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(run.output, /::error::The nl test enumeration ran past the deadline of 2 s/);
+        assert.deepEqual(fake.log('sigint'), ['SIGINT']);
+        assert.match(run.output, /Not retrying: .*cannot be enumerated/);
+        assert.equal(testRuns(fake).length, 1);
+        assert.equal(enumerations(fake).length, 1);
+        assert.doesNotMatch(run.output, /✓ iOS tests/);
+      });
+
+      it('the first run keeps its own deadline: a short IOS_RETRY_DEADLINE does not interrupt it', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'nl', { first: { failed: [[A]] }, retry: { passed: [A] } });
+
+        // The first run takes longer than the retry's deadline of 1 s, and ends well before its own.
+        const run = await retryTest(fake, ['--retry-failed'], {
+          FAKE_XCRESULT_DIR: dir,
+          FAKE_FIRST_RUN_SECONDS: '2.5',
+          IOS_RETRY_DEADLINE: '1',
+        });
+
+        assert.doesNotMatch(run.output, /past the deadline/);
+        assert.deepEqual(fake.log('sigint'), []);
+        assert.equal(run.status, 0, run.output);
+        assert.equal(testRuns(fake).length, 2);
+      });
+
+      it('shuts the simulator down at the end, as it does without a retry', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'nl', { first: { failed: [[A]] }, retry: { passed: [A] } });
+
+        await retryTest(fake, ['--retry-failed'], { FAKE_XCRESULT_DIR: dir });
+
+        assert.equal(fake.simulator('IPHONE-18').state, 'Shutdown');
+      });
+
+      it('--retry-failed belongs to test <locale>: build and the all-in-one run refuse it', async () => {
+        const fake = checkout();
+        assert.notEqual(
+          (await fake.run('scripts/test-ios.sh', ['build', '--retry-failed'])).status,
+          0,
+        );
+        assert.notEqual((await fake.run('scripts/test-ios.sh', ['--retry-failed'])).status, 0);
+        assert.notEqual(
+          (await fake.run('scripts/test-ios.sh', ['test', 'nl', '--retry'])).status,
+          0,
+        );
+        assert.notEqual(
+          (await fake.run('scripts/test-ios.sh', ['test', 'nl', '--bundle'])).status,
+          0,
+        );
       });
     });
 
@@ -2971,11 +3516,11 @@ esac`,
 
       assert.equal(skipList(nl), undefined);
       assert.deepEqual(skipList(en).value.split(',').sort(), [
-        'HelloUITests/test_E008_AC3_firstSupportedDeviceLanguageWins',
-        'HelloUITests/test_E008_AC3_perAppLanguageOverridesTheDevice',
-        'HelloUITests/test_E008_AC3_unsupportedDeviceLanguageShowsEnglish',
-        'HelloUITests/test_E008_AC6_usesTokenColoursInLightAndDark',
-        'HelloUITests/test_E008_AC7_largestTextSizeWraps',
+        'HomeUITests/test_E008_AC3_firstSupportedDeviceLanguageWins',
+        'HomeUITests/test_E008_AC3_perAppLanguageOverridesTheDevice',
+        'HomeUITests/test_E008_AC3_unsupportedDeviceLanguageShowsEnglish',
+        'HomeUITests/test_E008_AC6_usesTokenColoursInLightAndDark',
+        'HomeUITests/test_E008_AC7_largestTextSizeWraps',
       ]);
     });
 
@@ -2984,14 +3529,14 @@ esac`,
       editPlan(fake, ({ nl }) => {
         nl.options.environmentVariableEntries.push({
           key: 'FIVVI_SKIP_TESTS',
-          value: 'HelloUITests/test_E008_AC6_usesTokenColoursInLightAndDark',
+          value: 'HomeUITests/test_E008_AC6_usesTokenColoursInLightAndDark',
         });
       });
 
       const run = await fake.run('scripts/test-ios.sh');
 
       assert.equal(run.status, 1, run.output);
-      assert.match(run.output, /HelloUITests\/test_E008_AC6_usesTokenColoursInLightAndDark/);
+      assert.match(run.output, /HomeUITests\/test_E008_AC6_usesTokenColoursInLightAndDark/);
       assert.match(run.output, /runs in no configuration/);
       assert.deepEqual(commands(fake), []);
     });
@@ -2999,13 +3544,13 @@ esac`,
     it('D: fails when a configuration skips a test that no UI test class has', async () => {
       const fake = checkout();
       editPlan(fake, ({ en }) => {
-        skipList(en).value += ',HelloUITests/test_E008_AC9_renamedAway';
+        skipList(en).value += ',HomeUITests/test_E008_AC9_renamedAway';
       });
 
       const run = await fake.run('scripts/test-ios.sh');
 
       assert.equal(run.status, 1, run.output);
-      assert.match(run.output, /HelloUITests\/test_E008_AC9_renamedAway/);
+      assert.match(run.output, /HomeUITests\/test_E008_AC9_renamedAway/);
       assert.match(run.output, /is not a UI test/);
       assert.deepEqual(commands(fake), []);
     });
@@ -3014,7 +3559,7 @@ esac`,
       it(`D: fails when a test target of the plan has ${key}, which Xcode writes and which applies to every configuration`, async () => {
         const fake = checkout();
         const plan = JSON.parse(readFileSync(planPath(fake), 'utf8'));
-        plan.testTargets[1][key] = ['HelloUITests/test_E008_AC8_displayNameComesFromTheCatalog'];
+        plan.testTargets[1][key] = ['HomeUITests/test_E008_AC8_displayNameComesFromTheCatalog'];
         writeFileSync(planPath(fake), JSON.stringify(plan));
 
         const run = await fake.run('scripts/test-ios.sh');
@@ -3025,7 +3570,7 @@ esac`,
       });
     }
 
-    it('D: fails when the skip list names a test of a class other than HelloUITests, which would not skip it', async () => {
+    it('D: fails when the skip list names a test of a class other than HomeUITests, which would not skip it', async () => {
       const fake = checkout();
       editPlan(fake, ({ en }) => {
         skipList(en).value += ',TouchTargetTests/test_E008_AC4_44PointsMeetsTheTarget';
@@ -3036,7 +3581,7 @@ esac`,
       assert.equal(run.status, 1, run.output);
       assert.match(
         run.output,
-        /TouchTargetTests\/test_E008_AC4_44PointsMeetsTheTarget.*only HelloUITests/,
+        /TouchTargetTests\/test_E008_AC4_44PointsMeetsTheTarget.*only HomeUITests/,
       );
       assert.deepEqual(commands(fake), []);
     });
@@ -3055,7 +3600,7 @@ esac`,
       const run = await fake.run('scripts/test-ios.sh');
 
       assert.equal(run.status, 1, run.output);
-      assert.match(run.output, /ExtraTests\/test_E002_extra.*only HelloUITests/);
+      assert.match(run.output, /ExtraTests\/test_E002_extra.*only HomeUITests/);
       assert.doesNotMatch(run.output, /not a UI test/);
     });
 
@@ -3069,21 +3614,21 @@ esac`,
       for (const name of ['freeA', 'freeB']) {
         writeFileSync(
           join(dir, `${name}.swift`),
-          `func test_${name}() {}\nfinal class HelloUITests: XCTestCase {}\n`,
+          `func test_${name}() {}\nfinal class HomeUITests: XCTestCase {}\n`,
         );
       }
       editPlan(fake, ({ nl, en }) => {
         nl.options.environmentVariableEntries = nl.options.environmentVariableEntries.filter(
           (entry) => entry.key !== 'FIVVI_SKIP_TESTS',
         );
-        skipList(en).value = 'HelloUITests/test_freeA,HelloUITests/test_freeB';
+        skipList(en).value = 'HomeUITests/test_freeA,HomeUITests/test_freeB';
       });
 
       const run = await fake.run('scripts/test-ios.sh');
 
       assert.equal(run.status, 1, run.output);
       for (const name of ['freeA', 'freeB'])
-        assert.match(run.output, new RegExp(`HelloUITests/test_${name}, which is not a UI test`));
+        assert.match(run.output, new RegExp(`HomeUITests/test_${name}, which is not a UI test`));
     });
 
     it('A: reports the slowest tests of each locale from the one result bundle', async () => {
@@ -3102,8 +3647,8 @@ esac`,
         result,
         JSON.stringify({
           testNodes: [
-            test('HelloUITests/test_slowInNl()', 30, 2),
-            test('HelloUITests/test_slowInEn()', 3, 20),
+            test('HomeUITests/test_slowInNl()', 30, 2),
+            test('HomeUITests/test_slowInEn()', 3, 20),
           ],
         }),
       );
@@ -3117,15 +3662,94 @@ esac`,
       assert.equal(run.status, 0, run.output);
       assert.match(
         run.output,
-        /Slowest tests in nl \(seconds\):\n +HelloUITests\/test_slowInNl\(\) 30\n +HelloUITests\/test_slowInEn\(\) 3\n/,
+        /Slowest tests in nl \(seconds\):\n +HomeUITests\/test_slowInNl\(\) 30\n +HomeUITests\/test_slowInEn\(\) 3\n/,
       );
       assert.match(
         run.output,
-        /Slowest tests in en \(seconds\):\n +HelloUITests\/test_slowInEn\(\) 20\n +HelloUITests\/test_slowInNl\(\) 2\n/,
+        /Slowest tests in en \(seconds\):\n +HomeUITests\/test_slowInEn\(\) 20\n +HomeUITests\/test_slowInNl\(\) 2\n/,
       );
       const written = readFileSync(summary, 'utf8');
       assert.match(written, /### Slowest iOS tests in nl/);
       assert.match(written, /### Slowest iOS tests in en/);
+    });
+
+    it('#1389: reports the time of each test class, the biggest first, after a row for all of them', async () => {
+      const fake = checkout();
+      const result = join(fake.repo, '..', 'results.json');
+      const test = (name, nl, en) => ({
+        nodeType: 'Test Case',
+        nodeIdentifier: name,
+        durationInSeconds: (nl + en) / 2,
+        children: [
+          { nodeType: 'Test Plan Configuration', name: 'en', durationInSeconds: en },
+          { nodeType: 'Test Plan Configuration', name: 'nl', durationInSeconds: nl },
+        ],
+      });
+      writeFileSync(
+        result,
+        JSON.stringify({
+          testNodes: [
+            test('SignInUITests/test_a()', 30, 20),
+            test('SignInUITests/test_b()', 12, 8),
+            test('ClientsUITests/test_a()', 5, 40),
+            test('SessionTests/test_unit()', 0.2, 0.2),
+          ],
+        }),
+      );
+      const summary = join(fake.repo, '..', 'summary.md');
+
+      const run = await fake.run('scripts/test-ios.sh', [], {
+        FAKE_XCRESULT: result,
+        GITHUB_STEP_SUMMARY: summary,
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(
+        run.output,
+        /Test time by class in nl \(tests, seconds[^)]*\):\n +all 4 47\n +SignInUITests 2 42\n +ClientsUITests 1 5\n +SessionTests 1 0\n/,
+      );
+      assert.match(
+        run.output,
+        /Test time by class in en \(tests, seconds[^)]*\):\n +all 4 68\n +ClientsUITests 1 40\n +SignInUITests 2 28\n/,
+      );
+      const written = readFileSync(summary, 'utf8');
+      assert.match(written, /### iOS test time by class in nl\n\n\| Class \| Tests \| Seconds \|/);
+      assert.match(written, /\| SignInUITests \| 2 \| 28 \|/);
+    });
+
+    describe('#1389 the run says how much of its deadline it used', () => {
+      const testJob = async (env) => {
+        const fake = checkout();
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+        const summary = join(fake.repo, '..', 'summary.md');
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'nl'], {
+          GITHUB_STEP_SUMMARY: summary,
+          ...env,
+        });
+        return { run, summary };
+      };
+
+      it('prints the seconds and the share of the deadline, and puts them in the job summary, without a warning inside the budget', async () => {
+        const { run, summary } = await testJob({ IOS_TEST_DEADLINE: '3600' });
+
+        assert.equal(run.status, 0, run.output);
+        assert.match(run.output, /The nl tests ran \d+ s of the 3600 s deadline \(0 %\)/);
+        assert.doesNotMatch(run.output, /::warning::The nl tests/);
+        assert.match(
+          readFileSync(summary, 'utf8'),
+          /### iOS test budget in nl\n\nThe nl tests ran \d+ s of the 3600 s deadline/,
+        );
+      });
+
+      it('warns, and still passes, when the run used more of the deadline than the budget', async () => {
+        const { run } = await testJob({ IOS_TEST_DEADLINE: '3600', IOS_TEST_BUDGET_PERCENT: '-1' });
+
+        assert.equal(run.status, 0, run.output);
+        assert.match(
+          run.output,
+          /::warning::The nl tests ran \d+ s of the 3600 s deadline \(0 %\), over the -1 % that a run on a typical runner may use/,
+        );
+      });
     });
 
     it('E002 #290: a failing run prints the failing tests, with their messages, from the result bundle, and still exits 1', async () => {
@@ -3139,7 +3763,7 @@ esac`,
               testName: 'test_signIn()',
               targetName: 'FivviProUITests',
               failureText: 'XCTAssertTrue failed\nthe button was not found',
-              testIdentifierString: 'HelloUITests/test_signIn()',
+              testIdentifierString: 'HomeUITests/test_signIn()',
             },
           ],
         }),
@@ -3155,7 +3779,7 @@ esac`,
       assert.equal(run.status, 1, run.output);
       assert.match(
         run.output,
-        /Failed tests:\n +HelloUITests\/test_signIn\(\): XCTAssertTrue failed the button was not found\n/,
+        /Failed tests:\n +HomeUITests\/test_signIn\(\): XCTAssertTrue failed the button was not found\n/,
       );
       assert.equal(run.output.match(/test_signIn/g).length, 1, 'once for the one bundle');
       assert.match(readFileSync(summary, 'utf8'), /### Failed iOS tests\n[\s\S]*test_signIn/);
@@ -3169,11 +3793,8 @@ esac`,
         JSON.stringify({
           testFailures: [{ testName: id, failureText: `${id} broke`, testIdentifierString: id }],
         });
-      writeFileSync(
-        join(dir, 'TestResults-nl.xcresult.json'),
-        failure('HelloUITests/only_in_nl()'),
-      );
-      writeFileSync(join(dir, 'TestResults-en.xcresult.json'), failure('HelloTests/only_in_en()'));
+      writeFileSync(join(dir, 'TestResults-nl.xcresult.json'), failure('HomeUITests/only_in_nl()'));
+      writeFileSync(join(dir, 'TestResults-en.xcresult.json'), failure('HomeTests/only_in_en()'));
       const summary = join(fake.repo, '..', 'summary.md');
 
       const run = await fake.run('scripts/test-ios.sh', [], {
@@ -3186,11 +3807,11 @@ esac`,
       assert.equal(run.status, 1, run.output);
       assert.match(
         run.output,
-        /Failed tests in nl:\n +HelloUITests\/only_in_nl\(\): HelloUITests\/only_in_nl\(\) broke\n/,
+        /Failed tests in nl:\n +HomeUITests\/only_in_nl\(\): HomeUITests\/only_in_nl\(\) broke\n/,
       );
       assert.match(
         run.output,
-        /Failed tests in en:\n +HelloTests\/only_in_en\(\): HelloTests\/only_in_en\(\) broke\n/,
+        /Failed tests in en:\n +HomeTests\/only_in_en\(\): HomeTests\/only_in_en\(\) broke\n/,
       );
       assert.equal(run.output.match(/only_in_nl/g).length, 2, 'the nl failure once, not under en');
       const markdown = readFileSync(summary, 'utf8');
@@ -3353,7 +3974,7 @@ esac`,
           testNodes: [
             {
               nodeType: 'Test Case',
-              nodeIdentifier: 'HelloUITests/test_one()',
+              nodeIdentifier: 'HomeUITests/test_one()',
               durationInSeconds: 7,
             },
           ],
@@ -3366,14 +3987,8 @@ esac`,
       });
 
       assert.equal(run.status, 0, run.output);
-      assert.match(
-        run.output,
-        /Slowest tests in nl \(seconds\):\n +HelloUITests\/test_one\(\) 7\n/,
-      );
-      assert.match(
-        run.output,
-        /Slowest tests in en \(seconds\):\n +HelloUITests\/test_one\(\) 7\n/,
-      );
+      assert.match(run.output, /Slowest tests in nl \(seconds\):\n +HomeUITests\/test_one\(\) 7\n/);
+      assert.match(run.output, /Slowest tests in en \(seconds\):\n +HomeUITests\/test_one\(\) 7\n/);
     });
   });
 
@@ -3641,6 +4256,233 @@ esac`,
 
       assert.notEqual(run.status, 0);
       assert.match(run.output, /no APK at \/nonexistent\/app\.apk/);
+    });
+  });
+
+  describe('E002 #1363: android.sh and maestro.sh read the Compose and Maestro quarantine lists', () => {
+    const ENTRY = (test) => `${test} | #1400 | 2026-11-12 | 2026-11-19`;
+    const UNIT = 'app.fivvi.pro.home.HomeViewModelTest#test_a';
+    const SWITCH = 'app.fivvi.pro.home.WorkspaceSwitchTest#test_b';
+    const CLIENT = 'app.fivvi.client.ClientAppTest#test_c';
+    const kotlin = (klass, method) =>
+      `package ${klass.split('.').slice(0, -1).join('.')}\n\nclass ${klass.split('.').at(-1)} {\n    @Test\n    fun ${method}() {}\n}\n`;
+    /** Kotlin sources, flows and lists in the fake checkout; returns the checkout. */
+    const listed = (fake, { compose = [], maestro = [] } = {}) => {
+      const write = (path, text) => {
+        mkdirSync(dirname(join(fake.repo, path)), { recursive: true });
+        writeFileSync(join(fake.repo, path), text);
+      };
+      write(
+        'apps/android/app/src/test/kotlin/app/fivvi/pro/home/HomeViewModelTest.kt',
+        kotlin('app.fivvi.pro.home.HomeViewModelTest', 'test_a'),
+      );
+      write(
+        'apps/android/app/src/androidTest/kotlin/app/fivvi/pro/home/WorkspaceSwitchTest.kt',
+        kotlin('app.fivvi.pro.home.WorkspaceSwitchTest', 'test_b'),
+      );
+      write(
+        'apps/android/client/src/androidTest/kotlin/app/fivvi/client/ClientAppTest.kt',
+        kotlin('app.fivvi.client.ClientAppTest', 'test_c'),
+      );
+      for (const name of ['a', 'b', 'c'])
+        write(`e2e/maestro/${name}.yaml`, 'appId: x\n---\n- launchApp\n');
+      write('e2e/maestro/config.yaml', 'flows:\n  - "*"\n');
+      write('quarantine/compose.txt', `${compose.map(ENTRY).join('\n')}\n`);
+      write('quarantine/maestro.txt', `${maestro.map(ENTRY).join('\n')}\n`);
+      return fake;
+    };
+    const maestroRuns = (fake) =>
+      fake
+        .log('maestro')
+        .filter((line) => /^(--\S+ \S+ )*test /.test(line) || line.includes(' test '));
+    const gradle = (fake) =>
+      fake.log('gradle').map((line) => line.replace(/^--console=plain \S+ /, ''));
+
+    it('AC1: with empty lists nothing changes: plain Gradle runs, the whole Compose suite, the flow folder', async () => {
+      const fake = listed(checkout({ emulatorRunning: true }));
+      assert.equal((await fake.run('scripts/android.sh', ['verify'])).status, 0);
+      assert.ok(
+        !gradle(fake).some((line) => /init-script|notClass/.test(line)),
+        gradle(fake).join('\n'),
+      );
+      assert.ok(gradle(fake).some((line) => line === 'connectedDebugAndroidTest'));
+
+      assert.equal((await fake.run('scripts/maestro.sh', ['android'])).status, 0);
+      assert.equal(maestroRuns(fake).length, 2, 'one run per locale');
+      assert.ok(
+        maestroRuns(fake).every((line) => line.includes(`${fake.repo}/e2e/maestro `)),
+        maestroRuns(fake).join('\n'),
+      );
+    });
+
+    it('AC1: the required jobs leave the listed unit tests out and the listed Compose UI tests out', async () => {
+      const fake = listed(checkout({ emulatorRunning: true }), { compose: [UNIT, SWITCH] });
+
+      const run = await fake.run('scripts/android.sh', ['verify']);
+
+      assert.equal(run.status, 0, run.output);
+      const unit = gradle(fake).find(
+        (line) => line.includes('testDebugUnitTest') && line.includes('--init-script'),
+      );
+      assert.match(
+        unit,
+        /--init-script \S+\/apps\/android\/gradle\/quarantine\.init\.gradle\.kts testDebugUnitTest$/,
+      );
+      assert.ok(
+        fake.log('gradle-quarantine').includes(`${UNIT},${SWITCH}`),
+        fake.log('gradle-quarantine').join('|'),
+      );
+      const ui = gradle(fake).find((line) => line.startsWith('connectedDebugAndroidTest'));
+      const arg = (name) => `-Pandroid.testInstrumentationRunnerArguments.${name}`;
+      assert.equal(
+        ui,
+        `connectedDebugAndroidTest ${arg('filter')}=app.fivvi.core.quarantine.QuarantineRunFilter ${arg('quarantine')}=exclude ${arg('quarantineTests')}=${SWITCH}`,
+      );
+    });
+
+    it('AC1: with FIVVI_QUARANTINE=only, android.sh quarantine runs only the listed tests: the unit tests, then the UI tests of every module', async () => {
+      const fake = listed(checkout(), { compose: [UNIT, SWITCH, CLIENT] });
+
+      const run = await fake.run('scripts/android.sh', ['quarantine']);
+
+      assert.equal(run.status, 0, run.output);
+      assert.ok(fake.emulator().booted === false, 'stopped again');
+      assert.ok(fake.log('emulator').length > 0, 'the emulator was started for the UI tests');
+      const arg = (name) => `-Pandroid.testInstrumentationRunnerArguments.${name}`;
+      assert.deepEqual(
+        gradle(fake).filter((line) => line.includes('connected')),
+        [
+          `connectedDebugAndroidTest ${arg('filter')}=app.fivvi.core.quarantine.QuarantineRunFilter ${arg('quarantine')}=only ${arg('quarantineTests')}=${SWITCH},${CLIENT}`,
+        ],
+      );
+      assert.ok(gradle(fake).some((line) => /--init-script .* testDebugUnitTest$/.test(line)));
+      assert.ok(
+        !gradle(fake).some((line) => /ktlint|assembleDebug|bundleRelease|BuildInfoTest/.test(line)),
+        'no build or release steps',
+      );
+    });
+
+    it('AC1: android.sh quarantine with a list of unit tests only starts no emulator, and with an empty list runs nothing', async () => {
+      const unitOnly = listed(checkout(), { compose: [UNIT] });
+      assert.equal((await unitOnly.run('scripts/android.sh', ['quarantine'])).status, 0);
+      assert.equal(unitOnly.log('emulator').length, 0);
+      assert.ok(gradle(unitOnly).some((line) => line.includes('testDebugUnitTest')));
+      assert.ok(!gradle(unitOnly).some((line) => line.includes('connected')));
+
+      const none = listed(checkout());
+      const run = await none.run('scripts/android.sh', ['quarantine']);
+      assert.equal(run.status, 0, run.output);
+      assert.match(run.output, /lists no test: nothing to run/);
+      assert.equal(gradle(none).length, 0);
+    });
+
+    it('AC1: in the Quarantine job a listed test that names no test fails the run; in a required job it is a warning', async () => {
+      const gone = 'app.fivvi.pro.home.GoneTest#x';
+      const only = listed(checkout(), { compose: [gone] });
+      const run = await only.run('scripts/android.sh', ['quarantine']);
+      assert.equal(run.status, 1, run.output);
+      assert.match(run.output, /GoneTest#x is no test in apps\/android/);
+
+      const required = listed(checkout({ emulatorRunning: true }), { compose: [gone] });
+      const ok = await required.run('scripts/android.sh', ['verify']);
+      assert.equal(ok.status, 0, ok.output);
+      assert.match(ok.output, /warning: .*GoneTest#x is no test/);
+    });
+
+    it('AC1: maestro.sh android runs every flow but the listed ones, as files', async () => {
+      const fake = listed(checkout({ emulatorRunning: true }), { maestro: ['b'] });
+
+      const run = await fake.run('scripts/maestro.sh', ['android']);
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(run.output, /quarantine: 2 flow\(s\), without the 1 listed/);
+      const tests = maestroRuns(fake);
+      assert.equal(tests.length, 2, 'one run per locale');
+      for (const line of tests) {
+        assert.ok(
+          line.includes(`${fake.repo}/e2e/maestro/a.yaml ${fake.repo}/e2e/maestro/c.yaml `),
+          line,
+        );
+        assert.ok(!line.includes('b.yaml'), line);
+      }
+    });
+
+    it('AC1: with FIVVI_QUARANTINE=only maestro.sh android runs exactly the listed flows, in both locales', async () => {
+      const fake = listed(checkout({ emulatorRunning: true }), { maestro: ['b', 'c'] });
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], { FIVVI_QUARANTINE: 'only' });
+
+      assert.equal(run.status, 0, run.output);
+      const tests = maestroRuns(fake);
+      assert.equal(tests.length, 2);
+      for (const line of tests) {
+        assert.ok(
+          line.includes(`${fake.repo}/e2e/maestro/b.yaml ${fake.repo}/e2e/maestro/c.yaml `),
+          line,
+        );
+        assert.ok(!line.includes('a.yaml'), line);
+      }
+    });
+
+    it('AC1: maestro.sh android with FIVVI_QUARANTINE=only and an empty list starts nothing, and a listed flow that does not exist fails', async () => {
+      const empty = listed(checkout({ emulatorRunning: true }));
+      const run = await empty.run('scripts/maestro.sh', ['android'], { FIVVI_QUARANTINE: 'only' });
+      assert.equal(run.status, 0, run.output);
+      assert.match(run.output, /lists no flow: nothing to run/);
+      assert.equal(empty.log('maestro').length, 0);
+      assert.equal(empty.log('adb').length, 0, 'no device or web server was touched');
+
+      const gone = listed(checkout({ emulatorRunning: true }), { maestro: ['gone'] });
+      const failed = await gone.run('scripts/maestro.sh', ['android'], {
+        FIVVI_QUARANTINE: 'only',
+      });
+      assert.equal(failed.status, 1, failed.output);
+      assert.match(failed.output, /gone is no flow in e2e\/maestro/);
+      assert.equal(gone.log('maestro').length, 0);
+    });
+
+    it('AC1: a run with every flow on the list runs none, and maestro.sh ios ignores the Android list', async () => {
+      const all = listed(checkout({ emulatorRunning: true }), { maestro: ['a', 'b', 'c'] });
+      const run = await all.run('scripts/maestro.sh', ['android']);
+      assert.equal(run.status, 0, run.output);
+      assert.match(run.output, /every flow is on quarantine\/maestro\.txt/);
+      assert.equal(all.log('maestro').length, 0);
+
+      const ios = listed(checkout(), { maestro: ['b'] });
+      assert.equal((await ios.run('scripts/maestro.sh', ['ios'])).status, 0);
+      assert.ok(maestroRuns(ios).length > 0);
+      assert.ok(
+        maestroRuns(ios).every((line) => line.includes(`${ios.repo}/e2e/maestro `)),
+        maestroRuns(ios).join('\n'),
+      );
+    });
+
+    it('AC1: Gradle runs the init script that filters by the list: it excludes, or with FIVVI_QUARANTINE=only includes, each listed test', () => {
+      const script = readFileSync(
+        join(SCRIPTS, '..', 'apps/android/gradle/quarantine.init.gradle.kts'),
+        'utf8',
+      );
+      assert.match(script, /System\.getenv\("FIVVI_QUARANTINE_TESTS"\)/);
+      assert.match(script, /System\.getenv\("FIVVI_QUARANTINE"\) == "only"/);
+      assert.match(
+        script,
+        /if \(only\) includeTestsMatching\(pattern\) else excludeTestsMatching\(pattern\)/,
+      );
+      assert.match(script, /isFailOnNoMatchingTests = false/);
+      assert.match(script, /replace\('#', '\.'\)/);
+    });
+
+    it('AC1: a parameterized unit test is left out, or selected, by its listed name: the pattern also matches method[nl-NL]', () => {
+      const script = readFileSync(
+        join(SCRIPTS, '..', 'apps/android/gradle/quarantine.init.gradle.kts'),
+        'utf8',
+      );
+      // Gradle matches a pattern against the whole name, and JUnit4 names a parameterized test `method[nl-NL]`.
+      assert.match(script, /for \(pattern in listOf\(method, "\$method\[\*\]"\)\)/);
+      assert.match(
+        script,
+        /if \(only\) includeTestsMatching\(pattern\) else excludeTestsMatching\(pattern\)/,
+      );
     });
   });
 
@@ -4008,14 +4850,14 @@ esac`,
       assert.equal(run.status, 0, run.output);
       assert.match(
         run.output,
-        /the adb connection dropped \(device offline\) in 2 flow\(s\) in en; re-running them once: e2e\/maestro\/profile-workspaces\.yaml e2e\/maestro\/hello\.yaml/,
+        /the adb connection dropped \(device offline\) in 2 flow\(s\) in en; re-running them once: e2e\/maestro\/profile-workspaces\.yaml e2e\/maestro\/home\.yaml/,
       );
       const [nl, en, retry, ...more] = tests(fake);
       assert.equal(more.length, 0, tests(fake).join('\n'));
       assert.ok(nl.includes('android-nl-NL.xml') && en.includes('android-en.xml'));
       assert.ok(
         retry.includes('e2e/maestro/profile-workspaces.yaml') &&
-          retry.includes('e2e/maestro/hello.yaml') &&
+          retry.includes('e2e/maestro/home.yaml') &&
           !retry.includes('anonymous.yaml') &&
           retry.includes('android-en-retry.xml') &&
           retry.includes('--env DEVICE_LANGUAGE=en '),
@@ -4041,13 +4883,13 @@ esac`,
       assert.equal(run.status, 0, run.output);
       assert.match(
         run.output,
-        /the adb connection dropped \(device offline\) in 2 flow\(s\) in en; re-running them once: e2e\/maestro\/profile-workspaces\.yaml e2e\/maestro\/hello\.yaml/,
+        /the adb connection dropped \(device offline\) in 2 flow\(s\) in en; re-running them once: e2e\/maestro\/profile-workspaces\.yaml e2e\/maestro\/home\.yaml/,
       );
       const [, , retry, ...more] = tests(fake);
       assert.equal(more.length, 0, tests(fake).join('\n'));
       assert.ok(
         retry.includes('e2e/maestro/profile-workspaces.yaml') &&
-          retry.includes('e2e/maestro/hello.yaml') &&
+          retry.includes('e2e/maestro/home.yaml') &&
           !retry.includes('anonymous.yaml'),
         retry,
       );
@@ -4089,7 +4931,7 @@ esac`,
 
     it('reports the flows that pass only on the re-run as flaky, with a GitHub warning on CI only', async () => {
       const flaky =
-        /flaky: 2 flow\(s\) in en failed with a dropped adb connection and passed on the re-run: e2e\/maestro\/profile-workspaces\.yaml e2e\/maestro\/hello\.yaml/;
+        /flaky: 2 flow\(s\) in en failed with a dropped adb connection and passed on the re-run: e2e\/maestro\/profile-workspaces\.yaml e2e\/maestro\/home\.yaml/;
 
       const onCi = await checkout().run('scripts/maestro.sh', ['android'], {
         FAKE_MAESTRO_ERROR: 'offline',
@@ -4380,9 +5222,11 @@ esac`,
     assert.ok(fake.log('gradle').every((call) => !/(^| )--stop( |$)/.test(call)));
   });
 
-  // #89: the first locale's flow didn't see the greeting within its 20 s. The app's first screen calls
+  // #89: the first locale's flow didn't see the greeting within its 20 s. The app's first screen called
   // GET /api/v1/hello?locale=<its language>, and the flow started while Android was still busy after the framework
-  // restart that sets the device language (System UI stopped responding and its dialog covered the app).
+  // restart that sets the device language (System UI stopped responding and its dialog covered the app). The Hello
+  // screen is gone (E020 #652), the apps no longer call the route, and maestro.sh still asks it once per locale: it warms
+  // the server's first request up for the home's wait on GET /api/v1/me.
   const isFlow = (call) => / test /.test(` ${call} `) && call.startsWith('maestro ');
   const hello = (fake, locale) => `http://127.0.0.1:${fake.port}/api/v1/hello?locale=${locale}`;
 
@@ -4461,19 +5305,23 @@ esac`,
     ['maestro.sh android', ['android'], 'android'],
     ['maestro.sh ios', ['ios'], 'ios'],
   ]) {
-    // E008: the hello flow's title, next to F001's sign-in button text; no flow has a default for either.
-    it(`E008: ${name} passes each flow the hello title in the device language`, async () => {
+    // E008 (#652): the home flow's sign-out label, next to F001's sign-in button text; no flow has a default for either.
+    it(`E008: ${name} passes each flow the sign-out label in the device language`, async () => {
       const fake = checkout();
 
       const run = await fake.run('scripts/maestro.sh', args);
 
       assert.equal(run.status, 0, run.output);
       for (const locale of ['nl-NL', 'en']) {
-        const title = JSON.parse(
+        const label = JSON.parse(
           readFileSync(join(SCRIPTS, '../packages/i18n', `${locale}.json`), 'utf8'),
-        ).hello.title;
+        ).signOut.label;
         const flow = fake.log('maestro').find((call) => call.includes(`${prefix}-${locale}.xml`));
-        assert.ok(flow?.includes(`--env HELLO_TITLE=${title} `), `${locale}: ${flow}`);
+        assert.ok(flow?.includes(`--env SIGN_OUT_LABEL=${label} `), `${locale}: ${flow}`);
+        assert.ok(
+          !flow?.includes('HELLO_TITLE'),
+          `${locale}: the Hello screen's title is gone: ${flow}`,
+        );
         assert.ok(
           flow?.includes('--env SIGN_IN_SEND_CODE='),
           `${locale}: the sign-in button text too: ${flow}`,
@@ -5202,29 +6050,30 @@ describe('Maestro flows', () => {
 
   const parts = (file) => readFileSync(join(flows, file), 'utf8').split(/^---$/m);
 
-  // #89 and F001 (#216): the E008 hello screen sits behind sign-in, so the hello flow signs in first. It still fails
-  // when the greeting doesn't appear within 20 s, and then checks its text.
-  it('#89: hello signs in through the shared sub-flow, waits at most 20 s for the greeting and requires it', () => {
-    const steps = parts('hello.yaml')[1];
+  // #89 and F001 (#216), on the home that replaced the E008 hello screen (#652): the home sits behind sign-in, so the home
+  // flow signs in first. It still fails when the workspace's name doesn't appear within 20 s, and then checks its text
+  // and the sign-out label in the device language.
+  it('#89: home signs in through the shared sub-flow, waits at most 20 s for the workspace name and requires it', () => {
+    const steps = parts('home.yaml')[1];
     assert.match(steps, /^\s*- launchApp:\n\s+clearState: true\n/);
     const signIn = steps.match(/- runFlow:\n\s+file: shared\/sign-in\.yaml\n/);
     assert.ok(signIn, steps);
     assert.doesNotMatch(steps, /optional:\s*true/);
     const wait = steps.match(
-      /- extendedWaitUntil:\n\s+visible:\n\s+id: hello\\\.greeting\n\s+timeout: (\d+)\n/,
+      /- extendedWaitUntil:\n\s+visible:\n\s+id: home\\\.workspaceName\n\s+timeout: (\d+)\n/,
     );
     assert.ok(wait, steps);
-    assert.ok(signIn.index < wait.index, 'the greeting is awaited after signing in');
+    assert.ok(signIn.index < wait.index, 'the workspace name is awaited after signing in');
     assert.ok(Number(wait[1]) <= 20000, `timeout ${wait[1]} ms`);
     assert.match(
       steps.slice(wait.index),
-      /- assertVisible:\n\s+id: hello\\\.greeting\n\s+text: \$\{HELLO_TITLE\}\n/,
+      /- assertVisible:\n\s+id: home\\\.workspaceName\n\s+text: John's Gym\n(?:#.*\n)*- assertVisible:\n\s+text: \$\{SIGN_OUT_LABEL\}\n/,
     );
   });
 
-  // The flow's own `env:` default would win over --env, so the flow has none: maestro.sh must pass the title.
-  it('E008: the hello flow has no default for the title maestro.sh passes', () => {
-    assert.doesNotMatch(parts('hello.yaml')[0], /^\s+HELLO_TITLE:/m);
+  // The flow's own `env:` default would win over --env, so the flow has none: maestro.sh must pass the label.
+  it('E008: the home flow has no default for the sign-out label maestro.sh passes', () => {
+    assert.doesNotMatch(parts('home.yaml')[0], /^\s+SIGN_OUT_LABEL:/m);
   });
 
   it('F001: the sign-in flow signs in, stays signed in after a relaunch (AC8) and signs out (AC10)', () => {

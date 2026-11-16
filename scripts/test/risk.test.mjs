@@ -78,7 +78,8 @@ describe('risk of a pull request', () => {
       'CODING_STANDARDS.md',
       '.agents/skills/work/SKILL.md',
       '.claude/settings.json',
-      '.github/workflows/ci.yml',
+      '.github/rulesets/main.json',
+      '.github/dependabot.yml',
       '.githooks/commit-msg',
       '.codex/config.toml',
       '.codex/agents/builder.toml',
@@ -181,6 +182,11 @@ describe('risk of a pull request', () => {
       'apps/android/client/build.gradle.kts',
       'apps/android/gradle/android-library.gradle.kts',
       'apps/android/settings.gradle.kts',
+      // The readers of the Android quarantine lists (E002 #1363): the Gradle init script and the JUnit filters, as the
+      // Vitest and Playwright config readers are tooling.
+      'apps/android/gradle/quarantine.init.gradle.kts',
+      'apps/android/core/src/testShared/kotlin/app/fivvi/core/quarantine/QuarantineFilter.kt',
+      'apps/android/core/src/androidTestShared/kotlin/app/fivvi/core/quarantine/QuarantineRunFilter.kt',
       'e2e/maestro/config.yaml',
       '.editorconfig',
       'apps/android/.editorconfig',
@@ -223,6 +229,8 @@ describe('risk of a pull request', () => {
       'Package.resolved',
     ],
     infrastructure: ['Dockerfile', 'apps/cron/Dockerfile.cron', '.railway/railway.ts'],
+    // The CI workflows (ADR-033 item 6, spec #1419, T12): carved out of the core guardrails with @except.
+    ci: ['.github/workflows/ci.yml', '.github/workflows/release.yml'],
     // The quarantine lists (ADR-025, amendment of 12 November 2026, step 6; spec #1356): outside every guardrail path.
     quarantine: [
       'quarantine/vitest.txt',
@@ -243,6 +251,7 @@ describe('risk of a pull request', () => {
     'billing',
     'tooling',
     'quarantine',
+    'ci',
   ];
 
   for (const [group, files] of Object.entries(groups)) {
@@ -402,7 +411,7 @@ describe('risk of a pull request', () => {
       '.agents/skills/notes/SKILL.md': ['health-notes', 'guardrails'],
       'docs/legal/billing-terms.md': ['legal', 'billing'],
       'docs/product/payments-plan.md': ['product-docs', 'billing'],
-      '.github/workflows/billing.yml': ['guardrails', 'billing'],
+      '.github/actions/billing/action.yml': ['guardrails', 'billing'],
     };
     for (const [file, groups] of Object.entries(overlaps)) {
       const result = pr([file]);
@@ -449,6 +458,48 @@ describe('risk of a pull request', () => {
     ]);
     assert.equal(result.risk, 'high');
     assert.equal(result.reasons.length, 3);
+  });
+
+  it('ADR-033 AC8: a PR that only changes a CI workflow is high (agent-queueable), owner when it also touches a core path', () => {
+    assert.deepEqual(pr(['.github/workflows/ci.yml']), {
+      risk: 'high',
+      reasons: ['.github/workflows/ci.yml: ci (/.github/workflows/*.yml)'],
+    });
+    for (const core of [
+      '.github/rulesets/main.json',
+      'scripts/risk.sh',
+      'AGENTS.md',
+      'scripts/test/risk.test.mjs',
+    ]) {
+      const result = pr(['.github/workflows/ci.yml', core]);
+      assert.equal(result.risk, 'owner', core);
+      assert.equal(result.reasons.length, 2, core);
+    }
+  });
+
+  it('ADR-033 AC8: a workflow whose name also matches billing is high with both the billing and the ci reason', () => {
+    const file = '.github/workflows/billing.yml';
+    const result = pr([file]);
+    assert.equal(result.risk, 'high');
+    assert.equal(result.reasons.length, 2);
+    for (const group of ['billing', 'ci']) {
+      assert.ok(
+        result.reasons.some((r) => r.startsWith(`${file}: ${group} (`)),
+        `${file}: ${group}`,
+      );
+    }
+  });
+
+  it('ADR-033 AC8: only the workflow files are carved out of .github; actions, agents and other files stay core', () => {
+    for (const file of [
+      '.github/workflows/sub/ci.yml',
+      '.github/workflows/ci.sh',
+      '.github/actions/setup/action.yml',
+      '.github/agents/builder.agent.md',
+      '.github/instructions/api.instructions.md',
+    ]) {
+      assert.equal(pr([file]).risk, 'owner', file);
+    }
   });
 
   it('spec #292: a core path next to tooling or billing paths makes the PR owner-only', () => {
@@ -839,6 +890,7 @@ describe('high-risk paths', () => {
     assert.deepEqual(declared.sort(), [
       'auth',
       'billing',
+      'ci',
       'dependencies',
       'health-notes',
       'infrastructure',

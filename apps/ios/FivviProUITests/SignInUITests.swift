@@ -81,7 +81,6 @@ final class SignInUITests: SignInUITestCase {
 
         XCTAssertTrue(screen.signedInAs.waitUntilExists(timeout: timeout))
         XCTAssertEqual(screen.signedInAs.label, String(format: catalog["home.signedInAs"], server.signIn.email))
-        XCTAssertTrue(screen.greeting.waitUntilExists(timeout: timeout), "the home keeps the hello screen")
         XCTAssertFalse(screen.email.exists)
         XCTAssertEqual(
             server.requests(to: "/api/v1/sign-in/token").map(\.body),

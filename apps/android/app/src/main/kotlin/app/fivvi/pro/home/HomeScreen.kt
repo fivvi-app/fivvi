@@ -32,8 +32,6 @@ import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.body
 import app.fivvi.designtokens.title1
 import app.fivvi.designtokens.title2
-import app.fivvi.pro.hello.HelloContent
-import app.fivvi.pro.hello.HelloState
 
 /** Test tags, shared with the iOS accessibility identifiers and the Maestro flows. */
 object HomeTags {
@@ -52,16 +50,14 @@ object HomeTags {
 }
 
 /**
- * The signed-in home (a placeholder, in the look of *Vandaag (TD-01)*'s large title and grouped list): the hello block,
- * the address of the signed-in account, the rows to Klanten and Profiel and the sign-out button, which a progress
+ * The signed-in home (a placeholder, in the look of *Vandaag (TD-01)*'s large title and grouped list): the workspace's
+ * name, the address of the signed-in account, the rows to Klanten and Profiel and the sign-out button, which a progress
  * indicator replaces while [signingOut]. [onOpenClients] is `null` where the person may not see clients.
  */
 @Composable
 fun HomeScreen(
-    hello: HelloState,
     me: MeState,
     signingOut: Boolean,
-    onRetryHello: () -> Unit,
     onRetryMe: () -> Unit,
     onSignOut: () -> Unit,
     onOpenWeb: () -> Unit,
@@ -69,13 +65,13 @@ fun HomeScreen(
     modifier: Modifier = Modifier,
     onOpenClients: (() -> Unit)? = null,
 ) {
-    // One scroll for the whole screen, so the account block can't squeeze the hello block at the largest font scale.
+    // One scroll for the whole screen, so the account block can't squeeze what is above it at the largest font scale.
     Column(
         modifier = modifier.fillMaxSize().safeDrawingPadding().verticalScroll(rememberScrollState())
             .padding(Spacing.space4),
         verticalArrangement = Arrangement.spacedBy(Spacing.space4),
     ) {
-        Destination(hello, me, onRetryHello, onOpenWeb)
+        Destination(me, onOpenWeb)
         when (me) {
             MeState.Loading -> {
                 val label = stringResource(R.string.common_loading)
@@ -136,13 +132,12 @@ fun HomeScreen(
     }
 }
 
-// The part above the account block: what the API said the person gets (F002 AC10). The hello block is the placeholder of
-// the workspace's home; the other two states have nothing but their text.
+// The part above the account block: what the API said the person gets (F002 AC10): the workspace's name, the text to set
+// one up on the web, or the no-access text. Loading or failed, /me has not said, so there is nothing above it.
 @Composable
-private fun Destination(hello: HelloState, me: MeState, onRetryHello: () -> Unit, onOpenWeb: () -> Unit) {
+private fun Destination(me: MeState, onOpenWeb: () -> Unit) {
     when (val destination = (me as? MeState.Loaded)?.destination) {
-        // Loading or failed: /me has not said, so the hello block stays, as before F002.
-        null -> HelloContent(hello, onRetryHello)
+        null -> Unit
 
         is HomeDestination.Workspace -> {
             Text(
@@ -151,7 +146,6 @@ private fun Destination(hello: HelloState, me: MeState, onRetryHello: () -> Unit
                     .semantics { heading() },
                 style = MaterialTheme.typography.title1,
             )
-            HelloContent(hello, onRetryHello)
         }
 
         HomeDestination.SetUpOnWeb -> FivviCard(Modifier.fillMaxWidth()) {

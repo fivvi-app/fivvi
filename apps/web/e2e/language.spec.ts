@@ -255,7 +255,7 @@ test.describe('F010 language', () => {
     );
   });
 
-  test('AC8: a Trainer has no Language, sees the no-permission page, and the route answers 403', async ({
+  test('@permission AC8: a Trainer has no Language, sees the no-permission page, and the route answers 403', async ({
     page,
     appLocale,
     messages: copy,
@@ -266,7 +266,8 @@ test.describe('F010 language', () => {
     await page.goto('/login');
     await signInWithCode(page, copy, address);
 
-    await expect(page).toHaveURL(`/w/${slug}`);
+    // A Trainer's home is Mijn dag (F013); the sidebar there is the workspace's, with no Language.
+    await expect(page).toHaveURL('/me/day');
     await expect(page.getByRole('link', { name: copy.workspaceNav.settingsLanguage })).toHaveCount(
       0,
     );

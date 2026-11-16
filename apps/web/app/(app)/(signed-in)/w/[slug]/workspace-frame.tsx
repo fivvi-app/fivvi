@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl';
 import type { ComponentProps, ReactNode } from 'react';
 import { AddClientProvider } from './clients/add-client-dialog';
 import { NewMenu } from './new-menu';
+import { type NewSessionProps, NewSessionProvider } from './sessions/new-private-session';
 import { type NavItem, SidebarNav } from './sidebar-nav';
 import { UserMenu } from './user-menu';
 import { initials } from './workspace-initials';
@@ -19,8 +20,10 @@ import { WorkspaceSwitcher } from './workspace-switcher';
  * role name: the role is only the label in the header. The user menu with
  * the language switch is below them (F010), and the sidebar footer shows the person's name as
  * entered (F005). With `clients.manage` (`quickAdd`) the top bar has **+ Nieuw** → *Klant*, which
- * opens the quick-add dialog (F006) that the list's *Klant toevoegen* opens as well. The rest of
- * the navigation comes with F013/F014.
+ * opens the quick-add dialog (F006) that the list's *Klant toevoegen* opens as well; with a
+ * session capability (`newSession`) it has *Privésessie* too, which opens PS-01 (F020). A person
+ * with a trainer profile (`personalPages`) has the group *Persoonlijk* above the workspace's, with
+ * *Mijn dag* and *Mijn agenda* (F013). The rest of the navigation comes with F014.
  */
 export function WorkspaceFrame({
   name,
@@ -31,6 +34,8 @@ export function WorkspaceFrame({
   capabilities,
   personName,
   quickAdd,
+  newSession,
+  personalPages = false,
   children,
 }: {
   name: string;
@@ -46,6 +51,10 @@ export function WorkspaceFrame({
   personName: string | null;
   /** The workspace to add clients to; given only to a person with `clients.manage` (F006). */
   quickAdd?: { workspaceId: string; defaultLocale: Locale };
+  /** What PS-01 needs; given only to a person who may plan private sessions (F020). */
+  newSession?: Omit<NewSessionProps, 'slug'>;
+  /** The person has a trainer profile in some workspace: the sidebar has *Persoonlijk* (F013). */
+  personalPages?: boolean;
   children: ReactNode;
 }) {
   const t = useTranslations('workspaceNav');
@@ -74,6 +83,44 @@ export function WorkspaceFrame({
       ],
     });
   }
+  const personal = personalPages
+    ? {
+        heading: t('personal'),
+        items: [
+          { href: '/me/day', label: t('myDay'), icon: 'day' },
+          { href: '/me/calendar', label: t('myCalendar'), icon: 'calendar' },
+        ] satisfies NavItem[],
+      }
+    : undefined;
+  let content: ReactNode = children;
+  if (quickAdd || newSession) {
+    content = (
+      <>
+        <div className="flex h-15 flex-none items-center justify-end border-b px-6">
+          <NewMenu />
+        </div>
+        {children}
+      </>
+    );
+  }
+  if (quickAdd) {
+    content = (
+      <AddClientProvider
+        workspaceId={quickAdd.workspaceId}
+        slug={slug}
+        defaultLocale={quickAdd.defaultLocale}
+      >
+        {content}
+      </AddClientProvider>
+    );
+  }
+  if (newSession) {
+    content = (
+      <NewSessionProvider {...newSession} slug={slug}>
+        {content}
+      </NewSessionProvider>
+    );
+  }
   return (
     <div data-density="compact" className="flex flex-1 flex-col md:flex-row">
       <aside className="flex flex-col gap-1 border-b bg-sidebar px-2.5 py-3 md:w-60 md:shrink-0 md:border-r md:border-b-0">
@@ -84,7 +131,7 @@ export function WorkspaceFrame({
           workspaces={workspaces}
           canCreateWorkspace={canCreateWorkspace}
         />
-        <SidebarNav label={t('label')} items={items} />
+        <SidebarNav label={t('label')} items={items} heading={name} personal={personal} />
         <div className="mt-auto flex items-center gap-2.5 border-t px-2 pt-2.5">
           {personName ? (
             <>
@@ -104,22 +151,7 @@ export function WorkspaceFrame({
           <UserMenu />
         </div>
       </aside>
-      <div className="flex min-w-0 flex-1 flex-col">
-        {quickAdd ? (
-          <AddClientProvider
-            workspaceId={quickAdd.workspaceId}
-            slug={slug}
-            defaultLocale={quickAdd.defaultLocale}
-          >
-            <div className="flex h-15 flex-none items-center justify-end border-b px-6">
-              <NewMenu />
-            </div>
-            {children}
-          </AddClientProvider>
-        ) : (
-          children
-        )}
-      </div>
+      <div className="flex min-w-0 flex-1 flex-col">{content}</div>
     </div>
   );
 }

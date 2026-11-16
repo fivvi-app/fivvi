@@ -392,7 +392,7 @@ describe('E011 app role in the release step', () => {
       }
     });
 
-    it('serialises concurrent changes to the role, from the release step and the test setup', async () => {
+    it('@concurrency serialises concurrent changes to the role, from the release step and the test setup', async () => {
       // Two ALTER ROLE on one role at once fail with "tuple concurrently updated"; a CI run does
       // that when parallel workers release databases while a package's global setup runs.
       // Own name per run: runs on one server (worktrees share a container) must not drop it.

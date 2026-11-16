@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "@fivvi/database": "workspace:*",
+    "@fivvi/domain": "workspace:*",
     "@fivvi/observability": "workspace:*",
     "drizzle-orm": "catalog:"
   },

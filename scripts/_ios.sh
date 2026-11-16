@@ -204,12 +204,65 @@ slowest_tests() {
     | "| \(.id) | \(.seconds * 10 | round / 10) |"' 2>/dev/null || true
 }
 
+# The test classes of the result bundle $1 that took the most time, as table rows (`| class | tests | seconds |`), at most
+# $2, in the test-plan configuration $3 (as slowest_tests), after a row for all of them (`| all | tests | seconds |`):
+# the seconds of a class are the sum of its tests' durations. The slowest tests alone hid that most of a run is the
+# whole set of UI classes (#1389). Nothing when the bundle can't be read: a report never fails the run.
+slowest_classes() {
+  xcrun xcresulttool get test-results tests --path "$1" 2>/dev/null | jq -r --argjson n "$2" --arg config "$3" '
+    [.. | objects | select(.nodeType? == "Test Case") | . as $test
+      | [(.children // [])[] | select(.nodeType == "Test Plan Configuration")] as $configs
+      | (if $configs == [] then [$test] else [$configs[] | select(.name == $config)] end)[]
+      | {class: ($test.nodeIdentifier | split("/")[0]), seconds: .durationInSeconds} | select(.seconds != null)] as $rows
+    | ($rows | group_by(.class) | map({class: .[0].class, tests: length, seconds: (map(.seconds) | add)}) | sort_by(-.seconds)) as $classes
+    | select($classes != [])
+    | ($classes | map(.tests) | add) as $tests | ($classes | map(.seconds) | add) as $seconds
+    | "| all | \($tests) | \($seconds | round) |", ($classes[:$n][] | "| \(.class) | \(.tests) | \(.seconds | round) |")' 2>/dev/null || true
+}
+
 # The failed tests of the result bundle $1 as `<test>: <message>` lines (a message on one line), each once. Nothing when
 # the bundle can't be read: a report never changes the run's exit code (#290).
 failed_tests() {
   xcrun xcresulttool get test-results summary --path "$1" 2>/dev/null | jq -r '
     [(.testFailures // [])[] | "\(.testIdentifierString // .testName): \((.failureText // "") | gsub("\\s+"; " "))"]
     | unique[]' 2>/dev/null || true
+}
+
+# The failed tests of the result bundle $1 for the retry of test-ios.sh (#1433), one per line and once each, tab-separated:
+# `ui` or `other` (a test of the FivviProUITests target or any other, unit tests among them), the test as `<class>/<method>`
+# (the form `-only-testing:FivviProUITests/<class>/<method>` takes, no `()`) and the first failure's message on one line.
+# Nothing when the bundle can't be read or lists no failed test: the caller doesn't retry what it can't name.
+failed_test_rows() {
+  xcrun xcresulttool get test-results summary --path "$1" 2>/dev/null | jq -r '
+    [(.testFailures // [])[]
+      | ((.testIdentifierString // .testName // "") | sub("\\(\\)$"; "")) as $id
+      | select($id != "")
+      | {id: $id,
+         ui: (((.targetName // "") == "FivviProUITests") or ((.testIdentifierURL // "") | contains("/FivviProUITests/"))),
+         message: ((.failureText // "") | gsub("\\s+"; " "))}]
+    | group_by(.id)[] | .[0] | [(if .ui then "ui" else "other" end), .id, .message] | @tsv' 2>/dev/null || true
+}
+
+# What the result bundle $1 says about how many tests it has, for the retry of test-ios.sh (#1433): `<failed>\t<total>`, the
+# summary's failedTests and its totalTestCount (the sum of passed, failed, skipped and expected failures when it has none).
+# Nothing when the bundle can't be read or has no counts: a run that can't be counted is not shown to be complete.
+run_counts() {
+  xcrun xcresulttool get test-results summary --path "$1" 2>/dev/null | jq -r '
+    select((.failedTests | type) == "number")
+    | (.totalTestCount // ((.passedTests // 0) + .failedTests + (.skippedTests // 0) + (.expectedFailures // 0))) as $total
+    | select($total | type == "number")
+    | "\(.failedTests)\t\($total)"' 2>/dev/null || true
+}
+
+# The outcome of every UI test of the result bundle $1, one per line, tab-separated: `<class>/<method>` and `Passed`, or the
+# first result that is not (Failed, Skipped, ...). A test the bundle has more than once counts as passed only when every
+# one did. Nothing when the bundle can't be read: a test that is not listed did not run.
+ui_test_outcomes() {
+  xcrun xcresulttool get test-results tests --path "$1" --compact 2>/dev/null | jq -r '
+    [.. | objects | select(.nodeType? == "Test Case" and ((.nodeIdentifierURL // "") | contains("/FivviProUITests/")))
+      | {id: (.nodeIdentifier | sub("\\(\\)$"; "")), result: (.result // "unknown")}]
+    | group_by(.id)[]
+    | "\(.[0].id)\t\(if all(.[]; .result == "Passed") then "Passed" else ([.[].result | select(. != "Passed")] | first) end)"' 2>/dev/null || true
 }
 
 # The UI tests of the result bundle $1 that reported a flaky start, one line each: the `::warning::flaky…` activity the

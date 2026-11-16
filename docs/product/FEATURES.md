@@ -14,7 +14,7 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | Release | Features | Released |
 |---|---|---|
-| MVP | 66 (F001–F069 without F034–F036, Open Gym, later) + 20 engineering enablers (E001–E020); F017–F019 (more locations) and M7 (F039–F048, F051, F069) come after go-live; trainer (Fivvi Pro) and, from M5, client (Fivvi) iOS and Android screens are built with their web features (the M8 native track) | 0 |
+| MVP | 66 (F001–F069 without F034–F036, Open Gym, later) + 20 engineering enablers (E001–E020); F017–F019 (more locations), M7 (F039–F048, F051, F069), F066 (duo sessions) and F058 (single class pass) come after go-live (the last two after G4, ADR-033); trainer (Fivvi Pro) and, from M5, client (Fivvi) iOS and Android screens are built with their web features (the M8 native track) | 0 |
 
 **Waitlist moved to the MVP (31 October 2026, [#150](https://github.com/fivvi-app/fivvi/issues/150)):** it was a Release 1.1 candidate. The owner placed it as **F062** in **M5** (31 October 2026, `ROADMAP.md` v1.29); the rules are in `PRODUCT.md §23`.
 
@@ -48,7 +48,7 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F011 | Trainer Invitations | IN PROGRESS | Must | M3 | F003, F004, E006 | ⬜ | ⬜ | §49 |
+| [F011](https://github.com/fivvi-app/fivvi/issues/422) | Trainer Invitations: the Owner invites a trainer by email from *Trainers* (name, address, language of the email) and sees, resends and withdraws the pending invitations; the invited person signs in with that address and accepts or declines on the invitation page, a client's own account included | IMPLEMENTED | Must | M3 | F003, F004, E006 | ✅ | ✅ | §49 |
 | [F012](https://github.com/fivvi-app/fivvi/issues/423) | Multi-Workspace Trainer: a scope switcher on the web (sidebar header) and in the iOS and Android apps (Profiel → Mijn werkruimtes), each opening that workspace's role home; the last workspace is remembered per device; an allowlisted account can create another workspace | IMPLEMENTED | Must | M3 (+ iOS/Android: workspace switch in the profile) | F003, F005 | ✅ | ✅ | §4, §6 |
 | F013 | Personal Trainer Calendar | IN PROGRESS | Must | M4 (+ iOS/Android) | F012, F020 | ⬜ | ⬜ | §45–§48, §78 (type labels and filters) |
 | F014 | Workspace Calendar | PLANNED | Must | M4 | F020 | ⬜ | ⬜ | §45, §48, §78 (type and trainer filters) |
@@ -74,7 +74,7 @@ The single source of truth for feature status. A status changes **in the same PR
 | F024 | Trainer Substitution | PLANNED | Must | M4 | F022, F023 | ⬜ | ⬜ | §19 |
 | F025 | Attendance | PLANNED | Must | M4 (+ iOS/Android) | F020, F022 | ⬜ | ⬜ | §43 |
 | F026 | Cancellations | PLANNED | Must | M4 (+ iOS/Android: cancel a session) | F020, F022, F049 | ⬜ | ⬜ | §17, §43, §51 (records time and actor for the §93 cutoff) |
-| [F066](https://github.com/fivvi-app/fivvi/issues/586) | Duo Sessions: two clients and one trainer, each with their own credit, attendance, notes and workout; only the trainer plans one; if one client cancels it continues as a private session | PLANNED | Must | M4 (+ iOS/Android); client view M5 (+ Fivvi iOS/Android); credits M11; workout logs M7 | F020, F025, F026; later stages F033, F054, F055, F043, F045 | ⬜ | ⬜ | §17, §92, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §6, §7 item 5 |
+| [F066](https://github.com/fivvi-app/fivvi/issues/586) | Duo Sessions: two clients and one trainer, each with their own credit, attendance, notes and workout; only the trainer plans one; if one client cancels it continues as a private session | PLANNED | Must | After G4 (ADR-033): M4 (+ iOS/Android); client view M5 (+ Fivvi iOS/Android); credits M11; workout logs M7 | F020, F025, F026; later stages F033, F054, F055, F043, F045 | ⬜ | ⬜ | §17, §92, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §6, §7 item 5 |
 | [F067](https://github.com/fivvi-app/fivvi/issues/587) | Class Levels: a fixed list of four levels on a class, set on the series and changeable per date; information only, with no filter and no limit on who books | PLANNED | Must | M4 (+ iOS/Android); client view M5 (+ Fivvi iOS/Android) | F021, F022; client view F027, F033 | ⬜ | ⬜ | §18, [`DECISIONS.md`](../design/prototype-v2/DECISIONS.md) §6, §7 item 6 |
 
 ### Booking
@@ -129,7 +129,7 @@ The single source of truth for feature status. A status changes **in the same PR
 
 ### Commerce
 
-Added in roadmap v1.19 (M11), before go-live; credit packs and credit plans, group and private, followed in v1.21 (owner, 21 October 2026). The subscription model and invoices ship together. The single class pass (F058) is an offer kind of its own, bought ahead; payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)).
+Added in roadmap v1.19 (M11), before go-live (F058 after G4, ADR-033); credit packs and credit plans, group and private, followed in v1.21 (owner, 21 October 2026). The subscription model and invoices ship together. The single class pass (F058, after G4, ADR-033) is an offer kind of its own, bought ahead; payouts are proposed scope ([decision 9](ROADMAP.md#14-decisions)).
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
@@ -139,7 +139,7 @@ Added in roadmap v1.19 (M11), before go-live; credit packs and credit plans, gro
 | F055 | Credit Balance | PLANNED | Must | M11 | F025, F026 | ⬜ | ⬜ | §92 (one balance per kind, group or private, per agreement; history: granted, used, returned, expired) |
 | F056 | Cancellation Policy and Makeups | PLANNED | Must | M11 | F026, F055 | ⬜ | ⬜ | §93 (cutoff, late cancellation, makeups) |
 | F057 | Recurring Payments | IN PROGRESS | Must | M11 | E019, F059 | ⬜ | ⬜ | §94 (first payment + mandate, SEPA Direct Debit: proposal, QC06; exactly once) |
-| [F058](https://github.com/fivvi-app/fivvi/issues/495) | Single class pass | PLANNED | Must | M11 | F052, F031, E019, F059 | ⬜ | ⬜ | §95 (an offer kind of its own, bought ahead like credits, good for one group class; the owner sets the price, with a guideline that it costs more than a class in a membership or pack; an unused pass is never refunded; credits are used before a pass; cancellation and validity are open) |
+| [F058](https://github.com/fivvi-app/fivvi/issues/495) | Single class pass | PLANNED | Must | M11, after G4 (ADR-033) | F052, F031, E019, F059 | ⬜ | ⬜ | §95 (an offer kind of its own, bought ahead like credits, good for one group class; the owner sets the price, with a guideline that it costs more than a class in a membership or pack; an unused pass is never refunded; credits are used before a pass; cancellation and validity are open) |
 | F059 | Invoices and Billing Details | IN PROGRESS | Must | M11 | F006, F052 | ⬜ | ⬜ | §96 (company details, gapless numbers, credit notes) |
 | F060 | Failed Payments and Refunds | IN PROGRESS | Must | M11 | F057, F059 | ⬜ | ⬜ | §94 |
 | F061 | Payouts and Reconciliation | PLANNED | Must (proposed, decision 9) | M11 | F057, F060 | ⬜ | ⬜ | §97 |
@@ -160,7 +160,7 @@ These are not user-facing, so they don't need NL/EN columns. They still go throu
 
 | ID | Enabler | Status | Milestone | Notes |
 |---|---|---|---|---|
-| E001 | Monorepo & tooling | IMPLEMENTED | M1 | pnpm workspaces + Turborepo (`lint`, `typecheck`, `test`, `build`, `format:check`), Node 26 + pnpm pinned, TypeScript 7 strict, Biome (lint + format); empty `apps/web` Next.js skeleton (React Server Components). `apps/ios` / `apps/android` and SwiftLint/ktlint come with E008 (ADR-001) |
+| E001 | Monorepo & tooling | IN PROGRESS | M1 | pnpm workspaces + Turborepo (`lint`, `typecheck`, `test`, `build`, `format:check`), Node 26 + pnpm pinned, TypeScript 7 strict, Biome (lint + format); empty `apps/web` Next.js skeleton (React Server Components). `apps/ios` / `apps/android` and SwiftLint/ktlint come with E008 (ADR-001) |
 | E002 | CI pipeline | IMPLEMENTED | M1 | GitHub Actions (`.github/workflows/ci.yml`) on every PR and push to `main`: one Linux job runs `turbo run lint typecheck test build format:check check` with pnpm and turbo caches; later static checks (i18n parity, OpenAPI drift) plug in as `check` tasks. Path-filtered native jobs `iOS` (macOS) and `Android` (Linux), real since E008 (paths in `WORKFLOW.md §7`). A ruleset on `main` enforces the required checks (`.github/rulesets/main.json`, applied by `scripts/github-settings.sh`, ADR-016) |
 | E003 | Environments & deployment | IMPLEMENTED | M1 | Railway, EU West Amsterdam, managed by Railway Infrastructure as Code (`.railway/railway.ts`): `web` (Next.js standalone + API, Dockerfile, Wait for CI, health check `GET /api/v1/health` with DB ping), private-network Postgres, `cron` skeleton (`apps/cron`). Migrations (+ seed outside production) run as the pre-deploy step; the `hello` greeting is a data migration. `production` deploys `main`; `development` is the base of per-PR environments, so previews never get production secrets. ADR-011 conditions 1–2 checked (M1 spike results: restore works on Hobby, scheduled backups need Pro). See `docs/engineering/ENVIRONMENTS.md` (ADR-011) |
 | E004 | Database, ORM & migrations | IMPLEMENTED | M1 | `packages/database`: Drizzle ORM (`node-postgres`), versioned SQL migrations (`db:generate` / `db:migrate`, schema drift check), idempotent seed, typed client from `DATABASE_URL` (sessions in UTC); Postgres 18 in `compose.yaml` (same major as Railway); `system_greetings` table for the M1 hello slice; conventions in the package README; `test:integration` turbo task (migrate → seed → read on real Postgres). RLS comes with E011 (ADR-005, ADR-006) |

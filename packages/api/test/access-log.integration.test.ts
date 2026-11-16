@@ -245,7 +245,7 @@ describe('E014 the Owner reads the access log', () => {
     expect(annaExports.total).toBe(1);
   });
 
-  it('AC22: filtering by a client of another workspace finds nothing of it', async () => {
+  it('@isolation AC22: filtering by a client of another workspace finds nothing of it', async () => {
     const w = await world();
     await addAccessLogEntry(admin.db, {
       workspaceId: w.studio.id,
@@ -375,7 +375,7 @@ describe('E014 the Owner reads the access log', () => {
     });
   });
 
-  it('AC6: Sarah gets 403, Mike gets 404 for John’s Gym, a client of the gym gets 403, anonymous gets 401', async () => {
+  it('@isolation @permission AC6: Sarah gets 403, Mike gets 404 for John’s Gym, a client of the gym gets 403, anonymous gets 401', async () => {
     const w = await world();
     await addAccessLogEntry(admin.db, {
       workspaceId: w.gym.id,

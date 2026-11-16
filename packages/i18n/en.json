@@ -180,7 +180,31 @@
     "new": "New",
     "newMenu": "Create new",
     "newClient": "Client",
-    "joinLink": "Join link"
+    "newPrivateSession": "Private session",
+    "joinLink": "Join link",
+    "personal": "Personal",
+    "myDay": "My day",
+    "myCalendar": "My calendar"
+  },
+  "myDay": {
+    "title": "My day",
+    "summaryNone": "No sessions",
+    "summary": "{count, plural, one {# session} other {# sessions}} · {first}–{last}",
+    "listLabel": "Today's sessions",
+    "nextUpcoming": "Up next · in {minutes} min",
+    "nextInProgress": "In progress",
+    "typePrivate": "Private session",
+    "typeGroup": "Group class",
+    "booked": "{booked}/{capacity} booked",
+    "timeRange": "{start}–{end}",
+    "typeWithDetail": "{type} · {detail}",
+    "spokenTime": "{start} to {end}",
+    "spokenJoin": "{first}, {next}",
+    "cancelled": "Cancelled",
+    "tomorrow": "Tomorrow: {count, plural, one {# session} other {# sessions}}, first at {time}",
+    "emptyToday": "No sessions today.",
+    "emptyNext": "No sessions today. Your next session is on {date}.",
+    "emptyNever": "You don't have any sessions yet. You'll see them here as soon as you're scheduled."
   },
   "workspaceSwitcher": {
     "newWorkspace": "+ New workspace"
@@ -232,10 +256,24 @@
       "validity": "The code works for {minutes, plural, one {# minute} other {# minutes}}. You'll sign in to Fivvi with this email address from then on.",
       "ignore": "Didn't ask for this? You can ignore this email. Nothing will change."
     },
+    "emailChanged": {
+      "subject": "The email address of your Fivvi account has been changed",
+      "preview": "This email address no longer belongs to your Fivvi account.",
+      "intro": "The email address of your Fivvi account has just been changed. You no longer sign in with this email address; you sign in with the new one.",
+      "fine": "If you made this change, you don't need to do anything.",
+      "notYou": "Wasn't this you? Contact us right away through Help and contact on fivvi.app and we'll look into it."
+    },
+    "emailChangeTaken": {
+      "subject": "Someone wanted to use this email address for another Fivvi account",
+      "preview": "No code was sent and nothing has changed.",
+      "intro": "Someone asked for a code to use this email address for another Fivvi account. This email address already belongs to an account, so we sent no code.",
+      "unchanged": "Nothing has changed. Your account and your data were not touched and stay yours.",
+      "ignore": "You don't need to do anything. You can ignore this email."
+    },
     "trainerInvitation": {
       "subject": "{inviter} invited you to {workspace}",
-      "preview": "You're invited to become a trainer at {workspace}.",
-      "intro": "{inviter} invited you to become a trainer at {workspace}.",
+      "preview": "You're invited to become {aWord} at {workspace}.",
+      "intro": "{inviter} invited you to become {aWord} at {workspace}.",
       "button": "View invitation",
       "validity": "This invitation is valid until {date}.",
       "ignore": "Not expecting this email? You can ignore it."
@@ -246,7 +284,7 @@
       "intro": "A private session has been planned for you at {workspace}.",
       "when": "When: {date}, {start} to {end}",
       "where": "Where: {location}",
-      "trainer": "Trainer: {trainer}"
+      "trainer": "{Word}: {trainer}"
     },
     "privateSessionMoved": {
       "subject": "Change: your session has moved to {newDate}",
@@ -393,6 +431,44 @@
     },
     "badge": {
       "trainer": "Trainer"
+    },
+    "invite": {
+      "title": "Invite trainer",
+      "description": "We'll email an invitation to this address.",
+      "nameLabel": "Name",
+      "emailLabel": "Email address",
+      "localeLabel": "Language of the email",
+      "localeDefault": "Workspace default ({language})",
+      "localeNl": "Nederlands",
+      "localeEn": "English",
+      "submit": "Send",
+      "cancel": "Cancel",
+      "sent": "Invitation sent to {name}.",
+      "alreadyOnTeam": "{name} is already on the team.",
+      "alreadyInvited": "An invitation to this email address is already open.",
+      "sendAgain": "Send again",
+      "errors": {
+        "nameRequired": "Enter a name.",
+        "nameTooLong": "This name is too long. Use at most 120 characters.",
+        "emailRequired": "Enter an email address.",
+        "emailInvalid": "Enter a valid email address.",
+        "tooMany": "You've already sent 20 invitations in the last 24 hours. Try again later.",
+        "notSent": "Not sent. Check your connection and try again."
+      }
+    },
+    "invitations": {
+      "status": "Invited",
+      "sendAgain": "Send again",
+      "sentAgain": "Invitation sent again",
+      "withdraw": "Withdraw",
+      "withdrawDialog": {
+        "title": "Withdraw invitation?",
+        "body": "The link in the email to {email} will stop working.",
+        "confirm": "Withdraw",
+        "cancel": "Back"
+      },
+      "withdrawn": "Invitation to {name} withdrawn.",
+      "gone": "This invitation is no longer there."
     }
   },
   "clients": {
@@ -443,10 +519,101 @@
       "edit": "Edit",
       "editTitle": "Edit client",
       "save": "Save",
-      "saved": "Saved."
+      "saved": "Saved.",
+      "upcomingTitle": "Upcoming sessions",
+      "upcomingEmpty": "No sessions planned yet",
+      "upcomingWhen": "{date} at {time}"
     },
     "newClient": "New client",
     "offline": "You're offline. Last updated at {time}."
+  },
+  "sessions": {
+    "title": "Session",
+    "page": {
+      "heading": "Private session with {client}",
+      "whenLabel": "When",
+      "whereLabel": "Location",
+      "trainerLabel": "{Word}",
+      "clientLabel": "Client",
+      "timeRange": "{date}, {start}–{end}",
+      "noTrainer": "No {word}",
+      "cancelled": "This session is cancelled.",
+      "reschedule": "Reschedule",
+      "clientProfile": "Client profile",
+      "moved": "Moved to {date} at {time}."
+    },
+    "form": {
+      "title": "New private session",
+      "description": "Choose a client and a time. The location is already filled in.",
+      "close": "Close",
+      "loadFailed": "The details couldn't be loaded.",
+      "clientLabel": "Client",
+      "clientSearch": "Search by name or email",
+      "clientResults": "Clients",
+      "clientNone": "No clients found.",
+      "clientChange": "Change",
+      "clientNew": "+ New client",
+      "clientNewNamed": "+ New client ‘{query}’",
+      "newClientTitle": "New client",
+      "newClientAdd": "Add client",
+      "newClientCancel": "Cancel",
+      "clientExists": "There's already a client with this email: {name}.",
+      "clientUse": "Use them",
+      "dateLabel": "Date",
+      "startLabel": "Start",
+      "durationLabel": "Duration",
+      "durationMinutes": "{minutes} min",
+      "durationOther": "Other duration",
+      "endsAt": "Ends at {time}",
+      "endsAtNextDay": "Ends at {time} (next day)",
+      "trainerLabel": "{Word}",
+      "trainerMe": "{name} (me)",
+      "trainerChoose": "Choose {aWord}",
+      "location": "Location: {name}",
+      "notify": "Send {client} a confirmation",
+      "notifyNote": "{email} · {language}",
+      "languageNl": "in Dutch",
+      "languageEn": "in English",
+      "cancel": "Cancel",
+      "save": "Save",
+      "discardTitle": "Discard changes?",
+      "discardDescription": "What you entered won't be kept.",
+      "discard": "Discard",
+      "keepEditing": "Keep editing",
+      "saved": "Session with {client} scheduled for {date} at {time}.",
+      "open": "Open",
+      "errors": {
+        "chooseClient": "Choose a client.",
+        "chooseTrainer": "Choose {aWord}.",
+        "dateRequired": "Choose a date.",
+        "startRequired": "Choose a start time.",
+        "invalidDate": "This date doesn't exist.",
+        "invalidTime": "This isn't a valid time.",
+        "timeDoesNotExist": "This time doesn't exist on {date} because of daylight saving time.",
+        "noPermission": "You don't have permission for this session.",
+        "notSaved": "Not saved. Check your connection and try again."
+      },
+      "notes": {
+        "repeatedTime": "On {date}, {time} happens twice. We'll use the first one (summer time).",
+        "past": "This time is in the past. The client won't get an email."
+      }
+    },
+    "reschedule": {
+      "title": "Reschedule session",
+      "subtitle": "{client} · Private session",
+      "current": "Currently: {date}, {start}–{end} · {location}",
+      "dateLabel": "New date",
+      "locationUnchanged": "{location} (unchanged)",
+      "notify": "Notify {client} by email",
+      "notifyNote": "{client} will get the email {language}.",
+      "cancel": "Cancel",
+      "submit": "Reschedule",
+      "submitNotify": "Reschedule and notify",
+      "changedBy": "This session was just changed by {name}.",
+      "changedByUnknown": "This session was just changed.",
+      "cancelled": "This session is cancelled and can't be moved.",
+      "noPermission": "You no longer have permission for this session."
+    }
   },
   "clientNav": {
     "label": "Main navigation",
@@ -1348,6 +1515,21 @@
       "repsOnly": "Reps only",
       "time": "Time",
       "distanceTime": "Distance + time"
+    }
+  },
+  "invitation": {
+    "title": "Invitation",
+    "intro": "{inviter} invited you to become a trainer at {workspace}.",
+    "introAnonymous": "You've been invited to become a trainer at {workspace}.",
+    "accept": "Accept",
+    "decline": "Decline",
+    "declined": "You declined the invitation.",
+    "wrongAccount": "This invitation is for {maskedEmail}. Sign out and sign in with that email address.",
+    "signOutAndContinue": "Sign out and continue",
+    "noLongerValid": "This invitation is no longer valid. Ask for a new invitation.",
+    "errors": {
+      "noConnection": "No connection. Check your internet and try again.",
+      "generic": "Something went wrong. Try again."
     }
   }
 }

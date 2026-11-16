@@ -348,25 +348,52 @@ describe('#437 ios-parts.sh job: did a hosted runner pick up one job of the run'
     assert.equal(run(['iOS tests', 'cancelled'], jobs()).stdout, 'iOS tests=cancelled\n');
   });
 
-  it('#1268 labels an abandoned job as unacquired without reading the jobs', () => {
-    const result = run(['iOS tests', 'abandoned'], [{ match: '^api ', status: 1 }]);
-    assert.equal(result.status, 0, result.stderr);
-    assert.equal(result.stdout, 'iOS tests=unacquired\n');
-    assert.match(result.stderr, /iOS tests: no hosted runner picked it up/);
-    assert.equal(gh.calls().length, 0);
+  it('#1268 labels an abandoned job as unacquired when it is not in the list or the jobs cannot be read', () => {
+    for (const rules of [[{ match: '^api ', status: 1 }], jobs()]) {
+      const result = run(['iOS tests', 'abandoned'], rules);
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(result.stdout, 'iOS tests=unacquired\n');
+      assert.match(result.stderr, /iOS tests: no hosted runner picked it up/);
+    }
   });
 
-  it('prints any other result as given, without reading the jobs', () => {
-    for (const result of ['success', 'failure', 'skipped']) {
+  it('prints success and skipped as given, without reading the jobs', () => {
+    for (const result of ['success', 'skipped']) {
       const answer = run(['iOS release', result], [{ match: '^api ', status: 1 }]);
       assert.equal(answer.status, 0, answer.stderr);
       assert.equal(answer.stdout, `iOS release=${result}\n`);
-      assert.equal(
-        gh.calls().length,
-        0,
-        'nothing that did not end cancelled can be a missing runner',
-      );
+      assert.equal(gh.calls().length, 0, 'a job that did not fail or end cancelled needs no look');
     }
+  });
+
+  it('a matrix leg is read by its own name: the combined result of its legs does not hide or blame it', () => {
+    // The combined result of the matrix is failure (one leg failed), yet the other leg got no runner.
+    const list = jobs(ran('iOS tests (nl)', 'failure'), unacquired('iOS tests (en)'));
+    assert.equal(run(['iOS tests (nl)', 'failure'], list).stdout, 'iOS tests (nl)=failure\n');
+    assert.equal(run(['iOS tests (en)', 'failure'], list).stdout, 'iOS tests (en)=unacquired\n');
+    // Abandoned combined result: only the leg no runner took is unacquired; the one that ran keeps its conclusion.
+    const abandoned = jobs(ran('iOS tests (nl)', 'success'), unacquired('iOS tests (en)'));
+    assert.equal(
+      run(['iOS tests (nl)', 'abandoned'], abandoned).stdout,
+      'iOS tests (nl)=success\n',
+    );
+    assert.equal(
+      run(['iOS tests (en)', 'abandoned'], abandoned).stdout,
+      'iOS tests (en)=unacquired\n',
+    );
+    // Any other result is the one given, unless the job is the one no runner took.
+    assert.equal(
+      run(['iOS tests (nl)', 'cancelled'], abandoned).stdout,
+      'iOS tests (nl)=cancelled\n',
+    );
+  });
+
+  it('a failure stays a failure when the jobs cannot be read or the job is not in the list', () => {
+    assert.equal(
+      run(['iOS release', 'failure'], [{ match: '^api ', status: 1 }]).stdout,
+      'iOS release=failure\n',
+    );
+    assert.equal(run(['iOS release', 'failure'], jobs()).stdout, 'iOS release=failure\n');
   });
 
   it("prints the bare result, exiting 0, when the run's jobs cannot be read", () => {

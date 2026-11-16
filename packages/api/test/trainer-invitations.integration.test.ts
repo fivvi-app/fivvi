@@ -330,6 +330,29 @@ describe('F011 trainer invitations', () => {
     expect(transport.sent.map(({ locale }) => locale)).toEqual(['nl-NL', 'nl-NL']);
   });
 
+  it('F068 AC7, AC11: the invitation names the role with the workspace’s word as it is when sent; the next one follows a change', async () => {
+    const { gym, john } = await world();
+    const { server, transport } = setup();
+    const setWord = (trainerWord: 'trainer' | 'docent') =>
+      admin.db.update(organizations).set({ trainerWord }).where(eq(organizations.id, gym.id));
+
+    // A new workspace starts on trainer (AC2 of the spec), then John chooses docent.
+    await invite(server, gym.id, john, { name: 'Lisa', email: 'lisa@example.com' });
+    await setWord('docent');
+    await invite(server, gym.id, john, {
+      name: 'Tom',
+      email: 'tom@example.com',
+      emailLocale: 'en',
+    });
+    await invite(server, gym.id, john, { name: 'Anna', email: 'anna@example.com' });
+
+    expect(transport.sent[0]?.text).toContain('om een trainer te worden bij');
+    expect(transport.sent[1]?.text).toContain('to become a teacher at');
+    expect(transport.sent[2]?.text).toContain('om een docent te worden bij');
+    // What went out stays as it was.
+    expect(transport.sent[0]?.text).not.toContain('docent');
+  });
+
   it('AC2: an English workspace default reaches an address without an account in English', async () => {
     const { gym, john } = await world({ defaultLocale: 'en' });
     const { server, transport } = setup();
@@ -461,7 +484,7 @@ describe('F011 trainer invitations', () => {
     ).toBe(201);
   });
 
-  it('AC7: an invitation that is not there, is closed or is another workspace’s can not be sent or withdrawn', async () => {
+  it('@isolation AC7: an invitation that is not there, is closed or is another workspace’s can not be sent or withdrawn', async () => {
     const { gym, other, john, mike, mikeRole } = await world();
     const { server, transport } = setup();
     const accepted = await addTrainerInvitation(admin.db, {
@@ -704,7 +727,7 @@ describe('F011 trainer invitations', () => {
     ).toBe(201);
   });
 
-  it('AC10: invitations made at the same moment still stop at 20', async () => {
+  it('@concurrency AC10: invitations made at the same moment still stop at 20', async () => {
     const { gym, john } = await world();
     const { server } = setup();
 

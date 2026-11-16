@@ -11,6 +11,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.material3.TextFieldDefaults
@@ -24,6 +25,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
 import app.fivvi.core.R
+import app.fivvi.core.theme.tokens
 import app.fivvi.designtokens.Radius
 import app.fivvi.designtokens.Spacing
 import app.fivvi.designtokens.footnote
@@ -69,6 +71,9 @@ fun FivviField(
         shape = RoundedCornerShape(Radius.sm),
         keyboardOptions = keyboardOptions,
         keyboardActions = keyboardActions,
+        // The label of the focused field is text in the accent: accentText, which reaches 4.5:1 on the canvas; the fill does
+        // not (4.11:1). The outline and the cursor keep the fill (non-text, 3:1). An error state keeps its own red.
+        colors = OutlinedTextFieldDefaults.colors(focusedLabelColor = MaterialTheme.tokens.accentText),
     )
 }
 

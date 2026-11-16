@@ -678,7 +678,7 @@ test.describe('E020 trainer web: Mijn profiel, Klanten, the client profile and q
       );
       await expectNoAxeViolations(page, `Klanten in ${scheme} and ${appLocale}`);
 
-      // The client profile: the large avatar, the name, Edit, and the overview card.
+      // The client profile: the large avatar, the name, Edit, and the overview and upcoming-sessions cards.
       await page.goto(`/w/${slug}/clients/${anna.id}`);
       await expect(page.getByRole('heading', { level: 1, name: 'Anna de Vries' })).toBeVisible();
       const large = page.locator('[data-slot="avatar"]');
@@ -686,10 +686,12 @@ test.describe('E020 trainer web: Mijn profiel, Klanten, the client profile and q
       expect(await large.evaluate((element) => getComputedStyle(element, '::before').content)).toBe(
         '"AD"',
       );
-      await expect(page.locator('[data-slot="card"]')).toHaveCSS(
-        'background-color',
-        tokenColour('web.trainer.card', scheme),
-      );
+      // Two cards: the overview and the upcoming sessions (F020), both in the card colour.
+      const profileCards = page.locator('[data-slot="card"]');
+      await expect(profileCards).toHaveCount(2);
+      for (const card of await profileCards.all()) {
+        await expect(card).toHaveCSS('background-color', tokenColour('web.trainer.card', scheme));
+      }
       await expectNoAxeViolations(page, `the client profile in ${scheme} and ${appLocale}`);
 
       // Quick add: the dialog is the card colour with the kit's fields; a refused field is red

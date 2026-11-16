@@ -11,11 +11,17 @@
 //   app/icon.png                             192 px, for Android and search results (a multiple of 48)
 //   app/apple-icon.png                       180 px, the iOS home-screen icon: the whole square, with no
 //                                            rounded clip, which iOS applies itself (an empty corner turns black)
+//   public/site-images/brand/app-icon-512.png      512 px, the favicon as drawn: the web app manifest's icon (F013), 192 px is app/icon.png
+//   public/site-images/brand/app-icon-maskable-512.png    512 px, the whole square with no rounded clip, for the manifest's
+//                                            `maskable` icon, which the phone crops to its own shape (the dial sits well inside the
+//                                            80% safe zone). They are under /site-images, which is served without sign-in
 //   public/site-images/brand/fivvi-logo.svg, fivvi-logo-dark.svg    the wordmarks as drawn, for the header and footer
 //   public/site-images/brand/fivvi-day-dial.svg, fivvi-day-dial-dark.svg    the plain day dial B2 as drawn (light is
 //                                            favicon.svg's mark), the sign-in mark of the trainer web below 768 px (#626)
 //   ../android/app/src/main/res/drawable-nodpi/fivvi_pro_dial_{light,dark}.png    512 px, the day dial B2 with PRO
 //                                            (day-dial/b2-pro), the sign-in mark of Fivvi Pro on Android (E020, #632); Android has no SVG
+//   ../android/client/src/main/res/drawable-nodpi/fivvi_dial_{light,dark}.png    512 px, the plain day dial B2
+//                                            (day-dial/b2), the sign-in mark of the client app Fivvi on Android (E020, #634)
 //
 // No dependency: next/og (satori and resvg, which already draw the share images) rasterises the SVG,
 // and the ICO is a header around the PNGs. The same input gives the same bytes.
@@ -70,18 +76,27 @@ export async function brandFiles(): Promise<Record<string, Buffer>> {
     throw new Error('favicon.svg no longer has the rounded clip this script removes for iOS');
   }
   const square = faviconText.replace(ROUNDED_CLIP, SQUARE_CLIP);
-  const [png32, png48, png192, apple] = await Promise.all([
+  const [png32, png48, png192, png512, apple, maskable] = await Promise.all([
     rasterise(favicon, 32),
     rasterise(favicon, 48),
     rasterise(favicon, 192),
+    rasterise(favicon, 512),
     rasterise(square, 180),
+    rasterise(square, 512),
   ]);
   const [proLight, proDark] = await Promise.all(
     ['light', 'dark'].map(async (mode) =>
       rasterise(await brand(`day-dial/b2-pro/fivvi-day-dial-b2-pro-${mode}.svg`), 512),
     ),
   );
+  const [plainLight, plainDark] = await Promise.all(
+    ['light', 'dark'].map(async (mode) =>
+      rasterise(await brand(`day-dial/b2/fivvi-day-dial-b2-${mode}.svg`), 512),
+    ),
+  );
   return {
+    '../android/client/src/main/res/drawable-nodpi/fivvi_dial_light.png': plainLight as Buffer,
+    '../android/client/src/main/res/drawable-nodpi/fivvi_dial_dark.png': plainDark as Buffer,
     '../android/app/src/main/res/drawable-nodpi/fivvi_pro_dial_light.png': proLight as Buffer,
     '../android/app/src/main/res/drawable-nodpi/fivvi_pro_dial_dark.png': proDark as Buffer,
     'app/icon.svg': favicon,
@@ -91,6 +106,8 @@ export async function brandFiles(): Promise<Record<string, Buffer>> {
     ]),
     'app/icon.png': png192,
     'app/apple-icon.png': apple,
+    'public/site-images/brand/app-icon-512.png': png512,
+    'public/site-images/brand/app-icon-maskable-512.png': maskable,
     'public/site-images/brand/fivvi-logo.svg': await brand('fivvi-logo.svg'),
     'public/site-images/brand/fivvi-logo-dark.svg': await brand('fivvi-logo-dark.svg'),
     'public/site-images/brand/fivvi-day-dial.svg': await brand(

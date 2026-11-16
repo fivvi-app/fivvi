@@ -15,7 +15,10 @@ struct SignInScreen {
     var email: XCUIElement { app.textFields["signIn.email"] }
     var sendCode: XCUIElement { app.buttons["signIn.send"] }
     var checkEmail: XCUIElement { app.staticTexts["signIn.checkEmail"] }
-    var code: XCUIElement { app.textFields["signIn.code"] }
+    /// The identifier of the code field; `type` compares against it without resolving the element, which is not on
+    /// screen at the email step.
+    static let codeIdentifier = "signIn.code"
+    var code: XCUIElement { app.textFields[Self.codeIdentifier] }
     var submit: XCUIElement { app.buttons["signIn.submit"] }
     var error: XCUIElement { app.staticTexts["signIn.error"] }
     var retry: XCUIElement { app.buttons["signIn.retry"] }
@@ -23,11 +26,12 @@ struct SignInScreen {
     var resent: XCUIElement { app.staticTexts["signIn.resent"] }
     var changeEmail: XCUIElement { app.buttons["signIn.changeEmail"] }
     var loading: XCUIElement { app.activityIndicators["signIn.loading"] }
-    /// On the signed-in home: the account line, and the hello greeting the home keeps.
+    /// On the signed-in home: the account line.
     var signedInAs: XCUIElement { app.staticTexts["home.signedInAs"] }
     /// The block holding the account line and Sign out.
     var account: XCUIElement { app.otherElements["home.account"] }
-    var greeting: XCUIElement { app.staticTexts["hello.greeting"] }
+    /// The first row under the title, *Profiel*: it shows once the account has answered.
+    var profileRow: XCUIElement { app.buttons["home.openProfile"] }
     var homeRetry: XCUIElement { app.buttons["home.retry"] }
     var signOut: XCUIElement { app.buttons["home.signOut"] }
 
@@ -49,10 +53,16 @@ struct SignInScreen {
         ))
     }
 
-    /// Types `text` into `field` once a tap has given it keyboard focus.
+    /// Types `text` into `field` once a tap has given it keyboard focus, and checks that all of it arrived
+    /// (`XCUIElement.enter`). The code field acts on its last digit, so what it holds afterwards says nothing: it
+    /// gets the typing alone.
     func type(_ text: String, into field: XCUIElement) {
-        field.focus()
-        field.typeText(text)
+        if field.identifier == Self.codeIdentifier {
+            field.focus()
+            field.typeText(text)
+        } else {
+            field.enter(text)
+        }
     }
 
     /// Gets from TM-01 to the code step: types the address and asks for the code.

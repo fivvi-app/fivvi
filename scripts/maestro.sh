@@ -21,7 +21,7 @@
 # and, while it runs, every MAESTRO_CLEAR_EVERY seconds (default 20, shorter than one flow) by a background loop that stops
 # when the run ends, also on failure or Ctrl-C. Maestro reads e2e/maestro/config.yaml to pick the flows.
 #
-# Before the first flow, the web server has answered GET /api/v1/hello, the app's first request, in both locales.
+# Before the first flow, the web server has answered GET /api/v1/hello, a request that warms it up, in both locales.
 # When it ends, also on failure or Ctrl-C, it stops the emulator or simulator it booted and its Gradle daemons;
 # KEEP_DEVICE=1 leaves them running for the next run. On an emulator it didn't boot, it restores the language and the
 # error dialog setting, also when it had to relaunch that emulator (#584) and stops the relaunched one.
@@ -47,6 +47,9 @@ usage() { usage_of "$0"; }
 LOCALES="nl-NL en"
 PORT="${E2E_PORT:-$(e2e_port "$ROOT")}"
 REPORTS="$ROOT/e2e/maestro/build"
+# What `maestro test` runs: the folder, whose config.yaml picks every flow, or (Android, a flow on quarantine/maestro.txt,
+# E002 #1363) the flow files: all but the listed ones, or only them with FIVVI_QUARANTINE=only.
+FLOW_TARGETS=("$ROOT/e2e/maestro")
 SERVER_PID=""
 LETTERMINT_PID=""
 LETTERMINT_PORT=$((PORT + 2000))
@@ -74,7 +77,7 @@ EMULATOR_RECOVERED=false
 DEVICE_RECOVER=""
 export MAESTRO_CLI_NO_ANALYTICS=1 MAESTRO_CLI_ANALYSIS_NOTIFICATION_DISABLED=true
 
-# The catalog text of a dotted key, e.g. `catalog en hello.title`: what the screen should show. Fails, with the key and
+# The catalog text of a dotted key, e.g. `catalog en signOut.label`: what the screen should show. Fails, with the key and
 # the locale on stderr, when the key is missing or is not a text (a renamed leaf would otherwise print "undefined").
 catalog() {
   # shellcheck disable=SC2016 # the `${key}` is a JavaScript template literal, not shell
@@ -105,7 +108,6 @@ set_flow_env() {
   [ "$1" != "nl-NL" ] || other="en"
   FLOW_ENV=()
   add_catalog_env SIGN_IN_SEND_CODE "$1" signIn.sendCode || return 1
-  add_catalog_env HELLO_TITLE "$1" hello.title || return 1
   add_catalog_env HOME_SET_UP_ON_WEB "$1" home.setUpOnWeb || return 1
   add_catalog_env ROLE_OWNER "$1" roles.owner || return 1
   add_catalog_env ROLE_TRAINER "$1" roles.trainer || return 1
@@ -176,8 +178,9 @@ clear_rate_limits() {
   pnpm db:reset-rate-limits >/dev/null || die "clearing the sign-in rate limits failed"
 }
 
-# The app's first screen asks GET /api/v1/hello?locale=<its language>. Ask it once per locale before the first flow,
-# so no flow waits on the server's first request, and stop here, not 20 s into a flow, when it doesn't answer (#89).
+# The server's first request is slow (the route, the database connection). Ask GET /api/v1/hello?locale=<language> once per
+# locale before the first flow, so no flow's 20 s wait is spent on it, and stop here, not 20 s into a flow, when it
+# doesn't answer (#89). The apps no longer call this route (the Hello screen went, E020 #652); it warms the same server.
 warm_up_hello() {
   local locale url
   for locale in $LOCALES; do
@@ -436,7 +439,7 @@ run_locale() {
   # Both die: this runs as `run_locale … || failed=…`, where set -e is off, and a run without its texts is worthless.
   set_flow_env "$locale" || die "the i18n catalog lacks a text the $locale flows need (packages/i18n)"
   start_clearing
-  "$@" test "$ROOT/e2e/maestro" "${FLOW_ENV[@]}" \
+  "$@" test "${FLOW_TARGETS[@]}" "${FLOW_ENV[@]}" \
     --format junit --output "$REPORTS/$report.xml" --test-output-dir "$REPORTS/$report" || status=$?
   if [ "$status" -ne 0 ] && [ "$status" -ne 130 ] && [ -f "$REPORTS/$report.xml" ] \
     && flows="$(adb_dropped_flows "$REPORTS/$report.xml" "$REPORTS/$report")"; then
@@ -476,6 +479,26 @@ cleanup() {
   stop_android
 }
 
+# Sets FLOW_TARGETS from quarantine/maestro.txt; fails (so the run ends, successfully) when there is no flow to run. A list
+# that names a flow that doesn't exist fails the run with FIVVI_QUARANTINE=only (the Quarantine job runs what the list says).
+select_flows() {
+  local count flows flow
+  count="$(node "$ROOT/scripts/quarantine-android.mjs" count maestro)" || die "the quarantine list could not be read"
+  if [ "$count" = 0 ]; then
+    [ "${FIVVI_QUARANTINE:-}" != only ] || { echo "maestro.sh: quarantine/maestro.txt lists no flow: nothing to run"; return 1; }
+    return 0
+  fi
+  flows="$(node "$ROOT/scripts/quarantine-android.mjs" flows)" || die "quarantine/maestro.txt lists a flow that does not exist"
+  [ -n "$flows" ] || { echo "maestro.sh: every flow is on quarantine/maestro.txt: nothing to run"; return 1; }
+  FLOW_TARGETS=()
+  while IFS= read -r flow; do FLOW_TARGETS+=("$ROOT/$flow"); done <<<"$flows"
+  if [ "${FIVVI_QUARANTINE:-}" = only ]; then
+    echo "maestro.sh: quarantine: only the ${#FLOW_TARGETS[@]} listed flow(s)"
+  else
+    echo "maestro.sh: quarantine: ${#FLOW_TARGETS[@]} flow(s), without the $count listed"
+  fi
+}
+
 # The APK installed by --apk, installed again on an emulator relaunched after a language switch (empty: built by Gradle).
 APK=""
 
@@ -489,6 +512,7 @@ cmd_android() {
   android_env
   command -v maestro >/dev/null || die "Maestro not found — run scripts/bootstrap.sh --mobile"
   cd "$ROOT"
+  select_flows || return 0
   on_exit cleanup
   start_stack
   start_emulator

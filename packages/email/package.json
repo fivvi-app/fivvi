@@ -19,6 +19,7 @@
     "format:check": "biome format ."
   },
   "dependencies": {
+    "@fivvi/design-tokens": "workspace:*",
     "@fivvi/i18n": "workspace:*",
     "react": "catalog:",
     "react-dom": "catalog:",
