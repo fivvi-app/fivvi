@@ -2640,7 +2640,9 @@ esac`,
         const fake = checkout();
         assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
         const list = join(fake.repo, '..', 'ids.json');
-        writeFileSync(list, JSON.stringify(ids(...CLASSES)));
+        // The enumeration also lists a base class whose tests its subclasses inherit: no test of its own, and a result bundle
+        // does not count it (two of the 192 tests of a real part, 17 November).
+        writeFileSync(list, JSON.stringify([...ids(...CLASSES), 'FivviProTests/BaseTestCase']));
         return { fake, list };
       };
       // The canned summary of the bundle of a part: it ran `total` tests and none failed.
@@ -3192,6 +3194,27 @@ esac`,
           assert.doesNotMatch(run.output, /::warning::flaky|passed only on|✓ iOS tests/);
         });
       }
+
+      it('does not count a base class the enumeration lists (#1447): it is no test, and the run ran all of its tests', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'nl', {
+          first: { failed: [[A]], passed: [B] },
+          retry: { passed: [A] },
+        });
+        const list = join(fake.repo, '..', 'with-base-class.json');
+        writeFileSync(
+          list,
+          JSON.stringify([`${UI}/${A}()`, `${UI}/${B}()`, 'FivviProTests/BaseTestCase']),
+        );
+
+        const run = await retryTest(fake, ['--retry-failed'], {
+          FAKE_XCRESULT_DIR: dir,
+          FAKE_ENUMERATION_IDS: list,
+        });
+
+        assert.equal(run.status, 0, run.output);
+        assert.equal(testRuns(fake).length, 2, 'the run and its retry');
+      });
 
       it('counts the tests the run was given: -skip-testing of the UI tests is in the enumeration too', async () => {
         const fake = await built();

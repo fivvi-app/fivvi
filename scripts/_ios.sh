@@ -225,12 +225,15 @@ slowest_classes() {
 # goes to exactly one part, so that the parts together run every test once. A UI test costs about ten times a unit test
 # (6 s to start the app, then taps and waits against about 0.01 s), so a class weighs its tests, ten each in the
 # FivviProUITests target and one in any other. Heaviest class first (name as the tie-break) onto the part that has the
-# least so far (the lowest part as the tie-break): the same answer for every part, from the same enumeration. Prints
+# least so far (the lowest part as the tie-break): the same answer for every part, from the same enumeration. Only an
+# identifier of the form `<target>/<class>/<method>` is a test: the enumeration also lists a base class that other
+# classes inherit its tests from (`FivviProTests/ClientFormTestCase`), which runs no test of its own and which a result
+# bundle doesn't count (2 of the 192 of a part on 17 November, found by running one). Prints
 # one JSON object, `{"classes": ["<target>/<class>", ...], "tests": <how many tests those classes have>}`; nothing
 # when the enumeration can't be read, has no test or the part is not one of the $3.
 shard_plan() { # <enumeration file> <part> <of>
   jq -c --argjson part "$2" --argjson of "$3" '
-    [.values[]?.enabledTests[]?.identifier | strings | select(contains("/"))] as $ids
+    [.values[]?.enabledTests[]?.identifier | strings | select(split("/") | length >= 3)] as $ids
     | select(($ids | length) > 0 and $part >= 1 and $part <= $of)
     | ($ids | group_by(split("/")[:2] | join("/"))
         | map({class: (.[0] | split("/")[:2] | join("/")), tests: length,

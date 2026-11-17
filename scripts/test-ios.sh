@@ -530,7 +530,7 @@ enumerated_test_count() { # <simulator> <locale>
   # The enumeration writes a result bundle of its own, which is never read: it is not the run's.
   if run_xcodebuild "$1" "$bundle" "$ENUMERATE_DEADLINE" "$2 test enumeration" "${CONFIG_ARGS[@]}" \
     -enumerate-tests -test-enumeration-style flat -test-enumeration-format json -test-enumeration-output-path "$out" >&2; then
-    count="$(jq -r '[.values[]?.enabledTests[]?] | length' "$out" 2>/dev/null || true)"
+    count="$(jq -r '[.values[]?.enabledTests[]? | select(.identifier | strings | split("/") | length >= 3)] | length' "$out" 2>/dev/null || true)"
   fi
   rm -rf "$out" "$bundle"
   [[ "$count" =~ ^[0-9]+$ ]] && [ "$count" -gt 0 ] && echo "$count"
