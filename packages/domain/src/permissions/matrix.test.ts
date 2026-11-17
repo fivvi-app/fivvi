@@ -19,7 +19,7 @@ const TRAINER_CAPABILITIES: readonly Capability[] = [
   'booking_link.copy',
 ];
 
-describe('F004 permission matrix', () => {
+describe('@permission F004 permission matrix', () => {
   it('AC1: Owner has every capability, Trainer only trainers.view, clients.view, clients.manage, location.read, session.private.manage.own, class.read, join_link.view and booking_link.copy', () => {
     expect(ROLES).toEqual(['owner', 'trainer']);
     expect(CAPABILITIES).toEqual([
@@ -40,6 +40,7 @@ describe('F004 permission matrix', () => {
       'join_link.renew',
       'booking_link.manage',
       'booking_link.copy',
+      'access_log.read',
     ]);
     expect(capabilitiesOf('owner')).toEqual(CAPABILITIES);
     expect(capabilitiesOf('trainer')).toEqual(TRAINER_CAPABILITIES);
@@ -75,6 +76,8 @@ describe('F004 permission matrix', () => {
     // copies (get-or-create) the link of a class date.
     expect(rolesWith('booking_link.manage')).toEqual(['owner']);
     expect(rolesWith('booking_link.copy')).toEqual(['owner', 'trainer']);
+    // E014: only the Owner reads the access log (AC6; retention-policy.md §3.4).
+    expect(rolesWith('access_log.read')).toEqual(['owner']);
   });
 
   it('AC9: has no admin role', () => {

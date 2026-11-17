@@ -2,7 +2,7 @@ import FivviStrings
 
 /// The i18n keys Fivvi Pro uses directly, besides the shared ones of FivviStrings (packages/i18n/{nl-NL,en}.json).
 extension StringKey {
-    static let helloError = StringKey("hello.error")
+    static let appName = StringKey("app.name")
     static let homeSignedInAs = StringKey("home.signedInAs")
     static let noAccessTitle = StringKey("noAccess.title")
     static let noAccessBody = StringKey("noAccess.body")

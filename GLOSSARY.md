@@ -48,7 +48,7 @@ Runs sessions and classes, logs workouts, writes notes and marks attendance. One
 _Avoid_: coach, instructor, teacher, PT (as a role name)
 
 **Workspace's word**:
-What a workspace calls its trainers in every screen, email and on the QR poster: trainer, instructor, teacher or coach (the Dutch words go in `packages/i18n/GLOSSARY.md` with F068's first ticket). One choice per workspace, from this fixed list. A person who works at two workspaces sees each one's own word. It changes the wording only, never the Trainer role or its rights.
+What a workspace calls its trainers in every screen, email and on the QR poster: trainer, instructor, teacher or coach (in Dutch trainer, instructeur, docent or coach, worded in `packages/i18n/GLOSSARY.md`). Every screen of a workspace uses it, never *trainer* literally; screens with no workspace, the public website and Fivvi’s own team emails don’t. The reader's language decides which word it is. One choice per workspace, from this fixed list. A person who works at two workspaces sees each one's own word. It changes the wording only, never the Trainer role or its rights.
 _Avoid_: job title, trainer name
 
 **Independent trainer**:
@@ -358,10 +358,14 @@ A multi-week plan of workouts.
 One movement, e.g. Bench Press.
 
 **Exercise library**:
-The shared list of exercises, with Dutch and English names, target muscles, equipment and aliases.
+The shared list of exercises, the same for every workspace and read-only, with Dutch and English names, an exercise type, target muscles and aliases. Equipment comes later: the first library has no equipment field.
 
 **Custom exercise**:
 An exercise a trainer created. Stored as entered and never translated.
+
+**Retired exercise**:
+An exercise of the library that is no longer offered. It is not listed or found by search, but it stays in templates and past workouts, and looking it up by its key still returns it. Fivvi retires an exercise instead of deleting it.
+_Avoid_: deleted exercise, archived exercise
 
 **Set**:
 One round of reps of an exercise, with weight (kg) and difficulty.

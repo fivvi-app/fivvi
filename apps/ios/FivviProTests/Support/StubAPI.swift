@@ -4,16 +4,11 @@ import FivviAPI
 
 /// A stub of the generated client's `APIProtocol`, the view models' test seam (#34). It records what it was asked.
 actor StubAPI: APIProtocol {
-    enum Answer: Sendable {
-        case greeting(key: String)
-        case status(Int)
-        case offline
-    }
-
     /// What `requestSignIn` answers.
     enum SignInAnswer: Sendable {
         case accepted
         case badRequest
+        case rateLimited
         case status(Int)
         case offline
     }
@@ -86,7 +81,6 @@ actor StubAPI: APIProtocol {
         case hang
     }
 
-    private var answer: Answer
     private var signOutAnswer = SignOutAnswer.noContent
     private var signInAnswer = SignInAnswer.accepted
     private var exchangeAnswer = ExchangeAnswer.unauthorized
@@ -97,7 +91,6 @@ actor StubAPI: APIProtocol {
     let clients = StubClients()
     private var goneWorkspaces: Set<String> = []
     private var workspaceStatus: Int?
-    private(set) var requestedLocales: [Components.Schemas.Locale?] = []
     /// The bodies of every `requestSignIn`, `exchangeSignInCode` and the number of `getMe` calls so far.
     private(set) var signInRequests: [Components.Schemas.SignInRequest] = []
     private(set) var exchanges: [Components.Schemas.SignInTokenRequest] = []
@@ -122,10 +115,6 @@ actor StubAPI: APIProtocol {
 
     /// How many `signOut` calls are waiting for `releaseHangingSignOuts()`.
     var hangingSignOuts: Int { hanging.count }
-
-    init(_ answer: Answer = .offline) {
-        self.answer = answer
-    }
 
     func answerSignIn(with answer: SignInAnswer) {
         signInAnswer = answer
@@ -184,22 +173,6 @@ actor StubAPI: APIProtocol {
         meAnswer = answer
     }
 
-    func answer(with answer: Answer) {
-        self.answer = answer
-    }
-
-    func getHello(_ input: Operations.GetHello.Input) async throws -> Operations.GetHello.Output {
-        requestedLocales.append(input.query.locale)
-        switch answer {
-        case let .greeting(key):
-            return .ok(.init(body: .json(.init(greetingKey: key, locale: input.query.locale ?? .en))))
-        case let .status(code):
-            return .undocumented(statusCode: code, .init())
-        case .offline:
-            throw URLError(.notConnectedToInternet)
-        }
-    }
-
     func getMe(_ input: Operations.GetMe.Input) async throws -> Operations.GetMe.Output {
         meCalls += 1
         let asked = meAnswer
@@ -240,6 +213,8 @@ actor StubAPI: APIProtocol {
             return .accepted(.init())
         case .badRequest:
             return .badRequest(.init(body: .json(.init(code: .validationFailed, issues: []))))
+        case .rateLimited:
+            return .tooManyRequests(.init(body: .json(.init(code: .rateLimited))))
         case let .status(code):
             return .undocumented(statusCode: code, .init())
         case .offline:
@@ -322,7 +297,8 @@ extension StubAPI {
         }
         return .ok(.init(body: .json(.init(
             id: input.path.workspaceId, name: "Workspace", slug: "workspace",
-            defaultLocale: clients.workspaceDefaultLocale, timeZone: clients.workspaceTimeZone
+            defaultLocale: clients.workspaceDefaultLocale, timeZone: clients.workspaceTimeZone,
+            trainerWord: .trainer
         ))))
     }
 
@@ -334,7 +310,7 @@ extension StubAPI {
         case let .workspaces(memberships):
             return .ok(.init(body: .json(memberships.map {
                 .init(
-                    workspaceId: $0.workspaceID, name: $0.name, slug: $0.slug, role: $0.role,
+                    workspaceId: $0.workspaceID, name: $0.name, slug: $0.slug, trainerWord: .trainer, role: $0.role,
                     capabilities: $0.capabilities ?? Self.capabilities(of: $0.role),
                     trainsHere: $0.trainsHere ?? ($0.role == .trainer)
                 )

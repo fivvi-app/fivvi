@@ -12,6 +12,10 @@ export const OWNER: Capabilities = [
   'clients.manage',
   'location.read',
   'settings.manage',
+  'session.private.manage.own',
+  'session.private.manage.any',
+  'join_link.view',
+  'join_link.renew',
 ];
 
 export const TRAINER: Capabilities = [
@@ -19,4 +23,6 @@ export const TRAINER: Capabilities = [
   'clients.view',
   'clients.manage',
   'location.read',
+  'session.private.manage.own',
+  'join_link.view',
 ];

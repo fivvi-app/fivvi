@@ -163,6 +163,7 @@ describe('GET /v1/me', () => {
           id: gym?.id,
           name: "John's Gym",
           slug: 'johns-gym',
+          trainerWord: 'trainer',
           role: 'owner',
           capabilities: capabilitiesOf('owner'),
         },
@@ -217,6 +218,7 @@ describe('GET /v1/me', () => {
         id: workspace.id,
         name: workspace.marker,
         slug: workspace.marker,
+        trainerWord: 'trainer',
         role: 'trainer',
         capabilities: capabilitiesOf('trainer'),
       },
@@ -262,7 +264,12 @@ describe('GET /v1/me', () => {
       type: 'array',
       items: { $ref: '#/components/schemas/MeClientWorkspace' },
     });
-    expect(Object.keys(MeClientWorkspace.properties).toSorted()).toEqual(['id', 'name', 'slug']);
+    expect(Object.keys(MeClientWorkspace.properties).toSorted()).toEqual([
+      'id',
+      'name',
+      'slug',
+      'trainerWord',
+    ]);
   });
 
   it('F030 AC11: a client of one workspace sees it under clientWorkspaces and no team workspace', async () => {
@@ -276,7 +283,9 @@ describe('GET /v1/me', () => {
     const me = await meOf(cookie);
 
     expect(me.workspaces).toEqual([]);
-    expect(me.clientWorkspaces).toEqual([{ id: gym.id, slug: gym.marker, name: gym.marker }]);
+    expect(me.clientWorkspaces).toEqual([
+      { id: gym.id, slug: gym.marker, name: gym.marker, trainerWord: 'trainer' },
+    ]);
     expect(JSON.stringify(me)).not.toContain(other.id);
   });
 
@@ -293,11 +302,14 @@ describe('GET /v1/me', () => {
         id: gym.id,
         name: gym.marker,
         slug: gym.marker,
+        trainerWord: 'trainer',
         role: 'trainer',
         capabilities: capabilitiesOf('trainer'),
       },
     ]);
-    expect(me.clientWorkspaces).toEqual([{ id: gym.id, slug: gym.marker, name: gym.marker }]);
+    expect(me.clientWorkspaces).toEqual([
+      { id: gym.id, slug: gym.marker, name: gym.marker, trainerWord: 'trainer' },
+    ]);
   });
 
   it('F030 AC11: a client of two workspaces sees both, by name', async () => {
@@ -310,8 +322,8 @@ describe('GET /v1/me', () => {
     const me = await meOf(cookie);
 
     expect(me.clientWorkspaces).toEqual([
-      { id: alpha.id, slug: alpha.marker, name: alpha.marker },
-      { id: zeta.id, slug: zeta.marker, name: zeta.marker },
+      { id: alpha.id, slug: alpha.marker, name: alpha.marker, trainerWord: 'trainer' },
+      { id: zeta.id, slug: zeta.marker, name: zeta.marker, trainerWord: 'trainer' },
     ]);
   });
 
@@ -323,7 +335,7 @@ describe('GET /v1/me', () => {
     expect(me).toMatchObject({ workspaces: [], clientWorkspaces: [] });
   });
 
-  it('F030 AC10: Mark gets the 404 of an unknown workspace on a workspace route, and anonymous gets 401', async () => {
+  it('@isolation @permission F030 AC10: Mark gets the 404 of an unknown workspace on a workspace route, and anonymous gets 401', async () => {
     const { cookie } = await accountSignedIn('mark-isolated@example.com', 'Mark');
     const gym = await createWorkspace(client.db, { label: 'johns-gym-hidden' });
     const unknown = '0197c0de-0000-7000-8000-00000000dead';
@@ -459,7 +471,7 @@ describe('GET /v1/me', () => {
       expect(await storedLocale(other.id)).toBeNull();
     });
 
-    it('AC1: nobody signed in gets 401 and nothing is stored', async () => {
+    it('@permission AC1: nobody signed in gets 401 and nothing is stored', async () => {
       const res = await patch(undefined, { preferredLocale: 'en' });
 
       expect(res.status).toBe(401);

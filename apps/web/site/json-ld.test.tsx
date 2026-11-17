@@ -119,18 +119,25 @@ describe.each(locales)('F064 AC14 JSON-LD in %s', (locale) => {
   });
 });
 
-describe('F064 AC7, AC14 the Organization of the site as it is published (#648)', () => {
-  it('carries the details the owner gave, and the registered name K&S Apps from site/business.ts (owner, 9 November 2026)', () => {
-    const { Organization } = nodes('home', 'en');
+describe('F064 AC7, AC14 the Organization of the site as it is published (#648, #1344)', () => {
+  it.each(['nl-NL', 'en'] as const)(
+    'has the name, the registered name K&S Apps, the address of the site and the support mailbox in %s, and no address, telephone, KvK or VAT number',
+    (locale) => {
+      const { Organization } = nodes('home', locale);
 
-    expect(Organization).toMatchObject({
-      identifier: { '@type': 'PropertyValue', propertyID: 'KvK', value: '92372996' },
-      vatID: 'NL866022788B01',
-      address: 'Haringbuisdijk 43, 1086 VA Amsterdam',
-      telephone: '+31 6 85145755',
-    });
-    expect(Organization).toMatchObject({ legalName: 'K&S Apps' });
-  });
+      expect(Organization).toEqual({
+        '@type': 'Organization',
+        '@id': 'https://fivvi.app/#organization',
+        name: 'Fivvi',
+        url: 'https://fivvi.app/',
+        legalName: 'K&S Apps',
+        email: 'support@fivvi.app',
+      });
+      for (const property of ['address', 'telephone', 'identifier', 'vatID']) {
+        expect(Organization).not.toHaveProperty(property);
+      }
+    },
+  );
 });
 
 describe('F064 AC14 the Organization shows only what is filled in', () => {
@@ -146,36 +153,15 @@ describe('F064 AC14 the Organization shows only what is filled in', () => {
     });
   });
 
-  it('adds the KvK number, VAT number, address and phone number that are filled in', () => {
-    const { Organization } = nodes('home', 'en', {
-      tradeName: 'Example BV',
-      kvk: '12345678',
-      vat: 'NL000000000B01',
-      address: 'Voorbeeldstraat 1, 1234 AB Voorbeeldstad',
-      phone: '+31 6 00000000',
-    });
+  it('leaves out a legal name that is blank or still an open {{…}} value', () => {
+    for (const legalName of ['  ', '{{naam}}', undefined]) {
+      const { Organization } = nodes('home', 'nl-NL', { tradeName: 'Example BV', legalName });
 
-    expect(Organization).toMatchObject({
-      vatID: 'NL000000000B01',
-      identifier: { '@type': 'PropertyValue', propertyID: 'KvK', value: '12345678' },
-      address: 'Voorbeeldstraat 1, 1234 AB Voorbeeldstad',
-      telephone: '+31 6 00000000',
-    });
-  });
-
-  it('leaves out a detail that is blank or still an open {{…}} value', () => {
-    const { Organization } = nodes('home', 'nl-NL', {
-      tradeName: '{{trade name}}',
-      kvk: '  ',
-      vat: '{{VAT}}',
-      address: undefined,
-      phone: '',
-    });
-
-    expect(Object.keys(Organization ?? {}).sort()).toEqual(
-      ['@id', '@type', 'email', 'name', 'url'].sort(),
-    );
-    expect(JSON.stringify(Organization)).not.toContain('{{');
+      expect(Object.keys(Organization ?? {}).sort()).toEqual(
+        ['@id', '@type', 'email', 'name', 'url'].sort(),
+      );
+      expect(JSON.stringify(Organization)).not.toContain('{{');
+    }
   });
 
   it('adds the legal name only from the business details, and only when filled in (#612)', () => {
@@ -209,14 +195,14 @@ describe('F064 AC14 the script element', () => {
     expect(JSON.parse(match?.[1] ?? '')).toEqual(pageJsonLd('pricing', 'en'));
   });
 
-  it('cannot end the script early: < is escaped, so a detail with </script> stays data', () => {
+  it('cannot end the script early: < is escaped, so a legal name with </script> stays data', () => {
     const markup = renderToStaticMarkup(
       <JsonLd
         page="home"
         locale="nl-NL"
         details={{
           tradeName: 'Example',
-          address: 'A </script><script>alert(1)</script> B',
+          legalName: 'A </script><script>alert(1)</script> B',
         }}
       />,
     );
@@ -224,6 +210,6 @@ describe('F064 AC14 the script element', () => {
     expect(markup.match(/<script/g)).toHaveLength(1);
     expect(markup.match(/<\/script>/g)).toHaveLength(1);
     const json = /^<script[^>]*>(.*)<\/script>$/s.exec(markup)?.[1] ?? '';
-    expect(JSON.parse(json)['@graph'][0].address).toBe('A </script><script>alert(1)</script> B');
+    expect(JSON.parse(json)['@graph'][0].legalName).toBe('A </script><script>alert(1)</script> B');
   });
 });

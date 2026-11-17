@@ -27,6 +27,7 @@ export const CAPABILITIES = [
   'join_link.renew',
   'booking_link.manage',
   'booking_link.copy',
+  'access_log.read',
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 

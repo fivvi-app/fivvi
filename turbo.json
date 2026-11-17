@@ -14,19 +14,34 @@
       "outputs": [".next/**", "!.next/cache/**", "dist/**"]
     },
     "typecheck": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/scripts/quarantine.mjs",
+        "$TURBO_ROOT$/scripts/quarantine.d.mts"
+      ]
     },
     "lint": {
       "dependsOn": ["^build", "//#lint:root"]
     },
     "test": {
-      "dependsOn": ["^build", "//#test:root"]
+      "dependsOn": ["^build", "//#test:root"],
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/packages/testing/src/vitest.ts",
+        "$TURBO_ROOT$/scripts/quarantine.mjs",
+        "$TURBO_ROOT$/quarantine/vitest.txt"
+      ],
+      "env": ["FIVVI_QUARANTINE"]
     },
     "test:integration": {
       "dependsOn": ["^build"],
+      "env": ["FIVVI_QUARANTINE"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/packages/testing/src/**",
+        "$TURBO_ROOT$/scripts/quarantine.mjs",
+        "$TURBO_ROOT$/quarantine/vitest.txt",
         "$TURBO_ROOT$/packages/database/migrations/**",
         "$TURBO_ROOT$/packages/database/src/seed.ts",
         "$TURBO_ROOT$/packages/database/src/scripts/**",
@@ -36,9 +51,12 @@
     },
     "test:e2e": {
       "dependsOn": ["build"],
+      "env": ["FIVVI_QUARANTINE"],
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/packages/testing/src/**",
+        "$TURBO_ROOT$/scripts/quarantine.mjs",
+        "$TURBO_ROOT$/quarantine/playwright.txt",
         "$TURBO_ROOT$/packages/database/migrations/**",
         "$TURBO_ROOT$/packages/database/src/seed.ts",
         "$TURBO_ROOT$/packages/database/src/scripts/**",
@@ -53,7 +71,7 @@
       ]
     },
     "check": {
-      "dependsOn": ["^build", "//#check:root"]
+      "dependsOn": ["^build", "//#check:root", "//#check:quarantine"]
     },
     "format:check": {
       "dependsOn": ["//#format:check:root"]
@@ -70,6 +88,7 @@
         ".codex/**",
         "scripts/**",
         ".githooks/**",
+        "quarantine/*.txt",
         "Dockerfile",
         "apps/*/package.json",
         "packages/*/package.json",
@@ -78,10 +97,21 @@
         ".github/rulesets/**",
         ".github/repo-settings.json",
         ".github/workflows/ci.yml",
-        "e2e/maestro/*.yaml",
-        "e2e/maestro/*.yml",
+        "e2e/maestro/**/*.yaml",
+        "e2e/maestro/**/*.yml",
+        "e2e/maestro/**/*.js",
+        "apps/ios/**/*.swift",
+        "apps/ios/**/*.xcconfig",
+        "apps/ios/**/*.plist",
+        "apps/ios/**/*.xctestplan",
+        "apps/ios/**/*.yml",
+        "apps/ios/.swiftlint.yml",
+        "apps/ios/.gitignore",
+        "apps/ios/Config/*.entitlements",
         "apps/ios/**/project.pbxproj",
+        "apps/ios/FivviPro.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/Package.resolved",
         "apps/ios/FivviPro/Assets.xcassets/**",
+        "apps/ios/Fivvi/Assets.xcassets/**",
         "apps/ios/README.md",
         "apps/android/README.md",
         "apps/android/app/src/main/res/**",
@@ -112,6 +142,10 @@
         "scripts/agents.sh",
         "scripts/_lib.sh"
       ]
+    },
+    "//#check:quarantine": {
+      "cache": false,
+      "inputs": ["quarantine/**", "scripts/quarantine.mjs"]
     },
     "dev": {
       "cache": false,

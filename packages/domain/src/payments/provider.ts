@@ -147,6 +147,8 @@ export interface PaymentProvider {
   listCustomerPayments(access: ProviderAccess, customerId: string): Promise<ProviderPayment[]>;
   createRefund(access: ProviderAccess, request: ProviderRefundRequest): Promise<ProviderRefund>;
   getRefund(access: ProviderAccess, paymentId: string, refundId: string): Promise<ProviderRefund>;
+  /** Every refund of the payment, with its metadata (the lookup before a retry, ADR-020). */
+  listRefunds(access: ProviderAccess, paymentId: string): Promise<ProviderRefund[]>;
   listSettlements(access: ProviderAccess): Promise<ProviderSettlement[]>;
   listSettlementLines(
     access: ProviderAccess,

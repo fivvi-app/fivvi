@@ -1,5 +1,6 @@
 import { pruneJobRuns } from './job-runs-retention.ts';
 import { checkLettermintUsage } from './lettermint-usage.ts';
+import { createRetentionTasks } from './retention.ts';
 import type { CronTask } from './task.ts';
 
 /**
@@ -28,5 +29,8 @@ export function createRegistry(env: NodeJS.ProcessEnv): CronTask[] {
       kind: 'daily',
       run: ({ db, now }) => pruneJobRuns(db, now),
     },
+    // Retention of the platform data (E014): sign-in codes, invitations, rate limits, the access
+    // log, the deletion log and expired sign-in sessions. The tables of each are the cron role's.
+    ...createRetentionTasks(),
   ];
 }

@@ -15,11 +15,13 @@ import androidx.compose.ui.test.performTextReplacement
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.Locale
 import app.fivvi.api.models.MeWorkspace
+import app.fivvi.api.models.TrainerWord
 import app.fivvi.api.models.Workspace
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
 import app.fivvi.core.me.FakeMeApi
+import app.fivvi.core.quarantine.Permission
 import app.fivvi.pro.AppRule
 import app.fivvi.pro.UI_TIMEOUT_MILLIS
 import app.fivvi.pro.hello.FakeHelloApi
@@ -162,7 +164,9 @@ class ClientsScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
     @Test
     fun test_F006_AC1_theDefaultLanguageNamesTheWorkspacesDefault() {
         workspaces.answers += {
-            Response.success(Workspace(it, "John's Gym", "johns-gym", Locale.EN, "Europe/Amsterdam"))
+            Response.success(
+                Workspace(it, "John's Gym", "johns-gym", Locale.EN, "Europe/Amsterdam", TrainerWord.TRAINER),
+            )
         }
         launch()
         openClients()
@@ -353,6 +357,7 @@ class ClientsScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
 
     // AC10, AC12: the API refuses the save (403): the edit closes, as the add form does, and Bewerken is hidden.
     @Test
+    @Permission
     fun test_F006_AC12_aSaveTheApiRefusesClosesTheEditAndHidesBewerken() {
         launch()
         openClients()
@@ -426,6 +431,7 @@ class ClientsScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
     }
 
     @Test
+    @Permission
     fun test_F006_AC10_aListTheApiRefusesShowsTheNoPermissionText() {
         launch()
         // The refusal makes the capability helper read the account again.

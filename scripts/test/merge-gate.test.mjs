@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
-import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
+import { jqOutput } from './jq.mjs';
 
 const GATE_JQ = join(import.meta.dirname, '../merge-gate.jq');
 
@@ -13,12 +13,7 @@ const MARKS = [
 ].flatMap(([name, value]) => ['--arg', name, value]);
 
 const gate = (facts) =>
-  JSON.parse(
-    execFileSync('jq', ['-c', ...MARKS, '-f', GATE_JQ], {
-      input: JSON.stringify(facts),
-      encoding: 'utf8',
-    }),
-  );
+  JSON.parse(jqOutput(['-c', ...MARKS, '-f', GATE_JQ], JSON.stringify(facts)));
 
 const HEAD = 'a'.repeat(40);
 const OLD = 'b'.repeat(40);
@@ -34,6 +29,8 @@ const status = (context, state) => ({ __typename: 'StatusContext', context, stat
 
 const reviewed = (sha = HEAD) =>
   `**Self-review:** standards and spec reviewers clean on \`${sha}\` ✅`;
+const reviewedWithFollowUps = (sha = HEAD, n = 2) =>
+  `**Self-review:** standards and spec reviewers clean on \`${sha}\` ✅ (low risk: ${n} should-fix findings left as follow-ups, ADR-033)`;
 const noPreview = (sha = HEAD) =>
   `**Railway preview smoke check:** on \`${sha}\`: no preview for this PR (it touches no Railway watch pattern).`;
 const smoked = (sha = HEAD) =>
@@ -85,6 +82,54 @@ describe('merge gate', () => {
         'not removed from the queue',
       ],
     );
+  });
+
+  // #1423 AC7, ADR-033 item 5: a low-risk PR merges with should-fix findings left as follow-ups; a high-risk one does not.
+  describe('#1423: review by risk', () => {
+    const withFollowUps = (risk, record = reviewedWithFollowUps()) =>
+      facts({
+        risk,
+        pr: { ...facts().pr, body: `Closes #57\n\n${record}\n\n${noPreview()}` },
+      });
+
+    it('AC7: merges a low-risk PR whose review left should-fix findings as follow-ups', () => {
+      const decision = gate(withFollowUps({ risk: 'low', reasons: [] }));
+      assert.equal(decision.merge, true);
+      assert.deepEqual(failed(decision), []);
+    });
+
+    it('AC7: refuses a high-risk PR with the same record, naming why', () => {
+      const decision = gate(
+        withFollowUps({
+          risk: 'high',
+          reasons: ['packages/database/migrations/0004.sql: tenant-data'],
+        }),
+      );
+      assert.equal(decision.merge, false);
+      assert.deepEqual(failed(decision), ['self-review clean']);
+      const review = decision.conditions.find((c) => c.name === 'self-review clean');
+      assert.match(review.detail, /should-fix findings.*only a low-risk PR.*high-risk/);
+    });
+
+    it('refuses an unknown risk with the same record', () => {
+      const decision = gate(withFollowUps({ risk: 'unknown', reasons: [] }));
+      assert.equal(decision.merge, false);
+      assert.ok(failed(decision).includes('self-review clean'));
+    });
+
+    it('still merges a high-risk PR whose review left nothing', () => {
+      const decision = gate(
+        facts({ risk: { risk: 'high', reasons: ['packages/database/migrations/0004.sql: x'] } }),
+      );
+      assert.equal(decision.merge, true);
+    });
+
+    it('still needs the record to name the head commit', () => {
+      const decision = gate(
+        withFollowUps({ risk: 'low', reasons: [] }, reviewedWithFollowUps(OLD)),
+      );
+      assert.deepEqual(failed(decision), ['self-review clean']);
+    });
   });
 
   it('keeps an owner-only PR for the owner, with the reasons', () => {

@@ -70,6 +70,7 @@ test.describe('F002 first run and the signed-in home', () => {
         id: expect.any(String),
         name: "John's Gym",
         slug: expect.stringMatching(/^johns-gym-\d+$/),
+        trainerWord: 'trainer',
         role: 'owner',
         capabilities: expect.arrayContaining(['workspace.manage', 'team.manage']),
       },
@@ -178,6 +179,7 @@ test.describe('F002 first run and the signed-in home', () => {
         id: expect.any(String),
         name: "John's Gym",
         slug: SEEDED_SLUG,
+        trainerWord: 'trainer',
         role: 'owner',
         capabilities: expect.arrayContaining(['workspace.manage']),
       },
@@ -223,7 +225,10 @@ test.describe('F002 first run and the signed-in home', () => {
     await expect(page).toHaveURL(/\/login$/);
   });
 
-  test('AC9: anonymous /welcome and /w/{slug} go to sign-in', async ({ page, messages: copy }) => {
+  test('@permission AC9: anonymous /welcome and /w/{slug} go to sign-in', async ({
+    page,
+    messages: copy,
+  }) => {
     await page.goto('/welcome');
     await expect(page).toHaveURL(/\/login\?returnTo=%2Fwelcome$/);
     await expect(page.getByRole('heading', { level: 1, name: copy.signIn.title })).toBeVisible();
@@ -298,6 +303,7 @@ test.describe('F002 renaming the workspace (TW-08)', () => {
         id: expect.any(String),
         name: "John's Gym Utrecht",
         slug,
+        trainerWord: 'trainer',
         role: 'owner',
         capabilities: expect.arrayContaining(['workspace.manage']),
       },
@@ -343,7 +349,7 @@ test.describe('F002 renaming the workspace (TW-08)', () => {
     await expectNoAxeViolations(page, `TW-08 after the rename in ${appLocale}`);
   });
 
-  test('AC7: a Trainer has no Settings, sees the no-permission page, and the rename answers 403', async ({
+  test('@permission AC7: a Trainer has no Settings, sees the no-permission page, and the rename answers 403', async ({
     page,
     appLocale,
     messages: copy,
@@ -354,8 +360,10 @@ test.describe('F002 renaming the workspace (TW-08)', () => {
     await page.goto('/login');
     await signInWithCode(page, copy, address);
 
-    await expect(page).toHaveURL(`/w/${slug}`);
-    await expect(page.getByRole('heading', { level: 1, name: "John's Gym" })).toBeVisible();
+    // A Trainer's home is Mijn dag (F013), in the frame of John's Gym.
+    await expect(page).toHaveURL('/me/day');
+    await expect(page.getByRole('heading', { level: 1, name: copy.myDay.title })).toBeVisible();
+    await expect(page.getByText(`John's Gym · ${copy.roles.trainer}`)).toBeVisible();
     await expect(page.getByRole('link', { name: copy.workspaceNav.settings })).toHaveCount(0);
 
     await page.goto(`/w/${slug}/settings/general`);
@@ -381,7 +389,7 @@ test.describe('F002 renaming the workspace (TW-08)', () => {
     expect(((await read.json()) as { name: string }).name).toBe("John's Gym");
   });
 
-  test('AC9: anonymous gets 401 on the workspace routes and the settings go to sign-in', async ({
+  test('@permission AC9: anonymous gets 401 on the workspace routes and the settings go to sign-in', async ({
     page,
   }) => {
     const id = '0197c0de-0000-7000-8000-0000000000a1';

@@ -47,10 +47,26 @@ const FORBIDDEN: Record<string, string> = {
   'the group classes table': "import { groupClasses } from '@fivvi/database';",
   'the sessions table': "import { sessions } from '@fivvi/database';",
   'the session participants table': "import { sessionParticipants } from '@fivvi/database';",
+  'the access log table': "import { accessLog } from '@fivvi/database';",
+  'the access log action enum': "import { accessLogAction } from '@fivvi/database';",
+  'the deletion log table': "import { deletionLog } from '@fivvi/database';",
+  'the retention deletes, which run on a raw handle as the cron role (E014)':
+    "import { deleteClosedInvitations } from '@fivvi/database';",
+  'the deletion log writer for a raw handle':
+    "import { appendDeletionLog } from '@fivvi/database';",
   'the payments table': "import { payments } from '@fivvi/database';",
   'the payment customers table': "import { paymentCustomers } from '@fivvi/database';",
   'the payment status changes table': "import { paymentStatusChanges } from '@fivvi/database';",
   'the payment status enum': "import { paymentStatus } from '@fivvi/database';",
+  'the payment refunds table': "import { paymentRefunds } from '@fivvi/database';",
+  'the payment refund status changes table':
+    "import { paymentRefundStatusChanges } from '@fivvi/database';",
+  'the payment chargebacks table': "import { paymentChargebacks } from '@fivvi/database';",
+  'the refund status enum': "import { refundStatus } from '@fivvi/database';",
+  'the offers table': "import { offers } from '@fivvi/database';",
+  'the offer versions table': "import { offerVersions } from '@fivvi/database';",
+  'the offer kind enum': "import { offerKind } from '@fivvi/database';",
+  'the offer writer for a raw handle': "import { insertOffer } from '@fivvi/database';",
   'the session type enum': "import { sessionType } from '@fivvi/database';",
   'the session status enum': "import { sessionStatus } from '@fivvi/database';",
   'the attendance status enum': "import { attendanceStatus } from '@fivvi/database';",
@@ -219,6 +235,9 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
   // connection. Everything else the package exports must be named in table_or_handle() of the rule.
   const ALLOWED_EXPORTS: Record<string, string> = {
     // Repositories: every query takes a tenant scope or runs on system data.
+    EXERCISE_KEY_PATTERN: 'the pattern an exercise key matches, a regular expression (F039)',
+    EXERCISE_TYPES: 'the four exercise types of the library, a list of names (F039)',
+    MUSCLE_GROUPS: 'the fixed muscle groups of the library, a list of names (F039)',
     createClient: 'repository of clients, takes a workspace scope',
     findClient: 'repository of clients, takes a workspace scope',
     listClients: 'repository of clients, takes a workspace scope',
@@ -229,6 +248,10 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     findAccountIdByEmail: 'repository of accounts, takes a scope; reads an account ID only (F006)',
     listMyWorkspaces: 'repository of places, takes the account scope',
     createWorkspaceWithOwner: 'repository of workspaces, takes the account scope (F002)',
+    createOffer: 'repository of offers, takes the workspace scope (F052)',
+    addOfferVersion: 'repository of offers, takes the workspace scope (F052)',
+    listOffers: 'repository of offers, takes the workspace scope (F052)',
+    listOfferVersions: 'repository of offers, takes the workspace scope (F052)',
     listTeamWorkspaces: 'repository of workspaces, takes the account scope (F002)',
     listClientWorkspaces: 'repository of workspaces, takes the account scope (F030)',
     findWorkspace: 'repository of workspaces, takes the workspace scope (F002)',
@@ -256,8 +279,6 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     lockInvitationQuota: 'repository of the trainer invitations, takes the workspace scope (F011)',
     countInvitationsSince:
       'repository of the trainer invitations, takes the workspace scope (F011)',
-    findPendingInvitation:
-      'repository of the trainer invitations, takes the workspace scope (F011)',
     findPendingInvitationByEmail:
       'repository of the trainer invitations, takes the workspace scope (F011)',
     listPendingInvitations:
@@ -266,6 +287,10 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
       'repository of the trainer invitations, takes the workspace scope (F011)',
     resendInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
     withdrawInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
+    lockPendingInvitationSend:
+      'repository of the trainer invitations, takes the workspace scope (F049)',
+    undoInvitation: 'repository of the trainer invitations, takes the workspace scope (F049)',
+    undoResend: 'repository of the trainer invitations, takes the workspace scope (F049)',
     findLocation: 'repository of the locations, takes the workspace scope (F020)',
     findTrainer: 'repository of the trainer profiles, takes the workspace scope (F020)',
     findSession: 'repository of the sessions, takes the workspace scope (F020)',
@@ -286,6 +311,12 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
       'repository of the personal sessions, takes the workspace scope; answers a time (F013)',
     hasMySession:
       'repository of the personal sessions, takes the workspace scope; answers yes or no (F013)',
+    listAccessLog: 'repository of the access log, takes the workspace scope (E014)',
+    appendAccessLog: 'repository of the access log, takes the workspace scope (E014)',
+    accessLogStore:
+      'the access log over a workspace scope, as the domain’s AccessLogStore port (E014); no connection of its own',
+    deletionLogStore:
+      'the deletion log over a workspace scope, as the domain’s DeletionLogStore port (E014); the database lets the scope insert entries for its own workspace and nothing else',
     insertPayment: 'repository of the payment ledger, takes the workspace scope (E019)',
     findPayment: 'repository of the payment ledger, takes the workspace scope (E019)',
     findProviderCustomerId: 'repository of the payment ledger, takes the workspace scope (E019)',
@@ -295,6 +326,21 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     listStatusChanges: 'repository of the payment ledger, takes the workspace scope (E019)',
     paymentLedger:
       'the payment ledger over a function that opens a workspace scope (E019); every call goes through the scope, no connection of its own',
+    findRefund: 'repository of the refunds and reversals, takes the workspace scope (F060)',
+    findRefundFacts: 'repository of the refunds and reversals, takes the workspace scope (F060)',
+    insertRefund: 'repository of the refunds and reversals, takes the workspace scope (F060)',
+    linkProviderRefund: 'repository of the refunds and reversals, takes the workspace scope (F060)',
+    listChargebacksOfPayment:
+      'repository of the refunds and reversals, takes the workspace scope (F060)',
+    listRefundsOfPayment:
+      'repository of the refunds and reversals, takes the workspace scope (F060)',
+    listRefundStatusChanges:
+      'repository of the refunds and reversals, takes the workspace scope (F060)',
+    recordChargeback: 'repository of the refunds and reversals, takes the workspace scope (F060)',
+    recordRefundStatusChange:
+      'repository of the refunds and reversals, takes the workspace scope (F060)',
+    refundLedger:
+      'the refund ledger over a function that opens a workspace scope (F060); every call goes through the scope, no connection of its own',
     findInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
     lockInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
     closeInvitation: 'repository of the trainer invitations, takes the workspace scope (F011)',
@@ -340,6 +386,13 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     ClientWorkspaceSummary: 'type of the workspace repository (F030)',
     WorkspaceSummary: 'type of the workspace repository (F002)',
     WorkspaceView: 'type of the workspace repository (F002)',
+    NewOffer: 'type of the offers repository (F052)',
+    OfferCreditKind: 'type of the offers repository (F052)',
+    OfferKind: 'type of the offers repository (F052)',
+    OfferStatus: 'type of the offers repository (F052)',
+    OfferTerms: 'type of the offers repository (F052)',
+    OfferVersionView: 'type of the offers repository (F052)',
+    OfferView: 'type of the offers repository (F052)',
     JoinLinkView: 'type of the workspace repository (F029)',
     BookingLinkView: 'type of the booking-link repository (F037)',
     BookingLinkClassView: 'type of the booking-link repository (F037)',
@@ -362,6 +415,12 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     GroupClassChanges: 'type of the group-class repository (F021)',
     GroupClassView: 'type of the group-class repository (F021)',
     ClassDateChanges: 'type of the group-class repository (F021)',
+    AccessLogActionName: 'type of the access-log repository (E014)',
+    AccessLogEntryRecord: 'type of the access-log repository (E014)',
+    AccessLogItem: 'type of the access-log repository (E014)',
+    AccessLogPage: 'type of the access-log repository (E014)',
+    AccessLogQuery: 'type of the access-log repository (E014)',
+    DeletionLogEntryRecord: 'type of the deletion-log repository (E014)',
     InPaymentScope: 'type of the payment-ledger repository (E019)',
     NewPayment: 'type of the payment-ledger repository (E019)',
     NewStatusChange: 'type of the payment-ledger repository (E019)',
@@ -371,6 +430,16 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     PaymentStatus: 'type of the payment-ledger repository (E019)',
     PaymentStatusSource: 'type of the payment-ledger repository (E019)',
     StatusChangeRecord: 'type of the payment-ledger repository (E019)',
+    ChargebackRecord: 'type of the refund repository (F060)',
+    InRefundScope: 'type of the refund repository (F060)',
+    InsertRefundResult: 'type of the refund repository (F060)',
+    NewChargeback: 'type of the refund repository (F060)',
+    NewRefund: 'type of the refund repository (F060)',
+    NewRefundStatusChange: 'type of the refund repository (F060)',
+    RefundFacts: 'type of the refund repository (F060)',
+    RefundRecord: 'type of the refund repository (F060)',
+    RefundStatus: 'type of the refund repository (F060)',
+    RefundStatusChangeRecord: 'type of the refund repository (F060)',
     ClassDateUpdate: 'type of the group-class repository (F021)',
     NewGroupClass: 'type of the group-class repository (F021)',
     NewClassDate: 'type of the group-class repository (F021)',
@@ -383,6 +452,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     SessionView: 'type of the session repository (F020)',
     UpcomingSessionView: 'type of the session repository (F020)',
     NewTrainerInvitation: 'type of the trainer-invitation repository (F011)',
+    InvitationSend: 'type of the trainer-invitation repository (F049)',
     InvitationRecord: 'type of the trainer-invitation repository (F011)',
     InvitationAdmission: 'type of the tenant scope (F011)',
     InvitationEntry: 'type of the tenant scope (F011)',

@@ -36,11 +36,15 @@
 #       says so on stderr, still exits 0 and prints `[]` (no retry: the gate then fails as it would have).
 #
 #   ios-parts.sh job <name> <result>     (Release, #437)
-#       one job of the run: <name> is its name ("iOS tests", "iOS release") and <result> its needs.<job>.result. Prints
-#       `<name>=unacquired` when the result is abandoned, or cancelled and the run's jobs show that job was cancelled with
-#       no runner and no step, else `<name>=<result>`. The jobs are read only when the result is cancelled; any other
-#       result is printed as given. When they can't be read it says so on stderr, still exits 0 and prints the bare <result>,
-#       without a label. Release's `runners` job uses it and hands the parts to `release.sh runners`.
+#       one job of the run: <name> is its name ("iOS tests (nl)", "iOS tests (en)", "iOS release") and <result> the
+#       needs.<job>.result of the workflow job it belongs to. For a matrix job (Release's "iOS tests", one job per language) that
+#       is the combined result of all its legs, so the leg is looked up by its own name. Prints `<name>=unacquired` when the
+#       job named was cancelled with no runner and no step, or when the result is abandoned and the job is not listed (or
+#       the jobs can't be read); an abandoned result for a job that ran prints that job's own conclusion; any other result
+#       is printed as given, `<name>=<result>`. The run's jobs are read for every result but success and skipped, so a leg that
+#       failed does not hide the other leg that got no runner, and abandoned does not blame a leg that ran. When they can't be
+#       read it says so on stderr and still exits 0: a cancelled result is printed bare, without a label, and any other
+#       result as given. Release's `runners` job uses it and hands the parts to `release.sh runners`.
 #       `job` as the first argument with any number of arguments but three is refused, not read as the CI form.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
@@ -68,21 +72,27 @@ JQ_DEFS='
 
 if [ $# -eq 3 ] && [ "$1" = job ]; then
   name="$2" result="$3"
-  if [ "$result" = abandoned ]; then
-    echo "$name: no hosted runner picked it up (abandoned)." >&2
-    echo "$name=unacquired"
-    exit 0
-  fi
-  if [ "$result" != cancelled ]; then
+  if [ "$result" = success ] || [ "$result" = skipped ]; then
     echo "$name=$result"
     exit 0
   fi
   if ! jobs_json="$(read_jobs)" \
-    || ! label="$(jq -r --arg name "$name" "$JQ_DEFS"'
-         job($name) as $job | if $job != null and ($job | unacquired) then "unacquired" else "cancelled" end
+    || ! label="$(jq -r --arg name "$name" --arg result "$result" "$JQ_DEFS"'
+         job($name) as $job
+         | if $job != null and ($job | unacquired) then "unacquired"
+           elif $result == "abandoned" then (if $job != null and $job.conclusion != null then $job.conclusion else "unacquired" end)
+           else $result end
        ' <<<"$jobs_json" 2>/dev/null)"; then
-    echo "could not read the run's jobs; $name is reported as its result says (a cancelled one stays cancelled)." >&2
-    echo "$result"
+    if [ "$result" = abandoned ]; then
+      echo "$name: no hosted runner picked it up (abandoned)." >&2
+      echo "$name=unacquired"
+    elif [ "$result" = cancelled ]; then
+      echo "could not read the run's jobs; $name is reported as its result says (a cancelled one stays cancelled)." >&2
+      echo "$result"
+    else
+      echo "could not read the run's jobs; $name is reported as its result says." >&2
+      echo "$name=$result"
+    fi
     exit 0
   fi
   if [ "$label" = unacquired ]; then

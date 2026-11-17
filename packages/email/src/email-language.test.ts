@@ -22,6 +22,7 @@ describe('F049: the send function only accepts a language a resolver returned', 
         template: helloEmail,
         props: { sentAt: new Date() },
         to: { email: 'a@example.com' },
+        event: 'check',
       };
       // @ts-expect-error a literal locale is not an EmailLanguage
       void send({ ...base, locale: 'en' });
@@ -60,6 +61,7 @@ describe('F049: the send function only accepts a language a resolver returned', 
       props: { firstName: 'Mark', sentAt: new Date() },
       to: { email: 'mark@example.com', name: 'Mark Jansen' },
       locale,
+      event: 'check',
     });
 
     expect(transport.sent[0]).toMatchObject({ locale: 'en', to: { email: 'mark@example.com' } });
@@ -79,6 +81,7 @@ describe('F049: the send function only accepts a language a resolver returned', 
       props: { firstName: 'Anna', sentAt: new Date() },
       to: { email: 'anna@example.com', name: 'Anna de Vries' },
       locale,
+      event: 'check',
     });
 
     expect(transport.sent[0]).toMatchObject({ locale: 'nl-NL', to: { email: 'anna@example.com' } });

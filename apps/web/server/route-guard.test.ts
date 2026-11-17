@@ -137,7 +137,11 @@ describe('F001 AC13 route guard', () => {
       }).answer;
 
       expect(localeCookieOf(response)).toBeUndefined();
-      expect(response.headers.get('x-middleware-request-cookie')).toBeNull();
+      // The page is rendered for the request as it came (every request header is passed on since
+      // the request carries the Content-Security-Policy, E013), with the cookie untouched.
+      expect(response.headers.get('x-middleware-request-cookie')).toBe(
+        'better-auth.session_token=abc.def; NEXT_LOCALE=en',
+      );
     });
 
     it('leaves the cookie alone while no language is stored', async () => {
@@ -146,7 +150,11 @@ describe('F001 AC13 route guard', () => {
       }).answer;
 
       expect(localeCookieOf(response)).toBeUndefined();
-      expect(response.headers.get('x-middleware-request-cookie')).toBeNull();
+      // The page is rendered for the request as it came (every request header is passed on since
+      // the request carries the Content-Security-Policy, E013), with the cookie untouched.
+      expect(response.headers.get('x-middleware-request-cookie')).toBe(
+        'better-auth.session_token=abc.def; NEXT_LOCALE=en',
+      );
     });
 
     it('keeps the renewed sign-in session cookie as well', async () => {
@@ -294,6 +302,9 @@ describe('F001 AC13 route guard', () => {
       ['/apple-icon.png', true],
       ['/icon.svg/x', false],
       ['/apple-icon', false],
+      // F013 AC9: the web app manifest, which a browser fetches without a cookie; its icons are under /site-images.
+      ['/manifest.webmanifest', true],
+      ['/manifest.webmanifest/x', false],
       ['/site-imagesx/a.webp', false],
       ['/en/', false],
       ['/en/gyms/x', false],
@@ -305,6 +316,11 @@ describe('F001 AC13 route guard', () => {
       ['/login/confirm', true],
       ['/book', true],
       ['/book/pilot-gym', true],
+      // F011: the invitation page of EM-09 decides for itself (a valid invitation sends a visitor to sign in).
+      ['/invitations/abc_123-token', true],
+      ['/invitations', true],
+      ['/invitationsx', false],
+      ['/w/invitations', false],
       ['/api', true],
       ['/api/v1/health', true],
       ['/.well-known/apple-app-site-association', true],

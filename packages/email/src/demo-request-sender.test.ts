@@ -41,6 +41,18 @@ describe('F064 AC5 the demo request sender', () => {
     });
   });
 
+  it('sends a double submit once: the same answers reach the provider with one idempotency key', async () => {
+    const { transport, send } = setup();
+
+    await send(mail);
+    await send({ ...mail });
+    await send({ ...mail, message: 'A different request' });
+
+    const [first, second, third] = transport.sent.map(({ idempotencyKey }) => idempotencyKey);
+    expect(second).toBe(first);
+    expect(third).not.toBe(first);
+  });
+
   it('never writes to the visitor', async () => {
     const { transport, send } = setup();
 

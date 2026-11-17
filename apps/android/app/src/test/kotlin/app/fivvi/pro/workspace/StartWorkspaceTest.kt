@@ -1,6 +1,7 @@
 package app.fivvi.pro.workspace
 
 import app.fivvi.api.models.MeWorkspace
+import app.fivvi.api.models.TrainerWord
 import java.util.UUID
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -12,8 +13,14 @@ private val SARAH_PERSONAL_TRAINING = UUID.fromString("00000000-0000-4000-8000-0
 private val THIRD = UUID.fromString("00000000-0000-4000-8000-000000000003")
 private val GONE = UUID.fromString("00000000-0000-4000-8000-0000000000ff")
 
-private fun workspace(id: UUID, name: String) =
-    MeWorkspace(id, name, name.lowercase().replace(' ', '-'), MeWorkspace.Role.OWNER, emptyList())
+private fun workspace(id: UUID, name: String) = MeWorkspace(
+    id,
+    name,
+    name.lowercase().replace(' ', '-'),
+    TrainerWord.TRAINER,
+    MeWorkspace.Role.OWNER,
+    emptyList(),
+)
 
 // The API lists the workspaces by name; the pick keeps that order and holds no rule of its own (F012, spec #423).
 class StartWorkspaceTest {

@@ -74,4 +74,43 @@ describe('E020 sidebar navigation', () => {
 
     expect(html.match(/<svg[^>]*aria-hidden="true"/g)).toHaveLength(3);
   });
+
+  it('F013: Persoonlijk is a group above the workspace, each under its heading, and Mijn dag is the current page on /me/day', () => {
+    pathname = '/me/day';
+    const html = render(
+      'nl-NL',
+      <SidebarNav
+        label={label}
+        items={items}
+        heading="John's Gym"
+        personal={{
+          heading: 'Persoonlijk',
+          items: [
+            { href: '/me/day', label: 'Mijn dag', icon: 'day' },
+            { href: '/me/calendar', label: 'Mijn agenda', icon: 'calendar' },
+          ],
+        }}
+      />,
+    );
+
+    expect(current(html)).toEqual(['Mijn dag=page']);
+    expect(html.indexOf('Persoonlijk')).toBeLessThan(html.indexOf('Mijn dag'));
+    expect(html.indexOf('Mijn agenda')).toBeLessThan(html.indexOf('John&#x27;s Gym'));
+    expect(html.indexOf('John&#x27;s Gym')).toBeLessThan(html.indexOf('Klanten'));
+    expect(html).toContain('href="/me/calendar"');
+  });
+
+  it('F013 AC12: without a personal group there are no headings', () => {
+    pathname = null;
+    const html = render('nl-NL', <SidebarNav label={label} items={items} />);
+
+    expect(html).not.toContain('Persoonlijk');
+  });
+
+  it('F013 AC9: each link is a touch-sized target on a phone (44 px) and compact from 768 px', () => {
+    pathname = null;
+    const html = render('nl-NL', <SidebarNav label={label} items={items} />);
+
+    expect(html).toContain('h-11 md:h-8.5');
+  });
 });

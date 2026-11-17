@@ -242,6 +242,11 @@ export function providerContract(
           id: refund.id,
           amountCents: 1000,
         });
+        // The refunds of a payment are listed with their metadata: the lookup before a retry.
+        expect(await harness.provider.listRefunds(harness.access, payment.id)).toEqual([refund]);
+        expect(
+          (await harness.provider.listRefunds(harness.access, payment.id))[0]?.metadata,
+        ).toEqual({ refundId: 'refund-1' });
         const over = await failure(
           harness.provider.createRefund(harness.access, {
             ...request,

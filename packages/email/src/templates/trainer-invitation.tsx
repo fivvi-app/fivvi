@@ -1,5 +1,6 @@
+import { type TrainerWord, trainerWordForms } from '@fivvi/i18n';
 import { Button, Link, Text } from 'react-email';
-import { textStyle } from '../components/layout.tsx';
+import { buttonStyle, linkStyle, textStyle } from '../components/layout.tsx';
 import type { EmailTemplate } from '../render.tsx';
 
 export interface TrainerInvitationEmailProps {
@@ -11,17 +12,9 @@ export interface TrainerInvitationEmailProps {
   url: string;
   /** When the invitation stops working. Shown as a date in the email's time zone. */
   expiresAt: Date;
+  /** The workspace's word for the people who teach, as it is when the email is sent (F068). */
+  trainerWord: TrainerWord;
 }
-
-const buttonStyle = {
-  backgroundColor: '#18181b',
-  borderRadius: '6px',
-  color: '#ffffff',
-  display: 'inline-block',
-  fontSize: '16px',
-  padding: '12px 20px',
-  textDecoration: 'none',
-} as const;
 
 const urlStyle = {
   ...textStyle,
@@ -34,27 +27,34 @@ const urlStyle = {
  * EM-09 "{inviter} nodigt je uit voor {workspace}" / "{inviter} invited you to {workspace}"
  * (F011): one sentence, the button to the invitation page, the expiry date in the recipient's
  * language and the workspace's time zone, and the line that an unexpected email can be ignored.
- * The recipient's language is decided by the sender (`invitationLanguage` in `@fivvi/domain`).
+ * The recipient's language is decided by the sender (`invitationLanguage` in `@fivvi/domain`); the
+ * role is named with the workspace's word (F068), in that language.
  */
 export const trainerInvitationEmail: EmailTemplate<TrainerInvitationEmailProps> = {
   id: 'trainer-invitation',
   subject: (ctx, { inviterName, workspaceName }) =>
     ctx.t('email.trainerInvitation.subject', { inviter: inviterName, workspace: workspaceName }),
-  preview: (ctx, { workspaceName }) =>
-    ctx.t('email.trainerInvitation.preview', { workspace: workspaceName }),
-  render: (ctx, { inviterName, workspaceName, url, expiresAt }) => (
+  preview: (ctx, { workspaceName, trainerWord }) =>
+    ctx.t('email.trainerInvitation.preview', {
+      workspace: workspaceName,
+      ...trainerWordForms(trainerWord, ctx.locale),
+    }),
+  render: (ctx, { inviterName, workspaceName, url, expiresAt, trainerWord }) => (
     <>
       <Text style={textStyle}>
         {ctx.t('email.trainerInvitation.intro', {
           inviter: inviterName,
           workspace: workspaceName,
+          ...trainerWordForms(trainerWord, ctx.locale),
         })}
       </Text>
       <Button href={url} style={buttonStyle}>
         {ctx.t('email.trainerInvitation.button')}
       </Button>
       <Text style={urlStyle}>
-        <Link href={url}>{url}</Link>
+        <Link style={linkStyle} href={url}>
+          {url}
+        </Link>
       </Text>
       <Text style={textStyle}>
         {ctx.t('email.trainerInvitation.validity', {
@@ -64,10 +64,12 @@ export const trainerInvitationEmail: EmailTemplate<TrainerInvitationEmailProps> 
       <Text style={textStyle}>{ctx.t('email.trainerInvitation.ignore')}</Text>
     </>
   ),
+  userContent: ['inviterName', 'workspaceName'],
   previewProps: {
     inviterName: 'John',
     workspaceName: 'John’s Gym',
-    url: 'https://fivvi.example.com/invitations/preview-token-not-real',
+    url: 'https://fivvi.app/invitations/preview-token-not-real',
     expiresAt: new Date('2026-11-12T10:00:00Z'),
+    trainerWord: 'trainer',
   },
 };

@@ -130,6 +130,16 @@ class SignInViewModelTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
     }
 
     @Test
+    fun E013_AC4_aNetworkOverTheSignInLimitShowsGenericUntilItIsMapped() {
+        api.requestAnswers += { Response.error(429, "{\"code\":\"rate_limited\"}".toResponseBody()) }
+        val viewModel = viewModel()
+
+        viewModel.requestCode()
+
+        assertEquals(SignInState.EmailEntry(EMAIL, SignInError.Generic), viewModel.state.value)
+    }
+
+    @Test
     fun F001N_AC1_serverErrorShowsGeneric() {
         api.requestAnswers += { Response.error(500, "{}".toResponseBody()) }
         val viewModel = viewModel()

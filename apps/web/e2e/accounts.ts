@@ -117,6 +117,21 @@ export async function createGymWithTrainer(
   }
 }
 
+/** The join code stored for the workspace with the URL name `slug`, on the e2e app server's database (F029). */
+export async function joinCodeOf(slug: string): Promise<string> {
+  const client = createDatabase({ url: databaseUrl(appServer.database), maxConnections: 1 });
+  try {
+    const [row] = await client.db
+      .select({ joinCode: organizations.joinCode })
+      .from(organizations)
+      .where(eq(organizations.slug, slug));
+    if (!row) throw new Error(`No workspace ${slug} on the e2e database.`);
+    return row.joinCode;
+  } finally {
+    await client.close();
+  }
+}
+
 /**
  * Puts the existing account `email` on the team of the workspace with the URL name `slug`, on
  * the e2e app server's database (the team page lists it; inviting people is F011). A Trainer
@@ -246,4 +261,15 @@ export function sessionExpiries(email: string): Promise<Date[]> {
     );
     return rows.map((row) => row.expires_at);
   });
+}
+
+/**
+ * Cancels the session `sessionId`, on the e2e app server's database, as cancelling will (F026): the
+ * row stays and its status is `cancelled`. Until that feature exists, a spec that needs a cancelled
+ * session sets the status itself.
+ */
+export async function cancelSession(sessionId: string): Promise<void> {
+  await withPool((pool) =>
+    pool.query(`update sessions set status = 'cancelled' where id = $1`, [sessionId]),
+  );
 }

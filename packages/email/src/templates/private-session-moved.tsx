@@ -1,3 +1,4 @@
+import { type TrainerWord, trainerWordForms } from '@fivvi/i18n';
 import { Text } from 'react-email';
 import { textStyle } from '../components/layout.tsx';
 import type { EmailContext, EmailTemplate } from '../render.tsx';
@@ -16,6 +17,8 @@ export interface PrivateSessionMovedEmailProps {
   locationAddress: string | null;
   /** The trainer's name, or `null` when the account has none: the line is left out. */
   trainerName: string | null;
+  /** The workspace's word for the people who teach, as it is when the email is sent (F068). */
+  trainerWord: TrainerWord;
 }
 
 /** "donderdag 24 september om 09:00": the day and the time, for the subject (a move can stay on its day). */
@@ -27,20 +30,18 @@ function dayAndTime(ctx: EmailContext, instant: Date): string {
 }
 
 /**
- * EM-04 "Wijziging: je sessie op {oldDate} is verplaatst naar {newDate}" / "Change: your session
- * on {oldDate} has moved to {newDate}" (F020): the client's notice that a private session moved,
- * with the old and the new date and time, the location and the trainer. The dates and times are
+ * EM-04 "Wijziging: je sessie is verplaatst naar {newDate}" / "Change: your session has moved to
+ * {newDate}" (F020): the client's notice that a private session moved, with the old and the new
+ * date and time in the body (the subject names only the new one: with both it passed 78
+ * characters, F049 AC2), the location and the trainer. The dates and times are
  * in the workspace's time zone and the recipient's language, decided by the sender
  * (`confirmationLanguage` in `@fivvi/domain`). It follows EM-11, which says *afspraak* in the
  * subject only; this one says *sessie*, as the spec words it.
  */
 export const privateSessionMovedEmail: EmailTemplate<PrivateSessionMovedEmailProps> = {
   id: 'private-session-moved',
-  subject: (ctx, { previousStartsAt, startsAt }) =>
-    ctx.t('email.privateSessionMoved.subject', {
-      oldDate: dayAndTime(ctx, previousStartsAt),
-      newDate: dayAndTime(ctx, startsAt),
-    }),
+  subject: (ctx, { startsAt }) =>
+    ctx.t('email.privateSessionMoved.subject', { newDate: dayAndTime(ctx, startsAt) }),
   preview: (ctx, { startsAt }) =>
     ctx.t('email.privateSessionMoved.preview', { newDate: dayAndTime(ctx, startsAt) }),
   render: (
@@ -54,6 +55,7 @@ export const privateSessionMovedEmail: EmailTemplate<PrivateSessionMovedEmailPro
       locationName,
       locationAddress,
       trainerName,
+      trainerWord,
     },
   ) => (
     <>
@@ -81,12 +83,16 @@ export const privateSessionMovedEmail: EmailTemplate<PrivateSessionMovedEmailPro
       </Text>
       {trainerName ? (
         <Text style={textStyle}>
-          {ctx.t('email.privateSession.trainer', { trainer: trainerName })}
+          {ctx.t('email.privateSession.trainer', {
+            trainer: trainerName,
+            ...trainerWordForms(trainerWord, ctx.locale),
+          })}
         </Text>
       ) : null}
     </>
   ),
   frame: { kind: 'client', workspaceName: (props) => props.workspaceName },
+  userContent: ['workspaceName', 'locationName', 'locationAddress', 'trainerName'],
   previewProps: {
     workspaceName: 'John’s Gym',
     previousStartsAt: new Date('2026-09-24T07:00:00Z'),
@@ -96,5 +102,6 @@ export const privateSessionMovedEmail: EmailTemplate<PrivateSessionMovedEmailPro
     locationName: 'John’s Gym',
     locationAddress: 'Voorbeeldstraat 1, 1234 AB Amsterdam',
     trainerName: 'Sarah',
+    trainerWord: 'trainer',
   },
 };

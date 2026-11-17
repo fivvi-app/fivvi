@@ -3,6 +3,7 @@
 //        [--time-zone Europe/Amsterdam]
 // Reads the Lettermint variables (see the README) from the environment or from
 // packages/email/.env. Never prints the token.
+import { randomUUID } from 'node:crypto';
 import { parseArgs } from 'node:util';
 import {
   defaultLocale,
@@ -62,6 +63,7 @@ try {
       workspaceDefault: defaultLocale,
     }),
     timeZone: values['time-zone'],
+    event: randomUUID(),
   });
   console.log(
     `Sent "${helloEmail.id}" (${values.locale}) to ${values.to} in ${result.attempts} attempt(s). ` +

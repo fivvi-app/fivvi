@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { emailIdempotencyKey } from './idempotency-key.ts';
 import { createMemoryTransport } from './memory.ts';
 import { createSendEmail } from './send.ts';
 import { english } from './test-languages.ts';
@@ -9,10 +10,11 @@ const mail = {
   locale: english,
   inviterName: 'John',
   workspaceName: "John's Gym",
+  trainerWord: 'trainer' as const,
   timeZone: 'Europe/Amsterdam',
   token: 'token-for-a-test-not-real',
   expiresAt: new Date('2026-11-12T10:00:00Z'),
-  idempotencyKey: '3b8f1c5e-0c1f-5a0e-8c3b-2f6d9a7e4b10',
+  event: 'invitation-1:token-hash-1',
 };
 
 function setup(appBaseUrl: () => string) {
@@ -36,7 +38,7 @@ describe('F011 EM-09 sender', () => {
       locale: 'en',
       template: 'trainer-invitation',
       subject: "John invited you to John's Gym",
-      idempotencyKey: mail.idempotencyKey,
+      idempotencyKey: emailIdempotencyKey('EM-09', mail.event),
     });
     expect(transport.sent[0]?.text).toContain('valid until Thursday, 12 November 2026');
   });
@@ -70,5 +72,16 @@ describe('F011 EM-09 sender', () => {
     await send({ ...mail, expiresAt: new Date('2026-11-12T23:30:00Z') });
 
     expect(transport.sent[0]?.text).toContain('valid until Friday, 13 November 2026');
+  });
+  it('F068 AC11: names the role with the word the mail has, and an email sent stays as it was', async () => {
+    const { transport, send } = setup(() => 'https://fivvi.example.test');
+
+    await send({ ...mail, trainerWord: 'docent' });
+    await send({ ...mail, trainerWord: 'coach', event: 'invitation-1:token-hash-2' });
+
+    // English: "a teacher", then "a coach"; the first email is not touched by the second.
+    expect(transport.sent[0]?.text).toContain('to become a teacher at');
+    expect(transport.sent[1]?.text).toContain('to become a coach at');
+    expect(transport.sent[0]?.text).toContain('to become a teacher at');
   });
 });

@@ -17,7 +17,6 @@ import {
 } from '@fivvi/database';
 import {
   createDemoRequestSender,
-  createEnvironmentSendEmail,
   createPrivateSessionSender,
   createTrainerInvitationSender,
 } from '@fivvi/email';
@@ -27,6 +26,7 @@ import { database } from './database';
 import { demoRequestRecipient } from './demo-request-recipient';
 import { errorReporter } from './error-reporter';
 import { productEvents } from './product-events';
+import { sendEmail } from './send-email';
 
 // packages/api with the real dependencies. Routes, validation and the contract live in
 // packages/api; this file only wires in the database and observability.
@@ -77,7 +77,7 @@ function sendTrainerInvitation(
   ...[mail]: Parameters<ReturnType<typeof createTrainerInvitationSender>>
 ) {
   invitationSender ??= createTrainerInvitationSender({
-    sendEmail: createEnvironmentSendEmail(),
+    sendEmail: sendEmail(),
     appBaseUrl: () => readAuthConfig(process.env).baseURL,
   });
   return invitationSender(mail);
@@ -91,7 +91,7 @@ let privateSessionSender: ReturnType<typeof createPrivateSessionSender> | undefi
  * `next build` runs without the email settings.
  */
 function sendPrivateSession(...[mail]: Parameters<ReturnType<typeof createPrivateSessionSender>>) {
-  privateSessionSender ??= createPrivateSessionSender({ sendEmail: createEnvironmentSendEmail() });
+  privateSessionSender ??= createPrivateSessionSender({ sendEmail: sendEmail() });
   return privateSessionSender(mail);
 }
 
@@ -105,7 +105,7 @@ let demoRequestSender: ReturnType<typeof createDemoRequestSender> | undefined;
  */
 function sendDemoRequest(...[mail]: Parameters<ReturnType<typeof createDemoRequestSender>>) {
   demoRequestSender ??= createDemoRequestSender({
-    sendEmail: createEnvironmentSendEmail(),
+    sendEmail: sendEmail(),
     to: demoRequestRecipient(),
   });
   return demoRequestSender(mail);

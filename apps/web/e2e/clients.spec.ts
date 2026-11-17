@@ -294,11 +294,12 @@ test.describe('F006 clients on the web', () => {
 
       await page.goto(`/w/${slug}/clients/${anna.id}`);
       await expect(page.getByRole('heading', { level: 1, name: 'Anna de Vries' })).toBeVisible();
-      // No placeholder tabs: the overview is all there is.
+      // No placeholder tabs: the overview and the upcoming sessions (F020) are all there is.
       await expect(page.getByRole('tab')).toHaveCount(0);
-      await expect(page.getByRole('heading', { level: 2 })).toHaveText(
+      await expect(page.getByRole('heading', { level: 2 })).toHaveText([
         copy.clients.profile.overview,
-      );
+        copy.clients.profile.upcomingTitle,
+      ]);
       await expect(page.getByText(defaultLanguage(copy, 'nl'))).toBeVisible();
       await expectNoAxeViolations(page, `TW-02 with Edit in ${appLocale}`);
 

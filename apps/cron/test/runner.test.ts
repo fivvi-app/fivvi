@@ -30,6 +30,10 @@ describe('E012 cron task names', () => {
     '1-starts-with-digit',
     '-starts-with-hyphen',
     '',
+    '.leading-dot',
+    'trailing-dot.',
+    'double..dot',
+    'group.1-starts-with-digit',
   ])('rejects the invalid name %j before touching the database', async (name) => {
     await expect(run([task(name)])).rejects.toThrow(`Invalid cron task name: ${name}`);
   });
@@ -42,6 +46,12 @@ describe('E012 cron task names', () => {
 
   it('accepts lowercase words with hyphens and digits', async () => {
     await expect(run([task('a'), task('send-email-2')])).rejects.toThrow(REACHED_DATABASE);
+  });
+
+  it('accepts a group and a task, written group.task', async () => {
+    await expect(run([task('retention.sign-in-tokens'), task('a.b.c')])).rejects.toThrow(
+      REACHED_DATABASE,
+    );
   });
 
   it('accepts the real registry: its names are valid and unique', async () => {

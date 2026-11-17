@@ -74,6 +74,9 @@ for (const locale of locales) {
 
         await expect(page).toHaveURL(PATHS[document][locale]);
         await expect(page.getByRole('heading', { level: 1 })).toHaveText(site[document].headline);
+        // The site's pages render per request (E013: the nonce), so Next streams a page's <title>
+        // after its body when a link opens it (#353). The end-of-test axe check wants the title.
+        await expect(page).toHaveTitle(/\S/);
       });
     });
   }

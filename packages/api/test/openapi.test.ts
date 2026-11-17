@@ -38,10 +38,10 @@ describe('The OpenAPI document', () => {
       expect(document.paths?.['/v1/sign-out']?.post?.security).toEqual([{ bearerAuth: [] }]);
     });
 
-    it('answers a request with 202 and an empty body, and documents the 400', () => {
+    it('answers a request with 202 and an empty body, and documents the 400 and the 429', () => {
       const responses = document.paths?.['/v1/sign-in/request']?.post?.responses;
 
-      expect(Object.keys(responses ?? {})).toEqual(['202', '400', '500']);
+      expect(Object.keys(responses ?? {})).toEqual(['202', '400', '429', '500']);
       expect(responses?.['202']).not.toHaveProperty('content');
     });
   });

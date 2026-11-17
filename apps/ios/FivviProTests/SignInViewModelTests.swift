@@ -40,7 +40,8 @@ final class SignInViewModelTests: SignInModelTestCase {
 
     func test_F001N_AC1_failuresStayOnTheEmailStep() async {
         let cases: [(StubAPI.SignInAnswer, SignInViewModel.Failure)] = [
-            (.badRequest, .invalidEmail), (.offline, .noConnection), (.status(503), .generic)
+            (.badRequest, .invalidEmail), (.offline, .noConnection), (.status(503), .generic),
+            (.rateLimited, .generic)
         ]
         for (answer, failure) in cases {
             let api = StubAPI()

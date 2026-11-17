@@ -310,7 +310,7 @@ iOS: sheet                                  Android: full-screen dialog
 | Buttons | Annuleren · Verplaatsen · Verplaatsen en informeren | Cancel · Reschedule · Reschedule and notify |
 | Workout note | Er is al een training gelogd. Die verhuist mee. | A workout has already been logged. It moves along. |
 | Done | Verplaatst naar {date} om {time}. | Moved to {date} at {time}. |
-| EM-04 subject | Wijziging: je sessie op {oldDate} is verplaatst naar {newDate} | Change: your session on {oldDate} has moved to {newDate} |
+| EM-04 subject | Wijziging: je sessie is verplaatst naar {newDate} | Change: your session has moved to {newDate} |
 
 ### PS-06 · Sessie annuleren / Cancel session
 

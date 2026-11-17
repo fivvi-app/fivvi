@@ -31,10 +31,15 @@ export interface ApiDependencies {
   findSignedInAccount(headers: Headers): Promise<SignedInAccount | undefined>;
   /**
    * An app's request for a sign-in email (spec #168): the web's request, with its verification,
-   * email, allowlist and rate limits. The same outcome for every address. `headers` are the
-   * request's, for the client IP and language.
+   * email, allowlist and rate limits. The same outcome for every address, also one over its limit
+   * (`requested`); `rate_limited` when the client IP address is over its limit (E013). `headers`
+   * are the request's, for the client IP, the language and the platform.
    */
-  requestSignIn(input: { email: string; locale: Locale; headers: Headers }): Promise<void>;
+  requestSignIn(input: {
+    email: string;
+    locale: Locale;
+    headers: Headers;
+  }): Promise<'requested' | 'rate_limited'>;
   /** Exchanges the emailed code for a bearer token; `undefined` for every failure. */
   exchangeSignInCode(input: {
     email: string;
@@ -156,7 +161,7 @@ export const NO_DEPENDENCIES: ApiDependencies = {
   findSignedInAccount: () => Promise.resolve(undefined),
   // Sign-up is closed: nobody may create a workspace.
   signUpAllowlist: { allows: () => false },
-  requestSignIn: () => Promise.resolve(),
+  requestSignIn: () => Promise.resolve('requested'),
   exchangeSignInCode: () => Promise.resolve(undefined),
   signOutBearer: () => Promise.resolve(false),
   requestEmailChange: () => Promise.resolve(),

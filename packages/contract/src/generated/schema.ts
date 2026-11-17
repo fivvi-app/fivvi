@@ -99,7 +99,7 @@ export interface paths {
         put?: never;
         /**
          * Ask for a code to change the signed-in account’s email address
-         * @description Sends a 6-digit code to the new address (EM-34), in the account’s language. The address does not change until `POST /v1/me/email/confirm` accepts the code. The answer is `202` for every valid address, one that already has an account, and a request over the rate limits (3 in 15 minutes per account and per address, 20 an hour per network, as for sign-in), so it never says who has an account; only a free address under the limits gets an email. A new request replaces the earlier code. It acts on the signed-in account alone: no route changes anyone else’s address.
+         * @description Sends a 6-digit code to the new address (EM-34), in the account’s language. The address does not change until `POST /v1/me/email/confirm` accepts the code. The answer is `202` for every valid address, one that already has an account, and a request over the rate limits (3 in 15 minutes per account and per address, 20 an hour per network, as for sign-in), so it never says who has an account; a free address under the limits gets the code, an address that already has an account gets a notice instead of a code (EM-36), and nothing is merged. A new request replaces the earlier code. It acts on the signed-in account alone: no route changes anyone else’s address.
          */
         post: operations["requestEmailChange"];
         delete?: never;
@@ -119,7 +119,7 @@ export interface paths {
         put?: never;
         /**
          * Confirm the code and change the signed-in account’s email address
-         * @description With the right code the account’s address becomes the one the code was sent to, in every workspace at once, and every open sign-in session stays signed in. The sign-in codes and links sent to the old address stop working. Answers with the account, as `GET /v1/me` does. A wrong, used, replaced or expired code, five wrong codes, an address that has an account by now and a network over its limit all answer `422` and nothing changes.
+         * @description With the right code the account’s address becomes the one the code was sent to, in every workspace at once, and every open sign-in session stays signed in. The sign-in codes and links sent to the old address stop working, and the old address gets a notice that it changed (EM-35). Workspaces, invitations and the sign-up allowlist stay as they were: they hang on the account and on the addresses they were written for. Answers with the account, as `GET /v1/me` does. A wrong, used, replaced or expired code, five wrong codes, an address that has an account by now and a network over its limit all answer `422` and nothing changes.
          */
         post: operations["confirmEmailChange"];
         delete?: never;
@@ -179,7 +179,7 @@ export interface paths {
         put?: never;
         /**
          * Ask for a sign-in email
-         * @description Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for a request over the rate limits, so it never says who has an account.
+         * @description Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for an address over its limit (3 requests per 15 minutes), so it never says who has an account. The app needs no bot check; every limit applies to it. A network over its limit (20 requests per hour) gets `429`, and nothing is sent.
          */
         post: operations["requestSignIn"];
         delete?: never;
@@ -277,7 +277,7 @@ export interface paths {
         };
         /**
          * A workspace
-         * @description The workspace: its name, URL name, default language and time zone.
+         * @description The workspace: its name, URL name, default language, time zone and the word it uses for its trainers.
          */
         get: operations["getWorkspace"];
         put?: never;
@@ -286,8 +286,8 @@ export interface paths {
         options?: never;
         head?: never;
         /**
-         * Rename a workspace or set its default language
-         * @description Changes the name and/or the default communication language of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`, anything else answers `400` and nothing changes.
+         * Rename a workspace, set its default language or its word for trainers
+         * @description Changes the name, the default communication language and/or the word for trainers of the workspace (the Owner only; a Trainer reads the word but gets `403` when changing it). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`; the word is `trainer`, `instructeur`, `docent` or `coach`. Anything else answers `400` (the API’s validation error) and nothing changes. The role stays Trainer whatever the word.
          */
         patch: operations["renameWorkspace"];
         trace?: never;
@@ -429,7 +429,7 @@ export interface paths {
         };
         /**
          * What an invitation link is for
-         * @description Anyone with the link (signed in or not) reads the name of the workspace that invites, the name of the inviter and the masked address the invitation is for, and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`.
+         * @description Anyone with the link (signed in or not) reads the name of the workspace that invites, the name of the inviter, the masked address the invitation is for and, when a session is sent, whether the invitation is for that account (`forYou`), and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`.
          */
         get: operations["getInvitation"];
         put?: never;
@@ -868,6 +868,26 @@ export interface paths {
         patch: operations["updateClient"];
         trace?: never;
     };
+    "/v1/workspaces/{workspaceId}/access-log": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The access log of a workspace
+         * @description The access log of the workspace (the Owner only; a Trainer gets `403`): who exported, trashed, restored or purged which client, and from M7 who viewed or changed which note. This workspace’s entries only, newest first, one page at a time, optionally of one client and one action. Names are looked up now; a client who no longer exists reads as *Verwijderde klant* or *Deleted client* in the reader’s language. Entries hold IDs and a time, never a note’s text. Entries older than 12 months are deleted.
+         */
+        get: operations["listAccessLog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -962,15 +982,21 @@ export interface components {
             name: string;
             /** @description The URL name: `/w/{slug}` on the web. */
             slug: string;
+            trainerWord: components["schemas"]["TrainerWord"];
             /**
              * @description What the account is in the workspace; shown as a label, never decided on.
              * @enum {string}
              */
             role: "owner" | "trainer";
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "booking_link.manage" | "booking_link.copy")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "booking_link.manage" | "booking_link.copy" | "access_log.read")[];
         };
-        /** @description A workspace the account is a client of: its ID, URL name and name, nothing more. The account’s own client record in it is the only thing that lists it. */
+        /**
+         * @description The word the product uses for the people who teach in the workspace: `trainer`, `instructeur`, `docent` or `coach`. It is only a label shown to the team and the clients, in their own language; the role stays `trainer` in the API and nobody’s rights depend on it. Every workspace starts on `trainer`.
+         * @enum {string}
+         */
+        TrainerWord: "trainer" | "instructeur" | "docent" | "coach";
+        /** @description A workspace the account is a client of: its ID, URL name, name and the word it uses for its trainers (F068), nothing more. The account’s own client record in it is the only thing that lists it. */
         MeClientWorkspace: {
             /**
              * Format: uuid
@@ -981,6 +1007,7 @@ export interface components {
             slug: string;
             /** @description The name shown in the product. */
             name: string;
+            trainerWord: components["schemas"]["TrainerWord"];
         };
         /** @description A workspace the account is on the team of. */
         MyWorkspace: {
@@ -993,13 +1020,14 @@ export interface components {
             name: string;
             /** @description The URL name: `/w/{slug}` on the web. */
             slug: string;
+            trainerWord: components["schemas"]["TrainerWord"];
             /**
              * @description What the account is on the team; shown as a label, never decided on.
              * @enum {string}
              */
             role: "owner" | "trainer";
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "booking_link.manage" | "booking_link.copy")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "booking_link.manage" | "booking_link.copy" | "access_log.read")[];
             /** @description Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner. */
             trainsHere: boolean;
         };
@@ -1219,6 +1247,11 @@ export interface components {
             /** @description The sessions from the start of `from` to the end of `to`, in time order. */
             items: components["schemas"]["PersonalSession"][];
         };
+        /** @description Too many requests from this network or this account in the last minutes or hour. Nothing was stored or sent. Contains no user-facing text. */
+        PublicRequestRateLimited: {
+            /** @enum {string} */
+            code: "rate_limited";
+        };
         /** @description Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019. */
         SignInRequest: {
             /**
@@ -1295,6 +1328,7 @@ export interface components {
             defaultLocale: components["schemas"]["Locale"];
             /** @description The IANA time zone dates and times are shown in, for example `Europe/Amsterdam`. */
             timeZone: string;
+            trainerWord: components["schemas"]["TrainerWord"];
         };
         /** @description Creates a workspace for the caller, who becomes its Owner. Nothing else is asked: the default language, the time zone and the slug are the platform’s defaults. */
         CreateWorkspaceRequest: {
@@ -1303,11 +1337,12 @@ export interface components {
             /** @description The creator’s own name, stored on the account. Leave it out when the account has one. */
             personName?: string;
         };
-        /** @description Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), or both. The slug stays, so links keep working. Other fields are ignored. */
+        /** @description Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), the word it uses for its trainers (`trainerWord`, F068), or any of them. The slug stays, so links keep working. Other fields are ignored. */
         UpdateWorkspaceRequest: {
             /** @description The new name, as the product shows it from now on. */
             name?: string;
             defaultLocale?: components["schemas"]["Locale"];
+            trainerWord?: components["schemas"]["TrainerWord"];
         };
         /** @description Who sent the report that the person switched workspace. */
         WorkspaceSwitchedRequest: {
@@ -1410,7 +1445,7 @@ export interface components {
              */
             emailLocale?: "nl-NL" | "en" | null;
         };
-        /** @description What the link of a valid invitation shows to anyone who holds it, signed in or not. */
+        /** @description What the link of a valid invitation shows to anyone who holds it, signed in or not. `forYou` is the one part that depends on who asks. */
         InvitationPreview: {
             /** @description The name of the workspace that invites. */
             workspaceName: string;
@@ -1418,6 +1453,8 @@ export interface components {
             inviterName: string | null;
             /** @description The address the invitation is for, hidden except for its first character and its domain (`l***@example.com`), so a person signed in with another address can see which to use. */
             maskedEmail: string;
+            /** @description Whether the signed-in account may answer this invitation: its verified address is the one the invitation is for. `false` for another account, an address that is not verified, and when nobody is signed in. */
+            forYou: boolean;
         };
         /** @description A team member who trains in the workspace. */
         Trainer: {
@@ -1978,6 +2015,52 @@ export interface components {
             /** @description `true` makes the client follow the workspace’s default language for emails. `false`, `null` or left out does not. Together with an `emailLocale` it answers `400`. */
             clearEmailLocale?: boolean | null;
         };
+        /** @description One page of the access log of a workspace. */
+        AccessLogList: {
+            /** @description This page of entries, newest first. */
+            items: components["schemas"]["AccessLogEntry"][];
+            /** @description How many entries match, over all pages. */
+            total: number;
+        };
+        /** @description One entry of the access log: who did what to which client, and when. IDs, names and a time; no free text, never note content. */
+        AccessLogEntry: {
+            /**
+             * Format: uuid
+             * @description The entry ID.
+             */
+            id: string;
+            /**
+             * Format: date-time
+             * @description When it happened, a UTC instant.
+             */
+            occurredAt: string;
+            /**
+             * @description What was done: `client.exported`, `client.trashed`, `client.restored`, `client.purged`, `workspace.exported`, `client.retention_kept`, and from M7 `note.viewed` and `note.changed`.
+             * @enum {string}
+             */
+            action: "client.exported" | "client.trashed" | "client.restored" | "client.purged" | "workspace.exported" | "client.retention_kept" | "note.viewed" | "note.changed";
+            /**
+             * Format: uuid
+             * @description The team member who did it. `null` for what the daily cleanup does by itself. The ID stays when the team member has left the team.
+             */
+            actorTeamMemberId: string | null;
+            /** @description The team member’s name now (their email address when they have given none). `null` when there is no team member, or when they have left the team. */
+            actorName: string | null;
+            /**
+             * Format: uuid
+             * @description The client the action was about; `null` for an action about no client (`workspace.exported`). The ID stays after the client is deleted, so the list can still be filtered by it.
+             */
+            clientId: string | null;
+            /** @description The client’s name now. `null` for an action about no client. A client that no longer exists reads as *Verwijderde klant* or *Deleted client*, in the language of the reader (their stored language, else `Accept-Language`, else English); `clientRemoved` is `true` then. */
+            clientName: string | null;
+            /** @description `true` when the entry is about a client who no longer exists. */
+            clientRemoved: boolean;
+            /**
+             * Format: uuid
+             * @description The note’s ID for `note.viewed` and `note.changed`; `null` for any other action. The log never holds a note’s text.
+             */
+            objectId: string | null;
+        };
     };
     responses: never;
     parameters: never;
@@ -2426,6 +2509,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Too many requests from this network in the last hour. Nothing was sent. Try again later. */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicRequestRateLimited"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */
@@ -5394,6 +5486,83 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ClientExists"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    listAccessLog: {
+        parameters: {
+            query?: {
+                /** @description Only the entries about this client. Also finds those of a client who is deleted since. An ID that belongs to no client of this workspace finds nothing. */
+                clientId?: string;
+                /** @description Only the entries of this action. */
+                action?: "client.exported" | "client.trashed" | "client.restored" | "client.purged" | "workspace.exported" | "client.retention_kept" | "note.viewed" | "note.changed";
+                /** @description How many entries a page holds, 1 to 100; 50 by default. */
+                pageSize?: number;
+                /** @description Which page, counted from 1, newest first; 1 by default. */
+                page?: number;
+            };
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description One page of the access log. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccessLogList"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */

@@ -23,6 +23,7 @@ import app.fivvi.core.R
 import app.fivvi.core.appLanguageParameters
 import app.fivvi.core.me.FakeMeApi
 import app.fivvi.core.me.workspaceIdOf
+import app.fivvi.core.quarantine.Permission
 import app.fivvi.core.web.SiteLinks
 import app.fivvi.core.web.SitePage
 import app.fivvi.pro.AppRule
@@ -415,6 +416,7 @@ class ProfileScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val l
 
     // F004 AC10 (NL, EN): the switch follows the capability team.manage the API lists, not the role label.
     @Test
+    @Permission
     fun test_F004_AC10_theSwitchFollowsTheCapabilityNotTheRole() {
         openProfileAsSarah(
             capabilities = mapOf(

@@ -7,6 +7,7 @@ import {
   unauthorizedResponse,
   validationErrorResponse,
 } from '../errors.ts';
+import { RateLimitedSchema, refusal } from '../public-request-guard.ts';
 import { LocaleSchema } from '../schemas.ts';
 
 // The sign-in routes of the native apps (spec #168, ADR-004, ADR-007). Each is a thin layer over
@@ -57,14 +58,21 @@ const requestSignInRoute = defineRoute(
     summary: 'Ask for a sign-in email',
     description:
       'Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed ' +
-      'address. The answer is the same for every address and for a request over the rate limits, ' +
-      'so it never says who has an account.',
+      'address. The answer is the same for every address and for an address over its limit ' +
+      '(3 requests per 15 minutes), so it never says who has an account. The app needs no bot ' +
+      'check; every limit applies to it. A network over its limit (20 requests per hour) gets ' +
+      '`429`, and nothing is sent.',
     request: {
       body: { required: true, content: { 'application/json': { schema: SignInRequestSchema } } },
     },
     responses: {
       202: { description: 'Accepted. The body is empty.' },
       400: validationErrorResponse,
+      429: {
+        description:
+          'Too many requests from this network in the last hour. Nothing was sent. Try again later.',
+        content: { 'application/json': { schema: RateLimitedSchema } },
+      },
       500: internalServerErrorResponse,
     },
   },
@@ -127,7 +135,15 @@ const signOutRoute = defineRoute(
 export function registerSignIn(app: OpenAPIHono, dependencies: ApiDependencies) {
   app.openapi(requestSignInRoute, async (c) => {
     const { email, locale } = c.req.valid('json');
-    await dependencies.requestSignIn({ email, locale, headers: c.req.raw.headers });
+    const outcome = await dependencies.requestSignIn({
+      email,
+      locale,
+      headers: c.req.raw.headers,
+    });
+    if (outcome === 'rate_limited') {
+      const limited = refusal('rate_limited');
+      return c.json(limited.body, limited.status);
+    }
     return c.body(null, 202);
   });
 

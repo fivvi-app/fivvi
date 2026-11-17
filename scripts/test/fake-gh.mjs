@@ -5,13 +5,31 @@
 // applied with jq like gh does. `limited: true` cuts a JSON list to `--limit` like `gh issue list` does. Every call
 // is logged, with the content of an `--input` file and, for `secret set`, the value piped to its stdin. The
 // directory also holds an `xcrun` and an `xcodebuild` that always fail.
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+//
+// A fake `railway` (#1415) sits on PATH too, in a directory of its own behind the one of `gh`: a test that keeps only the
+// first PATH entry (pr.test.mjs, "missing") still sees no `railway`. It answers only `deployment list -p <project> -e
+// <env> -s web --json`, with `[]` unless `railway({...})` says otherwise, logs every call (`railwayCalls()`) and never
+// reaches the real CLI. `railway({ development, production, fail })` is the environment of a run: the list of each
+// environment (an array, or a string for a raw answer) and the environments whose list fails (logged out); merge it into
+// the environment `env` returns. `withoutRailway(env)` is a machine without the CLI.
+import {
+  chmodSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  symlinkSync,
+  writeFileSync,
+} from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { cleanEnv } from './clean-env.mjs';
 
 const GH = `#!/usr/bin/env node
-const { appendFileSync, readFileSync } = require('node:fs');
+const { appendFileSync, mkdtempSync, readFileSync, rmSync, writeFileSync } = require('node:fs');
+const { tmpdir } = require('node:os');
+const { join } = require('node:path');
 const { execFileSync } = require('node:child_process');
 const args = process.argv.slice(2);
 const line = args.join(' ');
@@ -30,10 +48,45 @@ const answer = rule.outs === undefined ? rule.out : rule.outs[Math.min(earlier.f
 let out = answer === undefined ? '' : typeof answer === 'string' ? answer : JSON.stringify(answer);
 if (rule.limited && at('--limit') !== undefined) out = JSON.stringify(JSON.parse(out).slice(0, Number(at('--limit'))));
 const jq = at('--jq') ?? at('-q');
-if (jq !== undefined) out = execFileSync('jq', ['-r', jq], { input: out, encoding: 'utf8' });
-else if (out !== '' && !out.endsWith('\\n')) out += '\\n';
+if (jq !== undefined) {
+  // jq reads a file and gets no stdin at all: a piped input has hung under load, the pipe never ending (#1294).
+  const dir = mkdtempSync(join(tmpdir(), 'fake-gh-jq-'));
+  const limit = Number(process.env.FIVVI_TEST_JQ_TIMEOUT_MS ?? 30000);
+  let timedOut = false;
+  try {
+    writeFileSync(join(dir, 'in.json'), out);
+    out = execFileSync('jq', ['-r', jq, join(dir, 'in.json')], { stdio: ['ignore', 'pipe', 'inherit'], encoding: 'utf8', timeout: limit });
+  } catch (error) {
+    if (error.code !== 'ETIMEDOUT') throw error;
+    timedOut = true;
+  } finally {
+    rmSync(dir, { recursive: true, force: true });
+  }
+  if (timedOut) {
+    process.stderr.write('fake gh: jq did not finish within ' + limit + ' ms for: ' + line + '\\n');
+    process.exit(1);
+  }
+} else if (out !== '' && !out.endsWith('\\n')) out += '\\n';
 process.stdout.write(out);
 process.exitCode = rule.status ?? 0;
+`;
+
+const RAILWAY = `#!/bin/sh
+echo "$*" >> "$FAKE_RAILWAY_LOG"
+[ "$1 $2" = "deployment list" ] || { echo "fake railway: unexpected: $*" >&2; exit 1; }
+environment=
+while [ $# -gt 0 ]; do
+  [ "$1" = -e ] && environment="$2"
+  shift
+done
+case " $FAKE_RAILWAY_FAIL " in
+  *" $environment "*) echo "Unauthorized. Please login with railway login" >&2; exit 1 ;;
+esac
+case "$environment" in
+  development) echo "\${FAKE_RAILWAY_LIST_DEVELOPMENT:-[]}" ;;
+  production) echo "\${FAKE_RAILWAY_LIST_PRODUCTION:-[]}" ;;
+  *) echo "fake railway: unexpected environment: $environment" >&2; exit 1 ;;
+esac
 `;
 
 export function fakeGh() {
@@ -45,19 +98,43 @@ export function fakeGh() {
     writeFileSync(join(dir, tool), '#!/bin/sh\nexit 1\n');
     chmodSync(join(dir, tool), 0o755);
   }
+  const bin = join(dir, 'railway-bin');
+  mkdirSync(bin);
+  writeFileSync(join(bin, 'railway'), RAILWAY);
+  chmodSync(join(bin, 'railway'), 0o755);
+  // The tools the scripts need, for a PATH without any railway.
+  const tools = join(dir, 'tools');
+  mkdirSync(tools);
+  for (const tool of ['jq', 'node', 'git']) {
+    symlinkSync(execFileSync('which', [tool], { encoding: 'utf8' }).trim(), join(tools, tool));
+  }
   const rulesFile = join(dir, 'rules.json');
   const logFile = join(dir, 'calls.log');
+  const railwayLog = join(dir, 'railway.log');
   return {
     env: (rules) => {
       writeFileSync(rulesFile, JSON.stringify(rules));
       writeFileSync(logFile, '');
+      writeFileSync(railwayLog, '');
       return {
         ...cleanEnv(),
-        PATH: `${dir}:${process.env.PATH}`,
+        PATH: `${dir}:${bin}:${process.env.PATH}`,
         FAKE_GH_RULES: rulesFile,
         FAKE_GH_LOG: logFile,
+        FAKE_RAILWAY_LOG: railwayLog,
+        FAKE_RAILWAY_FAIL: '',
       };
     },
+    railway: ({ development, production, fail = [] } = {}) => {
+      const raw = (list) => (typeof list === 'string' ? list : JSON.stringify(list));
+      return {
+        ...(development === undefined ? {} : { FAKE_RAILWAY_LIST_DEVELOPMENT: raw(development) }),
+        ...(production === undefined ? {} : { FAKE_RAILWAY_LIST_PRODUCTION: raw(production) }),
+        FAKE_RAILWAY_FAIL: fail.join(' '),
+      };
+    },
+    withoutRailway: (env) => ({ ...env, PATH: `${dir}:${tools}:/usr/bin:/bin` }),
+    railwayCalls: () => readFileSync(railwayLog, 'utf8').split('\n').filter(Boolean),
     calls: () =>
       readFileSync(logFile, 'utf8')
         .split('\n')

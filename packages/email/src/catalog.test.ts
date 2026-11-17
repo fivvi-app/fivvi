@@ -10,7 +10,12 @@ import {
   internalCatalog,
   templates,
 } from './catalog.ts';
+import { lettermintRequestBody } from './lettermint.ts';
+import { createMemoryTransport } from './memory.ts';
 import type { EmailTemplate } from './render.tsx';
+import { createSendEmail } from './send.ts';
+import { checkContent, checkLinks, checkRendering, checkSyntheticData } from './template-checks.ts';
+import { dutch, english } from './test-languages.ts';
 
 const templatesDirectory = fileURLToPath(new URL('./templates/', import.meta.url));
 
@@ -42,6 +47,7 @@ const sampleTemplate = (id: string): EmailTemplate<unknown> => ({
   subject: () => '',
   preview: () => '',
   render: () => null as never,
+  userContent: [],
   previewProps: {},
 });
 
@@ -71,13 +77,13 @@ describe('F049 AC1: the email catalog', () => {
     expect(templates).toHaveLength(onDisk.length);
   });
 
-  it('AC1: lists every email of the spec table, EM-01 … EM-23, and EM-34 once', () => {
+  it('AC1: lists every email of the spec table, EM-01 … EM-23, and EM-34 to EM-36 once', () => {
     const ids = catalog.map((entry) => entry.id);
     const expected = Array.from(
       { length: 23 },
       (_, index) => `EM-${String(index + 1).padStart(2, '0')}`,
     );
-    expect(ids).toEqual([...expected, 'EM-34']);
+    expect(ids).toEqual([...expected, 'EM-34', 'EM-35', 'EM-36']);
   });
 
   it('AC1: the existing templates are registered under their IDs', () => {
@@ -90,12 +96,22 @@ describe('F049 AC1: the email catalog', () => {
     expect(templateOf('EM-09')).toBe('trainer-invitation');
     expect(templateOf('EM-11')).toBe('private-session');
     expect(templateOf('EM-34')).toBe('email-change-code');
+    expect(templateOf('EM-35')).toBe('email-changed-notice');
+    expect(templateOf('EM-36')).toBe('email-change-taken-notice');
   });
 
   it('AC1: only the emails with a template today are active, EM-01 is retired, the rest reserved', () => {
     const byStatus = (status: string) =>
       catalog.filter((entry) => entry.status === status).map((entry) => entry.id);
-    expect(byStatus('active')).toEqual(['EM-04', 'EM-08', 'EM-09', 'EM-11', 'EM-34']);
+    expect(byStatus('active')).toEqual([
+      'EM-04',
+      'EM-08',
+      'EM-09',
+      'EM-11',
+      'EM-34',
+      'EM-35',
+      'EM-36',
+    ]);
     expect(byStatus('retired')).toEqual(['EM-01']);
     expect(byStatus('reserved')).toEqual([
       'EM-02',
@@ -207,5 +223,82 @@ describe('F049 AC1: the email catalog', () => {
       templatesOnDisk: [template],
     });
     expect(problems.length).toBeGreaterThan(0);
+  });
+});
+
+// F049 (#719): one checklist for every email of the catalog. The suite walks `catalog` and
+// `internalCatalog`, so a template that is registered as active is checked without a change here.
+const checked = [
+  ...catalog.flatMap((entry) =>
+    entry.status === 'active'
+      ? [{ name: `${entry.id} ${entry.template.id}`, template: entry.template, internal: false }]
+      : [],
+  ),
+  ...internalCatalog.map((entry) => ({
+    name: `${entry.key} (internal)`,
+    template: entry.template,
+    internal: true,
+  })),
+];
+
+describe('F049 the catalog suite walks every active entry', () => {
+  it('checks every template of the catalog, the internal ones included', () => {
+    expect(checked.length).toBe(templates.length);
+    expect(checked.map(({ template }) => template)).toEqual([...templates]);
+  });
+});
+
+describe('AC2: both languages, same keys, subject length, plain text', () => {
+  it.each(checked)('$name', async ({ template }) => {
+    expect(await checkRendering(template)).toEqual([]);
+  });
+});
+
+describe('AC5: no tracking, no redirects, no List-Unsubscribe', () => {
+  it.each(checked)(
+    '$name: links go to fivvi.app only, with no pixel or tracker',
+    async ({ template, internal }) => {
+      expect(await checkLinks(template, { allowMailto: internal })).toEqual([]);
+    },
+  );
+
+  it.each(checked)(
+    '$name: the message carries no List-Unsubscribe header',
+    async ({ template }) => {
+      const transport = createMemoryTransport();
+      const send = createSendEmail({ transport, sender: { email: 'noreply@fivvi.app' } });
+      for (const locale of [dutch, english]) {
+        await send({
+          template,
+          props: template.previewProps,
+          to: { email: 'anna@example.com' },
+          locale,
+          event: 'check',
+        });
+      }
+      expect(transport.sent).toHaveLength(2);
+      for (const email of transport.sent) {
+        expect(email).not.toHaveProperty('headers');
+        const request = lettermintRequestBody(email, {
+          signIn: 'sign-in-route',
+          mail: 'mail-route',
+        });
+        expect(request).not.toHaveProperty('headers');
+        expect(JSON.stringify(request)).not.toMatch(/list-unsubscribe/i);
+        expect(email.html + email.text).not.toMatch(/list-unsubscribe/i);
+      }
+    },
+  );
+});
+
+describe("AC6: user content escaped and in the recipient's language, never translated", () => {
+  it.each(checked)('$name', async ({ template }) => {
+    expect(await checkContent(template)).toEqual([]);
+  });
+});
+
+describe('AC7: the preview data is synthetic', () => {
+  it.each(checked)('$name: only example.com addresses', async ({ template }) => {
+    expect(await checkSyntheticData(template)).toEqual([]);
   });
 });

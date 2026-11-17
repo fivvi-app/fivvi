@@ -29,6 +29,16 @@ export {
 export { findSystemGreeting, type SystemGreetingView } from './queries/system-greetings.ts';
 export { recordWrongSignInCode } from './queries/verifications.ts';
 export {
+  type AccessLogActionName,
+  type AccessLogEntryRecord,
+  type AccessLogItem,
+  type AccessLogPage,
+  type AccessLogQuery,
+  accessLogStore,
+  appendAccessLog,
+  listAccessLog,
+} from './repositories/access-log.ts';
+export {
   findAccountForInvitation,
   findAccountIdByEmail,
   findBookingEmails,
@@ -66,6 +76,11 @@ export {
   updateClient,
 } from './repositories/clients.ts';
 export {
+  appendDeletionLog,
+  type DeletionLogEntryRecord,
+  deletionLogStore,
+} from './repositories/deletion-log.ts';
+export {
   type ClassDateChanges,
   type ClassDateUpdate,
   createClassDate,
@@ -87,6 +102,20 @@ export {
   listLocations,
   updateLocation,
 } from './repositories/locations.ts';
+export {
+  addOfferVersion,
+  createOffer,
+  insertOffer,
+  listOffers,
+  listOfferVersions,
+  type NewOffer,
+  type OfferCreditKind,
+  type OfferKind,
+  type OfferStatus,
+  type OfferTerms,
+  type OfferVersionView,
+  type OfferView,
+} from './repositories/offers.ts';
 export {
   findPayment,
   findProviderCustomerId,
@@ -115,6 +144,37 @@ export {
   type PersonalWorkspace,
 } from './repositories/personal-sessions.ts';
 export { listMyWorkspaces, type WorkspacePlace } from './repositories/places.ts';
+export {
+  type ChargebackRecord,
+  findRefund,
+  findRefundFacts,
+  type InRefundScope,
+  type InsertRefundResult,
+  insertRefund,
+  linkProviderRefund,
+  listChargebacksOfPayment,
+  listRefundStatusChanges,
+  listRefundsOfPayment,
+  type NewChargeback,
+  type NewRefund,
+  type NewRefundStatusChange,
+  type RefundFacts,
+  type RefundRecord,
+  type RefundStatus,
+  type RefundStatusChangeRecord,
+  recordChargeback,
+  recordRefundStatusChange,
+  refundLedger,
+} from './repositories/refunds.ts';
+export {
+  type DeletedRow,
+  deleteClosedInvitations,
+  deleteExpiredSessions,
+  deleteOldAccessLogEntries,
+  deleteOldDeletionLogEntries,
+  deleteOldRateLimits,
+  deleteSignInTokens,
+} from './repositories/retention.ts';
 export {
   type AttendanceStatus,
   createPrivateSession,
@@ -148,16 +208,19 @@ export {
   countInvitationsSince,
   createTrainerInvitation,
   findInvitation,
-  findPendingInvitation,
   findPendingInvitationByEmail,
   hasPendingInvitation,
   type InvitationRecord,
+  type InvitationSend,
   listPendingInvitations,
   lockInvitation,
   lockInvitationQuota,
+  lockPendingInvitationSend,
   type NewTrainerInvitation,
   resendInvitation,
   type TrainerInvitationView,
+  undoInvitation,
+  undoResend,
   withdrawInvitation,
 } from './repositories/trainer-invitations.ts';
 export {

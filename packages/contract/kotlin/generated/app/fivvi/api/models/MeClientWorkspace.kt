@@ -23,17 +23,19 @@
 
 package app.fivvi.api.models
 
+import app.fivvi.api.models.TrainerWord
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Contextual
 
 /**
- * A workspace the account is a client of: its ID, URL name and name, nothing more. The account’s own client record in it is the only thing that lists it.
+ * A workspace the account is a client of: its ID, URL name, name and the word it uses for its trainers (F068), nothing more. The account’s own client record in it is the only thing that lists it.
  *
  * @param id The workspace ID.
  * @param slug The URL name: `/w/{slug}` on the web.
  * @param name The name shown in the product.
+ * @param trainerWord 
  */
 @Serializable
 
@@ -49,7 +51,10 @@ data class MeClientWorkspace (
 
     /* The name shown in the product. */
     @SerialName(value = "name")
-    val name: kotlin.String
+    val name: kotlin.String,
+
+    @Contextual @SerialName(value = "trainerWord")
+    val trainerWord: TrainerWord
 
 ) {
 

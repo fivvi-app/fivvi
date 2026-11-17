@@ -27,11 +27,39 @@ type Privilege = 'SELECT' | 'INSERT' | 'UPDATE' | 'DELETE';
 export const CRON_TABLE_PRIVILEGES: Readonly<Record<string, readonly Privilege[]>> = {
   // The record of the cron's runs, and its 90-day retention (platform data, no RLS).
   job_runs: ['SELECT', 'INSERT', 'DELETE'],
+  // The deletion log (E014): the retention tasks write it and delete entries after 30 days. It
+  // is platform data, but it has RLS on all the same (`deletion_log_cron` lets this role in).
+  deletion_log: ['SELECT', 'INSERT', 'DELETE'],
+  // The retention tasks of E014 (`retention.*`): they find rows past their period and delete them,
+  // nothing else. Platform data (no RLS) ... The tables that hold tokens, addresses or IP
+  // addresses have DELETE here and SELECT on single columns only (`CRON_SELECT_COLUMNS`).
+  auth_verifications: ['DELETE'],
+  auth_sessions: ['DELETE'],
+  auth_rate_limits: ['SELECT', 'DELETE'],
+  // ... and business tables, which also have a policy for `fivvi_cron` (the migration that ends
+  // `retention_cron_policies`): closed trainer invitations (R3) and access-log entries (R12).
+  trainer_invitations: ['DELETE'],
+  access_log: ['SELECT', 'DELETE'],
 };
 
 /**
- * Resets the cron role's table privileges in `public` to `CRON_TABLE_PRIVILEGES`, in one
- * transaction, so there is no moment without them. Idempotent; `runMigrations` runs it after the
+ * The columns the cron role may read of a table that has no table-level `SELECT` in
+ * `CRON_TABLE_PRIVILEGES`: the key and the columns a retention task's `WHERE` and `RETURNING`
+ * read, so a task can find and delete the rows past their period and learn nothing else. A
+ * session's token, IP address and user agent, a sign-in request's address and hashes and an
+ * invitation's address and token hash are not here, and the role is refused when it asks for
+ * them. A table listed here is also listed in `CRON_TABLE_PRIVILEGES`, without `SELECT`.
+ */
+export const CRON_SELECT_COLUMNS: Readonly<Record<string, readonly string[]>> = {
+  auth_verifications: ['id', 'expires_at'],
+  auth_sessions: ['id', 'expires_at', 'updated_at'],
+  // `organization_id` comes back with the deleted row for the deletion log (IDs only).
+  trainer_invitations: ['id', 'organization_id', 'status', 'expires_at', 'updated_at'],
+};
+
+/**
+ * Resets the cron role's table privileges in `public` to `CRON_TABLE_PRIVILEGES` and
+ * `CRON_SELECT_COLUMNS`, in one transaction, so there is no moment without them. Idempotent; `runMigrations` runs it after the
  * migrations, next to `grantAppPrivileges`. Tables that don't exist yet are skipped.
  */
 export async function grantCronPrivileges(db: DatabaseExecutor): Promise<void> {
@@ -49,6 +77,15 @@ export async function grantCronPrivileges(db: DatabaseExecutor): Promise<void> {
       await tx.execute(
         sql`grant ${sql.raw(privileges.join(', '))} on ${sql.identifier(table)} to ${role}`,
       );
+    }
+    for (const table of tables) {
+      const columns = CRON_SELECT_COLUMNS[table];
+      if (!columns?.length) continue;
+      const list = sql.join(
+        columns.map((column) => sql.identifier(column)),
+        sql`, `,
+      );
+      await tx.execute(sql`grant select (${list}) on ${sql.identifier(table)} to ${role}`);
     }
   });
 }

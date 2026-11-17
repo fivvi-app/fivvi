@@ -11,6 +11,7 @@ import {
   type ProviderPaymentRequest,
   type ProviderRefund,
   type ProviderRefundRequest,
+  type ProviderRefundStatus,
   type ProviderSettlement,
   type ProviderSettlementLine,
 } from '../provider.ts';
@@ -57,6 +58,7 @@ export class FakePaymentProvider implements PaymentProvider {
 
   private tokenVersion = 1;
   private status: ProviderConnectionStatus = 'ready';
+  private newRefundStatus: ProviderRefundStatus = 'refunded';
   private sequence = 0;
   private readonly workspaces = new Map<string, WorkspaceState>();
   private readonly faults = new Map<FakeMethod, FakeFault[]>();
@@ -90,6 +92,26 @@ export class FakePaymentProvider implements PaymentProvider {
       mandateId,
       checkoutUrl: status === 'open' ? payment.checkoutUrl : null,
     });
+  }
+
+  /** Moves a refund to the status the provider reached with it (a queued refund that is processed, a failed one). */
+  settleRefund(
+    access: ProviderAccess,
+    providerRefundId: string,
+    status: ProviderRefundStatus,
+  ): void {
+    const state = this.stateOf(access);
+    state.refunds.set(providerRefundId, { ...this.refundOf(state, providerRefundId), status });
+  }
+
+  /** The refunds the fake holds for a workspace, in creation order. */
+  refundsOf(access: ProviderAccess): ProviderRefund[] {
+    return [...this.stateOf(access).refunds.values()];
+  }
+
+  /** The status a refund has when it is created from now on; the default is `refunded` (a queued one is `queued`). */
+  createRefundsAs(status: ProviderRefundStatus): void {
+    this.newRefundStatus = status;
   }
 
   /** The client paid. */
@@ -198,7 +220,12 @@ export class FakePaymentProvider implements PaymentProvider {
         throw new ProviderError('rejected', 'Only a paid payment can be refunded.');
       }
       const refunded = [...state.refunds.values()]
-        .filter((refund) => refund.paymentId === payment.id)
+        .filter(
+          (refund) =>
+            refund.paymentId === payment.id &&
+            refund.status !== 'failed' &&
+            refund.status !== 'canceled',
+        )
         .reduce((sum, refund) => sum + refund.amountCents, 0);
       if (
         !Number.isInteger(request.amountCents) ||
@@ -212,7 +239,7 @@ export class FakePaymentProvider implements PaymentProvider {
         id,
         paymentId: payment.id,
         amountCents: request.amountCents,
-        status: 'refunded',
+        status: this.newRefundStatus,
         metadata: { ...request.metadata },
       };
       state.refunds.set(id, refund);
@@ -226,6 +253,14 @@ export class FakePaymentProvider implements PaymentProvider {
       const refund = this.refundOf(this.stateOf(access), refundId);
       if (refund.paymentId !== paymentId) throw new ProviderError('not_found', 'No such refund.');
       return refund;
+    });
+  }
+
+  listRefunds(access: ProviderAccess, paymentId: string): Promise<ProviderRefund[]> {
+    return this.run('listRefunds', access, paymentId, () => {
+      const state = this.stateOf(access);
+      this.paymentOf(state, paymentId);
+      return [...state.refunds.values()].filter((refund) => refund.paymentId === paymentId);
     });
   }
 

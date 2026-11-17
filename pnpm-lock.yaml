@@ -322,6 +322,9 @@ importers:
       '@fivvi/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@fivvi/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@fivvi/observability':
         specifier: workspace:*
         version: link:../../packages/observability
@@ -362,6 +365,9 @@ importers:
       '@fivvi/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@fivvi/domain':
+        specifier: workspace:*
+        version: link:../../packages/domain
       '@fivvi/email':
         specifier: workspace:*
         version: link:../../packages/email
@@ -668,6 +674,9 @@ importers:
 
   packages/email:
     dependencies:
+      '@fivvi/design-tokens':
+        specifier: workspace:*
+        version: link:../design-tokens
       '@fivvi/i18n':
         specifier: workspace:*
         version: link:../i18n

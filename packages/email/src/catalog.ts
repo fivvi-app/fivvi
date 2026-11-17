@@ -1,6 +1,8 @@
 import type { EmailMessageKey, EmailTemplate } from './render.tsx';
 import { demoRequestEmail } from './templates/demo-request.tsx';
 import { emailChangeCodeEmail } from './templates/email-change-code.tsx';
+import { emailChangeTakenNoticeEmail } from './templates/email-change-taken-notice.tsx';
+import { emailChangedNoticeEmail } from './templates/email-changed-notice.tsx';
 import { helloEmail } from './templates/hello.tsx';
 import { privateSessionEmail } from './templates/private-session.tsx';
 import { privateSessionMovedEmail } from './templates/private-session-moved.tsx';
@@ -24,7 +26,7 @@ export type EmailAudience =
   | 'invited-trainer'
   /** Anyone signing in (EM-08): there is no workspace. */
   | 'anyone'
-  /** The person who changes the address of their account (EM-34): the new address only. */
+  /** Whoever holds the address of an account change: the new address (EM-34, EM-36) or the old one (EM-35). */
   | 'account-holder';
 
 /** A template of any props type, as the catalog, the preview and the render tests hold them. */
@@ -275,6 +277,24 @@ export const catalog: readonly CatalogEntry[] = [
     template: register(emailChangeCodeEmail),
     note: 'The code that confirms a new address, sent to that address only.',
   },
+  {
+    id: 'EM-35',
+    status: 'active',
+    audience: 'account-holder',
+    owner: ['F005', 'F033'],
+    subjectKeys: ['email.emailChanged.subject'],
+    template: register(emailChangedNoticeEmail),
+    note: 'The notice to the OLD address after a confirmed change: no link, and what to do if it was not them.',
+  },
+  {
+    id: 'EM-36',
+    status: 'active',
+    audience: 'account-holder',
+    owner: ['F005', 'F033'],
+    subjectKeys: ['email.emailChangeTaken.subject'],
+    template: register(emailChangeTakenNoticeEmail),
+    note: 'Goes to an address that already has an account, instead of the code (EM-34), when someone asks to change another account to it.',
+  },
 ];
 
 /** Emails with no EM ID: they go to Fivvi itself or to a developer, never to a client, trainer or owner. */
@@ -304,6 +324,17 @@ export const templates: readonly AnyEmailTemplate[] = [
   ...catalog.flatMap((entry) => (entry.status === 'active' ? [entry.template] : [])),
   ...internalCatalog.map((entry) => entry.template),
 ];
+
+/**
+ * The catalog ID a template is sent under: `EM-11` for a catalog email, the entry's `key` for an
+ * internal one (`demo-request`). `undefined` for a template that is not in the catalog.
+ */
+export function catalogIdOf(templateId: string): string | undefined {
+  for (const entry of catalog) {
+    if (entry.status === 'active' && entry.template.id === templateId) return entry.id;
+  }
+  return internalCatalog.find((entry) => entry.template.id === templateId)?.key;
+}
 
 export interface CatalogCheckInput {
   catalog: readonly CatalogEntry[];

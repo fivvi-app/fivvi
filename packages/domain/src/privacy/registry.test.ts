@@ -53,6 +53,7 @@ describe('E014 AC1: every table in the schema is in the privacy registry', () =>
       'organizations',
       'job_runs',
       'system_greetings',
+      'exercise_library',
       'team_members',
       'trainer_profiles',
       'clients',
@@ -144,6 +145,38 @@ describe('E014 AC1: every table in the schema is in the privacy registry', () =>
     expect(retentionOf('auth_rate_limits')).toBe('RATE_LIMIT');
     expect(retentionOf('clients')).toBe('TRASH');
     expect(retentionOf('trainer_invitations')).toBe('TRAINER_INVITATION_AFTER_CLOSING');
+  });
+
+  it('AC21/AC22 (E014 #1173): declares the access log under its 12-month constant and the deletion log under its 30-day constant', () => {
+    const access = declaredTable('access_log');
+    const deletion = declaredTable('deletion_log');
+    expect(access?.personal && access.retention).toBe('ACCESS_LOG');
+    expect(deletion?.personal && deletion.retention).toBe('DELETION_LOG');
+    expect(RETENTION.ACCESS_LOG).toEqual({ unit: 'months', amount: 12 });
+    expect(RETENTION.DELETION_LOG).toEqual({ unit: 'days', amount: 30 });
+  });
+
+  it('keeps the entries of both logs unchanged until their retention constant ends, whoever is deleted', () => {
+    // The tables are write-once and the access log's client action needs the client ID; a restore
+    // re-applies the deletion log after the workspace is gone (retention-policy.md §3.5).
+    for (const table of ['access_log', 'deletion_log']) {
+      const declaration = declaredTable(table);
+      expect(declaration?.personal && declaration.onDelete, table).toBe('keep-for-law');
+    }
+  });
+
+  it('exports no content from the logs: only IDs, the action and the time', () => {
+    const access = declaredTable('access_log');
+    expect(access?.personal && access.export).toEqual([
+      'id',
+      'actor_team_member_id',
+      'action',
+      'subject_client_id',
+      'object_id',
+      'occurred_at',
+      'created_at',
+      'updated_at',
+    ]);
   });
 
   it('keeps the booking and attendance of a deleted client as an anonymous count', () => {

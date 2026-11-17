@@ -29,8 +29,10 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import app.fivvi.api.models.MeWorkspace
 import app.fivvi.core.AppLanguage
 import app.fivvi.core.LanguageViewModel
+import app.fivvi.core.R as CoreR
 import app.fivvi.core.observability.Observability
 import app.fivvi.core.signin.SignInActions
+import app.fivvi.core.signin.SignInLogo
 import app.fivvi.core.signin.SignInScreen
 import app.fivvi.core.signin.SignInViewModel
 import app.fivvi.core.theme.FivviTheme
@@ -39,7 +41,6 @@ import app.fivvi.core.ui.OnForeground
 import app.fivvi.core.web.SiteLinks
 import app.fivvi.pro.capabilities.WorkspaceCapabilities
 import app.fivvi.pro.clients.ClientsFlow
-import app.fivvi.pro.hello.HelloViewModel
 import app.fivvi.pro.home.HomeDestination
 import app.fivvi.pro.home.HomeScreen
 import app.fivvi.pro.home.HomeViewModel
@@ -72,7 +73,7 @@ class MainActivity : ComponentActivity() {
                         // App start: no token is the sign-in screen, with no authenticated call; a token is the home.
                         val auth by dependencies.session.state.collectAsStateWithLifecycle()
                         if (auth.signedIn) {
-                            Home(dependencies, key = "${auth.generation}", language)
+                            Home(dependencies, key = "${auth.generation}")
                         } else {
                             SignIn(dependencies, key = "${auth.generation}", language, auth.afterRejection)
                         }
@@ -108,7 +109,13 @@ class MainActivity : ComponentActivity() {
             // Signed out, the choice is kept on the device and saved on the account at sign-in (AC4, AC5).
             onChooseLanguage = dependencies.languagePreference::choose,
         )
-        SignInScreen(state, actions, showsSignedOutNotice = showsSignedOutNotice)
+        SignInScreen(
+            state,
+            actions,
+            showsSignedOutNotice = showsSignedOutNotice,
+            // The Fivvi Pro day dial, light in light mode and dark in dark mode, in place of a letter mark (E020).
+            logo = SignInLogo(R.drawable.fivvi_pro_dial_light, R.drawable.fivvi_pro_dial_dark, CoreR.string.app_name),
+        )
     }
 
     // The system browser, never a web view: creating a workspace happens on the web only (F002 AC10).
@@ -160,10 +167,7 @@ class MainActivity : ComponentActivity() {
     }
 
     @Composable
-    private fun Home(dependencies: AppDependencies, key: String, language: AppLanguage) {
-        val hello = viewModel(key = "hello-$key-${language.tag}") {
-            HelloViewModel(dependencies.helloApi, language.apiLocale)
-        }
+    private fun Home(dependencies: AppDependencies, key: String) {
         // What the API lists per workspace (F004 AC10), the one helper that decides which actions show. `GET /v1/me` fills
         // it on opening and on foreground; *Klanten* and *+ Nieuwe klant* (F006, M4) show from it, and nothing else decides.
         val capabilities = viewModel(key = "capabilities-$key") { WorkspaceCapabilities(dependencies.meApi) }
@@ -182,7 +186,6 @@ class MainActivity : ComponentActivity() {
                 onWorkspaces = capabilities::replace,
             )
         }
-        val helloState by hello.state.collectAsStateWithLifecycle()
         val meState by me.state.collectAsStateWithLifecycle()
         val signingOut by me.signingOut.collectAsStateWithLifecycle()
         var showsProfile by rememberSaveable { mutableStateOf(false) }
@@ -229,10 +232,8 @@ class MainActivity : ComponentActivity() {
             return
         }
         HomeScreen(
-            helloState,
             meState,
             signingOut,
-            onRetryHello = hello::retry,
             onRetryMe = me::retry,
             onSignOut = me::signOut,
             onOpenWeb = ::openWelcomeOnTheWeb,

@@ -149,6 +149,25 @@
     "title": "Geen toegang",
     "body": "Je hebt geen toegang tot deze pagina. Vraag de eigenaar van {workspace}."
   },
+  "joinLink": {
+    "title": "Aanmeldlink",
+    "body": "Voor nieuwe klanten: ze loggen in en vragen of ze klant mogen worden. De eigenaar keurt elk verzoek goed.",
+    "copy": "Link kopiëren",
+    "copied": "Link gekopieerd.",
+    "renew": "Vernieuwen",
+    "renewDialog": {
+      "title": "Aanmeldlink vernieuwen?",
+      "body": "De huidige link en de QR-codes ervan werken daarna niet meer. Verzoeken die al zijn verstuurd blijven staan.",
+      "confirm": "Vernieuwen",
+      "cancel": "Terug"
+    },
+    "renewed": "De aanmeldlink is vernieuwd.",
+    "errors": {
+      "copy": "Kopiëren is niet gelukt. Selecteer de link en kopieer hem zelf.",
+      "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
+      "generic": "Er ging iets mis. Probeer het opnieuw."
+    }
+  },
   "workspaceNav": {
     "label": "Hoofdnavigatie",
     "settings": "Instellingen",
@@ -160,7 +179,75 @@
     "clients": "Klanten",
     "new": "Nieuw",
     "newMenu": "Nieuw maken",
-    "newClient": "Klant"
+    "newClient": "Klant",
+    "newPrivateSession": "Privésessie",
+    "joinLink": "Aanmeldlink",
+    "personal": "Persoonlijk",
+    "myDay": "Mijn dag",
+    "myCalendar": "Mijn agenda"
+  },
+  "myDay": {
+    "title": "Mijn dag",
+    "summaryNone": "Geen sessies",
+    "summary": "{count, plural, one {# sessie} other {# sessies}} · {first}–{last}",
+    "listLabel": "Sessies van vandaag",
+    "nextUpcoming": "Straks · over {minutes} min",
+    "nextInProgress": "Nu bezig",
+    "typePrivate": "Privésessie",
+    "typeGroup": "Groepsles",
+    "booked": "{booked}/{capacity} geboekt",
+    "timeRange": "{start}–{end}",
+    "typeWithDetail": "{type} · {detail}",
+    "spokenTime": "{start} tot {end}",
+    "spokenJoin": "{first}, {next}",
+    "cancelled": "Geannuleerd",
+    "tomorrow": "Morgen: {count, plural, one {# sessie} other {# sessies}}, eerste om {time}",
+    "emptyToday": "Geen sessies vandaag.",
+    "emptyNext": "Geen sessies vandaag. Je volgende sessie is op {date}.",
+    "emptyNever": "Je hebt nog geen sessies. Je ziet ze hier zodra je bent ingepland."
+  },
+  "myCalendar": {
+    "title": "Mijn agenda",
+    "range": "{start} – {end}",
+    "timeRange": "{start}–{end}",
+    "views": "Weergave",
+    "viewDay": "Dag",
+    "viewWeek": "Week",
+    "viewList": "Lijst",
+    "today": "Vandaag",
+    "previous": "Vorige",
+    "next": "Volgende",
+    "legend": "Soorten sessies",
+    "typePrivate": "Privé",
+    "typeGroup": "Groep",
+    "block": "{type} · {name}",
+    "blockBooked": "{booked}/{capacity}",
+    "spokenTime": "{start} tot {end}",
+    "spokenJoin": "{first}, {next}",
+    "cancelled": "Geannuleerd",
+    "gridDay": "Agenda van {date}",
+    "gridWeek": "Agenda van {range}",
+    "clockForward": "Zomertijd: de klok gaat 1 uur vooruit",
+    "clockBack": "Wintertijd: de klok gaat 1 uur terug",
+    "filterType": "Soort",
+    "filterWorkspace": "Werkruimte",
+    "optionPrivate": "Privé",
+    "optionGroup": "Groepsles",
+    "showCancelled": "Geannuleerde tonen",
+    "clearFilters": "Filters wissen",
+    "noResults": "Geen resultaten met deze filters.",
+    "emptyDay": "Geen sessies op deze dag.",
+    "emptyWeek": "Geen sessies in deze week.",
+    "listCaption": "Sessies van {range}",
+    "columnDay": "Dag",
+    "columnTime": "Tijd",
+    "columnSession": "Sessie",
+    "columnType": "Soort",
+    "columnWorkspace": "Werkruimte",
+    "columnStatus": "Status"
+  },
+  "personal": {
+    "timeZoneHint": "Tijden in Nederlandse tijd"
   },
   "workspaceSwitcher": {
     "newWorkspace": "+ Nieuwe werkruimte"
@@ -212,10 +299,24 @@
       "validity": "De code werkt {minutes, plural, one {# minuut} other {# minuten}}. Met dit e-mailadres log je daarna in bij Fivvi.",
       "ignore": "Heb je dit niet aangevraagd? Dan kun je deze e-mail negeren. Er verandert niets."
     },
+    "emailChanged": {
+      "subject": "Het e-mailadres van je Fivvi-account is gewijzigd",
+      "preview": "Dit e-mailadres hoort niet meer bij je Fivvi-account.",
+      "intro": "Het e-mailadres van je Fivvi-account is zojuist gewijzigd. Met dit e-mailadres log je niet meer in; dat doe je nu met het nieuwe e-mailadres.",
+      "fine": "Heb jij dit gedaan? Dan hoef je niets te doen.",
+      "notYou": "Was jij dit niet? Neem dan direct contact met ons op via Help en contact op fivvi.app, dan zoeken we het uit."
+    },
+    "emailChangeTaken": {
+      "subject": "Iemand wilde dit e-mailadres voor een ander Fivvi-account gebruiken",
+      "preview": "Er is geen code gestuurd en er is niets veranderd.",
+      "intro": "Iemand vroeg om een code om dit e-mailadres te gebruiken voor een ander Fivvi-account. Dit e-mailadres hoort al bij een account, dus we hebben geen code gestuurd.",
+      "unchanged": "Er is niets veranderd. Je account en je gegevens zijn niet aangepast en blijven van jou.",
+      "ignore": "Je hoeft niets te doen. Je kunt deze e-mail negeren."
+    },
     "trainerInvitation": {
       "subject": "{inviter} nodigt je uit voor {workspace}",
-      "preview": "Je bent uitgenodigd om trainer te worden bij {workspace}.",
-      "intro": "{inviter} nodigt je uit om trainer te worden bij {workspace}.",
+      "preview": "Je bent uitgenodigd om {aWord} te worden bij {workspace}.",
+      "intro": "{inviter} nodigt je uit om {aWord} te worden bij {workspace}.",
       "button": "Uitnodiging bekijken",
       "validity": "Deze uitnodiging is geldig tot {date}.",
       "ignore": "Verwacht je deze e-mail niet? Dan kun je hem negeren."
@@ -226,10 +327,10 @@
       "intro": "Er is een privésessie voor je gepland bij {workspace}.",
       "when": "Wanneer: {date}, {start} tot {end}",
       "where": "Waar: {location}",
-      "trainer": "Trainer: {trainer}"
+      "trainer": "{Word}: {trainer}"
     },
     "privateSessionMoved": {
-      "subject": "Wijziging: je sessie op {oldDate} is verplaatst naar {newDate}",
+      "subject": "Wijziging: je sessie is verplaatst naar {newDate}",
       "dateTime": "{date} om {time}",
       "preview": "Je privésessie is verplaatst naar {newDate}.",
       "intro": "Je privésessie bij {workspace} is verplaatst.",
@@ -263,7 +364,42 @@
   },
   "roles": {
     "owner": "Eigenaar",
-    "trainer": "Trainer"
+    "trainer": "Trainer",
+    "trainerLabel": "{Word}"
+  },
+  "trainerWord": {
+    "trainer": {
+      "word": "trainer",
+      "words": "trainers",
+      "wordCap": "Trainer",
+      "wordsCap": "Trainers",
+      "aWord": "een trainer",
+      "aWordCap": "Een trainer"
+    },
+    "instructeur": {
+      "word": "instructeur",
+      "words": "instructeurs",
+      "wordCap": "Instructeur",
+      "wordsCap": "Instructeurs",
+      "aWord": "een instructeur",
+      "aWordCap": "Een instructeur"
+    },
+    "docent": {
+      "word": "docent",
+      "words": "docenten",
+      "wordCap": "Docent",
+      "wordsCap": "Docenten",
+      "aWord": "een docent",
+      "aWordCap": "Een docent"
+    },
+    "coach": {
+      "word": "coach",
+      "words": "coaches",
+      "wordCap": "Coach",
+      "wordsCap": "Coaches",
+      "aWord": "een coach",
+      "aWordCap": "Een coach"
+    }
   },
   "myProfile": {
     "title": "Mijn profiel",
@@ -338,6 +474,44 @@
     },
     "badge": {
       "trainer": "Trainer"
+    },
+    "invite": {
+      "title": "Trainer uitnodigen",
+      "description": "We sturen een e-mail met een uitnodiging naar dit adres.",
+      "nameLabel": "Naam",
+      "emailLabel": "E-mailadres",
+      "localeLabel": "Taal van de e-mail",
+      "localeDefault": "Standaard van de werkruimte ({language})",
+      "localeNl": "Nederlands",
+      "localeEn": "English",
+      "submit": "Versturen",
+      "cancel": "Annuleren",
+      "sent": "Uitnodiging verstuurd naar {name}.",
+      "alreadyOnTeam": "{name} zit al in het team.",
+      "alreadyInvited": "Er staat al een uitnodiging open voor dit e-mailadres.",
+      "sendAgain": "Opnieuw sturen",
+      "errors": {
+        "nameRequired": "Vul een naam in.",
+        "nameTooLong": "Deze naam is te lang. Gebruik maximaal 120 tekens.",
+        "emailRequired": "Vul een e-mailadres in.",
+        "emailInvalid": "Vul een geldig e-mailadres in.",
+        "tooMany": "Je hebt in de laatste 24 uur al 20 uitnodigingen verstuurd. Probeer het later opnieuw.",
+        "notSent": "Niet verstuurd. Controleer je verbinding en probeer het opnieuw."
+      }
+    },
+    "invitations": {
+      "status": "Uitgenodigd",
+      "sendAgain": "Opnieuw sturen",
+      "sentAgain": "Uitnodiging opnieuw verstuurd",
+      "withdraw": "Intrekken",
+      "withdrawDialog": {
+        "title": "Uitnodiging intrekken?",
+        "body": "De link in de e-mail aan {email} werkt dan niet meer.",
+        "confirm": "Intrekken",
+        "cancel": "Terug"
+      },
+      "withdrawn": "Uitnodiging aan {name} ingetrokken.",
+      "gone": "Deze uitnodiging staat er niet meer."
     }
   },
   "clients": {
@@ -388,10 +562,102 @@
       "edit": "Bewerken",
       "editTitle": "Klant bewerken",
       "save": "Opslaan",
-      "saved": "Opgeslagen."
+      "saved": "Opgeslagen.",
+      "upcomingTitle": "Komende sessies",
+      "upcomingEmpty": "Nog geen sessies gepland",
+      "upcomingWhen": "{date} om {time}"
     },
     "newClient": "Nieuwe klant",
     "offline": "Je bent offline. Laatst bijgewerkt om {time}."
+  },
+  "sessions": {
+    "title": "Sessie",
+    "page": {
+      "heading": "Privésessie met {client}",
+      "whenLabel": "Wanneer",
+      "whereLabel": "Locatie",
+      "trainerLabel": "{Word}",
+      "clientLabel": "Klant",
+      "timeRange": "{date}, {start}–{end}",
+      "noTrainer": "Geen {word}",
+      "cancelled": "Deze sessie is geannuleerd.",
+      "reschedule": "Verplaatsen",
+      "clientProfile": "Klantprofiel",
+      "moved": "Verplaatst naar {date} om {time}."
+    },
+    "form": {
+      "title": "Nieuwe privésessie",
+      "description": "Kies een klant en een moment. De locatie staat al ingevuld.",
+      "close": "Sluiten",
+      "loadFailed": "De gegevens konden niet worden geladen.",
+      "clientLabel": "Klant",
+      "clientSearch": "Zoek op naam of e-mail",
+      "clientResults": "Klanten",
+      "clientNone": "Geen klanten gevonden.",
+      "clientChange": "Wijzigen",
+      "clientNew": "+ Nieuwe klant",
+      "clientNewNamed": "+ Nieuwe klant ‘{query}’",
+      "newClientTitle": "Nieuwe klant",
+      "newClientAdd": "Klant toevoegen",
+      "newClientCancel": "Annuleren",
+      "clientExists": "Er is al een klant met dit e-mailadres: {name}.",
+      "clientUse": "Die gebruiken",
+      "dateLabel": "Datum",
+      "startLabel": "Begin",
+      "durationLabel": "Duur",
+      "durationMinutes": "{minutes} min",
+      "durationOther": "Andere duur",
+      "endsAt": "Eindigt om {time}",
+      "endsAtNextDay": "Eindigt om {time} (volgende dag)",
+      "trainerLabel": "{Word}",
+      "trainerMe": "{name} (ik)",
+      "trainerChoose": "Kies {aWord}",
+      "location": "Locatie: {name}",
+      "notify": "{client} een bevestiging sturen",
+      "notifyNote": "{email} · {language}",
+      "languageNl": "in het Nederlands",
+      "languageEn": "in het Engels",
+      "cancel": "Annuleren",
+      "save": "Opslaan",
+      "discardTitle": "Wijzigingen weggooien?",
+      "discardDescription": "Wat je hebt ingevuld, wordt niet bewaard.",
+      "discard": "Weggooien",
+      "keepEditing": "Verder bewerken",
+      "saved": "Sessie met {client} gepland op {date} om {time}.",
+      "open": "Openen",
+      "errors": {
+        "chooseClient": "Kies een klant.",
+        "chooseTrainer": "Kies {aWord}.",
+        "dateRequired": "Kies een datum.",
+        "startRequired": "Kies een begintijd.",
+        "invalidDate": "Deze datum bestaat niet.",
+        "invalidTime": "Dit is geen geldige tijd.",
+        "timeDoesNotExist": "Deze tijd bestaat niet op {date} door de zomertijd.",
+        "noPermission": "Je hebt geen rechten voor deze sessie.",
+        "notSaved": "Niet opgeslagen. Controleer je verbinding en probeer het opnieuw."
+      },
+      "notes": {
+        "repeatedTime": "Op {date} komt {time} twee keer voor. We gebruiken de eerste keer (zomertijd).",
+        "past": "Deze tijd ligt in het verleden. De klant krijgt geen e-mail."
+      },
+      "workspaceLabel": "Werkruimte"
+    },
+    "reschedule": {
+      "title": "Sessie verplaatsen",
+      "subtitle": "{client} · Privésessie",
+      "current": "Nu: {date}, {start}–{end} · {location}",
+      "dateLabel": "Nieuwe datum",
+      "locationUnchanged": "{location} (ongewijzigd)",
+      "notify": "{client} informeren per e-mail",
+      "notifyNote": "{client} krijgt de e-mail {language}.",
+      "cancel": "Annuleren",
+      "submit": "Verplaatsen",
+      "submitNotify": "Verplaatsen en informeren",
+      "changedBy": "Deze sessie is net gewijzigd door {name}.",
+      "changedByUnknown": "Deze sessie is net gewijzigd.",
+      "cancelled": "Deze sessie is geannuleerd en kan niet worden verplaatst.",
+      "noPermission": "Je hebt geen rechten meer voor deze sessie."
+    }
   },
   "clientNav": {
     "label": "Hoofdnavigatie",
@@ -422,6 +688,9 @@
       "tooManyRows": "Dit bestand heeft meer dan 5.000 rijen.",
       "unreadable": "We kunnen dit bestand niet lezen. Gebruik het sjabloon (.xlsx) of een UTF-8 CSV."
     }
+  },
+  "accessLog": {
+    "deletedClient": "Verwijderde klant"
   },
   "noWorkspace": {
     "title": "Vraag je studio om de aanmeldlink.",
@@ -968,11 +1237,7 @@
       "privacy": "Privacyverklaring",
       "terms": "Algemene voorwaarden",
       "subProcessors": "Subverwerkers",
-      "tradeName": "{name}, handelend onder de naam Fivvi",
-      "kvk": "KvK-nummer",
-      "vat": "Btw-nummer",
-      "address": "Adres",
-      "phone": "Telefoon of WhatsApp"
+      "tradeName": "{name}, handelend onder de naam Fivvi"
     },
     "cta": {
       "heading": "Hoe ziet jouw dag eruit in Fivvi?",
@@ -1146,6 +1411,169 @@
         "noConnection": "Je aanvraag is niet verstuurd: er is geen verbinding. Controleer je internet en probeer het opnieuw.",
         "failed": "Je aanvraag is niet verstuurd. Probeer het later opnieuw, of mail ons op {email}."
       }
+    }
+  },
+  "exercises": {
+    "names": {
+      "benchPress": "Bankdrukken",
+      "inclineBenchPress": "Schuine bankdrukken",
+      "declineBenchPress": "Bankdrukken negatief",
+      "dumbbellBenchPress": "Dumbbell bankdrukken",
+      "inclineDumbbellPress": "Schuine dumbbell press",
+      "closeGripBenchPress": "Bankdrukken smalle greep",
+      "dumbbellFly": "Dumbbell flyes",
+      "cableFly": "Kabel flyes",
+      "machineChestPress": "Chest press (machine)",
+      "pecDeck": "Pec deck",
+      "dumbbellPullover": "Pullover",
+      "pushUp": "Opdrukken",
+      "inclinePushUp": "Opdrukken op verhoging",
+      "kneePushUp": "Opdrukken op de knieën",
+      "dips": "Dips",
+      "deadlift": "Deadlift",
+      "romanianDeadlift": "Roemeense deadlift",
+      "singleLegRomanianDeadlift": "Roemeense deadlift op één been",
+      "sumoDeadlift": "Sumo deadlift",
+      "trapBarDeadlift": "Trap bar deadlift",
+      "barbellRow": "Halter roeien",
+      "dumbbellRow": "Dumbbell roeien",
+      "seatedCableRow": "Kabel roeien",
+      "machineRow": "Roeien (machine)",
+      "tBarRow": "T-bar roeien",
+      "latPulldown": "Lat pulldown",
+      "closeGripLatPulldown": "Lat pulldown smalle greep",
+      "straightArmPulldown": "Pulldown met gestrekte armen",
+      "pullUp": "Pull-up",
+      "chinUp": "Chin-up",
+      "assistedPullUp": "Pull-up met ondersteuning",
+      "invertedRow": "Australian pull-up",
+      "backExtension": "Rugstrekken",
+      "goodMorning": "Good morning",
+      "shrug": "Shrugs",
+      "superman": "Superman",
+      "facePull": "Face pull",
+      "overheadPress": "Overhead press",
+      "dumbbellShoulderPress": "Dumbbell schouderdrukken",
+      "machineShoulderPress": "Schouderdrukken (machine)",
+      "arnoldPress": "Arnold press",
+      "landminePress": "Landmine press",
+      "lateralRaise": "Zijwaarts heffen",
+      "cableLateralRaise": "Zijwaarts heffen aan de kabel",
+      "frontRaise": "Voorwaarts heffen",
+      "rearDeltFly": "Reverse flyes",
+      "uprightRow": "Upright row",
+      "bicepsCurl": "Biceps curl",
+      "barbellCurl": "Halter curl",
+      "hammerCurl": "Hammer curl",
+      "preacherCurl": "Preacher curl",
+      "cableCurl": "Kabel curl",
+      "tricepsPushdown": "Triceps pushdown",
+      "overheadTricepsExtension": "Triceps extension boven het hoofd",
+      "skullCrusher": "Skull crusher",
+      "benchDip": "Bankdips",
+      "wristCurl": "Pols curl",
+      "farmersWalk": "Farmer's walk",
+      "backSquat": "Squat",
+      "frontSquat": "Front squat",
+      "gobletSquat": "Goblet squat",
+      "boxSquat": "Box squat",
+      "smithMachineSquat": "Squat in de Smith machine",
+      "bodyweightSquat": "Squat zonder gewicht",
+      "jumpSquat": "Jump squats",
+      "legPress": "Beenpers",
+      "hackSquat": "Hack squat",
+      "lunge": "Lunges",
+      "walkingLunge": "Walking lunges",
+      "reverseLunge": "Achterwaartse lunges",
+      "bulgarianSplitSquat": "Bulgaarse split squat",
+      "stepUp": "Step-ups",
+      "legExtension": "Leg extension",
+      "lyingLegCurl": "Leg curl liggend",
+      "seatedLegCurl": "Leg curl zittend",
+      "nordicHamstringCurl": "Nordic hamstring curl",
+      "wallSit": "Wall sit",
+      "hipThrust": "Hip thrust",
+      "gluteBridge": "Glute bridge",
+      "singleLegGluteBridge": "Glute bridge op één been",
+      "cableGluteKickback": "Kickback aan de kabel",
+      "hipAbductionMachine": "Abductie (machine)",
+      "hipAdductionMachine": "Adductie (machine)",
+      "copenhagenPlank": "Copenhagen plank",
+      "kettlebellSwing": "Kettlebell swing",
+      "standingCalfRaise": "Kuitheffen staand",
+      "seatedCalfRaise": "Kuitheffen zittend",
+      "plank": "Plank",
+      "sidePlank": "Zijplank",
+      "hollowHold": "Hollow hold",
+      "crunch": "Crunches",
+      "sitUp": "Sit-ups",
+      "bicycleCrunch": "Fietscrunches",
+      "cableCrunch": "Kabel crunch",
+      "deadBug": "Dead bug",
+      "birdDog": "Bird dog",
+      "hangingLegRaise": "Hangend benen heffen",
+      "lyingLegRaise": "Liggend benen heffen",
+      "russianTwist": "Russian twist",
+      "abWheelRollout": "Ab wheel rollout",
+      "pallofPress": "Pallof press",
+      "mountainClimber": "Mountain climbers",
+      "burpee": "Burpees",
+      "thruster": "Thruster",
+      "powerClean": "Clean",
+      "turkishGetUp": "Turkish get-up",
+      "wallBall": "Wall balls",
+      "boxJump": "Box jumps",
+      "bearCrawl": "Bear crawl",
+      "jumpingJack": "Jumping jacks",
+      "highKnees": "High knees",
+      "jumpRope": "Touwtjespringen",
+      "rowingMachine": "Roeien",
+      "skiErgometer": "Ski-ergometer",
+      "running": "Hardlopen",
+      "treadmillRun": "Hardlopen op de loopband",
+      "walking": "Wandelen",
+      "inclineWalk": "Wandelen op een helling",
+      "stationaryBike": "Fietsen (hometrainer)",
+      "airBike": "Air bike",
+      "elliptical": "Crosstrainer",
+      "stairClimber": "Traploper"
+    },
+    "muscleGroups": {
+      "chest": "borst",
+      "back": "rug",
+      "shoulders": "schouders",
+      "biceps": "biceps",
+      "triceps": "triceps",
+      "forearms": "onderarmen",
+      "quadriceps": "quadriceps",
+      "hamstrings": "hamstrings",
+      "glutes": "billen",
+      "calves": "kuiten",
+      "adductors": "adductoren",
+      "core": "core",
+      "cardio": "conditie",
+      "fullBody": "hele lichaam"
+    },
+    "types": {
+      "weightReps": "Gewicht × herhalingen",
+      "repsOnly": "Alleen herhalingen",
+      "time": "Tijd",
+      "distanceTime": "Afstand + tijd"
+    }
+  },
+  "invitation": {
+    "title": "Uitnodiging",
+    "intro": "{inviter} nodigt je uit om trainer te worden bij {workspace}.",
+    "introAnonymous": "Je bent uitgenodigd om trainer te worden bij {workspace}.",
+    "accept": "Accepteren",
+    "decline": "Afwijzen",
+    "declined": "Je hebt de uitnodiging afgewezen.",
+    "wrongAccount": "Deze uitnodiging is voor {maskedEmail}. Log uit en log in met dat e-mailadres.",
+    "signOutAndContinue": "Uitloggen en verder",
+    "noLongerValid": "Deze uitnodiging is niet meer geldig. Vraag om een nieuwe uitnodiging.",
+    "errors": {
+      "noConnection": "Geen verbinding. Controleer je internet en probeer het opnieuw.",
+      "generic": "Er ging iets mis. Probeer het opnieuw."
     }
   }
 }

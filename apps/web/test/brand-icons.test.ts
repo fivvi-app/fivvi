@@ -9,6 +9,8 @@ import { brandFiles } from '../scripts/brand-icons.ts';
 // differs from what the script makes of the brand files today.
 const webRoot = path.resolve(import.meta.dirname, '..');
 const brandDir = path.resolve(webRoot, '../../docs/design/brand');
+const ANDROID_DIAL = '../android/app/src/main/res/drawable-nodpi/fivvi_pro_dial';
+const ANDROID_CLIENT_DIAL = '../android/client/src/main/res/drawable-nodpi/fivvi_dial';
 const brand = (name: string) => readFileSync(path.join(brandDir, name));
 
 /** The width and height of a PNG: the IHDR chunk after the 8-byte signature. */
@@ -36,10 +38,16 @@ describe('#669 the brand files of the website', () => {
     const files = await brandFiles();
 
     expect(Object.keys(files).sort()).toEqual([
+      '../android/app/src/main/res/drawable-nodpi/fivvi_pro_dial_dark.png',
+      '../android/app/src/main/res/drawable-nodpi/fivvi_pro_dial_light.png',
+      '../android/client/src/main/res/drawable-nodpi/fivvi_dial_dark.png',
+      '../android/client/src/main/res/drawable-nodpi/fivvi_dial_light.png',
       'app/apple-icon.png',
       'app/favicon.ico',
       'app/icon.png',
       'app/icon.svg',
+      'public/site-images/brand/app-icon-512.png',
+      'public/site-images/brand/app-icon-maskable-512.png',
       'public/site-images/brand/fivvi-day-dial-dark.svg',
       'public/site-images/brand/fivvi-day-dial.svg',
       'public/site-images/brand/fivvi-logo-dark.svg',
@@ -86,6 +94,47 @@ describe('#669 the brand files of the website', () => {
       [32, 32, 32, 32],
       [48, 48, 48, 48],
     ]);
+  });
+
+  it('makes the Fivvi Pro dial of the Android sign-in, light and dark, 512 px, from the b2-pro SVGs (E020, #632)', async () => {
+    const files = await brandFiles();
+    const light = files[`${ANDROID_DIAL}_light.png`] as Buffer;
+    const dark = files[`${ANDROID_DIAL}_dark.png`] as Buffer;
+
+    expect(pngSize(light)).toEqual([512, 512]);
+    expect(pngSize(dark)).toEqual([512, 512]);
+    // The rounded clip of the drawing stays: the corner is empty, the file keeps the alpha.
+    expect(firstPixel(light)[3]).toBe(0);
+    expect(firstPixel(dark)[3]).toBe(0);
+    expect(light.equals(dark)).toBe(false);
+  });
+
+  it('makes the plain Fivvi dial of the client app sign-in on Android, light and dark, 512 px, from the b2 SVGs (E020, #634)', async () => {
+    const files = await brandFiles();
+    const light = files[`${ANDROID_CLIENT_DIAL}_light.png`] as Buffer;
+    const dark = files[`${ANDROID_CLIENT_DIAL}_dark.png`] as Buffer;
+
+    expect(pngSize(light)).toEqual([512, 512]);
+    expect(pngSize(dark)).toEqual([512, 512]);
+    expect(firstPixel(light)[3]).toBe(0);
+    expect(firstPixel(dark)[3]).toBe(0);
+    expect(light.equals(dark)).toBe(false);
+    // The plain dial, never the Fivvi Pro one with its PRO label.
+    expect(light.equals(files[`${ANDROID_DIAL}_light.png`] as Buffer)).toBe(false);
+    expect(dark.equals(files[`${ANDROID_DIAL}_dark.png`] as Buffer)).toBe(false);
+  });
+
+  it('F013 AC9: makes the icons of the web app manifest, 512 px: the favicon as drawn, and a maskable one that fills the whole square', async () => {
+    const files = await brandFiles();
+    const any = files['public/site-images/brand/app-icon-512.png'] as Buffer;
+    const maskable = files['public/site-images/brand/app-icon-maskable-512.png'] as Buffer;
+
+    expect(pngSize(any)).toEqual([512, 512]);
+    expect(pngSize(maskable)).toEqual([512, 512]);
+    // Like `app/icon.png`: the rounded corners of the drawing stay empty.
+    expect(firstPixel(any)[3]).toBe(0);
+    // A maskable icon is cropped by the phone to its own shape, so no corner may be empty.
+    expect(firstPixel(maskable)[3]).toBe(255);
   });
 
   it('keeps the rounded corners of the favicon, but fills the whole square for iOS, which rounds it itself', async () => {

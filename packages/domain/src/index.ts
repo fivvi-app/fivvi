@@ -10,6 +10,14 @@ export {
   type NewClientFacts,
 } from './clients/new-client.ts';
 export {
+  DEFAULT_PLAN_KEYS,
+  DEFAULT_PLANS,
+  type DefaultPlan,
+  type DefaultPlanKey,
+  type DefaultPlanTerms,
+  defaultOffers,
+} from './commerce/default-offers.ts';
+export {
   type BillingDetails,
   type BillingDetailsDecision,
   type BillingDetailsInput,
@@ -174,6 +182,40 @@ export {
   type ProviderSettlement,
   type ProviderSettlementLine,
 } from './payments/provider.ts';
+export type {
+  ChargebackRecord,
+  InsertRefundResult,
+  NewChargeback,
+  NewRefund,
+  RecordRefundStatusChange,
+  RefundLedger,
+  RefundRecord,
+  RefundStatusChange,
+} from './payments/refund-ledger.ts';
+export {
+  decideRefundStatusChange,
+  REFUND_STATUSES,
+  type RefundStatus,
+  type RefundStatusDecision,
+  refundHoldsAmount,
+  refundStatusOfProvider,
+} from './payments/refund-status.ts';
+export { type RefundBasis, refundableAmount } from './payments/refundable.ts';
+export {
+  type AppliedRefundStatus,
+  type ApplyRefundStatusOptions,
+  applyProviderRefundStatus,
+  InvalidRefundError,
+  type InvalidRefundField,
+  REFUND_REASON_MAX_LENGTH,
+  type RefundEngine,
+  type RefundRequest,
+  type RequestedRefund,
+  recordReversal,
+  refundableOf,
+  requestRefund,
+  submitRefund,
+} from './payments/refunds.ts';
 export {
   decideStatusChange,
   PAYMENT_STATUSES,
@@ -189,6 +231,28 @@ export {
   type Role,
   rolesWith,
 } from './permissions/matrix.ts';
+export {
+  ACCESS_LOG_ACTIONS,
+  type AccessLog,
+  type AccessLogAction,
+  type AccessLogEntry,
+  type AccessLogEntryInput,
+  type AccessLogStore,
+  accessLogEntry,
+  createAccessLog,
+  InvalidAccessLogEntryError,
+  type InvalidAccessLogEntryField,
+} from './privacy/access-log.ts';
+export {
+  createDeletionLog,
+  type DeletionLog,
+  type DeletionLogEntry,
+  type DeletionLogEntryInput,
+  type DeletionLogStore,
+  deletionLogEntry,
+  InvalidDeletionLogEntryError,
+  type InvalidDeletionLogEntryField,
+} from './privacy/deletion-log.ts';
 export { renderPrivacyInventory } from './privacy/inventory.ts';
 export {
   declaredTable,
@@ -206,8 +270,22 @@ export {
   RETENTION_BASIS,
   type RetentionKey,
   type RetentionPeriod,
+  retentionCutoff,
   retentionEndsAt,
 } from './privacy/retention.ts';
+export {
+  type CalendarFilters,
+  type ClockChange,
+  clockChangeOn,
+  type FilterableItem,
+  filterCalendarItems,
+  layoutOverlaps,
+  mondayOf,
+  type OverlapBlock,
+  type PlacedInDay,
+  placeInDay,
+  weekDates,
+} from './scheduling/calendar-grid.ts';
 export {
   decideGroupDateEdit,
   GROUP_CLASS_LIMITS,

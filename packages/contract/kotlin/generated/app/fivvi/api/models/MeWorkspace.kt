@@ -23,6 +23,7 @@
 
 package app.fivvi.api.models
 
+import app.fivvi.api.models.TrainerWord
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
@@ -34,6 +35,7 @@ import kotlinx.serialization.Contextual
  * @param id The workspace ID.
  * @param name The name shown in the product.
  * @param slug The URL name: `/w/{slug}` on the web.
+ * @param trainerWord 
  * @param role What the account is in the workspace; shown as a label, never decided on.
  * @param capabilities What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
  */
@@ -52,6 +54,9 @@ data class MeWorkspace (
     /* The URL name: `/w/{slug}` on the web. */
     @SerialName(value = "slug")
     val slug: kotlin.String,
+
+    @Contextual @SerialName(value = "trainerWord")
+    val trainerWord: TrainerWord,
 
     /* What the account is in the workspace; shown as a label, never decided on. */
     @SerialName(value = "role")
@@ -76,7 +81,7 @@ data class MeWorkspace (
     /**
      * What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
      *
-     * Values: WORKSPACE_PERIOD_MANAGE,TEAM_PERIOD_VIEW,TEAM_PERIOD_MANAGE,TRAINERS_PERIOD_VIEW,CLIENTS_PERIOD_VIEW,CLIENTS_PERIOD_MANAGE,LOCATION_PERIOD_READ,SETTINGS_PERIOD_MANAGE,TEAM_PERIOD_INVITE,SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_OWN,SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_ANY,CLASS_PERIOD_MANAGE,CLASS_PERIOD_READ,JOIN_LINK_PERIOD_VIEW,JOIN_LINK_PERIOD_RENEW,BOOKING_LINK_PERIOD_MANAGE,BOOKING_LINK_PERIOD_COPY
+     * Values: WORKSPACE_PERIOD_MANAGE,TEAM_PERIOD_VIEW,TEAM_PERIOD_MANAGE,TRAINERS_PERIOD_VIEW,CLIENTS_PERIOD_VIEW,CLIENTS_PERIOD_MANAGE,LOCATION_PERIOD_READ,SETTINGS_PERIOD_MANAGE,TEAM_PERIOD_INVITE,SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_OWN,SESSION_PERIOD_PRIVATE_PERIOD_MANAGE_PERIOD_ANY,CLASS_PERIOD_MANAGE,CLASS_PERIOD_READ,JOIN_LINK_PERIOD_VIEW,JOIN_LINK_PERIOD_RENEW,BOOKING_LINK_PERIOD_MANAGE,BOOKING_LINK_PERIOD_COPY,ACCESS_LOG_PERIOD_READ
      */
     @Serializable
     enum class Capabilities(val value: kotlin.String) {
@@ -96,7 +101,8 @@ data class MeWorkspace (
         @SerialName(value = "join_link.view") JOIN_LINK_PERIOD_VIEW("join_link.view"),
         @SerialName(value = "join_link.renew") JOIN_LINK_PERIOD_RENEW("join_link.renew"),
         @SerialName(value = "booking_link.manage") BOOKING_LINK_PERIOD_MANAGE("booking_link.manage"),
-        @SerialName(value = "booking_link.copy") BOOKING_LINK_PERIOD_COPY("booking_link.copy");
+        @SerialName(value = "booking_link.copy") BOOKING_LINK_PERIOD_COPY("booking_link.copy"),
+        @SerialName(value = "access_log.read") ACCESS_LOG_PERIOD_READ("access_log.read");
     }
 
 }

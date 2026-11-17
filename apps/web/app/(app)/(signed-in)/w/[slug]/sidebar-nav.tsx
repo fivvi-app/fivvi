@@ -21,7 +21,24 @@ const icons = {
       <path d="M3.5 20c.8-3.6 3.3-5.5 6.5-5.5 1.6 0 3 .5 4.1 1.4M18 13v6M15 16h6" />
     </>
   ),
+  // The prototype's `link` icon (`app.js`).
+  joinLink: (
+    <path d="M10 14a4 4 0 0 0 5.7 0l3-3a4 4 0 0 0-5.7-5.7l-1 1M14 10a4 4 0 0 0-5.7 0l-3 3a4 4 0 0 0 5.7 5.7l1-1" />
+  ),
   settings: <path d="M4 20l1-4.5L16 4.5l3.5 3.5-11 11z" />,
+  // The prototype's `sun` and `cal` icons (`app.js`): *Mijn dag* and *Mijn agenda*.
+  day: (
+    <>
+      <circle cx="12" cy="12" r="4.2" fill="currentColor" stroke="none" />
+      <path d="M12 2.5v2M12 19.5v2M2.5 12h2M19.5 12h2M5.3 5.3l1.4 1.4M17.3 17.3l1.4 1.4M5.3 18.7l1.4-1.4M17.3 6.7l1.4-1.4" />
+    </>
+  ),
+  calendar: (
+    <>
+      <rect x="3.5" y="5" width="17" height="15" rx="3.5" />
+      <path d="M3.5 10h17M8 3v4M16 3v4" />
+    </>
+  ),
 } satisfies Record<string, ReactNode>;
 
 /** One section of the navigation. `base` is the path it covers, when that is more than its link. */
@@ -34,6 +51,7 @@ export type NavItem = {
   children?: readonly { href: string; label: string }[];
 };
 
+// 44 px high on a phone, the touch target of the density the page would have there (F013 AC9).
 const link =
   'flex items-center gap-2.5 rounded-lg px-2.5 text-sm font-medium text-muted-foreground hover:bg-muted hover:text-foreground aria-[current]:bg-muted aria-[current]:text-foreground';
 
@@ -47,56 +65,82 @@ function within(pathname: string | null, base: string): boolean {
  * server lists for this person, each with an icon, the one the person is on marked as the current
  * page (the prototype's highlighted row, the icon in the accent text). The sub-pages of a section
  * are listed under it. Which sections there are is decided by the frame from the person's
- * capabilities; nothing here knows a role.
+ * capabilities; nothing here knows a role. A person with a trainer profile also gets the group
+ * *Persoonlijk* above the workspace's (`personal`, F013), each group under its heading.
  */
-export function SidebarNav({ label, items }: { label: string; items: readonly NavItem[] }) {
+export function SidebarNav({
+  label,
+  items,
+  heading,
+  personal,
+}: {
+  label: string;
+  items: readonly NavItem[];
+  /** The workspace group's heading, given with `personal`. */
+  heading?: string;
+  /** The personal group: *Mijn dag* and *Mijn agenda*, for a person with a trainer profile. */
+  personal?: { heading: string; items: readonly NavItem[] };
+}) {
   const pathname = usePathname();
   // `page` only on the page the link goes to; `true` on a link whose section holds the page.
   const current = (href: string, base = href) =>
     pathname === href ? ('page' as const) : within(pathname, base) ? ('true' as const) : undefined;
 
+  const list = (sections: readonly NavItem[]) => (
+    <div className="grid gap-px">
+      {sections.map((item) => (
+        <div key={item.href} className="grid gap-px">
+          <Link
+            href={item.href as Route}
+            aria-current={current(item.href, item.base)}
+            className={`${link} h-11 md:h-8.5 aria-[current]:[&>svg]:text-accent-text`}
+          >
+            <svg
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="1.8"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              aria-hidden="true"
+              className="size-4.5 shrink-0"
+            >
+              {icons[item.icon]}
+            </svg>
+            <span className="truncate">{item.label}</span>
+          </Link>
+          {item.children ? (
+            <ul className="ms-5 grid gap-px border-s ps-2">
+              {item.children.map((child) => (
+                <li key={child.href}>
+                  <Link
+                    href={child.href as Route}
+                    aria-current={current(child.href)}
+                    className={`${link} h-11 text-[13px] md:h-8`}
+                  >
+                    <span className="truncate">{child.label}</span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ))}
+    </div>
+  );
+
+  const groupHeading =
+    'px-2.5 pt-3 pb-1 text-[11px] font-semibold tracking-wide text-muted-foreground uppercase';
   return (
     <nav aria-label={label}>
-      <div className="grid gap-px">
-        {items.map((item) => (
-          <div key={item.href} className="grid gap-px">
-            <Link
-              href={item.href as Route}
-              aria-current={current(item.href, item.base)}
-              className={`${link} h-8.5 aria-[current]:[&>svg]:text-accent-text`}
-            >
-              <svg
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="1.8"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-                className="size-4.5 shrink-0"
-              >
-                {icons[item.icon]}
-              </svg>
-              <span className="truncate">{item.label}</span>
-            </Link>
-            {item.children ? (
-              <ul className="ms-5 grid gap-px border-s ps-2">
-                {item.children.map((child) => (
-                  <li key={child.href}>
-                    <Link
-                      href={child.href as Route}
-                      aria-current={current(child.href)}
-                      className={`${link} h-8 text-[13px]`}
-                    >
-                      <span className="truncate">{child.label}</span>
-                    </Link>
-                  </li>
-                ))}
-              </ul>
-            ) : null}
-          </div>
-        ))}
-      </div>
+      {personal ? (
+        <>
+          <p className={groupHeading}>{personal.heading}</p>
+          {list(personal.items)}
+          {heading ? <p className={groupHeading}>{heading}</p> : null}
+        </>
+      ) : null}
+      {list(items)}
     </nav>
   );
 }

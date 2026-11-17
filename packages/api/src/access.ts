@@ -57,7 +57,8 @@ export type Access =
  * the response is returned; they never run when the request fails (status 400 and up, or an error),
  * because the transaction rolled back. A task that throws is reported (`errorReporter`) and the
  * response is not changed: the data is stored, so the request has succeeded; the sending does its
- * own retrying (`@fivvi/email`).
+ * own retrying (`@fivvi/email`). A task may replace the response itself (`c.res`): the trainer
+ * invitation's task answers `500` when its email could not be sent and it took the invitation back.
  */
 export type AfterCommit = (task: () => Promise<void> | void) => void;
 

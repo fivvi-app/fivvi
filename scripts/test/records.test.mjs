@@ -1,16 +1,13 @@
 import assert from 'node:assert/strict';
-import { spawnSync } from 'node:child_process';
 import { join } from 'node:path';
 import { describe, it } from 'node:test';
+import { jq } from './jq.mjs';
 
 const SCRIPTS = join(import.meta.dirname, '..');
 const SHA = 'a'.repeat(40);
 
 const run = (body, filter) => {
-  const result = spawnSync('jq', ['-c', '-L', SCRIPTS, `include "records"; ${filter}`], {
-    input: JSON.stringify(body),
-    encoding: 'utf8',
-  });
+  const result = jq(['-c', '-L', SCRIPTS, `include "records"; ${filter}`], JSON.stringify(body));
   assert.equal(result.status, 0, result.stderr);
   return JSON.parse(result.stdout);
 };

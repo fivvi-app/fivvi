@@ -341,6 +341,8 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MeWorkspace/slug`.
             public var slug: Swift.String
+            /// - Remark: Generated from `#/components/schemas/MeWorkspace/trainerWord`.
+            public var trainerWord: Components.Schemas.TrainerWord
             /// What the account is in the workspace; shown as a label, never decided on.
             ///
             /// - Remark: Generated from `#/components/schemas/MeWorkspace/role`.
@@ -371,6 +373,7 @@ extension Components {
                 case joinLink_renew = "join_link.renew"
                 case bookingLink_manage = "booking_link.manage"
                 case bookingLink_copy = "booking_link.copy"
+                case accessLog_read = "access_log.read"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -386,18 +389,21 @@ extension Components {
             ///   - id: The workspace ID.
             ///   - name: The name shown in the product.
             ///   - slug: The URL name: `/w/{slug}` on the web.
+            ///   - trainerWord:
             ///   - role: What the account is in the workspace; shown as a label, never decided on.
             ///   - capabilities: What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             public init(
                 id: Swift.String,
                 name: Swift.String,
                 slug: Swift.String,
+                trainerWord: Components.Schemas.TrainerWord,
                 role: Components.Schemas.MeWorkspace.RolePayload,
                 capabilities: Components.Schemas.MeWorkspace.CapabilitiesPayload
             ) {
                 self.id = id
                 self.name = name
                 self.slug = slug
+                self.trainerWord = trainerWord
                 self.role = role
                 self.capabilities = capabilities
             }
@@ -405,11 +411,21 @@ extension Components {
                 case id
                 case name
                 case slug
+                case trainerWord
                 case role
                 case capabilities
             }
         }
-        /// A workspace the account is a client of: its ID, URL name and name, nothing more. The account’s own client record in it is the only thing that lists it.
+        /// The word the product uses for the people who teach in the workspace: `trainer`, `instructeur`, `docent` or `coach`. It is only a label shown to the team and the clients, in their own language; the role stays `trainer` in the API and nobody’s rights depend on it. Every workspace starts on `trainer`.
+        ///
+        /// - Remark: Generated from `#/components/schemas/TrainerWord`.
+        @frozen public enum TrainerWord: String, Codable, Hashable, Sendable, CaseIterable {
+            case trainer = "trainer"
+            case instructeur = "instructeur"
+            case docent = "docent"
+            case coach = "coach"
+        }
+        /// A workspace the account is a client of: its ID, URL name, name and the word it uses for its trainers (F068), nothing more. The account’s own client record in it is the only thing that lists it.
         ///
         /// - Remark: Generated from `#/components/schemas/MeClientWorkspace`.
         public struct MeClientWorkspace: Codable, Hashable, Sendable {
@@ -425,25 +441,31 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MeClientWorkspace/name`.
             public var name: Swift.String
+            /// - Remark: Generated from `#/components/schemas/MeClientWorkspace/trainerWord`.
+            public var trainerWord: Components.Schemas.TrainerWord
             /// Creates a new `MeClientWorkspace`.
             ///
             /// - Parameters:
             ///   - id: The workspace ID.
             ///   - slug: The URL name: `/w/{slug}` on the web.
             ///   - name: The name shown in the product.
+            ///   - trainerWord:
             public init(
                 id: Swift.String,
                 slug: Swift.String,
-                name: Swift.String
+                name: Swift.String,
+                trainerWord: Components.Schemas.TrainerWord
             ) {
                 self.id = id
                 self.slug = slug
                 self.name = name
+                self.trainerWord = trainerWord
             }
             public enum CodingKeys: String, CodingKey {
                 case id
                 case slug
                 case name
+                case trainerWord
             }
         }
         /// A workspace the account is on the team of.
@@ -462,6 +484,8 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/MyWorkspace/slug`.
             public var slug: Swift.String
+            /// - Remark: Generated from `#/components/schemas/MyWorkspace/trainerWord`.
+            public var trainerWord: Components.Schemas.TrainerWord
             /// What the account is on the team; shown as a label, never decided on.
             ///
             /// - Remark: Generated from `#/components/schemas/MyWorkspace/role`.
@@ -492,6 +516,7 @@ extension Components {
                 case joinLink_renew = "join_link.renew"
                 case bookingLink_manage = "booking_link.manage"
                 case bookingLink_copy = "booking_link.copy"
+                case accessLog_read = "access_log.read"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -511,6 +536,7 @@ extension Components {
             ///   - workspaceId: The workspace ID.
             ///   - name: The name shown in the product.
             ///   - slug: The URL name: `/w/{slug}` on the web.
+            ///   - trainerWord:
             ///   - role: What the account is on the team; shown as a label, never decided on.
             ///   - capabilities: What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///   - trainsHere: Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner.
@@ -518,6 +544,7 @@ extension Components {
                 workspaceId: Swift.String,
                 name: Swift.String,
                 slug: Swift.String,
+                trainerWord: Components.Schemas.TrainerWord,
                 role: Components.Schemas.MyWorkspace.RolePayload,
                 capabilities: Components.Schemas.MyWorkspace.CapabilitiesPayload,
                 trainsHere: Swift.Bool
@@ -525,6 +552,7 @@ extension Components {
                 self.workspaceId = workspaceId
                 self.name = name
                 self.slug = slug
+                self.trainerWord = trainerWord
                 self.role = role
                 self.capabilities = capabilities
                 self.trainsHere = trainsHere
@@ -533,6 +561,7 @@ extension Components {
                 case workspaceId
                 case name
                 case slug
+                case trainerWord
                 case role
                 case capabilities
                 case trainsHere
@@ -1296,6 +1325,27 @@ extension Components {
                 case items
             }
         }
+        /// Too many requests from this network or this account in the last minutes or hour. Nothing was stored or sent. Contains no user-facing text.
+        ///
+        /// - Remark: Generated from `#/components/schemas/PublicRequestRateLimited`.
+        public struct PublicRequestRateLimited: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/PublicRequestRateLimited/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case rateLimited = "rate_limited"
+            }
+            /// - Remark: Generated from `#/components/schemas/PublicRequestRateLimited/code`.
+            public var code: Components.Schemas.PublicRequestRateLimited.CodePayload
+            /// Creates a new `PublicRequestRateLimited`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            public init(code: Components.Schemas.PublicRequestRateLimited.CodePayload) {
+                self.code = code
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+            }
+        }
         /// Asks for the sign-in email. `locale` is the interface language the app resolved; the email follows ADR-019.
         ///
         /// - Remark: Generated from `#/components/schemas/SignInRequest`.
@@ -1535,6 +1585,8 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/Workspace/timeZone`.
             public var timeZone: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Workspace/trainerWord`.
+            public var trainerWord: Components.Schemas.TrainerWord
             /// Creates a new `Workspace`.
             ///
             /// - Parameters:
@@ -1543,18 +1595,21 @@ extension Components {
             ///   - slug: The URL name, made from the name when the workspace is created and never changed by a rename. Lower case letters, digits and hyphens.
             ///   - defaultLocale:
             ///   - timeZone: The IANA time zone dates and times are shown in, for example `Europe/Amsterdam`.
+            ///   - trainerWord:
             public init(
                 id: Swift.String,
                 name: Swift.String,
                 slug: Swift.String,
                 defaultLocale: Components.Schemas.Locale,
-                timeZone: Swift.String
+                timeZone: Swift.String,
+                trainerWord: Components.Schemas.TrainerWord
             ) {
                 self.id = id
                 self.name = name
                 self.slug = slug
                 self.defaultLocale = defaultLocale
                 self.timeZone = timeZone
+                self.trainerWord = trainerWord
             }
             public enum CodingKeys: String, CodingKey {
                 case id
@@ -1562,6 +1617,7 @@ extension Components {
                 case slug
                 case defaultLocale
                 case timeZone
+                case trainerWord
             }
         }
         /// Creates a workspace for the caller, who becomes its Owner. Nothing else is asked: the default language, the time zone and the slug are the platform’s defaults.
@@ -1593,7 +1649,7 @@ extension Components {
                 case personName
             }
         }
-        /// Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), or both. The slug stays, so links keep working. Other fields are ignored.
+        /// Changes a workspace: its name, its default communication language (the language of emails to people whose own preference is unknown, never what anyone sees on screen, ADR-017), the word it uses for its trainers (`trainerWord`, F068), or any of them. The slug stays, so links keep working. Other fields are ignored.
         ///
         /// - Remark: Generated from `#/components/schemas/UpdateWorkspaceRequest`.
         public struct UpdateWorkspaceRequest: Codable, Hashable, Sendable {
@@ -1603,21 +1659,27 @@ extension Components {
             public var name: Swift.String?
             /// - Remark: Generated from `#/components/schemas/UpdateWorkspaceRequest/defaultLocale`.
             public var defaultLocale: Components.Schemas.Locale?
+            /// - Remark: Generated from `#/components/schemas/UpdateWorkspaceRequest/trainerWord`.
+            public var trainerWord: Components.Schemas.TrainerWord?
             /// Creates a new `UpdateWorkspaceRequest`.
             ///
             /// - Parameters:
             ///   - name: The new name, as the product shows it from now on.
             ///   - defaultLocale:
+            ///   - trainerWord:
             public init(
                 name: Swift.String? = nil,
-                defaultLocale: Components.Schemas.Locale? = nil
+                defaultLocale: Components.Schemas.Locale? = nil,
+                trainerWord: Components.Schemas.TrainerWord? = nil
             ) {
                 self.name = name
                 self.defaultLocale = defaultLocale
+                self.trainerWord = trainerWord
             }
             public enum CodingKeys: String, CodingKey {
                 case name
                 case defaultLocale
+                case trainerWord
             }
         }
         /// Who sent the report that the person switched workspace.
@@ -1912,7 +1974,7 @@ extension Components {
                 case emailLocale
             }
         }
-        /// What the link of a valid invitation shows to anyone who holds it, signed in or not.
+        /// What the link of a valid invitation shows to anyone who holds it, signed in or not. `forYou` is the one part that depends on who asks.
         ///
         /// - Remark: Generated from `#/components/schemas/InvitationPreview`.
         public struct InvitationPreview: Codable, Hashable, Sendable {
@@ -1928,25 +1990,33 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/InvitationPreview/maskedEmail`.
             public var maskedEmail: Swift.String
+            /// Whether the signed-in account may answer this invitation: its verified address is the one the invitation is for. `false` for another account, an address that is not verified, and when nobody is signed in.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvitationPreview/forYou`.
+            public var forYou: Swift.Bool
             /// Creates a new `InvitationPreview`.
             ///
             /// - Parameters:
             ///   - workspaceName: The name of the workspace that invites.
             ///   - inviterName: The name of the Owner who invited, `null` while they have given none. Never their address.
             ///   - maskedEmail: The address the invitation is for, hidden except for its first character and its domain (`l***@example.com`), so a person signed in with another address can see which to use.
+            ///   - forYou: Whether the signed-in account may answer this invitation: its verified address is the one the invitation is for. `false` for another account, an address that is not verified, and when nobody is signed in.
             public init(
                 workspaceName: Swift.String,
                 inviterName: Swift.String? = nil,
-                maskedEmail: Swift.String
+                maskedEmail: Swift.String,
+                forYou: Swift.Bool
             ) {
                 self.workspaceName = workspaceName
                 self.inviterName = inviterName
                 self.maskedEmail = maskedEmail
+                self.forYou = forYou
             }
             public enum CodingKeys: String, CodingKey {
                 case workspaceName
                 case inviterName
                 case maskedEmail
+                case forYou
             }
         }
         /// A team member who trains in the workspace.
@@ -3848,6 +3918,133 @@ extension Components {
                 case email
                 case emailLocale
                 case clearEmailLocale
+            }
+        }
+        /// One page of the access log of a workspace.
+        ///
+        /// - Remark: Generated from `#/components/schemas/AccessLogList`.
+        public struct AccessLogList: Codable, Hashable, Sendable {
+            /// This page of entries, newest first.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogList/items`.
+            public var items: [Components.Schemas.AccessLogEntry]
+            /// How many entries match, over all pages.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogList/total`.
+            public var total: Swift.Int
+            /// Creates a new `AccessLogList`.
+            ///
+            /// - Parameters:
+            ///   - items: This page of entries, newest first.
+            ///   - total: How many entries match, over all pages.
+            public init(
+                items: [Components.Schemas.AccessLogEntry],
+                total: Swift.Int
+            ) {
+                self.items = items
+                self.total = total
+            }
+            public enum CodingKeys: String, CodingKey {
+                case items
+                case total
+            }
+        }
+        /// One entry of the access log: who did what to which client, and when. IDs, names and a time; no free text, never note content.
+        ///
+        /// - Remark: Generated from `#/components/schemas/AccessLogEntry`.
+        public struct AccessLogEntry: Codable, Hashable, Sendable {
+            /// The entry ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogEntry/id`.
+            public var id: Swift.String
+            /// When it happened, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogEntry/occurredAt`.
+            public var occurredAt: Foundation.Date
+            /// What was done: `client.exported`, `client.trashed`, `client.restored`, `client.purged`, `workspace.exported`, `client.retention_kept`, and from M7 `note.viewed` and `note.changed`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogEntry/action`.
+            @frozen public enum ActionPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case client_exported = "client.exported"
+                case client_trashed = "client.trashed"
+                case client_restored = "client.restored"
+                case client_purged = "client.purged"
+                case workspace_exported = "workspace.exported"
+                case client_retentionKept = "client.retention_kept"
+                case note_viewed = "note.viewed"
+                case note_changed = "note.changed"
+            }
+            /// What was done: `client.exported`, `client.trashed`, `client.restored`, `client.purged`, `workspace.exported`, `client.retention_kept`, and from M7 `note.viewed` and `note.changed`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogEntry/action`.
+            public var action: Components.Schemas.AccessLogEntry.ActionPayload
+            /// The team member who did it. `null` for what the daily cleanup does by itself. The ID stays when the team member has left the team.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogEntry/actorTeamMemberId`.
+            public var actorTeamMemberId: Swift.String?
+            /// The team member’s name now (their email address when they have given none). `null` when there is no team member, or when they have left the team.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogEntry/actorName`.
+            public var actorName: Swift.String?
+            /// The client the action was about; `null` for an action about no client (`workspace.exported`). The ID stays after the client is deleted, so the list can still be filtered by it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogEntry/clientId`.
+            public var clientId: Swift.String?
+            /// The client’s name now. `null` for an action about no client. A client that no longer exists reads as *Verwijderde klant* or *Deleted client*, in the language of the reader (their stored language, else `Accept-Language`, else English); `clientRemoved` is `true` then.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogEntry/clientName`.
+            public var clientName: Swift.String?
+            /// `true` when the entry is about a client who no longer exists.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogEntry/clientRemoved`.
+            public var clientRemoved: Swift.Bool
+            /// The note’s ID for `note.viewed` and `note.changed`; `null` for any other action. The log never holds a note’s text.
+            ///
+            /// - Remark: Generated from `#/components/schemas/AccessLogEntry/objectId`.
+            public var objectId: Swift.String?
+            /// Creates a new `AccessLogEntry`.
+            ///
+            /// - Parameters:
+            ///   - id: The entry ID.
+            ///   - occurredAt: When it happened, a UTC instant.
+            ///   - action: What was done: `client.exported`, `client.trashed`, `client.restored`, `client.purged`, `workspace.exported`, `client.retention_kept`, and from M7 `note.viewed` and `note.changed`.
+            ///   - actorTeamMemberId: The team member who did it. `null` for what the daily cleanup does by itself. The ID stays when the team member has left the team.
+            ///   - actorName: The team member’s name now (their email address when they have given none). `null` when there is no team member, or when they have left the team.
+            ///   - clientId: The client the action was about; `null` for an action about no client (`workspace.exported`). The ID stays after the client is deleted, so the list can still be filtered by it.
+            ///   - clientName: The client’s name now. `null` for an action about no client. A client that no longer exists reads as *Verwijderde klant* or *Deleted client*, in the language of the reader (their stored language, else `Accept-Language`, else English); `clientRemoved` is `true` then.
+            ///   - clientRemoved: `true` when the entry is about a client who no longer exists.
+            ///   - objectId: The note’s ID for `note.viewed` and `note.changed`; `null` for any other action. The log never holds a note’s text.
+            public init(
+                id: Swift.String,
+                occurredAt: Foundation.Date,
+                action: Components.Schemas.AccessLogEntry.ActionPayload,
+                actorTeamMemberId: Swift.String? = nil,
+                actorName: Swift.String? = nil,
+                clientId: Swift.String? = nil,
+                clientName: Swift.String? = nil,
+                clientRemoved: Swift.Bool,
+                objectId: Swift.String? = nil
+            ) {
+                self.id = id
+                self.occurredAt = occurredAt
+                self.action = action
+                self.actorTeamMemberId = actorTeamMemberId
+                self.actorName = actorName
+                self.clientId = clientId
+                self.clientName = clientName
+                self.clientRemoved = clientRemoved
+                self.objectId = objectId
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case occurredAt
+                case action
+                case actorTeamMemberId
+                case actorName
+                case clientId
+                case clientName
+                case clientRemoved
+                case objectId
             }
         }
     }

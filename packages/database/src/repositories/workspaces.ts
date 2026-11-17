@@ -1,5 +1,5 @@
 import { randomUUID } from 'node:crypto';
-import type { Locale } from '@fivvi/i18n';
+import type { Locale, TrainerWord } from '@fivvi/i18n';
 import { and, asc, eq, inArray, sql } from 'drizzle-orm';
 import {
   authUsers,
@@ -16,6 +16,7 @@ import {
   type TenantScope,
   type WorkspaceScope,
 } from '../tenant-scope.ts';
+import { insertOffer, type NewOffer } from './offers.ts';
 
 // Creating a workspace (F002, ADR-022). The row of a workspace is out of reach of the RLS policy
 // `organizations_workspace` until its id is in the request's context, and the id of a workspace
@@ -29,6 +30,8 @@ export interface WorkspaceView {
   readonly slug: string;
   readonly defaultLocale: Locale;
   readonly timeZone: string;
+  /** The word the product uses for the workspace's trainers (F068); the role stays Trainer. */
+  readonly trainerWord: TrainerWord;
 }
 
 /** What a list of workspaces shows (the picker, the signed-in home): the name and the URL name. */
@@ -36,17 +39,22 @@ export interface WorkspaceSummary {
   readonly id: string;
   readonly name: string;
   readonly slug: string;
+  readonly trainerWord: TrainerWord;
   /** What the account is in it: the page decides from this who sees the settings. */
   readonly role: TeamRole;
   /** Whether the account has a trainer profile in it, that is whether it trains there (F005). */
   readonly trainsHere: boolean;
 }
 
-/** What a client sees of a workspace they belong to: the name and the URL name, nothing else. */
+/**
+ * What a client sees of a workspace they belong to: the name, the URL name and the word the
+ * workspace uses for its trainers (F068), nothing else.
+ */
 export interface ClientWorkspaceSummary {
   readonly id: string;
   readonly name: string;
   readonly slug: string;
+  readonly trainerWord: TrainerWord;
 }
 
 export interface NewWorkspace {
@@ -60,10 +68,16 @@ export interface NewWorkspace {
   readonly ownerName?: string;
   /** Whether the Owner trains here: the rule of `packages/domain` (F005), made in the same transaction. */
   readonly ownerTrains: boolean;
+  /**
+   * The default plans (F052): the template of `packages/domain` (`defaultOffers()`), which this
+   * package cannot import. Each is copied into the workspace as an offer of its own, so a later
+   * change of the template never reaches it. Required, so no caller forgets them (AC1).
+   */
+  readonly defaultOffers: readonly NewOffer[];
 }
 
 /**
- * Creates the workspace, its one location (F015), the account's Owner role in it (with a trainer
+ * Creates the workspace, its one location (F015), its default plans (F052), the account's Owner role in it (with a trainer
  * profile when the creator trains, F005) and, when given, the account's name, in
  * the scope's transaction: a failure later in the request rolls all of it back. `undefined` when
  * the slug is taken (the caller tries the next one; a workspace of someone else can't be seen,
@@ -96,6 +110,7 @@ export async function createWorkspaceWithOwner(
       slug: organizations.slug,
       defaultLocale: organizations.defaultLocale,
       timeZone: organizations.timeZone,
+      trainerWord: organizations.trainerWord,
     });
   if (!workspace) {
     // Back to the context the request had, so nothing names a workspace that doesn't exist.
@@ -110,6 +125,9 @@ export async function createWorkspaceWithOwner(
     type: 'organization_location',
     isDefault: true,
   });
+  // The default plans, switched off and without a price (F052 AC1): in this transaction, so a
+  // workspace never exists without them.
+  for (const offer of input.defaultOffers) await insertOffer(db, id, offer);
   const [owner] = await db
     .insert(teamMembers)
     .values({ organizationId: id, accountId, role: 'owner' })
@@ -138,6 +156,7 @@ export function listTeamWorkspaces(scope: TenantScope): Promise<WorkspaceSummary
       id: organizations.id,
       name: organizations.name,
       slug: organizations.slug,
+      trainerWord: organizations.trainerWord,
       role: teamMembers.role,
       trainerProfileId: trainerProfiles.id,
     })
@@ -172,7 +191,12 @@ export function listClientWorkspaces(scope: TenantScope): Promise<ClientWorkspac
   const { accountId, workspaceIds } = scope.context;
   if (workspaceIds.length === 0) return Promise.resolve([]);
   return db
-    .select({ id: organizations.id, name: organizations.name, slug: organizations.slug })
+    .select({
+      id: organizations.id,
+      name: organizations.name,
+      slug: organizations.slug,
+      trainerWord: organizations.trainerWord,
+    })
     .from(organizations)
     .innerJoin(clients, eq(clients.organizationId, organizations.id))
     .where(and(eq(clients.accountId, accountId), inArray(organizations.id, [...workspaceIds])))
@@ -185,6 +209,7 @@ const workspaceColumns = {
   slug: organizations.slug,
   defaultLocale: organizations.defaultLocale,
   timeZone: organizations.timeZone,
+  trainerWord: organizations.trainerWord,
 };
 
 /** The workspace of a workspace route's scope. `undefined` when RLS shows no such row. */
@@ -202,10 +227,12 @@ export interface WorkspaceChanges {
   readonly name?: string;
   /** The default communication language (ADR-017); checked by the caller to be a catalog locale. */
   readonly defaultLocale?: Locale;
+  /** The word for the workspace's trainers (F068); checked by the caller to be one of the four. */
+  readonly trainerWord?: TrainerWord;
 }
 
 /**
- * Changes the name and/or the default communication language of the scope's workspace and
+ * Changes the name, the default communication language and/or the word for trainers of the scope's workspace and
  * nothing else: the slug stays, so links and QR codes keep working. The caller has checked the
  * values and decided the account may. With nothing to change it just reads the workspace.
  */
@@ -216,6 +243,7 @@ export async function updateWorkspace(
   const values = {
     ...(changes.name === undefined ? {} : { name: changes.name }),
     ...(changes.defaultLocale === undefined ? {} : { defaultLocale: changes.defaultLocale }),
+    ...(changes.trainerWord === undefined ? {} : { trainerWord: changes.trainerWord }),
   };
   if (Object.keys(values).length === 0) return findWorkspace(scope);
   const [workspace] = await executorOf(scope)

@@ -11,10 +11,14 @@ interface Props {
   workspaceName: string;
 }
 
-const body: Pick<EmailTemplate<Props>, 'subject' | 'preview' | 'render' | 'previewProps'> = {
+const body: Pick<
+  EmailTemplate<Props>,
+  'subject' | 'preview' | 'render' | 'previewProps' | 'userContent'
+> = {
   subject: () => 'Onderwerp',
   preview: () => 'Voorbeeld',
   render: (ctx) => <Text>{ctx.t('email.hello.body')}</Text>,
+  userContent: ['workspaceName'],
   previewProps: { workspaceName: "John's Gym" },
 };
 

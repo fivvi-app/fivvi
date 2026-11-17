@@ -48,14 +48,14 @@ public protocol APIProtocol: Sendable {
     func listMyWorkspaces(_ input: Operations.ListMyWorkspaces.Input) async throws -> Operations.ListMyWorkspaces.Output
     /// Ask for a code to change the signed-in account’s email address
     ///
-    /// Sends a 6-digit code to the new address (EM-34), in the account’s language. The address does not change until `POST /v1/me/email/confirm` accepts the code. The answer is `202` for every valid address, one that already has an account, and a request over the rate limits (3 in 15 minutes per account and per address, 20 an hour per network, as for sign-in), so it never says who has an account; only a free address under the limits gets an email. A new request replaces the earlier code. It acts on the signed-in account alone: no route changes anyone else’s address.
+    /// Sends a 6-digit code to the new address (EM-34), in the account’s language. The address does not change until `POST /v1/me/email/confirm` accepts the code. The answer is `202` for every valid address, one that already has an account, and a request over the rate limits (3 in 15 minutes per account and per address, 20 an hour per network, as for sign-in), so it never says who has an account; a free address under the limits gets the code, an address that already has an account gets a notice instead of a code (EM-36), and nothing is merged. A new request replaces the earlier code. It acts on the signed-in account alone: no route changes anyone else’s address.
     ///
     /// - Remark: HTTP `POST /v1/me/email/change`.
     /// - Remark: Generated from `#/paths//v1/me/email/change/post(requestEmailChange)`.
     func requestEmailChange(_ input: Operations.RequestEmailChange.Input) async throws -> Operations.RequestEmailChange.Output
     /// Confirm the code and change the signed-in account’s email address
     ///
-    /// With the right code the account’s address becomes the one the code was sent to, in every workspace at once, and every open sign-in session stays signed in. The sign-in codes and links sent to the old address stop working. Answers with the account, as `GET /v1/me` does. A wrong, used, replaced or expired code, five wrong codes, an address that has an account by now and a network over its limit all answer `422` and nothing changes.
+    /// With the right code the account’s address becomes the one the code was sent to, in every workspace at once, and every open sign-in session stays signed in. The sign-in codes and links sent to the old address stop working, and the old address gets a notice that it changed (EM-35). Workspaces, invitations and the sign-up allowlist stay as they were: they hang on the account and on the addresses they were written for. Answers with the account, as `GET /v1/me` does. A wrong, used, replaced or expired code, five wrong codes, an address that has an account by now and a network over its limit all answer `422` and nothing changes.
     ///
     /// - Remark: HTTP `POST /v1/me/email/confirm`.
     /// - Remark: Generated from `#/paths//v1/me/email/confirm/post(confirmEmailChange)`.
@@ -76,7 +76,7 @@ public protocol APIProtocol: Sendable {
     func listMySessions(_ input: Operations.ListMySessions.Input) async throws -> Operations.ListMySessions.Output
     /// Ask for a sign-in email
     ///
-    /// Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for a request over the rate limits, so it never says who has an account.
+    /// Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for an address over its limit (3 requests per 15 minutes), so it never says who has an account. The app needs no bot check; every limit applies to it. A network over its limit (20 requests per hour) gets `429`, and nothing is sent.
     ///
     /// - Remark: HTTP `POST /v1/sign-in/request`.
     /// - Remark: Generated from `#/paths//v1/sign-in/request/post(requestSignIn)`.
@@ -111,14 +111,14 @@ public protocol APIProtocol: Sendable {
     func createWorkspace(_ input: Operations.CreateWorkspace.Input) async throws -> Operations.CreateWorkspace.Output
     /// A workspace
     ///
-    /// The workspace: its name, URL name, default language and time zone.
+    /// The workspace: its name, URL name, default language, time zone and the word it uses for its trainers.
     ///
     /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/get(getWorkspace)`.
     func getWorkspace(_ input: Operations.GetWorkspace.Input) async throws -> Operations.GetWorkspace.Output
-    /// Rename a workspace or set its default language
+    /// Rename a workspace, set its default language or its word for trainers
     ///
-    /// Changes the name and/or the default communication language of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`, anything else answers `400` and nothing changes.
+    /// Changes the name, the default communication language and/or the word for trainers of the workspace (the Owner only; a Trainer reads the word but gets `403` when changing it). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`; the word is `trainer`, `instructeur`, `docent` or `coach`. Anything else answers `400` (the API’s validation error) and nothing changes. The role stays Trainer whatever the word.
     ///
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/patch(renameWorkspace)`.
@@ -181,7 +181,7 @@ public protocol APIProtocol: Sendable {
     func withdrawTrainerInvitation(_ input: Operations.WithdrawTrainerInvitation.Input) async throws -> Operations.WithdrawTrainerInvitation.Output
     /// What an invitation link is for
     ///
-    /// Anyone with the link (signed in or not) reads the name of the workspace that invites, the name of the inviter and the masked address the invitation is for, and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`.
+    /// Anyone with the link (signed in or not) reads the name of the workspace that invites, the name of the inviter, the masked address the invitation is for and, when a session is sent, whether the invitation is for that account (`forYou`), and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`.
     ///
     /// - Remark: HTTP `GET /v1/invitations/{token}`.
     /// - Remark: Generated from `#/paths//v1/invitations/{token}/get(getInvitation)`.
@@ -375,6 +375,13 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/clients/{clientId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/clients/{clientId}/patch(updateClient)`.
     func updateClient(_ input: Operations.UpdateClient.Input) async throws -> Operations.UpdateClient.Output
+    /// The access log of a workspace
+    ///
+    /// The access log of the workspace (the Owner only; a Trainer gets `403`): who exported, trashed, restored or purged which client, and from M7 who viewed or changed which note. This workspace’s entries only, newest first, one page at a time, optionally of one client and one action. Names are looked up now; a client who no longer exists reads as *Verwijderde klant* or *Deleted client* in the reader’s language. Entries hold IDs and a time, never a note’s text. Entries older than 12 months are deleted.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/access-log`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/access-log/get(listAccessLog)`.
+    func listAccessLog(_ input: Operations.ListAccessLog.Input) async throws -> Operations.ListAccessLog.Output
 }
 
 /// Convenience overloads for operation inputs.
@@ -438,7 +445,7 @@ extension APIProtocol {
     }
     /// Ask for a code to change the signed-in account’s email address
     ///
-    /// Sends a 6-digit code to the new address (EM-34), in the account’s language. The address does not change until `POST /v1/me/email/confirm` accepts the code. The answer is `202` for every valid address, one that already has an account, and a request over the rate limits (3 in 15 minutes per account and per address, 20 an hour per network, as for sign-in), so it never says who has an account; only a free address under the limits gets an email. A new request replaces the earlier code. It acts on the signed-in account alone: no route changes anyone else’s address.
+    /// Sends a 6-digit code to the new address (EM-34), in the account’s language. The address does not change until `POST /v1/me/email/confirm` accepts the code. The answer is `202` for every valid address, one that already has an account, and a request over the rate limits (3 in 15 minutes per account and per address, 20 an hour per network, as for sign-in), so it never says who has an account; a free address under the limits gets the code, an address that already has an account gets a notice instead of a code (EM-36), and nothing is merged. A new request replaces the earlier code. It acts on the signed-in account alone: no route changes anyone else’s address.
     ///
     /// - Remark: HTTP `POST /v1/me/email/change`.
     /// - Remark: Generated from `#/paths//v1/me/email/change/post(requestEmailChange)`.
@@ -453,7 +460,7 @@ extension APIProtocol {
     }
     /// Confirm the code and change the signed-in account’s email address
     ///
-    /// With the right code the account’s address becomes the one the code was sent to, in every workspace at once, and every open sign-in session stays signed in. The sign-in codes and links sent to the old address stop working. Answers with the account, as `GET /v1/me` does. A wrong, used, replaced or expired code, five wrong codes, an address that has an account by now and a network over its limit all answer `422` and nothing changes.
+    /// With the right code the account’s address becomes the one the code was sent to, in every workspace at once, and every open sign-in session stays signed in. The sign-in codes and links sent to the old address stop working, and the old address gets a notice that it changed (EM-35). Workspaces, invitations and the sign-up allowlist stay as they were: they hang on the account and on the addresses they were written for. Answers with the account, as `GET /v1/me` does. A wrong, used, replaced or expired code, five wrong codes, an address that has an account by now and a network over its limit all answer `422` and nothing changes.
     ///
     /// - Remark: HTTP `POST /v1/me/email/confirm`.
     /// - Remark: Generated from `#/paths//v1/me/email/confirm/post(confirmEmailChange)`.
@@ -498,7 +505,7 @@ extension APIProtocol {
     }
     /// Ask for a sign-in email
     ///
-    /// Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for a request over the rate limits, so it never says who has an account.
+    /// Sends the sign-in email (EM-08, a link and a 6-digit code) to an account or an allowed address. The answer is the same for every address and for an address over its limit (3 requests per 15 minutes), so it never says who has an account. The app needs no bot check; every limit applies to it. A network over its limit (20 requests per hour) gets `429`, and nothing is sent.
     ///
     /// - Remark: HTTP `POST /v1/sign-in/request`.
     /// - Remark: Generated from `#/paths//v1/sign-in/request/post(requestSignIn)`.
@@ -567,7 +574,7 @@ extension APIProtocol {
     }
     /// A workspace
     ///
-    /// The workspace: its name, URL name, default language and time zone.
+    /// The workspace: its name, URL name, default language, time zone and the word it uses for its trainers.
     ///
     /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/get(getWorkspace)`.
@@ -580,9 +587,9 @@ extension APIProtocol {
             headers: headers
         ))
     }
-    /// Rename a workspace or set its default language
+    /// Rename a workspace, set its default language or its word for trainers
     ///
-    /// Changes the name and/or the default communication language of the workspace (the Owner only). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`, anything else answers `400` and nothing changes.
+    /// Changes the name, the default communication language and/or the word for trainers of the workspace (the Owner only; a Trainer reads the word but gets `403` when changing it). The slug never changes, so links and QR codes keep working. The name is trimmed, not blank and at most 80 characters; the language is `nl-NL` or `en`; the word is `trainer`, `instructeur`, `docent` or `coach`. Anything else answers `400` (the API’s validation error) and nothing changes. The role stays Trainer whatever the word.
     ///
     /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/patch(renameWorkspace)`.
@@ -725,7 +732,7 @@ extension APIProtocol {
     }
     /// What an invitation link is for
     ///
-    /// Anyone with the link (signed in or not) reads the name of the workspace that invites, the name of the inviter and the masked address the invitation is for, and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`.
+    /// Anyone with the link (signed in or not) reads the name of the workspace that invites, the name of the inviter, the masked address the invitation is for and, when a session is sent, whether the invitation is for that account (`forYou`), and nothing else. An invitation that is expired, withdrawn, used or unknown answers one neutral `404`.
     ///
     /// - Remark: HTTP `GET /v1/invitations/{token}`.
     /// - Remark: Generated from `#/paths//v1/invitations/{token}/get(getInvitation)`.
@@ -1169,6 +1176,23 @@ extension APIProtocol {
             path: path,
             headers: headers,
             body: body
+        ))
+    }
+    /// The access log of a workspace
+    ///
+    /// The access log of the workspace (the Owner only; a Trainer gets `403`): who exported, trashed, restored or purged which client, and from M7 who viewed or changed which note. This workspace’s entries only, newest first, one page at a time, optionally of one client and one action. Names are looked up now; a client who no longer exists reads as *Verwijderde klant* or *Deleted client* in the reader’s language. Entries hold IDs and a time, never a note’s text. Entries older than 12 months are deleted.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/access-log`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/access-log/get(listAccessLog)`.
+    public func listAccessLog(
+        path: Operations.ListAccessLog.Input.Path,
+        query: Operations.ListAccessLog.Input.Query = .init(),
+        headers: Operations.ListAccessLog.Input.Headers = .init()
+    ) async throws -> Operations.ListAccessLog.Output {
+        try await listAccessLog(Operations.ListAccessLog.Input(
+            path: path,
+            query: query,
+            headers: headers
         ))
     }
 }

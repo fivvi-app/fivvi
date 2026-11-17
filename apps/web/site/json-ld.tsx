@@ -21,17 +21,14 @@ export interface JsonLdDocument {
 const organizationId = `${siteOrigin}/#organization`;
 
 /**
- * The Organization behind Fivvi. Only what `site/business.ts` has filled in is in it: a blank detail
- * or an open `{{…}}` value leaves its property out, as it leaves it out of the footer (AC7). The
- * `legalName` is the registered name of `site/business.ts`, which the owner confirmed (#612, #648);
- * without one it is left out, never guessed from the trade name.
+ * The Organization behind Fivvi: its name, address on the web and support mailbox, and the
+ * `legalName` when `site/business.ts` has one. No postal address, telephone, KvK or VAT number: the
+ * site shows none of them (owner, 11 November 2026, #1344). The `legalName` is the registered name
+ * of `site/business.ts`, which the owner confirmed (#612, #648); without one it is left out, never
+ * guessed from the trade name.
  */
 function organization(details: BusinessDetails): JsonLdNode & { '@type': string } {
   const legalName = shown(details.legalName);
-  const kvk = shown(details.kvk);
-  const vat = shown(details.vat);
-  const address = shown(details.address);
-  const phone = shown(details.phone);
   return {
     '@type': 'Organization',
     '@id': organizationId,
@@ -39,10 +36,6 @@ function organization(details: BusinessDetails): JsonLdNode & { '@type': string 
     url: `${siteOrigin}/`,
     ...(legalName ? { legalName } : {}),
     email: supportEmail,
-    ...(kvk ? { identifier: { '@type': 'PropertyValue', propertyID: 'KvK', value: kvk } } : {}),
-    ...(vat ? { vatID: vat } : {}),
-    ...(address ? { address } : {}),
-    ...(phone ? { telephone: phone } : {}),
   };
 }
 

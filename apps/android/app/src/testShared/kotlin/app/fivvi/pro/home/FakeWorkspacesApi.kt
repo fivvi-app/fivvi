@@ -3,6 +3,7 @@ package app.fivvi.pro.home
 import app.fivvi.api.apis.WorkspacesApi
 import app.fivvi.api.models.CreateWorkspaceRequest
 import app.fivvi.api.models.Locale
+import app.fivvi.api.models.TrainerWord
 import app.fivvi.api.models.UpdateWorkspaceRequest
 import app.fivvi.api.models.Workspace
 import app.fivvi.api.models.WorkspaceSwitchedRequest
@@ -21,8 +22,9 @@ class FakeWorkspacesApi : WorkspacesApi {
         return if (answers.isEmpty()) found(workspaceId) else answers.removeFirst()(workspaceId)
     }
 
-    private fun found(id: UUID): Response<Workspace> =
-        Response.success(Workspace(id, "John's Gym", "johns-gym", Locale.NL_NL, "Europe/Amsterdam"))
+    private fun found(id: UUID): Response<Workspace> = Response.success(
+        Workspace(id, "John's Gym", "johns-gym", Locale.NL_NL, "Europe/Amsterdam", TrainerWord.TRAINER),
+    )
 
     /** The account is still on the team: the workspace is read. */
     fun answerFound() {

@@ -118,6 +118,12 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     personal: false,
     reason: 'System data read by every workspace: the i18n key of a greeting (M1).',
   },
+  {
+    table: 'exercise_library',
+    personal: false,
+    reason:
+      'The exercise library, the same for every workspace: an exercise’s key, type, muscle groups and search aliases (F039). The names are in `packages/i18n`. Nothing about any workspace or person.',
+  },
   // The workspace.
   {
     table: 'organizations',
@@ -232,6 +238,19 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     retention: 'FORMER_TRAINER',
     note: 'A class. Without its usual trainer once the trainer’s profile is removed; the class itself stays with the workspace.',
   },
+  // Offers (F052, spec #468): what a workspace sells and on which terms; no person is named.
+  {
+    table: 'offers',
+    personal: false,
+    reason:
+      'An offer of a workspace: its kind, status and origin, and which version is current (F052). Prices and terms, nothing about a person. Kept as long as the workspace is; an offer is archived, never deleted.',
+  },
+  {
+    table: 'offer_versions',
+    personal: false,
+    reason:
+      'An immutable version of an offer: names, descriptions, the price in euro cents, the VAT rate and the terms of its kind (F052). Nothing about a person: the offer’s text is the owner’s, written for clients in general. Never changed or deleted: a trigger refuses it for every role, so every price a client ever agreed to stays explainable.',
+  },
   {
     table: 'sessions',
     personal: true,
@@ -275,6 +294,35 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     onDelete: 'anonymize',
     retention: 'FORMER_TRAINER',
     note: 'A short link to the workspace’s timetable; the code is left out of an export, as every code is. The link to the team member who made it is cleared when the team member is removed; the link itself stays with the workspace, it holds no data of a person.',
+  },
+  // The two logs of the privacy tooling (E014, ticket #1173): IDs and times, never content.
+  {
+    table: 'access_log',
+    personal: true,
+    subject: 'client',
+    personalData: ['actor_team_member_id', 'subject_client_id'],
+    export: [
+      'id',
+      'actor_team_member_id',
+      'action',
+      'subject_client_id',
+      'object_id',
+      'occurred_at',
+      ...TIMESTAMPS,
+    ],
+    onDelete: 'keep-for-law',
+    retention: 'ACCESS_LOG',
+    note: 'Who exported, trashed, restored or purged which client, and from M7 who viewed or changed which note (the note’s ID, never its content). IDs and a time only; the Owner reads it with the names resolved at read time (R12). The entries are write-once and stay unchanged, also when the client is purged or the team member leaves: the ID then no longer leads to a person and the reader shows “Deleted client”. “Kept for the law” here means the record of who did what is kept as it was written until the period ends; then a daily task deletes it.',
+  },
+  {
+    table: 'deletion_log',
+    personal: true,
+    subject: 'workspace',
+    personalData: ['record_id'],
+    export: [],
+    onDelete: 'keep-for-law',
+    retention: 'DELETION_LOG',
+    note: 'The table name and record ID of every hard deletion and anonymization, with the workspace and the time, so a restore of a backup can re-apply them (retention policy §3.5). No content. Platform data of the cron role, not part of an export. The entries are write-once and stay unchanged, also when the client, the person or the whole workspace is deleted, because a restore of a backup made before the deletion has to re-apply them; a daily task deletes each entry when the period ends.',
   },
   // Payments (E019, ADR-020): references, amounts and statuses; the provider holds the payment data.
   {
@@ -332,6 +380,70 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     onDelete: 'keep-for-law',
     retention: 'INVOICE',
     note: 'The append-only status lines of a payment; kept as long as the payment is (R21), and never rewritten.',
+  },
+  {
+    table: 'payment_refunds',
+    personal: true,
+    subject: 'client',
+    personalData: [
+      'client_id',
+      'amount_cents',
+      'reason',
+      'provider_refund_id',
+      'requested_by_team_member_id',
+    ],
+    export: [
+      'id',
+      'payment_id',
+      'client_id',
+      'amount_cents',
+      'revoke_credits',
+      'provider_refund_id',
+      'status',
+      ...TIMESTAMPS,
+    ],
+    onDelete: 'keep-for-law',
+    retention: 'INVOICE',
+    note: 'A refund of a payment of a client (F060): amount, status and the provider’s reference. Kept as long as the payment is (R21). The internal reason the Owner wrote stays out of a client’s export, because it is the Owner’s note about the refund; the link to the team member who asked is cleared when that person leaves the team.',
+  },
+  {
+    table: 'payment_refund_status_changes',
+    personal: true,
+    subject: 'client',
+    personalData: ['client_id', 'provider_event_id'],
+    export: [
+      'id',
+      'refund_id',
+      'client_id',
+      'from_status',
+      'to_status',
+      'occurred_at',
+      'source',
+      'provider_event_id',
+      ...TIMESTAMPS,
+    ],
+    onDelete: 'keep-for-law',
+    retention: 'INVOICE',
+    note: 'The append-only status lines of a refund; kept as long as the refund is (R21), and never rewritten.',
+  },
+  {
+    table: 'payment_chargebacks',
+    personal: true,
+    subject: 'client',
+    personalData: ['client_id', 'amount_cents', 'provider_chargeback_id', 'bank_reason'],
+    export: [
+      'id',
+      'payment_id',
+      'client_id',
+      'provider_chargeback_id',
+      'amount_cents',
+      'bank_reason',
+      'received_at',
+      ...TIMESTAMPS,
+    ],
+    onDelete: 'keep-for-law',
+    retention: 'INVOICE',
+    note: 'A reversal (terugboeking) of a payment by the client’s bank (F060): amount, the bank’s reason code and the provider’s reference. Kept as long as the payment is (R21).',
   },
 ];
 

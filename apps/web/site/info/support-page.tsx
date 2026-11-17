@@ -1,6 +1,6 @@
 import type { Locale } from '@fivvi/i18n';
 import type { Metadata } from 'next';
-import { type BusinessDetails, filledDetails, business as fivviBusiness, shown } from '../business';
+import { type BusinessDetails, business as fivviBusiness, shown } from '../business';
 import { builtPages, type SitePage } from '../routes';
 import { pageCopy, pageSeo } from '../seo';
 import { siteText } from '../text';
@@ -18,10 +18,9 @@ export function supportMetadata(locale: Locale): Metadata {
 }
 
 /**
- * The help and contact page (F064, AC8, AC9): the trade name, the business details that are filled
- * in (a missing one shows nothing, never a placeholder), the support and privacy addresses, and the
- * frequently asked questions for clients and for owners and trainers. Deleting an account is asked
- * for by email here; it links to no page for it until #477 builds one.
+ * The help and contact page (F064, AC8, AC9): the trade name, the support and privacy addresses, the
+ * way to the demo form, and the frequently asked questions for clients and for owners and trainers.
+ * Deleting an account is asked for by email here; it links to no page for it until #477 builds one.
  */
 export function SupportPage({
   locale,
@@ -35,13 +34,8 @@ export function SupportPage({
   const t = siteText(locale);
   const tradeName = shown(business.tradeName);
   const rows = [
-    { label: t('site.support.email'), value: supportEmail, mail: true },
-    { label: t('site.support.privacy'), value: privacyEmail, mail: true },
-    ...filledDetails(business).map(({ key, value }) => ({
-      label: t(`site.footer.${key}`),
-      value,
-      mail: false,
-    })),
+    { label: t('site.support.email'), value: supportEmail },
+    { label: t('site.support.privacy'), value: privacyEmail },
   ];
   const address = { address: privacyEmail };
   return (
@@ -63,17 +57,13 @@ export function SupportPage({
           <p className="mt-1.5 font-semibold">{t('site.footer.tradeName', { name: tradeName })}</p>
         ) : null}
         <dl className="mt-3.5 grid gap-4 sm:grid-cols-2 md:grid-cols-3">
-          {rows.map(({ label, value, mail }) => (
+          {rows.map(({ label, value }) => (
             <div key={label}>
               <dt className="text-sm text-muted-foreground">{label}</dt>
               <dd className="mt-0.5 font-semibold [overflow-wrap:anywhere]">
-                {mail ? (
-                  <a href={`mailto:${value}`} className="text-accent-text underline">
-                    {value}
-                  </a>
-                ) : (
-                  value
-                )}
+                <a href={`mailto:${value}`} className="text-accent-text underline">
+                  {value}
+                </a>
               </dd>
             </div>
           ))}

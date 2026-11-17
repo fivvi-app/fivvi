@@ -1,5 +1,5 @@
 {
-  "id": "f77f4076-bedc-4a95-9970-023dbbd133d3",
+  "id": "36b77ba4-41ef-43aa-b628-ba710c36ff10",
   "prevId": "e274a28c-3715-4e14-8470-926a899ea43e",
   "version": "7",
   "dialect": "postgresql",
@@ -436,263 +436,6 @@
         "auth_verifications_locale_supported": {
           "name": "auth_verifications_locale_supported",
           "value": "\"auth_verifications\".\"locale\" IS NULL OR \"auth_verifications\".\"locale\" IN ('nl-NL', 'en')"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.booking_links": {
-      "name": "booking_links",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "code": {
-          "name": "code",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "new_booking_link_code()"
-        },
-        "scope": {
-          "name": "scope",
-          "type": "booking_link_scope",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "group_class_id": {
-          "name": "group_class_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "session_id": {
-          "name": "session_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "language": {
-          "name": "language",
-          "type": "booking_link_language",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_by_team_member_id": {
-          "name": "created_by_team_member_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "deactivated_at": {
-          "name": "deactivated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {
-        "booking_links_active_unique": {
-          "name": "booking_links_active_unique",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "scope",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "language",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "coalesce(\"group_class_id\", \"session_id\", '00000000-0000-0000-0000-000000000000'::uuid)",
-              "asc": true,
-              "isExpression": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"booking_links\".\"deactivated_at\" IS NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "booking_links_organization_id_group_class_id_idx": {
-          "name": "booking_links_organization_id_group_class_id_idx",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "group_class_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "booking_links_organization_id_session_id_idx": {
-          "name": "booking_links_organization_id_session_id_idx",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "session_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
-      "foreignKeys": {
-        "booking_links_organization_id_organizations_id_fk": {
-          "name": "booking_links_organization_id_organizations_id_fk",
-          "tableFrom": "booking_links",
-          "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "booking_links_group_class_fk": {
-          "name": "booking_links_group_class_fk",
-          "tableFrom": "booking_links",
-          "tableTo": "group_classes",
-          "columnsFrom": [
-            "organization_id",
-            "group_class_id"
-          ],
-          "columnsTo": [
-            "organization_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "booking_links_session_fk": {
-          "name": "booking_links_session_fk",
-          "tableFrom": "booking_links",
-          "tableTo": "sessions",
-          "columnsFrom": [
-            "organization_id",
-            "session_id"
-          ],
-          "columnsTo": [
-            "organization_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "booking_links_created_by_fk": {
-          "name": "booking_links_created_by_fk",
-          "tableFrom": "booking_links",
-          "tableTo": "team_members",
-          "columnsFrom": [
-            "organization_id",
-            "created_by_team_member_id"
-          ],
-          "columnsTo": [
-            "organization_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "booking_links_organization_id_id_unique": {
-          "name": "booking_links_organization_id_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "organization_id",
-            "id"
-          ]
-        },
-        "booking_links_code_unique": {
-          "name": "booking_links_code_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "code"
-          ]
-        }
-      },
-      "policies": {
-        "booking_links_workspace": {
-          "name": "booking_links_workspace",
-          "as": "PERMISSIVE",
-          "for": "ALL",
-          "to": [
-            "fivvi_app"
-          ],
-          "using": "\"booking_links\".\"organization_id\" = ANY (app_workspace_ids())",
-          "withCheck": "\"booking_links\".\"organization_id\" = ANY (app_workspace_ids())"
-        }
-      },
-      "checkConstraints": {
-        "booking_links_code_format": {
-          "name": "booking_links_code_format",
-          "value": "\"booking_links\".\"code\" ~ '^[0-9a-hjkmnp-tv-z]{8}$'"
-        },
-        "booking_links_target_matches_scope": {
-          "name": "booking_links_target_matches_scope",
-          "value": "(\"booking_links\".\"scope\" = 'class' AND \"booking_links\".\"group_class_id\" IS NOT NULL AND \"booking_links\".\"session_id\" IS NULL)\n        OR (\"booking_links\".\"scope\" = 'session' AND \"booking_links\".\"session_id\" IS NOT NULL AND \"booking_links\".\"group_class_id\" IS NULL)\n        OR (\"booking_links\".\"scope\" IN ('all', 'group') AND \"booking_links\".\"group_class_id\" IS NULL AND \"booking_links\".\"session_id\" IS NULL)"
         }
       },
       "isRLSEnabled": false
@@ -1163,6 +906,14 @@
           "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": false
+        },
+        "trainer_word": {
+          "name": "trainer_word",
+          "type": "trainer_word",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'trainer'"
         },
         "created_at": {
           "name": "created_at",
@@ -3019,25 +2770,6 @@
     }
   },
   "enums": {
-    "public.booking_link_language": {
-      "name": "booking_link_language",
-      "schema": "public",
-      "values": [
-        "visitor",
-        "nl",
-        "en"
-      ]
-    },
-    "public.booking_link_scope": {
-      "name": "booking_link_scope",
-      "schema": "public",
-      "values": [
-        "all",
-        "group",
-        "class",
-        "session"
-      ]
-    },
     "public.job_run_outcome": {
       "name": "job_run_outcome",
       "schema": "public",
@@ -3057,6 +2789,16 @@
         "outdoor",
         "online",
         "other"
+      ]
+    },
+    "public.trainer_word": {
+      "name": "trainer_word",
+      "schema": "public",
+      "values": [
+        "trainer",
+        "instructeur",
+        "docent",
+        "coach"
       ]
     },
     "public.payment_kind": {

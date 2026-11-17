@@ -2,6 +2,7 @@ import { formattingLocales, type Locale, locales, messages } from '@fivvi/i18n';
 import { renderToStaticMarkup } from 'react-dom/server';
 import { describe, expect, it, vi } from 'vitest';
 import { escapeHtml } from '../test/render';
+import { undisclosedDetails } from '../test/undisclosed-details';
 import { HomePage } from './home-page';
 import { alternatePath, type SitePage } from './routes';
 import { SiteDocument } from './site-document';
@@ -183,25 +184,25 @@ describe.each(locales)('F064 the header in %s', (locale) => {
 describe.each(locales)('F064 AC7 the footer in %s', (locale) => {
   const copy = messages[locale].site;
 
-  it('shows the trade name and nothing else while no other detail is filled in', () => {
+  it('shows the trade name and the links only: no business details list, no KvK, VAT, address or phone', () => {
     const footer = html(
       <SiteFooter locale={locale} business={{ tradeName: 'Voorbeeld BV' }} built={[]} />,
     );
 
     expect(footer).toContain(escapeHtml(copy.footer.tradeName.replace('{name}', 'Voorbeeld BV')));
-    for (const label of [
-      copy.footer.kvk,
-      copy.footer.vat,
-      copy.footer.address,
-      copy.footer.phone,
-    ]) {
-      expect(footer).not.toContain(escapeHtml(label));
-    }
     expect(footer).not.toContain('<dl');
     expect(footer).not.toContain('{{');
     // No page exists but the home page, so there are no links and no headings over none.
     expect(links(footer).map(({ href }) => href)).toEqual([homePath(locale)]);
     expect(footer).not.toContain(escapeHtml(copy.footer.legalHeading));
+  });
+
+  it('shows no registration or contact details of the real business, whatever the page', () => {
+    const footer = html(<SiteFooter locale={locale} built={ALL_PAGES} />);
+
+    expect(footer).toContain(escapeHtml(copy.footer.tradeName.replace('{name}', 'K&S Apps')));
+    expect(footer).not.toContain('<dl');
+    expect(footer).not.toMatch(undisclosedDetails);
   });
 
   it('shows no trade name line when the trade name is blank or still a placeholder', () => {
@@ -212,28 +213,6 @@ describe.each(locales)('F064 AC7 the footer in %s', (locale) => {
       expect(footer).not.toContain('{{');
       expect(footer).not.toMatch(/<p[ >]/);
     }
-  });
-
-  it('shows every detail that is filled in, with its label', () => {
-    const footer = html(
-      <SiteFooter
-        locale={locale}
-        business={{
-          tradeName: 'Voorbeeld BV',
-          kvk: '12345678',
-          vat: 'NL000000000B01',
-          address: 'Voorbeeldstraat 1, 1234 AB Plaats',
-        }}
-      />,
-    );
-
-    expect(footer).toContain(copy.footer.kvk);
-    expect(footer).toContain('12345678');
-    expect(footer).toContain(escapeHtml(copy.footer.vat));
-    expect(footer).toContain('NL000000000B01');
-    expect(footer).toContain(escapeHtml(copy.footer.address));
-    expect(footer).toContain('Voorbeeldstraat 1, 1234 AB Plaats');
-    expect(footer).not.toContain(escapeHtml(copy.footer.phone));
   });
 
   it('links help, pricing and every legal page once they exist', () => {

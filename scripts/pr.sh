@@ -5,11 +5,14 @@
 #   pr.sh create [--title <t>] [--body-file <f|->] [--ready] [--full] [--no-check]
 #                                                 check, push, then open a draft PR (or update the open one, changing only
 #                                                 what you pass); a new PR's title defaults to the issue title, its body
-#                                                 gets "Closes #<issue>", or "Refs #<issue>" for a spec that closes through
+#                                                 gets "Closes #<issue>" (one for each ticket of a slice, flow.sh start
+#                                                 --slice, ADR-033; it warns, and still pushes, when the branch changes more
+#                                                 than about 1,500 lines), or "Refs #<issue>" for a spec that closes through
 #                                                 its tickets (labelled spec or with sub-issues, and not built as its
 #                                                 own ticket; flow.sh status says when it is complete); a body that
-#                                                 closes such a spec is refused (#509). Every push runs scripts/check.sh, the checks the
-#                                                 change can affect (#293); --full runs check.sh --all, everything
+#                                                 closes such a spec is refused (#509). Every push runs scripts/check.sh --fast, the checks
+#                                                 the change can affect without the integration and e2e tests, which run
+#                                                 in CI (ADR-033); --full runs check.sh --all, everything
 #   pr.sh ready                                   mark the draft ready for review, only when for the head commit every
 #                                                 CI check passed (the merge gate's rule), the clean review is recorded
 #                                                 (pr.sh reviewed) and so is the smoke check (pr.sh smoke); else names
@@ -30,8 +33,12 @@
 #                                                 PR's own environment, <project>-pr-<n>. Without
 #                                                 the CLI, a preview whose status is success is only
 #                                                 health-checked; otherwise smoke fails with a hint
-#   pr.sh reviewed                                record in the PR body that both reviewers (standards and spec) found
-#                                                 nothing to fix on the PR's head commit; local HEAD must be that commit
+#   pr.sh reviewed [--should-fix <n>]             record in the PR body that both reviewers (standards and spec) found
+#                                                 nothing to fix on the PR's head commit; local HEAD must be that commit.
+#                                                 --should-fix <n>: the reviewer's last verdict is clean with n should-fix
+#                                                 findings left (review by risk, ADR-033 item 5, until pilot setup); only
+#                                                 for a PR scripts/risk.sh calls low, they go to the notes file as
+#                                                 follow-ups; a high-risk or owner-only PR is refused
 #   pr.sh merge [<pr>] [--after <bug>]            add a low-risk or high-risk (agent-queueable) PR to the merge queue
 #                                                 (ADR-018, ADR-021), which squash-merges it after testing it on the
 #                                                 latest main, only when every condition of the merge gate holds
@@ -68,9 +75,9 @@ SMOKE_MARK="Railway preview smoke check"
 REVIEW_MARK="Self-review"
 REFUSAL_MARK="Merge gate"
 NO_PREVIEW="no preview for this PR"
-# Railway: the project (named fivvi), the web service of its preview, and the only environments pr.sh smoke may touch,
-# `<project>-pr-<n>` (preview_env). Railway names the commit status of the web preview `<project> - <service>`.
-RAILWAY_PROJECT_ID="5ac2d844-191a-4671-9632-50b66817f648"
+# Railway: the project (named fivvi; its id is RAILWAY_PROJECT_ID in _lib.sh), the web service of its preview, and the only
+# environments pr.sh smoke may touch, `<project>-pr-<n>` (preview_env). Railway names the commit status of the web preview
+# `<project> - <service>`.
 RAILWAY_PROJECT_NAME="fivvi"
 RAILWAY_SERVICE="web"
 # Railway's commit status for the web preview, and how its description starts when Railway skipped the deploy because
@@ -78,12 +85,12 @@ RAILWAY_SERVICE="web"
 PREVIEW_CHECK="$RAILWAY_PROJECT_NAME - $RAILWAY_SERVICE"
 PREVIEW_SKIPPED="No deployment needed"
 # How long wait waits for CI, in minutes. The native jobs get longer: a passing iOS run can take, by the timeouts in
-# ci.yml (the "iOS tests" comment), Detect changes 5 + iOS build 12 + iOS tests 38 + the gate job 2 = 57 min, and Android
+# ci.yml (the "iOS tests" comment), Detect changes 5 + iOS build 12 + iOS tests 44 + the gate job 2 = 63 min, and Android
 # the same by its own (5 + 20 + 30 + 2). When no runner takes the iOS build or a test pass (#1268), each is tried once
-# more and each try may wait 15 min for a runner: 142 min (the comment above ios-build-retry); 155 outlasts all, so wait
+# more and each try may wait 15 min for a runner: 154 min (the comment above ios-build-retry); 165 outlasts all, so wait
 # does not give up on a run that still passes.
 WAIT_MINUTES=20
-WAIT_MINUTES_NATIVE=155
+WAIT_MINUTES_NATIVE=165
 # The gates are the required checks iOS and Android; their parts (iOS build, iOS tests (nl), Android Maestro, ...) start with the
 # same word (#293).
 NATIVE_JOBS=(iOS Android)
@@ -96,11 +103,14 @@ current_pr() {
   echo "$pr"
 }
 
-# run_check [--all] [<why>]: scripts/check.sh for the change's affected set, or with --all for everything, announcing
-# which ran and why.
+# run_check [--all|--fast] [<why>]: scripts/check.sh for the change's affected set, with --fast without the integration
+# and e2e tests (ADR-033), or with --all for everything, announcing which ran and why.
 run_check() {
   local flag="" mode=affected
-  if [ "${1:-}" = --all ]; then flag=--all; mode=full; shift; fi
+  case "${1:-}" in
+    --all) flag=--all; mode=full; shift ;;
+    --fast) flag=--fast; mode=fast; shift ;;
+  esac
   echo "🔎 ${mode} checks${1:+: $1}"
   (cd "$(git rev-parse --show-toplevel)" && scripts/check.sh ${flag:+"$flag"}) || die "checks failed — fix them before opening or updating a PR"
 }
@@ -146,8 +156,26 @@ body_closes_issue() {
   grep -qiE "(^|[^[:alnum:]])(close[sd]?|fix(e[sd])?|resolve[sd]?):?[[:space:]]+(${repo_re}#|https://github[.]com/${repo_re}/issues/|#)$1([^0-9]|$)"
 }
 
+# The lines the branch changes against the default branch, added plus deleted (binary files count 0); empty when git
+# cannot tell (no origin/<default>).
+changed_lines() {
+  local stat
+  stat="$(git diff --numstat "origin/$(default_branch)...HEAD" 2>/dev/null)" || return 0
+  awk '$1 ~ /^[0-9]+$/ { n += $1 + $2 } END { print n + 0 }' <<<"$stat"
+}
+
+# A PR that grew past about 1,500 changed lines (ADR-033): warn, never refuse.
+SLICE_MAX_LINES=1500
+warn_if_large() {
+  local lines
+  lines="$(changed_lines)"
+  [ -n "$lines" ] && [ "$lines" -gt "$SLICE_MAX_LINES" ] || return 0
+  echo "⚠ this branch changes $lines lines, more than about 1,500: a big PR is hard to review (ADR-033). Keep it if the slice" >&2
+  echo "  is one piece of work; otherwise leave the last tickets of the slice for a PR of their own. The push goes on." >&2
+}
+
 cmd_create() {
-  local title="" body="" body_set=false draft=true check=true full=false issue existing
+  local title="" body="" body_set=false draft=true check=true full=false issue existing slice closes t
   while [ $# -gt 0 ]; do
     case "$1" in
       --title) title="${2:?}"; shift ;;
@@ -170,7 +198,15 @@ cmd_create() {
     title="$(gh issue view "$issue" --repo "$REPO" --json title --jq .title)"
   fi
   if [ -n "$issue" ] && { [ -z "$existing" ] || $body_set; }; then
-    if issue_closes_through_tickets "$issue"; then
+    slice="$(slice_tickets "$issue")"
+    if [ -n "$slice" ]; then
+      # A platform slice closes every one of its tickets (ADR-033).
+      closes=""
+      for t in $slice; do
+        body_closes_issue "$t" <<<"$body" || closes="${closes:+$closes$'\n'}Closes #$t"
+      done
+      [ -z "$closes" ] || body="${body:+$body$'\n\n'}$closes"
+    elif issue_closes_through_tickets "$issue"; then
       # A spec closes through its tickets (flow.sh status: complete, then issue.sh close), never through a PR (#509).
       ! body_closes_issue "$issue" <<<"$body" \
         || die "spec #$issue closes through its tickets, not a PR: write Refs #$issue"
@@ -182,10 +218,11 @@ cmd_create() {
 
   if $check; then
     if $full; then run_check --all "--full"
-    elif [ -z "$existing" ]; then run_check "first push of the branch"
-    else run_check "follow-up push to PR #$existing; CI is still the full gate on this commit; --full runs everything here too"
+    elif [ -z "$existing" ]; then run_check --fast "first push of the branch; the integration and e2e tests run in CI (ADR-033)"
+    else run_check --fast "follow-up push to PR #$existing; CI is still the full gate on this commit; --full runs everything here too"
     fi
   fi
+  warn_if_large
   local out
   out="$(git push --quiet -u origin HEAD 2>&1)" || { echo "$out" >&2; die "push failed"; }
 
@@ -538,17 +575,40 @@ cmd_smoke() {
   record "$pr" "$SMOKE_MARK" "$line"
 }
 
-# Run only when both reviewers report no must-fix or should-fix finding. A later push makes the record stale.
+# Run only when both reviewers report no must-fix finding, and no should-fix finding either unless the PR is low-risk
+# (review by risk, ADR-033 item 5, until pilot setup): --should-fix <n> says n of them are left, as follow-ups in the
+# notes file. The record says so, and the merge gate refuses it for a PR that is not low-risk then. A later push makes the
+# record stale.
 cmd_reviewed() {
-  [ $# -eq 0 ] || usage
-  local pr head local_head
+  local should_fix=0 pr head local_head risk suffix=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --should-fix) [[ "${2:-}" =~ ^[0-9]+$ ]] || usage; should_fix=$((10#$2)); shift ;;
+      *) usage ;;
+    esac
+    shift
+  done
   pr="$(current_pr)"
   [ -z "$(git status --porcelain)" ] || die "uncommitted changes: the reviewers did not see what is on the PR"
   head="$(head_of "$pr")"
   local_head="$(git rev-parse HEAD)"
   [ "$local_head" = "$head" ] \
     || die "local HEAD ${local_head:0:7} is not the PR head ${head:0:7}: push with scripts/pr.sh create, then review again"
-  record "$pr" "$REVIEW_MARK" "**$REVIEW_MARK:** standards and spec reviewers clean on \`$head\` ✅"
+  if [ "$should_fix" -gt 0 ]; then
+    risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || die "could not decide the risk of PR #$pr; nothing recorded"
+    case "$(jq -r .risk <<<"$risk")" in
+      low) ;;
+      high) die "PR #$pr is high-risk: its review is clean only without should-fix findings; fix them, then review again" ;;
+      owner) die "PR #$pr is owner-only: its review is clean only without should-fix findings; fix them, then review again" ;;
+      *) die "the risk of PR #$pr is unknown: its review is clean only without should-fix findings" ;;
+    esac
+    if [ "$should_fix" -eq 1 ]; then
+      suffix=" (low risk: 1 should-fix finding left as a follow-up, ADR-033)"
+    else
+      suffix=" (low risk: $should_fix should-fix findings left as follow-ups, ADR-033)"
+    fi
+  fi
+  record "$pr" "$REVIEW_MARK" "**$REVIEW_MARK:** standards and spec reviewers clean on \`$head\` ✅$suffix"
 }
 
 # The facts of scripts/merge-gate.jq that pr.sh ready reads too: the PR, its checks on the head commit, the required

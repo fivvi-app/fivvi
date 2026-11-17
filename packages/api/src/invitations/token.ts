@@ -1,5 +1,4 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { uuidFromName } from '../idempotency-key.ts';
 
 // The token in the link of a trainer invitation (F011 AC10). Random and long, so it cannot be
 // guessed, and stored only as a hash, so a leaked table opens nothing. It is never logged,
@@ -20,11 +19,12 @@ export function createInvitationToken(): { token: string; hash: string } {
 }
 
 /**
- * The idempotency key of the email of one invitation with one token (F011): the same invitation
- * with the same token sent twice reaches the provider with one key and goes out once, while a
- * resend, which rotates the token, has a key of its own. Built from the invitation ID and the token's
- * hash, so the key reveals nothing of the token.
+ * The event behind the email of one invitation with one token (F011, F049): the same invitation
+ * with the same token sent twice has one event, so the email reaches the provider with one
+ * idempotency key (built from EM-09 and this event) and goes out once, while a resend, which
+ * rotates the token, has an event of its own. Built from the invitation ID and the token's hash,
+ * never the token, and the key made of it reveals neither.
  */
-export function invitationIdempotencyKey(invitationId: string, tokenHash: string): string {
-  return uuidFromName(`${invitationId}:${tokenHash}`);
+export function invitationEmailEvent(invitationId: string, tokenHash: string): string {
+  return `${invitationId}:${tokenHash}`;
 }
