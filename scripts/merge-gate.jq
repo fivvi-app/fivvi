@@ -93,6 +93,18 @@ def on_head($what; $line):
     else {ok: true, detail: "recorded for \(.head | short)"}
     end;
 
+# Review by risk (ADR-033 item 5, until pilot setup): a review that left should-fix findings as follow-ups (pr.sh reviewed
+# --should-fix <n> records "should-fix finding(s) left as") is clean only for a low-risk PR; a high or owner PR, or an
+# unknown risk, needs a review with none. The record alone is not enough: the risk may have changed since it was written.
+# The input is the result of the on_head check of the record; $f the facts.
+def review_by_risk($f):
+  ($f.pr.body | record($review_mark)) as $line
+  | ($f.risk.risk) as $risk
+  | if .ok and $line != null and ($line | test("should-fix findings? left as")) and $risk != "low"
+    then {ok: false,
+          detail: "the self-review record leaves should-fix findings as follow-ups, which only a low-risk PR may merge with; this PR is \(if $risk == "high" then "high-risk" elif $risk == "owner" then "owner-only" else "of unknown risk" end)"}
+    else . end;
+
 . as $f
 | [
     {name: "not owner-only", ok: (.risk.risk | IN("low", "high")),
@@ -101,7 +113,7 @@ def on_head($what; $line):
               elif .risk.risk == "owner" then "owner-only: \(.risk.reasons | join("; "))"
               else "the risk is unknown: the owner decides" end)},
     checks_passed,
-    {name: "self-review clean"} + on_head("self-review"; $f.pr.body | record($review_mark)),
+    {name: "self-review clean"} + (on_head("self-review"; $f.pr.body | record($review_mark)) | review_by_risk($f)),
     {name: "preview smoke-checked"} + (
       ($f.pr.body | record($smoke_mark)) as $line
       | if $f.preview | IN("yes", "no", "pending") | not then {ok: false, detail: "whether the PR has a preview is unknown"}
