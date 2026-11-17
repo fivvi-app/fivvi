@@ -266,6 +266,53 @@
     <string name="join_link_renew_dialog_title">Aanmeldlink vernieuwen?</string>
     <string name="join_link_renewed">De aanmeldlink is vernieuwd.</string>
     <string name="join_link_title">Aanmeldlink</string>
+    <!-- The first line of a calendar block and the start of its spoken name: the session type in words, a dot, then the client or class name, e.g. 'Privé · Anna' or 'Groep · Kracht'. The type always comes first (colour is never the only signal). -->
+    <string name="my_calendar_block">%2$s · %1$s</string>
+    <!-- Places taken and capacity of a group class on its block, e.g. '3/8'. -->
+    <string name="my_calendar_block_booked">%1$s/%2$s</string>
+    <string name="my_calendar_cancelled">Geannuleerd</string>
+    <string name="my_calendar_clear_filters">Filters wissen</string>
+    <!-- Tooltip and screen-reader note on the day header of the day the clocks go back (autumn). -->
+    <string name="my_calendar_clock_back">Wintertijd: de klok gaat 1 uur terug</string>
+    <!-- Tooltip and screen-reader note on the day header of the day the clocks go forward (spring). -->
+    <string name="my_calendar_clock_forward">Zomertijd: de klok gaat 1 uur vooruit</string>
+    <string name="my_calendar_column_day">Dag</string>
+    <string name="my_calendar_column_session">Sessie</string>
+    <string name="my_calendar_column_status">Status</string>
+    <string name="my_calendar_column_time">Tijd</string>
+    <string name="my_calendar_column_type">Soort</string>
+    <string name="my_calendar_column_workspace">Werkruimte</string>
+    <string name="my_calendar_empty_day">Geen sessies op deze dag.</string>
+    <string name="my_calendar_empty_week">Geen sessies in deze week.</string>
+    <string name="my_calendar_filter_type">Soort</string>
+    <string name="my_calendar_filter_workspace">Werkruimte</string>
+    <string name="my_calendar_grid_day">Agenda van %1$s</string>
+    <string name="my_calendar_grid_week">Agenda van %1$s</string>
+    <string name="my_calendar_legend">Soorten sessies</string>
+    <string name="my_calendar_list_caption">Sessies van %1$s</string>
+    <string name="my_calendar_next">Volgende</string>
+    <string name="my_calendar_no_results">Geen resultaten met deze filters.</string>
+    <!-- Checkbox in the Type filter: show group classes. -->
+    <string name="my_calendar_option_group">Groepsles</string>
+    <!-- Checkbox in the Type filter: show private sessions. -->
+    <string name="my_calendar_option_private">Privé</string>
+    <string name="my_calendar_previous">Vorige</string>
+    <!-- A range of dates, such as '21 sep – 27 sep 2026' (day and short month, the end with the year). {start} and {end} are formatted in code. -->
+    <string name="my_calendar_range">%2$s – %1$s</string>
+    <!-- Checkbox in the Type filter: show cancelled sessions (on by default). -->
+    <string name="my_calendar_show_cancelled">Geannuleerde tonen</string>
+    <string name="my_calendar_spoken_join">%1$s, %2$s</string>
+    <string name="my_calendar_spoken_time">%2$s tot %1$s</string>
+    <!-- Start and end of a session as 24-hour times without spaces, '09:00–10:00'. -->
+    <string name="my_calendar_time_range">%2$s–%1$s</string>
+    <string name="my_calendar_title">Mijn agenda</string>
+    <string name="my_calendar_today">Vandaag</string>
+    <string name="my_calendar_type_group">Groep</string>
+    <string name="my_calendar_type_private">Privé</string>
+    <string name="my_calendar_view_day">Dag</string>
+    <string name="my_calendar_view_list">Lijst</string>
+    <string name="my_calendar_view_week">Week</string>
+    <string name="my_calendar_views">Weergave</string>
     <string name="my_day_booked">%1$s/%2$s geboekt</string>
     <string name="my_day_cancelled">Geannuleerd</string>
     <string name="my_day_empty_never">Je hebt nog geen sessies. Je ziet ze hier zodra je bent ingepland.</string>
@@ -377,6 +424,8 @@
         <item quantity="one">%1$d week</item>
         <item quantity="other">%1$d weken</item>
     </plurals>
+    <!-- Shown on the personal pages when the browser is not in Dutch time: the times on the page are Dutch time. -->
+    <string name="personal_time_zone_hint">Tijden in Nederlandse tijd</string>
     <string name="profile_error">Je werkruimtes konden niet worden geladen.</string>
     <string name="profile_language">Taal</string>
     <!-- Row on the native Profile (iOS and Android, F064 AC17) that opens the privacy policy of the public website fivvi.app in the browser. Same wording as the website footer (site.footer.privacy). -->
@@ -459,6 +508,8 @@
     <string name="sessions_form_trainer_choose">Kies %1$s</string>
     <string name="sessions_form_trainer_label">%1$s</string>
     <string name="sessions_form_trainer_me">%1$s (ik)</string>
+    <!-- Label of the first field of the private session form when it is opened from the personal calendar: the workspace the session is planned in. A plain line with one workspace. -->
+    <string name="sessions_form_workspace_label">Werkruimte</string>
     <string name="sessions_page_cancelled">Deze sessie is geannuleerd.</string>
     <string name="sessions_page_client_label">Klant</string>
     <string name="sessions_page_client_profile">Klantprofiel</string>

@@ -263,6 +263,16 @@ describe.each(locales)('F013 Mijn dag in %s', (locale) => {
     expect(html).toContain(plural(copy.tomorrow, 3).replace('{time}', '07:00'));
   });
 
+  it('From #522: the footer opens Mijn agenda on tomorrow, in the day view', () => {
+    const html = view({
+      tomorrow: { date: '2026-09-23', count: 3, firstStartsAt: '2026-09-23T05:00:00.000Z' },
+    });
+
+    expect(html).toMatch(
+      /<a[^>]*href="\/me\/calendar\?view=day&amp;date=2026-09-23"[^>]*>[^<]*(07:00)/,
+    );
+  });
+
   it('AC5: no sessions today: the empty line, with the tomorrow line when there is one', () => {
     const empty = view({
       items: [],
@@ -275,7 +285,8 @@ describe.each(locales)('F013 Mijn dag in %s', (locale) => {
     expect(empty).toContain(copy.emptyToday);
     expect(empty).toContain(copy.summaryNone);
     expect(empty).toContain(plural(copy.tomorrow, 1).replace('{time}', '09:00'));
-    expect(empty).not.toContain('<a ');
+    // No session rows: the only link is the tomorrow line.
+    expect(empty).not.toContain('/sessions/');
   });
 
   it('AC5: no sessions today and the next one on Thursday 1 October', () => {

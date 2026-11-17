@@ -30,5 +30,9 @@ export default async function PersonalLayout({ children }: { children: ReactNode
     if (destination.to !== 'no-access') redirectTo(destination);
     return <NoAccess />;
   }
-  return <WorkspaceShell workspace={workspace}>{children}</WorkspaceShell>;
+  return (
+    <WorkspaceShell workspace={workspace} onPersonalPage>
+      {children}
+    </WorkspaceShell>
+  );
 }

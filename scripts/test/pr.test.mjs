@@ -755,11 +755,32 @@ describe('pr.sh reviewed', () => {
   });
 
   const OLD_RECORD = `**Self-review:** standards and spec reviewers clean on \`${'b'.repeat(40)}\` ✅`;
-  const reviewed = (prHead, body = { out: { body: `Closes #57\n\n${OLD_RECORD}` } }) => {
-    const result = spawnSync(join(repo, 'scripts/pr.sh'), ['reviewed'], {
+  // What scripts/risk.sh reads for PR 60: its files and the labels of the issue it closes.
+  const riskRules = (files, ticketLabels = []) => [
+    { match: '^api repos/[^ ]+/pulls/60/files', out: files },
+    {
+      match: '^pr view 60 .*closingIssuesReferences',
+      out: {
+        headRefName: 'feature/57-hold-a-spot',
+        closingIssuesReferences: [{ number: 57 }],
+        changedFiles: files.length,
+      },
+    },
+    {
+      match: '^issue view 57 .*number,labels,parent',
+      out: { number: 57, labels: ticketLabels.map((name) => ({ name })), parent: null },
+    },
+  ];
+  const reviewed = (
+    prHead,
+    body = { out: { body: `Closes #57\n\n${OLD_RECORD}` } },
+    { args = [], risk = [] } = {},
+  ) => {
+    const result = spawnSync(join(repo, 'scripts/pr.sh'), ['reviewed', ...args], {
       cwd: repo,
       encoding: 'utf8',
       env: gh.env([
+        ...risk,
         { match: '^pr list ', out: [{ number: 60 }] },
         { match: '^pr view 60 .*--json headRefOid', out: { headRefOid: prHead } },
         { match: '^pr view 60 .*--json body', ...body },
@@ -801,6 +822,83 @@ describe('pr.sh reviewed', () => {
     assert.equal(result.status, 1);
     assert.match(result.stderr, /is not the PR head ddddddd/);
     assert.deepEqual(result.edits, []);
+  });
+
+  // #1423 AC7, ADR-033 item 5: review by risk. A low-risk PR is clean with should-fix findings left; a high one is not.
+  describe('#1423: review by risk', () => {
+    const LOW = riskRules([{ filename: 'apps/web/page.tsx' }]);
+    const HIGH = riskRules([
+      { filename: 'apps/web/page.tsx' },
+      { filename: 'packages/database/migrations/0004.sql' },
+    ]);
+    const OWNER = riskRules([{ filename: 'apps/web/page.tsx' }, { filename: 'scripts/pr.sh' }]);
+
+    it('AC7: records a low-risk PR as clean with its should-fix findings left as follow-ups', () => {
+      const head = git('rev-parse', 'HEAD');
+      const result = reviewed(head, undefined, { args: ['--should-fix', '2'], risk: LOW });
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(result.bodies, [
+        `Closes #57\n\n**Self-review:** standards and spec reviewers clean on \`${head}\` ✅ (low risk: 2 should-fix findings left as follow-ups, ADR-033)`,
+      ]);
+    });
+
+    it('says "finding" for one', () => {
+      const head = git('rev-parse', 'HEAD');
+      const result = reviewed(head, undefined, { args: ['--should-fix', '1'], risk: LOW });
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(
+        result.bodies[0],
+        /low risk: 1 should-fix finding left as a follow-up, ADR-033\)$/,
+      );
+    });
+
+    it('AC7: refuses a high-risk PR with the same findings and records nothing', () => {
+      const result = reviewed(git('rev-parse', 'HEAD'), undefined, {
+        args: ['--should-fix', '2'],
+        risk: HIGH,
+      });
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /PR #60 is high-risk.*should-fix/);
+      assert.deepEqual(result.edits, []);
+    });
+
+    it('refuses an owner-only PR with should-fix findings', () => {
+      const result = reviewed(git('rev-parse', 'HEAD'), undefined, {
+        args: ['--should-fix', '1'],
+        risk: OWNER,
+      });
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /PR #60 is owner-only/);
+      assert.deepEqual(result.edits, []);
+    });
+
+    it("refuses when the risk can't be read, never reading it as low", () => {
+      const result = reviewed(git('rev-parse', 'HEAD'), undefined, {
+        args: ['--should-fix', '1'],
+        risk: [{ match: '^api repos/[^ ]+/pulls/60/files', out: '', status: 1 }],
+      });
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /could not decide the risk of PR #60/);
+      assert.deepEqual(result.edits, []);
+    });
+
+    it('asks nothing about the risk without should-fix findings, and 0 is the same', () => {
+      const head = git('rev-parse', 'HEAD');
+      for (const args of [[], ['--should-fix', '0']]) {
+        const result = reviewed(head, undefined, { args, risk: HIGH });
+        assert.equal(result.status, 0, result.stderr);
+        assert.match(result.bodies[0], new RegExp(`on \`${head}\` ✅$`));
+      }
+    });
+
+    it('rejects a count that is not a number', () => {
+      for (const args of [['--should-fix'], ['--should-fix', 'many'], ['--should-fix', '-1']]) {
+        const result = reviewed(git('rev-parse', 'HEAD'), undefined, { args, risk: LOW });
+        assert.equal(result.status, 1, args.join(' '));
+        assert.match(result.stderr, /pr\.sh reviewed \[--should-fix <n>\]/);
+        assert.deepEqual(result.edits, []);
+      }
+    });
   });
 });
 

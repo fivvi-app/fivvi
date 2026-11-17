@@ -248,5 +248,16 @@
   "sessions.reschedule.current": "Top of the reschedule dialog: where the session is now. {date} is a short date with the year, {start} and {end} are 24-hour times.",
   "sessions.reschedule.changedBy": "Shown when someone else changed or moved the session while this form was open. {name} is that person. The form then shows the session as it is now.",
   "sessions.page.moved": "Message after a session was moved. {date} is a short date, {time} a 24-hour time.",
-  "clients.profile.upcomingWhen": "One row of the client's upcoming sessions on the client profile: {date} is a short date such as \"do 24 sep\", {time} a 24-hour time."
+  "clients.profile.upcomingWhen": "One row of the client's upcoming sessions on the client profile: {date} is a short date such as \"do 24 sep\", {time} a 24-hour time.",
+  "myCalendar.range": "A range of dates, such as '21 sep – 27 sep 2026' (day and short month, the end with the year). {start} and {end} are formatted in code.",
+  "myCalendar.timeRange": "Start and end of a session as 24-hour times without spaces, '09:00–10:00'.",
+  "myCalendar.block": "The first line of a calendar block and the start of its spoken name: the session type in words, a dot, then the client or class name, e.g. 'Privé · Anna' or 'Groep · Kracht'. The type always comes first (colour is never the only signal).",
+  "myCalendar.blockBooked": "Places taken and capacity of a group class on its block, e.g. '3/8'.",
+  "myCalendar.clockForward": "Tooltip and screen-reader note on the day header of the day the clocks go forward (spring).",
+  "myCalendar.clockBack": "Tooltip and screen-reader note on the day header of the day the clocks go back (autumn).",
+  "myCalendar.optionPrivate": "Checkbox in the Type filter: show private sessions.",
+  "myCalendar.optionGroup": "Checkbox in the Type filter: show group classes.",
+  "myCalendar.showCancelled": "Checkbox in the Type filter: show cancelled sessions (on by default).",
+  "personal.timeZoneHint": "Shown on the personal pages when the browser is not in Dutch time: the times on the page are Dutch time.",
+  "sessions.form.workspaceLabel": "Label of the first field of the private session form when it is opened from the personal calendar: the workspace the session is planned in. A plain line with one workspace."
 }
