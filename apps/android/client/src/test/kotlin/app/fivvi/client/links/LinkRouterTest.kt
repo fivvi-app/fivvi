@@ -53,6 +53,7 @@ class LinkRouterTest {
             "https://www.fivvi.app/j/ABCD2345",
             "https://fivvi.app.example.com/j/ABCD2345",
             "https://evil.example@fivvi.app/j/ABCD2345",
+            "https://fivvi.app@example.com/j/ABCD2345",
             "http://fivvi.app/j/ABCD2345",
             "app.fivvi://j/ABCD2345",
             "https://fivvi.app:8443/j/ABCD2345",
