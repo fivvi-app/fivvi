@@ -23,7 +23,7 @@ private struct ForegroundRefresh: ViewModifier {
     }
 }
 
-extension View {
+public extension View {
     /// Calls `action` each time the app returns to the foreground after it was in the background.
     func onReturnToForeground(_ action: @escaping @MainActor () async -> Void) -> some View {
         modifier(ForegroundRefresh(action: action))

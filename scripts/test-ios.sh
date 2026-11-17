@@ -104,16 +104,16 @@ for project in "$IOS_DIR"/*.xcodeproj; do
   [ "$name" = FivviPro ] || APPS="$APPS $name"
 done
 APP=""
-APP_WORD="" APP_NOTE="" APP_TESTS="" APP_UNIT="" APP_IOS="" APP_TIME=""
+APP_WORD="" APP_NOTE="" APP_TESTS="" APP_UNIT="" APP_IOS="" APP_TIME="" APP_LOG_SUFFIX=""
 FINAL_BUNDLE_ID=""
 RESULT_STEM=""
 use_app() { # <app>
   APP=$1
   # How the messages name the app: Fivvi Pro's read as they did when it was the only app, the others name themselves.
   if [ "$APP" = FivviPro ]; then
-    APP_WORD="" APP_NOTE="" APP_TESTS="Tests" APP_UNIT="Unit" APP_IOS="iOS" APP_TIME="Test"
+    APP_WORD="" APP_NOTE="" APP_TESTS="Tests" APP_UNIT="Unit" APP_IOS="iOS" APP_TIME="Test" APP_LOG_SUFFIX=""
   else
-    APP_WORD=" $APP" APP_NOTE=" ($APP)" APP_TESTS="$APP tests" APP_UNIT="$APP unit" APP_IOS="$APP" APP_TIME="$APP test"
+    APP_WORD=" $APP" APP_NOTE=" ($APP)" APP_TESTS="$APP tests" APP_UNIT="$APP unit" APP_IOS="$APP" APP_TIME="$APP test" APP_LOG_SUFFIX="-$APP"
   fi
   case "$APP" in
     FivviPro) FINAL_BUNDLE_ID=app.fivvi.pro; RESULT_STEM=TestResults ;;
@@ -442,7 +442,8 @@ build_args() {
 }
 
 # Builds the apps and their tests, one app after the other, for the simulator $1; the build log of each goes to
-# .build/build-for-testing-<app>.log and its timing summary to the output and the job summary. Build/Products is restored
+# .build/build-for-testing.log (Fivvi Pro) or .build/build-for-testing-<app>.log (the others), its timing summary to the
+# output and the job summary. Build/Products is restored
 # from CI's cache, so an .xctestrun left by an earlier build (a renamed scheme or test plan) is deleted first: afterwards
 # exactly one .xctestrun of each app remains, named after its scheme and test plan (`<app>_<app>_<sdk>.xctestrun`).
 PRODUCTS=.build/DerivedData/Build/Products
@@ -469,7 +470,7 @@ find_xctestrun() {
 }
 
 build_app_for_testing() {
-  local log=".build/build-for-testing-$APP.log" timing
+  local log=".build/build-for-testing${APP_LOG_SUFFIX}.log" timing
   build_args
   if ! xcodebuild build-for-testing "${BUILD_ARGS[@]}" -destination "id=$1" -showBuildTimingSummary >"$log" 2>&1; then
     tail -n 300 "$log"
@@ -557,7 +558,7 @@ run_tests() {
   run_xcodebuild "$1" "$bundle" "$TEST_DEADLINE" "${APP_WORD# }${APP_WORD:+ }${2:-nl and en} tests" ${only[@]+"${only[@]}"}
 }
 
-# E017 #1433: the retry of `test <locale> --retry-failed`. Only the failed UI tests (the target FivviProUITests), once, and
+# E017 #1433: the retry of `test <locale> --retry-failed`. Only the failed UI tests (the target <app>UITests), once, and
 # only when at most RETRY_MAX_TESTS of them failed: more is a break, not a flake. Its own deadline, and the grace.
 RETRY_DEADLINE=${IOS_RETRY_DEADLINE:-600}
 RETRY_MAX_TESTS=3
@@ -621,7 +622,7 @@ retry_failed_ui_tests() { # <simulator> <locale>
     echo "Not retrying: the $locale run hit its deadline, which is a stall and not a flaky test (#305)"
     return 1
   fi
-  rows="$(failed_test_rows "$first")"
+  rows="$(failed_test_rows "$first" "${APP}UITests")"
   if [ -z "$rows" ]; then
     echo "Not retrying: the failed tests cannot be read from $first"
     return 1
@@ -652,7 +653,7 @@ retry_failed_ui_tests() { # <simulator> <locale>
   rm -rf "$retry"
   run_xcodebuild "$udid" "$retry" "$RETRY_DEADLINE" "$locale retried tests" -only-test-configuration "$locale" "${only[@]}" \
     || status=$?
-  outcomes="$(ui_test_outcomes "$retry")"
+  outcomes="$(ui_test_outcomes "$retry" "${APP}UITests")"
   for id in $ids; do
     result="$(awk -F'\t' -v id="$id" '$1 == id { print $2; exit }' <<<"$outcomes")"
     case "$result" in
@@ -771,7 +772,7 @@ report_failed() { # <bundle> [locale]
 # summary: a test that only passes on a retry is reported as flaky (#388, TESTING.md §8). Once per result bundle.
 report_flaky() { # <bundle>
   local rows
-  rows="$(flaky_tests "$1")"
+  rows="$(flaky_tests "$1" "${APP}UITests")"
   [ -z "$rows" ] || {
     echo "$rows"
     summary "### Flaky$APP_WORD iOS tests" "" "$(sed -e 's/^::warning:://' -e 's/^/- /' <<<"$rows")" ""

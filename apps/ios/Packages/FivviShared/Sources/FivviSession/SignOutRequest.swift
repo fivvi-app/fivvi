@@ -1,7 +1,7 @@
 import Foundation
 import FivviAPI
 
-/// The request that ends this phone's sign-in session on the server (F001 AC10), for an app that signs out as Fivvi does.
+/// The request that ends this phone's sign-in session on the server (F001 AC10), for both apps, Fivvi Pro and Fivvi.
 ///
 /// The token is deleted before this runs, so a phone that is switched off or an app that is killed meanwhile opens signed
 /// out; the request goes out with a snapshot of it (`AuthMiddleware.requestToken`). The wait for the API is a race
