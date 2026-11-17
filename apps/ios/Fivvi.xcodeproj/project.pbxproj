@@ -83,9 +83,23 @@
 		E50300000000000000000214 /* AppLaunch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppLaunch.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		E50300000000000000000033 /* Exceptions for "Fivvi" folder in "Fivvi" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Config/Debug.xcconfig,
+				Config/Release.xcconfig,
+			);
+			target = E50300000000000000000050 /* Fivvi */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		E50300000000000000000030 /* Fivvi */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				E50300000000000000000033 /* Exceptions for "Fivvi" folder in "Fivvi" target */,
+			);
 			path = Fivvi;
 			sourceTree = "<group>";
 		};

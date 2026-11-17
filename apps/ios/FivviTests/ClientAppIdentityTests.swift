@@ -37,4 +37,11 @@ final class ClientAppIdentityTests: XCTestCase {
     func test_E017_AC10_theAppReportsToSentryAsFivvi() {
         XCTAssertEqual(Bundle.main.infoDictionary?["FivviSentryApp"] as? String, "fivvi")
     }
+
+    /// The build settings files sit in `Fivvi/Config/`, inside the folder the app target syncs. A membership exception keeps them
+    /// out of the app, so a build setting never ships in Fivvi.app.
+    func test_E017_AC4_theBuiltAppHoldsNoXcconfigFile() throws {
+        let files = try XCTUnwrap(FileManager.default.enumerator(atPath: Bundle.main.bundlePath))
+        XCTAssertEqual(files.compactMap { $0 as? String }.filter { $0.hasSuffix(".xcconfig") }, [])
+    }
 }
