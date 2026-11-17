@@ -15,8 +15,7 @@
     "greeting": "Hoi {name},",
     "sessionsToday": "{count, plural, one {Je hebt vandaag # sessie.} other {Je hebt vandaag # sessies.}}",
     "noSessionsToday": "Je hebt vandaag geen sessies.",
-    "nextSession": "Je volgende sessie is op {date} om {time}.",
-    "error": "We konden de begroeting niet laden. Probeer het opnieuw."
+    "nextSession": "Je volgende sessie is op {date} om {time}."
   },
   "notFound": {
     "title": "Pagina niet gevonden",

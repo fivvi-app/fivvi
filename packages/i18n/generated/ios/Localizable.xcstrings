@@ -3439,24 +3439,6 @@
         }
       }
     },
-    "hello.error" : {
-      "comment" : "Shown on the native hello screen when the greeting can't be loaded (no connection, or an unknown greeting). Above the common.retry button.",
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "We couldn't load the greeting. Try again."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "We konden de begroeting niet laden. Probeer het opnieuw."
-          }
-        }
-      }
-    },
     "hello.greeting" : {
       "comment" : "Greeting above the home screen. {name} is the user's first name.",
       "extractionState" : "manual",

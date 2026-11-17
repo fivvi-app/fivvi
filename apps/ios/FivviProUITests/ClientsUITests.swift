@@ -11,7 +11,6 @@ final class ClientsUITests: SignInUITestCase {
     /// Sarah (synthetic): Trainer of John's Gym.
     private func launchAsSarah() throws -> (SignInScreen, StubServer) {
         let server = try StubServer(
-            .greeting(key: "hello.title"),
             signIn: StubServer.SignIn(email: "trainer@example.com", workspaceName: "John's Gym", role: "trainer")
         )
         return (SignInScreen.launch(against: server, session: .signedIn), server)
@@ -20,7 +19,6 @@ final class ClientsUITests: SignInUITestCase {
     /// An account whose capabilities include `clients.view` but not `clients.manage` (the matrix has no such role yet).
     private func launchAsViewer(hasNoClients: Bool = false) throws -> (SignInScreen, StubServer) {
         let server = try StubServer(
-            .greeting(key: "hello.title"),
             signIn: StubServer.SignIn(
                 email: "viewer@example.com", workspaceName: "John's Gym", role: "trainer",
                 capabilities: ["trainers.view", "clients.view"], hasNoClients: hasNoClients
