@@ -302,6 +302,9 @@ describe('F001 AC13 route guard', () => {
       ['/apple-icon.png', true],
       ['/icon.svg/x', false],
       ['/apple-icon', false],
+      // F013 AC9: the web app manifest, which a browser fetches without a cookie; its icons are under /site-images.
+      ['/manifest.webmanifest', true],
+      ['/manifest.webmanifest/x', false],
       ['/site-imagesx/a.webp', false],
       ['/en/', false],
       ['/en/gyms/x', false],

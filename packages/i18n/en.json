@@ -183,7 +183,73 @@
     "newClient": "Client",
     "newPrivateSession": "Private session",
     "newGroupClass": "Group class",
-    "joinLink": "Join link"
+    "joinLink": "Join link",
+    "personal": "Personal",
+    "myDay": "My day",
+    "myCalendar": "My calendar"
+  },
+  "myDay": {
+    "title": "My day",
+    "summaryNone": "No sessions",
+    "summary": "{count, plural, one {# session} other {# sessions}} · {first}–{last}",
+    "listLabel": "Today's sessions",
+    "nextUpcoming": "Up next · in {minutes} min",
+    "nextInProgress": "In progress",
+    "typePrivate": "Private session",
+    "typeGroup": "Group class",
+    "booked": "{booked}/{capacity} booked",
+    "timeRange": "{start}–{end}",
+    "typeWithDetail": "{type} · {detail}",
+    "spokenTime": "{start} to {end}",
+    "spokenJoin": "{first}, {next}",
+    "cancelled": "Cancelled",
+    "tomorrow": "Tomorrow: {count, plural, one {# session} other {# sessions}}, first at {time}",
+    "emptyToday": "No sessions today.",
+    "emptyNext": "No sessions today. Your next session is on {date}.",
+    "emptyNever": "You don't have any sessions yet. You'll see them here as soon as you're scheduled."
+  },
+  "myCalendar": {
+    "title": "My calendar",
+    "range": "{start} – {end}",
+    "timeRange": "{start}–{end}",
+    "views": "View",
+    "viewDay": "Day",
+    "viewWeek": "Week",
+    "viewList": "List",
+    "today": "Today",
+    "previous": "Previous",
+    "next": "Next",
+    "legend": "Session types",
+    "typePrivate": "Private",
+    "typeGroup": "Group",
+    "block": "{type} · {name}",
+    "blockBooked": "{booked}/{capacity}",
+    "spokenTime": "{start} to {end}",
+    "spokenJoin": "{first}, {next}",
+    "cancelled": "Cancelled",
+    "gridDay": "Calendar of {date}",
+    "gridWeek": "Calendar of {range}",
+    "clockForward": "Summer time: clocks go forward 1 hour",
+    "clockBack": "Winter time: clocks go back 1 hour",
+    "filterType": "Type",
+    "filterWorkspace": "Workspace",
+    "optionPrivate": "Private",
+    "optionGroup": "Group class",
+    "showCancelled": "Show cancelled",
+    "clearFilters": "Clear filters",
+    "noResults": "No results with these filters.",
+    "emptyDay": "No sessions on this day.",
+    "emptyWeek": "No sessions this week.",
+    "listCaption": "Sessions of {range}",
+    "columnDay": "Day",
+    "columnTime": "Time",
+    "columnSession": "Session",
+    "columnType": "Type",
+    "columnWorkspace": "Workspace",
+    "columnStatus": "Status"
+  },
+  "personal": {
+    "timeZoneHint": "Times in Dutch time"
   },
   "workspaceSwitcher": {
     "newWorkspace": "+ New workspace"
@@ -575,7 +641,8 @@
       "notes": {
         "repeatedTime": "On {date}, {time} happens twice. We'll use the first one (summer time).",
         "past": "This time is in the past. The client won't get an email."
-      }
+      },
+      "workspaceLabel": "Workspace"
     },
     "reschedule": {
       "title": "Reschedule session",

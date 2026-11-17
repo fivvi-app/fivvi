@@ -8,7 +8,9 @@
 #   release.sh build-number        prints the build number of this run, the same for every platform of the run: the run
 #                                  number plus a fixed offset (CFBundleVersion and versionCode). A re-run is refused
 #   release.sh tests ios <nl|en>   the iOS suite of one locale on this commit: pnpm test:ios build (SwiftLint, checks and the
-#                                  build for testing), then pnpm test:ios test <locale>. The workflow runs it once per locale,
+#                                  build for testing), then pnpm test:ios test <locale> --retry-failed: a failed UI test is
+#                                  retried once, on the same simulator, and the run passes when it passes then (#1433; CI never
+#                                  retries a failed test, test-ios.sh has the rules). The workflow runs it once per locale,
 #                                  each in a job of its own like CI's `iOS tests (nl)` and `(en)`, because both locales on one
 #                                  simulator no longer fit the job's timeout (E017). The locale is required: no caller runs
 #                                  both at once any more
@@ -69,7 +71,7 @@ tests() {
       [ $# -eq 2 ] || usage
       [ "$2" = nl ] || [ "$2" = en ] || usage
       suite pnpm test:ios build
-      suite pnpm test:ios test "$2"
+      suite pnpm test:ios test "$2" --retry-failed
       ;;
     android)
       [ $# -eq 1 ] || usage

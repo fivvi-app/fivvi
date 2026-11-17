@@ -124,7 +124,7 @@ set_flow_env() {
 }
 
 start_stack() {
-  docker info >/dev/null 2>&1 || die "Docker is not running — start it (Postgres for the local stack)"
+  docker info >/dev/null 2>&1 || die "Docker is not running — start it with brew services start colima, or set it up with scripts/bootstrap.sh (Postgres for the local stack)"
   [ -f packages/database/.env ] || cp packages/database/.env.example packages/database/.env
   pnpm db:up >/dev/null
   pnpm db:migrate >/dev/null

@@ -5,6 +5,7 @@
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
+    "./calendar-grid": "./src/scheduling/calendar-grid.ts",
     "./group-class-limits": "./src/scheduling/group-class-limits.ts",
     "./private-session-durations": "./src/scheduling/private-session-durations.ts",
     "./zoned-time": "./src/scheduling/zoned-time.ts",

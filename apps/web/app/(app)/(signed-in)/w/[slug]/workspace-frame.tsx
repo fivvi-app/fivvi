@@ -24,7 +24,9 @@ import { WorkspaceSwitcher } from './workspace-switcher';
  * opens the quick-add dialog (F006) that the list's *Klant toevoegen* opens as well; with a
  * session capability (`newSession`) it has *Privésessie* too, which opens PS-01 (F020); with
  * `class.manage` (`groupClasses`) it has *Groepsles*, which opens the scheduling of a class (F021),
- * and the navigation has *Lessen* (TW-03). The rest of the navigation comes with F013/F014.
+ * and the navigation has *Lessen* (TW-03). A person with a trainer profile (`personalPages`) has
+ * the group *Persoonlijk* above the workspace's, with *Mijn dag* and *Mijn agenda* (F013). The
+ * rest of the navigation comes with F014.
  */
 export function WorkspaceFrame({
   name,
@@ -37,6 +39,7 @@ export function WorkspaceFrame({
   quickAdd,
   newSession,
   groupClasses,
+  personalPages = false,
   children,
 }: {
   name: string;
@@ -56,6 +59,8 @@ export function WorkspaceFrame({
   newSession?: Omit<NewSessionProps, 'slug'>;
   /** What the class dialogs need; given only to a person who manages classes (F021). */
   groupClasses?: Omit<ClassesProps, 'slug'>;
+  /** The person has a trainer profile in some workspace: the sidebar has *Persoonlijk* (F013). */
+  personalPages?: boolean;
   children: ReactNode;
 }) {
   const t = useTranslations('workspaceNav');
@@ -87,6 +92,15 @@ export function WorkspaceFrame({
       ],
     });
   }
+  const personal = personalPages
+    ? {
+        heading: t('personal'),
+        items: [
+          { href: '/me/day', label: t('myDay'), icon: 'day' },
+          { href: '/me/calendar', label: t('myCalendar'), icon: 'calendar' },
+        ] satisfies NavItem[],
+      }
+    : undefined;
   let content: ReactNode = children;
   if (quickAdd || newSession || groupClasses) {
     content = (
@@ -133,7 +147,7 @@ export function WorkspaceFrame({
           workspaces={workspaces}
           canCreateWorkspace={canCreateWorkspace}
         />
-        <SidebarNav label={t('label')} items={items} />
+        <SidebarNav label={t('label')} items={items} heading={name} personal={personal} />
         <div className="mt-auto flex items-center gap-2.5 border-t px-2 pt-2.5">
           {personName ? (
             <>

@@ -1,7 +1,6 @@
-import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
+import { cloneTemplateDatabase, createTestPool, type TestDatabase } from '@fivvi/testing/database';
 import { eq } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/node-postgres';
-import pg from 'pg';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   createDatabase,
@@ -45,14 +44,14 @@ describe('F013 the personal read model', () => {
     database = await cloneTemplateDatabase();
     admin = createDatabase({ url: database.url, maxConnections: 2 });
     app = createDatabase({ url: database.appUrl, maxConnections: 4 });
-    const pool = new pg.Pool({ connectionString: database.appUrl, max: 1 });
+    const pool = createTestPool(database.appUrl, { max: 1 });
     logging = {
       db: drizzle({
         client: pool,
         schema,
         logger: { logQuery: (query, params) => statements.push({ query, params }) },
       }),
-      close: () => pool.end(),
+      close: () => pool.close(),
     };
   });
 

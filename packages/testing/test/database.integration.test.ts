@@ -1,14 +1,15 @@
 import { sql } from 'drizzle-orm';
 import { drizzle, type NodePgDatabase } from 'drizzle-orm/node-postgres';
 import pg from 'pg';
-import { afterAll, beforeAll, describe, expect, inject, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, inject, it, vi } from 'vitest';
 import {
   cloneTemplateDatabase,
   createTestDatabase,
+  createTestPool,
   type TestDatabase,
   withRollback,
 } from '../src/database.ts';
-import { appRoleUrl, databaseUrl } from '../src/database-server.ts';
+import { appRoleUrl, databaseUrl, onServer } from '../src/database-server.ts';
 
 interface Connected {
   database: TestDatabase;
@@ -17,8 +18,8 @@ interface Connected {
 }
 
 function connect(database: TestDatabase): Connected {
-  const pool = new pg.Pool({ connectionString: database.url, max: 2 });
-  return { database, db: drizzle({ client: pool }), close: () => pool.end() };
+  const pool = createTestPool(database.url, { max: 2 });
+  return { database, db: drizzle({ client: pool }), close: () => pool.close() };
 }
 
 async function labels(db: Pick<NodePgDatabase, 'execute'>): Promise<string[]> {
@@ -171,5 +172,69 @@ describe('E011 test roles', () => {
     } finally {
       await clone.drop();
     }
+  });
+});
+
+// #1443: a pool of a test file must not turn the end of its database into an unhandled error.
+// `pool.end()` returns before the sockets are closed, and an idle client keeps the pool's
+// listener, so a backend ended by `DROP DATABASE ... WITH (FORCE)` or `pg_terminate_backend`
+// reached Vitest as `57P01 terminating connection due to administrator command`.
+describe('E002 #1443 test pools', () => {
+  let database: TestDatabase;
+
+  beforeAll(async () => {
+    database = await cloneTemplateDatabase();
+  });
+
+  afterAll(async () => {
+    await database?.drop();
+  });
+
+  it('AC2: survives the backend of an idle client being terminated, and serves the next query', async () => {
+    // No error listener of its own: Vitest fails the run on an unhandled error (as in CI).
+    const pool = createTestPool(database.url, { max: 1 });
+    try {
+      const { rows } = await pool.query<{ pid: number }>('select pg_backend_pid() as pid');
+      const pid = rows[0]?.pid;
+      expect(pool.idleCount).toBe(1);
+
+      await onServer({ text: 'select pg_terminate_backend($1)', values: [pid] });
+      await vi.waitFor(() => expect(pool.totalCount).toBe(0));
+
+      const next = await pool.query<{ pid: number }>('select pg_backend_pid() as pid');
+      expect(next.rows[0]?.pid).not.toBe(pid);
+    } finally {
+      await pool.close();
+    }
+  });
+
+  it('AC2: ignores only the 57P01 of an ended backend, any other idle-client error surfaces', async () => {
+    const pool = createTestPool(database.url, { max: 1 });
+    try {
+      const ended = Object.assign(new Error('terminating connection'), { code: '57P01' });
+      expect(() => pool.emit('error', ended)).not.toThrow();
+
+      const other = Object.assign(new Error('boom'), { code: '08006' });
+      expect(() => pool.emit('error', other)).toThrow('boom');
+    } finally {
+      await pool.close();
+    }
+  });
+
+  it('AC2: closes its connections before close() resolves, so dropping the database ends none', async () => {
+    const pool = createTestPool(database.url, { max: 2 });
+    const clients: pg.PoolClient[] = [];
+    const ended: string[] = [];
+    pool.on('connect', (client) => {
+      clients.push(client);
+      client.once('end', () => ended.push('end'));
+    });
+    // Two concurrent queries on a pool of 2 hold two connections at once.
+    await Promise.all([pool.query('select pg_sleep(0)'), pool.query('select pg_sleep(0)')]);
+    expect(clients).toHaveLength(2);
+
+    await pool.close();
+
+    expect(ended).toHaveLength(clients.length);
   });
 });

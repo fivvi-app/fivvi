@@ -371,7 +371,9 @@ class CCTest {
         .filter((line) => line.trim() !== '' && !line.startsWith('#'));
 
     it('AC2: the rule passes on the lists of this checkout, and the sources find the markers', () => {
-      assert.deepEqual(checkQuarantine({ today: TODAY }), []);
+      // The lists of this checkout hold real entries, so they are checked against the real UTC day (as check.sh does);
+      // the fixed TODAY is for the synthetic fixtures only.
+      assert.deepEqual(checkQuarantine(), []);
       // A listed test that carries a marker is refused: take the real source of a marked test.
       const marked = markerProblems(
         'compose',

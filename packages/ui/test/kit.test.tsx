@@ -19,6 +19,7 @@ import { RoundButton } from '../src/kit/round-button';
 import { StatusPill } from '../src/kit/status-pill';
 import { SuccessLine } from '../src/kit/success-line';
 import { Toast } from '../src/kit/toast';
+import { sessionBlockVariants, WeekGrid } from '../src/kit/week-grid';
 
 const html = (element: ReactElement) => renderToStaticMarkup(element);
 
@@ -502,6 +503,105 @@ describe('E020 web kit', () => {
     });
   });
 
+  describe('F013 AC10: week grid', () => {
+    const grid = (
+      <WeekGrid
+        label="Week"
+        firstHour={7}
+        endHour={12}
+        hourLabel={(hour) => `${String(hour).padStart(2, '0')}:00`}
+        columns={[
+          {
+            key: 'mon',
+            header: 'ma 21',
+            blocks: [
+              {
+                key: 'anna',
+                startMinute: 9 * 60,
+                endMinute: 10 * 60,
+                lane: 0,
+                lanes: 1,
+                children: <a href="/anna">Privé · Anna</a>,
+              },
+              {
+                key: 'mark',
+                startMinute: 9 * 60 + 30,
+                endMinute: 10 * 60 + 30,
+                lane: 1,
+                lanes: 2,
+                children: <a href="/mark">Privé · Mark</a>,
+              },
+            ],
+          },
+          { key: 'tue', header: 'di 22', today: true, blocks: [] },
+        ]}
+      />
+    );
+
+    it('is one labelled region with a row per hour, 48 px each, and a column per day', () => {
+      const markup = html(grid);
+
+      expect(markup).toMatch(/^<section[^>]*aria-label="Week"/);
+      expect(markup).toContain('ma 21');
+      expect(markup).toContain('di 22');
+      expect(markup).toContain('07:00');
+      expect(markup).toContain('11:00');
+      expect(markup).not.toContain('12:00');
+      // Five hours of 48 px.
+      expect(markup).toContain('height:240px');
+    });
+
+    it('forces a width, to scroll sideways, only when there are many columns: one or two fit a phone', () => {
+      const columnsOf = (count: number) =>
+        Array.from({ length: count }, (_, index) => ({
+          key: `c${index}`,
+          header: `c${index}`,
+          blocks: [],
+        }));
+      const withColumns = (count: number) =>
+        html(
+          <WeekGrid
+            label="x"
+            firstHour={7}
+            endHour={9}
+            hourLabel={() => 'x'}
+            columns={columnsOf(count)}
+          />,
+        );
+
+      expect(withColumns(1)).not.toContain('min-w-176');
+      expect(withColumns(2)).not.toContain('min-w-176');
+      expect(withColumns(7)).toContain('min-w-176');
+    });
+
+    it('places a block by its minutes: 09:00 is two hours of 48 px below 07:00, an hour is 48 px less 2', () => {
+      const markup = html(grid);
+
+      expect(markup).toContain('top:96px;height:46px;left:calc(0% + 2px);width:calc(100% - 4px)');
+    });
+
+    it('puts overlapping blocks side by side in their lanes', () => {
+      const markup = html(grid);
+
+      expect(markup).toContain('left:calc(50% + 2px);width:calc(50% - 4px)');
+    });
+
+    it('tints today and leaves the header text to the caller', () => {
+      expect(html(grid).match(/data-today=""/g)).toHaveLength(2);
+    });
+
+    it('gives a block a face in the colour of its type, and a cancelled one grey and hatched', () => {
+      const group = sessionBlockVariants({ tone: 'group' });
+      const cancelled = sessionBlockVariants({ tone: 'cancelled' });
+
+      expect(group).toContain('bg-session-group-bg');
+      expect(group).toContain('text-session-group-text');
+      expect(cancelled).toContain('bg-muted');
+      expect(cancelled).toContain('repeating-linear-gradient');
+      expect(cancelled).not.toContain('session-group');
+    });
+  });
+
   describe('AC13: client layout', () => {
     it('opts into the client theme, on the touch density, with a glass header', () => {
       const markup = html(
@@ -579,6 +679,19 @@ describe('E020 web kit stylesheet', () => {
       <ClientLayout key="k" header="x">
         x
       </ClientLayout>,
+      <WeekGrid
+        key="wg"
+        label="x"
+        firstHour={7}
+        endHour={9}
+        hourLabel={() => 'x'}
+        columns={[{ key: 'a', header: 'x', today: true, blocks: [] }]}
+      />,
+      ...(['private', 'group', 'cancelled'] as const).map((tone) => (
+        <span key={`sb-${tone}`} className={sessionBlockVariants({ tone })}>
+          x
+        </span>
+      )),
     ]
       .map(html)
       .join('');
