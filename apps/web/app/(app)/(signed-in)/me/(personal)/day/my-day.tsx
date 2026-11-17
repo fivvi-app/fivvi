@@ -3,6 +3,7 @@ import type { Route } from 'next';
 import Link from 'next/link';
 import { type DateTimeFormatOptions, useFormatter, useTranslations } from 'next-intl';
 import { useSessionFormat } from '../../../w/[slug]/sessions/use-session-format';
+import { TimeZoneHint } from '../time-zone-hint';
 
 type Day = Schemas['MyDay'];
 type Item = Schemas['PersonalSession'];
@@ -19,8 +20,10 @@ const rowClass = 'flex min-h-11 items-start gap-3 rounded-lg px-3 py-2 hover:bg-
  * *Straks* / *Nu bezig* is on top and not repeated in the list; every other item of the day follows
  * in time order, past ones dimmed, cancelled ones struck through with *Geannuleerd*. Each row is
  * one link that opens the session in its own workspace, with that workspace's permissions
- * (`/w/{slug}/sessions/{id}`). A row is at least 44 px high, and the page is one column at any
- * width. Times are Dutch time, the only zone of the personal scope (`day.timeZone`).
+ * (`/w/{slug}/sessions/{id}`), and the tomorrow line opens *Mijn agenda* on tomorrow
+ * (`/me/calendar`). A row is at least 44 px high, and the page is one column at any width. Times
+ * are Dutch time, the only zone of the personal scope (`day.timeZone`); a browser in another zone
+ * gets the hint that says so.
  */
 export function MyDayView({ day, now }: { day: Day; now: Date }) {
   const t = useTranslations('myDay');
@@ -117,6 +120,7 @@ export function MyDayView({ day, now }: { day: Day; now: Date }) {
             {calendarDay(day.date, { weekday: 'long', day: 'numeric', month: 'long' })}
           </p>
           <p className="text-sm font-medium">{summary}</p>
+          <TimeZoneHint zone={day.timeZone} />
         </header>
 
         {next && day.next ? (
@@ -147,10 +151,16 @@ export function MyDayView({ day, now }: { day: Day; now: Date }) {
 
         {day.tomorrow ? (
           <p className="border-t pt-3 text-sm text-muted-foreground">
-            {t('tomorrow', {
-              count: day.tomorrow.count,
-              time: when.time(day.tomorrow.firstStartsAt),
-            })}
+            {/* The line opens *Mijn agenda* on tomorrow (AC5). */}
+            <Link
+              href={`/me/calendar?view=day&date=${day.tomorrow.date}` as Route}
+              className="inline-flex min-h-11 items-center underline-offset-4 hover:underline"
+            >
+              {t('tomorrow', {
+                count: day.tomorrow.count,
+                time: when.time(day.tomorrow.firstStartsAt),
+              })}
+            </Link>
           </p>
         ) : null}
       </div>

@@ -29,6 +29,8 @@ Agents merge a PR when a script finds it **low-risk** and every condition of the
 
 > **Amended by [ADR-021](ADR-021-agents-queue-high-risk.md) (24 October 2026):** until G2 agents also add a high-risk PR to the merge queue unless it is owner-only. In decision 1 `scripts/risk.sh` reports three levels (`low`, `high` for agent-queueable reasons, `owner` for any owner-only reason) and the path groups guardrails, legal, billing and product docs are owner-only; in decision 3 the first condition of the merge gate is "not owner-only" and `pr.sh merge` records a high-risk merge in the PR body. The parallel limit of three tickets is gone (it stays optional through `FIVVI_MAX_TICKETS`). The rest of this ADR stands.
 
+> **Amended by [ADR-033](ADR-033-go-live-mode.md) (15 November 2026):** until pilot setup the "reviewer clean" condition of decision 3 means, for a `low` PR, no must-fix finding left (the should-fix findings stay open as follow-ups and `pr.sh reviewed --should-fix <n>` records them); a `high` or `owner` PR keeps the full condition. The rest of this ADR stands.
+
 1. **Risk is decided by a script, never by an agent's judgment.** `scripts/risk.sh <pr>` classifies a PR as high-risk when it changes, adds, deletes or renames a path in `scripts/high-risk-paths.txt`, or when its issue or that issue's parent spec has the `owner-merge` label. It prints the reasons. The pure decision is `scripts/risk.jq`. The high-risk groups:
    - auth; tenant data (`packages/database`: schema, migrations, RLS); health notes; `docs/legal`; billing and payments;
    - product and decision docs: `docs/product`, `docs/decisions`;
