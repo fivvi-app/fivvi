@@ -578,8 +578,8 @@ jobs:
           report Vitest "$VITEST_LISTED" "$VITEST" "$VITEST_STATUS" "$RUNNER_TEMP/quarantine-vitest.log" '^((apps|packages)/[^ ]+ [^ ]+: )? *(FAIL|×) '
           report Playwright "$PLAYWRIGHT_LISTED" "$E2E" "$E2E_STATUS" "$RUNNER_TEMP/quarantine-playwright.log" '^((apps|packages)/[^ ]+ [^ ]+: )? +[0-9]+\) \['
 
-  # iOS (E008, E002, #293). Three parts and the gate "iOS": one job builds once and packs the test bundle, two jobs run
-  # the Dutch and the English test pass from it at the same time, each on its own simulator (a cold run was 16 of 21
+  # iOS (E008, E002, #293). Five jobs and the gate "iOS": one job builds once and packs the test bundle, four jobs run
+  # the Dutch and the English test passes from it (each language in two parts, #1447) at the same time, each on its own simulator (a cold run was 16 of 21
   # minutes of tests in a row). They start only when the app, its generated inputs or its own scripts changed (in a PR, a
   # merge group or a push to main), or on demand (scripts/native-jobs.sh), to keep PR feedback fast. The UI tests run in
   # both languages on every push. The image and Xcode are pinned, so a runner update doesn't change the toolchain.
@@ -658,7 +658,7 @@ jobs:
       - name: Record the sources' modification times
         run: node scripts/ios-mtimes.mjs save
 
-      # What the two test jobs run: the .xctestrun and the build products, packed in a tar to keep the file modes.
+      # What the four test jobs run: the .xctestrun and the build products, packed in a tar to keep the file modes.
       - name: Upload the test bundle
         if: github.event_name != 'push'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
@@ -762,7 +762,7 @@ jobs:
       - name: Record the sources' modification times
         run: node scripts/ios-mtimes.mjs save
 
-      # What the two test jobs run: the .xctestrun and the build products, packed in a tar to keep the file modes.
+      # What the four test jobs run: the .xctestrun and the build products, packed in a tar to keep the file modes.
       - name: Upload the test bundle
         if: github.event_name != 'push'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1

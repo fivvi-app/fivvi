@@ -22,8 +22,8 @@
 #                                `iOS build` job (#293)
 #   test-ios.sh test <nl|en> [--bundle <file>] [--retry-failed] [--shard <part>/<of>]
 #                                unpacks that bundle (--bundle <file> names another) and runs the test plan's configuration
-#                                for one language, unit and UI tests, without building, on its own simulator. CI's two
-#                                `iOS tests` jobs run it in parallel, one per language, from the artifact of the build job;
+#                                for one language, unit and UI tests, without building, on its own simulator. CI's four
+#                                `iOS tests` jobs run it in parallel, each language in two parts (`--shard`), from the artifact of the build job;
 #                                CI never retries a failed test, so a flaky one stays visible and is quarantined
 #                                (TESTING.md §8). The options come in either order.
 #                                --shard <part>/<of> (CI passes it, #1447) runs only part <part> of <of> of that language's
