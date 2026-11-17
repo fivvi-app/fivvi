@@ -228,6 +228,8 @@
   "offers.summary.pricePerMonth": "Price of an offer billed every month. {amount} is the amount including VAT, e.g. \"€ 79,00\".",
   "offers.summary.pricePerFourWeeks": "Price of an offer billed every 4 weeks. {amount} is the amount including VAT.",
   "offers.summary.singleClass": "Part of the summary of a single class pass: what it is good for.",
+  "offers.summary.deletedClass": "A class an offer is limited to that was deleted later, still named on the offer's version. {name} is the class's name.",
+  "offers.summary.deletedClassUnnamed": "A class an offer is limited to that was deleted with its name; the class is listed without a name.",
   "offers.cancellation.upTo": "The cancellation rule as clients read it, for a cutoff of one hour or more. # is the number of hours.",
   "offers.cancellation.untilStart": "The cancellation rule as clients read it, for a cutoff of 0 hours.",
   "email.privateSessionMoved.subject": "Subject of EM-04, the email that tells the client a private session moved. {newDate} is the new day and time, built with email.privateSessionMoved.dateTime, e.g. 'vrijdag 25 september om 10:00'. Only the new date: with both the subject passed 78 characters (F049). Says 'sessie' here, as the spec words it; the UI says 'privésessie'.",

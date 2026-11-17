@@ -466,6 +466,18 @@ function recurringPrice(t: Translator, cents: number, cycle: BillingCycle, local
 }
 
 /**
+ * How a class an offer is limited to reads in the summary and the offer's version: its name, with
+ * "(verwijderd)" / "(deleted)" after it when the class is gone since (AC9). A class that was removed
+ * with its name has none left to show and reads "Verwijderde les" / "Deleted class". The name is the
+ * viewer's: the caller picks it (`pickContentLanguage`).
+ */
+export function coveredClassLabel(name: string | null, deleted: boolean, locale: Locale): string {
+  const t = translatorFor(locale);
+  if (name === null) return t('offers.summary.deletedClassUnnamed');
+  return deleted ? t('offers.summary.deletedClass', { name }) : name;
+}
+
+/**
  * The one-line summary of an offer in `locale`, the parts joined by ` · `, e.g. "2 lessen per week ·
  * 6 maanden · € 79,00 per maand" / "10 group credits · valid for 3 months · €150.00". An offer
  * without a price yet (a default plan) leaves the amount out. `classNames` are the classes the

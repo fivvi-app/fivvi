@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   cancellationSentence,
+  coveredClassLabel,
   formatEuros,
   formatVatRate,
   OFFER_KINDS,
@@ -570,5 +571,29 @@ describe('F052 cancellation sentence', () => {
     expect(() => cancellationSentence(90, 'en')).toThrow(RangeError);
     expect(() => cancellationSentence(-60, 'en')).toThrow(RangeError);
     expect(() => cancellationSentence(1.5, 'en')).toThrow(RangeError);
+  });
+});
+
+describe('F052 covered class labels', () => {
+  it('AC9: a class that is gone stays listed with "(verwijderd)" / "(deleted)"', () => {
+    expect(coveredClassLabel('Mobility', false, 'nl-NL')).toBe('Mobility');
+    expect(coveredClassLabel('Mobility', true, 'nl-NL')).toBe('Mobility (verwijderd)');
+    expect(coveredClassLabel('Mobility', true, 'en')).toBe('Mobility (deleted)');
+  });
+
+  it('AC9: a class removed with its name is listed as a deleted class', () => {
+    expect(coveredClassLabel(null, true, 'nl-NL')).toBe('Verwijderde les');
+    expect(coveredClassLabel(null, true, 'en')).toBe('Deleted class');
+  });
+
+  it('AC9: the summary lists the labels after the first part', () => {
+    const offer = offerOf('membership', membership);
+    const names = [
+      coveredClassLabel('Kracht', false, 'nl-NL'),
+      coveredClassLabel('Mobility', true, 'nl-NL'),
+    ];
+    expect(summarise(offer, 'nl-NL', names)).toBe(
+      '2 lessen per week · Kracht, Mobility (verwijderd) · 6 maanden · € 79,00 per maand',
+    );
   });
 });

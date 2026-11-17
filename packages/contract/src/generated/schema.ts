@@ -844,6 +844,54 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/v1/workspaces/{workspaceId}/offers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * The offers of a workspace
+         * @description Every offer of the workspace by Dutch name, archived ones included (`status`), each with its current version, the summary line in the caller’s language and the number of running agreements. The Owner only; a Trainer gets `403`, a client of the workspace and anyone with no place in it `404`.
+         */
+        get: operations["listOffers"];
+        put?: never;
+        /**
+         * Create an offer
+         * @description Creates an offer of one kind (and, for credits, one credit kind) with the fields of its first version, validated by the rules of its kind. The new offer is switched off. An amount outside 1 to 1,000,000 cents or not a whole number, a fifth kind, two credit kinds and a term over 12 months without `longTermConfirmed` answer `422` and store nothing. The Owner only.
+         */
+        post: operations["createOffer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/v1/workspaces/{workspaceId}/offers/{offerId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * One offer of a workspace
+         * @description One offer with its current version. The Owner only. An offer of another workspace answers `404`.
+         */
+        get: operations["getOffer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /**
+         * Change an offer: a new version
+         * @description Saves the full set of fields as the offer’s next version, from the version the caller read; the versions before it stay as they were, so agreements that run keep their terms. When the offer has a newer version the answer is `409` with the offer as it is now and nothing is stored. The kind never changes; a credit offer’s credit kind can. An offer that is switched on must stay valid to be sold: it keeps a price and a VAT rate. The Owner only.
+         */
+        patch: operations["updateOffer"];
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -945,7 +993,7 @@ export interface components {
              */
             role: "owner" | "trainer";
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "access_log.read")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "access_log.read" | "commerce.offers.manage")[];
         };
         /**
          * @description The word the product uses for the people who teach in the workspace: `trainer`, `instructeur`, `docent` or `coach`. It is only a label shown to the team and the clients, in their own language; the role stays `trainer` in the API and nobody’s rights depend on it. Every workspace starts on `trainer`.
@@ -983,7 +1031,7 @@ export interface components {
              */
             role: "owner" | "trainer";
             /** @description What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway. */
-            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "access_log.read")[];
+            capabilities: ("workspace.manage" | "team.view" | "team.manage" | "trainers.view" | "clients.view" | "clients.manage" | "location.read" | "settings.manage" | "team.invite" | "session.private.manage.own" | "session.private.manage.any" | "class.manage" | "class.read" | "join_link.view" | "join_link.renew" | "access_log.read" | "commerce.offers.manage")[];
             /** @description Whether the account trains in the workspace, that is has a trainer profile there (F005): always true for a Trainer, the Owner’s own switch for an Owner. */
             trainsHere: boolean;
         };
@@ -1911,6 +1959,244 @@ export interface components {
              * @description The note’s ID for `note.viewed` and `note.changed`; `null` for any other action. The log never holds a note’s text.
              */
             objectId: string | null;
+        };
+        /** @description An offer of the workspace with its current version. A saved change is a new version; the versions before it stay as they were. */
+        Offer: {
+            /**
+             * Format: uuid
+             * @description The offer ID.
+             */
+            id: string;
+            kind: components["schemas"]["OfferKind"];
+            creditKind: components["schemas"]["OfferCreditKind"];
+            status: components["schemas"]["OfferStatus"];
+            /**
+             * @description `default` for a copy of one of Fivvi’s default plans, `owner` for the rest.
+             * @enum {string}
+             */
+            origin: "default" | "owner";
+            /** @description How many agreements run on the offer: 0 until agreements exist (F057). */
+            runningAgreements: number;
+            /** @description The one-line summary in the caller’s language, e.g. "2 lessen per week · 6 maanden · € 79,00 per maand". Without a price the amount is left out. */
+            summary: string;
+            /** @description The cancellation rule as clients read it, in the caller’s language. */
+            cancellation: string;
+            currentVersion: components["schemas"]["OfferVersion"];
+        };
+        /**
+         * @description The kind of offer: `membership`, `credit_pack`, `credit_plan` or `single_class_pass`. There is no fifth kind, and it never changes once the offer exists.
+         * @enum {string}
+         */
+        OfferKind: "membership" | "credit_pack" | "credit_plan" | "single_class_pass";
+        /**
+         * @description For a credit pack or credit plan; `null` otherwise.
+         * @enum {string|null}
+         */
+        OfferCreditKind: "group" | "private" | null;
+        /**
+         * @description `off` is not for sale, `on` is, `archived` is a deleted offer whose agreements still run.
+         * @enum {string}
+         */
+        OfferStatus: "off" | "on" | "archived";
+        /** @description The terms of an offer as of one saved change. Never changes once stored: an agreement keeps the version it started on. */
+        OfferVersion: {
+            /**
+             * Format: uuid
+             * @description The version ID: what an agreement points at.
+             */
+            id: string;
+            /** @description The version number: 1 for the first, one more for every saved change. */
+            version: number;
+            /** @description The Dutch name: always there. */
+            nameNl: string;
+            /** @description The English name, or `null`. */
+            nameEn: string | null;
+            /** @description The Dutch description. */
+            descriptionNl: string | null;
+            /** @description The English description. */
+            descriptionEn: string | null;
+            /** @description The price including VAT in euro cents, 1 to 1,000,000; `null` until the owner sets it (a default plan). */
+            priceCents: number | null;
+            /** @description The VAT rate in basis points: 2100 or 900; `null` until chosen. Never 0. */
+            vatRateBasisPoints: number | null;
+            billingCycle: components["schemas"]["OfferBillingCycle"];
+            /** @description A membership’s term. */
+            termMonths: number | null;
+            /** @description A credit plan’s minimum term in months. */
+            minimumTermMonths: number | null;
+            endOfTerm: components["schemas"]["OfferEndOfTerm"];
+            /** @description A membership’s classes. */
+            classesPerWeek: number | null;
+            /** @description Credits of a pack, or credits per billing cycle of a plan. */
+            credits: number | null;
+            validity: components["schemas"]["OfferValidity"];
+            /** @description The most credits a credit plan carries over to the next cycle. */
+            carryOverLimit: number | null;
+            /** @description A credit pack a client buys once. */
+            oncePerClient: boolean;
+            /** @description Sold only to clients with a membership. */
+            membersOnly: boolean;
+            /** @description Minutes before the start up to which a client cancels for free: whole hours. */
+            cutoffMinutes: number;
+            /** @description A membership’s makeups. */
+            makeupsPerMonth: number | null;
+            /** @description The most credits that come back a month on a timely cancellation; `null`: all. */
+            returnsPerMonth: number | null;
+            /** @description The classes the version is limited to; `null`: all group classes. */
+            coveredClasses: components["schemas"]["OfferCoveredClass"][] | null;
+            /** @description Days before the end that renewing is suggested and the client is reminded. */
+            renewalWindowDays: number | null;
+            /**
+             * Format: date-time
+             * @description When the version was saved, a UTC instant.
+             */
+            createdAt: string;
+        };
+        /**
+         * @description How often a recurring offer is billed: every `month` or every `four_weeks`.
+         * @enum {string|null}
+         */
+        OfferBillingCycle: "month" | "four_weeks" | null;
+        /**
+         * @description What happens when a term ends: the agreement `stop`s, or `continue`s per billing cycle until notice.
+         * @enum {string|null}
+         */
+        OfferEndOfTerm: "stop" | "continue" | null;
+        /** @description How long a credit pack is good for. */
+        OfferValidity: {
+            /** @description How many units, at least 1. */
+            amount: number;
+            /**
+             * @description `day`, `week` or `month`.
+             * @enum {string}
+             */
+            unit: "day" | "week" | "month";
+        } | null;
+        /** @description A group class an offer version is limited to. */
+        OfferCoveredClass: {
+            /**
+             * Format: uuid
+             * @description The class ID.
+             */
+            id: string;
+            /** @description The class’s name in the caller’s language (the English name when the caller reads English and there is one, else the Dutch). `null` for a class that was removed with its name. */
+            name: string | null;
+            /** @description Whether the class is gone since this version was saved. */
+            deleted: boolean;
+            /** @description How the class is listed in the caller’s language: its name, with "(verwijderd)" / "(deleted)" after it when it is gone. */
+            label: string;
+        };
+        /** @description A new offer: its kind, for credits the credit kind, and the fields of its first version. It starts switched off. */
+        CreateOfferRequest: {
+            kind: components["schemas"]["OfferKind"];
+            /**
+             * @description Required for a credit pack and a credit plan; refused for the other kinds.
+             * @enum {string|null}
+             */
+            creditKind?: "group" | "private" | null;
+            /** @description The Dutch name: trimmed, 1 to 80 characters. */
+            nameNl: string;
+            /** @description The English name: trimmed, at most 80 characters. Blank: none. */
+            nameEn?: string;
+            /** @description The Dutch description: trimmed, at most 500 characters. Blank: none. */
+            descriptionNl?: string;
+            /** @description The English description: trimmed, at most 500 characters. Blank: none. */
+            descriptionEn?: string;
+            /** @description The price including VAT in euro cents, 1 to 1000000. `null` or left out: no price yet (an offer without a price can be saved but not switched on). A non-whole number or one out of bounds answers `422`. */
+            priceCents?: number | null;
+            /** @description The VAT rate in basis points: 2100 (21 %) or 900 (9 %). Never 0. */
+            vatRateBasisPoints?: number | null;
+            billingCycle?: components["schemas"]["OfferBillingCycle"];
+            /** @description A membership’s term in months, 1 to 24. */
+            termMonths?: number;
+            /** @description The owner confirmed a first term over 12 months (consumer law). A longer term without it answers `422` on `termMonths`. */
+            longTermConfirmed?: boolean;
+            /** @description A credit plan’s minimum term in months, 0 to 12. */
+            minimumTermMonths?: number;
+            endOfTerm?: components["schemas"]["OfferEndOfTerm"];
+            /** @description A membership’s classes a week, 1 to 7. */
+            classesPerWeek?: number;
+            /** @description A credit pack’s credits (1 to 200), or a credit plan’s credits per billing cycle (1 to 50). */
+            credits?: number;
+            validity?: components["schemas"]["OfferValidity"];
+            /** @description A credit plan’s carry-over, 0 to 50. */
+            carryOverLimit?: number;
+            /** @description A credit pack a client can buy once. Default `false`. */
+            oncePerClient?: boolean;
+            /** @description Sold only to clients with a membership (credits and the single class pass). Default `false`. */
+            membersOnly?: boolean;
+            /** @description Minutes before the start up to which a client cancels for free: a whole number of hours, 0 to 4320. */
+            cutoffMinutes?: number;
+            /** @description A membership’s makeups a month, 0 to 10. */
+            makeupsPerMonth?: number;
+            /** @description Credit offers: the most credits that come back a month on a timely cancellation. `null` or left out: always. */
+            returnsPerMonth?: number | null;
+            /** @description The group classes the offer is limited to (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace answers `422` on `coveredClassIds`. */
+            coveredClassIds?: string[] | null;
+            /** @description Days before the end that renewing is suggested, 0 to 365. Left out: 30. */
+            renewalWindowDays?: number;
+            /**
+             * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `offer_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+             * @enum {string}
+             */
+            surface?: "ios" | "android";
+        };
+        /** @description The offer changed since the version in the request; nothing was written. `offer` is the offer as it is now. */
+        OfferChanged: {
+            /** @enum {string} */
+            code: "offer_changed";
+            offer: components["schemas"]["Offer"];
+        };
+        /** @description The full set of fields of the offer’s next version, with the version it was changed from. A field left out is empty in the new version, not kept from the old one. The offer’s kind never changes. */
+        UpdateOfferRequest: {
+            /** @description The version the caller read (`Offer.currentVersion.version`). When the offer has been changed since, nothing is stored and the answer is `409`. */
+            version: number;
+            /**
+             * @description A credit offer’s credit kind, which can change while no agreement uses it. Left out: unchanged. Refused for the other kinds.
+             * @enum {string|null}
+             */
+            creditKind?: "group" | "private" | null;
+            /** @description The Dutch name: trimmed, 1 to 80 characters. */
+            nameNl: string;
+            /** @description The English name: trimmed, at most 80 characters. Blank: none. */
+            nameEn?: string;
+            /** @description The Dutch description: trimmed, at most 500 characters. Blank: none. */
+            descriptionNl?: string;
+            /** @description The English description: trimmed, at most 500 characters. Blank: none. */
+            descriptionEn?: string;
+            /** @description The price including VAT in euro cents, 1 to 1000000. `null` or left out: no price yet (an offer without a price can be saved but not switched on). A non-whole number or one out of bounds answers `422`. */
+            priceCents?: number | null;
+            /** @description The VAT rate in basis points: 2100 (21 %) or 900 (9 %). Never 0. */
+            vatRateBasisPoints?: number | null;
+            billingCycle?: components["schemas"]["OfferBillingCycle"];
+            /** @description A membership’s term in months, 1 to 24. */
+            termMonths?: number;
+            /** @description The owner confirmed a first term over 12 months (consumer law). A longer term without it answers `422` on `termMonths`. */
+            longTermConfirmed?: boolean;
+            /** @description A credit plan’s minimum term in months, 0 to 12. */
+            minimumTermMonths?: number;
+            endOfTerm?: components["schemas"]["OfferEndOfTerm"];
+            /** @description A membership’s classes a week, 1 to 7. */
+            classesPerWeek?: number;
+            /** @description A credit pack’s credits (1 to 200), or a credit plan’s credits per billing cycle (1 to 50). */
+            credits?: number;
+            validity?: components["schemas"]["OfferValidity"];
+            /** @description A credit plan’s carry-over, 0 to 50. */
+            carryOverLimit?: number;
+            /** @description A credit pack a client can buy once. Default `false`. */
+            oncePerClient?: boolean;
+            /** @description Sold only to clients with a membership (credits and the single class pass). Default `false`. */
+            membersOnly?: boolean;
+            /** @description Minutes before the start up to which a client cancels for free: a whole number of hours, 0 to 4320. */
+            cutoffMinutes?: number;
+            /** @description A membership’s makeups a month, 0 to 10. */
+            makeupsPerMonth?: number;
+            /** @description Credit offers: the most credits that come back a month on a timely cancellation. `null` or left out: always. */
+            returnsPerMonth?: number | null;
+            /** @description The group classes the offer is limited to (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace answers `422` on `coveredClassIds`. */
+            coveredClassIds?: string[] | null;
+            /** @description Days before the end that renewing is suggested, 0 to 365. Left out: 30. */
+            renewalWindowDays?: number;
         };
     };
     responses: never;
@@ -5191,6 +5477,317 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    listOffers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The offers. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offer"][];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    createOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateOfferRequest"];
+            };
+        };
+        responses: {
+            /** @description The offer that was created, switched off, at version 1. */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offer"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description The body is not valid: a field has the wrong type, is out of bounds, does not belong to the kind, or needs a confirmation. `issues` names each field (`path`) and what is wrong (`code`). Nothing is stored. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    getOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The offer ID. */
+                offerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The offer. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offer"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description Unexpected server error, reported to error tracking. Contains no error details. */
+            500: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/plain": string;
+                };
+            };
+        };
+    };
+    updateOffer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description The workspace ID. */
+                workspaceId: string;
+                /** @description The offer ID. */
+                offerId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateOfferRequest"];
+            };
+        };
+        responses: {
+            /** @description The offer with its new version as the current one. */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Offer"];
+                };
+            };
+            /** @description The request did not match the contract. */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
+                };
+            };
+            /** @description Nobody is signed in: no valid sign-in session or bearer token. */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotSignedIn"];
+                };
+            };
+            /** @description The caller has a place in the workspace that this route’s access doesn’t allow. */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Forbidden"];
+                };
+            };
+            /** @description The caller has no place in the workspace, or the record is out of the caller’s reach. */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description The offer changed since the version in the request; nothing was written. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OfferChanged"];
+                };
+            };
+            /** @description The body is not valid: a field has the wrong type, is out of bounds, does not belong to the kind, or needs a confirmation. `issues` names each field (`path`) and what is wrong (`code`). Nothing is stored. */
+            422: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ValidationError"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */

@@ -57,6 +57,7 @@ export {
   type CreditPackOffer,
   type CreditPlanOffer,
   cancellationSentence,
+  coveredClassLabel,
   DEFAULT_RENEWAL_WINDOW_DAYS,
   END_OF_TERMS,
   type EndOfTerm,

@@ -361,6 +361,34 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/access-log`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/access-log/get(listAccessLog)`.
     func listAccessLog(_ input: Operations.ListAccessLog.Input) async throws -> Operations.ListAccessLog.Output
+    /// The offers of a workspace
+    ///
+    /// Every offer of the workspace by Dutch name, archived ones included (`status`), each with its current version, the summary line in the caller’s language and the number of running agreements. The Owner only; a Trainer gets `403`, a client of the workspace and anyone with no place in it `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/offers`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/offers/get(listOffers)`.
+    func listOffers(_ input: Operations.ListOffers.Input) async throws -> Operations.ListOffers.Output
+    /// Create an offer
+    ///
+    /// Creates an offer of one kind (and, for credits, one credit kind) with the fields of its first version, validated by the rules of its kind. The new offer is switched off. An amount outside 1 to 1,000,000 cents or not a whole number, a fifth kind, two credit kinds and a term over 12 months without `longTermConfirmed` answer `422` and store nothing. The Owner only.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/offers`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/offers/post(createOffer)`.
+    func createOffer(_ input: Operations.CreateOffer.Input) async throws -> Operations.CreateOffer.Output
+    /// One offer of a workspace
+    ///
+    /// One offer with its current version. The Owner only. An offer of another workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/offers/{offerId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/offers/{offerId}/get(getOffer)`.
+    func getOffer(_ input: Operations.GetOffer.Input) async throws -> Operations.GetOffer.Output
+    /// Change an offer: a new version
+    ///
+    /// Saves the full set of fields as the offer’s next version, from the version the caller read; the versions before it stay as they were, so agreements that run keep their terms. When the offer has a newer version the answer is `409` with the offer as it is now and nothing is stored. The kind never changes; a credit offer’s credit kind can. An offer that is switched on must stay valid to be sold: it keeps a price and a VAT rate. The Owner only.
+    ///
+    /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/offers/{offerId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/offers/{offerId}/patch(updateOffer)`.
+    func updateOffer(_ input: Operations.UpdateOffer.Input) async throws -> Operations.UpdateOffer.Output
 }
 
 /// Convenience overloads for operation inputs.
@@ -1123,6 +1151,70 @@ extension APIProtocol {
             path: path,
             query: query,
             headers: headers
+        ))
+    }
+    /// The offers of a workspace
+    ///
+    /// Every offer of the workspace by Dutch name, archived ones included (`status`), each with its current version, the summary line in the caller’s language and the number of running agreements. The Owner only; a Trainer gets `403`, a client of the workspace and anyone with no place in it `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/offers`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/offers/get(listOffers)`.
+    public func listOffers(
+        path: Operations.ListOffers.Input.Path,
+        headers: Operations.ListOffers.Input.Headers = .init()
+    ) async throws -> Operations.ListOffers.Output {
+        try await listOffers(Operations.ListOffers.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Create an offer
+    ///
+    /// Creates an offer of one kind (and, for credits, one credit kind) with the fields of its first version, validated by the rules of its kind. The new offer is switched off. An amount outside 1 to 1,000,000 cents or not a whole number, a fifth kind, two credit kinds and a term over 12 months without `longTermConfirmed` answer `422` and store nothing. The Owner only.
+    ///
+    /// - Remark: HTTP `POST /v1/workspaces/{workspaceId}/offers`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/offers/post(createOffer)`.
+    public func createOffer(
+        path: Operations.CreateOffer.Input.Path,
+        headers: Operations.CreateOffer.Input.Headers = .init(),
+        body: Operations.CreateOffer.Input.Body
+    ) async throws -> Operations.CreateOffer.Output {
+        try await createOffer(Operations.CreateOffer.Input(
+            path: path,
+            headers: headers,
+            body: body
+        ))
+    }
+    /// One offer of a workspace
+    ///
+    /// One offer with its current version. The Owner only. An offer of another workspace answers `404`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/offers/{offerId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/offers/{offerId}/get(getOffer)`.
+    public func getOffer(
+        path: Operations.GetOffer.Input.Path,
+        headers: Operations.GetOffer.Input.Headers = .init()
+    ) async throws -> Operations.GetOffer.Output {
+        try await getOffer(Operations.GetOffer.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Change an offer: a new version
+    ///
+    /// Saves the full set of fields as the offer’s next version, from the version the caller read; the versions before it stay as they were, so agreements that run keep their terms. When the offer has a newer version the answer is `409` with the offer as it is now and nothing is stored. The kind never changes; a credit offer’s credit kind can. An offer that is switched on must stay valid to be sold: it keeps a price and a VAT rate. The Owner only.
+    ///
+    /// - Remark: HTTP `PATCH /v1/workspaces/{workspaceId}/offers/{offerId}`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/offers/{offerId}/patch(updateOffer)`.
+    public func updateOffer(
+        path: Operations.UpdateOffer.Input.Path,
+        headers: Operations.UpdateOffer.Input.Headers = .init(),
+        body: Operations.UpdateOffer.Input.Body
+    ) async throws -> Operations.UpdateOffer.Output {
+        try await updateOffer(Operations.UpdateOffer.Input(
+            path: path,
+            headers: headers,
+            body: body
         ))
     }
 }

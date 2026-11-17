@@ -5760,6 +5760,42 @@
         }
       }
     },
+    "offers.summary.deletedClass" : {
+      "comment" : "A class an offer is limited to that was deleted later, still named on the offer's version. {name} is the class's name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (deleted)"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@ (verwijderd)"
+          }
+        }
+      }
+    },
+    "offers.summary.deletedClassUnnamed" : {
+      "comment" : "A class an offer is limited to that was deleted with its name; the class is listed without a name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deleted class"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Verwijderde les"
+          }
+        }
+      }
+    },
     "offers.summary.groupCredits" : {
       "comment" : "Part of an offer summary: a number of group credits.",
       "extractionState" : "manual",
