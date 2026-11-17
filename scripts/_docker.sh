@@ -34,17 +34,19 @@ ensure_docker() {
   brew install colima docker docker-compose \
     || { echo "could not run: brew install colima docker docker-compose" >&2; return 1; }
   docker_plugin_dir "$(brew --prefix)/lib/docker/cli-plugins" || return 1
-  # The first start writes the profile (~/.colima/default/colima.yaml) with small limits; the login service then starts it.
-  if ! colima status >/dev/null 2>&1; then
+  # The first start writes the profile (~/.colima/default/colima.yaml) with small limits; the login service (a launchd
+  # agent that keeps `colima start -f` alive) then starts it. With a profile there, whatever was changed in it (more
+  # memory) stays: only the service starts.
+  if [ ! -f "$HOME/.colima/default/colima.yaml" ]; then
     colima start --cpu 2 --memory 4 --disk 30 --vm-type vz --mount-type virtiofs \
       || { echo "could not run: colima start" >&2; return 1; }
     colima stop || { echo "could not run: colima stop" >&2; return 1; }
-    brew services start colima || { echo "could not run: brew services start colima" >&2; return 1; }
   fi
+  brew services start colima || { echo "could not run: brew services start colima" >&2; return 1; }
   started=$SECONDS
   until docker_ready; do
     if [ $((SECONDS - started)) -ge "$wait" ]; then
-      echo "Docker did not start within $wait seconds: check colima status (colima start)" >&2
+      echo "Docker did not start within $wait seconds: check colima status, then brew services start colima" >&2
       return 1
     fi
     sleep 1

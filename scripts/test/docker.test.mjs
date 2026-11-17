@@ -42,8 +42,8 @@ describe('E003 ensure_docker: local Docker through Colima (scripts/_docker.sh)',
   const touch = (name) => writeFileSync(state(name), '');
 
   // The fakes log "<tool> <args>" and answer from state files: docker-up (docker info works), compose-ok (docker compose
-  // version works), colima-running (colima status works). `brew services start colima` brings Docker up, unless
-  // never-up exists (then it never answers). colima start with a fresh profile leaves Colima running; stop ends it.
+  // version works). `brew services start colima` brings Docker up, unless never-up exists (then it never answers).
+  // `colima start` writes the profile ~/.colima/default/colima.yaml, as the real one does.
   const addFakes = ({ withBrew = true } = {}) => {
     const logLine = (tool) => `echo "${tool} $*" >> "${log()}"`;
     if (withBrew)
@@ -63,9 +63,7 @@ exit 0
       `#!/bin/sh
 ${logLine('colima')}
 case "$1" in
-  status) [ -e "${state('colima-running')}" ] ;;
-  start) : > "${state('colima-running')}" ;;
-  stop) rm -f "${state('colima-running')}" ;;
+  start) mkdir -p "$HOME/.colima/default" && : > "$HOME/.colima/default/colima.yaml" ;;
 esac
 `,
     );
@@ -81,13 +79,19 @@ esac
     );
   };
 
+  const profile = () => join(home(), '.colima', 'default', 'colima.yaml');
+  const writeProfile = () => {
+    mkdirSync(join(home(), '.colima', 'default'), { recursive: true });
+    writeFileSync(profile(), 'memory: 6\n');
+  };
+
   const ensure = (extraEnv = {}) =>
     spawnSync('/bin/bash', ['-c', `source "${HELPER}"; ensure_docker; echo "status=$?"`], {
       encoding: 'utf8',
       env: {
         PATH: `${bin()}:/usr/bin:/bin`,
         HOME: home(),
-        DOCKER_WAIT_SECONDS: '2',
+        DOCKER_WAIT_SECONDS: '0',
         ...extraEnv,
       },
       timeout: 30_000,
@@ -123,12 +127,12 @@ esac
       [
         'brew install colima docker docker-compose',
         'brew --prefix',
-        'colima status',
         COLIMA_START,
         'colima stop',
         'brew services start colima',
       ],
     );
+    assert.ok(existsSync(profile()));
     assert.deepEqual(configJson(), {
       auths: { 'example.com': {} },
       currentContext: 'colima',
@@ -172,14 +176,15 @@ esac
     assert.equal(existsSync(config()), false);
   });
 
-  it('does not start Colima again when it is already running', () => {
-    touch('colima-running');
+  it('only starts the login service when the Colima profile exists, so a raised memory stays', () => {
+    writeProfile();
     const result = ensure();
-    assert.equal(status(result), '1', 'Docker never comes up: nothing started the login service');
-    const lines = calls();
-    assert.ok(lines.includes('colima status'));
-    assert.ok(!lines.includes(COLIMA_START));
-    assert.ok(!lines.includes('colima stop'));
+    assert.equal(status(result), '0', result.stdout + result.stderr);
+    assert.deepEqual(
+      calls().filter((line) => !line.startsWith('docker ')),
+      ['brew install colima docker docker-compose', 'brew --prefix', 'brew services start colima'],
+    );
+    assert.equal(readFileSync(profile(), 'utf8'), 'memory: 6\n');
   });
 
   it('returns 1 and names Homebrew when brew is missing', () => {
@@ -193,13 +198,11 @@ esac
     );
   });
 
-  it('returns 1 within the wait when Docker never comes up', () => {
+  it('returns 1, without waiting, when Docker does not come up within the wait', () => {
     touch('never-up');
-    const started = Date.now();
-    const result = ensure({ DOCKER_WAIT_SECONDS: '2' });
+    const result = ensure({ DOCKER_WAIT_SECONDS: '0' });
     assert.equal(status(result), '1');
-    assert.match(result.stderr, /Docker did not start within 2 seconds/);
-    assert.ok(Date.now() - started < 15_000);
+    assert.match(result.stderr, /Docker did not start within 0 seconds/);
     assert.ok(calls().includes('brew services start colima'));
   });
 
@@ -214,15 +217,65 @@ esac
     );
   });
 
-  it('returns 1 when colima start fails', () => {
+  // A colima that fails on the given subcommand (and records every call).
+  const colimaFailing = (subcommand) =>
     write(
       join(bin(), 'colima'),
-      `#!/bin/sh\necho "colima $*" >> "${log()}"\n[ "$1" = status ] && exit 1\nexit 1\n`,
+      `#!/bin/sh
+echo "colima $*" >> "${log()}"
+[ "$1" = start ] && { mkdir -p "$HOME/.colima/default"; : > "$HOME/.colima/default/colima.yaml"; }
+[ "$1" = ${subcommand} ] && exit 1
+exit 0
+`,
     );
+
+  it('returns 1 when colima start fails', () => {
+    colimaFailing('start');
     const result = ensure();
     assert.equal(status(result), '1');
     assert.match(result.stderr, /colima start/);
+    assert.ok(!calls().includes('colima stop'));
     assert.ok(!calls().includes('brew services start colima'));
+  });
+
+  it('returns 1 when colima stop fails', () => {
+    colimaFailing('stop');
+    const result = ensure();
+    assert.equal(status(result), '1');
+    assert.match(result.stderr, /colima stop/);
+    assert.ok(!calls().includes('brew services start colima'));
+  });
+
+  it('returns 1 when brew services start colima fails', () => {
+    write(
+      join(bin(), 'brew'),
+      `#!/bin/sh
+echo "brew $*" >> "${log()}"
+[ "$1" = --prefix ] && echo "${PREFIX}"
+[ "$1 $2" = "services start" ] && exit 1
+exit 0
+`,
+    );
+    const result = ensure();
+    assert.equal(status(result), '1');
+    assert.match(result.stderr, /brew services start colima/);
+  });
+
+  it('returns 1 and names jq when it is missing and the config has to change', () => {
+    rmSync(join(bin(), 'jq'));
+    // Only the tools the helper needs, and no jq (some macOS versions have one in /usr/bin).
+    const tools = join(base, 'tools');
+    mkdirSync(tools);
+    for (const tool of ['mkdir', 'mktemp', 'mv', 'rm', 'sleep'])
+      symlinkSync(
+        `/bin/${existsSync(`/bin/${tool}`) ? tool : `../usr/bin/${tool}`}`,
+        join(tools, tool),
+      );
+    const result = ensure({ PATH: `${bin()}:${tools}` });
+    assert.equal(status(result), '1');
+    assert.match(result.stderr, /jq/);
+    assert.equal(existsSync(config()), false);
+    assert.ok(!calls().includes(COLIMA_START));
   });
 
   it('returns 1 and leaves config.json as it was when it is not valid JSON', () => {
@@ -245,10 +298,16 @@ describe('E003 bootstrap.sh and check.sh use the Docker helper', () => {
     assert.doesNotMatch(bootstrap, /install Docker Desktop/);
   });
 
-  it('check.sh tells how to start Docker with Colima', () => {
-    assert.match(
-      read('check.sh'),
-      /Docker is not running — start it with colima start, or set it up with scripts\/bootstrap\.sh/,
-    );
+  it('check.sh and maestro.sh tell how to start Docker with Colima, through the login service', () => {
+    for (const name of ['check.sh', 'maestro.sh'])
+      assert.match(
+        read(name),
+        /Docker is not running — start it with brew services start colima, or set it up with scripts\/bootstrap\.sh/,
+        name,
+      );
+  });
+
+  it('bootstrap.sh names brew services start colima in its warning', () => {
+    assert.match(read('bootstrap.sh'), /ensure_docker \|\| warn ".*brew services start colima/);
   });
 });
