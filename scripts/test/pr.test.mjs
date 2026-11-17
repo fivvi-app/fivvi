@@ -1744,6 +1744,39 @@ describe('E002 #107 pr.sh ready', () => {
     refuses({ rollup }, /checks passed \(failing: iOS\)/);
   });
 
+  describe('E008 #1384 AC2: a cancelled native job whose retry job passed', () => {
+    const rollupWith = (cancelled, retry, retryStatus = 'COMPLETED') => [
+      ...CI.map((name) => checkRun(name)),
+      checkRun(cancelled, 'CANCELLED'),
+      ...(retry !== undefined ? [checkRun(`${cancelled} (retry)`, retry, retryStatus)] : []),
+    ];
+
+    it('marks the draft ready', () => {
+      const result = ready({ rollup: rollupWith('iOS build', 'SUCCESS') });
+      assert.equal(result.status, 0, result.stderr);
+      assert.ok(result.calls.some((call) => /^pr ready 60 /.test(call)));
+    });
+
+    it('refuses while the retry still runs, as pending', () => {
+      refuses(
+        { rollup: rollupWith('iOS build', null, 'IN_PROGRESS') },
+        /checks passed \(pending: iOS build, iOS build \(retry\)\)/,
+      );
+    });
+
+    it('refuses when the retry failed or was cancelled, and when there is no retry', () => {
+      refuses(
+        { rollup: rollupWith('iOS build', 'FAILURE') },
+        /checks passed \(failing: iOS build, iOS build \(retry\)\)/,
+      );
+      refuses(
+        { rollup: rollupWith('iOS build', 'CANCELLED') },
+        /checks passed \(failing: iOS build, iOS build \(retry\)\)/,
+      );
+      refuses({ rollup: rollupWith('iOS build') }, /checks passed \(failing: iOS build\)/);
+    });
+  });
+
   it('E002 #107 AC1: refuses on a pending check and names it', () => {
     const rollup = CI.map((name) =>
       name === 'E2E (Linux)' ? checkRun(name, null, 'IN_PROGRESS') : checkRun(name),
@@ -1918,6 +1951,79 @@ describe('E002 #107 pr.sh ship', () => {
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /up to 20 min/);
     assert.doesNotMatch(result.stdout, /up to 165 min/);
+  });
+
+  // `gh pr checks` output recorded from PR #1382 (run 43944239246, attempt 3): GitHub had no macOS runner for "iOS build"
+  // for 15 minutes and cancelled it; ci.yml's "iOS build (retry)" builds once more (#1268, #1384).
+  describe('E008 #1384 a cancelled native job whose retry job passed or still runs', () => {
+    const base = checks(['Detect changes', 'Checks (Linux)', 'E2E (Linux)']);
+    const withRetry = (retry, name = 'iOS build') => [
+      ...base,
+      { name, bucket: 'cancel' },
+      { name: `${name} (retry)`, bucket: retry },
+    ];
+
+    it('AC1, AC3: passes when the retry passed', () => {
+      const result = ship({ ci: withRetry('pass') });
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      assert.match(result.stdout, /CI passed on/);
+      assert.doesNotMatch(result.stdout, /checks failed/);
+    });
+
+    it('AC1, AC3: keeps waiting while the retry is pending', () => {
+      const result = ship({
+        ci: withRetry('pending'),
+        run: ['in_progress', ''],
+        args: ['--timeout', '0'],
+      });
+      assert.equal(result.status, 2, result.stdout + result.stderr);
+      assert.doesNotMatch(result.stdout, /checks failed/);
+      assert.match(result.stdout, /CI in_progress after 0 min/);
+    });
+
+    it('AC1, AC3: fails when the retry failed too, and names both', () => {
+      const result = ship({ ci: withRetry('fail') });
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /checks failed: iOS build, iOS build \(retry\)/);
+    });
+
+    it('AC1, AC3: fails when the retry was cancelled too', () => {
+      const result = ship({ ci: withRetry('cancel') });
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /checks failed: iOS build, iOS build \(retry\)/);
+    });
+
+    it('AC1, AC3: fails on a cancelled job that has no retry job', () => {
+      const result = ship({ ci: [...base, { name: 'iOS build', bucket: 'cancel' }] });
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /checks failed: iOS build$/m);
+    });
+
+    it('AC1, AC3: fails on a cancelled job whose neighbour passed, when the neighbour is not its retry', () => {
+      const result = ship({
+        ci: [
+          ...base,
+          { name: 'Android Maestro', bucket: 'cancel' },
+          { name: 'iOS build (retry)', bucket: 'pass' },
+        ],
+      });
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /checks failed: Android Maestro$/m);
+    });
+
+    it('AC1: the same holds for a cancelled iOS test pass and its own retry', () => {
+      const passed = ship({ ci: withRetry('pass', 'iOS tests (nl)') });
+      assert.equal(passed.status, 0, passed.stdout + passed.stderr);
+      const failed = ship({ ci: withRetry('fail', 'iOS tests (nl)') });
+      assert.equal(failed.status, 1);
+      assert.match(failed.stdout, /checks failed: iOS tests \(nl\), iOS tests \(nl\) \(retry\)/);
+    });
+
+    it('AC1: still fails on another failed check next to a cancelled job with a passed retry', () => {
+      const result = ship({ ci: [...withRetry('pass'), { name: 'Android', bucket: 'fail' }] });
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /checks failed: Android$/m);
+    });
   });
 
   describe('E002 #416 the limit rises on the native parts, not only on the gate', () => {

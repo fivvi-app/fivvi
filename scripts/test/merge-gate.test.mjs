@@ -230,6 +230,61 @@ describe('merge gate', () => {
     assert.match(gate(railway).conditions[1].detail, /failing: fivvi - cron/);
   });
 
+  describe('E008 #1384: a cancelled job whose retry job passed (ci.yml, #1268)', () => {
+    const withCancelled = (cancelled, ...rest) =>
+      facts({ checks: [...facts().checks, run(cancelled, 'CANCELLED'), ...rest] });
+
+    it('passes when the retry passed, also for a test pass and its retry', () => {
+      for (const name of ['iOS build', 'iOS tests (nl)']) {
+        const decision = gate(withCancelled(name, run(`${name} (retry)`)));
+        assert.equal(decision.merge, true, JSON.stringify(decision.conditions));
+      }
+    });
+
+    it('waits, as pending, while the retry runs', () => {
+      const decision = gate(
+        withCancelled('iOS build', run('iOS build (retry)', '', 'IN_PROGRESS')),
+      );
+      assert.deepEqual(failed(decision), ['checks passed']);
+      assert.match(decision.conditions[1].detail, /pending: iOS build, iOS build \(retry\)/);
+      assert.doesNotMatch(decision.conditions[1].detail, /failing/);
+    });
+
+    it('refuses when the retry failed or was cancelled, naming both', () => {
+      for (const conclusion of ['FAILURE', 'CANCELLED', 'TIMED_OUT']) {
+        const decision = gate(withCancelled('iOS build', run('iOS build (retry)', conclusion)));
+        assert.deepEqual(failed(decision), ['checks passed'], conclusion);
+        assert.match(decision.conditions[1].detail, /failing: iOS build, iOS build \(retry\)/);
+      }
+    });
+
+    it('refuses a cancelled job without a retry, and the retry of another job does not count', () => {
+      for (const decision of [
+        gate(withCancelled('iOS build')),
+        gate(withCancelled('Android Maestro', run('iOS build (retry)'))),
+      ]) {
+        assert.deepEqual(failed(decision), ['checks passed']);
+        assert.match(decision.conditions[1].detail, /failing: (iOS build|Android Maestro)$/);
+      }
+    });
+
+    it('still refuses any other failed check next to it', () => {
+      const decision = gate(
+        withCancelled(
+          'iOS build',
+          run('iOS build (retry)'),
+          run('GitGuardian Security Checks', 'FAILURE'),
+        ),
+      );
+      assert.match(decision.conditions[1].detail, /failing: GitGuardian Security Checks$/);
+    });
+
+    it('a skipped retry does not make up for a cancelled job', () => {
+      const decision = gate(withCancelled('iOS build', run('iOS build (retry)', 'SKIPPED')));
+      assert.deepEqual(failed(decision), ['checks passed']);
+    });
+  });
+
   it('requires a self-review record for the head commit, and rejects a stale one', () => {
     const none = withPr({ body: `Closes #57\n\n${noPreview()}` });
     assert.deepEqual(failed(gate(none)), ['self-review clean']);
