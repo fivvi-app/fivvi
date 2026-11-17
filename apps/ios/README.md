@@ -43,7 +43,7 @@ pnpm test:ios                      # lint, configuration checks, then the tests 
 | `Fivvi/App/` | `FivviApp`, `RootView` (the session decides: the sign-in without a token, the tabs with one), `AppConfiguration`, `ClientLogo` (the day dial B2 of the brand, light and dark, in `Assets.xcassets/FivviLogo.imageset`) and the client strings (`ClientStringKeys`) |
 | `Fivvi/Account/` | `AccountViewModel`: `GET /api/v1/me` for the name and email on *Profiel*, the sign-out and the preferred language |
 | `Fivvi/Shell/` | `ClientTabsView` (the system `TabView`: *Home*, *Boeken*, *Profiel*), `NoWorkspaceView` (Home and Boeken for an account without a workspace), `ProfileView` (name, email, language, version and *Uitloggen*) and the offline banner above each tab (`FivviUI.Connectivity`, `OfflineBanner`) |
-| `Config/Fivvi-*` | `Fivvi-Debug.xcconfig` and `Fivvi-Release.xcconfig` include Fivvi Pro's and set the app's own Info.plist and entitlements (its own Keychain access group); `FivviSentryApp` in the Info.plist is the `app` tag of its crash reports |
+| `Fivvi/Config/`, `Config/Fivvi-*` | `Fivvi/Config/Debug.xcconfig` and `Release.xcconfig` include Fivvi Pro's (`Config/`) and set the app's own Info.plist and entitlements (`Config/Fivvi-*`, its own Keychain access group); they sit outside `Config/`, where a root test lists every `.xcconfig`; `FivviSentryApp` in the Info.plist is the `app` tag of its crash reports |
 | `FivviUITests/` | `ClientAppUITests` against Fivvi Pro's `StubServer` (the file references of `FivviProUITests/Support` in the project, not copies); `-UITestConnectivity` fakes the connection state |
 | `Fivvi.xctestplan` | The same two configurations as Fivvi Pro's, `nl` and `en` |
 

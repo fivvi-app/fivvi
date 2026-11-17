@@ -58,8 +58,8 @@
 /* Begin PBXFileReference section */
 		E50300000000000000000040 /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		E50300000000000000000041 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = client/InfoPlist.xcstrings; sourceTree = "<group>"; };
-		E50300000000000000000042 /* Fivvi-Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Fivvi-Debug.xcconfig; sourceTree = "<group>"; };
-		E50300000000000000000043 /* Fivvi-Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Fivvi-Release.xcconfig; sourceTree = "<group>"; };
+		E50300000000000000000042 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = ../Fivvi/Config/Debug.xcconfig; sourceTree = "<group>"; };
+		E50300000000000000000043 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = ../Fivvi/Config/Release.xcconfig; sourceTree = "<group>"; };
 		E50300000000000000000044 /* Fivvi-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Fivvi-Info.plist"; sourceTree = "<group>"; };
 		E50300000000000000000045 /* Fivvi-Info-Debug.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "Fivvi-Info-Debug.plist"; sourceTree = "<group>"; };
 		E50300000000000000000046 /* Fivvi.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Fivvi.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -164,8 +164,8 @@
 		E50300000000000000000022 /* Config */ = {
 			isa = PBXGroup;
 			children = (
-				E50300000000000000000042 /* Fivvi-Debug.xcconfig */,
-				E50300000000000000000043 /* Fivvi-Release.xcconfig */,
+				E50300000000000000000042 /* Debug.xcconfig */,
+				E50300000000000000000043 /* Release.xcconfig */,
 				E50300000000000000000044 /* Fivvi-Info.plist */,
 				E50300000000000000000045 /* Fivvi-Info-Debug.plist */,
 			);
@@ -469,7 +469,7 @@
 		};
 		E50300000000000000000012 /* Debug */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = E50300000000000000000042 /* Fivvi-Debug.xcconfig */;
+			baseConfigurationReference = E50300000000000000000042 /* Debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
@@ -489,7 +489,7 @@
 		};
 		E50300000000000000000013 /* Release */ = {
 			isa = XCBuildConfiguration;
-			baseConfigurationReference = E50300000000000000000043 /* Fivvi-Release.xcconfig */;
+			baseConfigurationReference = E50300000000000000000043 /* Release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				CODE_SIGN_STYLE = Automatic;
