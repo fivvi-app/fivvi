@@ -59,7 +59,7 @@ interface OffersApi {
     /**
      * GET v1/workspaces/{workspaceId}/offers
      * The offers of a workspace
-     * Every offer of the workspace by Dutch name, archived ones included (&#x60;status&#x60;), each with its current version, the summary line in the caller’s language and the number of running agreements. The Owner only; a Trainer gets &#x60;403&#x60;, a client of the workspace and anyone with no place in it &#x60;404&#x60;.
+     * Every offer of the workspace by Dutch name, archived ones included (&#x60;status&#x60;), each with its current version, the summary line in the caller’s language and the number of running agreements. The Owner only; a Trainer and a client of the workspace get &#x60;403&#x60;, anyone with no place in it &#x60;404&#x60;.
      * Responses:
      *  - 200: The offers.
      *  - 400: The request did not match the contract.

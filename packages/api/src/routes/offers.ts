@@ -63,9 +63,6 @@ const SIGNED_IN: RouteConfig['security'] = [{ cookieAuth: [] }, { bearerAuth: []
 const LIMITS = OFFER_LIMITS;
 const NAME_MAX_LENGTH = 80;
 const DESCRIPTION_MAX_LENGTH = 500;
-const MAX_COVERED_CLASSES = 100;
-/** The most credits that come back a month on a timely cancellation. */
-const MAX_RETURNS_PER_MONTH = 50;
 
 const WorkspaceParamsSchema = z.object({
   workspaceId: z.uuid().openapi({
@@ -327,26 +324,24 @@ const offerFields = {
   returnsPerMonth: z
     .number()
     .int()
-    .min(0)
-    .max(MAX_RETURNS_PER_MONTH)
     .nullable()
     .optional()
     .openapi({
       description:
-        'Credit offers: the most credits that come back a month on a timely cancellation. `null` ' +
-        'or left out: always.',
+        'Credit offers: the most credits that come back a month on a timely cancellation, ' +
+        `${LIMITS.returnsPerMonth.min} to ${LIMITS.returnsPerMonth.max}. \`null\` or left out: ` +
+        'always.',
     }),
   coveredClassIds: z
     .array(z.uuid())
-    .min(1)
-    .max(MAX_COVERED_CLASSES)
     .nullable()
     .optional()
     .openapi({
       description:
-        'The group classes the offer is limited to (a membership, a group credit offer or the ' +
-        'single class pass). `null` or left out: all group classes. A class of another workspace ' +
-        'answers `422` on `coveredClassIds`.',
+        `The group classes the offer is limited to, ${LIMITS.coveredClasses.min} to ` +
+        `${LIMITS.coveredClasses.max} (a membership, a group credit offer or the single class ` +
+        'pass). `null` or left out: all group classes. A class of another workspace, or one that ' +
+        'was deleted and is not on the offer already, answers `422` on `coveredClassIds`.',
     }),
   renewalWindowDays: whole(
     `Days before the end that renewing is suggested, ${LIMITS.renewalWindowDays.min} to ` +
@@ -439,7 +434,7 @@ const listOffersRoute = defineRoute(
     description:
       'Every offer of the workspace by Dutch name, archived ones included (`status`), each with its ' +
       'current version, the summary line in the caller’s language and the number of running ' +
-      'agreements. The Owner only; a Trainer gets `403`, a client of the workspace and anyone with ' +
+      'agreements. The Owner only; a Trainer and a client of the workspace get `403`, anyone with ' +
       'no place in it `404`.',
     security: SIGNED_IN,
     request: { params: WorkspaceParamsSchema },
@@ -671,16 +666,8 @@ function invalid(issues: readonly { path: string; code: string }[]) {
 const issuesOfRules = (issues: readonly OfferIssue[]) =>
   issues.map(({ field, problem }) => ({ path: field, code: problem }));
 
-/** The kinds of offer a set of group classes may limit: a membership, group credits, the pass. */
-const canBeLimitedToClasses = (kind: OfferView['kind'], creditKind: string | null) =>
-  kind === 'membership' || kind === 'single_class_pass' || creditKind === 'group';
-
 /** What the offer's fields become once the rules have accepted them, for storing. */
-function termsOf(
-  offer: ValidOffer,
-  body: OfferBody,
-  coveredClassIds: readonly string[] | null,
-): OfferTerms {
+function termsOf(offer: ValidOffer, body: OfferBody): OfferTerms {
   const common = {
     nameNl: body.nameNl,
     nameEn: textOrNull(body.nameEn),
@@ -689,7 +676,7 @@ function termsOf(
     priceCents: offer.priceCents,
     vatRateBasisPoints: offer.vatRateBasisPoints,
     cutoffMinutes: offer.cutoffMinutes,
-    coveredClassIds,
+    coveredClassIds: offer.coveredClassIds,
   };
   switch (offer.kind) {
     case 'membership':
@@ -707,9 +694,9 @@ function termsOf(
         ...common,
         credits: offer.credits,
         validity: offer.validity,
-        oncePerClient: body.oncePerClient ?? false,
-        membersOnly: body.membersOnly ?? false,
-        returnsPerMonth: body.returnsPerMonth ?? null,
+        oncePerClient: offer.oncePerClient,
+        membersOnly: offer.membersOnly,
+        returnsPerMonth: offer.returnsPerMonth,
         renewalWindowDays: offer.renewalWindowDays,
       };
     case 'credit_plan':
@@ -720,48 +707,54 @@ function termsOf(
         minimumTermMonths: offer.minimumTermMonths,
         endOfTerm: offer.endOfTerm,
         carryOverLimit: offer.carryOverLimit,
-        membersOnly: body.membersOnly ?? false,
-        returnsPerMonth: body.returnsPerMonth ?? null,
+        membersOnly: offer.membersOnly,
+        returnsPerMonth: offer.returnsPerMonth,
         renewalWindowDays: offer.renewalWindowDays,
       };
     case 'single_class_pass':
-      return { ...common, membersOnly: body.membersOnly ?? false };
+      return { ...common, membersOnly: offer.membersOnly };
   }
 }
 
 /**
- * The body checked against the rules of the kind and the classes it names: the terms to store, or
- * the issues to answer `422` with.
+ * The body checked against the rules of the kind (the domain's `validateOffer`) and against the
+ * classes it names, which must be classes of the workspace: the terms to store, or the issues to
+ * answer `422` with. A class that was deleted can stay on an offer, but is not added to one:
+ * `keptClassIds` are the classes of the version the change starts from.
  */
 async function decideOffer(
   scope: WorkspaceScope,
   kind: OfferView['kind'],
   creditKind: string | null | undefined,
   body: OfferBody,
-  switchedOn: boolean,
+  options: { switchedOn: boolean; keptClassIds: readonly string[] | null },
 ) {
   const decision = validateOffer(
     kind,
     { ...body, creditKind: creditKind ?? undefined },
-    { switchedOn },
+    { switchedOn: options.switchedOn },
   );
   if (!decision.ok) return { ok: false as const, issues: issuesOfRules(decision.issues) };
-  const wanted = body.coveredClassIds === undefined ? null : body.coveredClassIds;
-  let classIds: string[] | null = null;
+  const wanted = decision.offer.coveredClassIds;
   if (wanted !== null) {
-    classIds = [...new Set(wanted)];
-    if (!canBeLimitedToClasses(kind, creditKind ?? null)) {
-      return {
-        ok: false as const,
-        issues: [{ path: 'coveredClassIds', code: 'not-allowed' }],
-      };
-    }
-    const found = await listCoveredClasses(scope, classIds);
-    if (found.length !== classIds.length) {
+    const kept = new Set(options.keptClassIds ?? []);
+    const found = new Map((await listCoveredClasses(scope, wanted)).map((one) => [one.id, one]));
+    const usable = wanted.every((id) => {
+      const one = found.get(id);
+      return one !== undefined && (!one.deleted || kept.has(id));
+    });
+    if (!usable) {
       return { ok: false as const, issues: [{ path: 'coveredClassIds', code: 'invalid' }] };
     }
   }
-  return { ok: true as const, terms: termsOf(decision.offer, body, classIds) };
+  return { ok: true as const, terms: termsOf(decision.offer, body) };
+}
+
+/** One offer as shown to the reader. */
+async function shownOffer(scope: WorkspaceScope, offer: OfferView, locale: Locale) {
+  const [shown] = await shownOffers(scope, [offer], locale);
+  if (!shown) throw new Error('The offer was not shown.');
+  return shown;
 }
 
 /**
@@ -791,15 +784,16 @@ export function registerOffers(app: OpenAPIHono) {
     const { offerId } = c.req.valid('param');
     const offer = await findOffer(scope, offerId);
     if (!offer) return c.json(NOT_FOUND, 404);
-    const [shown] = await shownOffers(scope, [offer], readerLocaleOf(c));
-    if (!shown) return c.json(NOT_FOUND, 404);
-    return c.json(shown, 200);
+    return c.json(await shownOffer(scope, offer, readerLocaleOf(c)), 200);
   });
 
   router.openapi(createOfferRoute, async (c) => {
     const scope = c.get('scope');
     const body = c.req.valid('json');
-    const decision = await decideOffer(scope, body.kind, body.creditKind, body, false);
+    const decision = await decideOffer(scope, body.kind, body.creditKind, body, {
+      switchedOn: false,
+      keptClassIds: null,
+    });
     if (!decision.ok) return c.json(invalid(decision.issues), 422);
     const id = await createOffer(scope, {
       kind: body.kind,
@@ -826,8 +820,7 @@ export function registerOffers(app: OpenAPIHono) {
         }),
       );
     }
-    const [shown] = await shownOffers(scope, [created], readerLocaleOf(c));
-    return c.json(shown, 201);
+    return c.json(await shownOffer(scope, created, readerLocaleOf(c)), 201);
   });
 
   router.openapi(updateOfferRoute, async (c) => {
@@ -838,22 +831,19 @@ export function registerOffers(app: OpenAPIHono) {
     const current = await findOffer(scope, offerId);
     if (!current) return c.json(NOT_FOUND, 404);
     // The 409 rolls the request's transaction back; nothing was stored.
-    const changed = async (offer: OfferView) => {
-      const [shown] = await shownOffers(scope, [offer], locale);
-      return { code: 'offer_changed' as const, offer: shown as NonNullable<typeof shown> };
-    };
+    const changed = async (offer: OfferView) => ({
+      code: 'offer_changed' as const,
+      offer: await shownOffer(scope, offer, locale),
+    });
     // A save from an old version never gets as far as the rules.
     if (current.version.version !== body.version) return c.json(await changed(current), 409);
 
     const isCredit = current.kind === 'credit_pack' || current.kind === 'credit_plan';
     const creditKind = body.creditKind ?? (isCredit ? current.creditKind : null);
-    const decision = await decideOffer(
-      scope,
-      current.kind,
-      creditKind,
-      body,
-      current.status === 'on',
-    );
+    const decision = await decideOffer(scope, current.kind, creditKind, body, {
+      switchedOn: current.status === 'on',
+      keptClassIds: current.version.coveredClassIds,
+    });
     if (!decision.ok) return c.json(invalid(decision.issues), 422);
 
     const result = await changeOffer(scope, offerId, {
@@ -864,8 +854,7 @@ export function registerOffers(app: OpenAPIHono) {
     if (result.outcome === 'not-found') return c.json(NOT_FOUND, 404);
     // Lost a race with another save between the read and the write: show what won.
     if (result.outcome === 'stale') return c.json(await changed(result.offer), 409);
-    const [shown] = await shownOffers(scope, [result.offer], locale);
-    return c.json(shown, 200);
+    return c.json(await shownOffer(scope, result.offer, locale), 200);
   });
 
   app.route('/', router);

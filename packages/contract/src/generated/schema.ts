@@ -853,7 +853,7 @@ export interface paths {
         };
         /**
          * The offers of a workspace
-         * @description Every offer of the workspace by Dutch name, archived ones included (`status`), each with its current version, the summary line in the caller’s language and the number of running agreements. The Owner only; a Trainer gets `403`, a client of the workspace and anyone with no place in it `404`.
+         * @description Every offer of the workspace by Dutch name, archived ones included (`status`), each with its current version, the summary line in the caller’s language and the number of running agreements. The Owner only; a Trainer and a client of the workspace get `403`, anyone with no place in it `404`.
          */
         get: operations["listOffers"];
         put?: never;
@@ -2129,9 +2129,9 @@ export interface components {
             cutoffMinutes?: number;
             /** @description A membership’s makeups a month, 0 to 10. */
             makeupsPerMonth?: number;
-            /** @description Credit offers: the most credits that come back a month on a timely cancellation. `null` or left out: always. */
+            /** @description Credit offers: the most credits that come back a month on a timely cancellation, 0 to 50. `null` or left out: always. */
             returnsPerMonth?: number | null;
-            /** @description The group classes the offer is limited to (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace answers `422` on `coveredClassIds`. */
+            /** @description The group classes the offer is limited to, 1 to 100 (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace, or one that was deleted and is not on the offer already, answers `422` on `coveredClassIds`. */
             coveredClassIds?: string[] | null;
             /** @description Days before the end that renewing is suggested, 0 to 365. Left out: 30. */
             renewalWindowDays?: number;
@@ -2191,9 +2191,9 @@ export interface components {
             cutoffMinutes?: number;
             /** @description A membership’s makeups a month, 0 to 10. */
             makeupsPerMonth?: number;
-            /** @description Credit offers: the most credits that come back a month on a timely cancellation. `null` or left out: always. */
+            /** @description Credit offers: the most credits that come back a month on a timely cancellation, 0 to 50. `null` or left out: always. */
             returnsPerMonth?: number | null;
-            /** @description The group classes the offer is limited to (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace answers `422` on `coveredClassIds`. */
+            /** @description The group classes the offer is limited to, 1 to 100 (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace, or one that was deleted and is not on the offer already, answers `422` on `coveredClassIds`. */
             coveredClassIds?: string[] | null;
             /** @description Days before the end that renewing is suggested, 0 to 365. Left out: 30. */
             renewalWindowDays?: number;

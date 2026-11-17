@@ -4208,11 +4208,11 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/makeupsPerMonth`.
             public var makeupsPerMonth: Swift.Int?
-            /// Credit offers: the most credits that come back a month on a timely cancellation. `null` or left out: always.
+            /// Credit offers: the most credits that come back a month on a timely cancellation, 0 to 50. `null` or left out: always.
             ///
             /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/returnsPerMonth`.
             public var returnsPerMonth: Swift.Int?
-            /// The group classes the offer is limited to (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace answers `422` on `coveredClassIds`.
+            /// The group classes the offer is limited to, 1 to 100 (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace, or one that was deleted and is not on the offer already, answers `422` on `coveredClassIds`.
             ///
             /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/coveredClassIds`.
             public var coveredClassIds: [Swift.String]?
@@ -4255,8 +4255,8 @@ extension Components {
             ///   - membersOnly: Sold only to clients with a membership (credits and the single class pass). Default `false`.
             ///   - cutoffMinutes: Minutes before the start up to which a client cancels for free: a whole number of hours, 0 to 4320.
             ///   - makeupsPerMonth: A membership’s makeups a month, 0 to 10.
-            ///   - returnsPerMonth: Credit offers: the most credits that come back a month on a timely cancellation. `null` or left out: always.
-            ///   - coveredClassIds: The group classes the offer is limited to (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace answers `422` on `coveredClassIds`.
+            ///   - returnsPerMonth: Credit offers: the most credits that come back a month on a timely cancellation, 0 to 50. `null` or left out: always.
+            ///   - coveredClassIds: The group classes the offer is limited to, 1 to 100 (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace, or one that was deleted and is not on the offer already, answers `422` on `coveredClassIds`.
             ///   - renewalWindowDays: Days before the end that renewing is suggested, 0 to 365. Left out: 30.
             ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `offer_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             public init(
@@ -4459,11 +4459,11 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/makeupsPerMonth`.
             public var makeupsPerMonth: Swift.Int?
-            /// Credit offers: the most credits that come back a month on a timely cancellation. `null` or left out: always.
+            /// Credit offers: the most credits that come back a month on a timely cancellation, 0 to 50. `null` or left out: always.
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/returnsPerMonth`.
             public var returnsPerMonth: Swift.Int?
-            /// The group classes the offer is limited to (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace answers `422` on `coveredClassIds`.
+            /// The group classes the offer is limited to, 1 to 100 (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace, or one that was deleted and is not on the offer already, answers `422` on `coveredClassIds`.
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/coveredClassIds`.
             public var coveredClassIds: [Swift.String]?
@@ -4495,8 +4495,8 @@ extension Components {
             ///   - membersOnly: Sold only to clients with a membership (credits and the single class pass). Default `false`.
             ///   - cutoffMinutes: Minutes before the start up to which a client cancels for free: a whole number of hours, 0 to 4320.
             ///   - makeupsPerMonth: A membership’s makeups a month, 0 to 10.
-            ///   - returnsPerMonth: Credit offers: the most credits that come back a month on a timely cancellation. `null` or left out: always.
-            ///   - coveredClassIds: The group classes the offer is limited to (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace answers `422` on `coveredClassIds`.
+            ///   - returnsPerMonth: Credit offers: the most credits that come back a month on a timely cancellation, 0 to 50. `null` or left out: always.
+            ///   - coveredClassIds: The group classes the offer is limited to, 1 to 100 (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace, or one that was deleted and is not on the offer already, answers `422` on `coveredClassIds`.
             ///   - renewalWindowDays: Days before the end that renewing is suggested, 0 to 365. Left out: 30.
             public init(
                 version: Swift.Int,

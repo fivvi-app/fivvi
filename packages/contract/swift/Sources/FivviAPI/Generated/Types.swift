@@ -363,7 +363,7 @@ public protocol APIProtocol: Sendable {
     func listAccessLog(_ input: Operations.ListAccessLog.Input) async throws -> Operations.ListAccessLog.Output
     /// The offers of a workspace
     ///
-    /// Every offer of the workspace by Dutch name, archived ones included (`status`), each with its current version, the summary line in the caller’s language and the number of running agreements. The Owner only; a Trainer gets `403`, a client of the workspace and anyone with no place in it `404`.
+    /// Every offer of the workspace by Dutch name, archived ones included (`status`), each with its current version, the summary line in the caller’s language and the number of running agreements. The Owner only; a Trainer and a client of the workspace get `403`, anyone with no place in it `404`.
     ///
     /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/offers`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/offers/get(listOffers)`.
@@ -1155,7 +1155,7 @@ extension APIProtocol {
     }
     /// The offers of a workspace
     ///
-    /// Every offer of the workspace by Dutch name, archived ones included (`status`), each with its current version, the summary line in the caller’s language and the number of running agreements. The Owner only; a Trainer gets `403`, a client of the workspace and anyone with no place in it `404`.
+    /// Every offer of the workspace by Dutch name, archived ones included (`status`), each with its current version, the summary line in the caller’s language and the number of running agreements. The Owner only; a Trainer and a client of the workspace get `403`, anyone with no place in it `404`.
     ///
     /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/offers`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/offers/get(listOffers)`.

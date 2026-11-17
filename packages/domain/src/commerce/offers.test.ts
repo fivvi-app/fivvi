@@ -1,10 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canBeLimitedToClasses,
   cancellationSentence,
   coveredClassLabel,
   formatEuros,
   formatVatRate,
   OFFER_KINDS,
+  OFFER_LIMITS,
   type OfferIssue,
   summarise,
   validateOffer,
@@ -79,6 +81,7 @@ describe('F052 offer kinds', () => {
       makeupsPerMonth: 2,
       cutoffMinutes: 720,
       renewalWindowDays: 30,
+      coveredClassIds: null,
     });
     expect(offerOf('credit_pack', creditPack)).toMatchObject({
       kind: 'credit_pack',
@@ -98,6 +101,8 @@ describe('F052 offer kinds', () => {
       priceCents: 2500,
       vatRateBasisPoints: 2100,
       cutoffMinutes: 720,
+      membersOnly: false,
+      coveredClassIds: null,
     });
   });
 });
@@ -595,5 +600,126 @@ describe('F052 covered class labels', () => {
     expect(summarise(offer, 'nl-NL', names)).toBe(
       '2 lessen per week · Kracht, Mobility (verwijderd) · 6 maanden · € 79,00 per maand',
     );
+  });
+});
+
+describe('F052 who may buy and what comes back (credit offers, the pass)', () => {
+  it('a credit pack is not once-per-client nor members-only unless it says so', () => {
+    expect(offerOf('credit_pack', creditPack)).toMatchObject({
+      oncePerClient: false,
+      membersOnly: false,
+      returnsPerMonth: null,
+    });
+    expect(
+      offerOf('credit_pack', { ...creditPack, oncePerClient: true, membersOnly: true }),
+    ).toMatchObject({ oncePerClient: true, membersOnly: true });
+  });
+
+  it('a credit plan and the pass can be members-only; a plan has no once-per-client', () => {
+    expect(offerOf('credit_plan', { ...creditPlan, membersOnly: true })).toMatchObject({
+      membersOnly: true,
+    });
+    expect(offerOf('credit_plan', { ...creditPlan, oncePerClient: true })).not.toHaveProperty(
+      'oncePerClient',
+    );
+    expect(offerOf('single_class_pass', { ...singleClassPass, membersOnly: true })).toMatchObject({
+      membersOnly: true,
+    });
+  });
+
+  it('a membership ignores the fields of the other kinds', () => {
+    const offer = offerOf('membership', {
+      ...membership,
+      oncePerClient: true,
+      membersOnly: true,
+      returnsPerMonth: 2,
+    });
+    expect(offer).not.toHaveProperty('oncePerClient');
+    expect(offer).not.toHaveProperty('membersOnly');
+    expect(offer).not.toHaveProperty('returnsPerMonth');
+  });
+
+  it('a flag that is no boolean is invalid', () => {
+    expect(issuesOf('credit_pack', { ...creditPack, oncePerClient: 'yes' })).toEqual([
+      { field: 'oncePerClient', problem: 'invalid' },
+    ]);
+    expect(issuesOf('single_class_pass', { ...singleClassPass, membersOnly: 1 })).toEqual([
+      { field: 'membersOnly', problem: 'invalid' },
+    ]);
+  });
+
+  it('returns a month are 0 to 50 whole credits; left out or null means always', () => {
+    expect(OFFER_LIMITS.returnsPerMonth).toEqual({ min: 0, max: 50 });
+    for (const returnsPerMonth of [0, 2, 50]) {
+      expect(offerOf('credit_plan', { ...creditPlan, returnsPerMonth })).toMatchObject({
+        returnsPerMonth,
+      });
+    }
+    for (const returnsPerMonth of [null, undefined]) {
+      expect(offerOf('credit_plan', { ...creditPlan, returnsPerMonth })).toMatchObject({
+        returnsPerMonth: null,
+      });
+    }
+    expect(issuesOf('credit_plan', { ...creditPlan, returnsPerMonth: -1 })).toEqual([
+      { field: 'returnsPerMonth', problem: 'too-low' },
+    ]);
+    expect(issuesOf('credit_pack', { ...creditPack, returnsPerMonth: 51 })).toEqual([
+      { field: 'returnsPerMonth', problem: 'too-high' },
+    ]);
+    expect(issuesOf('credit_plan', { ...creditPlan, returnsPerMonth: 1.5 })).toEqual([
+      { field: 'returnsPerMonth', problem: 'not-integer' },
+    ]);
+  });
+});
+
+describe('F052 which group classes an offer is limited to', () => {
+  const ids = ['3b1c9f0e-0000-4000-8000-000000000001', '3b1c9f0e-0000-4000-8000-000000000002'];
+
+  it('a membership, a group credit offer and the pass may be limited; a private credit offer may not', () => {
+    expect(canBeLimitedToClasses('membership', null)).toBe(true);
+    expect(canBeLimitedToClasses('single_class_pass', null)).toBe(true);
+    expect(canBeLimitedToClasses('credit_pack', 'group')).toBe(true);
+    expect(canBeLimitedToClasses('credit_plan', 'group')).toBe(true);
+    expect(canBeLimitedToClasses('credit_pack', 'private')).toBe(false);
+    expect(canBeLimitedToClasses('credit_plan', 'private')).toBe(false);
+    expect(canBeLimitedToClasses('credit_plan', null)).toBe(false);
+  });
+
+  it('no classes (left out, null) means all group classes; a list is kept once each', () => {
+    expect(offerOf('membership', membership)).toMatchObject({ coveredClassIds: null });
+    expect(offerOf('membership', { ...membership, coveredClassIds: null })).toMatchObject({
+      coveredClassIds: null,
+    });
+    expect(
+      offerOf('membership', { ...membership, coveredClassIds: [...ids, ids[0]] }),
+    ).toMatchObject({ coveredClassIds: ids });
+    expect(offerOf('credit_pack', { ...creditPack, coveredClassIds: ids })).toMatchObject({
+      coveredClassIds: ids,
+    });
+  });
+
+  it('a private credit offer cannot be limited to group classes', () => {
+    expect(issuesOf('credit_plan', { ...creditPlan, coveredClassIds: ids })).toEqual([
+      { field: 'coveredClassIds', problem: 'not-allowed' },
+    ]);
+    expect(
+      issuesOf('credit_pack', { ...creditPack, creditKind: 'private', coveredClassIds: ids }),
+    ).toEqual([{ field: 'coveredClassIds', problem: 'not-allowed' }]);
+  });
+
+  it('a list is 1 to 100 class IDs', () => {
+    expect(issuesOf('membership', { ...membership, coveredClassIds: [] })).toEqual([
+      { field: 'coveredClassIds', problem: 'too-low' },
+    ]);
+    const many = Array.from({ length: 101 }, (_, index) => `class-${index}`);
+    expect(issuesOf('membership', { ...membership, coveredClassIds: many })).toEqual([
+      { field: 'coveredClassIds', problem: 'too-high' },
+    ]);
+    expect(issuesOf('membership', { ...membership, coveredClassIds: 'all' })).toEqual([
+      { field: 'coveredClassIds', problem: 'invalid' },
+    ]);
+    expect(issuesOf('membership', { ...membership, coveredClassIds: [1, 2] })).toEqual([
+      { field: 'coveredClassIds', problem: 'invalid' },
+    ]);
   });
 });

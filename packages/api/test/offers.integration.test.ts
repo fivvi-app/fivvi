@@ -1,6 +1,13 @@
 import { readFileSync } from 'node:fs';
-import { createDatabase, type DatabaseClient, offers, offerVersions } from '@fivvi/database';
+import {
+  createDatabase,
+  type DatabaseClient,
+  insertOffer,
+  offers,
+  offerVersions,
+} from '@fivvi/database';
 import { addGroupClass, addOffer } from '@fivvi/database/testing';
+import { defaultOffers } from '@fivvi/domain';
 import {
   createErrorReporter,
   createProductEventCaptureTransport,
@@ -120,6 +127,18 @@ describe('F052 offers through the API', () => {
     const list = (headers?: Record<string, string>) =>
       call(server, 'GET', path(base.gym.id), base.john, undefined, headers);
     return { ...base, server, create, created, edit, read, list };
+  }
+
+  // A workspace as creating one leaves it: with its three default plans (F052, AC1), as the API
+  // passes them from the domain's template.
+  async function worldWithDefaults() {
+    const base = await world();
+    for (const plan of defaultOffers()) {
+      await admin.db.transaction((tx) =>
+        insertOffer(tx, base.gym.id, { ...plan, terms: { ...plan.terms } }),
+      );
+    }
+    return base;
   }
 
   const versionsOf = (offerId: string) =>
@@ -286,6 +305,44 @@ describe('F052 offers through the API', () => {
       expect(await admin.db.$count(offers, eq(offers.organizationId, gym.id))).toBe(2);
     });
 
+    it('AC1, AC2: the three default plans list and read without a price, in both languages (no 500)', async () => {
+      const { list, read } = await worldWithDefaults();
+
+      const nl = await list(dutch);
+      const en = await list(english);
+
+      expect(nl.status).toBe(200);
+      expect(en.status).toBe(200);
+      const plans = (await nl.json()) as OfferBody[];
+      expect(
+        plans.map(({ currentVersion, origin, status }) => [currentVersion.nameNl, origin, status]),
+      ).toEqual([
+        ['Abonnement', 'default', 'off'],
+        ['Groepscreditpakket', 'default', 'off'],
+        ['Privécreditabonnement', 'default', 'off'],
+      ]);
+      expect(plans.map(({ summary }) => summary)).toEqual([
+        '2 lessen per week · 6 maanden',
+        '10 groepscredits · 3 maanden geldig',
+        '4 privécredits per maand · minimaal 3 maanden',
+      ]);
+      expect(((await en.json()) as OfferBody[]).map(({ summary }) => summary)).toEqual([
+        '2 classes a week · 6 months',
+        '10 group credits · valid for 3 months',
+        '4 private credits a month · minimum 3 months',
+      ]);
+      expect(plans[2]?.currentVersion).toMatchObject({
+        returnsPerMonth: 2,
+        cutoffMinutes: 1440,
+        membersOnly: false,
+      });
+      for (const plan of plans) {
+        const response = await read(plan.id, dutch);
+        expect(response.status).toBe(200);
+        expect(await response.json()).toEqual(plan);
+      }
+    });
+
     it('an offer of another workspace, or none, is 404; a bad ID is 400', async () => {
       const { server, john, other, read } = await world();
       const theirs = await addOffer(admin.db, { workspaceId: other.id });
@@ -305,29 +362,54 @@ describe('F052 offers through the API', () => {
   });
 
   describe('edit', () => {
-    it('AC2: editing the default plan to 7900 cents and 21 % stores a new version with them; the first stays', async () => {
-      const { created, edit, list } = await world();
-      const draft = await created({ ...membership, priceCents: null, vatRateBasisPoints: null });
-      expect(draft.currentVersion).toMatchObject({ priceCents: null, vatRateBasisPoints: null });
-      expect(draft.summary).toBe('2 lessen per week · 6 maanden');
+    it('AC2: editing the default Abonnement to 7900 cents and 21 % stores a new version with them; the first stays', async () => {
+      const { edit, list, read, gym } = await worldWithDefaults();
+      const [membershipPlan] = (await (await list(dutch)).json()) as OfferBody[];
+      expect(membershipPlan).toMatchObject({
+        kind: 'membership',
+        origin: 'default',
+        status: 'off',
+        summary: '2 lessen per week · 6 maanden',
+        currentVersion: { nameNl: 'Abonnement', priceCents: null, vatRateBasisPoints: null },
+      });
+      const plan = membershipPlan as OfferBody;
 
-      const response = await edit(draft.id, { version: 1, ...membership }, dutch);
+      const response = await edit(
+        plan.id,
+        {
+          version: 1,
+          nameNl: 'Abonnement',
+          nameEn: 'Membership',
+          priceCents: 7900,
+          vatRateBasisPoints: 2100,
+          classesPerWeek: 2,
+          termMonths: 6,
+          billingCycle: 'month',
+          endOfTerm: 'stop',
+          makeupsPerMonth: 2,
+          cutoffMinutes: 720,
+        },
+        dutch,
+      );
 
       expect(response.status).toBe(200);
       const changed = (await response.json()) as OfferBody;
+      expect(changed).toMatchObject({ origin: 'default', status: 'off' });
       expect(changed.currentVersion).toMatchObject({
         version: 2,
         priceCents: 7900,
         vatRateBasisPoints: 2100,
       });
       expect(changed.summary).toBe('2 lessen per week · 6 maanden · € 79,00 per maand');
-      const listed = (await (await list(english)).json()) as OfferBody[];
-      expect(listed[0]?.summary).toBe('2 classes a week · 6 months · €79.00 a month');
-      const stored = (await versionsOf(draft.id)).sort((a, b) => a.version - b.version);
+      expect(((await (await read(plan.id, english)).json()) as OfferBody).summary).toBe(
+        '2 classes a week · 6 months · €79.00 a month',
+      );
+      const stored = (await versionsOf(plan.id)).sort((a, b) => a.version - b.version);
       expect(stored.map(({ version, priceCents }) => [version, priceCents])).toEqual([
         [1, null],
         [2, 7900],
       ]);
+      expect(await admin.db.$count(offers, eq(offers.organizationId, gym.id))).toBe(3);
     });
 
     it('AC5: each change is a new version; the version before it is untouched', async () => {
@@ -409,6 +491,35 @@ describe('F052 offers through the API', () => {
         descriptionNl: null,
         classesPerWeek: 2,
       });
+    });
+
+    it('the default Privécreditabonnement keeps its 2 returns a month when saved with them; left out means always', async () => {
+      const { edit, list } = await worldWithDefaults();
+      const plan = ((await (await list(dutch)).json()) as OfferBody[])[2] as OfferBody;
+      const fields = {
+        nameNl: 'Privécreditabonnement',
+        priceCents: 26000,
+        vatRateBasisPoints: 2100,
+        credits: 4,
+        billingCycle: 'month',
+        minimumTermMonths: 3,
+        endOfTerm: 'stop',
+        carryOverLimit: 0,
+        cutoffMinutes: 1440,
+      };
+
+      const kept = (await (
+        await edit(plan.id, { version: 1, ...fields, returnsPerMonth: 2 })
+      ).json()) as OfferBody;
+      const always = (await (await edit(plan.id, { version: 2, ...fields })).json()) as OfferBody;
+      const refused = await edit(plan.id, { version: 3, ...fields, returnsPerMonth: 51 });
+
+      expect(kept.currentVersion).toMatchObject({ version: 2, returnsPerMonth: 2 });
+      expect(always.currentVersion).toMatchObject({ version: 3, returnsPerMonth: null });
+      expect(refused.status).toBe(422);
+      expect(((await refused.json()) as ProblemBody).issues).toEqual([
+        { path: 'returnsPerMonth', code: 'too-high' },
+      ]);
     });
 
     it('AC4: a credit offer can get the other credit kind; a membership cannot be given one', async () => {
@@ -538,6 +649,40 @@ describe('F052 offers through the API', () => {
       expect(((await notAllowed.json()) as ProblemBody).issues).toEqual([
         { path: 'coveredClassIds', code: 'not-allowed' },
       ]);
+    });
+  });
+
+  describe('a deleted class', () => {
+    it('stays on an offer that has it, but cannot be added to one', async () => {
+      const { created, edit, create, gym } = await world();
+      const kept = await addGroupClass(admin.db, { workspaceId: gym.id, nameNl: 'Kracht' });
+      const gone = await addGroupClass(admin.db, { workspaceId: gym.id, nameNl: 'Boksen' });
+      const offer = await created({ ...membership, coveredClassIds: [kept.id, gone.id] });
+      await admin.db.execute(
+        sql`update group_classes set archived_at = now() where id = ${gone.id}`,
+      );
+
+      const saved = await edit(offer.id, {
+        version: 1,
+        ...membership,
+        priceCents: 8500,
+        coveredClassIds: [kept.id, gone.id],
+      });
+      const added = await create({ kind: 'membership', ...membership, coveredClassIds: [gone.id] });
+      const addedOnEdit = await edit(offer.id, {
+        version: 2,
+        ...membership,
+        coveredClassIds: [gone.id, (await addGroupClass(admin.db, { workspaceId: gym.id })).id],
+      });
+
+      expect(saved.status).toBe(200);
+      expect(((await saved.json()) as OfferBody).currentVersion.coveredClasses).toHaveLength(2);
+      expect(added.status).toBe(422);
+      expect(((await added.json()) as ProblemBody).issues).toEqual([
+        { path: 'coveredClassIds', code: 'invalid' },
+      ]);
+      // Boksen is on the version being changed (version 2), so it may stay next to a new class.
+      expect(addedOnEdit.status).toBe(200);
     });
   });
 

@@ -55,6 +55,10 @@ export const OFFER_LIMITS = {
   minimumTermMonths: { min: 0, max: 12 },
   carryOverLimit: { min: 0, max: 50 },
   renewalWindowDays: { min: 0, max: 365 },
+  /** The most credits that come back a month on a timely cancellation. */
+  returnsPerMonth: { min: 0, max: 50 },
+  /** How many group classes an offer can be limited to. */
+  coveredClasses: { min: 1, max: 100 },
 } as const;
 
 export type OfferField =
@@ -72,7 +76,11 @@ export type OfferField =
   | 'minimumTermMonths'
   | 'carryOverLimit'
   | 'cutoffMinutes'
-  | 'renewalWindowDays';
+  | 'renewalWindowDays'
+  | 'oncePerClient'
+  | 'membersOnly'
+  | 'returnsPerMonth'
+  | 'coveredClassIds';
 
 export interface OfferIssue {
   readonly field: OfferField;
@@ -105,6 +113,8 @@ interface OfferBase {
   readonly vatRateBasisPoints: number | null;
   /** Minutes before the start up to which a client cancels for free: a whole number of hours. */
   readonly cutoffMinutes: number;
+  /** The group classes the offer is limited to; `null`: all group classes. */
+  readonly coveredClassIds: readonly string[] | null;
 }
 
 export interface MembershipOffer extends OfferBase {
@@ -122,6 +132,12 @@ export interface CreditPackOffer extends OfferBase {
   readonly creditKind: CreditKind;
   readonly credits: number;
   readonly validity: Validity;
+  /** A pack a client buys once (an intro offer). */
+  readonly oncePerClient: boolean;
+  /** Sold only to clients with a membership. */
+  readonly membersOnly: boolean;
+  /** The most credits that come back a month on a timely cancellation; `null`: always. */
+  readonly returnsPerMonth: number | null;
   readonly renewalWindowDays: number;
 }
 
@@ -134,11 +150,15 @@ export interface CreditPlanOffer extends OfferBase {
   readonly minimumTermMonths: number;
   readonly endOfTerm: EndOfTerm;
   readonly carryOverLimit: number;
+  readonly membersOnly: boolean;
+  /** The most credits that come back a month on a timely cancellation; `null`: always. */
+  readonly returnsPerMonth: number | null;
   readonly renewalWindowDays: number;
 }
 
 export interface SingleClassPassOffer extends OfferBase {
   readonly kind: 'single_class_pass';
+  readonly membersOnly: boolean;
 }
 
 /** An offer whose fields are valid for its kind. */
@@ -280,6 +300,59 @@ function readValidity(fields: Fields, issues: OfferIssue[]): Validity {
   return { amount, unit: found };
 }
 
+/** A flag of the form: left out is off; anything but a boolean is invalid. */
+function readFlag(
+  fields: Fields,
+  field: 'oncePerClient' | 'membersOnly',
+  issues: OfferIssue[],
+): boolean {
+  const value = fields[field];
+  if (isEmpty(value)) return false;
+  if (typeof value === 'boolean') return value;
+  issues.push({ field, problem: 'invalid' });
+  return false;
+}
+
+/** The credits that come back a month: left out or `null` is always. */
+function readReturnsPerMonth(fields: Fields, issues: OfferIssue[]): number | null {
+  if (isEmpty(fields.returnsPerMonth)) return null;
+  const { min, max } = OFFER_LIMITS.returnsPerMonth;
+  return readInteger(fields, 'returnsPerMonth', min, max, issues);
+}
+
+/**
+ * Whether an offer can be limited to some group classes: a membership, group credits (a pack or a
+ * plan) and the single class pass. Private credits are for a trainer's sessions, not classes.
+ */
+export function canBeLimitedToClasses(kind: OfferKind, creditKind: CreditKind | null): boolean {
+  return kind === 'membership' || kind === 'single_class_pass' || creditKind === 'group';
+}
+
+/** The classes an offer is limited to, once each in the order given; none (or `null`) is all. */
+function readCoveredClasses(
+  fields: Fields,
+  kind: OfferKind,
+  creditKind: CreditKind | null,
+  issues: OfferIssue[],
+): readonly string[] | null {
+  const value = fields.coveredClassIds;
+  if (isEmpty(value)) return null;
+  const field = 'coveredClassIds';
+  const { min, max } = OFFER_LIMITS.coveredClasses;
+  if (!Array.isArray(value) || value.some((id) => typeof id !== 'string' || id === '')) {
+    issues.push({ field, problem: 'invalid' });
+  } else if (!canBeLimitedToClasses(kind, creditKind)) {
+    issues.push({ field, problem: 'not-allowed' });
+  } else if (value.length < min) {
+    issues.push({ field, problem: 'too-low' });
+  } else if (value.length > max) {
+    issues.push({ field, problem: 'too-high' });
+  } else {
+    return [...new Set<string>(value)];
+  }
+  return null;
+}
+
 function readMembership(
   fields: Fields,
   priceCents: number | null,
@@ -304,6 +377,7 @@ function readMembership(
   const makeupsPerMonth = readInteger(fields, 'makeupsPerMonth', makeups.min, makeups.max, issues);
   const cutoffMinutes = readCutoff(fields, issues);
   const renewalWindowDays = readRenewalWindow(fields, issues);
+  const coveredClassIds = readCoveredClasses(fields, 'membership', null, issues);
   return {
     kind: 'membership',
     priceCents,
@@ -315,6 +389,7 @@ function readMembership(
     makeupsPerMonth,
     cutoffMinutes,
     renewalWindowDays,
+    coveredClassIds,
   };
 }
 
@@ -328,8 +403,12 @@ function readCreditPack(
   const pack = OFFER_LIMITS.packCredits;
   const credits = readInteger(fields, 'credits', pack.min, pack.max, issues);
   const validity = readValidity(fields, issues);
+  const oncePerClient = readFlag(fields, 'oncePerClient', issues);
+  const membersOnly = readFlag(fields, 'membersOnly', issues);
   const cutoffMinutes = readCutoff(fields, issues);
+  const returnsPerMonth = readReturnsPerMonth(fields, issues);
   const renewalWindowDays = readRenewalWindow(fields, issues);
+  const coveredClassIds = readCoveredClasses(fields, 'credit_pack', creditKind, issues);
   return {
     kind: 'credit_pack',
     priceCents,
@@ -337,8 +416,12 @@ function readCreditPack(
     creditKind,
     credits,
     validity,
+    oncePerClient,
+    membersOnly,
     cutoffMinutes,
+    returnsPerMonth,
     renewalWindowDays,
+    coveredClassIds,
   };
 }
 
@@ -357,8 +440,11 @@ function readCreditPlan(
   const endOfTerm = readOption(fields, 'endOfTerm', END_OF_TERMS, issues);
   const carry = OFFER_LIMITS.carryOverLimit;
   const carryOverLimit = readInteger(fields, 'carryOverLimit', carry.min, carry.max, issues);
+  const membersOnly = readFlag(fields, 'membersOnly', issues);
   const cutoffMinutes = readCutoff(fields, issues);
+  const returnsPerMonth = readReturnsPerMonth(fields, issues);
   const renewalWindowDays = readRenewalWindow(fields, issues);
+  const coveredClassIds = readCoveredClasses(fields, 'credit_plan', creditKind, issues);
   return {
     kind: 'credit_plan',
     priceCents,
@@ -369,8 +455,11 @@ function readCreditPlan(
     minimumTermMonths,
     endOfTerm,
     carryOverLimit,
+    membersOnly,
     cutoffMinutes,
+    returnsPerMonth,
     renewalWindowDays,
+    coveredClassIds,
   };
 }
 
@@ -381,10 +470,19 @@ function readSingleClassPass(
   issues: OfferIssue[],
 ): SingleClassPassOffer {
   refuseCreditKind(fields, issues);
+  const membersOnly = readFlag(fields, 'membersOnly', issues);
   const cutoffMinutes = readCutoff(fields, issues);
+  const coveredClassIds = readCoveredClasses(fields, 'single_class_pass', null, issues);
   // Any price within the bounds is valid: Fivvi never compares it with other offers (owner,
   // 9 November 2026).
-  return { kind: 'single_class_pass', priceCents, vatRateBasisPoints, cutoffMinutes };
+  return {
+    kind: 'single_class_pass',
+    priceCents,
+    vatRateBasisPoints,
+    membersOnly,
+    cutoffMinutes,
+    coveredClassIds,
+  };
 }
 
 /**
@@ -392,7 +490,10 @@ function readSingleClassPass(
  * value has its own issue, in field order: price, VAT rate, then the fields of the kind. A kind
  * other than the four, and a credit kind other than one of group or private, are invalid. A
  * membership term over 12 months is valid only with `longTermConfirmed: true`. Fields that do not
- * belong to the kind are ignored, except `creditKind`.
+ * belong to the kind are ignored, except `creditKind` and `coveredClassIds` (a private credit offer
+ * cannot be limited to group classes). `oncePerClient`, `membersOnly` and `returnsPerMonth` default
+ * to off, off and `null` (always: left out is not the default plan's 2, which the default plan
+ * itself stores). The classes are only IDs here; that they exist is for the caller.
  */
 export function validateOffer(
   kind: unknown,
