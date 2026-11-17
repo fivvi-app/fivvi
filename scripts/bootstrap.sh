@@ -8,6 +8,7 @@
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$ROOT/scripts/_ios.sh"
+source "$ROOT/scripts/_docker.sh"
 source "$ROOT/scripts/_shellcheck.sh"
 
 case "${1:-}" in
@@ -66,7 +67,7 @@ need jq jq || true
 ensure_shellcheck || warn "could not install shellcheck $SHELLCHECK_VERSION (scripts/_shellcheck.sh)"
 need gh gh || true
 gh auth status >/dev/null 2>&1 || warn "not logged in to GitHub — run: gh auth login"
-command -v docker >/dev/null || warn "Docker not found — install Docker Desktop (Postgres for integration tests)"
+ensure_docker || warn "Docker is not running — set up Colima (brew install colima docker docker-compose; colima start) for Postgres: pnpm db:up (scripts/_docker.sh)"
 if [ "${1:-}" = --api ]; then
   xcode-select -p >/dev/null 2>&1 || warn "Swift toolchain not found — run: xcode-select --install"
   install_java
