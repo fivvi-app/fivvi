@@ -10,6 +10,10 @@
 #   ios-sim       1 place: a booted iOS simulator (about 250 processes each)
 #   android-emu   1 place: a running Android emulator
 #
+# A slot is held while the job runs, not while a device stays up. Three things go past it: KEEP_DEVICE=1 leaves the simulator or
+# emulator running after the job (and so its slot) ended, `IOS_PARALLEL=1` of test-ios.sh boots two simulators on its one
+# ios-sim slot, and `android.sh emulator` (the emulator for a dev session) takes no slot. Don't combine them with other jobs.
+#
 # The slots are symbolic links in the main checkout's .work/slots/<class>/ (shared by every worktree; FIVVI_SLOTS_DIR moves
 # them). A link is taken with `ln -s`, which fails when it exists, in one step, so two jobs can't take the same slot. Its target
 # is "pid|epoch|start time of the pid|label" of the holder. A slot whose holder is gone (no such process, or a process that
@@ -35,8 +39,9 @@ slot_limit() {
   esac
 }
 
-# The start time of a process, as ps prints it ("Mon Nov 17 18:23:00 2026"), or nothing when it does not run.
-slot_pid_started() { ps -p "$1" -o lstart= 2>/dev/null | sed -E 's/^ +//; s/ +$//' || true; }
+# The start time of a process, as ps prints it in the C locale ("Mon Nov 17 18:23:00 2026"), or nothing when it does not run.
+# Always the C locale: under nl_NL ps prints "ma 17 nov. 18:23:00 2026", and jobs of two locales would take each other's slots.
+slot_pid_started() { LC_ALL=C ps -p "$1" -o lstart= 2>/dev/null | sed -E 's/^ +//; s/ +$//' || true; }
 
 # Whether the holder in a slot link's target ($1) still runs.
 slot_holder_alive() {

@@ -275,6 +275,43 @@ describe('E001 #1388 slots.sh: machine-wide slots for heavy jobs', () => {
     await a.exit;
   });
 
+  it('AC3: a holder under another locale is still alive (the start time is compared in the C locale)', async (t) => {
+    // ps prints lstart in the locale of the process ("di 17 nov. 19:57:04 2026" under nl_NL, "Tue Nov 17 19:57:05 2026" under C).
+    const locales = spawnSync('locale', ['-a'], { encoding: 'utf8' }).stdout ?? '';
+    if (!/^nl_NL\.UTF-8$/m.test(locales)) return t.skip('the nl_NL.UTF-8 locale is not installed');
+    fresh();
+    const one = { FIVVI_HEAVY_SLOTS: '1' };
+    const a = job('heavy', { extra: { ...one, LC_ALL: 'nl_NL.UTF-8' }, label: 'dutch holder' });
+    await until(() => a.running(), 'the holder');
+    const result = run(['run', 'heavy', '--', 'true'], {
+      ...one,
+      LC_ALL: 'C',
+      FIVVI_SLOT_TIMEOUT_SECONDS: '1',
+    });
+    assert.equal(result.status, 1, `the waiter must not take the held slot: ${result.stderr}`);
+    assert.match(result.stderr, /no heavy slot free/);
+    assert.equal(hold('heavy'), 1, 'the holder keeps its slot');
+    a.finish();
+    await a.exit;
+  });
+
+  it('AC2: test-ios.sh checks its arguments before it waits for a slot', async () => {
+    fresh();
+    const one = { FIVVI_HEAVY_SLOTS: '1', FIVVI_SLOT_TIMEOUT_SECONDS: '1' };
+    const holder = job('heavy,ios-sim', { extra: one });
+    await until(() => holder.running(), 'the holder');
+    const result = spawnSync(join(SCRIPTS, 'test-ios.sh'), ['bogus'], {
+      env: env(one),
+      encoding: 'utf8',
+      timeout: 30_000,
+    });
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr + result.stdout, /test-ios\.sh build/);
+    assert.doesNotMatch(result.stderr, /waiting for|no heavy slot/);
+    holder.finish();
+    await holder.exit;
+  });
+
   it('AC3: a command that is not run when no slot is free', () => {
     fresh();
     const marker = join(base, `ran-${n++}`);
@@ -337,7 +374,7 @@ describe('E001 #1388 the heavy scripts take a slot', () => {
 
   it('AC2: test-ios.sh, android.sh and maestro.sh wrap themselves in the slots of what they start', () => {
     assert.match(read('test-ios.sh'), /^source "\$ROOT\/scripts\/_slots\.sh"$/m);
-    assert.match(read('test-ios.sh'), /^slots_wrap ".*heavy,ios-sim.*" "\$0" "\$@"$/m);
+    assert.match(read('test-ios.sh'), /^slots_wrap ".*heavy,ios-sim.*" "\$0" /m);
     assert.match(read('android.sh'), /slots_wrap heavy,android-emu "\$0" "\$@"/);
     assert.match(read('android.sh'), /slots_wrap heavy "\$0" "\$@"/);
     assert.match(read('maestro.sh'), /slots_wrap heavy,android-emu "\$0" "\$@"/);
