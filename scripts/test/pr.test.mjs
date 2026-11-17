@@ -1744,6 +1744,39 @@ describe('E002 #107 pr.sh ready', () => {
     refuses({ rollup }, /checks passed \(failing: iOS\)/);
   });
 
+  describe('E008 #1384 AC2: a cancelled native job whose retry job passed', () => {
+    const rollupWith = (cancelled, retry, retryStatus = 'COMPLETED') => [
+      ...CI.map((name) => checkRun(name)),
+      checkRun(cancelled, 'CANCELLED'),
+      ...(retry !== undefined ? [checkRun(`${cancelled} (retry)`, retry, retryStatus)] : []),
+    ];
+
+    it('marks the draft ready', () => {
+      const result = ready({ rollup: rollupWith('iOS build', 'SUCCESS') });
+      assert.equal(result.status, 0, result.stderr);
+      assert.ok(result.calls.some((call) => /^pr ready 60 /.test(call)));
+    });
+
+    it('refuses while the retry still runs, as pending', () => {
+      refuses(
+        { rollup: rollupWith('iOS build', null, 'IN_PROGRESS') },
+        /checks passed \(pending: iOS build, iOS build \(retry\)\)/,
+      );
+    });
+
+    it('refuses when the retry failed or was cancelled, and when there is no retry', () => {
+      refuses(
+        { rollup: rollupWith('iOS build', 'FAILURE') },
+        /checks passed \(failing: iOS build, iOS build \(retry\)\)/,
+      );
+      refuses(
+        { rollup: rollupWith('iOS build', 'CANCELLED') },
+        /checks passed \(failing: iOS build, iOS build \(retry\)\)/,
+      );
+      refuses({ rollup: rollupWith('iOS build') }, /checks passed \(failing: iOS build\)/);
+    });
+  });
+
   it('E002 #107 AC1: refuses on a pending check and names it', () => {
     const rollup = CI.map((name) =>
       name === 'E2E (Linux)' ? checkRun(name, null, 'IN_PROGRESS') : checkRun(name),
@@ -1832,6 +1865,7 @@ describe('E002 #107 pr.sh ship', () => {
     run = ['completed', 'success'],
     args = [],
     jobs = JOBS,
+    pathFirst = '', // a directory of fake commands that goes before the rest of the PATH
     ghFirst = [], // fake-gh rules checked before the defaults below
     ...options
   } = {}) => {
@@ -1847,7 +1881,7 @@ describe('E002 #107 pr.sh ship', () => {
     );
     const result = spawnSync(join(SCRIPTS, 'pr.sh'), ['ship', ...args], {
       encoding: 'utf8',
-      env: { ...env, PATH: `${bin}:${env.PATH}` },
+      env: { ...env, PATH: `${pathFirst ? `${pathFirst}:` : ''}${bin}:${env.PATH}` },
     });
     const calls = gh.calls().map((call) => call.args.join(' '));
     const at = (pattern) => calls.findIndex((call) => pattern.test(call));
@@ -1918,6 +1952,141 @@ describe('E002 #107 pr.sh ship', () => {
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /up to 20 min/);
     assert.doesNotMatch(result.stdout, /up to 165 min/);
+  });
+
+  // The jobs recorded from CI run 43748423951, attempt 4 (PR #1431), as `gh pr checks` reports them: "iOS tests (en)"
+  // was cancelled, "iOS tests (en) (retry)" passed, and GitHub concluded the whole run "failure" with no failed job.
+  // The same holds for run 43964377226 attempt 1. The synthetic variants below follow PR #1382 (run 43944239246,
+  // attempt 3): no macOS runner took "iOS build" for 15 minutes, and ci.yml's "iOS build (retry)" built once more
+  // (#1268, #1384).
+  const RECORDED = [
+    ['Quarantine', 'pass'],
+    ['Detect changes', 'pass'],
+    ['Checks (Linux)', 'pass'],
+    ['Quarantine (Android)', 'pass'],
+    ['iOS build', 'pass'],
+    ['Android tests', 'pass'],
+    ['Android build', 'pass'],
+    ['E2E (Linux)', 'pass'],
+    ['Android Maestro', 'pass'],
+    ['iOS tests (nl)', 'pass'],
+    ['iOS tests (en)', 'cancel'],
+    ['iOS build (retry)', 'skipping'],
+    ['Android', 'pass'],
+    ['iOS tests (retry plan)', 'pass'],
+    ['iOS tests (en) (retry)', 'pass'],
+    ['iOS', 'pass'],
+  ].map(([name, bucket]) => ({ name, bucket }));
+
+  describe('E008 #1384 a cancelled native job whose retry job passed or still runs', () => {
+    const base = checks(['Detect changes', 'Checks (Linux)', 'E2E (Linux)']);
+    const withRetry = (retry, name = 'iOS build') => [
+      ...base,
+      { name, bucket: 'cancel' },
+      { name: `${name} (retry)`, bucket: retry },
+    ];
+
+    it('AC1, AC3: passes on the recorded run, which GitHub concluded as a failure with no failed job', () => {
+      const result = ship({ ci: RECORDED, run: ['completed', 'failure'] });
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      assert.match(result.stdout, /CI passed on/);
+      assert.doesNotMatch(result.stdout, /checks failed|CI failure/);
+    });
+
+    it('AC1: fails on the recorded run once the retry job failed too', () => {
+      const ci = RECORDED.map((check) =>
+        check.name === 'iOS tests (en) (retry)' ? { ...check, bucket: 'fail' } : check,
+      );
+      const result = ship({ ci, run: ['completed', 'failure'] });
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /checks failed: iOS tests \(en\), iOS tests \(en\) \(retry\)/);
+    });
+
+    it('AC1: fails on a run that failed when no check can be read', () => {
+      const result = ship({ ci: [], run: ['completed', 'failure'] });
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /CI failure on/);
+    });
+
+    it('AC1: fails the wait when the jq file of the retries does not load', () => {
+      const fake = mkdtempSync(join(tmpdir(), 'fake-jq-'));
+      try {
+        const real = execFileSync('which', ['jq'], { encoding: 'utf8' }).trim();
+        writeFileSync(
+          join(fake, 'jq'),
+          `#!/bin/bash\ncase "$*" in *check-retries*) echo "jq: error: module not found" >&2; exit 3 ;; esac\nexec "${real}" "$@"\n`,
+        );
+        chmodSync(join(fake, 'jq'), 0o755);
+        const result = ship({ pathFirst: fake });
+        assert.equal(result.status, 1, result.stdout + result.stderr);
+        assert.match(result.stderr, /could not read the checks of PR #60/);
+        assert.doesNotMatch(result.stdout, /CI passed/);
+      } finally {
+        rmSync(fake, { recursive: true, force: true });
+      }
+    });
+
+    it('AC1, AC3: passes when the retry passed', () => {
+      const result = ship({ ci: withRetry('pass') });
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      assert.match(result.stdout, /CI passed on/);
+      assert.doesNotMatch(result.stdout, /checks failed/);
+    });
+
+    it('AC1, AC3: keeps waiting while the retry is pending', () => {
+      const result = ship({
+        ci: withRetry('pending'),
+        run: ['in_progress', ''],
+        args: ['--timeout', '0'],
+      });
+      assert.equal(result.status, 2, result.stdout + result.stderr);
+      assert.doesNotMatch(result.stdout, /checks failed/);
+      assert.match(result.stdout, /CI in_progress after 0 min/);
+    });
+
+    it('AC1, AC3: fails when the retry failed too, and names both', () => {
+      const result = ship({ ci: withRetry('fail') });
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /checks failed: iOS build, iOS build \(retry\)/);
+    });
+
+    it('AC1, AC3: fails when the retry was cancelled too', () => {
+      const result = ship({ ci: withRetry('cancel') });
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /checks failed: iOS build, iOS build \(retry\)/);
+    });
+
+    it('AC1, AC3: fails on a cancelled job that has no retry job', () => {
+      const result = ship({ ci: [...base, { name: 'iOS build', bucket: 'cancel' }] });
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /checks failed: iOS build$/m);
+    });
+
+    it('AC1, AC3: fails on a cancelled job whose neighbour passed, when the neighbour is not its retry', () => {
+      const result = ship({
+        ci: [
+          ...base,
+          { name: 'Android Maestro', bucket: 'cancel' },
+          { name: 'iOS build (retry)', bucket: 'pass' },
+        ],
+      });
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /checks failed: Android Maestro$/m);
+    });
+
+    it('AC1: the same holds for a cancelled iOS test pass and its own retry', () => {
+      const passed = ship({ ci: withRetry('pass', 'iOS tests (nl)') });
+      assert.equal(passed.status, 0, passed.stdout + passed.stderr);
+      const failed = ship({ ci: withRetry('fail', 'iOS tests (nl)') });
+      assert.equal(failed.status, 1);
+      assert.match(failed.stdout, /checks failed: iOS tests \(nl\), iOS tests \(nl\) \(retry\)/);
+    });
+
+    it('AC1: still fails on another failed check next to a cancelled job with a passed retry', () => {
+      const result = ship({ ci: [...withRetry('pass'), { name: 'Android', bucket: 'fail' }] });
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /checks failed: Android$/m);
+    });
   });
 
   describe('E002 #416 the limit rises on the native parts, not only on the gate', () => {

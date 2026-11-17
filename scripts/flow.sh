@@ -149,16 +149,23 @@ pr_facts() {
       }' --jq '[.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved | not)] | length')"
   fi
   # GitHub reports unfinished conclusions and a missing review as "", not null.
-  jq --argjson threads "$threads" --argjson risk "$risk" --argjson refusal "$refusal" --argjson queue "$queue" \
-    'def value(f): [f[] | select(. != null and . != "")] | first // "";
-    {
+  # A cancelled job is read by its retry job (scripts/check-retries.jq, #1384), as pr.sh wait and the merge gate do.
+  jq -L "$ROOT/scripts" --argjson threads "$threads" --argjson risk "$risk" --argjson refusal "$refusal" --argjson queue "$queue" \
+    'include "check-retries";
+    def value(f): [f[] | select(. != null and . != "")] | first // "";
+    def check_state:
+      value([.conclusion, .state]) as $v
+      | if $v == "CANCELLED" then "cancel"
+        elif ($v | IN("FAILURE", "ERROR", "TIMED_OUT", "ACTION_REQUIRED", "STARTUP_FAILURE")) then "fail"
+        elif $v == "" or ($v | IN("PENDING", "EXPECTED")) then "pending"
+        else "pass" end;
+    ([.statusCheckRollup[]? | {name: (.name // .context), state: check_state}] | settle_retries) as $checks
+    | {
     number, state, url, draft: .isDraft, threads: $threads, risk: $risk.risk, risk_reasons: ($risk.reasons // []),
     head: .headRefOid, refusal: $refusal, queue: $queue,
     review: (if (.reviewDecision // "") == "" then null else .reviewDecision end),
-    failing: [.statusCheckRollup[]? | select(value([.conclusion, .state])
-      | IN("FAILURE", "ERROR", "TIMED_OUT", "CANCELLED", "ACTION_REQUIRED", "STARTUP_FAILURE"))] | length,
-    pending: [.statusCheckRollup[]? | select(value([.conclusion, .state]) == ""
-      or (.state // "" | IN("PENDING", "EXPECTED")))] | length,
+    failing: [$checks[] | select(.state == "fail" or .state == "cancel")] | length,
+    pending: [$checks[] | select(.state == "pending")] | length,
     age_days: ((now - (.createdAt | fromdateiso8601)) / 86400 | floor)}' <<<"$pr"
 }
 
