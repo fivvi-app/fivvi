@@ -1865,6 +1865,7 @@ describe('E002 #107 pr.sh ship', () => {
     run = ['completed', 'success'],
     args = [],
     jobs = JOBS,
+    pathFirst = '', // a directory of fake commands that goes before the rest of the PATH
     ghFirst = [], // fake-gh rules checked before the defaults below
     ...options
   } = {}) => {
@@ -1880,7 +1881,7 @@ describe('E002 #107 pr.sh ship', () => {
     );
     const result = spawnSync(join(SCRIPTS, 'pr.sh'), ['ship', ...args], {
       encoding: 'utf8',
-      env: { ...env, PATH: `${bin}:${env.PATH}` },
+      env: { ...env, PATH: `${pathFirst ? `${pathFirst}:` : ''}${bin}:${env.PATH}` },
     });
     const calls = gh.calls().map((call) => call.args.join(' '));
     const at = (pattern) => calls.findIndex((call) => pattern.test(call));
@@ -1953,8 +1954,30 @@ describe('E002 #107 pr.sh ship', () => {
     assert.doesNotMatch(result.stdout, /up to 165 min/);
   });
 
-  // `gh pr checks` output recorded from PR #1382 (run 43944239246, attempt 3): GitHub had no macOS runner for "iOS build"
-  // for 15 minutes and cancelled it; ci.yml's "iOS build (retry)" builds once more (#1268, #1384).
+  // The jobs recorded from CI run 43748423951, attempt 4 (PR #1431), as `gh pr checks` reports them: "iOS tests (en)"
+  // was cancelled, "iOS tests (en) (retry)" passed, and GitHub concluded the whole run "failure" with no failed job.
+  // The same holds for run 43964377226 attempt 1. The synthetic variants below follow PR #1382 (run 43944239246,
+  // attempt 3): no macOS runner took "iOS build" for 15 minutes, and ci.yml's "iOS build (retry)" built once more
+  // (#1268, #1384).
+  const RECORDED = [
+    ['Quarantine', 'pass'],
+    ['Detect changes', 'pass'],
+    ['Checks (Linux)', 'pass'],
+    ['Quarantine (Android)', 'pass'],
+    ['iOS build', 'pass'],
+    ['Android tests', 'pass'],
+    ['Android build', 'pass'],
+    ['E2E (Linux)', 'pass'],
+    ['Android Maestro', 'pass'],
+    ['iOS tests (nl)', 'pass'],
+    ['iOS tests (en)', 'cancel'],
+    ['iOS build (retry)', 'skipping'],
+    ['Android', 'pass'],
+    ['iOS tests (retry plan)', 'pass'],
+    ['iOS tests (en) (retry)', 'pass'],
+    ['iOS', 'pass'],
+  ].map(([name, bucket]) => ({ name, bucket }));
+
   describe('E008 #1384 a cancelled native job whose retry job passed or still runs', () => {
     const base = checks(['Detect changes', 'Checks (Linux)', 'E2E (Linux)']);
     const withRetry = (retry, name = 'iOS build') => [
@@ -1962,6 +1985,46 @@ describe('E002 #107 pr.sh ship', () => {
       { name, bucket: 'cancel' },
       { name: `${name} (retry)`, bucket: retry },
     ];
+
+    it('AC1, AC3: passes on the recorded run, which GitHub concluded as a failure with no failed job', () => {
+      const result = ship({ ci: RECORDED, run: ['completed', 'failure'] });
+      assert.equal(result.status, 0, result.stdout + result.stderr);
+      assert.match(result.stdout, /CI passed on/);
+      assert.doesNotMatch(result.stdout, /checks failed|CI failure/);
+    });
+
+    it('AC1: fails on the recorded run once the retry job failed too', () => {
+      const ci = RECORDED.map((check) =>
+        check.name === 'iOS tests (en) (retry)' ? { ...check, bucket: 'fail' } : check,
+      );
+      const result = ship({ ci, run: ['completed', 'failure'] });
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /checks failed: iOS tests \(en\), iOS tests \(en\) \(retry\)/);
+    });
+
+    it('AC1: fails on a run that failed when no check can be read', () => {
+      const result = ship({ ci: [], run: ['completed', 'failure'] });
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /CI failure on/);
+    });
+
+    it('AC1: fails the wait when the jq file of the retries does not load', () => {
+      const fake = mkdtempSync(join(tmpdir(), 'fake-jq-'));
+      try {
+        const real = execFileSync('which', ['jq'], { encoding: 'utf8' }).trim();
+        writeFileSync(
+          join(fake, 'jq'),
+          `#!/bin/bash\ncase "$*" in *check-retries*) echo "jq: error: module not found" >&2; exit 3 ;; esac\nexec "${real}" "$@"\n`,
+        );
+        chmodSync(join(fake, 'jq'), 0o755);
+        const result = ship({ pathFirst: fake });
+        assert.equal(result.status, 1, result.stdout + result.stderr);
+        assert.match(result.stderr, /could not read the checks of PR #60/);
+        assert.doesNotMatch(result.stdout, /CI passed/);
+      } finally {
+        rmSync(fake, { recursive: true, force: true });
+      }
+    });
 
     it('AC1, AC3: passes when the retry passed', () => {
       const result = ship({ ci: withRetry('pass') });
