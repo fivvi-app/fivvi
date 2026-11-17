@@ -21,6 +21,8 @@ Entry points: `@fivvi/database` (client, schema, queries, `pingDatabase`, `HELLO
 
    `compose.yaml` runs `postgres:18-alpine` on `127.0.0.1:5432` (`POSTGRES_PORT` changes the port). All worktrees share one container and volume. Without Docker, any local Postgres 18 works.
 
+   Local Docker is [Colima](https://github.com/abiosoft/colima) (open source, no GUI, a small VM with 2 CPUs, 4 GB memory and 30 GB disk) with Homebrew's `docker` CLI. `scripts/bootstrap.sh` sets it up (`scripts/_docker.sh`): it installs `colima docker docker-compose`, lets `docker compose` find the plugin through `cliPluginsExtraDirs` in `~/.docker/config.json`, and starts Colima at login. A machine where `docker info` already works (Docker Desktop, OrbStack) is left alone. `colima status` shows whether it runs. Start and stop it through the login service, `brew services start colima` and `brew services stop colima` (a plain `colima stop` is started again by launchd). For more memory, set `memory:` in `~/.colima/default/colima.yaml` and run `brew services restart colima`.
+
 2. Point the package at it. `.env` is git-ignored, so every worktree needs its own copy:
 
    ```bash
