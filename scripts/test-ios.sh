@@ -20,12 +20,18 @@
 #   test-ios.sh build            the same checks and the one build-for-testing, then packs the test bundle (the .xctestrun
 #                                and the build products) into apps/ios/.build/ios-test-bundle.tar; runs no test. CI's
 #                                `iOS build` job (#293)
-#   test-ios.sh test <nl|en> [--bundle <file>] [--retry-failed]
+#   test-ios.sh test <nl|en> [--bundle <file>] [--retry-failed] [--shard <part>/<of>]
 #                                unpacks that bundle (--bundle <file> names another) and runs the test plan's configuration
 #                                for one language, unit and UI tests, without building, on its own simulator. CI's two
 #                                `iOS tests` jobs run it in parallel, one per language, from the artifact of the build job;
 #                                CI never retries a failed test, so a flaky one stays visible and is quarantined
 #                                (TESTING.md §8). The options come in either order.
+#                                --shard <part>/<of> (CI passes it, #1447) runs only part <part> of <of> of that language's
+#                                tests: the test classes are dealt out by their number of tests (UI tests weigh ten times a
+#                                unit test) from xcodebuild's own enumeration, every class to exactly one part, so the parts
+#                                together run every test once. The run says which classes it runs, and fails when it ran
+#                                fewer tests than they have. Its result bundle is TestResults-<locale>-<part>of<of>.xcresult.
+#                                Not with --retry-failed. Without it the run is the whole language (as Release runs it)
 #                                --retry-failed (only `release.sh tests ios` passes it, #1433) retries the failed UI tests
 #                                once when the run fails: on the same simulator, with -only-testing: for each of them, the
 #                                same configuration and allowances, into TestResults-<locale>-retry.xcresult, within
@@ -53,6 +59,8 @@ MODE=all
 ONLY_LOCALE=""
 BUNDLE_FILE=""
 RETRY_FAILED=false
+SHARD_PART=""
+SHARD_OF=""
 case "${1:-}" in
   "") ;;
   build) MODE=build; [ $# -eq 1 ] || usage_of "$0" ;;
@@ -65,10 +73,17 @@ case "${1:-}" in
       case "$1" in
         --bundle) [ $# -ge 2 ] || usage_of "$0"; BUNDLE_FILE="$2"; shift ;;
         --retry-failed) RETRY_FAILED=true ;;
+        --shard)
+          [ $# -ge 2 ] && [[ "$2" =~ ^([1-9][0-9]*)/([1-9][0-9]*)$ ]] || usage_of "$0"
+          SHARD_PART="${BASH_REMATCH[1]}" SHARD_OF="${BASH_REMATCH[2]}"
+          [ "$SHARD_PART" -le "$SHARD_OF" ] || usage_of "$0"
+          shift ;;
         *) usage_of "$0" ;;
       esac
       shift
     done
+    # A retry names the failed tests of a whole run; a part of one has no such run to be shown complete against.
+    ! $RETRY_FAILED || [ -z "$SHARD_OF" ] || die "--shard and --retry-failed don't go together"
     ;;
   *) usage_of "$0" ;;
 esac
@@ -480,15 +495,22 @@ config_args() { # <locale>
   in_ui_locales "$1" || CONFIG_ARGS+=(-skip-testing:FivviProUITests)
 }
 
+# The part of the language's tests that `test --shard` runs (#1447): its -only-testing: arguments, how many tests they
+# select, and the name its result bundle and messages carry. Empty for a run of the whole language.
+SHARD_ARGS=()
+SHARD_TESTS=""
+RESULT_NAME=""
 run_tests() {
   local only=() bundle=$RESULTS
   if [ -n "${2:-}" ]; then
     config_args "$2"
     only=("${CONFIG_ARGS[@]}")
-    bundle=".build/TestResults-$2.xcresult"
+    [ "${#SHARD_ARGS[@]}" -eq 0 ] || only+=("${SHARD_ARGS[@]}")
+    bundle=".build/TestResults-${RESULT_NAME:-$2}.xcresult"
   fi
-  run_xcodebuild "$1" "$bundle" "$TEST_DEADLINE" "${2:-nl and en} tests" ${only[@]+"${only[@]}"}
+  run_xcodebuild "$1" "$bundle" "$TEST_DEADLINE" "${RESULT_LABEL:-${2:-nl and en}} tests" ${only[@]+"${only[@]}"}
 }
+RESULT_LABEL=""
 
 # E017 #1433: the retry of `test <locale> --retry-failed`. Only the failed UI tests (the target FivviProUITests), once, and
 # only when at most RETRY_MAX_TESTS of them failed: more is a break, not a flake. Its own deadline, and the grace.
@@ -513,6 +535,43 @@ enumerated_test_count() { # <simulator> <locale>
   rm -rf "$out" "$bundle"
   [[ "$count" =~ ^[0-9]+$ ]] && [ "$count" -gt 0 ] && echo "$count"
   return 0
+}
+
+# #1447: `test <locale> --shard <part>/<of>`. Enumerates the tests of the locale's configuration on simulator $1 (as the
+# count above does; once more when the first try gives nothing, because a run that can't say which tests are its own
+# must not guess), asks shard_plan which classes are this part's, and sets SHARD_ARGS and SHARD_TESTS. Fails, saying
+# why, when the part has no test: it is then never run as the whole language.
+select_shard() { # <simulator> <locale>
+  local out=".build/TestEnumeration-$2.json" bundle=".build/TestEnumeration-$2.xcresult" plan="" attempt classes class
+  config_args "$2"
+  for attempt in 1 2; do
+    rm -rf "$out" "$bundle"
+    if run_xcodebuild "$1" "$bundle" "$ENUMERATE_DEADLINE" "$2 test enumeration" "${CONFIG_ARGS[@]}" \
+      -enumerate-tests -test-enumeration-style flat -test-enumeration-format json -test-enumeration-output-path "$out" >&2; then
+      plan="$(shard_plan "$out" "$SHARD_PART" "$SHARD_OF")"
+    fi
+    [ -z "$plan" ] || break
+    echo "::warning::The tests of the $2 configuration could not be enumerated (try $attempt of 2)"
+  done
+  rm -rf "$out" "$bundle"
+  [ -n "$plan" ] || { echo "::error::The tests of the $2 configuration cannot be enumerated, so part $SHARD_PART of $SHARD_OF can't be chosen"; return 1; }
+  SHARD_TESTS="$(jq -r '.tests' <<<"$plan")"
+  classes="$(jq -r '.classes | join(" ")' <<<"$plan")"
+  [ "$SHARD_TESTS" -gt 0 ] && [ -n "$classes" ] || { echo "::error::Part $SHARD_PART of $SHARD_OF of the $2 tests has no test"; return 1; }
+  SHARD_ARGS=()
+  for class in $classes; do SHARD_ARGS+=("-only-testing:$class"); done
+  echo "Part $SHARD_PART of $SHARD_OF of the $2 tests: $SHARD_TESTS tests in $(wc -w <<<"$classes" | tr -d ' ') classes: $classes"
+  summary "### iOS tests in $2, part $SHARD_PART of $SHARD_OF" "" "$SHARD_TESTS tests in these classes: $classes" ""
+}
+
+# Whether the run of a part into the result bundle $1 ran every test of its classes (#1447): the summary's total is the
+# number of tests select_shard counted. A bundle that can't be counted is not shown to be complete. Prints why not, returns 1.
+shard_complete() { # <bundle>
+  local counts failed total
+  counts="$(run_counts "$1")"
+  [ -n "$counts" ] || { echo "the counts of the tests cannot be read from $1, so the part is not shown to be complete"; return 1; }
+  IFS=$'\t' read -r failed total <<<"$counts"
+  [ "$total" = "$SHARD_TESTS" ] || { echo "the part ran $total tests of the $SHARD_TESTS of its classes: it did not run them all"; return 1; }
 }
 
 # Whether the first run of locale $2 on simulator $1, with $3 failed tests listed, ran everything: its summary's failed
@@ -734,7 +793,15 @@ if [ "$MODE" = test ]; then
   booted_at=$SECONDS
   step "Unpack the test bundle"
   unpack_bundle
-  rm -rf ".build/TestResults-$ONLY_LOCALE.xcresult" ".build/TestResults-$ONLY_LOCALE-retry.xcresult"
+  # The result bundle and the name of the run: the language, and the part of it when `--shard` says so (#1447).
+  RESULT_NAME="$ONLY_LOCALE"
+  RESULT_LABEL="$ONLY_LOCALE"
+  if [ -n "$SHARD_OF" ]; then
+    RESULT_NAME="$ONLY_LOCALE-${SHARD_PART}of$SHARD_OF"
+    RESULT_LABEL="$ONLY_LOCALE, part $SHARD_PART of $SHARD_OF"
+  fi
+  RESULT_BUNDLE=".build/TestResults-$RESULT_NAME.xcresult"
+  rm -rf "$RESULT_BUNDLE" ".build/TestResults-$ONLY_LOCALE-retry.xcresult"
   step "Wait for the simulator to settle"
   await_boots || die "a simulator did not boot"
   settle_left=$((${IOS_SIM_SETTLE:-150} - (SECONDS - booted_at)))
@@ -744,23 +811,33 @@ if [ "$MODE" = test ]; then
     echo "The simulator has been up for $((SECONDS - booted_at)) s; waiting $settle_left s more (IOS_SIM_SETTLE)"
     sleep "$settle_left"
   fi
-  step "Unit and UI tests in $ONLY_LOCALE (simulator $udid)"
+  if [ -n "$SHARD_OF" ]; then
+    step "Choose the tests of part $SHARD_PART of $SHARD_OF in $ONLY_LOCALE (simulator $udid)"
+    select_shard "$udid" "$ONLY_LOCALE" || exit 1
+  fi
+  step "Unit and UI tests in $RESULT_LABEL (simulator $udid)"
   tests=0
   tests_started=$SECONDS
   run_tests "$udid" "$ONLY_LOCALE" || tests=1
   TEST_ELAPSED=$((SECONDS - tests_started))
-  report_slowest ".build/TestResults-$ONLY_LOCALE.xcresult" "$ONLY_LOCALE"
-  report_budget "$ONLY_LOCALE"
-  report_flaky ".build/TestResults-$ONLY_LOCALE.xcresult"
+  report_slowest "$RESULT_BUNDLE" "$ONLY_LOCALE"
+  report_budget "$RESULT_LABEL"
+  report_flaky "$RESULT_BUNDLE"
+  if [ -n "$SHARD_OF" ] && ! $RUN_TIMED_OUT; then
+    if ! reason="$(shard_complete "$RESULT_BUNDLE")"; then
+      echo "::error::The $RESULT_LABEL run is not complete: $reason"
+      tests=1
+    fi
+  fi
   if [ "$tests" != 0 ]; then
-    report_failed ".build/TestResults-$ONLY_LOCALE.xcresult" "$ONLY_LOCALE"
+    report_failed "$RESULT_BUNDLE" "$RESULT_LABEL"
     if $RETRY_FAILED && retry_failed_ui_tests "$udid" "$ONLY_LOCALE"; then
       echo "✓ iOS tests in $ONLY_LOCALE (the failed UI tests passed on their retry)"
       exit 0
     fi
     exit 1
   fi
-  echo "✓ iOS tests in $ONLY_LOCALE"
+  echo "✓ iOS tests in $RESULT_LABEL"
   exit 0
 fi
 

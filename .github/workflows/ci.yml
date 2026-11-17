@@ -793,7 +793,7 @@ jobs:
         run: scripts/step-timings.sh
 
   ios-tests:
-    name: iOS tests (${{ matrix.locale }})
+    name: iOS tests (${{ matrix.locale }} ${{ matrix.shard }}/2)
     needs: [ios-build, ios-build-retry]
     # Start from whichever build succeeded (the retry runs only when the first was abandoned); !cancelled() because a
     # skipped retry would skip this job.
@@ -809,15 +809,22 @@ jobs:
     # numbers no longer fit. The deadline is 2100 s since #1389: the xcodebuild step of a run took 1170 to 1730 s on
     # the runners of 13-14 November 2026 (median 1650 s, the interrupted ones at 1790 s or more), and a run may use at
     # most 85 % of the deadline on a typical runner (TESTING.md §7.2).
+    #
+    # Each language runs in two parts, on a runner each (#1447): the whole language took 1585 to 2112 s of xcodebuild on
+    # the runners of 16-17 November 2026, and ran past the deadline in the merge queue with no test failing. A part is
+    # half of the test classes by their weight (scripts/test-ios.sh, `--shard`), about 1000 s on a slow runner, so the
+    # deadline and the timeout stay as they are and a part has room to grow to 85 % of them. The matrix is the one in
+    # scripts/ios-parts.sh (the names of the parts, which the gate and the retry read); a test keeps the three in step.
     timeout-minutes: 44
     permissions:
       contents: read
       actions: read # scripts/step-timings.sh reads this run's step durations
     strategy:
-      # Both languages always run: a failing one doesn't hide the other's result.
+      # All parts always run: a failing one doesn't hide the others' results.
       fail-fast: false
       matrix:
         locale: [nl, en]
+        shard: [1, 2]
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
@@ -831,10 +838,10 @@ jobs:
           name: ios-test-bundle
           path: apps/ios/.build
 
-      # The unit and UI tests of this language, from the bundle of "iOS build", without building again, on this job's own
-      # simulator. Prints the slowest tests.
-      - name: Unit and UI tests (${{ matrix.locale }})
-        run: scripts/test-ios.sh test ${{ matrix.locale }}
+      # The unit and UI tests of this part of this language, from the bundle of "iOS build", without building again, on
+      # this job's own simulator. Prints the slowest tests.
+      - name: Unit and UI tests (${{ matrix.locale }} ${{ matrix.shard }}/2)
+        run: scripts/test-ios.sh test ${{ matrix.locale }} --shard ${{ matrix.shard }}/2
 
       # Only on failure, or when the timeout cancels the job (#305) in a run that nothing supersedes (a pull request
       # run is cancelled by the next push): artifact storage counts against the free quota.
@@ -842,7 +849,7 @@ jobs:
         if: failure() || (cancelled() && github.event_name != 'pull_request')
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ios-test-results-${{ matrix.locale }}
+          name: ios-test-results-${{ matrix.locale }}-${{ matrix.shard }}of2
           path: apps/ios/.build/TestResults-*.xcresult
           # .build is a hidden folder, which the action skips by default (#290). Only these paths are named.
           include-hidden-files: true
@@ -856,8 +863,9 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: scripts/step-timings.sh
 
-  # Which languages of the tests got no runner (#1268): reads the run's jobs once "iOS tests" ended, for the matrix of
-  # ios-tests-retry. Cheap and on Linux; it names a language only when its job was cancelled with no runner and no step.
+  # Which parts of the tests got no runner (#1268): reads the run's jobs once "iOS tests" ended, for the matrix of
+  # ios-tests-retry. Cheap and on Linux; it names a part (a language and its half, #1447) only when its job was
+  # cancelled with no runner and no step.
   ios-tests-plan:
     name: iOS tests (retry plan)
     needs: ios-tests
@@ -870,26 +878,26 @@ jobs:
       contents: read
       actions: read # scripts/ios-parts.sh reads this run's jobs
     outputs:
-      locales: ${{ steps.plan.outputs.locales }}
+      parts: ${{ steps.plan.outputs.parts }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
 
       - id: plan
-        name: Languages that got no runner
+        name: Parts that got no runner
         env:
           GH_TOKEN: ${{ github.token }}
           TESTS: ${{ needs.ios-tests.result }}
-        run: echo "locales=$(scripts/ios-parts.sh retry-locales "$TESTS")" >>"$GITHUB_OUTPUT"
+        run: echo "parts=$(scripts/ios-parts.sh retry-parts "$TESTS")" >>"$GITHUB_OUTPUT"
 
   # The retry of a test pass that no runner took (#1268): the same steps as ios-tests (a test compares them), for the
-  # languages the plan named, from the bundle "iOS build" (or its retry) uploaded. The gate takes those languages' parts
+  # parts the plan named, from the bundle "iOS build" (or its retry) uploaded. The gate takes those parts' results
   # from here.
   ios-tests-retry:
-    name: iOS tests (${{ matrix.locale }}) (retry)
+    name: iOS tests (${{ matrix.locale }} ${{ matrix.shard }}/2) (retry)
     needs: ios-tests-plan
-    if: ${{ !cancelled() && github.event_name != 'push' && needs.ios-tests-plan.outputs.locales != '' && needs.ios-tests-plan.outputs.locales != '[]' }}
+    if: ${{ !cancelled() && github.event_name != 'push' && needs.ios-tests-plan.outputs.parts != '' && needs.ios-tests-plan.outputs.parts != '[]' }}
     runs-on: macos-15
     continue-on-error: ${{ github.event_name == 'push' }}
     # As "iOS tests".
@@ -900,8 +908,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        # The fallback only keeps the expression valid when the plan was skipped (no outputs); the `if` above then skips this job.
-        locale: ${{ fromJSON(needs.ios-tests-plan.outputs.locales || '["nl"]') }}
+        # The legs the plan named, `[{"locale":"nl","shard":1}, ...]`. The fallback only keeps the expression valid when the plan was skipped (no outputs); the `if` above then skips this job.
+        include: ${{ fromJSON(needs.ios-tests-plan.outputs.parts || '[{"locale":"nl","shard":1}]') }}
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
@@ -915,10 +923,10 @@ jobs:
           name: ios-test-bundle
           path: apps/ios/.build
 
-      # The unit and UI tests of this language, from the bundle of "iOS build", without building again, on this job's own
-      # simulator. Prints the slowest tests.
-      - name: Unit and UI tests (${{ matrix.locale }})
-        run: scripts/test-ios.sh test ${{ matrix.locale }}
+      # The unit and UI tests of this part of this language, from the bundle of "iOS build", without building again, on
+      # this job's own simulator. Prints the slowest tests.
+      - name: Unit and UI tests (${{ matrix.locale }} ${{ matrix.shard }}/2)
+        run: scripts/test-ios.sh test ${{ matrix.locale }} --shard ${{ matrix.shard }}/2
 
       # Only on failure, or when the timeout cancels the job (#305) in a run that nothing supersedes (a pull request
       # run is cancelled by the next push): artifact storage counts against the free quota.
@@ -926,7 +934,7 @@ jobs:
         if: failure() || (cancelled() && github.event_name != 'pull_request')
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ios-test-results-${{ matrix.locale }}
+          name: ios-test-results-${{ matrix.locale }}-${{ matrix.shard }}of2
           path: apps/ios/.build/TestResults-*.xcresult
           # .build is a hidden folder, which the action skips by default (#290). Only these paths are named.
           include-hidden-files: true

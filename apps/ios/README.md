@@ -173,7 +173,7 @@ Without a paired iPhone or a team, the script says what's missing; a locked phon
 
 ## Tests
 
-`pnpm test:ios` (`scripts/test-ios.sh`) runs, in order, what the iOS CI jobs run (`iOS build`, then `iOS tests (nl)` and `iOS tests (en)`):
+`pnpm test:ios` (`scripts/test-ios.sh`) runs, in order, what the iOS CI jobs run (`iOS build`, then the four `iOS tests (<locale> <part>/2)` jobs, each language in two parts, `TESTING.md §7.2`):
 
 1. SwiftLint with `--strict` on the app and its tests.
 2. SwiftLint on each fixture in `lint/fixtures/`, which must fail on exactly the lines marked `// expect: <rule>`: `LiteralText.swift` (`no_literal_text`), `ColourLiteral.swift` (`no_colour_literal`) and `DirectSentry.swift` (`no_direct_sentry`).
