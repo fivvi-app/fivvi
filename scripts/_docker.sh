@@ -4,14 +4,17 @@
 # already answers (Docker Desktop, OrbStack, Colima) is left alone. Bash 3.2 compatible.
 #
 #   ensure_docker   returns 0 when Docker answers, after setting it up if needed; otherwise says why on stderr, returns 1
+#   ensure_compose_plugin   called by it: lets `docker compose` find Homebrew's plugin (cliPluginsExtraDirs in
+#                           ~/.docker/config.json) when it cannot yet
 #
 # DOCKER_WAIT_SECONDS (default 90) bounds the wait for Docker after Colima starts at login.
 
 docker_ready() { docker info >/dev/null 2>&1; }
 
 # `docker compose` finds Homebrew's docker-compose plugin through cliPluginsExtraDirs in ~/.docker/config.json; every
-# other key stays, and the directory is added once.
-docker_plugin_dir() {
+# other key stays, and the directory is added once. The file is written in place (not replaced), so its mode and a symlink
+# to it (dotfiles) stay.
+ensure_compose_plugin() {
   local dir="$1" config="$HOME/.docker/config.json" tmp
   docker compose version >/dev/null 2>&1 && return 0
   command -v jq >/dev/null || { echo "jq not found: cannot edit $config (brew install jq)" >&2; return 1; }
@@ -19,7 +22,8 @@ docker_plugin_dir() {
   [ -s "$config" ] || echo '{}' >"$config"
   tmp="$(mktemp "$config.XXXXXX")" || return 1
   if jq --arg dir "$dir" '.cliPluginsExtraDirs = ((.cliPluginsExtraDirs // []) | if index($dir) then . else . + [$dir] end)' "$config" >"$tmp"; then
-    mv "$tmp" "$config"
+    cat "$tmp" >"$config" || { rm -f "$tmp"; return 1; }
+    rm -f "$tmp"
   else
     rm -f "$tmp"
     echo "could not add $dir to cliPluginsExtraDirs in $config (is it valid JSON?)" >&2
@@ -33,7 +37,7 @@ ensure_docker() {
   command -v brew >/dev/null || { echo "Docker is not running and Homebrew is missing: install Homebrew (https://brew.sh), then run scripts/bootstrap.sh" >&2; return 1; }
   brew install colima docker docker-compose \
     || { echo "could not run: brew install colima docker docker-compose" >&2; return 1; }
-  docker_plugin_dir "$(brew --prefix)/lib/docker/cli-plugins" || return 1
+  ensure_compose_plugin "$(brew --prefix)/lib/docker/cli-plugins" || return 1
   # The first start writes the profile (~/.colima/default/colima.yaml) with small limits; the login service (a launchd
   # agent that keeps `colima start -f` alive) then starts it. With a profile there, whatever was changed in it (more
   # memory) stays: only the service starts.

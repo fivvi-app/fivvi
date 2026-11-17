@@ -67,7 +67,7 @@ need jq jq || true
 ensure_shellcheck || warn "could not install shellcheck $SHELLCHECK_VERSION (scripts/_shellcheck.sh)"
 need gh gh || true
 gh auth status >/dev/null 2>&1 || warn "not logged in to GitHub — run: gh auth login"
-ensure_docker || warn "Docker is not running — set up Colima (brew install colima docker docker-compose; brew services start colima) for Postgres: pnpm db:up (scripts/_docker.sh)"
+ensure_docker || warn "Docker (Colima) is not running — fix the cause above and run scripts/bootstrap.sh again (Postgres for the tests: pnpm db:up, scripts/_docker.sh)"
 if [ "${1:-}" = --api ]; then
   xcode-select -p >/dev/null 2>&1 || warn "Swift toolchain not found — run: xcode-select --install"
   install_java

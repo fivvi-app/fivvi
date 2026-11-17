@@ -3,11 +3,14 @@ import { spawnSync } from 'node:child_process';
 import {
   chmodSync,
   existsSync,
+  lstatSync,
+  readdirSync,
   mkdirSync,
   mkdtempSync,
   readFileSync,
   realpathSync,
   rmSync,
+  statSync,
   symlinkSync,
   writeFileSync,
 } from 'node:fs';
@@ -187,6 +190,36 @@ esac
     assert.equal(readFileSync(profile(), 'utf8'), 'memory: 6\n');
   });
 
+  it('waits for Docker, polling with sleep, and succeeds once it answers', () => {
+    const answers = join(base, 'info-calls-after-start');
+    // docker info answers on its third call after the login service started; sleep returns at once.
+    write(join(bin(), 'sleep'), `#!/bin/sh\necho "sleep $*" >> "${log()}"\n`);
+    write(
+      join(bin(), 'brew'),
+      `#!/bin/sh
+echo "brew $*" >> "${log()}"
+[ "$1" = --prefix ] && echo "${PREFIX}"
+[ "$1 $2" = "services start" ] && : > "${state('started')}"
+exit 0
+`,
+    );
+    write(
+      join(bin(), 'docker'),
+      `#!/bin/sh
+case "$1" in
+  info)
+    [ -e "${state('started')}" ] || exit 1
+    echo x >> "${answers}"
+    [ "$(wc -l < "${answers}")" -ge 3 ] ;;
+  compose) exit 1 ;;
+esac
+`,
+    );
+    const result = ensure({ DOCKER_WAIT_SECONDS: '5' });
+    assert.equal(status(result), '0', result.stdout + result.stderr);
+    assert.equal(calls().filter((line) => line.startsWith('sleep')).length, 2);
+  });
+
   it('returns 1 and names Homebrew when brew is missing', () => {
     rmSync(join(bin(), 'brew'));
     const result = ensure();
@@ -278,6 +311,28 @@ exit 0
     assert.ok(!calls().includes(COLIMA_START));
   });
 
+  it('writes a symlinked config.json (dotfiles) through the link, and keeps its mode', () => {
+    const real = join(base, 'dotfiles', 'docker-config.json');
+    mkdirSync(join(base, 'dotfiles'));
+    mkdirSync(join(home(), '.docker'));
+    writeFileSync(real, '{"auths":{}}\n');
+    chmodSync(real, 0o600);
+    symlinkSync(real, config());
+    const result = ensure();
+    assert.equal(status(result), '0', result.stdout + result.stderr);
+    assert.ok(lstatSync(config()).isSymbolicLink());
+    assert.deepEqual(JSON.parse(readFileSync(real, 'utf8')), {
+      auths: {},
+      cliPluginsExtraDirs: [PLUGIN_DIR],
+    });
+    assert.equal(statSync(real).mode & 0o777, 0o600);
+  });
+
+  it('leaves no temporary file next to config.json', () => {
+    ensure();
+    assert.deepEqual(readdirSync(join(home(), '.docker')), ['config.json']);
+  });
+
   it('returns 1 and leaves config.json as it was when it is not valid JSON', () => {
     mkdirSync(join(home(), '.docker'));
     writeFileSync(config(), '{not json');
@@ -307,7 +362,10 @@ describe('E003 bootstrap.sh and check.sh use the Docker helper', () => {
       );
   });
 
-  it('bootstrap.sh names brew services start colima in its warning', () => {
-    assert.match(read('bootstrap.sh'), /ensure_docker \|\| warn ".*brew services start colima/);
+  it('bootstrap.sh warns to fix the cause and run itself again, naming Colima and pnpm db:up', () => {
+    assert.match(
+      read('bootstrap.sh'),
+      /ensure_docker \|\| warn ".*Colima.*fix.*run scripts\/bootstrap\.sh again.*pnpm db:up/,
+    );
   });
 });
