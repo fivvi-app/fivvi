@@ -33,6 +33,7 @@
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/_android.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/_slots.sh"
 
 usage() { usage_of "$0"; }
 
@@ -306,11 +307,11 @@ cmd_avd_key() {
 case "${1:-}" in
   avd-key) shift; cmd_avd_key "$@" ;;
   setup) shift; cmd_setup "$@" ;;
-  test) shift; cmd_test "$@" ;;
-  build) shift; cmd_build "$@" ;;
-  verify) shift; cmd_verify "$@" ;;
-  quarantine) shift; cmd_quarantine "$@" ;;
-  maestro-apk) shift; cmd_maestro_apk "$@" ;;
+  test) slots_wrap heavy,android-emu "$0" "$@"; shift; cmd_test "$@" ;;
+  build) slots_wrap heavy "$0" "$@"; shift; cmd_build "$@" ;;
+  verify) slots_wrap heavy,android-emu "$0" "$@"; shift; cmd_verify "$@" ;;
+  quarantine) slots_wrap heavy,android-emu "$0" "$@"; shift; cmd_quarantine "$@" ;;
+  maestro-apk) slots_wrap heavy "$0" "$@"; shift; cmd_maestro_apk "$@" ;;
   emulator) shift; cmd_emulator "$@" ;;
   stop) shift; cmd_stop "$@" ;;
   *) usage ;;

@@ -49,6 +49,9 @@
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$ROOT/scripts/_ios.sh"
+source "$ROOT/scripts/_slots.sh"
+# A heavy job, and with a simulator a booted one: machine-wide slots (E001 #1388). The script runs again under scripts/slots.sh.
+slots_wrap "$([ "${1:-}" = build ] && echo heavy || echo heavy,ios-sim)" "$0" "$@"
 MODE=all
 ONLY_LOCALE=""
 BUNDLE_FILE=""
