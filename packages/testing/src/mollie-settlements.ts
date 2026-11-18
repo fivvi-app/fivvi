@@ -9,7 +9,7 @@
 // € 392,48: Anna de Vries's € 79,00 and Mark Jansen's € 260,00 direct debits, a third client's
 // € 79,00 iDEAL first payment, a refund of € 20,00, the fees of € 0,32 (iDEAL), € 0,70 (2 × SEPA
 // direct debit) and € 0,25 (refund), and a failed direct debit's fee of € 4,25. Each fee is a
-// balance transaction of its own (`baltr_…`, with a `deductions` amount, or a
+// balance transaction of its own (`baltr_…`, with a `deductions` amount and `deductionDetails`, or a
 // `failed-payment-fee`), so a fee has a stable identity and a settlement that grows (a later
 // payment, a later fee) only adds transactions. `unknownPayment` adds an iDEAL payment (`tr_unknown0001`, € 45,00) that no Fivvi
 // payment has (AC2); `chargeback` adds a reversal of Anna's payment and its fee.
@@ -123,6 +123,8 @@ export interface MollieBalanceTransaction {
   initialAmount: MollieAmount;
   /** What Mollie kept of a payment, refund or chargeback, negative; a `failed-payment-fee` has none. */
   deductions?: MollieAmount;
+  /** The deductions by kind: here only the `fees` Mollie kept. */
+  deductionDetails?: { fees: MollieAmount };
   createdAt: string;
   context: Record<string, string>;
 }
@@ -240,6 +242,7 @@ function transaction(
     resultAmount: eur(settlementCents + deductionCents),
     initialAmount: eur(settlementCents),
     deductions: eur(deductionCents),
+    deductionDetails: { fees: eur(deductionCents) },
     createdAt,
     context,
   };
@@ -344,21 +347,21 @@ export function mollieSettlementFixture(
         toCents(p.settlementAmount),
         p.method === 'ideal' ? -32 : -35,
         p.paidAt,
-        { paymentId: p.id, settlementId: AC1_SETTLEMENT_ID },
+        { paymentId: p.id, paymentDescription: p.description },
       ),
     ),
     ...refunds.map((r) =>
       transaction('baltr_test0101', 'refund', toCents(r.settlementAmount), -25, r.createdAt, {
         paymentId: r.paymentId,
         refundId: r.id,
-        settlementId: AC1_SETTLEMENT_ID,
+        refundDescription: r.description,
       }),
     ),
     ...chargebacks.map((c) =>
       transaction('baltr_test0102', 'chargeback', toCents(c.settlementAmount), -1000, c.createdAt, {
         paymentId: c.paymentId,
         chargebackId: c.id,
-        settlementId: AC1_SETTLEMENT_ID,
+        chargebackDescription: 'Chargeback, February 2027',
       }),
     ),
     {

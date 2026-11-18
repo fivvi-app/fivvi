@@ -83,6 +83,22 @@ describe('Mollie settlement fixtures', () => {
     }
   });
 
+  it('balance transactions carry the context and deduction details Mollie documents, and no settlement ID', () => {
+    const fixture = mollieSettlementFixture({ chargeback: true });
+    const transactions = fixture.balanceTransactions._embedded.balance_transactions;
+    const descriptionKey = {
+      payment: 'paymentDescription',
+      refund: 'refundDescription',
+      chargeback: 'chargebackDescription',
+      'failed-payment-fee': 'paymentDescription',
+    } as const;
+    for (const t of transactions) {
+      expect(t.context).not.toHaveProperty('settlementId');
+      expect(t.context[descriptionKey[t.type as keyof typeof descriptionKey]]).toBeTruthy();
+      if (t.deductions) expect(t.deductionDetails).toEqual({ fees: t.deductions });
+    }
+  });
+
   it('a settlement that grows keeps the IDs of the transactions it had', () => {
     const ids = (options: Parameters<typeof mollieSettlementFixture>[0]) =>
       mollieSettlementFixture(options).balanceTransactions._embedded.balance_transactions.map(
