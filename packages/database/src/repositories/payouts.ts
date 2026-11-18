@@ -168,7 +168,8 @@ export async function refreshPayout(
     .set({
       reference: sql`coalesce(${details.reference}, ${payouts.reference})`,
       settledAt: sql`coalesce(${details.settledAt?.toISOString() ?? null}::timestamptz, ${payouts.settledAt})`,
-      amountCents: details.amountCents,
+      // Only a fetch as new as the stored one says what the amount is now.
+      amountCents: sql`CASE WHEN ${details.fetchedAt.toISOString()}::timestamptz >= ${payouts.fetchedAt} THEN ${details.amountCents}::integer ELSE ${payouts.amountCents} END`,
       fetchedAt: sql`greatest(${payouts.fetchedAt}, ${details.fetchedAt.toISOString()}::timestamptz)`,
     })
     .where(and(eq(payouts.organizationId, scope.workspaceId), eq(payouts.id, payoutId)))

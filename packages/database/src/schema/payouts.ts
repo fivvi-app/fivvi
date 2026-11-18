@@ -128,9 +128,9 @@ export type PayoutStatusChange = typeof payoutStatusChanges.$inferSelect;
  * A line of a payout, stored once and never changed by an import.
  *
  * - `provider_line_id` is the line's identity within the payout: the provider's own ID of the
- *   payment, refund or chargeback, or `fee:<kind>` for a fee. Unique per payout.
+ *   payment, refund or chargeback, or the balance transaction that carries a fee. Unique per payout.
  * - `type` is `payment`, `refund`, `chargeback`, `fee` or `other`; `fee_kind` is set for a fee
- *   and for nothing else; `fee_count` is how many transactions a fee adds up.
+ *   and for nothing else; `fee_count` is how many transactions a fee adds up (1 for a fee per balance transaction).
  * - `amount_cents` is signed.
  * - `matched_payment_id`, `matched_refund_id` and `matched_chargeback_id` are Fivvi's own rows the
  *   line was matched to (at most one of them), and `matched` says it was. A line with a link is

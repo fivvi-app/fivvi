@@ -18,6 +18,7 @@ function lines(fixture: ReturnType<typeof mollieSettlementFixture>) {
   const chargebacks = fixture.chargebacks._embedded.chargebacks.map((c) =>
     cents(c.settlementAmount),
   );
+  // The fees a settlement keeps, as its balance transactions carry them.
   const costs = Object.values(fixture.settlement.periods)
     .flatMap((year) => Object.values(year))
     .flatMap((month) => month.costs)
@@ -64,6 +65,30 @@ describe('Mollie settlement fixtures', () => {
       ]),
     ).toContainEqual(['failed-payment-fee', -425]);
     expect(lines(fixture).reduce((sum, value) => sum + value, 0)).toBe(39248);
+  });
+
+  it('each fee is a balance transaction of its own, and they add up to the settlement’s costs', () => {
+    for (const options of [{}, { unknownPayment: true }, { chargeback: true }]) {
+      const fixture = mollieSettlementFixture(options);
+      const transactions = fixture.balanceTransactions._embedded.balance_transactions;
+      expect(new Set(transactions.map((t) => t.id)).size).toBe(transactions.length);
+      const kept = transactions
+        .filter((t) => t.deductions)
+        .reduce((sum, t) => sum + cents(t.deductions as never), 0);
+      const costs = Object.values(fixture.settlement.periods)
+        .flatMap((year) => Object.values(year))
+        .flatMap((month) => month.costs)
+        .reduce((sum, cost) => sum + cents(cost.amountGross), 0);
+      expect(-kept).toBe(costs);
+    }
+  });
+
+  it('a settlement that grows keeps the IDs of the transactions it had', () => {
+    const ids = (options: Parameters<typeof mollieSettlementFixture>[0]) =>
+      mollieSettlementFixture(options).balanceTransactions._embedded.balance_transactions.map(
+        (t) => t.id,
+      );
+    expect(ids({ unknownPayment: true })).toEqual(expect.arrayContaining(ids({ status: 'open' })));
   });
 
   it('AC2: the variant adds a payment that no Fivvi payment has and still adds up', () => {

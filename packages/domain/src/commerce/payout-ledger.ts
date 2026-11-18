@@ -88,7 +88,7 @@ export interface RecordPayoutStatusChange {
 export interface PayoutLineRecord {
   readonly id: string;
   readonly payoutId: string;
-  /** Mollie's own ID of the payment, refund or chargeback, or `fee:<kind>`; unique within the payout. */
+  /** Mollie's own ID of the payment, refund or chargeback, or of the balance transaction that carries a fee; unique within the payout. */
   readonly providerLineId: string;
   readonly type: ProviderSettlementLineType;
   readonly feeKind: ProviderFeeKind | null;

@@ -8,13 +8,16 @@
 // The fixture is the settlement of Wednesday 10 February 2027, reference `1234567.2701.01`,
 // € 392,48: Anna de Vries's € 79,00 and Mark Jansen's € 260,00 direct debits, a third client's
 // € 79,00 iDEAL first payment, a refund of € 20,00, the fees of € 0,32 (iDEAL), € 0,70 (2 × SEPA
-// direct debit) and € 0,25 (refund), and a failed direct debit's fee of € 4,25 (a balance
-// transaction). `unknownPayment` adds an iDEAL payment (`tr_unknown0001`, € 45,00) that no Fivvi
+// direct debit) and € 0,25 (refund), and a failed direct debit's fee of € 4,25. Each fee is a
+// balance transaction of its own (`baltr_…`, with a `deductions` amount, or a
+// `failed-payment-fee`), so a fee has a stable identity and a settlement that grows (a later
+// payment, a later fee) only adds transactions. `unknownPayment` adds an iDEAL payment (`tr_unknown0001`, € 45,00) that no Fivvi
 // payment has (AC2); `chargeback` adds a reversal of Anna's payment and its fee.
 //
 // Shapes follow the documentation: amounts are `{ value: '392.48', currency: 'EUR' }` strings, a
 // list is `{ count, _embedded, _links }`, the settlement's `periods` hold `revenue` and `costs`
-// per year and month, a balance transaction has `resultAmount`, `initialAmount` and `context`.
+// per year and month, a balance transaction has `resultAmount`, `initialAmount`, `deductions` and
+// `context`.
 // Values differ from reality where the acceptance criteria need simple sums: a cost's
 // `amountVat` is `null` and its `amountGross` is the fee. Nothing here is personal data: the
 // descriptions name the offer and the month, not a client.
@@ -118,6 +121,8 @@ export interface MollieBalanceTransaction {
   type: string;
   resultAmount: MollieAmount;
   initialAmount: MollieAmount;
+  /** What Mollie kept of a payment, refund or chargeback, negative; a `failed-payment-fee` has none. */
+  deductions?: MollieAmount;
   createdAt: string;
   context: Record<string, string>;
 }
@@ -220,6 +225,26 @@ function revenue(
   };
 }
 
+function transaction(
+  id: string,
+  type: 'payment' | 'refund' | 'chargeback',
+  settlementCents: number,
+  deductionCents: number,
+  createdAt: string,
+  context: Record<string, string>,
+): MollieBalanceTransaction {
+  return {
+    resource: 'balance-transaction',
+    id,
+    type,
+    resultAmount: eur(settlementCents + deductionCents),
+    initialAmount: eur(settlementCents),
+    deductions: eur(deductionCents),
+    createdAt,
+    context,
+  };
+}
+
 function list<Key extends string, Item>(key: Key, items: Item[]): MollieList<Key, Item> {
   return {
     count: items.length,
@@ -309,10 +334,36 @@ export function mollieSettlementFixture(
     ...(options.chargeback ? [cost('Chargebacks', 'chargeback', 1, 1000)] : []),
   ];
 
+  // One balance transaction per payment, refund and chargeback, carrying the fee Mollie kept of it
+  // (the same fees as the settlement's `costs`), and the failed direct debit's fee on its own.
   const balanceTransactions: MollieBalanceTransaction[] = [
+    ...payments.map((p) =>
+      transaction(
+        `baltr_${p.id === UNKNOWN_PAYMENT_ID ? 'unknown0001' : p.id.slice(3)}`,
+        'payment',
+        toCents(p.settlementAmount),
+        p.method === 'ideal' ? -32 : -35,
+        p.paidAt,
+        { paymentId: p.id, settlementId: AC1_SETTLEMENT_ID },
+      ),
+    ),
+    ...refunds.map((r) =>
+      transaction('baltr_test0101', 'refund', toCents(r.settlementAmount), -25, r.createdAt, {
+        paymentId: r.paymentId,
+        refundId: r.id,
+        settlementId: AC1_SETTLEMENT_ID,
+      }),
+    ),
+    ...chargebacks.map((c) =>
+      transaction('baltr_test0102', 'chargeback', toCents(c.settlementAmount), -1000, c.createdAt, {
+        paymentId: c.paymentId,
+        chargebackId: c.id,
+        settlementId: AC1_SETTLEMENT_ID,
+      }),
+    ),
     {
       resource: 'balance-transaction',
-      id: 'baltr_test0001',
+      id: 'baltr_test0103',
       type: 'failed-payment-fee',
       resultAmount: eur(-425),
       initialAmount: eur(-425),
@@ -324,9 +375,12 @@ export function mollieSettlementFixture(
   const total =
     payments.reduce((sum, p) => sum + toCents(p.settlementAmount), 0) +
     refunds.reduce((sum, r) => sum + toCents(r.settlementAmount), 0) +
-    chargebacks.reduce((sum, c) => sum + toCents(c.settlementAmount), 0) -
-    costs.reduce((sum, c) => sum + toCents(c.amountGross), 0) +
-    balanceTransactions.reduce((sum, t) => sum + toCents(t.resultAmount), 0);
+    chargebacks.reduce((sum, c) => sum + toCents(c.settlementAmount), 0) +
+    balanceTransactions.reduce(
+      (sum, t) =>
+        sum + toCents(t.deductions ?? (t.type === 'failed-payment-fee' ? t.resultAmount : eur(0))),
+      0,
+    );
 
   const settlement: MollieSettlement = {
     resource: 'settlement',

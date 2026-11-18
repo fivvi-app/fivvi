@@ -32,10 +32,10 @@ async function fetchAndImport(
 }
 
 describe('F061 importing a settlement', () => {
-  it('AC1: stores the payout and its eight lines, every one unmatched', async () => {
+  it('AC1: stores the payout and its nine lines, every one unmatched', async () => {
     const { provider, ledger } = setup();
     const [result] = await fetchAndImport(provider, ledger, T0);
-    expect(result).toMatchObject({ created: true, statusChanged: false, linesAdded: 8 });
+    expect(result).toMatchObject({ created: true, statusChanged: false, linesAdded: 9 });
 
     const payout = await ledger.findPayoutBySettlement('stl_test0001');
     expect(payout).toMatchObject({
@@ -54,15 +54,17 @@ describe('F061 importing a settlement', () => {
       ['payment', null, 'tr_test0002', 26000],
       ['payment', null, 'tr_test0003', 7900],
       ['refund', null, 're_test0001', -2000],
-      ['fee', 'direct_debit', 'fee:direct_debit', -70],
-      ['fee', 'failed_direct_debit', 'fee:failed_direct_debit', -425],
-      ['fee', 'ideal', 'fee:ideal', -32],
-      ['fee', 'refund', 'fee:refund', -25],
+      ['fee', 'direct_debit', 'baltr_test0001', -35],
+      ['fee', 'direct_debit', 'baltr_test0002', -35],
+      ['fee', 'ideal', 'baltr_test0003', -32],
+      ['fee', 'refund', 'baltr_test0101', -25],
+      ['fee', 'failed_direct_debit', 'baltr_test0103', -425],
     ]);
     expect(lines.every((line) => !line.matched && line.matchedPaymentId === null)).toBe(true);
     // Signed lines add up to the payout.
     expect(lines.reduce((sum, line) => sum + line.amountCents, 0)).toBe(payout?.amountCents);
-    expect(lines.find((line) => line.feeKind === 'direct_debit')?.count).toBe(2);
+    // Each fee is one balance transaction of Mollie's: the count of a kind is its lines.
+    expect(lines.filter((line) => line.feeKind === 'direct_debit')).toHaveLength(2);
   });
 
   it('AC5: the same settlement imported twice stores the payout and each line once', async () => {
@@ -73,7 +75,7 @@ describe('F061 importing a settlement', () => {
 
     const payouts = await ledger.listPayouts();
     expect(payouts).toHaveLength(1);
-    expect(await ledger.listPayoutLines(payouts[0]?.id ?? '')).toHaveLength(8);
+    expect(await ledger.listPayoutLines(payouts[0]?.id ?? '')).toHaveLength(9);
     // Nothing about the settlement changed, so no status line was appended; the fetch time moved.
     expect(await ledger.listPayoutStatusChanges(payouts[0]?.id ?? '')).toHaveLength(1);
     expect(payouts[0]?.fetchedAt).toEqual(T1);
@@ -140,18 +142,29 @@ describe('F061 importing a settlement', () => {
     expect(lines.find((line) => line.feeKind === 'reversal')?.amountCents).toBe(-1000);
   });
 
-  it('a line that grows in later (an open settlement) is added, the stored ones stay', async () => {
+  it('a settlement that grows from open to paidout keeps its lines and adds up to the payout', async () => {
     const { provider, ledger } = setup({ status: 'open' });
     await fetchAndImport(provider, ledger, T0);
+    const [open] = await ledger.listPayouts();
+    const before = await ledger.listPayoutLines(open?.id ?? '');
+    expect(before.reduce((sum, line) => sum + line.amountCents, 0)).toBe(open?.amountCents);
+
     provider.serveMollieSettlement(
       access,
       mollieSettlementFixture({ status: 'paidout', unknownPayment: true }),
     );
     const [result] = await fetchAndImport(provider, ledger, T1);
-    expect(result?.linesAdded).toBe(1);
+    // The unknown payment and the iDEAL fee Mollie kept of it: two new lines, none rewritten.
+    expect(result?.linesAdded).toBe(2);
     const [payout] = await ledger.listPayouts();
-    expect(await ledger.listPayoutLines(payout?.id ?? '')).toHaveLength(9);
+    const lines = await ledger.listPayoutLines(payout?.id ?? '');
+    expect(lines).toHaveLength(11);
     expect(payout?.amountCents).toBe(43716);
+    expect(lines.reduce((sum, line) => sum + line.amountCents, 0)).toBe(payout?.amountCents);
+    for (const line of before) expect(lines).toContainEqual(line);
+    expect(
+      lines.filter((line) => line.feeKind === 'ideal').map((line) => line.amountCents),
+    ).toEqual([-32, -32]);
   });
 
   it('two workspaces fetch the same settlement ID into payouts of their own', async () => {
@@ -208,6 +221,10 @@ describe('F061 importing a settlement', () => {
       await expect(attempt([{ ...line, feeKind: 'ideal' }])).rejects.toMatchObject({
         field: 'line',
       });
+    });
+
+    it('a count on a line that is not a fee', async () => {
+      await expect(attempt([{ ...line, count: 1 }])).rejects.toMatchObject({ field: 'line' });
     });
 
     it('a line of another settlement, and a blank line identity', async () => {

@@ -139,7 +139,8 @@ export type ProviderFeeKind =
 export interface ProviderSettlementLine {
   /**
    * The line's identity within its settlement: the provider's own ID of the payment, refund or
-   * chargeback it reports, or for a fee `fee:<kind>` (a second fee of the same kind: `fee:<kind>#2`).
+   * chargeback it reports, or for a fee the ID of the balance transaction that carries it (one fee per
+   * transaction, so a fee is stored once and a later fetch only adds new ones).
    */
   readonly id: string;
   readonly settlementId: string;

@@ -268,7 +268,7 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     table: 'payout_lines',
     personal: false,
     reason:
-      'A line of a payout: the provider’s ID of a payment, refund, reversal or fee, its signed amount and the description the provider reports (F061). The description is the one Fivvi sent with the payment or refund, which E019 keeps free of notes and health content; the line holds no client ID, only the link to the payment it was matched to, and the payment’s own declaration decides what deleting a client does to it.',
+      'A line of a payout: the provider’s ID of a payment, refund, reversal or fee, its signed amount and the description the provider reports (F061). The description is the one Fivvi sent with the payment or refund, which E019 keeps free of notes and health content; the line holds no client ID, only the link to the payment it was matched to, and the payment’s own declaration decides what deleting a client does to it. It is declared as not personal because the line is the workspace’s accounting record of a payout and cannot be found, exported or deleted per client; the provider’s payment ID and the amount it carries are also kept by `payments`, which is kept for the law (R21). Whether the payout records need a retention rule of their own is part of the legal follow-up of E019 (spec #466).',
   },
   {
     table: 'class_series',

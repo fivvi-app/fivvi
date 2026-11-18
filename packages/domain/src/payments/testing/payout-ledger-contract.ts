@@ -188,6 +188,46 @@ export function payoutLedgerContract(name: string, create: () => Promise<PayoutL
       expect(kept.fetchedAt).toEqual(T1);
     });
 
+    it('a fetch older than the stored one does not move the amount', async () => {
+      const { payouts } = await create();
+      const { payout } = await payouts.insertPayout(
+        newPayout({ amountCents: 43716, fetchedAt: T1 }),
+      );
+      const late = await payouts.refreshPayout(payout.id, {
+        reference: null,
+        settledAt: null,
+        amountCents: 39248,
+        fetchedAt: T0,
+      });
+      expect(late).toMatchObject({ amountCents: 43716, fetchedAt: T1 });
+      // The same moment, or a later one, does apply.
+      const same = await payouts.refreshPayout(payout.id, {
+        reference: null,
+        settledAt: null,
+        amountCents: 43800,
+        fetchedAt: T1,
+      });
+      expect(same.amountCents).toBe(43800);
+    });
+
+    it('lists the payouts that are not settled yet first, then the newest settled', async () => {
+      const { payouts } = await create();
+      await payouts.insertPayout(
+        newPayout({ providerSettlementId: 'stl_old', settledAt: new Date('2027-02-03T05:00:00Z') }),
+      );
+      await payouts.insertPayout(
+        newPayout({ providerSettlementId: 'stl_open1', settledAt: null, fetchedAt: T0 }),
+      );
+      await payouts.insertPayout(
+        newPayout({ providerSettlementId: 'stl_open2', settledAt: null, fetchedAt: T1 }),
+      );
+      expect((await payouts.listPayouts()).map((p) => p.providerSettlementId)).toEqual([
+        'stl_open2',
+        'stl_open1',
+        'stl_old',
+      ]);
+    });
+
     it('lists the payouts newest first', async () => {
       const { payouts } = await create();
       await payouts.insertPayout(

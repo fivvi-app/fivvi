@@ -103,13 +103,38 @@ describe('F061 the database payout ledger and the domain', () => {
     });
     const id = payouts[0]?.id ?? '';
     const lines = await ledger.listPayoutLines(id);
-    expect(lines).toHaveLength(8);
+    expect(lines).toHaveLength(9);
     expect(lines.reduce((sum, line) => sum + line.amountCents, 0)).toBe(39248);
     expect(lines.every((line) => !line.matched)).toBe(true);
     expect((await ledger.listPayoutStatusChanges(id)).map((c) => [c.from, c.to])).toEqual([
       [null, 'open'],
       ['open', 'paidout'],
     ]);
+  });
+
+  it('a settlement first imported open and later paidout with a payment more adds up through the database', async () => {
+    const { workspaceId, inScope } = await gym('john');
+    const ledger = payoutLedger(inScope);
+    const provider = new FakePaymentProvider();
+    const access = { workspaceId, testmode: false };
+    const fetchAll = async (fetchedAt: Date) => {
+      for (const settlement of await provider.listSettlements(access)) {
+        const lines = await provider.listSettlementLines(access, settlement.id);
+        await importSettlement(ledger, { settlement, lines, fetchedAt, source: 'job' });
+      }
+    };
+    provider.serveMollieSettlement(access, mollieSettlementFixture({ status: 'open' }));
+    await fetchAll(new Date('2027-02-09T06:00:00Z'));
+    provider.serveMollieSettlement(
+      access,
+      mollieSettlementFixture({ status: 'paidout', unknownPayment: true }),
+    );
+    await fetchAll(new Date('2027-02-10T06:00:00Z'));
+    const [payout] = await ledger.listPayouts();
+    const lines = await ledger.listPayoutLines(payout?.id ?? '');
+    expect(payout?.amountCents).toBe(43716);
+    expect(lines).toHaveLength(11);
+    expect(lines.reduce((sum, line) => sum + line.amountCents, 0)).toBe(43716);
   });
 
   it('the unknown-payment variant is stored like any other settlement', async () => {

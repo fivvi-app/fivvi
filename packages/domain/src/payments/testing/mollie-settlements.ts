@@ -1,31 +1,53 @@
-import type { MollieSettlementFixture } from '@fivvi/testing/mollie-settlements';
+import type {
+  MollieBalanceTransaction,
+  MollieSettlementFixture,
+} from '@fivvi/testing/mollie-settlements';
 import type { ProviderFeeKind, ProviderSettlement, ProviderSettlementLine } from '../provider.ts';
 
 // Reads Mollie's documented settlement responses (the fixtures of `@fivvi/testing/mollie-settlements`)
 // into the shapes of the payment provider port, for `FakePaymentProvider.serveMollieSettlement`.
 // The Mollie adapter (E019) has its own reader of the live responses; this one keeps the fixtures
 // and the port in step and is test-only. A settlement is its own figures (the settlement, its
-// payments, refunds, chargebacks, its costs per method) plus the fees that only the balance
-// transactions carry (a failed direct debit's fee). Fee amounts are the gross cost, negative.
+// payments, refunds and chargebacks) and its fees, one per balance transaction (ADR-020, the
+// Balances API): the `deductions` of a payment, refund or chargeback, or a failed direct debit's
+// fee. The settlement's `costs` per month are a summary and not read.
 
 const cents = (amount: { value: string }) => Math.round(Number(amount.value) * 100);
 
-// Mollie's `method` of a cost entry. `refund` and `chargeback` are the entries for those fees.
-const FEE_KINDS: Readonly<Record<string, ProviderFeeKind>> = {
+const METHOD_FEE_KINDS: Readonly<Record<string, ProviderFeeKind>> = {
   ideal: 'ideal',
   directdebit: 'direct_debit',
-  refund: 'refund',
-  chargeback: 'reversal',
 };
 
-/** A fee line gets `fee:<kind>`, and `fee:<kind>#2` for a second one of the same kind. */
-function feeIds() {
-  const seen = new Map<string, number>();
-  return (kind: ProviderFeeKind) => {
-    const n = (seen.get(kind) ?? 0) + 1;
-    seen.set(kind, n);
-    return n === 1 ? `fee:${kind}` : `fee:${kind}#${n}`;
-  };
+const FEE_DESCRIPTIONS: Readonly<Record<ProviderFeeKind, string>> = {
+  ideal: 'iDEAL fee',
+  direct_debit: 'SEPA Direct Debit fee',
+  refund: 'Refund fee',
+  failed_direct_debit: 'Failed payment fee',
+  reversal: 'Chargeback fee',
+  other: 'Fee',
+};
+
+/** The fee a balance transaction carries; `null` for one that carries none. */
+function feeKindOf(
+  transaction: MollieBalanceTransaction,
+  methods: ReadonlyMap<string, string>,
+): ProviderFeeKind | null {
+  switch (transaction.type) {
+    case 'failed-payment-fee':
+      return 'failed_direct_debit';
+    case 'refund':
+      return transaction.deductions ? 'refund' : null;
+    case 'chargeback':
+      return transaction.deductions ? 'reversal' : null;
+    case 'payment': {
+      if (!transaction.deductions) return null;
+      const method = methods.get(transaction.context.paymentId ?? '');
+      return (method && METHOD_FEE_KINDS[method]) || 'other';
+    }
+    default:
+      return transaction.deductions ? 'other' : null;
+  }
 }
 
 export function fromMollieSettlement(fixture: MollieSettlementFixture): {
@@ -34,7 +56,6 @@ export function fromMollieSettlement(fixture: MollieSettlementFixture): {
 } {
   const { settlement } = fixture;
   const settlementId = settlement.id;
-  const feeId = feeIds();
   const lines: ProviderSettlementLine[] = [];
 
   for (const payment of fixture.payments._embedded.payments) {
@@ -73,33 +94,25 @@ export function fromMollieSettlement(fixture: MollieSettlementFixture): {
       count: null,
     });
   }
-  for (const year of Object.values(settlement.periods)) {
-    for (const month of Object.values(year)) {
-      for (const cost of month.costs) {
-        const kind = FEE_KINDS[cost.method] ?? 'other';
-        lines.push({
-          id: feeId(kind),
-          settlementId,
-          type: 'fee',
-          feeKind: kind,
-          paymentId: null,
-          description: cost.description,
-          amountCents: -cents(cost.amountGross),
-          count: cost.count,
-        });
-      }
-    }
-  }
+  // A fee is a balance transaction of its own: the identity of its line is the transaction's ID,
+  // so a fee is never "the running total of a kind" that a later fetch would have to correct.
+  const methods = new Map<string, string>(
+    fixture.payments._embedded.payments.map((payment) => [payment.id, payment.method]),
+  );
   for (const transaction of fixture.balanceTransactions._embedded.balance_transactions) {
-    if (transaction.type !== 'failed-payment-fee') continue;
+    const feeKind = feeKindOf(transaction, methods);
+    const fee =
+      transaction.deductions ??
+      (feeKind === 'failed_direct_debit' ? transaction.resultAmount : null);
+    if (!feeKind || !fee) continue;
     lines.push({
-      id: feeId('failed_direct_debit'),
+      id: transaction.id,
       settlementId,
       type: 'fee',
-      feeKind: 'failed_direct_debit',
+      feeKind,
       paymentId: transaction.context.paymentId ?? null,
-      description: 'Failed payment fee',
-      amountCents: cents(transaction.resultAmount),
+      description: FEE_DESCRIPTIONS[feeKind],
+      amountCents: cents(fee),
       count: 1,
     });
   }

@@ -63,7 +63,8 @@ export class InMemoryPayoutLedger implements PayoutLedger {
       ...payout,
       reference: details.reference ?? payout.reference,
       settledAt: details.settledAt ?? payout.settledAt,
-      amountCents: details.amountCents,
+      // Only a fetch as new as the stored one says what the amount is now.
+      amountCents: details.fetchedAt >= payout.fetchedAt ? details.amountCents : payout.amountCents,
       fetchedAt: details.fetchedAt > payout.fetchedAt ? details.fetchedAt : payout.fetchedAt,
     };
     this.payouts.set(payoutId, refreshed);
@@ -126,8 +127,16 @@ export class InMemoryPayoutLedger implements PayoutLedger {
   }
 
   listPayouts(): Promise<PayoutRecord[]> {
+    // As the database orders them: not settled yet first, then the newest settled; ties by the
+    // time they were stored (newest first), then by ID.
     const time = (payout: PayoutRecord) => payout.settledAt?.getTime() ?? Number.POSITIVE_INFINITY;
-    return Promise.resolve([...this.payouts.values()].sort((a, b) => time(b) - time(a)));
+    const byIdentity = (a: string, b: string) => (a < b ? -1 : a > b ? 1 : 0);
+    const order = (a: PayoutRecord, b: PayoutRecord) => {
+      const [x, y] = [time(a), time(b)];
+      if (x !== y) return x < y ? 1 : -1;
+      return b.createdAt.getTime() - a.createdAt.getTime() || byIdentity(a.id, b.id);
+    };
+    return Promise.resolve([...this.payouts.values()].sort(order));
   }
 
   listPayoutLines(payoutId: string): Promise<PayoutLineRecord[]> {

@@ -29,6 +29,7 @@ describe('F061 the fake provider serves Mollie’s settlement fixtures', () => {
       'fee',
       'fee',
       'fee',
+      'fee',
     ]);
     expect(lines.reduce((sum, line) => sum + line.amountCents, 0)).toBe(39248);
   });
@@ -60,14 +61,25 @@ describe('F061 the fake provider serves Mollie’s settlement fixtures', () => {
     });
   });
 
-  it('a second fee of the same kind gets its own identity', () => {
-    const fixture = mollieSettlementFixture();
-    const month = fixture.settlement.periods['2027']?.['02'];
-    month?.costs.push({ ...(month.costs[0] as (typeof month.costs)[number]) });
-    const { lines } = fromMollieSettlement(fixture);
-    expect(lines.filter((line) => line.feeKind === 'ideal').map((line) => line.id)).toEqual([
-      'fee:ideal',
-      'fee:ideal#2',
+  it('a fee is the balance transaction that carries it, with the kind of what it was kept of', () => {
+    const { lines } = fromMollieSettlement(mollieSettlementFixture());
+    const fees = lines.filter((line) => line.type === 'fee');
+    expect(fees.map((line) => [line.id, line.feeKind, line.amountCents, line.count])).toEqual([
+      ['baltr_test0001', 'direct_debit', -35, 1],
+      ['baltr_test0002', 'direct_debit', -35, 1],
+      ['baltr_test0003', 'ideal', -32, 1],
+      ['baltr_test0101', 'refund', -25, 1],
+      ['baltr_test0103', 'failed_direct_debit', -425, 1],
     ]);
+  });
+
+  it('a fee keeps its identity and amount when the settlement grows', () => {
+    const open = fromMollieSettlement(mollieSettlementFixture({ status: 'open' })).lines;
+    const grown = fromMollieSettlement(
+      mollieSettlementFixture({ status: 'paidout', unknownPayment: true }),
+    ).lines;
+    const fees = (lines: typeof open) => lines.filter((line) => line.type === 'fee');
+    for (const fee of fees(open)) expect(fees(grown)).toContainEqual(fee);
+    expect(fees(grown)).toHaveLength(fees(open).length + 1);
   });
 });

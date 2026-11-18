@@ -83,6 +83,9 @@ function validate(input: SettlementImport): NewPayoutLine[] {
     if (line.feeKind !== null && !PAYOUT_FEE_KINDS.includes(line.feeKind)) {
       throw new InvalidSettlementError('line', 'A fee line has one of the known fee kinds.');
     }
+    if (line.count !== null && line.type !== 'fee') {
+      throw new InvalidSettlementError('line', 'Only a fee line has a count.');
+    }
     if (line.count !== null && (!Number.isInteger(line.count) || line.count < 1)) {
       throw new InvalidSettlementError('line', 'A count is a whole number above zero.');
     }
