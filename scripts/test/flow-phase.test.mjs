@@ -666,6 +666,77 @@ describe('flow phase of a spec', () => {
     assert.match(decision.next, /scripts\/issue\.sh close 50/);
   });
 
+  // ADR-034: with review split, a spec whose tickets are all closed waits for a clean final spec review.
+  describe('ADR-034: the spec-review phase', () => {
+    const closed = [child(51, { state: 'CLOSED' }), child(52, { state: 'CLOSED' })];
+    const covered = { covered: true, detail: 'covered' };
+    const notCovered = {
+      covered: false,
+      detail: 'not covered: PR #61 merged after the last clean final spec review (2026-11-18T09:00:00Z)',
+    };
+
+    it('is spec-review while split and no final review covers the spec, and says to run it', () => {
+      for (const spec_review of [notCovered, null]) {
+        const decision = decide(spec({ children: closed, review: 'split', spec_review }));
+        assert.equal(decision.phase, 'spec-review');
+        assert.match(decision.next, /All 2 tickets are done/);
+        assert.match(decision.next, /final spec review/);
+        assert.match(decision.next, /scripts\/spec-review\.sh map 50/);
+        assert.match(decision.next, /scripts\/spec-review\.sh record 50 --final/);
+        assert.match(decision.next, /scripts\/issue\.sh create bug --parent 50/);
+      }
+    });
+
+    it('names why the review does not cover the spec yet', () => {
+      const decision = decide(spec({ children: closed, review: 'split', spec_review: notCovered }));
+      assert.match(decision.next, /PR #61 merged after the last clean final spec review/);
+    });
+
+    it('is complete once a final review covers it', () => {
+      const decision = decide(spec({ children: closed, review: 'split', spec_review: covered }));
+      assert.equal(decision.phase, 'complete');
+      assert.match(decision.next, /scripts\/issue\.sh close 50/);
+    });
+
+    it('is complete as before with per-pr, whatever the review record says', () => {
+      for (const spec_review of [undefined, null, notCovered, covered]) {
+        const decision = decide(spec({ children: closed, review: 'per-pr', spec_review }));
+        assert.equal(decision.phase, 'complete', JSON.stringify(spec_review));
+      }
+      assert.equal(decide(spec({ children: closed })).phase, 'complete');
+    });
+
+    it('fails closed: any setting but per-pr asks for the review', () => {
+      // flow.sh reads the setting with pipeline.sh, which dies on anything but split or per-pr; the phase still never
+      // reads an unknown one as "skip the review".
+      assert.equal(decide(spec({ children: closed, review: 'none' })).phase, 'spec-review');
+    });
+
+    it('a bug ticket under the spec reopens it: it is building again, as any open sub-issue does', () => {
+      const bug = child(53, { labels: ['bug', 'ready-for-agent'] });
+      const decision = decide(
+        spec({ children: [...closed, bug], review: 'split', spec_review: covered }),
+      );
+      assert.equal(decision.phase, 'building');
+      assert.match(decision.next, /3 tickets? .*open|1 of 3 tickets open\. Ready now: #53/);
+    });
+
+    it('while any ticket is open it is building, not spec-review', () => {
+      const decision = decide(
+        spec({ children: [closed[0], child(52)], review: 'split', spec_review: notCovered }),
+      );
+      assert.equal(decision.phase, 'building');
+    });
+
+    it('does not change a closed spec or a spec without tickets', () => {
+      assert.equal(
+        decide(spec({ state: 'CLOSED', children: closed, review: 'split' })).phase,
+        'done',
+      );
+      assert.equal(decide(spec({ review: 'split' })).phase, 'needs-tickets');
+    });
+  });
+
   it('builds a spec without tickets as its own ticket once it is ready-for-agent', () => {
     const labels = ['spec', 'spec-approved', 'ready-for-agent'];
     const own = spec({ labels, has_criteria: true });

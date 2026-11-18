@@ -3,6 +3,8 @@
 #         parent: null|{number, title, state, labels, open, total}, blockers: [{number, title}],
 #         fixed_blockers: [{number, title, closed_at}],
 #         children: [{number, title, state, labels, assignees, blocked}],
+#         review: "split"|"per-pr" (scripts/pipeline.sh get review; absent means per-pr, read only for a spec whose tickets are
+#         all closed), spec_review: null|{covered, detail} (scripts/spec-review.sh status, read only while review is split),
 #         branches: [{name, local, worktree, dirty,
 #                     pr: null|{number, state, draft, review, failing, threads, age_days, risk, risk_reasons,
 #                               head, refusal: null|{sha, reasons},
@@ -18,6 +20,9 @@
 # and with an open blocker waits for its fix (waiting-fix); once a blocker was closed as completed after the removal, it
 # is re-queued once (requeue). An owner-only or unknown-risk PR stays queue-removed, a refused one is merge-refused. answered is true
 # when there is a comment and the newest is not a triage note, i.e. someone replied to the needs-info question.
+# ADR-034: with review split, a spec whose tickets are all closed is in the phase spec-review, not complete, until a final
+# spec review covers it (spec_review.covered); a bug ticket under the spec reopens it (it is building, as with any open
+# sub-issue). Any review setting but per-pr asks for the review, so an unknown one is never read as "skip it".
 # Output: {phase, next, hint}, and bug (the number of the fixed blocker to re-queue after) in the phase requeue.
 # A spec closes through its tickets (complete, then scripts/issue.sh close), not through a PR (#509): an issue that is
 # labelled spec or has sub-issues, and is not built as its own ticket (no sub-issues, ready-for-agent). For it a branch
@@ -162,7 +167,12 @@ def ticket_phase($n):
      {phase: "blocked", next: "Wait for \([$f.blockers[] | "#\(.number)"] | join(", ")) to be done."}
    elif ($f | has("spec")) or ($f.children | length) > 0 then
      if ($f.children | length) > 0 and ([$f.children[] | select(open)] | length) == 0 then
-       {phase: "complete", next: "All \($f.children | length) tickets are done. Check FEATURES.md shows it IMPLEMENTED, then scripts/issue.sh close \($n)."}
+       if ($f.review // "per-pr") != "per-pr" and ($f.spec_review.covered? // false | not) then
+         {phase: "spec-review",
+          next: ("All \($f.children | length) tickets are done, but no final spec review covers the spec yet (\($f.spec_review.detail? // "no review status read")). Run the final spec review (docs/agents/build.md, Spec review): a fresh reviewer checks every acceptance criterion of the spec and its tickets against the code on origin/main, from scripts/spec-review.sh map \($n), and the parity of iOS and Android. A finding becomes a bug ticket under the spec (scripts/issue.sh create bug --parent \($n) --label ready-for-agent), which reopens it; record the verdict with scripts/spec-review.sh record \($n) --final clean|not-clean. Once it is clean, the phase is complete.")}
+       else
+         {phase: "complete", next: "All \($f.children | length) tickets are done. Check FEATURES.md shows it IMPLEMENTED, then scripts/issue.sh close \($n)."}
+       end
      elif ($f.children | length) == 0 and ($f | has("ready-for-agent") | not)
        and (($f | has("needs-triage")) or ($f.described | not)) then
        {phase: "needs-spec", next: "Grill the owner (grill-with-docs), then rewrite it with to-spec: scripts/issue.sh update \($n) --body-file -."}

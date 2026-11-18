@@ -4,7 +4,9 @@
 #   flow.sh status <n>                      facts, phase and next step for an issue
 #   flow.sh facts <n>                       the facts as JSON (input of scripts/flow-phase.jq)
 #   flow.sh next                            your open issues with their phase, the open specs, the ready tickets, the
-#                                           approved specs to cut (Cut #n), answered needs-info questions, PRs to
+#                                           approved specs to cut (Cut #n), the specs whose tickets are all closed
+#                                           and that wait for their final spec review (Review spec #n, only with
+#                                           review split, ADR-034; phase spec-review), answered needs-info questions, PRs to
 #                                           re-queue after their bug was fixed (Requeue PR #n after #bug) and the
 #                                           worktrees of merged PRs, also when the PR closed its issue (`Finish #n`,
 #                                           or `Clean up <branch>` for a branch without an issue; one that has
@@ -56,7 +58,10 @@
 #                                           then run clean.sh for the rest (caches, other leftovers);
 #                                           a spec that closes through its tickets (labelled spec or with sub-issues,
 #                                           not built as its own ticket) stays open: it only cleans up, says so and
-#                                           prints the spec's phase and next step (#509)
+#                                           prints the spec's phase and next step (#509). With review split (ADR-034,
+#                                           scripts/pipeline.sh) a spec whose tickets are all closed is in the phase
+#                                           spec-review until scripts/spec-review.sh status says a clean final review
+#                                           covers it; with per-pr it is complete, as before
 #   flow.sh lock acquire|status             the run lock of the factory (work skill, Factory): one run at a time. A file
 #   flow.sh lock refresh|release <run-id>   under the main checkout's .work/ (outside git, shared by all worktrees;
 #                                           FIVVI_RUN_LOCK overrides the path), expiring 3 hours after it was taken or
@@ -204,8 +209,29 @@ fixed_blockers() {
         | {number, title, closed_at: .closedAt}] end' <<<"$out"
 }
 
+# The review setting of ADR-034 (scripts/pipeline.sh get review): split or per-pr. Dies when it can't be read, so a missing
+# or broken file never reads as either.
+review_setting() { "$ROOT/scripts/pipeline.sh" get review || die "could not read the review setting (scripts/pipeline.sh get review)"; }
+
+# The spec-review facts of spec $1 whose tickets are all closed (ADR-034): `<setting> <covered|not-covered> <detail>`,
+# for facts() as JSON {review, spec_review}. Only a spec in that state costs the reads; spec_review is null with per-pr.
+spec_review_facts() {
+  local n="$1" setting out rc=0
+  setting="$(review_setting)" || exit 1
+  if [ "$setting" != split ]; then
+    jq -nc --arg review "$setting" '{review: $review, spec_review: null}'
+    return
+  fi
+  out="$("$ROOT/scripts/spec-review.sh" status "$n")" || rc=$?
+  case "$rc" in
+    0 | 1) jq -nc --arg review "$setting" --arg detail "$out" --argjson covered "$([ "$rc" = 0 ] && echo true || echo false)" \
+      '{review: $review, spec_review: {covered: $covered, detail: $detail}}' ;;
+    *) die "could not read the spec review of #$n (scripts/spec-review.sh status $n)" ;;
+  esac
+}
+
 facts() {
-  local n="$1" item parent=null children="[]" branches="[]" fixed="[]" child branch p login
+  local n="$1" item parent=null children="[]" branches="[]" fixed="[]" child branch p login review='{}'
   login="$(me)" || return 1
   item="$(gh issue view "$n" --repo "$REPO" --json number,title,state,labels,assignees,body,comments,parent,subIssues,blockedBy)"
   for child in $(jq -r '.subIssues.nodes[].number' <<<"$item"); do
@@ -224,14 +250,18 @@ facts() {
   if jq -e 'any(.[]; .pr != null and .pr.state == "OPEN" and .pr.queue.state == "removed")' <<<"$branches" >/dev/null; then
     fixed="$(fixed_blockers "$n")" || die "could not read the blockers of #$n"
   fi
+  # A spec whose tickets are all closed is in the phase spec-review or complete, by the review setting (ADR-034).
+  if jq -e 'length > 0 and all(.[]; .state == "CLOSED")' <<<"$children" >/dev/null && [ "$(jq -r .state <<<"$item")" = OPEN ]; then
+    review="$(spec_review_facts "$n")" || exit 1
+  fi
   jq --arg me "$login" --argjson parent "$parent" --argjson children "$children" --argjson branches "$branches" \
-    --argjson fixed "$fixed" "$ANSWERED_JQ"'{
+    --argjson fixed "$fixed" --argjson review "$review" "$ANSWERED_JQ"'{
     number, title, state, me: $me, answered: answered,
     labels: [.labels[].name], assignees: [.assignees[].login],
     described: ((.body // "") | gsub("\\s"; "") | length > 0),
     has_criteria: ((.body // "") | test("(^|\\n)#+\\s*acceptance criteria|(^|\\n)\\s*- \\[[ x]\\]"; "i")),
     parent: $parent, children: $children, branches: $branches,
-    blockers: [.blockedBy.nodes[] | select(.state == "OPEN") | {number, title}], fixed_blockers: $fixed}' <<<"$item"
+    blockers: [.blockedBy.nodes[] | select(.state == "OPEN") | {number, title}], fixed_blockers: $fixed} + $review' <<<"$item"
 }
 
 render() {
@@ -379,6 +409,26 @@ ready_items() {
   done <<<"$candidates"
   jq -r 'select(.answered) | "Triage #\(.number) \(.title) (answered)"' <<<"$2"
   awk -F'\t' '$3 == "requeue" { print "Requeue PR #" $1 " after #" $4 }' <<<"${3:-}"
+  spec_review_items "$1"
+}
+
+# The open specs whose tickets are all closed and that flow-phase.jq calls spec-review (ADR-034, review split): the final
+# spec review is ready work, `Review spec #n`. Facts are read only for a spec with every ticket closed. $1 is read_specs.
+# Dies when a read fails.
+spec_review_items() {
+  local done_specs n title f phase setting
+  done_specs="$(jq -r '.[] | select(.subIssuesSummary.total > 0 and .subIssuesSummary.completed == .subIssuesSummary.total)
+    | "\(.number)\t\(.title)"' <<<"$1")" || die "could not read the open specs"
+  [ -n "$done_specs" ] || return 0
+  # With per-pr nothing changes: no further read.
+  setting="$(review_setting)" || exit 1
+  [ "$setting" = split ] || return 0
+  while IFS=$'\t' read -r n title; do
+    [ -n "$n" ] || continue
+    f="$(facts "$n")" || die "could not read #$n"
+    phase="$(facts_phase "$f")" || die "could not read the phase of #$n"
+    [ "$phase" != spec-review ] || echo "Review spec #$n $title ($phase)"
+  done <<<"$done_specs"
 }
 
 cmd_next() {
@@ -933,7 +983,7 @@ cmd_finish() {
     echo "✅ #$n done"
   elif [ "$by_tickets" = true ]; then
     rm -rf "${NOTES_DIR:?}/$n"
-    echo "✅ #$n cleaned up. #$n stays open: a spec closes through its tickets (Phase complete, then scripts/issue.sh close $n)."
+    echo "✅ #$n cleaned up. #$n stays open: a spec closes through its tickets (Phase complete, then scripts/issue.sh close $n; with review split, after the final spec review: Phase spec-review)."
     d="$(jq -f "$PHASE_JQ" <<<"$(facts "$n")")"
     echo "Phase: $(jq -r .phase <<<"$d")"
     echo "Next: $(jq -r .next <<<"$d")"
