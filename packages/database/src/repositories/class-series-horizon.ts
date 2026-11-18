@@ -141,6 +141,8 @@ export async function addSeriesDatesIfMissing(
         createdByTeamMemberId: null,
       })),
     )
+    // No conflict target on purpose: naming the columns of the unique key needs SELECT on them, which
+    // the cron role does not have on sessions.
     .onConflictDoNothing();
   return result.rowCount ?? 0;
 }

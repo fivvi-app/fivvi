@@ -3765,7 +3765,7 @@
           "to": [
             "fivvi_cron"
           ],
-          "withCheck": "true"
+          "withCheck": "\"sessions\".\"type\" = 'group' AND \"sessions\".\"series_id\" IS NOT NULL AND \"sessions\".\"created_by_team_member_id\" IS NULL"
         }
       },
       "checkConstraints": {

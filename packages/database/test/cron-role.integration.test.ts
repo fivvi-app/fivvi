@@ -321,6 +321,37 @@ describe('F022 the cron role and the class series task (ticket #453)', () => {
     }
   });
 
+  it('AC9: refuses every date that is not a class date of a series planned by nobody', async () => {
+    const gym = await createWorkspace(owner.db, { label: 'johns-gym' });
+    const series = await addClassSeries(owner.db, { workspaceId: gym.id });
+    const planner = await addTeamRole(owner.db, {
+      workspaceId: gym.id,
+      accountId: (await createAccount(owner.db, { label: 'planner', name: 'Planner' })).id,
+    });
+    const location = (
+      await owner.db.execute(
+        sql`select id from locations where organization_id = ${gym.id} and is_default`,
+      )
+    ).rows[0]?.id;
+    const times = sql`'2026-12-29T17:00:00Z', '2026-12-29T18:00:00Z'`;
+
+    const refused = [
+      // A private session, a class date on its own and a class date planned by a team member.
+      sql`insert into sessions (organization_id, type, location_id, starts_at, ends_at, capacity)
+          values (${gym.id}, 'private', ${location}, ${times}, 1)`,
+      sql`insert into sessions (organization_id, type, group_class_id, location_id, starts_at, ends_at, capacity)
+          values (${gym.id}, 'group', ${series.groupClassId}, ${location}, ${times}, 8)`,
+      sql`insert into sessions (organization_id, type, group_class_id, series_id, occurrence_date, location_id, starts_at, ends_at, capacity, created_by_team_member_id)
+          values (${gym.id}, 'group', ${series.groupClassId}, ${series.id}, '2026-12-29', ${location}, ${times}, 8, ${planner.id})`,
+    ];
+    for (const statement of refused) {
+      await expect(cron.db.execute(statement)).rejects.toMatchObject(DENIED);
+    }
+    expect(
+      (await owner.db.execute(sql`select 1 from sessions where organization_id = ${gym.id}`)).rows,
+    ).toHaveLength(0);
+  });
+
   it('AC9: reads the key columns of a location and nothing else of it', async () => {
     const gym = await createWorkspace(owner.db, { label: 'johns-gym' });
 

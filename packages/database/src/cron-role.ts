@@ -77,8 +77,8 @@ export const CRON_UPDATE_COLUMNS: Readonly<Record<string, readonly string[]>> = 
 };
 
 /**
- * Resets the cron role's table privileges in `public` to `CRON_TABLE_PRIVILEGES` and
- * `CRON_SELECT_COLUMNS`, in one transaction, so there is no moment without them. Idempotent; `runMigrations` runs it after the
+ * Resets the cron role's table privileges in `public` to `CRON_TABLE_PRIVILEGES`,
+ * `CRON_SELECT_COLUMNS` (column-level `SELECT`) and `CRON_UPDATE_COLUMNS` (column-level `UPDATE`), in one transaction, so there is no moment without them. Idempotent; `runMigrations` runs it after the
  * migrations, next to `grantAppPrivileges`. Tables that don't exist yet are skipped.
  */
 export async function grantCronPrivileges(db: DatabaseExecutor): Promise<void> {
