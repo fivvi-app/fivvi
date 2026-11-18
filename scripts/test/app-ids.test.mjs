@@ -236,27 +236,31 @@ ${snippet}`,
       ],
       { encoding: 'utf8', env: { ...process.env, ...env } },
     );
-  const TIMEOUT_ARGUMENT = '-Pandroid.testInstrumentationRunnerArguments.timeout_msec';
-
-  it('every connected run gives each test 120 s, and UI_TEST_TIMEOUT_MS changes it', () => {
+  // The timeout is set in the Gradle config of the two apps, not on the command line: scripts.test.mjs (E002 #1363)
+  // expects the exact line of the quarantine run, and nothing about it changes.
+  it('the connected run keeps its command line: the timeout is not an argument of it', () => {
     const plain = run('quarantine_android() { echo; }; gradle_connected');
     assert.equal(plain.status, 0, plain.stderr);
-    assert.equal(
-      plain.stdout.trim(),
-      `gradle connectedDebugAndroidTest ${TIMEOUT_ARGUMENT}=120000`,
-    );
-    const changed = run('quarantine_android() { echo; }; gradle_connected', {
-      UI_TEST_TIMEOUT_MS: '5000',
-    });
-    assert.match(changed.stdout, new RegExp(`${TIMEOUT_ARGUMENT}=5000\\b`));
+    assert.equal(plain.stdout.trim(), 'gradle connectedDebugAndroidTest');
+    const listed = run('quarantine_android() { echo app.fivvi.pro.X#y; }; gradle_connected');
+    assert.equal(listed.status, 0, listed.stderr);
+    assert.doesNotMatch(listed.stdout, /timeout_msec/);
+    assert.match(listed.stdout, /quarantineTests=app\.fivvi\.pro\.X#y/);
+    assert.match(listed.stdout, /filter=app\.fivvi\.core\.quarantine\.QuarantineRunFilter/);
   });
 
-  it('the run with a quarantine list keeps its filter arguments next to the timeout', () => {
-    const result = run('quarantine_android() { echo app.fivvi.pro.X#y; }; gradle_connected');
-    assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stdout, new RegExp(`${TIMEOUT_ARGUMENT}=120000`));
-    assert.match(result.stdout, /quarantineTests=app\.fivvi\.pro\.X#y/);
-    assert.match(result.stdout, /filter=app\.fivvi\.core\.quarantine\.QuarantineRunFilter/);
+  it('every app with Compose UI tests gives each test 120 s, and UI_TEST_TIMEOUT_MS changes it', () => {
+    const properties = read('apps/android/gradle.properties');
+    assert.match(properties, /^fivvi\.uiTestTimeoutMs=120000$/m);
+    for (const module of ['app', 'client']) {
+      const build = read(`apps/android/${module}/build.gradle.kts`);
+      const set = build.match(
+        /testInstrumentationRunnerArguments\["timeout_msec"\] =\s*([^}]*?\.get\(\))/s,
+      );
+      assert.ok(set, `:${module} sets the timeout_msec argument of the runner`);
+      assert.match(set[1], /environmentVariable\("UI_TEST_TIMEOUT_MS"\)/, module);
+      assert.match(set[1], /gradleProperty\("fivvi\.uiTestTimeoutMs"\)/, module);
+    }
   });
 
   it('last-test names the tests the instrumentation started last, from the device log', () => {

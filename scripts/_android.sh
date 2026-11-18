@@ -103,10 +103,10 @@ gradle_tests() {
 # instrumentation runner loads QuarantineRunFilter (:core's androidTestShared), which reads the mode and the list from its
 # arguments. A run with no listed test is the whole suite, and with only nothing.
 #
-# Each test gets UI_TEST_TIMEOUT_MS (120000: the slowest of 521 tests took 4.5 s on CI) from the runner's timeout_msec
-# argument. A test that hangs then fails by name after two minutes and the run goes on, where it used to hold the step
-# until its limit and go quiet (E002 #1442).
-UI_TEST_TIMEOUT_MS="${UI_TEST_TIMEOUT_MS:-120000}"
+# Each test gets 120 s (the slowest of 521 tests took 4.5 s on CI) from the runner's timeout_msec argument, which :app and
+# :client set in their build.gradle.kts from fivvi.uiTestTimeoutMs (gradle.properties) or the environment variable
+# UI_TEST_TIMEOUT_MS, so the command line below stays as it is. A test that hangs then fails by name after two minutes
+# and the run goes on, where it used to hold the step until its limit and go quiet (E002 #1442).
 # AGP says only "There were failing tests" and points to a report, so a failed run also names, in the log, the tests that
 # failed and the one that started last.
 gradle_connected() {
@@ -117,15 +117,15 @@ gradle_connected() {
 }
 
 gradle_connected_run() {
-  local ui mode=exclude timeout="-Pandroid.testInstrumentationRunnerArguments.timeout_msec=$UI_TEST_TIMEOUT_MS"
+  local ui mode=exclude
   ui="$(quarantine_android ui)" || return 1
   [ "${FIVVI_QUARANTINE:-}" != only ] || mode=only
   if [ -z "$ui" ]; then
     [ "$mode" = exclude ] || return 0
-    gradle connectedDebugAndroidTest "$timeout"
+    gradle connectedDebugAndroidTest
     return
   fi
-  gradle connectedDebugAndroidTest "$timeout" \
+  gradle connectedDebugAndroidTest \
     "-Pandroid.testInstrumentationRunnerArguments.filter=app.fivvi.core.quarantine.QuarantineRunFilter" \
     "-Pandroid.testInstrumentationRunnerArguments.quarantine=$mode" \
     "-Pandroid.testInstrumentationRunnerArguments.quarantineTests=$ui"
