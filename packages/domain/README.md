@@ -31,15 +31,15 @@ The code is in `src/`, one folder per area:
 **This README does not list modules.** A module describes itself at the top of its file, in two comment lines:
 `// Module:` (what it decides, in the words of the domain) and `// Spec:` (the feature and acceptance criteria it
 implements, such as `F020 AC4`). A folder that is one module as a whole (`src/import/`, `src/payments/testing/`) has
-a `README.md` of its own with the same two parts. A new module adds its two lines to its own file and **never a row
-here**; two domain tickets in flight then never edit the same line (E001 #1270). Add a line to the folder table only
+a `README.md` of its own with the same two lines, `Module:` and `Spec:`. A new module adds its two lines to its own
+file and **never a row here**; two domain tickets in flight then never edit the same line (E001 #1270). Add a line to the folder table only
 for a new folder.
 
 Find a module, or the module of a spec, with:
 
 ```bash
-grep -rn -A1 '^// Module:' packages/domain/src       # every module and what it is for
-grep -rn '^// Spec:.*F022' packages/domain/src       # the files of a spec or criterion
+grep -rnE -A1 '^(// )?Module:' packages/domain/src                        # every module and what it is for
+grep -rnE --include='*.ts' --include='README.md' '^(// )?Spec:.*F022' packages/domain/src   # the files of a spec or criterion
 ```
 
 
