@@ -300,8 +300,8 @@ jobs:
         id: playwright
         run: echo "version=$(pnpm --filter @fivvi/web exec playwright --version | awk '{print $2}')" >>"$GITHUB_OUTPUT"
 
-      # Browsers are cached per Playwright version; the OS packages they need are not
-      # cacheable, so they are installed on every run.
+      # Browsers are cached per Playwright version. The OS packages they need are cached below, as the .deb files apt
+      # downloads (#1470).
       - name: Cache Playwright browsers
         id: playwright-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -314,12 +314,45 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm --filter @fivvi/web exec playwright install --only-shell chromium
 
+      # The Ubuntu mirror is now and then slow or out of reach from the runner: the step took 5 to 9 minutes instead of 15 to
+      # 25 seconds and hit its limit with no test run (#1470; unreachable: #1311). So the packages come from a cache: apt
+      # keeps the .deb files it downloads in /var/cache/apt/archives and takes them from there when the index of the mirror
+      # lists the same version, so a warm run only fetches the small indexes. The key holds what decides the package list:
+      # the runner image (the Ubuntu versions) and Playwright's version (its list of packages for Chromium). The cache is
+      # saved right after the install passes, so a failing test run does not lose it; as with the other caches, a PR and a merge group read main's and their own, and the push
+      # run on main fills it (E002 #242). A cold run installs as before.
+      - name: Prepare the apt cache for Chromium's OS packages
+        id: apt
+        run: |
+          set -euo pipefail
+          echo "image=${ImageOS:-unknown}-${ImageVersion:-unknown}" >>"$GITHUB_OUTPUT"
+          # The cache action restores as the runner user, and apt must keep the packages it downloads.
+          sudo mkdir -p /var/cache/apt/archives
+          sudo chmod a+rwx /var/cache/apt/archives
+          echo 'APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/99keep-downloaded-packages >/dev/null
+
+      - name: Restore Chromium's OS packages
+        id: apt-cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: /var/cache/apt/archives/*.deb
+          key: apt-chromium-${{ runner.os }}-${{ steps.apt.outputs.image }}-playwright-${{ steps.playwright.outputs.version }}
+
       # apt cannot always resolve the Ubuntu mirror from the runner (#1311), which failed the job before any test ran;
-      # the script tries the install again.
+      # the script tries the install again. What it installs is unchanged. With a warm cache this takes seconds.
       - name: Install Chromium's OS packages
-        # Worst case: 4 tries of about 1.5 minutes, plus 90 seconds of waiting between them.
+        # Worst case, a cold cache and a mirror that fails: 4 tries of about 1.5 minutes, plus 90 seconds of waiting between them.
         timeout-minutes: 10
         run: scripts/playwright-deps.sh
+
+      # A problem with the cache never fails the job: the next run installs from the mirror.
+      - name: Save Chromium's OS packages
+        if: steps.apt-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: /var/cache/apt/archives/*.deb
+          key: apt-chromium-${{ runner.os }}-${{ steps.apt.outputs.image }}-playwright-${{ steps.playwright.outputs.version }}
 
       # Builds the web app, then runs every spec in nl-NL and en with axe checks.
       - name: Web e2e (nl-NL and en)
