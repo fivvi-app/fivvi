@@ -3,6 +3,7 @@
 // seller's KvK and VAT number are required because the Dutch invoice requirements name them
 // (`PRODUCT.md §96`); a client's VAT number is optional.
 
+import { normalizeEmail } from '../email.ts';
 import {
   ADDRESS_ADDITION_MAX_LENGTH,
   ADDRESS_TEXT_MAX_LENGTH,
@@ -180,7 +181,7 @@ export type QuestionEmailDecision =
  * the workspace reads when it needs one; otherwise one address, trimmed and in lower case.
  */
 export function decideQuestionEmail(value: string | null | undefined): QuestionEmailDecision {
-  const email = (value ?? '').trim().toLowerCase();
+  const email = normalizeEmail(value ?? '');
   if (!email) return { ok: true, email: null };
   if (email.length > EMAIL_MAX_LENGTH) {
     return { ok: false, issue: { field: 'questionEmail', code: 'too_long' } };

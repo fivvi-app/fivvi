@@ -119,7 +119,7 @@ describe('F059 the billing details of a client', () => {
   const rowsOf = (clientId: string) =>
     admin.db.select().from(clientBillingDetails).where(eq(clientBillingDetails.clientId, clientId));
 
-  it('AC4: Mark saves Jansen Advies B.V. and reads it back, changed by the client', async () => {
+  it('#853: Mark saves Jansen Advies B.V. and reads it back, changed by the client', async () => {
     const { gym, mark, markClient } = await world();
 
     const saved = await request('PUT', mine(gym.id), mark, JANSEN);
@@ -142,7 +142,7 @@ describe('F059 the billing details of a client', () => {
     expect(await response.json()).toEqual(emptyFor(annaClient.id));
   });
 
-  it('AC5: Mark’s details at Fit Studio are separate and empty', async () => {
+  it('#853: Mark’s details at Fit Studio are separate and empty', async () => {
     const { gym, studio, mark, markAtStudio } = await world();
     await request('PUT', mine(gym.id), mark, JANSEN);
 

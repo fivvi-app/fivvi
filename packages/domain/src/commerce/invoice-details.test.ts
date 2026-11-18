@@ -265,7 +265,7 @@ describe('F059 the email for invoice questions', () => {
 });
 
 describe('F059 the invoice settings of a workspace', () => {
-  it('AC2: complete details with the switch off are stored, the question email empty', () => {
+  it('#852: complete details with the switch off are stored, the question email empty', () => {
     expect(decideInvoiceSettings({ ...DETAILS, noVat: false })).toEqual({
       ok: true,
       settings: { ...DETAILS, questionEmail: null, noVat: false },

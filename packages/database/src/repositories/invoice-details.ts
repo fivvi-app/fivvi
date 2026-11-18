@@ -74,15 +74,17 @@ export async function saveInvoiceSettings(
 }
 
 /**
- * The address invoice questions go to: the one saved on the invoice details, else the email
- * address of the workspace's first Owner (the one who has been an Owner the longest). `undefined`
- * only for a workspace without an Owner, which does not happen.
+ * The address invoice questions go to: the one saved on the invoice details (`saved`, what
+ * `findInvoiceSettings` returned, so the settings are read once), else the email address of the
+ * workspace's first Owner (the one who has been an Owner the longest). `undefined` only for a
+ * workspace without an Owner, which does not happen.
  */
-export async function findInvoiceQuestionEmail(scope: WorkspaceScope): Promise<string | undefined> {
-  const db = executorOf(scope);
-  const saved = await findInvoiceSettings(scope);
+export async function findInvoiceQuestionEmail(
+  scope: WorkspaceScope,
+  saved: Pick<InvoiceSettingsView, 'questionEmail'> | undefined,
+): Promise<string | undefined> {
   if (saved?.questionEmail) return saved.questionEmail;
-  const [owner] = await db
+  const [owner] = await executorOf(scope)
     .select({ email: authUsers.email })
     .from(teamMembers)
     .innerJoin(authUsers, eq(authUsers.id, teamMembers.accountId))

@@ -190,11 +190,9 @@ export function registerInvoiceDetails(app: OpenAPIHono) {
   const details = new OpenAPIHono<WorkspaceEnv>({ defaultHook: answerValidationFailure });
   details.openapi(getInvoiceDetailsRoute, async (c) => {
     const scope = c.get('scope');
-    const [settings, effective] = await Promise.all([
-      findInvoiceSettings(scope),
-      findInvoiceQuestionEmail(scope),
-    ]);
-    return c.json(show(settings, effective), 200);
+    // One after the other: the request's transaction has one client.
+    const settings = await findInvoiceSettings(scope);
+    return c.json(show(settings, await findInvoiceQuestionEmail(scope, settings)), 200);
   });
   details.openapi(putInvoiceDetailsRoute, async (c) => {
     const scope = c.get('scope');
@@ -209,7 +207,7 @@ export function registerInvoiceDetails(app: OpenAPIHono) {
       );
     }
     const saved = await saveInvoiceSettings(scope, decision.settings);
-    return c.json(show(saved, await findInvoiceQuestionEmail(scope)), 200);
+    return c.json(show(saved, await findInvoiceQuestionEmail(scope, saved)), 200);
   });
   app.route('/', details);
 }

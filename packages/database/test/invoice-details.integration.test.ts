@@ -130,19 +130,25 @@ describe('F059 workspace invoice details', () => {
     const john = await ownerOf(gym.id, { label: 'john' });
     await ownerOf(gym.id, { label: 'second-owner' });
 
-    expect(await asOwner(john.id, gym.id, (scope) => findInvoiceQuestionEmail(scope))).toBe(
-      john.email,
-    );
+    expect(
+      await asOwner(john.id, gym.id, async (scope) =>
+        findInvoiceQuestionEmail(scope, await findInvoiceSettings(scope)),
+      ),
+    ).toBe(john.email);
     await asOwner(john.id, gym.id, (scope) => saveInvoiceSettings(scope, JOHNS_GYM));
-    expect(await asOwner(john.id, gym.id, (scope) => findInvoiceQuestionEmail(scope))).toBe(
-      john.email,
-    );
+    expect(
+      await asOwner(john.id, gym.id, async (scope) =>
+        findInvoiceQuestionEmail(scope, await findInvoiceSettings(scope)),
+      ),
+    ).toBe(john.email);
     await asOwner(john.id, gym.id, (scope) =>
       saveInvoiceSettings(scope, { ...JOHNS_GYM, questionEmail: 'facturen@example.com' }),
     );
-    expect(await asOwner(john.id, gym.id, (scope) => findInvoiceQuestionEmail(scope))).toBe(
-      'facturen@example.com',
-    );
+    expect(
+      await asOwner(john.id, gym.id, async (scope) =>
+        findInvoiceQuestionEmail(scope, await findInvoiceSettings(scope)),
+      ),
+    ).toBe('facturen@example.com');
   });
 
   it('the database allows one row per workspace and refuses what the API never writes', async () => {

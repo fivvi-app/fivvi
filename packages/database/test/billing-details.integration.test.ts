@@ -112,7 +112,7 @@ describe('F059 client billing details', () => {
     });
   });
 
-  it('AC4: the client saves their company details and reads them back, noted as changed by the client', async () => {
+  it('#853: the client saves their company details and reads them back, noted as changed by the client', async () => {
     const { gym, mark, markAccount } = await world();
 
     const saved = await as(markAccount.id, gym.id, 'client', (scope) =>
@@ -162,7 +162,7 @@ describe('F059 client billing details', () => {
     });
   });
 
-  it('AC2: a client of two workspaces has a separate, empty set in the second', async () => {
+  it('#853: a client of two workspaces has a separate, empty set in the second', async () => {
     const { gym, mark, markAccount } = await world();
     const studio = await createWorkspace(admin.db, { label: 'fit-studio' });
     const markAtStudio = await addClient(admin.db, {

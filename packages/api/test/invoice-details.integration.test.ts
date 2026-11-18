@@ -250,7 +250,7 @@ describe('F059 the invoice details of a workspace', () => {
     });
   });
 
-  it('AC4: John turns Ik reken geen btw on and off; it is off for a new workspace', async () => {
+  it('#852: John turns Ik reken geen btw on and off; it is off for a new workspace', async () => {
     const { gym, john } = await world();
     expect(await (await read(gym.id, john)).json()).toMatchObject({ noVat: false });
 
