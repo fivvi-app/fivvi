@@ -23,6 +23,7 @@ import { registerInvoiceDetails } from './routes/invoice-details.ts';
 import { registerJoinLink } from './routes/join-link.ts';
 import { registerLocations } from './routes/locations.ts';
 import { registerMe } from './routes/me.ts';
+import { registerOffers } from './routes/offers.ts';
 import { registerPersonal } from './routes/personal.ts';
 import { registerSessions } from './routes/sessions.ts';
 import { registerSignIn } from './routes/sign-in.ts';
@@ -92,6 +93,7 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
   registerAccessLog(app);
   registerInvoiceDetails(app);
   registerBillingDetails(app);
+  registerOffers(app);
   return app;
 }
 

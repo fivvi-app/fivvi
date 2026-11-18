@@ -104,17 +104,24 @@ export {
 } from './repositories/locations.ts';
 export {
   addOfferVersion,
+  type CoveredClass,
+  changeOffer,
   createOffer,
+  findOffer,
   insertOffer,
+  listCoveredClasses,
   listOffers,
   listOfferVersions,
   type NewOffer,
+  type OfferChange,
+  type OfferChangeResult,
   type OfferCreditKind,
   type OfferKind,
   type OfferStatus,
   type OfferTerms,
   type OfferVersionView,
   type OfferView,
+  runningAgreementCounts,
 } from './repositories/offers.ts';
 export {
   findPayment,

@@ -373,6 +373,7 @@ extension Components {
                 case joinLink_renew = "join_link.renew"
                 case accessLog_read = "access_log.read"
                 case invoices_manage = "invoices.manage"
+                case commerce_offers_manage = "commerce.offers.manage"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -515,6 +516,7 @@ extension Components {
                 case joinLink_renew = "join_link.renew"
                 case accessLog_read = "access_log.read"
                 case invoices_manage = "invoices.manage"
+                case commerce_offers_manage = "commerce.offers.manage"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -4092,6 +4094,868 @@ extension Components {
                 case postcode
                 case city
                 case vatNumber
+            }
+        }
+        /// An offer of the workspace with its current version. A saved change is a new version; the versions before it stay as they were.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Offer`.
+        public struct Offer: Codable, Hashable, Sendable {
+            /// The offer ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Offer/id`.
+            public var id: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Offer/kind`.
+            public var kind: Components.Schemas.OfferKind
+            /// - Remark: Generated from `#/components/schemas/Offer/creditKind`.
+            public var creditKind: Components.Schemas.OfferCreditKind?
+            /// - Remark: Generated from `#/components/schemas/Offer/status`.
+            public var status: Components.Schemas.OfferStatus
+            /// `default` for a copy of one of Fivvi’s default plans, `owner` for the rest.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Offer/origin`.
+            @frozen public enum OriginPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case _default = "default"
+                case owner = "owner"
+            }
+            /// `default` for a copy of one of Fivvi’s default plans, `owner` for the rest.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Offer/origin`.
+            public var origin: Components.Schemas.Offer.OriginPayload
+            /// How many agreements run on the offer: 0 until agreements exist (F057).
+            ///
+            /// - Remark: Generated from `#/components/schemas/Offer/runningAgreements`.
+            public var runningAgreements: Swift.Int
+            /// The one-line summary in the caller’s language, e.g. "2 lessen per week · 6 maanden · € 79,00 per maand". Without a price the amount is left out.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Offer/summary`.
+            public var summary: Swift.String
+            /// The cancellation rule as clients read it, in the caller’s language.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Offer/cancellation`.
+            public var cancellation: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Offer/currentVersion`.
+            public var currentVersion: Components.Schemas.OfferVersion
+            /// Creates a new `Offer`.
+            ///
+            /// - Parameters:
+            ///   - id: The offer ID.
+            ///   - kind:
+            ///   - creditKind:
+            ///   - status:
+            ///   - origin: `default` for a copy of one of Fivvi’s default plans, `owner` for the rest.
+            ///   - runningAgreements: How many agreements run on the offer: 0 until agreements exist (F057).
+            ///   - summary: The one-line summary in the caller’s language, e.g. "2 lessen per week · 6 maanden · € 79,00 per maand". Without a price the amount is left out.
+            ///   - cancellation: The cancellation rule as clients read it, in the caller’s language.
+            ///   - currentVersion:
+            public init(
+                id: Swift.String,
+                kind: Components.Schemas.OfferKind,
+                creditKind: Components.Schemas.OfferCreditKind? = nil,
+                status: Components.Schemas.OfferStatus,
+                origin: Components.Schemas.Offer.OriginPayload,
+                runningAgreements: Swift.Int,
+                summary: Swift.String,
+                cancellation: Swift.String,
+                currentVersion: Components.Schemas.OfferVersion
+            ) {
+                self.id = id
+                self.kind = kind
+                self.creditKind = creditKind
+                self.status = status
+                self.origin = origin
+                self.runningAgreements = runningAgreements
+                self.summary = summary
+                self.cancellation = cancellation
+                self.currentVersion = currentVersion
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case kind
+                case creditKind
+                case status
+                case origin
+                case runningAgreements
+                case summary
+                case cancellation
+                case currentVersion
+            }
+        }
+        /// The kind of offer: `membership`, `credit_pack`, `credit_plan` or `single_class_pass`. There is no fifth kind, and it never changes once the offer exists.
+        ///
+        /// - Remark: Generated from `#/components/schemas/OfferKind`.
+        @frozen public enum OfferKind: String, Codable, Hashable, Sendable, CaseIterable {
+            case membership = "membership"
+            case creditPack = "credit_pack"
+            case creditPlan = "credit_plan"
+            case singleClassPass = "single_class_pass"
+        }
+        /// For a credit pack or credit plan; `null` otherwise.
+        ///
+        /// - Remark: Generated from `#/components/schemas/OfferCreditKind`.
+        @frozen public enum OfferCreditKind: String, Codable, Hashable, Sendable, CaseIterable {
+            case group = "group"
+            case _private = "private"
+            case _empty_ = ""
+        }
+        /// `off` is not for sale, `on` is, `archived` is a deleted offer whose agreements still run.
+        ///
+        /// - Remark: Generated from `#/components/schemas/OfferStatus`.
+        @frozen public enum OfferStatus: String, Codable, Hashable, Sendable, CaseIterable {
+            case off = "off"
+            case on = "on"
+            case archived = "archived"
+        }
+        /// The terms of an offer as of one saved change. Never changes once stored: an agreement keeps the version it started on.
+        ///
+        /// - Remark: Generated from `#/components/schemas/OfferVersion`.
+        public struct OfferVersion: Codable, Hashable, Sendable {
+            /// The version ID: what an agreement points at.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/id`.
+            public var id: Swift.String
+            /// The version number: 1 for the first, one more for every saved change.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/version`.
+            public var version: Swift.Int
+            /// The Dutch name: always there.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/nameNl`.
+            public var nameNl: Swift.String
+            /// The English name, or `null`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/nameEn`.
+            public var nameEn: Swift.String?
+            /// The Dutch description.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/descriptionNl`.
+            public var descriptionNl: Swift.String?
+            /// The English description.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/descriptionEn`.
+            public var descriptionEn: Swift.String?
+            /// The price including VAT in euro cents, 1 to 1,000,000; `null` until the owner sets it (a default plan).
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/priceCents`.
+            public var priceCents: Swift.Int?
+            /// The VAT rate in basis points: 2100 or 900; `null` until chosen. Never 0.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/vatRateBasisPoints`.
+            public var vatRateBasisPoints: Swift.Int?
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/billingCycle`.
+            public var billingCycle: Components.Schemas.OfferBillingCycle?
+            /// A membership’s term.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/termMonths`.
+            public var termMonths: Swift.Int?
+            /// A credit plan’s minimum term in months.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/minimumTermMonths`.
+            public var minimumTermMonths: Swift.Int?
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/endOfTerm`.
+            public var endOfTerm: Components.Schemas.OfferEndOfTerm?
+            /// A membership’s classes.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/classesPerWeek`.
+            public var classesPerWeek: Swift.Int?
+            /// Credits of a pack, or credits per billing cycle of a plan.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/credits`.
+            public var credits: Swift.Int?
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/validity`.
+            public var validity: Components.Schemas.OfferValidity?
+            /// The most credits a credit plan carries over to the next cycle.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/carryOverLimit`.
+            public var carryOverLimit: Swift.Int?
+            /// A credit pack a client buys once.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/oncePerClient`.
+            public var oncePerClient: Swift.Bool
+            /// Sold only to clients with a membership.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/membersOnly`.
+            public var membersOnly: Swift.Bool
+            /// Minutes before the start up to which a client cancels for free: whole hours.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/cutoffMinutes`.
+            public var cutoffMinutes: Swift.Int
+            /// A membership’s makeups.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/makeupsPerMonth`.
+            public var makeupsPerMonth: Swift.Int?
+            /// The most credits that come back a month on a timely cancellation; `null`: all.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/returnsPerMonth`.
+            public var returnsPerMonth: Swift.Int?
+            /// The classes the version is limited to; `null`: all group classes.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/coveredClasses`.
+            public var coveredClasses: [Components.Schemas.OfferCoveredClass]?
+            /// Days before the end that renewing is suggested and the client is reminded.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/renewalWindowDays`.
+            public var renewalWindowDays: Swift.Int?
+            /// When the version was saved, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/createdAt`.
+            public var createdAt: Foundation.Date
+            /// Creates a new `OfferVersion`.
+            ///
+            /// - Parameters:
+            ///   - id: The version ID: what an agreement points at.
+            ///   - version: The version number: 1 for the first, one more for every saved change.
+            ///   - nameNl: The Dutch name: always there.
+            ///   - nameEn: The English name, or `null`.
+            ///   - descriptionNl: The Dutch description.
+            ///   - descriptionEn: The English description.
+            ///   - priceCents: The price including VAT in euro cents, 1 to 1,000,000; `null` until the owner sets it (a default plan).
+            ///   - vatRateBasisPoints: The VAT rate in basis points: 2100 or 900; `null` until chosen. Never 0.
+            ///   - billingCycle:
+            ///   - termMonths: A membership’s term.
+            ///   - minimumTermMonths: A credit plan’s minimum term in months.
+            ///   - endOfTerm:
+            ///   - classesPerWeek: A membership’s classes.
+            ///   - credits: Credits of a pack, or credits per billing cycle of a plan.
+            ///   - validity:
+            ///   - carryOverLimit: The most credits a credit plan carries over to the next cycle.
+            ///   - oncePerClient: A credit pack a client buys once.
+            ///   - membersOnly: Sold only to clients with a membership.
+            ///   - cutoffMinutes: Minutes before the start up to which a client cancels for free: whole hours.
+            ///   - makeupsPerMonth: A membership’s makeups.
+            ///   - returnsPerMonth: The most credits that come back a month on a timely cancellation; `null`: all.
+            ///   - coveredClasses: The classes the version is limited to; `null`: all group classes.
+            ///   - renewalWindowDays: Days before the end that renewing is suggested and the client is reminded.
+            ///   - createdAt: When the version was saved, a UTC instant.
+            public init(
+                id: Swift.String,
+                version: Swift.Int,
+                nameNl: Swift.String,
+                nameEn: Swift.String? = nil,
+                descriptionNl: Swift.String? = nil,
+                descriptionEn: Swift.String? = nil,
+                priceCents: Swift.Int? = nil,
+                vatRateBasisPoints: Swift.Int? = nil,
+                billingCycle: Components.Schemas.OfferBillingCycle? = nil,
+                termMonths: Swift.Int? = nil,
+                minimumTermMonths: Swift.Int? = nil,
+                endOfTerm: Components.Schemas.OfferEndOfTerm? = nil,
+                classesPerWeek: Swift.Int? = nil,
+                credits: Swift.Int? = nil,
+                validity: Components.Schemas.OfferValidity? = nil,
+                carryOverLimit: Swift.Int? = nil,
+                oncePerClient: Swift.Bool,
+                membersOnly: Swift.Bool,
+                cutoffMinutes: Swift.Int,
+                makeupsPerMonth: Swift.Int? = nil,
+                returnsPerMonth: Swift.Int? = nil,
+                coveredClasses: [Components.Schemas.OfferCoveredClass]? = nil,
+                renewalWindowDays: Swift.Int? = nil,
+                createdAt: Foundation.Date
+            ) {
+                self.id = id
+                self.version = version
+                self.nameNl = nameNl
+                self.nameEn = nameEn
+                self.descriptionNl = descriptionNl
+                self.descriptionEn = descriptionEn
+                self.priceCents = priceCents
+                self.vatRateBasisPoints = vatRateBasisPoints
+                self.billingCycle = billingCycle
+                self.termMonths = termMonths
+                self.minimumTermMonths = minimumTermMonths
+                self.endOfTerm = endOfTerm
+                self.classesPerWeek = classesPerWeek
+                self.credits = credits
+                self.validity = validity
+                self.carryOverLimit = carryOverLimit
+                self.oncePerClient = oncePerClient
+                self.membersOnly = membersOnly
+                self.cutoffMinutes = cutoffMinutes
+                self.makeupsPerMonth = makeupsPerMonth
+                self.returnsPerMonth = returnsPerMonth
+                self.coveredClasses = coveredClasses
+                self.renewalWindowDays = renewalWindowDays
+                self.createdAt = createdAt
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case version
+                case nameNl
+                case nameEn
+                case descriptionNl
+                case descriptionEn
+                case priceCents
+                case vatRateBasisPoints
+                case billingCycle
+                case termMonths
+                case minimumTermMonths
+                case endOfTerm
+                case classesPerWeek
+                case credits
+                case validity
+                case carryOverLimit
+                case oncePerClient
+                case membersOnly
+                case cutoffMinutes
+                case makeupsPerMonth
+                case returnsPerMonth
+                case coveredClasses
+                case renewalWindowDays
+                case createdAt
+            }
+        }
+        /// How often a recurring offer is billed: every `month` or every `four_weeks`.
+        ///
+        /// - Remark: Generated from `#/components/schemas/OfferBillingCycle`.
+        @frozen public enum OfferBillingCycle: String, Codable, Hashable, Sendable, CaseIterable {
+            case month = "month"
+            case fourWeeks = "four_weeks"
+            case _empty_ = ""
+        }
+        /// What happens when a term ends: the agreement `stop`s, or `continue`s per billing cycle until notice.
+        ///
+        /// - Remark: Generated from `#/components/schemas/OfferEndOfTerm`.
+        @frozen public enum OfferEndOfTerm: String, Codable, Hashable, Sendable, CaseIterable {
+            case stop = "stop"
+            case _continue = "continue"
+            case _empty_ = ""
+        }
+        /// How long a credit pack is good for.
+        ///
+        /// - Remark: Generated from `#/components/schemas/OfferValidity`.
+        public struct OfferValidity: Codable, Hashable, Sendable {
+            /// How many units, at least 1.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferValidity/amount`.
+            public var amount: Swift.Int
+            /// `day`, `week` or `month`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferValidity/unit`.
+            @frozen public enum UnitPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case day = "day"
+                case week = "week"
+                case month = "month"
+            }
+            /// `day`, `week` or `month`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferValidity/unit`.
+            public var unit: Components.Schemas.OfferValidity.UnitPayload
+            /// Creates a new `OfferValidity`.
+            ///
+            /// - Parameters:
+            ///   - amount: How many units, at least 1.
+            ///   - unit: `day`, `week` or `month`.
+            public init(
+                amount: Swift.Int,
+                unit: Components.Schemas.OfferValidity.UnitPayload
+            ) {
+                self.amount = amount
+                self.unit = unit
+            }
+            public enum CodingKeys: String, CodingKey {
+                case amount
+                case unit
+            }
+        }
+        /// A group class an offer version is limited to.
+        ///
+        /// - Remark: Generated from `#/components/schemas/OfferCoveredClass`.
+        public struct OfferCoveredClass: Codable, Hashable, Sendable {
+            /// The class ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferCoveredClass/id`.
+            public var id: Swift.String
+            /// The class’s name in the caller’s language (the English name when the caller reads English and there is one, else the Dutch). `null` for a class that was removed with its name.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferCoveredClass/name`.
+            public var name: Swift.String?
+            /// Whether the class is gone since this version was saved.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferCoveredClass/deleted`.
+            public var deleted: Swift.Bool
+            /// How the class is listed in the caller’s language: its name, with "(verwijderd)" / "(deleted)" after it when it is gone.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferCoveredClass/label`.
+            public var label: Swift.String
+            /// Creates a new `OfferCoveredClass`.
+            ///
+            /// - Parameters:
+            ///   - id: The class ID.
+            ///   - name: The class’s name in the caller’s language (the English name when the caller reads English and there is one, else the Dutch). `null` for a class that was removed with its name.
+            ///   - deleted: Whether the class is gone since this version was saved.
+            ///   - label: How the class is listed in the caller’s language: its name, with "(verwijderd)" / "(deleted)" after it when it is gone.
+            public init(
+                id: Swift.String,
+                name: Swift.String? = nil,
+                deleted: Swift.Bool,
+                label: Swift.String
+            ) {
+                self.id = id
+                self.name = name
+                self.deleted = deleted
+                self.label = label
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case name
+                case deleted
+                case label
+            }
+        }
+        /// A new offer: its kind, for credits the credit kind, and the fields of its first version. It starts switched off.
+        ///
+        /// - Remark: Generated from `#/components/schemas/CreateOfferRequest`.
+        public struct CreateOfferRequest: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/kind`.
+            public var kind: Components.Schemas.OfferKind
+            /// Required for a credit pack and a credit plan; refused for the other kinds.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/creditKind`.
+            @frozen public enum CreditKindPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case group = "group"
+                case _private = "private"
+                case _empty_ = ""
+            }
+            /// Required for a credit pack and a credit plan; refused for the other kinds.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/creditKind`.
+            public var creditKind: Components.Schemas.CreateOfferRequest.CreditKindPayload?
+            /// The Dutch name: trimmed, 1 to 80 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/nameNl`.
+            public var nameNl: Swift.String
+            /// The English name: trimmed, at most 80 characters. Blank: none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/nameEn`.
+            public var nameEn: Swift.String?
+            /// The Dutch description: trimmed, at most 500 characters. Blank: none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/descriptionNl`.
+            public var descriptionNl: Swift.String?
+            /// The English description: trimmed, at most 500 characters. Blank: none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/descriptionEn`.
+            public var descriptionEn: Swift.String?
+            /// The price including VAT in euro cents, 1 to 1000000. `null` or left out: no price yet (an offer without a price can be saved but not switched on). A non-whole number or one out of bounds answers `422`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/priceCents`.
+            public var priceCents: Swift.Int?
+            /// The VAT rate in basis points: 2100 (21 %) or 900 (9 %). Never 0.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/vatRateBasisPoints`.
+            public var vatRateBasisPoints: Swift.Int?
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/billingCycle`.
+            public var billingCycle: Components.Schemas.OfferBillingCycle?
+            /// A membership’s term in months, 1 to 24.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/termMonths`.
+            public var termMonths: Swift.Int?
+            /// The owner confirmed a first term over 12 months (consumer law). A longer term without it answers `422` on `termMonths`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/longTermConfirmed`.
+            public var longTermConfirmed: Swift.Bool?
+            /// A credit plan’s minimum term in months, 0 to 12.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/minimumTermMonths`.
+            public var minimumTermMonths: Swift.Int?
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/endOfTerm`.
+            public var endOfTerm: Components.Schemas.OfferEndOfTerm?
+            /// A membership’s classes a week, 1 to 7.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/classesPerWeek`.
+            public var classesPerWeek: Swift.Int?
+            /// A credit pack’s credits (1 to 200), or a credit plan’s credits per billing cycle (1 to 50).
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/credits`.
+            public var credits: Swift.Int?
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/validity`.
+            public var validity: Components.Schemas.OfferValidity?
+            /// A credit plan’s carry-over, 0 to 50.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/carryOverLimit`.
+            public var carryOverLimit: Swift.Int?
+            /// A credit pack a client can buy once. Default `false`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/oncePerClient`.
+            public var oncePerClient: Swift.Bool?
+            /// Sold only to clients with a membership (credits and the single class pass). Default `false`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/membersOnly`.
+            public var membersOnly: Swift.Bool?
+            /// Minutes before the start up to which a client cancels for free: a whole number of hours, 0 to 4320.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/cutoffMinutes`.
+            public var cutoffMinutes: Swift.Int?
+            /// A membership’s makeups a month, 0 to 10.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/makeupsPerMonth`.
+            public var makeupsPerMonth: Swift.Int?
+            /// Credit offers: the most credits that come back a month on a timely cancellation, 0 to 50. `null` or left out: always.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/returnsPerMonth`.
+            public var returnsPerMonth: Swift.Int?
+            /// The group classes the offer is limited to, 1 to 100 (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace, or one that was deleted and is not on the offer already, answers `422` on `coveredClassIds`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/coveredClassIds`.
+            public var coveredClassIds: [Swift.String]?
+            /// Days before the end that renewing is suggested, 0 to 365. Left out: 30.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/renewalWindowDays`.
+            public var renewalWindowDays: Swift.Int?
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `offer_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `offer_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/surface`.
+            public var surface: Components.Schemas.CreateOfferRequest.SurfacePayload?
+            /// Creates a new `CreateOfferRequest`.
+            ///
+            /// - Parameters:
+            ///   - kind:
+            ///   - creditKind: Required for a credit pack and a credit plan; refused for the other kinds.
+            ///   - nameNl: The Dutch name: trimmed, 1 to 80 characters.
+            ///   - nameEn: The English name: trimmed, at most 80 characters. Blank: none.
+            ///   - descriptionNl: The Dutch description: trimmed, at most 500 characters. Blank: none.
+            ///   - descriptionEn: The English description: trimmed, at most 500 characters. Blank: none.
+            ///   - priceCents: The price including VAT in euro cents, 1 to 1000000. `null` or left out: no price yet (an offer without a price can be saved but not switched on). A non-whole number or one out of bounds answers `422`.
+            ///   - vatRateBasisPoints: The VAT rate in basis points: 2100 (21 %) or 900 (9 %). Never 0.
+            ///   - billingCycle:
+            ///   - termMonths: A membership’s term in months, 1 to 24.
+            ///   - longTermConfirmed: The owner confirmed a first term over 12 months (consumer law). A longer term without it answers `422` on `termMonths`.
+            ///   - minimumTermMonths: A credit plan’s minimum term in months, 0 to 12.
+            ///   - endOfTerm:
+            ///   - classesPerWeek: A membership’s classes a week, 1 to 7.
+            ///   - credits: A credit pack’s credits (1 to 200), or a credit plan’s credits per billing cycle (1 to 50).
+            ///   - validity:
+            ///   - carryOverLimit: A credit plan’s carry-over, 0 to 50.
+            ///   - oncePerClient: A credit pack a client can buy once. Default `false`.
+            ///   - membersOnly: Sold only to clients with a membership (credits and the single class pass). Default `false`.
+            ///   - cutoffMinutes: Minutes before the start up to which a client cancels for free: a whole number of hours, 0 to 4320.
+            ///   - makeupsPerMonth: A membership’s makeups a month, 0 to 10.
+            ///   - returnsPerMonth: Credit offers: the most credits that come back a month on a timely cancellation, 0 to 50. `null` or left out: always.
+            ///   - coveredClassIds: The group classes the offer is limited to, 1 to 100 (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace, or one that was deleted and is not on the offer already, answers `422` on `coveredClassIds`.
+            ///   - renewalWindowDays: Days before the end that renewing is suggested, 0 to 365. Left out: 30.
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `offer_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            public init(
+                kind: Components.Schemas.OfferKind,
+                creditKind: Components.Schemas.CreateOfferRequest.CreditKindPayload? = nil,
+                nameNl: Swift.String,
+                nameEn: Swift.String? = nil,
+                descriptionNl: Swift.String? = nil,
+                descriptionEn: Swift.String? = nil,
+                priceCents: Swift.Int? = nil,
+                vatRateBasisPoints: Swift.Int? = nil,
+                billingCycle: Components.Schemas.OfferBillingCycle? = nil,
+                termMonths: Swift.Int? = nil,
+                longTermConfirmed: Swift.Bool? = nil,
+                minimumTermMonths: Swift.Int? = nil,
+                endOfTerm: Components.Schemas.OfferEndOfTerm? = nil,
+                classesPerWeek: Swift.Int? = nil,
+                credits: Swift.Int? = nil,
+                validity: Components.Schemas.OfferValidity? = nil,
+                carryOverLimit: Swift.Int? = nil,
+                oncePerClient: Swift.Bool? = nil,
+                membersOnly: Swift.Bool? = nil,
+                cutoffMinutes: Swift.Int? = nil,
+                makeupsPerMonth: Swift.Int? = nil,
+                returnsPerMonth: Swift.Int? = nil,
+                coveredClassIds: [Swift.String]? = nil,
+                renewalWindowDays: Swift.Int? = nil,
+                surface: Components.Schemas.CreateOfferRequest.SurfacePayload? = nil
+            ) {
+                self.kind = kind
+                self.creditKind = creditKind
+                self.nameNl = nameNl
+                self.nameEn = nameEn
+                self.descriptionNl = descriptionNl
+                self.descriptionEn = descriptionEn
+                self.priceCents = priceCents
+                self.vatRateBasisPoints = vatRateBasisPoints
+                self.billingCycle = billingCycle
+                self.termMonths = termMonths
+                self.longTermConfirmed = longTermConfirmed
+                self.minimumTermMonths = minimumTermMonths
+                self.endOfTerm = endOfTerm
+                self.classesPerWeek = classesPerWeek
+                self.credits = credits
+                self.validity = validity
+                self.carryOverLimit = carryOverLimit
+                self.oncePerClient = oncePerClient
+                self.membersOnly = membersOnly
+                self.cutoffMinutes = cutoffMinutes
+                self.makeupsPerMonth = makeupsPerMonth
+                self.returnsPerMonth = returnsPerMonth
+                self.coveredClassIds = coveredClassIds
+                self.renewalWindowDays = renewalWindowDays
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case kind
+                case creditKind
+                case nameNl
+                case nameEn
+                case descriptionNl
+                case descriptionEn
+                case priceCents
+                case vatRateBasisPoints
+                case billingCycle
+                case termMonths
+                case longTermConfirmed
+                case minimumTermMonths
+                case endOfTerm
+                case classesPerWeek
+                case credits
+                case validity
+                case carryOverLimit
+                case oncePerClient
+                case membersOnly
+                case cutoffMinutes
+                case makeupsPerMonth
+                case returnsPerMonth
+                case coveredClassIds
+                case renewalWindowDays
+                case surface
+            }
+        }
+        /// The offer changed since the version in the request; nothing was written. `offer` is the offer as it is now.
+        ///
+        /// - Remark: Generated from `#/components/schemas/OfferChanged`.
+        public struct OfferChanged: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/OfferChanged/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case offerChanged = "offer_changed"
+            }
+            /// - Remark: Generated from `#/components/schemas/OfferChanged/code`.
+            public var code: Components.Schemas.OfferChanged.CodePayload
+            /// - Remark: Generated from `#/components/schemas/OfferChanged/offer`.
+            public var offer: Components.Schemas.Offer
+            /// Creates a new `OfferChanged`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            ///   - offer:
+            public init(
+                code: Components.Schemas.OfferChanged.CodePayload,
+                offer: Components.Schemas.Offer
+            ) {
+                self.code = code
+                self.offer = offer
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+                case offer
+            }
+        }
+        /// The full set of fields of the offer’s next version, with the version it was changed from. A field left out is empty in the new version, not kept from the old one. The offer’s kind never changes.
+        ///
+        /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest`.
+        public struct UpdateOfferRequest: Codable, Hashable, Sendable {
+            /// The version the caller read (`Offer.currentVersion.version`). When the offer has been changed since, nothing is stored and the answer is `409`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/version`.
+            public var version: Swift.Int
+            /// A credit offer’s credit kind, which can change while no agreement uses it. Left out: unchanged. Refused for the other kinds.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/creditKind`.
+            @frozen public enum CreditKindPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case group = "group"
+                case _private = "private"
+                case _empty_ = ""
+            }
+            /// A credit offer’s credit kind, which can change while no agreement uses it. Left out: unchanged. Refused for the other kinds.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/creditKind`.
+            public var creditKind: Components.Schemas.UpdateOfferRequest.CreditKindPayload?
+            /// The Dutch name: trimmed, 1 to 80 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/nameNl`.
+            public var nameNl: Swift.String
+            /// The English name: trimmed, at most 80 characters. Blank: none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/nameEn`.
+            public var nameEn: Swift.String?
+            /// The Dutch description: trimmed, at most 500 characters. Blank: none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/descriptionNl`.
+            public var descriptionNl: Swift.String?
+            /// The English description: trimmed, at most 500 characters. Blank: none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/descriptionEn`.
+            public var descriptionEn: Swift.String?
+            /// The price including VAT in euro cents, 1 to 1000000. `null` or left out: no price yet (an offer without a price can be saved but not switched on). A non-whole number or one out of bounds answers `422`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/priceCents`.
+            public var priceCents: Swift.Int?
+            /// The VAT rate in basis points: 2100 (21 %) or 900 (9 %). Never 0.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/vatRateBasisPoints`.
+            public var vatRateBasisPoints: Swift.Int?
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/billingCycle`.
+            public var billingCycle: Components.Schemas.OfferBillingCycle?
+            /// A membership’s term in months, 1 to 24.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/termMonths`.
+            public var termMonths: Swift.Int?
+            /// The owner confirmed a first term over 12 months (consumer law). A longer term without it answers `422` on `termMonths`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/longTermConfirmed`.
+            public var longTermConfirmed: Swift.Bool?
+            /// A credit plan’s minimum term in months, 0 to 12.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/minimumTermMonths`.
+            public var minimumTermMonths: Swift.Int?
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/endOfTerm`.
+            public var endOfTerm: Components.Schemas.OfferEndOfTerm?
+            /// A membership’s classes a week, 1 to 7.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/classesPerWeek`.
+            public var classesPerWeek: Swift.Int?
+            /// A credit pack’s credits (1 to 200), or a credit plan’s credits per billing cycle (1 to 50).
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/credits`.
+            public var credits: Swift.Int?
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/validity`.
+            public var validity: Components.Schemas.OfferValidity?
+            /// A credit plan’s carry-over, 0 to 50.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/carryOverLimit`.
+            public var carryOverLimit: Swift.Int?
+            /// A credit pack a client can buy once. Default `false`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/oncePerClient`.
+            public var oncePerClient: Swift.Bool?
+            /// Sold only to clients with a membership (credits and the single class pass). Default `false`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/membersOnly`.
+            public var membersOnly: Swift.Bool?
+            /// Minutes before the start up to which a client cancels for free: a whole number of hours, 0 to 4320.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/cutoffMinutes`.
+            public var cutoffMinutes: Swift.Int?
+            /// A membership’s makeups a month, 0 to 10.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/makeupsPerMonth`.
+            public var makeupsPerMonth: Swift.Int?
+            /// Credit offers: the most credits that come back a month on a timely cancellation, 0 to 50. `null` or left out: always.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/returnsPerMonth`.
+            public var returnsPerMonth: Swift.Int?
+            /// The group classes the offer is limited to, 1 to 100 (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace, or one that was deleted and is not on the offer already, answers `422` on `coveredClassIds`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/coveredClassIds`.
+            public var coveredClassIds: [Swift.String]?
+            /// Days before the end that renewing is suggested, 0 to 365. Left out: 30.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/renewalWindowDays`.
+            public var renewalWindowDays: Swift.Int?
+            /// Creates a new `UpdateOfferRequest`.
+            ///
+            /// - Parameters:
+            ///   - version: The version the caller read (`Offer.currentVersion.version`). When the offer has been changed since, nothing is stored and the answer is `409`.
+            ///   - creditKind: A credit offer’s credit kind, which can change while no agreement uses it. Left out: unchanged. Refused for the other kinds.
+            ///   - nameNl: The Dutch name: trimmed, 1 to 80 characters.
+            ///   - nameEn: The English name: trimmed, at most 80 characters. Blank: none.
+            ///   - descriptionNl: The Dutch description: trimmed, at most 500 characters. Blank: none.
+            ///   - descriptionEn: The English description: trimmed, at most 500 characters. Blank: none.
+            ///   - priceCents: The price including VAT in euro cents, 1 to 1000000. `null` or left out: no price yet (an offer without a price can be saved but not switched on). A non-whole number or one out of bounds answers `422`.
+            ///   - vatRateBasisPoints: The VAT rate in basis points: 2100 (21 %) or 900 (9 %). Never 0.
+            ///   - billingCycle:
+            ///   - termMonths: A membership’s term in months, 1 to 24.
+            ///   - longTermConfirmed: The owner confirmed a first term over 12 months (consumer law). A longer term without it answers `422` on `termMonths`.
+            ///   - minimumTermMonths: A credit plan’s minimum term in months, 0 to 12.
+            ///   - endOfTerm:
+            ///   - classesPerWeek: A membership’s classes a week, 1 to 7.
+            ///   - credits: A credit pack’s credits (1 to 200), or a credit plan’s credits per billing cycle (1 to 50).
+            ///   - validity:
+            ///   - carryOverLimit: A credit plan’s carry-over, 0 to 50.
+            ///   - oncePerClient: A credit pack a client can buy once. Default `false`.
+            ///   - membersOnly: Sold only to clients with a membership (credits and the single class pass). Default `false`.
+            ///   - cutoffMinutes: Minutes before the start up to which a client cancels for free: a whole number of hours, 0 to 4320.
+            ///   - makeupsPerMonth: A membership’s makeups a month, 0 to 10.
+            ///   - returnsPerMonth: Credit offers: the most credits that come back a month on a timely cancellation, 0 to 50. `null` or left out: always.
+            ///   - coveredClassIds: The group classes the offer is limited to, 1 to 100 (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace, or one that was deleted and is not on the offer already, answers `422` on `coveredClassIds`.
+            ///   - renewalWindowDays: Days before the end that renewing is suggested, 0 to 365. Left out: 30.
+            public init(
+                version: Swift.Int,
+                creditKind: Components.Schemas.UpdateOfferRequest.CreditKindPayload? = nil,
+                nameNl: Swift.String,
+                nameEn: Swift.String? = nil,
+                descriptionNl: Swift.String? = nil,
+                descriptionEn: Swift.String? = nil,
+                priceCents: Swift.Int? = nil,
+                vatRateBasisPoints: Swift.Int? = nil,
+                billingCycle: Components.Schemas.OfferBillingCycle? = nil,
+                termMonths: Swift.Int? = nil,
+                longTermConfirmed: Swift.Bool? = nil,
+                minimumTermMonths: Swift.Int? = nil,
+                endOfTerm: Components.Schemas.OfferEndOfTerm? = nil,
+                classesPerWeek: Swift.Int? = nil,
+                credits: Swift.Int? = nil,
+                validity: Components.Schemas.OfferValidity? = nil,
+                carryOverLimit: Swift.Int? = nil,
+                oncePerClient: Swift.Bool? = nil,
+                membersOnly: Swift.Bool? = nil,
+                cutoffMinutes: Swift.Int? = nil,
+                makeupsPerMonth: Swift.Int? = nil,
+                returnsPerMonth: Swift.Int? = nil,
+                coveredClassIds: [Swift.String]? = nil,
+                renewalWindowDays: Swift.Int? = nil
+            ) {
+                self.version = version
+                self.creditKind = creditKind
+                self.nameNl = nameNl
+                self.nameEn = nameEn
+                self.descriptionNl = descriptionNl
+                self.descriptionEn = descriptionEn
+                self.priceCents = priceCents
+                self.vatRateBasisPoints = vatRateBasisPoints
+                self.billingCycle = billingCycle
+                self.termMonths = termMonths
+                self.longTermConfirmed = longTermConfirmed
+                self.minimumTermMonths = minimumTermMonths
+                self.endOfTerm = endOfTerm
+                self.classesPerWeek = classesPerWeek
+                self.credits = credits
+                self.validity = validity
+                self.carryOverLimit = carryOverLimit
+                self.oncePerClient = oncePerClient
+                self.membersOnly = membersOnly
+                self.cutoffMinutes = cutoffMinutes
+                self.makeupsPerMonth = makeupsPerMonth
+                self.returnsPerMonth = returnsPerMonth
+                self.coveredClassIds = coveredClassIds
+                self.renewalWindowDays = renewalWindowDays
+            }
+            public enum CodingKeys: String, CodingKey {
+                case version
+                case creditKind
+                case nameNl
+                case nameEn
+                case descriptionNl
+                case descriptionEn
+                case priceCents
+                case vatRateBasisPoints
+                case billingCycle
+                case termMonths
+                case longTermConfirmed
+                case minimumTermMonths
+                case endOfTerm
+                case classesPerWeek
+                case credits
+                case validity
+                case carryOverLimit
+                case oncePerClient
+                case membersOnly
+                case cutoffMinutes
+                case makeupsPerMonth
+                case returnsPerMonth
+                case coveredClassIds
+                case renewalWindowDays
             }
         }
     }

@@ -22,12 +22,15 @@
 #   android.sh emulator   boot the emulator headless and leave it running, so test and maestro.sh reuse it. With
 #                         AVD_SNAPSHOT=1 (CI) it boots from a saved snapshot, or cold when there is none or it
 #                         doesn't load, and then saves one
+#   android.sh last-test  the tests the instrumentation started last, from the connected device's log: after a step of
+#                         CI ran out of time, the one that started and did not finish hung (E002 #1442)
 #   android.sh stop       stop the emulator and wait for it to exit (CI, before it saves the AVD cache), within
 #                         EMULATOR_STOP_TIMEOUT seconds (30); fails when it doesn't. The cleanup of the test commands
 #                         (test, maestro.sh android) waits for the emulator they started within the same time, and only
 #                         warns when it doesn't exit: the exit status stays the run's
 #   android.sh avd-key    the cache key suffix for CI's cached AVD: system image, emulator and AVD settings
 #
+# The Compose UI tests give each test UI_TEST_TIMEOUT_MS (120000), so a test that hangs fails by name.
 # test is build and verify. When test ends, also on failure or Ctrl-C, it kills the emulator it booted and stops its Gradle daemons; KEEP_DEVICE=1
 # leaves them running for the next run.
 set -euo pipefail
@@ -225,7 +228,11 @@ after_unit_tests() {
     :client:testDebugUnitTest --tests app.fivvi.client.BuildInfoTest -Pfivvi.buildNumber=42
   release_bundle_is_signed_with_the_upload_key
   start_emulator
+  # The time of the Compose UI tests, to size the step limit of CI by (E002 #1442: 13 to 21 minutes on the runners).
+  local started=$SECONDS
   gradle_connected
+  echo "✓ Compose UI tests in $((SECONDS - started))s"
+  summary "Compose UI tests: **$((SECONDS - started))s**"
 }
 
 cmd_test() {
@@ -292,6 +299,12 @@ cmd_emulator() {
   echo "✓ $(adb devices | sed -n 2p)"
 }
 
+cmd_last_test() {
+  [ $# -eq 0 ] || usage
+  command -v adb >/dev/null || android_env
+  last_ui_tests
+}
+
 cmd_stop() {
   [ $# -eq 0 ] || usage
   android_env
@@ -312,6 +325,7 @@ case "${1:-}" in
   quarantine) shift; cmd_quarantine "$@" ;;
   maestro-apk) shift; cmd_maestro_apk "$@" ;;
   emulator) shift; cmd_emulator "$@" ;;
+  last-test) shift; cmd_last_test "$@" ;;
   stop) shift; cmd_stop "$@" ;;
   *) usage ;;
 esac

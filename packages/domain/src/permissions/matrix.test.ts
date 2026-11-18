@@ -39,6 +39,7 @@ describe('@permission F004 permission matrix', () => {
       'join_link.renew',
       'access_log.read',
       'invoices.manage',
+      'commerce.offers.manage',
     ]);
     expect(capabilitiesOf('owner')).toEqual(CAPABILITIES);
     expect(capabilitiesOf('trainer')).toEqual(TRAINER_CAPABILITIES);
@@ -74,6 +75,8 @@ describe('@permission F004 permission matrix', () => {
     expect(rolesWith('access_log.read')).toEqual(['owner']);
     // F059: only the Owner keeps the invoice details and edits a client's billing details.
     expect(rolesWith('invoices.manage')).toEqual(['owner']);
+    // F052: only the Owner lists, reads, creates and changes the workspace's offers; money stays with the Owner.
+    expect(rolesWith('commerce.offers.manage')).toEqual(['owner']);
   });
 
   it('AC9: has no admin role', () => {

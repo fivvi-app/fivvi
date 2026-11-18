@@ -1063,7 +1063,9 @@ jobs:
     if: needs.changes.outputs.android == 'true'
     runs-on: ubuntu-24.04
     continue-on-error: ${{ github.event_name == 'push' }}
-    timeout-minutes: 40
+    # The setup (3 minutes at most), the step "Unit tests, release bundle and Compose UI tests" (40) and 2 minutes for the
+    # steps after it (#1442).
+    timeout-minutes: 50
     permissions:
       contents: read
       actions: read # scripts/step-timings.sh reads this run's step durations
@@ -1131,10 +1133,19 @@ jobs:
           EMULATOR_BOOT_TIMEOUT: '480'
         run: scripts/android.sh emulator
 
+      # Slow, not hung (#1442): over 25 runs of 14 to 17 November the step took 1033 to 1466 s, and the three that ran out of
+      # 1500 s were 10 to 50 s from the end. The unit tests and the bundle take 3 to 5 minutes, the Compose UI tests 14 to 21
+      # (:app's 436 take 12 to 17 on the two-core runner, :client's 85 about 2.5; the slowest test takes 5 s). 40 minutes is
+      # 1.6 times the slowest run measured. A test that hangs fails by name after UI_TEST_TIMEOUT_MS (a minute or two,
+      # scripts/_android.sh), long before the limit; the step below names the one that started last when it runs out anyway.
       - name: Unit tests, release bundle and Compose UI tests
         if: github.event_name != 'push'
-        timeout-minutes: 25
+        timeout-minutes: 40
         run: scripts/android.sh verify
+
+      - name: The Compose UI test that ran last
+        if: failure()
+        run: scripts/android.sh last-test
 
       # The cache of the emulator is saved after this step: the emulator must not be running, or it would be copied in
       # mid-write.
