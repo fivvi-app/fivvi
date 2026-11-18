@@ -14,6 +14,17 @@ final class ClientLinkUITests: SignInUITestCase {
         try StubServer(.status(404), signIn: StubServer.SignIn(email: "anna@example.com", name: "Anna de Vries"))
     }
 
+    /// *Openen in de browser* hands the same address to the system: the app records it instead of opening Safari, which
+    /// would answer from the network.
+    private func assertOpensInBrowser(_ screen: ClientScreen, link: String) {
+        XCTAssertEqual(screen.openedLink.label, "-", "nothing opened before the tap")
+        screen.linkOpenInBrowser.tap()
+        XCTAssertTrue(
+            Polling.until(timeout: timeout, interval: 0.2) { screen.openedLink.label == link },
+            "opens the same address, got \(screen.openedLink.label)"
+        )
+    }
+
     private func assertPlaceholder(_ screen: ClientScreen) {
         XCTAssertTrue(screen.linkSoon.waitUntilExists(timeout: timeout), "the placeholder shows")
         XCTAssertEqual(screen.linkSoon.label, catalog["appLink.soon"])
@@ -22,7 +33,7 @@ final class ClientLinkUITests: SignInUITestCase {
 
     func test_E017_AC6_openJoinLinkAfterSignIn() throws {
         let server = try server()
-        let app = ClientLaunch.launch(against: server, session: .signedOut, link: joinLink)
+        let app = ClientLaunch.launch(against: server, session: .signedOut, link: joinLink, recordsOpenedLinks: true)
         let screen = ClientScreen(app: app, catalog: catalog)
 
         // Signed out: sign-in first, not the placeholder.
@@ -34,21 +45,19 @@ final class ClientLinkUITests: SignInUITestCase {
 
         // Signed in: the placeholder, then the same address in the browser.
         assertPlaceholder(screen)
-        screen.linkOpenInBrowser.tap()
-
-        let browser = XCUIApplication(bundleIdentifier: "com.apple.mobilesafari")
-        XCTAssertTrue(
-            browser.wait(for: .runningForeground, timeout: externalAppLaunchTimeout), "the system browser opens"
-        )
-        browser.terminate()
+        assertOpensInBrowser(screen, link: joinLink)
     }
 
     func test_E017_AC6_aSignedInPersonSeesThePlaceholderAtOnceAndBackReturnsToTheTabs() throws {
         let screen = ClientScreen(
-            app: ClientLaunch.launch(against: try server(), session: .signedIn, link: invitationLink), catalog: catalog
+            app: ClientLaunch.launch(
+                against: try server(), session: .signedIn, link: invitationLink, recordsOpenedLinks: true
+            ),
+            catalog: catalog
         )
 
         assertPlaceholder(screen)
+        assertOpensInBrowser(screen, link: invitationLink)
 
         screen.linkBack.tap()
 

@@ -36,6 +36,8 @@
 		E50300000000000000000312 /* SignInScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000212 /* SignInScreen.swift */; };
 		E50300000000000000000313 /* SignInUITestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000213 /* SignInUITestCase.swift */; };
 		E50300000000000000000314 /* AppLaunch.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000214 /* AppLaunch.swift */; };
+		E50300000000000000000320 /* OpenedLinksRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000220 /* OpenedLinksRecorder.swift */; };
+		E50300000000000000000321 /* EmbeddedEntitlements.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000221 /* EmbeddedEntitlements.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -81,6 +83,8 @@
 		E50300000000000000000212 /* SignInScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignInScreen.swift"; sourceTree = "<group>"; };
 		E50300000000000000000213 /* SignInUITestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignInUITestCase.swift"; sourceTree = "<group>"; };
 		E50300000000000000000214 /* AppLaunch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppLaunch.swift"; sourceTree = "<group>"; };
+		E50300000000000000000220 /* OpenedLinksRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OpenedLinksRecorder.swift"; sourceTree = "<group>"; };
+		E50300000000000000000221 /* EmbeddedEntitlements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EmbeddedEntitlements.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -161,6 +165,8 @@
 				E50300000000000000000022 /* Config */,
 				E50300000000000000000021 /* Strings */,
 				E50300000000000000000025 /* Fivvi Pro UI test support */,
+				E50300000000000000000026 /* Fivvi Pro shared app source */,
+				E50300000000000000000027 /* Fivvi Pro shared test support */,
 				E50300000000000000000023 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -217,6 +223,24 @@
 			);
 			name = "Fivvi Pro UI test support";
 			path = FivviProUITests/Support;
+			sourceTree = "<group>";
+		};
+		E50300000000000000000026 /* Fivvi Pro shared app source */ = {
+			isa = PBXGroup;
+			children = (
+				E50300000000000000000220 /* OpenedLinksRecorder.swift */,
+			);
+			name = "Fivvi Pro shared app source";
+			path = FivviPro/App;
+			sourceTree = "<group>";
+		};
+		E50300000000000000000027 /* Fivvi Pro shared test support */ = {
+			isa = PBXGroup;
+			children = (
+				E50300000000000000000221 /* EmbeddedEntitlements.swift */,
+			);
+			name = "Fivvi Pro shared test support";
+			path = FivviProTests/Support;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -383,6 +407,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E50300000000000000000320 /* OpenedLinksRecorder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -390,6 +415,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E50300000000000000000321 /* EmbeddedEntitlements.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

@@ -1,8 +1,10 @@
 import Foundation
 
-/// The entitlements a simulator build carries (the property list with the Keychain access group both apps have): Xcode signs it ad hoc and embeds them as a property list in the executable
+/// The entitlements a simulator build carries (the property list with the Keychain access group both apps have, and
+/// the Associated Domains of Fivvi): Xcode signs it ad hoc and embeds them as a property list in the executable
 /// (`__TEXT,__entitlements`), which is where the system reads them on a simulator. A device build takes them from the
-/// signature, so this proves the Debug build the tests run on, from the same `CODE_SIGN_ENTITLEMENTS` setting.
+/// signature, so this proves the Debug build the tests run on, from the same `CODE_SIGN_ENTITLEMENTS` setting. One
+/// file for both apps: `Fivvi.xcodeproj` reads it from here for `FivviTests`.
 enum EmbeddedEntitlements {
     /// The embedded entitlements of the app under test, or nil when it carries none.
     static func ofApp(executable: URL? = Bundle.main.executableURL) throws -> [String: Any]? {

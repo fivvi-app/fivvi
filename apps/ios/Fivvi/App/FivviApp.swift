@@ -44,6 +44,9 @@ struct FivviApp: App {
                 .onOpenURL { links.open($0) }
                 .tint(Tokens.Colors.actionPrimaryBg)
                 .preferredColorScheme(LaunchAppearance.colorScheme())
+            #if DEBUG
+                .recordingOpenedLinks()
+            #endif
         }
     }
 }

@@ -5,12 +5,15 @@ import XCTest
 /// (`-UITestConnectivity`, `Connectivity.forLaunch` in the app), so no test depends on the network of the machine.
 @MainActor
 enum ClientLaunch {
-    /// Launches the app against `server`; `AppLaunch.launch` has the meaning of the other parameters.
+    /// Launches the app against `server`; `AppLaunch.launch` has the meaning of the other parameters. With
+    /// `recordsOpenedLinks` the app opens no link but shows its address in `uitest.openedLink` (`OpenedLinksRecorder`,
+    /// Fivvi Pro's source, shared by the project).
     static func launch(
         against server: StubServer,
         session: AppLaunch.Session,
         online: Bool = true,
         link: String? = nil,
+        recordsOpenedLinks: Bool = false,
         deviceLanguages: [String]? = nil,
         textSize: String? = nil,
         appearance: String? = nil
@@ -30,6 +33,7 @@ enum ClientLaunch {
         }
         // Opens the app as a Universal Link does; the phone's own handoff needs a verified association with fivvi.app.
         if let link { app.launchArguments += ["-UITestOpenLink", link] }
+        if recordsOpenedLinks { app.launchArguments += ["-UITestRecordOpenedLinks", "YES"] }
         if let textSize { app.launchArguments += ["-UIPreferredContentSizeCategoryName", textSize] }
         if let appearance { app.launchArguments += ["-UITestAppearance", appearance] }
         app.launchEnvironment["TZ"] = "Europe/Amsterdam"
@@ -59,6 +63,8 @@ struct ClientScreen {
     var linkSoon: XCUIElement { app.staticTexts["link.soon"] }
     var linkOpenInBrowser: XCUIElement { app.buttons["link.openInBrowser"] }
     var linkBack: XCUIElement { app.buttons["link.back"] }
+    /// The address the app was asked to open, when launched with `recordsOpenedLinks` (a dash before the first).
+    var openedLink: XCUIElement { app.staticTexts["uitest.openedLink"] }
 
     var offline: XCUIElement { app.staticTexts["client.offline"] }
     var profileTitle: XCUIElement { app.staticTexts["profile.title"] }
