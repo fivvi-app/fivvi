@@ -12,6 +12,9 @@ extension StringKey {
     static let noWorkspaceTeamHint = StringKey("noWorkspace.teamHint")
     static let profileLanguage = StringKey("profile.language")
     static let profileVersion = StringKey("profile.version")
+    static let appLinkSoon = StringKey("appLink.soon")
+    static let appLinkOpenInBrowser = StringKey("appLink.openInBrowser")
+    static let appLinkBack = StringKey("appLink.back")
     static let signOutLabel = StringKey("signOut.label")
     static let userMenuError = StringKey("userMenu.error")
 }

@@ -10,6 +10,7 @@ enum ClientLaunch {
         against server: StubServer,
         session: AppLaunch.Session,
         online: Bool = true,
+        link: String? = nil,
         deviceLanguages: [String]? = nil,
         textSize: String? = nil,
         appearance: String? = nil
@@ -27,6 +28,8 @@ enum ClientLaunch {
         case .signedOut: app.launchArguments += ["-UITestSession", "none"]
         case .asLeft: break
         }
+        // Opens the app as a Universal Link does; the phone's own handoff needs a verified association with fivvi.app.
+        if let link { app.launchArguments += ["-UITestOpenLink", link] }
         if let textSize { app.launchArguments += ["-UIPreferredContentSizeCategoryName", textSize] }
         if let appearance { app.launchArguments += ["-UITestAppearance", appearance] }
         app.launchEnvironment["TZ"] = "Europe/Amsterdam"
@@ -52,6 +55,10 @@ struct ClientScreen {
     func noWorkspace(_ prefix: String) -> XCUIElement { app.staticTexts["\(prefix).noWorkspace"] }
     func haveLink(_ prefix: String) -> XCUIElement { app.staticTexts["\(prefix).haveLink"] }
     func teamHint(_ prefix: String) -> XCUIElement { app.staticTexts["\(prefix).teamHint"] }
+
+    var linkSoon: XCUIElement { app.staticTexts["link.soon"] }
+    var linkOpenInBrowser: XCUIElement { app.buttons["link.openInBrowser"] }
+    var linkBack: XCUIElement { app.buttons["link.back"] }
 
     var offline: XCUIElement { app.staticTexts["client.offline"] }
     var profileTitle: XCUIElement { app.staticTexts["profile.title"] }

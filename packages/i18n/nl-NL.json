@@ -697,6 +697,11 @@
     "haveLink": "Heb je de link al? Open hem op deze telefoon.",
     "teamHint": "Ben je trainer of eigenaar? Gebruik de app Fivvi Pro."
   },
+  "appLink": {
+    "soon": "Deze link openen we binnenkort in de app.",
+    "openInBrowser": "Openen in de browser",
+    "back": "Terug"
+  },
   "offers": {
     "summary": {
       "classesPerWeek": "{count, plural, one {# les per week} other {# lessen per week}}",
