@@ -38,6 +38,12 @@ export const EXTRA_POLICIES: Record<string, string[]> = {
     'trainer_invitations_cron_delete',
   ],
   access_log: ['access_log_cron_select', 'access_log_cron_delete'],
+  // The daily task that keeps class series 12 weeks ahead (F022, migration `cron_class_series_policies`)
+  // runs as the cron role, which sets no workspace: it reads the series and moves their
+  // `materialized_until`, inserts the missing dates and reads the default location's key columns.
+  class_series: ['class_series_cron_select', 'class_series_cron_update'],
+  sessions: ['sessions_cron_insert'],
+  locations: ['locations_cron_select'],
 };
 
 export const RULES: TenancyRules = {
