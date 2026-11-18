@@ -13,6 +13,7 @@ import {
 } from '../schema/index.ts';
 import {
   addAccessLogEntry,
+  addClassSeries,
   addClient,
   addGroupClass,
   addOffer,
@@ -139,6 +140,11 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
       if (!row) throw new Error('offer version was not created.');
       return row;
     },
+  },
+  // A weekly series of a class made for the workspace (its dates are `sessions` rows).
+  class_series: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addClassSeries(db, { workspaceId }),
   },
   // A private session with a trainer of the workspace, planned by an Owner of it, and its one client.
   sessions: {
