@@ -3477,6 +3477,139 @@ esac`,
     }
   });
 
+  // ADR-034: with `ci: fast` the iOS tests jobs of CI run `test <locale> --unit-only`, and builders run the default mode
+  // with it: the unit tests of both apps, no UI test target; the build and every check stay.
+  describe('E002 ADR-034 --unit-only: the unit tests only, no UI test target', () => {
+    const tests = (fake) =>
+      fake
+        .log('xcodebuild')
+        .filter((line) => line.startsWith('test-without-building '))
+        .map((line) => ({
+          config: line.match(/-only-test-configuration (\S+)/)?.[1] ?? 'all',
+          skipsUI: / -skip-testing:FivviProUITests(\s|$)/.test(line),
+        }));
+    const builds = (fake) =>
+      fake.log('xcodebuild').filter((line) => /^build-for-testing /.test(line)).length;
+
+    it('the default mode builds once and runs the unit tests of nl and en one after the other, skipping the UI tests', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh', ['--unit-only']);
+
+      assert.equal(run.status, 0, run.output);
+      assert.equal(builds(fake), 1);
+      assert.deepEqual(tests(fake), [
+        { config: 'nl', skipsUI: true },
+        { config: 'en', skipsUI: true },
+      ]);
+      assert.match(run.output, /Unit tests in nl and en, no UI tests \(--unit-only\) \(simulator/);
+      assert.match(run.output, /✓ iOS/);
+    });
+
+    it('wins over IOS_UI_LOCALES, and runs every check of the default mode first', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh', ['--unit-only'], { IOS_UI_LOCALES: 'nl' });
+
+      assert.equal(run.status, 0, run.output);
+      assert.deepEqual(
+        tests(fake).map((test) => test.skipsUI),
+        [true, true],
+      );
+      assert.match(run.output, /SwiftLint/);
+    });
+
+    it('keeps the test-plan check: a UI test that runs in no configuration still fails before the build', async () => {
+      const fake = checkout();
+      const plan = join(fake.repo, 'apps/ios/FivviPro.xctestplan');
+      const json = JSON.parse(readFileSync(plan, 'utf8'));
+      json.configurations
+        .find((config) => config.name === 'nl')
+        .options.environmentVariableEntries.push({
+          key: 'FIVVI_SKIP_TESTS',
+          value: 'HomeUITests/test_E008_AC6_usesTokenColoursInLightAndDark',
+        });
+      writeFileSync(plan, JSON.stringify(json));
+
+      const run = await fake.run('scripts/test-ios.sh', ['--unit-only']);
+
+      assert.equal(run.status, 1, run.output);
+      assert.match(run.output, /runs in no configuration/);
+      assert.equal(builds(fake), 0);
+    });
+
+    it('fails when a unit test fails', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh', ['--unit-only'], { FAKE_RESULT: 'fail' });
+
+      assert.equal(run.status, 1, run.output);
+    });
+
+    for (const locale of ['nl', 'en']) {
+      it(`test ${locale} runs the unit tests of that language from the bundle, skipping the UI tests, in either order of the options`, async () => {
+        const fake = checkout();
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+        const before = fake.log('xcodebuild').length;
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', locale, '--unit-only']);
+
+        assert.equal(run.status, 0, run.output);
+        const after = fake.log('xcodebuild').slice(before);
+        assert.equal(
+          after.filter((line) => line.startsWith('build-for-testing')).length,
+          0,
+          'no build',
+        );
+        const [test, ...more] = after.filter((line) => line.startsWith('test-without-building '));
+        assert.equal(more.length, 0);
+        assert.match(test, new RegExp(`-only-test-configuration ${locale}\\b`));
+        assert.match(test, / -skip-testing:FivviProUITests(\s|$)/);
+        assert.match(run.output, new RegExp(`Unit tests in ${locale} \\(--unit-only\\)`));
+        assert.doesNotMatch(run.output, /Unit and UI tests/);
+
+        const flipped = await fake.run('scripts/test-ios.sh', [
+          'test',
+          locale,
+          '--unit-only',
+          '--bundle',
+          join(fake.repo, 'apps/ios/.build/ios-test-bundle.tar'),
+        ]);
+        assert.equal(flipped.status, 0, flipped.output);
+      });
+    }
+
+    it('test without the option still runs the UI tests', async () => {
+      const fake = checkout();
+      assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+      const before = fake.log('xcodebuild').length;
+
+      const run = await fake.run('scripts/test-ios.sh', ['test', 'nl']);
+
+      assert.equal(run.status, 0, run.output);
+      const [test] = fake
+        .log('xcodebuild')
+        .slice(before)
+        .filter((line) => line.startsWith('test-without-building '));
+      assert.ok(!test.includes('-skip-testing'));
+    });
+
+    it('is refused for build and with unknown or repeated words', async () => {
+      const fake = checkout();
+
+      for (const args of [
+        ['build', '--unit-only'],
+        ['--unit-only', 'build'],
+        ['--unit-only', '--unit-only'],
+        ['--units'],
+      ]) {
+        const run = await fake.run('scripts/test-ios.sh', args);
+        assert.notEqual(run.status, 0, args.join(' '));
+      }
+      assert.deepEqual(tests(fake), []);
+    });
+  });
+
   describe('E002 #105 faster iOS tests without losing coverage', () => {
     const commands = (fake) =>
       fake
@@ -4199,6 +4332,75 @@ esac`,
       assert.match(tasks, /:app:bundleRelease/);
       assert.match(tasks, /connectedDebugAndroidTest/);
       assert.doesNotMatch(tasks, /ktlintCheck|assembleDebug/);
+    });
+
+    // ADR-034: `ci: fast` runs `verify --no-ui` in "Android tests", and builders run `test --no-ui`.
+    it('verify --no-ui runs the unit tests (nl-NL, en, BuildInfoTest with 42) and the signed release bundle, and boots no emulator', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/android.sh', ['verify', '--no-ui']);
+
+      assert.equal(run.status, 0, run.output);
+      const tasks = gradleTasks(fake);
+      assert.match(tasks, /testDebugUnitTest/);
+      assert.ok(
+        fake
+          .log('gradle')
+          .some(
+            (line) =>
+              line.includes('testDebugUnitTest') &&
+              line.includes('--tests app.fivvi.pro.BuildInfoTest') &&
+              line.includes('--tests app.fivvi.client.BuildInfoTest') &&
+              line.includes('-Pfivvi.buildNumber=42'),
+          ),
+        'BuildInfoTest of both apps with build number 42',
+      );
+      assert.match(tasks, /:app:bundleRelease/);
+      assert.doesNotMatch(tasks, /connectedDebugAndroidTest|ktlintCheck|assembleDebug/);
+      assert.equal(fake.emulator().booted, false, 'no emulator');
+      assert.doesNotMatch(run.output, /Compose UI tests/);
+    });
+
+    it('test --no-ui is build and verify --no-ui: the static checks, the debug build, the unit tests and the bundle', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/android.sh', ['test', '--no-ui']);
+
+      assert.equal(run.status, 0, run.output);
+      const tasks = gradleTasks(fake);
+      for (const task of ['ktlintCheck', 'assembleDebug', 'testDebugUnitTest', ':app:bundleRelease'])
+        assert.match(tasks, new RegExp(task));
+      assert.doesNotMatch(tasks, /connectedDebugAndroidTest/);
+      assert.equal(fake.emulator().booted, false);
+    });
+
+    it('a failing Compose UI test fails verify, and --no-ui does not run it', async () => {
+      // The fake Gradle fails the Compose UI task when FAKE_RESULT=fail: --no-ui must not reach it.
+      const failing = checkout();
+      assert.equal(
+        (await failing.run('scripts/android.sh', ['verify'], { FAKE_RESULT: 'fail' })).status,
+        1,
+      );
+      const noUi = checkout();
+      const run = await noUi.run('scripts/android.sh', ['verify', '--no-ui'], {
+        FAKE_RESULT: 'fail',
+      });
+      assert.equal(run.status, 0, run.output);
+      assert.doesNotMatch(gradleTasks(noUi), /connectedDebugAndroidTest/);
+    });
+
+    it('--no-ui is only for test and verify, and takes no other word', async () => {
+      const fake = checkout();
+      for (const args of [
+        ['build', '--no-ui'],
+        ['quarantine', '--no-ui'],
+        ['verify', '--no-ui', '--no-ui'],
+        ['verify', '--ui'],
+        ['test', 'extra'],
+      ]) {
+        assert.notEqual((await fake.run('scripts/android.sh', args)).status, 0, args.join(' '));
+      }
+      assert.equal(gradleTasks(fake), '');
     });
 
     it('test is build and verify: the same Gradle tasks as before the split', async () => {
