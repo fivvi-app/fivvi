@@ -13,3 +13,4 @@ Rules: `docs/product/PRODUCT.md` (spec sections are linked from `FEATURES.md`), 
 - Every operation is scoped to one workspace (`organization_id`). The team roles are Owner and Trainer (an Admin role comes later), and Client is a separate relationship (`PRODUCT.md §9, §50`).
 - Notes may contain health data: trainer-only by default; never put note content in errors, logs or list payloads.
 - Tests sit next to the code (`*.test.ts`) with edge cases and invalid input. Line coverage of this package must stay at or above 90%.
+- A module describes itself in two comment lines at the top of its file, `// Module:` (what it decides) and `// Spec:` (feature and acceptance criteria, `F020 AC4`); a folder that is one module has a `README.md`. Never add a row to a table in `packages/domain/README.md` (it lists folders only): parallel domain PRs would conflict on it (#1270).
