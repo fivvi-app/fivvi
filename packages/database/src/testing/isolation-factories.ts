@@ -14,6 +14,7 @@ import {
 import {
   addAccessLogEntry,
   addClient,
+  addClientBillingDetails,
   addGroupClass,
   addOffer,
   addPayment,
@@ -145,6 +146,14 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
   workspace_invoice_details: {
     scopeColumn: 'organization_id',
     create: (db, workspaceId) => addWorkspaceInvoiceDetails(db, { workspaceId }),
+  },
+  // The billing details of a client of the workspace (F059): one row per client.
+  client_billing_details: {
+    scopeColumn: 'organization_id',
+    create: async (db, workspaceId) => {
+      const client = await addClient(db, { workspaceId });
+      return addClientBillingDetails(db, { workspaceId, clientId: client.id });
+    },
   },
   // A private session with a trainer of the workspace, planned by an Owner of it, and its one client.
   sessions: {

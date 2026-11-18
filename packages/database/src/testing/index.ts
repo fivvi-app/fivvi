@@ -4,6 +4,7 @@ export { readTenantContext, type StoredContext, selectEverythingInScope } from '
 export {
   addAccessLogEntry,
   addClient,
+  addClientBillingDetails,
   addGroupClass,
   addOffer,
   addPayment,

@@ -207,4 +207,28 @@ extension StubAPI {
     ) async throws -> Operations.PutInvoiceDetails.Output {
         fatalError("The app doesn't call putInvoiceDetails yet")
     }
+
+    func getClientBillingDetails(
+        _ input: Operations.GetClientBillingDetails.Input
+    ) async throws -> Operations.GetClientBillingDetails.Output {
+        fatalError("The app doesn't call getClientBillingDetails yet")
+    }
+
+    func putClientBillingDetails(
+        _ input: Operations.PutClientBillingDetails.Input
+    ) async throws -> Operations.PutClientBillingDetails.Output {
+        fatalError("The app doesn't call putClientBillingDetails yet")
+    }
+
+    func getMyBillingDetails(
+        _ input: Operations.GetMyBillingDetails.Input
+    ) async throws -> Operations.GetMyBillingDetails.Output {
+        fatalError("The app doesn't call getMyBillingDetails yet")
+    }
+
+    func putMyBillingDetails(
+        _ input: Operations.PutMyBillingDetails.Input
+    ) async throws -> Operations.PutMyBillingDetails.Output {
+        fatalError("The app doesn't call putMyBillingDetails yet")
+    }
 }

@@ -14,7 +14,9 @@ function capabilityProblems(document: ContractDocument): string[] {
   const problems: string[] = [];
   for (const { name, access } of describeOperations(document)) {
     if (access?.type !== 'workspace') continue;
-    const { capability, roles } = access as Access;
+    const { capability, roles, client } = access as Access;
+    // A route for clients alone: no team role holds it, so there is no capability to name (F059).
+    if (capability === undefined && client === 'own-records' && roles?.length === 0) continue;
     if (capability === undefined) {
       problems.push(`${name} has an x-access without a capability.`);
     } else if (!(CAPABILITIES as readonly string[]).includes(capability)) {
@@ -50,6 +52,18 @@ describe('@permission F004 route capabilities', () => {
     const document = workspaceRoute({ type: 'workspace', roles: ['owner'], client: 'none' });
 
     expect(capabilityProblems(document)).toEqual(['getX has an x-access without a capability.']);
+  });
+
+  it('AC1: a route for clients alone (own records, no team role) needs no capability; a team route does', () => {
+    // F059: the client's own billing details. `defineRoute` allows no capability only here.
+    expect(
+      capabilityProblems(workspaceRoute({ type: 'workspace', roles: [], client: 'own-records' })),
+    ).toEqual([]);
+    expect(
+      capabilityProblems(
+        workspaceRoute({ type: 'workspace', roles: ['owner'], client: 'own-records' }),
+      ),
+    ).toEqual(['getX has an x-access without a capability.']);
   });
 
   it('AC1: names an unknown capability and roles that differ from the matrix', () => {

@@ -7,14 +7,35 @@ import okhttp3.RequestBody
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
+import app.fivvi.api.models.BillingDetails
 import app.fivvi.api.models.Forbidden
 import app.fivvi.api.models.InvoiceDetails
 import app.fivvi.api.models.NotFound
 import app.fivvi.api.models.NotSignedIn
+import app.fivvi.api.models.SaveBillingDetailsRequest
 import app.fivvi.api.models.SaveInvoiceDetailsRequest
 import app.fivvi.api.models.ValidationError
 
 interface InvoicesApi {
+    /**
+     * GET v1/workspaces/{workspaceId}/clients/{clientId}/billing-details
+     * The billing details of a client
+     * The billing details of one client of the workspace (the Owner only; a Trainer or a client gets &#x60;403&#x60;). A client who saved none has &#x60;asCompany: false&#x60;. A client of another workspace, or one that does not exist, answers &#x60;404&#x60;.
+     * Responses:
+     *  - 200: The client’s billing details.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param clientId The client ID: the client’s record in this workspace.
+     * @return [BillingDetails]
+     */
+    @GET("v1/workspaces/{workspaceId}/clients/{clientId}/billing-details")
+    suspend fun getClientBillingDetails(@Path("workspaceId") workspaceId: java.util.UUID, @Path("clientId") clientId: java.util.UUID): Response<BillingDetails>
+
     /**
      * GET v1/workspaces/{workspaceId}/settings/invoice-details
      * The invoice details of a workspace
@@ -32,6 +53,45 @@ interface InvoicesApi {
      */
     @GET("v1/workspaces/{workspaceId}/settings/invoice-details")
     suspend fun getInvoiceDetails(@Path("workspaceId") workspaceId: java.util.UUID): Response<InvoiceDetails>
+
+    /**
+     * GET v1/workspaces/{workspaceId}/me/billing-details
+     * My billing details at a workspace
+     * The signed-in client’s own billing details at this workspace. A client of two workspaces has a separate set in each. A person who is not a client of the workspace answers &#x60;404&#x60;, a team member who is not also a client &#x60;403&#x60;.
+     * Responses:
+     *  - 200: The client’s own billing details.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @return [BillingDetails]
+     */
+    @GET("v1/workspaces/{workspaceId}/me/billing-details")
+    suspend fun getMyBillingDetails(@Path("workspaceId") workspaceId: java.util.UUID): Response<BillingDetails>
+
+    /**
+     * PUT v1/workspaces/{workspaceId}/clients/{clientId}/billing-details
+     * Save the billing details of a client on their behalf
+     * Saves a client’s billing details as typed, replacing what was saved (the Owner only; a Trainer or a client gets &#x60;403&#x60;). The record notes that the team changed it (&#x60;changedBy: team&#x60;). They apply to the client’s next invoices; issued ones never change. A client of another workspace, or one that does not exist, answers &#x60;404&#x60;.
+     * Responses:
+     *  - 200: The saved billing details.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 422: With the company switch on, a required field is empty or a field has the wrong format: the issues name the field and the code (`required`, `too_long`, `invalid`, `invalid_vat_number`). Nothing was saved.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param clientId The client ID: the client’s record in this workspace.
+     * @param saveBillingDetailsRequest 
+     * @return [BillingDetails]
+     */
+    @PUT("v1/workspaces/{workspaceId}/clients/{clientId}/billing-details")
+    suspend fun putClientBillingDetails(@Path("workspaceId") workspaceId: java.util.UUID, @Path("clientId") clientId: java.util.UUID, @Body saveBillingDetailsRequest: SaveBillingDetailsRequest): Response<BillingDetails>
 
     /**
      * PUT v1/workspaces/{workspaceId}/settings/invoice-details
@@ -52,5 +112,25 @@ interface InvoicesApi {
      */
     @PUT("v1/workspaces/{workspaceId}/settings/invoice-details")
     suspend fun putInvoiceDetails(@Path("workspaceId") workspaceId: java.util.UUID, @Body saveInvoiceDetailsRequest: SaveInvoiceDetailsRequest): Response<InvoiceDetails>
+
+    /**
+     * PUT v1/workspaces/{workspaceId}/me/billing-details
+     * Save my billing details at a workspace
+     * Saves the signed-in client’s own billing details at this workspace, replacing what was saved. The record notes that the client changed them (&#x60;changedBy: client&#x60;). They apply to the next invoices; issued ones never change.
+     * Responses:
+     *  - 200: The saved billing details.
+     *  - 400: The request did not match the contract.
+     *  - 401: Nobody is signed in: no valid sign-in session or bearer token.
+     *  - 403: The caller has a place in the workspace that this route’s access doesn’t allow.
+     *  - 404: The caller has no place in the workspace, or the record is out of the caller’s reach.
+     *  - 422: With the company switch on, a required field is empty or a field has the wrong format: the issues name the field and the code (`required`, `too_long`, `invalid`, `invalid_vat_number`). Nothing was saved.
+     *  - 500: Unexpected server error, reported to error tracking. Contains no error details.
+     *
+     * @param workspaceId The workspace ID.
+     * @param saveBillingDetailsRequest 
+     * @return [BillingDetails]
+     */
+    @PUT("v1/workspaces/{workspaceId}/me/billing-details")
+    suspend fun putMyBillingDetails(@Path("workspaceId") workspaceId: java.util.UUID, @Body saveBillingDetailsRequest: SaveBillingDetailsRequest): Response<BillingDetails>
 
 }

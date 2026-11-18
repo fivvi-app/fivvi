@@ -1,4 +1,5 @@
 import {
+  clientBillingDetails,
   type DatabaseExecutor,
   locations,
   organizations,
@@ -7,6 +8,7 @@ import {
 } from '@fivvi/database';
 import {
   addAccessLogEntry,
+  addClientBillingDetails,
   addGroupClass,
   addSession,
   addTeamRole,
@@ -97,6 +99,17 @@ const theJoinCode: IsolationCase['seed'] = async (db, { workspaceId }) => {
 const theWorkspace: IsolationCase['seed'] = (_db, { workspaceId }) =>
   Promise.resolve({ workspace: workspaceId });
 
+/** A valid body for the billing details routes: Jansen Advies B.V. (synthetic). */
+const COMPANY_BILLING_DETAILS = {
+  asCompany: true,
+  companyName: 'Jansen Advies B.V.',
+  street: 'Testweg',
+  houseNumber: '2',
+  postcode: '5678 CD',
+  city: 'Utrecht',
+  vatNumber: 'NL000000000B02',
+};
+
 /** The one location of the workspace the seed was called for: what the location routes list and name (F015). */
 const theLocation: IsolationCase['seed'] = async (db, { workspaceId }) => {
   const [location] = await db
@@ -121,6 +134,20 @@ const theInvoiceDetails: IsolationCase['seed'] = async (db, { workspaceId }) => 
   if (row) return { legalName: row.legalName };
   const { legalName } = await addWorkspaceInvoiceDetails(db, { workspaceId });
   return { legalName };
+};
+
+/**
+ * The billing details of the client the seed was called for (the suite seeds once per client, and a
+ * client has one set): what the client's own read and the Owner's read of that client show, by the
+ * client's id (F059). The company name is no marker: a save overwrites it with the same one.
+ */
+const theBillingDetails: IsolationCase['seed'] = async (db, { workspaceId, clientId }) => {
+  const [row] = await db
+    .select({ id: clientBillingDetails.id })
+    .from(clientBillingDetails)
+    .where(eq(clientBillingDetails.clientId, clientId));
+  if (!row) await addClientBillingDetails(db, { workspaceId, clientId });
+  return { client: clientId };
 };
 
 /** A Trainer of the workspace the seed was called for: what the team routes list and remove (F003). */
@@ -397,6 +424,20 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
       vatNumber: 'NL000000000B01',
       noVat: false,
     },
+  },
+
+  // The billing details of a client (F059): the client's own route shows the caller's own set, the
+  // Owner's routes name a client of the workspace; a save is a body of valid company details.
+  getMyBillingDetails: { seed: theBillingDetails },
+  putMyBillingDetails: { seed: theBillingDetails, body: COMPANY_BILLING_DETAILS },
+  getClientBillingDetails: {
+    seed: theBillingDetails,
+    params: { clientId: 'client' },
+  },
+  putClientBillingDetails: {
+    seed: theBillingDetails,
+    params: { clientId: 'client' },
+    body: COMPANY_BILLING_DETAILS,
   },
 
   // The address lookup (F015): the fake answers the invented 1234 AB 1. It names no record of the

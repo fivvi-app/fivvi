@@ -6,6 +6,7 @@ import { insertOffer, type NewOffer, type OfferTerms } from '../repositories/off
 import {
   accessLog,
   authUsers,
+  clientBillingDetails,
   clients,
   groupClasses,
   locations,
@@ -615,4 +616,34 @@ export async function addWorkspaceInvoiceDetails(
     'workspace invoice details',
   );
   return { id: row.id, legalName };
+}
+
+/**
+ * The billing details of a client (F059): Jansen Advies B.V. by default, a company invoice last
+ * changed by the client. The company name carries a unique marker.
+ */
+export async function addClientBillingDetails(
+  db: DatabaseExecutor,
+  options: { workspaceId: string; clientId: string; changedBy?: 'client' | 'team' },
+): Promise<{ id: string; companyName: string }> {
+  const companyName = uniqueMarker('jansen-advies');
+  const row = first(
+    await db
+      .insert(clientBillingDetails)
+      .values({
+        organizationId: options.workspaceId,
+        clientId: options.clientId,
+        asCompany: true,
+        companyName,
+        street: 'Testweg',
+        houseNumber: '2',
+        postcode: '5678 CD',
+        city: 'Utrecht',
+        vatNumber: 'NL000000000B02',
+        changedBy: options.changedBy ?? 'client',
+      })
+      .returning({ id: clientBillingDetails.id }),
+    'client billing details',
+  );
+  return { id: row.id, companyName };
 }

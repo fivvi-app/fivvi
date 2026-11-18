@@ -49,6 +49,13 @@ export {
   setPreferredLocale,
 } from './repositories/accounts.ts';
 export {
+  type BillingDetailsChange,
+  type BillingDetailsChangedBy,
+  type BillingDetailsView,
+  findBillingDetails,
+  saveBillingDetails,
+} from './repositories/billing-details.ts';
+export {
   type ClientChanges,
   type ClientPage,
   type ClientView,

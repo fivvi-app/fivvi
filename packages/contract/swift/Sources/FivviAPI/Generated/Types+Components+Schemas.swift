@@ -3916,5 +3916,183 @@ extension Components {
                 case noVat
             }
         }
+        /// A client’s billing details in one workspace. A client of two workspaces has two separate sets; a client who saved none has `asCompany: false` and `null` fields.
+        ///
+        /// - Remark: Generated from `#/components/schemas/BillingDetails`.
+        public struct BillingDetails: Codable, Hashable, Sendable {
+            /// The client these details belong to.
+            ///
+            /// - Remark: Generated from `#/components/schemas/BillingDetails/clientId`.
+            public var clientId: Swift.String
+            /// *Factuur op naam van een bedrijf* / *Invoice in a company’s name*. Off: invoices use the client’s name and every field below is `null`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/BillingDetails/asCompany`.
+            public var asCompany: Swift.Bool
+            /// - Remark: Generated from `#/components/schemas/BillingDetails/companyName`.
+            public var companyName: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/BillingDetails/street`.
+            public var street: Swift.String?
+            /// One to five digits.
+            ///
+            /// - Remark: Generated from `#/components/schemas/BillingDetails/houseNumber`.
+            public var houseNumber: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/BillingDetails/houseNumberAddition`.
+            public var houseNumberAddition: Swift.String?
+            /// Stored as `1234 AB`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/BillingDetails/postcode`.
+            public var postcode: Swift.String?
+            /// - Remark: Generated from `#/components/schemas/BillingDetails/city`.
+            public var city: Swift.String?
+            /// `NL` + 9 digits + `B` + 2 digits; `null` when the client gave none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/BillingDetails/vatNumber`.
+            public var vatNumber: Swift.String?
+            /// Who changed them last: the `client` themselves or the `team` on their behalf. `null` while nobody has saved any.
+            ///
+            /// - Remark: Generated from `#/components/schemas/BillingDetails/changedBy`.
+            @frozen public enum ChangedByPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case client = "client"
+                case team = "team"
+                case _empty_ = ""
+            }
+            /// Who changed them last: the `client` themselves or the `team` on their behalf. `null` while nobody has saved any.
+            ///
+            /// - Remark: Generated from `#/components/schemas/BillingDetails/changedBy`.
+            public var changedBy: Components.Schemas.BillingDetails.ChangedByPayload?
+            /// When they were last saved; `null` while nobody has saved any.
+            ///
+            /// - Remark: Generated from `#/components/schemas/BillingDetails/changedAt`.
+            public var changedAt: Foundation.Date?
+            /// Creates a new `BillingDetails`.
+            ///
+            /// - Parameters:
+            ///   - clientId: The client these details belong to.
+            ///   - asCompany: *Factuur op naam van een bedrijf* / *Invoice in a company’s name*. Off: invoices use the client’s name and every field below is `null`.
+            ///   - companyName:
+            ///   - street:
+            ///   - houseNumber: One to five digits.
+            ///   - houseNumberAddition:
+            ///   - postcode: Stored as `1234 AB`.
+            ///   - city:
+            ///   - vatNumber: `NL` + 9 digits + `B` + 2 digits; `null` when the client gave none.
+            ///   - changedBy: Who changed them last: the `client` themselves or the `team` on their behalf. `null` while nobody has saved any.
+            ///   - changedAt: When they were last saved; `null` while nobody has saved any.
+            public init(
+                clientId: Swift.String,
+                asCompany: Swift.Bool,
+                companyName: Swift.String? = nil,
+                street: Swift.String? = nil,
+                houseNumber: Swift.String? = nil,
+                houseNumberAddition: Swift.String? = nil,
+                postcode: Swift.String? = nil,
+                city: Swift.String? = nil,
+                vatNumber: Swift.String? = nil,
+                changedBy: Components.Schemas.BillingDetails.ChangedByPayload? = nil,
+                changedAt: Foundation.Date? = nil
+            ) {
+                self.clientId = clientId
+                self.asCompany = asCompany
+                self.companyName = companyName
+                self.street = street
+                self.houseNumber = houseNumber
+                self.houseNumberAddition = houseNumberAddition
+                self.postcode = postcode
+                self.city = city
+                self.vatNumber = vatNumber
+                self.changedBy = changedBy
+                self.changedAt = changedAt
+            }
+            public enum CodingKeys: String, CodingKey {
+                case clientId
+                case asCompany
+                case companyName
+                case street
+                case houseNumber
+                case houseNumberAddition
+                case postcode
+                case city
+                case vatNumber
+                case changedBy
+                case changedAt
+            }
+        }
+        /// The billing details as typed, replacing what was saved. With `asCompany` the company name and the address are required, and a field that fails answers `422` with its name and code; nothing is saved.
+        ///
+        /// - Remark: Generated from `#/components/schemas/SaveBillingDetailsRequest`.
+        public struct SaveBillingDetailsRequest: Codable, Hashable, Sendable {
+            /// Whether invoices are made out to a company. Off: the other fields are ignored and cleared.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SaveBillingDetailsRequest/asCompany`.
+            public var asCompany: Swift.Bool
+            /// Required with `asCompany`, at most 120 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SaveBillingDetailsRequest/companyName`.
+            public var companyName: Swift.String?
+            /// Required with `asCompany`, at most 120 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SaveBillingDetailsRequest/street`.
+            public var street: Swift.String?
+            /// Required with `asCompany`: one to five digits.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SaveBillingDetailsRequest/houseNumber`.
+            public var houseNumber: Swift.String?
+            /// For example `A` or `2 hoog`; at most 10 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SaveBillingDetailsRequest/houseNumberAddition`.
+            public var houseNumberAddition: Swift.String?
+            /// Required with `asCompany`: a Dutch postcode.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SaveBillingDetailsRequest/postcode`.
+            public var postcode: Swift.String?
+            /// Required with `asCompany`, at most 120 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SaveBillingDetailsRequest/city`.
+            public var city: Swift.String?
+            /// Optional: empty or `null` is accepted; given, it is `NL` + 9 digits + `B` + 2 digits.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SaveBillingDetailsRequest/vatNumber`.
+            public var vatNumber: Swift.String?
+            /// Creates a new `SaveBillingDetailsRequest`.
+            ///
+            /// - Parameters:
+            ///   - asCompany: Whether invoices are made out to a company. Off: the other fields are ignored and cleared.
+            ///   - companyName: Required with `asCompany`, at most 120 characters.
+            ///   - street: Required with `asCompany`, at most 120 characters.
+            ///   - houseNumber: Required with `asCompany`: one to five digits.
+            ///   - houseNumberAddition: For example `A` or `2 hoog`; at most 10 characters.
+            ///   - postcode: Required with `asCompany`: a Dutch postcode.
+            ///   - city: Required with `asCompany`, at most 120 characters.
+            ///   - vatNumber: Optional: empty or `null` is accepted; given, it is `NL` + 9 digits + `B` + 2 digits.
+            public init(
+                asCompany: Swift.Bool,
+                companyName: Swift.String? = nil,
+                street: Swift.String? = nil,
+                houseNumber: Swift.String? = nil,
+                houseNumberAddition: Swift.String? = nil,
+                postcode: Swift.String? = nil,
+                city: Swift.String? = nil,
+                vatNumber: Swift.String? = nil
+            ) {
+                self.asCompany = asCompany
+                self.companyName = companyName
+                self.street = street
+                self.houseNumber = houseNumber
+                self.houseNumberAddition = houseNumberAddition
+                self.postcode = postcode
+                self.city = city
+                self.vatNumber = vatNumber
+            }
+            public enum CodingKeys: String, CodingKey {
+                case asCompany
+                case companyName
+                case street
+                case houseNumber
+                case houseNumberAddition
+                case postcode
+                case city
+                case vatNumber
+            }
+        }
     }
 }
