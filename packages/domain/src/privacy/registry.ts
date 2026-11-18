@@ -251,6 +251,25 @@ export const PRIVACY_REGISTRY: readonly PrivacyDeclaration[] = [
     reason:
       'An immutable version of an offer: names, descriptions, the price in euro cents, the VAT rate and the terms of its kind (F052). Nothing about a person: the offer’s text is the owner’s, written for clients in general. Never changed or deleted: a trigger refuses it for every role, so every price a client ever agreed to stays explainable.',
   },
+  // Payouts (F061, spec #496): what the payment provider paid out to the workspace.
+  {
+    table: 'payouts',
+    personal: false,
+    reason:
+      'A payout of the workspace: the provider’s settlement ID, the bank reference, the date, the amount and the status (F061). The gym’s own money, nothing about a person. Kept as long as the workspace is.',
+  },
+  {
+    table: 'payout_status_changes',
+    personal: false,
+    reason:
+      'The append-only status lines of a payout (F061): which status it had and when it was fetched. Nothing about a person; a trigger refuses every update and delete.',
+  },
+  {
+    table: 'payout_lines',
+    personal: false,
+    reason:
+      'A line of a payout: the provider’s ID of a payment, refund, reversal or fee, its signed amount and the description the provider reports (F061). The description is the one Fivvi sent with the payment or refund, which E019 keeps free of notes and health content; the line holds no client ID, only the link to the payment it was matched to, and the payment’s own declaration decides what deleting a client does to it.',
+  },
   {
     table: 'class_series',
     personal: true,

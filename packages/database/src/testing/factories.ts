@@ -17,6 +17,9 @@ import {
   paymentRefunds,
   paymentStatusChanges,
   payments,
+  payoutLines,
+  payoutStatusChanges,
+  payouts,
   sessionParticipants,
   sessions,
   teamMembers,
@@ -637,4 +640,83 @@ export async function addOffer(
   };
   const written = await db.transaction((tx) => insertOffer(tx, options.workspaceId, offer));
   return { ...written, nameNl };
+}
+
+/**
+ * A payout of the workspace (F061), with its first status line (`null → status`). Amounts are
+ * the AC1 settlement's unless given: `stl_test0001` of Wednesday 10 February 2027, € 392,48.
+ */
+export async function addPayout(
+  db: Pick<DatabaseExecutor, 'insert'>,
+  options: {
+    workspaceId: string;
+    providerSettlementId?: string;
+    status?: (typeof payouts.status.enumValues)[number];
+    settledAt?: Date | null;
+    amountCents?: number;
+  },
+): Promise<{ id: string; providerSettlementId: string }> {
+  const providerSettlementId = options.providerSettlementId ?? uniqueMarker('stl');
+  const status = options.status ?? 'paidout';
+  const fetchedAt = new Date();
+  const payout = first(
+    await db
+      .insert(payouts)
+      .values({
+        organizationId: options.workspaceId,
+        providerSettlementId,
+        reference: '1234567.2701.01',
+        settledAt:
+          options.settledAt === undefined ? new Date('2027-02-10T05:30:12Z') : options.settledAt,
+        amountCents: options.amountCents ?? 39248,
+        status,
+        fetchedAt,
+      })
+      .returning({ id: payouts.id }),
+    'payout',
+  );
+  await db.insert(payoutStatusChanges).values({
+    organizationId: options.workspaceId,
+    payoutId: payout.id,
+    fromStatus: null,
+    toStatus: status,
+    occurredAt: fetchedAt,
+    source: 'job',
+  });
+  return { id: payout.id, providerSettlementId };
+}
+
+/** A line of a payout of the workspace (F061), stored unmatched; the payout is made unless given. */
+export async function addPayoutLine(
+  db: Pick<DatabaseExecutor, 'insert'>,
+  options: {
+    workspaceId: string;
+    payoutId?: string;
+    providerLineId?: string;
+    type?: (typeof payoutLines.type.enumValues)[number];
+    feeKind?: (typeof payoutLines.feeKind.enumValues)[number] | null;
+    amountCents?: number;
+  },
+): Promise<{ id: string; payoutId: string; providerLineId: string }> {
+  const payoutId =
+    options.payoutId ?? (await addPayout(db, { workspaceId: options.workspaceId })).id;
+  const providerLineId = options.providerLineId ?? uniqueMarker('tr');
+  const type = options.type ?? 'payment';
+  const line = first(
+    await db
+      .insert(payoutLines)
+      .values({
+        organizationId: options.workspaceId,
+        payoutId,
+        providerLineId,
+        type,
+        feeKind: type === 'fee' ? (options.feeKind ?? 'ideal') : null,
+        amountCents: options.amountCents ?? 7900,
+        description: 'Membership, February 2027',
+        feeCount: type === 'fee' ? 1 : null,
+      })
+      .returning({ id: payoutLines.id }),
+    'payout line',
+  );
+  return { id: line.id, payoutId, providerLineId };
 }

@@ -66,6 +66,9 @@ Deleted when a terminated workspace is purged.
 | `exercise_library` | The exercise library, the same for every workspace: an exercise’s key, type, muscle groups and search aliases (F039). The names are in `packages/i18n`. Nothing about any workspace or person. |
 | `offers` | An offer of a workspace: its kind, status and origin, and which version is current (F052). Prices and terms, nothing about a person. Kept as long as the workspace is; an offer is archived, never deleted. |
 | `offer_versions` | An immutable version of an offer: names, descriptions, the price in euro cents, the VAT rate and the terms of its kind (F052). Nothing about a person: the offer’s text is the owner’s, written for clients in general. Never changed or deleted: a trigger refuses it for every role, so every price a client ever agreed to stays explainable. |
+| `payouts` | A payout of the workspace: the provider’s settlement ID, the bank reference, the date, the amount and the status (F061). The gym’s own money, nothing about a person. Kept as long as the workspace is. |
+| `payout_status_changes` | The append-only status lines of a payout (F061): which status it had and when it was fetched. Nothing about a person; a trigger refuses every update and delete. |
+| `payout_lines` | A line of a payout: the provider’s ID of a payment, refund, reversal or fee, its signed amount and the description the provider reports (F061). The description is the one Fivvi sent with the payment or refund, which E019 keeps free of notes and health content; the line holds no client ID, only the link to the payment it was matched to, and the payment’s own declaration decides what deleting a client does to it. |
 
 ## Retention periods
 
