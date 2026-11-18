@@ -322,10 +322,14 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
       localStart: '09:00',
       durationMinutes: 60,
       notify: false,
+      // The suite plans the caller's own session at the same time again and again: the double-booking
+      // check (F023) would answer 409 on every call after the first.
+      allowConflicts: true,
     }),
   },
   getSession: { seed: aSession, params: { sessionId: 'session' } },
-  // The move names the seeded session at the version it has, and asks for a time that exists.
+  // The move names the seeded session at the version it has, and asks for a time that exists (and, as
+  // the plan does, allows an overlap with the sessions the suite made before).
   reschedulePrivateSession: {
     seed: aSessionOfTheCaller,
     reseedForEachCall: true,
@@ -336,6 +340,7 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
       durationMinutes: 60,
       notify: false,
       version: 1,
+      allowConflicts: true,
     },
   },
   // The listing names the client and shows the client's coming session.

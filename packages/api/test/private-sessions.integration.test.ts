@@ -1146,8 +1146,10 @@ describe('F020 plan a private session', () => {
       const forAnna = await sarahsSession(people);
       const forUndecided = await sarahsSession(people, { clientId: undecided.id });
 
+      // Three of Sarah's sessions move to the same hour; the double-booking check (F023) is not what
+      // this test is about.
       for (const session of [forMark, forAnna, forUndecided]) {
-        await reschedule(server, gym.id, session.id, sarah, move());
+        await reschedule(server, gym.id, session.id, sarah, move({ allowConflicts: true }));
       }
 
       expect(transport.sent.map(({ to, locale }) => [to.email, locale])).toEqual([

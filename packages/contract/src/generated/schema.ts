@@ -595,7 +595,7 @@ export interface paths {
         put?: never;
         /**
          * Plan a private session
-         * @description Plans a private session for a client with a trainer (an Owner for any trainer of the workspace, a Trainer for themself; another trainer answers `403`) at the workspace’s default location. The date and start are wall-clock time in the workspace’s time zone; the session is stored and answered as UTC instants plus that zone. A past session is saved (`past`). A client or trainer that is not in the workspace (or a trainer who does not train) answers `404`; an invalid duration, date or time, or a start the clocks skip answers `400` with the field in `issues`. When `notify` is on and the session is not in the past, EM-11 goes to the client after the session is committed, in the client’s email language, else the workspace’s default.
+         * @description Plans a private session for a client with a trainer (an Owner for any trainer of the workspace, a Trainer for themself; another trainer answers `403`) at the workspace’s default location. The date and start are wall-clock time in the workspace’s time zone; the session is stored and answered as UTC instants plus that zone. A past session is saved (`past`). A client or trainer that is not in the workspace (or a trainer who does not train) answers `404`; an invalid duration, date or time, or a start the clocks skip answers `400` with the field in `issues`. When `notify` is on and the session is not in the past, EM-11 goes to the client after the session is committed, in the client’s email language, else the workspace’s default. When the trainer already has a scheduled session of this workspace that overlaps (back-to-back does not), the answer is `409` with the code `trainer_conflict` and those sessions, and nothing is stored, unless `allowConflicts` is `true` (PS-07).
          */
         post: operations["createPrivateSession"];
         delete?: never;
@@ -615,7 +615,7 @@ export interface paths {
         put?: never;
         /**
          * Reschedule a private session
-         * @description Moves a private session to a new local date and start, with a length (the same rules as planning, daylight saving time included); the location stays. The Owner may move any session, a Trainer only their own (`403` otherwise). `version` is the one the person saw: if the session has been changed since, nothing is stored and the answer is `409` with the session as it is now and who changed it last. A cancelled session answers `409` too; a session that is not private or not in the workspace answers `404`. When `notify` is on and the new time is not in the past, EM-04 goes to the client after the change is committed, in the client’s email language, else the workspace’s default.
+         * @description Moves a private session to a new local date and start, with a length (the same rules as planning, daylight saving time included); the location stays. The Owner may move any session, a Trainer only their own (`403` otherwise). `version` is the one the person saw: if the session has been changed since, nothing is stored and the answer is `409` with the session as it is now and who changed it last. A cancelled session answers `409` too; a session that is not private or not in the workspace answers `404`. When the trainer already has a scheduled session of this workspace at the new time (back-to-back does not overlap), the answer is `409` with the code `trainer_conflict` and those sessions, unless `allowConflicts` is `true` (PS-07); the version is checked first. When `notify` is on and the new time is not in the past, EM-04 goes to the client after the change is committed, in the client’s email language, else the workspace’s default.
          */
         post: operations["reschedulePrivateSession"];
         delete?: never;
@@ -663,7 +663,7 @@ export interface paths {
         head?: never;
         /**
          * Change one date of a class
-         * @description Changes the start, end and/or capacity of one date of a class (the Owner only), from the version the caller read (`409` with the date as it is now when it changed since). The date stays on its day. Times are wall-clock in the workspace’s time zone with the same daylight saving rules as scheduling. A start sent alone keeps the end at its time of day; when that is not after the new start the answer is `400` on `localEnd`. An end that is not after the start answers `400` on `localEnd` (`end_before_start`). The class and its other dates are not touched. A session that is not a class date of the workspace (a private session too) answers `404`.
+         * @description Changes the start, end and/or capacity of one date of a class (the Owner only), from the version the caller read (`409` with the date as it is now when it changed since). The date stays on its day. Times are wall-clock in the workspace’s time zone with the same daylight saving rules as scheduling. A start sent alone keeps the end at its time of day; when that is not after the new start the answer is `400` on `localEnd`. An end that is not after the start answers `400` on `localEnd` (`end_before_start`). The class and its other dates are not touched. A session that is not a class date of the workspace (a private session too) answers `404`. A new time that puts the date’s trainer where they already have a scheduled session of this workspace (with `scope: following`: any date it moves) answers `409` with the code `trainer_conflict` and those sessions unless `allowConflicts` is `true` (PS-07); a change of the capacity alone is never checked, and the version is checked first.
          */
         patch: operations["updateGroupClassDate"];
         trace?: never;
@@ -683,7 +683,7 @@ export interface paths {
         put?: never;
         /**
          * Create a class
-         * @description Creates a class (the Owner only; a Trainer gets `403`). Empty or too long texts, a capacity outside 1 to 100 and a duration outside 15 to 240 minutes in steps of 5 answer `400` with the field in `issues`. With a `firstDate` the class is also put on that date (the apps’ quick create), both in one transaction: a refused date answers `400` and leaves no class. A trainer who does not train in the workspace answers `404`.
+         * @description Creates a class (the Owner only; a Trainer gets `403`). Empty or too long texts, a capacity outside 1 to 100 and a duration outside 15 to 240 minutes in steps of 5 answer `400` with the field in `issues`. With a `firstDate` the class is also put on that date (the apps’ quick create), both in one transaction: a refused date answers `400` and leaves no class. A trainer who does not train in the workspace answers `404`. When the first date puts the class’s trainer where they already have something (a weekly repeat: on any of its 12 dates), the answer is `409` with the code `trainer_conflict` and those sessions, and nothing is stored, unless `allowConflicts` is `true` (PS-07).
          */
         post: operations["createGroupClass"];
         delete?: never;
@@ -727,7 +727,7 @@ export interface paths {
         put?: never;
         /**
          * Put a class on a date
-         * @description Schedules the class on a date (the Owner only): a `group` session at the local start, taking the class’s trainer, capacity and duration (a trainer or capacity in the request wins for this date; `trainerId: null` plans it without a trainer) and the workspace’s default location, stored and answered as UTC instants plus the workspace’s time zone. A start the clocks skip answers `400` on `localStart` (`time_does_not_exist`); one they repeat takes the first. With `repeat: weekly` (F022) it also makes the weekly series and its next 12 weeks of dates in the same transaction; the answer is the first date with `datesAdded`. A class or trainer that is not in the workspace answers `404`.
+         * @description Schedules the class on a date (the Owner only): a `group` session at the local start, taking the class’s trainer, capacity and duration (a trainer or capacity in the request wins for this date; `trainerId: null` plans it without a trainer) and the workspace’s default location, stored and answered as UTC instants plus the workspace’s time zone. A start the clocks skip answers `400` on `localStart` (`time_does_not_exist`); one they repeat takes the first. With `repeat: weekly` (F022) it also makes the weekly series and its next 12 weeks of dates in the same transaction; the answer is the first date with `datesAdded`. A class or trainer that is not in the workspace answers `404`. When the date’s trainer already has a scheduled session of this workspace that overlaps (a weekly repeat: on any of its 12 dates), the answer is `409` with the code `trainer_conflict` and those sessions, and nothing is stored, unless `allowConflicts` is `true` (PS-07).
          */
         post: operations["scheduleGroupClassDate"];
         delete?: never;
@@ -1647,6 +1647,38 @@ export interface components {
              */
             attendanceStatus: "booked" | "attended" | "cancelled" | "no_show";
         };
+        /** @description The trainer already has something at that time (PS-07, a soft warning). Nothing was stored; send the request again with `allowConflicts: true` to save anyway. Contains no user-facing text. */
+        TrainerConflict: {
+            /** @enum {string} */
+            code: "trainer_conflict";
+            /** @description The overlapping sessions, soonest first, of this workspace only. A weekly repeat or a change from a date on lists the sessions that overlap any of its dates. */
+            conflicts: components["schemas"]["TrainerConflictItem"][];
+        };
+        /** @description A session of this workspace that the trainer already has at that time. */
+        TrainerConflictItem: {
+            /**
+             * Format: uuid
+             * @description The overlapping session’s ID.
+             */
+            sessionId: string;
+            /**
+             * @description The kind of the overlapping session.
+             * @enum {string}
+             */
+            type: "private" | "group" | "open_gym";
+            /**
+             * Format: date-time
+             * @description The start, a UTC instant.
+             */
+            startsAt: string;
+            /**
+             * Format: date-time
+             * @description The end, a UTC instant.
+             */
+            endsAt: string;
+            /** @description Who or what the session is: the client’s name of a private session, the class’s Dutch name of a class date. */
+            displayName: string;
+        };
         /** @description A private session to plan: one client, one trainer, a local date, start and length. */
         PlanPrivateSessionRequest: {
             /**
@@ -1667,6 +1699,8 @@ export interface components {
             durationMinutes: number;
             /** @description Whether to email the client the confirmation (EM-11). Not sent for a session that starts in the past, whatever this says. */
             notify: boolean;
+            /** @description Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap. */
+            allowConflicts?: boolean;
             /**
              * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
              * @enum {string}
@@ -1707,6 +1741,8 @@ export interface components {
             durationMinutes: number;
             /** @description Whether to email the client the change (EM-04). Not sent when the new time is in the past, whatever this says. */
             notify: boolean;
+            /** @description Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap. */
+            allowConflicts?: boolean;
             /** @description The `version` of the session the person saw. If the session has been changed since, nothing is stored and the answer is `409` with the session as it is now. */
             version: number;
             /**
@@ -1793,6 +1829,8 @@ export interface components {
             capacity: number;
             /** @description 15 to 240 minutes in steps of 5; any other value answers `400` on `durationMinutes`. */
             durationMinutes: number;
+            /** @description Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap. */
+            allowConflicts?: boolean;
             firstDate?: components["schemas"]["FirstGroupClassDate"];
             /**
              * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_created` event (and `class_scheduled` with a first date) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
@@ -1855,6 +1893,8 @@ export interface components {
              * @enum {string}
              */
             repeat?: "none" | "weekly";
+            /** @description Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap. */
+            allowConflicts?: boolean;
             /**
              * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event (and `class_series_created` for a weekly repeat) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
              * @enum {string}
@@ -1924,6 +1964,8 @@ export interface components {
              * @enum {string}
              */
             scope?: "this" | "following";
+            /** @description Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap. */
+            allowConflicts?: boolean;
             /**
              * @description The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event (for `scope: following`) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
              * @enum {string}
@@ -4400,6 +4442,15 @@ export interface operations {
                     "application/json": components["schemas"]["NotFound"];
                 };
             };
+            /** @description The trainer already has something at that time, and `allowConflicts` was not set. Nothing was stored. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainerConflict"];
+                };
+            };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */
             500: {
                 headers: {
@@ -4474,13 +4525,13 @@ export interface operations {
                     "application/json": components["schemas"]["NotFound"];
                 };
             };
-            /** @description The session was changed after the `version` sent, or it is cancelled. Nothing was stored. */
+            /** @description The session was changed after the `version` sent, or it is cancelled (`session_changed`, `session_cancelled`), or the trainer already has something at the new time (`trainer_conflict`). Nothing was stored. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SessionConflict"];
+                    "application/json": components["schemas"]["SessionConflict"] | components["schemas"]["TrainerConflict"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */
@@ -4697,13 +4748,13 @@ export interface operations {
                     "application/json": components["schemas"]["NotFound"];
                 };
             };
-            /** @description The date changed since the version in the request; nothing was written. */
+            /** @description The date changed since the version in the request (`class_date_changed`), or the trainer already has something at the new time (`trainer_conflict`); nothing was written. */
             409: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ClassDateChanged"];
+                    "application/json": components["schemas"]["ClassDateChanged"] | components["schemas"]["TrainerConflict"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */
@@ -4844,6 +4895,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description The trainer already has something at that time, and `allowConflicts` was not set. Nothing was stored. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainerConflict"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */
@@ -5062,6 +5122,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["NotFound"];
+                };
+            };
+            /** @description The trainer already has something at that time, and `allowConflicts` was not set. Nothing was stored. */
+            409: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TrainerConflict"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */

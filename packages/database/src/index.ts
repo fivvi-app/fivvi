@@ -188,6 +188,7 @@ export {
   type AttendanceStatus,
   createPrivateSession,
   findSession,
+  listTrainerSessionsBetween,
   listUpcomingSessionsOfClient,
   type NewPrivateSession,
   rescheduleSession,
@@ -199,6 +200,7 @@ export {
   type SessionTrainerView,
   type SessionType,
   type SessionView,
+  type TrainerSessionView,
   type UpcomingSessionView,
 } from './repositories/sessions.ts';
 export {

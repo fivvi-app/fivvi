@@ -32,6 +32,12 @@ import {
   validationErrorResponse,
 } from '../errors.ts';
 import { privateSessionEmailEvent } from '../sessions/email-event.ts';
+import {
+  allowConflictsField,
+  checkDoubleBooking,
+  TrainerConflictSchema,
+  trainerConflictResponse,
+} from '../sessions/trainer-conflicts.ts';
 import { LocationSchema } from './locations.ts';
 
 // The sessions of a workspace (F020, spec #425): a team member plans a private session, reads one,
@@ -220,6 +226,7 @@ const PlanPrivateSessionBodySchema = z
         'Whether to email the client the confirmation (EM-11). Not sent for a session that ' +
         'starts in the past, whatever this says.',
     }),
+    allowConflicts: allowConflictsField,
     surface: z
       .enum(['ios', 'android'])
       .optional()
@@ -266,6 +273,7 @@ const ReschedulePrivateSessionBodySchema = z
         'Whether to email the client the change (EM-04). Not sent when the new time is in the ' +
         'past, whatever this says.',
     }),
+    allowConflicts: allowConflictsField,
     version: z
       .number()
       .int()
@@ -396,7 +404,10 @@ const planPrivateSessionRoute = defineRoute(
       'not train) answers `404`; an invalid duration, date or time, or a start the clocks skip ' +
       'answers `400` with the field in `issues`. When ' +
       '`notify` is on and the session is not in the past, EM-11 goes to the client after the ' +
-      'session is committed, in the client’s email language, else the workspace’s default.',
+      'session is committed, in the client’s email language, else the workspace’s default. When ' +
+      'the trainer already has a scheduled session of this workspace that overlaps (back-to-back ' +
+      'does not), the answer is `409` with the code `trainer_conflict` and those sessions, and ' +
+      'nothing is stored, unless `allowConflicts` is `true` (PS-07).',
     security: SIGNED_IN,
     request: {
       params: WorkspaceParamsSchema,
@@ -411,6 +422,7 @@ const planPrivateSessionRoute = defineRoute(
         content: { 'application/json': { schema: PlannedPrivateSessionSchema } },
       },
       400: validationErrorResponse,
+      409: trainerConflictResponse,
       500: internalServerErrorResponse,
     },
   },
@@ -456,6 +468,9 @@ const rescheduleRoute = defineRoute(
       'saw: if the session has been changed since, nothing is stored and the answer is `409` ' +
       'with the session as it is now and who changed it last. A cancelled session answers ' +
       '`409` too; a session that is not private or not in the workspace answers `404`. When ' +
+      'the trainer already has a scheduled session of this workspace at the new time (back-to-back ' +
+      'does not overlap), the answer is `409` with the code `trainer_conflict` and those sessions, ' +
+      'unless `allowConflicts` is `true` (PS-07); the version is checked first. When ' +
       '`notify` is on and the new time is not in the past, EM-04 goes to the client after the ' +
       'change is committed, in the client’s email language, else the workspace’s default.',
     security: SIGNED_IN,
@@ -474,8 +489,12 @@ const rescheduleRoute = defineRoute(
       400: validationErrorResponse,
       409: {
         description:
-          'The session was changed after the `version` sent, or it is cancelled. Nothing was stored.',
-        content: { 'application/json': { schema: SessionConflictSchema } },
+          'The session was changed after the `version` sent, or it is cancelled (`session_changed`, ' +
+          '`session_cancelled`), or the trainer already has something at the new time ' +
+          '(`trainer_conflict`). Nothing was stored.',
+        content: {
+          'application/json': { schema: z.union([SessionConflictSchema, TrainerConflictSchema]) },
+        },
       },
       500: internalServerErrorResponse,
     },
@@ -650,6 +669,18 @@ export function registerSessions(app: OpenAPIHono) {
     if (!client) return c.json(NOT_FOUND, 404);
     // `planPrivateSession` planned it only for a trainer who trains here.
     if (!trainer) throw new Error('The trainer of a planned session was not found.');
+    const doubleBooked = await checkDoubleBooking(c, {
+      allowConflicts: body.allowConflicts,
+      surface: body.surface,
+      slots: [
+        {
+          trainerProfileId: trainer.trainerProfileId,
+          startsAt: decision.startsAt,
+          endsAt: decision.endsAt,
+        },
+      ],
+    });
+    if (doubleBooked) return c.json(doubleBooked, 409);
 
     const session = await createPrivateSession(scope, {
       trainerProfileId: trainer.trainerProfileId,
@@ -734,6 +765,24 @@ export function registerSessions(app: OpenAPIHono) {
         }
       }
     }
+    // The save is the check: a form that was open a while warns too. The session's own old time
+    // never counts, and a session without a trainer has nobody to double-book.
+    const trainer = session.trainer ? await findTrainer(scope, session.trainer.id) : undefined;
+    const doubleBooked = await checkDoubleBooking(c, {
+      allowConflicts: body.allowConflicts,
+      surface: body.surface,
+      slots: trainer
+        ? [
+            {
+              trainerProfileId: trainer.trainerProfileId,
+              startsAt: decision.startsAt,
+              endsAt: decision.endsAt,
+              sessionId,
+            },
+          ]
+        : [],
+    });
+    if (doubleBooked) return c.json(doubleBooked, 409);
     // One statement that matches the version: of two saves from the same version, the second
     // finds nothing to change once the first has committed, and gets the session as it is now.
     const moved = await rescheduleSession(scope, {
