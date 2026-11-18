@@ -36,6 +36,7 @@
 		E50300000000000000000312 /* SignInScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000212 /* SignInScreen.swift */; };
 		E50300000000000000000313 /* SignInUITestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000213 /* SignInUITestCase.swift */; };
 		E50300000000000000000314 /* AppLaunch.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000214 /* AppLaunch.swift */; };
+		E50300000000000000000315 /* AppLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000215 /* AppLifecycle.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -81,6 +82,7 @@
 		E50300000000000000000212 /* SignInScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignInScreen.swift"; sourceTree = "<group>"; };
 		E50300000000000000000213 /* SignInUITestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignInUITestCase.swift"; sourceTree = "<group>"; };
 		E50300000000000000000214 /* AppLaunch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppLaunch.swift"; sourceTree = "<group>"; };
+		E50300000000000000000215 /* AppLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppLifecycle.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -214,6 +216,7 @@
 				E50300000000000000000212 /* SignInScreen.swift */,
 				E50300000000000000000213 /* SignInUITestCase.swift */,
 				E50300000000000000000214 /* AppLaunch.swift */,
+				E50300000000000000000215 /* AppLifecycle.swift */,
 			);
 			name = "Fivvi Pro UI test support";
 			path = FivviProUITests/Support;
@@ -412,6 +415,7 @@
 				E50300000000000000000312 /* SignInScreen.swift in Sources */,
 				E50300000000000000000313 /* SignInUITestCase.swift in Sources */,
 				E50300000000000000000314 /* AppLaunch.swift in Sources */,
+				E50300000000000000000315 /* AppLifecycle.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
