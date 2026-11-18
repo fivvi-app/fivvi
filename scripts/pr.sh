@@ -346,9 +346,10 @@ cmd_status() {
 # $WAIT_MINUTES, or $WAIT_MINUTES_NATIVE once a native check is among the checks and not skipped: the gate (iOS, Android)
 # or one of its parts, a name that starts with the gate and a space (iOS build, iOS tests (nl), Android Maestro). The
 # parts are listed while they run, the gate only once they are all done (#416). The gates are required checks, so they
-# exist, skipped, in most PRs; --timeout fixes the limit.
+# exist, skipped, in most PRs; --timeout fixes the limit. A cancelled job (no macOS runner took it, #1268) does not fail
+# the wait when its retry job passed or still runs (scripts/check-retries.jq, #1384).
 cmd_wait() {
-  local timeout="" limit="$WAIT_MINUTES" pr head start run checks failed native job
+  local timeout="" limit="$WAIT_MINUTES" pr head start run checks settled failed native job
   while [ $# -gt 0 ]; do
     case "$1" in
       --timeout) timeout="${2:?}"; shift ;;
@@ -365,7 +366,14 @@ cmd_wait() {
     run="$(gh run list --repo "$REPO" --workflow CI --commit "$head" --limit 1 --json status,conclusion \
       --jq '.[0] // {} | "\(.status // "") \(.conclusion // "")"')"
     checks="$(gh pr checks "$pr" --repo "$REPO" --json name,bucket 2>/dev/null || true)"
-    failed="$(jq -r '[.[]? | select(.bucket == "fail" or .bucket == "cancel") | .name] | join(", ")' <<<"${checks:-[]}" 2>/dev/null || true)"
+    # A cancelled job is read by its retry job (scripts/check-retries.jq, #1384): no failure when the retry passed or runs.
+    # A jq error (a file that does not load) fails the wait: it must not read as "no check failed".
+    settled="$(jq -L "$ROOT/scripts" -c 'include "check-retries";
+      [.[]? | {name, state: (if .bucket == "skipping" then "skip" else .bucket end)}] | settle_retries
+      | {total: length, pending: ([.[] | select(.state == "pending")] | length),
+        failed: [.[] | select(.state == "fail" or .state == "cancel") | .name] | join(", ")}' <<<"${checks:-[]}")" \
+      || die "could not read the checks of PR #$pr"
+    failed="$(jq -r .failed <<<"$settled")"
     if [ -z "$timeout" ] && [ "$limit" -lt "$WAIT_MINUTES_NATIVE" ]; then
       native=""
       for job in "${NATIVE_JOBS[@]}"; do
@@ -379,7 +387,13 @@ cmd_wait() {
     if [ -n "$failed" ]; then echo "✗ PR #$pr checks failed: $failed"; return 1; fi
     case "$run" in
       "completed success") echo "✓ PR #$pr: CI passed on ${head:0:7}"; return 0 ;;
-      completed\ *) echo "✗ PR #$pr: CI ${run#completed } on ${head:0:7}"; return 1 ;;
+      completed\ *)
+        # GitHub concludes a whole run "failure" when a job was cancelled and its retry passed, with no failed job
+        # (#1384): the settled checks decide then, once there are checks and none is failing, cancelled or pending.
+        if jq -e '.total > 0 and .pending == 0' <<<"$settled" >/dev/null; then
+          echo "✓ PR #$pr: CI passed on ${head:0:7} (run ${run#completed }, every check passed or was retried)"; return 0
+        fi
+        echo "✗ PR #$pr: CI ${run#completed } on ${head:0:7}"; return 1 ;;
     esac
     if [ "$(date +%s)" -ge $(( start + limit * 60 )) ]; then
       run="${run% *}"

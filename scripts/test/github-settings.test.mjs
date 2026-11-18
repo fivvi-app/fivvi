@@ -92,6 +92,8 @@ describe('the versioned GitHub settings', () => {
     assert.equal(checks.parameters.strict_required_status_checks_policy, false);
   });
 
+  // #1425: one PR per merge stays: GitHub builds every queued entry on its own, so a group of 3 runs no fewer
+  // checks (ADR-033, "Merge group size"); HEADGREEN would not change that either.
   it('E002 #119: require the merge queue, squash, one PR per merge, sized for a cold iOS run (~25 min)', () => {
     const queue = RULESET.rules.find((rule) => rule.type === 'merge_queue');
     assert.deepEqual(queue.parameters, {
