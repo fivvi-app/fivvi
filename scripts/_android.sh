@@ -102,19 +102,50 @@ gradle_tests() {
 # The Compose UI tests on the connected device, without the listed ones, or with FIVVI_QUARANTINE=only exactly them: the
 # instrumentation runner loads QuarantineRunFilter (:core's androidTestShared), which reads the mode and the list from its
 # arguments. A run with no listed test is the whole suite, and with only nothing.
+#
+# Each test gets UI_TEST_TIMEOUT_MS (120000: the slowest of 521 tests took 4.5 s on CI) from the runner's timeout_msec
+# argument. A test that hangs then fails by name after two minutes and the run goes on, where it used to hold the step
+# until its limit and go quiet (E002 #1442).
+UI_TEST_TIMEOUT_MS="${UI_TEST_TIMEOUT_MS:-120000}"
+# AGP says only "There were failing tests" and points to a report, so a failed run also names, in the log, the tests that
+# failed and the one that started last.
 gradle_connected() {
-  local ui mode=exclude
+  local status=0
+  gradle_connected_run || status=$?
+  [ "$status" = 0 ] || last_ui_tests
+  return "$status"
+}
+
+gradle_connected_run() {
+  local ui mode=exclude timeout="-Pandroid.testInstrumentationRunnerArguments.timeout_msec=$UI_TEST_TIMEOUT_MS"
   ui="$(quarantine_android ui)" || return 1
   [ "${FIVVI_QUARANTINE:-}" != only ] || mode=only
   if [ -z "$ui" ]; then
     [ "$mode" = exclude ] || return 0
-    gradle connectedDebugAndroidTest
+    gradle connectedDebugAndroidTest "$timeout"
     return
   fi
-  gradle connectedDebugAndroidTest \
+  gradle connectedDebugAndroidTest "$timeout" \
     "-Pandroid.testInstrumentationRunnerArguments.filter=app.fivvi.core.quarantine.QuarantineRunFilter" \
     "-Pandroid.testInstrumentationRunnerArguments.quarantine=$mode" \
     "-Pandroid.testInstrumentationRunnerArguments.quarantineTests=$ui"
+}
+
+# What the instrumentation logged on the device (the runner logs `started:`, `finished:` and `failed:` per test under the
+# tag TestRunner): the tests that failed, and the last that started. When a step ran out of time with nothing failing,
+# the test that started last and never finished is the one that hung. The emulator keeps the log until it stops.
+last_ui_tests() {
+  local log failed started
+  log="$(adb logcat -d -s TestRunner:I 2>/dev/null || true)"
+  failed="$(grep -E 'TestRunner.*failed:' <<<"$log" | tail -n 20 || true)"
+  started="$(grep -E 'started:|finished:' <<<"$log" | tail -n 6 || true)"
+  if [ -z "$started" ] && [ -z "$failed" ]; then
+    echo "No test started on the device (nothing of the instrumentation in its log)"
+    return 0
+  fi
+  [ -z "$failed" ] || { echo "The Compose UI tests that failed:"; echo "$failed"; }
+  echo "The instrumentation's last tests; one that started and did not finish is the one that hung:"
+  echo "$started"
 }
 
 # Stops the Gradle daemons of this checkout after a run that used them, unless KEEP_DEVICE=1.

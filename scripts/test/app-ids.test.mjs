@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, it } from 'node:test';
@@ -213,6 +214,122 @@ describe('E017 #504 AC4: two Android apps, distinct IDs, shared generated source
     assert.match(script, /^ {2}gradle_connected$/m);
     assert.match(script, /--tests app\.fivvi\.pro\.BuildInfoTest/);
     assert.match(script, /:client:testDebugUnitTest --tests app\.fivvi\.client\.BuildInfoTest/);
+  });
+});
+
+// E002 #1442: the Compose UI tests ran past the 25-minute step limit of "Android tests" on a slow runner, with no test
+// failing. The step was slow, not hung (:app's 436 tests take 13 to 17 minutes on the two-core runner, :client's 85 about
+// 2.5), so the step has room now; and a test that does hang fails by name, after UI_TEST_TIMEOUT_MS, instead of
+// running out the step.
+describe('E002 #1442: the Compose UI tests fail fast on a hung test and fit their step', () => {
+  const SCRIPTS = join(ROOT, 'scripts');
+  /** Runs a bash snippet with _android.sh sourced, `gradle` printing its arguments and `adb` a fixed logcat. */
+  const run = (snippet, env = {}) =>
+    spawnSync(
+      'bash',
+      [
+        '-c',
+        `source "${SCRIPTS}/_lib.sh"; source "${SCRIPTS}/_android.sh"
+gradle() { printf 'gradle %s\\n' "$*"; }
+adb() { printf '%s\\n' "$FAKE_LOGCAT"; }
+${snippet}`,
+      ],
+      { encoding: 'utf8', env: { ...process.env, ...env } },
+    );
+  const TIMEOUT_ARGUMENT = '-Pandroid.testInstrumentationRunnerArguments.timeout_msec';
+
+  it('every connected run gives each test 120 s, and UI_TEST_TIMEOUT_MS changes it', () => {
+    const plain = run('quarantine_android() { echo; }; gradle_connected');
+    assert.equal(plain.status, 0, plain.stderr);
+    assert.equal(
+      plain.stdout.trim(),
+      `gradle connectedDebugAndroidTest ${TIMEOUT_ARGUMENT}=120000`,
+    );
+    const changed = run('quarantine_android() { echo; }; gradle_connected', {
+      UI_TEST_TIMEOUT_MS: '5000',
+    });
+    assert.match(changed.stdout, new RegExp(`${TIMEOUT_ARGUMENT}=5000\\b`));
+  });
+
+  it('the run with a quarantine list keeps its filter arguments next to the timeout', () => {
+    const result = run('quarantine_android() { echo app.fivvi.pro.X#y; }; gradle_connected');
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, new RegExp(`${TIMEOUT_ARGUMENT}=120000`));
+    assert.match(result.stdout, /quarantineTests=app\.fivvi\.pro\.X#y/);
+    assert.match(result.stdout, /filter=app\.fivvi\.core\.quarantine\.QuarantineRunFilter/);
+  });
+
+  it('last-test names the tests the instrumentation started last, from the device log', () => {
+    const logcat = [
+      'I/TestRunner( 1): started: a(app.fivvi.pro.A)',
+      'I/TestRunner( 1): finished: a(app.fivvi.pro.A)',
+      'I/Other( 2): noise',
+      'I/TestRunner( 1): started: hung(app.fivvi.pro.Hung)',
+    ].join('\n');
+    const result = run('last_ui_tests', { FAKE_LOGCAT: logcat });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /started: hung\(app\.fivvi\.pro\.Hung\)/);
+    assert.doesNotMatch(result.stdout, /noise/);
+    // Said plainly when the device has no such line (a run that never started a test).
+    const none = run('last_ui_tests', { FAKE_LOGCAT: 'I/Other( 2): noise' });
+    assert.equal(none.status, 0, none.stderr);
+    assert.match(none.stdout, /no test started/i);
+  });
+
+  it('a failed connected run names the tests that failed and the one that started last, in the step log', () => {
+    // AGP's own output says only "There were failing tests" and points to a report.
+    const logcat = [
+      'E/TestRunner( 1): failed: bad(app.fivvi.pro.Bad)',
+      'I/TestRunner( 1): finished: bad(app.fivvi.pro.Bad)',
+      'I/TestRunner( 1): started: hung(app.fivvi.pro.Hung)',
+    ].join('\n');
+    const result = run('gradle() { return 1; }; quarantine_android() { echo; }; gradle_connected', {
+      FAKE_LOGCAT: logcat,
+    });
+    assert.equal(result.status, 1, 'the exit status of the failed run is kept');
+    assert.match(result.stdout, /failed: bad\(app\.fivvi\.pro\.Bad\)/);
+    assert.match(result.stdout, /started: hung\(app\.fivvi\.pro\.Hung\)/);
+  });
+
+  it('android.sh has the last-test command', () => {
+    const script = read('scripts/android.sh');
+    assert.match(script, /^ {2}last-test\) shift; cmd_last_test "\$@" ;;$/m);
+  });
+
+  describe('ci.yml: Android tests', () => {
+    const ci = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8');
+    const job = ci.slice(ci.indexOf('\n  android-tests:\n'), ci.indexOf('\n  android-maestro:\n'));
+    // The first timeout-minutes of a job is the job's own, of a step the step's.
+    const minutes = (text) => Number(text.match(/^ {4,8}timeout-minutes: (\d+)$/m)[1]);
+    const step = (name) => {
+      const at = job.indexOf(`- name: ${name}\n`);
+      assert.ok(at >= 0, `the job has the step ${name}`);
+      const rest = job.slice(at + 1);
+      const next = rest.search(/\n {6}(- |# )/);
+      return rest.slice(0, next < 0 ? undefined : next);
+    };
+
+    it('the verify step has 1.5 times the longest run measured, with its job around it', () => {
+      // Measured on 25 runs of 16 to 17 November: the step took 1033 to 1466 s when it passed, and the three runs that
+      // ran out of 1500 s were 10 to 50 s from the end (:client's 2.5 minutes came last). So 40 minutes is 1.6 times
+      // the slowest of those runs (1513 s counted whole), and the job holds the setup (up to 3 minutes), the step and
+      // 2 minutes of post steps.
+      const verify = step('Unit tests, release bundle and Compose UI tests');
+      assert.match(verify, /run: scripts\/android\.sh verify\n/);
+      assert.ok(minutes(verify) * 60 >= 1.5 * 1513, `${minutes(verify)} minutes`);
+      assert.ok(3 + minutes(verify) + 2 <= minutes(job), 'job room');
+    });
+
+    it('prints the test that ran last when a step fails or times out, before the emulator stops', () => {
+      const last = step('The Compose UI test that ran last');
+      assert.match(last, /run: scripts\/android\.sh last-test\n/);
+      assert.match(last, /^ {8}if: failure\(\)$/m);
+      assert.ok(
+        job.indexOf('- name: The Compose UI test that ran last') <
+          job.indexOf('- name: Stop the emulator'),
+        'before the emulator is stopped, which clears its log',
+      );
+    });
   });
 });
 
