@@ -227,7 +227,7 @@ Also for E008:
       | 43593598679 (14 Nov, PR #1382) | merge group | 1418 | past the deadline (1870) |
       | 43432026023 (13 Nov) | merge group | 1676 | 1580 (failed on a test) |
 
-  - Android: `Android build` runs `android.sh build` and `maestro-apk` and uploads the debug app; `Android tests` runs `android.sh verify` next to it; `Android Maestro` downloads the app and runs `maestro.sh android --apk` (the flows in nl-NL and en); the `Android` check is the gate over all three.
+  - Android: `Android build` runs `android.sh build` and `maestro-apk` and uploads the debug app; `Android tests` runs `android.sh verify` next to it (its step has 40 minutes, 1.6 times the slowest of 25 runs; each Compose UI test has `UI_TEST_TIMEOUT_MS`, 2 minutes, so a hung test fails by name, and `android.sh last-test` names the one that started last when the step runs out anyway, #1442); `Android Maestro` downloads the app and runs `maestro.sh android --apk` (the flows in nl-NL and en); the `Android` check is the gate over all three.
   - Maestro: runs in CI on Android only, to save macOS minutes; on iOS it runs locally with `scripts/maestro.sh ios`.
 - **Selectors:** assert on visible text only where the text is the point, and read the expected copy from the generated catalogs, like the web does (§5.4).
 
