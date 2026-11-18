@@ -13,7 +13,7 @@ export interface SeriesToExtend {
   readonly id: string;
   readonly workspaceId: string;
   readonly groupClassId: string;
-  /** `FREQ=WEEKLY;BYDAY=XX`. */
+  /** The weekly rule as the domain wrote it (`weeklyRule`). */
   readonly rrule: string;
   /** The wall-clock start, `HH:mm`. */
   readonly localStartTime: string;
