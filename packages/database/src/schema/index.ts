@@ -4,6 +4,7 @@ export * from './business-table.ts';
 export * from './deletion-log.ts';
 export * from './exercise-library.ts';
 export * from './group-classes.ts';
+export * from './invoicing.ts';
 export * from './job-runs.ts';
 export * from './locations.ts';
 export * from './offers.ts';

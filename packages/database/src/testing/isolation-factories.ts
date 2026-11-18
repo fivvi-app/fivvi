@@ -24,6 +24,7 @@ import {
   addTeamRole,
   addTrainerInvitation,
   addTrainerProfile,
+  addWorkspaceInvoiceDetails,
   createAccount,
   uniqueMarker,
 } from './factories.ts';
@@ -139,6 +140,11 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
       if (!row) throw new Error('offer version was not created.');
       return row;
     },
+  },
+  // The seller's invoice details of the workspace (F059): one row per workspace.
+  workspace_invoice_details: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addWorkspaceInvoiceDetails(db, { workspaceId }),
   },
   // A private session with a trainer of the workspace, planned by an Owner of it, and its one client.
   sessions: {

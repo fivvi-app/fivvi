@@ -283,7 +283,8 @@
                 "class.read",
                 "join_link.view",
                 "join_link.renew",
-                "access_log.read"
+                "access_log.read",
+                "invoices.manage"
               ]
             },
             "description": "What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway."
@@ -384,7 +385,8 @@
                 "class.read",
                 "join_link.view",
                 "join_link.renew",
-                "access_log.read"
+                "access_log.read",
+                "invoices.manage"
               ]
             },
             "description": "What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway."
@@ -2496,6 +2498,166 @@
           "objectId"
         ],
         "description": "One entry of the access log: who did what to which client, and when. IDs, names and a time; no free text, never note content."
+      },
+      "InvoiceDetails": {
+        "type": "object",
+        "properties": {
+          "legalName": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The official business name; `null` until details were saved."
+          },
+          "street": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The street; `null` until details were saved."
+          },
+          "houseNumber": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "One to five digits; `null` until details were saved."
+          },
+          "houseNumberAddition": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "For example `A` or `2 hoog`; `null` when there is none."
+          },
+          "postcode": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Stored as `1234 AB`; `null` until details were saved."
+          },
+          "city": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The city; `null` until details were saved."
+          },
+          "kvkNumber": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "Eight digits; `null` until details were saved."
+          },
+          "vatNumber": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "`NL` + 9 digits + `B` + 2 digits; `null` until details were saved."
+          },
+          "questionEmail": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The email address for invoice questions as the Owner saved it; `null` when left empty, then the Owner’s own address is used."
+          },
+          "effectiveQuestionEmail": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The address invoice questions go to: `questionEmail`, else the first Owner’s address."
+          },
+          "noVat": {
+            "type": "boolean",
+            "description": "*Ik reken geen btw* / *I don’t charge VAT*: off for a workspace that never saved details. It applies to invoices issued from then on."
+          },
+          "complete": {
+            "type": "boolean",
+            "description": "Whether the invoice details are complete. Offers can be switched on only when they are."
+          }
+        },
+        "required": [
+          "legalName",
+          "street",
+          "houseNumber",
+          "houseNumberAddition",
+          "postcode",
+          "city",
+          "kvkNumber",
+          "vatNumber",
+          "questionEmail",
+          "effectiveQuestionEmail",
+          "noVat",
+          "complete"
+        ],
+        "description": "The invoice details of a workspace: the seller on every invoice, the email for invoice questions and the no-VAT switch. Before the first save every text field is `null`."
+      },
+      "SaveInvoiceDetailsRequest": {
+        "type": "object",
+        "properties": {
+          "legalName": {
+            "type": "string",
+            "description": "The official business name, at most 120 characters."
+          },
+          "street": {
+            "type": "string",
+            "description": "The street, at most 120 characters."
+          },
+          "houseNumber": {
+            "type": "string",
+            "description": "One to five digits."
+          },
+          "houseNumberAddition": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "For example `A` or `2 hoog`; at most 10 characters."
+          },
+          "postcode": {
+            "type": "string",
+            "description": "A Dutch postcode: four digits, an optional space, two letters."
+          },
+          "city": {
+            "type": "string",
+            "description": "The city, at most 120 characters."
+          },
+          "kvkNumber": {
+            "type": "string",
+            "description": "Exactly eight digits."
+          },
+          "vatNumber": {
+            "type": "string",
+            "description": "`NL` + 9 digits + `B` + 2 digits; typed in lower case it is kept in capitals."
+          },
+          "questionEmail": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The email address for invoice questions; empty or `null` uses the Owner’s own address."
+          },
+          "noVat": {
+            "type": "boolean",
+            "description": "*Ik reken geen btw*: whether the workspace charges no VAT from now on."
+          }
+        },
+        "required": [
+          "legalName",
+          "street",
+          "houseNumber",
+          "postcode",
+          "city",
+          "kvkNumber",
+          "vatNumber",
+          "noVat"
+        ],
+        "description": "The invoice details as typed, replacing what was saved. Everything but the house number addition and the question email is required; a field that fails answers `422` with its name and code, and nothing is saved."
       }
     },
     "parameters": {}
@@ -7559,6 +7721,228 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/settings/invoice-details": {
+      "get": {
+        "operationId": "getInvoiceDetails",
+        "tags": [
+          "invoices"
+        ],
+        "summary": "The invoice details of a workspace",
+        "description": "The seller’s invoice details, the email for invoice questions and the no-VAT switch of the workspace (the Owner only; a Trainer gets `403`). A workspace that never saved them answers `200` with `null` fields, `noVat: false` and `complete: false`.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "invoices.manage",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The invoice details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "operationId": "putInvoiceDetails",
+        "tags": [
+          "invoices"
+        ],
+        "summary": "Save the invoice details of a workspace",
+        "description": "Saves the invoice details as typed, replacing what was saved (the Owner only; a Trainer gets `403`). The KvK number is eight digits and the VAT number `NL` + 9 digits + `B` + 2 digits; a field that is empty or does not match answers `422` with its name and code (`required`, `too_long`, `invalid`, `invalid_kvk_number`, `invalid_vat_number`, `invalid_email`) and nothing is saved. A body that is not shaped like the request answers `400`. The changes apply to invoices issued afterwards; issued ones never change.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "invoices.manage",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SaveInvoiceDetailsRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The saved invoice details.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvoiceDetails"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "A field is empty or has the wrong format: the issues name the field and the code. Nothing was saved.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
                 }
               }
             }

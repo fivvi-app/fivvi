@@ -372,6 +372,7 @@ extension Components {
                 case joinLink_view = "join_link.view"
                 case joinLink_renew = "join_link.renew"
                 case accessLog_read = "access_log.read"
+                case invoices_manage = "invoices.manage"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -513,6 +514,7 @@ extension Components {
                 case joinLink_view = "join_link.view"
                 case joinLink_renew = "join_link.renew"
                 case accessLog_read = "access_log.read"
+                case invoices_manage = "invoices.manage"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -3710,6 +3712,208 @@ extension Components {
                 case clientName
                 case clientRemoved
                 case objectId
+            }
+        }
+        /// The invoice details of a workspace: the seller on every invoice, the email for invoice questions and the no-VAT switch. Before the first save every text field is `null`.
+        ///
+        /// - Remark: Generated from `#/components/schemas/InvoiceDetails`.
+        public struct InvoiceDetails: Codable, Hashable, Sendable {
+            /// The official business name; `null` until details were saved.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvoiceDetails/legalName`.
+            public var legalName: Swift.String?
+            /// The street; `null` until details were saved.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvoiceDetails/street`.
+            public var street: Swift.String?
+            /// One to five digits; `null` until details were saved.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvoiceDetails/houseNumber`.
+            public var houseNumber: Swift.String?
+            /// For example `A` or `2 hoog`; `null` when there is none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvoiceDetails/houseNumberAddition`.
+            public var houseNumberAddition: Swift.String?
+            /// Stored as `1234 AB`; `null` until details were saved.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvoiceDetails/postcode`.
+            public var postcode: Swift.String?
+            /// The city; `null` until details were saved.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvoiceDetails/city`.
+            public var city: Swift.String?
+            /// Eight digits; `null` until details were saved.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvoiceDetails/kvkNumber`.
+            public var kvkNumber: Swift.String?
+            /// `NL` + 9 digits + `B` + 2 digits; `null` until details were saved.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvoiceDetails/vatNumber`.
+            public var vatNumber: Swift.String?
+            /// The email address for invoice questions as the Owner saved it; `null` when left empty, then the Owner’s own address is used.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvoiceDetails/questionEmail`.
+            public var questionEmail: Swift.String?
+            /// The address invoice questions go to: `questionEmail`, else the first Owner’s address.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvoiceDetails/effectiveQuestionEmail`.
+            public var effectiveQuestionEmail: Swift.String?
+            /// *Ik reken geen btw* / *I don’t charge VAT*: off for a workspace that never saved details. It applies to invoices issued from then on.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvoiceDetails/noVat`.
+            public var noVat: Swift.Bool
+            /// Whether the invoice details are complete. Offers can be switched on only when they are.
+            ///
+            /// - Remark: Generated from `#/components/schemas/InvoiceDetails/complete`.
+            public var complete: Swift.Bool
+            /// Creates a new `InvoiceDetails`.
+            ///
+            /// - Parameters:
+            ///   - legalName: The official business name; `null` until details were saved.
+            ///   - street: The street; `null` until details were saved.
+            ///   - houseNumber: One to five digits; `null` until details were saved.
+            ///   - houseNumberAddition: For example `A` or `2 hoog`; `null` when there is none.
+            ///   - postcode: Stored as `1234 AB`; `null` until details were saved.
+            ///   - city: The city; `null` until details were saved.
+            ///   - kvkNumber: Eight digits; `null` until details were saved.
+            ///   - vatNumber: `NL` + 9 digits + `B` + 2 digits; `null` until details were saved.
+            ///   - questionEmail: The email address for invoice questions as the Owner saved it; `null` when left empty, then the Owner’s own address is used.
+            ///   - effectiveQuestionEmail: The address invoice questions go to: `questionEmail`, else the first Owner’s address.
+            ///   - noVat: *Ik reken geen btw* / *I don’t charge VAT*: off for a workspace that never saved details. It applies to invoices issued from then on.
+            ///   - complete: Whether the invoice details are complete. Offers can be switched on only when they are.
+            public init(
+                legalName: Swift.String? = nil,
+                street: Swift.String? = nil,
+                houseNumber: Swift.String? = nil,
+                houseNumberAddition: Swift.String? = nil,
+                postcode: Swift.String? = nil,
+                city: Swift.String? = nil,
+                kvkNumber: Swift.String? = nil,
+                vatNumber: Swift.String? = nil,
+                questionEmail: Swift.String? = nil,
+                effectiveQuestionEmail: Swift.String? = nil,
+                noVat: Swift.Bool,
+                complete: Swift.Bool
+            ) {
+                self.legalName = legalName
+                self.street = street
+                self.houseNumber = houseNumber
+                self.houseNumberAddition = houseNumberAddition
+                self.postcode = postcode
+                self.city = city
+                self.kvkNumber = kvkNumber
+                self.vatNumber = vatNumber
+                self.questionEmail = questionEmail
+                self.effectiveQuestionEmail = effectiveQuestionEmail
+                self.noVat = noVat
+                self.complete = complete
+            }
+            public enum CodingKeys: String, CodingKey {
+                case legalName
+                case street
+                case houseNumber
+                case houseNumberAddition
+                case postcode
+                case city
+                case kvkNumber
+                case vatNumber
+                case questionEmail
+                case effectiveQuestionEmail
+                case noVat
+                case complete
+            }
+        }
+        /// The invoice details as typed, replacing what was saved. Everything but the house number addition and the question email is required; a field that fails answers `422` with its name and code, and nothing is saved.
+        ///
+        /// - Remark: Generated from `#/components/schemas/SaveInvoiceDetailsRequest`.
+        public struct SaveInvoiceDetailsRequest: Codable, Hashable, Sendable {
+            /// The official business name, at most 120 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SaveInvoiceDetailsRequest/legalName`.
+            public var legalName: Swift.String
+            /// The street, at most 120 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SaveInvoiceDetailsRequest/street`.
+            public var street: Swift.String
+            /// One to five digits.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SaveInvoiceDetailsRequest/houseNumber`.
+            public var houseNumber: Swift.String
+            /// For example `A` or `2 hoog`; at most 10 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SaveInvoiceDetailsRequest/houseNumberAddition`.
+            public var houseNumberAddition: Swift.String?
+            /// A Dutch postcode: four digits, an optional space, two letters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SaveInvoiceDetailsRequest/postcode`.
+            public var postcode: Swift.String
+            /// The city, at most 120 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SaveInvoiceDetailsRequest/city`.
+            public var city: Swift.String
+            /// Exactly eight digits.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SaveInvoiceDetailsRequest/kvkNumber`.
+            public var kvkNumber: Swift.String
+            /// `NL` + 9 digits + `B` + 2 digits; typed in lower case it is kept in capitals.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SaveInvoiceDetailsRequest/vatNumber`.
+            public var vatNumber: Swift.String
+            /// The email address for invoice questions; empty or `null` uses the Owner’s own address.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SaveInvoiceDetailsRequest/questionEmail`.
+            public var questionEmail: Swift.String?
+            /// *Ik reken geen btw*: whether the workspace charges no VAT from now on.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SaveInvoiceDetailsRequest/noVat`.
+            public var noVat: Swift.Bool
+            /// Creates a new `SaveInvoiceDetailsRequest`.
+            ///
+            /// - Parameters:
+            ///   - legalName: The official business name, at most 120 characters.
+            ///   - street: The street, at most 120 characters.
+            ///   - houseNumber: One to five digits.
+            ///   - houseNumberAddition: For example `A` or `2 hoog`; at most 10 characters.
+            ///   - postcode: A Dutch postcode: four digits, an optional space, two letters.
+            ///   - city: The city, at most 120 characters.
+            ///   - kvkNumber: Exactly eight digits.
+            ///   - vatNumber: `NL` + 9 digits + `B` + 2 digits; typed in lower case it is kept in capitals.
+            ///   - questionEmail: The email address for invoice questions; empty or `null` uses the Owner’s own address.
+            ///   - noVat: *Ik reken geen btw*: whether the workspace charges no VAT from now on.
+            public init(
+                legalName: Swift.String,
+                street: Swift.String,
+                houseNumber: Swift.String,
+                houseNumberAddition: Swift.String? = nil,
+                postcode: Swift.String,
+                city: Swift.String,
+                kvkNumber: Swift.String,
+                vatNumber: Swift.String,
+                questionEmail: Swift.String? = nil,
+                noVat: Swift.Bool
+            ) {
+                self.legalName = legalName
+                self.street = street
+                self.houseNumber = houseNumber
+                self.houseNumberAddition = houseNumberAddition
+                self.postcode = postcode
+                self.city = city
+                self.kvkNumber = kvkNumber
+                self.vatNumber = vatNumber
+                self.questionEmail = questionEmail
+                self.noVat = noVat
+            }
+            public enum CodingKeys: String, CodingKey {
+                case legalName
+                case street
+                case houseNumber
+                case houseNumberAddition
+                case postcode
+                case city
+                case kvkNumber
+                case vatNumber
+                case questionEmail
+                case noVat
             }
         }
     }

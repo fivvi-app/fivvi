@@ -1,10 +1,17 @@
-import { type DatabaseExecutor, locations, organizations, trainerProfiles } from '@fivvi/database';
+import {
+  type DatabaseExecutor,
+  locations,
+  organizations,
+  trainerProfiles,
+  workspaceInvoiceDetails,
+} from '@fivvi/database';
 import {
   addAccessLogEntry,
   addGroupClass,
   addSession,
   addTeamRole,
   addTrainerInvitation,
+  addWorkspaceInvoiceDetails,
   createAccount,
 } from '@fivvi/database/testing';
 import { eq, sql } from 'drizzle-orm';
@@ -98,6 +105,22 @@ const theLocation: IsolationCase['seed'] = async (db, { workspaceId }) => {
     .where(eq(locations.organizationId, workspaceId));
   if (!location) throw new Error('The workspace has no location.');
   return { location: location.id };
+};
+
+/**
+ * The invoice details of the workspace the seed was called for (the suite seeds once per client, a
+ * workspace has one set): what the invoice details read shows, by the legal name (F059).
+ */
+const theInvoiceDetails: IsolationCase['seed'] = async (db, { workspaceId }) => {
+  const existing = () =>
+    db
+      .select({ legalName: workspaceInvoiceDetails.legalName })
+      .from(workspaceInvoiceDetails)
+      .where(eq(workspaceInvoiceDetails.organizationId, workspaceId));
+  const [row] = await existing();
+  if (row) return { legalName: row.legalName };
+  const { legalName } = await addWorkspaceInvoiceDetails(db, { workspaceId });
+  return { legalName };
 };
 
 /** A Trainer of the workspace the seed was called for: what the team routes list and remove (F003). */
@@ -357,6 +380,23 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
     seed: theLocation,
     params: { locationId: 'location' },
     body: { name: 'Renamed Location' },
+  },
+
+  // The invoice details of a workspace (F059): the read shows the seeded legal name, the save
+  // replaces the details of the caller's workspace only.
+  getInvoiceDetails: { seed: theInvoiceDetails },
+  putInvoiceDetails: {
+    seed: theInvoiceDetails,
+    body: {
+      legalName: "John's Gym B.V.",
+      street: 'Voorbeeldstraat',
+      houseNumber: '1',
+      postcode: '1234 AB',
+      city: 'Amsterdam',
+      kvkNumber: '12345678',
+      vatNumber: 'NL000000000B01',
+      noVat: false,
+    },
   },
 
   // The address lookup (F015): the fake answers the invented 1234 AB 1. It names no record of the

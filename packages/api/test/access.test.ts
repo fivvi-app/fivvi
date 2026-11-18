@@ -462,6 +462,8 @@ describe('@permission E011 route access', () => {
       'get /v1/workspaces/{workspaceId}/access-log': 'workspace',
       'get /v1/workspaces/{workspaceId}/address-lookup': 'workspace',
       'get /v1/workspaces/{workspaceId}/clients': 'workspace',
+      'get /v1/workspaces/{workspaceId}/settings/invoice-details': 'workspace',
+      'put /v1/workspaces/{workspaceId}/settings/invoice-details': 'workspace',
       'post /v1/workspaces/{workspaceId}/clients': 'workspace',
       'post /v1/workspaces/{workspaceId}/switched': 'workspace',
       'get /v1/workspaces/{workspaceId}/clients/{clientId}': 'workspace',

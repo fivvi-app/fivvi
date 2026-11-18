@@ -18608,4 +18608,850 @@ public enum Operations {
             }
         }
     }
+    /// The invoice details of a workspace
+    ///
+    /// The seller’s invoice details, the email for invoice questions and the no-VAT switch of the workspace (the Owner only; a Trainer gets `403`). A workspace that never saved them answers `200` with `null` fields, `noVat: false` and `complete: false`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/settings/invoice-details`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/get(getInvoiceDetails)`.
+    public enum GetInvoiceDetails {
+        public static let id: Swift.String = "getInvoiceDetails"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/GET/path`.
+            public struct Path: Sendable, Hashable {
+                /// The workspace ID.
+                ///
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/GET/path/workspaceId`.
+                public var workspaceId: Swift.String
+                /// Creates a new `Path`.
+                ///
+                /// - Parameters:
+                ///   - workspaceId: The workspace ID.
+                public init(workspaceId: Swift.String) {
+                    self.workspaceId = workspaceId
+                }
+            }
+            public var path: Operations.GetInvoiceDetails.Input.Path
+            /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/GET/header`.
+            public struct Headers: Sendable, Hashable {
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.GetInvoiceDetails.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - accept:
+                public init(accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.GetInvoiceDetails.AcceptableContentType>] = .defaultValues()) {
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.GetInvoiceDetails.Input.Headers
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - path:
+            ///   - headers:
+            public init(
+                path: Operations.GetInvoiceDetails.Input.Path,
+                headers: Operations.GetInvoiceDetails.Input.Headers = .init()
+            ) {
+                self.path = path
+                self.headers = headers
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/GET/responses/200/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/GET/responses/200/content/application\/json`.
+                    case json(Components.Schemas.InvoiceDetails)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.InvoiceDetails {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetInvoiceDetails.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetInvoiceDetails.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            /// The invoice details.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/get(getInvoiceDetails)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.GetInvoiceDetails.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            public var ok: Operations.GetInvoiceDetails.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct BadRequest: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/GET/responses/400/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/GET/responses/400/content/application\/json`.
+                    case json(Components.Schemas.ValidationError)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.ValidationError {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetInvoiceDetails.Output.BadRequest.Body
+                /// Creates a new `BadRequest`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetInvoiceDetails.Output.BadRequest.Body) {
+                    self.body = body
+                }
+            }
+            /// The request did not match the contract.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/get(getInvoiceDetails)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Operations.GetInvoiceDetails.Output.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Operations.GetInvoiceDetails.Output.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct Unauthorized: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/GET/responses/401/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/GET/responses/401/content/application\/json`.
+                    case json(Components.Schemas.NotSignedIn)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.NotSignedIn {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetInvoiceDetails.Output.Unauthorized.Body
+                /// Creates a new `Unauthorized`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetInvoiceDetails.Output.Unauthorized.Body) {
+                    self.body = body
+                }
+            }
+            /// Nobody is signed in: no valid sign-in session or bearer token.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/get(getInvoiceDetails)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Operations.GetInvoiceDetails.Output.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Operations.GetInvoiceDetails.Output.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct Forbidden: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/GET/responses/403/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/GET/responses/403/content/application\/json`.
+                    case json(Components.Schemas.Forbidden)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.Forbidden {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetInvoiceDetails.Output.Forbidden.Body
+                /// Creates a new `Forbidden`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetInvoiceDetails.Output.Forbidden.Body) {
+                    self.body = body
+                }
+            }
+            /// The caller has a place in the workspace that this route’s access doesn’t allow.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/get(getInvoiceDetails)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Operations.GetInvoiceDetails.Output.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            public var forbidden: Operations.GetInvoiceDetails.Output.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct NotFound: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/GET/responses/404/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/GET/responses/404/content/application\/json`.
+                    case json(Components.Schemas.NotFound)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.NotFound {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetInvoiceDetails.Output.NotFound.Body
+                /// Creates a new `NotFound`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetInvoiceDetails.Output.NotFound.Body) {
+                    self.body = body
+                }
+            }
+            /// The caller has no place in the workspace, or the record is out of the caller’s reach.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/get(getInvoiceDetails)/responses/404`.
+            ///
+            /// HTTP response code: `404 notFound`.
+            case notFound(Operations.GetInvoiceDetails.Output.NotFound)
+            /// The associated value of the enum case if `self` is `.notFound`.
+            ///
+            /// - Throws: An error if `self` is not `.notFound`.
+            /// - SeeAlso: `.notFound`.
+            public var notFound: Operations.GetInvoiceDetails.Output.NotFound {
+                get throws {
+                    switch self {
+                    case let .notFound(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "notFound",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct InternalServerError: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/GET/responses/500/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/GET/responses/500/content/text\/plain`.
+                    case plainText(OpenAPIRuntime.HTTPBody)
+                    /// The associated value of the enum case if `self` is `.plainText`.
+                    ///
+                    /// - Throws: An error if `self` is not `.plainText`.
+                    /// - SeeAlso: `.plainText`.
+                    public var plainText: OpenAPIRuntime.HTTPBody {
+                        get throws {
+                            switch self {
+                            case let .plainText(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.GetInvoiceDetails.Output.InternalServerError.Body
+                /// Creates a new `InternalServerError`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.GetInvoiceDetails.Output.InternalServerError.Body) {
+                    self.body = body
+                }
+            }
+            /// Unexpected server error, reported to error tracking. Contains no error details.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/get(getInvoiceDetails)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Operations.GetInvoiceDetails.Output.InternalServerError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Operations.GetInvoiceDetails.Output.InternalServerError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case plainText
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "text/plain":
+                    self = .plainText
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .plainText:
+                    return "text/plain"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .plainText
+                ]
+            }
+        }
+    }
+    /// Save the invoice details of a workspace
+    ///
+    /// Saves the invoice details as typed, replacing what was saved (the Owner only; a Trainer gets `403`). The KvK number is eight digits and the VAT number `NL` + 9 digits + `B` + 2 digits; a field that is empty or does not match answers `422` with its name and code (`required`, `too_long`, `invalid`, `invalid_kvk_number`, `invalid_vat_number`, `invalid_email`) and nothing is saved. A body that is not shaped like the request answers `400`. The changes apply to invoices issued afterwards; issued ones never change.
+    ///
+    /// - Remark: HTTP `PUT /v1/workspaces/{workspaceId}/settings/invoice-details`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/put(putInvoiceDetails)`.
+    public enum PutInvoiceDetails {
+        public static let id: Swift.String = "putInvoiceDetails"
+        public struct Input: Sendable, Hashable {
+            /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/PUT/path`.
+            public struct Path: Sendable, Hashable {
+                /// The workspace ID.
+                ///
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/PUT/path/workspaceId`.
+                public var workspaceId: Swift.String
+                /// Creates a new `Path`.
+                ///
+                /// - Parameters:
+                ///   - workspaceId: The workspace ID.
+                public init(workspaceId: Swift.String) {
+                    self.workspaceId = workspaceId
+                }
+            }
+            public var path: Operations.PutInvoiceDetails.Input.Path
+            /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/PUT/header`.
+            public struct Headers: Sendable, Hashable {
+                public var accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.PutInvoiceDetails.AcceptableContentType>]
+                /// Creates a new `Headers`.
+                ///
+                /// - Parameters:
+                ///   - accept:
+                public init(accept: [OpenAPIRuntime.AcceptHeaderContentType<Operations.PutInvoiceDetails.AcceptableContentType>] = .defaultValues()) {
+                    self.accept = accept
+                }
+            }
+            public var headers: Operations.PutInvoiceDetails.Input.Headers
+            /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/PUT/requestBody`.
+            @frozen public enum Body: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/PUT/requestBody/content/application\/json`.
+                case json(Components.Schemas.SaveInvoiceDetailsRequest)
+            }
+            public var body: Operations.PutInvoiceDetails.Input.Body
+            /// Creates a new `Input`.
+            ///
+            /// - Parameters:
+            ///   - path:
+            ///   - headers:
+            ///   - body:
+            public init(
+                path: Operations.PutInvoiceDetails.Input.Path,
+                headers: Operations.PutInvoiceDetails.Input.Headers = .init(),
+                body: Operations.PutInvoiceDetails.Input.Body
+            ) {
+                self.path = path
+                self.headers = headers
+                self.body = body
+            }
+        }
+        @frozen public enum Output: Sendable, Hashable {
+            public struct Ok: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/PUT/responses/200/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/PUT/responses/200/content/application\/json`.
+                    case json(Components.Schemas.InvoiceDetails)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.InvoiceDetails {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.PutInvoiceDetails.Output.Ok.Body
+                /// Creates a new `Ok`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.PutInvoiceDetails.Output.Ok.Body) {
+                    self.body = body
+                }
+            }
+            /// The saved invoice details.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/put(putInvoiceDetails)/responses/200`.
+            ///
+            /// HTTP response code: `200 ok`.
+            case ok(Operations.PutInvoiceDetails.Output.Ok)
+            /// The associated value of the enum case if `self` is `.ok`.
+            ///
+            /// - Throws: An error if `self` is not `.ok`.
+            /// - SeeAlso: `.ok`.
+            public var ok: Operations.PutInvoiceDetails.Output.Ok {
+                get throws {
+                    switch self {
+                    case let .ok(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "ok",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct BadRequest: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/PUT/responses/400/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/PUT/responses/400/content/application\/json`.
+                    case json(Components.Schemas.ValidationError)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.ValidationError {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.PutInvoiceDetails.Output.BadRequest.Body
+                /// Creates a new `BadRequest`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.PutInvoiceDetails.Output.BadRequest.Body) {
+                    self.body = body
+                }
+            }
+            /// The request did not match the contract.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/put(putInvoiceDetails)/responses/400`.
+            ///
+            /// HTTP response code: `400 badRequest`.
+            case badRequest(Operations.PutInvoiceDetails.Output.BadRequest)
+            /// The associated value of the enum case if `self` is `.badRequest`.
+            ///
+            /// - Throws: An error if `self` is not `.badRequest`.
+            /// - SeeAlso: `.badRequest`.
+            public var badRequest: Operations.PutInvoiceDetails.Output.BadRequest {
+                get throws {
+                    switch self {
+                    case let .badRequest(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "badRequest",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct Unauthorized: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/PUT/responses/401/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/PUT/responses/401/content/application\/json`.
+                    case json(Components.Schemas.NotSignedIn)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.NotSignedIn {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.PutInvoiceDetails.Output.Unauthorized.Body
+                /// Creates a new `Unauthorized`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.PutInvoiceDetails.Output.Unauthorized.Body) {
+                    self.body = body
+                }
+            }
+            /// Nobody is signed in: no valid sign-in session or bearer token.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/put(putInvoiceDetails)/responses/401`.
+            ///
+            /// HTTP response code: `401 unauthorized`.
+            case unauthorized(Operations.PutInvoiceDetails.Output.Unauthorized)
+            /// The associated value of the enum case if `self` is `.unauthorized`.
+            ///
+            /// - Throws: An error if `self` is not `.unauthorized`.
+            /// - SeeAlso: `.unauthorized`.
+            public var unauthorized: Operations.PutInvoiceDetails.Output.Unauthorized {
+                get throws {
+                    switch self {
+                    case let .unauthorized(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unauthorized",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct Forbidden: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/PUT/responses/403/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/PUT/responses/403/content/application\/json`.
+                    case json(Components.Schemas.Forbidden)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.Forbidden {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.PutInvoiceDetails.Output.Forbidden.Body
+                /// Creates a new `Forbidden`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.PutInvoiceDetails.Output.Forbidden.Body) {
+                    self.body = body
+                }
+            }
+            /// The caller has a place in the workspace that this route’s access doesn’t allow.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/put(putInvoiceDetails)/responses/403`.
+            ///
+            /// HTTP response code: `403 forbidden`.
+            case forbidden(Operations.PutInvoiceDetails.Output.Forbidden)
+            /// The associated value of the enum case if `self` is `.forbidden`.
+            ///
+            /// - Throws: An error if `self` is not `.forbidden`.
+            /// - SeeAlso: `.forbidden`.
+            public var forbidden: Operations.PutInvoiceDetails.Output.Forbidden {
+                get throws {
+                    switch self {
+                    case let .forbidden(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "forbidden",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct NotFound: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/PUT/responses/404/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/PUT/responses/404/content/application\/json`.
+                    case json(Components.Schemas.NotFound)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.NotFound {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.PutInvoiceDetails.Output.NotFound.Body
+                /// Creates a new `NotFound`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.PutInvoiceDetails.Output.NotFound.Body) {
+                    self.body = body
+                }
+            }
+            /// The caller has no place in the workspace, or the record is out of the caller’s reach.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/put(putInvoiceDetails)/responses/404`.
+            ///
+            /// HTTP response code: `404 notFound`.
+            case notFound(Operations.PutInvoiceDetails.Output.NotFound)
+            /// The associated value of the enum case if `self` is `.notFound`.
+            ///
+            /// - Throws: An error if `self` is not `.notFound`.
+            /// - SeeAlso: `.notFound`.
+            public var notFound: Operations.PutInvoiceDetails.Output.NotFound {
+                get throws {
+                    switch self {
+                    case let .notFound(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "notFound",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct UnprocessableContent: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/PUT/responses/422/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/PUT/responses/422/content/application\/json`.
+                    case json(Components.Schemas.ValidationError)
+                    /// The associated value of the enum case if `self` is `.json`.
+                    ///
+                    /// - Throws: An error if `self` is not `.json`.
+                    /// - SeeAlso: `.json`.
+                    public var json: Components.Schemas.ValidationError {
+                        get throws {
+                            switch self {
+                            case let .json(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.PutInvoiceDetails.Output.UnprocessableContent.Body
+                /// Creates a new `UnprocessableContent`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.PutInvoiceDetails.Output.UnprocessableContent.Body) {
+                    self.body = body
+                }
+            }
+            /// A field is empty or has the wrong format: the issues name the field and the code. Nothing was saved.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/put(putInvoiceDetails)/responses/422`.
+            ///
+            /// HTTP response code: `422 unprocessableContent`.
+            case unprocessableContent(Operations.PutInvoiceDetails.Output.UnprocessableContent)
+            /// The associated value of the enum case if `self` is `.unprocessableContent`.
+            ///
+            /// - Throws: An error if `self` is not `.unprocessableContent`.
+            /// - SeeAlso: `.unprocessableContent`.
+            public var unprocessableContent: Operations.PutInvoiceDetails.Output.UnprocessableContent {
+                get throws {
+                    switch self {
+                    case let .unprocessableContent(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "unprocessableContent",
+                            response: self
+                        )
+                    }
+                }
+            }
+            public struct InternalServerError: Sendable, Hashable {
+                /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/PUT/responses/500/content`.
+                @frozen public enum Body: Sendable, Hashable {
+                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/settings/invoice-details/PUT/responses/500/content/text\/plain`.
+                    case plainText(OpenAPIRuntime.HTTPBody)
+                    /// The associated value of the enum case if `self` is `.plainText`.
+                    ///
+                    /// - Throws: An error if `self` is not `.plainText`.
+                    /// - SeeAlso: `.plainText`.
+                    public var plainText: OpenAPIRuntime.HTTPBody {
+                        get throws {
+                            switch self {
+                            case let .plainText(body):
+                                return body
+                            }
+                        }
+                    }
+                }
+                /// Received HTTP response body
+                public var body: Operations.PutInvoiceDetails.Output.InternalServerError.Body
+                /// Creates a new `InternalServerError`.
+                ///
+                /// - Parameters:
+                ///   - body: Received HTTP response body
+                public init(body: Operations.PutInvoiceDetails.Output.InternalServerError.Body) {
+                    self.body = body
+                }
+            }
+            /// Unexpected server error, reported to error tracking. Contains no error details.
+            ///
+            /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/put(putInvoiceDetails)/responses/500`.
+            ///
+            /// HTTP response code: `500 internalServerError`.
+            case internalServerError(Operations.PutInvoiceDetails.Output.InternalServerError)
+            /// The associated value of the enum case if `self` is `.internalServerError`.
+            ///
+            /// - Throws: An error if `self` is not `.internalServerError`.
+            /// - SeeAlso: `.internalServerError`.
+            public var internalServerError: Operations.PutInvoiceDetails.Output.InternalServerError {
+                get throws {
+                    switch self {
+                    case let .internalServerError(response):
+                        return response
+                    default:
+                        try throwUnexpectedResponseStatus(
+                            expectedStatus: "internalServerError",
+                            response: self
+                        )
+                    }
+                }
+            }
+            /// Undocumented response.
+            ///
+            /// A response with a code that is not documented in the OpenAPI document.
+            case undocumented(statusCode: Swift.Int, OpenAPIRuntime.UndocumentedPayload)
+        }
+        @frozen public enum AcceptableContentType: AcceptableProtocol {
+            case json
+            case plainText
+            case other(Swift.String)
+            public init?(rawValue: Swift.String) {
+                switch rawValue.lowercased() {
+                case "application/json":
+                    self = .json
+                case "text/plain":
+                    self = .plainText
+                default:
+                    self = .other(rawValue)
+                }
+            }
+            public var rawValue: Swift.String {
+                switch self {
+                case let .other(string):
+                    return string
+                case .json:
+                    return "application/json"
+                case .plainText:
+                    return "text/plain"
+                }
+            }
+            public static var allCases: [Self] {
+                [
+                    .json,
+                    .plainText
+                ]
+            }
+        }
+    }
 }

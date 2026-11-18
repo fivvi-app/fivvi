@@ -14,6 +14,7 @@ export {
   addTeamRole,
   addTrainerInvitation,
   addTrainerProfile,
+  addWorkspaceInvoiceDetails,
   createAccount,
   createWorkspace,
   endTeamRole,

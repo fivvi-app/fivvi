@@ -26,6 +26,7 @@ export const CAPABILITIES = [
   'join_link.view',
   'join_link.renew',
   'access_log.read',
+  'invoices.manage',
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 

@@ -21,6 +21,7 @@ import {
   teamMembers,
   trainerInvitations,
   trainerProfiles,
+  workspaceInvoiceDetails,
 } from '../schema/index.ts';
 
 // Test factories for the tenancy core (TESTING.md §5.2). Each creates a valid record with
@@ -584,4 +585,34 @@ export async function addOffer(
   };
   const written = await db.transaction((tx) => insertOffer(tx, options.workspaceId, offer));
   return { ...written, nameNl };
+}
+
+/**
+ * The invoice details of a workspace (F059): John's Gym B.V. by default, complete, the switch
+ * *Ik reken geen btw* off and no question email. The legal name carries a unique marker.
+ */
+export async function addWorkspaceInvoiceDetails(
+  db: DatabaseExecutor,
+  options: { workspaceId: string; noVat?: boolean; questionEmail?: string | null },
+): Promise<{ id: string; legalName: string }> {
+  const legalName = uniqueMarker('gym-bv');
+  const row = first(
+    await db
+      .insert(workspaceInvoiceDetails)
+      .values({
+        organizationId: options.workspaceId,
+        legalName,
+        street: 'Voorbeeldstraat',
+        houseNumber: '1',
+        postcode: '1234 AB',
+        city: 'Amsterdam',
+        kvkNumber: '12345678',
+        vatNumber: 'NL000000000B01',
+        questionEmail: options.questionEmail ?? null,
+        noVat: options.noVat ?? false,
+      })
+      .returning({ id: workspaceInvoiceDetails.id }),
+    'workspace invoice details',
+  );
+  return { id: row.id, legalName };
 }

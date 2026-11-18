@@ -361,6 +361,20 @@ public protocol APIProtocol: Sendable {
     /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/access-log`.
     /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/access-log/get(listAccessLog)`.
     func listAccessLog(_ input: Operations.ListAccessLog.Input) async throws -> Operations.ListAccessLog.Output
+    /// The invoice details of a workspace
+    ///
+    /// The seller’s invoice details, the email for invoice questions and the no-VAT switch of the workspace (the Owner only; a Trainer gets `403`). A workspace that never saved them answers `200` with `null` fields, `noVat: false` and `complete: false`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/settings/invoice-details`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/get(getInvoiceDetails)`.
+    func getInvoiceDetails(_ input: Operations.GetInvoiceDetails.Input) async throws -> Operations.GetInvoiceDetails.Output
+    /// Save the invoice details of a workspace
+    ///
+    /// Saves the invoice details as typed, replacing what was saved (the Owner only; a Trainer gets `403`). The KvK number is eight digits and the VAT number `NL` + 9 digits + `B` + 2 digits; a field that is empty or does not match answers `422` with its name and code (`required`, `too_long`, `invalid`, `invalid_kvk_number`, `invalid_vat_number`, `invalid_email`) and nothing is saved. A body that is not shaped like the request answers `400`. The changes apply to invoices issued afterwards; issued ones never change.
+    ///
+    /// - Remark: HTTP `PUT /v1/workspaces/{workspaceId}/settings/invoice-details`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/put(putInvoiceDetails)`.
+    func putInvoiceDetails(_ input: Operations.PutInvoiceDetails.Input) async throws -> Operations.PutInvoiceDetails.Output
 }
 
 /// Convenience overloads for operation inputs.
@@ -1123,6 +1137,38 @@ extension APIProtocol {
             path: path,
             query: query,
             headers: headers
+        ))
+    }
+    /// The invoice details of a workspace
+    ///
+    /// The seller’s invoice details, the email for invoice questions and the no-VAT switch of the workspace (the Owner only; a Trainer gets `403`). A workspace that never saved them answers `200` with `null` fields, `noVat: false` and `complete: false`.
+    ///
+    /// - Remark: HTTP `GET /v1/workspaces/{workspaceId}/settings/invoice-details`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/get(getInvoiceDetails)`.
+    public func getInvoiceDetails(
+        path: Operations.GetInvoiceDetails.Input.Path,
+        headers: Operations.GetInvoiceDetails.Input.Headers = .init()
+    ) async throws -> Operations.GetInvoiceDetails.Output {
+        try await getInvoiceDetails(Operations.GetInvoiceDetails.Input(
+            path: path,
+            headers: headers
+        ))
+    }
+    /// Save the invoice details of a workspace
+    ///
+    /// Saves the invoice details as typed, replacing what was saved (the Owner only; a Trainer gets `403`). The KvK number is eight digits and the VAT number `NL` + 9 digits + `B` + 2 digits; a field that is empty or does not match answers `422` with its name and code (`required`, `too_long`, `invalid`, `invalid_kvk_number`, `invalid_vat_number`, `invalid_email`) and nothing is saved. A body that is not shaped like the request answers `400`. The changes apply to invoices issued afterwards; issued ones never change.
+    ///
+    /// - Remark: HTTP `PUT /v1/workspaces/{workspaceId}/settings/invoice-details`.
+    /// - Remark: Generated from `#/paths//v1/workspaces/{workspaceId}/settings/invoice-details/put(putInvoiceDetails)`.
+    public func putInvoiceDetails(
+        path: Operations.PutInvoiceDetails.Input.Path,
+        headers: Operations.PutInvoiceDetails.Input.Headers = .init(),
+        body: Operations.PutInvoiceDetails.Input.Body
+    ) async throws -> Operations.PutInvoiceDetails.Output {
+        try await putInvoiceDetails(Operations.PutInvoiceDetails.Input(
+            path: path,
+            headers: headers,
+            body: body
         ))
     }
 }

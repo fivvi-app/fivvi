@@ -81,6 +81,13 @@ export {
   updateGroupClass,
 } from './repositories/group-classes.ts';
 export {
+  findInvoiceQuestionEmail,
+  findInvoiceSettings,
+  type InvoiceSettingsChange,
+  type InvoiceSettingsView,
+  saveInvoiceSettings,
+} from './repositories/invoice-details.ts';
+export {
   findLocation,
   type LocationAddress,
   type LocationChanges,

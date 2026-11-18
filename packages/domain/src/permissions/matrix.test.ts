@@ -38,6 +38,7 @@ describe('@permission F004 permission matrix', () => {
       'join_link.view',
       'join_link.renew',
       'access_log.read',
+      'invoices.manage',
     ]);
     expect(capabilitiesOf('owner')).toEqual(CAPABILITIES);
     expect(capabilitiesOf('trainer')).toEqual(TRAINER_CAPABILITIES);
@@ -71,6 +72,8 @@ describe('@permission F004 permission matrix', () => {
     expect(rolesWith('join_link.renew')).toEqual(['owner']);
     // E014: only the Owner reads the access log (AC6; retention-policy.md §3.4).
     expect(rolesWith('access_log.read')).toEqual(['owner']);
+    // F059: only the Owner keeps the invoice details and edits a client's billing details.
+    expect(rolesWith('invoices.manage')).toEqual(['owner']);
   });
 
   it('AC9: has no admin role', () => {
