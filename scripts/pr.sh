@@ -33,8 +33,14 @@
 #                                                 PR's own environment, <project>-pr-<n>. Without
 #                                                 the CLI, a preview whose status is success is only
 #                                                 health-checked; otherwise smoke fails with a hint
-#   pr.sh reviewed [--should-fix <n>]             record in the PR body that both reviewers (standards and spec) found
+#   pr.sh reviewed [--should-fix <n>] [--axes standards|both]
+#                                                 record in the PR body that both reviewers (standards and spec) found
 #                                                 nothing to fix on the PR's head commit; local HEAD must be that commit.
+#                                                 --axes standards (ADR-034): the reviewer ran the standards axis only (and
+#                                                 the acceptance-criterion to test check), which counts only while
+#                                                 `pipeline.sh get review` says split and for a PR scripts/risk.sh calls
+#                                                 low; the record says "(standards only)"; otherwise it is refused. The
+#                                                 default, both, is the record of both axes
 #                                                 --should-fix <n>: the reviewer's last verdict is clean with n should-fix
 #                                                 findings left (review by risk, ADR-033 item 5, until pilot setup); only
 #                                                 for a PR scripts/risk.sh calls low, they go to the notes file as
@@ -249,12 +255,18 @@ READY_CONDITIONS=("checks passed" "self-review clean" "preview smoke-checked")
 
 cmd_ready() {
   [ $# -eq 0 ] || usage
-  local pr facts decision missing out
+  local pr facts decision missing out risk
   pr="$(current_pr)"
   facts="$(pr_facts "$pr")" || exit 1
-  # The facts of the other conditions (risk, threads) are not asked here: their conditions are not read.
+  # The facts of the other conditions (risk, threads) are not asked here: their conditions are not read. Except the risk
+  # of a PR whose review record covers the standards axis only (ADR-034): that record counts for a low-risk PR alone.
+  risk='{"risk": "low", "reasons": []}'
+  if jq -e --arg mark "$REVIEW_MARK" '.pr.body | split("\n")
+      | any(startswith("**\($mark):**") and contains("(standards only)"))' <<<"$facts" >/dev/null; then
+    risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || die "could not decide the risk of PR #$pr; nothing changed"
+  fi
   decision="$(jq -c --arg review_mark "$REVIEW_MARK" --arg smoke_mark "$SMOKE_MARK" --arg no_preview "$NO_PREVIEW" \
-    -f "$ROOT/scripts/merge-gate.jq" <<<"$(jq '. + {risk: {risk: "low", reasons: []}, threads: 0}' <<<"$facts")")" \
+    -f "$ROOT/scripts/merge-gate.jq" <<<"$(jq --argjson risk "$risk" '. + {risk: $risk, threads: 0}' <<<"$facts")")" \
     || die "could not decide whether PR #$pr is ready; nothing changed"
   missing="$(jq -r --argjson names "$(printf '%s\n' "${READY_CONDITIONS[@]}" | jq -R . | jq -sc .)" '
     [.conditions[] | select(.name | IN($names[])) | select(.ok | not) | "\(.name) (\(.detail))"] | join("; ")' <<<"$decision")"
@@ -594,10 +606,11 @@ cmd_smoke() {
 # notes file. The record says so, and the merge gate refuses it for a PR that is not low-risk then. A later push makes the
 # record stale.
 cmd_reviewed() {
-  local should_fix=0 pr head local_head risk suffix=""
+  local should_fix=0 pr head local_head risk suffix="" axes=both setting reviewers="standards and spec reviewers" axes_note=""
   while [ $# -gt 0 ]; do
     case "$1" in
       --should-fix) [[ "${2:-}" =~ ^[0-9]+$ ]] || usage; should_fix=$((10#$2)); shift ;;
+      --axes) case "${2:-}" in standards | both) axes="$2" ;; *) usage ;; esac; shift ;;
       *) usage ;;
     esac
     shift
@@ -608,6 +621,18 @@ cmd_reviewed() {
   local_head="$(git rev-parse HEAD)"
   [ "$local_head" = "$head" ] \
     || die "local HEAD ${local_head:0:7} is not the PR head ${head:0:7}: push with scripts/pr.sh create, then review again"
+  if [ "$axes" = standards ]; then
+    # ADR-034: the standards axis alone is enough only while review is split and for a low-risk PR (the merge gate decides
+    # the same again); refused here, so no record is written that the gate would refuse.
+    setting="$(review_setting)"
+    [ "$setting" = split ] \
+      || die "the standards axis only counts while review is split (pipeline.sh get review says ${setting:-nothing}): run both axes"
+    risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || die "could not decide the risk of PR #$pr; nothing recorded"
+    [ "$(jq -r .risk <<<"$risk")" = low ] \
+      || die "PR #$pr is not low-risk: the standards axis only counts for a low-risk PR; run both axes (standards and spec), then review again"
+    reviewers="standards reviewer"
+    axes_note=" (standards only)"
+  fi
   if [ "$should_fix" -gt 0 ]; then
     risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || die "could not decide the risk of PR #$pr; nothing recorded"
     case "$(jq -r .risk <<<"$risk")" in
@@ -622,8 +647,12 @@ cmd_reviewed() {
       suffix=" (low risk: $should_fix should-fix findings left as follow-ups, ADR-033)"
     fi
   fi
-  record "$pr" "$REVIEW_MARK" "**$REVIEW_MARK:** standards and spec reviewers clean on \`$head\` ✅$suffix"
+  record "$pr" "$REVIEW_MARK" "**$REVIEW_MARK:** $reviewers clean on \`$head\`$axes_note ✅$suffix"
 }
+
+# What `pipeline.sh get review` says (ADR-034): split or per-pr; empty when it can't be read, which the merge gate reads as
+# unknown, so a standards-only review record never counts then.
+review_setting() { "$ROOT/scripts/pipeline.sh" get review 2>/dev/null || true; }
 
 # The facts of scripts/merge-gate.jq that pr.sh ready reads too: the PR, its checks on the head commit, the required
 # checks and whether the head has a preview. Required checks come from .github/rulesets/main.json in this worktree, the
@@ -637,10 +666,11 @@ pr_facts() {
   required="$(jq '[.rules[] | select(.type == "required_status_checks")
     | .parameters.required_status_checks[].context]' "$ROOT/.github/rulesets/main.json")" \
     || die "could not read the required checks from .github/rulesets/main.json"
-  jq --arg base "$(default_branch)" --argjson required "$required" --arg preview "$preview" '{
+  jq --arg base "$(default_branch)" --argjson required "$required" --arg preview "$preview" \
+    --arg review_setting "$(review_setting)" '{
     head: .headRefOid, branch: .headRefName, default_branch: $base,
     pr: {number, state, draft: .isDraft, base: .baseRefName, body: (.body // "")},
-    required: $required, checks: (.statusCheckRollup // []), preview: $preview}' <<<"$view"
+    required: $required, checks: (.statusCheckRollup // []), preview: $preview, review_setting: $review_setting}' <<<"$view"
 }
 
 # All the facts of the merge gate: pr_facts and what only a merge needs (threads, risk, whether the queue removed it, and
