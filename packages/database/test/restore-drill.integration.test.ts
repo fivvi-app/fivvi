@@ -1,5 +1,5 @@
 import { spawn } from 'node:child_process';
-import { chmodSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
@@ -35,6 +35,8 @@ interface Drill {
     mode?: Mode,
     env?: Record<string, string>,
   ): Promise<{ code: number; output: string; calls: string[][] }>;
+  /** What the fake `railway` recorded per call: when the process started and ended, and its CREATE DATABASE. */
+  railwayTimes(): RailwayTime[];
   /** The `before` marker of the source as the fake `railway` saw it when the restore was asked for. */
   beforeMarker(): { point: string; markerPoint: string | null; writtenAt: string | null };
   drillTableExists(): Promise<boolean>;
@@ -46,20 +48,28 @@ interface Drill {
 // several tests share.
 interface Cleanup {
   onTestFinished(handler: () => Promise<void> | void): void;
+  /** The test's own context has one; its name labels the timings. */
+  task?: { name: string };
 }
 
-async function setUpDrill({ onTestFinished }: Cleanup): Promise<Drill> {
-  const source = await cloneTemplateDatabase();
-  onTestFinished(() => source.drop());
-  const client = createDatabase({ url: source.url, maxConnections: 1 });
-  await createWorkspace(client.db, { label: SECRET });
-  await client.close();
+async function setUpDrill({ onTestFinished, task }: Cleanup): Promise<Drill> {
+  const label = (task?.name ?? 'shared drill').slice(0, 60);
+  onTestFinished(() => printTimings(label)); // the first to be registered runs last
+  const source = await timed(label, 'clone of the template', cloneTemplateDatabase);
+  onTestFinished(() => timed(label, 'drop of the source', () => source.drop()));
+  await timed(label, 'workspace in the source', async () => {
+    const client = createDatabase({ url: source.url, maxConnections: 1 });
+    await createWorkspace(client.db, { label: SECRET });
+    await client.close();
+  });
 
   const run = inject('fivviTestRun');
   if (!run) throw new Error('No test run.');
   const restoredName = newDatabaseName(run.runId);
   onTestFinished(() =>
-    onServer(`DROP DATABASE IF EXISTS "${restoredName}" WITH (FORCE)`).then(() => {}),
+    timed(label, 'drop of the restored copy', () =>
+      onServer(`DROP DATABASE IF EXISTS "${restoredName}" WITH (FORCE)`).then(() => {}),
+    ),
   );
 
   const dir = mkdtempSync(join(tmpdir(), 'restore-drill-'));
@@ -77,6 +87,10 @@ async function setUpDrill({ onTestFinished }: Cleanup): Promise<Drill> {
     restoredName,
     async run(args, mode = 'ok', extraEnv = {}) {
       // Asynchronous, so the tests of this file run side by side.
+      const startedAt = Date.now();
+      const what = `drill ${args.join(' ').slice(0, 40)} (${mode})`;
+      // Known from here on, so a test that runs out of time still reports how far its drill got (printTimings).
+      unfinished.set(label, { what, startedAt, log });
       const child = spawn(SCRIPT, args, {
         env: {
           ...process.env,
@@ -109,8 +123,11 @@ async function setUpDrill({ onTestFinished }: Cleanup): Promise<Drill> {
         .split('\n')
         .filter(Boolean)
         .map((line) => JSON.parse(line) as string[]);
+      reportDrill(label, what, startedAt, log, `exit ${code}`);
+      unfinished.delete(label);
       return { code, output, calls };
     },
+    railwayTimes: () => readRailwayTimes(log),
     beforeMarker: () => JSON.parse(readFileSync(`${log}.before`, 'utf8')),
     async drillTableExists() {
       const client = new pg.Client({ connectionString: source.url });
@@ -129,6 +146,74 @@ async function setUpDrill({ onTestFinished }: Cleanup): Promise<Drill> {
       exists(`select exists(select 1 from pg_database where datname = '${restoredName}') as found`),
   };
 }
+
+// Timings for the CI log (#1309): one line per step, `[restore-drill timing] <test> | <step> | <ms>`. The lines of a
+// test are printed together when it has finished, so they do not run into those of the tests beside it. Read them as
+// the gaps between the calls of `railway`: the script's own steps (the database helper, the checks) sit between them.
+const timingLines = new Map<string, string[]>();
+const timing = (label: string, step: string, ms: number) => {
+  const lines = timingLines.get(label) ?? [];
+  lines.push(`[restore-drill timing] ${label} | ${step} | ${Math.round(ms)} ms`);
+  timingLines.set(label, lines);
+};
+
+// The drills a test has started and not seen end: a test that times out never gets to report its drill.
+const unfinished = new Map<string, { what: string; startedAt: number; log: string }>();
+
+function reportDrill(label: string, what: string, startedAt: number, log: string, end: string) {
+  timing(label, `${what}, ${end}`, Date.now() - startedAt);
+  for (const call of readRailwayTimes(log)) {
+    timing(
+      label,
+      `  railway ${call.command} at +${call.startedAt - startedAt} ms`,
+      call.endedAt - call.startedAt,
+    );
+    if (call.createDatabaseMs !== undefined) {
+      timing(label, `    its CREATE DATABASE`, call.createDatabaseMs);
+    }
+  }
+}
+
+const printTimings = (label: string) => {
+  const running = unfinished.get(label);
+  if (running) {
+    reportDrill(
+      label,
+      running.what,
+      running.startedAt,
+      running.log,
+      'NOT FINISHED when the test ended',
+    );
+    unfinished.delete(label);
+  }
+  console.info((timingLines.get(label) ?? []).join('\n'));
+  timingLines.delete(label);
+};
+
+async function timed<T>(label: string, step: string, work: () => Promise<T>): Promise<T> {
+  const started = performance.now();
+  try {
+    return await work();
+  } finally {
+    timing(label, step, performance.now() - started);
+  }
+}
+
+interface RailwayTime {
+  command: string;
+  startedAt: number;
+  endedAt: number;
+  createDatabaseMs?: number;
+}
+
+// No file when the script refused before it called `railway`.
+const readRailwayTimes = (log: string): RailwayTime[] =>
+  existsSync(`${log}.times`)
+    ? readFileSync(`${log}.times`, 'utf8')
+        .split('\n')
+        .filter(Boolean)
+        .map((line) => JSON.parse(line) as RailwayTime)
+    : [];
 
 const verbs = (calls: string[][]) => calls.map((call) => call.slice(0, 3).join(' '));
 
@@ -340,6 +425,11 @@ describe.concurrent('E016 the restore drill script', () => {
     );
     expect(await drill.drillTableExists()).toBe(false);
     expect(await drill.restoredExists()).toBe(false);
+    // The fake railway times its own calls, for the timings in the log (#1309).
+    const times = drill.railwayTimes();
+    expect(times.map((call) => call.command)).toEqual(verbs(passed.calls));
+    for (const call of times) expect(call.endedAt).toBeGreaterThanOrEqual(call.startedAt);
+    expect(times[0]?.createDatabaseMs).toEqual(expect.any(Number));
   }, 60_000);
 
   it('AC2: the point is taken a settle time after the before marker, and the marker is not for a later point', async () => {

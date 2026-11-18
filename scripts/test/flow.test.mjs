@@ -752,7 +752,12 @@ describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () 
 
   // `open` are the numbers of the issue's open blockers (gh issue view), `blockers` what the GraphQL read of the
   // blockers answers ({nodes, total}, or a failure).
-  const run = (command, queue, file = 'apps/web/page.tsx', { open = [], blockers } = {}) =>
+  const run = (
+    command,
+    queue,
+    file = 'apps/web/page.tsx',
+    { open = [], blockers, rollup = [] } = {},
+  ) =>
     spawnSync(join(repo, 'scripts/flow.sh'), [command, '9999'], {
       encoding: 'utf8',
       env: gh.env([
@@ -801,7 +806,7 @@ describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () 
               state: 'OPEN',
               isDraft: false,
               reviewDecision: '',
-              statusCheckRollup: [],
+              statusCheckRollup: rollup,
               url: 'https://github.com/o/r/pull/70',
               createdAt: '2026-10-18T10:00:00Z',
               headRefOid: HEAD,
@@ -932,6 +937,64 @@ describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () 
           assert.equal(result.stdout, '');
         }
       }
+    });
+  });
+
+  describe('E008 #1384 a cancelled job whose retry job passed is no failing check', () => {
+    const job = (name, conclusion, status = 'COMPLETED') => ({
+      __typename: 'CheckRun',
+      name,
+      status,
+      conclusion,
+    });
+    // Recorded from CI run 43748423951, attempt 4: "iOS tests (en)" cancelled, its retry passed.
+    const recorded = [
+      job('Checks (Linux)', 'SUCCESS'),
+      job('iOS tests (nl)', 'SUCCESS'),
+      job('iOS tests (en)', 'CANCELLED'),
+      job('iOS build (retry)', 'SKIPPED'),
+      job('iOS tests (en) (retry)', 'SUCCESS'),
+      job('iOS', 'SUCCESS'),
+    ];
+    const withRetry = (retry) =>
+      recorded.map((check) =>
+        check.name === 'iOS tests (en) (retry)' ? { ...check, ...retry } : check,
+      );
+    const facts = (rollup) => JSON.parse(run('facts', {}, 'apps/web/page.tsx', { rollup }).stdout);
+
+    it('counts nothing failing or pending and reaches ready to merge when the retry passed', () => {
+      const { pr } = facts(recorded).branches[0];
+      assert.equal(pr.failing, 0);
+      assert.equal(pr.pending, 0);
+      const result = run('status', {}, 'apps/web/page.tsx', { rollup: recorded });
+      assert.match(result.stdout, /^Phase: ready-to-merge$/m);
+    });
+
+    it('counts the retry that still runs as pending, and the cancelled job as no failure', () => {
+      const { pr } = facts(withRetry({ status: 'IN_PROGRESS', conclusion: '' })).branches[0];
+      assert.equal(pr.failing, 0);
+      assert.ok(pr.pending > 0, 'the PR is not ready while the retry runs');
+    });
+
+    it('still counts the cancelled job when its retry failed, was cancelled or does not exist', () => {
+      for (const retry of [{ conclusion: 'FAILURE' }, { conclusion: 'CANCELLED' }]) {
+        assert.equal(facts(withRetry(retry)).branches[0].pr.failing, 2, JSON.stringify(retry));
+      }
+      const noRetry = recorded.filter((check) => check.name !== 'iOS tests (en) (retry)');
+      assert.equal(facts(noRetry).branches[0].pr.failing, 1);
+      const result = run('status', {}, 'apps/web/page.tsx', { rollup: noRetry });
+      assert.match(result.stdout, /^Phase: changes-requested$/m);
+    });
+
+    it('counts a failing commit status and a pending one as before', () => {
+      const rollup = [
+        ...recorded,
+        { __typename: 'StatusContext', context: 'fivvi - web', state: 'FAILURE' },
+        { __typename: 'StatusContext', context: 'fivvi - cron', state: 'PENDING' },
+      ];
+      const { pr } = facts(rollup).branches[0];
+      assert.equal(pr.failing, 1);
+      assert.equal(pr.pending, 1);
     });
   });
 

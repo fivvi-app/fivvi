@@ -41,6 +41,7 @@ let package = Package(
         .target(
             name: "FivviSession",
             dependencies: [
+                .product(name: "FivviAPI", package: "swift"),
                 .product(name: "OpenAPIRuntime", package: "swift-openapi-runtime"),
                 .product(name: "HTTPTypes", package: "swift-http-types")
             ]

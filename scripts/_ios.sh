@@ -224,7 +224,7 @@ slowest_classes() {
 # tests the configuration has): the classes are dealt out so that each part gets about the same time, and every class
 # goes to exactly one part, so that the parts together run every test once. A UI test costs about ten times a unit test
 # (6 s to start the app, then taps and waits against about 0.01 s), so a class weighs its tests, ten each in the
-# FivviProUITests target and one in any other. Heaviest class first (name as the tie-break) onto the part that has the
+# `<app>UITests` target of an app (FivviProUITests, FivviUITests) and one in any other. Heaviest class first (name as the tie-break) onto the part that has the
 # least so far (the lowest part as the tie-break): the same answer for every part, from the same enumeration. Only an
 # identifier of the form `<target>/<class>/<method>` is a test: the enumeration also lists a base class that other
 # classes inherit its tests from (`FivviProTests/ClientFormTestCase`), which runs no test of its own and which a result
@@ -237,7 +237,7 @@ shard_plan() { # <enumeration file> <part> <of>
     | select(($ids | length) > 0 and $part >= 1 and $part <= $of)
     | ($ids | group_by(split("/")[:2] | join("/"))
         | map({class: (.[0] | split("/")[:2] | join("/")), tests: length,
-               weight: (length * (if (.[0] | startswith("FivviProUITests/")) then 10 else 1 end))})
+               weight: (length * (if (.[0] | split("/")[0] | endswith("UITests")) then 10 else 1 end))})
         | sort_by([-.weight, .class])) as $classes
     | (reduce $classes[] as $c ([range($of) | {weight: 0, classes: [], tests: 0}];
         (to_entries | min_by([.value.weight, .key]) | .key) as $i
@@ -254,16 +254,16 @@ failed_tests() {
 }
 
 # The failed tests of the result bundle $1 for the retry of test-ios.sh (#1433), one per line and once each, tab-separated:
-# `ui` or `other` (a test of the FivviProUITests target or any other, unit tests among them), the test as `<class>/<method>`
-# (the form `-only-testing:FivviProUITests/<class>/<method>` takes, no `()`) and the first failure's message on one line.
+# `ui` or `other` (a test of the UI test target $2, FivviProUITests when none is given, or any other, unit tests among them),
+# the test as `<class>/<method>` (the form `-only-testing:<target>/<class>/<method>` takes, no `()`) and the first failure's message on one line.
 # Nothing when the bundle can't be read or lists no failed test: the caller doesn't retry what it can't name.
 failed_test_rows() {
-  xcrun xcresulttool get test-results summary --path "$1" 2>/dev/null | jq -r '
+  xcrun xcresulttool get test-results summary --path "$1" 2>/dev/null | jq -r --arg target "${2:-FivviProUITests}" '
     [(.testFailures // [])[]
       | ((.testIdentifierString // .testName // "") | sub("\\(\\)$"; "")) as $id
       | select($id != "")
       | {id: $id,
-         ui: (((.targetName // "") == "FivviProUITests") or ((.testIdentifierURL // "") | contains("/FivviProUITests/"))),
+         ui: (((.targetName // "") == $target) or ((.testIdentifierURL // "") | contains("/\($target)/"))),
          message: ((.failureText // "") | gsub("\\s+"; " "))}]
     | group_by(.id)[] | .[0] | [(if .ui then "ui" else "other" end), .id, .message] | @tsv' 2>/dev/null || true
 }
@@ -279,29 +279,29 @@ run_counts() {
     | "\(.failedTests)\t\($total)"' 2>/dev/null || true
 }
 
-# The outcome of every UI test of the result bundle $1, one per line, tab-separated: `<class>/<method>` and `Passed`, or the
+# The outcome of every UI test (of the target $2, FivviProUITests when none is given) of the result bundle $1, one per line, tab-separated: `<class>/<method>` and `Passed`, or the
 # first result that is not (Failed, Skipped, ...). A test the bundle has more than once counts as passed only when every
 # one did. Nothing when the bundle can't be read: a test that is not listed did not run.
 ui_test_outcomes() {
-  xcrun xcresulttool get test-results tests --path "$1" --compact 2>/dev/null | jq -r '
-    [.. | objects | select(.nodeType? == "Test Case" and ((.nodeIdentifierURL // "") | contains("/FivviProUITests/")))
+  xcrun xcresulttool get test-results tests --path "$1" --compact 2>/dev/null | jq -r --arg target "${2:-FivviProUITests}" '
+    [.. | objects | select(.nodeType? == "Test Case" and ((.nodeIdentifierURL // "") | contains("/\($target)/")))
       | {id: (.nodeIdentifier | sub("\\(\\)$"; "")), result: (.result // "unknown")}]
     | group_by(.id)[]
     | "\(.[0].id)\t\(if all(.[]; .result == "Passed") then "Passed" else ([.[].result | select(. != "Passed")] | first) end)"' 2>/dev/null || true
 }
 
-# The UI tests of the result bundle $1 that reported a flaky start, one line each: the `::warning::flaky…` activity the
+# The UI tests (of the target $2, FivviProUITests when none is given) of the result bundle $1 that reported a flaky start, one line each: the `::warning::flaky…` activity the
 # test recorded, then ` in <test> (<test-plan configuration>)` (#388). `xcodebuild -quiet` drops what the tests print, so
 # the activities of the bundle are the only place the warning survives. Nothing when the bundle can't be read.
 flaky_tests() {
-  local id
+  local id target="${2:-FivviProUITests}"
   while IFS= read -r id; do
     xcrun xcresulttool get test-results activities --path "$1" --test-id "$id" --compact 2>/dev/null | jq -r --arg id "$id" '
       .testRuns[]? | (.testPlanConfiguration.configurationName // "") as $config
       | [.. | objects | select(.title? | strings | startswith("::warning::flaky")) | .title] | unique[]
       | "\(.) in \($id)\(if $config == "" then "" else " (\($config))" end)"' 2>/dev/null || true
-  done < <(xcrun xcresulttool get test-results tests --path "$1" --compact 2>/dev/null | jq -r '
-    [.. | objects | select(.nodeType? == "Test Case" and ((.nodeIdentifierURL // "") | contains("/FivviProUITests/")))
+  done < <(xcrun xcresulttool get test-results tests --path "$1" --compact 2>/dev/null | jq -r --arg target "$target" '
+    [.. | objects | select(.nodeType? == "Test Case" and ((.nodeIdentifierURL // "") | contains("/\($target)/")))
       | .nodeIdentifier] | unique[]' 2>/dev/null || true)
 }
 
