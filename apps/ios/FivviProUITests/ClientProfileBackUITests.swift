@@ -12,6 +12,9 @@ final class ClientProfileBackUITests: SignInUITestCase {
 
     private var profileName: XCUIElement { XCUIApplication().staticTexts["clientProfile.name"] }
 
+    /// The list itself (the id Maestro looks for); not there while the profile covers it.
+    private var list: XCUIElement { XCUIApplication().descendants(matching: .any)["clients.list"] }
+
     /// Taps the row and waits for the profile; when a busy simulator dropped the tap (the app took 60 s to go idle
     /// before the last row tap of run 43387686310, and the profile never came, #1377), taps it once more
     /// (`tap(until:timeout:)`, reported as a flaky tap). The tap repeats only after the whole wait and only while the
@@ -55,7 +58,8 @@ final class ClientProfileBackUITests: SignInUITestCase {
             // text on a slow simulator (#596): wait for the button, as for any other element.
             let back = app.buttons["clientProfile.back"]
             XCTAssertTrue(
-                back.waitUntilExists(timeout: timeout), "the system's back button has the id Maestro looks for"
+                back.waitUntilExists(timeout: timeout),
+                "round \(round): the system's back button has the id Maestro looks for"
             )
             XCTAssertEqual(back.label, catalog["clients.title"], "and the title of the screen before")
 
@@ -65,14 +69,16 @@ final class ClientProfileBackUITests: SignInUITestCase {
             waitForTheList(showing: "Mark Jansen", "round \(round), the swipe goes back")
 
             openProfile(of: "Anna de Vries", "round \(round), before the button")
-            app.buttons["clientProfile.back"].tap()
+            XCTAssertTrue(
+                app.buttons["clientProfile.back"].tap(until: list, timeout: timeout),
+                "round \(round), the button goes back"
+            )
             waitForTheList(showing: "Anna de Vries", "round \(round), the button goes back")
         }
 
         // Back on Home, a swipe at its edge does nothing, and the list opens again.
-        app.navigationBars.buttons.firstMatch.tap()
         XCTAssertTrue(
-            app.buttons["home.openClients"].waitUntilExists(timeout: timeout),
+            app.navigationBars.buttons.firstMatch.tap(until: app.buttons["home.openClients"], timeout: timeout),
             "Home: the back button of the list goes home"
         )
         let edge = app.coordinate(withNormalizedOffset: CGVector(dx: 0.0, dy: 0.5))
