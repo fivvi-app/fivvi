@@ -287,7 +287,8 @@
                 "class.read",
                 "join_link.view",
                 "join_link.renew",
-                "access_log.read"
+                "access_log.read",
+                "commerce.offers.manage"
               ]
             },
             "description": "What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway."
@@ -388,7 +389,8 @@
                 "class.read",
                 "join_link.view",
                 "join_link.renew",
-                "access_log.read"
+                "access_log.read",
+                "commerce.offers.manage"
               ]
             },
             "description": "What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway."
@@ -2713,6 +2715,635 @@
           "objectId"
         ],
         "description": "One entry of the access log: who did what to which client, and when. IDs, names and a time; no free text, never note content."
+      },
+      "Offer": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The offer ID."
+          },
+          "kind": {
+            "$ref": "#/components/schemas/OfferKind"
+          },
+          "creditKind": {
+            "$ref": "#/components/schemas/OfferCreditKind"
+          },
+          "status": {
+            "$ref": "#/components/schemas/OfferStatus"
+          },
+          "origin": {
+            "type": "string",
+            "enum": [
+              "default",
+              "owner"
+            ],
+            "description": "`default` for a copy of one of Fivvi’s default plans, `owner` for the rest."
+          },
+          "runningAgreements": {
+            "type": "integer",
+            "description": "How many agreements run on the offer: 0 until agreements exist (F057)."
+          },
+          "summary": {
+            "type": "string",
+            "description": "The one-line summary in the caller’s language, e.g. \"2 lessen per week · 6 maanden · € 79,00 per maand\". Without a price the amount is left out."
+          },
+          "cancellation": {
+            "type": "string",
+            "description": "The cancellation rule as clients read it, in the caller’s language."
+          },
+          "currentVersion": {
+            "$ref": "#/components/schemas/OfferVersion"
+          }
+        },
+        "required": [
+          "id",
+          "kind",
+          "creditKind",
+          "status",
+          "origin",
+          "runningAgreements",
+          "summary",
+          "cancellation",
+          "currentVersion"
+        ],
+        "description": "An offer of the workspace with its current version. A saved change is a new version; the versions before it stay as they were."
+      },
+      "OfferKind": {
+        "type": "string",
+        "enum": [
+          "membership",
+          "credit_pack",
+          "credit_plan",
+          "single_class_pass"
+        ],
+        "description": "The kind of offer: `membership`, `credit_pack`, `credit_plan` or `single_class_pass`. There is no fifth kind, and it never changes once the offer exists."
+      },
+      "OfferCreditKind": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "group",
+          "private",
+          null
+        ],
+        "description": "For a credit pack or credit plan; `null` otherwise."
+      },
+      "OfferStatus": {
+        "type": "string",
+        "enum": [
+          "off",
+          "on",
+          "archived"
+        ],
+        "description": "`off` is not for sale, `on` is, `archived` is a deleted offer whose agreements still run."
+      },
+      "OfferVersion": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The version ID: what an agreement points at."
+          },
+          "version": {
+            "type": "integer",
+            "description": "The version number: 1 for the first, one more for every saved change."
+          },
+          "nameNl": {
+            "type": "string",
+            "description": "The Dutch name: always there."
+          },
+          "nameEn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The English name, or `null`."
+          },
+          "descriptionNl": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The Dutch description."
+          },
+          "descriptionEn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The English description."
+          },
+          "priceCents": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "The price including VAT in euro cents, 1 to 1,000,000; `null` until the owner sets it (a default plan)."
+          },
+          "vatRateBasisPoints": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "The VAT rate in basis points: 2100 or 900; `null` until chosen. Never 0."
+          },
+          "billingCycle": {
+            "$ref": "#/components/schemas/OfferBillingCycle"
+          },
+          "termMonths": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "A membership’s term."
+          },
+          "minimumTermMonths": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "A credit plan’s minimum term in months."
+          },
+          "endOfTerm": {
+            "$ref": "#/components/schemas/OfferEndOfTerm"
+          },
+          "classesPerWeek": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "A membership’s classes."
+          },
+          "credits": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Credits of a pack, or credits per billing cycle of a plan."
+          },
+          "validity": {
+            "$ref": "#/components/schemas/OfferValidity"
+          },
+          "carryOverLimit": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "The most credits a credit plan carries over to the next cycle."
+          },
+          "oncePerClient": {
+            "type": "boolean",
+            "description": "A credit pack a client buys once."
+          },
+          "membersOnly": {
+            "type": "boolean",
+            "description": "Sold only to clients with a membership."
+          },
+          "cutoffMinutes": {
+            "type": "integer",
+            "description": "Minutes before the start up to which a client cancels for free: whole hours."
+          },
+          "makeupsPerMonth": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "A membership’s makeups."
+          },
+          "returnsPerMonth": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "The most credits that come back a month on a timely cancellation; `null`: all."
+          },
+          "coveredClasses": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/OfferCoveredClass"
+            },
+            "description": "The classes the version is limited to; `null`: all group classes."
+          },
+          "renewalWindowDays": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Days before the end that renewing is suggested and the client is reminded."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "When the version was saved, a UTC instant."
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "nameNl",
+          "nameEn",
+          "descriptionNl",
+          "descriptionEn",
+          "priceCents",
+          "vatRateBasisPoints",
+          "billingCycle",
+          "termMonths",
+          "minimumTermMonths",
+          "endOfTerm",
+          "classesPerWeek",
+          "credits",
+          "validity",
+          "carryOverLimit",
+          "oncePerClient",
+          "membersOnly",
+          "cutoffMinutes",
+          "makeupsPerMonth",
+          "returnsPerMonth",
+          "coveredClasses",
+          "renewalWindowDays",
+          "createdAt"
+        ],
+        "description": "The terms of an offer as of one saved change. Never changes once stored: an agreement keeps the version it started on."
+      },
+      "OfferBillingCycle": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "month",
+          "four_weeks",
+          null
+        ],
+        "description": "How often a recurring offer is billed: every `month` or every `four_weeks`."
+      },
+      "OfferEndOfTerm": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "stop",
+          "continue",
+          null
+        ],
+        "description": "What happens when a term ends: the agreement `stop`s, or `continue`s per billing cycle until notice."
+      },
+      "OfferValidity": {
+        "type": [
+          "object",
+          "null"
+        ],
+        "properties": {
+          "amount": {
+            "type": "integer",
+            "description": "How many units, at least 1."
+          },
+          "unit": {
+            "type": "string",
+            "enum": [
+              "day",
+              "week",
+              "month"
+            ],
+            "description": "`day`, `week` or `month`."
+          }
+        },
+        "required": [
+          "amount",
+          "unit"
+        ],
+        "description": "How long a credit pack is good for."
+      },
+      "OfferCoveredClass": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid",
+            "description": "The class ID."
+          },
+          "name": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The class’s name in the caller’s language (the English name when the caller reads English and there is one, else the Dutch). `null` for a class that was removed with its name."
+          },
+          "deleted": {
+            "type": "boolean",
+            "description": "Whether the class is gone since this version was saved."
+          },
+          "label": {
+            "type": "string",
+            "description": "How the class is listed in the caller’s language: its name, with \"(verwijderd)\" / \"(deleted)\" after it when it is gone."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "deleted",
+          "label"
+        ],
+        "description": "A group class an offer version is limited to."
+      },
+      "CreateOfferRequest": {
+        "type": "object",
+        "properties": {
+          "kind": {
+            "$ref": "#/components/schemas/OfferKind"
+          },
+          "creditKind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "group",
+              "private",
+              null
+            ],
+            "description": "Required for a credit pack and a credit plan; refused for the other kinds."
+          },
+          "nameNl": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "The Dutch name: trimmed, 1 to 80 characters."
+          },
+          "nameEn": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "The English name: trimmed, at most 80 characters. Blank: none."
+          },
+          "descriptionNl": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "The Dutch description: trimmed, at most 500 characters. Blank: none."
+          },
+          "descriptionEn": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "The English description: trimmed, at most 500 characters. Blank: none."
+          },
+          "priceCents": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "The price including VAT in euro cents, 1 to 1000000. `null` or left out: no price yet (an offer without a price can be saved but not switched on). A non-whole number or one out of bounds answers `422`."
+          },
+          "vatRateBasisPoints": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "The VAT rate in basis points: 2100 (21 %) or 900 (9 %). Never 0."
+          },
+          "billingCycle": {
+            "$ref": "#/components/schemas/OfferBillingCycle"
+          },
+          "termMonths": {
+            "type": "integer",
+            "description": "A membership’s term in months, 1 to 24."
+          },
+          "longTermConfirmed": {
+            "type": "boolean",
+            "description": "The owner confirmed a first term over 12 months (consumer law). A longer term without it answers `422` on `termMonths`."
+          },
+          "minimumTermMonths": {
+            "type": "integer",
+            "description": "A credit plan’s minimum term in months, 0 to 12."
+          },
+          "endOfTerm": {
+            "$ref": "#/components/schemas/OfferEndOfTerm"
+          },
+          "classesPerWeek": {
+            "type": "integer",
+            "description": "A membership’s classes a week, 1 to 7."
+          },
+          "credits": {
+            "type": "integer",
+            "description": "A credit pack’s credits (1 to 200), or a credit plan’s credits per billing cycle (1 to 50)."
+          },
+          "validity": {
+            "$ref": "#/components/schemas/OfferValidity"
+          },
+          "carryOverLimit": {
+            "type": "integer",
+            "description": "A credit plan’s carry-over, 0 to 50."
+          },
+          "oncePerClient": {
+            "type": "boolean",
+            "description": "A credit pack a client can buy once. Default `false`."
+          },
+          "membersOnly": {
+            "type": "boolean",
+            "description": "Sold only to clients with a membership (credits and the single class pass). Default `false`."
+          },
+          "cutoffMinutes": {
+            "type": "integer",
+            "description": "Minutes before the start up to which a client cancels for free: a whole number of hours, 0 to 4320."
+          },
+          "makeupsPerMonth": {
+            "type": "integer",
+            "description": "A membership’s makeups a month, 0 to 10."
+          },
+          "returnsPerMonth": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Credit offers: the most credits that come back a month on a timely cancellation, 0 to 50. `null` or left out: always."
+          },
+          "coveredClassIds": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The group classes the offer is limited to, 1 to 100 (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace, or one that was deleted and is not on the offer already, answers `422` on `coveredClassIds`."
+          },
+          "renewalWindowDays": {
+            "type": "integer",
+            "description": "Days before the end that renewing is suggested, 0 to 365. Left out: 30."
+          },
+          "surface": {
+            "type": "string",
+            "enum": [
+              "ios",
+              "android"
+            ],
+            "description": "The app that sends the request: `ios` or `android`. A request with a bearer token records the `offer_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it."
+          }
+        },
+        "required": [
+          "kind",
+          "nameNl"
+        ],
+        "description": "A new offer: its kind, for credits the credit kind, and the fields of its first version. It starts switched off."
+      },
+      "OfferChanged": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string",
+            "enum": [
+              "offer_changed"
+            ]
+          },
+          "offer": {
+            "$ref": "#/components/schemas/Offer"
+          }
+        },
+        "required": [
+          "code",
+          "offer"
+        ],
+        "description": "The offer changed since the version in the request; nothing was written. `offer` is the offer as it is now."
+      },
+      "UpdateOfferRequest": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "integer",
+            "description": "The version the caller read (`Offer.currentVersion.version`). When the offer has been changed since, nothing is stored and the answer is `409`."
+          },
+          "creditKind": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "group",
+              "private",
+              null
+            ],
+            "description": "A credit offer’s credit kind, which can change while no agreement uses it. Left out: unchanged. Refused for the other kinds."
+          },
+          "nameNl": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80,
+            "description": "The Dutch name: trimmed, 1 to 80 characters."
+          },
+          "nameEn": {
+            "type": "string",
+            "maxLength": 80,
+            "description": "The English name: trimmed, at most 80 characters. Blank: none."
+          },
+          "descriptionNl": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "The Dutch description: trimmed, at most 500 characters. Blank: none."
+          },
+          "descriptionEn": {
+            "type": "string",
+            "maxLength": 500,
+            "description": "The English description: trimmed, at most 500 characters. Blank: none."
+          },
+          "priceCents": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "The price including VAT in euro cents, 1 to 1000000. `null` or left out: no price yet (an offer without a price can be saved but not switched on). A non-whole number or one out of bounds answers `422`."
+          },
+          "vatRateBasisPoints": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "The VAT rate in basis points: 2100 (21 %) or 900 (9 %). Never 0."
+          },
+          "billingCycle": {
+            "$ref": "#/components/schemas/OfferBillingCycle"
+          },
+          "termMonths": {
+            "type": "integer",
+            "description": "A membership’s term in months, 1 to 24."
+          },
+          "longTermConfirmed": {
+            "type": "boolean",
+            "description": "The owner confirmed a first term over 12 months (consumer law). A longer term without it answers `422` on `termMonths`."
+          },
+          "minimumTermMonths": {
+            "type": "integer",
+            "description": "A credit plan’s minimum term in months, 0 to 12."
+          },
+          "endOfTerm": {
+            "$ref": "#/components/schemas/OfferEndOfTerm"
+          },
+          "classesPerWeek": {
+            "type": "integer",
+            "description": "A membership’s classes a week, 1 to 7."
+          },
+          "credits": {
+            "type": "integer",
+            "description": "A credit pack’s credits (1 to 200), or a credit plan’s credits per billing cycle (1 to 50)."
+          },
+          "validity": {
+            "$ref": "#/components/schemas/OfferValidity"
+          },
+          "carryOverLimit": {
+            "type": "integer",
+            "description": "A credit plan’s carry-over, 0 to 50."
+          },
+          "oncePerClient": {
+            "type": "boolean",
+            "description": "A credit pack a client can buy once. Default `false`."
+          },
+          "membersOnly": {
+            "type": "boolean",
+            "description": "Sold only to clients with a membership (credits and the single class pass). Default `false`."
+          },
+          "cutoffMinutes": {
+            "type": "integer",
+            "description": "Minutes before the start up to which a client cancels for free: a whole number of hours, 0 to 4320."
+          },
+          "makeupsPerMonth": {
+            "type": "integer",
+            "description": "A membership’s makeups a month, 0 to 10."
+          },
+          "returnsPerMonth": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "description": "Credit offers: the most credits that come back a month on a timely cancellation, 0 to 50. `null` or left out: always."
+          },
+          "coveredClassIds": {
+            "type": [
+              "array",
+              "null"
+            ],
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            },
+            "description": "The group classes the offer is limited to, 1 to 100 (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace, or one that was deleted and is not on the offer already, answers `422` on `coveredClassIds`."
+          },
+          "renewalWindowDays": {
+            "type": "integer",
+            "description": "Days before the end that renewing is suggested, 0 to 365. Left out: 30."
+          }
+        },
+        "required": [
+          "version",
+          "nameNl"
+        ],
+        "description": "The full set of fields of the offer’s next version, with the version it was changed from. A field left out is empty in the new version, not kept from the old one. The offer’s kind never changes."
       }
     },
     "parameters": {}
@@ -7892,6 +8523,485 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/offers": {
+      "get": {
+        "operationId": "listOffers",
+        "tags": [
+          "offers"
+        ],
+        "summary": "The offers of a workspace",
+        "description": "Every offer of the workspace by Dutch name, archived ones included (`status`), each with its current version, the summary line in the caller’s language and the number of running agreements. The Owner only; a Trainer and a client of the workspace get `403`, anyone with no place in it `404`.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "commerce.offers.manage",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The offers.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/Offer"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "operationId": "createOffer",
+        "tags": [
+          "offers"
+        ],
+        "summary": "Create an offer",
+        "description": "Creates an offer of one kind (and, for credits, one credit kind) with the fields of its first version, validated by the rules of its kind. The new offer is switched off. An amount outside 1 to 1,000,000 cents or not a whole number, a fifth kind, two credit kinds and a term over 12 months without `longTermConfirmed` answer `422` and store nothing. The Owner only.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "commerce.offers.manage",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateOfferRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The offer that was created, switched off, at version 1.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Offer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The body is not valid: a field has the wrong type, is out of bounds, does not belong to the kind, or needs a confirmation. `issues` names each field (`path`) and what is wrong (`code`). Nothing is stored.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/workspaces/{workspaceId}/offers/{offerId}": {
+      "get": {
+        "operationId": "getOffer",
+        "tags": [
+          "offers"
+        ],
+        "summary": "One offer of a workspace",
+        "description": "One offer with its current version. The Owner only. An offer of another workspace answers `404`.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "commerce.offers.manage",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The offer ID."
+            },
+            "required": true,
+            "description": "The offer ID.",
+            "name": "offerId",
+            "in": "path"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "The offer.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Offer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Unexpected server error, reported to error tracking. Contains no error details.",
+            "content": {
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "example": "Internal Server Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "operationId": "updateOffer",
+        "tags": [
+          "offers"
+        ],
+        "summary": "Change an offer: a new version",
+        "description": "Saves the full set of fields as the offer’s next version, from the version the caller read; the versions before it stay as they were, so agreements that run keep their terms. When the offer has a newer version the answer is `409` with the offer as it is now and nothing is stored. The kind never changes; a credit offer’s credit kind can. An offer that is switched on must stay valid to be sold: it keeps a price and a VAT rate. The Owner only.",
+        "security": [
+          {
+            "cookieAuth": []
+          },
+          {
+            "bearerAuth": []
+          }
+        ],
+        "x-access": {
+          "type": "workspace",
+          "capability": "commerce.offers.manage",
+          "roles": [
+            "owner"
+          ],
+          "client": "none"
+        },
+        "parameters": [
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The workspace ID."
+            },
+            "required": true,
+            "description": "The workspace ID.",
+            "name": "workspaceId",
+            "in": "path"
+          },
+          {
+            "schema": {
+              "type": "string",
+              "format": "uuid",
+              "description": "The offer ID."
+            },
+            "required": true,
+            "description": "The offer ID.",
+            "name": "offerId",
+            "in": "path"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateOfferRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The offer with its new version as the current one.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Offer"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "The request did not match the contract.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Nobody is signed in: no valid sign-in session or bearer token.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotSignedIn"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "The caller has a place in the workspace that this route’s access doesn’t allow.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Forbidden"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "The caller has no place in the workspace, or the record is out of the caller’s reach.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/NotFound"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "The offer changed since the version in the request; nothing was written.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OfferChanged"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "The body is not valid: a field has the wrong type, is out of bounds, does not belong to the kind, or needs a confirmation. `issues` names each field (`path`) and what is wrong (`code`). Nothing is stored.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ValidationError"
                 }
               }
             }
