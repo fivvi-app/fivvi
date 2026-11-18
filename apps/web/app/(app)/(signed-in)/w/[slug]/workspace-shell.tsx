@@ -6,8 +6,15 @@ import { getLocale } from 'next-intl/server';
 import type { ReactNode } from 'react';
 import { catalogLocale } from '../../../../../i18n/config';
 import { apiClient } from '../../../../../server/api';
-import { currentMe, currentTrainsAnywhere } from '../../../../../server/signed-in';
+import {
+  currentMe,
+  currentMyWorkspaces,
+  currentTrainsAnywhere,
+} from '../../../../../server/signed-in';
+import type { NewSessionProps } from './sessions/new-private-session';
 import { WorkspaceFrame } from './workspace-frame';
+
+type NewSessionFrame = Omit<NewSessionProps, 'slug'>;
 
 /**
  * The frame of a page with the sidebar of one workspace the signed-in person has a team role in:
@@ -18,9 +25,15 @@ import { WorkspaceFrame } from './workspace-frame';
  */
 export async function WorkspaceShell({
   workspace: { id, name, slug, role, capabilities, trainerWord },
+  onPersonalPage = false,
   children,
 }: {
   workspace: Schemas['MeWorkspace'];
+  /**
+   * The frame of a personal page (`/me/day`, `/me/calendar`): PS-01 in the top bar plans the
+   * person's own private session in a workspace of their choice (**Werkruimte**), not in this one.
+   */
+  onPersonalPage?: boolean;
   children: ReactNode;
 }) {
   const me = await currentMe();
@@ -28,18 +41,44 @@ export async function WorkspaceShell({
   // language in its form, which only `GET /v1/workspaces/{workspaceId}` tells.
   const quickAdd = capabilities.includes('clients.manage') ? await quickAddOf(id) : undefined;
   // PS-01 (F020) in the top bar's + Nieuw, for a person who may plan private sessions.
-  const forAnyTrainer = capabilities.includes('session.private.manage.any');
-  const newSession =
-    forAnyTrainer || capabilities.includes('session.private.manage.own')
-      ? {
-          workspaceId: id,
-          email: me.email,
-          personName: me.name,
-          forAnyTrainer,
-          canAddClients: capabilities.includes('clients.manage'),
-          trainerWord: trainerWordForms(trainerWord, catalogLocale(await getLocale())),
-        }
-      : undefined;
+  const locale = catalogLocale(await getLocale());
+  let newSession: NewSessionFrame | undefined;
+  if (onPersonalPage) {
+    // The workspaces where the person trains and may plan their own sessions (F013, AC11).
+    const places = (await currentMyWorkspaces()).filter(
+      (place) => place.trainsHere && place.capabilities.includes('session.private.manage.own'),
+    );
+    const start = places.find((place) => place.workspaceId === id) ?? places[0];
+    if (start) {
+      newSession = {
+        workspaceId: start.workspaceId,
+        email: me.email,
+        personName: me.name,
+        forAnyTrainer: false,
+        canAddClients: start.capabilities.includes('clients.manage'),
+        trainerWord: trainerWordForms(start.trainerWord, locale),
+        workspaces: places.map((place) => ({
+          workspaceId: place.workspaceId,
+          slug: place.slug,
+          name: place.name,
+          canAddClients: place.capabilities.includes('clients.manage'),
+          trainerWord: trainerWordForms(place.trainerWord, locale),
+        })),
+      };
+    }
+  } else {
+    const forAnyTrainer = capabilities.includes('session.private.manage.any');
+    if (forAnyTrainer || capabilities.includes('session.private.manage.own')) {
+      newSession = {
+        workspaceId: id,
+        email: me.email,
+        personName: me.name,
+        forAnyTrainer,
+        canAddClients: capabilities.includes('clients.manage'),
+        trainerWord: trainerWordForms(trainerWord, locale),
+      };
+    }
+  }
   return (
     // The frame is compact; the dialogs and menus opened in it render in a portal, which would be
     // `<body>` at the touch density, so the portal host sits next to the frame at the same one (E020).

@@ -206,6 +206,49 @@
     "emptyNext": "Geen sessies vandaag. Je volgende sessie is op {date}.",
     "emptyNever": "Je hebt nog geen sessies. Je ziet ze hier zodra je bent ingepland."
   },
+  "myCalendar": {
+    "title": "Mijn agenda",
+    "range": "{start} – {end}",
+    "timeRange": "{start}–{end}",
+    "views": "Weergave",
+    "viewDay": "Dag",
+    "viewWeek": "Week",
+    "viewList": "Lijst",
+    "today": "Vandaag",
+    "previous": "Vorige",
+    "next": "Volgende",
+    "legend": "Soorten sessies",
+    "typePrivate": "Privé",
+    "typeGroup": "Groep",
+    "block": "{type} · {name}",
+    "blockBooked": "{booked}/{capacity}",
+    "spokenTime": "{start} tot {end}",
+    "spokenJoin": "{first}, {next}",
+    "cancelled": "Geannuleerd",
+    "gridDay": "Agenda van {date}",
+    "gridWeek": "Agenda van {range}",
+    "clockForward": "Zomertijd: de klok gaat 1 uur vooruit",
+    "clockBack": "Wintertijd: de klok gaat 1 uur terug",
+    "filterType": "Soort",
+    "filterWorkspace": "Werkruimte",
+    "optionPrivate": "Privé",
+    "optionGroup": "Groepsles",
+    "showCancelled": "Geannuleerde tonen",
+    "clearFilters": "Filters wissen",
+    "noResults": "Geen resultaten met deze filters.",
+    "emptyDay": "Geen sessies op deze dag.",
+    "emptyWeek": "Geen sessies in deze week.",
+    "listCaption": "Sessies van {range}",
+    "columnDay": "Dag",
+    "columnTime": "Tijd",
+    "columnSession": "Sessie",
+    "columnType": "Soort",
+    "columnWorkspace": "Werkruimte",
+    "columnStatus": "Status"
+  },
+  "personal": {
+    "timeZoneHint": "Tijden in Nederlandse tijd"
+  },
   "workspaceSwitcher": {
     "newWorkspace": "+ Nieuwe werkruimte"
   },
@@ -596,7 +639,8 @@
       "notes": {
         "repeatedTime": "Op {date} komt {time} twee keer voor. We gebruiken de eerste keer (zomertijd).",
         "past": "Deze tijd ligt in het verleden. De klant krijgt geen e-mail."
-      }
+      },
+      "workspaceLabel": "Werkruimte"
     },
     "reschedule": {
       "title": "Sessie verplaatsen",

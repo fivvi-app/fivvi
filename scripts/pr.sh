@@ -33,8 +33,12 @@
 #                                                 PR's own environment, <project>-pr-<n>. Without
 #                                                 the CLI, a preview whose status is success is only
 #                                                 health-checked; otherwise smoke fails with a hint
-#   pr.sh reviewed                                record in the PR body that both reviewers (standards and spec) found
-#                                                 nothing to fix on the PR's head commit; local HEAD must be that commit
+#   pr.sh reviewed [--should-fix <n>]             record in the PR body that both reviewers (standards and spec) found
+#                                                 nothing to fix on the PR's head commit; local HEAD must be that commit.
+#                                                 --should-fix <n>: the reviewer's last verdict is clean with n should-fix
+#                                                 findings left (review by risk, ADR-033 item 5, until pilot setup); only
+#                                                 for a PR scripts/risk.sh calls low, they go to the notes file as
+#                                                 follow-ups; a high-risk or owner-only PR is refused
 #   pr.sh merge [<pr>] [--after <bug>]            add a low-risk or high-risk (agent-queueable) PR to the merge queue
 #                                                 (ADR-018, ADR-021), which squash-merges it after testing it on the
 #                                                 latest main, only when every condition of the merge gate holds
@@ -342,9 +346,10 @@ cmd_status() {
 # $WAIT_MINUTES, or $WAIT_MINUTES_NATIVE once a native check is among the checks and not skipped: the gate (iOS, Android)
 # or one of its parts, a name that starts with the gate and a space (iOS build, iOS tests (nl), Android Maestro). The
 # parts are listed while they run, the gate only once they are all done (#416). The gates are required checks, so they
-# exist, skipped, in most PRs; --timeout fixes the limit.
+# exist, skipped, in most PRs; --timeout fixes the limit. A cancelled job (no macOS runner took it, #1268) does not fail
+# the wait when its retry job passed or still runs (scripts/check-retries.jq, #1384).
 cmd_wait() {
-  local timeout="" limit="$WAIT_MINUTES" pr head start run checks failed native job
+  local timeout="" limit="$WAIT_MINUTES" pr head start run checks settled failed native job
   while [ $# -gt 0 ]; do
     case "$1" in
       --timeout) timeout="${2:?}"; shift ;;
@@ -361,7 +366,14 @@ cmd_wait() {
     run="$(gh run list --repo "$REPO" --workflow CI --commit "$head" --limit 1 --json status,conclusion \
       --jq '.[0] // {} | "\(.status // "") \(.conclusion // "")"')"
     checks="$(gh pr checks "$pr" --repo "$REPO" --json name,bucket 2>/dev/null || true)"
-    failed="$(jq -r '[.[]? | select(.bucket == "fail" or .bucket == "cancel") | .name] | join(", ")' <<<"${checks:-[]}" 2>/dev/null || true)"
+    # A cancelled job is read by its retry job (scripts/check-retries.jq, #1384): no failure when the retry passed or runs.
+    # A jq error (a file that does not load) fails the wait: it must not read as "no check failed".
+    settled="$(jq -L "$ROOT/scripts" -c 'include "check-retries";
+      [.[]? | {name, state: (if .bucket == "skipping" then "skip" else .bucket end)}] | settle_retries
+      | {total: length, pending: ([.[] | select(.state == "pending")] | length),
+        failed: [.[] | select(.state == "fail" or .state == "cancel") | .name] | join(", ")}' <<<"${checks:-[]}")" \
+      || die "could not read the checks of PR #$pr"
+    failed="$(jq -r .failed <<<"$settled")"
     if [ -z "$timeout" ] && [ "$limit" -lt "$WAIT_MINUTES_NATIVE" ]; then
       native=""
       for job in "${NATIVE_JOBS[@]}"; do
@@ -375,7 +387,13 @@ cmd_wait() {
     if [ -n "$failed" ]; then echo "✗ PR #$pr checks failed: $failed"; return 1; fi
     case "$run" in
       "completed success") echo "✓ PR #$pr: CI passed on ${head:0:7}"; return 0 ;;
-      completed\ *) echo "✗ PR #$pr: CI ${run#completed } on ${head:0:7}"; return 1 ;;
+      completed\ *)
+        # GitHub concludes a whole run "failure" when a job was cancelled and its retry passed, with no failed job
+        # (#1384): the settled checks decide then, once there are checks and none is failing, cancelled or pending.
+        if jq -e '.total > 0 and .pending == 0' <<<"$settled" >/dev/null; then
+          echo "✓ PR #$pr: CI passed on ${head:0:7} (run ${run#completed }, every check passed or was retried)"; return 0
+        fi
+        echo "✗ PR #$pr: CI ${run#completed } on ${head:0:7}"; return 1 ;;
     esac
     if [ "$(date +%s)" -ge $(( start + limit * 60 )) ]; then
       run="${run% *}"
@@ -571,17 +589,40 @@ cmd_smoke() {
   record "$pr" "$SMOKE_MARK" "$line"
 }
 
-# Run only when both reviewers report no must-fix or should-fix finding. A later push makes the record stale.
+# Run only when both reviewers report no must-fix finding, and no should-fix finding either unless the PR is low-risk
+# (review by risk, ADR-033 item 5, until pilot setup): --should-fix <n> says n of them are left, as follow-ups in the
+# notes file. The record says so, and the merge gate refuses it for a PR that is not low-risk then. A later push makes the
+# record stale.
 cmd_reviewed() {
-  [ $# -eq 0 ] || usage
-  local pr head local_head
+  local should_fix=0 pr head local_head risk suffix=""
+  while [ $# -gt 0 ]; do
+    case "$1" in
+      --should-fix) [[ "${2:-}" =~ ^[0-9]+$ ]] || usage; should_fix=$((10#$2)); shift ;;
+      *) usage ;;
+    esac
+    shift
+  done
   pr="$(current_pr)"
   [ -z "$(git status --porcelain)" ] || die "uncommitted changes: the reviewers did not see what is on the PR"
   head="$(head_of "$pr")"
   local_head="$(git rev-parse HEAD)"
   [ "$local_head" = "$head" ] \
     || die "local HEAD ${local_head:0:7} is not the PR head ${head:0:7}: push with scripts/pr.sh create, then review again"
-  record "$pr" "$REVIEW_MARK" "**$REVIEW_MARK:** standards and spec reviewers clean on \`$head\` ✅"
+  if [ "$should_fix" -gt 0 ]; then
+    risk="$("$ROOT/scripts/risk.sh" "$pr" --json)" || die "could not decide the risk of PR #$pr; nothing recorded"
+    case "$(jq -r .risk <<<"$risk")" in
+      low) ;;
+      high) die "PR #$pr is high-risk: its review is clean only without should-fix findings; fix them, then review again" ;;
+      owner) die "PR #$pr is owner-only: its review is clean only without should-fix findings; fix them, then review again" ;;
+      *) die "the risk of PR #$pr is unknown: its review is clean only without should-fix findings" ;;
+    esac
+    if [ "$should_fix" -eq 1 ]; then
+      suffix=" (low risk: 1 should-fix finding left as a follow-up, ADR-033)"
+    else
+      suffix=" (low risk: $should_fix should-fix findings left as follow-ups, ADR-033)"
+    fi
+  fi
+  record "$pr" "$REVIEW_MARK" "**$REVIEW_MARK:** standards and spec reviewers clean on \`$head\` ✅$suffix"
 }
 
 # The facts of scripts/merge-gate.jq that pr.sh ready reads too: the PR, its checks on the head commit, the required

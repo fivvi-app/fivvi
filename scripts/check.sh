@@ -273,7 +273,7 @@ turbo_checks() {
 
 # Local Postgres for the integration tests and the e2e servers' databases (apps/web/e2e/serve.ts).
 local_postgres() {
-  docker info >/dev/null 2>&1 || { echo "Docker is not running — start it (Postgres for integration and e2e tests)"; return 1; }
+  docker info >/dev/null 2>&1 || { echo "Docker is not running — start it with brew services start colima, or set it up with scripts/bootstrap.sh (Postgres for integration and e2e tests)"; return 1; }
   [ -f packages/database/.env ] || cp packages/database/.env.example packages/database/.env
   pnpm db:up >/dev/null
 }

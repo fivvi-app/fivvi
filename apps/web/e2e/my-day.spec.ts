@@ -312,6 +312,53 @@ test.describe('F013 Mijn dag on the web', () => {
     await expect(page.getByText(copy.myDay.emptyNext.replace('{date}', shown))).toBeVisible();
   });
 
+  test('AC5: the tomorrow line opens Mijn agenda on tomorrow, in the day view', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    const john = newAddress('john');
+    const tom = newAddress('tom');
+    await createAccount(john, undefined, 'John');
+    await createAccount(tom, undefined, 'Tom');
+    const slug = await createGymWithTrainer(john, GYM, 'owner');
+    await joinTeam(tom, slug, 'trainer');
+    await signInWithSession(context, tom);
+    await page.goto('/me/day');
+    const tomorrow = new Intl.DateTimeFormat('en-CA', { timeZone: 'Europe/Amsterdam' }).format(
+      new Date(Date.now() + 24 * 60 * 60 * 1000),
+    );
+    const mark = await plan(page, await workspaceId(page, GYM), 'Mark Jansen', '07:00', tomorrow);
+    await page.reload();
+
+    const line = page.getByRole('main').locator('a[href^="/me/calendar"]');
+    await expect(line).toContainText('07:00');
+    await expect(line).toHaveAttribute('href', `/me/calendar?view=day&date=${tomorrow}`);
+    await line.click();
+
+    // Mijn agenda on tomorrow: the day view with the session, in this week's address.
+    await expect(page).toHaveURL(`/me/calendar?view=day&date=${tomorrow}`);
+    await expect(
+      page.getByRole('button', { name: copy.myCalendar.viewDay, pressed: true }),
+    ).toBeVisible();
+    const block = page.getByRole('main').locator(`a[href$="/sessions/${mark.id}"]`);
+    await expect(block).toHaveAccessibleName(
+      new RegExp(`^${copy.myCalendar.typePrivate} · Mark Jansen, .*07:00`),
+    );
+  });
+
+  test('AC14: no hint about Dutch time while the browser is in the Netherlands', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    await sarahOnTwoTeams(context);
+    await page.goto('/me/day');
+    await expect(page.getByRole('heading', { level: 1, name: copy.myDay.title })).toBeVisible();
+
+    await expect(page.getByText(copy.personal.timeZoneHint)).toHaveCount(0);
+  });
+
   test('AC12: without a trainer profile there are no personal pages', async ({
     page,
     context,
@@ -354,5 +401,32 @@ test.describe('F013 Mijn dag on the web', () => {
     await expect(page.getByRole('navigation', { name: copy.workspaceNav.label })).toHaveCount(0);
     const list = await page.request.get(`/api/v1/me/sessions?from=${today()}&to=${today()}`);
     expect(await list.json()).toMatchObject({ items: [] });
+  });
+
+  test.describe('AC14: a browser in another time zone', () => {
+    test.use({ timezoneId: 'America/New_York' });
+
+    test('times stay in Dutch time and the hint says so', async ({
+      page,
+      context,
+      messages: copy,
+    }) => {
+      await sarahOnTwoTeams(context);
+      await page.goto('/me/day');
+      await sarahsDay(page);
+      await page.reload();
+
+      await expect(page.getByText(copy.personal.timeZoneHint)).toBeVisible();
+      const main = page.getByRole('main');
+      await expect(main.getByText(/^3 \S+ · 09:00–19:00$/)).toBeVisible();
+      await expect(
+        main.getByRole('link', {
+          name: new RegExp(
+            `^${copy.myDay.spokenTime.replace('{start}', '09:00').replace('{end}', '10:00')}`,
+          ),
+        }),
+      ).toContainText('09:00–10:00');
+      await expectNoAxeViolations(page, 'Mijn dag in New York');
+    });
   });
 });

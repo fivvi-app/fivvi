@@ -18,24 +18,31 @@
 # a head that isn't a full commit SHA, no required checks, an unknown preview, or a record that names no commit.
 
 include "records" {search: "./"};
+include "check-retries" {search: "./"};
 
 def short: .[:7];
 def is_sha: type == "string" and test("^[0-9a-f]{40}$");
-def ok_result: IN("SUCCESS", "SKIPPED", "NEUTRAL");
-def pending_result: IN("PENDING", "EXPECTED");
+# A check's state for settle_retries: CheckRuns report status and conclusion, commit statuses (Railway) a state.
+def check_state:
+  if . == "SUCCESS" then "pass"
+  elif IN("SKIPPED", "NEUTRAL") then "skip"
+  elif IN("PENDING", "EXPECTED") then "pending"
+  elif . == "CANCELLED" then "cancel"
+  else "fail" end;
 
-# One entry per check: CheckRuns report status and conclusion, commit statuses (Railway) a state.
+# One entry per check, a cancelled job read by its retry job (check-retries.jq, #1384).
 def results:
   [.checks[] | {name: (.name // .context),
-    result: (if .__typename == "StatusContext" then .state
-             elif .status != "COMPLETED" then "PENDING"
-             else .conclusion end)}];
+    state: (if .__typename == "StatusContext" then .state
+            elif .status != "COMPLETED" then "PENDING"
+            else .conclusion end | check_state)}]
+  | settle_retries;
 
 def checks_on_head:
   .head as $head
   | results as $results
-  | ([$results[] | select(.result | ok_result | not) | select(.result | pending_result | not) | .name]) as $failing
-  | ([$results[] | select(.result | pending_result) | .name]) as $pending
+  | ([$results[] | select(.state | IN("fail", "cancel")) | .name]) as $failing
+  | ([$results[] | select(.state == "pending") | .name]) as $pending
   | ([.required[] as $r | select([$results[].name] | index($r) | not) | $r]) as $missing
   | {name: "checks passed", ok: ($failing + $pending + $missing | length == 0),
      detail: ([(if $failing != [] then "failing: \($failing | join(", "))" else empty end),
@@ -93,6 +100,18 @@ def on_head($what; $line):
     else {ok: true, detail: "recorded for \(.head | short)"}
     end;
 
+# Review by risk (ADR-033 item 5, until pilot setup): a review that left should-fix findings as follow-ups (pr.sh reviewed
+# --should-fix <n> records "should-fix finding(s) left as") is clean only for a low-risk PR; a high or owner PR, or an
+# unknown risk, needs a review with none. The record alone is not enough: the risk may have changed since it was written.
+# The input is the result of the on_head check of the record; $f the facts.
+def review_by_risk($f):
+  ($f.pr.body | record($review_mark)) as $line
+  | ($f.risk.risk) as $risk
+  | if .ok and $line != null and ($line | test("should-fix findings? left as")) and $risk != "low"
+    then {ok: false,
+          detail: "the self-review record leaves should-fix findings as follow-ups, which only a low-risk PR may merge with; this PR is \(if $risk == "high" then "high-risk" elif $risk == "owner" then "owner-only" else "of unknown risk" end)"}
+    else . end;
+
 . as $f
 | [
     {name: "not owner-only", ok: (.risk.risk | IN("low", "high")),
@@ -101,7 +120,7 @@ def on_head($what; $line):
               elif .risk.risk == "owner" then "owner-only: \(.risk.reasons | join("; "))"
               else "the risk is unknown: the owner decides" end)},
     checks_passed,
-    {name: "self-review clean"} + on_head("self-review"; $f.pr.body | record($review_mark)),
+    {name: "self-review clean"} + (on_head("self-review"; $f.pr.body | record($review_mark)) | review_by_risk($f)),
     {name: "preview smoke-checked"} + (
       ($f.pr.body | record($smoke_mark)) as $line
       | if $f.preview | IN("yes", "no", "pending") | not then {ok: false, detail: "whether the PR has a preview is unknown"}

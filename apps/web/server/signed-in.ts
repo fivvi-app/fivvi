@@ -1,4 +1,5 @@
 import { SIGN_IN_PAGE } from '@fivvi/auth/return-path';
+import type { Schemas } from '@fivvi/contract';
 import type { Route } from 'next';
 import { cookies, headers } from 'next/headers';
 import { redirect } from 'next/navigation';
@@ -39,17 +40,24 @@ export async function homeDestination(me: Me): Promise<Destination> {
 }
 
 /**
+ * The workspaces the signed-in account is on the team of, with what it may do and whether it
+ * trains there (`GET /v1/me/workspaces`): the personal pages (F013) read who may plan where and
+ * which workspaces a filter lists from it. Asked once per request.
+ */
+export const currentMyWorkspaces = cache(async (): Promise<Schemas['MyWorkspace'][]> => {
+  const cookie = (await headers()).get('cookie');
+  const { data } = await apiClient.GET('/v1/me/workspaces', {
+    headers: cookie ? { cookie } : {},
+  });
+  if (!data) throw new Error('GET /v1/me/workspaces did not answer with the workspaces.');
+  return data;
+});
+
+/**
  * Whether the signed-in person has a trainer profile somewhere (F013): the people who get the
  * personal pages. Asked once per request.
  */
 export const currentTrainsAnywhere = cache(async (): Promise<boolean> => {
   const { workspaces } = await currentMe();
-  return trainsAnywhere(workspaces, async () => {
-    const cookie = (await headers()).get('cookie');
-    const { data } = await apiClient.GET('/v1/me/workspaces', {
-      headers: cookie ? { cookie } : {},
-    });
-    if (!data) throw new Error('GET /v1/me/workspaces did not answer with the workspaces.');
-    return data;
-  });
+  return trainsAnywhere(workspaces, currentMyWorkspaces);
 });
