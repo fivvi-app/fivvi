@@ -65,6 +65,15 @@ export {
   updateSeriesDates,
 } from './repositories/class-series.ts';
 export {
+  addSeriesDatesIfMissing,
+  findDefaultLocationId,
+  listClassSeriesBehind,
+  lockClassSeries,
+  type SeriesDateToAdd,
+  type SeriesToExtend,
+  setClassSeriesMaterializedUntil,
+} from './repositories/class-series-horizon.ts';
+export {
   type ClientChanges,
   type ClientPage,
   type ClientView,

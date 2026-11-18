@@ -40,6 +40,12 @@ export const CRON_TABLE_PRIVILEGES: Readonly<Record<string, readonly Privilege[]
   // `retention_cron_policies`): closed trainer invitations (R3) and access-log entries (R12).
   trainer_invitations: ['DELETE'],
   access_log: ['SELECT', 'DELETE'],
+  // The task that keeps class series 12 weeks ahead (F022): it reads the series (rule, time zone,
+  // defaults; no personal data), moves `materialized_until` (`CRON_UPDATE_COLUMNS`) and inserts the
+  // missing dates, which it never reads back: a date that exists is the unique key's to refuse.
+  // Their policies are in the migration `cron_class_series_policies`.
+  class_series: ['SELECT'],
+  sessions: ['INSERT'],
 };
 
 /**
@@ -48,13 +54,26 @@ export const CRON_TABLE_PRIVILEGES: Readonly<Record<string, readonly Privilege[]
  * read, so a task can find and delete the rows past their period and learn nothing else. A
  * session's token, IP address and user agent, a sign-in request's address and hashes and an
  * invitation's address and token hash are not here, and the role is refused when it asks for
- * them. A table listed here is also listed in `CRON_TABLE_PRIVILEGES`, without `SELECT`.
+ * them. A table listed here is also listed in `CRON_TABLE_PRIVILEGES`, without `SELECT`,
+ * except `locations`, where these columns are all the role has.
  */
 export const CRON_SELECT_COLUMNS: Readonly<Record<string, readonly string[]>> = {
   auth_verifications: ['id', 'expires_at'],
   auth_sessions: ['id', 'expires_at', 'updated_at'],
   // `organization_id` comes back with the deleted row for the deletion log (IDs only).
   trainer_invitations: ['id', 'organization_id', 'status', 'expires_at', 'updated_at'],
+  // The default location of a workspace, which the dates of a class series take (F022): the key
+  // columns only, never a name or an address.
+  locations: ['id', 'organization_id', 'is_default'],
+};
+
+/**
+ * The columns the cron role may change of a table that has no table-level `UPDATE` in
+ * `CRON_TABLE_PRIVILEGES`. The task of F022 moves the day a series is filled to, and nothing else
+ * of it (not the rule, the trainer, the capacity or the version, which are the Owner's to change).
+ */
+export const CRON_UPDATE_COLUMNS: Readonly<Record<string, readonly string[]>> = {
+  class_series: ['materialized_until', 'updated_at'],
 };
 
 /**
@@ -86,6 +105,15 @@ export async function grantCronPrivileges(db: DatabaseExecutor): Promise<void> {
         sql`, `,
       );
       await tx.execute(sql`grant select (${list}) on ${sql.identifier(table)} to ${role}`);
+    }
+    for (const table of tables) {
+      const columns = CRON_UPDATE_COLUMNS[table];
+      if (!columns?.length) continue;
+      const list = sql.join(
+        columns.map((column) => sql.identifier(column)),
+        sql`, `,
+      );
+      await tx.execute(sql`grant update (${list}) on ${sql.identifier(table)} to ${role}`);
     }
   });
 }

@@ -2,7 +2,12 @@ import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/databas
 import { CRON_ROLE_TEST_PASSWORD } from '@fivvi/testing/database/server';
 import { sql } from 'drizzle-orm';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { CRON_ROLE, CRON_SELECT_COLUMNS, CRON_TABLE_PRIVILEGES } from '../src/cron-role.ts';
+import {
+  CRON_ROLE,
+  CRON_SELECT_COLUMNS,
+  CRON_TABLE_PRIVILEGES,
+  CRON_UPDATE_COLUMNS,
+} from '../src/cron-role.ts';
 import {
   createCronDatabase,
   createDatabase,
@@ -14,6 +19,7 @@ import {
 import { release } from '../src/release.ts';
 import {
   addAccessLogEntry,
+  addClassSeries,
   addTeamRole,
   addTrainerInvitation,
   createAccount,
@@ -80,8 +86,10 @@ describe('E012 the cron role', () => {
     ).rows.map((row) => String(row.tablename));
     expect(tables).toContain('job_runs');
 
-    // Every other table, the business tables and the sign-in tables among them, is refused.
-    for (const table of tables.filter((name) => !(name in CRON_TABLE_PRIVILEGES))) {
+    // Every other table, the business tables and the sign-in tables among them, is refused. (A table
+    // with a privilege on single columns only can be read as far as those columns, see below.)
+    const declared = (name: string) => name in CRON_TABLE_PRIVILEGES || name in CRON_SELECT_COLUMNS;
+    for (const table of tables.filter((name) => !declared(name))) {
       await expect(
         cron.db.execute(sql`select 1 from ${sql.identifier(table)} limit 1`),
         table,
@@ -253,6 +261,80 @@ describe('E014 the cron role and the retention tasks (ticket #1181)', () => {
       ),
     ).rejects.toMatchObject(DENIED);
     await expect(cron.db.execute(sql`select 1 from auth_users`)).rejects.toMatchObject(DENIED);
+  });
+});
+
+describe('F022 the cron role and the class series task (ticket #453)', () => {
+  it('AC9: reads every series without a workspace, moves materialized_until and changes nothing else of it', async () => {
+    const gym = await createWorkspace(owner.db, { label: 'johns-gym' });
+    const fit = await createWorkspace(owner.db, { label: 'fit-studio' });
+    const mine = await addClassSeries(owner.db, { workspaceId: gym.id });
+    const theirs = await addClassSeries(owner.db, { workspaceId: fit.id });
+
+    const seen = await cron.db.execute(sql`select id from class_series order by id`);
+    expect(seen.rows.map((row) => row.id).sort()).toEqual([mine.id, theirs.id].sort());
+    await cron.db.execute(
+      sql`update class_series set materialized_until = '2027-01-04', updated_at = now() where id = ${mine.id}`,
+    );
+    expect(
+      (
+        await owner.db.execute(
+          sql`select materialized_until::text as d from class_series where id = ${mine.id}`,
+        )
+      ).rows,
+    ).toEqual([{ d: '2027-01-04' }]);
+    for (const statement of [
+      sql`update class_series set rrule = 'FREQ=WEEKLY;BYDAY=MO'`,
+      sql`update class_series set capacity = 99`,
+      sql`update class_series set version = version + 1`,
+      sql`insert into class_series (organization_id, group_class_id, rrule, local_start_time, duration_minutes, time_zone, capacity, starts_on, materialized_until) select organization_id, group_class_id, rrule, local_start_time, duration_minutes, time_zone, capacity, starts_on, materialized_until from class_series`,
+      sql`delete from class_series`,
+    ]) {
+      await expect(cron.db.execute(statement)).rejects.toMatchObject(DENIED);
+    }
+    expect(Object.keys(CRON_UPDATE_COLUMNS)).toEqual(['class_series']);
+  });
+
+  it('AC9: inserts class dates in any workspace, reads, changes and deletes none', async () => {
+    const gym = await createWorkspace(owner.db, { label: 'johns-gym' });
+    const series = await addClassSeries(owner.db, { workspaceId: gym.id });
+    const location = (
+      await owner.db.execute(
+        sql`select id from locations where organization_id = ${gym.id} and is_default`,
+      )
+    ).rows[0]?.id;
+    const insert = (day: string) =>
+      cron.db.execute(
+        sql`insert into sessions (organization_id, type, group_class_id, series_id, occurrence_date, location_id, starts_at, ends_at, capacity)
+            values (${gym.id}, 'group', ${series.groupClassId}, ${series.id}, ${day}, ${location}, '2026-12-29T17:00:00Z', '2026-12-29T18:00:00Z', 8)
+            on conflict do nothing`,
+      );
+
+    expect((await insert('2026-12-29')).rowCount).toBe(1);
+    expect((await insert('2026-12-29')).rowCount).toBe(0);
+    for (const statement of [
+      sql`select id from sessions`,
+      sql`update sessions set capacity = 1`,
+      sql`delete from sessions`,
+    ]) {
+      await expect(cron.db.execute(statement)).rejects.toMatchObject(DENIED);
+    }
+  });
+
+  it('AC9: reads the key columns of a location and nothing else of it', async () => {
+    const gym = await createWorkspace(owner.db, { label: 'johns-gym' });
+
+    const { rows } = await cron.db.execute(
+      sql`select id, organization_id, is_default from locations where organization_id = ${gym.id}`,
+    );
+
+    expect(rows).toHaveLength(1);
+    await expect(cron.db.execute(sql`select name from locations`)).rejects.toMatchObject(DENIED);
+    await expect(cron.db.execute(sql`select * from locations`)).rejects.toMatchObject(DENIED);
+    await expect(
+      cron.db.execute(sql`update locations set is_default = false`),
+    ).rejects.toMatchObject(DENIED);
+    await expect(cron.db.execute(sql`delete from locations`)).rejects.toMatchObject(DENIED);
   });
 });
 

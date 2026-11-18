@@ -1,5 +1,6 @@
 import { sql } from 'drizzle-orm';
-import { boolean, check, pgEnum, text, uniqueIndex } from 'drizzle-orm/pg-core';
+import { boolean, check, pgEnum, pgPolicy, text, uniqueIndex } from 'drizzle-orm/pg-core';
+import { CRON_ROLE } from '../cron-role.ts';
 import { businessTable } from './business-table.ts';
 import { timestamps } from './columns.ts';
 
@@ -43,6 +44,15 @@ export const locations = businessTable(
     uniqueIndex('locations_organization_id_default_unique')
       .on(table.organizationId)
       .where(sql`${table.isDefault}`),
+    // The daily task that keeps class series ahead (F022) finds the workspace's default location
+    // as the cron role, which sets no workspace context. It reads the key columns only
+    // (`CRON_SELECT_COLUMNS`), never a name or an address.
+    pgPolicy('locations_cron_select', {
+      as: 'permissive',
+      for: 'select',
+      to: CRON_ROLE,
+      using: sql`true`,
+    }),
     check(
       'locations_name_valid',
       sql`btrim(${table.name}) <> '' AND char_length(${table.name}) <= 120`,
