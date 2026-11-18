@@ -96,3 +96,22 @@ A `builder` gets the reviewer's must-fix and should-fix findings (for a `low`-ri
 ## Usage
 
 `node scripts/usage.mjs snapshot --since <date> [--until <date>] --label <name>` measures a run from Claude Code's transcripts on this machine: tokens, price-weighted cost per model, agent and tool time per ticket, and quality (first-review-clean rate, findings per review, CI failures, queue removals, owner comments, follow-up fixes, reverts). `node scripts/usage.mjs compare <before.json> <after.json>` compares two snapshots per ticket group (area and size), so a run is compared with runs of similar tickets, not with a different mix. Claude Code deletes transcripts after 30 days by default, so take the snapshot within that time. Baselines live in `docs/agents/usage/`; `2026-10-24-factory.json` is the run before the review, tools and context-window changes.
+
+**The flow of the delivery** (ADR-034). A snapshot also has a `flow` section, read from GitHub for the same window (the 28 days before `--until` without `--since`); it is `null`, with a warning, without `gh`. It holds:
+
+- `settings`: the `.github/pipeline.json` values (`ci`, `review`) on `main` at the window's start and end, read with `git show` (a missing file is `full` and `per-pr`), so a snapshot says which flow it measured. When they changed inside the window the snapshot and `compare` warn that the numbers mix both.
+- `time`: for the merged PRs, in hours (median and p90): issue opened → first commit (the backlog), first commit → PR opened, PR opened → ready for review, ready → first queued, first queued → merged, PR opened → merged and issue opened → merged; the tickets merged per day; and, for the specs closed in the window, created → `spec-approved` → first ticket → closed.
+- `ci`: the runs of `ci.yml` per event (`pull_request`, `merge_group`, `push`, `schedule`: count, wall time, failure rate), per job (median run time and failure rate; the nightly run apart, as `<job> (schedule)`), the runner hours on Linux and macOS, the runs per merged PR and the queue removals per PR by reason (`failed_checks`, `merge_conflict`, `checks_timed_out`, ...). The jobs of a run cost one call each: they are read eight at a time and kept per run id in `.work/usage/jobs/`, so a second snapshot is cheap.
+- `quality`: the issues labelled `bug` opened in the window, by source (`nightly`: the title `Nightly UI tests failed`; `specReview`: the body line `Found by: spec review`, which the spec review puts in a bug it files under a spec; `deploy`: the marker `flow.sh` puts in a `Deploy bug:`; `other`: the owner or anyone else), the bugs per merged ticket, the reverts, the follow-up fixes and the PRs merged with should-fix follow-ups (the `pr.sh reviewed --should-fix` record). The first-review-clean rate and the reviews per ticket stay in the per-ticket metrics.
+- `prs`: one record of numbers per merged PR, so `compare` also shows the times per ticket group (area and size).
+
+Only numbers, issue and PR numbers, SHAs, job names and labels are written: no title or text of an issue or PR is stored.
+
+**Comparing the full and the fast pipeline.** `2026-11-18-full-pipeline.json` is the full flow (tag `pipeline-full-2026-11-18`, `ci: full`, `review: per-pr`), 21 October to 18 November. After the switch, from the day it merged:
+
+```
+node scripts/usage.mjs snapshot --since <switch date> --label <date>-fast-pipeline
+node scripts/usage.mjs compare docs/agents/usage/2026-11-18-full-pipeline.json docs/agents/usage/<date>-fast-pipeline.json
+```
+
+Take the second snapshot within 30 days of its window (the transcripts). A fair comparison needs at least a week, or about 50 merged tickets, on each side, and is read per group: the overall numbers move with the mix of native, app, tooling and docs tickets, and a group marked `(few)` has fewer than 3 tickets on one side. Switching back and forth inside a window mixes both flows (the warning above): take one snapshot per stretch of one setting. The nightly bugs belong to the fast flow's cost: read the bugs per merged ticket together with the time, not apart.
