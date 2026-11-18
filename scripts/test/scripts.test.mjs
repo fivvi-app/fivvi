@@ -2177,6 +2177,10 @@ case " $* " in *" test "*)
   # the dead driver, in every failed flow, no flow with the error itself). no-file: offline, but the report has no file attributes.
   # died-text: as in a real report, the junit text (not the log, which has no adb error) of the first flow is the
   # DeviceServerDiedException stack whose Caused by has the adb error, and that of the second flow the dead driver only.
+  # Four more (#1444): offline-twice (the first two runs in en fail, the third passes), not-found (the adb error is "device
+  # 'emulator-5554' not found"), offline-tagged (as offline, plus a flow with <properties> tags in its testcase, as Maestro
+  # writes for a flow with tags) and FAKE_MAESTRO_LOSES_DEVICE=1 (each failed run takes the device with it: adb sees none
+  # until an emulator is launched again).
   if [ -n "$FAKE_MAESTRO_ERROR" ]; then
     out=""; dir=""; prev=""
     for arg; do
@@ -2185,9 +2189,14 @@ case " $* " in *" test "*)
       prev="$arg"
     done
     en_runs=$(grep -c 'DEVICE_LANGUAGE=en ' "${state}/maestro.log")
-    if [ "$en_runs" -ge 1 ] && { [ "$en_runs" -eq 1 ] || [ "$FAKE_MAESTRO_ERROR" = offline-always ]; }; then
-      msg1="Unknown error"; msg2="Unknown error"
+    if [ "$en_runs" -ge 1 ] && { [ "$en_runs" -eq 1 ] || [ "$FAKE_MAESTRO_ERROR" = offline-always ] || { [ "$FAKE_MAESTRO_ERROR" = offline-twice ] && [ "$en_runs" -le 2 ]; }; }; then
+      msg1="Unknown error"; msg2="Unknown error"; tagged=""
       case "$FAKE_MAESTRO_ERROR" in
+        not-found)
+          first="Command failed (host:transport:emulator-5554): device 'emulator-5554' not found"; second="$first" ;;
+        offline-tagged)
+          first="Command failed (host:transport:emulator-5554): device offline"; second="maestro.android.DeviceServerDiedException: Device server died during 'launchApp'"
+          tagged=yes ;;
         assertion-optional)
           first="Assertion is false: 'Welcome' is visible
 Command failed (host:transport:emulator-5554): device offline"; second=""
@@ -2210,13 +2219,21 @@ Caused by: java.io.IOException: Command failed (host:transport:emulator-5554): d
       mkdir -p "$dir/2099-01-01_000000/AC9 first/logs" "$dir/2099-01-01_000000/AC1 second/logs"
       echo "[ERROR] CommandFailed: $first" >"$dir/2099-01-01_000000/AC9 first/logs/maestro.log"
       echo "$second" >"$dir/2099-01-01_000000/AC1 second/logs/maestro.log"
+      if [ -n "$tagged" ]; then
+        mkdir -p "$dir/2099-01-01_000000/AC6 tagged/logs"
+        echo "$second" >"$dir/2099-01-01_000000/AC6 tagged/logs/maestro.log"
+      fi
       {
         echo '<testsuites><testsuite name="Test Suite" tests="3" failures="2">'
         echo '<testcase id="AC9 first" name="AC9 first" file="e2e/maestro/profile-workspaces.yaml" status="ERROR"><failure>'"$msg1"'</failure></testcase>'
         if [ -n "$second" ]; then echo '<testcase id="AC1 second" name="AC1 second" file="e2e/maestro/home.yaml" status="ERROR"><failure>'"$msg2"'</failure></testcase>'; fi
+        if [ -n "$tagged" ]; then echo '<testcase id="AC6 tagged" name="AC6 tagged" file="e2e/maestro/workspace-switch.yaml" status="ERROR">
+<properties><property name="tags" value="isolation"/></properties>
+<failure>'"$msg2"'</failure></testcase>'; fi
         echo '<testcase id="AC13 third" name="AC13 third" file="e2e/maestro/anonymous.yaml" status="SUCCESS"/>'
         echo '</testsuite></testsuites>'
       } | { if [ "$FAKE_MAESTRO_ERROR" = no-file ]; then sed 's/ file="[^"]*"//'; else cat; fi; } >"$out"
+      [ -z "$FAKE_MAESTRO_LOSES_DEVICE" ] || rm -f "${state}/booted"
       exit 1
     fi
   fi
@@ -4971,17 +4988,159 @@ esac`,
       assert.doesNotMatch(run.output, /flaky|::warning/);
     });
 
-    it('re-runs only once: a second drop fails the locale', async () => {
+    // #1444: CI run 43973406576 (job 133673565401): the connection dropped in nl-NL, 11 flows failed with it, and Maestro's
+    // report gave the flows with tags (isolation, permission) a <properties> element between <testcase> and <failure>:
+    // the parser did not see them as failed, so 3 of the 11 were never re-run.
+    it('re-runs the flows whose testcase has tags (a <properties> element before the failure) too', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_MAESTRO_ERROR: 'offline-tagged',
+        DEVICE_STABLE_PROBES: '2',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(
+        run.output,
+        /in 3 flow\(s\) in en; re-running them once: e2e\/maestro\/profile-workspaces\.yaml e2e\/maestro\/home\.yaml e2e\/maestro\/workspace-switch\.yaml/,
+      );
+      const [, , retry, ...more] = tests(fake);
+      assert.equal(more.length, 0, tests(fake).join('\n'));
+      assert.ok(retry.includes('e2e/maestro/workspace-switch.yaml'), retry);
+    });
+
+    it("re-runs flows that failed with \"device 'emulator-5554' not found\", the adb server's other answer to a lost device", async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_MAESTRO_ERROR: 'not-found',
+        DEVICE_STABLE_PROBES: '2',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(
+        run.output,
+        /the adb connection dropped \(device offline\) in 2 flow\(s\) in en; re-running them once/,
+      );
+      assert.equal(tests(fake).length, 3, tests(fake).join('\n'));
+    });
+
+    // #1444: the drop came again in the re-run (runs 43973406576 and 42961754633: nl-NL dropped two and three times in a
+    // row, en never): a flow that dropped is re-run at most twice, each time after the device is ready again.
+    it('re-runs the flows that dropped again once more, and calls them flaky when that run passes', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_MAESTRO_ERROR: 'offline-twice',
+        DEVICE_STABLE_PROBES: '2',
+        CI: 'true',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.equal(run.output.match(/re-running them once/g).length, 2, run.output);
+      const [, en, retry, retry2, ...more] = tests(fake);
+      assert.equal(more.length, 0, tests(fake).join('\n'));
+      assert.ok(en.includes('android-en.xml') && retry.includes('android-en-retry.xml'));
+      assert.ok(
+        retry2.includes('android-en-retry2.xml') &&
+          retry2.includes('e2e/maestro/profile-workspaces.yaml') &&
+          retry2.includes('e2e/maestro/home.yaml') &&
+          !retry2.includes('anonymous.yaml'),
+        retry2,
+      );
+      assert.match(run.output, /::warning title=Flaky Maestro flows::flaky: 2 flow\(s\) in en/);
+    });
+
+    // #1444: three drops in a row are no flow failure: the run says what was lost, and what the emulator process did.
+    it('reports a third drop as an infrastructure failure naming the cause, not as a failed flow', async () => {
       const fake = checkout();
 
       const run = await fake.run('scripts/maestro.sh', ['android'], {
         FAKE_MAESTRO_ERROR: 'offline-always',
+        DEVICE_STABLE_PROBES: '2',
+        CI: 'true',
+      });
+
+      assert.equal(run.status, 1, run.output);
+      assert.match(
+        run.output,
+        /infrastructure failure: the emulator lost its adb connection in en \(the flows failed with a dropped adb connection in the run and in 2 re-runs\)/,
+      );
+      assert.match(
+        run.output,
+        /the emulator process is still running: the host's adb server lost it/,
+      );
+      assert.match(run.output, /^::error title=Android emulator lost its adb connection::/m);
+      assert.doesNotMatch(run.output, /Maestro failed in/);
+      assert.doesNotMatch(run.output, /flaky|::warning/);
+      assert.equal(run.output.match(/re-running them once/g).length, 2, run.output);
+      assert.equal(tests(fake).length, 4, tests(fake).join('\n'));
+    });
+
+    it('relaunches the emulator once, cold, when the device does not come back after a drop, then re-runs the flows', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_MAESTRO_ERROR: 'offline',
+        FAKE_MAESTRO_LOSES_DEVICE: '1',
+        DEVICE_STABLE_PROBES: '2',
+        DEVICE_READY_TIMEOUT: '2',
+        LOCALE_BOOT_TIMEOUT: '4',
+        STALE_EMULATOR_WAIT: '1',
+      });
+
+      assert.equal(run.status, 0, run.output);
+      assert.match(
+        run.output,
+        /the device did not come back after the adb connection dropped; relaunching the emulator once, cold/,
+      );
+      assert.equal(fake.log('emulator').length, 2, fake.log('emulator').join('\n'));
+      assert.match(fake.log('emulator')[1], /(^| )-no-snapshot( |$)/, 'a cold boot');
+      const [, , retry, ...more] = tests(fake);
+      assert.equal(more.length, 0, tests(fake).join('\n'));
+      assert.ok(
+        retry.includes('android-en-retry.xml') && retry.includes('--env DEVICE_LANGUAGE=en '),
+        retry,
+      );
+    });
+
+    it('reports an emulator that is lost again after its relaunch as an infrastructure failure, and runs no more flows', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_MAESTRO_ERROR: 'offline-always',
+        FAKE_MAESTRO_LOSES_DEVICE: '1',
+        DEVICE_STABLE_PROBES: '2',
+        DEVICE_READY_TIMEOUT: '2',
+        LOCALE_BOOT_TIMEOUT: '4',
+        STALE_EMULATOR_WAIT: '1',
+      });
+
+      assert.equal(run.status, 1, run.output);
+      assert.match(
+        run.output,
+        /infrastructure failure: the emulator lost its adb connection in en/,
+      );
+      assert.match(
+        run.output,
+        /the device did not come back, even after the emulator was relaunched/,
+      );
+      assert.doesNotMatch(run.output, /Maestro failed in/);
+      assert.equal(run.output.match(/relaunching the emulator once/g).length, 1, run.output);
+      assert.equal(fake.log('emulator').length, 2, fake.log('emulator').join('\n'));
+      assert.equal(tests(fake).length, 3, tests(fake).join('\n'));
+    });
+
+    it('still reports a failed flow as a failed flow when an adb drop is next to it', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/maestro.sh', ['android'], {
+        FAKE_MAESTRO_ERROR: 'mixed',
       });
 
       assert.equal(run.status, 1, run.output);
       assert.match(run.output, /Maestro failed in: en/);
-      assert.equal(run.output.match(/re-running them once/g).length, 1, run.output);
-      assert.equal(tests(fake).length, 3, tests(fake).join('\n'));
+      assert.doesNotMatch(run.output, /infrastructure failure/);
     });
   });
 
