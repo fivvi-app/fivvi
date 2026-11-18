@@ -13,7 +13,6 @@ final class ClientAppUITests: SignInUITestCase {
         role: String = "trainer", stored: String? = nil
     ) throws -> StubServer {
         try StubServer(
-            .status(404),
             signIn: StubServer.SignIn(
                 email: email, workspaceName: workspace, role: role, preferredLocale: stored, name: name
             )
@@ -244,7 +243,7 @@ final class ClientAppUITests: SignInUITestCase {
     }
 
     func test_E017_AC9_aFailedReadShowsTheErrorAndRetryReadsAgain() throws {
-        let server = try StubServer(.status(404), signIn: StubServer.SignIn(workspaceName: nil, meStatus: 500))
+        let server = try StubServer(signIn: StubServer.SignIn(workspaceName: nil, meStatus: 500))
         let screen = ClientScreen(app: ClientLaunch.launch(against: server, session: .signedIn), catalog: catalog)
 
         let retry = screen.app.buttons["home.retry"]
