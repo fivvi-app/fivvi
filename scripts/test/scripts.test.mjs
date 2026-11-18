@@ -697,7 +697,13 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     const uiTests = (options) => detectAll(options).ui_tests;
 
     it('full: every event runs the UI tests, as before ADR-034', () => {
-      for (const event of ['pull_request', 'merge_group', 'push', 'workflow_dispatch', 'schedule']) {
+      for (const event of [
+        'pull_request',
+        'merge_group',
+        'push',
+        'workflow_dispatch',
+        'schedule',
+      ]) {
         assert.equal(uiTests({ event, pipeline: 'full' }), 'true', event);
       }
       assert.equal(uiTests({ event: 'pull_request', pipeline: 'full', label: true }), 'true');
@@ -705,8 +711,16 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
 
     it('fast: a pull request, a merge group and a push run no UI test, whatever changed and also with the run-native label', () => {
       for (const event of ['pull_request', 'merge_group', 'push']) {
-        for (const changed of [['docs/product/PRODUCT.md'], ['apps/ios/App.swift'], ['apps/web/src/a.ts']]) {
-          assert.equal(uiTests({ event, pipeline: 'fast', changed }), 'false', `${event} ${changed}`);
+        for (const changed of [
+          ['docs/product/PRODUCT.md'],
+          ['apps/ios/App.swift'],
+          ['apps/web/src/a.ts'],
+        ]) {
+          assert.equal(
+            uiTests({ event, pipeline: 'fast', changed }),
+            'false',
+            `${event} ${changed}`,
+          );
         }
       }
       assert.equal(uiTests({ event: 'pull_request', pipeline: 'fast', label: true }), 'false');
@@ -1200,14 +1214,20 @@ describe('E002 #91 the native jobs in ci.yml', () => {
           ['TESTS', 'android-tests'],
           ['MAESTRO', 'android-maestro'],
         ]) {
-          assert.match(section, new RegExp(`${variable}: \\$\\{\\{ needs\\.${result}\\.result \\}\\}`));
+          assert.match(
+            section,
+            new RegExp(`${variable}: \\$\\{\\{ needs\\.${result}\\.result \\}\\}`),
+          );
         }
         assert.match(section, /UI_TESTS: \$\{\{ needs\.changes\.outputs\.ui_tests \}\}/);
         assert.match(
           section,
           /"Detect changes=\$CHANGES" "Android build=\$BUILD" "Android tests=\$TESTS" "Android Maestro=\$MAESTRO"/,
         );
-        assert.match(section, /scripts\/native-gate\.sh \$\{skip_ok\[@\]\+"\$\{skip_ok\[@\]\}"\} Android true/);
+        assert.match(
+          section,
+          /scripts\/native-gate\.sh \$\{skip_ok\[@\]\+"\$\{skip_ok\[@\]\}"\} Android true/,
+        );
       } else {
         // iOS (#413): scripts/ios-parts.sh turns a cancelled part that no runner picked up into "unacquired" and passes
         // the other results on; the gate reads the run's jobs, so it needs actions: read, and it works without them.
@@ -4477,7 +4497,12 @@ esac`,
 
       assert.equal(run.status, 0, run.output);
       const tasks = gradleTasks(fake);
-      for (const task of ['ktlintCheck', 'assembleDebug', 'testDebugUnitTest', ':app:bundleRelease'])
+      for (const task of [
+        'ktlintCheck',
+        'assembleDebug',
+        'testDebugUnitTest',
+        ':app:bundleRelease',
+      ])
         assert.match(tasks, new RegExp(task));
       assert.doesNotMatch(tasks, /connectedDebugAndroidTest/);
       assert.equal(fake.emulator().booted, false);

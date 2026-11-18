@@ -64,7 +64,9 @@ describe('ADR-034 the schedule', () => {
   });
 
   it('every condition on the event is for the five known events: the nightly run is not a push', () => {
-    const events = new Set([...ci.matchAll(/github\.event_name (?:==|!=) '(\w+)'/g)].map((m) => m[1]));
+    const events = new Set(
+      [...ci.matchAll(/github\.event_name (?:==|!=) '(\w+)'/g)].map((m) => m[1]),
+    );
     assert.deepEqual([...events].sort(), ['pull_request', 'push', 'schedule']);
     assert.doesNotMatch(
       ci,
@@ -153,7 +155,10 @@ describe('ADR-034 Android', () => {
     assert.equal(runOf(verify), 'scripts/android.sh verify');
     assert.equal(stepIf(verify), `github.event_name != 'push' && ${UI}`);
     assert.match(verify, /^ {8}timeout-minutes: 40$/m);
-    assert.equal(runOf(stepNamed(tests, 'Android SDK packages and emulator')), 'scripts/android.sh setup');
+    assert.equal(
+      runOf(stepNamed(tests, 'Android SDK packages and emulator')),
+      'scripts/android.sh setup',
+    );
     assert.equal(runOf(stepNamed(tests, 'Boot the emulator')), 'scripts/android.sh emulator');
     assert.match(tests, /^ {4}timeout-minutes: 50$/m);
   });
@@ -181,14 +186,14 @@ describe('ADR-034 Android', () => {
     for (const name of ['Debug app for Maestro', 'Upload the debug app']) {
       assert.equal(stepIf(stepNamed(build, name)), `github.event_name != 'push' && ${UI}`, name);
     }
-    assert.equal(runOf(stepNamed(build, 'ktlint, checks and debug build')), 'scripts/android.sh build');
+    assert.equal(
+      runOf(stepNamed(build, 'ktlint, checks and debug build')),
+      'scripts/android.sh build',
+    );
   });
 
   it('Quarantine (Android) runs only with UI tests: its lists are Compose and Maestro tests', () => {
-    assert.equal(
-      jobIf(jobs['quarantine-android']),
-      `github.event_name != 'push' && ${UI}`,
-    );
+    assert.equal(jobIf(jobs['quarantine-android']), `github.event_name != 'push' && ${UI}`);
   });
 });
 
@@ -223,7 +228,12 @@ describe('ADR-034 Quarantine: the Playwright list runs only with UI tests', () =
     const result = spawnSync('bash', ['-c', script(lists)], {
       cwd: dir,
       encoding: 'utf8',
-      env: { PATH: process.env.PATH, UI_TESTS: uiTests, GITHUB_OUTPUT: output, GITHUB_STEP_SUMMARY: summary },
+      env: {
+        PATH: process.env.PATH,
+        UI_TESTS: uiTests,
+        GITHUB_OUTPUT: output,
+        GITHUB_STEP_SUMMARY: summary,
+      },
     });
     assert.equal(result.status, 0, result.stderr);
     return {
@@ -259,12 +269,19 @@ describe('ADR-034 Quarantine: the Playwright list runs only with UI tests', () =
     assert.equal(outputs.any, 'false');
     assert.match(summary, /4 listed Playwright test\(s\) run in the nightly run only/);
     assert.doesNotMatch(summary, /Nothing is quarantined/);
-    assert.match(readLists('false', { vitest: 0, playwright: 0 }).summary, /Nothing is quarantined/);
+    assert.match(
+      readLists('false', { vitest: 0, playwright: 0 }).summary,
+      /Nothing is quarantined/,
+    );
   });
 
   it('the Playwright steps wait for `playwright` not being 0, so the output above turns them all off', () => {
     for (const name of ['Read Playwright version', 'Restore turbo cache']) {
-      assert.match(stepIf(stepNamed(jobs.quarantine, name)), /steps\.lists\.outputs\.playwright != '0'/, name);
+      assert.match(
+        stepIf(stepNamed(jobs.quarantine, name)),
+        /steps\.lists\.outputs\.playwright != '0'/,
+        name,
+      );
     }
   });
 
@@ -294,7 +311,12 @@ describe('ADR-034 Quarantine: the Playwright list runs only with UI tests', () =
     const later = run({ PLAYWRIGHT_LISTED: '0', PLAYWRIGHT_LATER: '3' });
     assert.match(later, /Playwright: 3 listed, not run here: the UI tests run in the nightly run/);
     assert.doesNotMatch(later, /nothing listed/);
-    const ran = run({ PLAYWRIGHT_LISTED: '3', PLAYWRIGHT_LATER: '0', E2E: 'success', E2E_STATUS: '0' });
+    const ran = run({
+      PLAYWRIGHT_LISTED: '3',
+      PLAYWRIGHT_LATER: '0',
+      E2E: 'success',
+      E2E_STATUS: '0',
+    });
     assert.match(ran, /Playwright: all 3 quarantined test\(s\) passed/);
   });
 });
@@ -310,11 +332,20 @@ describe('ADR-034 the gate Android', () => {
   it('keeps its name, its needs and its condition', () => {
     assert.match(gate, /^ {4}name: Android$/m);
     assert.match(gate, /^ {4}needs: \[changes, android-build, android-tests, android-maestro\]$/m);
-    assert.equal(jobIf(gate), "always() && needs.changes.outputs.android == 'true' && github.event_name != 'push'");
+    assert.equal(
+      jobIf(gate),
+      "always() && needs.changes.outputs.android == 'true' && github.event_name != 'push'",
+    );
   });
 
   // Runs the step's shell, in a copy of the scripts, with the results of the jobs and the decision of Detect changes.
-  const runGate = ({ ui, build = 'success', tests = 'success', maestro = 'success', changes = 'success' }) => {
+  const runGate = ({
+    ui,
+    build = 'success',
+    tests = 'success',
+    maestro = 'success',
+    changes = 'success',
+  }) => {
     const dir = mkdtempSync(join(tmpdir(), 'android-gate-'));
     dirs.push(dir);
     cpSync(SCRIPTS, join(dir, 'scripts'), { recursive: true });
@@ -337,7 +368,10 @@ describe('ADR-034 the gate Android', () => {
     assert.equal(runGate({ ui: 'true' }).status, 0);
     const skipped = runGate({ ui: 'true', maestro: 'skipped' });
     assert.equal(skipped.status, 1);
-    assert.match(skipped.stdout, /Android failed: 1 of 4 parts did not succeed \(Android Maestro=skipped\)/);
+    assert.match(
+      skipped.stdout,
+      /Android failed: 1 of 4 parts did not succeed \(Android Maestro=skipped\)/,
+    );
   });
 
   it('fast (ui_tests false): a skipped Maestro passes, nothing else that was skipped does', () => {
@@ -345,7 +379,11 @@ describe('ADR-034 the gate Android', () => {
     assert.equal(passed.status, 0, passed.stdout);
     assert.match(passed.stdout, /Android Maestro: skipped on purpose/);
     for (const part of [{ build: 'skipped' }, { tests: 'skipped' }, { changes: 'skipped' }]) {
-      assert.equal(runGate({ ui: 'false', maestro: 'skipped', ...part }).status, 1, JSON.stringify(part));
+      assert.equal(
+        runGate({ ui: 'false', maestro: 'skipped', ...part }).status,
+        1,
+        JSON.stringify(part),
+      );
     }
   });
 

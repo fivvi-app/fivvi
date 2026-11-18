@@ -18,7 +18,9 @@ describe('nightly-report.sh (ADR-034): the issue for a failed nightly run', () =
 
   const needs = (results) =>
     JSON.stringify(
-      Object.fromEntries(Object.entries(results).map(([job, result]) => [job, { result, outputs: {} }])),
+      Object.fromEntries(
+        Object.entries(results).map(([job, result]) => [job, { result, outputs: {} }]),
+      ),
     );
   const jobsRule = (jobs) => ({
     match: `^api repos/${REPO}/actions/runs/${RUN}/jobs`,
@@ -40,8 +42,7 @@ describe('nightly-report.sh (ADR-034): the issue for a failed nightly run', () =
   const command = (calls, ...words) =>
     calls.find((args) => words.every((word, i) => args[i] === word));
   const flag = (args, name) => args[args.indexOf(name) + 1];
-  const flags = (args, name) =>
-    args.flatMap((arg, i) => (arg === name ? [args[i + 1]] : []));
+  const flags = (args, name) => args.flatMap((arg, i) => (arg === name ? [args[i + 1]] : []));
 
   const failedJobs = [
     { name: 'Checks (Linux)', conclusion: 'success' },
@@ -83,8 +84,15 @@ describe('nightly-report.sh (ADR-034): the issue for a failed nightly run', () =
     assert.ok(body.includes(RUN_URL), 'the run URL');
     assert.match(body, /^- iOS tests \(nl\)$/m);
     assert.match(body, /^- Android Maestro$/m);
-    assert.doesNotMatch(body, /Checks \(Linux\)|iOS tests \(en\)|Nightly report/, 'only the failing jobs');
-    assert.match(body, /^## Acceptance criteria\n\n- \[ \] The nightly run of ci\.yml passes on main$/m);
+    assert.doesNotMatch(
+      body,
+      /Checks \(Linux\)|iOS tests \(en\)|Nightly report/,
+      'only the failing jobs',
+    );
+    assert.match(
+      body,
+      /^## Acceptance criteria\n\n- \[ \] The nightly run of ci\.yml passes on main$/m,
+    );
     assert.equal(command(result.calls, 'issue', 'comment'), undefined);
     assert.match(result.stdout, /issues\/77/);
   });
@@ -119,7 +127,11 @@ describe('nightly-report.sh (ADR-034): the issue for a failed nightly run', () =
     assert.ok(flag(list, '--search').includes(TITLE));
     // The fake does not search: a different title in the answer is never taken for the issue.
     const other = run(
-      [jobsRule(failedJobs), { match: '^issue list ', out: [{ number: 5, title: 'Other' }] }, created],
+      [
+        jobsRule(failedJobs),
+        { match: '^issue list ', out: [{ number: 5, title: 'Other' }] },
+        created,
+      ],
       { checks: 'failure' },
     );
     assert.ok(command(other.calls, 'issue', 'create'));
@@ -127,7 +139,10 @@ describe('nightly-report.sh (ADR-034): the issue for a failed nightly run', () =
 
   it('treats failure, cancelled and abandoned as failed, and skipped and success as passed', () => {
     for (const bad of ['failure', 'cancelled', 'abandoned']) {
-      const result = run([jobsRule(failedJobs), noOpenIssue, created], { job: bad, other: 'skipped' });
+      const result = run([jobsRule(failedJobs), noOpenIssue, created], {
+        job: bad,
+        other: 'skipped',
+      });
       assert.ok(command(result.calls, 'issue', 'create'), bad);
     }
     for (const fine of ['success', 'skipped']) {
@@ -136,10 +151,11 @@ describe('nightly-report.sh (ADR-034): the issue for a failed nightly run', () =
   });
 
   it('names the job ids when the names of the run cannot be read, and still reports', () => {
-    const result = run(
-      [{ match: '^api ', out: '', status: 1 }, noOpenIssue, created],
-      { 'ios-tests': 'failure', 'android-maestro': 'cancelled', checks: 'success' },
-    );
+    const result = run([{ match: '^api ', out: '', status: 1 }, noOpenIssue, created], {
+      'ios-tests': 'failure',
+      'android-maestro': 'cancelled',
+      checks: 'success',
+    });
 
     assert.equal(result.status, 0, result.stderr);
     const body = flag(command(result.calls, 'issue', 'create'), '--body');

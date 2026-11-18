@@ -43,7 +43,10 @@ if [ -z "$failed_names" ]; then
   echo "Could not read the names of the jobs of run $RUN_ID; naming the job ids." >&2
   failed_names="$failed_ids"
 fi
-jobs_list="$(sed 's/^/- /' <<<"$failed_names")"
+jobs_list=""
+while IFS= read -r name; do
+  jobs_list+="${jobs_list:+$'\n'}- $name"
+done <<<"$failed_names"
 
 run_section="The nightly run of \`ci.yml\` on \`main\` failed: $RUN_URL
 
