@@ -118,20 +118,20 @@ describe('#413 native-gate.sh: parts that had no runner', () => {
   it('#1268 says it was the retry when the part carries the retry label', () => {
     const result = iOS(
       'iOS build=success',
-      'iOS tests (nl) (retry)=failure',
-      'iOS tests (en)=success',
+      'iOS tests (nl 1/2) (retry)=failure',
+      'iOS tests (en 1/2)=success',
     );
     assert.equal(result.status, 1);
     assert.match(
       result.stdout,
-      /iOS tests \(nl\) \(retry\): failed on a runner \(failure\): a build or test failure/,
+      /iOS tests \(nl 1\/2\) \(retry\): failed on a runner \(failure\): a build or test failure/,
     );
     const noRunner = iOS(
       'iOS build=success',
-      'iOS tests (nl) (retry)=unacquired',
-      'iOS tests (en)=success',
+      'iOS tests (nl 1/2) (retry)=unacquired',
+      'iOS tests (en 1/2)=success',
     );
-    assert.match(noRunner.stdout, /iOS tests \(nl\) \(retry\): no hosted runner picked it up/);
+    assert.match(noRunner.stdout, /iOS tests \(nl 1\/2\) \(retry\): no hosted runner picked it up/);
   });
 
   it('has no retry syntax: a result with a suffix is not a success', () => {

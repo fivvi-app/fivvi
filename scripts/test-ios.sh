@@ -21,11 +21,12 @@
 #                                and the build products) into apps/ios/.build/ios-test-bundle.tar; runs no test. CI's
 #                                `iOS build` job (#293)
 #   test-ios.sh test <nl|en> [--bundle <file>] [--retry-failed] [--shard <part>/<of>]
-#                                unpacks that bundle (--bundle <file> names another) and runs the test plan's configuration
-#                                for one language, unit and UI tests, without building, on its own simulator. CI's four
-#                                `iOS tests` jobs run it in parallel, each language in two parts (`--shard`), from the artifact of the build job;
-#                                CI never retries a failed test, so a flaky one stays visible and is quarantined
-#                                (TESTING.md §8). The options come in either order.
+#                                unpacks that bundle (--bundle <file> names another) and runs the test plan's
+#                                configuration for one language, unit and UI tests, without building, on its own
+#                                simulator. CI's four `iOS tests` jobs run it in parallel, each language in two parts
+#                                (`--shard`), from the artifact of the build job; CI never retries a failed test, so a
+#                                flaky one stays visible and is quarantined (TESTING.md §8). The options come in either
+#                                order.
 #                                --shard <part>/<of> (CI passes it, #1447) runs only part <part> of <of> of that language's
 #                                tests: the test classes are dealt out by their number of tests (UI tests weigh ten times a
 #                                unit test) from xcodebuild's own enumeration, every class to exactly one part, so the parts

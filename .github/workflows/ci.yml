@@ -579,10 +579,11 @@ jobs:
           report Playwright "$PLAYWRIGHT_LISTED" "$E2E" "$E2E_STATUS" "$RUNNER_TEMP/quarantine-playwright.log" '^((apps|packages)/[^ ]+ [^ ]+: )? +[0-9]+\) \['
 
   # iOS (E008, E002, #293). Five jobs and the gate "iOS": one job builds once and packs the test bundle, four jobs run
-  # the Dutch and the English test passes from it (each language in two parts, #1447) at the same time, each on its own simulator (a cold run was 16 of 21
-  # minutes of tests in a row). They start only when the app, its generated inputs or its own scripts changed (in a PR, a
-  # merge group or a push to main), or on demand (scripts/native-jobs.sh), to keep PR feedback fast. The UI tests run in
-  # both languages on every push. The image and Xcode are pinned, so a runner update doesn't change the toolchain.
+  # the Dutch and the English test passes from it (each language in two parts, #1447) at the same time, each on its own
+  # simulator (a cold run was 16 of 21 minutes of tests in a row). They start only when the app, its generated inputs or
+  # its own scripts changed (in a PR, a merge group or a push to main), or on demand (scripts/native-jobs.sh), to keep
+  # PR feedback fast. The UI tests run in both languages on every push. The image and Xcode are pinned, so a runner
+  # update doesn't change the toolchain.
   #
   # The image (E002 #242): macos-15, not macos-26, whose runners queued about 10 minutes in two runs. The app needs
   # no Xcode 26: Swift 6.0 mode, swift-tools-version 6.0 packages, project format 77 and iOS 17 as the deployment
