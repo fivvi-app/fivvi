@@ -197,6 +197,7 @@ describe('@permission F004 roles on every workspace route', () => {
       'getMyBillingDetails',
       'getOffer',
       'listAccessLog',
+      'listGroupClassSeries',
       'listOffers',
       'listTeamMembers',
       'listTrainerInvitations',
@@ -299,8 +300,8 @@ describe('@permission F004 roles on every workspace route', () => {
       const url = invitation ? route.url.replace(INVITATION_ID, invitation.id) : route.url;
       // 400 for the body the probe sends is fine: the Owner got past the access check. So is the
       // 422 of the address lookup alone, which the probe calls without its query (F015), and the
-      // 404 of the read of a session or an offer for the ID the probe invented. The offers answer 422
-      // `validation_failed` for a body they refuse (F052), as the probe's is no offer.
+      // 404 of the read of a session, an offer or a class's series for the ID the probe invented. The
+      // offers answer 422 `validation_failed` for a body they refuse (F052), as the probe's is no offer.
       // A client route (F059) is for clients alone: John, who is no client, gets 403.
       const clientOnly =
         route.access?.type === 'workspace' && route.access.client === 'own-records';
@@ -314,7 +315,11 @@ describe('@permission F004 roles on every workspace route', () => {
                 201,
                 204,
                 400,
-                ...(['getSession', 'getGroupClass', 'getOffer'].includes(route.name) ? [404] : []),
+                ...(['getSession', 'getGroupClass', 'getOffer', 'listGroupClassSeries'].includes(
+                  route.name,
+                )
+                  ? [404]
+                  : []),
                 ...(['createOffer', 'updateOffer'].includes(route.name) ? [422] : []),
               ];
       expect(allowed, route.name).toContain((await call({ ...route, url }, john)).status);

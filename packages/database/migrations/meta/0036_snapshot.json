@@ -1,5 +1,5 @@
 {
-  "id": "58d61cf8-a97a-4fd3-bf4a-a499bb278ad2",
+  "id": "c8d5bd6c-3cc4-4e63-b4b9-e55fe2cfee7d",
   "prevId": "1a1da8db-cc8c-4e7c-9e58-02fb8fb677e9",
   "version": "7",
   "dialect": "postgresql",
@@ -974,169 +974,6 @@
         "group_classes_duration_valid": {
           "name": "group_classes_duration_valid",
           "value": "\"group_classes\".\"duration_minutes\" BETWEEN 15 AND 240 AND \"group_classes\".\"duration_minutes\" % 5 = 0"
-        }
-      },
-      "isRLSEnabled": false
-    },
-    "public.workspace_invoice_details": {
-      "name": "workspace_invoice_details",
-      "schema": "",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "uuid",
-          "primaryKey": true,
-          "notNull": true,
-          "default": "gen_random_uuid()"
-        },
-        "organization_id": {
-          "name": "organization_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "legal_name": {
-          "name": "legal_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "street": {
-          "name": "street",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "house_number": {
-          "name": "house_number",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "house_number_addition": {
-          "name": "house_number_addition",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "postcode": {
-          "name": "postcode",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "city": {
-          "name": "city",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "kvk_number": {
-          "name": "kvk_number",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "vat_number": {
-          "name": "vat_number",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "question_email": {
-          "name": "question_email",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "no_vat": {
-          "name": "no_vat",
-          "type": "boolean",
-          "primaryKey": false,
-          "notNull": true,
-          "default": false
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": true,
-          "default": "now()"
-        }
-      },
-      "indexes": {},
-      "foreignKeys": {
-        "workspace_invoice_details_organization_id_organizations_id_fk": {
-          "name": "workspace_invoice_details_organization_id_organizations_id_fk",
-          "tableFrom": "workspace_invoice_details",
-          "tableTo": "organizations",
-          "columnsFrom": [
-            "organization_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        }
-      },
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {
-        "workspace_invoice_details_organization_id_id_unique": {
-          "name": "workspace_invoice_details_organization_id_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "organization_id",
-            "id"
-          ]
-        },
-        "workspace_invoice_details_organization_id_unique": {
-          "name": "workspace_invoice_details_organization_id_unique",
-          "nullsNotDistinct": false,
-          "columns": [
-            "organization_id"
-          ]
-        }
-      },
-      "policies": {
-        "workspace_invoice_details_workspace": {
-          "name": "workspace_invoice_details_workspace",
-          "as": "PERMISSIVE",
-          "for": "ALL",
-          "to": [
-            "fivvi_app"
-          ],
-          "using": "\"workspace_invoice_details\".\"organization_id\" = ANY (app_workspace_ids())",
-          "withCheck": "\"workspace_invoice_details\".\"organization_id\" = ANY (app_workspace_ids())"
-        }
-      },
-      "checkConstraints": {
-        "workspace_invoice_details_legal_name_valid": {
-          "name": "workspace_invoice_details_legal_name_valid",
-          "value": "char_length(\"workspace_invoice_details\".\"legal_name\") <= 120 AND btrim(\"workspace_invoice_details\".\"legal_name\") <> ''"
-        },
-        "workspace_invoice_details_address_valid": {
-          "name": "workspace_invoice_details_address_valid",
-          "value": "char_length(\"workspace_invoice_details\".\"street\") <= 120 AND btrim(\"workspace_invoice_details\".\"street\") <> '' AND char_length(\"workspace_invoice_details\".\"city\") <= 120 AND btrim(\"workspace_invoice_details\".\"city\") <> ''\n        AND (\"workspace_invoice_details\".\"house_number_addition\" IS NULL OR char_length(\"workspace_invoice_details\".\"house_number_addition\") <= 10 AND btrim(\"workspace_invoice_details\".\"house_number_addition\") <> '')\n        AND \"workspace_invoice_details\".\"house_number\" ~ '^[0-9]{1,5}$' AND \"workspace_invoice_details\".\"postcode\" ~ '^[1-9][0-9]{3} [A-Z]{2}$'"
-        },
-        "workspace_invoice_details_kvk_number_format": {
-          "name": "workspace_invoice_details_kvk_number_format",
-          "value": "\"workspace_invoice_details\".\"kvk_number\" ~ '^[0-9]{8}$'"
-        },
-        "workspace_invoice_details_vat_number_format": {
-          "name": "workspace_invoice_details_vat_number_format",
-          "value": "\"workspace_invoice_details\".\"vat_number\" ~ '^NL[0-9]{9}B[0-9]{2}$'"
-        },
-        "workspace_invoice_details_question_email_valid": {
-          "name": "workspace_invoice_details_question_email_valid",
-          "value": "\"workspace_invoice_details\".\"question_email\" IS NULL OR (\"workspace_invoice_details\".\"question_email\" = lower(\"workspace_invoice_details\".\"question_email\") AND char_length(\"workspace_invoice_details\".\"question_email\") <= 254 AND \"workspace_invoice_details\".\"question_email\" ~ '^[^[:space:]@]+@[^[:space:]@]+\\.[^[:space:]@]+$')"
         }
       },
       "isRLSEnabled": false
@@ -3399,6 +3236,19 @@
           "primaryKey": false,
           "notNull": false
         },
+        "occurrence_date": {
+          "name": "occurrence_date",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "detached_fields": {
+          "name": "detached_fields",
+          "type": "text[]",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "'{}'::text[]"
+        },
         "group_class_id": {
           "name": "group_class_id",
           "type": "uuid",
@@ -3575,6 +3425,21 @@
           "onDelete": "no action",
           "onUpdate": "no action"
         },
+        "sessions_series_fk": {
+          "name": "sessions_series_fk",
+          "tableFrom": "sessions",
+          "tableTo": "class_series",
+          "columnsFrom": [
+            "organization_id",
+            "series_id"
+          ],
+          "columnsTo": [
+            "organization_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
         "sessions_created_by_fk": {
           "name": "sessions_created_by_fk",
           "tableFrom": "sessions",
@@ -3615,6 +3480,14 @@
             "organization_id",
             "id"
           ]
+        },
+        "sessions_series_id_occurrence_date_unique": {
+          "name": "sessions_series_id_occurrence_date_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "series_id",
+            "occurrence_date"
+          ]
         }
       },
       "policies": {
@@ -3630,6 +3503,14 @@
         }
       },
       "checkConstraints": {
+        "sessions_series_has_occurrence_date": {
+          "name": "sessions_series_has_occurrence_date",
+          "value": "(\"sessions\".\"series_id\" IS NULL) = (\"sessions\".\"occurrence_date\" IS NULL)"
+        },
+        "sessions_detached_fields_valid": {
+          "name": "sessions_detached_fields_valid",
+          "value": "\"sessions\".\"detached_fields\" <@ ARRAY['time', 'trainer', 'capacity', 'location']::text[]"
+        },
         "sessions_ends_after_starts": {
           "name": "sessions_ends_after_starts",
           "value": "\"sessions\".\"ends_at\" > \"sessions\".\"starts_at\""
@@ -4383,6 +4264,235 @@
         "trainer_invitations_email_locale_supported": {
           "name": "trainer_invitations_email_locale_supported",
           "value": "\"trainer_invitations\".\"email_locale\" IS NULL OR \"trainer_invitations\".\"email_locale\" IN ('nl-NL', 'en')"
+        }
+      },
+      "isRLSEnabled": false
+    },
+    "public.class_series": {
+      "name": "class_series",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "organization_id": {
+          "name": "organization_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "group_class_id": {
+          "name": "group_class_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "rrule": {
+          "name": "rrule",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "local_start_time": {
+          "name": "local_start_time",
+          "type": "time",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "duration_minutes": {
+          "name": "duration_minutes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "time_zone": {
+          "name": "time_zone",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "trainer_profile_id": {
+          "name": "trainer_profile_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "capacity": {
+          "name": "capacity",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "starts_on": {
+          "name": "starts_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "ends_on": {
+          "name": "ends_on",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "materialized_until": {
+          "name": "materialized_until",
+          "type": "date",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "version": {
+          "name": "version",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "default": 1
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "timestamp with time zone",
+          "primaryKey": false,
+          "notNull": true,
+          "default": "now()"
+        }
+      },
+      "indexes": {
+        "class_series_organization_id_group_class_id_idx": {
+          "name": "class_series_organization_id_group_class_id_idx",
+          "columns": [
+            {
+              "expression": "organization_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "group_class_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "class_series_materialized_until_idx": {
+          "name": "class_series_materialized_until_idx",
+          "columns": [
+            {
+              "expression": "materialized_until",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "class_series_organization_id_organizations_id_fk": {
+          "name": "class_series_organization_id_organizations_id_fk",
+          "tableFrom": "class_series",
+          "tableTo": "organizations",
+          "columnsFrom": [
+            "organization_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "class_series_group_class_fk": {
+          "name": "class_series_group_class_fk",
+          "tableFrom": "class_series",
+          "tableTo": "group_classes",
+          "columnsFrom": [
+            "organization_id",
+            "group_class_id"
+          ],
+          "columnsTo": [
+            "organization_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "class_series_trainer_profile_fk": {
+          "name": "class_series_trainer_profile_fk",
+          "tableFrom": "class_series",
+          "tableTo": "trainer_profiles",
+          "columnsFrom": [
+            "organization_id",
+            "trainer_profile_id"
+          ],
+          "columnsTo": [
+            "organization_id",
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {
+        "class_series_organization_id_id_unique": {
+          "name": "class_series_organization_id_id_unique",
+          "nullsNotDistinct": false,
+          "columns": [
+            "organization_id",
+            "id"
+          ]
+        }
+      },
+      "policies": {
+        "class_series_workspace": {
+          "name": "class_series_workspace",
+          "as": "PERMISSIVE",
+          "for": "ALL",
+          "to": [
+            "fivvi_app"
+          ],
+          "using": "\"class_series\".\"organization_id\" = ANY (app_workspace_ids())",
+          "withCheck": "\"class_series\".\"organization_id\" = ANY (app_workspace_ids())"
+        }
+      },
+      "checkConstraints": {
+        "class_series_rrule_weekly": {
+          "name": "class_series_rrule_weekly",
+          "value": "\"class_series\".\"rrule\" ~ '^FREQ=WEEKLY;BYDAY=(MO|TU|WE|TH|FR|SA|SU)$'"
+        },
+        "class_series_capacity_valid": {
+          "name": "class_series_capacity_valid",
+          "value": "\"class_series\".\"capacity\" BETWEEN 1 AND 100"
+        },
+        "class_series_duration_valid": {
+          "name": "class_series_duration_valid",
+          "value": "\"class_series\".\"duration_minutes\" BETWEEN 15 AND 240 AND \"class_series\".\"duration_minutes\" % 5 = 0"
+        },
+        "class_series_ends_after_starts": {
+          "name": "class_series_ends_after_starts",
+          "value": "\"class_series\".\"ends_on\" IS NULL OR \"class_series\".\"ends_on\" >= \"class_series\".\"starts_on\""
+        },
+        "class_series_version_positive": {
+          "name": "class_series_version_positive",
+          "value": "\"class_series\".\"version\" >= 1"
         }
       },
       "isRLSEnabled": false

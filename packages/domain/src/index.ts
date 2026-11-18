@@ -282,6 +282,16 @@ export {
   retentionEndsAt,
 } from './privacy/retention.ts';
 export {
+  type ApplyFollowingDecision,
+  applyThisAndFollowing,
+  type DateUpdate,
+  DETACHABLE_FIELDS,
+  type DetachedField,
+  type SeriesChange,
+  type SeriesDate,
+  type SeriesState,
+} from './scheduling/apply-following.ts';
+export {
   type CalendarFilters,
   type ClockChange,
   clockChangeOn,
@@ -295,6 +305,11 @@ export {
   weekDates,
 } from './scheduling/calendar-grid.ts';
 export {
+  type ExpandedSeries,
+  type ExpandSeriesRefusal,
+  expandSeries,
+} from './scheduling/expand-series.ts';
+export {
   decideGroupDateEdit,
   GROUP_CLASS_LIMITS,
   type GroupDateEditDecision,
@@ -305,6 +320,7 @@ export {
   type ScheduleClassOnDateRefusal,
   scheduleClassOnDate,
 } from './scheduling/group-class.ts';
+export { type Materialization, materialize } from './scheduling/materialize.ts';
 export {
   decidePersonalRange,
   mergePersonalDay,
@@ -316,6 +332,11 @@ export {
   type PersonalRangeDecision,
   type PersonalSessionTimes,
 } from './scheduling/personal-day.ts';
+export {
+  type PlanWeeklySeriesDecision,
+  type PlanWeeklySeriesFacts,
+  planWeeklySeries,
+} from './scheduling/plan-series.ts';
 export {
   confirmationLanguage,
   type PlanPrivateSessionDecision,
@@ -330,6 +351,17 @@ export {
   sendsChangeNotice,
   sendsConfirmation,
 } from './scheduling/private-session.ts';
+export {
+  horizonEnd,
+  parseWeeklyRule,
+  SERIES_HORIZON_WEEKS,
+  type SeriesFacts,
+  type SeriesOccurrence,
+  WEEKDAYS,
+  type Weekday,
+  weekdayOf,
+  weeklyRule,
+} from './scheduling/series-rule.ts';
 export {
   addDays,
   instantToWallClock,

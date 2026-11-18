@@ -250,15 +250,22 @@
     {
       "idx": 36,
       "version": "7",
-      "when": 1794974141086,
-      "tag": "0036_workspace_invoice_details",
+      "when": 1794671915124,
+      "tag": "0036_class_series",
       "breakpoints": true
     },
     {
       "idx": 37,
       "version": "7",
+      "when": 1794974141086,
+      "tag": "0037_workspace_invoice_details",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
       "when": 1794976105445,
-      "tag": "0037_client_billing_details",
+      "tag": "0038_client_billing_details",
       "breakpoints": true
     }
   ]

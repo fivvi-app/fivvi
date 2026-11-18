@@ -13,6 +13,7 @@ import {
 } from '../schema/index.ts';
 import {
   addAccessLogEntry,
+  addClassSeries,
   addClient,
   addClientBillingDetails,
   addGroupClass,
@@ -154,6 +155,11 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
       const client = await addClient(db, { workspaceId });
       return addClientBillingDetails(db, { workspaceId, clientId: client.id });
     },
+  },
+  // A weekly series of a class made for the workspace (its dates are `sessions` rows).
+  class_series: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addClassSeries(db, { workspaceId }),
   },
   // A private session with a trainer of the workspace, planned by an Owner of it, and its one client.
   sessions: {
