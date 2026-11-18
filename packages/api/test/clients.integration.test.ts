@@ -261,7 +261,7 @@ describe('F006 add, list, read and edit clients', () => {
     expect(added.status).toBe(201);
   });
 
-  it('AC3: two parallel requests with one email add one client and answer one 409', async () => {
+  it('@concurrency AC3: two parallel requests with one email add one client and answer one 409', async () => {
     const { gym, john, sarah } = await world();
     const server = api();
 
@@ -659,7 +659,7 @@ describe('F006 add, list, read and edit clients', () => {
     });
   });
 
-  it('AC7: two parallel edits to one address save one and answer one 409', async () => {
+  it('@concurrency AC7: two parallel edits to one address save one and answer one 409', async () => {
     const { gym, john, sarah } = await world();
     const server = api();
     const first = (await (
@@ -870,7 +870,7 @@ describe('F006 add, list, read and edit clients', () => {
     expect(team.status).toBe(403);
   });
 
-  it('AC10: another workspace gives 404, a client-only account 403, anonymous 401', async () => {
+  it('@isolation @permission AC10: another workspace gives 404, a client-only account 403, anonymous 401', async () => {
     const { gym, mike, annaAccount } = await world();
     const before = (await stored(gym.id)).length;
     const [theClient] = await stored(gym.id);
@@ -896,7 +896,7 @@ describe('F006 add, list, read and edit clients', () => {
     expect((await read('not-an-id', clientId, mike)).status).toBe(404);
   });
 
-  it('AC10: a client of another workspace is not found through this one, read or edit', async () => {
+  it('@isolation AC10: a client of another workspace is not found through this one, read or edit', async () => {
     const { gym, other, john, mike } = await world();
     const elsewhere = await addClient(admin.db, {
       workspaceId: other.id,

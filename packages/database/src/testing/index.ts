@@ -1,9 +1,12 @@
+export { defaultOfferPlans as testDefaultOffers } from '../default-offers.ts';
 export { FIXTURE_INVITATION_VALIDITY_MS } from '../invitation-validity.ts';
 export { readTenantContext, type StoredContext, selectEverythingInScope } from './context.ts';
 export {
+  addAccessLogEntry,
   addClassSeries,
   addClient,
   addGroupClass,
+  addOffer,
   addPayment,
   addPaymentChargeback,
   addPaymentCustomer,

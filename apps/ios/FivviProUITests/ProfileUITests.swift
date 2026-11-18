@@ -1,3 +1,4 @@
+import FivviDesignTokens
 import XCTest
 
 /// *Profiel* (TM-04) and lost team access (F003), in nl and en: the workspaces with the role, and the home switching to
@@ -33,6 +34,62 @@ final class ProfileUITests: SignInUITestCase {
         XCTAssertEqual(screen.app.staticTexts["profile.workspaceName.workspace-1"].label, "Sarah Personal Training")
         XCTAssertEqual(screen.app.staticTexts["profile.workspaceRole.workspace-1"].label, catalog["roles.owner"])
         XCTAssertEqual(server.requests(to: "/api/v1/me/workspaces").map(\.authorization), ["Bearer stub-session-token"])
+    }
+
+    /// TM-04 (E020 AC15): each workspace has a 36 pt rounded mark in its colour from the tokens (`workspaceColor`, picked
+    /// from the ID, decorative, no initials: white text has no 4.5:1 on those colours), then the name, and the role at
+    /// the trailing end, on the name's line and in one column for every row.
+    func test_E020_AC15_workspaceRowsShowTheColourMarkAndTheRoleAtTheEnd() throws {
+        let server = try StubServer(
+            .greeting(key: "hello.title"),
+            signIn: StubServer.SignIn(
+                email: "trainer@example.com", workspaceName: "John's Gym", role: "trainer",
+                otherWorkspaces: [.init(name: "Sarah Personal Training", role: "owner")]
+            )
+        )
+        for (mode, style) in [("light", UIUserInterfaceStyle.light), ("dark", .dark)] {
+            let screen = SignInScreen(app: AppLaunch.launch(
+                against: server, session: .signedIn, appearance: mode
+            ))
+            let open = screen.app.buttons["home.openProfile"]
+            XCTAssertTrue(open.waitUntilExists(timeout: timeout), mode)
+            XCTAssertTrue(open.tap(until: screen.app.staticTexts["profile.workspacesTitle"], timeout: timeout), mode)
+            var roleEdges: [CGFloat] = []
+            for index in 0...1 {
+                let slug = "workspace-\(index)"
+                let row = screen.app.buttons["profile.workspace.\(slug)"]
+                let name = screen.app.staticTexts["profile.workspaceName.\(slug)"]
+                let role = screen.app.staticTexts["profile.workspaceRole.\(slug)"]
+                XCTAssertTrue(role.waitUntilExists(timeout: timeout), "\(slug), \(mode)")
+                screen.settle(role)
+
+                let mark = CGRect(x: row.frame.minX + 16, y: row.frame.midY - 18, width: 36, height: 36)
+                let colours = try ScreenColours(screen.app)
+                let colour = RGB(Tokens.workspaceColor(for: Responder.workspaceID(index)), in: style)
+                let centre = colours.colour(at: CGPoint(x: mark.midX, y: mark.midY))
+                XCTAssertLessThanOrEqual(
+                    centre.distance(to: colour), 6, "the mark's colour, \(slug), \(mode): \(centre)"
+                )
+                let leftEdge = colours.colour(at: CGPoint(x: mark.minX + 2, y: mark.midY))
+                XCTAssertLessThanOrEqual(leftEdge.distance(to: colour), 6, "36 pt wide, \(slug), \(mode)")
+                let topEdge = colours.colour(at: CGPoint(x: mark.midX, y: mark.minY + 2))
+                XCTAssertLessThanOrEqual(topEdge.distance(to: colour), 6, "36 pt high, \(slug), \(mode)")
+                let outside = colours.colour(at: CGPoint(x: mark.maxX + 3, y: mark.midY))
+                XCTAssertGreaterThan(outside.distance(to: colour), 20, "no wider than 36 pt, \(slug), \(mode)")
+                let corner = colours.colour(at: CGPoint(x: mark.minX + 1, y: mark.minY + 1))
+                XCTAssertGreaterThan(corner.distance(to: colour), 20, "rounded corners, \(slug), \(mode)")
+
+                XCTAssertLessThanOrEqual(mark.maxX, name.frame.minX, "the name follows the mark, \(slug), \(mode)")
+                XCTAssertLessThanOrEqual(name.frame.maxX, role.frame.minX, "the role is after the name, \(slug)")
+                XCTAssertEqual(role.frame.midY, name.frame.midY, accuracy: 3, "same line, \(slug), \(mode)")
+                XCTAssertLessThanOrEqual(role.frame.maxX, row.frame.maxX - 16, "inside the row's padding, \(slug)")
+                roleEdges.append(role.frame.maxX)
+            }
+            XCTAssertEqual(roleEdges[0], roleEdges[1], accuracy: 1, "the roles end in one column, \(mode)")
+            XCTAssertLessThanOrEqual(roleEdges[0], screen.app.windows.firstMatch.frame.maxX - 16 - 20 - 16,
+                                     "room is kept for the check of the current workspace, \(mode)")
+            screen.app.terminate()
+        }
     }
 
     func test_F003_AC9_aFailedListShowsTheErrorAndRetryRecovers() throws {

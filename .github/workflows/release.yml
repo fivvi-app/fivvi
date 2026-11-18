@@ -3,10 +3,11 @@
 # workflows, forks and this workflow's own test jobs can't read them, and no job here runs on pull_request_target.
 #
 # Shape of a run: `prepare` (refuses anything but a first attempt on main, fixes the build number every platform of the
-# run shares), then the native suites of both platforms in jobs without secrets (`ios-tests`, `android-tests`; both
-# locales), then the job in the `release` environment, which waits for the owner's approval and only then signs, uploads
-# and sends the crash symbols to Sentry. Every release job needs both test jobs, so when either platform's suite fails
-# nothing is uploaded for any platform. A platform can be released alone (the inputs); the suites of both always run.
+# run shares), then the native suites of both platforms in jobs without secrets (`ios-tests`, one job per locale, and for
+# Android `android-tests` and `android-maestro`, whose flows run both locales), then the job in the `release`
+# environment, which waits for the owner's approval and only then signs, uploads and sends the crash symbols to Sentry.
+# Every release job needs every test job, so when either platform's suite fails nothing is uploaded for any platform. A
+# platform can be released alone (the inputs); the suites of both always run.
 # Every step is a command of scripts/release*.sh (tested in scripts/test/release.test.mjs and release-android.test.mjs).
 # The `ios` and `android` jobs each wait for the owner's approval of the environment and run side by side.
 # The last job, `runners`, only reads the run: it says when an iOS job got no GitHub-hosted macOS runner (#437).
@@ -70,16 +71,36 @@ jobs:
           echo "Build number $number" >>"$GITHUB_STEP_SUMMARY"
 
   ios-tests:
-    name: iOS tests
+    name: iOS tests (${{ matrix.locale }})
     needs: prepare
-    # The native suite on this commit in nl and en (TESTING.md §7), as `pnpm test:ios` runs it. No secret here, and no
-    # approval needed: the owner is asked to approve only a run whose tests passed. The image and Xcode are pinned, and
-    # the same as the iOS jobs of ci.yml (#437): the release build needs Xcode 26 and the iOS 26 SDK, which App Store
-    # Connect has required since 28 April 2026, and Swift 6.0 mode and the iOS 17 target build with Xcode 26.3. macos-15
-    # queued shorter than macos-26 (E002 #242), and CI tests the app on exactly this toolchain. Go back to macos-26 and
-    # its newest Xcode when the job fails here but not there, or when Apple requires a newer SDK than macos-15 has (Xcode 27).
+    # The native suite on this commit in nl and en (TESTING.md §7), one job per language like CI's `iOS tests (nl)` and
+    # `(en)`: both on one simulator in one job outgrew the timeout (run 43699423823, 15 November 2026: the xcodebuild step
+    # was still running after 2088 s when the job's 45 minutes ended). Each job builds once (`pnpm test:ios build`, with
+    # SwiftLint and the checks) and runs the tests of its language (`pnpm test:ios test <locale> --retry-failed`: a
+    # failed UI test is retried once, unlike in CI), as the step below does.
+    # No secret here, and no approval needed: the owner is asked to approve only a run whose tests passed. The release
+    # jobs `need` this one, which waits for both languages and counts as failed when either failed. The image and Xcode
+    # are pinned, and the same as the iOS jobs of ci.yml (#437): the release build needs Xcode 26 and the iOS 26 SDK,
+    # which App Store Connect has required since 28 April 2026, and Swift 6.0 mode and the iOS 17 target build with Xcode
+    # 26.3. macos-15 queued shorter than macos-26 (E002 #242), and CI tests the app on exactly this toolchain. Go back to
+    # macos-26 and its newest Xcode when the job fails here but not there, or when Apple requires a newer SDK than
+    # macos-15 has (Xcode 27).
     runs-on: macos-15
-    timeout-minutes: 45
+    # What the job spends: checkout and setup (3 min), SwiftLint, the checks and the build for testing with no cache of
+    # DerivedData (15 min; CI's `iOS build` has 12 with its cache), then the tests of one language as `iOS tests (nl)` of
+    # ci.yml has them: its 44 minutes, which are the deadline of the xcodebuild run (2100 s) + its grace (60 s) + the
+    # boot, the settle and the other steps (at most 310 s) + 2 min, 2590 s (ci.yml has the reasons), then the one retry
+    # of the failed UI tests that `release.sh tests ios` asks for (#1433): first the count of the tests the first run
+    # should have run, which shows it complete (the enumeration's deadline, IOS_ENUMERATE_DEADLINE, 120 s, + the grace,
+    # 60 s; it takes about 20 s), then the retry (its deadline, IOS_RETRY_DEADLINE, 600 s, + the grace, 60 s), + 60 s for
+    # its reports: 900 s, 15 minutes. 3 + 15 + 44 + 15 = 77, so 77 minutes. Raising a deadline in scripts/test-ios.sh
+    # means raising this; a test fails when they no longer fit.
+    timeout-minutes: 77
+    strategy:
+      # Both languages always run: a failing one doesn't hide the other's result.
+      fail-fast: false
+      matrix:
+        locale: [nl, en]
     env:
       DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
@@ -96,19 +117,21 @@ jobs:
       - name: Refuse a run outside main
         run: scripts/release.sh guard
 
-      - name: SwiftLint, build and tests (nl and en)
-        run: scripts/release.sh tests ios
+      - name: SwiftLint, build and tests (${{ matrix.locale }})
+        run: scripts/release.sh tests ios ${{ matrix.locale }}
 
-      # Only on failure: artifact storage counts against the free quota.
+      # Only on failure, or when the timeout cancels the job (as in ci.yml, #305): artifact storage counts against the
+      # free quota.
       - name: Upload test results
-        if: failure()
+        if: failure() || cancelled()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: ios-release-test-results
+          name: ios-release-test-results-${{ matrix.locale }}
           path: |
             apps/ios/.build/TestResults-*.xcresult
             apps/ios/.build/build-for-testing.log
-          # .build is a hidden folder, which the action skips by default (#290). Only these two paths are named.
+            apps/ios/.build/build-for-testing-Fivvi.log
+          # .build is a hidden folder, which the action skips by default (#290). Only these three paths are named.
           include-hidden-files: true
           retention-days: 7
           if-no-files-found: ignore
@@ -116,12 +139,19 @@ jobs:
   android-tests:
     name: Android tests
     needs: prepare
-    # The native suites of the platform that is not being released, as `pnpm test:android` and `pnpm test:maestro` run them
-    # (TESTING.md §7.2): ktlint, build, unit tests and Compose UI tests on an emulator, then the Maestro flows in nl-NL and
-    # en. Set up like the `android` job of ci.yml, which has the reasons for each step. No secret here. Every release job
-    # waits for this job, so a failing Android suite uploads no build of any platform.
+    # The unit tests and the Compose UI tests of the platform that is not being released, as `pnpm test:android` runs them
+    # (TESTING.md §7.2): ktlint and the checks, the build, the unit tests (nl-NL and en), the signed release bundle and the
+    # Compose UI tests on an emulator. A job of its own like CI's `Android build` and `Android tests`, next to the Maestro
+    # flows below: both suites and the emulator boot in one job outgrew the step's 35 minutes (run 43717147404, 15
+    # November 2026: the Compose UI tests took 21 min, the Maestro flows in nl-NL 8.5 min, and the flows in en were still
+    # running when the step was cut off). Set up like the jobs of ci.yml, which have the reasons for each step. No secret
+    # here. Every release job waits for this job and the Maestro job, so a failing Android suite uploads no build of any
+    # platform.
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    # What the job spends: the setup before the emulator boots (5 min; CI's `Android tests` has the SDK and emulator at
+    # 15 on a push), the boot (10 at most), the step (35, below) and the steps after it (5): 5 + 10 + 35 + 5 = 55. CI's own
+    # `Android tests` has 40 for the Compose UI tests and the unit tests alone, and its `Android build` 12 for the rest.
+    timeout-minutes: 55
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -197,7 +227,10 @@ jobs:
           EMULATOR_BOOT_TIMEOUT: '480'
         run: scripts/android.sh emulator
 
-      - name: ktlint, build, unit tests, Compose UI tests and the Maestro flows (nl-NL and en)
+      # CI's `Android build` step (10 minutes for ktlint, the checks and the build) and `Android tests` step (25 for the unit
+      # tests, the release bundle and the Compose UI tests), in one step: 35. The Compose UI tests alone took 21 minutes on
+      # a slow runner (run 43717147404), so this holds the rest with about 60 % to spare.
+      - name: ktlint, build, unit tests and Compose UI tests
         timeout-minutes: 35
         run: scripts/release.sh tests android
 
@@ -218,13 +251,124 @@ jobs:
             apps/android/client/build/reports/
             apps/android/app/build/outputs/androidTest-results/
             apps/android/build/emulator.log*
+          retention-days: 7
+          if-no-files-found: ignore
+
+  android-maestro:
+    name: Android Maestro
+    needs: prepare
+    # The Maestro flows in nl-NL and en on an emulator, as `pnpm test:maestro` runs them (TESTING.md §7.2): the stack
+    # (Postgres, the fake mail server and the web server), the debug app built here, and every flow in each language, one
+    # after the other. A job of its own like CI's `Android Maestro`, so it runs next to the Android tests instead of
+    # behind them. No secret here; every release job waits for it.
+    runs-on: ubuntu-24.04
+    # What the job spends: the setup before the emulator boots (5 min), the boot (10 at most), the step (40, below) and the
+    # steps after it (5): 5 + 10 + 40 + 5 = 60. CI's `Android Maestro` has 40, with the app already built.
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Refuse a run outside main
+        run: scripts/release.sh guard
+
+      - name: Free disk space
+        run: |
+          df -h /
+          sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+          df -h /
+
+      - uses: pnpm/action-setup@ea17c68df8912ef543352723c149a84f56e3d413 # v6.1.0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+
+      - uses: actions/setup-java@b843ebf9b913146b38da2eaa7aeddf76074ae1ad # v6.1.0
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+          sudo udevadm settle
+          ls -l /dev/kvm || true
+          if [ ! -r /dev/kvm ] || [ ! -w /dev/kvm ]; then
+            echo '::error::/dev/kvm is not usable by the runner user'
+            exit 1
+          fi
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Restore only: reuses the web build of the latest "Checks (Linux)" run on main when nothing changed.
+      - name: Restore turbo cache
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: |
+            .turbo/cache
+            apps/web/.next/cache
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
+
+      - name: Android SDK packages, emulator and Maestro
+        run: scripts/android.sh setup
+
+      - id: avd
+        name: Emulator cache key
+        run: echo "key=$(scripts/android.sh avd-key)" >> "$GITHUB_OUTPUT"
+
+      # The key and the version are ci.yml's, so this job reads the AVD snapshot that main's runs saved.
+      - name: Cache the emulator
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.android/avd
+          key: avd-v2-${{ runner.os }}-${{ steps.avd.outputs.key }}
+
+      - name: Boot the emulator
+        timeout-minutes: 10
+        env:
+          AVD_SNAPSHOT: '1'
+          EMULATOR_BOOT_TIMEOUT: '480'
+        run: scripts/android.sh emulator
+
+      # CI gives the flows of both languages 30 minutes with a prebuilt app (14 to 20 measured). Here the step also builds
+      # the debug app and starts the stack, as `pnpm test:maestro` does, so the build gets 10 more, as the tests step above
+      # gets for its build: 30 + 10 = 40. Measured in run 43717147404: nl-NL alone took about 11 minutes from the start of
+      # the step (1 min 40 s for the stack and the build with a warm Gradle cache, then 9 min 18 s of flows), so both
+      # languages take about 21 minutes, more with a cold Gradle cache. A step that hangs ends the job.
+      - name: Maestro flows (nl-NL and en)
+        timeout-minutes: 40
+        run: scripts/release.sh tests android-maestro
+
+      # The emulator must not be running when the cache of it is saved.
+      - name: Stop the emulator
+        if: always()
+        run: scripts/android.sh stop
+
+      # Only on failure: artifact storage counts against the free quota.
+      - name: Upload test results
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: android-release-maestro-results
+          path: |
+            apps/android/build/emulator.log*
             e2e/maestro/build/
           retention-days: 7
           if-no-files-found: ignore
 
   ios:
     name: iOS release
-    needs: [prepare, ios-tests, android-tests]
+    needs: [prepare, ios-tests, android-tests, android-maestro]
     if: inputs.ios
     # Waits here for the owner's approval; nothing below runs, and no secret is readable, before it. Only the jobs of this
     # environment read secrets.
@@ -289,7 +433,7 @@ jobs:
 
   android:
     name: Android release
-    needs: [prepare, ios-tests, android-tests]
+    needs: [prepare, ios-tests, android-tests, android-maestro]
     if: inputs.android
     # Waits here for the owner's approval; nothing below runs, and no secret is readable, before it. The same suites as
     # the iOS job wait for: they ran once, in the test jobs.
@@ -404,8 +548,14 @@ jobs:
       - name: Did the iOS jobs get a runner
         env:
           GH_TOKEN: ${{ github.token }}
+          # The result of a matrix job is the aggregate of its legs, so each language is looked up by its own job name
+          # (ios-parts.sh job), whatever the aggregate says: a leg that failed does not hide the other that got no runner.
           TESTS: ${{ needs.ios-tests.result }}
           RELEASE: ${{ needs.ios.result }}
         run: |
-          mapfile -t PARTS < <(scripts/ios-parts.sh job "iOS tests" "$TESTS"; scripts/ios-parts.sh job "iOS release" "$RELEASE")
+          mapfile -t PARTS < <(
+            scripts/ios-parts.sh job "iOS tests (nl)" "$TESTS"
+            scripts/ios-parts.sh job "iOS tests (en)" "$TESTS"
+            scripts/ios-parts.sh job "iOS release" "$RELEASE"
+          )
           scripts/release.sh runners "${PARTS[@]}"

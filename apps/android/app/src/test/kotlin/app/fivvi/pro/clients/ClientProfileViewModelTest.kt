@@ -3,6 +3,7 @@ package app.fivvi.pro.clients
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.UpdateClientRequest
 import app.fivvi.core.me.workspaceIdOf
+import app.fivvi.core.quarantine.Permission
 import java.io.IOException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -82,6 +83,7 @@ class ClientProfileViewModelTest {
     }
 
     @Test
+    @Permission
     fun test_F006_AC10_aForbiddenReadTellsTheCapabilityHelper() {
         api.getStatus = 403
 
@@ -272,6 +274,7 @@ class ClientProfileViewModelTest {
     }
 
     @Test
+    @Permission
     fun test_F006_AC12_aForbiddenSaveTellsTheCapabilityHelperAboutManageNotView() {
         api.updateAnswers += { _, _ -> api.status(403) }
         val viewModel = viewModel()

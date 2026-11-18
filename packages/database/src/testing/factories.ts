@@ -2,7 +2,9 @@ import { randomBytes } from 'node:crypto';
 import { and, eq } from 'drizzle-orm';
 import type { DatabaseExecutor } from '../client.ts';
 import { FIXTURE_INVITATION_VALIDITY_MS } from '../invitation-validity.ts';
+import { insertOffer, type NewOffer, type OfferTerms } from '../repositories/offers.ts';
 import {
+  accessLog,
   authUsers,
   classSeries,
   clients,
@@ -73,17 +75,20 @@ export async function createWorkspace(
   return { id: row.id, marker };
 }
 
-/** An account (a person's global login) whose email and name carry a unique marker. */
+/**
+ * An account (a person's global login) whose email and name carry a unique marker; a test that
+ * reads the name back gives one (`name`).
+ */
 export async function createAccount(
   db: Executor,
-  options: { label?: string } = {},
+  options: { label?: string; name?: string } = {},
 ): Promise<{ id: string; email: string; marker: string }> {
   const marker = uniqueMarker(options.label ?? 'account');
   const email = `${marker}@example.com`;
   const row = first(
     await db
       .insert(authUsers)
-      .values({ email, name: marker, emailVerified: true })
+      .values({ email, name: options.name ?? marker, emailVerified: true })
       .returning({ id: authUsers.id }),
     'account',
   );
@@ -465,6 +470,62 @@ export async function addPaymentCustomer(
 }
 
 /**
+ * An access-log entry of the workspace (E014), by default a `client.exported` by an Owner made for
+ * it about a client made for it. Pass the IDs to say who and what; a `workspace.exported` entry
+ * names no client, a `note.viewed` or `note.changed` entry gets a note ID of its own unless given.
+ */
+export async function addAccessLogEntry(
+  db: Executor,
+  options: {
+    workspaceId: string;
+    action?: (typeof accessLog.action.enumValues)[number];
+    actorTeamMemberId?: string | null;
+    subjectClientId?: string | null;
+    objectId?: string | null;
+    occurredAt?: Date;
+  },
+): Promise<{ id: string; actorTeamMemberId: string | null; subjectClientId: string | null }> {
+  const action = options.action ?? 'client.exported';
+  const actorTeamMemberId =
+    options.actorTeamMemberId !== undefined
+      ? options.actorTeamMemberId
+      : (
+          await addTeamRole(db, {
+            workspaceId: options.workspaceId,
+            accountId: (await createAccount(db, { label: 'actor' })).id,
+            role: 'owner',
+          })
+        ).id;
+  const subjectClientId =
+    options.subjectClientId !== undefined
+      ? options.subjectClientId
+      : action === 'workspace.exported'
+        ? null
+        : (await addClient(db, { workspaceId: options.workspaceId })).id;
+  const objectId =
+    options.objectId !== undefined
+      ? options.objectId
+      : action === 'note.viewed' || action === 'note.changed'
+        ? crypto.randomUUID()
+        : null;
+  const row = first(
+    await db
+      .insert(accessLog)
+      .values({
+        organizationId: options.workspaceId,
+        actorTeamMemberId,
+        action,
+        subjectClientId,
+        objectId,
+        ...(options.occurredAt ? { occurredAt: options.occurredAt } : {}),
+      })
+      .returning({ id: accessLog.id }),
+    'access log entry',
+  );
+  return { id: row.id, actorTeamMemberId, subjectClientId };
+}
+
+/**
  * A refund of a payment of the workspace (F060), requested and with its first status line
  * (`null → requested`). The payment (with its client) is made for it unless `paymentId` is given;
  * `clientId` must then be the payment's client.
@@ -538,4 +599,42 @@ export async function addPaymentChargeback(
     'payment chargeback',
   );
   return { id: row.id, paymentId: payment.id, clientId: payment.clientId };
+}
+
+/**
+ * An owner-made offer of a workspace (F052) with its first version: by default a membership of
+ * 2 classes a week, 6 months, € 79,00 including 21 % VAT, switched off, with a Dutch name that
+ * carries a unique marker. The offer and its version point at each other and the key is checked
+ * at commit, so the two are written in one transaction (a savepoint inside a test's).
+ */
+export async function addOffer(
+  db: Pick<DatabaseExecutor, 'transaction'>,
+  options: {
+    workspaceId: string;
+    offer?: Partial<Omit<NewOffer, 'terms'>>;
+    terms?: Partial<OfferTerms>;
+  },
+): Promise<{ id: string; versionId: string; nameNl: string }> {
+  const nameNl = options.terms?.nameNl ?? uniqueMarker('abonnement');
+  const offer: NewOffer = {
+    kind: 'membership',
+    creditKind: null,
+    defaultPlan: null,
+    ...options.offer,
+    terms: {
+      classesPerWeek: 2,
+      termMonths: 6,
+      billingCycle: 'month',
+      endOfTerm: 'stop',
+      makeupsPerMonth: 2,
+      cutoffMinutes: 720,
+      renewalWindowDays: 30,
+      priceCents: 7900,
+      vatRateBasisPoints: 2100,
+      ...options.terms,
+      nameNl,
+    },
+  };
+  const written = await db.transaction((tx) => insertOffer(tx, options.workspaceId, offer));
+  return { ...written, nameNl };
 }

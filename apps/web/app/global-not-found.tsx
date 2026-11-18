@@ -1,6 +1,7 @@
 import '@fivvi/ui/globals.css';
 import { messages } from '@fivvi/i18n';
 import type { Metadata } from 'next';
+import { connection } from 'next/server';
 
 // Next.js renders this for an address that matches no page, without any layout: the app and the
 // public website have one root layout each (ADR-030), so there is none to show it in. Nothing here
@@ -9,7 +10,10 @@ export const metadata: Metadata = {
   title: `${messages['nl-NL'].notFound.title} / ${messages.en.notFound.title}`,
 };
 
-export default function GlobalNotFound() {
+export default async function GlobalNotFound() {
+  // Renders per request, so Next.js can put the nonce of the Content-Security-Policy on its inline
+  // scripts (E013); built in advance, the page would have none, and the browser would block them.
+  await connection();
   return (
     <html lang="nl-NL">
       <body data-density="touch">

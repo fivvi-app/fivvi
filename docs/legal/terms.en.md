@@ -1,6 +1,6 @@
 # Fivvi Terms of Service
 
-**Version 1.0 · 8 November 2026.** This is a translation of [`terms.nl.md`](terms.nl.md); if the two differ, the Dutch text prevails.
+**Version 1.1 · 11 November 2026.** This is a translation of [`terms.nl.md`](terms.nl.md); if the two differ, the Dutch text prevails.
 
 Fivvi is being built right now, together with our first gym. What follows about clients joining a Workspace, booking, waitlists, the client app Fivvi, payments, workouts and notes applies once those parts are available.
 
@@ -15,7 +15,7 @@ These terms have two parts:
 
 ### A1. Definitions
 
-- **Provider, we, us:** K&S Apps, a general partnership (*vennootschap onder firma*), trading as Fivvi, KvK 92372996, VAT number NL866022788B01, Haringbuisdijk 43, 1086 VA Amsterdam, phone +31 6 85145755, support@fivvi.app.
+- **Provider, we, us:** K&S Apps, a general partnership (*vennootschap onder firma*), trading as Fivvi, KvK 92372996, VAT number NL866022788B01, Haringbuisdijk 43, 1086 VA Amsterdam, support@fivvi.app.
 - **Service:** the Fivvi platform (fivvi.app): the website, the app Fivvi Pro (for owners and trainers) for iPhone and Android, the API and, once available, the app Fivvi (for clients) and the pages where clients join a Workspace and book.
 - **Workspace:** the environment of a gym, studio or independent trainer within the Service.
 - **Customer, you:** the business or independent professional that creates or manages a Workspace.
@@ -85,7 +85,7 @@ For your clients' data you are the **controller** under the GDPR. Among other th
 
 1. We do our best to keep the Service available and secure, but we don't guarantee uninterrupted operation.
 2. We do planned maintenance outside busy hours as far as possible, and we announce it in advance.
-3. Support runs through support@fivvi.app or by phone on +31 6 85145755. We reply within 2 working days.
+3. Support runs through support@fivvi.app. We reply within 2 working days.
 
 ### A10. Changes to the Service
 

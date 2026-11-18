@@ -10,6 +10,14 @@ export {
   type NewClientFacts,
 } from './clients/new-client.ts';
 export {
+  DEFAULT_PLAN_KEYS,
+  DEFAULT_PLANS,
+  type DefaultPlan,
+  type DefaultPlanKey,
+  type DefaultPlanTerms,
+  defaultOffers,
+} from './commerce/default-offers.ts';
+export {
   type BillingDetails,
   type BillingDetailsDecision,
   type BillingDetailsInput,
@@ -223,6 +231,28 @@ export {
   type Role,
   rolesWith,
 } from './permissions/matrix.ts';
+export {
+  ACCESS_LOG_ACTIONS,
+  type AccessLog,
+  type AccessLogAction,
+  type AccessLogEntry,
+  type AccessLogEntryInput,
+  type AccessLogStore,
+  accessLogEntry,
+  createAccessLog,
+  InvalidAccessLogEntryError,
+  type InvalidAccessLogEntryField,
+} from './privacy/access-log.ts';
+export {
+  createDeletionLog,
+  type DeletionLog,
+  type DeletionLogEntry,
+  type DeletionLogEntryInput,
+  type DeletionLogStore,
+  deletionLogEntry,
+  InvalidDeletionLogEntryError,
+  type InvalidDeletionLogEntryField,
+} from './privacy/deletion-log.ts';
 export { renderPrivacyInventory } from './privacy/inventory.ts';
 export {
   declaredTable,
@@ -240,6 +270,7 @@ export {
   RETENTION_BASIS,
   type RetentionKey,
   type RetentionPeriod,
+  retentionCutoff,
   retentionEndsAt,
 } from './privacy/retention.ts';
 export {
@@ -252,6 +283,19 @@ export {
   type SeriesDate,
   type SeriesState,
 } from './scheduling/apply-following.ts';
+export {
+  type CalendarFilters,
+  type ClockChange,
+  clockChangeOn,
+  type FilterableItem,
+  filterCalendarItems,
+  layoutOverlaps,
+  mondayOf,
+  type OverlapBlock,
+  type PlacedInDay,
+  placeInDay,
+  weekDates,
+} from './scheduling/calendar-grid.ts';
 export {
   type ExpandedSeries,
   type ExpandSeriesRefusal,

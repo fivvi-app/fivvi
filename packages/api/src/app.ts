@@ -10,6 +10,7 @@ import {
   NotFoundSchema,
   NotSignedInSchema,
 } from './errors.ts';
+import { registerAccessLog } from './routes/access-log.ts';
 import { registerAddressLookup } from './routes/address-lookup.ts';
 import { registerClients } from './routes/clients.ts';
 import { registerDemoRequests } from './routes/demo-requests.ts';
@@ -86,6 +87,7 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
   registerGroupClasses(app);
   registerJoinLink(app);
   registerClients(app);
+  registerAccessLog(app);
   return app;
 }
 

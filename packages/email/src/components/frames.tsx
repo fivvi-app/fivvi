@@ -1,11 +1,13 @@
+import { emailColours } from '@fivvi/design-tokens/email-colours';
 import type { ReactNode } from 'react';
 import { Body, Button, Container, Head, Hr, Html, Preview, Section, Text } from 'react-email';
 import type { EmailContext, EmailMessageKey } from '../render.tsx';
+import { buttonStyle } from './layout.tsx';
 
 // The frames of every email that is about a workspace (F049, spec #476): the client frame for a
 // client, the team frame for a trainer or an owner. The sign-in email and the trainer invitation
-// have no frame (ADR-019; the invitee is not on the team yet). Colours are the plain ones of
-// `layout.tsx` until the design tokens reach email (#635); this file restyles nothing.
+// have no frame (ADR-019; the invitee is not on the team yet). The colours are the tokens of
+// `layout.tsx` (E020 AC16).
 
 /** The client web, the one place the button of a frame may lead to. */
 export const clientWebUrl = 'https://fivvi.app/';
@@ -28,37 +30,38 @@ export function clientWebLink(path: string): string {
 
 const styles = {
   body: {
-    backgroundColor: '#f4f4f5',
+    backgroundColor: emailColours.canvas,
     fontFamily:
       '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif',
     margin: 0,
     padding: '24px 0',
   },
   container: {
-    backgroundColor: '#ffffff',
+    backgroundColor: emailColours.surface,
     borderRadius: '8px',
     maxWidth: '560px',
     padding: '32px',
   },
   workspace: {
-    color: '#18181b',
+    color: emailColours.text,
     fontSize: '20px',
     fontWeight: 700,
     lineHeight: '28px',
     margin: '0 0 16px',
   },
-  button: {
-    backgroundColor: '#18181b',
-    borderRadius: '6px',
-    color: '#ffffff',
-    display: 'inline-block',
-    fontSize: '16px',
-    padding: '12px 20px',
-    textDecoration: 'none',
+  hr: { borderColor: emailColours.border, margin: '24px 0 16px' },
+  footer: {
+    color: emailColours.secondaryText,
+    fontSize: '12px',
+    lineHeight: '18px',
+    margin: '0 0 8px',
   },
-  hr: { borderColor: '#e4e4e7', margin: '24px 0 16px' },
-  footer: { color: '#71717a', fontSize: '12px', lineHeight: '18px', margin: '0 0 8px' },
-  sentWith: { color: '#71717a', fontSize: '12px', lineHeight: '18px', margin: '16px 0 0' },
+  sentWith: {
+    color: emailColours.secondaryText,
+    fontSize: '12px',
+    lineHeight: '18px',
+    margin: '16px 0 0',
+  },
 } as const;
 
 /** Who the frame is for: a client of the workspace, or a member of its team. */
@@ -102,7 +105,7 @@ export function EmailFrameLayout({
           <Text style={styles.workspace}>{workspaceName}</Text>
           <Section>{children}</Section>
           <Section style={{ margin: '24px 0 0' }}>
-            <Button href={clientWebLink(buttonPath)} style={styles.button}>
+            <Button href={clientWebLink(buttonPath)} style={buttonStyle}>
               {ctx.t(buttonLabel)}
             </Button>
           </Section>

@@ -51,6 +51,8 @@ describe('the versioned GitHub settings', () => {
     assert.deepEqual(
       jobs.filter((name) => !required.includes(name)),
       [
+        // Not required, and never to be: the listed flaky tests run here (E002 #1361, TESTING.md §8).
+        'Quarantine',
         'iOS build',
         'iOS build (retry)',
         'iOS tests (${{ matrix.locale }})',
@@ -59,6 +61,8 @@ describe('the versioned GitHub settings', () => {
         'Android build',
         'Android tests',
         'Android Maestro',
+        // Not required, and never to be: the listed flaky Android tests run here (E002 #1363, TESTING.md §8).
+        'Quarantine (Android)',
       ],
     );
   });
@@ -88,16 +92,18 @@ describe('the versioned GitHub settings', () => {
     assert.equal(checks.parameters.strict_required_status_checks_policy, false);
   });
 
+  // #1425: one PR per merge stays: GitHub builds every queued entry on its own, so a group of 3 runs no fewer
+  // checks (ADR-033, "Merge group size"); HEADGREEN would not change that either.
   it('E002 #119: require the merge queue, squash, one PR per merge, sized for a cold iOS run (~25 min)', () => {
     const queue = RULESET.rules.find((rule) => rule.type === 'merge_queue');
     assert.deepEqual(queue.parameters, {
       merge_method: 'SQUASH',
       grouping_strategy: 'ALLGREEN',
-      max_entries_to_build: 3,
+      max_entries_to_build: 4,
       max_entries_to_merge: 1,
       min_entries_to_merge: 1,
       min_entries_to_merge_wait_minutes: 5,
-      check_response_timeout_minutes: 150,
+      check_response_timeout_minutes: 160,
     });
     const ci = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8');
     // The job timeouts as ci.yml sets them (job-level, four spaces): the longest native job starts after

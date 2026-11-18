@@ -13,7 +13,7 @@ let package = Package(
         .target(
             name: "FivviStringCatalogs",
             path: ".",
-            exclude: ["InfoPlist.xcstrings"],
+            exclude: ["InfoPlist.xcstrings", "client"],
             sources: ["FivviStringCatalogs.swift"],
             resources: [.process("Localizable.xcstrings")]
         )

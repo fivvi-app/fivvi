@@ -2,6 +2,7 @@ import { eq } from 'drizzle-orm';
 import type { DatabaseExecutor } from '../client.ts';
 import {
   locations,
+  offerVersions,
   organizations,
   paymentRefundStatusChanges,
   paymentRefunds,
@@ -11,9 +12,11 @@ import {
   trainerProfiles,
 } from '../schema/index.ts';
 import {
+  addAccessLogEntry,
   addClassSeries,
   addClient,
   addGroupClass,
+  addOffer,
   addPayment,
   addPaymentChargeback,
   addPaymentCustomer,
@@ -114,6 +117,30 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
     scopeColumn: 'organization_id',
     create: (db, workspaceId) => addGroupClass(db, { workspaceId }),
   },
+  // An owner-made offer with its first version (the version is its own row, covered by `offer_versions`).
+  offers: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addOffer(db, { workspaceId }),
+  },
+  // The second version of an offer made for the workspace (the offer's current one stays the first).
+  offer_versions: {
+    scopeColumn: 'organization_id',
+    create: async (db, workspaceId) => {
+      const offer = await addOffer(db, { workspaceId });
+      const [row] = await db
+        .insert(offerVersions)
+        .values({
+          organizationId: workspaceId,
+          offerId: offer.id,
+          version: 2,
+          nameNl: uniqueMarker('abonnement'),
+          cutoffMinutes: 720,
+        })
+        .returning({ id: offerVersions.id });
+      if (!row) throw new Error('offer version was not created.');
+      return row;
+    },
+  },
   // A weekly series of a class made for the workspace (its dates are `sessions` rows).
   class_series: {
     scopeColumn: 'organization_id',
@@ -208,6 +235,11 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
       if (!row) throw new Error('payment status change was not created.');
       return row;
     },
+  },
+  // An export of a client by an Owner, both made for the workspace.
+  access_log: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addAccessLogEntry(db, { workspaceId }),
   },
   // A refund of a payment made for the workspace (its first status line is its own row).
   payment_refunds: {

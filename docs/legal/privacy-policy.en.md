@@ -1,6 +1,6 @@
 # Fivvi Privacy Policy
 
-**Version 1.0 · 8 November 2026.** This is a translation of [`privacy-policy.nl.md`](privacy-policy.nl.md); if the two differ, the Dutch text prevails.
+**Version 1.1 · 11 November 2026.** This is a translation of [`privacy-policy.nl.md`](privacy-policy.nl.md); if the two differ, the Dutch text prevails.
 
 Fivvi (fivvi.app) is a platform that personal trainers and gyms use to manage their calendar, bookings, clients, memberships and credits, payments, workouts and notes. Trainers and owners use Fivvi Pro (iPhone, Android) and the website, clients will use the app Fivvi or the website. This privacy policy explains which personal data we process, why, for how long, and what rights you have.
 
@@ -13,7 +13,6 @@ Fivvi is provided by **K&S Apps**, a general partnership (*vennootschap onder fi
 - Address: Haringbuisdijk 43, 1086 VA Amsterdam
 - Dutch Chamber of Commerce (KvK): 92372996
 - VAT number: NL866022788B01
-- Phone: +31 6 85145755
 - Privacy: **privacy@fivvi.app**. Other questions: support@fivvi.app
 
 ## 2. Two roles: the gym or trainer, and us
@@ -48,7 +47,7 @@ This privacy policy covers that data.
 | **Error reports** | Technical data when something goes wrong or the app crashes: the page or route, app and operating system version, the device model (not the name of your device), a pseudonymous user ID or, while nobody is signed in, a random ID per installation. **No** names, email addresses, booking, workout or note content | To find and fix errors | Legitimate interest: a working service (art. 6(1)(f)) |
 | **Product statistics** | Which features are used and which pages of the web app are opened (the path without parameters), with pseudonymous user and workspace IDs. A page view also carries your browser and version, operating system and version, device type, user agent and time zone. These are personal data. **No** names, email addresses, booking, workout or note content | To improve Fivvi | Legitimate interest: product improvement (art. 6(1)(f)) |
 | **Asking for a demo on the website** | Your name, email address, the kind of business (gym, studio or personal trainer), the number of trainers and, if you fill it in, your message | To answer your request and arrange a demo | Legitimate interest: answering a request for a demo (art. 6(1)(f)). If you ask for a demo as a sole trader, for yourself, it is also steps at your request before entering into a contract (point (b)) |
-| **Questions and privacy requests by email or phone** | Your name, email address or phone number and what you tell us | To answer you and handle your request | Legitimate interest: answering questions (art. 6(1)(f)); legal obligation for privacy requests (point (c)) |
+| **Questions and privacy requests by email** | Your name, email address and what you tell us | To answer you and handle your request | Legitimate interest: answering questions (art. 6(1)(f)); legal obligation for privacy requests (point (c)) |
 | **Contact with studios that use Fivvi** | Name, email address, organization, messages | Support, agreements, important notices about the service | Performance of a contract; legitimate interest (art. 6(1)(b) and (f)) |
 | **Legal obligations** | Contract data and, if we start charging, invoice data | Bookkeeping and retention obligations | Legal obligation (art. 6(1)(c)) |
 

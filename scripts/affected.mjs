@@ -37,6 +37,10 @@ const WORKSPACE_SETUP = [
   /^\.npmrc$/,
   /^\.gitignore$/,
   /^packages\/testing\/src\/vitest\.ts$/,
+  // The Vitest quarantine list (E002 #1361): the preset leaves its tests out of every package's run, and scripts/quarantine.mjs
+  // is the reader of it and of the Playwright list.
+  /^quarantine\/vitest\.txt$/,
+  /^scripts\/quarantine\.(mjs|d\.mts)$/,
 ];
 
 // Markdown that is not documentation only: root tests read it (agent rules, the READMEs whose app IDs are checked, the
@@ -57,6 +61,8 @@ const MARKDOWN_READ_BY_TESTS = [
 // use the same one, which a root test checks): a new version must run them again, not reuse a cached result. It also
 // affects the root tests, which compare the two.
 const INPUT_OF_PACKAGE = new Map([
+  // The Playwright quarantine list (E002 #1361): apps/web/playwright.config.ts leaves its tests out of the e2e run.
+  ['quarantine/playwright.txt', '@fivvi/web'],
   ['compose.yaml', '@fivvi/database'],
   // The database integration test of the restore drill (E016) runs the script, with the library it sources.
   // packages/database/turbo.json lists both as inputs of that test, for the cache.

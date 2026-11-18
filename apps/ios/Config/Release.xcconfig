@@ -15,3 +15,9 @@ FIVVI_API_BASE_URL = https:/$()/web-production-d3fe2.up.railway.app/api
 // `https:/$()/<key>@<org>.ingest.de.sentry.io/<project>`.
 FIVVI_SENTRY_DSN = https:/$()/3d12695a1d4aaf5878e911e39b072238@o4512131315531776.ingest.de.sentry.io/4512266384113744
 FIVVI_SENTRY_ENVIRONMENT = production
+
+// The App Store provisioning profile of a release run, for this target alone (E017). The run passes its name as
+// `xcodebuild FIVVI_RELEASE_PROFILE=<name>` (scripts/release-ios.sh). Setting PROVISIONING_PROFILE_SPECIFIER on the command
+// line instead would reach every target, and the resource bundles of the local Swift packages refuse a profile. Empty
+// for every other Release build, which then signs as before.
+PROVISIONING_PROFILE_SPECIFIER = $(FIVVI_RELEASE_PROFILE)

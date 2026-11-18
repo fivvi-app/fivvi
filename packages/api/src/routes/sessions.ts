@@ -21,7 +21,7 @@ import {
   sendsConfirmation,
 } from '@fivvi/domain';
 import type { PrivateSessionMail } from '@fivvi/email/private-session-mail';
-import type { Locale } from '@fivvi/i18n';
+import type { Locale, TrainerWord } from '@fivvi/i18n';
 import { OpenAPIHono, type RouteConfig, z } from '@hono/zod-openapi';
 import { defineRoute, type WorkspaceEnv } from '../access.ts';
 import {
@@ -587,7 +587,7 @@ function invalidTime(
  */
 function mailAbout(
   client: { email: string; name: string; emailLocale: Locale | null },
-  workspace: { name: string; timeZone: string; defaultLocale: Locale },
+  workspace: { name: string; timeZone: string; defaultLocale: Locale; trainerWord: TrainerWord },
   session: SessionView,
   previous?: { startsAt: Date; endsAt: Date },
 ): PrivateSessionMail {
@@ -604,6 +604,7 @@ function mailAbout(
     ...(previous ? { previous } : {}),
     location: { name: session.location.name, address: session.location.address },
     trainerName: session.trainer?.name.trim() ? session.trainer.name : null,
+    trainerWord: workspace.trainerWord,
     event: privateSessionEmailEvent(session.id, session.version),
   };
 }

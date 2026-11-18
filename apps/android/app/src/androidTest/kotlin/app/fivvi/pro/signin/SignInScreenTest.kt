@@ -1,5 +1,6 @@
 package app.fivvi.pro.signin
 
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
@@ -60,6 +61,15 @@ class SignInScreenTest(@Suppress("UNUSED_PARAMETER") tag: String, private val la
         assertEquals(0, me.calls)
         assertEquals(0, signIn.requests.size)
         assertEquals(0, hello.requestedLocales.size)
+    }
+
+    // E020 (#632): the real activity passes the Fivvi Pro icon, named Fivvi Pro, in place of a letter mark.
+    @Test
+    fun E020_AC15_theSignInShowsTheFivviProIcon() {
+        launch()
+
+        compose.onNodeWithTag(SignInTags.LOGO).assertIsDisplayed()
+            .assertContentDescriptionEquals(localizedString(language, R.string.app_name))
     }
 
     @Test

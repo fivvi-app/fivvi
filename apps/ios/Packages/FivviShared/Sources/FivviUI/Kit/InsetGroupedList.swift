@@ -8,6 +8,9 @@ public enum InsetGroupStyle {
     public static let separatorInset = Tokens.Spacing.space4
     /// The least a row is high.
     public static let rowMinHeight: CGFloat = 52
+    /// The space above and below a row's content: with a line of body text it fills the least height, and a second
+    /// line makes the row taller.
+    public static let rowVerticalPadding: CGFloat = 11
 }
 
 /// An inset grouped list (E020 AC14, Calendar, Fitness and Health): a scroll view holding `InsetGroup`s, the way the
@@ -55,37 +58,69 @@ extension InsetGroupedList where Header == EmptyView {
 /// One group of an `InsetGroupedList`: rows in a card of radius 26, separated by hairlines inset from the leading edge,
 /// with an optional small header above and a note below.
 public struct InsetGroup<Content: View>: View {
-    public init(header: String? = nil, footer: String? = nil, @ViewBuilder content: () -> Content) {
+    public init(
+        header: String? = nil, headerIdentifier: String? = nil, footer: String? = nil,
+        separatorInset: CGFloat = InsetGroupStyle.separatorInset, lazy: Bool = false,
+        @ViewBuilder content: () -> Content
+    ) {
         self.header = header
+        self.headerIdentifier = headerIdentifier
         self.footer = footer
+        self.separatorInset = separatorInset
+        self.lazy = lazy
         self.content = content()
     }
     public var header: String?
+    /// The header's accessibility identifier, for a screen with test ids for its group titles.
+    public var headerIdentifier: String?
     public var footer: String?
+    /// How far the separators start from the leading edge: the rows' text (`InsetGroupStyle.separatorInset`), or past
+    /// an avatar or a mark in front of it (the prototype's `--inset`: 68 pt for a 40 pt avatar).
+    public var separatorInset: CGFloat
+    /// Whether the rows are made only when they come on screen (a `LazyVStack`), for a list that pages: a row's `.task`
+    /// then runs when it is reached, not for every row at once. A short group of a few rows keeps the plain stack.
+    public var lazy: Bool
     @ViewBuilder public let content: Content
     @Environment(\.displayScale) private var displayScale
+
+    @ViewBuilder private func headerText(_ header: String) -> some View {
+        let text = Text(header)
+            .font(.system(Tokens.TextStyle.footnote, weight: .semibold))
+            .textCase(.uppercase)
+            .foregroundStyle(Tokens.Colors.textSecondary)
+            .padding(.horizontal, Tokens.Spacing.space5)
+            .accessibilityAddTraits(.isHeader)
+        if let headerIdentifier {
+            text.accessibilityIdentifier(headerIdentifier)
+        } else {
+            text
+        }
+    }
+
+    /// The rows with a hairline between them. A row keeps its own identity (not its place) when the rows change, so a
+    /// row's `.task` runs again for a row that is new in the list, such as the last one after a search.
+    @ViewBuilder private func separated(_ rows: SubviewsCollection) -> some View {
+        ForEach(rows) { row in
+            if row.id != rows.first?.id {
+                Rectangle()
+                    .fill(Tokens.Colors.borderDefault)
+                    .frame(height: 1 / displayScale)
+                    .padding(.leading, separatorInset)
+            }
+            row
+        }
+    }
 
     public var body: some View {
         VStack(alignment: .leading, spacing: Tokens.Spacing.space2) {
             if let header {
-                Text(header)
-                    .font(.system(Tokens.TextStyle.footnote, weight: .semibold))
-                    .textCase(.uppercase)
-                    .foregroundStyle(Tokens.Colors.textSecondary)
-                    .padding(.horizontal, Tokens.Spacing.space5)
-                    .accessibilityAddTraits(.isHeader)
+                headerText(header)
             }
             Group(subviews: content) { rows in
-                VStack(spacing: 0) {
-                    ForEach(Array(rows.enumerated()), id: \.offset) { index, row in
-                        if index > 0 {
-                            Rectangle()
-                                .fill(Tokens.Colors.borderDefault)
-                                .frame(height: 1 / displayScale)
-                                .padding(.leading, InsetGroupStyle.separatorInset)
-                        }
-                        row
-                    }
+                if lazy {
+                    LazyVStack(spacing: 0) { separated(rows) }
+                } else {
+                    VStack(spacing: 0) { separated(rows) }
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -144,10 +179,19 @@ public struct InsetRow: View {
             }
         }
         .multilineTextAlignment(.leading)
-        .padding(.horizontal, Tokens.Spacing.space4)
-        .padding(.vertical, 11)
-        .frame(maxWidth: .infinity, minHeight: InsetGroupStyle.rowMinHeight, alignment: .leading)
-        .contentShape(Rectangle())
+        .insetRowLayout()
+    }
+}
+
+extension View {
+    /// The layout of a row of an `InsetGroup`: the side padding, the space above and below, the full width, the least
+    /// height and the whole row as the touch area. `InsetRow` has it; a row with other content (a field, a switch, a
+    /// mark and a role) takes it from here instead of copying it.
+    public func insetRowLayout() -> some View {
+        padding(.horizontal, Tokens.Spacing.space4)
+            .padding(.vertical, InsetGroupStyle.rowVerticalPadding)
+            .frame(maxWidth: .infinity, minHeight: InsetGroupStyle.rowMinHeight, alignment: .leading)
+            .contentShape(Rectangle())
     }
 }
 

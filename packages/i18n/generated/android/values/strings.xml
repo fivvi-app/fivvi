@@ -7,7 +7,7 @@
     <string name="agreements_due_day_two">op de %1$se</string>
     <!-- Name of the native app under its home-screen icon (iOS CFBundleDisplayName and CFBundleName, Android app label). The name of the trainer app, Fivvi Pro, the same in both languages. -->
     <string name="app_name">Fivvi Pro</string>
-    <!-- Browser tab title (HTML <title>) of web pages that don't set their own. The product name, Fivvi, the same in both languages. -->
+    <!-- Browser tab title (HTML <title>) of web pages that don't set their own, and the name of the client app under its home-screen icon (iOS CFBundleDisplayName and CFBundleName, Android app label). The product name, Fivvi, the same in both languages. -->
     <string name="app_title">Fivvi</string>
     <!-- Second tab of the client app: where a client books a class. A verb in the tab bar (GLOSSARY: Book / Boeken). -->
     <string name="client_nav_book">Boeken</string>
@@ -66,6 +66,10 @@
     <!-- Brief confirmation (snackbar) after the edited client was saved. -->
     <string name="clients_profile_saved">Opgeslagen.</string>
     <string name="clients_profile_title">Klantprofiel</string>
+    <string name="clients_profile_upcoming_empty">Nog geen sessies gepland</string>
+    <string name="clients_profile_upcoming_title">Komende sessies</string>
+    <!-- One row of the client's upcoming sessions on the client profile: {date} is a short date such as "do 24 sep", {time} a 24-hour time. -->
+    <string name="clients_profile_upcoming_when">%1$s om %2$s</string>
     <string name="clients_search_placeholder">Zoek klant…</string>
     <!-- Title of the clients list (TM-02, TW-01) and the label of the way in to it. -->
     <string name="clients_title">Klanten</string>
@@ -79,6 +83,146 @@
     <string name="common_offline">Je bent offline. Sommige gegevens zijn misschien niet actueel.</string>
     <!-- Button under an error message that tries the failed action again. -->
     <string name="common_retry">Opnieuw proberen</string>
+    <string name="exercises_muscle_groups_adductors">adductoren</string>
+    <string name="exercises_muscle_groups_back">rug</string>
+    <string name="exercises_muscle_groups_biceps">biceps</string>
+    <string name="exercises_muscle_groups_calves">kuiten</string>
+    <string name="exercises_muscle_groups_cardio">conditie</string>
+    <string name="exercises_muscle_groups_chest">borst</string>
+    <string name="exercises_muscle_groups_core">core</string>
+    <string name="exercises_muscle_groups_forearms">onderarmen</string>
+    <string name="exercises_muscle_groups_full_body">hele lichaam</string>
+    <string name="exercises_muscle_groups_glutes">billen</string>
+    <string name="exercises_muscle_groups_hamstrings">hamstrings</string>
+    <string name="exercises_muscle_groups_quadriceps">quadriceps</string>
+    <string name="exercises_muscle_groups_shoulders">schouders</string>
+    <string name="exercises_muscle_groups_triceps">triceps</string>
+    <string name="exercises_names_ab_wheel_rollout">Ab wheel rollout</string>
+    <string name="exercises_names_air_bike">Air bike</string>
+    <string name="exercises_names_arnold_press">Arnold press</string>
+    <string name="exercises_names_assisted_pull_up">Pull-up met ondersteuning</string>
+    <string name="exercises_names_back_extension">Rugstrekken</string>
+    <string name="exercises_names_back_squat">Squat</string>
+    <string name="exercises_names_barbell_curl">Halter curl</string>
+    <string name="exercises_names_barbell_row">Halter roeien</string>
+    <string name="exercises_names_bear_crawl">Bear crawl</string>
+    <string name="exercises_names_bench_dip">Bankdips</string>
+    <string name="exercises_names_bench_press">Bankdrukken</string>
+    <string name="exercises_names_biceps_curl">Biceps curl</string>
+    <string name="exercises_names_bicycle_crunch">Fietscrunches</string>
+    <string name="exercises_names_bird_dog">Bird dog</string>
+    <string name="exercises_names_bodyweight_squat">Squat zonder gewicht</string>
+    <string name="exercises_names_box_jump">Box jumps</string>
+    <string name="exercises_names_box_squat">Box squat</string>
+    <string name="exercises_names_bulgarian_split_squat">Bulgaarse split squat</string>
+    <string name="exercises_names_burpee">Burpees</string>
+    <string name="exercises_names_cable_crunch">Kabel crunch</string>
+    <string name="exercises_names_cable_curl">Kabel curl</string>
+    <string name="exercises_names_cable_fly">Kabel flyes</string>
+    <string name="exercises_names_cable_glute_kickback">Kickback aan de kabel</string>
+    <string name="exercises_names_cable_lateral_raise">Zijwaarts heffen aan de kabel</string>
+    <string name="exercises_names_chin_up">Chin-up</string>
+    <string name="exercises_names_close_grip_bench_press">Bankdrukken smalle greep</string>
+    <string name="exercises_names_close_grip_lat_pulldown">Lat pulldown smalle greep</string>
+    <string name="exercises_names_copenhagen_plank">Copenhagen plank</string>
+    <string name="exercises_names_crunch">Crunches</string>
+    <string name="exercises_names_dead_bug">Dead bug</string>
+    <string name="exercises_names_deadlift">Deadlift</string>
+    <string name="exercises_names_decline_bench_press">Bankdrukken negatief</string>
+    <string name="exercises_names_dips">Dips</string>
+    <string name="exercises_names_dumbbell_bench_press">Dumbbell bankdrukken</string>
+    <string name="exercises_names_dumbbell_fly">Dumbbell flyes</string>
+    <string name="exercises_names_dumbbell_pullover">Pullover</string>
+    <string name="exercises_names_dumbbell_row">Dumbbell roeien</string>
+    <string name="exercises_names_dumbbell_shoulder_press">Dumbbell schouderdrukken</string>
+    <string name="exercises_names_elliptical">Crosstrainer</string>
+    <string name="exercises_names_face_pull">Face pull</string>
+    <string name="exercises_names_farmers_walk">Farmer\'s walk</string>
+    <string name="exercises_names_front_raise">Voorwaarts heffen</string>
+    <string name="exercises_names_front_squat">Front squat</string>
+    <string name="exercises_names_glute_bridge">Glute bridge</string>
+    <string name="exercises_names_goblet_squat">Goblet squat</string>
+    <string name="exercises_names_good_morning">Good morning</string>
+    <string name="exercises_names_hack_squat">Hack squat</string>
+    <string name="exercises_names_hammer_curl">Hammer curl</string>
+    <string name="exercises_names_hanging_leg_raise">Hangend benen heffen</string>
+    <string name="exercises_names_high_knees">High knees</string>
+    <string name="exercises_names_hip_abduction_machine">Abductie (machine)</string>
+    <string name="exercises_names_hip_adduction_machine">Adductie (machine)</string>
+    <string name="exercises_names_hip_thrust">Hip thrust</string>
+    <string name="exercises_names_hollow_hold">Hollow hold</string>
+    <string name="exercises_names_incline_bench_press">Schuine bankdrukken</string>
+    <string name="exercises_names_incline_dumbbell_press">Schuine dumbbell press</string>
+    <string name="exercises_names_incline_push_up">Opdrukken op verhoging</string>
+    <string name="exercises_names_incline_walk">Wandelen op een helling</string>
+    <string name="exercises_names_inverted_row">Australian pull-up</string>
+    <string name="exercises_names_jump_rope">Touwtjespringen</string>
+    <string name="exercises_names_jump_squat">Jump squats</string>
+    <string name="exercises_names_jumping_jack">Jumping jacks</string>
+    <string name="exercises_names_kettlebell_swing">Kettlebell swing</string>
+    <string name="exercises_names_knee_push_up">Opdrukken op de knieën</string>
+    <string name="exercises_names_landmine_press">Landmine press</string>
+    <string name="exercises_names_lat_pulldown">Lat pulldown</string>
+    <string name="exercises_names_lateral_raise">Zijwaarts heffen</string>
+    <string name="exercises_names_leg_extension">Leg extension</string>
+    <string name="exercises_names_leg_press">Beenpers</string>
+    <string name="exercises_names_lunge">Lunges</string>
+    <string name="exercises_names_lying_leg_curl">Leg curl liggend</string>
+    <string name="exercises_names_lying_leg_raise">Liggend benen heffen</string>
+    <string name="exercises_names_machine_chest_press">Chest press (machine)</string>
+    <string name="exercises_names_machine_row">Roeien (machine)</string>
+    <string name="exercises_names_machine_shoulder_press">Schouderdrukken (machine)</string>
+    <string name="exercises_names_mountain_climber">Mountain climbers</string>
+    <string name="exercises_names_nordic_hamstring_curl">Nordic hamstring curl</string>
+    <string name="exercises_names_overhead_press">Overhead press</string>
+    <string name="exercises_names_overhead_triceps_extension">Triceps extension boven het hoofd</string>
+    <string name="exercises_names_pallof_press">Pallof press</string>
+    <string name="exercises_names_pec_deck">Pec deck</string>
+    <string name="exercises_names_plank">Plank</string>
+    <string name="exercises_names_power_clean">Clean</string>
+    <string name="exercises_names_preacher_curl">Preacher curl</string>
+    <string name="exercises_names_pull_up">Pull-up</string>
+    <string name="exercises_names_push_up">Opdrukken</string>
+    <string name="exercises_names_rear_delt_fly">Reverse flyes</string>
+    <string name="exercises_names_reverse_lunge">Achterwaartse lunges</string>
+    <string name="exercises_names_romanian_deadlift">Roemeense deadlift</string>
+    <string name="exercises_names_rowing_machine">Roeien</string>
+    <string name="exercises_names_running">Hardlopen</string>
+    <string name="exercises_names_russian_twist">Russian twist</string>
+    <string name="exercises_names_seated_cable_row">Kabel roeien</string>
+    <string name="exercises_names_seated_calf_raise">Kuitheffen zittend</string>
+    <string name="exercises_names_seated_leg_curl">Leg curl zittend</string>
+    <string name="exercises_names_shrug">Shrugs</string>
+    <string name="exercises_names_side_plank">Zijplank</string>
+    <string name="exercises_names_single_leg_glute_bridge">Glute bridge op één been</string>
+    <string name="exercises_names_single_leg_romanian_deadlift">Roemeense deadlift op één been</string>
+    <string name="exercises_names_sit_up">Sit-ups</string>
+    <string name="exercises_names_ski_ergometer">Ski-ergometer</string>
+    <string name="exercises_names_skull_crusher">Skull crusher</string>
+    <string name="exercises_names_smith_machine_squat">Squat in de Smith machine</string>
+    <string name="exercises_names_stair_climber">Traploper</string>
+    <string name="exercises_names_standing_calf_raise">Kuitheffen staand</string>
+    <string name="exercises_names_stationary_bike">Fietsen (hometrainer)</string>
+    <string name="exercises_names_step_up">Step-ups</string>
+    <string name="exercises_names_straight_arm_pulldown">Pulldown met gestrekte armen</string>
+    <string name="exercises_names_sumo_deadlift">Sumo deadlift</string>
+    <string name="exercises_names_superman">Superman</string>
+    <string name="exercises_names_t_bar_row">T-bar roeien</string>
+    <string name="exercises_names_thruster">Thruster</string>
+    <string name="exercises_names_trap_bar_deadlift">Trap bar deadlift</string>
+    <string name="exercises_names_treadmill_run">Hardlopen op de loopband</string>
+    <string name="exercises_names_triceps_pushdown">Triceps pushdown</string>
+    <string name="exercises_names_turkish_get_up">Turkish get-up</string>
+    <string name="exercises_names_upright_row">Upright row</string>
+    <string name="exercises_names_walking">Wandelen</string>
+    <string name="exercises_names_walking_lunge">Walking lunges</string>
+    <string name="exercises_names_wall_ball">Wall balls</string>
+    <string name="exercises_names_wall_sit">Wall sit</string>
+    <string name="exercises_names_wrist_curl">Pols curl</string>
+    <string name="exercises_types_distance_time">Afstand + tijd</string>
+    <string name="exercises_types_reps_only">Alleen herhalingen</string>
+    <string name="exercises_types_time">Tijd</string>
+    <string name="exercises_types_weight_reps">Gewicht × herhalingen</string>
     <!-- Shown on the native hello screen when the greeting can't be loaded (no connection, or an unknown greeting). Above the common.retry button. -->
     <string name="hello_error">We konden de begroeting niet laden. Probeer het opnieuw.</string>
     <!-- Greeting above the home screen. {name} is the user's first name. -->
@@ -98,6 +242,101 @@
     <string name="home_set_up_on_web">Maak je werkruimte aan op het web.</string>
     <!-- Native apps only: line on the signed-in home placeholder that says which account is signed in. {email} is the account's email address, shown in full to its owner. -->
     <string name="home_signed_in_as">Ingelogd als %1$s</string>
+    <string name="invitation_accept">Accepteren</string>
+    <string name="invitation_decline">Afwijzen</string>
+    <string name="invitation_declined">Je hebt de uitnodiging afgewezen.</string>
+    <string name="invitation_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
+    <string name="invitation_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <string name="invitation_intro">%1$s nodigt je uit om trainer te worden bij %2$s.</string>
+    <string name="invitation_intro_anonymous">Je bent uitgenodigd om trainer te worden bij %1$s.</string>
+    <string name="invitation_no_longer_valid">Deze uitnodiging is niet meer geldig. Vraag om een nieuwe uitnodiging.</string>
+    <string name="invitation_sign_out_and_continue">Uitloggen en verder</string>
+    <string name="invitation_title">Uitnodiging</string>
+    <string name="invitation_wrong_account">Deze uitnodiging is voor %1$s. Log uit en log in met dat e-mailadres.</string>
+    <string name="join_link_body">Voor nieuwe klanten: ze loggen in en vragen of ze klant mogen worden. De eigenaar keurt elk verzoek goed.</string>
+    <string name="join_link_copied">Link gekopieerd.</string>
+    <string name="join_link_copy">Link kopiëren</string>
+    <string name="join_link_errors_copy">Kopiëren is niet gelukt. Selecteer de link en kopieer hem zelf.</string>
+    <string name="join_link_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
+    <string name="join_link_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <string name="join_link_renew">Vernieuwen</string>
+    <string name="join_link_renew_dialog_body">De huidige link en de QR-codes ervan werken daarna niet meer. Verzoeken die al zijn verstuurd blijven staan.</string>
+    <string name="join_link_renew_dialog_cancel">Terug</string>
+    <string name="join_link_renew_dialog_confirm">Vernieuwen</string>
+    <string name="join_link_renew_dialog_title">Aanmeldlink vernieuwen?</string>
+    <string name="join_link_renewed">De aanmeldlink is vernieuwd.</string>
+    <string name="join_link_title">Aanmeldlink</string>
+    <!-- The first line of a calendar block and the start of its spoken name: the session type in words, a dot, then the client or class name, e.g. 'Privé · Anna' or 'Groep · Kracht'. The type always comes first (colour is never the only signal). -->
+    <string name="my_calendar_block">%2$s · %1$s</string>
+    <!-- Places taken and capacity of a group class on its block, e.g. '3/8'. -->
+    <string name="my_calendar_block_booked">%1$s/%2$s</string>
+    <string name="my_calendar_cancelled">Geannuleerd</string>
+    <string name="my_calendar_clear_filters">Filters wissen</string>
+    <!-- Tooltip and screen-reader note on the day header of the day the clocks go back (autumn). -->
+    <string name="my_calendar_clock_back">Wintertijd: de klok gaat 1 uur terug</string>
+    <!-- Tooltip and screen-reader note on the day header of the day the clocks go forward (spring). -->
+    <string name="my_calendar_clock_forward">Zomertijd: de klok gaat 1 uur vooruit</string>
+    <string name="my_calendar_column_day">Dag</string>
+    <string name="my_calendar_column_session">Sessie</string>
+    <string name="my_calendar_column_status">Status</string>
+    <string name="my_calendar_column_time">Tijd</string>
+    <string name="my_calendar_column_type">Soort</string>
+    <string name="my_calendar_column_workspace">Werkruimte</string>
+    <string name="my_calendar_empty_day">Geen sessies op deze dag.</string>
+    <string name="my_calendar_empty_week">Geen sessies in deze week.</string>
+    <string name="my_calendar_filter_type">Soort</string>
+    <string name="my_calendar_filter_workspace">Werkruimte</string>
+    <string name="my_calendar_grid_day">Agenda van %1$s</string>
+    <string name="my_calendar_grid_week">Agenda van %1$s</string>
+    <string name="my_calendar_legend">Soorten sessies</string>
+    <string name="my_calendar_list_caption">Sessies van %1$s</string>
+    <string name="my_calendar_next">Volgende</string>
+    <string name="my_calendar_no_results">Geen resultaten met deze filters.</string>
+    <!-- Checkbox in the Type filter: show group classes. -->
+    <string name="my_calendar_option_group">Groepsles</string>
+    <!-- Checkbox in the Type filter: show private sessions. -->
+    <string name="my_calendar_option_private">Privé</string>
+    <string name="my_calendar_previous">Vorige</string>
+    <!-- A range of dates, such as '21 sep – 27 sep 2026' (day and short month, the end with the year). {start} and {end} are formatted in code. -->
+    <string name="my_calendar_range">%2$s – %1$s</string>
+    <!-- Checkbox in the Type filter: show cancelled sessions (on by default). -->
+    <string name="my_calendar_show_cancelled">Geannuleerde tonen</string>
+    <string name="my_calendar_spoken_join">%1$s, %2$s</string>
+    <string name="my_calendar_spoken_time">%2$s tot %1$s</string>
+    <!-- Start and end of a session as 24-hour times without spaces, '09:00–10:00'. -->
+    <string name="my_calendar_time_range">%2$s–%1$s</string>
+    <string name="my_calendar_title">Mijn agenda</string>
+    <string name="my_calendar_today">Vandaag</string>
+    <string name="my_calendar_type_group">Groep</string>
+    <string name="my_calendar_type_private">Privé</string>
+    <string name="my_calendar_view_day">Dag</string>
+    <string name="my_calendar_view_list">Lijst</string>
+    <string name="my_calendar_view_week">Week</string>
+    <string name="my_calendar_views">Weergave</string>
+    <string name="my_day_booked">%1$s/%2$s geboekt</string>
+    <string name="my_day_cancelled">Geannuleerd</string>
+    <string name="my_day_empty_never">Je hebt nog geen sessies. Je ziet ze hier zodra je bent ingepland.</string>
+    <string name="my_day_empty_next">Geen sessies vandaag. Je volgende sessie is op %1$s.</string>
+    <string name="my_day_empty_today">Geen sessies vandaag.</string>
+    <string name="my_day_list_label">Sessies van vandaag</string>
+    <string name="my_day_next_in_progress">Nu bezig</string>
+    <string name="my_day_next_upcoming">Straks · over %1$s min</string>
+    <string name="my_day_spoken_join">%1$s, %2$s</string>
+    <string name="my_day_spoken_time">%2$s tot %1$s</string>
+    <plurals name="my_day_summary">
+        <item quantity="one">%1$d sessie · %2$s–%3$s</item>
+        <item quantity="other">%1$d sessies · %2$s–%3$s</item>
+    </plurals>
+    <string name="my_day_summary_none">Geen sessies</string>
+    <string name="my_day_time_range">%2$s–%1$s</string>
+    <string name="my_day_title">Mijn dag</string>
+    <plurals name="my_day_tomorrow">
+        <item quantity="one">Morgen: %1$d sessie, eerste om %2$s</item>
+        <item quantity="other">Morgen: %1$d sessies, eerste om %2$s</item>
+    </plurals>
+    <string name="my_day_type_group">Groepsles</string>
+    <string name="my_day_type_private">Privésessie</string>
+    <string name="my_day_type_with_detail">%2$s · %1$s</string>
     <string name="my_profile_booking_emails_help">Je krijgt een e-mail als een klant boekt of annuleert.</string>
     <!-- Label of the checkbox on My profile (TW-09) that switches the emails for a client booking or cancelling in the person's own classes on or off (F050). On by default; the setting belongs to the account. -->
     <string name="my_profile_booking_emails_label">E-mails over boekingen in mijn lessen</string>
@@ -185,6 +424,8 @@
         <item quantity="one">%1$d week</item>
         <item quantity="other">%1$d weken</item>
     </plurals>
+    <!-- Shown on the personal pages when the browser is not in Dutch time: the times on the page are Dutch time. -->
+    <string name="personal_time_zone_hint">Tijden in Nederlandse tijd</string>
     <string name="profile_error">Je werkruimtes konden niet worden geladen.</string>
     <string name="profile_language">Taal</string>
     <!-- Row on the native Profile (iOS and Android, F064 AC17) that opens the privacy policy of the public website fivvi.app in the browser. Same wording as the website footer (site.footer.privacy). -->
@@ -208,6 +449,96 @@
     <string name="roles_trainer">Trainer</string>
     <!-- Role label of a Trainer of a workspace, shown as a plain label, in the workspace's word (F068): {Word} is the word with a capital start, e.g. Instructeur / Instructor. The role itself stays Trainer. -->
     <string name="roles_trainer_label">%1$s</string>
+    <string name="sessions_form_cancel">Annuleren</string>
+    <string name="sessions_form_client_change">Wijzigen</string>
+    <string name="sessions_form_client_exists">Er is al een klant met dit e-mailadres: %1$s.</string>
+    <string name="sessions_form_client_label">Klant</string>
+    <string name="sessions_form_client_new">+ Nieuwe klant</string>
+    <string name="sessions_form_client_new_named">+ Nieuwe klant ‘%1$s’</string>
+    <string name="sessions_form_client_none">Geen klanten gevonden.</string>
+    <string name="sessions_form_client_results">Klanten</string>
+    <string name="sessions_form_client_search">Zoek op naam of e-mail</string>
+    <string name="sessions_form_client_use">Die gebruiken</string>
+    <string name="sessions_form_close">Sluiten</string>
+    <string name="sessions_form_date_label">Datum</string>
+    <string name="sessions_form_description">Kies een klant en een moment. De locatie staat al ingevuld.</string>
+    <string name="sessions_form_discard">Weggooien</string>
+    <string name="sessions_form_discard_description">Wat je hebt ingevuld, wordt niet bewaard.</string>
+    <string name="sessions_form_discard_title">Wijzigingen weggooien?</string>
+    <string name="sessions_form_duration_label">Duur</string>
+    <string name="sessions_form_duration_minutes">%1$s min</string>
+    <string name="sessions_form_duration_other">Andere duur</string>
+    <!-- Under the start time of the new private session form (PS-01): when the session ends, from the start and the duration. {time} is a 24-hour time, e.g. 10:00. -->
+    <string name="sessions_form_ends_at">Eindigt om %1$s</string>
+    <!-- Same as sessions.form.endsAt, when the session ends after midnight, on the next day. -->
+    <string name="sessions_form_ends_at_next_day">Eindigt om %1$s (volgende dag)</string>
+    <string name="sessions_form_errors_choose_client">Kies een klant.</string>
+    <string name="sessions_form_errors_choose_trainer">Kies %1$s.</string>
+    <string name="sessions_form_errors_date_required">Kies een datum.</string>
+    <string name="sessions_form_errors_invalid_date">Deze datum bestaat niet.</string>
+    <string name="sessions_form_errors_invalid_time">Dit is geen geldige tijd.</string>
+    <string name="sessions_form_errors_no_permission">Je hebt geen rechten voor deze sessie.</string>
+    <string name="sessions_form_errors_not_saved">Niet opgeslagen. Controleer je verbinding en probeer het opnieuw.</string>
+    <string name="sessions_form_errors_start_required">Kies een begintijd.</string>
+    <!-- Shown under the start time when the clocks skip it because summer time starts (e.g. 02:30 on 28 March 2027). {date} is a full date. -->
+    <string name="sessions_form_errors_time_does_not_exist">Deze tijd bestaat niet op %1$s door de zomertijd.</string>
+    <string name="sessions_form_keep_editing">Verder bewerken</string>
+    <!-- The language an email goes out in, after the client's address (sessions.form.notifyNote) and in a sentence (sessions.reschedule.notifyNote): "in English". -->
+    <string name="sessions_form_language_en">in het Engels</string>
+    <!-- The language an email goes out in, after the client's address (sessions.form.notifyNote) and in a sentence (sessions.reschedule.notifyNote): "in Dutch". -->
+    <string name="sessions_form_language_nl">in het Nederlands</string>
+    <string name="sessions_form_load_failed">De gegevens konden niet worden geladen.</string>
+    <string name="sessions_form_location">Locatie: %1$s</string>
+    <string name="sessions_form_new_client_add">Klant toevoegen</string>
+    <string name="sessions_form_new_client_cancel">Annuleren</string>
+    <string name="sessions_form_new_client_title">Nieuwe klant</string>
+    <!-- Shown when the chosen start is before now. The session is saved afterwards, and the client gets no email. -->
+    <string name="sessions_form_notes_past">Deze tijd ligt in het verleden. De klant krijgt geen e-mail.</string>
+    <!-- Shown when the chosen time happens twice because the clocks go back at the end of summer time (e.g. 02:30 on 25 October 2026). The first one, in summer time, is used. {date} is a full date, {time} a 24-hour time. -->
+    <string name="sessions_form_notes_repeated_time">Op %1$s komt %2$s twee keer voor. We gebruiken de eerste keer (zomertijd).</string>
+    <string name="sessions_form_notify">%1$s een bevestiging sturen</string>
+    <!-- Under the checkbox that sends the client a confirmation: the client's email address, then the language of the email, e.g. "anna@example.com · in het Nederlands". -->
+    <string name="sessions_form_notify_note">%1$s · %2$s</string>
+    <string name="sessions_form_open">Openen</string>
+    <string name="sessions_form_save">Opslaan</string>
+    <!-- Message after a private session was saved. {client} is the client's name, {date} a short date such as "do 24 sep", {time} a 24-hour time. -->
+    <string name="sessions_form_saved">Sessie met %1$s gepland op %2$s om %3$s.</string>
+    <string name="sessions_form_start_label">Begin</string>
+    <string name="sessions_form_title">Nieuwe privésessie</string>
+    <string name="sessions_form_trainer_choose">Kies %1$s</string>
+    <string name="sessions_form_trainer_label">%1$s</string>
+    <string name="sessions_form_trainer_me">%1$s (ik)</string>
+    <!-- Label of the first field of the private session form when it is opened from the personal calendar: the workspace the session is planned in. A plain line with one workspace. -->
+    <string name="sessions_form_workspace_label">Werkruimte</string>
+    <string name="sessions_page_cancelled">Deze sessie is geannuleerd.</string>
+    <string name="sessions_page_client_label">Klant</string>
+    <string name="sessions_page_client_profile">Klantprofiel</string>
+    <string name="sessions_page_heading">Privésessie met %1$s</string>
+    <!-- Message after a session was moved. {date} is a short date, {time} a 24-hour time. -->
+    <string name="sessions_page_moved">Verplaatst naar %1$s om %2$s.</string>
+    <string name="sessions_page_no_trainer">Geen %1$s</string>
+    <string name="sessions_page_reschedule">Verplaatsen</string>
+    <string name="sessions_page_time_range">%1$s, %3$s–%2$s</string>
+    <string name="sessions_page_trainer_label">%1$s</string>
+    <string name="sessions_page_when_label">Wanneer</string>
+    <string name="sessions_page_where_label">Locatie</string>
+    <string name="sessions_reschedule_cancel">Annuleren</string>
+    <string name="sessions_reschedule_cancelled">Deze sessie is geannuleerd en kan niet worden verplaatst.</string>
+    <!-- Shown when someone else changed or moved the session while this form was open. {name} is that person. The form then shows the session as it is now. -->
+    <string name="sessions_reschedule_changed_by">Deze sessie is net gewijzigd door %1$s.</string>
+    <string name="sessions_reschedule_changed_by_unknown">Deze sessie is net gewijzigd.</string>
+    <!-- Top of the reschedule dialog: where the session is now. {date} is a short date with the year, {start} and {end} are 24-hour times. -->
+    <string name="sessions_reschedule_current">Nu: %1$s, %4$s–%2$s · %3$s</string>
+    <string name="sessions_reschedule_date_label">Nieuwe datum</string>
+    <string name="sessions_reschedule_location_unchanged">%1$s (ongewijzigd)</string>
+    <string name="sessions_reschedule_no_permission">Je hebt geen rechten meer voor deze sessie.</string>
+    <string name="sessions_reschedule_notify">%1$s informeren per e-mail</string>
+    <string name="sessions_reschedule_notify_note">%1$s krijgt de e-mail %2$s.</string>
+    <string name="sessions_reschedule_submit">Verplaatsen</string>
+    <string name="sessions_reschedule_submit_notify">Verplaatsen en informeren</string>
+    <string name="sessions_reschedule_subtitle">%1$s · Privésessie</string>
+    <string name="sessions_reschedule_title">Sessie verplaatsen</string>
+    <string name="sessions_title">Sessie</string>
     <!-- Shown on TW-08 when saving failed for any other reason. Nothing was changed. -->
     <string name="settings_general_errors_generic">Er ging iets mis. Probeer het opnieuw.</string>
     <!-- Under the name field on TW-08 when it is empty or only spaces. -->
@@ -356,6 +687,36 @@
     <string name="team_errors_last_owner">%1$s moet minstens één eigenaar houden.</string>
     <!-- Shown on the Trainers page when removing a person failed because there is no connection. Nothing changed. -->
     <string name="team_errors_no_connection">Geen verbinding. Controleer je internet en probeer het opnieuw.</string>
+    <string name="team_invitations_gone">Deze uitnodiging staat er niet meer.</string>
+    <string name="team_invitations_send_again">Opnieuw sturen</string>
+    <string name="team_invitations_sent_again">Uitnodiging opnieuw verstuurd</string>
+    <string name="team_invitations_status">Uitgenodigd</string>
+    <string name="team_invitations_withdraw">Intrekken</string>
+    <string name="team_invitations_withdraw_dialog_body">De link in de e-mail aan %1$s werkt dan niet meer.</string>
+    <string name="team_invitations_withdraw_dialog_cancel">Terug</string>
+    <string name="team_invitations_withdraw_dialog_confirm">Intrekken</string>
+    <string name="team_invitations_withdraw_dialog_title">Uitnodiging intrekken?</string>
+    <string name="team_invitations_withdrawn">Uitnodiging aan %1$s ingetrokken.</string>
+    <string name="team_invite_already_invited">Er staat al een uitnodiging open voor dit e-mailadres.</string>
+    <string name="team_invite_already_on_team">%1$s zit al in het team.</string>
+    <string name="team_invite_cancel">Annuleren</string>
+    <string name="team_invite_description">We sturen een e-mail met een uitnodiging naar dit adres.</string>
+    <string name="team_invite_email_label">E-mailadres</string>
+    <string name="team_invite_errors_email_invalid">Vul een geldig e-mailadres in.</string>
+    <string name="team_invite_errors_email_required">Vul een e-mailadres in.</string>
+    <string name="team_invite_errors_name_required">Vul een naam in.</string>
+    <string name="team_invite_errors_name_too_long">Deze naam is te lang. Gebruik maximaal 120 tekens.</string>
+    <string name="team_invite_errors_not_sent">Niet verstuurd. Controleer je verbinding en probeer het opnieuw.</string>
+    <string name="team_invite_errors_too_many">Je hebt in de laatste 24 uur al 20 uitnodigingen verstuurd. Probeer het later opnieuw.</string>
+    <string name="team_invite_locale_default">Standaard van de werkruimte (%1$s)</string>
+    <string name="team_invite_locale_en">English</string>
+    <string name="team_invite_locale_label">Taal van de e-mail</string>
+    <string name="team_invite_locale_nl">Nederlands</string>
+    <string name="team_invite_name_label">Naam</string>
+    <string name="team_invite_send_again">Opnieuw sturen</string>
+    <string name="team_invite_sent">Uitnodiging verstuurd naar %1$s.</string>
+    <string name="team_invite_submit">Versturen</string>
+    <string name="team_invite_title">Trainer uitnodigen</string>
     <string name="team_make_owner_dialog_body">Een eigenaar kan alles in %1$s, ook het team, de instellingen en het geld.</string>
     <string name="team_make_owner_dialog_cancel">Annuleren</string>
     <string name="team_make_owner_dialog_confirm">Eigenaar maken</string>
@@ -472,11 +833,16 @@
     <!-- Line under the workspace name on the placeholder home of a workspace, until the owner dashboard and the trainer's day arrive. -->
     <string name="workspace_home_description">Hier komt binnenkort het overzicht van je sportschool of bedrijf.</string>
     <string name="workspace_nav_clients">Klanten</string>
+    <string name="workspace_nav_join_link">Aanmeldlink</string>
     <!-- Accessible name of the navigation of a workspace's pages, read by screen readers. -->
     <string name="workspace_nav_label">Hoofdnavigatie</string>
+    <string name="workspace_nav_my_calendar">Mijn agenda</string>
+    <string name="workspace_nav_my_day">Mijn dag</string>
     <string name="workspace_nav_new">Nieuw</string>
     <string name="workspace_nav_new_client">Klant</string>
     <string name="workspace_nav_new_menu">Nieuw maken</string>
+    <string name="workspace_nav_new_private_session">Privésessie</string>
+    <string name="workspace_nav_personal">Persoonlijk</string>
     <!-- Navigation link to Settings (Instellingen). Shown to the Owner only (GLOSSARY §4.8). -->
     <string name="workspace_nav_settings">Instellingen</string>
     <string name="workspace_nav_settings_general">Algemeen</string>

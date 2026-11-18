@@ -84,10 +84,12 @@ export function SignInForm({ locale, returnPath }: { locale: Locale; returnPath?
   const errorMessage = error ? t(`errors.${error}`) : null;
   const disabled = !ready || pending;
 
+  // Each step's form has a key of its own: without it React reuses the email step's input for the
+  // code field, which then opens with the address in it (#1436).
   return (
     <GatePage standalone above={<LanguageSwitch />}>
       {step === 'email' ? (
-        <form noValidate onSubmit={sendEmail} className="grid gap-(--card-spacing)">
+        <form key="email" noValidate onSubmit={sendEmail} className="grid gap-(--card-spacing)">
           <CardHeader className="justify-items-center gap-3 text-center">
             <SignInMark />
             <CardTitle className="text-[22px] leading-tight font-semibold">
@@ -110,7 +112,7 @@ export function SignInForm({ locale, returnPath }: { locale: Locale; returnPath?
           </CardContent>
         </form>
       ) : (
-        <form noValidate onSubmit={signIn} className="grid gap-(--card-spacing)">
+        <form key="code" noValidate onSubmit={signIn} className="grid gap-(--card-spacing)">
           <CardHeader className="justify-items-center gap-3 text-center">
             <SignInMark />
             <CardTitle className="text-[22px] leading-tight font-semibold">

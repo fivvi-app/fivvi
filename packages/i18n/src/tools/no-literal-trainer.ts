@@ -5,6 +5,7 @@ import type { Body, Part } from './icu.ts';
 import {
   type AllowedForGood,
   type AllowedForNow,
+  type AllowedNotTheRole,
   MOVES_WITH_TICKETS,
   type TrainerAllowlist,
 } from './no-literal-trainer-allowlist.ts';
@@ -42,7 +43,7 @@ export function literalTrainerProblems(
 
   const seen = new Set<string>();
   for (const entry of allowlist) {
-    const name = 'prefix' in entry ? entry.prefix : entry.key;
+    const name = entryName(entry);
     if (seen.has(name)) problems.push(`allowlist entry "${name}" is listed twice`);
     seen.add(name);
     if (entry.reason.trim() === '') problems.push(`allowlist entry "${name}" has no reason`);
@@ -60,8 +61,16 @@ export function literalTrainerProblems(
   return problems;
 }
 
-function covers(entry: AllowedForGood | AllowedForNow, key: string): boolean {
-  return 'prefix' in entry ? key.startsWith(entry.prefix) : key === entry.key;
+type Entry = AllowedForGood | AllowedForNow | AllowedNotTheRole;
+
+function entryName(entry: Entry): string {
+  if ('prefix' in entry) return entry.prefix;
+  return 'exactKey' in entry ? entry.exactKey : entry.key;
+}
+
+function covers(entry: Entry, key: string): boolean {
+  if ('prefix' in entry) return key.startsWith(entry.prefix);
+  return key === entryName(entry);
 }
 
 function saysTrainer(body: Body): boolean {

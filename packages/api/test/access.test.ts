@@ -97,7 +97,7 @@ const signedIn: ApiDependencies = {
 const call = (app: OpenAPIHono, path: string, body: string) =>
   app.request(path, { method: 'POST', headers: { 'content-type': 'application/json' }, body });
 
-describe('E011 route access', () => {
+describe('@permission E011 route access', () => {
   describe('AC10: the access check runs before request validation', () => {
     it.each([
       ['an account route', '/v1/probe/account'],
@@ -459,6 +459,7 @@ describe('E011 route access', () => {
       'post /v1/sign-in/token': 'public',
       'post /v1/sign-out': 'public',
       'get /v1/workspaces/{workspaceId}': 'workspace',
+      'get /v1/workspaces/{workspaceId}/access-log': 'workspace',
       'get /v1/workspaces/{workspaceId}/address-lookup': 'workspace',
       'get /v1/workspaces/{workspaceId}/clients': 'workspace',
       'post /v1/workspaces/{workspaceId}/clients': 'workspace',

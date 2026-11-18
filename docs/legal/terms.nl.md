@@ -1,6 +1,6 @@
 # Algemene voorwaarden Fivvi
 
-**Versie 1.0 · 8 november 2026.** Deze Nederlandse tekst is leidend; de Engelse vertaling staat in [`terms.en.md`](terms.en.md).
+**Versie 1.1 · 11 november 2026.** Deze Nederlandse tekst is leidend; de Engelse vertaling staat in [`terms.en.md`](terms.en.md).
 
 Fivvi wordt nu gebouwd, samen met onze eerste sportschool. Wat hieronder staat over het aanmelden van klanten bij een Workspace, boeken, wachtlijsten, de app Fivvi voor klanten, betalingen, trainingen en notities geldt zodra die onderdelen beschikbaar zijn.
 
@@ -15,7 +15,7 @@ Deze voorwaarden bestaan uit twee delen:
 
 ### A1. Definities
 
-- **Aanbieder, wij, ons:** K&S Apps, een vennootschap onder firma, handelend onder de naam Fivvi, KvK 92372996, btw-nummer NL866022788B01, Haringbuisdijk 43, 1086 VA Amsterdam, telefoon +31 6 85145755, support@fivvi.app.
+- **Aanbieder, wij, ons:** K&S Apps, een vennootschap onder firma, handelend onder de naam Fivvi, KvK 92372996, btw-nummer NL866022788B01, Haringbuisdijk 43, 1086 VA Amsterdam, support@fivvi.app.
 - **Dienst:** het platform Fivvi (fivvi.app): de website, de app Fivvi Pro (voor eigenaren en trainers) voor iPhone en Android, de API en, zodra beschikbaar, de app Fivvi (voor klanten) en de pagina's waarmee klanten zich bij een Workspace aanmelden en boeken.
 - **Workspace:** de omgeving van een sportschool, studio of zelfstandige trainer binnen de Dienst.
 - **Klant, jij, je:** de onderneming of zelfstandige die een Workspace aanmaakt of beheert.
@@ -85,7 +85,7 @@ Voor de gegevens van jouw klanten ben jij **verwerkingsverantwoordelijke** in de
 
 1. We doen ons best om de Dienst goed en veilig beschikbaar te houden, maar we garanderen geen ononderbroken werking.
 2. Gepland onderhoud doen we zo veel mogelijk buiten de drukke uren, en we melden het vooraf.
-3. Support loopt via support@fivvi.app of telefonisch via +31 6 85145755. We reageren binnen 2 werkdagen.
+3. Support loopt via support@fivvi.app. We reageren binnen 2 werkdagen.
 
 ### A10. Wijzigingen aan de Dienst
 
