@@ -30,11 +30,14 @@ const comments = (...bodies) => bodies.map((body) => ({ body }));
 // A checkout of its own for the scripts under test, with a base commit on main and an origin: a copy of scripts/ (and
 // .github/repo-settings.json with `settings`). Returns its path and a `git` that runs in it. Tests that run flow.sh
 // from here instead of from the real checkout don't see its branches and worktrees.
-function scriptsRepo(prefix, { settings = false } = {}) {
+// The pipeline switch (ADR-034) of that checkout is `review`, per-pr unless a test says otherwise: a spec whose tickets are
+// all closed is `complete` with per-pr and `spec-review` with split.
+function scriptsRepo(prefix, { settings = false, review = 'per-pr' } = {}) {
   const repo = realpathSync(mkdtempSync(join(tmpdir(), prefix)));
   cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
+  mkdirSync(join(repo, '.github'));
+  writeFileSync(join(repo, '.github/pipeline.json'), JSON.stringify({ ci: 'fast', review }));
   if (settings) {
-    mkdirSync(join(repo, '.github'));
     cpSync(
       join(SCRIPTS, '../.github/repo-settings.json'),
       join(repo, '.github/repo-settings.json'),
@@ -2811,6 +2814,238 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       assert.ok(result.status >= 2, `exit ${result.status}`);
       assert.match(result.stderr, /^error: could not read the open PRs/m);
       assert.doesNotMatch(result.stdout, /idle/);
+    });
+  });
+});
+
+// ADR-034: with review split, a spec whose tickets are all closed waits in the phase spec-review for a clean final spec
+// review (scripts/spec-review.sh status); with per-pr it is complete, as before.
+describe('ADR-034: flow.sh and the final spec review', () => {
+  const gh = fakeGh();
+  const NOW_ISO = '2026-11-18T12:00:00Z';
+  const MERGED_AT = '2026-11-17T10:00:00Z';
+  const dirs = [];
+  after(() => {
+    gh.cleanup();
+    for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
+  });
+
+  const checkout = (review) => {
+    const { repo } = scriptsRepo('flow-spec-review-', { review });
+    dirs.push(repo);
+    return repo;
+  };
+  const specItem = (state = 'OPEN') => ({
+    number: 50,
+    title: '[F022] Weekly series',
+    state,
+    labels: labels('spec', 'spec-approved'),
+    assignees: [],
+    body: '## Acceptance criteria\n\n- [ ] A series repeats weekly',
+    comments: [],
+    parent: null,
+    subIssues: { nodes: [{ number: 51 }, { number: 52 }] },
+    blockedBy: { nodes: [] },
+  });
+  const childItem = (number, state = 'CLOSED', names = ['ready-for-agent']) => ({
+    number,
+    title: `ticket ${number}`,
+    state,
+    labels: labels(...names),
+    assignees: [],
+    blockedBy: { nodes: [] },
+  });
+  const mapGraph = (merged = true) => ({
+    data: {
+      repository: {
+        issue: {
+          number: 50,
+          title: '[F022] Weekly series',
+          state: 'OPEN',
+          url: 'https://github.com/o/r/issues/50',
+          body: '## Acceptance criteria\n\n- [ ] A series repeats weekly',
+          subIssues: {
+            totalCount: 2,
+            nodes: [51, 52].map((number) => ({
+              number,
+              title: `ticket ${number}`,
+              state: 'CLOSED',
+              url: `https://github.com/o/r/issues/${number}`,
+              body: '## Acceptance criteria\n\n- [ ] it works',
+              timelineItems: {
+                nodes: merged
+                  ? [
+                      {
+                        closer: {
+                          __typename: 'PullRequest',
+                          number: 60,
+                          title: '[F022] Series',
+                          url: 'https://github.com/o/r/pull/60',
+                          merged: true,
+                          mergedAt: MERGED_AT,
+                          mergeCommit: { oid: '6'.repeat(40) },
+                          files: { totalCount: 1, nodes: [{ path: 'a.ts' }] },
+                        },
+                      },
+                    ]
+                  : [],
+              },
+            })),
+          },
+        },
+      },
+    },
+  });
+  const record = (repo, line) => {
+    mkdirSync(join(repo, '.work/spec-50'), { recursive: true });
+    writeFileSync(join(repo, '.work/spec-50/spec-review.md'), `# Spec review #50\n\n- ${line}\n`);
+  };
+  const FINAL_CLEAN = (time) =>
+    `${time} | final | clean | findings 0 | origin/main ${'1'.repeat(40)}`;
+
+  const flow = (
+    repo,
+    command,
+    args,
+    { children = [childItem(51), childItem(52)], rules = [] } = {},
+  ) =>
+    spawnSync(join(repo, 'scripts/flow.sh'), [command, ...args], {
+      encoding: 'utf8',
+      env: {
+        ...gh.env([
+          ...rules,
+          { match: '^api user', out: { login: 'thekeyvan' } },
+          { match: '^issue view 50 ', out: specItem() },
+          ...children.map((child) => ({ match: `^issue view ${child.number} `, out: child })),
+          { match: '^api graphql .*-F n=50 ', out: mapGraph() },
+          { match: '^label list ', out: [{ name: 'owner-queue' }, { name: 'owner-decide' }] },
+          { match: '^label create ', out: '' },
+          { match: '^pr edit ', out: '' },
+          { match: '^pr list ', out: [] },
+          { match: '^issue list .*--assignee', out: [] },
+          {
+            match: '^issue list .*--label spec ',
+            out: [
+              {
+                number: 50,
+                title: '[F022] Weekly series',
+                body: '## Acceptance criteria',
+                labels: labels('spec', 'spec-approved'),
+                subIssuesSummary: { completed: 2, total: 2 },
+              },
+            ],
+          },
+          { match: '^issue list ', out: [] },
+        ]),
+        FIVVI_NOW: NOW_ISO,
+        GIT_TERMINAL_PROMPT: '0',
+      },
+    });
+  const graphqlReads = () =>
+    gh.calls().filter(({ args }) => args[0] === 'api' && args[1] === 'graphql').length;
+
+  it('split, no final review recorded: the phase is spec-review and Next says to run it', () => {
+    const repo = checkout('split');
+    const result = flow(repo, 'status', ['50']);
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /^Phase: spec-review$/m);
+    assert.match(result.stdout, /^Next: .*final spec review.*spec-review\.sh map 50/m);
+    assert.match(result.stdout, /no final spec review is recorded for #50/);
+  });
+
+  it('split, a clean final review newer than the last merged PR: complete', () => {
+    const repo = checkout('split');
+    record(repo, FINAL_CLEAN('2026-11-17T12:00:00Z'));
+    const result = flow(repo, 'status', ['50']);
+    assert.match(result.stdout, /^Phase: complete$/m);
+  });
+
+  it('split, a PR merged after the clean final review: spec-review again', () => {
+    const repo = checkout('split');
+    record(repo, FINAL_CLEAN('2026-11-17T09:00:00Z'));
+    const result = flow(repo, 'status', ['50']);
+    assert.match(result.stdout, /^Phase: spec-review$/m);
+    assert.match(result.stdout, /PR #60 merged after the last clean final spec review/);
+  });
+
+  it('split, a bug ticket under the spec reopens it: building, and no review is read', () => {
+    const repo = checkout('split');
+    record(repo, FINAL_CLEAN('2026-11-17T12:00:00Z'));
+    const result = flow(repo, 'status', ['50'], {
+      children: [childItem(51), childItem(52, 'OPEN', ['bug', 'ready-for-agent'])],
+    });
+    assert.match(result.stdout, /^Phase: building$/m);
+    assert.match(result.stdout, /Ready now: #52/);
+    assert.equal(graphqlReads(), 0);
+  });
+
+  it('per-pr: complete as before, without reading the review of the spec', () => {
+    const repo = checkout('per-pr');
+    const result = flow(repo, 'status', ['50']);
+    assert.match(result.stdout, /^Phase: complete$/m);
+    assert.equal(graphqlReads(), 0);
+  });
+
+  it('fails, never complete, when the review of the spec cannot be read', () => {
+    const repo = checkout('split');
+    const result = flow(repo, 'status', ['50'], {
+      rules: [{ match: '^api graphql .*-F n=50 ', out: '', status: 1 }],
+    });
+    assert.notEqual(result.status, 0);
+    assert.doesNotMatch(result.stdout, /Phase: complete/);
+    assert.match(result.stderr, /could not read the spec review of #50/);
+  });
+
+  it('fails when the review setting cannot be read', () => {
+    const repo = checkout('split');
+    writeFileSync(join(repo, '.github/pipeline.json'), '{"ci":"fast","review":"never"}');
+    const result = flow(repo, 'status', ['50']);
+    assert.notEqual(result.status, 0);
+    assert.doesNotMatch(result.stdout, /Phase: complete/);
+  });
+
+  it('facts carry the setting and the review status of a finished spec', () => {
+    const repo = checkout('split');
+    const result = flow(repo, 'facts', ['50']);
+    const facts = JSON.parse(result.stdout);
+    assert.equal(facts.review, 'split');
+    assert.equal(facts.spec_review.covered, false);
+    assert.match(facts.spec_review.detail, /^not covered/);
+  });
+
+  describe('next and idle', () => {
+    const readyOf = (stdout) =>
+      stdout.split('== Ready for an agent\n')[1].split('== Waiting on the owner')[0];
+
+    it('split: lists the final spec review as ready work, under "Ready for an agent"', () => {
+      const repo = checkout('split');
+      const result = flow(repo, 'next', []);
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(
+        readyOf(result.stdout),
+        /^Review spec #50 \[F022\] Weekly series \(spec-review\)$/m,
+      );
+    });
+
+    it('split: idle is work while a spec waits for its final review', () => {
+      const repo = checkout('split');
+      const result = flow(repo, 'idle', []);
+      assert.equal(result.status, 1, result.stdout + result.stderr);
+      assert.match(result.stdout, /Review spec #50/);
+    });
+
+    it('split: nothing to review once a clean final review covers it', () => {
+      const repo = checkout('split');
+      record(repo, FINAL_CLEAN('2026-11-17T12:00:00Z'));
+      const result = flow(repo, 'next', []);
+      assert.doesNotMatch(readyOf(result.stdout), /Review spec/);
+    });
+
+    it('per-pr: lists nothing to review', () => {
+      const repo = checkout('per-pr');
+      const result = flow(repo, 'next', []);
+      assert.equal(result.status, 0, result.stderr);
+      assert.doesNotMatch(readyOf(result.stdout), /Review spec/);
     });
   });
 });

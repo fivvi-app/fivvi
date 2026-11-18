@@ -31,6 +31,9 @@ const reviewed = (sha = HEAD) =>
   `**Self-review:** standards and spec reviewers clean on \`${sha}\` ✅`;
 const reviewedWithFollowUps = (sha = HEAD, n = 2) =>
   `**Self-review:** standards and spec reviewers clean on \`${sha}\` ✅ (low risk: ${n} should-fix findings left as follow-ups, ADR-033)`;
+// ADR-034: pr.sh reviewed --axes standards records the standards axis only.
+const reviewedStandards = (sha = HEAD) =>
+  `**Self-review:** standards reviewer clean on \`${sha}\` (standards only) ✅`;
 const noPreview = (sha = HEAD) =>
   `**Railway preview smoke check:** on \`${sha}\`: no preview for this PR (it touches no Railway watch pattern).`;
 const smoked = (sha = HEAD) =>
@@ -129,6 +132,69 @@ describe('merge gate', () => {
         withFollowUps({ risk: 'low', reasons: [] }, reviewedWithFollowUps(OLD)),
       );
       assert.deepEqual(failed(decision), ['self-review clean']);
+    });
+  });
+
+  // ADR-034 decision 4: with review split, a low-risk PR needs the standards axis only; every other PR needs both.
+  describe('ADR-034: review axes', () => {
+    const withRecord = (record, risk = { risk: 'low', reasons: [] }, review_setting = 'split') =>
+      facts({
+        risk,
+        review_setting,
+        pr: { ...facts().pr, body: `Closes #57\n\n${record}\n\n${noPreview()}` },
+      });
+    const review = (decision) => decision.conditions.find((c) => c.name === 'self-review clean');
+
+    it('merges a low-risk PR with a standards-only record while review is split', () => {
+      const decision = gate(withRecord(reviewedStandards()));
+      assert.equal(decision.merge, true);
+      assert.deepEqual(failed(decision), []);
+      assert.match(review(decision).detail, /standards axis only/);
+    });
+
+    it('refuses a standards-only record when review is per-pr, naming why', () => {
+      const decision = gate(withRecord(reviewedStandards(), undefined, 'per-pr'));
+      assert.equal(decision.merge, false);
+      assert.deepEqual(failed(decision), ['self-review clean']);
+      assert.match(review(decision).detail, /standards axis only.*per-pr/);
+    });
+
+    it('refuses a standards-only record when the review setting is missing or unknown', () => {
+      for (const setting of [null, '', 'Split', 'none']) {
+        const decision = gate(withRecord(reviewedStandards(), undefined, setting));
+        assert.deepEqual(failed(decision), ['self-review clean'], String(setting));
+      }
+      const missing = withRecord(reviewedStandards());
+      delete missing.review_setting;
+      assert.deepEqual(failed(gate(missing)), ['self-review clean']);
+    });
+
+    it('refuses a standards-only record for a high-risk, owner-only or unknown-risk PR', () => {
+      for (const risk of ['high', 'owner', 'unknown']) {
+        const decision = gate(withRecord(reviewedStandards(), { risk, reasons: ['x'] }));
+        assert.ok(failed(decision).includes('self-review clean'), risk);
+        assert.match(review(decision).detail, /both axes/, risk);
+      }
+    });
+
+    it('still needs the standards-only record to name the head commit', () => {
+      const decision = gate(withRecord(reviewedStandards(OLD)));
+      assert.deepEqual(failed(decision), ['self-review clean']);
+      assert.match(review(decision).detail, /not the head/);
+    });
+
+    it('a record of both axes passes whatever the setting and risk', () => {
+      for (const setting of ['split', 'per-pr', null]) {
+        for (const risk of ['low', 'high']) {
+          const decision = gate(withRecord(reviewed(), { risk, reasons: ['x'] }, setting));
+          assert.equal(decision.merge, true, `${setting} ${risk}`);
+        }
+      }
+    });
+
+    it('a standards-only record with follow-ups on a low-risk PR merges while split', () => {
+      const record = `${reviewedStandards()} (low risk: 1 should-fix finding left as a follow-up, ADR-033)`;
+      assert.equal(gate(withRecord(record)).merge, true);
     });
   });
 
