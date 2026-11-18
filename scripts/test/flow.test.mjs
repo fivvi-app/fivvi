@@ -2900,9 +2900,15 @@ describe('ADR-034: flow.sh and the final spec review', () => {
     mkdirSync(join(repo, '.work/spec-50'), { recursive: true });
     writeFileSync(join(repo, '.work/spec-50/spec-review.md'), `# Spec review #50\n\n- ${line}\n`);
   };
-  const FINAL_CLEAN = (time) => `${time} | final | clean | findings 0 | origin/main ${'1'.repeat(40)}`;
+  const FINAL_CLEAN = (time) =>
+    `${time} | final | clean | findings 0 | origin/main ${'1'.repeat(40)}`;
 
-  const flow = (repo, command, args, { children = [childItem(51), childItem(52)], rules = [] } = {}) =>
+  const flow = (
+    repo,
+    command,
+    args,
+    { children = [childItem(51), childItem(52)], rules = [] } = {},
+  ) =>
     spawnSync(join(repo, 'scripts/flow.sh'), [command, ...args], {
       encoding: 'utf8',
       env: {
@@ -3015,7 +3021,10 @@ describe('ADR-034: flow.sh and the final spec review', () => {
       const repo = checkout('split');
       const result = flow(repo, 'next', []);
       assert.equal(result.status, 0, result.stderr);
-      assert.match(readyOf(result.stdout), /^Review spec #50 \[F022\] Weekly series \(spec-review\)$/m);
+      assert.match(
+        readyOf(result.stdout),
+        /^Review spec #50 \[F022\] Weekly series \(spec-review\)$/m,
+      );
     });
 
     it('split: idle is work while a spec waits for its final review', () => {

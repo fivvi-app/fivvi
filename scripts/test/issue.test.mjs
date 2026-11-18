@@ -180,7 +180,17 @@ describe('issue.sh', () => {
     });
 
     it('rejects a --parent that is not an issue number', () => {
-      const result = issueSh([], 'create', 'bug', '--title', 't', '--body-file', '-', '--parent', 'x');
+      const result = issueSh(
+        [],
+        'create',
+        'bug',
+        '--title',
+        't',
+        '--body-file',
+        '-',
+        '--parent',
+        'x',
+      );
       assert.equal(result.status, 1);
       assert.match(result.stderr, /not an issue number/);
     });

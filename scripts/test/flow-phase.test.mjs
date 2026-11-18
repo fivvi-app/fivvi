@@ -672,7 +672,8 @@ describe('flow phase of a spec', () => {
     const covered = { covered: true, detail: 'covered' };
     const notCovered = {
       covered: false,
-      detail: 'not covered: PR #61 merged after the last clean final spec review (2026-11-18T09:00:00Z)',
+      detail:
+        'not covered: PR #61 merged after the last clean final spec review (2026-11-18T09:00:00Z)',
     };
 
     it('is spec-review while split and no final review covers the spec, and says to run it', () => {

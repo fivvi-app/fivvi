@@ -82,14 +82,20 @@ const FIXTURE = () =>
       'Expand a series',
       'CLOSED',
       TICKET_BODY('Expansion honours DST', 'Edits take a scope'),
-      pull(60, SHA60, '2026-11-17T10:00:00Z', ['packages/domain/series.ts', 'packages/api/series.ts']),
+      pull(60, SHA60, '2026-11-17T10:00:00Z', [
+        'packages/domain/series.ts',
+        'packages/api/series.ts',
+      ]),
     ),
     ticket(
       52,
       'Series API',
       'CLOSED',
       TICKET_BODY('The API lists a series'),
-      pull(60, SHA60, '2026-11-17T10:00:00Z', ['packages/domain/series.ts', 'packages/api/series.ts']),
+      pull(60, SHA60, '2026-11-17T10:00:00Z', [
+        'packages/domain/series.ts',
+        'packages/api/series.ts',
+      ]),
     ),
     ticket(53, 'Series UI', 'OPEN', TICKET_BODY('The web shows a series'), null),
     ticket(
@@ -189,7 +195,10 @@ describe('spec-review.sh (ADR-034)', () => {
           [54, 'CLOSED', 61],
         ],
       );
-      assert.deepEqual(map.tickets[0].criteria.map((c) => c.id), ['#51.1', '#51.2']);
+      assert.deepEqual(
+        map.tickets[0].criteria.map((c) => c.id),
+        ['#51.1', '#51.2'],
+      );
       assert.equal(map.tickets[0].pr.commit, SHA60);
       assert.deepEqual(map.tickets[0].pr.files, [
         'packages/domain/series.ts',
@@ -216,7 +225,11 @@ describe('spec-review.sh (ADR-034)', () => {
     });
 
     it('a PR that was closed without merging is no PR of the ticket', () => {
-      const closed = pull(70, 'a'.repeat(40), null, ['x.ts'], { merged: false, mergedAt: null, mergeCommit: null });
+      const closed = pull(70, 'a'.repeat(40), null, ['x.ts'], {
+        merged: false,
+        mergedAt: null,
+        mergeCommit: null,
+      });
       const result = run(
         [{ match: GRAPH(), out: graph([ticket(51, 'T', 'CLOSED', TICKET_BODY('x'), closed)]) }],
         'map',
@@ -240,7 +253,12 @@ describe('spec-review.sh (ADR-034)', () => {
 
     it('fails when the sub-issues are not all in the answer, never a partial map', () => {
       const result = run(
-        [{ match: GRAPH(), out: graph([ticket(51, 'T', 'OPEN', TICKET_BODY('x'), null)], { totalCount: 101 }) }],
+        [
+          {
+            match: GRAPH(),
+            out: graph([ticket(51, 'T', 'OPEN', TICKET_BODY('x'), null)], { totalCount: 101 }),
+          },
+        ],
         'map',
         '50',
       );
@@ -261,7 +279,12 @@ describe('spec-review.sh (ADR-034)', () => {
     });
 
     it('needs a spec number and takes only --json', () => {
-      for (const args of [['map'], ['map', 'x'], ['map', '50', '--yaml'], ['map', '50', '--json', 'x']]) {
+      for (const args of [
+        ['map'],
+        ['map', 'x'],
+        ['map', '50', '--yaml'],
+        ['map', '50', '--json', 'x'],
+      ]) {
         assert.equal(run([], ...args).status, 1, args.join(' '));
       }
     });
@@ -274,7 +297,9 @@ describe('spec-review.sh (ADR-034)', () => {
       result = run([], 'record', '50', '--final', 'not-clean', '--findings', '2');
       assert.equal(result.status, 0, result.stderr);
       assert.ok(existsSync(file()));
-      const lines = readFileSync(file(), 'utf8').split('\n').filter((l) => l.startsWith('- '));
+      const lines = readFileSync(file(), 'utf8')
+        .split('\n')
+        .filter((l) => l.startsWith('- '));
       assert.deepEqual(lines, [
         `- ${NOW} | slice PR #60 | clean | findings 0 | origin/main ${mainSha}`,
         `- ${NOW} | final | not-clean | findings 2 | origin/main ${mainSha}`,
@@ -329,7 +354,8 @@ describe('spec-review.sh (ADR-034)', () => {
       mkdirSync(join(repo, '.work', 'spec-50'), { recursive: true });
       writeFileSync(file(), `# Spec review #50\n\n${lines.map((l) => `- ${l}`).join('\n')}\n`);
     };
-    const status = (graphRule = { match: GRAPH(), out: FIXTURE() }) => run([graphRule], 'status', '50');
+    const status = (graphRule = { match: GRAPH(), out: FIXTURE() }) =>
+      run([graphRule], 'status', '50');
     const main = `origin/main ${'1'.repeat(40)}`;
 
     it('is covered when the last final record is clean and newer than the last merged PR', () => {
@@ -373,7 +399,7 @@ describe('spec-review.sh (ADR-034)', () => {
       assert.equal(status().status, 1);
     });
 
-    it('reads records and merges only: an open ticket is the phase\'s business (flow-phase.jq)', () => {
+    it("reads records and merges only: an open ticket is the phase's business (flow-phase.jq)", () => {
       seed(`2026-11-18T09:00:00Z | final | clean | findings 0 | ${main}`);
       assert.equal(status().status, 0); // the fixture has #53 open
     });

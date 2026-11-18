@@ -826,11 +826,11 @@ describe('pr.sh reviewed', () => {
       encoding: 'utf8',
       env: {
         ...gh.env([
-        ...risk,
-        { match: '^pr list ', out: [{ number: 60 }] },
-        { match: '^pr view 60 .*--json headRefOid', out: { headRefOid: prHead } },
-        { match: '^pr view 60 .*--json body', ...body },
-        { match: '^pr edit 60 ', out: '' },
+          ...risk,
+          { match: '^pr list ', out: [{ number: 60 }] },
+          { match: '^pr view 60 .*--json headRefOid', out: { headRefOid: prHead } },
+          { match: '^pr view 60 .*--json body', ...body },
+          { match: '^pr edit 60 ', out: '' },
         ]),
         ...env,
       },
@@ -1042,7 +1042,10 @@ describe('pr.sh reviewed', () => {
       for (const args of [['--axes'], ['--axes', 'spec'], ['--axes', 'standards,spec']]) {
         const result = reviewed(git('rev-parse', 'HEAD'), undefined, { args, risk: LOW });
         assert.equal(result.status, 1, args.join(' '));
-        assert.match(result.stderr, /pr\.sh reviewed \[--should-fix <n>\] \[--axes standards\|both\]/);
+        assert.match(
+          result.stderr,
+          /pr\.sh reviewed \[--should-fix <n>\] \[--axes standards\|both\]/,
+        );
         assert.deepEqual(result.edits, []);
       }
     });

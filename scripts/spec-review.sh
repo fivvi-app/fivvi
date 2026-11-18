@@ -35,6 +35,7 @@ record_file() { echo "$NOTES_DIR/spec-$1/spec-review.md"; }
 # Acceptance criteria of an issue body (the input, a string or null): the checklist items under its
 # `## Acceptance criteria` heading, up to the next heading of the same or a higher level. Pure; the ids are built by the
 # caller. Load with `jq -L scripts`.
+# shellcheck disable=SC2016 # jq, not shell
 CRITERIA_JQ='
 def criteria:
   (. // "" | split("\n") | map(rtrimstr("\r"))) as $lines
