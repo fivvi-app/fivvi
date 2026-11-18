@@ -36,9 +36,10 @@
 #
 # #1444: the drop does not always stop at one (runs 43973406576 and 42961754633: the adb server lost the device two and three
 # times within a few minutes in the first locale's run, with the emulator process running and the emulator log without an
-# error, and never in the second). The flows that dropped are re-run MAESTRO_DROP_RERUNS times (1 by default, TESTING.md §3
-# "Maestro may retry once"; the owner can raise it), each after the device answers again; one that does not come back within DEVICE_READY_TIMEOUT gets the emulator relaunched once,
-# cold. Flows whose testcase has tags (a <properties> element before the failure in Maestro's report) are re-run too: the
+# error, and never in the second). The flows that dropped are re-run MAESTRO_DROP_RERUNS times (1 by default, TESTING.md §8
+# "Maestro may retry once"; the owner can raise it), each after the device answers again; one that does not come back within
+# DEVICE_READY_TIMEOUT gets the emulator relaunched once, cold. Flows whose testcase has tags (a <properties> element
+# before the failure in Maestro's report) are re-run too: the
 # parser had skipped them. When the drops go on past the last re-run, or the device is gone for good, the locale is not a
 # failed flow but an infrastructure failure: the run names the cause (the emulator process gone, or running while the host's
 # adb server lost it), prints the emulator log, the adb server log and the memory, and fails with `infrastructure failure:`.
@@ -78,7 +79,7 @@ SETTINGS_WRITE_WAIT="${SETTINGS_WRITE_WAIT:-5}"
 DEVICE_READY_TIMEOUT="${DEVICE_READY_TIMEOUT:-120}"
 DEVICE_STABLE_PROBES="${DEVICE_STABLE_PROBES:-5}"
 # How many times the flows that failed with a dropped adb connection are re-run (#1444); the drops past that are an
-# infrastructure failure. One, as TESTING.md §3 says ("Maestro may retry once"); the variable lets the owner raise it.
+# infrastructure failure. One, as TESTING.md §8 says ("Maestro may retry once"); the variable lets the owner raise it.
 MAESTRO_DROP_RERUNS="${MAESTRO_DROP_RERUNS:-1}"
 # The status run_locale returns for a locale whose run ended in an infrastructure failure, not in a failed flow. Maestro's
 # own non-zero statuses are mapped to 1 there (130, Ctrl-C, aside), so no flow failure can look like it.
@@ -524,7 +525,7 @@ maestro_status() {
 # cleared around it. A failing flow fails the locale (the status), and the run goes on to the next. Flows that failed only
 # because the adb connection dropped (adb_dropped_flows) are re-run, after the device is usable again, and the ones that
 # drop again once more, at most MAESTRO_DROP_RERUNS times; the run says so, and each run's report is next to the first
-# (<report>-retry, <report>-retry2). Flows that pass only on a re-run are reported as flaky (TESTING.md §3): a line naming
+# (<report>-retry, <report>-retry2). Flows that pass only on a re-run are reported as flaky (TESTING.md §8): a line naming
 # them, and on CI (CI set) a GitHub warning annotation. Drops past the last re-run, or a device that does not come back, are
 # an infrastructure failure (INFRA_STATUS, report_device_loss), not a failed flow. Ctrl-C stops the whole run (Maestro, a
 # JVM, exits 130 on it, so bash doesn't see the signal itself).
