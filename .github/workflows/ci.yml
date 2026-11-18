@@ -1,5 +1,5 @@
-# CI for every pull request, every push to main and every merge group of the merge queue (E002, E010), and on demand
-# (workflow_dispatch). The queue tests a PR on top of the latest main on a temporary gh-readonly-queue/main/* branch;
+# CI for every pull request, every push to main and every merge group of the merge queue (E002, E010), on demand
+# (workflow_dispatch) and every night (schedule). The queue tests a PR on top of the latest main on a temporary gh-readonly-queue/main/* branch;
 # the required checks must report there too, or the queue never merges (ADR-018).
 #
 # The job names ("Detect changes", "Checks (Linux)", "E2E (Linux)", "iOS",
@@ -12,6 +12,14 @@
 #
 # New static checks (i18n parity, OpenAPI drift, ...) are added as a `check`
 # script in the package that owns them. Turbo picks them up; no change here.
+#
+# The pipeline switch (ADR-034, .github/pipeline.json, scripts/pipeline.sh): "Detect changes" reads `ci` and outputs
+# `ui_tests`. With `ci: full` every run runs every UI test, as before ADR-034 (tag pipeline-full-2026-11-18). With `ci: fast`
+# a pull request, a merge group and a push run none: "iOS tests" run `test-ios.sh test <locale> --unit-only`, "Android tests"
+# runs `android.sh verify --no-ui` without KVM, emulator and AVD cache, "Android Maestro" and "E2E (Linux)" do not run (a
+# skipped required check passes), "Quarantine" runs its Vitest list only and "Quarantine (Android)" does not run. The nightly
+# run (schedule, 02:00 UTC) and workflow_dispatch run everything, UI tests and every quarantine list included, whatever
+# changed, and the last job, "Nightly report", opens or updates the issue "Nightly UI tests failed" when one of them failed.
 
 name: CI
 
@@ -40,13 +48,19 @@ on:
     types: [checks_requested]
     branches: [main]
   workflow_dispatch:
+  # The UI tests run here every night, on main (ADR-034): a scheduled run forces every job like workflow_dispatch.
+  schedule:
+    - cron: '0 2 * * *'
 
 # A new push to a PR cancels the run for the previous push. A run that is in progress on main is never cancelled, nor is
 # a run of a merge group, which the queue waits for. A run on main that is still pending when another push arrives is
 # replaced by the newer one (GitHub keeps one running and one pending run per group): it shows as `cancelled` with no
 # jobs, and is not a failure.
+#
+# The nightly run has a group of its own: it runs on main, like a push, and a push run that is pending would otherwise replace
+# a nightly run that is pending behind a running one (or the other way round), and a night would be lost.
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.event.pull_request.number || (github.event_name == 'schedule' && 'nightly') || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
@@ -67,6 +81,9 @@ jobs:
       ios: ${{ steps.filter.outputs.ios }}
       android: ${{ steps.filter.outputs.android }}
       e2e: ${{ steps.filter.outputs.e2e }}
+      # Whether the UI tests run in this run (ADR-034): the Compose UI tests and Maestro on Android, the UI tests of iOS, the
+      # Playwright suite (E2E (Linux)) and the Playwright, Compose and Maestro quarantine lists.
+      ui_tests: ${{ steps.filter.outputs.ui_tests }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -109,19 +126,41 @@ jobs:
 
           # Which native jobs run (scripts/native-jobs.sh): those whose paths changed. That holds on a push to main,
           # which writes the caches every PR reads, and in a merge group, whose caches only its own queue branch reads.
-          # workflow_dispatch and the PR's run-native label (read on its pushes) force them.
+          # workflow_dispatch, the nightly run (schedule) and the PR's run-native label (read on its pushes) force them.
           args=(--event "$EVENT")
           if [[ "$RUN_NATIVE" == 'true' ]]; then args+=(--run-native); fi
           scripts/native-jobs.sh "${args[@]}" <<<"$changed" >>"$GITHUB_OUTPUT"
 
           # Whether the Linux E2E job runs (scripts/affected.mjs, the decision scripts/check.sh makes too): only when the
-          # web app or a package it depends on changed, or on demand. Why it skips is in the log and the job summary.
+          # web app or a package it depends on changed, or on demand (also in the nightly run). Why it skips is in the log and
+          # the job summary.
           affected_args=()
-          if [[ "$EVENT" == 'workflow_dispatch' || "$RUN_NATIVE" == 'true' ]]; then affected_args+=(--force); fi
+          if [[ "$EVENT" == 'workflow_dispatch' || "$EVENT" == 'schedule' || "$RUN_NATIVE" == 'true' ]]; then affected_args+=(--force); fi
           reasons="$(mktemp)"
           node scripts/affected.mjs ${affected_args[@]+"${affected_args[@]}"} <<<"$changed" 2>"$reasons" | grep '^e2e=' >>"$GITHUB_OUTPUT"
           cat "$reasons"
           { echo '### What this change affects'; sed 's/^/- /' "$reasons"; } >>"${GITHUB_STEP_SUMMARY:-/dev/null}"
+
+          # Whether the UI tests run (ADR-034, .github/pipeline.json): always with `ci: full`, and with `ci: fast` only in
+          # the nightly run and on demand; the PR's run-native label forces the native jobs, not the UI tests. The script
+          # fails closed: a missing or unknown setting stops this job, and with it the run.
+          ci_mode="$(scripts/pipeline.sh get ci)"
+          if [[ "$ci_mode" == 'full' ]]; then
+            ui_tests=true
+            ui_reason="ci is full (.github/pipeline.json), so every run runs them"
+          elif [[ "$EVENT" == 'schedule' ]]; then
+            ui_tests=true
+            ui_reason="the nightly run (schedule) runs them, every night"
+          elif [[ "$EVENT" == 'workflow_dispatch' ]]; then
+            ui_tests=true
+            ui_reason="workflow_dispatch runs everything"
+          else
+            ui_tests=false
+            ui_reason="ci is fast (.github/pipeline.json), so they run in the nightly run only"
+          fi
+          echo "UI tests: $([[ "$ui_tests" == 'true' ]] && echo run || echo 'not run'): $ui_reason."
+          echo "ui_tests=$ui_tests" >>"$GITHUB_OUTPUT"
+          echo "- UI tests: $([[ "$ui_tests" == 'true' ]] && echo run || echo 'not run'): $ui_reason" >>"${GITHUB_STEP_SUMMARY:-/dev/null}"
 
   checks:
     name: Checks (Linux)
@@ -240,8 +279,9 @@ jobs:
     name: E2E (Linux)
     needs: changes
     # Only when the web app or a package it depends on is affected (scripts/affected.mjs); otherwise this required check
-    # passes as skipped, and "Detect changes" says why.
-    if: needs.changes.outputs.e2e == 'true'
+    # passes as skipped, and "Detect changes" says why. Playwright is a UI test: with `ci: fast` it runs only in the nightly
+    # run and on demand (ADR-034), and the required check passes as skipped on a pull request and in a merge group.
+    if: needs.changes.outputs.e2e == 'true' && needs.changes.outputs.ui_tests == 'true'
     runs-on: ubuntu-24.04
     continue-on-error: ${{ github.event_name == 'push' }}
     # The suite stops itself after 17 minutes (apps/web/test/e2e-run.ts, #1408), and the OS packages step may spend 10 minutes on
@@ -356,8 +396,12 @@ jobs:
   # the other one (`!cancelled()`). Only a cancelled run is cancelled. It passes when the lists are empty, and then does
   # nothing but read them: no install, no Postgres use, no browser. scripts/quarantine.mjs --count says which runner has
   # entries; FIVVI_QUARANTINE=only selects the listed tests.
+  #
+  # With `ci: fast` (ADR-034) a run without UI tests reads the Playwright list and leaves it out: the job runs its Vitest list
+  # only, and the Playwright list runs in the nightly run and on demand. The decision is "Detect changes"'s `ui_tests`.
   quarantine:
     name: Quarantine
+    needs: changes
     runs-on: ubuntu-24.04
     # Never fails, on any event; the push-run rules (ADR-018) hold as for every job.
     continue-on-error: ${{ github.event_name == 'push' }}
@@ -391,19 +435,31 @@ jobs:
       # Runs before any install, on the Node the runner has (scripts/quarantine.mjs imports nothing else).
       - id: lists
         name: Read the quarantine lists
+        env:
+          UI_TESTS: ${{ needs.changes.outputs.ui_tests }}
         run: |
           set -euo pipefail
           vitest="$(node scripts/quarantine.mjs --count vitest)"
-          playwright="$(node scripts/quarantine.mjs --count playwright)"
+          listed="$(node scripts/quarantine.mjs --count playwright)"
+          # The Playwright list holds UI tests: it runs only in a run with UI tests (ADR-034), and every step below reads
+          # `playwright`, so a run without them leaves it out here, once. Anything but `true` leaves it out.
+          playwright="$listed"
+          playwright_later=0
+          if [[ "$UI_TESTS" != 'true' ]]; then playwright=0; playwright_later="$listed"; fi
           {
             echo "vitest=$vitest"
             echo "playwright=$playwright"
+            echo "playwright_later=$playwright_later"
             if [[ "$vitest" != '0' || "$playwright" != '0' ]]; then echo 'any=true'; else echo 'any=false'; fi
           } >>"$GITHUB_OUTPUT"
           if [[ "$vitest" == '0' && "$playwright" == '0' ]]; then
             {
               echo '### Quarantine'
-              echo 'Nothing is quarantined: the lists of Vitest and Playwright are empty, so there is nothing to run.'
+              if [[ "$playwright_later" != '0' ]]; then
+                echo "Vitest lists nothing, and the $playwright_later listed Playwright test(s) run in the nightly run only: this run has no UI tests (ADR-034)."
+              else
+                echo 'Nothing is quarantined: the lists of Vitest and Playwright are empty, so there is nothing to run.'
+              fi
             } >>"${GITHUB_STEP_SUMMARY:-/dev/null}"
           fi
 
@@ -547,6 +603,7 @@ jobs:
           VITEST: ${{ steps.vitest.outcome }}
           VITEST_STATUS: ${{ steps.vitest.outputs.status }}
           PLAYWRIGHT_LISTED: ${{ steps.lists.outputs.playwright }}
+          PLAYWRIGHT_LATER: ${{ steps.lists.outputs.playwright_later }}
           E2E: ${{ steps.e2e.outcome }}
           E2E_STATUS: ${{ steps.e2e.outputs.status }}
         run: |
@@ -576,7 +633,11 @@ jobs:
             fi
           }
           report Vitest "$VITEST_LISTED" "$VITEST" "$VITEST_STATUS" "$RUNNER_TEMP/quarantine-vitest.log" '^((apps|packages)/[^ ]+ [^ ]+: )? *(FAIL|×) '
-          report Playwright "$PLAYWRIGHT_LISTED" "$E2E" "$E2E_STATUS" "$RUNNER_TEMP/quarantine-playwright.log" '^((apps|packages)/[^ ]+ [^ ]+: )? +[0-9]+\) \['
+          if [[ "${PLAYWRIGHT_LATER:-0}" != '0' ]]; then
+            echo "- Playwright: $PLAYWRIGHT_LATER listed, not run here: the UI tests run in the nightly run (ADR-034)" >>"$summary"
+          else
+            report Playwright "$PLAYWRIGHT_LISTED" "$E2E" "$E2E_STATUS" "$RUNNER_TEMP/quarantine-playwright.log" '^((apps|packages)/[^ ]+ [^ ]+: )? +[0-9]+\) \['
+          fi
 
   # iOS (E008, E002, #293). Three parts and the gate "iOS": one job builds once and packs the test bundle, two jobs run
   # the Dutch and the English test pass from it at the same time, each on its own simulator (a cold run was 16 of 21
@@ -798,7 +859,8 @@ jobs:
 
   ios-tests:
     name: iOS tests (${{ matrix.locale }})
-    needs: [ios-build, ios-build-retry]
+    # `changes` for the decision whether the UI tests run (ADR-034).
+    needs: [changes, ios-build, ios-build-retry]
     # Start from whichever build succeeded (the retry runs only when the first was abandoned); !cancelled() because a
     # skipped retry would skip this job.
     if: ${{ !cancelled() && github.event_name != 'push' && (needs.ios-build.result == 'success' || needs.ios-build-retry.result == 'success') }}
@@ -836,9 +898,15 @@ jobs:
           path: apps/ios/.build
 
       # The unit and UI tests of this language, from the bundle of "iOS build", without building again, on this job's own
-      # simulator. Prints the slowest tests.
+      # simulator. Prints the slowest tests. With `ci: fast` (ADR-034) only a run with UI tests (the nightly run, on demand)
+      # runs them; every other run runs the unit tests of this language and leaves the UI test target out.
       - name: Unit and UI tests (${{ matrix.locale }})
+        if: needs.changes.outputs.ui_tests == 'true'
         run: scripts/test-ios.sh test ${{ matrix.locale }}
+
+      - name: Unit tests (${{ matrix.locale }}), no UI tests in this run
+        if: needs.changes.outputs.ui_tests != 'true'
+        run: scripts/test-ios.sh test ${{ matrix.locale }} --unit-only
 
       # Only on failure, or when the timeout cancels the job (#305) in a run that nothing supersedes (a pull request
       # run is cancelled by the next push): artifact storage counts against the free quota.
@@ -892,7 +960,7 @@ jobs:
   # from here.
   ios-tests-retry:
     name: iOS tests (${{ matrix.locale }}) (retry)
-    needs: ios-tests-plan
+    needs: [changes, ios-tests-plan]
     if: ${{ !cancelled() && github.event_name != 'push' && needs.ios-tests-plan.outputs.locales != '' && needs.ios-tests-plan.outputs.locales != '[]' }}
     runs-on: macos-15
     continue-on-error: ${{ github.event_name == 'push' }}
@@ -920,9 +988,15 @@ jobs:
           path: apps/ios/.build
 
       # The unit and UI tests of this language, from the bundle of "iOS build", without building again, on this job's own
-      # simulator. Prints the slowest tests.
+      # simulator. Prints the slowest tests. With `ci: fast` (ADR-034) only a run with UI tests (the nightly run, on demand)
+      # runs them; every other run runs the unit tests of this language and leaves the UI test target out.
       - name: Unit and UI tests (${{ matrix.locale }})
+        if: needs.changes.outputs.ui_tests == 'true'
         run: scripts/test-ios.sh test ${{ matrix.locale }}
+
+      - name: Unit tests (${{ matrix.locale }}), no UI tests in this run
+        if: needs.changes.outputs.ui_tests != 'true'
+        run: scripts/test-ios.sh test ${{ matrix.locale }} --unit-only
 
       # Only on failure, or when the timeout cancels the job (#305) in a run that nothing supersedes (a pull request
       # run is cancelled by the next push): artifact storage counts against the free quota.
@@ -1025,12 +1099,13 @@ jobs:
         timeout-minutes: 10
         run: scripts/android.sh build
 
+      # Only for the Maestro job, which runs only in a run with UI tests (ADR-034).
       - name: Debug app for Maestro
-        if: github.event_name != 'push'
+        if: github.event_name != 'push' && needs.changes.outputs.ui_tests == 'true'
         run: scripts/android.sh maestro-apk
 
       - name: Upload the debug app
-        if: github.event_name != 'push'
+        if: github.event_name != 'push' && needs.changes.outputs.ui_tests == 'true'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: android-maestro-apk
@@ -1074,9 +1149,13 @@ jobs:
         with:
           persist-credentials: false
 
+      # The steps for the emulator (disk space, KVM, the SDK's emulator and image, the AVD cache, the boot) run only in a run
+      # with UI tests (ADR-034); a run without them verifies the unit tests and the release bundle with the build tools only.
+      #
       # The emulator creates a 6 GB data partition on its first boot and needs 7.4 GB free for it; Gradle
       # needs more. These preinstalled toolchains aren't used by this job.
       - name: Free disk space
+        if: needs.changes.outputs.ui_tests == 'true'
         run: |
           df -h /
           sudo rm -rf /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
@@ -1091,6 +1170,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@3f5f9adaf7d9fecd50b5935e54106014257a94e6 # v6.4.0
 
       - name: Enable KVM
+        if: needs.changes.outputs.ui_tests == 'true'
         run: |
           echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
             | sudo tee /etc/udev/rules.d/99-kvm4all.rules
@@ -1104,11 +1184,18 @@ jobs:
           fi
 
       - name: Android SDK packages and emulator
+        if: needs.changes.outputs.ui_tests == 'true'
         timeout-minutes: ${{ github.event_name == 'push' && 15 || 360 }}
         run: scripts/android.sh setup
 
+      - name: Android SDK build tools
+        if: needs.changes.outputs.ui_tests != 'true'
+        timeout-minutes: ${{ github.event_name == 'push' && 5 || 360 }}
+        run: scripts/android.sh setup --build-only
+
       - id: avd
         name: Emulator cache key
+        if: needs.changes.outputs.ui_tests == 'true'
         run: echo "key=$(scripts/android.sh avd-key)" >> "$GITHUB_OUTPUT"
 
       # The AVD with the snapshot of its booted state. Keyed by the system image, the emulator and the AVD settings
@@ -1118,6 +1205,7 @@ jobs:
       # overwrites an existing key, so the replacement isn't saved and every run would fall back to a cold boot. The
       # caches of a PR are its own and main's (written by pushes to main that change native paths).
       - name: Cache the emulator
+        if: needs.changes.outputs.ui_tests == 'true'
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: ~/.android/avd
@@ -1127,6 +1215,7 @@ jobs:
       # script saves one. It gives up after EMULATOR_BOOT_TIMEOUT (a cold boot can take minutes) and prints the
       # emulator log; the step timeout is a backstop.
       - name: Boot the emulator
+        if: needs.changes.outputs.ui_tests == 'true'
         timeout-minutes: 10
         env:
           AVD_SNAPSHOT: '1'
@@ -1139,18 +1228,25 @@ jobs:
       # 1.6 times the slowest run measured. A test that hangs fails by name after UI_TEST_TIMEOUT_MS (a minute or two,
       # scripts/_android.sh), long before the limit; the step below names the one that started last when it runs out anyway.
       - name: Unit tests, release bundle and Compose UI tests
-        if: github.event_name != 'push'
+        if: github.event_name != 'push' && needs.changes.outputs.ui_tests == 'true'
         timeout-minutes: 40
         run: scripts/android.sh verify
 
+      # `ci: fast` (ADR-034): the unit tests and the signed release bundle, no emulator and no Compose UI test (those run in the
+      # nightly run). The 40 minutes of the step above stay the limit of this step too, so the job's timeout is the same.
+      - name: Unit tests and release bundle, no UI tests in this run
+        if: github.event_name != 'push' && needs.changes.outputs.ui_tests != 'true'
+        timeout-minutes: 40
+        run: scripts/android.sh verify --no-ui
+
       - name: The Compose UI test that ran last
-        if: failure()
+        if: failure() && needs.changes.outputs.ui_tests == 'true'
         run: scripts/android.sh last-test
 
       # The cache of the emulator is saved after this step: the emulator must not be running, or it would be copied in
       # mid-write.
       - name: Stop the emulator
-        if: always()
+        if: always() && needs.changes.outputs.ui_tests == 'true'
         run: scripts/android.sh stop
 
       # Always, also after a cancel or timeout: without the emulator log a hung boot can't be diagnosed. Kept 7 days,
@@ -1179,7 +1275,9 @@ jobs:
   android-maestro:
     name: Android Maestro
     needs: [changes, android-build]
-    if: needs.changes.outputs.android == 'true' && github.event_name != 'push'
+    # Maestro is a UI test: with `ci: fast` it runs only in the nightly run and on demand (ADR-034), and the gate "Android"
+    # takes the skipped job for a pass only then.
+    if: needs.changes.outputs.android == 'true' && github.event_name != 'push' && needs.changes.outputs.ui_tests == 'true'
     runs-on: ubuntu-24.04
     continue-on-error: ${{ github.event_name == 'push' }}
     # The setup before the Maestro step (3 minutes measured, the emulator boot is capped at 10), the step (30) and the
@@ -1319,10 +1417,21 @@ jobs:
         with:
           persist-credentials: false
 
+      # The parts are labelled, so the gate can accept one skipped part by name (scripts/native-gate.sh --skip-ok, ADR-034): "Android
+      # Maestro" when "Detect changes" says this run has no UI tests (`ui_tests` is exactly `false`). In any other run, also when
+      # `ui_tests` is empty, a skipped Maestro fails the gate as before: it stays fail-closed.
       - name: Combined result of the Android jobs
         env:
-          RESULTS: ${{ join(needs.*.result, ' ') }}
-        run: scripts/native-gate.sh Android true $RESULTS
+          CHANGES: ${{ needs.changes.result }}
+          BUILD: ${{ needs.android-build.result }}
+          TESTS: ${{ needs.android-tests.result }}
+          MAESTRO: ${{ needs.android-maestro.result }}
+          UI_TESTS: ${{ needs.changes.outputs.ui_tests }}
+        run: |
+          skip_ok=()
+          if [[ "$UI_TESTS" == 'false' ]]; then skip_ok+=(--skip-ok 'Android Maestro'); fi
+          scripts/native-gate.sh ${skip_ok[@]+"${skip_ok[@]}"} Android true \
+            "Detect changes=$CHANGES" "Android build=$BUILD" "Android tests=$TESTS" "Android Maestro=$MAESTRO"
 
   # Quarantine, the Android part (E002 #1363, ADR-025 amendment of 12 November 2026, TESTING.md §8). A flaky test on
   # quarantine/compose.txt (the Android unit tests and the Compose UI tests) or quarantine/maestro.txt (a Maestro flow) is left
@@ -1333,8 +1442,11 @@ jobs:
   # main. FIVVI_QUARANTINE=only selects the listed tests.
   quarantine-android:
     name: Quarantine (Android)
+    needs: changes
     # No native test suite runs on a push to main ("Android tests", "Android Maestro"): the lists are read on the other events.
-    if: github.event_name != 'push'
+    # Both lists hold UI tests (the Compose UI tests and the Maestro flows): with `ci: fast` (ADR-034) the job runs only in the
+    # nightly run and on demand.
+    if: github.event_name != 'push' && needs.changes.outputs.ui_tests == 'true'
     runs-on: ubuntu-24.04
     continue-on-error: ${{ github.event_name == 'push' }}
     # The step timeouts below are literal on every event and add up to 95 (install 5, SDK setup 15, boot 10, Compose 25, debug
@@ -1542,3 +1654,45 @@ jobs:
           if [[ "$MAESTRO_LISTED" != '0' && "$APK" != 'success' ]]; then flows="$APK"; fi
           report Compose "$COMPOSE_LISTED" "$COMPOSE"
           report Maestro "$MAESTRO_LISTED" "$flows"
+
+  # The report of the nightly run (ADR-034): the UI tests run here every night, on main, and nobody watches the run. When a
+  # job of it failed or was cancelled, this opens the bug issue "Nightly UI tests failed" (bug, ready-for-agent; the factory
+  # builds it before the other tickets), or comments on the open one (scripts/nightly-report.sh). It runs only on the schedule,
+  # after every other job whatever became of them (`always()`), and is the only job with `issues: write`. The issue holds the
+  # run's address and the names of the failing jobs; no log and no user data. Not a required check.
+  nightly-report:
+    name: Nightly report
+    needs:
+      - changes
+      - checks
+      - e2e
+      - quarantine
+      - ios-build
+      - ios-build-retry
+      - ios-tests
+      - ios-tests-plan
+      - ios-tests-retry
+      - ios
+      - android-build
+      - android-tests
+      - android-maestro
+      - android
+      - quarantine-android
+    if: always() && github.event_name == 'schedule'
+    runs-on: ubuntu-24.04
+    continue-on-error: ${{ github.event_name == 'push' }}
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      actions: read # scripts/nightly-report.sh reads the names of this run's jobs
+      issues: write # opens or comments on "Nightly UI tests failed"
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Open or update the issue of a failed nightly run
+        env:
+          GH_TOKEN: ${{ github.token }}
+          NEEDS: ${{ toJSON(needs) }}
+        run: scripts/nightly-report.sh

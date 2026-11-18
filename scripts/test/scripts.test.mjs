@@ -340,6 +340,15 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     assert.equal(pr.android, 'false');
   });
 
+  it('ADR-034: the nightly (schedule) run runs both native jobs, whatever changed, a README-only change included', () => {
+    for (const changed of [['docs/product/FEATURES.md'], ['apps/ios/README.md']]) {
+      const jobs = nativeJobs(changed, ['--event', 'schedule']);
+      assert.equal(jobs.ios, 'true');
+      assert.equal(jobs.android, 'true');
+      assert.match(jobs.log, /run on demand|nightly/);
+    }
+  });
+
   const ci = () => readFileSync(join(SCRIPTS, '../.github/workflows/ci.yml'), 'utf8');
 
   it('E002 #91: the job names stay, and ci.yml has no path list of its own', () => {
@@ -368,6 +377,8 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
         'Android Maestro',
         // Not required, and never to be: the listed flaky Android tests run here (E002 #1363, TESTING.md §8).
         'Quarantine (Android)',
+        // ADR-034: opens the issue of a failed nightly run; runs only on the schedule, and is not required.
+        'Nightly report',
       ],
     );
   });
@@ -406,7 +417,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
 
     it('lets the tests start from either build, and the gate read every part', () => {
       const tests = job('ios-tests');
-      assert.match(tests, /^ {4}needs: \[ios-build, ios-build-retry\]$/m);
+      assert.match(tests, /^ {4}needs: \[changes, ios-build, ios-build-retry\]$/m);
       const condition = field('ios-tests', /^ {4}if: (.+)$/m);
       assert.match(condition, /!cancelled\(\)/);
       assert.match(condition, /needs\.ios-build\.result == 'success'/);
@@ -440,7 +451,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     it('runs the retried languages from the existing bundle, with the steps of the first try', () => {
       const retry = job('ios-tests-retry');
       assert.match(retry, /^ {4}name: iOS tests \(\$\{\{ matrix\.locale \}\}\) \(retry\)$/m);
-      assert.match(retry, /^ {4}needs: ios-tests-plan$/m);
+      assert.match(retry, /^ {4}needs: \[changes, ios-tests-plan\]$/m);
       const condition = field('ios-tests-retry', /^ {4}if: (.+)$/m);
       assert.match(condition, /!cancelled\(\)/);
       assert.match(condition, /needs\.ios-tests-plan\.outputs\.locales != '\[\]'/);
@@ -461,6 +472,9 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     });
   });
 
+  // The log (stdout and stderr) of the last detectAll run: why each job runs or skips.
+  let detectLog = '';
+
   // Runs the `Filter paths` step of the Detect changes job as it is in ci.yml, in a repo whose last commit changed
   // `changed`, with the event and label the workflow would pass; returns what it writes to $GITHUB_OUTPUT.
   // `earlier` are paths changed by a commit before it, in the same group: a merge queue group holds the commits of
@@ -472,6 +486,8 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     earlier = [],
     moves = [],
     noMergeBase = false,
+    pipeline = 'full',
+    expectFailure = false,
   }) => {
     const lines = ci().split('\n');
     const start = lines.findIndex((line) => line.includes('name: Filter paths'));
@@ -504,6 +520,14 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
         mkdirSync(join(repo, dir), { recursive: true });
       writeFileSync(join(repo, 'apps/ios/.keep'), '');
       writeFileSync(join(repo, 'apps/android/.keep'), '');
+      // The switch of ADR-034, which the Filter paths step reads through scripts/pipeline.sh.
+      mkdirSync(join(repo, '.github'), { recursive: true });
+      writeFileSync(
+        join(repo, '.github/pipeline.json'),
+        typeof pipeline === 'string'
+          ? JSON.stringify({ ci: pipeline, review: 'split' })
+          : JSON.stringify(pipeline),
+      );
       // The workspace scripts/affected.mjs reads: the web app depends on the database, the API on neither.
       writeFileSync(join(repo, 'pnpm-workspace.yaml'), 'packages:\n  - apps/*\n  - packages/*\n');
       for (const [dir, json] of Object.entries({
@@ -566,6 +590,8 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
           GITHUB_OUTPUT: output,
         },
       });
+      detectLog = `${result.stdout}${result.stderr}`;
+      if (expectFailure) return { status: result.status, log: detectLog };
       assert.equal(result.status, 0, result.stderr);
       const outputs = Object.fromEntries(
         readFileSync(output, 'utf8')
@@ -582,7 +608,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
 
   // The native jobs only, as most tests below ask; detectAll also has the Linux E2E decision (#293).
   const detectChanges = (options) => {
-    const { e2e: _e2e, ...native } = detectAll(options);
+    const { e2e: _e2e, ui_tests: _uiTests, ...native } = detectAll(options);
     return native;
   };
 
@@ -654,6 +680,73 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     assert.equal(e2e({ event: 'workflow_dispatch' }), 'true');
     assert.equal(e2e({ event: 'pull_request', label: true }), 'true');
     assert.equal(e2e({ event: 'pull_request' }), 'false');
+  });
+
+  it('ADR-034: the nightly (schedule) run forces the native jobs and the Linux E2E job, whatever changed', () => {
+    for (const pipeline of ['fast', 'full']) {
+      assert.deepEqual(detectAll({ event: 'schedule', pipeline }), {
+        ios: 'true',
+        android: 'true',
+        e2e: 'true',
+        ui_tests: 'true',
+      });
+    }
+  });
+
+  describe('ADR-034 the ui_tests output of Detect changes (.github/pipeline.json)', () => {
+    const uiTests = (options) => detectAll(options).ui_tests;
+
+    it('full: every event runs the UI tests, as before ADR-034', () => {
+      for (const event of ['pull_request', 'merge_group', 'push', 'workflow_dispatch', 'schedule']) {
+        assert.equal(uiTests({ event, pipeline: 'full' }), 'true', event);
+      }
+      assert.equal(uiTests({ event: 'pull_request', pipeline: 'full', label: true }), 'true');
+    });
+
+    it('fast: a pull request, a merge group and a push run no UI test, whatever changed and also with the run-native label', () => {
+      for (const event of ['pull_request', 'merge_group', 'push']) {
+        for (const changed of [['docs/product/PRODUCT.md'], ['apps/ios/App.swift'], ['apps/web/src/a.ts']]) {
+          assert.equal(uiTests({ event, pipeline: 'fast', changed }), 'false', `${event} ${changed}`);
+        }
+      }
+      assert.equal(uiTests({ event: 'pull_request', pipeline: 'fast', label: true }), 'false');
+    });
+
+    it('fast: workflow_dispatch and the nightly run do run the UI tests', () => {
+      for (const event of ['workflow_dispatch', 'schedule']) {
+        assert.equal(uiTests({ event, pipeline: 'fast' }), 'true', event);
+      }
+    });
+
+    it('does not change what the native and E2E jobs decide: a pull request still runs only what changed', () => {
+      assert.deepEqual(
+        detectAll({ event: 'pull_request', pipeline: 'fast', changed: ['apps/ios/App.swift'] }),
+        { ios: 'true', android: 'false', e2e: 'false', ui_tests: 'false' },
+      );
+      assert.deepEqual(
+        detectAll({ event: 'pull_request', pipeline: 'full', changed: ['apps/ios/App.swift'] }),
+        { ios: 'true', android: 'false', e2e: 'false', ui_tests: 'true' },
+      );
+    });
+
+    it('logs why, like the other skip decisions', () => {
+      detectAll({ event: 'pull_request', pipeline: 'fast' });
+      assert.match(detectLog, /UI tests: not run.*ci is fast.*nightly/i);
+      detectAll({ event: 'schedule', pipeline: 'fast' });
+      assert.match(detectLog, /UI tests: run.*nightly/i);
+      detectAll({ event: 'workflow_dispatch', pipeline: 'fast' });
+      assert.match(detectLog, /UI tests: run.*workflow_dispatch/);
+      detectAll({ event: 'pull_request', pipeline: 'full' });
+      assert.match(detectLog, /UI tests: run.*ci is full/i);
+    });
+
+    it('fails closed: a missing or unknown setting stops the job, it is not read as fast or full', () => {
+      for (const pipeline of ['quick', '', { review: 'split' }]) {
+        const run = detectAll({ event: 'pull_request', pipeline, expectFailure: true });
+        assert.notEqual(run.status, 0, JSON.stringify(pipeline));
+        assert.match(run.log, /ci/);
+      }
+    });
   });
 
   it('#293: a push to main is decided by the commits it adds', () => {
@@ -865,7 +958,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
       /uses: actions\/upload-artifact@[^\n]*\n +with:\n +name: ios-test-bundle\n +path: apps\/ios\/\.build\/ios-test-bundle\.tar\n/,
     );
     assert.match(iosBuild, /include-hidden-files: true/);
-    assert.match(iosTests, /needs: \[ios-build, ios-build-retry\]\n/);
+    assert.match(iosTests, /needs: \[changes, ios-build, ios-build-retry\]\n/);
     assert.match(iosTests, /matrix:\n +locale: \[nl, en\]/);
     assert.match(iosTests, /fail-fast: false/);
     assert.match(
@@ -1063,7 +1156,8 @@ describe('E002 #91 the native jobs in ci.yml', () => {
       assert.ok(order.every((index) => index > 0));
       assert.match(
         android,
-        /name: Stop the emulator\n +if: always\(\)\n +run: scripts\/android\.sh stop\n/,
+        // ADR-034: "Android tests" stops an emulator only in a run that booted one (UI tests).
+        /name: Stop the emulator\n +if: always\(\)( && needs\.changes\.outputs\.ui_tests == 'true')?\n +run: scripts\/android\.sh stop\n/,
       );
     }
   });
@@ -1098,11 +1192,22 @@ describe('E002 #91 the native jobs in ci.yml', () => {
         `${gate} runs after its parts, also when one failed`,
       );
       if (native === 'android') {
-        assert.match(section, /RESULTS: \$\{\{ join\(needs\.\*\.result, ' '\) \}\}/);
+        // ADR-034: the parts are labelled, so the gate can accept a skipped Maestro job when the run has no UI tests; the
+        // gate's own test is scripts/test/ci-fast-pipeline.test.mjs.
+        for (const [variable, result] of [
+          ['CHANGES', 'changes'],
+          ['BUILD', 'android-build'],
+          ['TESTS', 'android-tests'],
+          ['MAESTRO', 'android-maestro'],
+        ]) {
+          assert.match(section, new RegExp(`${variable}: \\$\\{\\{ needs\\.${result}\\.result \\}\\}`));
+        }
+        assert.match(section, /UI_TESTS: \$\{\{ needs\.changes\.outputs\.ui_tests \}\}/);
         assert.match(
           section,
-          new RegExp(`run: scripts/native-gate\\.sh ${name} true \\$RESULTS\n`),
+          /"Detect changes=\$CHANGES" "Android build=\$BUILD" "Android tests=\$TESTS" "Android Maestro=\$MAESTRO"/,
         );
+        assert.match(section, /scripts\/native-gate\.sh \$\{skip_ok\[@\]\+"\$\{skip_ok\[@\]\}"\} Android true/);
       } else {
         // iOS (#413): scripts/ios-parts.sh turns a cancelled part that no runner picked up into "unacquired" and passes
         // the other results on; the gate reads the run's jobs, so it needs actions: read, and it works without them.
@@ -1121,7 +1226,11 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     const e2e = job('e2e');
     assert.match(e2e, /^ {4}name: E2E \(Linux\)$/m);
     assert.match(e2e, /^ {4}needs: changes$/m);
-    assert.match(e2e, /^ {4}if: needs\.changes\.outputs\.e2e == 'true'$/m);
+    // ADR-034: and, with `ci: fast`, a run with UI tests (the nightly run, on demand).
+    assert.match(
+      e2e,
+      /^ {4}if: needs\.changes\.outputs\.e2e == 'true' && needs\.changes\.outputs\.ui_tests == 'true'$/m,
+    );
     assert.match(job('changes'), /e2e: \$\{\{ steps\.filter\.outputs\.e2e \}\}/);
   });
 
@@ -1129,7 +1238,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     for (const [name, section] of Object.entries(parts)) {
       assert.match(
         section,
-        /needs: (changes|\[changes, ios-build\]|\[ios-build, ios-build-retry\]|\[changes, android-build\])\n/,
+        /needs: (changes|\[changes, ios-build\]|\[changes, ios-build, ios-build-retry\]|\[changes, android-build\])\n/,
         name,
       );
     }

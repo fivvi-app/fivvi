@@ -21,6 +21,7 @@ const jobs = Object.fromEntries(
 const steps = (job) => job.split(/\n(?= {6}- )/).slice(1);
 const stepIf = (step) => step.match(/^ {8}if: (.+)$/m)?.[1] ?? '';
 const job = jobs['quarantine-android'];
+const jobIf = (text) => text.match(/^ {4}if: (.+)$/m)?.[1] ?? '';
 const code = (text) =>
   text
     .split('\n')
@@ -28,9 +29,10 @@ const code = (text) =>
     .join('\n');
 
 describe('#1363 AC1 the Quarantine (Android) job', () => {
-  it('is a job called Quarantine (Android), and waits for no other job', () => {
+  it('is a job called Quarantine (Android), and waits for no other job than Detect changes', () => {
     assert.match(job, /^ {4}name: Quarantine \(Android\)$/m);
-    assert.doesNotMatch(job, /^ {4}needs:/m);
+    // ADR-034: "Detect changes" says whether this run has UI tests, the kind of test both lists hold.
+    assert.match(job, /^ {4}needs: changes$/m);
   });
 
   it('is not required, and no job needs it', () => {
@@ -47,7 +49,15 @@ describe('#1363 AC1 the Quarantine (Android) job', () => {
   });
 
   it('does not run on a push to main, like the other native test suites', () => {
-    assert.match(job, /^ {4}if: github\.event_name != 'push'$/m);
+    assert.match(job, /^ {4}if: github\.event_name != 'push' && .+$/m);
+    assert.match(jobIf(job), /^github\.event_name != 'push'/);
+  });
+
+  it('ADR-034: runs only in a run with UI tests, because both lists hold UI tests (the Compose UI tests and the Maestro flows)', () => {
+    assert.equal(
+      jobIf(job),
+      "github.event_name != 'push' && needs.changes.outputs.ui_tests == 'true'",
+    );
   });
 
   it('does nothing but read the lists while they are empty: every other step waits for a list that has entries', () => {

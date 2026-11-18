@@ -35,9 +35,10 @@ describe('#1361 AC2 the Quarantine job', () => {
     assert.match(quarantine, /^ {4}name: Quarantine$/m);
   });
 
-  it('runs on every CI run: no condition on the job, and it waits for no other job', () => {
+  it('runs on every CI run: no condition on the job, and it waits for no other job than Detect changes', () => {
     assert.doesNotMatch(quarantine, /^ {4}if:/m);
-    assert.doesNotMatch(quarantine, /^ {4}needs:/m);
+    // ADR-034: only "Detect changes", for `ui_tests`, which says whether the Playwright list runs in this run.
+    assert.match(quarantine, /^ {4}needs: changes$/m);
   });
 
   it('is not required, and no job needs it: the ruleset of main names the five required checks only', () => {
