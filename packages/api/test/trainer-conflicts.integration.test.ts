@@ -40,6 +40,7 @@ interface ConflictBody {
     startsAt: string;
     endsAt: string;
     displayName: string;
+    displayNameEn: string | null;
   }[];
 }
 
@@ -134,6 +135,7 @@ describe('F023 the double-booking check through the API', () => {
         startsAt: amsterdam('2026-10-08T09:00'),
         endsAt: amsterdam('2026-10-08T10:00'),
         displayName: 'Mark Jansen',
+        displayNameEn: null,
       },
     ],
   });
@@ -216,9 +218,17 @@ describe('F023 the double-booking check through the API', () => {
 
       expect(response.status).toBe(409);
       const body = (await response.json()) as ConflictBody;
-      expect(body.conflicts.map(({ type, displayName }) => [type, displayName])).toEqual([
-        ['private', 'Mark Jansen'],
-        ['group', 'Kracht'],
+      // A class date carries the class's Dutch and English names, for the viewer's language
+      // (PRODUCT.md §296); a private session its client's name only.
+      expect(
+        body.conflicts.map(({ type, displayName, displayNameEn }) => [
+          type,
+          displayName,
+          displayNameEn,
+        ]),
+      ).toEqual([
+        ['private', 'Mark Jansen', null],
+        ['group', 'Kracht', 'Strength'],
       ]);
     });
   });
@@ -531,10 +541,8 @@ describe('F023 the double-booking check through the API', () => {
   it('AC15: every scheduling route has the 409 trainer_conflict and takes allowConflicts in the committed contract', () => {
     const routes = [
       ['/v1/workspaces/{workspaceId}/sessions/private', 'post'],
-      ['/v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule', 'post'],
       ['/v1/workspaces/{workspaceId}/group-classes', 'post'],
       ['/v1/workspaces/{workspaceId}/group-classes/{classId}/dates', 'post'],
-      ['/v1/workspaces/{workspaceId}/sessions/{sessionId}', 'patch'],
     ] as const;
     const schemas = contract.components.schemas;
     expect(schemas.TrainerConflict.properties.code.enum).toEqual(['trainer_conflict']);
@@ -542,8 +550,33 @@ describe('F023 the double-booking check through the API', () => {
       const operation = contract.paths[path][method];
       const answered = JSON.stringify(operation.responses['409']);
       expect(answered, `${method} ${path}`).toContain('TrainerConflict');
-      const body = JSON.stringify(operation.requestBody);
-      expect(body, `${method} ${path}`).toBeTruthy();
+    }
+    // The two routes that already had a 409 answer with one object that every generated client
+    // decodes: a `oneOf` of the two bodies does not (Kotlin merges both, with both bodies' fields
+    // required), so `code` tells them apart and `session` / `conflicts` are each present for
+    // their codes only.
+    for (const [path, method, schema, other] of [
+      [
+        '/v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule',
+        'post',
+        'ReschedulePrivateSessionRefusal',
+        ['session_changed', 'session_cancelled'],
+      ],
+      [
+        '/v1/workspaces/{workspaceId}/sessions/{sessionId}',
+        'patch',
+        'UpdateGroupClassDateRefusal',
+        ['class_date_changed'],
+      ],
+    ] as const) {
+      const answered = JSON.stringify(contract.paths[path]?.[method]?.responses['409']);
+      expect(answered, `${method} ${path}`).toContain(`#/components/schemas/${schema}`);
+      expect(answered, `${method} ${path}`).not.toMatch(/oneOf|anyOf/);
+      const refusal = schemas[schema];
+      expect(refusal.properties.code.enum, schema).toEqual([...other, 'trainer_conflict']);
+      expect(refusal.required, schema).toEqual(['code']);
+      expect(JSON.stringify(refusal.properties.conflicts), schema).toContain('TrainerConflictItem');
+      expect(refusal.properties.session, schema).toBeDefined();
     }
     for (const request of [
       'PlanPrivateSessionRequest',

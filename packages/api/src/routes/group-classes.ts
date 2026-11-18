@@ -51,7 +51,7 @@ import {
 import {
   allowConflictsField,
   checkDoubleBooking,
-  TrainerConflictSchema,
+  TrainerConflictItemSchema,
   type TrainerSlot,
   trainerConflictResponse,
 } from '../sessions/trainer-conflicts.ts';
@@ -492,15 +492,29 @@ const ClassSeriesSchema = z
       'Its dates are class dates (`Session`) with a `series`.',
   });
 
-const ClassDateChangedSchema = z
+// The `409` of a date edit is one object, not a `oneOf` of the date's version refusal and
+// `TrainerConflict` (see `RescheduleRefusalSchema` in sessions.ts for why). `code` tells the
+// refusals apart; `session` comes with `class_date_changed`, `conflicts` with `trainer_conflict`.
+const ClassDateRefusalSchema = z
   .object({
-    code: z.enum(['class_date_changed']),
-    session: SessionSchema,
+    code: z.enum(['class_date_changed', 'trainer_conflict']).openapi({
+      description:
+        '`class_date_changed`: the date changed since the `version` sent; `trainer_conflict`: ' +
+        'the trainer already has something at the new time (PS-07).',
+    }),
+    session: SessionSchema.optional().openapi({
+      description: 'The date as it is now, for `class_date_changed`.',
+    }),
+    conflicts: z.array(TrainerConflictItemSchema).optional().openapi({
+      description:
+        'The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`.',
+    }),
   })
-  .openapi('ClassDateChanged', {
+  .openapi('UpdateGroupClassDateRefusal', {
     description:
-      'The date was changed since the version in the request; nothing was written. `session` ' +
-      'is the date as it is now, to show the reloaded values. Contains no user-facing text.',
+      'Why the date edit was refused; nothing was written. The version refusal ' +
+      '(`class_date_changed`) and the body of `TrainerConflict` (`trainer_conflict`) in one ' +
+      'object, told apart by `code`. Contains no user-facing text.',
   });
 
 // The capabilities come from the permission matrix in @fivvi/domain (F004): the Owner manages
@@ -730,7 +744,7 @@ const updateGroupClassDateRoute = defineRoute(
           'The date changed since the version in the request (`class_date_changed`), or the ' +
           'trainer already has something at the new time (`trainer_conflict`); nothing was written.',
         content: {
-          'application/json': { schema: z.union([ClassDateChangedSchema, TrainerConflictSchema]) },
+          'application/json': { schema: ClassDateRefusalSchema },
         },
       },
       500: internalServerErrorResponse,

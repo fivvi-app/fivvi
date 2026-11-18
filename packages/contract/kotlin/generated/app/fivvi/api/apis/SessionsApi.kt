@@ -12,7 +12,7 @@ import app.fivvi.api.models.NotFound
 import app.fivvi.api.models.NotSignedIn
 import app.fivvi.api.models.PlanPrivateSessionRequest
 import app.fivvi.api.models.PlannedPrivateSession
-import app.fivvi.api.models.ReschedulePrivateSession409Response
+import app.fivvi.api.models.ReschedulePrivateSessionRefusal
 import app.fivvi.api.models.ReschedulePrivateSessionRequest
 import app.fivvi.api.models.ReschedulePrivateSessionResult
 import app.fivvi.api.models.Session

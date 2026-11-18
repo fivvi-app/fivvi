@@ -2652,6 +2652,10 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/TrainerConflictItem/displayName`.
             public var displayName: Swift.String
+            /// The class’s English name of a class date, `null` without one and for any other session. Show it to a viewer whose language is English, else `displayName` (`pickContentLanguage`).
+            ///
+            /// - Remark: Generated from `#/components/schemas/TrainerConflictItem/displayNameEn`.
+            public var displayNameEn: Swift.String?
             /// Creates a new `TrainerConflictItem`.
             ///
             /// - Parameters:
@@ -2660,18 +2664,21 @@ extension Components {
             ///   - startsAt: The start, a UTC instant.
             ///   - endsAt: The end, a UTC instant.
             ///   - displayName: Who or what the session is: the client’s name of a private session, the class’s Dutch name of a class date.
+            ///   - displayNameEn: The class’s English name of a class date, `null` without one and for any other session. Show it to a viewer whose language is English, else `displayName` (`pickContentLanguage`).
             public init(
                 sessionId: Swift.String,
                 _type: Components.Schemas.TrainerConflictItem._TypePayload,
                 startsAt: Foundation.Date,
                 endsAt: Foundation.Date,
-                displayName: Swift.String
+                displayName: Swift.String,
+                displayNameEn: Swift.String? = nil
             ) {
                 self.sessionId = sessionId
                 self._type = _type
                 self.startsAt = startsAt
                 self.endsAt = endsAt
                 self.displayName = displayName
+                self.displayNameEn = displayNameEn
             }
             public enum CodingKeys: String, CodingKey {
                 case sessionId
@@ -2679,6 +2686,7 @@ extension Components {
                 case startsAt
                 case endsAt
                 case displayName
+                case displayNameEn
             }
         }
         /// A private session to plan: one client, one trainer, a local date, start and length.
@@ -2808,30 +2816,60 @@ extension Components {
                 case changeEmail
             }
         }
-        /// The change was refused because of the session’s state; nothing was stored. Holds the session as it is now, so the form can show its values.
+        /// Why the reschedule was refused; nothing was stored. The session’s state (`session_changed`, `session_cancelled`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text.
         ///
-        /// - Remark: Generated from `#/components/schemas/SessionConflict`.
-        public struct SessionConflict: Codable, Hashable, Sendable {
-            /// `session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is.
+        /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal`.
+        public struct ReschedulePrivateSessionRefusal: Codable, Hashable, Sendable {
+            /// `session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is; `trainer_conflict`: the trainer already has something at the new time (PS-07).
             ///
-            /// - Remark: Generated from `#/components/schemas/SessionConflict/code`.
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal/code`.
             @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
                 case sessionChanged = "session_changed"
                 case sessionCancelled = "session_cancelled"
+                case trainerConflict = "trainer_conflict"
             }
-            /// `session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is.
+            /// `session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is; `trainer_conflict`: the trainer already has something at the new time (PS-07).
             ///
-            /// - Remark: Generated from `#/components/schemas/SessionConflict/code`.
-            public var code: Components.Schemas.SessionConflict.CodePayload
-            /// - Remark: Generated from `#/components/schemas/SessionConflict/session`.
-            public var session: Components.Schemas.Session
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal/code`.
+            public var code: Components.Schemas.ReschedulePrivateSessionRefusal.CodePayload
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal/session`.
+            public struct SessionPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal/session/value1`.
+                public var value1: Components.Schemas.Session
+                /// The session as it is now, for `session_changed` and `session_cancelled`.
+                ///
+                /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal/session/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `SessionPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The session as it is now, for `session_changed` and `session_cancelled`.
+                public init(
+                    value1: Components.Schemas.Session,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal/session`.
+            public var session: Components.Schemas.ReschedulePrivateSessionRefusal.SessionPayload?
             /// Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name.
             ///
-            /// - Remark: Generated from `#/components/schemas/SessionConflict/changedBy`.
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal/changedBy`.
             public struct ChangedByPayload: Codable, Hashable, Sendable {
                 /// The account’s name.
                 ///
-                /// - Remark: Generated from `#/components/schemas/SessionConflict/changedBy/name`.
+                /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal/changedBy/name`.
                 public var name: Swift.String
                 /// Creates a new `ChangedByPayload`.
                 ///
@@ -2846,27 +2884,35 @@ extension Components {
             }
             /// Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name.
             ///
-            /// - Remark: Generated from `#/components/schemas/SessionConflict/changedBy`.
-            public var changedBy: Components.Schemas.SessionConflict.ChangedByPayload?
-            /// Creates a new `SessionConflict`.
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal/changedBy`.
+            public var changedBy: Components.Schemas.ReschedulePrivateSessionRefusal.ChangedByPayload?
+            /// The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ReschedulePrivateSessionRefusal/conflicts`.
+            public var conflicts: [Components.Schemas.TrainerConflictItem]?
+            /// Creates a new `ReschedulePrivateSessionRefusal`.
             ///
             /// - Parameters:
-            ///   - code: `session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is.
+            ///   - code: `session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is; `trainer_conflict`: the trainer already has something at the new time (PS-07).
             ///   - session:
             ///   - changedBy: Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name.
+            ///   - conflicts: The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`.
             public init(
-                code: Components.Schemas.SessionConflict.CodePayload,
-                session: Components.Schemas.Session,
-                changedBy: Components.Schemas.SessionConflict.ChangedByPayload? = nil
+                code: Components.Schemas.ReschedulePrivateSessionRefusal.CodePayload,
+                session: Components.Schemas.ReschedulePrivateSessionRefusal.SessionPayload? = nil,
+                changedBy: Components.Schemas.ReschedulePrivateSessionRefusal.ChangedByPayload? = nil,
+                conflicts: [Components.Schemas.TrainerConflictItem]? = nil
             ) {
                 self.code = code
                 self.session = session
                 self.changedBy = changedBy
+                self.conflicts = conflicts
             }
             public enum CodingKeys: String, CodingKey {
                 case code
                 case session
                 case changedBy
+                case conflicts
             }
         }
         /// A new local date, start and length for a private session, and the version the person saw.
@@ -3733,33 +3779,75 @@ extension Components {
                 try self.value2.encode(to: encoder)
             }
         }
-        /// The date was changed since the version in the request; nothing was written. `session` is the date as it is now, to show the reloaded values. Contains no user-facing text.
+        /// Why the date edit was refused; nothing was written. The version refusal (`class_date_changed`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text.
         ///
-        /// - Remark: Generated from `#/components/schemas/ClassDateChanged`.
-        public struct ClassDateChanged: Codable, Hashable, Sendable {
-            /// - Remark: Generated from `#/components/schemas/ClassDateChanged/code`.
+        /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRefusal`.
+        public struct UpdateGroupClassDateRefusal: Codable, Hashable, Sendable {
+            /// `class_date_changed`: the date changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07).
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRefusal/code`.
             @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
                 case classDateChanged = "class_date_changed"
+                case trainerConflict = "trainer_conflict"
             }
-            /// - Remark: Generated from `#/components/schemas/ClassDateChanged/code`.
-            public var code: Components.Schemas.ClassDateChanged.CodePayload
-            /// - Remark: Generated from `#/components/schemas/ClassDateChanged/session`.
-            public var session: Components.Schemas.Session
-            /// Creates a new `ClassDateChanged`.
+            /// `class_date_changed`: the date changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07).
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRefusal/code`.
+            public var code: Components.Schemas.UpdateGroupClassDateRefusal.CodePayload
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRefusal/session`.
+            public struct SessionPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRefusal/session/value1`.
+                public var value1: Components.Schemas.Session
+                /// The date as it is now, for `class_date_changed`.
+                ///
+                /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRefusal/session/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `SessionPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The date as it is now, for `class_date_changed`.
+                public init(
+                    value1: Components.Schemas.Session,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRefusal/session`.
+            public var session: Components.Schemas.UpdateGroupClassDateRefusal.SessionPayload?
+            /// The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRefusal/conflicts`.
+            public var conflicts: [Components.Schemas.TrainerConflictItem]?
+            /// Creates a new `UpdateGroupClassDateRefusal`.
             ///
             /// - Parameters:
-            ///   - code:
+            ///   - code: `class_date_changed`: the date changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07).
             ///   - session:
+            ///   - conflicts: The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`.
             public init(
-                code: Components.Schemas.ClassDateChanged.CodePayload,
-                session: Components.Schemas.Session
+                code: Components.Schemas.UpdateGroupClassDateRefusal.CodePayload,
+                session: Components.Schemas.UpdateGroupClassDateRefusal.SessionPayload? = nil,
+                conflicts: [Components.Schemas.TrainerConflictItem]? = nil
             ) {
                 self.code = code
                 self.session = session
+                self.conflicts = conflicts
             }
             public enum CodingKeys: String, CodingKey {
                 case code
                 case session
+                case conflicts
             }
         }
         /// Changes one date of a class (CO-04): the start, the end and the capacity, each only when given. The date stays on its day. The class itself never changes.

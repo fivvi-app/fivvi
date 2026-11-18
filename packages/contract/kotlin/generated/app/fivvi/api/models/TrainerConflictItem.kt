@@ -36,6 +36,7 @@ import kotlinx.serialization.Contextual
  * @param startsAt The start, a UTC instant.
  * @param endsAt The end, a UTC instant.
  * @param displayName Who or what the session is: the client’s name of a private session, the class’s Dutch name of a class date.
+ * @param displayNameEn The class’s English name of a class date, `null` without one and for any other session. Show it to a viewer whose language is English, else `displayName` (`pickContentLanguage`).
  */
 @Serializable
 
@@ -59,7 +60,11 @@ data class TrainerConflictItem (
 
     /* Who or what the session is: the client’s name of a private session, the class’s Dutch name of a class date. */
     @SerialName(value = "displayName")
-    val displayName: kotlin.String
+    val displayName: kotlin.String,
+
+    /* The class’s English name of a class date, `null` without one and for any other session. Show it to a viewer whose language is English, else `displayName` (`pickContentLanguage`). */
+    @SerialName(value = "displayNameEn")
+    val displayNameEn: kotlin.String?
 
 ) {
 

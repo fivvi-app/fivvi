@@ -12252,58 +12252,13 @@ public enum Operations {
             public struct Conflict: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule/POST/responses/409/content`.
                 @frozen public enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule/POST/responses/409/content/json`.
-                    public struct JsonPayload: Codable, Hashable, Sendable {
-                        /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule/POST/responses/409/content/json/value1`.
-                        public var value1: Components.Schemas.SessionConflict?
-                        /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule/POST/responses/409/content/json/value2`.
-                        public var value2: Components.Schemas.TrainerConflict?
-                        /// Creates a new `JsonPayload`.
-                        ///
-                        /// - Parameters:
-                        ///   - value1:
-                        ///   - value2:
-                        public init(
-                            value1: Components.Schemas.SessionConflict? = nil,
-                            value2: Components.Schemas.TrainerConflict? = nil
-                        ) {
-                            self.value1 = value1
-                            self.value2 = value2
-                        }
-                        public init(from decoder: any Swift.Decoder) throws {
-                            var errors: [any Swift.Error] = []
-                            do {
-                                self.value1 = try .init(from: decoder)
-                            } catch {
-                                errors.append(error)
-                            }
-                            do {
-                                self.value2 = try .init(from: decoder)
-                            } catch {
-                                errors.append(error)
-                            }
-                            try Swift.DecodingError.verifyAtLeastOneSchemaIsNotNil(
-                                [
-                                    self.value1,
-                                    self.value2
-                                ],
-                                type: Self.self,
-                                codingPath: decoder.codingPath,
-                                errors: errors
-                            )
-                        }
-                        public func encode(to encoder: any Swift.Encoder) throws {
-                            try self.value1?.encode(to: encoder)
-                            try self.value2?.encode(to: encoder)
-                        }
-                    }
                     /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/sessions/{sessionId}/reschedule/POST/responses/409/content/application\/json`.
-                    case json(Operations.ReschedulePrivateSession.Output.Conflict.Body.JsonPayload)
+                    case json(Components.Schemas.ReschedulePrivateSessionRefusal)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
                     /// - Throws: An error if `self` is not `.json`.
                     /// - SeeAlso: `.json`.
-                    public var json: Operations.ReschedulePrivateSession.Output.Conflict.Body.JsonPayload {
+                    public var json: Components.Schemas.ReschedulePrivateSessionRefusal {
                         get throws {
                             switch self {
                             case let .json(body):
@@ -13563,58 +13518,13 @@ public enum Operations {
             public struct Conflict: Sendable, Hashable {
                 /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/sessions/{sessionId}/PATCH/responses/409/content`.
                 @frozen public enum Body: Sendable, Hashable {
-                    /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/sessions/{sessionId}/PATCH/responses/409/content/json`.
-                    public struct JsonPayload: Codable, Hashable, Sendable {
-                        /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/sessions/{sessionId}/PATCH/responses/409/content/json/value1`.
-                        public var value1: Components.Schemas.ClassDateChanged?
-                        /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/sessions/{sessionId}/PATCH/responses/409/content/json/value2`.
-                        public var value2: Components.Schemas.TrainerConflict?
-                        /// Creates a new `JsonPayload`.
-                        ///
-                        /// - Parameters:
-                        ///   - value1:
-                        ///   - value2:
-                        public init(
-                            value1: Components.Schemas.ClassDateChanged? = nil,
-                            value2: Components.Schemas.TrainerConflict? = nil
-                        ) {
-                            self.value1 = value1
-                            self.value2 = value2
-                        }
-                        public init(from decoder: any Swift.Decoder) throws {
-                            var errors: [any Swift.Error] = []
-                            do {
-                                self.value1 = try .init(from: decoder)
-                            } catch {
-                                errors.append(error)
-                            }
-                            do {
-                                self.value2 = try .init(from: decoder)
-                            } catch {
-                                errors.append(error)
-                            }
-                            try Swift.DecodingError.verifyAtLeastOneSchemaIsNotNil(
-                                [
-                                    self.value1,
-                                    self.value2
-                                ],
-                                type: Self.self,
-                                codingPath: decoder.codingPath,
-                                errors: errors
-                            )
-                        }
-                        public func encode(to encoder: any Swift.Encoder) throws {
-                            try self.value1?.encode(to: encoder)
-                            try self.value2?.encode(to: encoder)
-                        }
-                    }
                     /// - Remark: Generated from `#/paths/v1/workspaces/{workspaceId}/sessions/{sessionId}/PATCH/responses/409/content/application\/json`.
-                    case json(Operations.UpdateGroupClassDate.Output.Conflict.Body.JsonPayload)
+                    case json(Components.Schemas.UpdateGroupClassDateRefusal)
                     /// The associated value of the enum case if `self` is `.json`.
                     ///
                     /// - Throws: An error if `self` is not `.json`.
                     /// - SeeAlso: `.json`.
-                    public var json: Operations.UpdateGroupClassDate.Output.Conflict.Body.JsonPayload {
+                    public var json: Components.Schemas.UpdateGroupClassDateRefusal {
                         get throws {
                             switch self {
                             case let .json(body):

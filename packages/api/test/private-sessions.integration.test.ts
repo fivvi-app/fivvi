@@ -1597,12 +1597,16 @@ describe('F020 plan a private session', () => {
     expect(Object.keys(upcoming.responses)).toEqual(
       expect.arrayContaining(['200', '401', '403', '404']),
     );
-    // The 409 shows the current session and who changed it last, by name only.
-    expect(Object.keys(contract.components.schemas.SessionConflict.properties)).toEqual([
-      'code',
-      'session',
-      'changedBy',
-    ]);
+    // The 409 shows the current session and who changed it last, by name only (and, since F023,
+    // the overlapping sessions of a `trainer_conflict`, in the same object).
+    expect(
+      Object.keys(contract.components.schemas.ReschedulePrivateSessionRefusal.properties),
+    ).toEqual(['code', 'session', 'changedBy', 'conflicts']);
+    expect(
+      Object.keys(
+        contract.components.schemas.ReschedulePrivateSessionRefusal.properties.changedBy.properties,
+      ),
+    ).toEqual(['name']);
     expect(Object.keys(create.responses)).toEqual(
       expect.arrayContaining(['201', '400', '401', '403', '404']),
     );

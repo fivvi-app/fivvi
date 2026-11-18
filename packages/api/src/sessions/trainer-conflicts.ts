@@ -29,6 +29,15 @@ export const TrainerConflictItemSchema = z
         'Who or what the session is: the client’s name of a private session, the class’s Dutch ' +
         'name of a class date.',
     }),
+    displayNameEn: z
+      .string()
+      .nullable()
+      .openapi({
+        description:
+          'The class’s English name of a class date, `null` without one and for any other ' +
+          'session. Show it to a viewer whose language is English, else `displayName` ' +
+          '(`pickContentLanguage`).',
+      }),
   })
   .openapi('TrainerConflictItem', {
     description: 'A session of this workspace that the trainer already has at that time.',
@@ -131,6 +140,7 @@ export async function trainerConflictsOf(
         startsAt: session.startsAt.toISOString(),
         endsAt: session.endsAt.toISOString(),
         displayName: session.displayName,
+        displayNameEn: session.displayNameEn,
       })),
   };
 }

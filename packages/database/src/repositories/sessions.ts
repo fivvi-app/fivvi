@@ -393,7 +393,9 @@ export async function listUpcomingSessionsOfClient(
 /**
  * A session of a trainer that may overlap a time window (F023): what the double-booking rule reads
  * and what a `409 trainer_conflict` names. `displayName` is the client of a private session, the
- * Dutch name of the class of a class date, empty for any other.
+ * Dutch name of the class of a class date, empty for any other; `displayNameEn` is the class's
+ * English name of a class date (`null` without one, and for any other session), for the viewer's
+ * language (PRODUCT.md §296).
  */
 export interface TrainerSessionView {
   readonly id: string;
@@ -403,6 +405,7 @@ export interface TrainerSessionView {
   readonly startsAt: Date;
   readonly endsAt: Date;
   readonly displayName: string;
+  readonly displayNameEn: string | null;
 }
 
 /**
@@ -425,6 +428,7 @@ export async function listTrainerSessionsBetween(
       startsAt: sessions.startsAt,
       endsAt: sessions.endsAt,
       className: groupClasses.nameNl,
+      classNameEn: groupClasses.nameEn,
     })
     .from(sessions)
     .leftJoin(
@@ -470,9 +474,10 @@ export async function listTrainerSessionsBetween(
       }
     }
   }
-  return rows.map(({ className, ...row }) => ({
+  return rows.map(({ className, classNameEn, ...row }) => ({
     ...row,
     trainerProfileId,
     displayName: row.type === 'private' ? (clientNames.get(row.id) ?? '') : (className ?? ''),
+    displayNameEn: row.type === 'private' ? null : (classNameEn ?? null),
   }));
 }

@@ -35,7 +35,7 @@ import { privateSessionEmailEvent } from '../sessions/email-event.ts';
 import {
   allowConflictsField,
   checkDoubleBooking,
-  TrainerConflictSchema,
+  TrainerConflictItemSchema,
   trainerConflictResponse,
 } from '../sessions/trainer-conflicts.ts';
 import { LocationSchema } from './locations.ts';
@@ -320,14 +320,22 @@ const ReschedulePrivateSessionResultSchema = z
     description: 'The private session after it moved, with what the trainer should be told.',
   });
 
-const SessionConflictSchema = z
+// The `409` of a reschedule is one object, not a `oneOf` of the session's state and
+// `TrainerConflict`: the Kotlin generator merges a `oneOf` into one class with both bodies' fields
+// required (so neither body decodes) and does not link the members to a discriminator. `code`
+// tells the refusals apart; `session` and `changedBy` come with the session codes, `conflicts`
+// with `trainer_conflict`.
+const RescheduleRefusalSchema = z
   .object({
-    code: z.enum(['session_changed', 'session_cancelled']).openapi({
+    code: z.enum(['session_changed', 'session_cancelled', 'trainer_conflict']).openapi({
       description:
         '`session_changed`: someone changed the session after the `version` sent (AC8); ' +
-        '`session_cancelled`: the session was cancelled and stays as it is.',
+        '`session_cancelled`: the session was cancelled and stays as it is; `trainer_conflict`: ' +
+        'the trainer already has something at the new time (PS-07).',
     }),
-    session: SessionSchema,
+    session: SessionSchema.optional().openapi({
+      description: 'The session as it is now, for `session_changed` and `session_cancelled`.',
+    }),
     changedBy: z
       .object({ name: z.string().openapi({ description: 'The account’s name.' }) })
       .optional()
@@ -336,11 +344,16 @@ const SessionConflictSchema = z
           'Who changed the session last, for `session_changed`; left out when that person has ' +
           'been removed or their account has no name.',
       }),
+    conflicts: z.array(TrainerConflictItemSchema).optional().openapi({
+      description:
+        'The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`.',
+    }),
   })
-  .openapi('SessionConflict', {
+  .openapi('ReschedulePrivateSessionRefusal', {
     description:
-      'The change was refused because of the session’s state; nothing was stored. Holds the ' +
-      'session as it is now, so the form can show its values.',
+      'Why the reschedule was refused; nothing was stored. The session’s ' +
+      'state (`session_changed`, `session_cancelled`) and the body of `TrainerConflict` ' +
+      '(`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text.',
   });
 
 const UpcomingSessionSchema = z
@@ -493,7 +506,7 @@ const rescheduleRoute = defineRoute(
           '`session_cancelled`), or the trainer already has something at the new time ' +
           '(`trainer_conflict`). Nothing was stored.',
         content: {
-          'application/json': { schema: z.union([SessionConflictSchema, TrainerConflictSchema]) },
+          'application/json': { schema: RescheduleRefusalSchema },
         },
       },
       500: internalServerErrorResponse,

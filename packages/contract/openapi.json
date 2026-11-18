@@ -1795,6 +1795,13 @@
           "displayName": {
             "type": "string",
             "description": "Who or what the session is: the client’s name of a private session, the class’s Dutch name of a class date."
+          },
+          "displayNameEn": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "description": "The class’s English name of a class date, `null` without one and for any other session. Show it to a viewer whose language is English, else `displayName` (`pickContentLanguage`)."
           }
         },
         "required": [
@@ -1802,7 +1809,8 @@
           "type",
           "startsAt",
           "endsAt",
-          "displayName"
+          "displayName",
+          "displayNameEn"
         ],
         "description": "A session of this workspace that the trainer already has at that time."
       },
@@ -1886,19 +1894,27 @@
         ],
         "description": "The private session after it moved, with what the trainer should be told."
       },
-      "SessionConflict": {
+      "ReschedulePrivateSessionRefusal": {
         "type": "object",
         "properties": {
           "code": {
             "type": "string",
             "enum": [
               "session_changed",
-              "session_cancelled"
+              "session_cancelled",
+              "trainer_conflict"
             ],
-            "description": "`session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is."
+            "description": "`session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is; `trainer_conflict`: the trainer already has something at the new time (PS-07)."
           },
           "session": {
-            "$ref": "#/components/schemas/Session"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Session"
+              },
+              {
+                "description": "The session as it is now, for `session_changed` and `session_cancelled`."
+              }
+            ]
           },
           "changedBy": {
             "type": "object",
@@ -1912,13 +1928,19 @@
               "name"
             ],
             "description": "Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name."
+          },
+          "conflicts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainerConflictItem"
+            },
+            "description": "The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`."
           }
         },
         "required": [
-          "code",
-          "session"
+          "code"
         ],
-        "description": "The change was refused because of the session’s state; nothing was stored. Holds the session as it is now, so the form can show its values."
+        "description": "Why the reschedule was refused; nothing was stored. The session’s state (`session_changed`, `session_cancelled`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text."
       },
       "ReschedulePrivateSessionRequest": {
         "type": "object",
@@ -2431,24 +2453,39 @@
         ],
         "description": "The class date with its changes, and how many other dates kept their own."
       },
-      "ClassDateChanged": {
+      "UpdateGroupClassDateRefusal": {
         "type": "object",
         "properties": {
           "code": {
             "type": "string",
             "enum": [
-              "class_date_changed"
-            ]
+              "class_date_changed",
+              "trainer_conflict"
+            ],
+            "description": "`class_date_changed`: the date changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07)."
           },
           "session": {
-            "$ref": "#/components/schemas/Session"
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Session"
+              },
+              {
+                "description": "The date as it is now, for `class_date_changed`."
+              }
+            ]
+          },
+          "conflicts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TrainerConflictItem"
+            },
+            "description": "The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`."
           }
         },
         "required": [
-          "code",
-          "session"
+          "code"
         ],
-        "description": "The date was changed since the version in the request; nothing was written. `session` is the date as it is now, to show the reloaded values. Contains no user-facing text."
+        "description": "Why the date edit was refused; nothing was written. The version refusal (`class_date_changed`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text."
       },
       "UpdateGroupClassDateRequest": {
         "type": "object",
@@ -6686,14 +6723,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/components/schemas/SessionConflict"
-                    },
-                    {
-                      "$ref": "#/components/schemas/TrainerConflict"
-                    }
-                  ]
+                  "$ref": "#/components/schemas/ReschedulePrivateSessionRefusal"
                 }
               }
             }
@@ -7052,14 +7082,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "anyOf": [
-                    {
-                      "$ref": "#/components/schemas/ClassDateChanged"
-                    },
-                    {
-                      "$ref": "#/components/schemas/TrainerConflict"
-                    }
-                  ]
+                  "$ref": "#/components/schemas/UpdateGroupClassDateRefusal"
                 }
               }
             }

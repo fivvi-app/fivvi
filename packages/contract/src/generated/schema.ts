@@ -1678,6 +1678,8 @@ export interface components {
             endsAt: string;
             /** @description Who or what the session is: the client’s name of a private session, the class’s Dutch name of a class date. */
             displayName: string;
+            /** @description The class’s English name of a class date, `null` without one and for any other session. Show it to a viewer whose language is English, else `displayName` (`pickContentLanguage`). */
+            displayNameEn: string | null;
         };
         /** @description A private session to plan: one client, one trainer, a local date, start and length. */
         PlanPrivateSessionRequest: {
@@ -1717,19 +1719,21 @@ export interface components {
             /** @description Whether the change (EM-04) goes to the client: it was asked for and the new time is not in the past. It is sent after the answer is decided; a failure is reported to error tracking and does not undo the change. */
             changeEmail: boolean;
         };
-        /** @description The change was refused because of the session’s state; nothing was stored. Holds the session as it is now, so the form can show its values. */
-        SessionConflict: {
+        /** @description Why the reschedule was refused; nothing was stored. The session’s state (`session_changed`, `session_cancelled`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text. */
+        ReschedulePrivateSessionRefusal: {
             /**
-             * @description `session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is.
+             * @description `session_changed`: someone changed the session after the `version` sent (AC8); `session_cancelled`: the session was cancelled and stays as it is; `trainer_conflict`: the trainer already has something at the new time (PS-07).
              * @enum {string}
              */
-            code: "session_changed" | "session_cancelled";
-            session: components["schemas"]["Session"];
+            code: "session_changed" | "session_cancelled" | "trainer_conflict";
+            session?: components["schemas"]["Session"] & unknown;
             /** @description Who changed the session last, for `session_changed`; left out when that person has been removed or their account has no name. */
             changedBy?: {
                 /** @description The account’s name. */
                 name: string;
             };
+            /** @description The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`. */
+            conflicts?: components["schemas"]["TrainerConflictItem"][];
         };
         /** @description A new local date, start and length for a private session, and the version the person saw. */
         ReschedulePrivateSessionRequest: {
@@ -1943,11 +1947,16 @@ export interface components {
             /** @description With `scope: following`: how many dates from this one on were changed on their own and kept as they are (CO-04). Left out for `scope: this`. */
             keptDates?: number;
         };
-        /** @description The date was changed since the version in the request; nothing was written. `session` is the date as it is now, to show the reloaded values. Contains no user-facing text. */
-        ClassDateChanged: {
-            /** @enum {string} */
-            code: "class_date_changed";
-            session: components["schemas"]["Session"];
+        /** @description Why the date edit was refused; nothing was written. The version refusal (`class_date_changed`) and the body of `TrainerConflict` (`trainer_conflict`) in one object, told apart by `code`. Contains no user-facing text. */
+        UpdateGroupClassDateRefusal: {
+            /**
+             * @description `class_date_changed`: the date changed since the `version` sent; `trainer_conflict`: the trainer already has something at the new time (PS-07).
+             * @enum {string}
+             */
+            code: "class_date_changed" | "trainer_conflict";
+            session?: components["schemas"]["Session"] & unknown;
+            /** @description The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`. */
+            conflicts?: components["schemas"]["TrainerConflictItem"][];
         };
         /** @description Changes one date of a class (CO-04): the start, the end and the capacity, each only when given. The date stays on its day. The class itself never changes. */
         UpdateGroupClassDateRequest: {
@@ -4531,7 +4540,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["SessionConflict"] | components["schemas"]["TrainerConflict"];
+                    "application/json": components["schemas"]["ReschedulePrivateSessionRefusal"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */
@@ -4754,7 +4763,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ClassDateChanged"] | components["schemas"]["TrainerConflict"];
+                    "application/json": components["schemas"]["UpdateGroupClassDateRefusal"];
                 };
             };
             /** @description Unexpected server error, reported to error tracking. Contains no error details. */

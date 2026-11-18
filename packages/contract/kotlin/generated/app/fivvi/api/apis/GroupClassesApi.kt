@@ -17,7 +17,7 @@ import app.fivvi.api.models.NotSignedIn
 import app.fivvi.api.models.ScheduleGroupClassDateRequest
 import app.fivvi.api.models.ScheduledClassDate
 import app.fivvi.api.models.TrainerConflict
-import app.fivvi.api.models.UpdateGroupClassDate409Response
+import app.fivvi.api.models.UpdateGroupClassDateRefusal
 import app.fivvi.api.models.UpdateGroupClassDateRequest
 import app.fivvi.api.models.UpdateGroupClassRequest
 import app.fivvi.api.models.UpdatedClassDate

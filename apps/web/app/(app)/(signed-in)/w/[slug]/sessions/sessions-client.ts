@@ -100,8 +100,11 @@ export async function reschedulePrivateSession(
     return { ok: true, session: moved.session };
   }
   if (answered.status === 409) {
-    const conflict = answered.body as Schemas['SessionConflict'] | null;
-    if (!conflict?.session) return { ok: false, reason: 'generic' };
+    const conflict = answered.body as Schemas['ReschedulePrivateSessionRefusal'] | null;
+    // `trainer_conflict` has no session: the web PS-07 warning is another ticket.
+    if (!conflict?.session || conflict.code === 'trainer_conflict') {
+      return { ok: false, reason: 'generic' };
+    }
     return {
       ok: false,
       reason: 'conflict',

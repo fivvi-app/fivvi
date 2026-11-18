@@ -35,7 +35,7 @@ import kotlinx.serialization.Contextual
  */
 @Serializable
 
-data class SessionConflictChangedBy (
+data class ReschedulePrivateSessionRefusalChangedBy (
 
     /* The account’s name. */
     @SerialName(value = "name")

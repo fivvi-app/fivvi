@@ -5522,7 +5522,7 @@ public struct Client: APIProtocol {
                     switch chosenContentType {
                     case "application/json":
                         body = try await converter.getResponseBodyAsJSON(
-                            Operations.ReschedulePrivateSession.Output.Conflict.Body.JsonPayload.self,
+                            Components.Schemas.ReschedulePrivateSessionRefusal.self,
                             from: responseBody,
                             transforming: { value in
                                 .json(value)
@@ -6078,7 +6078,7 @@ public struct Client: APIProtocol {
                     switch chosenContentType {
                     case "application/json":
                         body = try await converter.getResponseBodyAsJSON(
-                            Operations.UpdateGroupClassDate.Output.Conflict.Body.JsonPayload.self,
+                            Components.Schemas.UpdateGroupClassDateRefusal.self,
                             from: responseBody,
                             transforming: { value in
                                 .json(value)
