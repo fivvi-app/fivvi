@@ -1,3 +1,10 @@
+// Module: A class on a date (F021): `scheduleClassOnDate` copies the class's trainer (or none),
+//        capacity and duration onto the date, takes the default location and the DST rules of
+//        `zoned-time.ts`; `decideGroupDateEdit` edits one date's day, start, end and capacity (an
+//        end not after the start is refused); `GROUP_CLASS_LIMITS` (name 80, description 500,
+//        capacity 1–100, duration 15–240 in steps of 5)
+// Spec: F021 AC3–AC5, AC9
+
 import { defaultLocation } from '../locations/default-location.ts';
 import { instantToWallClock, wallClockToInstant } from './zoned-time.ts';
 

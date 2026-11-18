@@ -1,3 +1,16 @@
+// Module: The agreement's own clock (calendar dates in the workspace time zone):
+//        `agreementClock(offer, startsOn)` for a membership or credit plan (a pack and a single
+//        class pass have none), `dueDates(clock, from, to)` (monthly on the start day, a day the
+//        month lacks becoming its last day and no drift; every 4 weeks = every 28 days; the start
+//        itself and anything on or after the end excluded), `periodEnd` (6 months from 1 February
+//        end on 31 July), `stopAtTermEnd` (*Stopt*) and `effectiveEnd`, `noticeEnd` (the later of
+//        one month from notice and the minimum term end; a fixed term that hasn't run out gives the
+//        first notice date and the end it then gives), `calendarDateIn(instant, timeZone)` and
+//        `dueDayPhrase(day, locale)` ("op de 1e" / "on the 1st", `agreements.dueDay.*`). **Separate
+//        clocks (ADR-012):** it imports nothing from `src/scheduling/`, and scheduling never
+//        imports it; `test/clocks.architecture.test.ts` fails on either
+// Spec: F057 AC6, AC7, AC10, AC16
+
 // The agreement's own clock (F057, spec #481, ticket #911): when each amount is due and when the
 // agreement ends. Pure rules over calendar dates (`YYYY-MM-DD`) in the workspace time zone; no I/O
 // and no clock.

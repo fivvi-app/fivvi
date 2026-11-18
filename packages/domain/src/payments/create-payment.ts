@@ -1,3 +1,9 @@
+// Module: `createPayment(engine, request)`: our row first, our ID as the idempotency key and in the
+//        metadata with the environment's webhook and return URLs, the same business key returns the
+//        same payment, and a retry looks the payment up among the customer's payments by our
+//        metadata before it creates anything
+// Spec: E019 AC5, AC6, AC17
+
 import { applyProviderStatus } from './apply-status.ts';
 import type {
   PaymentKind,

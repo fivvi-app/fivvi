@@ -1,3 +1,7 @@
+// Module: The URL name from a workspace name: transliterate, lower case, hyphens, a number when
+//        taken, reserved words skipped
+// Spec: F002 AC2
+
 /**
  * The URL name of a workspace (`/w/{slug}`, booking pages, QR codes), made from its name once
  * and never changed by a rename (F002 AC2, AC6).
