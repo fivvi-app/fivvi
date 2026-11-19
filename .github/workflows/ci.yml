@@ -255,8 +255,9 @@ jobs:
       - name: Lint, typecheck, unit and integration tests, build, format and static checks
         # On a push only (E002 #1357): a hang fails this step, which continue-on-error covers, instead of the job timeout
         # cancelling the job and the run. The slowest of 34 push runs of main took 620 s here (3 took 10 minutes or more),
-        # and the job spends about 1 minute outside this step: 13 + 1 leaves 11 of the job's 25 minutes for the cache save.
-        timeout-minutes: ${{ github.event_name == 'push' && 13 || 360 }}
+        # and the job spends about 1 minute outside this step: 22 + 1 leaves 2 of the job's 25 minutes for the cache save. The step
+        # is long so that a full uncached run on main (#1490) is not cut off before turbo has cached what passed.
+        timeout-minutes: ${{ github.event_name == 'push' && 22 || 360 }}
         continue-on-error: ${{ github.event_name == 'push' }}
         run: >-
           pnpm exec turbo run lint typecheck test test:integration build format:check check

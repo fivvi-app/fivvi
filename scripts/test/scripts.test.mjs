@@ -1186,11 +1186,23 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     assert.ok(waitNative > chain, 'pr.sh wait outlasts the Android chain by timeouts');
   });
 
-  it('E002 #1490 AC2: pr.sh wait outlasts Checks (Linux) in a run with no native job, and the queue timeout outlasts it', () => {
-    // Checks (Linux) needs no other job, so its own timeout is its whole chain; a Linux-only run waits WAIT_MINUTES.
+  it('E002 #1490 AC2: pr.sh wait outlasts the longest Linux-only chain, with or without UI tests, and the queue timeout outlasts it', () => {
+    // Checks (Linux) needs no other job, so its own timeout is its whole chain. E2E (Linux) needs Detect changes, so its
+    // chain is Detect changes plus its own timeout (the one of a PR, a merge group and workflow_dispatch: a push is not
+    // waited for). A run with UI tests (ci: full, workflow_dispatch, the nightly run) has both; a run without has Checks.
     const workflow = readFileSync(join(SCRIPTS, '../.github/workflows/ci.yml'), 'utf8');
-    const checks = Number(
-      workflow.slice(workflow.indexOf('\n  checks:\n')).match(/^ {4}timeout-minutes: (\d+)$/m)[1],
+    const timeout = (job) =>
+      Number(
+        workflow
+          .slice(workflow.indexOf(`\n  ${job}:\n`))
+          .match(/^ {4}timeout-minutes: (?:.* \|\| )?(\d+)(?: \}\})?$/m)[1],
+      );
+    const checksChain = timeout('checks');
+    const e2eChain = timeout('changes') + timeout('e2e');
+    const longest = Math.max(checksChain, e2eChain);
+    assert.ok(
+      e2eChain > checksChain,
+      'the E2E chain is the longer one, so a run with UI tests needs it',
     );
     const queue = Number(
       readFileSync(join(SCRIPTS, '../.github/rulesets/main.json'), 'utf8').match(
@@ -1199,8 +1211,8 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     );
     const pr = readFileSync(join(SCRIPTS, 'pr.sh'), 'utf8');
     const wait = Number(pr.match(/^WAIT_MINUTES=(\d+)$/m)[1]);
-    assert.ok(wait > checks, `pr.sh wait (${wait}) outlasts Checks (Linux) (${checks})`);
-    assert.ok(queue > checks, 'the queue timeout outlasts Checks (Linux)');
+    assert.ok(wait > longest, `pr.sh wait (${wait}) outlasts the Linux-only chain (${longest})`);
+    assert.ok(queue > longest, 'the queue timeout outlasts the Linux-only chain');
   });
 
   it('#293: the debug app and the Maestro web server agree on the port the app has baked in', () => {

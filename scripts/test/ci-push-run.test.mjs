@@ -310,7 +310,7 @@ describe('E002 #1357 the push run of CI on main', () => {
       Number(value) >= 1.5 * SLOWEST_FULL_RUN_MINUTES,
       `Checks (Linux) has ${value} minutes for a full run of at least ${SLOWEST_FULL_RUN_MINUTES}`,
     );
-    // The job stays far under the merge queue's timeout: it needs only Detect changes' output for nothing and runs
+    // The job stays far under the merge queue's timeout: it needs no other job and runs
     // beside the native chain.
     assert.doesNotMatch(jobs.checks, /^ {4}needs:/m);
     // The push run's step still ends first, with room for the minute outside it and the cache save.
