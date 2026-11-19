@@ -344,6 +344,31 @@ describe('F021 TW-03 classes client', () => {
       ).toEqual({ ok: false, reason: 'conflict', session: current });
     });
 
+    it('a trainer_conflict 409 is the generic error until the conflict warning exists (PS-07)', async () => {
+      // The answer lists the overlapping sessions and carries no date to adopt; even one that
+      // did must not be taken for "someone changed the date first".
+      const conflicts = [
+        {
+          sessionId: '00000000-0000-4000-8000-000000000001',
+          type: 'private',
+          startsAt: '2026-12-01T09:00:00.000Z',
+          endsAt: '2026-12-01T10:00:00.000Z',
+          displayName: 'Sam Voorbeeld',
+        },
+      ];
+      expect(
+        await editClassDate('w1', 's1', input, reply(409, { code: 'trainer_conflict', conflicts })),
+      ).toEqual({ ok: false, reason: 'generic' });
+      expect(
+        await editClassDate(
+          'w1',
+          's1',
+          input,
+          reply(409, { code: 'trainer_conflict', conflicts, session: { ...session, version: 3 } }),
+        ),
+      ).toEqual({ ok: false, reason: 'generic' });
+    });
+
     it('refuses a capacity outside 1 to 100 before any request', async () => {
       const fetchFn = reply(200, session);
       expect(await editClassDate('w1', 's1', { ...input, capacity: '0' }, fetchFn)).toEqual({

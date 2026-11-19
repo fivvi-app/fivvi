@@ -308,8 +308,12 @@ export async function editClassDate(
     return { ok: true, session };
   }
   if (answered.status === 409) {
-    const conflict = answered.body as Schemas['ClassDateChanged'] | null;
-    if (!conflict?.session) return { ok: false, reason: 'generic' };
+    const conflict = answered.body as Schemas['UpdateGroupClassDateRefusal'] | null;
+    // `trainer_conflict` lists overlapping sessions and is no changed date: the web PS-07
+    // warning is another ticket, so it is the generic error for now.
+    if (!conflict?.session || conflict.code === 'trainer_conflict') {
+      return { ok: false, reason: 'generic' };
+    }
     return { ok: false, reason: 'conflict', session: conflict.session };
   }
   if (answered.status === 400) {
