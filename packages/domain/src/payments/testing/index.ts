@@ -7,8 +7,13 @@ export {
   FakePaymentProvider,
 } from './fake-provider.ts';
 export { InMemoryPaymentLedger } from './in-memory-ledger.ts';
+export { InMemoryPayoutLedger } from './in-memory-payout-ledger.ts';
 export { InMemoryRefundLedger } from './in-memory-refund-ledger.ts';
 export { type LedgerHarness, ledgerContract, newPayment } from './ledger-contract.ts';
+export {
+  type PayoutLedgerHarness,
+  payoutLedgerContract,
+} from './payout-ledger-contract.ts';
 export {
   type ProviderContractOptions,
   type ProviderHarness,

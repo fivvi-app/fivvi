@@ -1,3 +1,6 @@
+// Module: A workspace keeps at least one Owner: whether a removal (F004: a role change) leaves one
+// Spec: F003 AC7
+
 import type { Role } from '../permissions/matrix.ts';
 
 /** A team role (`team_role` in the database): the roles that exist today. */

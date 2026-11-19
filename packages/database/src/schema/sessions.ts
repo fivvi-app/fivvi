@@ -6,10 +6,12 @@ import {
   index,
   integer,
   pgEnum,
+  pgPolicy,
   text,
   unique,
   uuid,
 } from 'drizzle-orm/pg-core';
+import { CRON_ROLE } from '../cron-role.ts';
 import { businessTable } from './business-table.ts';
 import { classSeries } from './class-series.ts';
 import { instant, timestamps } from './columns.ts';
@@ -144,6 +146,17 @@ export const sessions = businessTable(
       name: 'sessions_updated_by_fk',
       columns: [table.organizationId, table.updatedByTeamMemberId],
       foreignColumns: [teamMembers.organizationId, teamMembers.id],
+    }),
+    // The daily task that keeps class series 12 weeks ahead (F022, E012) adds the missing dates of
+    // every workspace as the cron role, which sets no workspace context. It may insert and nothing
+    // else (the privileges list grants INSERT only): it reads no session, and cannot change one.
+    // And only a class date of a series, planned by nobody: never a private session, a date on its
+    // own or one planned by a team member.
+    pgPolicy('sessions_cron_insert', {
+      as: 'permissive',
+      for: 'insert',
+      to: CRON_ROLE,
+      withCheck: sql`${table.type} = 'group' AND ${table.seriesId} IS NOT NULL AND ${table.createdByTeamMemberId} IS NULL`,
     }),
     check('sessions_ends_after_starts', sql`${table.endsAt} > ${table.startsAt}`),
     check('sessions_capacity_positive', sql`${table.capacity} >= 1`),

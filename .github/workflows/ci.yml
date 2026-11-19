@@ -287,10 +287,15 @@ jobs:
     # The suite stops itself after 17 minutes (apps/web/test/e2e-run.ts, #1408), and the OS packages step may spend 10 minutes on
     # its retries (#1311) before it starts, so the job is never cancelled in the middle of either: about 1 minute for the
     # setup and the build, the worst case of the OS packages step (10), the suite (17) and 2 minutes for the post steps (the
-    # Playwright report, the caches) make 30. On a push (E002 #1357) the work step may take 20 minutes (below), so the job
-    # gets 35: 1 + 10 + 20 make 31, and 4 minutes remain for the post steps. A push is not in the merge queue's chain of
-    # timeouts (150, ADR-018); for a pull request, a merge group and workflow_dispatch the chain is Detect changes 5 plus
-    # this job's 30, far below it.
+    # Playwright report, the caches) make 30. The apt cache steps (prepare, restore, prune: seconds each, 2 minutes at most
+    # each) run before the suite and count in the setup minute. The save runs only after a cold install that passed, and
+    # takes seconds (32 MB) with 2 minutes as its limit: it comes out of the 2 minutes of the post steps, and out of the
+    # suite's time only if the install used all of its 10 minutes (the last of 4 tries on a slow mirror) and the suite all
+    # of its 17, the 1 + 10 + 2 + 17 = 30 of a run that is then cut off in its post steps at worst, which the limit of
+    # the job is there for. On a push (E002 #1357) the work step may take 20 minutes (below), so the job gets 35: 1 + 10 +
+    # 2 + 20 make 33, and 2 minutes remain for the post steps. A push is not in the merge queue's chain of timeouts (150,
+    # ADR-018); for a pull request, a merge group and workflow_dispatch the chain is Detect changes 5 plus this job's 30,
+    # far below it.
     timeout-minutes: ${{ github.event_name == 'push' && 35 || 30 }}
     # The e2e servers each create and migrate their own database on it (apps/web/e2e/serve.ts).
     services:
@@ -340,8 +345,8 @@ jobs:
         id: playwright
         run: echo "version=$(pnpm --filter @fivvi/web exec playwright --version | awk '{print $2}')" >>"$GITHUB_OUTPUT"
 
-      # Browsers are cached per Playwright version; the OS packages they need are not
-      # cacheable, so they are installed on every run.
+      # Browsers are cached per Playwright version. The OS packages they need are cached below, as the .deb files apt
+      # downloads (#1470).
       - name: Cache Playwright browsers
         id: playwright-cache
         uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
@@ -354,12 +359,67 @@ jobs:
         if: steps.playwright-cache.outputs.cache-hit != 'true'
         run: pnpm --filter @fivvi/web exec playwright install --only-shell chromium
 
+      # The Ubuntu mirror is now and then slow or out of reach from the runner: the step took 5 to 9 minutes instead of 15 to
+      # 25 seconds and hit its limit with no test run (#1470; unreachable: #1311). So the packages come from a cache: apt
+      # keeps the .deb files it downloads in /var/cache/apt/archives and takes them from there when the index of the mirror
+      # lists the same version, so a warm run only fetches the small indexes.
+      # The key holds the Ubuntu release (ImageOS, ubuntu24), Playwright's version (its list of packages for Chromium) and
+      # the month, and NOT the runner image version: the image changes several times a week, and runs land on different
+      # ones, so a key with it hardly ever hit (run 44421172254). Which .deb files are right is for apt to decide: it
+      # compares each cached file with the mirror's index and downloads only what is missing or newer, so a cache from
+      # another image is still almost complete. The month renews the cache once a month, so it does not drift from the
+      # mirror for good; the restore-keys take the latest cache of the same release and Playwright version, so the first
+      # run of a month starts from last month's files and downloads only what changed. They name no other release or
+      # Playwright version, whose lists differ. A restored file that no longer fits the index is ignored by apt, and
+      # "apt-get autoclean" deletes such files before the save, so the caches do not pile up old versions.
+      # The cache is saved right after the install passes, so a failing test run does not lose it. As with the other caches,
+      # a PR and a merge group read main's and their own, and the push run on main fills it (when it runs E2E: a web
+      # change; E002 #242). A cold run installs as before.
+      - name: Prepare the apt cache for Chromium's OS packages
+        id: apt
+        timeout-minutes: 2
+        run: |
+          set -euo pipefail
+          echo "release=${ImageOS:-unknown}" >>"$GITHUB_OUTPUT"
+          echo "month=$(date -u +%Y-%m)" >>"$GITHUB_OUTPUT"
+          # The cache action restores as the runner user, and apt must keep the packages it downloads.
+          sudo mkdir -p /var/cache/apt/archives
+          sudo chmod a+rwx /var/cache/apt/archives
+          echo 'APT::Keep-Downloaded-Packages "true";' | sudo tee /etc/apt/apt.conf.d/99keep-downloaded-packages >/dev/null
+
+      - name: Restore Chromium's OS packages
+        id: apt-cache
+        timeout-minutes: 2
+        continue-on-error: true
+        uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: /var/cache/apt/archives/*.deb
+          key: apt-chromium-${{ runner.os }}-${{ steps.apt.outputs.release }}-playwright-${{ steps.playwright.outputs.version }}-${{ steps.apt.outputs.month }}
+          restore-keys: apt-chromium-${{ runner.os }}-${{ steps.apt.outputs.release }}-playwright-${{ steps.playwright.outputs.version }}-
+
       # apt cannot always resolve the Ubuntu mirror from the runner (#1311), which failed the job before any test ran;
-      # the script tries the install again.
+      # the script tries the install again. What it installs is unchanged. With a warm cache this takes seconds.
       - name: Install Chromium's OS packages
-        # Worst case: 4 tries of about 1.5 minutes, plus 90 seconds of waiting between them.
+        # Worst case, a cold cache and a mirror that fails: 4 tries of about 1.5 minutes, plus 90 seconds of waiting between them.
         timeout-minutes: 10
         run: scripts/playwright-deps.sh
+
+      # A problem with the cache never fails the job: the next run installs from the mirror. Only a run that did not find the
+      # exact key saves, after the files that no longer fit the mirror's index (the apt-get update of the install above) are deleted.
+      - name: Prune Chromium's OS packages
+        if: steps.apt-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 2
+        continue-on-error: true
+        run: sudo apt-get autoclean
+
+      - name: Save Chromium's OS packages
+        if: steps.apt-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 2
+        continue-on-error: true
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: /var/cache/apt/archives/*.deb
+          key: apt-chromium-${{ runner.os }}-${{ steps.apt.outputs.release }}-playwright-${{ steps.playwright.outputs.version }}-${{ steps.apt.outputs.month }}
 
       # Builds the web app, then runs every spec in nl-NL and en with axe checks.
       - name: Web e2e (nl-NL and en)

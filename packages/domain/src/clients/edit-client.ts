@@ -1,3 +1,7 @@
+// Module: An edited client: whether the new email address is a duplicate of another client of the
+//        workspace, and which account the link follows
+// Spec: F006 AC7, AC8
+
 /** What the database says about the email address a client is being edited to (F006). */
 export interface ClientEditFacts {
   /** The client being edited. */

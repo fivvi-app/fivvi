@@ -41,6 +41,7 @@
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/_android.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/_slots.sh"
 
 usage() { usage_of "$0"; }
 
@@ -604,7 +605,7 @@ cmd_ios() {
 }
 
 case "${1:-}" in
-  android) shift; cmd_android "$@" ;;
-  ios) shift; cmd_ios "$@" ;;
+  android) slots_wrap heavy,android-emu "$0" "$@"; shift; cmd_android "$@" ;;
+  ios) slots_wrap heavy,ios-sim "$0" "$@"; shift; cmd_ios "$@" ;;
   *) usage ;;
 esac

@@ -1,3 +1,6 @@
+// Module: Part of the module described in `series-rule.ts` (same folder).
+// Spec: F022 AC2, AC3, AC5, AC7, AC10
+
 import {
   parseWeeklyRule,
   type SeriesFacts,

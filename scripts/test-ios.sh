@@ -64,6 +64,8 @@
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$ROOT/scripts/_ios.sh"
+source "$ROOT/scripts/_slots.sh"
+SLOT_MODE="${1:-}"
 MODE=all
 ONLY_LOCALE=""
 BUNDLE_FILE=""
@@ -90,6 +92,10 @@ case "${1:-}" in
     ;;
   *) usage_of "$0" ;;
 esac
+
+# A heavy job, and with a simulator a booted one: machine-wide slots (E001 #1388), taken in this process after the arguments are
+# checked, so a wrong call fails at once instead of waiting for a slot.
+slots_wrap "$([ "$SLOT_MODE" = build ] && echo heavy || echo heavy,ios-sim)" "$0" ${SLOT_MODE:+"$SLOT_MODE"}
 
 need_cmd jq
 LOCALES="nl en"
