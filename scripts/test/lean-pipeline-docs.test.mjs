@@ -109,4 +109,60 @@ describe('ADR-035 the docs and rules of the lean pipeline', () => {
     assert.match(skill, /\(Only with `merge: queue`\.\) Nothing to do/);
     assert.match(read('docs/agents/build.md'), /With `merge: direct` \(no queue\)/);
   });
+
+  it('ADR-035: no rule says the merge queue is always on: each is worded for both merge settings', () => {
+    const agents = read('AGENTS.md');
+    const push = agents.split('\n').find((line) => line.startsWith('- Never push to `main`'));
+    assert.match(push, /with `merge: queue` the merge queue/);
+    assert.match(push, /With `merge: direct`.*up to date with `main`/);
+    const workflow = read('docs/engineering/WORKFLOW.md');
+    assert.match(
+      workflow,
+      /With `merge: queue` it requires the merge queue.*with `merge: direct`.*strict/,
+    );
+    assert.doesNotMatch(workflow, /It also requires a PR and the merge queue, and blocks/);
+    assert.match(
+      workflow,
+      /the PR's own run on a branch that is up to date with `main` with `merge: direct`/,
+    );
+    assert.match(
+      read('docs/decisions/ADR-035-lean-pipeline.md'),
+      /the PR's own run on a branch that is up to date with `main` with `merge: direct`/,
+    );
+    assert.match(read('scripts/pipeline.sh'), /the PR's own run \(and the merge queue's, with/);
+    assert.match(
+      read('.github/workflows/ci.yml'),
+      /with `merge: direct`, ADR-035, which has no merge group/,
+    );
+    const section = workflow.slice(workflow.indexOf('## 8. Switching the pipeline back'));
+    assert.match(
+      section,
+      /so the owner merges it: adds it to the merge queue \(`merge: queue`\) or merges it with GitHub's button \(`merge: direct`/,
+    );
+    assert.doesNotMatch(section, /so the owner adds it to the merge queue\./);
+    assert.match(
+      section,
+      /\(`lean`, `split`, `1`, `direct`; T12 as in version 0\.7\), and `scripts\/github-settings\.sh apply` after the merge/,
+    );
+  });
+
+  it("ADR-035: an owner-only PR that falls behind main is the owner's Update branch, not a factory refresh", () => {
+    const workflow = read('docs/engineering/WORKFLOW.md');
+    assert.match(workflow, /\*\*Owner-only PRs fall behind `main` \(with `merge: direct`\)\.\*\*/);
+    assert.match(workflow, /press \*\*Update branch\*\*/);
+    assert.match(workflow, /goes through the Refresh steps/);
+    const adr = read('docs/decisions/ADR-035-lean-pipeline.md');
+    assert.match(adr, /owner-only PR that waits for the owner falls behind with every agent merge/);
+    assert.doesNotMatch(
+      adr,
+      /this happens only when something else reached `main` meanwhile \(an owner PR/,
+    );
+    assert.match(adr, /The factory does not refresh such PRs/);
+  });
+
+  it('ADR-035: the factory finishes a PR once flow.sh status says merged, not right after pr.sh merge', () => {
+    const skill = read('.agents/skills/work/SKILL.md');
+    assert.match(skill, /run `flow\.sh finish` once `flow\.sh status` says `merged`/);
+    assert.doesNotMatch(skill, /run `flow\.sh finish` right after it/);
+  });
 });

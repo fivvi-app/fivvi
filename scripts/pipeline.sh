@@ -2,8 +2,8 @@
 # The pipeline switch (ADR-034, ADR-035): .github/pipeline.json says how CI, the review and the factory run.
 #
 #   ci       lean    as `fast`, and the integration tests (test:integration) run in the nightly run and on demand only,
-#                    not on PRs, merge groups and pushes (ADR-035); the merge queue still runs lint, types, unit tests,
-#                    the static checks and the build
+#                    not on PRs, merge groups and pushes (ADR-035); the PR's own run (and the merge queue's, with
+#                    `merge: queue`) still runs lint, types, unit tests, the static checks and the build
 #            fast    no UI tests on PRs and merge groups (unit-only native tests, no Maestro, no Playwright); the UI
 #                    tests run in the nightly run of ci.yml
 #            full    every UI test on every PR and merge group, as before ADR-034 (tag pipeline-full-2026-11-18)

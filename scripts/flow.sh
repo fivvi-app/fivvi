@@ -972,7 +972,7 @@ open_blockers() {
 # complete, and not still needs-spec (no tickets, not ready-for-agent, and needs-triage or no body). Dies when a read
 # fails, so an empty list means nothing waits.
 owner_items() {
-  local prs pr title head branch issue blockers risk refusal queue
+  local prs pr title head branch issue blockers risk refusal queue behind
   jq -r --arg approved "$APPROVED_LABEL" --arg ready "$READY_LABEL" '.[]
     | [.labels[].name] as $labels
     | ((.body // "") | gsub("\\s"; "") | length > 0) as $described
@@ -1004,9 +1004,17 @@ owner_items() {
       blockers=""
       issue="$(branch_issue "$branch")"
       if [ -n "$issue" ]; then blockers="$(open_blockers "$issue")" || die "could not read the blockers of #$issue"; fi
-      jq -r --arg pr "$pr" --arg title "$title" --arg blockers "$blockers" \
+      # With `merge: direct` (ADR-035) GitHub refuses the merge of a branch that is behind main, and the factory refreshes only
+      # conflicting PRs (re-running CI on every owner PR after every merge would cost more than one button), so say what to
+      # press. A state that can't be read leaves the line as it was.
+      behind=""
+      if [ -z "$blockers" ] && [ "$(merge_setting)" = direct ] \
+        && [ "$(gh pr view "$pr" --repo "$REPO" --json mergeStateStatus --jq .mergeStateStatus 2>/dev/null || true)" = BEHIND ]; then
+        behind="behind main: press Update branch in the merge box (CI runs once more), then merge; a conflict goes through the Refresh steps"
+      fi
+      jq -r --arg pr "$pr" --arg title "$title" --arg blockers "$blockers" --arg behind "$behind" \
         '((.reasons[:3] | join("; ")) + (if (.reasons | length) > 3 then "; +\(.reasons | length - 3) more" else "" end)) as $why
-         | if $blockers == "" then "Merge PR #\($pr) \($title) (owner-only: \($why))"
+         | if $blockers == "" then "Merge PR #\($pr) \($title) (owner-only: \($why)\(if $behind != "" then "; " + $behind else "" end))"
            else "Blocked PR #\($pr) \($title) (waits for \($blockers); owner-only: \($why))" end' <<<"$risk" \
         || die "could not read the risk of PR #$pr"
       continue

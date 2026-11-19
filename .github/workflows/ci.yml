@@ -29,7 +29,7 @@ name: CI
 on:
   pull_request:
   # A push to main only fills the caches that PRs and merge groups read, and nothing in it fails the run (ADR-018,
-  # amendment of 12 November 2026; E002 #1357). The merge group already passed on the same tree, and a flaky failure here
+  # amendment of 12 November 2026; E002 #1357). The merge group already passed on the same tree (with `merge: direct`, ADR-035, which has no merge group, the PR's own run on a branch up to date with main did), and a flaky failure here
   # would turn main red and hold back the deploy of development and production (Railway's "Wait for CI"). So on a push:
   #   - the Linux jobs run as on a PR: turbo caches the tasks that passed (a failed task is left out, the others stay);
   #   - the native jobs run only as far as they write main's caches (Gradle, the AVD snapshot, DerivedData; a PR and a merge
