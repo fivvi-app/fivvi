@@ -13,13 +13,16 @@
 # New static checks (i18n parity, OpenAPI drift, ...) are added as a `check`
 # script in the package that owns them. Turbo picks them up; no change here.
 #
-# The pipeline switch (ADR-034, .github/pipeline.json, scripts/pipeline.sh): "Detect changes" reads `ci` and outputs
-# `ui_tests`. With `ci: full` every run runs every UI test, as before ADR-034 (tag pipeline-full-2026-11-18). With `ci: fast`
-# a pull request, a merge group and a push run none: "iOS tests" run `test-ios.sh test <locale> --unit-only`, "Android tests"
-# runs `android.sh verify --no-ui` without KVM, emulator and AVD cache, "Android Maestro" and "E2E (Linux)" do not run (a
-# skipped required check passes), "Quarantine" runs its Vitest list only and "Quarantine (Android)" does not run. The nightly
-# run (schedule, 02:00 UTC) and workflow_dispatch run everything, UI tests and every quarantine list included, whatever
-# changed, and the last job, "Nightly report", opens or updates the issue "Nightly UI tests failed" when one of them failed.
+# The pipeline switch (ADR-034, ADR-035, .github/pipeline.json, scripts/pipeline.sh): "Detect changes" reads `ci` and outputs
+# `ui_tests` and `integration_tests`. With `ci: full` every run runs every UI test and the integration tests, as before ADR-034
+# (tag pipeline-full-2026-11-18). With `ci: fast` a pull request, a merge group and a push run no UI test: "iOS tests" run
+# `test-ios.sh test <locale> --unit-only`, "Android tests" runs `android.sh verify --no-ui` without KVM, emulator and AVD cache,
+# "Android Maestro" and "E2E (Linux)" do not run (a skipped required check passes), "Quarantine" runs its Vitest list only and
+# "Quarantine (Android)" does not run. With `ci: lean` (ADR-035) a pull request, a merge group and a push run the same as with
+# `fast`, and "Checks (Linux)" also leaves out the integration tests (`test:integration`): lint, types, unit tests, build and
+# the static checks still run. The nightly run (schedule, 02:00 UTC) and workflow_dispatch run everything in every setting, UI
+# tests, integration tests and every quarantine list included, whatever changed, and the last job, "Nightly report", opens or
+# updates the issue "Nightly UI tests failed" when one of them failed, the integration tests (in "Checks (Linux)") included.
 
 name: CI
 
@@ -84,6 +87,9 @@ jobs:
       # Whether the UI tests run in this run (ADR-034): the Compose UI tests and Maestro on Android, the UI tests of iOS, the
       # Playwright suite (E2E (Linux)) and the Playwright, Compose and Maestro quarantine lists.
       ui_tests: ${{ steps.filter.outputs.ui_tests }}
+      # Whether Checks (Linux) runs the integration tests (ADR-035): always with `ci: full` and `fast`; with `ci: lean` only in
+      # the nightly run and on demand.
+      integration_tests: ${{ steps.filter.outputs.integration_tests }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -141,14 +147,15 @@ jobs:
           cat "$reasons"
           { echo '### What this change affects'; sed 's/^/- /' "$reasons"; } >>"${GITHUB_STEP_SUMMARY:-/dev/null}"
 
-          # Whether the UI tests run (ADR-034, .github/pipeline.json): always with `ci: full`, and with `ci: fast` only in
+          # Whether the UI tests run (ADR-034, .github/pipeline.json): always with `ci: full`, and with `ci: fast` or `lean` only in
           # the nightly run and on demand; the PR's run-native label forces the native jobs, not the UI tests. The rule lives
           # in scripts/pipeline.sh ui-tests, which the Quarantine jobs ask too; it fails closed: a missing or unknown
           # setting stops this job, and with it the run. The reason below only words the answer.
           ui_tests="$(scripts/pipeline.sh ui-tests --event "$EVENT")"
+          ci_mode="$(scripts/pipeline.sh get ci)"
           if [[ "$ui_tests" == 'false' ]]; then
-            ui_reason="ci is fast (.github/pipeline.json), so they run in the nightly run only"
-          elif [[ "$(scripts/pipeline.sh get ci)" == 'full' ]]; then
+            ui_reason="ci is $ci_mode (.github/pipeline.json), so they run in the nightly run only"
+          elif [[ "$ci_mode" == 'full' ]]; then
             ui_reason="ci is full (.github/pipeline.json), so every run runs them"
           elif [[ "$EVENT" == 'schedule' ]]; then
             ui_reason="the nightly run (schedule) runs them, every night"
@@ -159,8 +166,26 @@ jobs:
           echo "ui_tests=$ui_tests" >>"$GITHUB_OUTPUT"
           echo "- UI tests: $([[ "$ui_tests" == 'true' ]] && echo run || echo 'not run'): $ui_reason" >>"${GITHUB_STEP_SUMMARY:-/dev/null}"
 
+          # Whether Checks (Linux) runs the integration tests (ADR-035): always with `ci: full` and `fast`, and with `ci: lean`
+          # only in the nightly run and on demand. The rule lives in scripts/pipeline.sh integration-tests; same fail-closed
+          # behaviour as above.
+          integration_tests="$(scripts/pipeline.sh integration-tests --event "$EVENT")"
+          if [[ "$integration_tests" == 'false' ]]; then
+            integration_reason="ci is $ci_mode (.github/pipeline.json), so they run in the nightly run only"
+          elif [[ "$ci_mode" == 'lean' ]]; then
+            integration_reason="$EVENT runs everything"
+          else
+            integration_reason="ci is $ci_mode (.github/pipeline.json), so every run runs them"
+          fi
+          echo "Integration tests: $([[ "$integration_tests" == 'true' ]] && echo run || echo 'not run'): $integration_reason."
+          echo "integration_tests=$integration_tests" >>"$GITHUB_OUTPUT"
+          echo "- Integration tests: $([[ "$integration_tests" == 'true' ]] && echo run || echo 'not run'): $integration_reason" >>"${GITHUB_STEP_SUMMARY:-/dev/null}"
+
   checks:
     name: Checks (Linux)
+    # Waits for Detect changes only for its integration_tests decision (ADR-035): about 20 seconds, and 5 + 25 minutes in the
+    # chain of timeouts, far below the merge queue's 150 (ADR-018).
+    needs: changes
     runs-on: ubuntu-24.04
     continue-on-error: ${{ github.event_name == 'push' }}
     # 25 minutes on every event (E002 #1490): a change to a package almost every other one depends on (packages/i18n, PR
@@ -252,17 +277,25 @@ jobs:
 
       # One turbo run so independent tasks run in parallel. A failing task
       # doesn't stop the unrelated ones, so one run reports every failure.
-      - name: Lint, typecheck, unit and integration tests, build, format and static checks
+      # The integration tests are one of its tasks only when the run has them (`ci: full` and `fast` always; `ci: lean`
+      # only in the nightly run and on demand, ADR-035): "Detect changes" decides, scripts/pipeline.sh integration-tests.
+      # Anything but exactly 'false' runs them: a value that is missing or odd never leaves tests out.
+      - name: Lint, typecheck, unit tests, integration tests (when the run has them), build, format and static checks
         # On a push only (E002 #1357): a hang fails this step, which continue-on-error covers, instead of the job timeout
         # cancelling the job and the run. The slowest of 34 push runs of main took 620 s here (3 took 10 minutes or more),
         # and the job spends about 1 minute outside this step: 22 + 1 leaves 2 of the job's 25 minutes for the cache save. The step
         # is long so that a full uncached run on main (#1490) is not cut off before turbo has cached what passed.
         timeout-minutes: ${{ github.event_name == 'push' && 22 || 360 }}
         continue-on-error: ${{ github.event_name == 'push' }}
-        run: >-
-          pnpm exec turbo run lint typecheck test test:integration build format:check check
-          --cache-dir=.turbo/cache
-          --continue=dependencies-successful
+        env:
+          INTEGRATION_TESTS: ${{ needs.changes.outputs.integration_tests }}
+        run: |
+          tasks=(lint typecheck test)
+          if [[ "${INTEGRATION_TESTS:-}" != 'false' ]]; then tasks+=(test:integration); fi
+          tasks+=(build format:check check)
+          pnpm exec turbo run "${tasks[@]}" \
+            --cache-dir=.turbo/cache \
+            --continue=dependencies-successful
 
       # Saved even when another task fails, so a freshly built generator isn't lost; only on a
       # miss, and only once the check has produced both tools (not when turbo reused its result).

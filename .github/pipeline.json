@@ -1,4 +1,5 @@
 {
-  "ci": "fast",
-  "review": "split"
+  "ci": "lean",
+  "review": "split",
+  "builders": 1
 }

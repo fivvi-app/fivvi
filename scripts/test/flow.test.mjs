@@ -2333,6 +2333,19 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       ]);
     });
 
+    it('ADR-035 lean: the same as fast, because the integration tests and the UI tests run only in the nightly run', () => {
+      const result = withCi('lean', () => run('next', scenario()));
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(readyOf(result.stdout).split('\n'), [
+        '== Ready for an agent',
+        `Build #1700 first (nightly): ${TITLE}`,
+        '#180 [F003] Add a client',
+        '',
+      ]);
+      const idle = withCi('lean', () => run('idle', scenario({ tickets: [] })));
+      assert.equal(idle.status, 1, idle.stdout + idle.stderr);
+    });
+
     it('fast: comes right after the deploy line, not before it', () => {
       const result = withCi('fast', () =>
         run('next', scenario({ railway: { development: [BAD] } })),

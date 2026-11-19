@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# The report of the nightly run of CI (ADR-034): when a job of the scheduled run of .github/workflows/ci.yml failed or was
+# The report of the nightly run of CI (ADR-034, ADR-035): when a job of the scheduled run of .github/workflows/ci.yml failed or was
 # cancelled, this opens a bug issue titled `Nightly UI tests failed` (labels bug and ready-for-agent), or, when an open
 # issue with that title exists, comments on it. The factory builds it before the other tickets.
 #
@@ -14,8 +14,13 @@
 #   be read it falls back to the job ids of NEEDS. The text holds the run's address, the names of the failing jobs and an
 #   acceptance criterion, and nothing else: no log, no user data.
 #
-# The issue has the `## Acceptance criteria` checklist the factory builds against; a comment on the open issue has the run and
-# the failing jobs of that night only.
+# The text names the failing suites before the jobs: `Checks (Linux)` is "Integration tests and the other Linux checks" (with
+# `ci: lean` the integration tests run only in this run, ADR-035; the job's log says which task failed), `Detect changes` is
+# itself, and every other job is "UI tests and native jobs". The title stays `Nightly UI tests failed`: the factory, flow.sh
+# and usage.mjs match it.
+#
+# The issue has the `## Acceptance criteria` checklist the factory builds against; a comment on the open issue has the run, the
+# failing suites and the failing jobs of that night only.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
@@ -44,11 +49,26 @@ if [ -z "$failed_names" ]; then
   failed_names="$failed_ids"
 fi
 jobs_list=""
+linux_checks="" detect="" ui_jobs=""
 while IFS= read -r name; do
   jobs_list+="${jobs_list:+$'\n'}- $name"
+  case "$name" in
+    'Checks (Linux)' | checks) linux_checks+="${linux_checks:+, }$name" ;;
+    'Detect changes' | changes) detect+="${detect:+, }$name" ;;
+    *) ui_jobs+="${ui_jobs:+, }$name" ;;
+  esac
 done <<<"$failed_names"
 
+suites_list=""
+[ -z "$linux_checks" ] || suites_list+="${suites_list:+$'\n'}- Integration tests and the other Linux checks: $linux_checks"
+[ -z "$ui_jobs" ] || suites_list+="${suites_list:+$'\n'}- UI tests and native jobs: $ui_jobs"
+[ -z "$detect" ] || suites_list+="${suites_list:+$'\n'}- Detect changes: $detect"
+
 run_section="The nightly run of \`ci.yml\` on \`main\` failed: $RUN_URL
+
+Failing suites:
+
+$suites_list
 
 Failing jobs:
 

@@ -28,7 +28,7 @@
 #                                           agent", `Deploy bug: ...` when no open bug carries its marker, else
 #                                           `Build #n first: ...` (under "Waiting on the owner" while that bug waits on a
 #                                           human); a failing production deploy and a status it cannot read are lines
-#                                           under "Waiting on the owner", never work. With `ci: fast` (ADR-034) an open
+#                                           under "Waiting on the owner", never work. With `ci: fast` or `lean` (ADR-034, ADR-035) an open
 #                                           issue titled `Nightly UI tests failed` (scripts/nightly-report.sh) comes next,
 #                                           as `Build #n first (nightly): ...`, and not a second time as a ready ticket.
 #                                           Then every open PR GitHub marks CONFLICTING, drafts and owner-only ones
@@ -613,7 +613,8 @@ deploy_items() {
 }
 
 # The open issue of a failed nightly run (ADR-034, scripts/nightly-report.sh), the oldest when there are several. With
-# `ci: fast` the UI tests run only in the nightly run, so its failure is work before the other tickets, right after a
+# `ci: fast` or `lean` the UI tests (and with `lean` the integration tests) run only in the nightly run, so its failure is
+# work before the other tickets, right after a
 # failing deploy; with `full` there is no nightly run to wait for and the issue is an ordinary ready ticket, so nothing is
 # read. Sets NIGHTLY_WORK (a line ending in a newline, or empty) and NIGHTLY_NUMBER. An issue in a phase that waits on a human
 # is not work. Dies when the setting, the issues or the issue's facts can't be read.
@@ -624,7 +625,7 @@ nightly_items() {
   local mode n f phase
   NIGHTLY_WORK="" NIGHTLY_NUMBER=""
   mode="$("$ROOT/scripts/pipeline.sh" get ci)" || die "could not read the ci setting (scripts/pipeline.sh get ci)"
-  [ "$mode" = fast ] || return 0
+  [ "$mode" = fast ] || [ "$mode" = lean ] || return 0
   n="$(gh issue list --repo "$REPO" --state open --search "\"$NIGHTLY_TITLE\" in:title" --limit 100 --json number,title \
     --jq "[.[] | select(.title == \"$NIGHTLY_TITLE\") | .number] | min // empty")" || die "could not read the open issues"
   [ -n "$n" ] || return 0

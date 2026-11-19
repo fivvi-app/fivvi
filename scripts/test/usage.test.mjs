@@ -1395,6 +1395,35 @@ describe('usage.mjs', () => {
       assert.deepEqual(warnings, []);
     });
 
+    it('ADR-035: reads ci lean and builders, and a main from before the setting as 4 builders', () => {
+      const git = repoWith([
+        ['2026-10-01T00:00:00Z', { ci: 'fast', review: 'split' }],
+        ['2026-10-02T00:00:00Z', { ci: 'lean', review: 'split', builders: 1 }],
+      ]);
+      const { settings } = flowSnapshot(flowRules(), { git }).data.flow;
+      assert.deepEqual(
+        [settings.end.ci, settings.end.review, settings.end.builders],
+        ['lean', 'split', 1],
+      );
+      const before = repoWith([['2026-10-01T00:00:00Z', { ci: 'fast', review: 'split' }]]);
+      assert.equal(flowSnapshot(flowRules(), { git: before }).data.flow.settings.start.builders, 4);
+      // an unusable builders value is read as the 4 of before the setting, like the other missing values
+      const odd = repoWith([
+        ['2026-10-01T00:00:00Z', { ci: 'lean', review: 'split', builders: 0 }],
+      ]);
+      assert.equal(flowSnapshot(flowRules(), { git: odd }).data.flow.settings.end.builders, 4);
+    });
+
+    it('ADR-035: a change of builders alone inside the window is a change of settings, with a warning', () => {
+      const git = repoWith([
+        ['2026-10-01T00:00:00Z', { ci: 'lean', review: 'split', builders: 4 }],
+        ['2026-11-03T12:00:00Z', { ci: 'lean', review: 'split', builders: 1 }],
+      ]);
+      const { settings, warnings } = flowSnapshot(flowRules(), { git }).data.flow;
+      assert.equal(settings.changed, true);
+      assert.match(warnings[0], /builders 4 → .*builders 1|builders 4.*builders 1/);
+    });
+
     it('reads a main without .github/pipeline.json as the full flow', () => {
       const { settings } = flowSnapshot().data.flow;
       assert.deepEqual([settings.start.ci, settings.start.review], ['full', 'per-pr']);
@@ -1757,6 +1786,19 @@ describe('usage.mjs', () => {
         assert.match(out, /bugs from nightly\s+0 → 8/);
         assert.match(out, /bugs per merged ticket\s+0\.2 → 0\.4\s+\+67%/);
         assert.match(out, /PRs merged with should-fix follow-ups\s+3 → 3/);
+      });
+
+      it('ADR-035: prints the builders of a setting that has them', () => {
+        const lean = () => {
+          const f = fast();
+          f.settings.end = { sha: 'c', ci: 'lean', review: 'split', builders: 1 };
+          return f;
+        };
+        const out = compare(
+          { ...snap('fast', [ticket()]), flow: fast() },
+          { ...snap('lean', [ticket()]), flow: lean() },
+        );
+        assert.match(out, /settings\s+ci fast, review split → ci lean, review split, builders 1/);
       });
 
       it('prints the warnings of a snapshot, and says so when one side has no flow', () => {
