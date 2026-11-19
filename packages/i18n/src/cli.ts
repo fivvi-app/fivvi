@@ -1,8 +1,8 @@
 // Usage: node src/cli.ts generate | sort | check [parity|icu|generated|no-literal-trainer|sorted]… [--root <dir>]
 import path from 'node:path';
 import { parseArgs } from 'node:util';
-import { type CheckName, checkNames, runChecks } from './tools/checks.ts';
 import { readCatalogSet } from './tools/catalog.ts';
+import { type CheckName, checkNames, runChecks } from './tools/checks.ts';
 import { CatalogError, writeNativeCatalogs } from './tools/generate.ts';
 import { writeSortedCatalogs } from './tools/sort.ts';
 
