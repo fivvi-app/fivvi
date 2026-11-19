@@ -41,3 +41,15 @@ export function createProductEventCaptureTransport(): ProductEventCaptureTranspo
     },
   };
 }
+
+/**
+ * What Fivvi put in an event: its name, distinct id and properties. Not the `timestamp` and `uuid`
+ * the PostHog client adds on its own (the wall clock and a time-ordered id), so a check that no
+ * personal value was sent cannot trip over a clock that reads 18:00 or a date that matches a
+ * fixture (#1494). Stringify this, not `events`, when a test looks for strings in what was sent.
+ */
+export function whatFivviSent(
+  events: readonly SentProductEvent[],
+): Pick<SentProductEvent, 'event' | 'distinct_id' | 'properties'>[] {
+  return events.map(({ event, distinct_id, properties }) => ({ event, distinct_id, properties }));
+}
