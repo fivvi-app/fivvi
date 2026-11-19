@@ -369,9 +369,9 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
         'Quarantine',
         'iOS build',
         'iOS build (retry)',
-        'iOS tests (${{ matrix.locale }})',
+        'iOS tests (${{ matrix.locale }} ${{ matrix.shard }}/2)',
         'iOS tests (retry plan)',
-        'iOS tests (${{ matrix.locale }}) (retry)',
+        'iOS tests (${{ matrix.locale }} ${{ matrix.shard }}/2) (retry)',
         'Android build',
         'Android tests',
         'Android Maestro',
@@ -406,7 +406,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
 
     it('builds exactly as the first build does: same runner, Xcode, timeout and steps', () => {
       for (const pattern of [
-        /^ {4}runs-on: (\S+)$/m,
+        /^ {4}runs-on: (.+)$/m,
         /^ {4}timeout-minutes: (\d+)$/m,
         /^ {6}DEVELOPER_DIR: (\S+)$/m,
       ]) {
@@ -442,22 +442,25 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       assert.match(condition, /needs\.ios-tests\.result != 'success'/);
       assert.match(condition, /needs\.ios-tests\.result != 'skipped'/);
       assert.match(plan, /actions: read/);
-      assert.match(plan, /scripts\/ios-parts\.sh retry-locales "\$TESTS"/);
+      assert.match(plan, /scripts\/ios-parts\.sh retry-parts "\$TESTS"/);
       assert.match(plan, /TESTS: \$\{\{ needs\.ios-tests\.result \}\}/);
-      assert.match(plan, /locales=\$\(/);
-      assert.match(plan, /locales: \$\{\{ steps\.\w+\.outputs\.locales \}\}/);
+      assert.match(plan, /parts=\$\(/);
+      assert.match(plan, /parts: \$\{\{ steps\.\w+\.outputs\.parts \}\}/);
     });
 
     it('runs the retried languages from the existing bundle, with the steps of the first try', () => {
       const retry = job('ios-tests-retry');
-      assert.match(retry, /^ {4}name: iOS tests \(\$\{\{ matrix\.locale \}\}\) \(retry\)$/m);
+      assert.match(
+        retry,
+        /^ {4}name: iOS tests \(\$\{\{ matrix\.locale \}\} \$\{\{ matrix\.shard \}\}\/2\) \(retry\)$/m,
+      );
       assert.match(retry, /^ {4}needs: \[changes, ios-tests-plan\]$/m);
       const condition = field('ios-tests-retry', /^ {4}if: (.+)$/m);
       assert.match(condition, /!cancelled\(\)/);
-      assert.match(condition, /needs\.ios-tests-plan\.outputs\.locales != '\[\]'/);
+      assert.match(condition, /needs\.ios-tests-plan\.outputs\.parts != '\[\]'/);
       assert.match(
         retry,
-        /locale: \$\{\{ fromJSON\(needs\.ios-tests-plan\.outputs\.locales \|\| '\["nl"\]'\) \}\}/,
+        /include: \$\{\{ fromJSON\(needs\.ios-tests-plan\.outputs\.parts \|\| '\[\{"locale":"nl","shard":1\}\]'\) \}\}/,
       );
       assert.match(retry, /fail-fast: false/);
       assert.doesNotMatch(retry, /test-ios\.sh build|ios-build/, 'it does not build again');
@@ -469,6 +472,42 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
         assert.equal(field('ios-tests-retry', pattern), field('ios-tests', pattern), `${pattern}`);
       }
       assert.equal(steps('ios-tests-retry'), steps('ios-tests'));
+    });
+
+    // #1447: each language's tests are two parts, one job each. The parts are named in three places that must agree: the
+    // matrix and the command of ci.yml, the names the gate and the retry plan read (ios-parts.sh), and the `--shard` the
+    // runner script takes.
+    it('#1447 runs each language in two parts, which ci.yml, the retry and ios-parts.sh name alike', () => {
+      const tests = job('ios-tests');
+      assert.match(tests, /^ {8}locale: \[nl, en\]$/m);
+      assert.match(tests, /^ {8}shard: \[1, 2\]$/m);
+      assert.match(
+        tests,
+        /^ {4}name: iOS tests \(\$\{\{ matrix\.locale \}\} \$\{\{ matrix\.shard \}\}\/2\)$/m,
+      );
+      assert.match(
+        tests,
+        /run: scripts\/test-ios\.sh test \$\{\{ matrix\.locale \}\} --shard \$\{\{ matrix\.shard \}\}\/2$/m,
+      );
+      assert.match(
+        tests,
+        /name: ios-test-results-\$\{\{ matrix\.locale \}\}-\$\{\{ matrix\.shard \}\}of2$/m,
+      );
+      assert.match(
+        job('ios-tests-retry'),
+        /name: ios-test-results-\$\{\{ matrix\.locale \}\}-\$\{\{ matrix\.shard \}\}of2$/m,
+      );
+      // The parts ios-parts.sh names are the four the matrix makes (its success path names every one).
+      const success = spawnSync(join(SCRIPTS, 'ios-parts.sh'), ['success', 'success'], {
+        encoding: 'utf8',
+      });
+      assert.deepEqual(success.stdout.split('\n').filter(Boolean), [
+        'iOS build=success',
+        'iOS tests (nl 1/2)=success',
+        'iOS tests (nl 2/2)=success',
+        'iOS tests (en 1/2)=success',
+        'iOS tests (en 2/2)=success',
+      ]);
     });
   });
 
@@ -965,7 +1004,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     );
   });
 
-  it('#293 AC14: the iOS build job builds once and uploads the test bundle; two test jobs run nl and en from it', () => {
+  it('#293 AC14: the iOS build job builds once and uploads the test bundle; the test jobs run nl and en, in two parts each, from it', () => {
     assert.match(iosBuild, /run: scripts\/test-ios\.sh build\n/);
     assert.match(
       iosBuild,
@@ -973,13 +1012,16 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     );
     assert.match(iosBuild, /include-hidden-files: true/);
     assert.match(iosTests, /needs: \[changes, ios-build, ios-build-retry\]\n/);
-    assert.match(iosTests, /matrix:\n +locale: \[nl, en\]/);
+    assert.match(iosTests, /matrix:\n +locale: \[nl, en\]\n +shard: \[1, 2\]/);
     assert.match(iosTests, /fail-fast: false/);
     assert.match(
       iosTests,
       /uses: actions\/download-artifact@[^\n]*\n +with:\n +name: ios-test-bundle\n +path: apps\/ios\/\.build\n/,
     );
-    assert.match(iosTests, /run: scripts\/test-ios\.sh test \$\{\{ matrix\.locale \}\}\n/);
+    assert.match(
+      iosTests,
+      /run: scripts\/test-ios\.sh test \$\{\{ matrix\.locale \}\} --shard \$\{\{ matrix\.shard \}\}\/2\n/,
+    );
     assert.doesNotMatch(
       iosTests,
       /test-ios\.sh build|xcodebuild build/,
@@ -1049,7 +1091,8 @@ describe('E002 #91 the native jobs in ci.yml', () => {
 
   it('E002 #242: the iOS jobs run on macos-15 with an Xcode that image has, and say why in a comment', () => {
     for (const section of [iosBuild, iosTests]) {
-      assert.match(section, /^ {4}runs-on: macos-15$/m);
+      // ios-tests runs part 2 on Linux in a run without UI tests (ci-fast-pipeline.test.mjs); every other part on macos-15.
+      assert.match(section, /^ {4}runs-on: (macos-15|\$\{\{ .*'macos-15'.* \}\})$/m);
       // The Xcode must be one the image installs (macos-15: 16.x and 26.0.1 to 26.3).
       assert.match(
         section,
@@ -2224,6 +2267,14 @@ case "$*" in
       [ "$FAKE_ENUMERATE" != fail ] || exit 1
       [ "$FAKE_ENUMERATE" != stall ] || exec perl -e '$SIG{INT} = sub { open my $f, ">", shift(@ARGV); print $f "SIGINT\\n"; close $f; exit 130 }; sleep 60' "${state}/sigint.log"
       out=; prev=; for a in "$@"; do [ "$prev" != -test-enumeration-output-path ] || out="$a"; prev="$a"; done
+      # FAKE_ENUMERATION_IDS=<file>: a JSON array of the identifiers the enumeration lists (#1447), in place of FAKE_ENUMERATION
+      # of them; FAKE_ENUMERATE=fail-first: only the first enumeration fails.
+      if [ "$FAKE_ENUMERATE" = fail-first ] && [ ! -e "${state}/enumerated" ]; then touch "${state}/enumerated"; exit 1; fi
+      if [ -n "$FAKE_ENUMERATION_IDS" ]; then
+        out=; prev=; for a in "$@"; do [ "$prev" != -test-enumeration-output-path ] || out="$a"; prev="$a"; done
+        jq '{errors: [], values: [{disabledTests: [], testPlan: "FivviPro", enabledTests: map({identifier: .})}]}' "$FAKE_ENUMERATION_IDS" >"$out"
+        exit 0
+      fi
       jq -n --argjson n "\${FAKE_ENUMERATION:-0}" '{errors: [], values: [{disabledTests: [], testPlan: "FivviPro",
         enabledTests: [range($n) | {identifier: ("FivviProTests/Fake/test" + tostring + "()")}]}]}' >"$out"
       exit 0 ;; esac
@@ -2272,14 +2323,16 @@ if [ "$*" = "db:reset-rate-limits" ]; then
 fi
 exit 0`,
     );
-    // calls.log has the curl, adb and Maestro calls in the order they ran. FAKE_HELLO=fail: GET /api/v1/hello fails.
+    // calls.log has the curl, adb and Maestro calls in the order they ran. FAKE_WARM_UP=fail: GET /api/v1/me fails; =ok: it answers 200 instead of the 401 it gives without a token.
     // The fake Lettermint server is a real process (#379), so a GET to its port (E2E_PORT + 2000) succeeds only once it answers,
     // like curl in maestro.sh's wait_for would, which the fake sleep cannot do: a call polls for up to 1 s (the skipped
     // sleep 1) and then fails, so wait_for's 61 tries still end near its real 60 s when the server never answers.
     script(
       join(bin, 'curl'),
       `echo "curl $*" >>"${state}/calls.log"
-case "$*" in *"/api/v1/hello"*) [ "$FAKE_HELLO" != fail ] || exit 22 ;; esac
+case "$*" in *"/api/v1/me"*)
+  [ "$FAKE_WARM_UP" != fail ] || exit 7
+  [ "$FAKE_WARM_UP" = ok ] && printf 200 || printf 401 ;; esac
 case "$*" in *"localhost:$((E2E_PORT + 2000))/"*)
   exec node -e "
     const url = process.argv[1], end = Date.now() + 1000;
@@ -2719,6 +2772,265 @@ esac`,
       });
     });
 
+    // #1447: CI runs each language in parts, one job each, because the whole language ran past its deadline on a slow runner.
+    describe('#1447: test <nl|en> --shard <part>/<of> runs one part of the language, every class in exactly one part', () => {
+      const ids = (...classes) =>
+        classes.flatMap(([cls, count]) =>
+          Array.from({ length: count }, (_, i) => `${cls}/test${i + 1}()`),
+        );
+      // Two unit tests, and UI classes of 3, 2 and 1 tests: a UI test weighs ten unit tests.
+      const CLASSES = [
+        ['FivviProTests/AlphaTests', 2],
+        ['FivviProUITests/XUITests', 2],
+        ['FivviProUITests/YUITests', 1],
+        ['FivviProUITests/ZUITests', 3],
+      ];
+      const built = async (classes = CLASSES) => {
+        const fake = checkout();
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+        const list = join(fake.repo, '..', 'ids.json');
+        // The enumeration also lists a base class whose tests its subclasses inherit: no test of its own, and a result bundle
+        // does not count it (two of the 192 tests of a real part, 17 November).
+        writeFileSync(list, JSON.stringify([...ids(...classes), 'FivviProTests/BaseTestCase']));
+        return { fake, list };
+      };
+      // The canned summary of the bundle of a part: it ran `total` tests and none failed.
+      const bundle = (fake, name, total) => {
+        const dir = join(fake.repo, '..', 'bundles');
+        mkdirSync(dir, { recursive: true });
+        writeFileSync(
+          join(dir, `TestResults-${name}.xcresult.json`),
+          JSON.stringify({
+            failedTests: 0,
+            passedTests: total,
+            skippedTests: 0,
+            expectedFailures: 0,
+            totalTestCount: total,
+            testFailures: [],
+            testNodes: [],
+          }),
+        );
+        return dir;
+      };
+      const runs = (fake) =>
+        fake
+          .log('xcodebuild')
+          .filter(
+            (line) =>
+              line.startsWith('test-without-building ') && !line.includes('-enumerate-tests'),
+          );
+      const only = (line) => [...line.matchAll(/-only-testing:(\S+)/g)].map((match) => match[1]);
+      const part = (fake, list, locale, shard, total, env = {}) =>
+        fake.run('scripts/test-ios.sh', ['test', locale, '--shard', shard], {
+          IOS_SIM_SETTLE: '0',
+          FAKE_ENUMERATION_IDS: list,
+          FAKE_XCRESULT_DIR: bundle(fake, `${locale}-${shard.replace('/', 'of')}`, total),
+          ...env,
+        });
+
+      it('runs the classes of its part with -only-testing in its own bundle, and the parts together run every class once', async () => {
+        const { fake, list } = await built();
+
+        const first = await part(fake, list, 'nl', '1/2', 5);
+        const second = await part(fake, list, 'nl', '2/2', 3);
+
+        assert.equal(first.status, 0, first.output);
+        assert.equal(second.status, 0, second.output);
+        const [one, two] = runs(fake);
+        assert.deepEqual(only(one), ['FivviProTests/AlphaTests', 'FivviProUITests/ZUITests']);
+        assert.deepEqual(only(two), ['FivviProUITests/XUITests', 'FivviProUITests/YUITests']);
+        assert.deepEqual(
+          [...only(one), ...only(two)].sort(),
+          CLASSES.map(([cls]) => cls).sort(),
+          'every class once',
+        );
+        assert.match(one, /-only-test-configuration nl\b/);
+        assert.match(one, /-resultBundlePath \.build\/TestResults-nl-1of2\.xcresult\b/);
+        assert.match(two, /-resultBundlePath \.build\/TestResults-nl-2of2\.xcresult\b/);
+        assert.match(first.output, /Part 1 of 2 of the nl tests: 5 tests in 2 classes/);
+        assert.match(second.output, /Part 2 of 2 of the nl tests: 3 tests in 2 classes/);
+        assert.match(first.output, /✓ iOS tests in nl, part 1 of 2/);
+      });
+
+      // The weight of a class is its tests, ten each in the `<app>UITests` target of either app (scripts/_ios.sh, shard_plan).
+      // With FivviUITests weighed as a unit test the classes would be dealt out differently (part 1: AlphaTests and
+      // ClientUITests, part 2: ProfileUITests and BetaTests), so this fails if the client app's UI tests are not weighed.
+      it('weighs the UI tests of both apps ten to one and deals the classes out by that weight', async () => {
+        const classes = [
+          ['FivviProTests/AlphaTests', 25], // weight 25
+          ['FivviTests/BetaTests', 5], // weight 5
+          ['FivviUITests/ClientUITests', 3], // weight 30
+          ['FivviProUITests/ProfileUITests', 2], // weight 20
+        ];
+        const { fake, list } = await built(classes);
+
+        const first = await part(fake, list, 'nl', '1/2', 8);
+        const second = await part(fake, list, 'nl', '2/2', 27);
+
+        assert.equal(first.status, 0, first.output);
+        assert.equal(second.status, 0, second.output);
+        const [one, two] = runs(fake);
+        // Heaviest first onto the lightest part: Client 30 -> 1, Alpha 25 -> 2, Profile 20 -> 2 (25 < 30), Beta 5 -> 1 (30 < 45).
+        assert.deepEqual(only(one), ['FivviTests/BetaTests', 'FivviUITests/ClientUITests']);
+        assert.deepEqual(only(two), ['FivviProTests/AlphaTests', 'FivviProUITests/ProfileUITests']);
+        assert.match(first.output, /Part 1 of 2 of the nl tests: 8 tests in 2 classes/);
+        assert.match(second.output, /Part 2 of 2 of the nl tests: 27 tests in 2 classes/);
+      });
+
+      it('enumerates the language once, in its configuration and without -only-testing, before the run, on the same simulator', async () => {
+        const { fake, list } = await built();
+
+        const run = await part(fake, list, 'en', '2/2', 3);
+
+        assert.equal(run.status, 0, run.output);
+        const lines = fake
+          .log('xcodebuild')
+          .filter((line) => line.startsWith('test-without-building '));
+        assert.equal(lines.length, 2, 'the enumeration and the run');
+        const [enumerated, tests] = lines;
+        assert.match(enumerated, /-enumerate-tests/);
+        assert.match(enumerated, /-only-test-configuration en\b/);
+        assert.doesNotMatch(enumerated, /-only-testing/);
+        assert.equal(
+          enumerated.match(/-destination (\S+)/)[1],
+          tests.match(/-destination (\S+)/)[1],
+        );
+        assert.match(tests, /-only-test-configuration en\b/);
+        assert.match(tests, /-resultBundlePath \.build\/TestResults-en-2of2\.xcresult\b/);
+      });
+
+      it('fails when the part ran fewer tests than its classes have, naming the numbers', async () => {
+        const { fake, list } = await built();
+
+        const run = await part(fake, list, 'nl', '1/2', 4);
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(
+          run.output,
+          /::error::The nl, part 1 of 2 run is not complete: the part ran 4 tests of the 5 of its classes/,
+        );
+        assert.doesNotMatch(run.output, /✓ iOS tests/);
+      });
+
+      it('fails when the summary of the part cannot be read, as nothing then shows it complete', async () => {
+        const { fake, list } = await built();
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'nl', '--shard', '1/2'], {
+          IOS_SIM_SETTLE: '0',
+          FAKE_ENUMERATION_IDS: list,
+        });
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(run.output, /not shown to be complete/);
+      });
+
+      it('fails when the tests of a part fail', async () => {
+        const { fake, list } = await built();
+
+        const run = await part(fake, list, 'nl', '1/2', 5, { FAKE_RESULT: 'fail' });
+
+        assert.equal(run.status, 1, run.output);
+      });
+
+      it('tries the enumeration once more when the first try gives nothing', async () => {
+        const { fake, list } = await built();
+
+        const run = await part(fake, list, 'nl', '1/2', 5, { FAKE_ENUMERATE: 'fail-first' });
+
+        assert.equal(run.status, 0, run.output);
+        assert.match(
+          run.output,
+          /::warning::The tests of the nl configuration could not be enumerated \(try 1 of 2\)/,
+        );
+        assert.equal(
+          fake.log('xcodebuild').filter((line) => line.includes('-enumerate-tests')).length,
+          2,
+        );
+      });
+
+      it('does not run the whole language when the tests cannot be enumerated: it fails without a run', async () => {
+        const { fake, list } = await built();
+
+        const run = await part(fake, list, 'nl', '1/2', 5, { FAKE_ENUMERATE: 'fail' });
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(
+          run.output,
+          /::error::The tests of the nl configuration cannot be enumerated, so part 1 of 2 can't be chosen/,
+        );
+        assert.equal(runs(fake).length, 0, 'no test run');
+      });
+
+      it('fails when its part has no test (more parts than classes)', async () => {
+        const { fake, list } = await built();
+
+        const run = await part(fake, list, 'nl', '5/5', 0);
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(run.output, /::error::/);
+        assert.equal(runs(fake).length, 0, 'no test run');
+      });
+
+      for (const [name, args] of [
+        ['a part past the number of parts', ['--shard', '3/2']],
+        ['a part of zero', ['--shard', '0/2']],
+        ['not a fraction', ['--shard', '2']],
+        ['no value', ['--shard']],
+      ]) {
+        it(`refuses ${name}`, async () => {
+          const { fake } = await built();
+
+          const run = await fake.run('scripts/test-ios.sh', ['test', 'nl', ...args], {
+            IOS_SIM_SETTLE: '0',
+          });
+
+          assert.equal(run.status, 1, run.output);
+          assert.equal(runs(fake).length, 0);
+        });
+      }
+
+      it('refuses --shard together with --retry-failed', async () => {
+        const { fake } = await built();
+
+        const run = await fake.run(
+          'scripts/test-ios.sh',
+          ['test', 'nl', '--shard', '1/2', '--retry-failed'],
+          { IOS_SIM_SETTLE: '0' },
+        );
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(run.output, /--shard and --retry-failed don't go together/);
+        assert.equal(runs(fake).length, 0);
+      });
+
+      it('refuses --shard together with --unit-only (CI runs the unit tests in part 1 only, ADR-034)', async () => {
+        const { fake } = await built();
+
+        const run = await fake.run(
+          'scripts/test-ios.sh',
+          ['test', 'nl', '--shard', '1/2', '--unit-only'],
+          { IOS_SIM_SETTLE: '0' },
+        );
+
+        assert.equal(run.status, 1, run.output);
+        assert.match(run.output, /--shard and --unit-only don't go together/);
+        assert.equal(runs(fake).length, 0);
+      });
+
+      it('without --shard the run is the whole language, as before', async () => {
+        const { fake } = await built();
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', 'nl'], { IOS_SIM_SETTLE: '0' });
+
+        assert.equal(run.status, 0, run.output);
+        assert.deepEqual(only(runs(fake)[0]), []);
+        assert.equal(
+          fake.log('xcodebuild').filter((line) => line.includes('-enumerate-tests')).length,
+          0,
+        );
+      });
+    });
+
     // E017 #1433: `test <locale> --retry-failed` (only `release.sh tests ios` passes it) retries the failed UI tests once.
     describe('E017 #1433: test <nl|en> --retry-failed retries only the failed UI tests, once', () => {
       const UI = 'FivviProUITests';
@@ -3070,6 +3382,27 @@ esac`,
           assert.doesNotMatch(run.output, /::warning::flaky|passed only on|✓ iOS tests/);
         });
       }
+
+      it('does not count a base class the enumeration lists (#1447): it is no test, and the run ran all of its tests', async () => {
+        const fake = await built();
+        const dir = canned(fake, 'nl', {
+          first: { failed: [[A]], passed: [B] },
+          retry: { passed: [A] },
+        });
+        const list = join(fake.repo, '..', 'with-base-class.json');
+        writeFileSync(
+          list,
+          JSON.stringify([`${UI}/${A}()`, `${UI}/${B}()`, 'FivviProTests/BaseTestCase']),
+        );
+
+        const run = await retryTest(fake, ['--retry-failed'], {
+          FAKE_XCRESULT_DIR: dir,
+          FAKE_ENUMERATION_IDS: list,
+        });
+
+        assert.equal(run.status, 0, run.output);
+        assert.equal(testRuns(fake).length, 2, 'the run and its retry');
+      });
 
       it('counts the tests the run was given: -skip-testing of the UI tests is in the enumeration too', async () => {
         const fake = await built();
@@ -5783,19 +6116,18 @@ esac`,
     assert.ok(fake.log('gradle').every((call) => !/(^| )--stop( |$)/.test(call)));
   });
 
-  // #89: the first locale's flow didn't see the greeting within its 20 s. The app's first screen called
-  // GET /api/v1/hello?locale=<its language>, and the flow started while Android was still busy after the framework
-  // restart that sets the device language (System UI stopped responding and its dialog covered the app). The Hello
-  // screen is gone (E020 #652), the apps no longer call the route, and maestro.sh still asks it once per locale: it warms
-  // the server's first request up for the home's wait on GET /api/v1/me.
+  // #89: the first locale's flow didn't see its first screen within 20 s. The apps' first request was slow, and the flow
+  // started while Android was still busy after the framework restart that sets the device language (System UI stopped
+  // responding and its dialog covered the app). maestro.sh asks the server once for GET /api/v1/me, a request the apps
+  // make, before the first flow (E020 #1391: it was GET /api/v1/hello, a route the apps no longer call).
   const isFlow = (call) => / test /.test(` ${call} `) && call.startsWith('maestro ');
-  const hello = (fake, locale) => `http://127.0.0.1:${fake.port}/api/v1/hello?locale=${locale}`;
+  const warmUp = (fake) => `http://127.0.0.1:${fake.port}/api/v1/me`;
 
   for (const [name, args] of [
     ['maestro.sh android', ['android']],
     ['maestro.sh ios', ['ios']],
   ]) {
-    it(`#89: ${name} warms up GET /api/v1/hello in nl-NL and en before the first flow`, async () => {
+    it(`#89: ${name} warms up GET /api/v1/me, which the apps call, before the first flow`, async () => {
       const fake = checkout();
 
       const run = await fake.run('scripts/maestro.sh', args);
@@ -5804,27 +6136,35 @@ esac`,
       const calls = fake.log('calls');
       const firstFlow = calls.findIndex(isFlow);
       const health = calls.findIndex((call) => call.includes('/api/v1/health'));
+      const request = calls.findIndex(
+        (call) => call.startsWith('curl ') && call.includes(` ${warmUp(fake)}`),
+      );
       assert.ok(firstFlow > 0, calls.join('\n'));
-      for (const locale of ['nl-NL', 'en']) {
-        const warmUp = calls.findIndex(
-          (call) => call.startsWith('curl ') && call.includes(` ${hello(fake, locale)}`),
-        );
-        assert.ok(
-          health < warmUp && warmUp < firstFlow,
-          `GET ${hello(fake, locale)} after the health check, before the first flow:\n${calls.join('\n')}`,
-        );
-      }
+      assert.ok(
+        health < request && request < firstFlow,
+        `GET ${warmUp(fake)} after the health check, before the first flow:\n${calls.join('\n')}`,
+      );
+      assert.ok(
+        !calls.some((call) => call.includes('/api/v1/hello')),
+        `no call to the hello route:\n${calls.join('\n')}`,
+      );
     });
 
-    it(`#89: ${name} runs no flow when GET /api/v1/hello fails`, async () => {
-      const fake = checkout({ emulatorRunning: true, simulatorBooted: true });
+    for (const [how, env, message] of [
+      ['does not answer', { FAKE_WARM_UP: 'fail' }, /answered nothing, not 401/],
+      ['answers something else than 401', { FAKE_WARM_UP: 'ok' }, /answered 200, not 401/],
+    ]) {
+      it(`#89: ${name} runs no flow when GET /api/v1/me ${how}`, async () => {
+        const fake = checkout({ emulatorRunning: true, simulatorBooted: true });
 
-      const run = await fake.run('scripts/maestro.sh', args, { FAKE_HELLO: 'fail' });
+        const run = await fake.run('scripts/maestro.sh', args, env);
 
-      assert.equal(run.status, 1, run.output);
-      assert.match(run.output, /\/api\/v1\/hello\?locale=nl-NL/);
-      assert.ok(!fake.log('calls').some(isFlow), fake.log('calls').join('\n'));
-    });
+        assert.equal(run.status, 1, run.output);
+        assert.match(run.output, message);
+        assert.match(run.output, /\/api\/v1\/me/);
+        assert.ok(!fake.log('calls').some(isFlow), fake.log('calls').join('\n'));
+      });
+    }
   }
 
   it('#224: maestro.sh ios leaves signing to the xcconfigs, so the simulator build keeps its ad hoc signature', async () => {
@@ -7091,15 +7431,18 @@ describe('#413 the iOS gate says when no hosted runner picked a part up, and has
     assert.doesNotMatch(code, /macos-15-intel|ios_retry|ios-retry/);
     assert.doesNotMatch(code, /^ {2}workflow_dispatch:\n +inputs:/m);
     assert.deepEqual(
-      [...code.matchAll(/runs-on: (macos-[\w-]+)/g)].map((m) => m[1]),
-      // ios-build, its retry on the same image (#1268), ios-tests and its retry
+      [...code.matchAll(/runs-on: .*?'?(macos-[\w-]+)/g)].map((m) => m[1]),
+      // ios-build, its retry on the same image (#1268), ios-tests and its retry (the tests also name ubuntu-24.04, for part 2 of a run without UI tests)
       ['macos-15', 'macos-15', 'macos-15', 'macos-15'],
     );
   });
 
   it('keeps the job set of the iOS parts: a build and a matrix of tests, with their names', () => {
     assert.match(ci, /^ {2}ios-build:\n {4}name: iOS build$/m);
-    assert.match(ci, /^ {2}ios-tests:\n {4}name: iOS tests \(\$\{\{ matrix\.locale \}\}\)$/m);
+    assert.match(
+      ci,
+      /^ {2}ios-tests:\n {4}name: iOS tests \(\$\{\{ matrix\.locale \}\} \$\{\{ matrix\.shard \}\}\/2\)$/m,
+    );
     // The only other parts are the retries of #1268: the plan of the test retry and the retry itself.
     assert.deepEqual(
       [...ci.matchAll(/^ {2}(ios-(?:tests-|parts)[\w-]*):$/gm)].map((m) => m[1]),

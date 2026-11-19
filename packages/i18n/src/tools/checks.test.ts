@@ -268,7 +268,7 @@ describe('E005 i18n checks', () => {
 });
 
 describe('E008 hello-screen strings in the committed native catalogs', () => {
-  const keys = ['hello.error', 'common.retry', 'common.loading', 'app.name'];
+  const keys = ['hello.title', 'common.retry', 'common.loading', 'app.name'];
   const read = (file: string) => readFile(path.join(packageRoot, file), 'utf8');
   const source = async (locale: Locale, key: string) => {
     const set = await readCatalogSet(packageRoot);

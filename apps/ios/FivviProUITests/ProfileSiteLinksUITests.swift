@@ -7,7 +7,6 @@ import XCTest
 final class ProfileSiteLinksUITests: SignInUITestCase {
     private func openProfile(offline: Bool = false) throws -> (SignInScreen, StubServer) {
         let server = try StubServer(
-            .greeting(key: "hello.title"),
             signIn: StubServer.SignIn(email: "trainer@example.com", workspaceName: "John's Gym", role: "trainer")
         )
         let screen = SignInScreen.launch(against: server, session: .signedIn, recordsOpenedLinks: true)

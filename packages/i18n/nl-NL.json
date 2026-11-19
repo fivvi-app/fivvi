@@ -354,7 +354,6 @@
     }
   },
   "hello": {
-    "error": "We konden de begroeting niet laden. Probeer het opnieuw.",
     "greeting": "Hoi {name},",
     "nextSession": "Je volgende sessie is op {date} om {time}.",
     "noSessionsToday": "Je hebt vandaag geen sessies.",

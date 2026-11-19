@@ -37,59 +37,54 @@ describe('#413 ios-parts.sh: did a hosted runner pick up each iOS part', () => {
   };
   const calls = () => gh.calls();
   const jobs = (...list) => [{ match: JOBS, out: { jobs: list } }];
+  // The tests are four jobs, two parts of each language (#1447). `tests(conclusion, {part: conclusion})` lists them, the
+  // named parts with their own conclusion; `parts(result, {part: result})` is what the gate is given for them.
+  const PARTS = ['nl 1/2', 'nl 2/2', 'en 1/2', 'en 2/2'];
+  const T = (part) => `iOS tests (${part})`;
+  const tests = (conclusion, own = {}) =>
+    PARTS.map((part) => ran(T(part), own[part] ?? conclusion));
+  const parts = (result, own = {}) => PARTS.map((part) => `${T(part)}=${own[part] ?? result}`);
 
   it('prints the parts for native-gate.sh, as given, when all succeeded, without reading the jobs', () => {
     const result = run(['success', 'success'], [{ match: '^api ', status: 1 }]);
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(result.parts, [
-      'iOS build=success',
-      'iOS tests (nl)=success',
-      'iOS tests (en)=success',
-    ]);
+    assert.deepEqual(result.parts, ['iOS build=success', ...parts('success')]);
     assert.equal(calls().length, 0, 'nothing that succeeded can be a missing runner');
   });
 
-  it('marks a language cancelled with no runner and no step as unacquired, and not the other', () => {
+  it('marks a part cancelled with no runner and no step as unacquired, and not the others', () => {
     const result = run(
       ['success', 'cancelled'],
       jobs(
         ran('iOS build', 'success'),
-        ran('iOS tests (nl)', 'success'),
-        unacquired('iOS tests (en)'),
+        ...PARTS.map((part) => (part === 'en 2/2' ? unacquired(T(part)) : ran(T(part), 'success'))),
       ),
     );
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(result.parts, [
       'iOS build=success',
-      'iOS tests (nl)=success',
-      'iOS tests (en)=unacquired',
+      ...parts('success', { 'en 2/2': 'unacquired' }),
     ]);
-    assert.match(result.stderr, /iOS tests \(en\): no hosted runner picked it up/);
+    assert.match(result.stderr, /iOS tests \(en 2\/2\): no hosted runner picked it up/);
     assert.match(result.stderr, /cancelled before one did/);
   });
 
   it('marks the build unacquired, and leaves the tests that never started as skipped', () => {
     const result = run(['cancelled', 'skipped'], jobs(unacquired('iOS build')));
-    assert.deepEqual(result.parts, [
-      'iOS build=unacquired',
-      'iOS tests (nl)=skipped',
-      'iOS tests (en)=skipped',
-    ]);
+    assert.deepEqual(result.parts, ['iOS build=unacquired', ...parts('skipped')]);
   });
 
-  it('does not mistake a cancel after the job started (a timeout) for a missing runner, and reads each language apart', () => {
+  it('does not mistake a cancel after the job started (a timeout) for a missing runner, and reads each part apart', () => {
     const result = run(
       ['success', 'failure'],
       jobs(
         ran('iOS build', 'success'),
-        ran('iOS tests (nl)', 'cancelled'),
-        ran('iOS tests (en)', 'failure'),
+        ...tests('success', { 'nl 2/2': 'cancelled', 'en 1/2': 'failure' }),
       ),
     );
     assert.deepEqual(result.parts, [
       'iOS build=success',
-      'iOS tests (nl)=cancelled',
-      'iOS tests (en)=failure',
+      ...parts('success', { 'nl 2/2': 'cancelled', 'en 1/2': 'failure' }),
     ]);
   });
 
@@ -114,11 +109,7 @@ describe('#413 ios-parts.sh: did a hosted runner pick up each iOS part', () => {
 
   it('keeps a result as given when its job is missing from the list', () => {
     const result = run(['cancelled', 'cancelled'], jobs());
-    assert.deepEqual(result.parts, [
-      'iOS build=cancelled',
-      'iOS tests (nl)=cancelled',
-      'iOS tests (en)=cancelled',
-    ]);
+    assert.deepEqual(result.parts, ['iOS build=cancelled', ...parts('cancelled')]);
   });
 
   // #1268: GitHub now reports a job that no hosted runner took within 15 minutes as `abandoned` in needs.<job>.result
@@ -127,14 +118,10 @@ describe('#413 ios-parts.sh: did a hosted runner pick up each iOS part', () => {
   it('#1268 names an abandoned build as unacquired, and the tests that never started as skipped', () => {
     const result = run(
       ['abandoned', 'skipped'],
-      jobs(skipped('iOS build'), skipped('iOS tests (nl)')),
+      jobs(skipped('iOS build'), ...PARTS.map((part) => skipped(T(part)))),
     );
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(result.parts, [
-      'iOS build=unacquired',
-      'iOS tests (nl)=skipped',
-      'iOS tests (en)=skipped',
-    ]);
+    assert.deepEqual(result.parts, ['iOS build=unacquired', ...parts('skipped')]);
     assert.match(result.stderr, /iOS build: no hosted runner picked it up/);
   });
 
@@ -148,11 +135,7 @@ describe('#413 ios-parts.sh: did a hosted runner pick up each iOS part', () => {
   it('#1268 reports the build as succeeded when the retry did, and says on stderr that the first try had no runner', () => {
     const result = run(['abandoned', 'success', 'success'], [{ match: '^api ', status: 1 }]);
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(result.parts, [
-      'iOS build=success',
-      'iOS tests (nl)=success',
-      'iOS tests (en)=success',
-    ]);
+    assert.deepEqual(result.parts, ['iOS build=success', ...parts('success')]);
     assert.match(
       result.stderr,
       /iOS build: no hosted runner picked up the first try; the retry ran/,
@@ -162,11 +145,7 @@ describe('#413 ios-parts.sh: did a hosted runner pick up each iOS part', () => {
 
   it('#1268 reports the build as unacquired when the retry was abandoned too', () => {
     const result = run(['abandoned', 'skipped', 'abandoned'], jobs(unacquired('iOS build')));
-    assert.deepEqual(result.parts, [
-      'iOS build (retry)=unacquired',
-      'iOS tests (nl)=skipped',
-      'iOS tests (en)=skipped',
-    ]);
+    assert.deepEqual(result.parts, ['iOS build (retry)=unacquired', ...parts('skipped')]);
     assert.match(result.stderr, /after the retry/);
   });
 
@@ -194,93 +173,78 @@ describe('#413 ios-parts.sh: did a hosted runner pick up each iOS part', () => {
 
   it('#1268 ignores a retry that was skipped, because the build had a runner', () => {
     const result = run(['success', 'success', 'skipped'], [{ match: '^api ', status: 1 }]);
-    assert.deepEqual(result.parts, [
-      'iOS build=success',
-      'iOS tests (nl)=success',
-      'iOS tests (en)=success',
-    ]);
+    assert.deepEqual(result.parts, ['iOS build=success', ...parts('success')]);
     assert.equal(
       run(['failure', 'skipped', 'skipped'], jobs(ran('iOS build', 'failure'))).parts[0],
       'iOS build=failure',
     );
   });
 
-  // The retry of a test pass (#1268): "iOS tests (<locale>) (retry)" runs for a language that got no runner, from the
-  // bundle already built; the gate takes that language's part from it.
-  it('#1268 takes a language from its retry when the retry passed, and says the first try had no runner', () => {
+  // The retry of a test pass (#1268, #1447): "iOS tests (<locale> <shard>/2) (retry)" runs for a part that got no runner,
+  // from the bundle already built; the gate takes that part's result from it.
+  it('#1268 takes a part from its retry when the retry passed, and says the first try had no runner', () => {
     const result = run(
       ['success', 'abandoned'],
       jobs(
         ran('iOS build', 'success'),
-        unacquired('iOS tests (nl)'),
-        ran('iOS tests (en)', 'success'),
-        ran('iOS tests (nl) (retry)', 'success'),
+        ...PARTS.map((part) => (part === 'nl 1/2' ? unacquired(T(part)) : ran(T(part), 'success'))),
+        ran('iOS tests (nl 1/2) (retry)', 'success'),
       ),
     );
     assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(result.parts, [
-      'iOS build=success',
-      'iOS tests (nl)=success',
-      'iOS tests (en)=success',
-    ]);
+    assert.deepEqual(result.parts, ['iOS build=success', ...parts('success')]);
     assert.match(
       result.stderr,
-      /iOS tests \(nl\): no hosted runner picked up the first try; the retry ran/,
+      /iOS tests \(nl 1\/2\): no hosted runner picked up the first try; the retry ran/,
     );
   });
 
-  it('#1268 names the retry of a language when it failed on a runner, and leaves the other language as it was', () => {
+  it('#1268 names the retry of a part when it failed on a runner, and leaves the other parts as they were', () => {
     const result = run(
       ['success', 'failure'],
       jobs(
         ran('iOS build', 'success'),
-        unacquired('iOS tests (nl)'),
-        ran('iOS tests (en)', 'failure'),
-        ran('iOS tests (nl) (retry)', 'failure'),
+        ...PARTS.map((part) =>
+          part === 'nl 1/2'
+            ? unacquired(T(part))
+            : ran(T(part), part === 'en 1/2' ? 'failure' : 'success'),
+        ),
+        ran('iOS tests (nl 1/2) (retry)', 'failure'),
       ),
     );
     assert.deepEqual(result.parts, [
       'iOS build=success',
-      'iOS tests (nl) (retry)=failure',
-      'iOS tests (en)=failure',
+      'iOS tests (nl 1/2) (retry)=failure',
+      'iOS tests (nl 2/2)=success',
+      'iOS tests (en 1/2)=failure',
+      'iOS tests (en 2/2)=success',
     ]);
     assert.doesNotMatch(result.stderr, /no hosted runner/);
   });
 
-  it('#1268 names the retry of a language when it got no runner either, or timed out', () => {
+  it('#1268 names the retry of a part when it got no runner either, or timed out', () => {
+    const first = (part) => (part === 'nl 1/2' ? unacquired(T(part)) : ran(T(part), 'success'));
     const noRunner = run(
       ['success', 'abandoned'],
-      jobs(
-        unacquired('iOS tests (nl)'),
-        ran('iOS tests (en)', 'success'),
-        unacquired('iOS tests (nl) (retry)'),
-      ),
+      jobs(...PARTS.map(first), unacquired('iOS tests (nl 1/2) (retry)')),
     );
-    assert.equal(noRunner.parts[1], 'iOS tests (nl) (retry)=unacquired');
-    assert.equal(noRunner.parts[2], 'iOS tests (en)=success');
-    assert.match(noRunner.stderr, /iOS tests \(nl\) \(retry\): no hosted runner picked it up/);
+    assert.equal(noRunner.parts[1], 'iOS tests (nl 1/2) (retry)=unacquired');
+    assert.equal(noRunner.parts[2], 'iOS tests (nl 2/2)=success');
+    assert.match(noRunner.stderr, /iOS tests \(nl 1\/2\) \(retry\): no hosted runner picked it up/);
     assert.match(noRunner.stderr, /after the retry/);
     const timedOut = run(
       ['success', 'abandoned'],
-      jobs(
-        unacquired('iOS tests (nl)'),
-        ran('iOS tests (en)', 'success'),
-        ran('iOS tests (nl) (retry)', 'cancelled'),
-      ),
+      jobs(...PARTS.map(first), ran('iOS tests (nl 1/2) (retry)', 'cancelled')),
     );
-    assert.equal(timedOut.parts[1], 'iOS tests (nl) (retry)=cancelled');
+    assert.equal(timedOut.parts[1], 'iOS tests (nl 1/2) (retry)=cancelled');
   });
 
   it('#1268 ignores a retry job that was skipped', () => {
     const result = run(
       ['success', 'failure'],
-      jobs(
-        ran('iOS tests (nl)', 'failure'),
-        ran('iOS tests (en)', 'success'),
-        skipped('iOS tests (nl) (retry)'),
-      ),
+      jobs(...tests('success', { 'nl 1/2': 'failure' }), skipped('iOS tests (nl 1/2) (retry)')),
     );
-    assert.equal(result.parts[1], 'iOS tests (nl)=failure');
+    assert.equal(result.parts[1], 'iOS tests (nl 1/2)=failure');
   });
 
   it('#1268 labels the build retry as a retry when it failed, and the build as itself when it passed', () => {
@@ -412,13 +376,13 @@ describe('#437 ios-parts.sh job: did a hosted runner pick up one job of the run'
   });
 });
 
-describe('#1268 ios-parts.sh retry-locales: which languages of the tests got no runner', () => {
+describe('#1268 ios-parts.sh retry-parts: which parts of the tests got no runner', () => {
   const gh = fakeGh();
   after(() => gh.cleanup());
 
   const JOBS = '^api repos/owner/repo/actions/runs/123/attempts/2/jobs';
   const run = (args, rules) =>
-    spawnSync(join(ROOT, 'scripts/ios-parts.sh'), ['retry-locales', ...args], {
+    spawnSync(join(ROOT, 'scripts/ios-parts.sh'), ['retry-parts', ...args], {
       encoding: 'utf8',
       env: {
         ...gh.env(rules),
@@ -429,24 +393,32 @@ describe('#1268 ios-parts.sh retry-locales: which languages of the tests got no 
     });
   const jobs = (...list) => [{ match: JOBS, out: { jobs: list } }];
 
-  it('prints the languages whose job was cancelled with no runner and no step, as a JSON array', () => {
+  it('prints the parts whose job was cancelled with no runner and no step, as a JSON array of matrix legs', () => {
     const one = run(
       ['abandoned'],
-      jobs(unacquired('iOS tests (nl)'), ran('iOS tests (en)', 'success')),
+      jobs(unacquired('iOS tests (nl 2/2)'), ran('iOS tests (en 1/2)', 'success')),
     );
     assert.equal(one.status, 0, one.stderr);
-    assert.equal(one.stdout, '["nl"]\n');
-    const both = run(
+    assert.equal(one.stdout, '[{"locale":"nl","shard":2}]\n');
+    const several = run(
       ['abandoned'],
-      jobs(unacquired('iOS tests (nl)'), unacquired('iOS tests (en)')),
+      jobs(
+        unacquired('iOS tests (nl 1/2)'),
+        ran('iOS tests (nl 2/2)', 'success'),
+        unacquired('iOS tests (en 1/2)'),
+        unacquired('iOS tests (en 2/2)'),
+      ),
     );
-    assert.equal(both.stdout, '["nl","en"]\n');
+    assert.equal(
+      several.stdout,
+      '[{"locale":"nl","shard":1},{"locale":"en","shard":1},{"locale":"en","shard":2}]\n',
+    );
   });
 
-  it('retries no language that ran, whatever happened to it (a failure or a timeout is no missing runner)', () => {
+  it('retries no part that ran, whatever happened to it (a failure or a timeout is no missing runner)', () => {
     const result = run(
       ['failure'],
-      jobs(ran('iOS tests (nl)', 'cancelled'), ran('iOS tests (en)', 'failure')),
+      jobs(ran('iOS tests (nl 1/2)', 'cancelled'), ran('iOS tests (en 2/2)', 'failure')),
     );
     assert.equal(result.stdout, '[]\n');
   });
@@ -459,7 +431,7 @@ describe('#1268 ios-parts.sh retry-locales: which languages of the tests got no 
     assert.equal(gh.calls().length, 0);
   });
 
-  it("prints no language, exiting 0, when the run's jobs cannot be read", () => {
+  it("prints no part, exiting 0, when the run's jobs cannot be read", () => {
     const result = run(['abandoned'], [{ match: '^api ', status: 1 }]);
     assert.equal(result.status, 0, result.stderr);
     assert.equal(result.stdout, '[]\n');

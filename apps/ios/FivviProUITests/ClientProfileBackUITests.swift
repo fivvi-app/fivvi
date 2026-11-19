@@ -41,7 +41,6 @@ final class ClientProfileBackUITests: SignInUITestCase {
     func test_F006_AC12_backByTheEdgeSwipeAndByTheButtonThenOpenTheProfileAgain() throws {
         let catalog = TestCatalog.configured
         let server = try StubServer(
-            .greeting(key: "hello.title"),
             signIn: StubServer.SignIn(email: "trainer@example.com", workspaceName: "John's Gym", role: "trainer")
         )
         let screen = SignInScreen.launch(against: server, session: .signedIn)

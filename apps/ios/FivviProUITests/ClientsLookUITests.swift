@@ -13,7 +13,6 @@ final class ClientsLookUITests: SignInUITestCase {
 
     private func launchAsSarah(appearance: String) throws -> (SignInScreen, StubServer) {
         let server = try StubServer(
-            .greeting(key: "hello.title"),
             signIn: StubServer.SignIn(email: "trainer@example.com", workspaceName: "John's Gym", role: "trainer")
         )
         let screen = SignInScreen(app: AppLaunch.launch(against: server, session: .signedIn, appearance: appearance))
@@ -202,7 +201,6 @@ final class ClientsLookUITests: SignInUITestCase {
     /// wraps by character), the avatar grows with the text, and the audit finds nothing clipped.
     func test_E020_AC15_klantenAtTheLargestTextSizeWrapsEveryText() throws {
         let server = try StubServer(
-            .greeting(key: "hello.title"),
             signIn: StubServer.SignIn(email: "trainer@example.com", workspaceName: "John's Gym", role: "trainer")
         )
         let app = AppLaunch.launch(

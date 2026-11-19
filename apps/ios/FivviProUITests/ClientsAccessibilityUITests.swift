@@ -10,7 +10,6 @@ final class ClientsAccessibilityUITests: SignInUITestCase {
 
     private func launchAsSarah(appearance: String) throws -> (SignInScreen, StubServer) {
         let server = try StubServer(
-            .greeting(key: "hello.title"),
             signIn: StubServer.SignIn(email: "trainer@example.com", workspaceName: "John's Gym", role: "trainer")
         )
         let app = AppLaunch.launch(against: server, session: .signedIn, appearance: appearance)

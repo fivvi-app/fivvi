@@ -6,7 +6,7 @@ import XCTest
 final class SignInRecoveryUITests: SignInUITestCase {
     func test_F001N_AC6_resendRequestsNewEmail() throws {
         let catalog = TestCatalog.configured
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
         let screen = SignInScreen.launch(against: server)
         screen.requestCode(for: server.signIn.email)
         screen.type("000000", into: screen.code)
@@ -33,7 +33,7 @@ final class SignInRecoveryUITests: SignInUITestCase {
     /// observe it).
     func test_F001N_AC6_errorIsAnnounced() throws {
         let catalog = TestCatalog.configured
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
         let screen = SignInScreen.launch(against: server)
         screen.requestCode(for: server.signIn.email)
 
@@ -49,7 +49,7 @@ final class SignInRecoveryUITests: SignInUITestCase {
 
     func test_F001N_AC1_changeAddressKeepsTheAddress() throws {
         let catalog = TestCatalog.configured
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
         let screen = SignInScreen.launch(against: server)
         screen.requestCode(for: "trainer@example.com")
         XCTAssertEqual(screen.changeEmail.label, catalog["signIn.changeEmail"])
@@ -75,7 +75,7 @@ final class SignInRecoveryUITests: SignInUITestCase {
 
     func test_F001N_AC1_lostConnectionOffersRetry() throws {
         let catalog = TestCatalog.configured
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
         let screen = SignInScreen.launch(against: server)
         XCTAssertTrue(screen.email.waitUntilExists(timeout: timeout))
         server.setOffline(true)
@@ -98,7 +98,7 @@ final class SignInRecoveryUITests: SignInUITestCase {
 
     func test_F001N_AC1_lostConnectionOnTheCodeStepKeepsTheCode() throws {
         let catalog = TestCatalog.configured
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
         let screen = SignInScreen.launch(against: server)
         screen.requestCode(for: server.signIn.email)
         server.setOffline(true)
