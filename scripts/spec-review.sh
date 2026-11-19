@@ -6,14 +6,17 @@
 #                                           sub-issues (tickets and bugs), the sub-issue that owns it, its state, the PR
 #                                           that closed it with its squash-merge commit and changed files. Markdown, or
 #                                           JSON with --json. Fails rather than print a partial map
-#   spec-review.sh record <spec> (--slice <pr> | --final) clean|not-clean [--findings <n>]
+#   spec-review.sh record <spec> (--slice <pr> | --final) clean|not-clean [--findings <n>] --sha <commit>
 #                                           append a line to .work/spec-<spec>/spec-review.md (git-ignored, in the main
 #                                           checkout): the time, the scope (a slice or ticket PR, or the final review),
-#                                           the verdict, the findings and the SHA of origin/main. A not-clean verdict
-#                                           names at least one finding
-#   spec-review.sh status <spec>            exit 0 and `covered` when the last final record is clean and newer than the
-#                                           spec's last merged PR; exit 1 and `not covered: <why>` otherwise; exit 2, and
-#                                           nothing on stdout, when GitHub or the record can't be read (flow.sh turns
+#                                           the verdict, the findings and the SHA the reviewer reviewed. --sha is
+#                                           required: the commit of `origin/main` as fetched before the review (the one
+#                                           the brief names), not the one origin/main has when the verdict is recorded,
+#                                           which a PR may have moved since. A not-clean verdict names at least one finding
+#   spec-review.sh status <spec>            exit 0 and `covered` when the last final record is clean and the squash commit
+#                                           of the spec's last merged PR is an ancestor of, or equal to, the SHA it
+#                                           reviewed; exit 1 and `not covered: <why>` otherwise; exit 2, and nothing on
+#                                           stdout, when GitHub, the record or that commit can't be read (flow.sh turns
 #                                           that into an error, never into "covered")
 #
 # FIVVI_NOW (ISO-8601 UTC) replaces the clock, for tests.
@@ -133,7 +136,7 @@ now_iso() {
 
 cmd_record() {
   [ $# -ge 1 ] || usage
-  local n="$1" scope="" verdict="" findings="" main sha branch
+  local n="$1" scope="" verdict="" findings="" main sha="" branch
   is_number "$n"
   shift
   while [ $# -gt 0 ]; do
@@ -141,22 +144,23 @@ cmd_record() {
       --slice) [ -z "$scope" ] && [[ "${2:-}" =~ ^[0-9]+$ ]] || usage; scope="slice PR #$2"; shift ;;
       --final) [ -z "$scope" ] || usage; scope="final" ;;
       --findings) [[ "${2:-}" =~ ^[0-9]+$ ]] || usage; findings=$((10#$2)); shift ;;
+      --sha) [ -z "$sha" ] && [[ "${2:-}" =~ ^[0-9a-f]{7,40}$ ]] || usage; sha="$2"; shift ;;
       clean | not-clean) [ -z "$verdict" ] || usage; verdict="$1" ;;
       *) usage ;;
     esac
     shift
   done
-  [ -n "$scope" ] && [ -n "$verdict" ] || usage
+  [ -n "$scope" ] && [ -n "$verdict" ] && [ -n "$sha" ] || usage
   if [ "$verdict" = clean ]; then
     [ -z "$findings" ] || [ "$findings" -eq 0 ] || die "a clean review has no findings: record it as not-clean with --findings <n>"
     findings=0
   else
     [ -n "$findings" ] && [ "$findings" -gt 0 ] || die "a not-clean review names its findings: add --findings <n> (at least 1)"
   fi
-  # The SHA the review covered: the latest origin/<default branch>, fetched now; a stale one is a warning, not an error.
+  # The SHA the review covered, as the reviewer was given it (origin/<default branch> fetched before the review), in full.
+  # Never the origin/main of now: a PR that merged while the reviewer read would then count as reviewed.
   branch="$(default_branch)"
-  git -C "$MAIN_ROOT" fetch --quiet origin "$branch" 2>/dev/null || echo "warning: could not fetch origin/$branch; recording the one this checkout has" >&2
-  sha="$(git -C "$MAIN_ROOT" rev-parse --verify "origin/$branch^{commit}" 2>/dev/null)" || die "no origin/$branch in $MAIN_ROOT"
+  sha="$(git -C "$MAIN_ROOT" rev-parse --verify "$sha^{commit}" 2>/dev/null)" || die "--sha $sha is not a commit of $MAIN_ROOT: fetch origin first (git fetch origin $branch)"
   main="$(record_file "$n")"
   mkdir -p "$(dirname "$main")"
   [ -f "$main" ] || printf '# Spec review #%s\n\n' "$n" >"$main"
@@ -165,26 +169,47 @@ cmd_record() {
 }
 
 # Exit codes of status: 0 covered, 1 not covered, 2 an error. Reads GitHub for the spec's last merged PR and the record
-# file for its final reviews.
+# file for its final reviews. A PR is covered when its squash commit is an ancestor of, or equal to, the SHA the last final
+# review reviewed (the time of the record says nothing: the review may have started before a merge it was recorded after).
 cmd_status() {
   [ $# -eq 1 ] || usage
-  local n="$1" map file verdict
+  local n="$1" map file facts why commit pr reviewed branch
   is_number "$n"
   map="$(read_map "$n")" || exit 2
   file="$(record_file "$n")"
-  verdict="$( { [ ! -f "$file" ] || cat "$file"; } | jq -r -R -s -L "$ROOT/scripts" --argjson map "$map" 'include "records";
+  # What the record and the map say: either the answer already (`why`), or the PR and the SHA to compare.
+  facts="$( { [ ! -f "$file" ] || cat "$file"; } | jq -c -R -s -L "$ROOT/scripts" --argjson map "$map" 'include "records";
     ([split("\n")[]
       | capture("^- (?<time>\\S+) \\| final \\| (?<verdict>clean|not-clean) \\| findings (?<n>[0-9]+) \\| origin/\\S+ (?<sha>[0-9a-f]{40})$")
       | select(.time | instant != null)] | last) as $last
     | ([$map.tickets[].pr | select(. != null)] | max_by(.merged_at | instant)) as $merged
-    | if $last == null then "not covered: no final spec review is recorded for #\($map.spec.number)"
-      elif $last.verdict != "clean" then "not covered: the last final spec review (\($last.time)) was not clean"
-      elif $merged != null and ($merged.merged_at | instant) >= ($last.time | instant) then
-        "not covered: PR #\($merged.number) merged after the last clean final spec review (\($last.time))"
-      else "covered" end' 2>/dev/null)" || exit 2
-  [ -n "$verdict" ] || exit 2
-  echo "$verdict"
-  [ "$verdict" = covered ]
+    | if $last == null then {why: "not covered: no final spec review is recorded for #\($map.spec.number)"}
+      elif $last.verdict != "clean" then {why: "not covered: the last final spec review (\($last.time)) was not clean"}
+      elif $merged == null then {why: "covered"}
+      else {pr: $merged.number, commit: $merged.commit, reviewed: $last.sha, time: $last.time} end' 2>/dev/null)" || exit 2
+  [ -n "$facts" ] || exit 2
+  why="$(jq -r '.why // empty' <<<"$facts")"
+  if [ -z "$why" ]; then
+    pr="$(jq -r .pr <<<"$facts")" commit="$(jq -r .commit <<<"$facts")" reviewed="$(jq -r .reviewed <<<"$facts")"
+    [[ "$commit" =~ ^[0-9a-f]{40}$ ]] || exit 2
+    # The squash commit may not be in this checkout yet (the reviewer's fetch was in another one): fetch once, then give up.
+    if ! git -C "$MAIN_ROOT" cat-file -e "$commit^{commit}" 2>/dev/null; then
+      branch="$(default_branch)"
+      git -C "$MAIN_ROOT" fetch --quiet origin "$branch" 2>/dev/null || true
+      git -C "$MAIN_ROOT" cat-file -e "$commit^{commit}" 2>/dev/null || exit 2
+    fi
+    git -C "$MAIN_ROOT" cat-file -e "$reviewed^{commit}" 2>/dev/null || exit 2
+    if git -C "$MAIN_ROOT" merge-base --is-ancestor "$commit" "$reviewed" 2>/dev/null; then
+      why="covered"
+    else
+      case $? in
+        1) why="not covered: PR #$pr (squash commit ${commit:0:7}) merged after the last clean final spec review (${reviewed:0:7}, $(jq -r .time <<<"$facts")): it is not in what the reviewer read" ;;
+        *) exit 2 ;;
+      esac
+    fi
+  fi
+  echo "$why"
+  [ "$why" = covered ]
 }
 
 case "${1:-}" in

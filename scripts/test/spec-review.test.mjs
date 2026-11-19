@@ -50,8 +50,9 @@ const pull = (number, sha, mergedAt, files, extra = {}) => ({
   ...extra,
 });
 const closedBy = (closer) => ({ timelineItems: { nodes: closer ? [{ closer }] : [] } });
-const SHA60 = '6'.repeat(40);
-const SHA61 = '7'.repeat(40);
+// The squash commits of PRs #60 and #61: real commits of the test checkout, made in before(), so status can compare them.
+let SHA60;
+let SHA61;
 
 const graph = (nodes, { totalCount = nodes.length, body = SPEC_BODY, state = 'OPEN' } = {}) => ({
   data: {
@@ -112,6 +113,7 @@ describe('spec-review.sh (ADR-034)', () => {
   const gh = fakeGh();
   let repo;
   let remote;
+  let baseSha;
   let mainSha;
   const git = (...args) =>
     execFileSync(
@@ -131,6 +133,12 @@ describe('spec-review.sh (ADR-034)', () => {
     git('commit', '--quiet', '-m', 'chore: base');
     git('remote', 'add', 'origin', 'https://github.com/o/r.git');
     git('config', `url.${remote}.insteadOf`, 'https://github.com/o/r.git');
+    baseSha = git('rev-parse', 'HEAD');
+    // PR #60 and PR #61 each squash-merged one commit on main.
+    git('commit', '--quiet', '--allow-empty', '-m', 'feat(F022): series (#60)');
+    SHA60 = git('rev-parse', 'HEAD');
+    git('commit', '--quiet', '--allow-empty', '-m', 'fix(F022): DST (#61)');
+    SHA61 = git('rev-parse', 'HEAD');
     git('push', '--quiet', 'origin', 'main');
     git('fetch', '--quiet', 'origin');
     mainSha = git('rev-parse', 'origin/main');
@@ -291,10 +299,10 @@ describe('spec-review.sh (ADR-034)', () => {
   });
 
   describe('record', () => {
-    it('appends a line with the date, the scope, the verdict and the SHA of origin/main', () => {
-      let result = run([], 'record', '50', '--slice', '60', 'clean');
+    it('appends a line with the date, the scope, the verdict and the SHA the reviewer reviewed', () => {
+      let result = run([], 'record', '50', '--slice', '60', 'clean', '--sha', mainSha);
       assert.equal(result.status, 0, result.stderr);
-      result = run([], 'record', '50', '--final', 'not-clean', '--findings', '2');
+      result = run([], 'record', '50', '--final', 'not-clean', '--findings', '2', '--sha', mainSha);
       assert.equal(result.status, 0, result.stderr);
       assert.ok(existsSync(file()));
       const lines = readFileSync(file(), 'utf8')
@@ -306,8 +314,36 @@ describe('spec-review.sh (ADR-034)', () => {
       ]);
     });
 
+    it('records the SHA it is given, not the origin/main it finds now', () => {
+      const result = run([], 'record', '50', '--final', 'clean', '--sha', SHA60);
+      assert.equal(result.status, 0, result.stderr);
+      assert.notEqual(SHA60, mainSha);
+      const line = readFileSync(file(), 'utf8')
+        .split('\n')
+        .find((l) => l.startsWith('- '));
+      assert.equal(line, `- ${NOW} | final | clean | findings 0 | origin/main ${SHA60}`);
+      // An abbreviated SHA is recorded in full.
+      run([], 'record', '50', '--final', 'clean', '--sha', SHA61.slice(0, 10));
+      assert.match(readFileSync(file(), 'utf8'), new RegExp(`origin/main ${SHA61}$`, 'm'));
+    });
+
+    it('needs --sha: without it, or with something that is not a commit of this repository, it records nothing', () => {
+      for (const args of [
+        ['record', '50', '--final', 'clean'],
+        ['record', '50', '--final', 'clean', '--sha'],
+        ['record', '50', '--final', 'clean', '--sha', 'origin/main'],
+        ['record', '50', '--final', 'clean', '--sha', 'main'],
+        ['record', '50', '--final', 'clean', '--sha', 'zzzz'],
+        ['record', '50', '--final', 'clean', '--sha', 'f'.repeat(40)],
+      ]) {
+        const result = run([], ...args);
+        assert.equal(result.status, 1, args.join(' '));
+        assert.ok(!existsSync(file()), args.join(' '));
+      }
+    });
+
     it('writes under .work of the main checkout, which git ignores', () => {
-      run([], 'record', '50', '--final', 'clean');
+      run([], 'record', '50', '--final', 'clean', '--sha', mainSha);
       assert.ok(existsSync(file()));
       const ignored = spawnSync('git', ['-C', repo, 'check-ignore', '-q', file()]);
       assert.equal(ignored.status, 0, '.work is not git-ignored in the copied checkout');
@@ -324,14 +360,24 @@ describe('spec-review.sh (ADR-034)', () => {
         ['record', '50', '--final', 'clean', '--findings', 'many'],
         ['record', 'x', '--final', 'clean'],
       ]) {
-        const result = run([], ...args);
+        const result = run([], ...args, '--sha', mainSha);
         assert.equal(result.status, 1, args.join(' '));
         assert.ok(!existsSync(file()), args.join(' '));
       }
     });
 
     it('a clean verdict names no findings', () => {
-      const result = run([], 'record', '50', '--final', 'clean', '--findings', '3');
+      const result = run(
+        [],
+        'record',
+        '50',
+        '--final',
+        'clean',
+        '--findings',
+        '3',
+        '--sha',
+        mainSha,
+      );
       assert.equal(result.status, 1);
       assert.match(result.stderr, /clean .*no findings/);
       assert.ok(!existsSync(file()));
@@ -342,7 +388,7 @@ describe('spec-review.sh (ADR-034)', () => {
         ['record', '50', '--final', 'not-clean'],
         ['record', '50', '--final', 'not-clean', '--findings', '0'],
       ]) {
-        const result = run([], ...args);
+        const result = run([], ...args, '--sha', mainSha);
         assert.equal(result.status, 1, args.join(' '));
         assert.match(result.stderr, /not-clean .*--findings/);
       }
@@ -356,13 +402,50 @@ describe('spec-review.sh (ADR-034)', () => {
     };
     const status = (graphRule = { match: GRAPH(), out: FIXTURE() }) =>
       run([graphRule], 'status', '50');
-    const main = `origin/main ${'1'.repeat(40)}`;
+    // The record of a review that read origin/main at <sha>.
+    const at = (sha) => `origin/main ${sha}`;
+    const main = () => at(mainSha);
 
-    it('is covered when the last final record is clean and newer than the last merged PR', () => {
-      seed(`2026-11-18T09:00:00Z | final | clean | findings 0 | ${main}`);
+    it("is covered when the last final record is clean and the last merged PR's squash commit is in what it reviewed", () => {
+      seed(`2026-11-18T09:00:00Z | final | clean | findings 0 | ${main()}`);
       const result = status();
       assert.equal(result.status, 0, result.stderr);
       assert.match(result.stdout, /^covered/);
+    });
+
+    it('is covered when the reviewed SHA is that squash commit itself, and not before', () => {
+      seed(`2026-11-18T09:00:00Z | final | clean | findings 0 | ${at(SHA61)}`);
+      assert.equal(status().status, 0);
+    });
+
+    it("is not covered when the reviewed SHA is older than the last merged PR's squash commit, whatever the time says", () => {
+      // PR #61 (the last merged) is not in what a review of SHA60 saw; the record is dated after the merge.
+      seed(`2026-11-19T09:00:00Z | final | clean | findings 0 | ${at(SHA60)}`);
+      const result = status();
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /^not covered: .*#61.*after the last clean final spec review/);
+    });
+
+    it('is covered by a record made before the merge of a PR, when the reviewer had already fetched it', () => {
+      // The review started after the merge (its SHA holds the commit), but was recorded before the clock of mergedAt.
+      seed(`2026-11-18T07:00:00Z | final | clean | findings 0 | ${main()}`);
+      assert.equal(status().status, 0);
+    });
+
+    it('fails with exit 2 when the squash commit is not in this checkout, never covered on a guess', () => {
+      seed(`2026-11-18T09:00:00Z | final | clean | findings 0 | ${main()}`);
+      const out = graph([
+        ticket(
+          51,
+          'T',
+          'CLOSED',
+          TICKET_BODY('x'),
+          pull(62, 'e'.repeat(40), '2026-11-18T08:00:00Z', ['a.ts']),
+        ),
+      ]);
+      const result = status({ match: GRAPH(), out });
+      assert.equal(result.status, 2);
+      assert.equal(result.stdout, '');
     });
 
     it('is not covered without a record', () => {
@@ -371,41 +454,41 @@ describe('spec-review.sh (ADR-034)', () => {
       assert.match(result.stdout, /^not covered: no final spec review/);
     });
 
-    it('is not covered when a PR merged after the clean record', () => {
-      seed(`2026-11-18T07:59:59Z | final | clean | findings 0 | ${main}`);
+    it('is not covered when a PR merged after the review: its squash commit is not in the reviewed SHA', () => {
+      seed(`2026-11-18T09:00:00Z | final | clean | findings 0 | ${at(baseSha)}`);
       const result = status();
       assert.equal(result.status, 1);
-      assert.match(result.stdout, /^not covered: .*#61.*merged after/);
+      assert.match(result.stdout, /^not covered: .*#61.*after the last clean final spec review/);
     });
 
     it('is not covered when the last final record is not clean, even after a clean one', () => {
       seed(
-        `2026-11-18T09:00:00Z | final | clean | findings 0 | ${main}`,
-        `2026-11-18T10:00:00Z | final | not-clean | findings 1 | ${main}`,
+        `2026-11-18T09:00:00Z | final | clean | findings 0 | ${main()}`,
+        `2026-11-18T10:00:00Z | final | not-clean | findings 1 | ${main()}`,
       );
       assert.equal(status().status, 1);
     });
 
     it('is covered by a later clean record after a not-clean one', () => {
       seed(
-        `2026-11-18T09:00:00Z | final | not-clean | findings 1 | ${main}`,
-        `2026-11-18T10:00:00Z | final | clean | findings 0 | ${main}`,
+        `2026-11-18T09:00:00Z | final | not-clean | findings 1 | ${main()}`,
+        `2026-11-18T10:00:00Z | final | clean | findings 0 | ${main()}`,
       );
       assert.equal(status().status, 0);
     });
 
     it('does not count the review of a slice', () => {
-      seed(`2026-11-18T09:00:00Z | slice PR #61 | clean | findings 0 | ${main}`);
+      seed(`2026-11-18T09:00:00Z | slice PR #61 | clean | findings 0 | ${main()}`);
       assert.equal(status().status, 1);
     });
 
     it("reads records and merges only: an open ticket is the phase's business (flow-phase.jq)", () => {
-      seed(`2026-11-18T09:00:00Z | final | clean | findings 0 | ${main}`);
+      seed(`2026-11-18T09:00:00Z | final | clean | findings 0 | ${main()}`);
       assert.equal(status().status, 0); // the fixture has #53 open
     });
 
     it('without any merged PR, a clean final record is enough', () => {
-      seed(`2026-11-18T09:00:00Z | final | clean | findings 0 | ${main}`);
+      seed(`2026-11-18T09:00:00Z | final | clean | findings 0 | ${main()}`);
       const out = graph([ticket(51, 'Gone', 'CLOSED', TICKET_BODY('x'), null)]);
       assert.equal(status({ match: GRAPH(), out }).status, 0);
     });
@@ -414,14 +497,14 @@ describe('spec-review.sh (ADR-034)', () => {
       seed(
         'final clean',
         '2026-11-18T09:00:00Z | final | clean | findings 0',
-        `not-a-time | final | clean | findings 0 | ${main}`,
-        `2026-11-18T09:00:00Z | final | clean-ish | findings 0 | ${main}`,
+        `not-a-time | final | clean | findings 0 | ${main()}`,
+        `2026-11-18T09:00:00Z | final | clean-ish | findings 0 | ${main()}`,
       );
       assert.equal(status().status, 1);
     });
 
     it('exits 2 when GitHub cannot be read, never a covered or not covered answer', () => {
-      seed(`2026-11-18T09:00:00Z | final | clean | findings 0 | ${main}`);
+      seed(`2026-11-18T09:00:00Z | final | clean | findings 0 | ${main()}`);
       const result = status({ match: GRAPH(), out: '', status: 1 });
       assert.equal(result.status, 2);
       assert.equal(result.stdout, '');
