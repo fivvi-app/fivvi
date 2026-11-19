@@ -216,6 +216,20 @@ describe('ADR-034 native-gate.sh --skip-ok: a part that is skipped on purpose', 
     assert.equal(android(['Android Maestro'], 'success', 'success', 'skipped').status, 1);
   });
 
+  it('compares each label whole: Android or Maestro alone does not match Android Maestro, nor the other way round', () => {
+    for (const word of ['Android', 'Maestro']) {
+      const named = android(['Android Maestro'], `${word}=skipped`, 'Android build=success');
+      assert.equal(
+        named.status,
+        1,
+        `a skipped part labelled ${word} with --skip-ok 'Android Maestro'`,
+      );
+      const reverse = android([word], 'Android build=success', 'Android Maestro=skipped');
+      assert.equal(reverse.status, 1, `a skipped Android Maestro with --skip-ok ${word}`);
+      assert.match(reverse.stdout, /Android Maestro: did not run \(skipped\)/);
+    }
+  });
+
   it('is skipped as a whole, as before, when the native decision says the app did not change', () => {
     const result = gate('--skip-ok', 'Android Maestro', 'Android', 'false', 'skipped');
     assert.equal(result.status, 0);

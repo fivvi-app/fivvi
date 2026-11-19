@@ -37,13 +37,22 @@ if [ "$decision" = false ]; then
   echo "$name: skipped, nothing it builds from changed."
   exit 0
 fi
+# Each --skip-ok label is compared whole, an element of the array, never a piece of a joined string: the labels have
+# spaces ("Android Maestro"), so "Android" or "Maestro" alone must not match it.
+label_skip_ok() {
+  local want
+  for want in ${skip_ok[@]+"${skip_ok[@]}"}; do
+    [ "$want" = "$1" ] && return 0
+  done
+  return 1
+}
 # One line per labelled part that did not succeed in $reasons.
 bad=() reasons=""
 for part in "$@"; do
   label="" result="$part"
   case "$part" in *=*) label="${part%%=*}" result="${part#*=}" ;; esac
   [ "$result" = success ] && continue
-  if [ "$result" = skipped ] && [ -n "$label" ] && [[ " ${skip_ok[*]:-} " == *" $label "* ]]; then
+  if [ "$result" = skipped ] && [ -n "$label" ] && label_skip_ok "$label"; then
     echo "$label: skipped on purpose (no UI tests in this run), counts as a success."
     continue
   fi
