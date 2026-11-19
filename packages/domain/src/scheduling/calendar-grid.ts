@@ -1,3 +1,6 @@
+// Module: The rules behind a calendar grid with days in columns: Monday first, where a session sits in its day, overlapping blocks, the day the clocks change and the filters.
+// Spec: F013, F014 (workspace calendar WC-02)
+
 import { addDays, instantToWallClock, localDayBounds } from './zoned-time.ts';
 
 // The rules behind a calendar grid with days in columns (F013 *Mijn agenda*, spec #457, and

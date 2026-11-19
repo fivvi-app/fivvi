@@ -3,17 +3,35 @@
 // an earlier one: tokens and price-weighted cost per model, agent and tool time, and quality, per ticket.
 //
 //   node scripts/usage.mjs snapshot [--since D] [--until D] [--label L] [--out F] [--projects DIR] [--root DIR]
+//                                   [--git DIR] [--cache DIR]
 //       write the aggregates of the sessions that started between D and D (ISO dates or timestamps) as JSON, counting
 //       in them only the main-conversation calls and the subagents inside that window, by default
 //       to docs/agents/usage/<label>.json (label defaults to the since date). Needs gh for the GitHub fields; without
 //       it they are null and a warning goes to stderr. --projects is the folder of Claude Code's projects (default
 //       $CLAUDE_CONFIG_DIR/projects or ~/.claude/projects), --root the repo whose sessions to read (default: this repo)
+//       The `flow` section is read from GitHub for the same window (without --since: the 28 days before --until):
+//       settings   .github/pipeline.json on main at the window's start and end (git show; absent = full, per-pr, 4 builders and the merge queue),
+//                  with a warning when it changed inside the window; --git is the repo to read it from (default: this one)
+//       time       merged PRs: issue opened → first commit → PR opened → ready → first queued → merged, in hours
+//                  (median, p90), tickets merged per day, spec created → spec-approved → first ticket → closed
+//       ci         runs of ci.yml per event (count, wall time, failure rate), per job (run time, failure rate), runner
+//                  hours Linux and macOS, runs per merged PR, queue removals per PR by reason. Job timings come from one
+//                  call per run, in parallel, cached per run id in --cache (default .work/usage/jobs)
+//       quality    bugs opened in the window by source (nightly run, spec review, deploy, other), per merged ticket,
+//                  reverts, follow-up fixes, PRs merged with should-fix follow-ups
+//       prs        one record of numbers per merged PR, so compare can show the times per ticket group
 //   node scripts/usage.mjs compare <before.json> <after.json>
-//       print per role, per ticket group (area and size) and per session how the metrics changed, before → after
+//       print per role, per ticket group (area and size), per session and for the flow how the metrics changed,
+//       before → after
+//
+// Sources the flow reads, by marker (only the marker is read, never stored): a bug is from the nightly run when its
+// title starts `Nightly UI tests failed`, from the spec review when its body has the line `Found by: spec review`
+// (docs/agents/build.md, Spec review), from a deploy failure when its body has `<!-- fivvi:deploy-failed`
+// (scripts/flow.sh); a PR was merged with should-fix follow-ups when its `Self-review` record says `n should-fix findings left`.
 //
 // Only numbers, issue and PR numbers, SHAs, agent roles and models are read out of a transcript and written; never its
 // text. Claude Code deletes transcripts after 30 days by default: take a snapshot of a run within that time.
-import { execFileSync } from 'node:child_process';
+import { execFile, execFileSync } from 'node:child_process';
 import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { homedir } from 'node:os';
 import { dirname, join, resolve } from 'node:path';
@@ -421,7 +439,7 @@ const buildTicket = (t) => {
 
 // ---------- GitHub
 
-const makeGh = () => {
+export const makeGh = () => {
   let warned = false;
   const gh = (args) =>
     execFileSync('gh', args, {
@@ -431,6 +449,12 @@ const makeGh = () => {
       maxBuffer: 1 << 28,
     });
   const json = (args) => JSON.parse(gh(args));
+  const ghAsync = (args) =>
+    new Promise((done, fail) => {
+      execFile('gh', args, { encoding: 'utf8', cwd: ROOT, maxBuffer: 1 << 28 }, (error, stdout) =>
+        error ? fail(error) : done(stdout),
+      );
+    });
   const warn = (error) => {
     if (warned) return;
     warned = true;
@@ -472,7 +496,7 @@ const makeGh = () => {
     }
     return context;
   };
-  return { gh, json, warn, init };
+  return { gh, ghAsync, json, warn, init };
 };
 
 const names = (text, n) => new RegExp(`#${n}(?!\\d)`).test(text ?? '');
@@ -575,9 +599,524 @@ const enrich = (ticket, tool) => {
   }
 };
 
+// ---------- flow
+
+const HOUR = 3_600_000;
+const DAY = 24 * HOUR;
+const WINDOW_DEFAULT_DAYS = 28;
+const JOB_POOL = 8;
+const SEARCH_LIMIT = 1000;
+const round = (v, digits = 2) => (v === null ? null : Math.round(v * 10 ** digits) / 10 ** digits);
+export const percentile = (list, p) => {
+  if (list.length === 0) return null;
+  const sorted = [...list].sort((a, b) => a - b);
+  return sorted[Math.max(0, Math.ceil(p * sorted.length) - 1)];
+};
+const known = (list) => list.filter((v) => v !== null && v !== undefined && !Number.isNaN(v));
+// n, median and p90 of the values that are known; null when none are.
+const spread = (list) => {
+  const values = known(list);
+  return values.length
+    ? { n: values.length, median: round(median(values)), p90: round(percentile(values, 0.9)) }
+    : null;
+};
+const stamp = (text) => {
+  const time = Date.parse(text);
+  return Number.isNaN(time) ? null : time;
+};
+const hoursBetween = (from, to) =>
+  from === null || to === null || to < from ? null : round((to - from) / HOUR);
+const isoSecond = (ms) => new Date(ms).toISOString().replace(/\.\d{3}Z$/, 'Z');
+const earliest = (list) => {
+  const values = known(list);
+  return values.length ? Math.min(...values) : null;
+};
+
+// The pipeline switch (.github/pipeline.json, ADR-034, ADR-035) on main at a commit; a missing file or key is the full flow,
+// a main from before `builders` ran up to 4 builders (ADR-033) and one from before `merge` used the merge queue (ADR-018).
+const PIPELINE_DEFAULT = { ci: 'full', review: 'per-pr', builders: 4, merge: 'queue' };
+const git = (dir, args) =>
+  execFileSync('git', ['-C', dir, ...args], {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'ignore'],
+  }).trim();
+const mainRef = (dir) =>
+  ['origin/main', 'main', 'HEAD'].find((ref) => {
+    try {
+      git(dir, ['rev-parse', '--verify', '--quiet', ref]);
+      return true;
+    } catch {
+      return false;
+    }
+  });
+const pipelineAt = (dir, sha) => {
+  let file = {};
+  try {
+    file = JSON.parse(git(dir, ['show', `${sha}:.github/pipeline.json`]));
+  } catch {
+    // no file at that commit: the full flow
+  }
+  return {
+    sha: sha.slice(0, 12),
+    ci: ['lean', 'fast', 'full'].includes(file?.ci) ? file.ci : PIPELINE_DEFAULT.ci,
+    review: ['split', 'per-pr'].includes(file?.review) ? file.review : PIPELINE_DEFAULT.review,
+    builders:
+      Number.isInteger(file?.builders) && file.builders >= 1
+        ? file.builders
+        : PIPELINE_DEFAULT.builders,
+    merge: ['queue', 'direct'].includes(file?.merge) ? file.merge : PIPELINE_DEFAULT.merge,
+  };
+};
+const labelOf = (s) => `ci ${s.ci}, review ${s.review}, builders ${s.builders}, merge ${s.merge}`;
+
+export const settingsOf = (dir, from, to) => {
+  const warnings = [];
+  try {
+    const ref = mainRef(dir);
+    if (!ref) throw new Error('no main branch');
+    const commitAt = (ms) =>
+      git(dir, ['rev-list', '-1', '--first-parent', `--before=${isoSecond(ms)}`, ref]);
+    const startSha = commitAt(from);
+    const endSha = commitAt(to);
+    if (!startSha || !endSha) throw new Error(`${ref} has no commit before the window`);
+    const start = pipelineAt(dir, startSha);
+    const end = pipelineAt(dir, endSha);
+    const changes = git(dir, [
+      'log',
+      '--first-parent',
+      '--reverse',
+      '--format=%H',
+      `--after=${isoSecond(from)}`,
+      `--before=${isoSecond(to)}`,
+      ref,
+      '--',
+      '.github/pipeline.json',
+    ])
+      .split('\n')
+      .filter(Boolean)
+      .map((sha) => pipelineAt(dir, sha));
+    const changed = new Set([start, end, ...changes].map(labelOf)).size > 1;
+    if (changed) {
+      warnings.push(
+        `.github/pipeline.json changed inside the window (${labelOf(start)} → ${labelOf(end)}): ` +
+          'the flow numbers mix both settings',
+      );
+    }
+    return { settings: { ref, start, end, changed }, warnings };
+  } catch (error) {
+    warnings.push(`could not read .github/pipeline.json on main (${error.message.split('\n')[0]})`);
+    return { settings: null, warnings };
+  }
+};
+
+const PR_QUERY = `query($q: String!, $after: String) {
+  search(query: $q, type: ISSUE, first: 50, after: $after) {
+    issueCount
+    pageInfo { hasNextPage endCursor }
+    nodes { ... on PullRequest {
+      number title body createdAt mergedAt
+      commits(first: 1) { nodes { commit { committedDate } } }
+      closingIssuesReferences(first: 10) { nodes { number createdAt } }
+      timelineItems(first: 100, itemTypes: [READY_FOR_REVIEW_EVENT, ADDED_TO_MERGE_QUEUE_EVENT, REMOVED_FROM_MERGE_QUEUE_EVENT]) {
+        nodes { __typename ... on ReadyForReviewEvent { createdAt } ... on AddedToMergeQueueEvent { createdAt } ... on RemovedFromMergeQueueEvent { createdAt reason } }
+      }
+    } }
+  }
+}`;
+const SPEC_QUERY = `query($q: String!, $after: String) {
+  search(query: $q, type: ISSUE, first: 50, after: $after) {
+    issueCount
+    pageInfo { hasNextPage endCursor }
+    nodes { ... on Issue {
+      number createdAt closedAt
+      subIssues(first: 100) { nodes { number createdAt labels(first: 20) { nodes { name } } } }
+      timelineItems(first: 100, itemTypes: [LABELED_EVENT]) { nodes { ... on LabeledEvent { createdAt label { name } } } }
+    } }
+  }
+}`;
+const BUG_QUERY = `query($q: String!, $after: String) {
+  search(query: $q, type: ISSUE, first: 100, after: $after) {
+    issueCount
+    pageInfo { hasNextPage endCursor }
+    nodes { ... on Issue { number title body createdAt } }
+  }
+}`;
+
+// Every page of a search, as the nodes plus a warning when GitHub's search would have cut the list at 1000.
+const search = async (tool, query, text, warnings) => {
+  const nodes = [];
+  let after = null;
+  for (;;) {
+    const args = [
+      'api',
+      'graphql',
+      '-H',
+      'GraphQL-Features: sub_issues',
+      '-f',
+      `query=${query}`,
+      '-f',
+      `q=${text}`,
+    ];
+    if (after) args.push('-f', `after=${after}`);
+    const data = JSON.parse(await tool.ghAsync(args)).data.search;
+    nodes.push(...data.nodes.filter((n) => n?.number));
+    if (data.issueCount >= SEARCH_LIMIT)
+      warnings.push(`GitHub's search stops at ${SEARCH_LIMIT} results: narrow the window`);
+    if (!data.pageInfo?.hasNextPage) return nodes;
+    after = data.pageInfo.endCursor;
+  }
+};
+
+// The queue also records a removal when it merges the PR: reason `merged`. That is not one.
+const MERGE_REASONS = ['merged', 'already_merged'];
+const SHOULD_FIX_LEFT = /Self-review:\*\*[^\n]*?\b(\d+) should-fix findings? left/g;
+
+// What the timeline of a merged PR says, as hours between its events (null when an event never happened) and the
+// reasons the merge queue removed it.
+export const prRecord = (node) => {
+  const created = stamp(node.createdAt);
+  const merged = stamp(node.mergedAt);
+  const first = stamp(node.commits?.nodes?.[0]?.commit?.committedDate);
+  const events = node.timelineItems?.nodes ?? [];
+  const when = (type) =>
+    earliest(events.filter((e) => e.__typename === type).map((e) => stamp(e.createdAt)));
+  const ready = when('ReadyForReviewEvent') ?? created;
+  const queued = when('AddedToMergeQueueEvent');
+  const removals = {};
+  for (const e of events.filter((e) => e.__typename === 'RemovedFromMergeQueueEvent')) {
+    const reason = String(e.reason ?? 'unknown').toLowerCase();
+    if (!MERGE_REASONS.includes(reason)) removals[reason] = (removals[reason] ?? 0) + 1;
+  }
+  const issues = (node.closingIssuesReferences?.nodes ?? []).map((i) => ({
+    number: i.number,
+    opened: stamp(i.createdAt),
+  }));
+  const body = String(node.body ?? '');
+  const shouldFix = [...body.matchAll(SHOULD_FIX_LEFT)].at(-1);
+  return {
+    number: node.number,
+    issues: issues.map((i) => i.number),
+    backlog: issues.map((i) => hoursBetween(i.opened, first)),
+    issueToMerged: issues.map((i) => hoursBetween(i.opened, merged)),
+    firstCommitToPr: hoursBetween(first, created),
+    prToReady: hoursBetween(created, ready),
+    readyToQueued: hoursBetween(ready, queued),
+    queuedToMerged: hoursBetween(queued, merged),
+    prToMerged: hoursBetween(created, merged),
+    removals,
+    shouldFix: shouldFix ? Number(shouldFix[1]) : 0,
+    revert: String(node.title ?? '').startsWith('Revert "'),
+  };
+};
+
+const specRecord = (node) => {
+  const created = stamp(node.createdAt);
+  const closed = stamp(node.closedAt);
+  const approved = earliest(
+    (node.timelineItems?.nodes ?? [])
+      .filter((e) => e.label?.name === 'spec-approved')
+      .map((e) => stamp(e.createdAt)),
+  );
+  // tickets are the sub-issues that are not bugs (the spec review files its bugs under the spec too)
+  const first = earliest(
+    (node.subIssues?.nodes ?? [])
+      .filter((i) => !(i.labels?.nodes ?? []).some((l) => l.name === 'bug'))
+      .map((i) => stamp(i.createdAt)),
+  );
+  return {
+    number: node.number,
+    createdToApproved: hoursBetween(created, approved),
+    approvedToFirstTicket: hoursBetween(approved, first),
+    firstTicketToClosed: hoursBetween(first, closed),
+    createdToClosed: hoursBetween(created, closed),
+  };
+};
+
+export const bugSource = ({ title, body }) => {
+  if (String(title ?? '').startsWith('Nightly UI tests failed')) return 'nightly';
+  const text = String(body ?? '');
+  if (/^\s*Found by:\s*spec review\s*$/im.test(text)) return 'specReview';
+  if (text.includes('<!-- fivvi:deploy-failed')) return 'deploy';
+  return 'other';
+};
+
+const osOf = (labels) =>
+  labels.some((l) => /macos/i.test(l))
+    ? 'macos'
+    : labels.some((l) => /ubuntu|linux/i.test(l))
+      ? 'linux'
+      : 'other';
+
+const fetchRuns = async (tool, from, to) => {
+  const runs = new Map();
+  for (let start = from; start < to; start += 7 * DAY) {
+    const end = Math.min(start + 7 * DAY - 1000, to);
+    const out = await tool.ghAsync([
+      'api',
+      `repos/{owner}/{repo}/actions/workflows/ci.yml/runs?created=${isoSecond(start)}..${isoSecond(end)}&per_page=100`,
+      '--paginate',
+      '--jq',
+      '.workflow_runs[] | [.id, .event, .conclusion, .created_at, .run_started_at, .updated_at] | @json',
+    ]);
+    for (const line of lines(out)) {
+      const [id, event, conclusion, created, started, updated] = JSON.parse(line);
+      const begin = stamp(started) ?? stamp(created);
+      runs.set(id, {
+        id,
+        event,
+        conclusion,
+        seconds: begin !== null && stamp(updated) !== null ? (stamp(updated) - begin) / 1000 : null,
+      });
+    }
+  }
+  return [...runs.values()];
+};
+
+// The jobs of a run, read from GitHub once: a finished run is kept under `cache`, named by its id.
+const jobsOf = async (tool, run, cache) => {
+  const file = join(cache, `${run.id}.json`);
+  if (existsSync(file)) {
+    try {
+      return JSON.parse(readFileSync(file, 'utf8'));
+    } catch {
+      // a half-written file: read it again
+    }
+  }
+  const args = [
+    'api',
+    `repos/{owner}/{repo}/actions/runs/${run.id}/jobs?per_page=100&filter=all`,
+    '--paginate',
+    '--jq',
+    '.jobs[] | [.name, .conclusion, .started_at, .completed_at, .labels] | @json',
+  ];
+  // one call in a thousand fails for no reason a second try does not clear
+  const out = await tool.ghAsync(args).catch(() => tool.ghAsync(args));
+  const jobs = lines(out)
+    .map((line) => JSON.parse(line))
+    .filter(([, , started, completed]) => stamp(started) !== null && stamp(completed) !== null)
+    .map(([name, conclusion, started, completed, labels]) => ({
+      name,
+      conclusion,
+      seconds: Math.max(0, Math.round((stamp(completed) - stamp(started)) / 1000)),
+      os: osOf(labels ?? []),
+    }));
+  if (run.conclusion) {
+    mkdirSync(cache, { recursive: true });
+    writeFileSync(file, `${JSON.stringify(jobs)}\n`);
+  }
+  return jobs;
+};
+
+// At most `size` calls at once.
+const pool = async (items, size, work) => {
+  const out = new Array(items.length);
+  let next = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(size, items.length) }, async () => {
+      while (next < items.length) {
+        const i = next++;
+        out[i] = await work(items[i]);
+      }
+    }),
+  );
+  return out;
+};
+
+const NATIVE_JOB = /^(iOS tests|Android tests|Android Maestro)/;
+const failureRate = (conclusions) => {
+  const done = conclusions.filter((c) => c === 'success' || c === 'failure');
+  return done.length ? round(done.filter((c) => c === 'failure').length / done.length, 3) : null;
+};
+const minutes = (seconds) => (seconds === null ? null : round(seconds / 60, 1));
+
+export const ciSection = (runs, jobsByRun, mergedPrs, removals) => {
+  const events = {};
+  for (const event of [...new Set(runs.map((r) => r.event))].sort()) {
+    const list = runs.filter((r) => r.event === event);
+    const walls = known(
+      list
+        .filter((r) => r.conclusion === 'success' || r.conclusion === 'failure')
+        .map((r) => r.seconds),
+    );
+    // a run that ran native tests (the UI tests too, or the unit tests only) is one that touched native code
+    const native = known(
+      list
+        .filter(
+          (r) =>
+            (r.conclusion === 'success' || r.conclusion === 'failure') &&
+            (jobsByRun.get(r.id) ?? []).some(
+              (j) =>
+                NATIVE_JOB.test(j.name) &&
+                (j.conclusion === 'success' || j.conclusion === 'failure'),
+            ),
+        )
+        .map((r) => r.seconds),
+    );
+    events[event] = {
+      runs: list.length,
+      wallMedianMinutes: minutes(median(walls)),
+      wallP90Minutes: minutes(percentile(walls, 0.9)),
+      failureRate: failureRate(list.map((r) => r.conclusion)),
+      nativeRuns: native.length,
+      nativeWallMedianMinutes: minutes(median(native)),
+    };
+  }
+  const perJob = {};
+  const hours = { linux: 0, macos: 0, other: 0 };
+  for (const run of runs) {
+    for (const job of jobsByRun.get(run.id) ?? []) {
+      hours[job.os] += job.seconds / 3600;
+      if (job.conclusion !== 'success' && job.conclusion !== 'failure') continue;
+      const key = run.event === 'schedule' ? `${job.name} (schedule)` : job.name;
+      perJob[key] ??= { seconds: [], conclusions: [] };
+      perJob[key].seconds.push(job.seconds);
+      perJob[key].conclusions.push(job.conclusion);
+    }
+  }
+  const jobs = Object.fromEntries(
+    Object.entries(perJob)
+      .sort((a, b) => a[0].localeCompare(b[0]))
+      .map(([name, j]) => [
+        name,
+        {
+          runs: j.seconds.length,
+          medianMinutes: minutes(median(j.seconds)),
+          failureRate: failureRate(j.conclusions),
+        },
+      ]),
+  );
+  const prRuns = runs.filter((r) => r.event === 'pull_request' || r.event === 'merge_group').length;
+  const removalsByReason = {};
+  for (const r of removals)
+    for (const [reason, n] of Object.entries(r))
+      removalsByReason[reason] = (removalsByReason[reason] ?? 0) + n;
+  const removed = sum(Object.values(removalsByReason));
+  return {
+    runs: runs.length,
+    runsWithoutJobs: runs.filter((r) => r.conclusion && !jobsByRun.has(r.id)).length,
+    events,
+    jobs,
+    runnerHours: Object.fromEntries(Object.entries(hours).map(([os, h]) => [os, round(h, 1)])),
+    runsPerMergedPr: mergedPrs ? round(prRuns / mergedPrs) : null,
+    queueRemovalsPerPr: mergedPrs ? round(removed / mergedPrs) : null,
+    queueRemovals: removed,
+    removalsByReason: Object.fromEntries(Object.entries(removalsByReason).sort()),
+  };
+};
+
+// The flow of a window from GitHub; null (with a warning) when gh can't answer.
+export const buildFlow = async ({ since, until, tool, tickets, gitDir, cacheDir }) => {
+  if (!tool.init()) return null;
+  const to = until ? Date.parse(until) : Date.now();
+  const from = since ? Date.parse(since) : to - WINDOW_DEFAULT_DAYS * DAY;
+  try {
+    const repo = tool.json(['repo', 'view', '--json', 'nameWithOwner']).nameWithOwner;
+    if (typeof repo !== 'string' || !/^[\w.-]+\/[\w.-]+$/.test(repo))
+      throw new Error('no repository name');
+    const range = `${isoSecond(from)}..${isoSecond(to)}`;
+    const { settings, warnings } = settingsOf(gitDir, from, to);
+    const prs = (
+      await search(tool, PR_QUERY, `repo:${repo} is:pr is:merged merged:${range}`, warnings)
+    ).map((node) => prRecord(node));
+    const specs = (
+      await search(
+        tool,
+        SPEC_QUERY,
+        `repo:${repo} is:issue label:spec is:closed closed:${range}`,
+        warnings,
+      )
+    ).map(specRecord);
+    const bugNodes = await search(
+      tool,
+      BUG_QUERY,
+      `repo:${repo} is:issue label:bug created:${range}`,
+      warnings,
+    );
+    const runs = await fetchRuns(tool, from, to);
+    const jobsByRun = new Map();
+    await pool(
+      runs.filter((r) => r.conclusion),
+      JOB_POOL,
+      async (run) => {
+        try {
+          jobsByRun.set(run.id, await jobsOf(tool, run, cacheDir));
+        } catch (error) {
+          warnings.push(`jobs of run ${run.id} not read (${String(error.message).split('\n')[0]})`);
+        }
+      },
+    );
+
+    const ticketNumbers = new Set(prs.flatMap((p) => p.issues));
+    const days = (to - from) / DAY;
+    const all = (key) => prs.flatMap((p) => (Array.isArray(p[key]) ? p[key] : [p[key]]));
+    const bugs = { total: bugNodes.length, nightly: [], specReview: [], deploy: [], other: [] };
+    for (const bug of bugNodes) bugs[bugSource(bug)].push(bug.number);
+    const counted = {
+      total: bugs.total,
+      perTicket: ticketNumbers.size ? round(bugs.total / ticketNumbers.size) : null,
+      ...Object.fromEntries(
+        ['nightly', 'specReview', 'deploy', 'other'].map((k) => [k, bugs[k].length]),
+      ),
+      numbers: Object.fromEntries(
+        ['nightly', 'specReview', 'deploy', 'other'].map((k) => [k, bugs[k].sort((a, b) => a - b)]),
+      ),
+    };
+    return {
+      window: { since: isoSecond(from), until: isoSecond(to), days: round(days, 1) },
+      settings,
+      warnings,
+      time: {
+        mergedPrs: prs.length,
+        tickets: ticketNumbers.size,
+        ticketsPerDay: round(ticketNumbers.size / days),
+        backlog: spread(all('backlog')),
+        firstCommitToPr: spread(all('firstCommitToPr')),
+        prToReady: spread(all('prToReady')),
+        readyToQueued: spread(all('readyToQueued')),
+        queuedToMerged: spread(all('queuedToMerged')),
+        prToMerged: spread(all('prToMerged')),
+        issueToMerged: spread(all('issueToMerged')),
+        spec: {
+          n: specs.length,
+          createdToApproved: spread(specs.map((s) => s.createdToApproved)),
+          approvedToFirstTicket: spread(specs.map((s) => s.approvedToFirstTicket)),
+          firstTicketToClosed: spread(specs.map((s) => s.firstTicketToClosed)),
+          createdToClosed: spread(specs.map((s) => s.createdToClosed)),
+        },
+      },
+      ci: ciSection(
+        runs,
+        jobsByRun,
+        prs.length,
+        prs.map((p) => p.removals),
+      ),
+      quality: {
+        bugs: counted,
+        reverts: prs.filter((p) => p.revert).length,
+        revertedTickets: tickets.filter((t) => t.reverted).length,
+        followUpFixes: sum(tickets.map((t) => t.followUpFixes ?? 0)),
+        prsWithShouldFixLeft: prs.filter((p) => p.shouldFix > 0).length,
+        shouldFixLeft: sum(prs.map((p) => p.shouldFix)),
+      },
+      prs: prs.map(({ shouldFix, revert, ...p }) => p),
+    };
+  } catch (error) {
+    tool.warn(error);
+    return null;
+  }
+};
+
 // ---------- snapshot
 
-export const buildSnapshot = ({ since, until, label, projects, rootPath }) => {
+export const buildSnapshot = async ({
+  since,
+  until,
+  label,
+  projects,
+  rootPath,
+  gitDir = ROOT,
+  cacheDir = join(ROOT, '.work/usage/jobs'),
+}) => {
   const from = since ? Date.parse(since) : null;
   const to = until ? Date.parse(until) : null;
   const sessions = readSessions(projectFolders(projects, rootPath), from, to);
@@ -601,6 +1140,7 @@ export const buildSnapshot = ({ since, until, label, projects, rootPath }) => {
       medianPeakContext: median(list.map((a) => a.peakContext).filter((v) => v !== null)),
     };
   }
+  const flow = await buildFlow({ since, until, tool, tickets, gitDir, cacheDir });
   return {
     version: 1,
     label,
@@ -634,6 +1174,7 @@ export const buildSnapshot = ({ since, until, label, projects, rootPath }) => {
     }),
     tickets,
     agents: { byRole },
+    flow,
   };
 };
 
@@ -649,6 +1190,7 @@ const KINDS = {
         ? `${(v / 1e3).toFixed(1)}k`
         : String(Math.round(v)),
   rate: (v) => `${Math.round(v * 100)}%`,
+  int: (v) => String(Math.round(v)),
 };
 const format = (v, kind) => (v === null || v === undefined ? 'n/a' : KINDS[kind](v));
 const change = (before, after) => {
@@ -700,6 +1242,136 @@ const groupMetrics = (tickets, models) => [
   ['follow-up fixes per ticket', average(tickets, (t) => t.followUpFixes), 'count'],
   ['revert rate', share(tickets, (t) => t.reverted), 'rate'],
 ];
+
+// The times of the merged PRs of the tickets in a group, by the PR number of the ticket (flow.prs of the snapshot).
+const GROUP_TIMES = [
+  ['prToMerged', 'PR opened → merged, median hours'],
+  ['readyToQueued', 'ready → first queued, median hours'],
+  ['queuedToMerged', 'first queued → merged, median hours'],
+  ['issueToMerged', 'issue opened → merged, median hours'],
+];
+const groupTimes = (tickets, snap) => {
+  const byNumber = new Map((snap.flow?.prs ?? []).map((p) => [p.number, p]));
+  const prs = tickets.map((t) => byNumber.get(t.pr?.number)).filter(Boolean);
+  return GROUP_TIMES.map(([key]) => medianOrNull(prs.flatMap((p) => [p[key]].flat())));
+};
+const medianOrNull = (list) => {
+  const values = list.filter((v) => v !== null && v !== undefined);
+  return values.length ? median(values) : null;
+};
+
+const FLOW_TIMES = [
+  ['backlog', 'issue opened → first commit'],
+  ['firstCommitToPr', 'first commit → PR opened'],
+  ['prToReady', 'PR opened → ready for review'],
+  ['readyToQueued', 'ready → first queued'],
+  ['queuedToMerged', 'first queued → merged'],
+  ['prToMerged', 'PR opened → merged'],
+  ['issueToMerged', 'issue opened → merged'],
+];
+const SPEC_TIMES = [
+  ['createdToApproved', 'spec created → spec-approved'],
+  ['approvedToFirstTicket', 'spec-approved → first ticket'],
+  ['firstTicketToClosed', 'first ticket → spec closed'],
+  ['createdToClosed', 'spec created → closed'],
+];
+
+// Snapshots from before ADR-035 have no builders and no merge: the text leaves them out.
+const settingText = (s) =>
+  s
+    ? `ci ${s.ci}, review ${s.review}${s.builders === undefined ? '' : `, builders ${s.builders}`}${
+        s.merge === undefined ? '' : `, merge ${s.merge}`
+      }`
+    : 'unknown';
+
+// The flow section of two snapshots, before → after (only when one of them has it).
+const compareFlow = (before, after) => {
+  const b = before.flow;
+  const a = after.flow;
+  if (!b && !a) return [];
+  const out = ['', 'Flow'];
+  out.push(`  settings  ${settingText(b?.settings?.end)} → ${settingText(a?.settings?.end)}`);
+  for (const [name, flow] of [
+    [before.label, b],
+    [after.label, a],
+  ]) {
+    if (!flow) out.push(`  warning: ${name} has no flow section (taken without gh)`);
+    for (const warning of flow?.warnings ?? []) out.push(`  warning: ${name}: ${warning}`);
+  }
+  const both = (path) => [b, a].map((f) => path.split('.').reduce((v, k) => v?.[k], f) ?? null);
+  const add = (label, path, kind) => out.push(row(label, ...both(path), kind));
+
+  out.push('', 'Flow: time of the merged PRs (hours)');
+  add('merged PRs', 'time.mergedPrs', 'int');
+  add('tickets merged', 'time.tickets', 'int');
+  add('tickets merged per day', 'time.ticketsPerDay', 'count');
+  for (const [key, label] of FLOW_TIMES) {
+    add(`${label}, median`, `time.${key}.median`, 'count');
+    add(`${label}, p90`, `time.${key}.p90`, 'count');
+  }
+  out.push('', 'Flow: specs closed in the window (hours)');
+  add('specs closed', 'time.spec.n', 'int');
+  for (const [key, label] of SPEC_TIMES)
+    add(`${label}, median`, `time.spec.${key}.median`, 'count');
+
+  out.push('', 'Flow: CI (ci.yml)');
+  add('runs', 'ci.runs', 'int');
+  add('runs per merged PR', 'ci.runsPerMergedPr', 'count');
+  for (const os of ['linux', 'macos', 'other'])
+    add(`runner hours ${os}`, `ci.runnerHours.${os}`, 'count');
+  const names = (path) => [
+    ...new Set([
+      ...(b?.ci?.[path] ? Object.keys(b.ci[path]) : []),
+      ...Object.keys(a?.ci?.[path] ?? {}),
+    ]),
+  ];
+  for (const event of names('events').sort()) {
+    add(`${event} runs`, `ci.events.${event}.runs`, 'int');
+    add(`${event} wall median (min)`, `ci.events.${event}.wallMedianMinutes`, 'count');
+    add(`${event} wall p90 (min)`, `ci.events.${event}.wallP90Minutes`, 'count');
+    add(`${event} failure rate`, `ci.events.${event}.failureRate`, 'rate');
+    add(
+      `${event} native runs wall median (min)`,
+      `ci.events.${event}.nativeWallMedianMinutes`,
+      'count',
+    );
+  }
+  add('queue removals per merged PR', 'ci.queueRemovalsPerPr', 'count');
+  for (const reason of [
+    ...new Set([
+      ...Object.keys(b?.ci?.removalsByReason ?? {}),
+      ...Object.keys(a?.ci?.removalsByReason ?? {}),
+    ]),
+  ].sort())
+    out.push(
+      row(
+        `queue removals: ${reason}`,
+        b?.ci?.removalsByReason?.[reason] ?? 0,
+        a?.ci?.removalsByReason?.[reason] ?? 0,
+        'int',
+      ),
+    );
+  for (const job of names('jobs').sort()) {
+    const pick = (flow, field) => flow?.ci?.jobs?.[job]?.[field] ?? null;
+    out.push(
+      row(`job ${job} median (min)`, pick(b, 'medianMinutes'), pick(a, 'medianMinutes'), 'count'),
+    );
+    out.push(
+      row(`job ${job} failure rate`, pick(b, 'failureRate'), pick(a, 'failureRate'), 'rate'),
+    );
+  }
+
+  out.push('', 'Flow: bugs and quality');
+  add('bugs opened', 'quality.bugs.total', 'int');
+  add('bugs per merged ticket', 'quality.bugs.perTicket', 'count');
+  for (const source of ['nightly', 'specReview', 'deploy', 'other'])
+    add(`bugs from ${source}`, `quality.bugs.${source}`, 'int');
+  add('reverts (PRs)', 'quality.reverts', 'int');
+  add('reverted tickets', 'quality.revertedTickets', 'int');
+  add('follow-up fixes', 'quality.followUpFixes', 'int');
+  add('PRs merged with should-fix follow-ups', 'quality.prsWithShouldFixLeft', 'int');
+  return out;
+};
 
 export const compareSnapshots = (before, after) => {
   const out = [`usage compare: ${before.label} → ${after.label}`, ''];
@@ -755,6 +1427,12 @@ export const compareSnapshots = (before, after) => {
     const right = groupMetrics(a, models);
     for (const [i, [label, value, kind]] of left.entries())
       out.push(row(label, value, right[i][1], kind));
+    if (before.flow?.prs || after.flow?.prs) {
+      const tb = groupTimes(b, before);
+      const ta = groupTimes(a, after);
+      for (const [i, [, label]] of GROUP_TIMES.entries())
+        out.push(row(label, tb[i], ta[i], 'count'));
+    }
   }
 
   out.push('', 'Sessions');
@@ -780,6 +1458,7 @@ export const compareSnapshots = (before, after) => {
   ].sort();
   for (const model of models)
     out.push(row(`orchestrator ${model} cost per ticket`, sb.cost(model), sa.cost(model), 'units'));
+  out.push(...compareFlow(before, after));
   return `${out.join('\n')}\n`;
 };
 
@@ -796,7 +1475,16 @@ const usageText = () => {
   return header.map((line) => line.replace(/^\/\/ ?/, '')).join('\n');
 };
 
-const OPTIONS = ['--since', '--until', '--label', '--out', '--projects', '--root'];
+const OPTIONS = [
+  '--since',
+  '--until',
+  '--label',
+  '--out',
+  '--projects',
+  '--root',
+  '--git',
+  '--cache',
+];
 
 const parse = (argv) => {
   const [command, ...rest] = argv;
@@ -829,7 +1517,7 @@ const mainRoot = () => {
   }
 };
 
-const main = (argv) => {
+const main = async (argv) => {
   let parsed;
   try {
     parsed = parse(argv);
@@ -847,12 +1535,14 @@ const main = (argv) => {
   const label = o.label ?? (o.since ? o.since.slice(0, 10) : 'snapshot');
   const projects =
     o.projects ?? join(process.env.CLAUDE_CONFIG_DIR ?? join(homedir(), '.claude'), 'projects');
-  const snapshot = buildSnapshot({
+  const snapshot = await buildSnapshot({
     since: o.since,
     until: o.until,
     label,
     projects,
     rootPath: o.root ?? mainRoot(),
+    gitDir: o.git ? resolve(o.git) : ROOT,
+    cacheDir: o.cache ? resolve(o.cache) : join(ROOT, '.work/usage/jobs'),
   });
   const out = resolve(o.out ?? join(ROOT, 'docs/agents/usage', `${label}.json`));
   mkdirSync(dirname(out), { recursive: true });
@@ -864,4 +1554,4 @@ const main = (argv) => {
   return 0;
 };
 
-if (process.argv[1] === SELF) process.exitCode = main(process.argv.slice(2));
+if (process.argv[1] === SELF) process.exitCode = await main(process.argv.slice(2));

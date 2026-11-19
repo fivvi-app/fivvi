@@ -2,7 +2,10 @@
 # The GitHub settings the factory relies on (ADR-016), applied from versioned files. Idempotent: run it again after
 # changing a file. Needs a token with admin rights on the repo.
 #
-#   github-settings.sh apply      the ruleset for main (.github/rulesets/main.json), then the merge settings in
+#   github-settings.sh apply      the ruleset for main (.github/rulesets/main.json, in the form `merge` in
+#                                 .github/pipeline.json asks for: with `queue` the file as it is, with `direct` (ADR-035) the
+#                                 same file without the merge_queue rule and with strict required status checks, so a PR must
+#                                 be up to date with main and pr.sh merge squash-merges it), then the merge settings in
 #                                 .github/repo-settings.json, the `release` environment (.github/environments/release.json:
 #                                 the owner approves every deployment, only main deploys; E017) and the labels
 set -euo pipefail
@@ -17,16 +20,32 @@ RULESET="$ROOT/.github/rulesets/main.json"
 SETTINGS="$ROOT/.github/repo-settings.json"
 RELEASE_ENV="$ROOT/.github/environments/release.json"
 
+# The ruleset to apply, from the one file and the `merge` setting of the pipeline switch (ADR-035): `queue` is the file as it
+# is (ADR-018); `direct` drops the merge_queue rule and sets the strict policy on the required status checks (the branch must
+# be up to date with main), and changes nothing else: squash only, the same five checks, no bypass.
+ruleset_for() {
+  case "$1" in
+    queue) jq . "$RULESET" ;;
+    direct)
+      jq '.rules |= map(select(.type != "merge_queue"))
+        | (.rules[] | select(.type == "required_status_checks") | .parameters.strict_required_status_checks_policy) = true' "$RULESET"
+      ;;
+    *) die "unknown merge setting '$1'" ;;
+  esac
+}
+
 apply_ruleset() {
-  local name id
+  local name id merge body
+  merge="$("$ROOT/scripts/pipeline.sh" get merge)" || die "could not read the merge setting (scripts/pipeline.sh get merge): no ruleset applied"
+  body="$(ruleset_for "$merge")"
   name="$(jq -r .name "$RULESET")"
   id="$(gh api "repos/$REPO/rulesets" | jq -r --arg name "$name" '[.[] | select(.name == $name)][0].id // empty')"
   if [ -n "$id" ]; then
-    gh api --method PUT "repos/$REPO/rulesets/$id" --input "$RULESET" >/dev/null
-    echo "✅ ruleset '$name' updated"
+    gh api --method PUT "repos/$REPO/rulesets/$id" --input - <<<"$body" >/dev/null
+    echo "✅ ruleset '$name' updated (merge: $merge)"
   else
-    gh api --method POST "repos/$REPO/rulesets" --input "$RULESET" >/dev/null
-    echo "✅ ruleset '$name' created"
+    gh api --method POST "repos/$REPO/rulesets" --input - <<<"$body" >/dev/null
+    echo "✅ ruleset '$name' created (merge: $merge)"
   fi
 }
 

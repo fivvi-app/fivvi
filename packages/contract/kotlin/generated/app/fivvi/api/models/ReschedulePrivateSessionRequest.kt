@@ -36,6 +36,7 @@ import kotlinx.serialization.Contextual
  * @param durationMinutes The length in minutes: 15 to 240 in steps of 5. Any other value answers `400` on `durationMinutes`.
  * @param notify Whether to email the client the change (EM-04). Not sent when the new time is in the past, whatever this says.
  * @param version The `version` of the session the person saw. If the session has been changed since, nothing is stored and the answer is `409` with the session as it is now.
+ * @param allowConflicts Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap.
  * @param surface The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_rescheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
  */
 @Serializable
@@ -61,6 +62,10 @@ data class ReschedulePrivateSessionRequest (
     /* The `version` of the session the person saw. If the session has been changed since, nothing is stored and the answer is `409` with the session as it is now. */
     @SerialName(value = "version")
     val version: kotlin.Int,
+
+    /* Save even if the trainer already has something at that time (*Toch opslaan*, PS-07). Left out or `false`, an overlap with a scheduled session of this workspace answers `409` with the code `trainer_conflict` and the sessions, and nothing is stored. Back-to-back sessions and cancelled sessions never overlap. */
+    @SerialName(value = "allowConflicts")
+    val allowConflicts: kotlin.Boolean? = null,
 
     /* The app that sends the request: `ios` or `android`. A request with a bearer token records the `private_session_rescheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it. */
     @SerialName(value = "surface")

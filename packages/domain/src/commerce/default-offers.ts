@@ -1,3 +1,9 @@
+// Module: The default plans (F052): the template of the three offers every workspace starts with
+//        (`DEFAULT_PLANS`, deeply frozen), and `defaultOffers()`, fresh copies for
+//        `createWorkspaceWithOwner`; the migration `0034` backfilled the same three into existing
+//        workspaces. A later change to the template never reaches a workspace that has its copy.
+// Spec: F052 AC1, AC12
+
 // The default plans (*standaardaanbod*, F052, spec #468, ticket #784; `PRODUCT.md §90`): the three
 // ready-made offers every workspace starts with. They are a constant template here, in code. Creating a
 // workspace copies them into the workspace (`createWorkspaceWithOwner` stores what `defaultOffers()`

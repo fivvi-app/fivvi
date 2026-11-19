@@ -29,7 +29,9 @@ enum Scrubber {
     /// An email address, also URL-encoded (`%40`) in a path; scrub.ts's pattern.
     private static let email = #"[^\s@/?#&=:;,<>()"'\[\]]+(?:@|%40)[^\s@/?#&=:;,<>()"'\[\]]+\.[a-z]{2,}"#
 
-    static func scrub(_ event: Event) -> Event {
+    /// `app` is the name the app reports under (E017 AC10): the event then carries the tags `app` and `platform`, set
+    /// here whatever the scope holds, and the route tag next to them; without it only the route tag.
+    static func scrub(_ event: Event, app: String? = nil) -> Event {
         // The error's own message stays (emails masked): our errors never contain personal data or note content
         // (ADR-013), and without it an error can't be debugged.
         if let message = event.message {
@@ -43,7 +45,7 @@ enum Scrubber {
         }
         event.request = event.request.flatMap(scrub)
         event.user = event.user.flatMap(scrub)
-        event.tags = event.tags?.filter { tags.contains($0.key) }
+        event.tags = scrubTags(event.tags, app: app)
         event.context = event.context.map(scrubContexts)
         event.breadcrumbs = event.breadcrumbs?.map(scrub)
         // Stored after `beforeBreadcrumb`, so already scrubbed; scrubbed again in case a breadcrumb got there another way.
@@ -55,6 +57,15 @@ enum Scrubber {
         event.extra = nil
         event.modules = nil
         return event
+    }
+
+    private static func scrubTags(_ tags: [String: String]?, app: String?) -> [String: String]? {
+        var kept = tags?.filter { Self.tags.contains($0.key) } ?? [:]
+        if let app {
+            kept["app"] = app
+            kept["platform"] = ErrorReporting.platform
+        }
+        return tags == nil && app == nil ? nil : kept
     }
 
     /// Breadcrumb messages are dropped: they are log lines from anywhere, including libraries, and may hold any text.

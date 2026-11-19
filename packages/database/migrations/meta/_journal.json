@@ -246,6 +246,27 @@
       "when": 1794671915123,
       "tag": "0035_retention_cron_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 36,
+      "version": "7",
+      "when": 1794671915124,
+      "tag": "0036_class_series",
+      "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1795028184329,
+      "tag": "0037_cron_class_series_policies",
+      "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1795040807838,
+      "tag": "0038_payouts",
+      "breakpoints": true
     }
   ]
 }

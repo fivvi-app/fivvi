@@ -1,3 +1,8 @@
+// Module: A wall-clock date and time in a time zone to a UTC instant, and an instant back to the
+//        wall clock (ADR-012): a time the clocks skip does not exist, a repeated one takes the
+//        earlier instant and says so
+// Spec: F020 AC4
+
 // Wall-clock time in a time zone to an instant (ADR-012). Pure: it uses the time zone database
 // of the runtime through `Intl`, and no clock. Stored instants are UTC; people type local times.
 

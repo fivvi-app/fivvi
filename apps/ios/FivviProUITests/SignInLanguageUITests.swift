@@ -5,7 +5,7 @@ import XCTest
 final class SignInLanguageUITests: SignInUITestCase {
     func test_F001N_AC14_unsupportedDeviceLanguageRequestsEnglish() throws {
         let english = TestCatalog("en")
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
 
         let screen = SignInScreen.launch(against: server, deviceLanguages: ["de-DE", "fr-FR"])
 
@@ -24,7 +24,7 @@ final class SignInLanguageUITests: SignInUITestCase {
 
     func test_F001N_AC14_perAppLanguageWins() throws {
         for (device, perApp, expected) in [(["de-DE"], "nl", TestCatalog("nl")), (["nl-NL"], "en", TestCatalog("en"))] {
-            let server = try StubServer(.greeting(key: "hello.title"))
+            let server = try StubServer()
 
             let screen = SignInScreen.launch(against: server, deviceLanguages: device, perAppLanguage: perApp)
 

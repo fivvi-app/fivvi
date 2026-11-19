@@ -11,12 +11,15 @@ import { migrate } from 'drizzle-orm/node-postgres/migrator';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import {
   addOfferVersion,
+  changeOffer,
   createDatabase,
   createOffer,
   createTenantScopes,
   createWorkspaceWithOwner,
   type DatabaseClient,
   type DatabaseExecutor,
+  findOffer,
+  listCoveredClasses,
   listOffers,
   listOfferVersions,
   type NewOffer,
@@ -27,6 +30,7 @@ import {
 import { migrationsFolder, runMigrations } from '../src/migrate.ts';
 import { executorOf } from '../src/tenant-scope.ts';
 import {
+  addGroupClass,
   addOffer,
   addTeamRole,
   createAccount,
@@ -436,6 +440,78 @@ describe('F052 offers', () => {
       expect(await admin.db.$count(offerVersions, eq(offerVersions.offerId, id))).toBe(1);
     });
 
+    it('AC5: a change from the version the caller read is a new version; from an older one it stores nothing', async () => {
+      const { workspaceId, inScope } = await gym();
+      const { id } = await addOffer(admin.db, { workspaceId });
+      const terms = (priceCents: number) => ({
+        nameNl: 'Abonnement',
+        priceCents,
+        cutoffMinutes: 720,
+      });
+
+      const first = await inScope((scope) =>
+        changeOffer(scope, id, { expectedVersion: 1, terms: terms(8500) }),
+      );
+      expect(first).toMatchObject({ outcome: 'changed', offer: { version: { version: 2 } } });
+      const stale = await inScope((scope) =>
+        changeOffer(scope, id, { expectedVersion: 1, terms: terms(9900) }),
+      );
+      expect(stale).toMatchObject({
+        outcome: 'stale',
+        offer: { version: { version: 2, priceCents: 8500 } },
+      });
+      expect(await admin.db.$count(offerVersions, eq(offerVersions.offerId, id))).toBe(2);
+    });
+
+    it('AC5: two changes from the same version at once store one of them', async () => {
+      const { workspaceId, inScope } = await gym();
+      const { id } = await addOffer(admin.db, { workspaceId });
+      const terms = (priceCents: number) => ({ nameNl: 'Race', priceCents, cutoffMinutes: 720 });
+      const outcomes = await Promise.all([
+        inScope((scope) => changeOffer(scope, id, { expectedVersion: 1, terms: terms(1000) })),
+        inScope((scope) => changeOffer(scope, id, { expectedVersion: 1, terms: terms(2000) })),
+      ]);
+      expect(outcomes.map((outcome) => outcome.outcome).sort()).toEqual(['changed', 'stale']);
+      expect(await admin.db.$count(offerVersions, eq(offerVersions.offerId, id))).toBe(2);
+    });
+
+    it('AC4: a change can give a credit offer the other credit kind; the kind of the offer never changes', async () => {
+      const { workspaceId, inScope } = await gym();
+      const { id } = await addOffer(admin.db, {
+        workspaceId,
+        offer: { kind: 'credit_pack', creditKind: 'group' },
+        terms: { credits: 10, validity: { amount: 3, unit: 'month' } },
+      });
+      const changed = await inScope((scope) =>
+        changeOffer(scope, id, {
+          expectedVersion: 1,
+          creditKind: 'private',
+          terms: { nameNl: 'Privé', credits: 5, cutoffMinutes: 1440 },
+        }),
+      );
+      expect(changed).toMatchObject({
+        outcome: 'changed',
+        offer: { kind: 'credit_pack', creditKind: 'private' },
+      });
+    });
+
+    it('AC11: a workspace cannot change or read another workspace’s offer', async () => {
+      const mine = await gym();
+      const theirs = await gym();
+      const { id } = await addOffer(admin.db, { workspaceId: theirs.workspaceId });
+      expect(
+        await mine.inScope((scope) =>
+          changeOffer(scope, id, {
+            expectedVersion: 1,
+            terms: { nameNl: 'Taken over', cutoffMinutes: 720 },
+          }),
+        ),
+      ).toEqual({ outcome: 'not-found' });
+      expect(await mine.inScope((scope) => findOffer(scope, id))).toBeUndefined();
+      expect(await theirs.inScope((scope) => findOffer(scope, id))).toMatchObject({ id });
+      expect(await admin.db.$count(offerVersions, eq(offerVersions.offerId, id))).toBe(1);
+    });
+
     it('an offer version cannot be updated or deleted, by any role', async () => {
       const { workspaceId, inScope } = await gym();
       const { id, versionId } = await addOffer(admin.db, { workspaceId });
@@ -662,6 +738,43 @@ describe('F052 offers', () => {
           cutoffMinutes: 720,
         }),
       ).rejects.toMatchObject({ cause: { constraint: 'offer_versions_offer_fk' } });
+    });
+  });
+
+  describe('the classes an offer is limited to', () => {
+    it('AC9: names the classes of the workspace, and marks an archived one; another workspace’s class is not found', async () => {
+      const mine = await gym();
+      const theirs = await gym();
+      const kracht = await addGroupClass(admin.db, {
+        workspaceId: mine.workspaceId,
+        nameNl: 'Kracht',
+        nameEn: 'Strength',
+      });
+      const mobility = await addGroupClass(admin.db, {
+        workspaceId: mine.workspaceId,
+        nameNl: 'Mobility',
+      });
+      const foreign = await addGroupClass(admin.db, { workspaceId: theirs.workspaceId });
+      await admin.db.execute(
+        sql`update group_classes set archived_at = now() where id = ${mobility.id}`,
+      );
+
+      const found = await mine.inScope((scope) =>
+        listCoveredClasses(scope, [kracht.id, mobility.id, foreign.id, crypto.randomUUID()]),
+      );
+
+      expect(found.map(({ id }) => id).sort()).toEqual([kracht.id, mobility.id].sort());
+      expect(found.find(({ id }) => id === kracht.id)).toEqual({
+        id: kracht.id,
+        nameNl: 'Kracht',
+        nameEn: 'Strength',
+        deleted: false,
+      });
+      expect(found.find(({ id }) => id === mobility.id)).toMatchObject({
+        nameNl: 'Mobility',
+        deleted: true,
+      });
+      expect(await mine.inScope((scope) => listCoveredClasses(scope, []))).toEqual([]);
     });
   });
 });

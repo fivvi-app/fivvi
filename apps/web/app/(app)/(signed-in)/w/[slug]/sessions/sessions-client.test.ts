@@ -187,6 +187,27 @@ describe('F020 sessions client: rescheduling', () => {
     expect(result).not.toHaveProperty('changedBy');
   });
 
+  it('F023: a 409 trainer_conflict has no session and stays a generic refusal until PS-07 is built', async () => {
+    const fetchFn = reply(409, {
+      code: 'trainer_conflict',
+      conflicts: [
+        {
+          sessionId: 's2',
+          type: 'private',
+          startsAt: '2026-10-08T07:00:00.000Z',
+          endsAt: '2026-10-08T08:00:00.000Z',
+          displayName: 'Mark Jansen',
+          displayNameEn: null,
+        },
+      ],
+    });
+
+    expect(await reschedulePrivateSession('w1', 's1', move, fetchFn)).toEqual({
+      ok: false,
+      reason: 'generic',
+    });
+  });
+
   it('AC7: a 403 is a refusal, the DST refusal sits on the start field', async () => {
     expect(await reschedulePrivateSession('w1', 's1', move, reply(403))).toEqual({
       ok: false,

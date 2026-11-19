@@ -24,7 +24,7 @@ final class HomeSmallScreenUITests: SignInUITestCase {
     private func assertHomeFits(in orientation: UIDeviceOrientation) throws {
         XCUIDevice.shared.orientation = orientation
         let signIn = StubServer.SignIn(email: "a.long.address.for.a.trainer.with.a.long.name@example.com")
-        let server = try StubServer(.greeting(key: "hello.title"), signIn: signIn)
+        let server = try StubServer(signIn: signIn)
         let screen = SignInScreen.launch(
             against: server, session: .signedIn, textSize: AppLaunch.largestTextSize
         )

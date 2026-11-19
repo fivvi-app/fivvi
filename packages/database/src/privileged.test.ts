@@ -16,6 +16,7 @@ import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, it } from 'vitest';
 import {
   openPrivilegedDatabase,
+  openPrivilegedPool,
   PRIVILEGED_ALLOW_LIST,
   PRIVILEGED_USES,
   type PrivilegedReason,
@@ -30,10 +31,15 @@ interface SourceFile {
 }
 
 /** The files that may mention the variable of the privileged connection. */
-const READERS = new Set(['packages/database/src/env.ts', 'packages/database/src/privileged.ts']);
+const READERS = new Set([
+  'packages/database/src/env.ts',
+  'packages/database/src/privileged.ts',
+  'packages/database/src/privileged-access.ts',
+]);
 /** Where the privileged path is defined and re-exported: not uses of it. */
 const DEFINITIONS = new Set([
   'packages/database/src/privileged.ts',
+  'packages/database/src/privileged-access.ts',
   'packages/database/src/index.ts',
 ]);
 
@@ -107,7 +113,7 @@ function withoutComments(content: string): string {
 const VARIABLE = /(?<![A-Za-z0-9_])DATABASE_URL(?![A-Za-z0-9_])/;
 /** The name of the constant that holds the variable: reading through it is reading the variable. */
 const VARIABLE_CONSTANT = /(?<![A-Za-z0-9_$])PRIVILEGED_DATABASE_URL_VARIABLE(?![A-Za-z0-9_$])/;
-const CALL = /(?<![A-Za-z0-9_$])openPrivilegedDatabase\s*\(\s*(?:(['"])([^'"]*)\1)?/g;
+const CALL = /(?<![A-Za-z0-9_$])openPrivileged(?:Database|Pool)\s*\(\s*(?:(['"])([^'"]*)\1)?/g;
 
 /**
  * Every way a source file can use the privileged connection without being reviewed (AC17):
@@ -132,7 +138,7 @@ function privilegedViolations(
     if (DEFINITIONS.has(path)) continue;
     for (const [, , reason] of code.matchAll(CALL)) {
       if (reason === undefined) {
-        violations.push(`${path}: the reason of openPrivilegedDatabase must be a string literal`);
+        violations.push(`${path}: the reason of openPrivileged… must be a string literal`);
       } else if (!reasons.has(reason)) {
         violations.push(`${path}: "${reason}" is not a reason on the allow-list`);
       } else if (allowList[path] !== reason) {
@@ -265,6 +271,19 @@ describe('E011 privileged database path', () => {
       ).toEqual(['apps/web/server/other.ts: is not on the allow-list for the reason "release"']);
     });
 
+    it('#1309: gates openPrivilegedPool like openPrivilegedDatabase', () => {
+      expect(
+        check([
+          file('apps/job/main.ts', "const { pool } = openPrivilegedPool('release');"),
+          file('apps/web/server/other.ts', "openPrivilegedPool('release')"),
+          file('apps/web/server/third.ts', 'openPrivilegedPool(why)'),
+        ]),
+      ).toEqual([
+        'apps/web/server/other.ts: is not on the allow-list for the reason "release"',
+        'apps/web/server/third.ts: the reason of openPrivileged… must be a string literal',
+      ]);
+    });
+
     it('fails for a reason that is not on the allow-list, or not a literal', () => {
       expect(
         check([
@@ -275,7 +294,7 @@ describe('E011 privileged database path', () => {
         ]),
       ).toEqual([
         'apps/job/main.ts: "because" is not a reason on the allow-list',
-        'apps/job/main.ts: the reason of openPrivilegedDatabase must be a string literal',
+        'apps/job/main.ts: the reason of openPrivileged… must be a string literal',
         'apps/job/main.ts: is on the allow-list but no longer uses the privileged path',
       ]);
     });
@@ -326,6 +345,66 @@ describe('E011 privileged database path', () => {
       expect(check([file('apps/job/main.ts', 'export {}')])).toEqual([
         'apps/job/main.ts: is on the allow-list but no longer uses the privileged path',
       ]);
+    });
+  });
+
+  describe('#1309 openPrivilegedPool, the connection without the ORM', () => {
+    const env = { DATABASE_URL: 'postgres://owner:hunter2@localhost:5432/fivvi' };
+
+    it('logs the reason and not the connection', async () => {
+      const logs: string[] = [];
+
+      const { close } = openPrivilegedPool('restore', { env, log: (m) => logs.push(m) });
+      await close();
+
+      expect(logs).toEqual([`Privileged database access: restore (${PRIVILEGED_USES.restore}).`]);
+      expect(logs.join()).not.toContain('hunter2');
+    });
+
+    it('reads the variable it is told to, and refuses one for another reason', async () => {
+      const restoreEnv = { RESTORED_URL: 'postgres://owner:hunter3@localhost:5432/restored' };
+
+      const { close } = openPrivilegedPool('restore', {
+        env: restoreEnv,
+        variable: 'RESTORED_URL',
+        log: () => {},
+      });
+      await close();
+
+      expect(() =>
+        openPrivilegedPool('release', { env: restoreEnv, variable: 'RESTORED_URL', log: () => {} }),
+      ).toThrow('Only the reason restore');
+      expect(() =>
+        openPrivilegedPool('restore', {
+          env: restoreEnv,
+          variable: 'APP_DATABASE_URL',
+          log: () => {},
+        }),
+      ).toThrow('must be an upper-case name');
+      expect(() =>
+        openPrivilegedPool('restore', { env: {}, variable: 'RESTORED_URL', log: () => {} }),
+      ).toThrow('RESTORED_URL is not set');
+    });
+
+    it('refuses a reason that is not on the allow-list, before it connects', () => {
+      const logs: string[] = [];
+
+      expect(() =>
+        openPrivilegedPool('anna@example.com' as PrivilegedReason, {
+          env,
+          log: (m) => logs.push(m),
+        }),
+      ).toThrow('Unknown privileged database reason.');
+      expect(logs).toEqual([]);
+    });
+
+    it('sessions run in UTC like every other connection (ADR-012)', async () => {
+      const { pool, close } = openPrivilegedPool('restore', { env, log: () => {} });
+      try {
+        expect(pool.options.options).toBe('-c TimeZone=UTC');
+      } finally {
+        await close();
+      }
     });
   });
 

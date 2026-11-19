@@ -9,7 +9,6 @@ import androidx.lifecycle.Lifecycle
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import app.fivvi.api.apis.ClientsApi
-import app.fivvi.api.apis.HelloApi
 import app.fivvi.api.apis.MeApi
 import app.fivvi.api.apis.SignInApi
 import app.fivvi.api.apis.TrainersApi
@@ -45,7 +44,6 @@ class AppRule : ExternalResource() {
     private var scenario: ActivityScenario<MainActivity>? = null
 
     fun launch(
-        api: HelloApi,
         device: List<String>,
         perApp: List<String> = emptyList(),
         signInApi: SignInApi = FakeSignInApi(),
@@ -62,7 +60,6 @@ class AppRule : ExternalResource() {
         // The account stores the language of the phone, so the stored preference changes nothing unless a test says so.
         (meApi as? FakeMeApi)?.defaultPreferredLocale = storedOf(perApp + device)
         app.dependencies = object : AppDependencies {
-            override val helloApi = api
             override val signInApi = signInApi
             override val meApi = meApi
             override val workspacesApi = workspacesApi

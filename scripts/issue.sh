@@ -7,7 +7,9 @@
 #                                     [--label <l>]...       a ticket of a spec needs the spec approved (spec-approved);
 #                                                            --label owner-only on a spec that touches legal, money or
 #                                                            the agents' own rules (owner-merge: high-risk, agents may
-#                                                            queue its PRs)
+#                                                            queue its PRs). A finding of a spec review is a bug
+#                                                            under the spec: create bug --parent <spec> --label
+#                                                            ready-for-agent (ADR-034)
 #   issue.sh update <n> [--title <t>] [--body-file <f|->] [--minor]
 #                                                            on an approved spec, removes spec-approved so the owner
 #                                                            approves again; --minor (a typo fix) keeps it

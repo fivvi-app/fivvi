@@ -26,7 +26,7 @@ final class HomeUITests: SignInUITestCase {
         textSize: String? = nil,
         appearance: String? = nil
     ) throws -> (SignInScreen, StubServer) {
-        let server = try StubServer(.greeting(key: "hello.title"), signIn: StubServer.SignIn(meStatus: status))
+        let server = try StubServer(signIn: StubServer.SignIn(meStatus: status))
         if offline { server.setOffline(true) }
         let screen = SignInScreen.launch(
             against: server, session: .signedIn, deviceLanguages: deviceLanguages, perAppLanguage: perAppLanguage,
@@ -101,7 +101,7 @@ final class HomeUITests: SignInUITestCase {
 
     func test_E008_AC5_loadingIndicatorHasLabel() throws {
         let catalog = TestCatalog.configured
-        let server = try StubServer(.greeting(key: "hello.title"))
+        let server = try StubServer()
         server.holdAccountRequests(true)
         let screen = SignInScreen.launch(against: server, session: .signedIn)
         let loading = screen.app.activityIndicators["home.loading"]

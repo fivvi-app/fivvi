@@ -1,1687 +1,1689 @@
 {
+  "accessLog": {
+    "deletedClient": "Deleted client"
+  },
+  "agreements": {
+    "dueDay": {
+      "few": "on the {day}rd",
+      "one": "on the {day}st",
+      "other": "on the {day}th",
+      "two": "on the {day}nd"
+    }
+  },
   "app": {
-    "title": "Fivvi",
-    "name": "Fivvi Pro"
+    "name": "Fivvi Pro",
+    "title": "Fivvi"
+  },
+  "classes": {
+    "date": {
+      "back": "All classes",
+      "booked": "{booked}/{capacity} booked · {free, plural, one {# spot free} other {# spots free}}",
+      "bookedLabel": "Bookings",
+      "edit": "Edit",
+      "noBookings": "No bookings yet.",
+      "timeRange": "{date}, {start}–{end}",
+      "trainerLabel": "{Word}",
+      "whenLabel": "When",
+      "whereLabel": "Location"
+    },
+    "durationColumn": "Duration",
+    "edit": {
+      "cancel": "Cancel",
+      "capacityLabel": "Capacity",
+      "changed": "This class was just changed. You now see the new details.",
+      "description": "You're changing only {date}. The class itself and its other dates stay as they are.",
+      "endLabel": "End",
+      "errors": {
+        "capacityInvalid": "Enter a capacity from {min} to {max}.",
+        "endBeforeStart": "The end time must be after the start time.",
+        "invalidTime": "This isn't a valid time.",
+        "noPermission": "You can't change this class any more.",
+        "notSaved": "Not saved. Check your connection and try again.",
+        "timeDoesNotExist": "This time doesn't exist on {date} because of daylight saving time."
+      },
+      "save": "Save",
+      "saved": "Class saved.",
+      "startLabel": "Start",
+      "title": "Edit class"
+    },
+    "empty": "No classes yet. Create your first class.",
+    "form": {
+      "cancel": "Cancel",
+      "capacityLabel": "Capacity",
+      "classSection": "The class",
+      "description": "Name the class and set who teaches it, how many spots it has and how long it lasts.",
+      "descriptionEnLabel": "Description (English, optional)",
+      "descriptionNlLabel": "Description (Dutch, optional)",
+      "durationLabel": "Duration (minutes)",
+      "errors": {
+        "capacityInvalid": "Enter a capacity from {min} to {max}.",
+        "descriptionTooLong": "The description can have at most {max} characters.",
+        "durationInvalid": "Enter a duration from {min} to {max} minutes, in steps of {step}.",
+        "nameRequired": "Enter the name in Dutch.",
+        "nameTooLong": "The name can have at most {max} characters.",
+        "noPermission": "You can't manage classes.",
+        "notSaved": "Not saved. Check your connection and try again."
+      },
+      "loadFailed": "The details couldn't be loaded.",
+      "nameEnLabel": "Name (English, optional)",
+      "nameNlLabel": "Name (Dutch)",
+      "nameSection": "Name and description",
+      "save": "Save",
+      "saved": "Class saved.",
+      "title": "New class",
+      "trainerLabel": "{Word}"
+    },
+    "minutes": "{minutes} min",
+    "nameColumn": "Class",
+    "new": "New class",
+    "page": {
+      "back": "All classes",
+      "descriptionTitle": "Description",
+      "facts": "{trainer} · {spots} · {duration}",
+      "noDescription": "No description yet.",
+      "schedule": "Schedule on a date"
+    },
+    "schedule": {
+      "cancel": "Cancel",
+      "capacityLabel": "Capacity",
+      "classChoose": "Choose a class",
+      "classLabel": "Class",
+      "classNone": "You don't have any classes yet.",
+      "classSection": "The class",
+      "dateLabel": "Date",
+      "description": "Choose the date and the start. The duration, the location and the defaults come from the class.",
+      "endsAt": "Ends at {time}",
+      "endsAtNextDay": "Ends at {time} (next day)",
+      "errors": {
+        "capacityInvalid": "Enter a capacity from {min} to {max}.",
+        "classRequired": "Choose a class.",
+        "dateRequired": "Choose a date.",
+        "invalidDate": "This date doesn't exist.",
+        "invalidTime": "This isn't a valid time.",
+        "noPermission": "You can't schedule classes.",
+        "notSaved": "Not saved. Check your connection and try again.",
+        "startRequired": "Choose a start time.",
+        "timeDoesNotExist": "This time doesn't exist on {date} because of daylight saving time."
+      },
+      "loadFailed": "The details couldn't be loaded.",
+      "location": "Location: {name}",
+      "save": "Schedule",
+      "saved": "Group class added",
+      "startLabel": "Start",
+      "title": "Schedule on a date",
+      "trainerLabel": "{Word}",
+      "whenSection": "When"
+    },
+    "spots": "{count, plural, one {# spot} other {# spots}}",
+    "spotsColumn": "Spots",
+    "title": "Classes",
+    "trainerColumn": "{Word}",
+    "trainerNeeded": "{Word} needed"
+  },
+  "clientNav": {
+    "book": "Book",
+    "home": "Home",
+    "label": "Main navigation",
+    "profile": "Profile"
+  },
+  "clients": {
+    "add": "Add client",
+    "addDialog": {
+      "cancel": "Cancel",
+      "close": "Close",
+      "description": "Enter a name and an email address. The language can follow.",
+      "emailLabel": "Email address",
+      "errors": {
+        "emailInvalid": "Enter a valid email address.",
+        "emailRequired": "Enter an email address.",
+        "nameRequired": "Enter a name.",
+        "nameTooLong": "This name is too long. Use at most 120 characters.",
+        "notSaved": "Not saved. Check your connection and try again."
+      },
+      "exists": "{name} already uses this email address.",
+      "localeDefault": "Default ({language})",
+      "localeEn": "English",
+      "localeLabel": "Language for emails",
+      "localeNl": "Nederlands",
+      "nameLabel": "Name",
+      "openExisting": "Open {name}",
+      "otherEmail": "Use another email address",
+      "submit": "Add",
+      "title": "Add client"
+    },
+    "empty": "No clients yet. Add your first client.",
+    "languageNames": {
+      "en": "English",
+      "nl": "Dutch"
+    },
+    "listLabel": "Clients",
+    "loadError": "Something went wrong while loading.",
+    "loading": "Loading clients…",
+    "newClient": "New client",
+    "noResults": "No clients found.",
+    "offline": "You're offline. Last updated at {time}.",
+    "partial": "Showing {shown} of {total} clients. Search to find the rest.",
+    "profile": {
+      "added": "{name} has been added.",
+      "back": "Back",
+      "edit": "Edit",
+      "editTitle": "Edit client",
+      "emailLabel": "Email address",
+      "localeLabel": "Language for emails",
+      "nameLabel": "Name",
+      "overview": "Overview",
+      "save": "Save",
+      "saved": "Saved.",
+      "title": "Client profile",
+      "upcomingEmpty": "No sessions planned yet",
+      "upcomingTitle": "Upcoming sessions",
+      "upcomingWhen": "{date} at {time}"
+    },
+    "searchPlaceholder": "Search client…",
+    "title": "Clients"
   },
   "common": {
-    "loading": "Loading…",
-    "retry": "Try again",
-    "loadingSlow": "This is taking longer than usual…",
     "cancel": "Cancel",
-    "offline": "You're offline. Some information may be out of date."
+    "loading": "Loading…",
+    "loadingSlow": "This is taking longer than usual…",
+    "offline": "You're offline. Some information may be out of date.",
+    "retry": "Try again"
   },
-  "hello": {
-    "title": "Welcome to Fivvi",
-    "greeting": "Hi {name},",
-    "sessionsToday": "{count, plural, one {You have # session today.} other {You have # sessions today.}}",
-    "noSessionsToday": "You have no sessions today.",
-    "nextSession": "Your next session is on {date} at {time}.",
-    "error": "We couldn't load the greeting. Try again."
-  },
-  "notFound": {
-    "title": "Page not found",
-    "body": "We can't find this page. Check the link and try again."
-  },
-  "signIn": {
-    "title": "Sign in",
-    "emailLabel": "Email address",
-    "sendCode": "Send code",
-    "checkEmailTitle": "Check your email",
-    "checkEmailBody": "If {email} is registered, you'll receive an email with a code and a sign-in link.",
-    "checkEmailBodyApp": "If {email} is registered, you'll receive an email with a code.",
-    "codeLabel": "Code",
-    "codeHelp": "Enter the code from the email.",
-    "submitCode": "Sign in",
-    "resend": "Resend code",
-    "resent": "If {email} is registered, you'll receive a new email.",
-    "changeEmail": "Change email address",
-    "confirmChecking": "Checking the sign-in link…",
-    "confirmTitle": "Sign in as {email}?",
-    "confirmSubmit": "Sign in",
-    "linkInvalidTitle": "This sign-in link no longer works",
-    "linkInvalidBody": "Request a new email to sign in.",
-    "linkInvalidBack": "Back to sign in",
-    "signedOutNotice": "You've been signed out. Sign in again.",
-    "languageLabel": "Language",
-    "languageNl": "Nederlands",
-    "languageEn": "English",
-    "errors": {
-      "invalidEmail": "This email address doesn't look right. Check it and try again.",
-      "invalidOrExpiredCode": "This code isn't right or has expired. Check the code in the email or request a new one.",
-      "noConnection": "No connection. Check your internet and try again.",
-      "generic": "Something went wrong. Try again."
+  "dataImport": {
+    "fileErrors": {
+      "tooLarge": "This file is larger than 5 MB.",
+      "tooManyRows": "This file has more than 5,000 rows.",
+      "unreadable": "We can't read this file. Use the template (.xlsx) or a UTF-8 CSV."
+    },
+    "problems": {
+      "clientExists": "Row {row}: a client with this email address already exists.",
+      "clientInactive": "Row {row}: this client is inactive and is left out.",
+      "clientKeyDuplicate": "Row {row}: client_key {value} appears twice.",
+      "columnMissing": "Column {column} is missing.",
+      "columnNotImported": "Column {column} isn't imported.",
+      "columnRepeated": "Column {column} appears twice in the file.",
+      "columnWithoutName": "Column {column} has no name and isn't imported.",
+      "emailDuplicate": "Row {row}: this email address is also in row {firstRow}.",
+      "emailInvalid": "Row {row}: this email address doesn't look right.",
+      "emailMissing": "Row {row}: email address is missing.",
+      "languageNotSupported": "Row {row}: language must be nl or en.",
+      "sheetMissing": "The {sheet} sheet is missing.",
+      "statusNotSupported": "Row {row}: status must be active or inactive.",
+      "trainerUnknown": "Row {row}: {email} isn't a trainer of {workspace}.",
+      "valueMissing": "Row {row}: {column} is missing."
     }
   },
-  "home": {
-    "signedInAs": "Signed in as {email}",
-    "setUpOnWeb": "Set up your workspace on the web.",
-    "openWeb": "Open Fivvi in the browser"
-  },
-  "welcome": {
-    "title": "Welcome to Fivvi",
-    "description": "One more step: tell us the name of your gym or business.",
-    "personNameLabel": "Your name",
-    "workspaceNameLabel": "Name of your gym or business",
-    "workspaceNameHint": "For example John's Gym",
-    "submit": "Get started",
-    "errors": {
-      "personNameRequired": "Enter your name.",
-      "personNameTooLong": "Your name is too long. Use a shorter one.",
-      "workspaceNameRequired": "Enter the name of your gym or business.",
-      "workspaceNameTooLong": "This name is too long. Use a shorter one.",
-      "noConnection": "No connection. Check your internet and try again.",
-      "generic": "Something went wrong. Try again."
+  "email": {
+    "demoRequest": {
+      "business": {
+        "gym": "A gym with a team",
+        "personalTrainer": "My own PT business",
+        "studio": "A pilates or yoga studio"
+      },
+      "businessLabel": "Kind of business",
+      "emailLabel": "Email address",
+      "intro": "Someone is asking for a Fivvi demo through the website.",
+      "languageEn": "English",
+      "languageLabel": "Website language",
+      "languageNl": "Dutch",
+      "messageLabel": "Message",
+      "nameLabel": "Name",
+      "preview": "{business}, {trainers}",
+      "reply": "Reply in the language of the website. Write to the email address above: this message is not from the requester itself.",
+      "subject": "Demo request: {name}",
+      "trainers": {
+        "fiveOrMore": "5 or more",
+        "one": "Only the requester",
+        "twoToFour": "2 to 4"
+      },
+      "trainersLabel": "Number of trainers"
+    },
+    "emailChangeCode": {
+      "ignore": "Didn't ask for this? You can ignore this email. Nothing will change.",
+      "intro": "Use this code to confirm your new email address for Fivvi:",
+      "preview": "Use code {code} to confirm your new email address for Fivvi.",
+      "subject": "Your code to change your email address",
+      "validity": "The code works for {minutes, plural, one {# minute} other {# minutes}}. You'll sign in to Fivvi with this email address from then on."
+    },
+    "emailChangeTaken": {
+      "ignore": "You don't need to do anything. You can ignore this email.",
+      "intro": "Someone asked for a code to use this email address for another Fivvi account. This email address already belongs to an account, so we sent no code.",
+      "preview": "No code was sent and nothing has changed.",
+      "subject": "Someone wanted to use this email address for another Fivvi account",
+      "unchanged": "Nothing has changed. Your account and your data were not touched and stay yours."
+    },
+    "emailChanged": {
+      "fine": "If you made this change, you don't need to do anything.",
+      "intro": "The email address of your Fivvi account has just been changed. You no longer sign in with this email address; you sign in with the new one.",
+      "notYou": "Wasn't this you? Contact us right away through Help and contact on fivvi.app and we'll look into it.",
+      "preview": "This email address no longer belongs to your Fivvi account.",
+      "subject": "The email address of your Fivvi account has been changed"
+    },
+    "frame": {
+      "button": "View in Fivvi",
+      "clientReason": "You're getting this email because you're a client of {workspace}.",
+      "questions": "Questions? Contact {workspace}.",
+      "sentWith": "Sent with Fivvi",
+      "teamReason": "You're getting this email because you're on the team at {workspace}."
+    },
+    "hello": {
+      "body": "This is a test message. If you can read this, emails from Fivvi are getting through.",
+      "greeting": "Hi {firstName},",
+      "greetingWithoutName": "Hi,",
+      "preview": "If you can read this, emails from Fivvi are getting through.",
+      "sentAt": "Sent on {date} at {time}.",
+      "subject": "Test message from Fivvi"
+    },
+    "layout": {
+      "footer": "This email was sent by Fivvi."
+    },
+    "privateSession": {
+      "intro": "A private session has been planned for you at {workspace}.",
+      "preview": "Your private session is planned for {date} at {time}.",
+      "subject": "New appointment: {date} at {time}",
+      "trainer": "{Word}: {trainer}",
+      "when": "When: {date}, {start} to {end}",
+      "where": "Where: {location}"
+    },
+    "privateSessionMoved": {
+      "dateTime": "{date} at {time}",
+      "intro": "Your private session at {workspace} has moved.",
+      "now": "Now: {date}, {start} to {end}",
+      "preview": "Your private session has moved to {newDate}.",
+      "previously": "Previously: {date}, {start} to {end}",
+      "subject": "Change: your session has moved to {newDate}"
+    },
+    "signIn": {
+      "ignore": "Didn't ask for this? You can ignore this email.",
+      "intro": "Use this code to sign in to Fivvi:",
+      "linkButton": "Sign in",
+      "linkIntro": "Or open the sign-in link and confirm it's you:",
+      "preview": "Use code {code} to sign in to Fivvi.",
+      "subject": "Your sign-in code for Fivvi",
+      "validity": "The code and the sign-in link work for {minutes, plural, one {# minute} other {# minutes}}."
+    },
+    "trainerInvitation": {
+      "button": "View invitation",
+      "ignore": "Not expecting this email? You can ignore it.",
+      "intro": "{inviter} invited you to become {aWord} at {workspace}.",
+      "preview": "You're invited to become {aWord} at {workspace}.",
+      "subject": "{inviter} invited you to {workspace}",
+      "validity": "This invitation is valid until {date}."
     }
   },
-  "noAccess": {
-    "title": "No access yet",
-    "body": "You don't have access to a workspace yet."
-  },
-  "workspaceHome": {
-    "description": "The overview of your gym or business will appear here soon."
-  },
-  "settingsGeneral": {
-    "title": "General",
-    "nameLabel": "Name of your gym or business",
-    "save": "Save",
-    "saved": "Saved.",
-    "urlNameLabel": "URL name",
-    "timeZoneLabel": "Time zone",
-    "errors": {
-      "nameRequired": "Enter the name of your gym or business.",
-      "nameTooLong": "This name is too long. Use a shorter one.",
-      "noConnection": "No connection. Check your internet and try again.",
-      "generic": "Something went wrong. Try again."
-    }
-  },
-  "settingsLanguage": {
-    "title": "Language",
-    "defaultLabel": "Default language",
-    "help": "The language of emails to people whose language we don't know yet. What people see on screen, they choose themselves.",
-    "optionNl": "Nederlands",
-    "optionEn": "English",
-    "save": "Save",
-    "saved": "Saved.",
-    "errors": {
-      "noConnection": "No connection. Check your internet and try again.",
-      "generic": "Something went wrong. Try again."
-    }
-  },
-  "settingsLocation": {
-    "title": "Location",
-    "help": "All sessions and classes take place here.",
-    "nameLabel": "Name",
-    "typeLabel": "Type",
-    "addressLegend": "Address",
-    "postcodeLabel": "Postcode",
-    "houseNumberLabel": "House number",
-    "additionLabel": "Addition",
-    "streetLabel": "Street",
-    "cityLabel": "City",
-    "save": "Save",
-    "saved": "Location saved.",
-    "lookup": {
-      "busy": "Looking up the address…",
-      "filled": "Filled in from the postcode and house number.",
-      "notFound": "We can't find an address for this postcode and house number. Fill in the street and city yourself.",
-      "unavailable": "We can't look up the address right now. Fill in the street and city yourself."
+  "exercises": {
+    "muscleGroups": {
+      "adductors": "adductors",
+      "back": "back",
+      "biceps": "biceps",
+      "calves": "calves",
+      "cardio": "cardio",
+      "chest": "chest",
+      "core": "core",
+      "forearms": "forearms",
+      "fullBody": "full body",
+      "glutes": "glutes",
+      "hamstrings": "hamstrings",
+      "quadriceps": "quadriceps",
+      "shoulders": "shoulders",
+      "triceps": "triceps"
+    },
+    "names": {
+      "abWheelRollout": "Ab wheel rollout",
+      "airBike": "Air bike",
+      "arnoldPress": "Arnold press",
+      "assistedPullUp": "Assisted pull-up",
+      "backExtension": "Back extension",
+      "backSquat": "Back squat",
+      "barbellCurl": "Barbell curl",
+      "barbellRow": "Barbell row",
+      "bearCrawl": "Bear crawl",
+      "benchDip": "Bench dip",
+      "benchPress": "Bench press",
+      "bicepsCurl": "Biceps curl",
+      "bicycleCrunch": "Bicycle crunch",
+      "birdDog": "Bird dog",
+      "bodyweightSquat": "Bodyweight squat",
+      "boxJump": "Box jump",
+      "boxSquat": "Box squat",
+      "bulgarianSplitSquat": "Bulgarian split squat",
+      "burpee": "Burpee",
+      "cableCrunch": "Cable crunch",
+      "cableCurl": "Cable curl",
+      "cableFly": "Cable fly",
+      "cableGluteKickback": "Cable glute kickback",
+      "cableLateralRaise": "Cable lateral raise",
+      "chinUp": "Chin-up",
+      "closeGripBenchPress": "Close-grip bench press",
+      "closeGripLatPulldown": "Close-grip lat pulldown",
+      "copenhagenPlank": "Copenhagen plank",
+      "crunch": "Crunch",
+      "deadBug": "Dead bug",
+      "deadlift": "Deadlift",
+      "declineBenchPress": "Decline bench press",
+      "dips": "Dips",
+      "dumbbellBenchPress": "Dumbbell bench press",
+      "dumbbellFly": "Dumbbell fly",
+      "dumbbellPullover": "Dumbbell pullover",
+      "dumbbellRow": "Dumbbell row",
+      "dumbbellShoulderPress": "Dumbbell shoulder press",
+      "elliptical": "Elliptical",
+      "facePull": "Face pull",
+      "farmersWalk": "Farmer's walk",
+      "frontRaise": "Front raise",
+      "frontSquat": "Front squat",
+      "gluteBridge": "Glute bridge",
+      "gobletSquat": "Goblet squat",
+      "goodMorning": "Good morning",
+      "hackSquat": "Hack squat",
+      "hammerCurl": "Hammer curl",
+      "hangingLegRaise": "Hanging leg raise",
+      "highKnees": "High knees",
+      "hipAbductionMachine": "Hip abduction machine",
+      "hipAdductionMachine": "Hip adduction machine",
+      "hipThrust": "Hip thrust",
+      "hollowHold": "Hollow hold",
+      "inclineBenchPress": "Incline bench press",
+      "inclineDumbbellPress": "Incline dumbbell press",
+      "inclinePushUp": "Incline push-up",
+      "inclineWalk": "Incline walk",
+      "invertedRow": "Inverted row",
+      "jumpRope": "Jump rope",
+      "jumpSquat": "Jump squat",
+      "jumpingJack": "Jumping jack",
+      "kettlebellSwing": "Kettlebell swing",
+      "kneePushUp": "Knee push-up",
+      "landminePress": "Landmine press",
+      "latPulldown": "Lat pulldown",
+      "lateralRaise": "Lateral raise",
+      "legExtension": "Leg extension",
+      "legPress": "Leg press",
+      "lunge": "Lunge",
+      "lyingLegCurl": "Lying leg curl",
+      "lyingLegRaise": "Lying leg raise",
+      "machineChestPress": "Machine chest press",
+      "machineRow": "Machine row",
+      "machineShoulderPress": "Machine shoulder press",
+      "mountainClimber": "Mountain climber",
+      "nordicHamstringCurl": "Nordic hamstring curl",
+      "overheadPress": "Overhead press",
+      "overheadTricepsExtension": "Overhead triceps extension",
+      "pallofPress": "Pallof press",
+      "pecDeck": "Pec deck",
+      "plank": "Plank",
+      "powerClean": "Power clean",
+      "preacherCurl": "Preacher curl",
+      "pullUp": "Pull-up",
+      "pushUp": "Push-up",
+      "rearDeltFly": "Rear delt fly",
+      "reverseLunge": "Reverse lunge",
+      "romanianDeadlift": "Romanian deadlift",
+      "rowingMachine": "Rowing machine",
+      "running": "Running",
+      "russianTwist": "Russian twist",
+      "seatedCableRow": "Seated cable row",
+      "seatedCalfRaise": "Seated calf raise",
+      "seatedLegCurl": "Seated leg curl",
+      "shrug": "Shrug",
+      "sidePlank": "Side plank",
+      "singleLegGluteBridge": "Single-leg glute bridge",
+      "singleLegRomanianDeadlift": "Single-leg Romanian deadlift",
+      "sitUp": "Sit-up",
+      "skiErgometer": "Ski ergometer",
+      "skullCrusher": "Skull crusher",
+      "smithMachineSquat": "Smith machine squat",
+      "stairClimber": "Stair climber",
+      "standingCalfRaise": "Standing calf raise",
+      "stationaryBike": "Stationary bike",
+      "stepUp": "Step-up",
+      "straightArmPulldown": "Straight-arm pulldown",
+      "sumoDeadlift": "Sumo deadlift",
+      "superman": "Superman",
+      "tBarRow": "T-bar row",
+      "thruster": "Thruster",
+      "trapBarDeadlift": "Trap bar deadlift",
+      "treadmillRun": "Treadmill run",
+      "tricepsPushdown": "Triceps pushdown",
+      "turkishGetUp": "Turkish get-up",
+      "uprightRow": "Upright row",
+      "walking": "Walking",
+      "walkingLunge": "Walking lunge",
+      "wallBall": "Wall ball",
+      "wallSit": "Wall sit",
+      "wristCurl": "Wrist curl"
     },
     "types": {
-      "organizationLocation": "Own location",
-      "externalGym": "External gym",
-      "clientHome": "Client's home",
-      "outdoor": "Outdoors",
-      "online": "Online",
-      "other": "Other"
-    },
-    "errors": {
-      "nameRequired": "Enter a name.",
-      "nameTooLong": "This name is too long. Use a shorter one.",
-      "postcodeInvalid": "Enter a postcode like 1234 AB.",
-      "houseNumberInvalid": "Enter a house number of 1 to 5 digits.",
-      "tooLong": "This text is too long. Use a shorter one.",
-      "addressIncomplete": "Fill in the whole address, or leave it empty.",
-      "noConnection": "No connection. Check your internet and try again.",
-      "generic": "Something went wrong. Try again."
+      "distanceTime": "Distance + time",
+      "repsOnly": "Reps only",
+      "time": "Time",
+      "weightReps": "Weight × reps"
     }
   },
-  "noPermission": {
-    "title": "No access",
-    "body": "You don't have access to this page. Ask the owner of {workspace}."
+  "hello": {
+    "error": "We couldn't load the greeting. Try again.",
+    "greeting": "Hi {name},",
+    "nextSession": "Your next session is on {date} at {time}.",
+    "noSessionsToday": "You have no sessions today.",
+    "sessionsToday": "{count, plural, one {You have # session today.} other {You have # sessions today.}}",
+    "title": "Welcome to Fivvi"
+  },
+  "home": {
+    "openWeb": "Open Fivvi in the browser",
+    "setUpOnWeb": "Set up your workspace on the web.",
+    "signedInAs": "Signed in as {email}"
+  },
+  "invitation": {
+    "accept": "Accept",
+    "decline": "Decline",
+    "declined": "You declined the invitation.",
+    "errors": {
+      "generic": "Something went wrong. Try again.",
+      "noConnection": "No connection. Check your internet and try again."
+    },
+    "intro": "{inviter} invited you to become a trainer at {workspace}.",
+    "introAnonymous": "You've been invited to become a trainer at {workspace}.",
+    "noLongerValid": "This invitation is no longer valid. Ask for a new invitation.",
+    "signOutAndContinue": "Sign out and continue",
+    "title": "Invitation",
+    "wrongAccount": "This invitation is for {maskedEmail}. Sign out and sign in with that email address."
   },
   "joinLink": {
-    "title": "Join link",
     "body": "For new clients: they sign in and ask to join. The owner approves each request.",
-    "copy": "Copy link",
     "copied": "Link copied.",
-    "renew": "Renew",
-    "renewDialog": {
-      "title": "Renew the join link?",
-      "body": "The current link and its QR codes will stop working. Requests already sent stay.",
-      "confirm": "Renew",
-      "cancel": "Go back"
-    },
-    "renewed": "The join link has been renewed.",
+    "copy": "Copy link",
     "errors": {
       "copy": "Copying didn't work. Select the link and copy it yourself.",
-      "noConnection": "No connection. Check your internet and try again.",
-      "generic": "Something went wrong. Try again."
-    }
-  },
-  "workspaceNav": {
-    "label": "Main navigation",
-    "settings": "Settings",
-    "settingsGeneral": "General",
-    "settingsLanguage": "Language",
-    "settingsLocation": "Location",
-    "workspaceWithRole": "{name} · {role}",
-    "trainers": "Trainers",
-    "clients": "Clients",
-    "classes": "Classes",
-    "new": "New",
-    "newMenu": "Create new",
-    "newClient": "Client",
-    "newPrivateSession": "Private session",
-    "newGroupClass": "Group class",
-    "joinLink": "Join link",
-    "personal": "Personal",
-    "myDay": "My day",
-    "myCalendar": "My calendar"
-  },
-  "myDay": {
-    "title": "My day",
-    "summaryNone": "No sessions",
-    "summary": "{count, plural, one {# session} other {# sessions}} · {first}–{last}",
-    "listLabel": "Today's sessions",
-    "nextUpcoming": "Up next · in {minutes} min",
-    "nextInProgress": "In progress",
-    "typePrivate": "Private session",
-    "typeGroup": "Group class",
-    "booked": "{booked}/{capacity} booked",
-    "timeRange": "{start}–{end}",
-    "typeWithDetail": "{type} · {detail}",
-    "spokenTime": "{start} to {end}",
-    "spokenJoin": "{first}, {next}",
-    "cancelled": "Cancelled",
-    "tomorrow": "Tomorrow: {count, plural, one {# session} other {# sessions}}, first at {time}",
-    "emptyToday": "No sessions today.",
-    "emptyNext": "No sessions today. Your next session is on {date}.",
-    "emptyNever": "You don't have any sessions yet. You'll see them here as soon as you're scheduled."
+      "generic": "Something went wrong. Try again.",
+      "noConnection": "No connection. Check your internet and try again."
+    },
+    "renew": "Renew",
+    "renewDialog": {
+      "body": "The current link and its QR codes will stop working. Requests already sent stay.",
+      "cancel": "Go back",
+      "confirm": "Renew",
+      "title": "Renew the join link?"
+    },
+    "renewed": "The join link has been renewed.",
+    "title": "Join link"
   },
   "myCalendar": {
-    "title": "My calendar",
-    "range": "{start} – {end}",
-    "timeRange": "{start}–{end}",
-    "views": "View",
-    "viewDay": "Day",
-    "viewWeek": "Week",
-    "viewList": "List",
-    "today": "Today",
-    "previous": "Previous",
-    "next": "Next",
-    "legend": "Session types",
-    "typePrivate": "Private",
-    "typeGroup": "Group",
     "block": "{type} · {name}",
     "blockBooked": "{booked}/{capacity}",
-    "spokenTime": "{start} to {end}",
-    "spokenJoin": "{first}, {next}",
     "cancelled": "Cancelled",
-    "gridDay": "Calendar of {date}",
-    "gridWeek": "Calendar of {range}",
-    "clockForward": "Summer time: clocks go forward 1 hour",
-    "clockBack": "Winter time: clocks go back 1 hour",
-    "filterType": "Type",
-    "filterWorkspace": "Workspace",
-    "optionPrivate": "Private",
-    "optionGroup": "Group class",
-    "showCancelled": "Show cancelled",
     "clearFilters": "Clear filters",
-    "noResults": "No results with these filters.",
-    "emptyDay": "No sessions on this day.",
-    "emptyWeek": "No sessions this week.",
-    "listCaption": "Sessions of {range}",
+    "clockBack": "Winter time: clocks go back 1 hour",
+    "clockForward": "Summer time: clocks go forward 1 hour",
     "columnDay": "Day",
-    "columnTime": "Time",
     "columnSession": "Session",
+    "columnStatus": "Status",
+    "columnTime": "Time",
     "columnType": "Type",
     "columnWorkspace": "Workspace",
-    "columnStatus": "Status"
+    "emptyDay": "No sessions on this day.",
+    "emptyWeek": "No sessions this week.",
+    "filterType": "Type",
+    "filterWorkspace": "Workspace",
+    "gridDay": "Calendar of {date}",
+    "gridWeek": "Calendar of {range}",
+    "legend": "Session types",
+    "listCaption": "Sessions of {range}",
+    "next": "Next",
+    "noResults": "No results with these filters.",
+    "optionGroup": "Group class",
+    "optionPrivate": "Private",
+    "previous": "Previous",
+    "range": "{start} – {end}",
+    "showCancelled": "Show cancelled",
+    "spokenJoin": "{first}, {next}",
+    "spokenTime": "{start} to {end}",
+    "timeRange": "{start}–{end}",
+    "title": "My calendar",
+    "today": "Today",
+    "typeGroup": "Group",
+    "typePrivate": "Private",
+    "viewDay": "Day",
+    "viewList": "List",
+    "viewWeek": "Week",
+    "views": "View"
+  },
+  "myDay": {
+    "booked": "{booked}/{capacity} booked",
+    "cancelled": "Cancelled",
+    "emptyNever": "You don't have any sessions yet. You'll see them here as soon as you're scheduled.",
+    "emptyNext": "No sessions today. Your next session is on {date}.",
+    "emptyToday": "No sessions today.",
+    "listLabel": "Today's sessions",
+    "nextInProgress": "In progress",
+    "nextUpcoming": "Up next · in {minutes} min",
+    "spokenJoin": "{first}, {next}",
+    "spokenTime": "{start} to {end}",
+    "summary": "{count, plural, one {# session} other {# sessions}} · {first}–{last}",
+    "summaryNone": "No sessions",
+    "timeRange": "{start}–{end}",
+    "title": "My day",
+    "tomorrow": "Tomorrow: {count, plural, one {# session} other {# sessions}}, first at {time}",
+    "typeGroup": "Group class",
+    "typePrivate": "Private session",
+    "typeWithDetail": "{type} · {detail}"
+  },
+  "myProfile": {
+    "bookingEmailsHelp": "You get an email when a client books or cancels.",
+    "bookingEmailsLabel": "Emails about bookings in my classes",
+    "detailsTitle": "Your details",
+    "editName": "Change name",
+    "emailLabel": "Email address",
+    "emailsTitle": "Emails",
+    "errors": {
+      "generic": "Something went wrong. Try again.",
+      "nameRequired": "Enter your name.",
+      "nameTooLong": "This name is too long. Use a shorter one.",
+      "noConnection": "No connection. Check your internet and try again."
+    },
+    "nameLabel": "Name",
+    "save": "Save",
+    "saved": "Saved.",
+    "title": "My profile",
+    "workspacesTitle": "My workspaces"
+  },
+  "noAccess": {
+    "body": "You don't have access to a workspace yet.",
+    "title": "No access yet"
+  },
+  "noPermission": {
+    "body": "You don't have access to this page. Ask the owner of {workspace}.",
+    "title": "No access"
+  },
+  "noWorkspace": {
+    "haveLink": "Got the link? Open it on this phone.",
+    "teamHint": "Are you a trainer or owner? Use the Fivvi Pro app.",
+    "title": "Ask your studio for its link."
+  },
+  "notFound": {
+    "body": "We can't find this page. Check the link and try again.",
+    "title": "Page not found"
+  },
+  "offers": {
+    "cancellation": {
+      "untilStart": "You can cancel free of charge until the start.",
+      "upTo": "{count, plural, one {You can cancel free of charge up to # hour before.} other {You can cancel free of charge up to # hours before.}}"
+    },
+    "summary": {
+      "classesPerWeek": "{count, plural, one {# class a week} other {# classes a week}}",
+      "creditsEveryFourWeeks": "{credits} every 4 weeks",
+      "creditsEveryMonth": "{credits} a month",
+      "days": "{count, plural, one {# day} other {# days}}",
+      "deletedClass": "{name} (deleted)",
+      "deletedClassUnnamed": "Deleted class",
+      "groupCredits": "{count, plural, one {# group credit} other {# group credits}}",
+      "minimumTerm": "minimum {duration}",
+      "months": "{count, plural, one {# month} other {# months}}",
+      "pricePerFourWeeks": "{amount} every 4 weeks",
+      "pricePerMonth": "{amount} a month",
+      "privateCredits": "{count, plural, one {# private credit} other {# private credits}}",
+      "singleClass": "1 group class",
+      "validFor": "valid for {duration}",
+      "weeks": "{count, plural, one {# week} other {# weeks}}"
+    }
   },
   "personal": {
     "timeZoneHint": "Times in Dutch time"
   },
-  "workspaceSwitcher": {
-    "newWorkspace": "+ New workspace"
-  },
-  "signOut": {
-    "label": "Sign out",
-    "error": "Signing out didn't work. Try again."
-  },
-  "userMenu": {
-    "label": "User menu",
-    "language": "Language: {language}",
-    "languageNl": "Nederlands",
-    "languageEn": "English",
-    "error": "Your language wasn't saved. Try again.",
-    "profile": "My profile"
-  },
-  "email": {
-    "layout": {
-      "footer": "This email was sent by Fivvi."
-    },
-    "frame": {
-      "clientReason": "You're getting this email because you're a client of {workspace}.",
-      "teamReason": "You're getting this email because you're on the team at {workspace}.",
-      "questions": "Questions? Contact {workspace}.",
-      "button": "View in Fivvi",
-      "sentWith": "Sent with Fivvi"
-    },
-    "hello": {
-      "subject": "Test message from Fivvi",
-      "preview": "If you can read this, emails from Fivvi are getting through.",
-      "greeting": "Hi {firstName},",
-      "greetingWithoutName": "Hi,",
-      "body": "This is a test message. If you can read this, emails from Fivvi are getting through.",
-      "sentAt": "Sent on {date} at {time}."
-    },
-    "signIn": {
-      "subject": "Your sign-in code for Fivvi",
-      "preview": "Use code {code} to sign in to Fivvi.",
-      "intro": "Use this code to sign in to Fivvi:",
-      "linkIntro": "Or open the sign-in link and confirm it's you:",
-      "linkButton": "Sign in",
-      "validity": "The code and the sign-in link work for {minutes, plural, one {# minute} other {# minutes}}.",
-      "ignore": "Didn't ask for this? You can ignore this email."
-    },
-    "emailChangeCode": {
-      "subject": "Your code to change your email address",
-      "preview": "Use code {code} to confirm your new email address for Fivvi.",
-      "intro": "Use this code to confirm your new email address for Fivvi:",
-      "validity": "The code works for {minutes, plural, one {# minute} other {# minutes}}. You'll sign in to Fivvi with this email address from then on.",
-      "ignore": "Didn't ask for this? You can ignore this email. Nothing will change."
-    },
-    "emailChanged": {
-      "subject": "The email address of your Fivvi account has been changed",
-      "preview": "This email address no longer belongs to your Fivvi account.",
-      "intro": "The email address of your Fivvi account has just been changed. You no longer sign in with this email address; you sign in with the new one.",
-      "fine": "If you made this change, you don't need to do anything.",
-      "notYou": "Wasn't this you? Contact us right away through Help and contact on fivvi.app and we'll look into it."
-    },
-    "emailChangeTaken": {
-      "subject": "Someone wanted to use this email address for another Fivvi account",
-      "preview": "No code was sent and nothing has changed.",
-      "intro": "Someone asked for a code to use this email address for another Fivvi account. This email address already belongs to an account, so we sent no code.",
-      "unchanged": "Nothing has changed. Your account and your data were not touched and stay yours.",
-      "ignore": "You don't need to do anything. You can ignore this email."
-    },
-    "trainerInvitation": {
-      "subject": "{inviter} invited you to {workspace}",
-      "preview": "You're invited to become {aWord} at {workspace}.",
-      "intro": "{inviter} invited you to become {aWord} at {workspace}.",
-      "button": "View invitation",
-      "validity": "This invitation is valid until {date}.",
-      "ignore": "Not expecting this email? You can ignore it."
-    },
-    "privateSession": {
-      "subject": "New appointment: {date} at {time}",
-      "preview": "Your private session is planned for {date} at {time}.",
-      "intro": "A private session has been planned for you at {workspace}.",
-      "when": "When: {date}, {start} to {end}",
-      "where": "Where: {location}",
-      "trainer": "{Word}: {trainer}"
-    },
-    "privateSessionMoved": {
-      "subject": "Change: your session has moved to {newDate}",
-      "dateTime": "{date} at {time}",
-      "preview": "Your private session has moved to {newDate}.",
-      "intro": "Your private session at {workspace} has moved.",
-      "previously": "Previously: {date}, {start} to {end}",
-      "now": "Now: {date}, {start} to {end}"
-    },
-    "demoRequest": {
-      "subject": "Demo request: {name}",
-      "preview": "{business}, {trainers}",
-      "intro": "Someone is asking for a Fivvi demo through the website.",
-      "nameLabel": "Name",
-      "emailLabel": "Email address",
-      "businessLabel": "Kind of business",
-      "trainersLabel": "Number of trainers",
-      "languageLabel": "Website language",
-      "messageLabel": "Message",
-      "reply": "Reply in the language of the website. Write to the email address above: this message is not from the requester itself.",
-      "business": {
-        "gym": "A gym with a team",
-        "studio": "A pilates or yoga studio",
-        "personalTrainer": "My own PT business"
+  "profile": {
+    "error": "Your workspaces couldn't be loaded.",
+    "language": "Language",
+    "privacy": "Privacy policy",
+    "support": "Help and contact",
+    "title": "Profile",
+    "trainsHere": {
+      "errors": {
+        "generic": "Something went wrong. Try again.",
+        "noConnection": "No connection. Check your internet and try again."
       },
-      "trainers": {
-        "one": "Only the requester",
-        "twoToFour": "2 to 4",
-        "fiveOrMore": "5 or more"
-      },
-      "languageNl": "Dutch",
-      "languageEn": "English"
-    }
+      "label": "I also train at {workspace}",
+      "saved": "Saved."
+    },
+    "version": "Version {version}"
   },
   "roles": {
     "owner": "Owner",
     "trainer": "Trainer",
     "trainerLabel": "{Word}"
   },
-  "trainerWord": {
-    "trainer": {
-      "word": "trainer",
-      "words": "trainers",
-      "wordCap": "Trainer",
-      "wordsCap": "Trainers",
-      "aWord": "a trainer",
-      "aWordCap": "A trainer"
-    },
-    "instructeur": {
-      "word": "instructor",
-      "words": "instructors",
-      "wordCap": "Instructor",
-      "wordsCap": "Instructors",
-      "aWord": "an instructor",
-      "aWordCap": "An instructor"
-    },
-    "docent": {
-      "word": "teacher",
-      "words": "teachers",
-      "wordCap": "Teacher",
-      "wordsCap": "Teachers",
-      "aWord": "a teacher",
-      "aWordCap": "A teacher"
-    },
-    "coach": {
-      "word": "coach",
-      "words": "coaches",
-      "wordCap": "Coach",
-      "wordsCap": "Coaches",
-      "aWord": "a coach",
-      "aWordCap": "A coach"
-    }
-  },
-  "myProfile": {
-    "title": "My profile",
-    "workspacesTitle": "My workspaces",
-    "detailsTitle": "Your details",
-    "nameLabel": "Name",
-    "emailLabel": "Email address",
-    "save": "Save",
-    "saved": "Saved.",
-    "errors": {
-      "nameRequired": "Enter your name.",
-      "nameTooLong": "This name is too long. Use a shorter one.",
-      "noConnection": "No connection. Check your internet and try again.",
-      "generic": "Something went wrong. Try again."
-    },
-    "editName": "Change name",
-    "emailsTitle": "Emails",
-    "bookingEmailsLabel": "Emails about bookings in my classes",
-    "bookingEmailsHelp": "You get an email when a client books or cancels."
-  },
-  "profile": {
-    "title": "Profile",
-    "support": "Help and contact",
-    "privacy": "Privacy policy",
-    "error": "Your workspaces couldn't be loaded.",
-    "language": "Language",
-    "trainsHere": {
-      "label": "I also train at {workspace}",
-      "saved": "Saved.",
-      "errors": {
-        "noConnection": "No connection. Check your internet and try again.",
-        "generic": "Something went wrong. Try again."
-      }
-    },
-    "version": "Version {version}"
-  },
-  "team": {
-    "title": "Trainers",
-    "nameColumn": "Name",
-    "emailColumn": "Email address",
-    "roleColumn": "Role",
-    "actionsColumn": "Actions",
-    "remove": "Remove from team",
-    "removeDialog": {
-      "title": "Remove {name} from the team?",
-      "body": "{name} will no longer have access to {workspace} as a trainer. What {name} has as a client, such as bookings, stays.",
-      "confirm": "Remove",
-      "cancel": "Cancel"
-    },
-    "removed": "{name} has been removed from the team.",
-    "errors": {
-      "noConnection": "No connection. Check your internet and try again.",
-      "generic": "Something went wrong. Try again.",
-      "lastOwner": "{workspace} needs at least one owner."
-    },
-    "roleMenu": "Role of {name}",
-    "makeOwnerDialog": {
-      "title": "Make {name} an owner?",
-      "body": "An owner can do everything in {workspace}, including the team, the settings and the money.",
-      "confirm": "Make owner",
-      "cancel": "Cancel"
-    },
-    "stepDownDialog": {
-      "title": "Make yourself a trainer?",
-      "body": "You will no longer be an owner of {workspace}.",
-      "confirm": "Make trainer",
-      "cancel": "Cancel"
-    },
-    "roleChanged": {
-      "owner": "{name} is now an owner.",
-      "trainer": "{name} is now a trainer."
-    },
-    "badge": {
-      "trainer": "Trainer"
-    },
-    "invite": {
-      "title": "Invite trainer",
-      "description": "We'll email an invitation to this address.",
-      "nameLabel": "Name",
-      "emailLabel": "Email address",
-      "localeLabel": "Language of the email",
-      "localeDefault": "Workspace default ({language})",
-      "localeNl": "Nederlands",
-      "localeEn": "English",
-      "submit": "Send",
-      "cancel": "Cancel",
-      "sent": "Invitation sent to {name}.",
-      "alreadyOnTeam": "{name} is already on the team.",
-      "alreadyInvited": "An invitation to this email address is already open.",
-      "sendAgain": "Send again",
-      "errors": {
-        "nameRequired": "Enter a name.",
-        "nameTooLong": "This name is too long. Use at most 120 characters.",
-        "emailRequired": "Enter an email address.",
-        "emailInvalid": "Enter a valid email address.",
-        "tooMany": "You've already sent 20 invitations in the last 24 hours. Try again later.",
-        "notSent": "Not sent. Check your connection and try again."
-      }
-    },
-    "invitations": {
-      "status": "Invited",
-      "sendAgain": "Send again",
-      "sentAgain": "Invitation sent again",
-      "withdraw": "Withdraw",
-      "withdrawDialog": {
-        "title": "Withdraw invitation?",
-        "body": "The link in the email to {email} will stop working.",
-        "confirm": "Withdraw",
-        "cancel": "Back"
-      },
-      "withdrawn": "Invitation to {name} withdrawn.",
-      "gone": "This invitation is no longer there."
-    }
-  },
-  "clients": {
-    "title": "Clients",
-    "searchPlaceholder": "Search client…",
-    "add": "Add client",
-    "listLabel": "Clients",
-    "empty": "No clients yet. Add your first client.",
-    "noResults": "No clients found.",
-    "loading": "Loading clients…",
-    "loadError": "Something went wrong while loading.",
-    "partial": "Showing {shown} of {total} clients. Search to find the rest.",
-    "addDialog": {
-      "title": "Add client",
-      "description": "Enter a name and an email address. The language can follow.",
-      "nameLabel": "Name",
-      "emailLabel": "Email address",
-      "localeLabel": "Language for emails",
-      "localeDefault": "Default ({language})",
-      "localeNl": "Nederlands",
-      "localeEn": "English",
-      "submit": "Add",
-      "cancel": "Cancel",
-      "exists": "{name} already uses this email address.",
-      "openExisting": "Open {name}",
-      "otherEmail": "Use another email address",
-      "errors": {
-        "nameRequired": "Enter a name.",
-        "nameTooLong": "This name is too long. Use at most 120 characters.",
-        "emailRequired": "Enter an email address.",
-        "emailInvalid": "Enter a valid email address.",
-        "notSaved": "Not saved. Check your connection and try again."
-      },
-      "close": "Close"
-    },
-    "languageNames": {
-      "nl": "Dutch",
-      "en": "English"
-    },
-    "profile": {
-      "title": "Client profile",
-      "added": "{name} has been added.",
-      "overview": "Overview",
-      "nameLabel": "Name",
-      "emailLabel": "Email address",
-      "localeLabel": "Language for emails",
-      "back": "Back",
-      "edit": "Edit",
-      "editTitle": "Edit client",
-      "save": "Save",
-      "saved": "Saved.",
-      "upcomingTitle": "Upcoming sessions",
-      "upcomingEmpty": "No sessions planned yet",
-      "upcomingWhen": "{date} at {time}"
-    },
-    "newClient": "New client",
-    "offline": "You're offline. Last updated at {time}."
-  },
   "sessions": {
-    "title": "Session",
-    "page": {
-      "heading": "Private session with {client}",
-      "whenLabel": "When",
-      "whereLabel": "Location",
-      "trainerLabel": "{Word}",
-      "clientLabel": "Client",
-      "timeRange": "{date}, {start}–{end}",
-      "noTrainer": "No {word}",
-      "cancelled": "This session is cancelled.",
-      "reschedule": "Reschedule",
-      "clientProfile": "Client profile",
-      "moved": "Moved to {date} at {time}."
-    },
     "form": {
-      "title": "New private session",
-      "description": "Choose a client and a time. The location is already filled in.",
-      "close": "Close",
-      "loadFailed": "The details couldn't be loaded.",
-      "clientLabel": "Client",
-      "clientSearch": "Search by name or email",
-      "clientResults": "Clients",
-      "clientNone": "No clients found.",
+      "cancel": "Cancel",
       "clientChange": "Change",
+      "clientExists": "There's already a client with this email: {name}.",
+      "clientLabel": "Client",
       "clientNew": "+ New client",
       "clientNewNamed": "+ New client ‘{query}’",
-      "newClientTitle": "New client",
-      "newClientAdd": "Add client",
-      "newClientCancel": "Cancel",
-      "clientExists": "There's already a client with this email: {name}.",
+      "clientNone": "No clients found.",
+      "clientResults": "Clients",
+      "clientSearch": "Search by name or email",
       "clientUse": "Use them",
+      "close": "Close",
       "dateLabel": "Date",
-      "startLabel": "Start",
+      "description": "Choose a client and a time. The location is already filled in.",
+      "discard": "Discard",
+      "discardDescription": "What you entered won't be kept.",
+      "discardTitle": "Discard changes?",
       "durationLabel": "Duration",
       "durationMinutes": "{minutes} min",
       "durationOther": "Other duration",
       "endsAt": "Ends at {time}",
       "endsAtNextDay": "Ends at {time} (next day)",
-      "trainerLabel": "{Word}",
-      "trainerMe": "{name} (me)",
-      "trainerChoose": "Choose {aWord}",
-      "location": "Location: {name}",
-      "notify": "Send {client} a confirmation",
-      "notifyNote": "{email} · {language}",
-      "languageNl": "in Dutch",
-      "languageEn": "in English",
-      "cancel": "Cancel",
-      "save": "Save",
-      "discardTitle": "Discard changes?",
-      "discardDescription": "What you entered won't be kept.",
-      "discard": "Discard",
-      "keepEditing": "Keep editing",
-      "saved": "Session with {client} scheduled for {date} at {time}.",
-      "open": "Open",
       "errors": {
         "chooseClient": "Choose a client.",
         "chooseTrainer": "Choose {aWord}.",
         "dateRequired": "Choose a date.",
-        "startRequired": "Choose a start time.",
         "invalidDate": "This date doesn't exist.",
         "invalidTime": "This isn't a valid time.",
-        "timeDoesNotExist": "This time doesn't exist on {date} because of daylight saving time.",
         "noPermission": "You don't have permission for this session.",
-        "notSaved": "Not saved. Check your connection and try again."
+        "notSaved": "Not saved. Check your connection and try again.",
+        "startRequired": "Choose a start time.",
+        "timeDoesNotExist": "This time doesn't exist on {date} because of daylight saving time."
       },
+      "keepEditing": "Keep editing",
+      "languageEn": "in English",
+      "languageNl": "in Dutch",
+      "loadFailed": "The details couldn't be loaded.",
+      "location": "Location: {name}",
+      "newClientAdd": "Add client",
+      "newClientCancel": "Cancel",
+      "newClientTitle": "New client",
       "notes": {
-        "repeatedTime": "On {date}, {time} happens twice. We'll use the first one (summer time).",
-        "past": "This time is in the past. The client won't get an email."
+        "past": "This time is in the past. The client won't get an email.",
+        "repeatedTime": "On {date}, {time} happens twice. We'll use the first one (summer time)."
       },
+      "notify": "Send {client} a confirmation",
+      "notifyNote": "{email} · {language}",
+      "open": "Open",
+      "save": "Save",
+      "saved": "Session with {client} scheduled for {date} at {time}.",
+      "startLabel": "Start",
+      "title": "New private session",
+      "trainerChoose": "Choose {aWord}",
+      "trainerLabel": "{Word}",
+      "trainerMe": "{name} (me)",
       "workspaceLabel": "Workspace"
     },
+    "page": {
+      "cancelled": "This session is cancelled.",
+      "clientLabel": "Client",
+      "clientProfile": "Client profile",
+      "heading": "Private session with {client}",
+      "moved": "Moved to {date} at {time}.",
+      "noTrainer": "No {word}",
+      "reschedule": "Reschedule",
+      "timeRange": "{date}, {start}–{end}",
+      "trainerLabel": "{Word}",
+      "whenLabel": "When",
+      "whereLabel": "Location"
+    },
     "reschedule": {
-      "title": "Reschedule session",
-      "subtitle": "{client} · Private session",
+      "cancel": "Cancel",
+      "cancelled": "This session is cancelled and can't be moved.",
+      "changedBy": "This session was just changed by {name}.",
+      "changedByUnknown": "This session was just changed.",
       "current": "Currently: {date}, {start}–{end} · {location}",
       "dateLabel": "New date",
       "locationUnchanged": "{location} (unchanged)",
+      "noPermission": "You no longer have permission for this session.",
       "notify": "Notify {client} by email",
       "notifyNote": "{client} will get the email {language}.",
-      "cancel": "Cancel",
       "submit": "Reschedule",
       "submitNotify": "Reschedule and notify",
-      "changedBy": "This session was just changed by {name}.",
-      "changedByUnknown": "This session was just changed.",
-      "cancelled": "This session is cancelled and can't be moved.",
-      "noPermission": "You no longer have permission for this session."
+      "subtitle": "{client} · Private session",
+      "title": "Reschedule session"
+    },
+    "title": "Session"
+  },
+  "settingsGeneral": {
+    "errors": {
+      "generic": "Something went wrong. Try again.",
+      "nameRequired": "Enter the name of your gym or business.",
+      "nameTooLong": "This name is too long. Use a shorter one.",
+      "noConnection": "No connection. Check your internet and try again."
+    },
+    "nameLabel": "Name of your gym or business",
+    "save": "Save",
+    "saved": "Saved.",
+    "timeZoneLabel": "Time zone",
+    "title": "General",
+    "urlNameLabel": "URL name"
+  },
+  "settingsLanguage": {
+    "defaultLabel": "Default language",
+    "errors": {
+      "generic": "Something went wrong. Try again.",
+      "noConnection": "No connection. Check your internet and try again."
+    },
+    "help": "The language of emails to people whose language we don't know yet. What people see on screen, they choose themselves.",
+    "optionEn": "English",
+    "optionNl": "Nederlands",
+    "save": "Save",
+    "saved": "Saved.",
+    "title": "Language"
+  },
+  "settingsLocation": {
+    "additionLabel": "Addition",
+    "addressLegend": "Address",
+    "cityLabel": "City",
+    "errors": {
+      "addressIncomplete": "Fill in the whole address, or leave it empty.",
+      "generic": "Something went wrong. Try again.",
+      "houseNumberInvalid": "Enter a house number of 1 to 5 digits.",
+      "nameRequired": "Enter a name.",
+      "nameTooLong": "This name is too long. Use a shorter one.",
+      "noConnection": "No connection. Check your internet and try again.",
+      "postcodeInvalid": "Enter a postcode like 1234 AB.",
+      "tooLong": "This text is too long. Use a shorter one."
+    },
+    "help": "All sessions and classes take place here.",
+    "houseNumberLabel": "House number",
+    "lookup": {
+      "busy": "Looking up the address…",
+      "filled": "Filled in from the postcode and house number.",
+      "notFound": "We can't find an address for this postcode and house number. Fill in the street and city yourself.",
+      "unavailable": "We can't look up the address right now. Fill in the street and city yourself."
+    },
+    "nameLabel": "Name",
+    "postcodeLabel": "Postcode",
+    "save": "Save",
+    "saved": "Location saved.",
+    "streetLabel": "Street",
+    "title": "Location",
+    "typeLabel": "Type",
+    "types": {
+      "clientHome": "Client's home",
+      "externalGym": "External gym",
+      "online": "Online",
+      "organizationLocation": "Own location",
+      "other": "Other",
+      "outdoor": "Outdoors"
     }
   },
-  "classes": {
-    "title": "Classes",
-    "new": "New class",
-    "empty": "No classes yet. Create your first class.",
-    "nameColumn": "Class",
-    "trainerColumn": "{Word}",
-    "spotsColumn": "Spots",
-    "durationColumn": "Duration",
-    "trainerNeeded": "{Word} needed",
-    "spots": "{count, plural, one {# spot} other {# spots}}",
-    "minutes": "{minutes} min",
-    "page": {
-      "back": "All classes",
-      "facts": "{trainer} · {spots} · {duration}",
-      "descriptionTitle": "Description",
-      "noDescription": "No description yet.",
-      "schedule": "Schedule on a date"
+  "signIn": {
+    "changeEmail": "Change email address",
+    "checkEmailBody": "If {email} is registered, you'll receive an email with a code and a sign-in link.",
+    "checkEmailBodyApp": "If {email} is registered, you'll receive an email with a code.",
+    "checkEmailTitle": "Check your email",
+    "codeHelp": "Enter the code from the email.",
+    "codeLabel": "Code",
+    "confirmChecking": "Checking the sign-in link…",
+    "confirmSubmit": "Sign in",
+    "confirmTitle": "Sign in as {email}?",
+    "emailLabel": "Email address",
+    "errors": {
+      "generic": "Something went wrong. Try again.",
+      "invalidEmail": "This email address doesn't look right. Check it and try again.",
+      "invalidOrExpiredCode": "This code isn't right or has expired. Check the code in the email or request a new one.",
+      "noConnection": "No connection. Check your internet and try again."
     },
-    "form": {
-      "title": "New class",
-      "description": "Name the class and set who teaches it, how many spots it has and how long it lasts.",
-      "nameSection": "Name and description",
-      "classSection": "The class",
-      "nameNlLabel": "Name (Dutch)",
-      "nameEnLabel": "Name (English, optional)",
-      "descriptionNlLabel": "Description (Dutch, optional)",
-      "descriptionEnLabel": "Description (English, optional)",
-      "trainerLabel": "{Word}",
-      "capacityLabel": "Capacity",
-      "durationLabel": "Duration (minutes)",
-      "cancel": "Cancel",
-      "save": "Save",
-      "saved": "Class saved.",
-      "loadFailed": "The details couldn't be loaded.",
-      "errors": {
-        "nameRequired": "Enter the name in Dutch.",
-        "nameTooLong": "The name can have at most {max} characters.",
-        "descriptionTooLong": "The description can have at most {max} characters.",
-        "capacityInvalid": "Enter a capacity from {min} to {max}.",
-        "durationInvalid": "Enter a duration from {min} to {max} minutes, in steps of {step}.",
-        "noPermission": "You can't manage classes.",
-        "notSaved": "Not saved. Check your connection and try again."
-      }
-    },
-    "schedule": {
-      "title": "Schedule on a date",
-      "description": "Choose the date and the start. The duration, the location and the defaults come from the class.",
-      "classSection": "The class",
-      "whenSection": "When",
-      "classLabel": "Class",
-      "classChoose": "Choose a class",
-      "classNone": "You don't have any classes yet.",
-      "dateLabel": "Date",
-      "startLabel": "Start",
-      "endsAt": "Ends at {time}",
-      "endsAtNextDay": "Ends at {time} (next day)",
-      "trainerLabel": "{Word}",
-      "capacityLabel": "Capacity",
-      "location": "Location: {name}",
-      "cancel": "Cancel",
-      "save": "Schedule",
-      "saved": "Group class added",
-      "loadFailed": "The details couldn't be loaded.",
-      "errors": {
-        "classRequired": "Choose a class.",
-        "dateRequired": "Choose a date.",
-        "startRequired": "Choose a start time.",
-        "invalidDate": "This date doesn't exist.",
-        "invalidTime": "This isn't a valid time.",
-        "timeDoesNotExist": "This time doesn't exist on {date} because of daylight saving time.",
-        "capacityInvalid": "Enter a capacity from {min} to {max}.",
-        "noPermission": "You can't schedule classes.",
-        "notSaved": "Not saved. Check your connection and try again."
-      }
-    },
-    "date": {
-      "whenLabel": "When",
-      "whereLabel": "Location",
-      "trainerLabel": "{Word}",
-      "bookedLabel": "Bookings",
-      "timeRange": "{date}, {start}–{end}",
-      "booked": "{booked}/{capacity} booked · {free, plural, one {# spot free} other {# spots free}}",
-      "noBookings": "No bookings yet.",
-      "edit": "Edit",
-      "back": "All classes"
-    },
-    "edit": {
-      "title": "Edit class",
-      "description": "You're changing only {date}. The class itself and its other dates stay as they are.",
-      "startLabel": "Start",
-      "endLabel": "End",
-      "capacityLabel": "Capacity",
-      "cancel": "Cancel",
-      "save": "Save",
-      "saved": "Class saved.",
-      "errors": {
-        "invalidTime": "This isn't a valid time.",
-        "timeDoesNotExist": "This time doesn't exist on {date} because of daylight saving time.",
-        "endBeforeStart": "The end time must be after the start time.",
-        "capacityInvalid": "Enter a capacity from {min} to {max}.",
-        "noPermission": "You can't change this class any more.",
-        "notSaved": "Not saved. Check your connection and try again."
-      },
-      "changed": "This class was just changed. You now see the new details."
-    }
+    "languageEn": "English",
+    "languageLabel": "Language",
+    "languageNl": "Nederlands",
+    "linkInvalidBack": "Back to sign in",
+    "linkInvalidBody": "Request a new email to sign in.",
+    "linkInvalidTitle": "This sign-in link no longer works",
+    "resend": "Resend code",
+    "resent": "If {email} is registered, you'll receive a new email.",
+    "sendCode": "Send code",
+    "signedOutNotice": "You've been signed out. Sign in again.",
+    "submitCode": "Sign in",
+    "title": "Sign in"
   },
-  "clientNav": {
-    "label": "Main navigation",
-    "home": "Home",
-    "book": "Book",
-    "profile": "Profile"
-  },
-  "dataImport": {
-    "problems": {
-      "sheetMissing": "The {sheet} sheet is missing.",
-      "columnMissing": "Column {column} is missing.",
-      "columnNotImported": "Column {column} isn't imported.",
-      "columnRepeated": "Column {column} appears twice in the file.",
-      "columnWithoutName": "Column {column} has no name and isn't imported.",
-      "valueMissing": "Row {row}: {column} is missing.",
-      "clientKeyDuplicate": "Row {row}: client_key {value} appears twice.",
-      "emailMissing": "Row {row}: email address is missing.",
-      "emailInvalid": "Row {row}: this email address doesn't look right.",
-      "emailDuplicate": "Row {row}: this email address is also in row {firstRow}.",
-      "languageNotSupported": "Row {row}: language must be nl or en.",
-      "trainerUnknown": "Row {row}: {email} isn't a trainer of {workspace}.",
-      "statusNotSupported": "Row {row}: status must be active or inactive.",
-      "clientInactive": "Row {row}: this client is inactive and is left out.",
-      "clientExists": "Row {row}: a client with this email address already exists."
-    },
-    "fileErrors": {
-      "tooLarge": "This file is larger than 5 MB.",
-      "tooManyRows": "This file has more than 5,000 rows.",
-      "unreadable": "We can't read this file. Use the template (.xlsx) or a UTF-8 CSV."
-    }
-  },
-  "accessLog": {
-    "deletedClient": "Deleted client"
-  },
-  "noWorkspace": {
-    "title": "Ask your studio for its link.",
-    "haveLink": "Got the link? Open it on this phone.",
-    "teamHint": "Are you a trainer or owner? Use the Fivvi Pro app."
-  },
-  "offers": {
-    "summary": {
-      "classesPerWeek": "{count, plural, one {# class a week} other {# classes a week}}",
-      "months": "{count, plural, one {# month} other {# months}}",
-      "weeks": "{count, plural, one {# week} other {# weeks}}",
-      "days": "{count, plural, one {# day} other {# days}}",
-      "groupCredits": "{count, plural, one {# group credit} other {# group credits}}",
-      "privateCredits": "{count, plural, one {# private credit} other {# private credits}}",
-      "creditsEveryMonth": "{credits} a month",
-      "creditsEveryFourWeeks": "{credits} every 4 weeks",
-      "validFor": "valid for {duration}",
-      "minimumTerm": "minimum {duration}",
-      "pricePerMonth": "{amount} a month",
-      "pricePerFourWeeks": "{amount} every 4 weeks",
-      "singleClass": "1 group class"
-    },
-    "cancellation": {
-      "upTo": "{count, plural, one {You can cancel free of charge up to # hour before.} other {You can cancel free of charge up to # hours before.}}",
-      "untilStart": "You can cancel free of charge until the start."
-    }
-  },
-  "agreements": {
-    "dueDay": {
-      "one": "on the {day}st",
-      "two": "on the {day}nd",
-      "few": "on the {day}rd",
-      "other": "on the {day}th"
-    }
+  "signOut": {
+    "error": "Signing out didn't work. Try again.",
+    "label": "Sign out"
   },
   "site": {
-    "meta": {
-      "homeTitle": "Fivvi: software for personal trainers, studios and gyms",
-      "homeDescription": "Fivvi is being built with its first gym: calendar, bookings, credits, payments and invoices in one place. Book a demo to see what's ready.",
-      "breadcrumbHome": "Home"
-    },
-    "logo": {
-      "homeLabel": "Fivvi, go to the home page"
-    },
-    "header": {
-      "skipToContent": "Skip to content",
-      "menuLabel": "Main menu",
-      "signIn": "Sign in",
-      "demo": "Book a demo"
-    },
-    "nav": {
-      "gyms": "Gyms",
-      "studios": "Studios",
-      "personalTrainers": "Personal trainers",
-      "clients": "Clients",
-      "pricing": "Pricing"
-    },
-    "language": {
-      "label": "Taal / Language",
-      "nlShort": "NL",
-      "enShort": "EN",
-      "nlName": "Nederlands",
-      "enName": "English"
-    },
-    "home": {
-      "headline": "You train.",
-      "headlineRest": "Fivvi handles the rest.",
-      "lead": "We're building one place for calendar, bookings, credits, payments and invoices: made for personal trainers, studios and gyms, and a pleasure for their clients.",
-      "status": "Fivvi is being built right now, together with our first gym. Ask in the demo what's ready.",
-      "iAm": {
-        "label": "I am",
-        "gym": "Gym with a team",
-        "studio": "Studio",
-        "pt": "Personal trainer",
-        "client": "Client"
-      },
-      "seeFor": "See what Fivvi does for you",
-      "audience": {
-        "gym": {
-          "short": "Soon one calendar for all your trainers, and always a clear view of who still has to pay.",
-          "cardTitle": "Gyms with a team"
-        },
-        "studio": {
-          "short": "Soon full classes, a tidy waitlist and clients who book themselves.",
-          "cardTitle": "Pilates and yoga studios"
-        },
-        "pt": {
-          "short": "Soon your whole day fits in your pocket: who's coming, what you did last time and what's left.",
-          "cardTitle": "Personal trainers"
-        },
-        "client": {
-          "short": "Soon you book your class in a few taps and always see what's on your balance.",
-          "cardTitle": "And their clients"
-        }
-      },
-      "onePlace": {
-        "eyebrow": "The problem",
-        "heading": "Your business lives in five places.",
-        "lead": "Every separate tool is a place where something can go wrong. In Fivvi everything will be connected, so there will be nothing to retype.",
-        "calendar": "Calendar app",
-        "documents": "Word documents",
-        "invoices": "Invoices by hand",
-        "messages": "Booking by message",
-        "app": "A separate booking and payment app",
-        "inFivvi": "in Fivvi",
-        "fivvi": "Fivvi",
-        "everything": "everything in one place, soon"
-      },
-      "chain": {
-        "eyebrow": "The difference",
-        "heading": "One booking. Everything adds up.",
-        "lead": "Try the sample. It shows how we're building it: book the class and watch what happens by itself.",
-        "steps": {
-          "pack": {
-            "title": "Credit pack",
-            "text": "Lisa buys 10 group credits and pays with iDEAL."
-          },
-          "payment": {
-            "title": "Payment",
-            "text": "The money goes straight to the studio, not through Fivvi."
-          },
-          "invoice": {
-            "title": "Invoice",
-            "text": "The invoice follows the payment by itself."
-          },
-          "booking": {
-            "title": "Booking",
-            "text": "She books herself, and one credit is planned."
-          },
-          "attendance": {
-            "title": "Attendance",
-            "text": "The trainer ticks her off in the app."
-          },
-          "balance": {
-            "title": "Balance",
-            "text": "Lisa and the owner see the same balance."
-          }
-        },
-        "card": {
-          "title": "Timetable · Reformer",
-          "class": "Reformer",
-          "when": "tonight · 4 spots left",
-          "left": "left",
-          "planned": "planned",
-          "used": "used",
-          "book": "Book",
-          "confirm": "Confirm booking",
-          "back": "Back",
-          "attend": "Mark attendance (trainer)",
-          "again": "Once more",
-          "confirmTitle": "Reformer, tonight 18:00.",
-          "confirmBody": "This uses 1 group credit, leaving you {left}. You can cancel for free up to 12 hours before.",
-          "say0": "Lisa has {count} group credits left.",
-          "say1": "Booked. One credit is planned and comes back if she cancels in time.",
-          "say2": "Attended. The credit is used, and nobody had to keep track.",
-          "time": "18:00"
-        },
-        "statusDone": "Done",
-        "statusLive": "In progress"
-      },
-      "forWhom": {
-        "eyebrow": "Who it's for",
-        "heading": "Your day looks different. So does Fivvi.",
-        "lead": "We're building Fivvi to show only what you do. An independent trainer never sees group classes. A yoga studio never sees workout screens.",
-        "readDay": "Read their day"
-      },
-      "platforms": {
-        "eyebrow": "Everywhere",
-        "heading": "At home on every screen.",
-        "lead": "These screens show what we're building. The apps for iPhone and Android are coming, with iOS glass and the Android style, and in your browser you'll find the same calm.",
-        "owners": "Owners and trainers",
-        "clients": "Clients",
-        "items": {
-          "proIphone": {
-            "title": "Fivvi Pro on iPhone",
-            "text": "Your day, clients and workouts, always at hand."
-          },
-          "proAndroid": {
-            "title": "Fivvi Pro on Android",
-            "text": "Everything the iPhone does, the Android way."
-          },
-          "proLaptop": {
-            "title": "Fivvi on your laptop",
-            "text": "Offers, trainers, payments and invoices on a big screen, with what needs attention at the top."
-          },
-          "clientIphone": {
-            "title": "Fivvi on iPhone",
-            "text": "Your next class, this week and your balance on one screen."
-          },
-          "clientAndroid": {
-            "title": "Fivvi on Android",
-            "text": "The same app, the Android way."
-          },
-          "clientBrowser": {
-            "title": "Fivvi in your browser",
-            "text": "No app needed: book through your studio's link."
-          }
-        }
-      },
-      "promises": {
-        "eyebrow": "What you can count on",
-        "heading": "Simple, and properly done.",
-        "items": {
-          "money": {
-            "title": "The money will go straight to you",
-            "text": "You'll connect your own Mollie account in one guided step. Fivvi will never hold client money."
-          },
-          "cash": {
-            "title": "Cash or card will be fine too",
-            "text": "You'll be able to record a payment outside Fivvi on the client's profile. Skipping Mollie will be possible too; Fivvi will first tell you what you'd miss."
-          },
-          "notes": {
-            "title": "Notes will stay with the trainer",
-            "text": "Trainer notes will be for trainers only. Clients won't see them."
-          },
-          "amounts": {
-            "title": "Trainers won't see amounts",
-            "text": "A trainer will see clients' balances, but no money. Owners will see the amounts too."
-          },
-          "noApp": {
-            "title": "Clients won't need an app",
-            "text": "Clients will join with a link or QR code, their email address and a 6-digit code. No password."
-          },
-          "languages": {
-            "title": "Dutch and English",
-            "text": "Everything exists in both languages, and everyone chooses their own."
-          }
-        }
-      },
-      "fictional": "All examples on this site are fictional.",
-      "screens": {
-        "proTodayGym": "Fivvi Pro: the whole studio's day, with a lane per trainer",
-        "proTodaySolo": "Fivvi Pro: an independent trainer's day",
-        "proTodayPilates": "Fivvi Pro: a pilates studio's day",
-        "proTodayAndroid": "Fivvi Pro on Android: today's day",
-        "proClient": "Fivvi Pro: client profile with balance, last workout and progress",
-        "proLog": "Fivvi Pro: logging a workout, set by set",
-        "appHome": "Fivvi: Home with the next class and this week",
-        "appBook": "Fivvi: the timetable with Book on every class",
-        "appCredit": "Fivvi: profile with balance per kind",
-        "appAndroid": "Fivvi on Android: Home with the next class",
-        "cwTimetable": "Client web: the timetable in the browser",
-        "webDashboard": "Trainer web: dashboard with what needs attention",
-        "webClassPilates": "Trainer web: a class on a date with attendance and waitlist",
-        "webAgenda": "Trainer web: the calendar per trainer",
-        "proTodayYoga": "Fivvi Pro: a yoga studio's day",
-        "proClassPilates": "Fivvi Pro: a reformer class",
-        "proClassYoga": "Fivvi Pro: a yoga class",
-        "proSession": "Fivvi Pro: a private session with the client's balance",
-        "proDuo": "Fivvi Pro: a duo session with two clients",
-        "proShare": "Fivvi Pro: sharing a workout with the client",
-        "appConfirm": "Fivvi: confirming a booking, with the credit it uses",
-        "appSelf": "Fivvi: doing a shared workout yourself",
-        "appStudios": "Fivvi: switching between two studios",
-        "appRenew": "Fivvi: a notice to renew",
-        "cwWaitlist": "Client web: on the waitlist, with your position",
-        "cwWaitlistPilates": "Client web: on the waitlist of a full reformer class, with your position",
-        "cwWaitlistYoga": "Client web: on the waitlist of a full yoga class, with your position",
-        "webClassYoga": "Trainer web: a yoga class on a date",
-        "webJoinPilates": "Trainer web: the A4 poster with the QR code",
-        "webJoinYoga": "Trainer web: the A4 poster with the QR code",
-        "webClient": "Trainer web: client profile with renewal",
-        "webClass": "Trainer web: a class on a date with attendance and waitlist",
-        "webTrainers": "Trainer web: trainers and roles",
-        "webOffers": "Trainer web: offers",
-        "webPayments": "Trainer web: payments connected"
-      }
-    },
     "audience": {
-      "recognise": "Sound familiar?",
+      "clients": {
+        "eyebrow": "And their clients",
+        "headline": "Working out is hard enough. Booking isn't.",
+        "lead": "Soon you can ask your studio or trainer for Fivvi, and book from your phone from then on. Always clear what you've booked and what you have left.",
+        "metaDescription": "Soon you can book, join the waitlist and always see your balance, with the app or just in your browser.",
+        "metaTitle": "Book your class in a few taps | Fivvi for clients",
+        "moments": {
+          "book": {
+            "answer": "Open the timetable and tap Book. You don't even need an app: the browser is enough, and the app makes it nicer.",
+            "question": "Quickly book a class on the train.",
+            "ticks": {
+              "a": "Sign in with an emailed code, no password"
+            }
+          },
+          "confirm": {
+            "answer": "Before you confirm, you see the class, the day and the trainer, which credit it uses, how many you'll have left and until when you can cancel for free.",
+            "question": "Does this use a credit? How many do I have?",
+            "ticks": {
+              "a": "Cancelling in time gives your credit back"
+            }
+          },
+          "renew": {
+            "answer": "You get a heads-up in time, and renew in one tap with iDEAL. After that, the notice is gone.",
+            "question": "Your credits are almost gone.",
+            "ticks": {
+              "a": "Your invoice is in your profile"
+            }
+          },
+          "self": {
+            "answer": "Open the shared workout and do it yourself, with your trainer's weights filled in. Adding or removing exercises is fine.",
+            "question": "Your trainer's workout, but now in your own gym.",
+            "ticks": {
+              "a": "Only you see this workout"
+            }
+          },
+          "studios": {
+            "answer": "One account for all your studios. Switch with one tap and see your balance per studio.",
+            "question": "Pilates here, yoga there.",
+            "ticks": {
+              "a": "Home and calendar combine all your studios"
+            }
+          },
+          "waitlist": {
+            "answer": "Put yourself on the waitlist and see your position right away.",
+            "question": "Full. Of course.",
+            "ticks": {
+              "a": "Leaving the list is fine too"
+            }
+          },
+          "week": {
+            "answer": "This week shows when you went and what's still planned, plus how many weeks in a row you've kept it up.",
+            "question": "Am I actually going often enough?",
+            "ticks": {
+              "a": "Just facts, no goals someone else made up"
+            }
+          }
+        },
+        "pains": {
+          "one": "Sending a message to book a class.",
+          "three": "A different app for every studio.",
+          "two": "No idea how many classes are left on your card."
+        }
+      },
       "dayEyebrow": "A day with Fivvi",
       "dayLead": "A working day as we're building it. Every problem gets an answer, and that answer is a screen from our design. Most of it is still coming; the demo shows what's ready.",
       "gyms": {
-        "metaTitle": "Software for gyms with a team | Fivvi",
-        "metaDescription": "We're building one calendar for all your trainers, proper roles and payments that run by themselves. See a working day in Fivvi.",
         "eyebrow": "Gyms with a team",
         "headline": "Your team, your clients and your money in one view.",
         "lead": "Soon you can replace the separate calendar, the booking app and the handmade invoices with one place your whole gym runs on.",
-        "pains": {
-          "one": "Trainers share a client login, or work from their own calendar.",
-          "two": "Nobody knows exactly how many sessions a client has left.",
-          "three": "Invoices and direct debits eat up your evening."
-        },
+        "metaDescription": "We're building one calendar for all your trainers, proper roles and payments that run by themselves. See a working day in Fivvi.",
+        "metaTitle": "Software for gyms with a team | Fivvi",
         "moments": {
+          "attention": {
+            "answer": "The dashboard lines it up for you: an open payment, a pack running out, a membership ending.",
+            "question": "What needs attention today?",
+            "ticks": {
+              "a": "Nothing to search or keep track of"
+            }
+          },
           "crew": {
-            "question": "Three trainers at work at once. Who's where?",
             "answer": "Whole studio gives each trainer their own lane, and names the busiest moment of your day.",
+            "question": "Three trainers at work at once. Who's where?",
             "ticks": {
               "a": "Sessions side by side, no puzzling",
               "b": "On your phone and your laptop"
             }
           },
-          "attention": {
-            "question": "What needs attention today?",
-            "answer": "The dashboard lines it up for you: an open payment, a pack running out, a membership ending.",
-            "ticks": {
-              "a": "Nothing to search or keep track of"
-            }
-          },
-          "team": {
-            "question": "A new trainer. What can they see?",
-            "answer": "Trainers get their own team access, never a client account. They see their calendar and balances, but no amounts.",
-            "ticks": {
-              "a": "Change role: trainer or owner",
-              "b": "Someone leaving? You see the next 2 weeks and hand them over"
-            }
-          },
-          "substitute": {
-            "question": "Tonight's class has lost its trainer.",
-            "answer": "Put a substitute on the class and you're done. The same page shows who's coming and who's on the waitlist.",
-            "ticks": {
-              "a": "Attendance per participant",
-              "b": "Waitlist in order"
-            }
-          },
           "offers": {
-            "question": "Your prices live in a spreadsheet.",
             "answer": "Offers keeps your memberships, credit packs and credit plans together. You start with three ready-made plans: add a price, switch one on.",
+            "question": "Your prices live in a spreadsheet.",
             "ticks": {
               "a": "A change only applies to new memberships and packs",
               "b": "Clients only see what's switched on"
             }
           },
           "payments": {
-            "question": "Clients pay late, and you send the reminder.",
             "answer": "Connect Mollie in one guided step. Clients pay with iDEAL, after that it runs monthly by itself, and the invoice follows.",
+            "question": "Clients pay late, and you send the reminder.",
             "ticks": {
               "a": "The money goes straight to your account",
               "b": "A payment fails? You and the client hear about it"
             }
           },
           "renewal": {
-            "question": "A membership ends, and nobody noticed.",
             "answer": "Fivvi reminds the client itself, twice, with one-tap renewal. You see it on the client's profile and can always send an offer yourself.",
+            "question": "A membership ends, and nobody noticed.",
             "ticks": {
               "a": "No gap and no overlap when it renews"
             }
-          }
-        }
-      },
-      "studios": {
-        "metaTitle": "Booking system for pilates and yoga studios | Fivvi",
-        "metaDescription": "We're building a timetable clients book themselves, a waitlist that runs by itself and credits that always add up. In your studio's own words.",
-        "eyebrow": "Pilates and yoga studios",
-        "headline": "Your classes are full. Your head isn't.",
-        "lead": "We're building a timetable clients book themselves, credits that always add up and a waitlist that runs by itself. In your studio's own words.",
-        "kind": {
-          "label": "Kind of studio",
-          "pilates": "Pilates",
-          "yoga": "Yoga"
-        },
-        "words": {
-          "pilates": {
-            "who": "instructor",
-            "spots": "Six"
           },
-          "yoga": {
-            "who": "teacher",
-            "spots": "Eighteen"
+          "substitute": {
+            "answer": "Put a substitute on the class and you're done. The same page shows who's coming and who's on the waitlist.",
+            "question": "Tonight's class has lost its trainer.",
+            "ticks": {
+              "a": "Attendance per participant",
+              "b": "Waitlist in order"
+            }
+          },
+          "team": {
+            "answer": "Trainers get their own team access, never a client account. They see their calendar and balances, but no amounts.",
+            "question": "A new trainer. What can they see?",
+            "ticks": {
+              "a": "Change role: trainer or owner",
+              "b": "Someone leaving? You see the next 2 weeks and hand them over"
+            }
           }
         },
         "pains": {
-          "one": "The class is full, and the messages keep coming.",
-          "two": "Ten-class cards on paper or in a spreadsheet.",
-          "three": "Gym software that doesn't understand your studio."
-        },
-        "moments": {
-          "waitlist": {
-            "question": "{spots} spots, and everyone wants half past six.",
-            "answer": "Clients book themselves from the timetable. When the class is full, they get the waitlist, with their position shown.",
-            "ticks": {
-              "a": "Booking always asks for confirmation",
-              "b": "No more messages back and forth"
-            }
-          },
-          "credits": {
-            "question": "How many classes are left on her card?",
-            "answer": "Credits per kind: used, planned and left. The client sees the same as you.",
-            "ticks": {
-              "a": "Group and private credits never mix",
-              "b": "Cancelling in time gives the credit back"
-            }
-          },
-          "substitute": {
-            "question": "Your {who} calls in sick.",
-            "answer": "Put a substitute on the class. Clients keep booking and the class stays on.",
-            "ticks": {
-              "a": "The same page shows who's coming"
-            }
-          },
-          "level": {
-            "question": "Beginners in an advanced class.",
-            "answer": "Give each class a level and a description, in Dutch and English. So everyone picks the right class.",
-            "ticks": {
-              "a": "Beginner, intermediate, advanced or all levels",
-              "b": "Changeable per date"
-            }
-          },
-          "word": {
-            "question": "We don't say trainer.",
-            "answer": "Choose your own word: trainer, instructor, teacher or coach. All of Fivvi then speaks like your studio. And a yoga studio with only classes sees no workout screens.",
-            "ticks": {
-              "a": "Fivvi only shows what you do"
-            }
-          },
-          "poster": {
-            "question": "A new client at the desk. Now what?",
-            "answer": "Print the A4 poster with your QR code, in two languages. Scan, sign up, you approve, done.",
-            "ticks": {
-              "a": "No app needed to book",
-              "b": "In colour or black and white"
-            }
-          }
+          "one": "Trainers share a client login, or work from their own calendar.",
+          "three": "Invoices and direct debits eat up your evening.",
+          "two": "Nobody knows exactly how many sessions a client has left."
         }
       },
       "personalTrainers": {
-        "metaTitle": "Software for personal trainers: calendar and workouts | Fivvi",
-        "metaDescription": "We're building your day, clients, workouts and credits on your phone. Without screens you don't use.",
         "eyebrow": "Personal trainers",
         "headline": "Train your client. Not your admin.",
         "lead": "Soon everything for your sessions on your phone, even in the middle of the floor. Without the group classes or team screens you'd never use.",
-        "pains": {
-          "one": "Your calendar, notes and invoices are all over the place.",
-          "two": "You work out how many sessions a client has left.",
-          "three": "After a long day, the admin is still waiting."
-        },
+        "metaDescription": "We're building your day, clients, workouts and credits on your phone. Without screens you don't use.",
+        "metaTitle": "Software for personal trainers: calendar and workouts | Fivvi",
         "moments": {
-          "today": {
-            "question": "Where do you need to be again?",
-            "answer": "Today shows your day in one line, and below it who, when and where. Working in several places? You'll see today's route.",
-            "ticks": {
-              "a": "Your next free gap is ready to plan"
-            }
-          },
-          "last": {
-            "question": "What did we do last time?",
-            "answer": "Open the client and you see the last workout, what was hard, your own note and progress per exercise.",
-            "ticks": {
-              "a": "Notes are for you only"
-            }
-          },
-          "log": {
-            "question": "You log on paper, or not at all.",
-            "answer": "One row per set with last time's value next to it. Tick it off, and mark how hard each exercise was.",
-            "ticks": {
-              "a": "Made to use with one hand",
-              "b": "Save it as a template for next time"
-            }
-          },
           "credits": {
-            "question": "How many sessions does she have left?",
             "answer": "No sums: before the session you already see if credits are running out, or if a payment is still open.",
+            "question": "How many sessions does she have left?",
             "ticks": {
               "a": "Used, planned and left",
               "b": "Renew with one tap"
             }
           },
           "duo": {
-            "question": "Two friends want to train together.",
             "answer": "A duo session: one trainer, two clients, each with their own workout, credit and attendance.",
+            "question": "Two friends want to train together.",
             "ticks": {
               "a": "Switch between the two while logging"
             }
           },
+          "last": {
+            "answer": "Open the client and you see the last workout, what was hard, your own note and progress per exercise.",
+            "question": "What did we do last time?",
+            "ticks": {
+              "a": "Notes are for you only"
+            }
+          },
+          "log": {
+            "answer": "One row per set with last time's value next to it. Tick it off, and mark how hard each exercise was.",
+            "question": "You log on paper, or not at all.",
+            "ticks": {
+              "a": "Made to use with one hand",
+              "b": "Save it as a template for next time"
+            }
+          },
           "share": {
-            "question": "Your client wants to know what she did today.",
             "answer": "Share the workout with one message. Your client sees every exercise and can redo it on their own.",
+            "question": "Your client wants to know what she did today.",
             "ticks": {
               "a": "No more screenshots in a chat"
             }
+          },
+          "today": {
+            "answer": "Today shows your day in one line, and below it who, when and where. Working in several places? You'll see today's route.",
+            "question": "Where do you need to be again?",
+            "ticks": {
+              "a": "Your next free gap is ready to plan"
+            }
           }
+        },
+        "pains": {
+          "one": "Your calendar, notes and invoices are all over the place.",
+          "three": "After a long day, the admin is still waiting.",
+          "two": "You work out how many sessions a client has left."
         }
       },
-      "clients": {
-        "metaTitle": "Book your class in a few taps | Fivvi for clients",
-        "metaDescription": "Soon you can book, join the waitlist and always see your balance, with the app or just in your browser.",
-        "eyebrow": "And their clients",
-        "headline": "Working out is hard enough. Booking isn't.",
-        "lead": "Soon you can ask your studio or trainer for Fivvi, and book from your phone from then on. Always clear what you've booked and what you have left.",
-        "pains": {
-          "one": "Sending a message to book a class.",
-          "two": "No idea how many classes are left on your card.",
-          "three": "A different app for every studio."
+      "recognise": "Sound familiar?",
+      "studios": {
+        "eyebrow": "Pilates and yoga studios",
+        "headline": "Your classes are full. Your head isn't.",
+        "kind": {
+          "label": "Kind of studio",
+          "pilates": "Pilates",
+          "yoga": "Yoga"
         },
+        "lead": "We're building a timetable clients book themselves, credits that always add up and a waitlist that runs by itself. In your studio's own words.",
+        "metaDescription": "We're building a timetable clients book themselves, a waitlist that runs by itself and credits that always add up. In your studio's own words.",
+        "metaTitle": "Booking system for pilates and yoga studios | Fivvi",
         "moments": {
-          "book": {
-            "question": "Quickly book a class on the train.",
-            "answer": "Open the timetable and tap Book. You don't even need an app: the browser is enough, and the app makes it nicer.",
+          "credits": {
+            "answer": "Credits per kind: used, planned and left. The client sees the same as you.",
+            "question": "How many classes are left on her card?",
             "ticks": {
-              "a": "Sign in with an emailed code, no password"
+              "a": "Group and private credits never mix",
+              "b": "Cancelling in time gives the credit back"
             }
           },
-          "confirm": {
-            "question": "Does this use a credit? How many do I have?",
-            "answer": "Before you confirm, you see the class, the day and the trainer, which credit it uses, how many you'll have left and until when you can cancel for free.",
+          "level": {
+            "answer": "Give each class a level and a description, in Dutch and English. So everyone picks the right class.",
+            "question": "Beginners in an advanced class.",
             "ticks": {
-              "a": "Cancelling in time gives your credit back"
+              "a": "Beginner, intermediate, advanced or all levels",
+              "b": "Changeable per date"
+            }
+          },
+          "poster": {
+            "answer": "Print the A4 poster with your QR code, in two languages. Scan, sign up, you approve, done.",
+            "question": "A new client at the desk. Now what?",
+            "ticks": {
+              "a": "No app needed to book",
+              "b": "In colour or black and white"
+            }
+          },
+          "substitute": {
+            "answer": "Put a substitute on the class. Clients keep booking and the class stays on.",
+            "question": "Your {who} calls in sick.",
+            "ticks": {
+              "a": "The same page shows who's coming"
             }
           },
           "waitlist": {
-            "question": "Full. Of course.",
-            "answer": "Put yourself on the waitlist and see your position right away.",
+            "answer": "Clients book themselves from the timetable. When the class is full, they get the waitlist, with their position shown.",
+            "question": "{spots} spots, and everyone wants half past six.",
             "ticks": {
-              "a": "Leaving the list is fine too"
+              "a": "Booking always asks for confirmation",
+              "b": "No more messages back and forth"
             }
           },
-          "week": {
-            "question": "Am I actually going often enough?",
-            "answer": "This week shows when you went and what's still planned, plus how many weeks in a row you've kept it up.",
+          "word": {
+            "answer": "Choose your own word: trainer, instructor, teacher or coach. All of Fivvi then speaks like your studio. And a yoga studio with only classes sees no workout screens.",
+            "question": "We don't say trainer.",
             "ticks": {
-              "a": "Just facts, no goals someone else made up"
-            }
-          },
-          "self": {
-            "question": "Your trainer's workout, but now in your own gym.",
-            "answer": "Open the shared workout and do it yourself, with your trainer's weights filled in. Adding or removing exercises is fine.",
-            "ticks": {
-              "a": "Only you see this workout"
-            }
-          },
-          "studios": {
-            "question": "Pilates here, yoga there.",
-            "answer": "One account for all your studios. Switch with one tap and see your balance per studio.",
-            "ticks": {
-              "a": "Home and calendar combine all your studios"
-            }
-          },
-          "renew": {
-            "question": "Your credits are almost gone.",
-            "answer": "You get a heads-up in time, and renew in one tap with iDEAL. After that, the notice is gone.",
-            "ticks": {
-              "a": "Your invoice is in your profile"
+              "a": "Fivvi only shows what you do"
             }
           }
+        },
+        "pains": {
+          "one": "The class is full, and the messages keep coming.",
+          "three": "Gym software that doesn't understand your studio.",
+          "two": "Ten-class cards on paper or in a spreadsheet."
+        },
+        "words": {
+          "pilates": {
+            "spots": "Six",
+            "who": "instructor"
+          },
+          "yoga": {
+            "spots": "Eighteen",
+            "who": "teacher"
+          }
+        }
+      }
+    },
+    "cta": {
+      "demo": "Book a demo",
+      "heading": "What does your day look like in Fivvi?",
+      "pricing": "See pricing",
+      "text": "Book a demo. We'll show Fivvi with your kind of business, and you'll know right away if it fits."
+    },
+    "demo": {
+      "errors": {
+        "emailInvalid": "Enter a valid email address, for example name@example.com.",
+        "failed": "Your request wasn't sent. Try again later, or email us at {email}.",
+        "messageTooLong": "Your message is too long. Use at most 2000 characters.",
+        "nameRequired": "Enter your name.",
+        "nameTooLong": "Your name is too long. Use at most 100 characters.",
+        "noConnection": "Your request wasn't sent: there is no connection. Check your internet and try again.",
+        "rateLimited": "Too many requests have been sent right now. Try again later, or email us at {email}."
+      },
+      "eyebrow": "Demo",
+      "form": {
+        "business": "I run",
+        "businessGym": "A gym with a team",
+        "businessPersonalTrainer": "My own PT business",
+        "businessStudio": "A pilates or yoga studio",
+        "client": "A client of a studio? Ask your studio or trainer for Fivvi.",
+        "email": "Your email address",
+        "label": "Request a demo",
+        "message": "What would you most like to see? (optional)",
+        "name": "Your name",
+        "note": "We only use this to reply to you.",
+        "privacyLink": "Read the privacy policy.",
+        "send": "Request a demo",
+        "sending": "Sending…",
+        "sent": "Thank you, your request has been sent. We'll be in touch.",
+        "trainers": "How many trainers?",
+        "trainersFiveOrMore": "5 or more",
+        "trainersOne": "Just me",
+        "trainersTwoToFour": "2 to 4"
+      },
+      "headline": "See Fivvi with your day in it.",
+      "lead": "30 minutes, online. No sales pitch: we show what's ready and how your own working week will look in Fivvi.",
+      "metaDescription": "See what's ready in Fivvi, and how your working week will look, in 30 minutes.",
+      "metaTitle": "Book a demo | Fivvi",
+      "steps": {
+        "fit": {
+          "body": "And if so, how you can join the pilot.",
+          "title": "You know right away if it fits"
+        },
+        "show": {
+          "body": "Gym, studio or personal trainer: you only see what fits you.",
+          "title": "We show your kind of business"
+        },
+        "tell": {
+          "body": "Which apps, lists and messages do you use today?",
+          "title": "You tell us how it works now"
         }
       }
     },
     "footer": {
-      "label": "Footer",
-      "productHeading": "Product",
       "helpHeading": "Help",
+      "label": "Footer",
       "legalHeading": "Legal",
-      "support": "Help and contact",
       "privacy": "Privacy policy",
-      "terms": "Terms of service",
+      "productHeading": "Product",
       "subProcessors": "Sub-processors",
+      "support": "Help and contact",
+      "terms": "Terms of service",
       "tradeName": "{name}, trading as Fivvi"
     },
-    "cta": {
-      "heading": "What does your day look like in Fivvi?",
-      "text": "Book a demo. We'll show Fivvi with your kind of business, and you'll know right away if it fits.",
+    "header": {
       "demo": "Book a demo",
-      "pricing": "See pricing"
+      "menuLabel": "Main menu",
+      "signIn": "Sign in",
+      "skipToContent": "Skip to content"
+    },
+    "home": {
+      "audience": {
+        "client": {
+          "cardTitle": "And their clients",
+          "short": "Soon you book your class in a few taps and always see what's on your balance."
+        },
+        "gym": {
+          "cardTitle": "Gyms with a team",
+          "short": "Soon one calendar for all your trainers, and always a clear view of who still has to pay."
+        },
+        "pt": {
+          "cardTitle": "Personal trainers",
+          "short": "Soon your whole day fits in your pocket: who's coming, what you did last time and what's left."
+        },
+        "studio": {
+          "cardTitle": "Pilates and yoga studios",
+          "short": "Soon full classes, a tidy waitlist and clients who book themselves."
+        }
+      },
+      "chain": {
+        "card": {
+          "again": "Once more",
+          "attend": "Mark attendance (trainer)",
+          "back": "Back",
+          "book": "Book",
+          "class": "Reformer",
+          "confirm": "Confirm booking",
+          "confirmBody": "This uses 1 group credit, leaving you {left}. You can cancel for free up to 12 hours before.",
+          "confirmTitle": "Reformer, tonight 18:00.",
+          "left": "left",
+          "planned": "planned",
+          "say0": "Lisa has {count} group credits left.",
+          "say1": "Booked. One credit is planned and comes back if she cancels in time.",
+          "say2": "Attended. The credit is used, and nobody had to keep track.",
+          "time": "18:00",
+          "title": "Timetable · Reformer",
+          "used": "used",
+          "when": "tonight · 4 spots left"
+        },
+        "eyebrow": "The difference",
+        "heading": "One booking. Everything adds up.",
+        "lead": "Try the sample. It shows how we're building it: book the class and watch what happens by itself.",
+        "statusDone": "Done",
+        "statusLive": "In progress",
+        "steps": {
+          "attendance": {
+            "text": "The trainer ticks her off in the app.",
+            "title": "Attendance"
+          },
+          "balance": {
+            "text": "Lisa and the owner see the same balance.",
+            "title": "Balance"
+          },
+          "booking": {
+            "text": "She books herself, and one credit is planned.",
+            "title": "Booking"
+          },
+          "invoice": {
+            "text": "The invoice follows the payment by itself.",
+            "title": "Invoice"
+          },
+          "pack": {
+            "text": "Lisa buys 10 group credits and pays with iDEAL.",
+            "title": "Credit pack"
+          },
+          "payment": {
+            "text": "The money goes straight to the studio, not through Fivvi.",
+            "title": "Payment"
+          }
+        }
+      },
+      "fictional": "All examples on this site are fictional.",
+      "forWhom": {
+        "eyebrow": "Who it's for",
+        "heading": "Your day looks different. So does Fivvi.",
+        "lead": "We're building Fivvi to show only what you do. An independent trainer never sees group classes. A yoga studio never sees workout screens.",
+        "readDay": "Read their day"
+      },
+      "headline": "You train.",
+      "headlineRest": "Fivvi handles the rest.",
+      "iAm": {
+        "client": "Client",
+        "gym": "Gym with a team",
+        "label": "I am",
+        "pt": "Personal trainer",
+        "studio": "Studio"
+      },
+      "lead": "We're building one place for calendar, bookings, credits, payments and invoices: made for personal trainers, studios and gyms, and a pleasure for their clients.",
+      "onePlace": {
+        "app": "A separate booking and payment app",
+        "calendar": "Calendar app",
+        "documents": "Word documents",
+        "everything": "everything in one place, soon",
+        "eyebrow": "The problem",
+        "fivvi": "Fivvi",
+        "heading": "Your business lives in five places.",
+        "inFivvi": "in Fivvi",
+        "invoices": "Invoices by hand",
+        "lead": "Every separate tool is a place where something can go wrong. In Fivvi everything will be connected, so there will be nothing to retype.",
+        "messages": "Booking by message"
+      },
+      "platforms": {
+        "clients": "Clients",
+        "eyebrow": "Everywhere",
+        "heading": "At home on every screen.",
+        "items": {
+          "clientAndroid": {
+            "text": "The same app, the Android way.",
+            "title": "Fivvi on Android"
+          },
+          "clientBrowser": {
+            "text": "No app needed: book through your studio's link.",
+            "title": "Fivvi in your browser"
+          },
+          "clientIphone": {
+            "text": "Your next class, this week and your balance on one screen.",
+            "title": "Fivvi on iPhone"
+          },
+          "proAndroid": {
+            "text": "Everything the iPhone does, the Android way.",
+            "title": "Fivvi Pro on Android"
+          },
+          "proIphone": {
+            "text": "Your day, clients and workouts, always at hand.",
+            "title": "Fivvi Pro on iPhone"
+          },
+          "proLaptop": {
+            "text": "Offers, trainers, payments and invoices on a big screen, with what needs attention at the top.",
+            "title": "Fivvi on your laptop"
+          }
+        },
+        "lead": "These screens show what we're building. The apps for iPhone and Android are coming, with iOS glass and the Android style, and in your browser you'll find the same calm.",
+        "owners": "Owners and trainers"
+      },
+      "promises": {
+        "eyebrow": "What you can count on",
+        "heading": "Simple, and properly done.",
+        "items": {
+          "amounts": {
+            "text": "A trainer will see clients' balances, but no money. Owners will see the amounts too.",
+            "title": "Trainers won't see amounts"
+          },
+          "cash": {
+            "text": "You'll be able to record a payment outside Fivvi on the client's profile. Skipping Mollie will be possible too; Fivvi will first tell you what you'd miss.",
+            "title": "Cash or card will be fine too"
+          },
+          "languages": {
+            "text": "Everything exists in both languages, and everyone chooses their own.",
+            "title": "Dutch and English"
+          },
+          "money": {
+            "text": "You'll connect your own Mollie account in one guided step. Fivvi will never hold client money.",
+            "title": "The money will go straight to you"
+          },
+          "noApp": {
+            "text": "Clients will join with a link or QR code, their email address and a 6-digit code. No password.",
+            "title": "Clients won't need an app"
+          },
+          "notes": {
+            "text": "Trainer notes will be for trainers only. Clients won't see them.",
+            "title": "Notes will stay with the trainer"
+          }
+        }
+      },
+      "screens": {
+        "appAndroid": "Fivvi on Android: Home with the next class",
+        "appBook": "Fivvi: the timetable with Book on every class",
+        "appConfirm": "Fivvi: confirming a booking, with the credit it uses",
+        "appCredit": "Fivvi: profile with balance per kind",
+        "appHome": "Fivvi: Home with the next class and this week",
+        "appRenew": "Fivvi: a notice to renew",
+        "appSelf": "Fivvi: doing a shared workout yourself",
+        "appStudios": "Fivvi: switching between two studios",
+        "cwTimetable": "Client web: the timetable in the browser",
+        "cwWaitlist": "Client web: on the waitlist, with your position",
+        "cwWaitlistPilates": "Client web: on the waitlist of a full reformer class, with your position",
+        "cwWaitlistYoga": "Client web: on the waitlist of a full yoga class, with your position",
+        "proClassPilates": "Fivvi Pro: a reformer class",
+        "proClassYoga": "Fivvi Pro: a yoga class",
+        "proClient": "Fivvi Pro: client profile with balance, last workout and progress",
+        "proDuo": "Fivvi Pro: a duo session with two clients",
+        "proLog": "Fivvi Pro: logging a workout, set by set",
+        "proSession": "Fivvi Pro: a private session with the client's balance",
+        "proShare": "Fivvi Pro: sharing a workout with the client",
+        "proTodayAndroid": "Fivvi Pro on Android: today's day",
+        "proTodayGym": "Fivvi Pro: the whole studio's day, with a lane per trainer",
+        "proTodayPilates": "Fivvi Pro: a pilates studio's day",
+        "proTodaySolo": "Fivvi Pro: an independent trainer's day",
+        "proTodayYoga": "Fivvi Pro: a yoga studio's day",
+        "webAgenda": "Trainer web: the calendar per trainer",
+        "webClass": "Trainer web: a class on a date with attendance and waitlist",
+        "webClassPilates": "Trainer web: a class on a date with attendance and waitlist",
+        "webClassYoga": "Trainer web: a yoga class on a date",
+        "webClient": "Trainer web: client profile with renewal",
+        "webDashboard": "Trainer web: dashboard with what needs attention",
+        "webJoinPilates": "Trainer web: the A4 poster with the QR code",
+        "webJoinYoga": "Trainer web: the A4 poster with the QR code",
+        "webOffers": "Trainer web: offers",
+        "webPayments": "Trainer web: payments connected",
+        "webTrainers": "Trainer web: trainers and roles"
+      },
+      "seeFor": "See what Fivvi does for you",
+      "status": "Fivvi is being built right now, together with our first gym. Ask in the demo what's ready."
+    },
+    "language": {
+      "enName": "English",
+      "enShort": "EN",
+      "label": "Taal / Language",
+      "nlName": "Nederlands",
+      "nlShort": "NL"
+    },
+    "logo": {
+      "homeLabel": "Fivvi, go to the home page"
+    },
+    "meta": {
+      "breadcrumbHome": "Home",
+      "homeDescription": "Fivvi is being built with its first gym: calendar, bookings, credits, payments and invoices in one place. Book a demo to see what's ready.",
+      "homeTitle": "Fivvi: software for personal trainers, studios and gyms"
+    },
+    "nav": {
+      "clients": "Clients",
+      "gyms": "Gyms",
+      "personalTrainers": "Personal trainers",
+      "pricing": "Pricing",
+      "studios": "Studios"
     },
     "pricing": {
-      "metaTitle": "Pricing | Fivvi",
-      "metaDescription": "Fivvi is free during the pilot. No subscription and no fee per client.",
+      "clients": {
+        "answer": "Only what you charge. The app and the website will be free for them.",
+        "question": "What do my clients pay?"
+      },
+      "currency": "All amounts are in euros. Because you don't pay Fivvi anything right now, there are no payment terms.",
       "eyebrow": "Pricing",
+      "goodToKnow": "Good to know",
       "headline": "Free during the pilot.",
-      "lead": "Fivvi costs nothing right now: no subscription and no fee per client.",
-      "planName": "Fivvi",
-      "price": "€ 0",
-      "period": "during the pilot",
-      "includedLabel": "What will be included, as we build it",
       "included": {
         "calendar": "Calendar, bookings and waitlist",
+        "client": "Fivvi for your clients",
         "memberships": "Memberships, credits and invoices",
         "pro": "Fivvi Pro for you and your trainers",
-        "client": "Fivvi for your clients",
         "workouts": "Logging and sharing workouts, once that's ready"
       },
-      "goodToKnow": "Good to know",
-      "payments": {
-        "question": "What does it cost to take payments?",
-        "answer": "Online payments are coming. To let clients pay online, you'll use your own Mollie account. Mollie charges an amount per payment, at their rates. You'll pay that to Mollie, not to Fivvi. If you only take cash or card, you won't need Mollie."
-      },
-      "clients": {
-        "question": "What do my clients pay?",
-        "answer": "Only what you charge. The app and the website will be free for them."
-      },
+      "includedLabel": "What will be included, as we build it",
       "later": {
-        "question": "And if Fivvi starts charging later?",
-        "answer": "You'll hear at least 60 days in advance. You can then stop for free and take your data with you. You never pay for anything you didn't agree to first."
+        "answer": "You'll hear at least 60 days in advance. You can then stop for free and take your data with you. You never pay for anything you didn't agree to first.",
+        "question": "And if Fivvi starts charging later?"
       },
-      "currency": "All amounts are in euros. Because you don't pay Fivvi anything right now, there are no payment terms."
-    },
-    "support": {
-      "metaTitle": "Help and contact | Fivvi",
-      "metaDescription": "Frequently asked questions and how to reach us.",
-      "eyebrow": "Help",
-      "headline": "Help and contact",
-      "lead": "Feel free to email us. We're happy to help, and we reply within 2 working days.",
-      "contactHeading": "How to reach us",
-      "email": "Email",
-      "privacy": "Privacy",
-      "clientsHeading": "For clients",
-      "ownersHeading": "For owners and trainers",
-      "clientFaq": {
-        "join": {
-          "question": "How do I join my studio?",
-          "answer": "This is coming. Your studio or trainer will give you a link or a QR code. Open it, enter your email address, then the 6-digit code you receive. Your studio approves your request and then you can book."
-        },
-        "noCode": {
-          "question": "I don't get a code. What now?",
-          "answer": "Check your spam and your email address. A code is valid for 15 minutes. After that, just ask for a new one."
-        },
-        "cancel": {
-          "question": "How do I cancel a class?",
-          "answer": "Cancelling is coming. You'll open the class and choose Cancel. If you're in time, you'll get your credit back. Your studio decides how long that's possible."
-        },
-        "invoices": {
-          "question": "Where do I find my invoices?",
-          "answer": "Invoices are coming. You'll find them in Profile, under Invoices, and you'll be able to download them there too."
-        },
-        "deleteAccount": {
-          "question": "How do I delete my account?",
-          "answer": "Email {address} from your account's address with the subject Delete account. We'll do it within one month and let you know."
-        }
+      "lead": "Fivvi costs nothing right now: no subscription and no fee per client.",
+      "metaDescription": "Fivvi is free during the pilot. No subscription and no fee per client.",
+      "metaTitle": "Pricing | Fivvi",
+      "payments": {
+        "answer": "Online payments are coming. To let clients pay online, you'll use your own Mollie account. Mollie charges an amount per payment, at their rates. You'll pay that to Mollie, not to Fivvi. If you only take cash or card, you won't need Mollie.",
+        "question": "What does it cost to take payments?"
       },
-      "ownerFaq": {
-        "payments": {
-          "question": "How do I connect payments?",
-          "answer": "Connecting payments is coming. You'll go to Settings, Payments, Connect payments on your laptop. Mollie checks your details. iDEAL will work first; automatic direct debit takes up to about 3 working days longer."
-        },
-        "mollie": {
-          "question": "Do I have to use Mollie?",
-          "answer": "No. Payments are not in Fivvi yet. Once they are, taking only cash or card will be fine: Fivvi will first tell you what you'd miss, and you can connect Mollie later."
-        },
-        "devices": {
-          "question": "Which devices does Fivvi work on?",
-          "answer": "Fivvi Pro is coming for iPhone and Android. You do the admin in the browser on your laptop, where the first parts are ready. Clients will use the app or their browser."
-        },
-        "data": {
-          "question": "Where is my data stored?",
-          "answer": "The database is in Amsterdam. Some services are from US companies, with the safeguards the law requires. They're listed under Sub-processors. Notes will be for trainers only."
-        }
-      }
+      "period": "during the pilot",
+      "planName": "Fivvi",
+      "price": "€ 0"
     },
     "privacy": {
-      "metaTitle": "Privacy policy | Fivvi",
+      "headline": "Privacy policy",
       "metaDescription": "Which personal data Fivvi processes, why, for how long, and which rights you have.",
-      "headline": "Privacy policy"
-    },
-    "terms": {
-      "metaTitle": "Terms of service | Fivvi",
-      "metaDescription": "The terms for using Fivvi.",
-      "headline": "Terms of service"
+      "metaTitle": "Privacy policy | Fivvi"
     },
     "subProcessors": {
-      "metaTitle": "Sub-processors | Fivvi",
-      "metaDescription": "The services that process data for Fivvi, what for, and where they store it.",
       "headline": "Sub-processors",
       "lead": "These services process data for Fivvi. Railway, Sentry and PostHog are US companies; the privacy policy explains the safeguards. When a new service is added, we tell every studio first.",
       "listLabel": "Fivvi's sub-processors",
-      "service": "Service",
-      "purposeColumn": "What for",
-      "storage": "Stored in",
+      "metaDescription": "The services that process data for Fivvi, what for, and where they store it.",
+      "metaTitle": "Sub-processors | Fivvi",
+      "mollie": "Mollie processes payments under its own agreement with your studio.",
+      "mollieHeading": "Mollie has a separate role",
       "purpose": {
-        "railway": "Hosting the website, apps and database",
         "lettermint": "Emails, such as your sign-in code and confirmations",
-        "zoho": "Our own mailbox for questions, privacy requests and demo requests",
+        "postHog": "Statistics without cookies",
+        "railway": "Hosting the website, apps and database",
         "sentry": "Error reports, without names, email addresses or notes",
-        "postHog": "Statistics without cookies"
+        "zoho": "Our own mailbox for questions, privacy requests and demo requests"
       },
+      "purposeColumn": "What for",
       "region": {
         "amsterdam": "Amsterdam",
         "eu": "EU"
       },
-      "mollieHeading": "Mollie has a separate role",
-      "mollie": "Mollie processes payments under its own agreement with your studio."
+      "service": "Service",
+      "storage": "Stored in"
     },
-    "demo": {
-      "metaTitle": "Book a demo | Fivvi",
-      "metaDescription": "See what's ready in Fivvi, and how your working week will look, in 30 minutes.",
-      "eyebrow": "Demo",
-      "headline": "See Fivvi with your day in it.",
-      "lead": "30 minutes, online. No sales pitch: we show what's ready and how your own working week will look in Fivvi.",
-      "steps": {
-        "tell": {
-          "title": "You tell us how it works now",
-          "body": "Which apps, lists and messages do you use today?"
+    "support": {
+      "clientFaq": {
+        "cancel": {
+          "answer": "Cancelling is coming. You'll open the class and choose Cancel. If you're in time, you'll get your credit back. Your studio decides how long that's possible.",
+          "question": "How do I cancel a class?"
         },
-        "show": {
-          "title": "We show your kind of business",
-          "body": "Gym, studio or personal trainer: you only see what fits you."
+        "deleteAccount": {
+          "answer": "Email {address} from your account's address with the subject Delete account. We'll do it within one month and let you know.",
+          "question": "How do I delete my account?"
         },
-        "fit": {
-          "title": "You know right away if it fits",
-          "body": "And if so, how you can join the pilot."
+        "invoices": {
+          "answer": "Invoices are coming. You'll find them in Profile, under Invoices, and you'll be able to download them there too.",
+          "question": "Where do I find my invoices?"
+        },
+        "join": {
+          "answer": "This is coming. Your studio or trainer will give you a link or a QR code. Open it, enter your email address, then the 6-digit code you receive. Your studio approves your request and then you can book.",
+          "question": "How do I join my studio?"
+        },
+        "noCode": {
+          "answer": "Check your spam and your email address. A code is valid for 15 minutes. After that, just ask for a new one.",
+          "question": "I don't get a code. What now?"
         }
       },
-      "form": {
-        "label": "Request a demo",
-        "name": "Your name",
-        "email": "Your email address",
-        "business": "I run",
-        "businessGym": "A gym with a team",
-        "businessStudio": "A pilates or yoga studio",
-        "businessPersonalTrainer": "My own PT business",
-        "trainers": "How many trainers?",
-        "trainersOne": "Just me",
-        "trainersTwoToFour": "2 to 4",
-        "trainersFiveOrMore": "5 or more",
-        "message": "What would you most like to see? (optional)",
-        "send": "Request a demo",
-        "sending": "Sending…",
-        "note": "We only use this to reply to you.",
-        "privacyLink": "Read the privacy policy.",
-        "sent": "Thank you, your request has been sent. We'll be in touch.",
-        "client": "A client of a studio? Ask your studio or trainer for Fivvi."
+      "clientsHeading": "For clients",
+      "contactHeading": "How to reach us",
+      "email": "Email",
+      "eyebrow": "Help",
+      "headline": "Help and contact",
+      "lead": "Feel free to email us. We're happy to help, and we reply within 2 working days.",
+      "metaDescription": "Frequently asked questions and how to reach us.",
+      "metaTitle": "Help and contact | Fivvi",
+      "ownerFaq": {
+        "data": {
+          "answer": "The database is in Amsterdam. Some services are from US companies, with the safeguards the law requires. They're listed under Sub-processors. Notes will be for trainers only.",
+          "question": "Where is my data stored?"
+        },
+        "devices": {
+          "answer": "Fivvi Pro is coming for iPhone and Android. You do the admin in the browser on your laptop, where the first parts are ready. Clients will use the app or their browser.",
+          "question": "Which devices does Fivvi work on?"
+        },
+        "mollie": {
+          "answer": "No. Payments are not in Fivvi yet. Once they are, taking only cash or card will be fine: Fivvi will first tell you what you'd miss, and you can connect Mollie later.",
+          "question": "Do I have to use Mollie?"
+        },
+        "payments": {
+          "answer": "Connecting payments is coming. You'll go to Settings, Payments, Connect payments on your laptop. Mollie checks your details. iDEAL will work first; automatic direct debit takes up to about 3 working days longer.",
+          "question": "How do I connect payments?"
+        }
       },
-      "errors": {
-        "nameRequired": "Enter your name.",
-        "nameTooLong": "Your name is too long. Use at most 100 characters.",
-        "emailInvalid": "Enter a valid email address, for example name@example.com.",
-        "messageTooLong": "Your message is too long. Use at most 2000 characters.",
-        "rateLimited": "Too many requests have been sent right now. Try again later, or email us at {email}.",
-        "noConnection": "Your request wasn't sent: there is no connection. Check your internet and try again.",
-        "failed": "Your request wasn't sent. Try again later, or email us at {email}."
-      }
+      "ownersHeading": "For owners and trainers",
+      "privacy": "Privacy"
+    },
+    "terms": {
+      "headline": "Terms of service",
+      "metaDescription": "The terms for using Fivvi.",
+      "metaTitle": "Terms of service | Fivvi"
     }
   },
-  "exercises": {
-    "names": {
-      "benchPress": "Bench press",
-      "inclineBenchPress": "Incline bench press",
-      "declineBenchPress": "Decline bench press",
-      "dumbbellBenchPress": "Dumbbell bench press",
-      "inclineDumbbellPress": "Incline dumbbell press",
-      "closeGripBenchPress": "Close-grip bench press",
-      "dumbbellFly": "Dumbbell fly",
-      "cableFly": "Cable fly",
-      "machineChestPress": "Machine chest press",
-      "pecDeck": "Pec deck",
-      "dumbbellPullover": "Dumbbell pullover",
-      "pushUp": "Push-up",
-      "inclinePushUp": "Incline push-up",
-      "kneePushUp": "Knee push-up",
-      "dips": "Dips",
-      "deadlift": "Deadlift",
-      "romanianDeadlift": "Romanian deadlift",
-      "singleLegRomanianDeadlift": "Single-leg Romanian deadlift",
-      "sumoDeadlift": "Sumo deadlift",
-      "trapBarDeadlift": "Trap bar deadlift",
-      "barbellRow": "Barbell row",
-      "dumbbellRow": "Dumbbell row",
-      "seatedCableRow": "Seated cable row",
-      "machineRow": "Machine row",
-      "tBarRow": "T-bar row",
-      "latPulldown": "Lat pulldown",
-      "closeGripLatPulldown": "Close-grip lat pulldown",
-      "straightArmPulldown": "Straight-arm pulldown",
-      "pullUp": "Pull-up",
-      "chinUp": "Chin-up",
-      "assistedPullUp": "Assisted pull-up",
-      "invertedRow": "Inverted row",
-      "backExtension": "Back extension",
-      "goodMorning": "Good morning",
-      "shrug": "Shrug",
-      "superman": "Superman",
-      "facePull": "Face pull",
-      "overheadPress": "Overhead press",
-      "dumbbellShoulderPress": "Dumbbell shoulder press",
-      "machineShoulderPress": "Machine shoulder press",
-      "arnoldPress": "Arnold press",
-      "landminePress": "Landmine press",
-      "lateralRaise": "Lateral raise",
-      "cableLateralRaise": "Cable lateral raise",
-      "frontRaise": "Front raise",
-      "rearDeltFly": "Rear delt fly",
-      "uprightRow": "Upright row",
-      "bicepsCurl": "Biceps curl",
-      "barbellCurl": "Barbell curl",
-      "hammerCurl": "Hammer curl",
-      "preacherCurl": "Preacher curl",
-      "cableCurl": "Cable curl",
-      "tricepsPushdown": "Triceps pushdown",
-      "overheadTricepsExtension": "Overhead triceps extension",
-      "skullCrusher": "Skull crusher",
-      "benchDip": "Bench dip",
-      "wristCurl": "Wrist curl",
-      "farmersWalk": "Farmer's walk",
-      "backSquat": "Back squat",
-      "frontSquat": "Front squat",
-      "gobletSquat": "Goblet squat",
-      "boxSquat": "Box squat",
-      "smithMachineSquat": "Smith machine squat",
-      "bodyweightSquat": "Bodyweight squat",
-      "jumpSquat": "Jump squat",
-      "legPress": "Leg press",
-      "hackSquat": "Hack squat",
-      "lunge": "Lunge",
-      "walkingLunge": "Walking lunge",
-      "reverseLunge": "Reverse lunge",
-      "bulgarianSplitSquat": "Bulgarian split squat",
-      "stepUp": "Step-up",
-      "legExtension": "Leg extension",
-      "lyingLegCurl": "Lying leg curl",
-      "seatedLegCurl": "Seated leg curl",
-      "nordicHamstringCurl": "Nordic hamstring curl",
-      "wallSit": "Wall sit",
-      "hipThrust": "Hip thrust",
-      "gluteBridge": "Glute bridge",
-      "singleLegGluteBridge": "Single-leg glute bridge",
-      "cableGluteKickback": "Cable glute kickback",
-      "hipAbductionMachine": "Hip abduction machine",
-      "hipAdductionMachine": "Hip adduction machine",
-      "copenhagenPlank": "Copenhagen plank",
-      "kettlebellSwing": "Kettlebell swing",
-      "standingCalfRaise": "Standing calf raise",
-      "seatedCalfRaise": "Seated calf raise",
-      "plank": "Plank",
-      "sidePlank": "Side plank",
-      "hollowHold": "Hollow hold",
-      "crunch": "Crunch",
-      "sitUp": "Sit-up",
-      "bicycleCrunch": "Bicycle crunch",
-      "cableCrunch": "Cable crunch",
-      "deadBug": "Dead bug",
-      "birdDog": "Bird dog",
-      "hangingLegRaise": "Hanging leg raise",
-      "lyingLegRaise": "Lying leg raise",
-      "russianTwist": "Russian twist",
-      "abWheelRollout": "Ab wheel rollout",
-      "pallofPress": "Pallof press",
-      "mountainClimber": "Mountain climber",
-      "burpee": "Burpee",
-      "thruster": "Thruster",
-      "powerClean": "Power clean",
-      "turkishGetUp": "Turkish get-up",
-      "wallBall": "Wall ball",
-      "boxJump": "Box jump",
-      "bearCrawl": "Bear crawl",
-      "jumpingJack": "Jumping jack",
-      "highKnees": "High knees",
-      "jumpRope": "Jump rope",
-      "rowingMachine": "Rowing machine",
-      "skiErgometer": "Ski ergometer",
-      "running": "Running",
-      "treadmillRun": "Treadmill run",
-      "walking": "Walking",
-      "inclineWalk": "Incline walk",
-      "stationaryBike": "Stationary bike",
-      "airBike": "Air bike",
-      "elliptical": "Elliptical",
-      "stairClimber": "Stair climber"
+  "team": {
+    "actionsColumn": "Actions",
+    "badge": {
+      "trainer": "Trainer"
     },
-    "muscleGroups": {
-      "chest": "chest",
-      "back": "back",
-      "shoulders": "shoulders",
-      "biceps": "biceps",
-      "triceps": "triceps",
-      "forearms": "forearms",
-      "quadriceps": "quadriceps",
-      "hamstrings": "hamstrings",
-      "glutes": "glutes",
-      "calves": "calves",
-      "adductors": "adductors",
-      "core": "core",
-      "cardio": "cardio",
-      "fullBody": "full body"
-    },
-    "types": {
-      "weightReps": "Weight × reps",
-      "repsOnly": "Reps only",
-      "time": "Time",
-      "distanceTime": "Distance + time"
-    }
-  },
-  "invitation": {
-    "title": "Invitation",
-    "intro": "{inviter} invited you to become a trainer at {workspace}.",
-    "introAnonymous": "You've been invited to become a trainer at {workspace}.",
-    "accept": "Accept",
-    "decline": "Decline",
-    "declined": "You declined the invitation.",
-    "wrongAccount": "This invitation is for {maskedEmail}. Sign out and sign in with that email address.",
-    "signOutAndContinue": "Sign out and continue",
-    "noLongerValid": "This invitation is no longer valid. Ask for a new invitation.",
+    "emailColumn": "Email address",
     "errors": {
-      "noConnection": "No connection. Check your internet and try again.",
-      "generic": "Something went wrong. Try again."
+      "generic": "Something went wrong. Try again.",
+      "lastOwner": "{workspace} needs at least one owner.",
+      "noConnection": "No connection. Check your internet and try again."
+    },
+    "invitations": {
+      "gone": "This invitation is no longer there.",
+      "sendAgain": "Send again",
+      "sentAgain": "Invitation sent again",
+      "status": "Invited",
+      "withdraw": "Withdraw",
+      "withdrawDialog": {
+        "body": "The link in the email to {email} will stop working.",
+        "cancel": "Back",
+        "confirm": "Withdraw",
+        "title": "Withdraw invitation?"
+      },
+      "withdrawn": "Invitation to {name} withdrawn."
+    },
+    "invite": {
+      "alreadyInvited": "An invitation to this email address is already open.",
+      "alreadyOnTeam": "{name} is already on the team.",
+      "cancel": "Cancel",
+      "description": "We'll email an invitation to this address.",
+      "emailLabel": "Email address",
+      "errors": {
+        "emailInvalid": "Enter a valid email address.",
+        "emailRequired": "Enter an email address.",
+        "nameRequired": "Enter a name.",
+        "nameTooLong": "This name is too long. Use at most 120 characters.",
+        "notSent": "Not sent. Check your connection and try again.",
+        "tooMany": "You've already sent 20 invitations in the last 24 hours. Try again later."
+      },
+      "localeDefault": "Workspace default ({language})",
+      "localeEn": "English",
+      "localeLabel": "Language of the email",
+      "localeNl": "Nederlands",
+      "nameLabel": "Name",
+      "sendAgain": "Send again",
+      "sent": "Invitation sent to {name}.",
+      "submit": "Send",
+      "title": "Invite trainer"
+    },
+    "makeOwnerDialog": {
+      "body": "An owner can do everything in {workspace}, including the team, the settings and the money.",
+      "cancel": "Cancel",
+      "confirm": "Make owner",
+      "title": "Make {name} an owner?"
+    },
+    "nameColumn": "Name",
+    "remove": "Remove from team",
+    "removeDialog": {
+      "body": "{name} will no longer have access to {workspace} as a trainer. What {name} has as a client, such as bookings, stays.",
+      "cancel": "Cancel",
+      "confirm": "Remove",
+      "title": "Remove {name} from the team?"
+    },
+    "removed": "{name} has been removed from the team.",
+    "roleChanged": {
+      "owner": "{name} is now an owner.",
+      "trainer": "{name} is now a trainer."
+    },
+    "roleColumn": "Role",
+    "roleMenu": "Role of {name}",
+    "stepDownDialog": {
+      "body": "You will no longer be an owner of {workspace}.",
+      "cancel": "Cancel",
+      "confirm": "Make trainer",
+      "title": "Make yourself a trainer?"
+    },
+    "title": "Trainers"
+  },
+  "trainerWord": {
+    "coach": {
+      "aWord": "a coach",
+      "aWordCap": "A coach",
+      "word": "coach",
+      "wordCap": "Coach",
+      "words": "coaches",
+      "wordsCap": "Coaches"
+    },
+    "docent": {
+      "aWord": "a teacher",
+      "aWordCap": "A teacher",
+      "word": "teacher",
+      "wordCap": "Teacher",
+      "words": "teachers",
+      "wordsCap": "Teachers"
+    },
+    "instructeur": {
+      "aWord": "an instructor",
+      "aWordCap": "An instructor",
+      "word": "instructor",
+      "wordCap": "Instructor",
+      "words": "instructors",
+      "wordsCap": "Instructors"
+    },
+    "trainer": {
+      "aWord": "a trainer",
+      "aWordCap": "A trainer",
+      "word": "trainer",
+      "wordCap": "Trainer",
+      "words": "trainers",
+      "wordsCap": "Trainers"
     }
+  },
+  "userMenu": {
+    "error": "Your language wasn't saved. Try again.",
+    "label": "User menu",
+    "language": "Language: {language}",
+    "languageEn": "English",
+    "languageNl": "Nederlands",
+    "profile": "My profile"
+  },
+  "welcome": {
+    "description": "One more step: tell us the name of your gym or business.",
+    "errors": {
+      "generic": "Something went wrong. Try again.",
+      "noConnection": "No connection. Check your internet and try again.",
+      "personNameRequired": "Enter your name.",
+      "personNameTooLong": "Your name is too long. Use a shorter one.",
+      "workspaceNameRequired": "Enter the name of your gym or business.",
+      "workspaceNameTooLong": "This name is too long. Use a shorter one."
+    },
+    "personNameLabel": "Your name",
+    "submit": "Get started",
+    "title": "Welcome to Fivvi",
+    "workspaceNameHint": "For example John's Gym",
+    "workspaceNameLabel": "Name of your gym or business"
+  },
+  "workspaceHome": {
+    "description": "The overview of your gym or business will appear here soon."
+  },
+  "workspaceNav": {
+    "classes": "Classes",
+    "clients": "Clients",
+    "joinLink": "Join link",
+    "label": "Main navigation",
+    "myCalendar": "My calendar",
+    "myDay": "My day",
+    "new": "New",
+    "newClient": "Client",
+    "newGroupClass": "Group class",
+    "newMenu": "Create new",
+    "newPrivateSession": "Private session",
+    "personal": "Personal",
+    "settings": "Settings",
+    "settingsGeneral": "General",
+    "settingsLanguage": "Language",
+    "settingsLocation": "Location",
+    "trainers": "Trainers",
+    "workspaceWithRole": "{name} · {role}"
+  },
+  "workspaceSwitcher": {
+    "newWorkspace": "+ New workspace"
   }
 }

@@ -243,6 +243,50 @@ describe('flow phase from the code', () => {
     assert.equal(phaseOf(pr({ risk: null })), 'in-review', 'unknown risk waits for the owner');
   });
 
+  it('ADR-035 merge direct: the next step says squash-merge, not the merge queue; no setting (or queue) keeps the queue texts', () => {
+    const low = (merge) =>
+      decide(issue({ ...(merge ? { merge } : {}), branches: [branch(pr({ risk: 'low' }))] }));
+    assert.match(low('queue').next, /adds the PR to the merge queue/);
+    assert.match(low().next, /adds the PR to the merge queue/);
+    const direct = low('direct');
+    assert.equal(direct.phase, 'ready-to-merge');
+    assert.match(
+      direct.next,
+      /^Low-risk: scripts\/pr\.sh merge in the worktree\. It squash-merges the PR/,
+    );
+    assert.doesNotMatch(direct.next, /merge queue/);
+    assert.match(direct.next, /scripts\/flow\.sh finish 57/);
+    const high = decide(
+      issue({
+        merge: 'direct',
+        branches: [branch(pr({ risk: 'high', risk_reasons: ['auth'] }))],
+      }),
+    );
+    assert.match(high.next, /records the high-risk merge in the PR body and squash-merges the PR/);
+    assert.doesNotMatch(high.next, /merge queue/);
+  });
+
+  it('ADR-035 merge direct: an owner-only PR is merged by the owner on GitHub, not added to a queue', () => {
+    const owner = (merge, extra = {}) =>
+      decide(
+        issue({
+          merge,
+          branches: [branch(pr({ risk: 'owner', risk_reasons: ['guardrails'], ...extra }))],
+        }),
+      );
+    assert.match(owner('queue').next, /adds it to the merge queue/);
+    assert.doesNotMatch(owner('direct').next, /merge queue/);
+    assert.match(owner('direct').next, /Nothing to do/);
+    const approved = owner('direct', { review: 'APPROVED' });
+    assert.equal(approved.phase, 'approved');
+    assert.match(approved.next, /the owner merges it on GitHub/);
+    assert.doesNotMatch(approved.next, /merge queue/);
+    assert.match(
+      owner('queue', { review: 'APPROVED' }).next,
+      /adds it to the merge queue on GitHub/,
+    );
+  });
+
   it('ADR-021: a high-risk PR the merge gate refused on its head commit waits for the owner, like a low-risk one', () => {
     const head = 'c'.repeat(40);
     const refused = pr({
@@ -255,6 +299,30 @@ describe('flow phase from the code', () => {
       phaseOf({ ...refused, refusal: { sha: 'b'.repeat(40), reasons: 'x' } }),
       'ready-to-merge',
     );
+  });
+
+  it('#1274: a PR whose refresh stayed with the owner is merge-refused until the hold is cleared, a refresh push does not clear it', () => {
+    const head = 'd'.repeat(40);
+    const held = (risk, overrides = {}) =>
+      pr({ risk, head, held: 'the last review was not clean', ...overrides });
+
+    for (const risk of ['low', 'high']) {
+      const waiting = decide(issue({ branches: [branch(held(risk))] }));
+      assert.equal(waiting.phase, 'merge-refused', risk);
+      assert.match(
+        waiting.next,
+        /^A refresh of main was merged into it and it stays with the owner: the last review was not clean\. The owner decides, or fix it, push \(scripts\/pr\.sh create\)/,
+      );
+      assert.match(waiting.next, /never run scripts\/pr\.sh merge on it/);
+    }
+    // A refusal of an older head (stale after the refresh push) does not matter: the hold does.
+    assert.equal(
+      phaseOf(held('low', { refusal: { sha: 'b'.repeat(40), reasons: 'x' } })),
+      'merge-refused',
+    );
+    // No hold, or a cleared one (null), is what it was before.
+    assert.equal(phaseOf(held('low', { held: null })), 'ready-to-merge');
+    assert.equal(phaseOf(pr({ risk: 'low', head })), 'ready-to-merge');
   });
 
   it('leaves a low-risk PR the merge gate refused on its head commit to the owner', () => {
@@ -664,6 +732,83 @@ describe('flow phase of a spec', () => {
     );
     assert.equal(decision.phase, 'complete');
     assert.match(decision.next, /scripts\/issue\.sh close 50/);
+  });
+
+  // ADR-034: with review split, a spec whose tickets are all closed waits for a clean final spec review.
+  describe('ADR-034: the spec-review phase', () => {
+    const closed = [child(51, { state: 'CLOSED' }), child(52, { state: 'CLOSED' })];
+    const covered = { covered: true, detail: 'covered' };
+    const notCovered = {
+      covered: false,
+      detail:
+        'not covered: PR #61 merged after the last clean final spec review (2026-11-18T09:00:00Z)',
+    };
+
+    it('is spec-review while split and no final review covers the spec, and says to run it', () => {
+      for (const spec_review of [notCovered, null]) {
+        const decision = decide(spec({ children: closed, review: 'split', spec_review }));
+        assert.equal(decision.phase, 'spec-review');
+        assert.match(decision.next, /All 2 tickets are done/);
+        assert.match(decision.next, /final spec review/);
+        assert.match(decision.next, /scripts\/spec-review\.sh map 50/);
+        assert.match(
+          decision.next,
+          /scripts\/spec-review\.sh record 50 --final clean\|not-clean --sha <the origin\/main SHA named in the brief>/,
+        );
+        assert.match(decision.next, /at that SHA, the origin\/main SHA named in the brief/);
+        assert.doesNotMatch(decision.next, /the code on origin\/main/);
+        assert.match(decision.next, /scripts\/issue\.sh create bug --parent 50/);
+      }
+    });
+
+    it('names why the review does not cover the spec yet', () => {
+      const decision = decide(spec({ children: closed, review: 'split', spec_review: notCovered }));
+      assert.match(decision.next, /PR #61 merged after the last clean final spec review/);
+    });
+
+    it('is complete once a final review covers it', () => {
+      const decision = decide(spec({ children: closed, review: 'split', spec_review: covered }));
+      assert.equal(decision.phase, 'complete');
+      assert.match(decision.next, /scripts\/issue\.sh close 50/);
+    });
+
+    it('is complete as before with per-pr, whatever the review record says', () => {
+      for (const spec_review of [undefined, null, notCovered, covered]) {
+        const decision = decide(spec({ children: closed, review: 'per-pr', spec_review }));
+        assert.equal(decision.phase, 'complete', JSON.stringify(spec_review));
+      }
+      assert.equal(decide(spec({ children: closed })).phase, 'complete');
+    });
+
+    it('fails closed: any setting but per-pr asks for the review', () => {
+      // flow.sh reads the setting with pipeline.sh, which dies on anything but split or per-pr; the phase still never
+      // reads an unknown one as "skip the review".
+      assert.equal(decide(spec({ children: closed, review: 'none' })).phase, 'spec-review');
+    });
+
+    it('a bug ticket under the spec reopens it: it is building again, as any open sub-issue does', () => {
+      const bug = child(53, { labels: ['bug', 'ready-for-agent'] });
+      const decision = decide(
+        spec({ children: [...closed, bug], review: 'split', spec_review: covered }),
+      );
+      assert.equal(decision.phase, 'building');
+      assert.match(decision.next, /3 tickets? .*open|1 of 3 tickets open\. Ready now: #53/);
+    });
+
+    it('while any ticket is open it is building, not spec-review', () => {
+      const decision = decide(
+        spec({ children: [closed[0], child(52)], review: 'split', spec_review: notCovered }),
+      );
+      assert.equal(decision.phase, 'building');
+    });
+
+    it('does not change a closed spec or a spec without tickets', () => {
+      assert.equal(
+        decide(spec({ state: 'CLOSED', children: closed, review: 'split' })).phase,
+        'done',
+      );
+      assert.equal(decide(spec({ review: 'split' })).phase, 'needs-tickets');
+    });
   });
 
   it('builds a spec without tickets as its own ticket once it is ready-for-agent', () => {

@@ -1,9 +1,12 @@
 # SwiftLint for the iOS apps and the packages they share (E008, E017). scripts/test-ios.sh (`pnpm test:ios`, CI) runs it with --strict.
 included:
   - FivviPro
+  - Fivvi
   - Packages
   - FivviProTests
   - FivviProUITests
+  - FivviTests
+  - FivviUITests
 excluded:
   - .build
   - Packages/*/.build
@@ -35,7 +38,7 @@ custom_rules:
   no_colour_literal:
     name: No colour literal
     message: Colours come from the design tokens (Tokens.Colors in FivviDesignTokens), not a literal or system colour
-    excluded: '/FivviPro(UI)?Tests/'
+    excluded: '/Fivvi(Pro)?(UI)?Tests/'
     regex: '#colorLiteral\s*\(|\b(Color|UIColor|CGColor)\s*(\.\s*init\s*)?\(|\.init\s*\(\s*(red|hue|white|uiColor|cgColor|\.sRGB|\.sRGBLinear|\.displayP3)\b|\b(Color|UIColor)\s*\.\s*(?!clear\b)[a-z]\w*|([(\[,:?{]|(?<![=!<>])=|\breturn)\s*\.(black|blue|brown|cyan|gray|green|indigo|mint|orange|pink|purple|red|teal|white|yellow|primary|secondary|tertiary|quaternary|quinary|separator|background|foreground|selection|accentColor)\b'
     excluded_match_kinds:
       - comment
@@ -67,7 +70,7 @@ custom_rules:
   no_direct_sentry:
     name: No direct Sentry
     message: Only Packages/FivviShared/Sources/FivviObservability/ talks to Sentry (sentry-cocoa); report through ErrorReporting
-    excluded: '/Packages/FivviShared/Sources/FivviObservability/|/FivviProTests/(Support/)?Observability\w*\.swift$'
+    excluded: '/Packages/FivviShared/Sources/FivviObservability/|/Fivvi(Pro)?Tests/(Support/)?Observability\w*\.swift$'
     regex: '\bimport\s+(@\w+\s+)*((struct|class|enum|protocol|typealias|func|let|var)\s+)?Sentry\w*\b|\bSentrySDK\b'
     excluded_match_kinds:
       - comment

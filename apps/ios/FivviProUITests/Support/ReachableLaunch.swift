@@ -50,12 +50,13 @@ enum ReachableLaunch {
     @MainActor
     @discardableResult
     static func launch(_ app: XCUIApplication) -> Int? {
-        launch(
+        AppLifecycle.stop(app) // the previous test's app: launch() would terminate it itself, and may time out there
+        return launch(
             attempts: attempts,
-            launch: { app.launch() },
+            launch: { AppLifecycle.start(app) },
             isReachable: { Polling.until(timeout: probeTimeout, interval: 0.5) { (try? app.snapshot()) != nil } },
             isRunning: { app.state != .notRunning },
-            terminate: { app.terminate() },
+            terminate: { AppLifecycle.stop(app) },
             report: { attempt, total in
                 XCTContext.runActivity(named: warning(attempt: attempt, of: total)) { _ in }
             }
