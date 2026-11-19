@@ -55,6 +55,10 @@ export const APP_TABLE_PRIVILEGES: Readonly<Record<string, readonly Privilege[]>
   payment_refunds: ALL,
   payment_refund_status_changes: ALL,
   payment_chargebacks: ALL,
+  // Payouts and their lines (F061): the status lines are append-only by a trigger, not by privilege.
+  payouts: ALL,
+  payout_status_changes: ALL,
+  payout_lines: ALL,
   // Offers (F052): the versions are immutable by a trigger, not by privilege, so the isolation
   // suite can aim updates and deletes at other workspaces' rows.
   offers: ALL,
