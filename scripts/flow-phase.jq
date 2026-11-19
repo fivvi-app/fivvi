@@ -3,6 +3,8 @@
 #         parent: null|{number, title, state, labels, open, total}, blockers: [{number, title}],
 #         fixed_blockers: [{number, title, closed_at}],
 #         children: [{number, title, state, labels, assignees, blocked}],
+#         merge: "queue"|"direct" (scripts/pipeline.sh get merge, ADR-035; absent means queue: only the next-step texts change,
+#         the phases queued and queue-removed just do not occur with direct),
 #         review: "split"|"per-pr" (scripts/pipeline.sh get review; absent means per-pr, read only for a spec whose tickets are
 #         all closed), spec_review: null|{covered, detail} (scripts/spec-review.sh status, read only while review is split),
 #         branches: [{name, local, worktree, dirty,
@@ -87,12 +89,17 @@ def owner_review:
   if .risk == "owner" then "Owner-only (\(.risk_reasons // [] | join("; "))): the owner reviews"
   else "Risk unknown: the owner reviews" end;
 
+def direct_merge: (.merge // "queue") == "direct";
+
 def merge_next($n):
-  (if .pr.risk == "high" then "High-risk (\(.pr.risk_reasons // [] | join("; "))): scripts/pr.sh merge in the worktree. It records the high-risk merge in the PR body and adds the PR to the merge queue"
+  (if direct_merge then
+     (if .pr.risk == "high" then "High-risk (\(.pr.risk_reasons // [] | join("; "))): scripts/pr.sh merge in the worktree. It records the high-risk merge in the PR body and squash-merges the PR"
+      else "Low-risk: scripts/pr.sh merge in the worktree. It squash-merges the PR" end)
+   elif .pr.risk == "high" then "High-risk (\(.pr.risk_reasons // [] | join("; "))): scripts/pr.sh merge in the worktree. It records the high-risk merge in the PR body and adds the PR to the merge queue"
    else "Low-risk: scripts/pr.sh merge in the worktree. It adds the PR to the merge queue" end)
   + " only when the whole merge gate holds; otherwise the PR stays for the owner. Then scripts/flow.sh status \($n) until GitHub has merged it, and scripts/flow.sh finish \($n).";
 
-# Input: {phase, pr, blockers, bug} of the least advanced branch (blockers: the open ones, bug: the one closed last, as
+# Input: {phase, pr, blockers, bug, merge} of the least advanced branch (blockers: the open ones, bug: the one closed last, as
 # a number, for a removed PR).
 def code_next($n):
   {
@@ -117,8 +124,8 @@ def code_next($n):
       else
         "A refresh of main was merged into it and it stays with the owner: \(.pr.held). The owner decides, or fix it, push (scripts/pr.sh create) and have a clean review of the fix recorded (`reviewed <sha> (...): clean` in the notes), which ends the hold; the push of the merge commit does not. Report and stop; never run scripts/pr.sh merge on it before."
       end),
-    "in-review": "\(.pr | owner_review) and adds it to the merge queue. Nothing to do.",
-    "approved": "Approved. \(.pr | owner_review | sub(": the owner reviews"; "")): the owner adds it to the merge queue on GitHub; then scripts/flow.sh finish \($n).",
+    "in-review": (if direct_merge then "\(.pr | owner_review) and merges it on GitHub. Nothing to do." else "\(.pr | owner_review) and adds it to the merge queue. Nothing to do." end),
+    "approved": (if direct_merge then "Approved. \(.pr | owner_review | sub(": the owner reviews"; "")): the owner merges it on GitHub; then scripts/flow.sh finish \($n)." else "Approved. \(.pr | owner_review | sub(": the owner reviews"; "")): the owner adds it to the merge queue on GitHub; then scripts/flow.sh finish \($n)." end),
     "merged": "scripts/flow.sh finish \($n)",
     "abandoned": "The PR was closed without merging. Ask the user what to do."
   }[.phase];
@@ -170,7 +177,7 @@ def ticket_phase($n):
      else {phase: "waiting", next: "Waiting for the owner to answer the question on the issue (needs-info). Report and stop."} end
    elif ($code | length) > 0
       and (($f | open) or any($code[]; .local or .worktree != null) or any($code[]; .pr.state == "OPEN"))
-   then {phase: $code[0].phase, next: ($code[0] | code_next($n))}
+   then {phase: $code[0].phase, next: ($code[0] + {merge: ($f.merge // "queue")} | code_next($n))}
         + (if $code[0].bug != null then {bug: $code[0].bug} else {} end)
    elif ($f | open | not) then {phase: "done", next: "Nothing to do."}
    elif ($f.blockers | length) > 0 and ($f | awaiting_tickets | not) then

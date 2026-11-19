@@ -257,6 +257,10 @@ fixed_blockers() {
 # or broken file never reads as either.
 review_setting() { "$ROOT/scripts/pipeline.sh" get review || die "could not read the review setting (scripts/pipeline.sh get review)"; }
 
+# The merge setting of ADR-035 (scripts/pipeline.sh get merge): queue or direct. It only words the next step of a PR, so a
+# setting that can't be read is the merge queue, the wording before ADR-035.
+merge_setting() { "$ROOT/scripts/pipeline.sh" get merge 2>/dev/null || echo queue; }
+
 # The spec-review facts of spec $1 whose tickets are all closed (ADR-034): `<setting> <covered|not-covered> <detail>`,
 # for facts() as JSON {review, spec_review}. Only a spec in that state costs the reads; spec_review is null with per-pr.
 spec_review_facts() {
@@ -299,13 +303,13 @@ facts() {
     review="$(spec_review_facts "$n")" || exit 1
   fi
   jq --arg me "$login" --argjson parent "$parent" --argjson children "$children" --argjson branches "$branches" \
-    --argjson fixed "$fixed" --argjson review "$review" "$ANSWERED_JQ"'{
+    --argjson fixed "$fixed" --argjson review "$review" --arg merge "$(merge_setting)" "$ANSWERED_JQ"'{
     number, title, state, me: $me, answered: answered,
     labels: [.labels[].name], assignees: [.assignees[].login],
     described: ((.body // "") | gsub("\\s"; "") | length > 0),
     has_criteria: ((.body // "") | test("(^|\\n)#+\\s*acceptance criteria|(^|\\n)\\s*- \\[[ x]\\]"; "i")),
     parent: $parent, children: $children, branches: $branches,
-    blockers: [.blockedBy.nodes[] | select(.state == "OPEN") | {number, title}], fixed_blockers: $fixed} + $review' <<<"$item"
+    blockers: [.blockedBy.nodes[] | select(.state == "OPEN") | {number, title}], fixed_blockers: $fixed, merge: $merge} + $review' <<<"$item"
 }
 
 render() {

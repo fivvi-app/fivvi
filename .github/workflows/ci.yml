@@ -172,6 +172,8 @@ jobs:
           integration_tests="$(scripts/pipeline.sh integration-tests --event "$EVENT")"
           if [[ "$integration_tests" == 'false' ]]; then
             integration_reason="ci is $ci_mode (.github/pipeline.json), so they run in the nightly run only"
+          elif [[ "$ci_mode" == 'lean' && "$EVENT" == 'schedule' ]]; then
+            integration_reason="the nightly run (schedule) runs them, every night"
           elif [[ "$ci_mode" == 'lean' ]]; then
             integration_reason="$EVENT runs everything"
           else

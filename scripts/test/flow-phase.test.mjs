@@ -243,6 +243,50 @@ describe('flow phase from the code', () => {
     assert.equal(phaseOf(pr({ risk: null })), 'in-review', 'unknown risk waits for the owner');
   });
 
+  it('ADR-035 merge direct: the next step says squash-merge, not the merge queue; no setting (or queue) keeps the queue texts', () => {
+    const low = (merge) =>
+      decide(issue({ ...(merge ? { merge } : {}), branches: [branch(pr({ risk: 'low' }))] }));
+    assert.match(low('queue').next, /adds the PR to the merge queue/);
+    assert.match(low().next, /adds the PR to the merge queue/);
+    const direct = low('direct');
+    assert.equal(direct.phase, 'ready-to-merge');
+    assert.match(
+      direct.next,
+      /^Low-risk: scripts\/pr\.sh merge in the worktree\. It squash-merges the PR/,
+    );
+    assert.doesNotMatch(direct.next, /merge queue/);
+    assert.match(direct.next, /scripts\/flow\.sh finish 57/);
+    const high = decide(
+      issue({
+        merge: 'direct',
+        branches: [branch(pr({ risk: 'high', risk_reasons: ['auth'] }))],
+      }),
+    );
+    assert.match(high.next, /records the high-risk merge in the PR body and squash-merges the PR/);
+    assert.doesNotMatch(high.next, /merge queue/);
+  });
+
+  it('ADR-035 merge direct: an owner-only PR is merged by the owner on GitHub, not added to a queue', () => {
+    const owner = (merge, extra = {}) =>
+      decide(
+        issue({
+          merge,
+          branches: [branch(pr({ risk: 'owner', risk_reasons: ['guardrails'], ...extra }))],
+        }),
+      );
+    assert.match(owner('queue').next, /adds it to the merge queue/);
+    assert.doesNotMatch(owner('direct').next, /merge queue/);
+    assert.match(owner('direct').next, /Nothing to do/);
+    const approved = owner('direct', { review: 'APPROVED' });
+    assert.equal(approved.phase, 'approved');
+    assert.match(approved.next, /the owner merges it on GitHub/);
+    assert.doesNotMatch(approved.next, /merge queue/);
+    assert.match(
+      owner('queue', { review: 'APPROVED' }).next,
+      /adds it to the merge queue on GitHub/,
+    );
+  });
+
   it('ADR-021: a high-risk PR the merge gate refused on its head commit waits for the owner, like a low-risk one', () => {
     const head = 'c'.repeat(40);
     const refused = pr({

@@ -36,6 +36,28 @@ describe('pipeline.sh (ADR-034, ADR-035)', () => {
     }
   });
 
+  it('merge is queue or direct, and fails closed otherwise (ADR-035)', () => {
+    for (const merge of ['queue', 'direct']) {
+      const r = run(['get', 'merge'], { ci: 'lean', review: 'split', builders: 1, merge });
+      assert.equal(r.status, 0, r.stderr);
+      assert.equal(r.stdout, `${merge}\n`);
+    }
+    for (const [content, message] of [
+      [{ ci: 'lean', review: 'split', builders: 1 }, /has no 'merge' setting/],
+      [{ ci: 'lean', review: 'split', builders: 1, merge: 'Direct' }, /'merge' is 'Direct'/],
+      [{ ci: 'lean', review: 'split', builders: 1, merge: 'none' }, /'merge' is 'none'/],
+      [{ ci: 'lean', review: 'split', builders: 1, merge: true }, /has no 'merge' setting/],
+      [{ ci: 'lean', review: 'split', builders: 1, merge: null }, /has no 'merge' setting/],
+      ['not json', /has no 'merge' setting/],
+      [undefined, /no .*pipeline\.json/],
+    ]) {
+      const r = run(['get', 'merge'], content);
+      assert.notEqual(r.status, 0, JSON.stringify(content));
+      assert.match(r.stderr, message);
+      assert.equal(r.stdout, '');
+    }
+  });
+
   it('builders is a positive integer, and fails closed otherwise (ADR-035)', () => {
     for (const [content, message] of [
       [{ ci: 'lean', review: 'split' }, /has no 'builders' setting/],
@@ -171,7 +193,9 @@ describe('pipeline.sh (ADR-034, ADR-035)', () => {
     const header = readFileSync(SCRIPT, 'utf8').split('\nset -euo')[0];
     assert.match(header, /^# +pipeline\.sh ui-tests --event <event>/m);
     assert.match(header, /^# +pipeline\.sh integration-tests --event <event>/m);
-    assert.match(header, /^# +pipeline\.sh get ci\|review\|builders/m);
+    assert.match(header, /^# +pipeline\.sh get ci\|review\|builders\|merge/m);
+    assert.match(header, /^# +merge +queue /m);
+    assert.match(header, /^# +direct /m);
     assert.match(header, /^# +ci +lean /m);
     assert.match(header, /^# +builders /m);
   });
@@ -180,7 +204,8 @@ describe('pipeline.sh (ADR-034, ADR-035)', () => {
     const committed = JSON.parse(
       readFileSync(join(import.meta.dirname, '..', '..', '.github', 'pipeline.json'), 'utf8'),
     );
-    assert.deepEqual(Object.keys(committed).sort(), ['builders', 'ci', 'review']);
+    assert.deepEqual(Object.keys(committed).sort(), ['builders', 'ci', 'merge', 'review']);
+    assert.ok(['queue', 'direct'].includes(committed.merge));
     assert.ok(['lean', 'fast', 'full'].includes(committed.ci));
     assert.ok(['split', 'per-pr'].includes(committed.review));
     assert.ok(Number.isInteger(committed.builders) && committed.builders >= 1);

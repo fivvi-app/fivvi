@@ -10,7 +10,7 @@
 //       it they are null and a warning goes to stderr. --projects is the folder of Claude Code's projects (default
 //       $CLAUDE_CONFIG_DIR/projects or ~/.claude/projects), --root the repo whose sessions to read (default: this repo)
 //       The `flow` section is read from GitHub for the same window (without --since: the 28 days before --until):
-//       settings   .github/pipeline.json on main at the window's start and end (git show; absent = full, per-pr and 4 builders),
+//       settings   .github/pipeline.json on main at the window's start and end (git show; absent = full, per-pr, 4 builders and the merge queue),
 //                  with a warning when it changed inside the window; --git is the repo to read it from (default: this one)
 //       time       merged PRs: issue opened → first commit → PR opened → ready → first queued → merged, in hours
 //                  (median, p90), tickets merged per day, spec created → spec-approved → first ticket → closed
@@ -633,8 +633,8 @@ const earliest = (list) => {
 };
 
 // The pipeline switch (.github/pipeline.json, ADR-034, ADR-035) on main at a commit; a missing file or key is the full flow,
-// and a main from before `builders` ran up to 4 builders (ADR-033).
-const PIPELINE_DEFAULT = { ci: 'full', review: 'per-pr', builders: 4 };
+// a main from before `builders` ran up to 4 builders (ADR-033) and one from before `merge` used the merge queue (ADR-018).
+const PIPELINE_DEFAULT = { ci: 'full', review: 'per-pr', builders: 4, merge: 'queue' };
 const git = (dir, args) =>
   execFileSync('git', ['-C', dir, ...args], {
     encoding: 'utf8',
@@ -664,9 +664,10 @@ const pipelineAt = (dir, sha) => {
       Number.isInteger(file?.builders) && file.builders >= 1
         ? file.builders
         : PIPELINE_DEFAULT.builders,
+    merge: ['queue', 'direct'].includes(file?.merge) ? file.merge : PIPELINE_DEFAULT.merge,
   };
 };
-const labelOf = (s) => `ci ${s.ci}, review ${s.review}, builders ${s.builders}`;
+const labelOf = (s) => `ci ${s.ci}, review ${s.review}, builders ${s.builders}, merge ${s.merge}`;
 
 export const settingsOf = (dir, from, to) => {
   const warnings = [];
@@ -1275,10 +1276,12 @@ const SPEC_TIMES = [
   ['createdToClosed', 'spec created → closed'],
 ];
 
-// Snapshots from before ADR-035 have no builders: the text leaves them out.
+// Snapshots from before ADR-035 have no builders and no merge: the text leaves them out.
 const settingText = (s) =>
   s
-    ? `ci ${s.ci}, review ${s.review}${s.builders === undefined ? '' : `, builders ${s.builders}`}`
+    ? `ci ${s.ci}, review ${s.review}${s.builders === undefined ? '' : `, builders ${s.builders}`}${
+        s.merge === undefined ? '' : `, merge ${s.merge}`
+      }`
     : 'unknown';
 
 // The flow section of two snapshots, before → after (only when one of them has it).

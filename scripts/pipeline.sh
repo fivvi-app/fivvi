@@ -12,8 +12,13 @@
 #            per-pr  both code-review axes on every PR, as before ADR-034
 #   builders N       a positive integer: the most builders (tickets or slices in flight) the factory runs at once.
 #                    1 is one ticket at a time: the next starts after the previous PR merged (ADR-035); 4 is as before
+#   merge    queue   PRs go through the merge queue of GitHub (ADR-018): it tests each PR on the latest main and
+#                    squash-merges it; pr.sh merge adds the PR to it
+#            direct  no merge queue (ADR-035): pr.sh merge squash-merges the PR itself, after the whole merge gate, and the
+#                    ruleset requires the branch to be up to date with main. github-settings.sh applies that form of the
+#                    ruleset (it drops the merge_queue rule and sets the strict policy)
 #
-#   pipeline.sh get ci|review|builders   prints the setting
+#   pipeline.sh get ci|review|builders|merge   prints the setting
 #   pipeline.sh ui-tests --event <event>   prints true or false: whether a run of that GitHub event (github.event_name) runs
 #                    the UI tests: true with `ci: full`, and with `ci: fast` or `lean` for schedule (the nightly run) and
 #                    workflow_dispatch only. The one place that rule lives: CI (Detect changes and the Quarantine jobs) asks it.
@@ -35,8 +40,9 @@ cmd_get() {
   case "$key" in
     ci) allowed="lean fast full" ;;
     review) allowed="split per-pr" ;;
+    merge) allowed="queue direct" ;;
     builders) ;;
-    *) die "unknown setting '$key' (ci, review or builders)" ;;
+    *) die "unknown setting '$key' (ci, review, builders or merge)" ;;
   esac
   need_cmd jq
   [ -f "$FILE" ] || die "no $FILE"

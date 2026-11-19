@@ -1,5 +1,6 @@
 {
   "ci": "lean",
   "review": "split",
-  "builders": 1
+  "builders": 1,
+  "merge": "direct"
 }

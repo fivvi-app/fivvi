@@ -1065,6 +1065,27 @@ describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () 
     assert.doesNotMatch(result.stdout, /merge queue \(/);
   });
 
+  it('ADR-035: with merge direct in the switch, ready to merge says squash-merge, with the queue wording as before otherwise', () => {
+    const file = join(repo, '.github/pipeline.json');
+    const before = readFileSync(file, 'utf8');
+    try {
+      assert.match(run('status', {}).stdout, /^Next: Low-risk: .*adds the PR to the merge queue/m);
+      writeFileSync(
+        file,
+        JSON.stringify({ ci: 'lean', review: 'per-pr', builders: 1, merge: 'direct' }),
+      );
+      const direct = run('status', {});
+      assert.match(direct.stdout, /^Phase: ready-to-merge$/m);
+      assert.match(
+        direct.stdout,
+        /^Next: Low-risk: scripts\/pr\.sh merge in the worktree\. It squash-merges the PR/m,
+      );
+      assert.doesNotMatch(direct.stdout, /^Next: .*merge queue/m);
+    } finally {
+      writeFileSync(file, before);
+    }
+  });
+
   it('ADR-021: shows a high-risk PR an agent can merge as ready to merge, with its reasons', () => {
     const result = run('status', {}, 'packages/database/migrations/0004.sql');
     assert.equal(result.status, 0, result.stderr);

@@ -1414,6 +1414,28 @@ describe('usage.mjs', () => {
       assert.equal(flowSnapshot(flowRules(), { git: odd }).data.flow.settings.end.builders, 4);
     });
 
+    it('ADR-035: reads merge, and a main from before the setting as the merge queue', () => {
+      const git = repoWith([
+        ['2026-10-01T00:00:00Z', { ci: 'lean', review: 'split', builders: 1 }],
+        ['2026-11-03T12:00:00Z', { ci: 'lean', review: 'split', builders: 1, merge: 'direct' }],
+      ]);
+      const { settings } = flowSnapshot(flowRules(), { git }).data.flow;
+      assert.equal(settings.start.merge, 'queue');
+      assert.equal(settings.end.merge, 'direct');
+      const odd = repoWith([['2026-10-01T00:00:00Z', { ci: 'lean', review: 'split', merge: 'x' }]]);
+      assert.equal(flowSnapshot(flowRules(), { git: odd }).data.flow.settings.end.merge, 'queue');
+    });
+
+    it('ADR-035: a change of merge alone inside the window is a change of settings, with a warning', () => {
+      const git = repoWith([
+        ['2026-10-01T00:00:00Z', { ci: 'lean', review: 'split', builders: 1, merge: 'queue' }],
+        ['2026-11-03T12:00:00Z', { ci: 'lean', review: 'split', builders: 1, merge: 'direct' }],
+      ]);
+      const { settings, warnings } = flowSnapshot(flowRules(), { git }).data.flow;
+      assert.equal(settings.changed, true);
+      assert.match(warnings[0], /merge queue.*merge direct/);
+    });
+
     it('ADR-035: a change of builders alone inside the window is a change of settings, with a warning', () => {
       const git = repoWith([
         ['2026-10-01T00:00:00Z', { ci: 'lean', review: 'split', builders: 4 }],
@@ -1799,6 +1821,19 @@ describe('usage.mjs', () => {
           { ...snap('lean', [ticket()]), flow: lean() },
         );
         assert.match(out, /settings\s+ci fast, review split → ci lean, review split, builders 1/);
+        const direct = fast();
+        direct.settings.end = {
+          sha: 'd',
+          ci: 'lean',
+          review: 'split',
+          builders: 1,
+          merge: 'direct',
+        };
+        const withMerge = compare(
+          { ...snap('fast', [ticket()]), flow: fast() },
+          { ...snap('direct', [ticket()]), flow: direct },
+        );
+        assert.match(withMerge, /ci lean, review split, builders 1, merge direct\n/);
       });
 
       it('prints the warnings of a snapshot, and says so when one side has no flow', () => {

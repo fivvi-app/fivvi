@@ -60,7 +60,12 @@
 #                                                 reasons; an owner-only PR is never queued; otherwise queue
 #                                                 nothing, record the refusal for the head commit in the PR body, print
 #                                                 why and exit 1: the PR stays for the owner. Never --auto or --admin;
-#                                                 the queued commit is recorded in the PR body. <pr> defaults to the
+#                                                 the queued commit is recorded in the PR body. With `merge: direct`
+#                                                 in .github/pipeline.json (ADR-035) there is no queue: after the same
+#                                                 gate it squash-merges the PR itself (--match-head-commit), says so
+#                                                 when GitHub refuses because the PR is behind main (then the Refresh
+#                                                 steps), warns when the setting and GitHub's queue disagree, and
+#                                                 refuses --after. <pr> defaults to the
 #                                                 open PR of the current branch. A commit the queue removed is refused,
 #                                                 except with --after <bug> (ADR-025): the same commit is queued once
 #                                                 more when <bug> blocks the PR's issue, was closed as completed after
@@ -687,6 +692,10 @@ cmd_refreshed() {
   echo "📝 $line"
 }
 
+# What `pipeline.sh get merge` says (ADR-035): queue or direct; empty when it can't be read, which is no opinion: pr.sh merge
+# then goes by what GitHub has.
+merge_setting() { "$ROOT/scripts/pipeline.sh" get merge 2>/dev/null || true; }
+
 # What `pipeline.sh get review` says (ADR-034): split or per-pr; empty when it can't be read, which the merge gate reads as
 # unknown, so a standards-only review record never counts then.
 review_setting() { "$ROOT/scripts/pipeline.sh" get review 2>/dev/null || true; }
@@ -826,7 +835,7 @@ drop_record() {
 # GraphQL's enqueuePullRequest. A branch without a queue is squash-merged with `gh pr merge`. Should auto-merge ever be
 # on afterwards, turn it off again.
 cmd_merge() {
-  local pr="" after="" facts decision head branch issue out failed state attempt reasons requeue_line=""
+  local pr="" after="" facts decision head branch issue out failed state attempt reasons requeue_line="" setting
   while [ $# -gt 0 ]; do
     case "$1" in
       --after) { [ -z "$after" ] && [[ "${2:-}" =~ ^[0-9]+$ ]]; } || usage; after="$2"; shift ;;
@@ -834,9 +843,20 @@ cmd_merge() {
     esac
     shift
   done
+  setting="$(merge_setting)"
+  if [ -n "$after" ] && [ "$setting" = direct ]; then
+    die "--after re-queues a PR in the merge queue (ADR-025), and .github/pipeline.json says merge: direct (ADR-035): there is no merge queue. Fix the cause in the PR, push, and run pr.sh merge again; nothing queued"
+  fi
   [ -n "$pr" ] || pr="$(current_pr)"
   if ! facts="$(merge_facts "$pr")" || [ -z "$facts" ]; then
     die "could not read the facts of PR #$pr; nothing queued"
+  fi
+  # The switch and GitHub should agree (ADR-035): when they don't, the owner has not applied the ruleset yet
+  # (scripts/github-settings.sh apply). Go by what GitHub has.
+  if [ "$setting" = direct ] && jq -e .queue_enabled <<<"$facts" >/dev/null; then
+    echo "⚠  .github/pipeline.json says merge: direct, but $(default_branch) still has a merge queue: the ruleset is not applied yet (scripts/github-settings.sh apply); going by GitHub: adding PR #$pr to the queue" >&2
+  elif [ "$setting" = queue ] && ! jq -e .queue_enabled <<<"$facts" >/dev/null; then
+    echo "⚠  .github/pipeline.json says merge: queue, but $(default_branch) has no merge queue: the ruleset is not applied yet (scripts/github-settings.sh apply); going by GitHub: squash-merging PR #$pr" >&2
   fi
   branch="$(jq -r .branch <<<"$facts")"
   issue="$(branch_issue "$branch")"
@@ -877,8 +897,14 @@ cmd_merge() {
         enqueuePullRequest(input: {pullRequestId: $id, expectedHeadOid: $head}) { mergeQueueEntry { position } }
       }' 2>&1)" || { drop_record "$pr" "$requeue_line"; die "could not add PR #$pr to the merge queue: $out"; }
   else
-    out="$(gh pr merge "$pr" --repo "$REPO" --squash --match-head-commit "$head" 2>&1)" \
-      || { drop_record "$pr" "$requeue_line"; die "merge failed: $out"; }
+    out="$(gh pr merge "$pr" --repo "$REPO" --squash --match-head-commit "$head" 2>&1)" || {
+      drop_record "$pr" "$requeue_line"
+      # With no merge queue the ruleset requires the branch to be up to date with main (ADR-035): say so when that is the reason.
+      if [ "$(gh pr view "$pr" --repo "$REPO" --json mergeStateStatus --jq .mergeStateStatus 2>/dev/null || true)" = BEHIND ]; then
+        die "PR #$pr is behind $(default_branch), and the ruleset needs the branch up to date with it (no merge queue, ADR-035): Refresh it (work skill, **Refresh**): merge origin/$(default_branch) into the branch, scripts/check.sh --fast, review the merge, scripts/pr.sh create and ship (new records for the new head commit), wait for CI with scripts/pr.sh wait, then run pr.sh merge again. GitHub said: $out"
+      fi
+      die "merge failed: $out"
+    }
   fi
   # The queue answers at once; look a few times in case GitHub is slow to show it.
   for attempt in 1 2 3; do

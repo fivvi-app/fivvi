@@ -78,7 +78,9 @@ describe('ADR-035 the docs and rules of the lean pipeline', () => {
     assert.match(section, /^\| `ci` \| `lean` \| `fast` \| `full` \|/m);
     assert.match(section, /^\| `builders` \| `1` \| `4` \| `4` \|/m);
     assert.match(section, /`pre-fast`/);
-    assert.match(section, /\{"ci": "fast", "review": "split", "builders": 4\}/);
+    assert.match(section, /\{"ci": "fast", "review": "split", "builders": 4, "merge": "queue"\}/);
+    assert.match(section, /^\| `merge` \| `direct` \| `queue` \| `queue` \|/m);
+    assert.match(section, /scripts\/github-settings\.sh apply/);
     assert.match(section, /Pilot setup requires leaving `ci: lean`/);
   });
 
@@ -87,5 +89,24 @@ describe('ADR-035 the docs and rules of the lean pipeline', () => {
     const rule = agents.slice(agents.indexOf('- **The pipeline switch**'));
     assert.match(rule.split('\n')[0], /`lean`/);
     assert.match(rule.split('\n')[0], /`builders`/);
+  });
+
+  it('ADR-035 merge direct: the rules say who merges, how to apply the ruleset and what the queue-only steps are', () => {
+    const adr = read('docs/decisions/ADR-035-lean-pipeline.md');
+    assert.match(adr, /`merge: direct`/);
+    assert.match(adr, /git switch main && git pull && scripts\/github-settings\.sh apply/);
+    assert.match(adr, /strict_required_status_checks_policy: true/);
+    assert.match(adr, /`pre-fast`/);
+    const workflow = read('docs/engineering/WORKFLOW.md');
+    assert.match(workflow, /^1\. `git switch main && git pull`/m);
+    assert.match(workflow, /^3\. `scripts\/github-settings\.sh apply`/m);
+    assert.match(workflow, /off with `merge: direct`/);
+    const agents = read('AGENTS.md');
+    assert.match(agents, /with `merge: direct` in `\.github\/pipeline\.json`/);
+    assert.match(agents, /never `gh pr merge` by hand, `--admin` or `--auto`/);
+    const skill = read('.agents/skills/work/SKILL.md');
+    assert.match(skill, /with `merge: direct` \(ADR-035\) `pr\.sh merge` merges the PR itself/);
+    assert.match(skill, /\(Only with `merge: queue`\.\) Nothing to do/);
+    assert.match(read('docs/agents/build.md'), /With `merge: direct` \(no queue\)/);
   });
 });
