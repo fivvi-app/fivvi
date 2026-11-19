@@ -283,8 +283,9 @@ describe('E002 #1357 the push run of CI on main', () => {
     const e2eStep = minutes(turbo('e2e'));
     assert.ok(checksStep * 60 >= 1.2 * 620, `Checks (Linux) turbo step: ${checksStep} minutes`);
     assert.ok(e2eStep * 60 >= 1.2 * 754, `E2E (Linux) turbo step: ${e2eStep} minutes`);
-    // Checks (Linux): the step, the minute outside it and the cache save fit the job's 15 minutes.
-    assert.ok(checksStep + 1 + 1 <= 15);
+    // Checks (Linux): the step, the minute outside it and the cache save fit the job's 25 minutes (#1490).
+    const checksJob = Number(jobs.checks.match(/^ {4}timeout-minutes: (\d+)$/m)?.[1]);
+    assert.ok(checksStep + 1 + 1 <= checksJob, `step ${checksStep} + 2 in a job of ${checksJob}`);
     // E2E (Linux): 35 minutes on a push, 30 on the other events (#1408: 1 + the OS packages step 10 + the suite's 17 + 2); the push
     // job holds the minute outside the steps, the worst case of the OS packages step (10), the work step and 2 minutes for the post steps.
     assert.match(
@@ -295,6 +296,28 @@ describe('E002 #1357 the push run of CI on main', () => {
     // The comments tie the numbers to the measured runs.
     assert.match(ci, /slowest of 34 push runs of main took 620 s/);
     assert.match(ci, /slowest of 32 push runs of main took 754 s/);
+  });
+
+  it('E002 #1490 AC1: Checks (Linux) has 1.5 times the slowest full uncached run, on every event, with the push step below it', () => {
+    // A change to a package almost every other one depends on (packages/i18n, PR #1488) misses the turbo cache everywhere,
+    // so the job runs every package's lint, typecheck, tests and build: 11 minutes on the PR (run 44523798956), and the
+    // merge group (run 44526069321) was cancelled at the job's 15 minutes with no test failing, so that run took at least
+    // 15. The job needs 1.5 times that, on a PR, a merge group and a push alike: a plain number, not a push expression.
+    const SLOWEST_FULL_RUN_MINUTES = 15;
+    const value = jobs.checks.match(/^ {4}timeout-minutes: (.+)$/m)?.[1];
+    assert.match(value, /^\d+$/, `the job timeout is the same on every event: ${value}`);
+    assert.ok(
+      Number(value) >= 1.5 * SLOWEST_FULL_RUN_MINUTES,
+      `Checks (Linux) has ${value} minutes for a full run of at least ${SLOWEST_FULL_RUN_MINUTES}`,
+    );
+    // The job stays far under the merge queue's timeout: it needs no other job and runs
+    // beside the native chain.
+    assert.doesNotMatch(jobs.checks, /^ {4}needs:/m);
+    // The push run's step still ends first, with room for the minute outside it and the cache save.
+    const turbo = steps(jobs.checks).find((step) => /pnpm exec turbo run/.test(step));
+    const pushStep = Number(turbo.match(/^ {8}timeout-minutes: .* && (\d+) \|\| 360 \}\}$/m)?.[1]);
+    assert.ok(pushStep + 2 <= Number(value), `push step ${pushStep} in a job of ${value}`);
+    assert.match(ci, /run 44526069321/);
   });
 
   it('the required checks keep their names', () => {
@@ -325,6 +348,15 @@ describe('E002 #1357 the docs describe the push run', () => {
     assert.match(section, /without their test suites/);
     assert.match(section, /no failed step or job fails it/);
     assert.match(section, /ADR-018/);
+  });
+
+  it('E002 #1490 AC3: WORKFLOW.md §7 says Checks (Linux) has 25 minutes for a full uncached run, with the runs as the measure', () => {
+    const workflow = read('docs/engineering/WORKFLOW.md');
+    const section = workflow.slice(workflow.indexOf('## 7. CI and required checks'));
+    assert.match(section, /`Checks \(Linux\)` has 25 minutes/);
+    assert.match(section, /44523798956/);
+    assert.match(section, /44526069321/);
+    assert.match(section, /1\.5 times/);
   });
 
   it('WORKFLOW.md §7 does not claim the run always succeeds: a cancelled job is still open, with the evidence', () => {

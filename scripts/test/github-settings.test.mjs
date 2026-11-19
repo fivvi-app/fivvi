@@ -120,7 +120,7 @@ describe('the versioned GitHub settings', () => {
     // ios-tests matrix, so the slower of the wait and the other language's full run, the plan, the retry's wait and the
     // retry), then the gate.
     const NOT_ACQUIRED_WAIT = 15;
-    const longestNative = Math.max(
+    const longestChain = Math.max(
       timeout('ios-build') + timeout('ios-tests') + timeout('ios'),
       2 * NOT_ACQUIRED_WAIT +
         timeout('ios-build-retry') +
@@ -131,9 +131,11 @@ describe('the versioned GitHub settings', () => {
         timeout('ios'),
       timeout('android-tests') + timeout('android'),
       timeout('android-build') + timeout('android-maestro') + timeout('android'),
+      // Checks (Linux) needs no other job and runs beside the native chain (#1490: 25 minutes).
+      timeout('checks'),
     );
     assert.ok(
-      queue.parameters.check_response_timeout_minutes > timeout('changes') + longestNative,
+      queue.parameters.check_response_timeout_minutes > timeout('changes') + longestChain,
       'the queue should time out after Detect changes plus the longest native chain, gate included',
     );
   });
