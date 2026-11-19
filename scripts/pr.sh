@@ -34,6 +34,8 @@
 #                                                 the CLI, a preview whose status is success is only
 #                                                 health-checked; otherwise smoke fails with a hint
 #   pr.sh reviewed [--should-fix <n>] [--axes standards|both]
+#                                                 always pass --axes standards when the reviewer's verdict says
+#                                                 (standards), also with --should-fix; the default records both axes
 #                                                 record in the PR body that both reviewers (standards and spec) found
 #                                                 nothing to fix on the PR's head commit; local HEAD must be that commit.
 #                                                 --axes standards (ADR-034): the reviewer ran the standards axis only (and
