@@ -5,7 +5,8 @@
 // when one imports a recurrence library or spells a rule (`FREQ=`, `BYDAY`, `RRule`), except the
 // few lines that only store or document the rule text, listed below with the reason.
 
-import { readdirSync, readFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { describe, expect, it } from 'vitest';
@@ -58,6 +59,11 @@ const SKIPPED_DIRS = new Set([
   '.turbo',
   '.vitest',
   '.gradle',
+  // Generated test output (all in .gitignore): other tests create and delete folders in it while this one walks.
+  'coverage',
+  'playwright-report',
+  'test-results',
+  'blob-report',
   '.build',
   'test',
   'tests',
@@ -81,11 +87,11 @@ function ruleViolations(sources: Readonly<Record<string, string>>): string[] {
   });
 }
 
-function walk(dir: string): string[] {
-  return readdirSync(path.join(ROOT, dir), { withFileTypes: true }).flatMap((entry) => {
+function walk(dir: string, root = ROOT): string[] {
+  return readdirSync(path.join(root, dir), { withFileTypes: true }).flatMap((entry) => {
     const relative = path.posix.join(dir, entry.name);
     if (entry.isDirectory()) {
-      return SKIPPED_DIRS.has(entry.name.toLowerCase()) ? [] : walk(relative);
+      return SKIPPED_DIRS.has(entry.name.toLowerCase()) ? [] : walk(relative, root);
     }
     return SOURCE.test(entry.name) ? [relative] : [];
   });
@@ -148,6 +154,27 @@ describe('the checker', () => {
         'apps/ios/FivviTests/SeriesTests.swift': 'let rule = "FREQ=WEEKLY;BYDAY=TU"',
       }),
     ).toEqual([]);
+  });
+});
+
+describe('the walk', () => {
+  it('ignores generated test output, which other tests create and delete while this one runs', () => {
+    const root = mkdtempSync(path.join(tmpdir(), 'rrule-walk-'));
+    try {
+      for (const dir of [
+        'src',
+        'test-results/tmp-1',
+        'coverage',
+        'playwright-report',
+        'blob-report',
+      ]) {
+        mkdirSync(path.join(root, 'pkg', dir), { recursive: true });
+        writeFileSync(path.join(root, 'pkg', dir, 'a.ts'), 'export {};');
+      }
+      expect(walk('pkg', root)).toEqual(['pkg/src/a.ts']);
+    } finally {
+      rmSync(root, { recursive: true, force: true });
+    }
   });
 });
 
