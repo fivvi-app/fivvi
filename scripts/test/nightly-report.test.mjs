@@ -11,7 +11,7 @@ const REPO = 'example-org/fivvi';
 const RUN = '4242';
 const RUN_URL = `https://github.com/${REPO}/actions/runs/${RUN}`;
 
-describe('nightly-report.sh (ADR-034): the issue for a failed nightly run', () => {
+describe('nightly-report.sh (ADR-034, ADR-035): the issue for a failed nightly run', () => {
   const gh = fakeGh();
   after(() => gh.cleanup());
   chmodSync(SCRIPT, 0o755);
@@ -180,6 +180,10 @@ describe('nightly-report.sh (ADR-034): the issue for a failed nightly run', () =
       [
         'The nightly run of `ci.yml` on `main` failed: <run>',
         '',
+        'Failing suites:',
+        '',
+        '-',
+        '',
         'Failing jobs:',
         '',
         '-',
@@ -190,6 +194,79 @@ describe('nightly-report.sh (ADR-034): the issue for a failed nightly run', () =
         '- [ ] The nightly run of ci.yml passes on main',
       ].join('\n'),
     );
+  });
+
+  describe('names the suite that failed (ADR-035: the integration tests run in Checks (Linux) only in this run)', () => {
+    const suites = (body) =>
+      body
+        .match(/Failing suites:\n\n((?:- .+\n?)+)/)[1]
+        .trim()
+        .split('\n');
+    const bodyOf = (jobs, results) => {
+      const result = run([jobsRule(jobs), noOpenIssue, created], results);
+      assert.equal(result.status, 0, result.stderr);
+      return flag(command(result.calls, 'issue', 'create'), '--body');
+    };
+
+    it('a failed Checks (Linux) is the integration tests and the other Linux checks, and no UI suite', () => {
+      const body = bodyOf([{ name: 'Checks (Linux)', conclusion: 'failure' }], {
+        checks: 'failure',
+        'ios-tests': 'success',
+      });
+      const [line, ...rest] = suites(body);
+      assert.match(line, /^- Integration tests and the other Linux checks: Checks \(Linux\)/);
+      assert.deepEqual(rest, []);
+      assert.match(body, /^- Checks \(Linux\)$/m, 'still in the failing jobs');
+    });
+
+    it('a failed UI job is the UI tests and native jobs, and no integration suite', () => {
+      const body = bodyOf(failedJobs, { 'ios-tests': 'failure', 'android-maestro': 'cancelled' });
+      const [line, ...rest] = suites(body);
+      assert.match(line, /^- UI tests and native jobs: Android Maestro, iOS tests \(nl\)$/);
+      assert.deepEqual(rest, []);
+      assert.doesNotMatch(body, /Integration tests/);
+    });
+
+    it('both at once name both suites, and the fallback to job ids sorts them the same way', () => {
+      const body = bodyOf(
+        [
+          { name: 'Checks (Linux)', conclusion: 'failure' },
+          { name: 'E2E (Linux)', conclusion: 'failure' },
+        ],
+        { checks: 'failure', e2e: 'failure' },
+      );
+      assert.equal(suites(body).length, 2);
+      assert.match(body, /^- Integration tests and the other Linux checks: Checks \(Linux\)/m);
+      assert.match(body, /^- UI tests and native jobs: E2E \(Linux\)$/m);
+      const ids = run([{ match: '^api ', out: '', status: 1 }, noOpenIssue, created], {
+        checks: 'failure',
+        'android-tests': 'failure',
+      });
+      const idBody = flag(command(ids.calls, 'issue', 'create'), '--body');
+      assert.match(idBody, /^- Integration tests and the other Linux checks: checks$/m);
+      assert.match(idBody, /^- UI tests and native jobs: android-tests$/m);
+    });
+
+    it('the comment on an open issue names the suites of that night too', () => {
+      const open = { match: '^issue list ', out: [{ number: 70, title: TITLE }] };
+      const result = run(
+        [
+          jobsRule([{ name: 'Checks (Linux)', conclusion: 'failure' }]),
+          open,
+          { match: '^issue comment ', out: '' },
+        ],
+        { checks: 'failure' },
+      );
+      const body = flag(command(result.calls, 'issue', 'comment'), '--body');
+      assert.match(body, /Integration tests and the other Linux checks: Checks \(Linux\)/);
+    });
+
+    it('a failed Detect changes is named for itself, not as a test suite', () => {
+      const body = bodyOf([{ name: 'Detect changes', conclusion: 'failure' }], {
+        changes: 'failure',
+      });
+      assert.match(body, /^- Detect changes: Detect changes$/m);
+    });
   });
 
   it('needs its environment and takes no argument', () => {

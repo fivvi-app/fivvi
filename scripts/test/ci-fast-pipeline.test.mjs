@@ -1,6 +1,14 @@
 import assert from 'node:assert/strict';
 import { spawnSync } from 'node:child_process';
-import { cpSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import {
+  chmodSync,
+  cpSync,
+  mkdirSync,
+  mkdtempSync,
+  readFileSync,
+  rmSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { after, describe, it } from 'node:test';
@@ -89,6 +97,93 @@ describe('ADR-034 Detect changes', () => {
       stepNamed(jobs.changes, 'Filter paths'),
       /\[\[ "\$EVENT" == 'workflow_dispatch' \|\| "\$EVENT" == 'schedule' \|\| "\$RUN_NATIVE" == 'true' \]\]; then affected_args\+=\(--force\)/,
     );
+  });
+});
+
+describe('ADR-035 Detect changes and Checks (Linux): the integration tests', () => {
+  const dirs = [];
+  after(() => {
+    for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
+  });
+  const checks = jobs.checks;
+  const turbo = stepNamed(
+    checks,
+    'Lint, typecheck, unit tests, integration tests (when the run has them), build, format and static checks',
+  );
+
+  /** Runs the shell of the turbo step with a `pnpm` that records its arguments; returns the recorded calls. */
+  const runTurbo = (integrationTests) => {
+    const dir = mkdtempSync(join(tmpdir(), 'checks-turbo-'));
+    dirs.push(dir);
+    const bin = join(dir, 'bin');
+    mkdirSync(bin);
+    const record = join(dir, 'calls');
+    writeFileSync(record, '');
+    writeFileSync(join(bin, 'pnpm'), `#!/bin/sh\necho "$*" >>"${record}"\n`);
+    chmodSync(join(bin, 'pnpm'), 0o755);
+    const result = spawnSync('bash', ['-c', script(turbo)], {
+      encoding: 'utf8',
+      env: {
+        PATH: `${bin}:${process.env.PATH}`,
+        ...(integrationTests === undefined ? {} : { INTEGRATION_TESTS: integrationTests }),
+      },
+    });
+    assert.equal(result.status, 0, result.stderr);
+    return readFileSync(record, 'utf8').trim().split('\n');
+  };
+
+  it('Detect changes outputs integration_tests, from scripts/pipeline.sh integration-tests, the one place of the rule', () => {
+    assert.match(
+      jobs.changes,
+      /^ {6}integration_tests: \$\{\{ steps\.filter\.outputs\.integration_tests \}\}$/m,
+    );
+    const filter = script(stepNamed(jobs.changes, 'Filter paths'));
+    assert.match(
+      filter,
+      /integration_tests="\$\(scripts\/pipeline\.sh integration-tests --event "\$EVENT"\)"/,
+    );
+    assert.match(filter, /echo "integration_tests=\$integration_tests" >>"\$GITHUB_OUTPUT"/);
+  });
+
+  it('Checks (Linux) waits for Detect changes and keeps its name', () => {
+    assert.match(checks, /^ {4}name: Checks \(Linux\)$/m);
+    assert.match(checks, /^ {4}needs: changes$/m);
+    assert.match(
+      turbo,
+      /^ {10}INTEGRATION_TESTS: \$\{\{ needs\.changes\.outputs\.integration_tests \}\}$/m,
+    );
+  });
+
+  it('with the integration tests on (full, fast, the nightly run, on demand) one turbo run has test:integration, as before', () => {
+    const calls = runTurbo('true');
+    assert.equal(calls.length, 1, 'one turbo run');
+    assert.equal(
+      calls[0],
+      'exec turbo run lint typecheck test test:integration build format:check check --cache-dir=.turbo/cache --continue=dependencies-successful',
+    );
+  });
+
+  it('with them off (lean on a pull request, a merge group, a push) the same one turbo run leaves out test:integration and keeps every other task', () => {
+    const calls = runTurbo('false');
+    assert.equal(calls.length, 1, 'one turbo run');
+    assert.equal(
+      calls[0],
+      'exec turbo run lint typecheck test build format:check check --cache-dir=.turbo/cache --continue=dependencies-successful',
+    );
+    assert.doesNotMatch(calls[0], /test:integration/);
+  });
+
+  it('leaves the integration tests out only on exactly false: an empty or odd value runs more, never fewer', () => {
+    for (const value of [undefined, '', 'maybe']) {
+      assert.match(runTurbo(value)[0], /test:integration/, String(value));
+    }
+  });
+
+  it('the header and the names of the step tell the truth about the setting', () => {
+    const header = ci.slice(0, ci.indexOf('\nname: CI'));
+    assert.match(header, /ADR-035/);
+    assert.match(header, /`ci: lean`/);
+    assert.match(header, /integration tests/);
   });
 });
 
@@ -539,6 +634,11 @@ describe('ADR-034 the gate Android', () => {
 
 describe('ADR-034 the nightly report job', () => {
   const report = jobs['nightly-report'];
+
+  it('also fires when Checks (Linux) fails in the nightly run: it is one of the jobs it needs (ADR-035: the integration tests run only there with ci lean)', () => {
+    assert.match(report, /^ {6}- checks$/m);
+    assert.equal(jobIf(report), "always() && github.event_name == 'schedule'");
+  });
 
   it('is the last job and runs on the schedule only, after the other jobs whatever became of them', () => {
     assert.match(report, /^ {4}name: Nightly report$/m);

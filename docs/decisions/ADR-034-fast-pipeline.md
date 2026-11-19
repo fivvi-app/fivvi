@@ -4,6 +4,7 @@
 |---|---|
 | **Status** | Accepted (2026-11-18). **Amends**, while `.github/pipeline.json` says `fast` and `split`: ADR-016 (decision 3, what the reviewer checks before the merge gate), ADR-018 (what the required checks run), ADR-024 (which tests a change runs in CI) and ADR-033 (item 5, review by risk: the fix rounds stay, the axes change). Switching back to `full` and `per-pr` restores those ADRs as they were; nothing is removed |
 | **Date** | 2026-11-18 |
+| **Extended by** | [ADR-035](ADR-035-lean-pipeline.md) (19 November 2026): a third `ci` value, `lean`, and the `builders` setting, on the same switch; not a reversal, and `fast` still means what is written here |
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | ADR-016, ADR-018, ADR-024, ADR-025, ADR-033; `docs/engineering/WORKFLOW.md §7`, `docs/engineering/TESTING.md`, `docs/agents/build.md`; the tag `pipeline-full-2026-11-18` |
 

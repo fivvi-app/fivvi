@@ -345,6 +345,86 @@ describe('flow.sh next', () => {
       },
     });
 
+  // ADR-035: with `merge: direct` GitHub refuses the merge of a branch that is behind main (strict required checks), and the
+  // factory does not refresh such PRs (only conflicting ones), so the owner's line says what to press.
+  describe('ADR-035: an owner-only PR that is behind main, with merge direct', () => {
+    const pipeline = (merge) => {
+      const file = join(repo, '.github/pipeline.json');
+      const before = readFileSync(file, 'utf8');
+      writeFileSync(
+        file,
+        JSON.stringify({ ci: 'lean', review: 'per-pr', builders: 1, ...(merge ? { merge } : {}) }),
+      );
+      return () => writeFileSync(file, before);
+    };
+    const status = (state60) => [
+      { match: '^pr view 60 .*--json mergeStateStatus', out: { mergeStateStatus: state60 } },
+      { match: '^pr view [0-9]+ .*--json mergeStateStatus', out: { mergeStateStatus: 'CLEAN' } },
+    ];
+    const line60 = (result) =>
+      result.stdout.split('\n').find((line) => line.startsWith('Merge PR #60 '));
+    const PLAIN =
+      'Merge PR #60 [F031] Hold a spot (owner-only: scripts/pr.sh: guardrails (/scripts))';
+
+    it('says to press "Update branch" in the merge box, then merge, when GitHub reports it BEHIND', () => {
+      const restore = pipeline('direct');
+      try {
+        const result = next([], NOW, {}, undefined, { rules: status('BEHIND') });
+        assert.equal(result.status, 0, result.stderr);
+        const line = line60(result);
+        assert.match(
+          line,
+          /^Merge PR #60 \[F031\] Hold a spot \(owner-only: scripts\/pr\.sh: guardrails/,
+        );
+        assert.match(line, /behind main/);
+        assert.match(line, /Update branch/);
+        assert.match(line, /then merge/);
+        assert.match(line, /Refresh steps/);
+        // Only this PR: the others stay as they were.
+        assert.ok(
+          result.stdout.includes(
+            'Merge PR #69 [F031] Risk unreadable (owner-only: risk unknown)\n',
+          ),
+        );
+      } finally {
+        restore();
+      }
+    });
+
+    it('leaves the line as it was when the PR is not behind, or the setting is queue (and reads nothing then)', () => {
+      let restore = pipeline('direct');
+      try {
+        assert.equal(line60(next([], NOW, {}, undefined, { rules: status('CLEAN') })), PLAIN);
+      } finally {
+        restore();
+      }
+      restore = pipeline('queue');
+      try {
+        const result = next([], NOW, {}, undefined, { rules: status('BEHIND') });
+        assert.equal(line60(result), PLAIN);
+        assert.ok(
+          !gh.calls().some((call) => call.args.join(' ').includes('mergeStateStatus')),
+          'no read of the merge state with the merge queue',
+        );
+      } finally {
+        restore();
+      }
+    });
+
+    it('a state it cannot read leaves the line as it was', () => {
+      const restore = pipeline('direct');
+      try {
+        const result = next([], NOW, {}, undefined, {
+          rules: [{ match: '^pr view [0-9]+ .*--json mergeStateStatus', out: '', status: 1 }],
+        });
+        assert.equal(result.status, 0, result.stderr);
+        assert.equal(line60(result), PLAIN);
+      } finally {
+        restore();
+      }
+    });
+  });
+
   it('lists what waits on the owner: specs to approve, owner-only, refused and queue-removed PRs, questions', () => {
     // #71 and #73 still need a spec written (needs-spec) and #74 is complete: none waits on approval.
     // #61 was refused on an older commit: the push made that stale, so it is the factory's to merge.
@@ -1063,6 +1143,27 @@ describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () 
     const result = run('status', {});
     assert.match(result.stdout, /^Phase: ready-to-merge$/m);
     assert.doesNotMatch(result.stdout, /merge queue \(/);
+  });
+
+  it('ADR-035: with merge direct in the switch, ready to merge says squash-merge, with the queue wording as before otherwise', () => {
+    const file = join(repo, '.github/pipeline.json');
+    const before = readFileSync(file, 'utf8');
+    try {
+      assert.match(run('status', {}).stdout, /^Next: Low-risk: .*adds the PR to the merge queue/m);
+      writeFileSync(
+        file,
+        JSON.stringify({ ci: 'lean', review: 'per-pr', builders: 1, merge: 'direct' }),
+      );
+      const direct = run('status', {});
+      assert.match(direct.stdout, /^Phase: ready-to-merge$/m);
+      assert.match(
+        direct.stdout,
+        /^Next: Low-risk: scripts\/pr\.sh merge in the worktree\. It squash-merges the PR/m,
+      );
+      assert.doesNotMatch(direct.stdout, /^Next: .*merge queue/m);
+    } finally {
+      writeFileSync(file, before);
+    }
   });
 
   it('ADR-021: shows a high-risk PR an agent can merge as ready to merge, with its reasons', () => {
@@ -2331,6 +2432,19 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
         '#180 [F003] Add a client',
         '',
       ]);
+    });
+
+    it('ADR-035 lean: the same as fast, because the integration tests and the UI tests run only in the nightly run', () => {
+      const result = withCi('lean', () => run('next', scenario()));
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(readyOf(result.stdout).split('\n'), [
+        '== Ready for an agent',
+        `Build #1700 first (nightly): ${TITLE}`,
+        '#180 [F003] Add a client',
+        '',
+      ]);
+      const idle = withCi('lean', () => run('idle', scenario({ tickets: [] })));
+      assert.equal(idle.status, 1, idle.stdout + idle.stderr);
     });
 
     it('fast: comes right after the deploy line, not before it', () => {

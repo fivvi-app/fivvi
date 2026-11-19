@@ -140,12 +140,26 @@ const github = ({
 
 describe('pr.sh merge', () => {
   const gh = fakeGh();
-  after(() => gh.cleanup());
+  const switchDir = mkdtempSync(join(tmpdir(), 'pr-merge-switch-'));
+  after(() => {
+    gh.cleanup();
+    rmSync(switchDir, { recursive: true, force: true });
+  });
 
+  // The switch of these tests: the merge queue (ADR-018) unless a test says `merge: direct` (ADR-035), with the committed
+  // review setting, so the tests do not follow the setting of the repo.
+  const switchFile = (mergeSetting) => {
+    const file = join(switchDir, `pipeline-${mergeSetting}.json`);
+    writeFileSync(
+      file,
+      JSON.stringify({ ci: 'lean', review: 'split', builders: 1, merge: mergeSetting }),
+    );
+    return file;
+  };
   const merge = (rules, args = [], env = {}) => {
     const result = spawnSync(join(SCRIPTS, 'pr.sh'), ['merge', ...args], {
       encoding: 'utf8',
-      env: { ...gh.env(rules), ...env },
+      env: { ...gh.env(rules), FIVVI_PIPELINE_FILE: switchFile('queue'), ...env },
     });
     const bodies = gh
       .calls()
@@ -360,6 +374,130 @@ describe('pr.sh merge', () => {
     it('a low-risk PR gets no such record', () => {
       const result = merge(github());
       assert.ok(result.bodies.every((body) => !body.includes('High-risk agent merge')));
+    });
+  });
+
+  // ADR-035: with `merge: direct` there is no merge queue; pr.sh merge squash-merges the PR itself, after the whole gate.
+  describe('ADR-035: merge direct', () => {
+    const direct = { FIVVI_PIPELINE_FILE: switchFile('direct') };
+    const noQueue = () => github({ queue: queueFacts({ state: 'MERGED', queueEnabled: false }) });
+    const enqueued = (result) => result.calls.some((call) => new RegExp(ENQUEUE).test(call));
+    const squashed = (result) =>
+      result.calls.some((call) =>
+        new RegExp(`^pr merge 60 --repo [^ ]+ --squash --match-head-commit ${HEAD}$`).test(call),
+      );
+
+    it('runs the whole merge gate, then squash-merges with the head commit pinned, and enqueues nothing', () => {
+      const result = merge(noQueue(), [], direct);
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /✓ not owner-only/);
+      assert.match(result.stdout, /✓ self-review clean/);
+      assert.match(result.stdout, /✅ PR #60 squash-merged/);
+      assert.ok(squashed(result), result.calls.join('\n'));
+      assert.ok(!enqueued(result), result.calls.join('\n'));
+      assert.doesNotMatch(result.stderr, /⚠/, 'no warning when the setting and GitHub agree');
+    });
+
+    it('merges nothing when a condition of the gate fails, and the PR stays for the owner', () => {
+      const result = merge(
+        github({ files: ['scripts/pr.sh'], body: '', queue: queueFacts({ queueEnabled: false }) }),
+        [],
+        direct,
+      );
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /PR #60 stays for the owner: not owner-only, self-review clean/);
+      assert.ok(!result.calls.some((call) => /^pr merge/.test(call)), result.calls.join('\n'));
+      assert.ok(!enqueued(result));
+    });
+
+    it('warns in one line when GitHub still has a merge queue (the ruleset is not applied yet), and goes by GitHub', () => {
+      const result = merge(github(), [], direct);
+      assert.equal(result.status, 0, result.stderr);
+      const warnings = result.stderr.split('\n').filter((line) => line.startsWith('⚠'));
+      assert.equal(warnings.length, 1, result.stderr);
+      assert.match(warnings[0], /merge: direct/);
+      assert.match(warnings[0], /merge queue/);
+      assert.match(warnings[0], /scripts\/github-settings\.sh apply/);
+      assert.ok(enqueued(result), 'went by what GitHub has: the queue');
+      assert.ok(!result.calls.some((call) => /^pr merge 60 .*--squash/.test(call)));
+    });
+
+    it('with merge: queue and a branch without a queue, warns the same way and squash-merges', () => {
+      const result = merge(noQueue());
+      assert.equal(result.status, 0, result.stderr);
+      const warnings = result.stderr.split('\n').filter((line) => line.startsWith('⚠'));
+      assert.equal(warnings.length, 1, result.stderr);
+      assert.match(warnings[0], /merge: queue/);
+      assert.match(warnings[0], /no merge queue/);
+      assert.ok(squashed(result));
+    });
+
+    it('with merge: queue and a queue, no warning', () => {
+      const result = merge(github());
+      assert.equal(result.status, 0, result.stderr);
+      assert.doesNotMatch(result.stderr, /⚠/);
+    });
+
+    it('a setting it cannot read gives no warning: it goes by GitHub', () => {
+      const result = merge(github(), [], {
+        FIVVI_PIPELINE_FILE: join(switchDir, 'missing.json'),
+      });
+      assert.doesNotMatch(result.stderr, /merge: (queue|direct)/);
+      assert.ok(enqueued(result));
+    });
+
+    it('refuses --after with a clear message, before anything is read or recorded: there is no queue to re-queue in', () => {
+      const result = merge(noQueue(), ['--after', '353'], direct);
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /--after/);
+      assert.match(result.stderr, /merge: direct/);
+      assert.match(result.stderr, /no merge queue/);
+      assert.match(result.stderr, /fix.*push.*pr\.sh merge/i);
+      assert.deepEqual(result.bodies, []);
+      assert.ok(
+        !result.calls.some((call) => /^pr merge/.test(call) || new RegExp(ENQUEUE).test(call)),
+      );
+    });
+
+    it('with the merge queue, --after still works as before', () => {
+      // The existing --after tests run with merge: queue (the helper default); this one only pins the refusal is not general.
+      const result = merge(noQueue(), ['--after', '353']);
+      assert.doesNotMatch(result.stderr, /merge: direct/);
+    });
+
+    it('when GitHub refuses because the branch is behind main, says so and points to the Refresh steps', () => {
+      const result = merge(
+        [
+          { match: '^pr merge 60 ', out: 'Pull request is not mergeable', status: 1 },
+          { match: '^pr view 60 .*--json mergeStateStatus', out: { mergeStateStatus: 'BEHIND' } },
+          ...github({ queue: queueFacts({ queueEnabled: false }) }),
+        ],
+        [],
+        direct,
+      );
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /PR #60 is behind main/);
+      assert.match(result.stderr, /Refresh/);
+      assert.match(result.stderr, /merge origin\/main/);
+      assert.match(result.stderr, /CI/);
+      assert.match(result.stderr, /pr\.sh merge/);
+      assert.doesNotMatch(result.stderr, /merge failed/);
+      assert.deepEqual(result.bodies, []);
+    });
+
+    it('any other refusal keeps the plain "merge failed" message, with GitHub\'s words', () => {
+      const result = merge(
+        [
+          { match: '^pr merge 60 ', out: 'not allowed', status: 1 },
+          { match: '^pr view 60 .*--json mergeStateStatus', out: { mergeStateStatus: 'BLOCKED' } },
+          ...github({ queue: queueFacts({ queueEnabled: false }) }),
+        ],
+        [],
+        direct,
+      );
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /merge failed: not allowed/);
+      assert.doesNotMatch(result.stderr, /behind main/);
     });
   });
 

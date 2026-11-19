@@ -74,7 +74,7 @@ describe('E002 #1357 the push run of CI on main', () => {
     // results of every task that passed in the same run. Turbo caches only a task that passed.
     for (const name of ['checks', 'e2e']) {
       const turbo = steps(jobs[name]).filter((step) =>
-        /run: (>-\n +)?pnpm exec turbo run/.test(step),
+        /run: (>-\n +|\|\n(?: {10}.*\n)*? {10})?pnpm exec turbo run/.test(step),
       );
       assert.ok(turbo.length > 0, name);
       for (const step of turbo) {
@@ -229,7 +229,7 @@ describe('E002 #1357 the push run of CI on main', () => {
     }
     // The steps that took the longest or are most exposed to a hang are among them.
     for (const label of [
-      'checks: Lint, typecheck, unit and integration tests, build, format and static checks',
+      'checks: Lint, typecheck, unit tests, integration tests (when the run has them), build, format and static checks',
       'e2e: Web e2e (nl-NL and en)',
       'ios-build: SwiftLint, checks and build for testing',
       'android-build: ktlint, checks and debug build',
@@ -310,9 +310,9 @@ describe('E002 #1357 the push run of CI on main', () => {
       Number(value) >= 1.5 * SLOWEST_FULL_RUN_MINUTES,
       `Checks (Linux) has ${value} minutes for a full run of at least ${SLOWEST_FULL_RUN_MINUTES}`,
     );
-    // The job stays far under the merge queue's timeout: it needs no other job and runs
-    // beside the native chain.
-    assert.doesNotMatch(jobs.checks, /^ {4}needs:/m);
+    // The job stays far under the merge queue's timeout: it needs only Detect changes (5 minutes, for the integration tests
+    // decision of ADR-035) and runs beside the native chain.
+    assert.match(jobs.checks, /^ {4}needs: changes$/m);
     // The push run's step still ends first, with room for the minute outside it and the cache save.
     const turbo = steps(jobs.checks).find((step) => /pnpm exec turbo run/.test(step));
     const pushStep = Number(turbo.match(/^ {8}timeout-minutes: .* && (\d+) \|\| 360 \}\}$/m)?.[1]);

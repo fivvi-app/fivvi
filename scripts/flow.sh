@@ -28,7 +28,7 @@
 #                                           agent", `Deploy bug: ...` when no open bug carries its marker, else
 #                                           `Build #n first: ...` (under "Waiting on the owner" while that bug waits on a
 #                                           human); a failing production deploy and a status it cannot read are lines
-#                                           under "Waiting on the owner", never work. With `ci: fast` (ADR-034) an open
+#                                           under "Waiting on the owner", never work. With `ci: fast` or `lean` (ADR-034, ADR-035) an open
 #                                           issue titled `Nightly UI tests failed` (scripts/nightly-report.sh) comes next,
 #                                           as `Build #n first (nightly): ...`, and not a second time as a ready ticket.
 #                                           Then every open PR GitHub marks CONFLICTING, drafts and owner-only ones
@@ -257,6 +257,10 @@ fixed_blockers() {
 # or broken file never reads as either.
 review_setting() { "$ROOT/scripts/pipeline.sh" get review || die "could not read the review setting (scripts/pipeline.sh get review)"; }
 
+# The merge setting of ADR-035 (scripts/pipeline.sh get merge): queue or direct. It only words the next step of a PR, so a
+# setting that can't be read is the merge queue, the wording before ADR-035.
+merge_setting() { "$ROOT/scripts/pipeline.sh" get merge 2>/dev/null || echo queue; }
+
 # The spec-review facts of spec $1 whose tickets are all closed (ADR-034): `<setting> <covered|not-covered> <detail>`,
 # for facts() as JSON {review, spec_review}. Only a spec in that state costs the reads; spec_review is null with per-pr.
 spec_review_facts() {
@@ -299,13 +303,13 @@ facts() {
     review="$(spec_review_facts "$n")" || exit 1
   fi
   jq --arg me "$login" --argjson parent "$parent" --argjson children "$children" --argjson branches "$branches" \
-    --argjson fixed "$fixed" --argjson review "$review" "$ANSWERED_JQ"'{
+    --argjson fixed "$fixed" --argjson review "$review" --arg merge "$(merge_setting)" "$ANSWERED_JQ"'{
     number, title, state, me: $me, answered: answered,
     labels: [.labels[].name], assignees: [.assignees[].login],
     described: ((.body // "") | gsub("\\s"; "") | length > 0),
     has_criteria: ((.body // "") | test("(^|\\n)#+\\s*acceptance criteria|(^|\\n)\\s*- \\[[ x]\\]"; "i")),
     parent: $parent, children: $children, branches: $branches,
-    blockers: [.blockedBy.nodes[] | select(.state == "OPEN") | {number, title}], fixed_blockers: $fixed} + $review' <<<"$item"
+    blockers: [.blockedBy.nodes[] | select(.state == "OPEN") | {number, title}], fixed_blockers: $fixed, merge: $merge} + $review' <<<"$item"
 }
 
 render() {
@@ -613,7 +617,8 @@ deploy_items() {
 }
 
 # The open issue of a failed nightly run (ADR-034, scripts/nightly-report.sh), the oldest when there are several. With
-# `ci: fast` the UI tests run only in the nightly run, so its failure is work before the other tickets, right after a
+# `ci: fast` or `lean` the UI tests (and with `lean` the integration tests) run only in the nightly run, so its failure is
+# work before the other tickets, right after a
 # failing deploy; with `full` there is no nightly run to wait for and the issue is an ordinary ready ticket, so nothing is
 # read. Sets NIGHTLY_WORK (a line ending in a newline, or empty) and NIGHTLY_NUMBER. An issue in a phase that waits on a human
 # is not work. Dies when the setting, the issues or the issue's facts can't be read.
@@ -624,7 +629,7 @@ nightly_items() {
   local mode n f phase
   NIGHTLY_WORK="" NIGHTLY_NUMBER=""
   mode="$("$ROOT/scripts/pipeline.sh" get ci)" || die "could not read the ci setting (scripts/pipeline.sh get ci)"
-  [ "$mode" = fast ] || return 0
+  [ "$mode" = fast ] || [ "$mode" = lean ] || return 0
   n="$(gh issue list --repo "$REPO" --state open --search "\"$NIGHTLY_TITLE\" in:title" --limit 100 --json number,title \
     --jq "[.[] | select(.title == \"$NIGHTLY_TITLE\") | .number] | min // empty")" || die "could not read the open issues"
   [ -n "$n" ] || return 0
@@ -967,7 +972,7 @@ open_blockers() {
 # complete, and not still needs-spec (no tickets, not ready-for-agent, and needs-triage or no body). Dies when a read
 # fails, so an empty list means nothing waits.
 owner_items() {
-  local prs pr title head branch issue blockers risk refusal queue
+  local prs pr title head branch issue blockers risk refusal queue behind
   jq -r --arg approved "$APPROVED_LABEL" --arg ready "$READY_LABEL" '.[]
     | [.labels[].name] as $labels
     | ((.body // "") | gsub("\\s"; "") | length > 0) as $described
@@ -999,9 +1004,17 @@ owner_items() {
       blockers=""
       issue="$(branch_issue "$branch")"
       if [ -n "$issue" ]; then blockers="$(open_blockers "$issue")" || die "could not read the blockers of #$issue"; fi
-      jq -r --arg pr "$pr" --arg title "$title" --arg blockers "$blockers" \
+      # With `merge: direct` (ADR-035) GitHub refuses the merge of a branch that is behind main, and the factory refreshes only
+      # conflicting PRs (re-running CI on every owner PR after every merge would cost more than one button), so say what to
+      # press. A state that can't be read leaves the line as it was.
+      behind=""
+      if [ -z "$blockers" ] && [ "$(merge_setting)" = direct ] \
+        && [ "$(gh pr view "$pr" --repo "$REPO" --json mergeStateStatus --jq .mergeStateStatus 2>/dev/null || true)" = BEHIND ]; then
+        behind="behind main: press Update branch in the merge box (CI runs once more), then merge; a conflict goes through the Refresh steps"
+      fi
+      jq -r --arg pr "$pr" --arg title "$title" --arg blockers "$blockers" --arg behind "$behind" \
         '((.reasons[:3] | join("; ")) + (if (.reasons | length) > 3 then "; +\(.reasons | length - 3) more" else "" end)) as $why
-         | if $blockers == "" then "Merge PR #\($pr) \($title) (owner-only: \($why))"
+         | if $blockers == "" then "Merge PR #\($pr) \($title) (owner-only: \($why)\(if $behind != "" then "; " + $behind else "" end))"
            else "Blocked PR #\($pr) \($title) (waits for \($blockers); owner-only: \($why))" end' <<<"$risk" \
         || die "could not read the risk of PR #$pr"
       continue

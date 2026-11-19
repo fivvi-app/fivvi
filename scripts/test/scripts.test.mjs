@@ -647,7 +647,12 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
 
   // The native jobs only, as most tests below ask; detectAll also has the Linux E2E decision (#293).
   const detectChanges = (options) => {
-    const { e2e: _e2e, ui_tests: _uiTests, ...native } = detectAll(options);
+    const {
+      e2e: _e2e,
+      ui_tests: _uiTests,
+      integration_tests: _integration,
+      ...native
+    } = detectAll(options);
     return native;
   };
 
@@ -722,12 +727,13 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
   });
 
   it('ADR-034: the nightly (schedule) run forces the native jobs and the Linux E2E job, whatever changed', () => {
-    for (const pipeline of ['fast', 'full']) {
+    for (const pipeline of ['lean', 'fast', 'full']) {
       assert.deepEqual(detectAll({ event: 'schedule', pipeline }), {
         ios: 'true',
         android: 'true',
         e2e: 'true',
         ui_tests: 'true',
+        integration_tests: 'true',
       });
     }
   });
@@ -774,12 +780,72 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     it('does not change what the native and E2E jobs decide: a pull request still runs only what changed', () => {
       assert.deepEqual(
         detectAll({ event: 'pull_request', pipeline: 'fast', changed: ['apps/ios/App.swift'] }),
-        { ios: 'true', android: 'false', e2e: 'false', ui_tests: 'false' },
+        {
+          ios: 'true',
+          android: 'false',
+          e2e: 'false',
+          ui_tests: 'false',
+          integration_tests: 'true',
+        },
       );
       assert.deepEqual(
         detectAll({ event: 'pull_request', pipeline: 'full', changed: ['apps/ios/App.swift'] }),
-        { ios: 'true', android: 'false', e2e: 'false', ui_tests: 'true' },
+        {
+          ios: 'true',
+          android: 'false',
+          e2e: 'false',
+          ui_tests: 'true',
+          integration_tests: 'true',
+        },
       );
+    });
+
+    it('lean: no UI tests on a pull request, a merge group and a push (as fast), and them in the nightly run and on demand', () => {
+      for (const event of ['pull_request', 'merge_group', 'push']) {
+        assert.equal(uiTests({ event, pipeline: 'lean' }), 'false', event);
+      }
+      for (const event of ['workflow_dispatch', 'schedule']) {
+        assert.equal(uiTests({ event, pipeline: 'lean' }), 'true', event);
+      }
+    });
+
+    it("ADR-035 integration_tests: full and fast run them on every event; lean only in the nightly run and on demand, the run-native label doesn't change that", () => {
+      const integrationTests = (options) => detectAll(options).integration_tests;
+      const events = ['pull_request', 'merge_group', 'push', 'workflow_dispatch', 'schedule'];
+      for (const pipeline of ['full', 'fast']) {
+        for (const event of events) {
+          assert.equal(integrationTests({ event, pipeline }), 'true', `${pipeline} ${event}`);
+        }
+      }
+      for (const event of ['pull_request', 'merge_group', 'push']) {
+        for (const changed of [['docs/product/PRODUCT.md'], ['apps/web/src/a.ts']]) {
+          assert.equal(
+            integrationTests({ event, pipeline: 'lean', changed }),
+            'false',
+            `lean ${event} ${changed}`,
+          );
+        }
+      }
+      assert.equal(
+        integrationTests({ event: 'pull_request', pipeline: 'lean', label: true }),
+        'false',
+      );
+      for (const event of ['workflow_dispatch', 'schedule']) {
+        assert.equal(integrationTests({ event, pipeline: 'lean' }), 'true', `lean ${event}`);
+      }
+    });
+
+    it('ADR-035: logs whether the integration tests run and why', () => {
+      detectAll({ event: 'pull_request', pipeline: 'lean' });
+      assert.match(detectLog, /Integration tests: not run.*ci is lean.*nightly/i);
+      detectAll({ event: 'schedule', pipeline: 'lean' });
+      assert.match(detectLog, /Integration tests: run.*nightly/i);
+      detectAll({ event: 'workflow_dispatch', pipeline: 'lean' });
+      assert.match(detectLog, /Integration tests: run.*workflow_dispatch/);
+      detectAll({ event: 'pull_request', pipeline: 'fast' });
+      assert.match(detectLog, /Integration tests: run.*ci is fast/i);
+      detectAll({ event: 'pull_request', pipeline: 'full' });
+      assert.match(detectLog, /Integration tests: run.*ci is full/i);
     });
 
     it('logs why, like the other skip decisions', () => {
@@ -791,6 +857,8 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
       assert.match(detectLog, /UI tests: run.*workflow_dispatch/);
       detectAll({ event: 'pull_request', pipeline: 'full' });
       assert.match(detectLog, /UI tests: run.*ci is full/i);
+      detectAll({ event: 'pull_request', pipeline: 'lean' });
+      assert.match(detectLog, /UI tests: not run.*ci is lean.*nightly/i);
     });
 
     it('fails closed: a missing or unknown setting stops the job, it is not read as fast or full', () => {
