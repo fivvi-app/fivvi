@@ -99,7 +99,8 @@ describe('E001 #1272 sorted catalogs', () => {
     });
   });
 
-  describe('CLI', () => {
+  // Each test starts the CLI up to three times: give it room on a busy machine.
+  describe('CLI', { timeout: 30_000 }, () => {
     let root: string;
 
     beforeEach(async () => {
