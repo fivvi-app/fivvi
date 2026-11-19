@@ -59,7 +59,9 @@ describe('#293 AC7 turbo caches the integration and e2e suites by their inputs',
       });
     // The database image the suites run against: a new Postgres version must not reuse a cached result.
     file('compose.yaml', 'services:\n  postgres:\n    image: postgres:18-alpine\n');
-    file('packages/testing/package.json', pkg('testing', [], {}));
+    // A task that records the slot variables it sees (E001 #1388: check.sh holds a heavy slot and tells its tasks so).
+    const seen = `node -e "require('node:fs').writeFileSync('${join(outside, 'slots.seen')}', JSON.stringify([process.env.FIVVI_SLOTS_HELD, process.env.FIVVI_SLOTS_DIR]))"`;
+    file('packages/testing/package.json', pkg('testing', [], { typecheck: seen }));
     file('packages/testing/src/helper.ts', 'export const a = 1;\n');
     file('packages/database/package.json', pkg('database', ['testing'], {}));
     file('packages/database/migrations/0001.sql', 'select 1;\n');
@@ -85,10 +87,10 @@ describe('#293 AC7 turbo caches the integration and e2e suites by their inputs',
     rmSync(outside, { recursive: true, force: true });
   });
 
-  const turbo = (task, env = {}) => {
+  const turbo = (task, env = {}, args = []) => {
     const result = spawnSync(
       TURBO,
-      ['run', task, `--cache-dir=${cache}`, '--output-logs=none', '--ui=stream'],
+      ['run', task, `--cache-dir=${cache}`, '--output-logs=none', '--ui=stream', ...args],
       {
         cwd: dir,
         encoding: 'utf8',
@@ -154,5 +156,24 @@ describe('#293 AC7 turbo caches the integration and e2e suites by their inputs',
       turbo('test:e2e');
       assert.equal(runs('web-e2e'), expected, path);
     }
+  });
+
+  // E001 #1388: turbo runs in strict env mode and drops what a task's config does not name, so the slot variables of check.sh
+  // (what it holds, where the pool is) must be passed through to the tasks, and must stay out of the hash: a check that holds a
+  // slot and one that does not share the cache.
+  it('a task sees FIVVI_SLOTS_HELD and FIVVI_SLOTS_DIR, and they are not part of the hash', () => {
+    const seenFile = join(outside, 'slots.seen');
+    // --force: an earlier test may have cached this task already (a cache hit runs nothing).
+    turbo('typecheck', { FIVVI_SLOTS_HELD: 'heavy', FIVVI_SLOTS_DIR: '/slots-one' }, ['--force']);
+    assert.deepEqual(JSON.parse(readFileSync(seenFile, 'utf8')), ['heavy', '/slots-one']);
+    rmSync(seenFile);
+    const second = turbo('typecheck', {
+      FIVVI_SLOTS_HELD: 'heavy,ios-sim',
+      FIVVI_SLOTS_DIR: '/slots-two',
+    });
+    assert.match(second, /Cached:\s+4 cached, 4 total/, 'a different value is a cache hit');
+    assert.ok(!existsSync(seenFile), 'and the task did not run again');
+    const third = turbo('typecheck');
+    assert.match(third, /Cached:\s+4 cached, 4 total/, 'no value is a cache hit too');
   });
 });
