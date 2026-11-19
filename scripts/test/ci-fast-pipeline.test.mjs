@@ -96,10 +96,7 @@ describe('ADR-034 iOS tests', () => {
   for (const name of ['ios-tests', 'ios-tests-retry']) {
     describe(name, () => {
       const job = jobs[name];
-      const full = stepNamed(
-        job,
-        'Unit and UI tests (${{ matrix.locale }} ${{ matrix.shard }}/2)',
-      );
+      const full = stepNamed(job, 'Unit and UI tests (${{ matrix.locale }} ${{ matrix.shard }}/2)');
       const fast = stepNamed(job, 'Unit tests (${{ matrix.locale }}), no UI tests in this run');
 
       it('waits for Detect changes too, for its decision', () => {
