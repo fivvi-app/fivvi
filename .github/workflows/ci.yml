@@ -247,12 +247,15 @@ jobs:
     # The suite stops itself after 17 minutes (apps/web/test/e2e-run.ts, #1408), and the OS packages step may spend 10 minutes on
     # its retries (#1311) before it starts, so the job is never cancelled in the middle of either: about 1 minute for the
     # setup and the build, the worst case of the OS packages step (10), the suite (17) and 2 minutes for the post steps (the
-    # Playwright report, the caches) make 30. The apt cache steps (prepare, restore, prune, save: seconds each, 32 MB saved
-    # on a cold run, 2 minutes at most each) run before the suite and count in the setup minute; the 10 minutes of the
-    # install are its worst case with a cold cache, and a run that spent them has no saved cache to restore anyway. On a
-    # push (E002 #1357) the work step may take 20 minutes (below), so the job gets 35: 1 + 10 + 20 make 31, and 4 minutes
-    # remain for the post steps. A push is not in the merge queue's chain of timeouts (150, ADR-018); for a pull request,
-    # a merge group and workflow_dispatch the chain is Detect changes 5 plus this job's 30, far below it.
+    # Playwright report, the caches) make 30. The apt cache steps (prepare, restore, prune: seconds each, 2 minutes at most
+    # each) run before the suite and count in the setup minute. The save runs only after a cold install that passed, and
+    # takes seconds (32 MB) with 2 minutes as its limit: it comes out of the 2 minutes of the post steps, and out of the
+    # suite's time only if the install used all of its 10 minutes (the last of 4 tries on a slow mirror) and the suite all
+    # of its 17, the 1 + 10 + 2 + 17 = 30 of a run that is then cut off in its post steps at worst, which the limit of
+    # the job is there for. On a push (E002 #1357) the work step may take 20 minutes (below), so the job gets 35: 1 + 10 +
+    # 2 + 20 make 33, and 2 minutes remain for the post steps. A push is not in the merge queue's chain of timeouts (150,
+    # ADR-018); for a pull request, a merge group and workflow_dispatch the chain is Detect changes 5 plus this job's 30,
+    # far below it.
     timeout-minutes: ${{ github.event_name == 'push' && 35 || 30 }}
     # The e2e servers each create and migrate their own database on it (apps/web/e2e/serve.ts).
     services:
@@ -347,6 +350,7 @@ jobs:
       - name: Restore Chromium's OS packages
         id: apt-cache
         timeout-minutes: 2
+        continue-on-error: true
         uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:
           path: /var/cache/apt/archives/*.deb
