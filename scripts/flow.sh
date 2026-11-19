@@ -46,7 +46,7 @@
 #                                           of an older commit, none, or a refusal of the head commit), `Stays with the
 #                                           owner: …` and a `refresh-held <head>: <why>` line in the notes: the PR is then
 #                                           never recorded clean or queued after the refresh, and stays merge-refused
-#                                           (flow-phase.jq) until a clean review verdict follows that line
+#                                           (flow-phase.jq) until a clean review of the PR's then current head, not the held commit, follows that line
 #   flow.sh idle                            exit 0 and "idle: nothing for an agent" (plus what waits on the owner) when no
 #                                           agent has anything to do: nothing under "Ready for an agent" in `next` and no
 #                                           issue assigned to you in a phase an agent acts on; exit 1 and what there is
@@ -182,11 +182,11 @@ pr_facts() {
     # Whether GitHub finds conflicts with main (#1274); an UNKNOWN state is read again.
     mergeable="$(jq -r '.mergeable // ""' <<<"$pr")"
     if [ -z "$mergeable" ] || [ "$mergeable" = UNKNOWN ]; then mergeable="$(read_mergeable "$number")" || exit 1; fi
-    # A refresh that left the PR with the owner holds it until a clean review follows (refresh_hold).
+    # A refresh that left the PR with the owner holds it until a clean review of its current head follows (refresh_hold).
     issue="$(branch_issue "$branch")"
     notes=""
     [ -z "$issue" ] || notes="$(notes_of "$issue")"
-    [ -z "$notes" ] || held="$(refresh_hold "$notes")"
+    [ -z "$notes" ] || held="$(refresh_hold "$notes" "$(jq -r .headRefOid <<<"$pr")")"
     # A conflicting PR that is parked or being worked on is not for a refresh (refresh_skipped).
     if [ "$mergeable" = CONFLICTING ] \
       && refresh_skipped "$branch" "$(jq -r '[.closingIssuesReferences[]?.number | tostring] | join(",")' <<<"$pr")"; then skip=true; fi
@@ -662,15 +662,26 @@ last_verdict() {
 }
 
 # The reason of the hold a refresh left in the notes file $1 (`refresh-held <sha>: <reason>`, written by flow.sh refresh),
-# or nothing: a hold lasts until a clean review verdict follows it in the file. The refresh push, which makes a merge-gate
-# refusal stale, does not end it.
+# or nothing. A hold ends only on a clean review of the PR's current head $2 (`reviewed <sha> (…): clean` after the hold
+# line, <sha> the head or a prefix of it, either way round) that is not the commit the hold names: a clean line of an
+# older commit, of the held commit itself, or before the hold line leaves the PR with the owner. Without a head the hold
+# stays (fail closed). The refresh push, which makes a merge-gate refusal stale, does not end it.
 refresh_hold() {
-  local held clean hold_line
+  local held hold_line held_sha line sha
   held="$({ grep -nE '^[-* ]*refresh-held [0-9a-f]{7,40}: ' "$1" || true; } | tail -n 1)"
   [ -n "$held" ] || return 0
   hold_line="${held%%:*}"
-  clean="$({ grep -nE '^[-* ]*reviewed [0-9a-f]{7,40} \([^)]*\): clean([^[:alnum:]]|$)' "$1" || true; } | tail -n 1)"
-  if [ -n "$clean" ] && [ "${clean%%:*}" -gt "$hold_line" ]; then return 0; fi
+  held_sha="$(sed -E 's/^[0-9]+:[-* ]*refresh-held ([0-9a-f]+): .*/\1/' <<<"$held")"
+  if [ -n "${2:-}" ]; then
+    while IFS= read -r line; do
+      [ "${line%%:*}" -gt "$hold_line" ] || continue
+      sha="$(sed -E 's/^[0-9]+:[-* ]*reviewed ([0-9a-f]+) .*/\1/' <<<"$line")"
+      case "$2" in "$sha"*) ;; *) case "$sha" in "$2"*) ;; *) continue ;; esac ;; esac
+      case "$held_sha" in "$sha"*) continue ;; esac
+      case "$sha" in "$held_sha"*) continue ;; esac
+      return 0
+    done < <(grep -nE '^[-* ]*reviewed [0-9a-f]{7,40} \([^)]*\): clean([^[:alnum:]]|$)' "$1" || true)
+  fi
   sed -E 's/^[0-9]+:[-* ]*refresh-held [0-9a-f]+: //' <<<"$held"
 }
 
@@ -840,7 +851,7 @@ cmd_refresh() {
     echo "Stays with the owner: $why; the review of the merge is not a clean review: no pr.sh reviewed, ship or merge after the push"
     if [ -n "$issue" ]; then
       [ -n "$notes" ] || notes="$NOTES_DIR/$(slice_primary "$issue")/notes.md"
-      if [ -z "$(refresh_hold "$notes" 2>/dev/null)" ]; then
+      if [ -z "$(refresh_hold "$notes" "$head" 2>/dev/null)" ]; then
         mkdir -p "$(dirname "$notes")"
         printf -- '- refresh-held %s: %s\n' "$head" "$why" >>"$notes"
       fi

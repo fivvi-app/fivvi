@@ -42,7 +42,8 @@ def unapproved_spec: has("spec") and (has("spec-approved") | not);
 def refused: .refusal != null and .refusal.sha != null and .refusal.sha == .head;
 # A refresh (#1274) of a PR that stayed with the owner (open findings, no clean review of its head, a refusal) left a hold
 # in the notes (`refresh-held`, scripts/flow.sh); the push of the merge commit makes a refusal stale, but not the hold. It
-# ends with a clean review recorded after it. A non-empty string is the reason.
+# ends only with a clean review recorded after it of the PR's current head (a different commit than the held one), never
+# with a clean line of an older commit. A non-empty string is the reason.
 def held: (.held // "") != "";
 def queue_state: .queue.state? // null;
 

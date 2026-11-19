@@ -854,12 +854,29 @@ describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () 
       );
       const owner = run('status', {}, 'scripts/pr.sh');
       assert.doesNotMatch(owner.stdout, /Phase: ready-to-merge/);
+      // A clean verdict of an older commit, or of the held commit itself, does not end it: only a clean review of the
+      // PR's current head (cccccc…, the commit after the held one) does.
+      const heldNotes = readFileSync(notes, 'utf8');
+      for (const verdict of [
+        '- reviewed 2222222 (since 1111111): clean',
+        '- reviewed 1111111 (full): clean',
+        `- reviewed ${HEAD.slice(0, 7)} (since 1111111): not clean`,
+      ]) {
+        writeFileSync(notes, `${heldNotes}${verdict}\n`);
+        assert.match(run('status', {}).stdout, /^Phase: merge-refused$/m, verdict);
+      }
+      // A clean verdict of the current head before the hold line does not end it either.
       writeFileSync(
         notes,
-        `${readFileSync(notes, 'utf8')}- reviewed 2222222 (since 1111111): clean\n`,
+        `- reviewed ${HEAD.slice(0, 7)} (full): clean\n- refresh-held 1111111: the last review was not clean\n`,
       );
+      assert.match(run('status', {}).stdout, /^Phase: merge-refused$/m);
+      writeFileSync(notes, `${heldNotes}- reviewed ${HEAD.slice(0, 7)} (since 1111111): clean\n`);
       const cleared = run('status', {});
       assert.match(cleared.stdout, /^Phase: ready-to-merge$/m);
+      // The full sha of the head ends it too.
+      writeFileSync(notes, `${heldNotes}- reviewed ${HEAD} (since 1111111): clean\n`);
+      assert.match(run('status', {}).stdout, /^Phase: ready-to-merge$/m);
       // A merge-only verdict does not clear it.
       writeFileSync(
         notes,
@@ -3022,6 +3039,34 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
           assert.deepEqual(lines, [`- refresh-held ${FIRST}: the last review was not clean`]);
           refresh('Closes #9400', `- reviewed ${FIRST.slice(0, 7)} (full): clean\n`);
           assert.doesNotMatch(readFileSync(notes, 'utf8'), /refresh-held/);
+        });
+
+        it('a hold ends only on a clean review of the PR head that is not the held commit: a refresh after it holds again, one after any other clean line does not', () => {
+          const notes = join(repo, '.work/9400/notes.md');
+          const heldLines = () =>
+            readFileSync(notes, 'utf8')
+              .split('\n')
+              .filter((line) => line.includes('refresh-held'));
+          const short = FIRST.slice(0, 7);
+          // A clean line of an older commit sits after the hold: it is still held, so no second hold line.
+          refresh(
+            'Closes #9400',
+            `- refresh-held 1111111: the last review was not clean\n- reviewed 1111111 (full): clean\n- reviewed 2222222 (since 1111111): not clean\n`,
+          );
+          assert.equal(heldLines().length, 1);
+          // A clean line of the head commit sits after the hold, then a not clean one: the hold ended, so a new one is written.
+          refresh(
+            'Closes #9400',
+            `- refresh-held 1111111: the last review was not clean\n- reviewed ${short} (full): clean\n- reviewed 2222222 (since ${short}): not clean\n`,
+          );
+          assert.equal(heldLines().length, 2);
+          assert.equal(heldLines()[1], `- refresh-held ${FIRST}: the last review was not clean`);
+          // A clean line of the held commit itself does not end a hold of that commit.
+          refresh(
+            'Closes #9400',
+            `- refresh-held ${FIRST}: the last review was not clean\n- reviewed ${short} (full): clean\n- reviewed 2222222 (since ${short}): not clean\n`,
+          );
+          assert.equal(heldLines().length, 1);
         });
       });
 
