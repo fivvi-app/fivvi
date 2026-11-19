@@ -121,7 +121,10 @@ describe('ADR-034 iOS tests', () => {
           "${{ (needs.changes.outputs.ui_tests == 'true' || matrix.shard == 1) && 'macos-15' || 'ubuntu-24.04' }}",
         );
         const download = stepNamed(job, 'Download the test bundle');
-        assert.equal(stepIf(download), "needs.changes.outputs.ui_tests == 'true' || matrix.shard == 1");
+        assert.equal(
+          stepIf(download),
+          "needs.changes.outputs.ui_tests == 'true' || matrix.shard == 1",
+        );
         // Both runs-on branches agree with the steps: a macOS part runs a test step, a Linux part runs none.
         assert.equal(stepIf(full), UI);
         assert.equal(stepIf(fast), `${NO_UI} && matrix.shard == 1`);
