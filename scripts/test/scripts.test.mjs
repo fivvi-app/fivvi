@@ -2272,14 +2272,16 @@ if [ "$*" = "db:reset-rate-limits" ]; then
 fi
 exit 0`,
     );
-    // calls.log has the curl, adb and Maestro calls in the order they ran. FAKE_HELLO=fail: GET /api/v1/hello fails.
+    // calls.log has the curl, adb and Maestro calls in the order they ran. FAKE_WARM_UP=fail: GET /api/v1/me fails; =ok: it answers 200 instead of the 401 it gives without a token.
     // The fake Lettermint server is a real process (#379), so a GET to its port (E2E_PORT + 2000) succeeds only once it answers,
     // like curl in maestro.sh's wait_for would, which the fake sleep cannot do: a call polls for up to 1 s (the skipped
     // sleep 1) and then fails, so wait_for's 61 tries still end near its real 60 s when the server never answers.
     script(
       join(bin, 'curl'),
       `echo "curl $*" >>"${state}/calls.log"
-case "$*" in *"/api/v1/hello"*) [ "$FAKE_HELLO" != fail ] || exit 22 ;; esac
+case "$*" in *"/api/v1/me"*)
+  [ "$FAKE_WARM_UP" != fail ] || exit 7
+  [ "$FAKE_WARM_UP" = ok ] && printf 200 || printf 401 ;; esac
 case "$*" in *"localhost:$((E2E_PORT + 2000))/"*)
   exec node -e "
     const url = process.argv[1], end = Date.now() + 1000;
@@ -5783,19 +5785,18 @@ esac`,
     assert.ok(fake.log('gradle').every((call) => !/(^| )--stop( |$)/.test(call)));
   });
 
-  // #89: the first locale's flow didn't see the greeting within its 20 s. The app's first screen called
-  // GET /api/v1/hello?locale=<its language>, and the flow started while Android was still busy after the framework
-  // restart that sets the device language (System UI stopped responding and its dialog covered the app). The Hello
-  // screen is gone (E020 #652), the apps no longer call the route, and maestro.sh still asks it once per locale: it warms
-  // the server's first request up for the home's wait on GET /api/v1/me.
+  // #89: the first locale's flow didn't see its first screen within 20 s. The apps' first request was slow, and the flow
+  // started while Android was still busy after the framework restart that sets the device language (System UI stopped
+  // responding and its dialog covered the app). maestro.sh asks the server once for GET /api/v1/me, a request the apps
+  // make, before the first flow (E020 #1391: it was GET /api/v1/hello, a route the apps no longer call).
   const isFlow = (call) => / test /.test(` ${call} `) && call.startsWith('maestro ');
-  const hello = (fake, locale) => `http://127.0.0.1:${fake.port}/api/v1/hello?locale=${locale}`;
+  const warmUp = (fake) => `http://127.0.0.1:${fake.port}/api/v1/me`;
 
   for (const [name, args] of [
     ['maestro.sh android', ['android']],
     ['maestro.sh ios', ['ios']],
   ]) {
-    it(`#89: ${name} warms up GET /api/v1/hello in nl-NL and en before the first flow`, async () => {
+    it(`#89: ${name} warms up GET /api/v1/me, which the apps call, before the first flow`, async () => {
       const fake = checkout();
 
       const run = await fake.run('scripts/maestro.sh', args);
@@ -5804,27 +5805,35 @@ esac`,
       const calls = fake.log('calls');
       const firstFlow = calls.findIndex(isFlow);
       const health = calls.findIndex((call) => call.includes('/api/v1/health'));
+      const request = calls.findIndex(
+        (call) => call.startsWith('curl ') && call.includes(` ${warmUp(fake)}`),
+      );
       assert.ok(firstFlow > 0, calls.join('\n'));
-      for (const locale of ['nl-NL', 'en']) {
-        const warmUp = calls.findIndex(
-          (call) => call.startsWith('curl ') && call.includes(` ${hello(fake, locale)}`),
-        );
-        assert.ok(
-          health < warmUp && warmUp < firstFlow,
-          `GET ${hello(fake, locale)} after the health check, before the first flow:\n${calls.join('\n')}`,
-        );
-      }
+      assert.ok(
+        health < request && request < firstFlow,
+        `GET ${warmUp(fake)} after the health check, before the first flow:\n${calls.join('\n')}`,
+      );
+      assert.ok(
+        !calls.some((call) => call.includes('/api/v1/hello')),
+        `no call to the hello route:\n${calls.join('\n')}`,
+      );
     });
 
-    it(`#89: ${name} runs no flow when GET /api/v1/hello fails`, async () => {
-      const fake = checkout({ emulatorRunning: true, simulatorBooted: true });
+    for (const [how, env, message] of [
+      ['does not answer', { FAKE_WARM_UP: 'fail' }, /answered nothing, not 401/],
+      ['answers something else than 401', { FAKE_WARM_UP: 'ok' }, /answered 200, not 401/],
+    ]) {
+      it(`#89: ${name} runs no flow when GET /api/v1/me ${how}`, async () => {
+        const fake = checkout({ emulatorRunning: true, simulatorBooted: true });
 
-      const run = await fake.run('scripts/maestro.sh', args, { FAKE_HELLO: 'fail' });
+        const run = await fake.run('scripts/maestro.sh', args, env);
 
-      assert.equal(run.status, 1, run.output);
-      assert.match(run.output, /\/api\/v1\/hello\?locale=nl-NL/);
-      assert.ok(!fake.log('calls').some(isFlow), fake.log('calls').join('\n'));
-    });
+        assert.equal(run.status, 1, run.output);
+        assert.match(run.output, message);
+        assert.match(run.output, /\/api\/v1\/me/);
+        assert.ok(!fake.log('calls').some(isFlow), fake.log('calls').join('\n'));
+      });
+    }
   }
 
   it('#224: maestro.sh ios leaves signing to the xcconfigs, so the simulator build keeps its ad hoc signature', async () => {

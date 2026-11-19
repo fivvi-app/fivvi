@@ -21,7 +21,7 @@
 # and, while it runs, every MAESTRO_CLEAR_EVERY seconds (default 20, shorter than one flow) by a background loop that stops
 # when the run ends, also on failure or Ctrl-C. Maestro reads e2e/maestro/config.yaml to pick the flows.
 #
-# Before the first flow, the web server has answered GET /api/v1/hello, a request that warms it up, in both locales.
+# Before the first flow, the web server has answered GET /api/v1/me (401, with no token), a request the apps make, which warms it up.
 # When it ends, also on failure or Ctrl-C, it stops the emulator or simulator it booted and its Gradle daemons;
 # KEEP_DEVICE=1 leaves them running for the next run. On an emulator it didn't boot, it restores the language and the
 # error dialog setting, also when it had to relaunch that emulator (#584) and stops the relaunched one.
@@ -167,7 +167,7 @@ start_stack() {
     exec node --env-file=../../packages/database/.env .next/standalone/apps/web/server.js) >"$REPORTS/web.log" 2>&1 &
   SERVER_PID=$!
   wait_for "http://127.0.0.1:$PORT/api/v1/health" "the web server on port $PORT" "web.log"
-  warm_up_hello
+  warm_up_server
 }
 
 # Waits up to 60 s for GET $1 to answer; $2 names what it is, $3 is its log in e2e/maestro/build.
@@ -195,16 +195,14 @@ clear_rate_limits() {
   pnpm db:reset-rate-limits >/dev/null || die "clearing the sign-in rate limits failed"
 }
 
-# The server's first request is slow (the route, the database connection). Ask GET /api/v1/hello?locale=<language> once per
-# locale before the first flow, so no flow's 20 s wait is spent on it, and stop here, not 20 s into a flow, when it
-# doesn't answer (#89). The apps no longer call this route (the Hello screen went, E020 #652); it warms the same server.
-warm_up_hello() {
-  local locale url
-  for locale in $LOCALES; do
-    url="http://127.0.0.1:$PORT/api/v1/hello?locale=$locale"
-    curl -fsS --max-time 60 "$url" >/dev/null 2>&1 \
-      || die "GET $url failed (log: e2e/maestro/build/web.log)"
-  done
+# The server's first request is slow (the route, the auth code). Ask GET /api/v1/me once, without a token, before the first
+# flow, so no flow's 20 s wait is spent on it, and stop here, not 20 s into a flow, when it doesn't answer (#89). It is a
+# request both apps really make (the home reads the account with it); with no token it answers 401, which is the answer
+# expected here: anything else, or none, is a server that isn't ready.
+warm_up_server() {
+  local url="http://127.0.0.1:$PORT/api/v1/me" status
+  status="$(curl -sS --max-time 60 -o /dev/null -w '%{http_code}' "$url" 2>/dev/null)" || status=""
+  [ "$status" = 401 ] || die "GET $url answered ${status:-nothing}, not 401 (log: e2e/maestro/build/web.log)"
 }
 
 # True when the host's adb server lists the device as online, Android has booted and the package manager answers.

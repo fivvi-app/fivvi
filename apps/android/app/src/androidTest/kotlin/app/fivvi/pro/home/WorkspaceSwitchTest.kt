@@ -26,7 +26,6 @@ import app.fivvi.pro.clients.ClientsTags
 import app.fivvi.pro.clients.FakeClientsApi
 import app.fivvi.pro.clients.clientIdOf
 import app.fivvi.pro.clients.clientOf
-import app.fivvi.pro.hello.FakeHelloApi
 import app.fivvi.pro.localizedString
 import app.fivvi.pro.waitUntilTagExists
 import app.fivvi.pro.workspace.InMemoryLastWorkspaceStore
@@ -49,7 +48,6 @@ class WorkspaceSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
     @get:Rule
     val app = AppRule()
 
-    private val hello = FakeHelloApi().apply { answerGreeting() }
     private val me = FakeMeApi()
     private val clients = FakeClientsApi()
     private val lastWorkspace = InMemoryLastWorkspaceStore()
@@ -81,7 +79,6 @@ class WorkspaceSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
     }
 
     private fun launch() = app.launch(
-        hello,
         device = listOf(language.tag),
         meApi = me,
         clientsApi = clients,
@@ -195,7 +192,6 @@ class WorkspaceSwitchTest(@Suppress("UNUSED_PARAMETER") tag: String, private val
         headerShows(SARAH_PT)
 
         app.close()
-        hello.answerGreeting()
         launch()
 
         headerShows(SARAH_PT)

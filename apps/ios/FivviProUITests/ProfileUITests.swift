@@ -8,7 +8,6 @@ final class ProfileUITests: SignInUITestCase {
     /// Sarah (synthetic): Trainer of John's Gym, Owner of Sarah Personal Training.
     private func launchAsSarah() throws -> (SignInScreen, StubServer) {
         let server = try StubServer(
-            .greeting(key: "hello.title"),
             signIn: StubServer.SignIn(
                 email: "trainer@example.com", workspaceName: "John's Gym", role: "trainer",
                 otherWorkspaces: [.init(name: "Sarah Personal Training", role: "owner")]
@@ -41,7 +40,6 @@ final class ProfileUITests: SignInUITestCase {
     /// the trailing end, on the name's line and in one column for every row.
     func test_E020_AC15_workspaceRowsShowTheColourMarkAndTheRoleAtTheEnd() throws {
         let server = try StubServer(
-            .greeting(key: "hello.title"),
             signIn: StubServer.SignIn(
                 email: "trainer@example.com", workspaceName: "John's Gym", role: "trainer",
                 otherWorkspaces: [.init(name: "Sarah Personal Training", role: "owner")]
@@ -111,7 +109,6 @@ final class ProfileUITests: SignInUITestCase {
     func test_F003_AC6_workspaceGoneShowsNoAccess() throws {
         let catalog = TestCatalog.configured
         let server = try StubServer(
-            .greeting(key: "hello.title"),
             signIn: StubServer.SignIn(email: "trainer@example.com", workspaceName: "John's Gym", role: "trainer")
         )
         let screen = SignInScreen.launch(against: server, session: .signedIn)
