@@ -22,7 +22,8 @@ const SCRIPT = join(ROOT, 'scripts', 'regenerate.mjs');
 // repository in which `main` and a `feature` branch each change the sources of the three generators and regenerate, and
 // run the script in the merge. The real generators need Swift and Java, so `pnpm` is a fake on the PATH: each fake
 // generator writes the files of its group as a function of the group's sources, and each fake check recomputes them and
-// fails on a difference, as the drift checks do.
+// fails on a difference, as the drift checks do. `openapi.json` is generated too: the fake contract generator writes it
+// from the API route file, normalised as the real one is, and the clients from it.
 let base;
 let repo;
 let calls;
@@ -36,8 +37,10 @@ const read = (path) => readFileSync(path, 'utf8');
 const put = (path, text) => { mkdirSync(dirname(path), { recursive: true }); writeFileSync(path, text); };
 const groups = {
   contract: () => {
-    const stamp = '// from ' + JSON.stringify(read('packages/contract/openapi.json')) + '\\n';
+    const spec = JSON.stringify({ routes: read('packages/api/src/routes/example.ts') }, null, 2) + '\\n';
+    const stamp = '// from ' + JSON.stringify(spec) + '\\n';
     return {
+      'packages/contract/openapi.json': spec,
       'packages/contract/src/generated/schema.ts': stamp,
       'packages/contract/swift/Sources/FivviAPI/Generated/Types.swift': stamp,
       'packages/contract/kotlin/generated/app/fivvi/api/models/All.kt': stamp,
@@ -70,7 +73,10 @@ const check = (name) => {
   process.exit(drift.length ? 1 : 0);
 };
 const line = args.join(' ');
-if (line === 'generate:contract') write('contract');
+if (line === 'generate:contract') {
+  write('contract');
+  if (process.env.FAKE_STRAY_FILE) put('packages/contract/stray.txt', 'left behind\\n');
+}
 else if (line === '--filter @fivvi/contract check') check('contract');
 else if (line === '--filter @fivvi/i18n generate') {
   write('i18n');
@@ -125,6 +131,15 @@ const pnpmCalls = () =>
   existsSync(calls) ? readFileSync(calls, 'utf8').split('\n').filter(Boolean) : [];
 const unmerged = () => git('diff', '--name-only', '--diff-filter=U').split('\n').filter(Boolean);
 const staged = () => git('diff', '--cached', '--name-only').split('\n').filter(Boolean);
+const GENERATED = /generated|Generated|openapi\.json/;
+/** What a commit would hold equals what is in the working tree: nothing a generator rewrote is left unstaged. */
+const assertIndexMatchesWorkingTree = () => {
+  assert.equal(git('diff', '--name-only').trim(), '', 'no unstaged changes');
+  for (const path of git('ls-files')
+    .split('\n')
+    .filter((p) => GENERATED.test(p)))
+    assert.equal(git('show', `:${path}`), read(path), `${path}: the index holds the working tree`);
+};
 
 // A source with keys far apart, so the two branches' edits merge cleanly while the generated file (one line that
 // stands for the whole source, as a generated catalog's content does) conflicts.
@@ -132,6 +147,7 @@ const spread = (keys) =>
   Object.entries(keys)
     .map(([key, value]) => `"${key}": "${value}",\n${'\n'.repeat(12)}`)
     .join('');
+const ROUTE = 'packages/api/src/routes/example.ts';
 const BASE_KEYS = { a: 'one', m: 'two', z: 'three' };
 
 beforeEach(() => {
@@ -145,7 +161,8 @@ beforeEach(() => {
   git('init', '--quiet', '--initial-branch=main');
   write('packages/i18n/en.json', spread(BASE_KEYS));
   write('packages/i18n/nl-NL.json', spread(BASE_KEYS));
-  write('packages/contract/openapi.json', spread(BASE_KEYS));
+  write('packages/api/src/routes/example.ts', spread(BASE_KEYS));
+  write('packages/domain/src/schema.ts', spread(BASE_KEYS));
   write('packages/design-tokens/tokens/color.light.json', spread(BASE_KEYS));
   write('README.md', 'base\n');
   regenerateAll();
@@ -176,12 +193,12 @@ describe('regenerate.mjs', () => {
   it('regenerates conflicted generated files from the resolved sources and stages them', () => {
     diverge({
       own: () => {
-        edit('packages/contract/openapi.json', 'a', 'own route');
+        edit(ROUTE, 'a', 'own route');
         edit('packages/i18n/en.json', 'a', 'own string');
         edit('packages/design-tokens/tokens/color.light.json', 'a', 'own token');
       },
       main: () => {
-        edit('packages/contract/openapi.json', 'z', 'main route');
+        edit(ROUTE, 'z', 'main route');
         edit('packages/i18n/en.json', 'z', 'main string');
         edit('packages/design-tokens/tokens/color.light.json', 'z', 'main token');
       },
@@ -189,21 +206,26 @@ describe('regenerate.mjs', () => {
     const merge = gitTry('merge', 'main');
     assert.notEqual(merge.status, 0, 'the generated files conflict');
     assert.deepEqual(
-      unmerged().filter((path) => !/generated|Generated/.test(path)),
+      unmerged().filter((path) => !GENERATED.test(path)),
       [],
       'only generated files conflict',
     );
-    assert.ok(unmerged().length >= 3);
+    const unmergedBefore = unmerged();
+    assert.ok(unmergedBefore.length >= 3);
 
     const result = run();
 
     assert.equal(result.status, 0, result.stderr + result.stdout);
     assert.match(result.stdout, /Regenerated and staged: contract, i18n, design tokens/);
     assert.deepEqual(unmerged(), []);
-    for (const path of staged().filter((p) => /generated|Generated/.test(p)))
+    for (const path of staged().filter((p) => GENERATED.test(p)))
       assert.doesNotMatch(read(path), /^[<>=]{7}/m, `${path} has no conflict markers`);
     assert.match(read('packages/i18n/en.json'), /own string/);
     assert.match(read('packages/i18n/en.json'), /main string/);
+    assert.ok(unmergedBefore.includes('packages/contract/openapi.json'), 'openapi.json conflicts');
+    assert.match(read('packages/contract/openapi.json'), /own route/);
+    assert.match(read('packages/contract/openapi.json'), /main route/);
+    assertIndexMatchesWorkingTree();
     // The drift checks (here the fake ones) pass on the result.
     for (const check of [
       ['--filter', '@fivvi/contract', 'check'],
@@ -243,11 +265,11 @@ describe('regenerate.mjs', () => {
     diverge({
       own: () => {
         edit('packages/i18n/en.json', 'm', 'own string');
-        edit('packages/contract/openapi.json', 'a', 'own route');
+        edit(ROUTE, 'a', 'own route');
       },
       main: () => {
         edit('packages/i18n/en.json', 'm', 'main string');
-        edit('packages/contract/openapi.json', 'z', 'main route');
+        edit(ROUTE, 'z', 'main route');
       },
     });
     gitTry('merge', 'main');
@@ -258,28 +280,100 @@ describe('regenerate.mjs', () => {
 
     assert.equal(result.status, 1);
     assert.match(result.stderr, /packages\/i18n\/en\.json/);
-    assert.doesNotMatch(result.stderr, /openapi\.json/, 'names only the conflicted source');
+    assert.doesNotMatch(
+      result.stderr,
+      /openapi\.json|routes\/example/,
+      'names only the conflicted source',
+    );
     assert.deepEqual(pnpmCalls(), [], 'no generator ran');
     assert.deepEqual(unmerged(), before);
   });
 
-  it('refuses a conflicted openapi.json, also once it is staged with its markers', () => {
+  it('refuses a conflicted API route, also once it is staged with its markers', () => {
     diverge({
-      own: () => edit('packages/contract/openapi.json', 'm', 'own route'),
-      main: () => edit('packages/contract/openapi.json', 'm', 'main route'),
+      own: () => edit(ROUTE, 'm', 'own route'),
+      main: () => edit(ROUTE, 'm', 'main route'),
     });
     gitTry('merge', 'main');
     let result = run();
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /packages\/contract\/openapi\.json/);
+    assert.match(result.stderr, /packages\/api\/src\/routes\/example\.ts/);
 
     // Someone resolved by staging the file with the markers still in it.
-    git('add', 'packages/contract/openapi.json');
-    assert.match(read('packages/contract/openapi.json'), /^<{7} /m);
+    git('add', ROUTE);
+    assert.match(read(ROUTE), /^<{7} /m);
     result = run();
     assert.equal(result.status, 1);
-    assert.match(result.stderr, /packages\/contract\/openapi\.json/);
+    assert.match(result.stderr, /packages\/api\/src\/routes\/example\.ts/);
     assert.deepEqual(pnpmCalls(), []);
+  });
+
+  it('refuses a conflict in a package the API schemas import (the domain)', () => {
+    diverge({
+      own: () => edit('packages/domain/src/schema.ts', 'm', 'own'),
+      main: () => edit('packages/domain/src/schema.ts', 'm', 'main'),
+    });
+    gitTry('merge', 'main');
+
+    const result = run();
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /packages\/domain\/src\/schema\.ts/);
+    assert.deepEqual(pnpmCalls(), []);
+  });
+
+  it('regenerates a conflicted openapi.json from the resolved routes and stages it with the clients', () => {
+    diverge({
+      own: () => edit(ROUTE, 'a', 'own route'),
+      main: () => edit(ROUTE, 'z', 'main route'),
+    });
+    gitTry('merge', 'main');
+    assert.ok(unmerged().includes('packages/contract/openapi.json'));
+
+    const result = run();
+
+    assert.equal(result.status, 0, result.stderr + result.stdout);
+    assert.deepEqual(unmerged(), []);
+    assert.doesNotMatch(read('packages/contract/openapi.json'), /^[<>=]{7}/m);
+    assert.match(read('packages/contract/openapi.json'), /own route[\s\S]*main route/);
+    assert.ok(staged().includes('packages/contract/openapi.json'));
+    assertIndexMatchesWorkingTree();
+  });
+
+  it('stages the regenerated openapi.json over a hand-merged one that differs from it', () => {
+    diverge({
+      own: () => edit(ROUTE, 'a', 'own route'),
+      main: () => edit(ROUTE, 'z', 'main route'),
+    });
+    gitTry('merge', 'main');
+    // Someone merged openapi.json by hand and staged it, wrongly.
+    write('packages/contract/openapi.json', '{"routes": "hand merged"}\n');
+    git('add', 'packages/contract/openapi.json');
+    assert.ok(!unmerged().includes('packages/contract/openapi.json'));
+
+    const result = run();
+
+    assert.equal(result.status, 0, result.stderr + result.stdout);
+    assert.doesNotMatch(read('packages/contract/openapi.json'), /hand merged/);
+    assertIndexMatchesWorkingTree();
+  });
+
+  it('fails when a generator leaves a file it wrote unstaged', () => {
+    diverge({
+      own: () => edit(ROUTE, 'a', 'own route'),
+      main: () => edit(ROUTE, 'z', 'main route'),
+    });
+    gitTry('merge', 'main');
+
+    const result = spawnSync('node', [SCRIPT, '--no-check'], {
+      cwd: repo,
+      encoding: 'utf8',
+      env: { ...env(), FAKE_STRAY_FILE: '1' },
+    });
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /packages\/contract\/stray\.txt/);
+    assert.match(result.stderr, /not staged|unstaged/);
   });
 
   it('succeeds after the source conflict is resolved', () => {
@@ -347,8 +441,11 @@ describe('regenerate.mjs', () => {
         encoding: 'utf8',
       });
     for (const group of GROUPS) {
-      for (const path of group.generated)
-        assert.match(attr(`${path}/x/File.txt`), /linguist-generated: true/, path);
+      for (const path of group.generated) {
+        // A generated file (`openapi.json`) is matched as it is, a directory by a file under it.
+        const probe = /\.\w+$/.test(path) ? path : `${path}/x/File.txt`;
+        assert.match(attr(probe), /linguist-generated: true/, path);
+      }
       for (const path of group.sources)
         assert.doesNotMatch(attr(`${path}/File.txt`), /linguist-generated: true/, path);
     }

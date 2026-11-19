@@ -6,12 +6,14 @@
 //
 //   node scripts/regenerate.mjs [--all] [--no-check]
 //       1. Refuses (exit 1, naming each file) while a source file still has a conflict, unmerged in the index or with
-//          conflict markers in it. Resolve the sources first (en.json, nl-NL.json, comments.json, openapi.json, the
-//          token files, the API routes, the generators themselves).
+//          conflict markers in it. Resolve the sources first (en.json, nl-NL.json, comments.json, the token files, the
+//          API routes and what their schemas import, the generators themselves). `openapi.json` is no source: the
+//          contract generator writes it from the API routes, so it is generated like the clients.
 //       2. For each group (contract, i18n, design tokens) with a generated file or a source that the merge touched (a
 //          changed or unmerged path against HEAD), takes our side of each conflicted generated file, so no conflict
 //          markers reach a generator, runs the group's generator and stages everything under the group's generated
-//          paths (`git add -A`, deletions included).
+//          paths (`git add -A`, deletions included). A generator that leaves any other file changed or new, unstaged,
+//          fails the run, naming the file.
 //       3. Runs the group's drift check (`--no-check` leaves that to `scripts/check.sh`). `--all` runs every group,
 //          touched or not.
 //
@@ -26,23 +28,29 @@ const COMMAND = 'node scripts/regenerate.mjs';
 
 /**
  * One group per generator. `generated` are the paths the generator owns (a directory or a file), `sources` the paths
- * it reads that a person edits (a directory covers everything under it). `openapi.json` is a source here: it is
- * resolved with the routes before the clients are regenerated from it.
+ * it reads that a person edits (a directory covers everything under it). `openapi.json` is generated
+ * (`GENERATED_PATHS.spec` in `packages/contract/scripts/pipeline.ts`): `generate:contract` writes it from the API
+ * routes, and the clients from it. What the routes' schemas import (the domain, the database, ...) is a source too.
  */
 export const GROUPS = [
   {
     name: 'contract',
     generated: [
+      'packages/contract/openapi.json',
       'packages/contract/src/generated',
       'packages/contract/swift/Sources/FivviAPI/Generated',
       'packages/contract/kotlin/generated',
     ],
     sources: [
-      'packages/contract/openapi.json',
       'packages/contract/config',
       'packages/contract/tools',
       'packages/contract/scripts',
       'packages/api/src',
+      // What the API's route schemas import (`dependencies` of packages/api, and the email package it uses).
+      'packages/domain/src',
+      'packages/database/src',
+      'packages/observability/src',
+      'packages/email/src',
     ],
     generate: ['pnpm', 'generate:contract'],
     check: ['pnpm', '--filter', '@fivvi/contract', 'check'],
@@ -122,6 +130,14 @@ export const sourceConflicts = (dir, groups = GROUPS) => {
   return [...found].sort();
 };
 
+/** Paths with a change that is not staged: modified or deleted in the working tree, or new and untracked. */
+const unstagedPaths = (dir) => {
+  const paths = new Set(nulList(git(dir, ['diff', '--name-only', '-z'])));
+  for (const path of nulList(git(dir, ['ls-files', '--others', '--exclude-standard', '-z'])))
+    paths.add(path);
+  return paths;
+};
+
 /** Takes our side of a conflicted generated file (or drops it when we don't have one), so no markers remain. */
 const takeOurs = (dir, path) => {
   if (gitOk(dir, ['checkout', '--ours', '--', path])) return;
@@ -159,6 +175,7 @@ export const regenerate = ({
     for (const path of [...unmerged].filter((p) => underAny(p, group.generated)))
       takeOurs(dir, path);
     log(`Regenerating ${group.name}…`);
+    const unstagedBefore = unstagedPaths(dir);
     if (!exec(dir, group.generate, log))
       return { ran, failed: `the ${group.name} generator failed (${group.generate.join(' ')})` };
     // A path that neither exists nor is tracked (a generator that stopped writing it) makes `git add` fail.
@@ -166,6 +183,12 @@ export const regenerate = ({
       (path) => existsSync(join(dir, path)) || git(dir, ['ls-files', '--', path]).trim() !== '',
     );
     if (present.length > 0) git(dir, ['add', '-A', '--', ...present]);
+    const left = [...unstagedPaths(dir)].filter((path) => !unstagedBefore.has(path)).sort();
+    if (left.length > 0)
+      return {
+        ran,
+        failed: `the ${group.name} generator left files that are not staged (not a generated path of the group, add the path to GROUPS in scripts/regenerate.mjs or fix the generator): ${left.join(', ')}`,
+      };
     ran.push(group.name);
     if (check && group.check && !exec(dir, group.check, log))
       return { ran, failed: `the ${group.name} drift check failed (${group.check.join(' ')})` };
