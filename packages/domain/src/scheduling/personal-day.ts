@@ -1,3 +1,6 @@
+// Module: The personal day of a trainer: everything the person is assigned to, across every workspace, as one list for one calendar day.
+// Spec: F013
+
 import { addDays, localDateOf, localDayBounds } from './zoned-time.ts';
 
 // The personal day of a trainer (F013, spec #457): everything the person is assigned to, across

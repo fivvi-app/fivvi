@@ -9,7 +9,6 @@ final class ClientProfileLoadingUITests: SignInUITestCase {
     /// While it waits for its read the list behind it renders a few times, not without end.
     func test_F006_AC3_aProfileOpenedByIDWhileItLoadsRendersTheListABoundedNumberOfTimes() throws {
         let server = try StubServer(
-            .greeting(key: "hello.title"),
             signIn: StubServer.SignIn(email: "trainer@example.com", workspaceName: "John's Gym", role: "trainer")
         )
         let screen = SignInScreen.launch(against: server, session: .signedIn, countsRenders: true)

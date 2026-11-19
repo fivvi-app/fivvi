@@ -21,6 +21,7 @@ import { registerInvitations } from './routes/invitations.ts';
 import { registerJoinLink } from './routes/join-link.ts';
 import { registerLocations } from './routes/locations.ts';
 import { registerMe } from './routes/me.ts';
+import { registerOffers } from './routes/offers.ts';
 import { registerPersonal } from './routes/personal.ts';
 import { registerSessions } from './routes/sessions.ts';
 import { registerSignIn } from './routes/sign-in.ts';
@@ -88,6 +89,7 @@ export function createApp(dependencies: ApiDependencies = NO_DEPENDENCIES): Open
   registerJoinLink(app);
   registerClients(app);
   registerAccessLog(app);
+  registerOffers(app);
   return app;
 }
 

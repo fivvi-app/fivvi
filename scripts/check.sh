@@ -17,11 +17,15 @@
 # At the end it prints a table of the tests each suite passed, failed and skipped and writes it as JSON to
 # .work/check-summary.json (git-ignored, in this checkout). Quote that summary in reports; don't retype counts
 # from the output (scripts/test-summary.sh). A suite the table lists as failed fails the run, whatever exit code its check
-# gave (#570). One run per worktree: a second one stops (.work/check.lock). One web e2e suite at a time on the machine: the
-# others wait their turn (the main checkout's .work/e2e.lock, #1336). The decision is scripts/affected.mjs, which CI's "Detect changes" job runs too.
+# gave (#570). Every mode takes one heavy slot of the machine for the whole turbo run, the integration tests included, so a few
+# checks at a time share it (scripts/_slots.sh, 2 places by default, #1388): a check waits for a free slot and says who holds them.
+# The e2e suite takes its own slot once it has the e2e queue. CI and FIVVI_SLOTS=off take none. One run per worktree: a second one
+# stops (.work/check.lock). One web e2e suite at a time on the machine: the others wait their turn (the main checkout's
+# .work/e2e.lock, #1336). The decision is scripts/affected.mjs, which CI's "Detect changes" job runs too.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$ROOT/scripts/_shellcheck.sh"
+source "$ROOT/scripts/_slots.sh"
 
 FAST=false
 ALL=false
@@ -122,11 +126,50 @@ e2e_cached() {
     | jq -e '[.tasks[] | select(.task == "test:e2e" and .command != "<NONEXISTENT>")] | length > 0 and all(.cache.status == "HIT")' >/dev/null 2>&1
 }
 e2e_not_queued() { echo "$E2E_QUEUE_ERROR"; return 1; }
+# A check is a heavy job: turbo runs up to 10 tasks at once (lint, types, unit tests, build), each with its own workers, and four
+# checks at once drove the load of a 10-core Mac above 100 and a --fast check from 5-8 to 35 minutes (#1388). So the whole turbo run
+# takes one slot of the machine's heavy pool (2 places by default, shared with the simulator and emulator jobs of every worktree,
+# scripts/_slots.sh) in every mode, and the integration tests run in that same slot: a second slot for them could deadlock two checks
+# that each hold one of two. The slot is given back as soon as the heavy work is done (and by `release`, on any exit, failure or
+# interrupt). The e2e suite is the exception: it queues first and takes its slot only once the queue is its, after the slot of the
+# turbo run is given back, so a suite that waits for the e2e queue holds no slot meanwhile and never keeps a build from running.
+# While it holds the slot, FIVVI_SLOTS_HELD names it, so a script that turbo starts and that wraps itself in the heavy class
+# (test-ios.sh, android.sh, maestro.sh) does not wait for a second one. Turbo runs in strict env mode and drops what turbo.json
+# does not name: FIVVI_SLOTS_HELD and FIVVI_SLOTS_DIR are in its globalPassThroughEnv, which keeps them out of the cache keys.
+HEAVY_HELD=false
+HEAVY_FAILED=false
+SLOTS_HELD_BEFORE="${FIVVI_SLOTS_HELD:-}"
+take_heavy_slot() {
+  ! $HEAVY_HELD || return 0
+  # A wait that timed out is not repeated for the next heavy check: each of them reports it.
+  ! $HEAVY_FAILED || return 1
+  slots_enabled || return 0
+  if slots_take heavy "check.sh ($(basename "$ROOT"))"; then
+    HEAVY_HELD=true
+    slot_mark_held heavy
+  else
+    HEAVY_FAILED=true
+    return 1
+  fi
+}
+give_back_heavy_slot() {
+  ! $HEAVY_HELD || slot_release_all
+  HEAVY_HELD=false
+  if [ -n "$SLOTS_HELD_BEFORE" ]; then export FIVVI_SLOTS_HELD="$SLOTS_HELD_BEFORE"; else unset FIVVI_SLOTS_HELD; fi
+}
+no_slot() { echo "$SLOT_ERROR"; return 1; }
+# check "<name>" <function> run in a heavy slot: waits for it first (outside `check`, whose output is captured, so the wait shows).
+check_heavy() {
+  local name="$1"
+  shift
+  if take_heavy_slot; then check "$name" "$@"; else check "$name" no_slot; fi
+}
 
 release() {
   rm -rf "$LOG_DIR"
   ! $OWN_LOCK || [ "$(readlink "$LOCK" 2>/dev/null || true)" != "$$" ] || rm -f "$LOCK"
   release_e2e_queue
+  slot_release_all
 }
 on_exit release
 acquire_lock
@@ -273,7 +316,7 @@ turbo_checks() {
 
 # Local Postgres for the integration tests and the e2e servers' databases (apps/web/e2e/serve.ts).
 local_postgres() {
-  docker info >/dev/null 2>&1 || { echo "Docker is not running — start it (Postgres for integration and e2e tests)"; return 1; }
+  docker info >/dev/null 2>&1 || { echo "Docker is not running — start it with brew services start colima, or set it up with scripts/bootstrap.sh (Postgres for integration and e2e tests)"; return 1; }
   [ -f packages/database/.env ] || cp packages/database/.env.example packages/database/.env
   pnpm db:up >/dev/null
 }
@@ -330,9 +373,9 @@ if everything || [ "$(plan_names packages | wc -l)" -gt 0 ] || [ "$(plan_flag ro
   if touches_api; then
     java_ok || use_brew_java || true
     check "API tools for the contract check" api_prerequisites
-    check "lint, types, unit tests, static checks (with the contract), build" turbo_checks
+    check_heavy "lint, types, unit tests, static checks (with the contract), build" turbo_checks
   else
-    check "lint, types, unit tests, static checks, build (no API change: contract check left to CI)" turbo_checks
+    check_heavy "lint, types, unit tests, static checks, build (no API change: contract check left to CI)" turbo_checks
   fi
 else
   skipped "lint, types, unit tests, static checks, build" "no package or script change"
@@ -344,15 +387,26 @@ if $FAST; then
   echo "- integration and e2e tests: skipped (--fast)"
 elif everything || [ "$(plan_names integration | wc -l)" -gt 0 ]; then
   RAN_INTEGRATION=true
-  check "integration tests" integration_tests
+  check_heavy "integration tests" integration_tests
 else
   skipped "integration tests" "no package with integration tests is affected"
 fi
+# The turbo run and the integration tests are done: the slot goes to the next check (the e2e suite queues, then takes its own).
+give_back_heavy_slot
 if ! $FAST; then
   if [ "$(plan_flag e2e)" = true ]; then
     RAN_E2E=true
-    if e2e_cached || acquire_e2e_queue; then
-      check "e2e tests (port $(e2e_port "$ROOT"))" e2e_tests
+    if $HEAVY_FAILED; then
+      # No heavy slot came free in time for the turbo run: the suite would only wait up to 40 minutes for the queue, to fail the same way.
+      check "e2e tests (port $(e2e_port "$ROOT"))" no_slot
+    elif e2e_cached || acquire_e2e_queue; then
+      # Holding the queue means the suite runs (not a cache hit), so it takes its slot; a cache hit loads nothing and takes none.
+      if $OWN_E2E_LOCK; then
+        check_heavy "e2e tests (port $(e2e_port "$ROOT"))" e2e_tests
+      else
+        check "e2e tests (port $(e2e_port "$ROOT"))" e2e_tests
+      fi
+      give_back_heavy_slot
       release_e2e_queue
     else
       check "e2e tests (port $(e2e_port "$ROOT"))" e2e_not_queued

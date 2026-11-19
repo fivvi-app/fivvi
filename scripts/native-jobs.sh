@@ -11,7 +11,8 @@
 #       can't break a native build, because no native build or test reads a Markdown file (the README-vs-ID checks run
 #       on Linux in scripts/test/app-ids.test.mjs, which also fails when a native source reads one). A change that
 #       touches no such path (docs, ci.yml, _lib.sh) runs neither.
-#       --event workflow_dispatch and --run-native (the PR's run-native label) run both, whatever changed.
+#       --event workflow_dispatch, --event schedule (the nightly run, ADR-034) and --run-native (the PR's run-native label) run
+#       both, whatever changed.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
@@ -39,7 +40,7 @@ while [ $# -gt 0 ]; do
   esac
   shift
 done
-[ "$EVENT" != workflow_dispatch ] || FORCE=true
+[ "$EVENT" != workflow_dispatch ] && [ "$EVENT" != schedule ] || FORCE=true
 # Markdown never counts as a native change, wherever it sits; --run-native and workflow_dispatch still run both.
 CHANGED="$(grep -vE '\.md$' || true)"
 
@@ -50,7 +51,7 @@ decide() {
     echo "$1: $2 does not exist yet, skipping." >&2
   elif $FORCE; then
     run=true
-    echo "$1: run on demand (workflow_dispatch or the run-native label), running." >&2
+    echo "$1: run on demand (workflow_dispatch, the nightly schedule or the run-native label), running." >&2
   elif grep -qE "$3" <<<"$CHANGED"; then
     run=true
     echo "$1: relevant changes, running." >&2

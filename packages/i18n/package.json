@@ -10,11 +10,13 @@
   },
   "scripts": {
     "generate": "node src/cli.ts generate",
+    "sort": "node src/cli.ts sort",
     "check": "node src/cli.ts check",
     "check:parity": "node src/cli.ts check parity",
     "check:icu": "node src/cli.ts check icu",
     "check:generated": "node src/cli.ts check generated",
     "check:no-literal-trainer": "node src/cli.ts check no-literal-trainer",
+    "check:sorted": "node src/cli.ts check sorted",
     "lint": "biome check --formatter-enabled=false --error-on-warnings .",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

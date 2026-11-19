@@ -1,20 +1,19 @@
 import assert from 'node:assert/strict';
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { spawnSync } from 'node:child_process';
+import { readdirSync, readFileSync } from 'node:fs';
 import { join, relative } from 'node:path';
 import { describe, it } from 'node:test';
-import { UNCOVERED_MESSAGE, uncovered } from './turbo-inputs.mjs';
+import { filesUnder, readRecorder, UNCOVERED_MESSAGE, uncovered } from './turbo-inputs.mjs';
 
 // E017 AC8 and E002 #242: the application ID of each native app is final (it can't change after the first upload),
 // and the app's README records it. That is checked here, on Linux, not by the native builds: CI doesn't run the
 // native jobs for a README-only change (scripts/native-jobs.sh), so no native build or test may read a README.
 
 const ROOT = join(import.meta.dirname, '..', '..');
-// The Android files this test reads: turbo caches `//#test:root` by its `inputs`, so each must be one of them (last test).
-const androidReads = new Set();
-const read = (path) => {
-  if (path.startsWith('apps/android/')) androidReads.add(path);
-  return readFileSync(join(ROOT, path), 'utf8');
-};
+// The native and Maestro files this test reads: turbo caches `//#test:root` by its `inputs`, so each must be one of
+// them (last test).
+const { reads: nativeReads, note } = readRecorder('apps/android/', 'apps/ios/', 'e2e/maestro/');
+const read = (path) => readFileSync(note(join(ROOT, path)), 'utf8');
 
 /** The ID a README records as final: "bundle ID `app.x` (final" (iOS) or "application ID `app.x` (final" (Android). */
 const recordedId = (readme, kind) =>
@@ -218,6 +217,127 @@ describe('E017 #504 AC4: two Android apps, distinct IDs, shared generated source
   });
 });
 
+// E002 #1442: the Compose UI tests ran past the 25-minute step limit of "Android tests" on a slow runner, with no test
+// failing. The step was slow, not hung (:app's 436 tests take 13 to 17 minutes on the two-core runner, :client's 85 about
+// 2.5), so the step has room now; and a test that does hang fails by name, after UI_TEST_TIMEOUT_MS, instead of
+// running out the step.
+describe('E002 #1442: the Compose UI tests fail fast on a hung test and fit their step', () => {
+  const SCRIPTS = join(ROOT, 'scripts');
+  /** Runs a bash snippet with _android.sh sourced, `gradle` printing its arguments and `adb` a fixed logcat. */
+  const run = (snippet, env = {}) =>
+    spawnSync(
+      'bash',
+      [
+        '-c',
+        `source "${SCRIPTS}/_lib.sh"; source "${SCRIPTS}/_android.sh"
+gradle() { printf 'gradle %s\\n' "$*"; }
+adb() { printf '%s\\n' "$FAKE_LOGCAT"; }
+${snippet}`,
+      ],
+      { encoding: 'utf8', env: { ...process.env, ...env } },
+    );
+  // The timeout is set in the Gradle config of the two apps, not on the command line: scripts.test.mjs (E002 #1363)
+  // expects the exact line of the quarantine run, and nothing about it changes.
+  it('the connected run keeps its command line: the timeout is not an argument of it', () => {
+    const plain = run('quarantine_android() { echo; }; gradle_connected');
+    assert.equal(plain.status, 0, plain.stderr);
+    assert.equal(plain.stdout.trim(), 'gradle connectedDebugAndroidTest');
+    const listed = run('quarantine_android() { echo app.fivvi.pro.X#y; }; gradle_connected');
+    assert.equal(listed.status, 0, listed.stderr);
+    assert.doesNotMatch(listed.stdout, /timeout_msec/);
+    assert.match(listed.stdout, /quarantineTests=app\.fivvi\.pro\.X#y/);
+    assert.match(listed.stdout, /filter=app\.fivvi\.core\.quarantine\.QuarantineRunFilter/);
+  });
+
+  it('every app with Compose UI tests gives each test 120 s, and UI_TEST_TIMEOUT_MS changes it', () => {
+    const properties = read('apps/android/gradle.properties');
+    assert.match(properties, /^fivvi\.uiTestTimeoutMs=120000$/m);
+    for (const module of ['app', 'client']) {
+      const build = read(`apps/android/${module}/build.gradle.kts`);
+      const set = build.match(
+        /testInstrumentationRunnerArguments\["timeout_msec"\] =\s*([^}]*?\.get\(\))/s,
+      );
+      assert.ok(set, `:${module} sets the timeout_msec argument of the runner`);
+      assert.match(set[1], /environmentVariable\("UI_TEST_TIMEOUT_MS"\)/, module);
+      assert.match(set[1], /gradleProperty\("fivvi\.uiTestTimeoutMs"\)/, module);
+    }
+  });
+
+  it('last-test names the tests the instrumentation started last, from the device log', () => {
+    const logcat = [
+      'I/TestRunner( 1): started: a(app.fivvi.pro.A)',
+      'I/TestRunner( 1): finished: a(app.fivvi.pro.A)',
+      'I/Other( 2): noise',
+      'I/TestRunner( 1): started: hung(app.fivvi.pro.Hung)',
+    ].join('\n');
+    const result = run('last_ui_tests', { FAKE_LOGCAT: logcat });
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /started: hung\(app\.fivvi\.pro\.Hung\)/);
+    assert.doesNotMatch(result.stdout, /noise/);
+    // Said plainly when the device has no such line (a run that never started a test).
+    const none = run('last_ui_tests', { FAKE_LOGCAT: 'I/Other( 2): noise' });
+    assert.equal(none.status, 0, none.stderr);
+    assert.match(none.stdout, /no test started/i);
+  });
+
+  it('a failed connected run names the tests that failed and the one that started last, in the step log', () => {
+    // AGP's own output says only "There were failing tests" and points to a report.
+    const logcat = [
+      'E/TestRunner( 1): failed: bad(app.fivvi.pro.Bad)',
+      'I/TestRunner( 1): finished: bad(app.fivvi.pro.Bad)',
+      'I/TestRunner( 1): started: hung(app.fivvi.pro.Hung)',
+    ].join('\n');
+    const result = run('gradle() { return 1; }; quarantine_android() { echo; }; gradle_connected', {
+      FAKE_LOGCAT: logcat,
+    });
+    assert.equal(result.status, 1, 'the exit status of the failed run is kept');
+    assert.match(result.stdout, /failed: bad\(app\.fivvi\.pro\.Bad\)/);
+    assert.match(result.stdout, /started: hung\(app\.fivvi\.pro\.Hung\)/);
+  });
+
+  it('android.sh has the last-test command', () => {
+    const script = read('scripts/android.sh');
+    assert.match(script, /^ {2}last-test\) shift; cmd_last_test "\$@" ;;$/m);
+  });
+
+  describe('ci.yml: Android tests', () => {
+    const ci = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8');
+    const job = ci.slice(ci.indexOf('\n  android-tests:\n'), ci.indexOf('\n  android-maestro:\n'));
+    // The first timeout-minutes of a job is the job's own, of a step the step's.
+    const minutes = (text) => Number(text.match(/^ {4,8}timeout-minutes: (\d+)$/m)[1]);
+    const step = (name) => {
+      const at = job.indexOf(`- name: ${name}\n`);
+      assert.ok(at >= 0, `the job has the step ${name}`);
+      const rest = job.slice(at + 1);
+      const next = rest.search(/\n {6}(- |# )/);
+      return rest.slice(0, next < 0 ? undefined : next);
+    };
+
+    it('the verify step has 1.5 times the longest run measured, with its job around it', () => {
+      // Measured on 25 runs of 16 to 17 November: the step took 1033 to 1466 s when it passed, and the three runs that
+      // ran out of 1500 s were 10 to 50 s from the end (:client's 2.5 minutes came last). So 40 minutes is 1.6 times
+      // the slowest of those runs (1513 s counted whole), and the job holds the setup (up to 3 minutes), the step and
+      // 2 minutes of post steps.
+      const verify = step('Unit tests, release bundle and Compose UI tests');
+      assert.match(verify, /run: scripts\/android\.sh verify\n/);
+      assert.ok(minutes(verify) * 60 >= 1.5 * 1513, `${minutes(verify)} minutes`);
+      assert.ok(3 + minutes(verify) + 2 <= minutes(job), 'job room');
+    });
+
+    it('prints the test that ran last when a step fails or times out, before the emulator stops', () => {
+      const last = step('The Compose UI test that ran last');
+      assert.match(last, /run: scripts\/android\.sh last-test\n/);
+      // ADR-034: only in a run with UI tests, where the Compose UI tests ran.
+      assert.match(last, /^ {8}if: failure\(\) && needs\.changes\.outputs\.ui_tests == 'true'$/m);
+      assert.ok(
+        job.indexOf('- name: The Compose UI test that ran last') <
+          job.indexOf('- name: Stop the emulator'),
+        'before the emulator is stopped, which clears its log',
+      );
+    });
+  });
+});
+
 /** The deployment targets a project.pbxproj sets, one per build configuration that sets one. */
 const deploymentTargets = (pbxproj) =>
   [...pbxproj.matchAll(/^\s*IPHONEOS_DEPLOYMENT_TARGET = ([^;\s]+);/gm)].map((match) => match[1]);
@@ -293,20 +413,12 @@ describe('E020 AC7: every iOS app targets iOS 26.0 and none opts out of Liquid G
 
 // scripts/native-jobs.sh ignores every .md path, so nothing a native build, test or lint reads may be a Markdown file.
 describe('E002 #242: no native build or test reads a Markdown file', () => {
-  const files = (dir, accept) => {
-    const found = [];
-    for (const name of readdirSync(join(ROOT, dir))) {
-      if (['.build', 'build', '.gradle', 'node_modules', 'DerivedData'].includes(name)) continue;
-      const path = join(dir, name);
-      if (statSync(join(ROOT, path)).isDirectory()) found.push(...files(path, accept));
-      else if (accept(name)) found.push(path);
-    }
-    return found;
-  };
   const sources = [
-    ...files('apps/ios', (name) => /\.(swift|pbxproj|xcconfig|xctestplan|plist|yml)$/.test(name)),
-    ...files('apps/android', (name) => /\.(kt|kts|gradle|properties|toml|xml)$/.test(name)),
-    ...files('e2e/maestro', (name) => /\.ya?ml$/.test(name)),
+    ...filesUnder('apps/ios', (name) =>
+      /\.(swift|pbxproj|xcconfig|xctestplan|plist|yml)$/.test(name),
+    ),
+    ...filesUnder('apps/android', (name) => /\.(kt|kts|gradle|properties|toml|xml)$/.test(name)),
+    ...filesUnder('e2e/maestro', (name) => /\.ya?ml$/.test(name)),
     ...['test-ios', '_ios', 'android', '_android', 'maestro'].map((name) => `scripts/${name}.sh`),
   ];
   const isComment = (line) => /^\s*(#|\/\/|\/\*|\*)/.test(line);
@@ -332,9 +444,13 @@ describe('E002 #242: no native build or test reads a Markdown file', () => {
   });
 });
 
-describe('E017 #576: a change to an Android file these tests read is not served from the test cache', () => {
-  it('turbo.json lists as inputs of the root tests every Android file read above', () => {
-    assert.ok(androidReads.size > 2, 'the tests read the Android files');
-    assert.deepEqual(uncovered([...androidReads]), [], UNCOVERED_MESSAGE);
+describe('E017 #576, #594: a change to a native or Maestro file these tests read is not served from the test cache', () => {
+  it('turbo.json lists as inputs of the root tests every Android, iOS and Maestro file read above', () => {
+    for (const prefix of ['apps/android/', 'apps/ios/', 'e2e/maestro/'])
+      assert.ok(
+        [...nativeReads].filter((file) => file.startsWith(prefix)).length > 2,
+        `the tests read files of ${prefix}`,
+      );
+    assert.deepEqual(uncovered([...nativeReads]), [], UNCOVERED_MESSAGE);
   });
 });

@@ -24,9 +24,23 @@ final class HomeSmallScreenUITests: SignInUITestCase {
     private func assertHomeFits(in orientation: UIDeviceOrientation) throws {
         XCUIDevice.shared.orientation = orientation
         let signIn = StubServer.SignIn(email: "a.long.address.for.a.trainer.with.a.long.name@example.com")
-        let server = try StubServer(.greeting(key: "hello.title"), signIn: signIn)
+        let server = try StubServer(signIn: signIn)
         let screen = SignInScreen.launch(
             against: server, session: .signedIn, textSize: AppLaunch.largestTextSize
+        )
+        // The device turns before the app starts, and on a loaded simulator the app still comes up in the old
+        // orientation and turns after: its window decides, so wait for it before anything is measured (#1305).
+        XCTAssertTrue(
+            Rotation.apply(
+                orientation, timeout: timeout, window: { screen.app.windows.firstMatch.frame },
+                rotate: { XCUIDevice.shared.orientation = $0 },
+                report: { attempt, attempts in
+                    XCTContext.runActivity(
+                        named: Rotation.warning(orientation, attempt: attempt, of: attempts)
+                    ) { _ in }
+                }
+            ),
+            "the app did not turn to \(orientation)"
         )
         for element in [screen.profileRow, screen.account, screen.signedInAs, screen.signOut] {
             XCTAssertTrue(element.waitUntilExists(timeout: timeout), "\(element.identifier) is not on screen")
