@@ -1,8 +1,10 @@
-// Usage: node src/cli.ts generate | check [parity|icu|generated|no-literal-trainer]… [--root <dir>]
+// Usage: node src/cli.ts generate | sort | check [parity|icu|generated|no-literal-trainer|sorted]… [--root <dir>]
 import path from 'node:path';
 import { parseArgs } from 'node:util';
 import { type CheckName, checkNames, runChecks } from './tools/checks.ts';
+import { readCatalogSet } from './tools/catalog.ts';
 import { CatalogError, writeNativeCatalogs } from './tools/generate.ts';
+import { writeSortedCatalogs } from './tools/sort.ts';
 
 const packageRoot = path.resolve(import.meta.dirname, '..');
 
@@ -27,6 +29,13 @@ async function main(argv: string[]): Promise<number> {
     }
   }
 
+  if (command === 'sort') {
+    for (const file of await writeSortedCatalogs(root, await readCatalogSet(root))) {
+      console.log(`sorted ${file}`);
+    }
+    return 0;
+  }
+
   if (command === 'check') {
     const unknown = rest.filter((name) => !(checkNames as readonly string[]).includes(name));
     if (unknown.length > 0) {
@@ -48,7 +57,7 @@ async function main(argv: string[]): Promise<number> {
   }
 
   console.error(
-    'Usage: node src/cli.ts generate | check [parity|icu|generated|no-literal-trainer]… [--root <dir>]',
+    'Usage: node src/cli.ts generate | sort | check [parity|icu|generated|no-literal-trainer|sorted]… [--root <dir>]',
   );
   return 2;
 }
