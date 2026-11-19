@@ -178,6 +178,8 @@ describe('flow.sh next', () => {
             ],
           },
           { match: '^issue list .*--label ready-for-agent', out: [] },
+          // The open issues of a failed nightly run (ADR-034): none.
+          { match: '^issue list .*in:title', out: [] },
           {
             match: '^issue list .*--label needs-info',
             out: [
@@ -1817,6 +1819,7 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       onGitHub = ['owner-queue', 'owner-decide'],
       rules = [],
       bugs = [],
+      nightly = [],
       railway = {},
       noRailway = false,
     } = scenario;
@@ -1837,6 +1840,8 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
           },
           { match: '^issue list .*--label spec ', out: specs },
           { match: '^issue list .*--label bug ', out: bugs },
+          // The open issues titled "Nightly UI tests failed" (ADR-034), read only with `ci: fast`.
+          { match: '^issue list .*in:title', out: nightly },
           {
             match: '^issue list .*--label ready-for-agent',
             out: tickets,
@@ -2226,6 +2231,125 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       assert.match(readyOf(result.stdout), /^Deploy bug: web on development/m);
       assert.match(waitingOf(result.stdout), /^Deploy status of web on production unknown/m);
       assert.doesNotMatch(waitingOf(result.stdout), /web on development/);
+    });
+  });
+
+  // ADR-034: with `ci: fast` the UI tests run in the nightly run only, and a failure of it is an open issue titled
+  // `Nightly UI tests failed` (scripts/nightly-report.sh). It is the first work after a failing deploy; with `full` there
+  // is no nightly run to wait for, and flow.sh lists it as any other ready ticket.
+  describe('ADR-034 the issue of a failed nightly run', () => {
+    const TITLE = 'Nightly UI tests failed';
+    const night = (number, names = ['bug', 'ready-for-agent'], extra = {}) =>
+      issue(number, TITLE, names, extra);
+    const listed = (number) => ({ number, title: TITLE });
+    const ticket = issue(180, '[F003] Add a client', ['ready-for-agent']);
+    const BAD = {
+      id: '8a369478-1111-4222-8333-444444444444',
+      status: 'FAILED',
+      createdAt: '2026-10-20T10:30:00Z',
+      meta: { commitHash: 'd1e2f3a4b5c6'.repeat(3), branch: 'main' },
+    };
+    const withCi = (ci, fn) => {
+      const file = join(repo, '.github/pipeline.json');
+      const before = readFileSync(file, 'utf8');
+      writeFileSync(file, JSON.stringify({ ci, review: 'per-pr' }));
+      try {
+        return fn();
+      } finally {
+        writeFileSync(file, before);
+      }
+    };
+    const scenario = (extra = {}) => ({
+      tickets: [ticket, night(1700)],
+      nightly: [listed(1700)],
+      others: [night(1700)],
+      ...extra,
+    });
+
+    it('fast: lists the open issue first under Ready, once, as Build #n first (nightly)', () => {
+      const result = withCi('fast', () => run('next', scenario()));
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(readyOf(result.stdout).split('\n'), [
+        '== Ready for an agent',
+        `Build #1700 first (nightly): ${TITLE}`,
+        '#180 [F003] Add a client',
+        '',
+      ]);
+    });
+
+    it('fast: comes right after the deploy line, not before it', () => {
+      const result = withCi('fast', () =>
+        run('next', scenario({ railway: { development: [BAD] } })),
+      );
+      const [, deploy, nightly, ticketLine] = readyOf(result.stdout).split('\n');
+      assert.match(deploy, /^Deploy bug: web on development is FAILED/);
+      assert.equal(nightly, `Build #1700 first (nightly): ${TITLE}`);
+      assert.equal(ticketLine, '#180 [F003] Add a client');
+    });
+
+    it('fast: builds the oldest when several are open, and ignores another title that merely contains it', () => {
+      const result = withCi('fast', () =>
+        run('next', {
+          tickets: [],
+          nightly: [
+            listed(1800),
+            listed(1700),
+            { number: 1500, title: `${TITLE} (again)` },
+            { number: 1400, title: `Re: ${TITLE}` },
+          ],
+          others: [night(1700), night(1800)],
+        }),
+      );
+      assert.match(readyOf(result.stdout), /^Build #1700 first \(nightly\): /m);
+      assert.doesNotMatch(readyOf(result.stdout), /#1800|#1500|#1400/);
+    });
+
+    it('fast: idle is work while the issue is open', () => {
+      const result = withCi('fast', () => run('idle', scenario({ tickets: [] })));
+      assert.equal(result.status, 1, result.stdout + result.stderr);
+      assert.match(result.stdout, /^Build #1700 first \(nightly\): /m);
+    });
+
+    it('fast: lists nothing extra when no such issue is open', () => {
+      const result = withCi('fast', () => run('next', { tickets: [ticket] }));
+      assert.equal(readyOf(result.stdout), '== Ready for an agent\n#180 [F003] Add a client\n');
+    });
+
+    it('fast: an issue that waits on a human is not work', () => {
+      const result = withCi('fast', () =>
+        run('next', {
+          nightly: [listed(1700)],
+          others: [night(1700, ['bug', 'ready-for-human'])],
+        }),
+      );
+      assert.doesNotMatch(readyOf(result.stdout), /nightly/);
+    });
+
+    it('full: as today: no extra line and no search, the ready ticket is listed as any other', () => {
+      const result = withCi('full', () => run('next', scenario()));
+      assert.equal(result.status, 0, result.stderr);
+      assert.equal(
+        readyOf(result.stdout),
+        '== Ready for an agent\n#180 [F003] Add a client\n#1700 Nightly UI tests failed\n',
+      );
+      assert.equal(
+        gh.calls().some(({ args }) => args.join(' ').includes('in:title')),
+        false,
+      );
+    });
+
+    it('fails instead of listing nothing when the issues cannot be read, or the setting cannot', () => {
+      const failing = withCi('fast', () => run('next', { failing: ['^issue list .*in:title'] }));
+      assert.notEqual(failing.status, 0);
+      assert.match(failing.stderr, /^error: could not read/m);
+      const file = join(repo, '.github/pipeline.json');
+      const before = readFileSync(file, 'utf8');
+      writeFileSync(file, '{"ci":"sometimes","review":"per-pr"}');
+      try {
+        assert.notEqual(run('next', {}).status, 0);
+      } finally {
+        writeFileSync(file, before);
+      }
     });
   });
 
@@ -2830,11 +2954,15 @@ describe('ADR-034: flow.sh and the final spec review', () => {
     for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
   });
 
+  // The checkout has two commits: the base, and the squash commit of PR #60 on top of it (spec-review.sh status compares them).
   const checkout = (review) => {
-    const { repo } = scriptsRepo('flow-spec-review-', { review });
+    const { repo, git } = scriptsRepo('flow-spec-review-', { review });
     dirs.push(repo);
+    git('commit', '--quiet', '--allow-empty', '-m', 'feat(F022): series (#60)');
     return repo;
   };
+  const shaOf = (repo, rev) =>
+    execFileSync('git', ['-C', repo, 'rev-parse', rev], { encoding: 'utf8' }).trim();
   const specItem = (state = 'OPEN') => ({
     number: 50,
     title: '[F022] Weekly series',
@@ -2855,7 +2983,7 @@ describe('ADR-034: flow.sh and the final spec review', () => {
     assignees: [],
     blockedBy: { nodes: [] },
   });
-  const mapGraph = (merged = true) => ({
+  const mapGraph = (merged = true, commit = '6'.repeat(40)) => ({
     data: {
       repository: {
         issue: {
@@ -2883,7 +3011,7 @@ describe('ADR-034: flow.sh and the final spec review', () => {
                           url: 'https://github.com/o/r/pull/60',
                           merged: true,
                           mergedAt: MERGED_AT,
-                          mergeCommit: { oid: '6'.repeat(40) },
+                          mergeCommit: { oid: commit },
                           files: { totalCount: 1, nodes: [{ path: 'a.ts' }] },
                         },
                       },
@@ -2900,8 +3028,7 @@ describe('ADR-034: flow.sh and the final spec review', () => {
     mkdirSync(join(repo, '.work/spec-50'), { recursive: true });
     writeFileSync(join(repo, '.work/spec-50/spec-review.md'), `# Spec review #50\n\n- ${line}\n`);
   };
-  const FINAL_CLEAN = (time) =>
-    `${time} | final | clean | findings 0 | origin/main ${'1'.repeat(40)}`;
+  const FINAL_CLEAN = (time, sha) => `${time} | final | clean | findings 0 | origin/main ${sha}`;
 
   const flow = (
     repo,
@@ -2917,7 +3044,7 @@ describe('ADR-034: flow.sh and the final spec review', () => {
           { match: '^api user', out: { login: 'thekeyvan' } },
           { match: '^issue view 50 ', out: specItem() },
           ...children.map((child) => ({ match: `^issue view ${child.number} `, out: child })),
-          { match: '^api graphql .*-F n=50 ', out: mapGraph() },
+          { match: '^api graphql .*-F n=50 ', out: mapGraph(true, shaOf(repo, 'HEAD')) },
           { match: '^label list ', out: [{ name: 'owner-queue' }, { name: 'owner-decide' }] },
           { match: '^label create ', out: '' },
           { match: '^pr edit ', out: '' },
@@ -2953,24 +3080,24 @@ describe('ADR-034: flow.sh and the final spec review', () => {
     assert.match(result.stdout, /no final spec review is recorded for #50/);
   });
 
-  it('split, a clean final review newer than the last merged PR: complete', () => {
+  it('split, a clean final review of a SHA that holds the last merged PR: complete', () => {
     const repo = checkout('split');
-    record(repo, FINAL_CLEAN('2026-11-17T12:00:00Z'));
+    record(repo, FINAL_CLEAN('2026-11-17T12:00:00Z', shaOf(repo, 'HEAD')));
     const result = flow(repo, 'status', ['50']);
     assert.match(result.stdout, /^Phase: complete$/m);
   });
 
-  it('split, a PR merged after the clean final review: spec-review again', () => {
+  it('split, a PR merged after the clean final review (its commit is not in the reviewed SHA): spec-review again', () => {
     const repo = checkout('split');
-    record(repo, FINAL_CLEAN('2026-11-17T09:00:00Z'));
+    record(repo, FINAL_CLEAN('2026-11-17T12:00:00Z', shaOf(repo, 'HEAD~1')));
     const result = flow(repo, 'status', ['50']);
     assert.match(result.stdout, /^Phase: spec-review$/m);
-    assert.match(result.stdout, /PR #60 merged after the last clean final spec review/);
+    assert.match(result.stdout, /PR #60 .*merged after the last clean final spec review/);
   });
 
   it('split, a bug ticket under the spec reopens it: building, and no review is read', () => {
     const repo = checkout('split');
-    record(repo, FINAL_CLEAN('2026-11-17T12:00:00Z'));
+    record(repo, FINAL_CLEAN('2026-11-17T12:00:00Z', shaOf(repo, 'HEAD')));
     const result = flow(repo, 'status', ['50'], {
       children: [childItem(51), childItem(52, 'OPEN', ['bug', 'ready-for-agent'])],
     });
@@ -3036,7 +3163,7 @@ describe('ADR-034: flow.sh and the final spec review', () => {
 
     it('split: nothing to review once a clean final review covers it', () => {
       const repo = checkout('split');
-      record(repo, FINAL_CLEAN('2026-11-17T12:00:00Z'));
+      record(repo, FINAL_CLEAN('2026-11-17T12:00:00Z', shaOf(repo, 'HEAD')));
       const result = flow(repo, 'next', []);
       assert.doesNotMatch(readyOf(result.stdout), /Review spec/);
     });

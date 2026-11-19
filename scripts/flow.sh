@@ -28,7 +28,9 @@
 #                                           agent", `Deploy bug: ...` when no open bug carries its marker, else
 #                                           `Build #n first: ...` (under "Waiting on the owner" while that bug waits on a
 #                                           human); a failing production deploy and a status it cannot read are lines
-#                                           under "Waiting on the owner", never work
+#                                           under "Waiting on the owner", never work. With `ci: fast` (ADR-034) an open
+#                                           issue titled `Nightly UI tests failed` (scripts/nightly-report.sh) comes next,
+#                                           as `Build #n first (nightly): ...`, and not a second time as a ready ticket
 #   flow.sh idle                            exit 0 and "idle: nothing for an agent" (plus what waits on the owner) when no
 #                                           agent has anything to do: nothing under "Ready for an agent" in `next` and no
 #                                           issue assigned to you in a phase an agent acts on; exit 1 and what there is
@@ -450,7 +452,10 @@ cmd_next() {
   finished="$(finished_items "$mine")" || exit 1
   ready="$(ready_items "$specs" "$questions" "$removals" "$finished")" || exit 1
   deploy_items
-  ready="$DEPLOY_WORK$ready"
+  nightly_items
+  # The nightly issue is listed once, up front: not again as the ready ticket it also is.
+  if [ -n "$NIGHTLY_NUMBER" ]; then ready="$(grep -v "^#$NIGHTLY_NUMBER " <<<"$ready" || true)"; fi
+  ready="$DEPLOY_WORK$NIGHTLY_WORK$ready"
   grep . <<<"$ready" || echo "(none)"
   echo "== Waiting on the owner"
   owner="$(owner_items "$specs" "$questions" "$removals")" || exit 1
@@ -563,11 +568,35 @@ deploy_items() {
   done
 }
 
+# The open issue of a failed nightly run (ADR-034, scripts/nightly-report.sh), the oldest when there are several. With
+# `ci: fast` the UI tests run only in the nightly run, so its failure is work before the other tickets, right after a
+# failing deploy; with `full` there is no nightly run to wait for and the issue is an ordinary ready ticket, so nothing is
+# read. Sets NIGHTLY_WORK (a line ending in a newline, or empty) and NIGHTLY_NUMBER. An issue in a phase that waits on a human
+# is not work. Dies when the setting, the issues or the issue's facts can't be read.
+NIGHTLY_TITLE='Nightly UI tests failed'
+NIGHTLY_WORK=""
+NIGHTLY_NUMBER=""
+nightly_items() {
+  local mode n f phase
+  NIGHTLY_WORK="" NIGHTLY_NUMBER=""
+  mode="$("$ROOT/scripts/pipeline.sh" get ci)" || die "could not read the ci setting (scripts/pipeline.sh get ci)"
+  [ "$mode" = fast ] || return 0
+  n="$(gh issue list --repo "$REPO" --state open --search "\"$NIGHTLY_TITLE\" in:title" --limit 100 --json number,title \
+    --jq "[.[] | select(.title == \"$NIGHTLY_TITLE\") | .number] | min // empty")" || die "could not read the open issues"
+  [ -n "$n" ] || return 0
+  f="$(facts "$n")" || die "could not read #$n"
+  phase="$(facts_phase "$f")" || die "could not read the phase of #$n"
+  case "$WAITING_PHASES" in *" $phase "*) return 0 ;; esac
+  NIGHTLY_NUMBER="$n"
+  NIGHTLY_WORK="Build #$n first (nightly): $NIGHTLY_TITLE"$'\n'
+}
+
 # The scan of `idle`: the first line is `work` or `idle`, then the lines that explain it. Dies when a read fails.
 idle_scan() {
   local specs questions ready mine owner removals finished work='' n phase heads title
   deploy_items
-  work="$DEPLOY_WORK"
+  nightly_items
+  work="$DEPLOY_WORK$NIGHTLY_WORK"
   mine="$(assigned_lines)" || exit 1
   while IFS='|' read -r n phase heads title; do
     [ -n "$n" ] || continue
