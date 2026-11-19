@@ -817,7 +817,7 @@ exec /bin/rm "$@"
       }
     });
 
-    describe('E001 #1388: the integration and e2e suites take a heavy slot of the machine', () => {
+    describe('E001 #1388: the turbo run and the e2e suite take a heavy slot of the machine', () => {
       const slotDir = () => join(repo(), '.work/slots/heavy');
       const slotFiles = () => (existsSync(slotDir()) ? readdirSync(slotDir()) : []);
       // Two other jobs (any process that runs) hold both heavy slots, until they end.
@@ -855,7 +855,7 @@ exec /bin/rm "$@"
       };
       const quick = { FIVVI_SLOT_POLL_SECONDS: '0.2', E2E_QUEUE_POLL_SECONDS: '0.2' };
 
-      it('AC2: takes a slot for each suite and gives it back at the end', () => {
+      it('AC2: a check with free slots runs every suite, waits for none and leaves no slot behind', () => {
         const result = check({ unit: unit(), integration, e2e }, ['--all'], () => {}, quick);
         assert.equal(result.status, 0, result.stdout);
         assert.doesNotMatch(result.stderr, /waiting for a heavy slot/);
@@ -897,6 +897,33 @@ exec /bin/rm "$@"
           );
           assert.equal(slotFiles().length, 2);
         } finally {
+          both.stop();
+        }
+      });
+
+      it('AC3: when the wait for the slot of the turbo run timed out, the e2e suite does not queue for its own', () => {
+        const both = holdBoth(120);
+        // Another check.sh holds the e2e queue for longer than the test lasts: queueing for it would time out below.
+        const other = spawn('bash', ['-c', 'sleep 120; :', 'scripts/check.sh'], {
+          stdio: 'ignore',
+        });
+        try {
+          const result = check(
+            { unit: unit(), integration, e2e },
+            ['--all'],
+            () => {
+              both.setup();
+              symlinkSync(String(other.pid), join(repo(), '.work/e2e.lock'));
+            },
+            { ...quick, FIVVI_SLOT_TIMEOUT_SECONDS: '1', E2E_QUEUE_TIMEOUT_SECONDS: '600' },
+            30_000,
+          );
+          assert.equal(result.status, 1, result.stdout);
+          assert.match(result.stdout, /✗ e2e tests/);
+          assert.doesNotMatch(result.stdout, /waiting for the e2e queue/);
+          assert.equal(result.summary.suites.find((s) => s.kind === 'e2e').status, 'not-run');
+        } finally {
+          other.kill();
           both.stop();
         }
       });

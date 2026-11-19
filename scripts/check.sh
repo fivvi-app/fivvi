@@ -134,7 +134,8 @@ e2e_not_queued() { echo "$E2E_QUEUE_ERROR"; return 1; }
 # interrupt). The e2e suite is the exception: it queues first and takes its slot only once the queue is its, after the slot of the
 # turbo run is given back, so a suite that waits for the e2e queue holds no slot meanwhile and never keeps a build from running.
 # While it holds the slot, FIVVI_SLOTS_HELD names it, so a script that turbo starts and that wraps itself in the heavy class
-# (test-ios.sh, android.sh, maestro.sh) does not wait for a second one.
+# (test-ios.sh, android.sh, maestro.sh) does not wait for a second one. Turbo runs in strict env mode and drops what turbo.json
+# does not name: FIVVI_SLOTS_HELD and FIVVI_SLOTS_DIR are in its globalPassThroughEnv, which keeps them out of the cache keys.
 HEAVY_HELD=false
 HEAVY_FAILED=false
 SLOTS_HELD_BEFORE="${FIVVI_SLOTS_HELD:-}"
@@ -395,7 +396,10 @@ give_back_heavy_slot
 if ! $FAST; then
   if [ "$(plan_flag e2e)" = true ]; then
     RAN_E2E=true
-    if e2e_cached || acquire_e2e_queue; then
+    if $HEAVY_FAILED; then
+      # No heavy slot came free in time for the turbo run: the suite would only wait up to 40 minutes for the queue, to fail the same way.
+      check "e2e tests (port $(e2e_port "$ROOT"))" no_slot
+    elif e2e_cached || acquire_e2e_queue; then
       # Holding the queue means the suite runs (not a cache hit), so it takes its slot; a cache hit loads nothing and takes none.
       if $OWN_E2E_LOCK; then
         check_heavy "e2e tests (port $(e2e_port "$ROOT"))" e2e_tests
