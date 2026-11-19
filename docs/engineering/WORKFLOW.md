@@ -149,7 +149,7 @@ The fast pipeline of [ADR-034](../decisions/ADR-034-fast-pipeline.md) is two set
 
 | Setting | Fast (ADR-034) | Back to the full pipeline | What changes when it goes back |
 |---|---|---|---|
-| `ci` | `fast` | `full` | Every PR and merge group runs the UI tests again: the iOS UI tests, the Compose UI tests on an emulator, `Android Maestro`, `E2E (Linux)` and every quarantine list, as at the tag `pipeline-full-2026-11-18`. Locally, builders run the full native suites again. |
+| `ci` | `fast` | `full` | Every PR and merge group runs the UI tests again: the iOS UI tests, the Compose UI tests on an emulator, `Android Maestro`, `E2E (Linux)` and every quarantine list, as at the tag `pipeline-full-2026-11-18`. Locally, builders run the full native suites and the full `scripts/check.sh` (integration and e2e tests included) again. |
 | `review` | `split` | `per-pr` | The `reviewer` runs both axes on every PR again; the spec review after a merged slice and the phase `spec-review` go away (a spec in `spec-review` becomes `complete`); `pr.sh reviewed` records both axes. |
 
 **The owner asks an agent**, for example "switch the pipeline back to full", "turn the UI tests back on for every PR" or "go back to both reviews on every PR". The agent:
