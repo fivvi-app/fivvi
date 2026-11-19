@@ -146,7 +146,7 @@ Never hand-edit `.claude/agents/`, `.github/agents/` or `.codex/agents/`: change
 
 ## Context hygiene
 
-- One ticket per subagent; the `reviewer` runs both `code-review` axes itself, without subagents of its own.
+- One ticket per subagent; the `reviewer` runs the `code-review` axes itself (both with `per-pr` and for a `high` or `owner` PR, the standards axis for a `low` PR with `split`, `docs/agents/build.md`, **Review by risk**), without subagents of its own.
 - This conversation runs on the standard context window (`.claude/settings.json` pins `opus`, not `opus[1m]`): every turn reads the whole conversation again, so a long one costs more on each step.
 - After **Shape**, after each **Factory** pass, or when this conversation gets long, start a new one: `scripts/flow.sh status` and GitHub rebuild the picture.
 - Share research through the notes file, not through this conversation. `flow.sh finish` deletes it.
