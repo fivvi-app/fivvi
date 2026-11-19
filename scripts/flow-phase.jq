@@ -7,7 +7,7 @@
 #         all closed), spec_review: null|{covered, detail} (scripts/spec-review.sh status, read only while review is split),
 #         branches: [{name, local, worktree, dirty,
 #                     pr: null|{number, state, draft, review, failing, threads, age_days, risk, risk_reasons,
-#                               head, refusal: null|{sha, reasons},
+#                               head, refusal: null|{sha, reasons}, held: null|string (the reason a refresh left it with the owner),
 #                               queue: null|{state: null|"queued"|"removed", position, reason, removed_at, requeued}}}]}
 # risk is "low", "high", "owner" or null (unknown) for an open PR (scripts/risk.sh, ADR-021): an agent merges low and
 # high; owner (owner-only) and unknown wait for the owner. refusal is the last refusal of the merge
@@ -40,6 +40,10 @@ def open: .state == "OPEN";
 def unapproved_spec: has("spec") and (has("spec-approved") | not);
 
 def refused: .refusal != null and .refusal.sha != null and .refusal.sha == .head;
+# A refresh (#1274) of a PR that stayed with the owner (open findings, no clean review of its head, a refusal) left a hold
+# in the notes (`refresh-held`, scripts/flow.sh); the push of the merge commit makes a refusal stale, but not the hold. It
+# ends with a clean review recorded after it. A non-empty string is the reason.
+def held: (.held // "") != "";
 def queue_state: .queue.state? // null;
 
 # The blocker closed as completed last, after the removal at $at, or null: the bug whose fix the removed PR waited for.
@@ -72,7 +76,7 @@ def code_phase($f):
   elif (.pr | queue_state) == "queued" then {phase: "queued", rank: 4}
   elif .pr.failing > 0 or .pr.review == "CHANGES_REQUESTED" or .pr.threads > 0 then {phase: "changes-requested", rank: 1}
   elif (.pr | queue_state) == "removed" then (.pr | removed_phase($f))
-  elif (.pr.risk | IN("low", "high")) and (.pr | refused) then {phase: "merge-refused", rank: 3}
+  elif (.pr.risk | IN("low", "high")) and ((.pr | refused) or (.pr | held)) then {phase: "merge-refused", rank: 3}
   elif .pr.risk | IN("low", "high") then {phase: "ready-to-merge", rank: 4}
   elif .pr.review == "APPROVED" then {phase: "approved", rank: 4}
   else {phase: "in-review", rank: 3}
@@ -106,7 +110,12 @@ def code_next($n):
       end),
     "waiting-fix": "Wait for \([(.blockers // [])[] | "#\(.)"] | join(", ")), which fixes the check that removed it from the merge queue (\(.pr.queue.reason // "no reason given")). Nothing to do on this PR: build the bug (it is ready work), then scripts/flow.sh status \($n) shows the next step. Never queue the same commit again yourself.",
     "requeue": "scripts/pr.sh merge \(.pr.number) --after \(.bug): #\(.bug) was closed as completed after the queue removed \(.pr.head[:7]) (\(.pr.queue.reason // "no reason given")). It queues the same commit once more, with no push and no merge of main, when the whole merge gate holds; the queue tests it on the latest main, which has the fix. Then scripts/flow.sh status \($n) until GitHub has merged it, and scripts/flow.sh finish \($n). If the queue removes it again, report it and stop: the owner decides.",
-    "merge-refused": "The merge gate refused it on \(.pr.head[:7]): \(.pr.refusal.reasons). The owner decides, or fix it and push (scripts/pr.sh create), which makes the refusal stale. Report and stop; never retry the merge on this commit.",
+    "merge-refused": (
+      if .pr | refused then
+        "The merge gate refused it on \(.pr.head[:7]): \(.pr.refusal.reasons). The owner decides, or fix it and push (scripts/pr.sh create), which makes the refusal stale. Report and stop; never retry the merge on this commit."
+      else
+        "A refresh of main was merged into it and it stays with the owner: \(.pr.held). The owner decides, or fix it, push (scripts/pr.sh create) and have a clean review of the fix recorded (`reviewed <sha> (...): clean` in the notes), which ends the hold; the push of the merge commit does not. Report and stop; never run scripts/pr.sh merge on it before."
+      end),
     "in-review": "\(.pr | owner_review) and adds it to the merge queue. Nothing to do.",
     "approved": "Approved. \(.pr | owner_review | sub(": the owner reviews"; "")): the owner adds it to the merge queue on GitHub; then scripts/flow.sh finish \($n).",
     "merged": "scripts/flow.sh finish \($n)",

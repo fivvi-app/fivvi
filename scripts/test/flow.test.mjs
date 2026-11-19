@@ -817,6 +817,7 @@ describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () 
               url: 'https://github.com/o/r/pull/70',
               createdAt: '2026-10-18T10:00:00Z',
               headRefOid: HEAD,
+              mergeable: 'MERGEABLE',
             },
           ],
         },
@@ -833,6 +834,42 @@ describe('E002 #119 flow.sh status and finish with a PR in the merge queue', () 
         },
       ]),
     });
+
+  // #1274: a refresh that stayed with the owner writes `refresh-held <sha>: <why>` to the notes; the refresh push makes the
+  // refusal stale, so the hold is what keeps the PR from ready-to-merge, until a clean review is recorded after it.
+  it('#1274: a refresh-held line in the notes keeps the PR merge-refused until a clean review follows it', () => {
+    const notes = join(repo, '.work/9999/notes.md');
+    mkdirSync(join(repo, '.work/9999'), { recursive: true });
+    try {
+      writeFileSync(
+        notes,
+        '- reviewed 1111111 (full): not clean\n- refresh-held 1111111: the last review was not clean\n',
+      );
+      const held = run('status', {});
+      assert.equal(held.status, 0, held.stderr);
+      assert.match(held.stdout, /^Phase: merge-refused$/m);
+      assert.match(
+        held.stdout,
+        /^Next: A refresh of main was merged into it and it stays with the owner: the last review was not clean\./m,
+      );
+      const owner = run('status', {}, 'scripts/pr.sh');
+      assert.doesNotMatch(owner.stdout, /Phase: ready-to-merge/);
+      writeFileSync(
+        notes,
+        `${readFileSync(notes, 'utf8')}- reviewed 2222222 (since 1111111): clean\n`,
+      );
+      const cleared = run('status', {});
+      assert.match(cleared.stdout, /^Phase: ready-to-merge$/m);
+      // A merge-only verdict does not clear it.
+      writeFileSync(
+        notes,
+        '- refresh-held 1111111: the last review was not clean\n- refresh-reviewed 3333333 (merge of main): clean\n',
+      );
+      assert.match(run('status', {}).stdout, /^Phase: merge-refused$/m);
+    } finally {
+      rmSync(join(repo, '.work/9999'), { recursive: true, force: true });
+    }
+  });
 
   it('shows a queued PR and says to wait for GitHub, then finish', () => {
     const result = run('status', { queued: true, position: 2 });
@@ -2704,6 +2741,86 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       }
     });
 
+    // The refresh of this run writes the notes (a review verdict, the hold), so their change must not hide the PR that
+    // still conflicts afterwards: the refresh record is read before the 30-minute rule.
+    it('a PR refreshed in this run whose notes just changed and that still conflicts goes to the owner, not out of the lists', () => {
+      const branch = 'chore/9300-building';
+      const first = headOf(66, 'a');
+      const pushed = headOf(66, 'b');
+      const scenario = (head) => ({
+        openPrs: [open(66, 'CONFLICTING', { branch, head })],
+        rules: [
+          {
+            match: `^pr list .*--head ${branch}`,
+            out: [{ number: 66, state: 'OPEN', headRefOid: head }],
+          },
+          {
+            match: '^issue view 9300 ',
+            out: { state: 'OPEN', labels: labels('ready-for-agent'), assignees: [{ login: 'x' }] },
+          },
+          {
+            match: '^pr view 66 .*--json state,headRefName,headRefOid',
+            out: { state: 'OPEN', headRefName: branch, headRefOid: head },
+          },
+          ...facts(66, OWNER_FILE, { head }),
+        ],
+        env,
+      });
+      const acquired = run('lock', { args: ['acquire'] });
+      assert.equal(acquired.status, 0, acquired.stderr);
+      writeNotes(9300, '# notes\n- reviewed 1111111 (full): not clean\n');
+      const started = run('refresh', { ...scenario(first), args: ['66'] });
+      assert.equal(started.status, 0, started.stderr);
+      // The notes were just written (the hold line), and the push of the merge left the PR conflicting.
+      const nowSeconds = Date.parse(NOW) / 1000;
+      const touchNotes = () => {
+        const file = join(repo, '.work', '9300', 'notes.md');
+        utimesSync(file, nowSeconds - 300, nowSeconds - 300);
+      };
+      touchNotes();
+      const still = run('next', scenario(pushed));
+      assert.equal(still.status, 0, still.stderr);
+      assert.doesNotMatch(readyOf(still.stdout), /Refresh PR #66/);
+      assert.match(
+        waitingOf(still.stdout),
+        /^Decide on PR #66 \[E001\] PR 66 \(still conflicting with main after a refresh in this run/m,
+      );
+      assert.doesNotMatch(waitingOf(still.stdout), /Merge PR #66/);
+      // The same PR with no refresh of this run and fresh notes is still a builder's.
+      rmSync(join(repo, '.work/refresh/66'), { force: true });
+      touchNotes();
+      const building = run('next', scenario(pushed));
+      assert.doesNotMatch(building.stdout, /PR #66/);
+    });
+
+    it('flow.sh status reads a missing mergeable state again, as next does', () => {
+      const result = run('status', {
+        args: ['9002'],
+        others: [issue(9002, 'Queued', ['ready-for-agent'])],
+        rules: [
+          { match: '^pr view 92 .*--json mergeable', out: { mergeable: 'CONFLICTING' } },
+          {
+            match: '^pr list .*--head chore/9002-queued',
+            out: [
+              {
+                number: 92,
+                state: 'OPEN',
+                isDraft: false,
+                reviewDecision: '',
+                statusCheckRollup: [],
+                url: 'https://github.com/o/r/pull/92',
+                createdAt: '2026-10-18T10:00:00Z',
+                headRefOid: HEAD,
+              },
+            ],
+          },
+        ],
+        env,
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /conflicting with main/);
+    });
+
     it("fails instead of listing nothing when it can't read the mergeable state", () => {
       const result = run('next', {
         openPrs: [open(60, 'UNKNOWN')],
@@ -2822,32 +2939,89 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
         });
 
         it('prints that it stays with the owner when the merge gate refused the head commit', () => {
-          const result = refresh(refusal(FIRST), '- reviewed 1111111 (full): clean\n');
+          const result = refresh(refusal(FIRST), `- reviewed ${FIRST.slice(0, 7)} (full): clean\n`);
           assert.equal(result.status, 0, result.stderr);
-          assert.match(result.stdout, /^Last review: reviewed 1111111 \(full\): clean$/m);
+          assert.match(result.stdout, /^Last review: reviewed 60aaaaa \(full\): clean$/m);
           assert.match(
             result.stdout,
             /^Stays with the owner: the merge gate refused the head commit .*: no pr\.sh reviewed, ship or merge after the push$/m,
           );
         });
 
-        it('a refusal of an older commit, a clean last review and a merge-only verdict do not hold the PR', () => {
+        it('an annotated or space-trailed not clean verdict holds the PR as well', () => {
+          for (const verdict of [
+            '- reviewed 2222222 (since 1111111): not clean — reviewer, factory run 7',
+            '- reviewed 2222222 (since 1111111): not clean ',
+            '- reviewed 2222222 (since 1111111): not clean (2 must-fix)',
+          ]) {
+            const result = refresh('Closes #9400', `${verdict}\n`);
+            assert.equal(result.status, 0, result.stderr);
+            assert.match(
+              result.stdout,
+              /^Stays with the owner: the last review was not clean; /m,
+              verdict,
+            );
+          }
+        });
+
+        it('a last review that is clean for the previous head commit does not hold the PR; a refusal of an older commit and a merge-only verdict do not either', () => {
+          for (const verdict of [
+            `- reviewed ${FIRST.slice(0, 7)} (since 1111111): clean (low risk, 2 should-fix follow-ups)`,
+            `- reviewed ${FIRST} (full): clean`,
+            `- reviewed ${FIRST.slice(0, 7)} (full): clean — reviewer, factory run 7`,
+          ]) {
+            const result = refresh(
+              refusal('b'.repeat(40)),
+              `- reviewed 1111111 (full): not clean\n${verdict}\n- refresh-reviewed 3333333 (merge of main): not clean\n`,
+            );
+            assert.equal(result.status, 0, result.stderr);
+            assert.match(result.stdout, /^Last review: reviewed /m);
+            assert.doesNotMatch(result.stdout, /Stays with the owner/, verdict);
+          }
+        });
+
+        it('a PR with no notes file stays with the owner: nobody recorded a review of it', () => {
+          const result = run('refresh', { ...pr(FIRST), args: ['60'] });
+          assert.equal(result.status, 0, result.stderr);
+          assert.doesNotMatch(result.stdout, /Last review/);
+          assert.match(
+            result.stdout,
+            /^Stays with the owner: no review verdict is recorded for it; /m,
+          );
+        });
+
+        it('a notes file with no verdict line stays with the owner', () => {
           const result = refresh(
-            refusal('b'.repeat(40)),
-            '- reviewed 1111111 (full): not clean\n- reviewed 2222222 (since 1111111): clean (low risk, 2 should-fix follow-ups)\n- refresh-reviewed 3333333 (merge of main): not clean\n',
+            'Closes #9400',
+            '## Build notes\n- built it\n- refresh-reviewed 3333333 (merge of main): clean\n',
           );
           assert.equal(result.status, 0, result.stderr);
           assert.match(
             result.stdout,
-            /^Last review: reviewed 2222222 \(since 1111111\): clean \(low risk, 2 should-fix follow-ups\)$/m,
+            /^Stays with the owner: no review verdict is recorded for it; /m,
           );
-          assert.doesNotMatch(result.stdout, /Stays with the owner/);
         });
 
-        it('a PR with no issue and no notes prints neither line', () => {
-          const result = run('refresh', { ...pr(FIRST), args: ['60'] });
+        it('a clean verdict of an older commit stays with the owner: the commits after it were never reviewed', () => {
+          const result = refresh('Closes #9400', '- reviewed 1111111 (full): clean\n');
           assert.equal(result.status, 0, result.stderr);
-          assert.doesNotMatch(result.stdout, /Last review|Stays with the owner/);
+          assert.match(result.stdout, /^Last review: reviewed 1111111 \(full\): clean$/m);
+          assert.match(
+            result.stdout,
+            /^Stays with the owner: the last review \(1111111\) is not of the head commit 60aaaaa; commits after it were never reviewed; /m,
+          );
+        });
+
+        it('a held refresh writes refresh-held <previous head> to the notes once, and a PR that is not held writes nothing', () => {
+          const notes = join(repo, '.work/9400/notes.md');
+          refresh('Closes #9400', '- reviewed 1111111 (full): not clean\n');
+          refresh('Closes #9400');
+          const lines = readFileSync(notes, 'utf8')
+            .split('\n')
+            .filter((line) => line.includes('refresh-held'));
+          assert.deepEqual(lines, [`- refresh-held ${FIRST}: the last review was not clean`]);
+          refresh('Closes #9400', `- reviewed ${FIRST.slice(0, 7)} (full): clean\n`);
+          assert.doesNotMatch(readFileSync(notes, 'utf8'), /refresh-held/);
         });
       });
 
@@ -2915,6 +3089,8 @@ describe('flow.sh next (specs to cut) and flow.sh idle', () => {
       assert.match(refresh, /open must-fix and should-fix findings/);
       assert.match(refresh, /Stays with the owner/);
       assert.match(refresh, /refresh-reviewed/);
+      assert.match(refresh, /refresh-held/);
+      assert.match(skill, /A refresh merge commit does not/);
       assert.match(refresh, /no lock.*no one-refresh limit/i);
       assert.match(refresh, /never a rebase|no rebase/i);
       assert.match(skill, /Refresh PR #n/);

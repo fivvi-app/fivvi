@@ -42,9 +42,11 @@
 #                                           that reason until its head commit changes. The records are files under
 #                                           .work/refresh/ (outside git); an attempt belongs to the run that holds the lock.
 #                                           It also prints `Last review: …` (the last verdict in the issue's notes) and,
-#                                           for a PR that waits on the owner for a review that was not clean or a refusal
-#                                           of its head commit, `Stays with the owner: …`: it is then never recorded clean
-#                                           or queued after the refresh
+#                                           unless that verdict is clean for the head commit (a not clean one, a clean one
+#                                           of an older commit, none, or a refusal of the head commit), `Stays with the
+#                                           owner: …` and a `refresh-held <head>: <why>` line in the notes: the PR is then
+#                                           never recorded clean or queued after the refresh, and stays merge-refused
+#                                           (flow-phase.jq) until a clean review verdict follows that line
 #   flow.sh idle                            exit 0 and "idle: nothing for an agent" (plus what waits on the owner) when no
 #                                           agent has anything to do: nothing under "Ready for an agent" in `next` and no
 #                                           issue assigned to you in a phase an agent acts on; exit 1 and what there is
@@ -164,7 +166,7 @@ read_mergeable() {
 }
 
 pr_facts() {
-  local branch="$1" pr number threads risk refusal queue mergeable="" skip=false
+  local branch="$1" pr number threads risk refusal queue mergeable="" skip=false held="" issue notes
   pr="$(gh pr list --repo "$REPO" --head "$branch" --state all \
     --json number,state,isDraft,reviewDecision,statusCheckRollup,url,createdAt,headRefOid,mergeable,closingIssuesReferences \
     --jq 'sort_by(.number) | last // empty')"
@@ -179,7 +181,12 @@ pr_facts() {
     queue="$("$ROOT/scripts/pr.sh" queue "$number")" || die "could not read the merge queue state of PR #$number"
     # Whether GitHub finds conflicts with main (#1274); an UNKNOWN state is read again.
     mergeable="$(jq -r '.mergeable // ""' <<<"$pr")"
-    if [ "$mergeable" = UNKNOWN ]; then mergeable="$(read_mergeable "$number")" || exit 1; fi
+    if [ -z "$mergeable" ] || [ "$mergeable" = UNKNOWN ]; then mergeable="$(read_mergeable "$number")" || exit 1; fi
+    # A refresh that left the PR with the owner holds it until a clean review follows (refresh_hold).
+    issue="$(branch_issue "$branch")"
+    notes=""
+    [ -z "$issue" ] || notes="$(notes_of "$issue")"
+    [ -z "$notes" ] || held="$(refresh_hold "$notes")"
     # A conflicting PR that is parked or being worked on is not for a refresh (refresh_skipped).
     if [ "$mergeable" = CONFLICTING ] \
       && refresh_skipped "$branch" "$(jq -r '[.closingIssuesReferences[]?.number | tostring] | join(",")' <<<"$pr")"; then skip=true; fi
@@ -192,7 +199,7 @@ pr_facts() {
   # GitHub reports unfinished conclusions and a missing review as "", not null.
   # A cancelled job is read by its retry job (scripts/check-retries.jq, #1384), as pr.sh wait and the merge gate do.
   jq -L "$ROOT/scripts" --argjson threads "$threads" --argjson risk "$risk" --argjson refusal "$refusal" --argjson queue "$queue" \
-    --arg mergeable "$mergeable" --argjson skip "$skip" \
+    --arg mergeable "$mergeable" --argjson skip "$skip" --arg held "$held" \
     'include "check-retries";
     def value(f): [f[] | select(. != null and . != "")] | first // "";
     def check_state:
@@ -204,7 +211,7 @@ pr_facts() {
     ([.statusCheckRollup[]? | {name: (.name // .context), state: check_state}] | settle_retries) as $checks
     | {
     number, state, url, draft: .isDraft, threads: $threads, risk: $risk.risk, risk_reasons: ($risk.reasons // []),
-    head: .headRefOid, refusal: $refusal, queue: $queue, refresh_skip: $skip, mergeable: (if $mergeable == "" then null else $mergeable end),
+    head: .headRefOid, refusal: $refusal, queue: $queue, refresh_skip: $skip, held: (if $held == "" then null else $held end), mergeable: (if $mergeable == "" then null else $mergeable end),
     review: (if (.reviewDecision // "") == "" then null else .reviewDecision end),
     failing: [$checks[] | select(.state == "fail" or .state == "cancel")] | length,
     pending: [$checks[] | select(.state == "pending")] | length,
@@ -647,6 +654,26 @@ REFRESH_DIR="$NOTES_DIR/refresh"
 # The record of PR $1: `<kind> <run> <head> <time> <reason>` (kind attempt or owner; run is the run id or -), or nothing.
 refresh_record() { [ ! -f "$REFRESH_DIR/$1" ] || head -n 1 "$REFRESH_DIR/$1"; }
 
+# The last verdict line of the notes file $1: `reviewed <sha> (<scope>): clean|not clean`, anything may follow the verdict
+# (an annotation, a space). `refresh-reviewed` lines (the review of a merge of main) are not reviews of the PR.
+last_verdict() {
+  { grep -E '^[-* ]*reviewed [0-9a-f]{7,40} \([^)]*\): (not clean|clean)([^[:alnum:]]|$)' "$1" || true; } \
+    | tail -n 1 | sed -E 's/^[-* ]+//'
+}
+
+# The reason of the hold a refresh left in the notes file $1 (`refresh-held <sha>: <reason>`, written by flow.sh refresh),
+# or nothing: a hold lasts until a clean review verdict follows it in the file. The refresh push, which makes a merge-gate
+# refusal stale, does not end it.
+refresh_hold() {
+  local held clean hold_line
+  held="$({ grep -nE '^[-* ]*refresh-held [0-9a-f]{7,40}: ' "$1" || true; } | tail -n 1)"
+  [ -n "$held" ] || return 0
+  hold_line="${held%%:*}"
+  clean="$({ grep -nE '^[-* ]*reviewed [0-9a-f]{7,40} \([^)]*\): clean([^[:alnum:]]|$)' "$1" || true; } | tail -n 1)"
+  if [ -n "$clean" ] && [ "${clean%%:*}" -gt "$hold_line" ]; then return 0; fi
+  sed -E 's/^[0-9]+:[-* ]*refresh-held [0-9a-f]+: //' <<<"$held"
+}
+
 # The run id of the live factory run (the lock, flow.sh lock), or `-` when no run holds a live lock.
 current_run() {
   lock_read
@@ -694,18 +721,20 @@ recent_work() {
 }
 
 # True when the conflicting PR of branch $1, which closes the issues $2 (comma-separated, may be empty), is not for a refresh:
-# parked (its branch's issue or a ticket it closes is parked_issue) or being worked on (recent_work).
+# parked (its branch's issue or a ticket it closes is parked_issue) or being worked on (recent_work, unless $3 is `true`:
+# the refresh of this run wrote the notes itself).
 refresh_skipped() {
-  local branch="$1" closing="$2" issue n
+  local branch="$1" closing="$2" attempted="${3:-false}" issue n
   issue="$(branch_issue "$branch")"
   for n in $(printf '%s\n%s\n' "$issue" "${closing//,/$'\n'}" | grep -E '^[0-9]+$' | sort -un); do
     if parked_issue "$n"; then return 0; fi
   done
+  [ "$attempted" != true ] || return 1
   recent_work "$branch" "$issue"
 }
 
 conflict_items() {
-  local prs pr title branch head state queue closing record kind run record_head reason current=""
+  local prs pr title branch head state queue closing record kind run record_head reason attempted current=""
   CONFLICT_WORK="" CONFLICT_OWNER="" CONFLICT_PRS=" "
   prs="$(gh pr list --repo "$REPO" --state open --limit 100 --json number,title,headRefName,headRefOid,mergeable,closingIssuesReferences \
     --jq '.[] | [.number, (.headRefOid // "-"), (.mergeable // "UNKNOWN"), (.headRefName // "-"),
@@ -723,12 +752,20 @@ conflict_items() {
     esac
     queue="$("$ROOT/scripts/pr.sh" queue "$pr")" || die "could not read the merge queue state of PR #$pr"
     [ "$(jq -r '.state // ""' <<<"$queue")" != queued ] || continue
-    if refresh_skipped "$branch" "${closing//-/}"; then continue; fi
-    CONFLICT_PRS+="$pr "
+    # The refresh record first: a refresh of this run changes the notes itself, which must not look like a builder at work.
     record="$(refresh_record "$pr")"
+    attempted=false
     if [ -n "$record" ]; then
       read -r kind run record_head _ <<<"$record"
       reason="$(cut -d' ' -f5- <<<"$record")"
+      if [ "$kind" = attempt ]; then
+        [ -n "$current" ] || current="$(current_run)"
+        if [ "$run" != - ] && [ "$run" = "$current" ]; then attempted=true; fi
+      fi
+    fi
+    if refresh_skipped "$branch" "${closing//-/}" "$attempted"; then continue; fi
+    CONFLICT_PRS+="$pr "
+    if [ -n "$record" ]; then
       case "$kind" in
         owner)
           if [ "$record_head" = "$head" ]; then
@@ -736,8 +773,7 @@ conflict_items() {
             continue
           fi ;;
         attempt)
-          [ -n "$current" ] || current="$(current_run)"
-          if [ "$run" != - ] && [ "$run" = "$current" ]; then
+          if $attempted; then
             if [ "$record_head" = "$head" ]; then continue; fi
             CONFLICT_OWNER+="Decide on PR #$pr $title (still conflicting with main after a refresh in this run; the next run tries again, or merge main by hand)"$'\n'
             continue
@@ -752,7 +788,7 @@ conflict_items() {
 cmd_refresh() {
   [ $# -ge 1 ] || usage
   is_number "$1"
-  local pr="$1" reason="" kind=attempt view state branch head run wt now issue notes last why="" refused
+  local pr="$1" reason="" kind=attempt view state branch head run wt now issue notes last why="" refused verdict sha
   shift
   if [ $# -gt 0 ]; then
     [ "$1" = --owner ] && [ $# -eq 2 ] || usage
@@ -776,24 +812,40 @@ cmd_refresh() {
   wt="$(worktree_of "$branch")"
   echo "Refresh PR #$pr: branch $branch, head ${head:0:7}"
   if [ -n "$wt" ]; then echo "Worktree: $wt"; else echo "Worktree: none (scripts/wt.sh add $branch)"; fi
-  # A PR that waited on the owner for open findings or a refusal stays with the owner after the refresh: the review of
-  # the merge sees only the resolution, so it is never a clean review of the PR. Print the last review for the brief.
+  # A PR stays with the owner after the refresh unless its last review is clean for the head commit it has now: the review
+  # of the merge sees only the resolution, so it is never a clean review of the PR (open findings, a refusal, commits
+  # nobody reviewed, or no verdict at all). Print the last review for the reviewer's brief, and leave the hold in the
+  # notes (refresh_hold): the push of the merge commit makes a refusal stale, but not the hold.
   issue="$(branch_issue "$branch")"
   notes=""
   [ -z "$issue" ] || notes="$(notes_of "$issue")"
   last=""
-  if [ -n "$notes" ]; then
-    last="$(grep -E '^[-* ]*reviewed [0-9a-f]{7,40} \([^)]*\): (not clean|clean)' "$notes" | tail -n 1 | sed -E 's/^[-* ]+//' || true)"
-  fi
+  [ -z "$notes" ] || last="$(last_verdict "$notes")"
   [ -z "$last" ] || echo "Last review: $last"
-  if [[ "$last" == *": not clean" ]]; then
-    why="the last review was not clean; the review of the merge is not a clean review"
+  if [ -z "$last" ]; then
+    why="no review verdict is recorded for it"
+  else
+    verdict="${last#*): }"
+    sha="$(sed -E 's/^reviewed ([0-9a-f]+) .*/\1/' <<<"$last")"
+    case "$verdict" in
+      "not clean"*) why="the last review was not clean" ;;
+      *) case "$head" in "$sha"*) ;; *) why="the last review (${sha:0:7}) is not of the head commit ${head:0:7}; commits after it were never reviewed" ;; esac ;;
+    esac
   fi
   refused="$("$ROOT/scripts/pr.sh" refusal "$pr")" || die "could not read the refusal of PR #$pr"
   if [ "$(jq -r '.sha // ""' <<<"$refused")" = "$head" ]; then
     why+="${why:+; }the merge gate refused the head commit ${head:0:7}"
   fi
-  if [ -n "$why" ]; then echo "Stays with the owner: $why: no pr.sh reviewed, ship or merge after the push"; fi
+  if [ -n "$why" ]; then
+    echo "Stays with the owner: $why; the review of the merge is not a clean review: no pr.sh reviewed, ship or merge after the push"
+    if [ -n "$issue" ]; then
+      [ -n "$notes" ] || notes="$NOTES_DIR/$(slice_primary "$issue")/notes.md"
+      if [ -z "$(refresh_hold "$notes" 2>/dev/null)" ]; then
+        mkdir -p "$(dirname "$notes")"
+        printf -- '- refresh-held %s: %s\n' "$head" "$why" >>"$notes"
+      fi
+    fi
+  fi
   echo "Next: git merge origin/$(default_branch) in the worktree (a merge, never a rebase or a force-push), then the Refresh steps of the work skill"
 }
 
