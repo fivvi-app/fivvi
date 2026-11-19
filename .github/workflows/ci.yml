@@ -398,10 +398,10 @@ jobs:
   # entries; FIVVI_QUARANTINE=only selects the listed tests.
   #
   # With `ci: fast` (ADR-034) a run without UI tests reads the Playwright list and leaves it out: the job runs its Vitest list
-  # only, and the Playwright list runs in the nightly run and on demand. The decision is "Detect changes"'s `ui_tests`.
+  # only, and the Playwright list runs in the nightly run and on demand. The job waits for no other job (it runs on every
+  # run, also when "Detect changes" fails), so it reads the switch itself, as "Detect changes" does for `ui_tests`.
   quarantine:
     name: Quarantine
-    needs: changes
     runs-on: ubuntu-24.04
     # Never fails, on any event; the push-run rules (ADR-018) hold as for every job.
     continue-on-error: ${{ github.event_name == 'push' }}
@@ -436,16 +436,23 @@ jobs:
       - id: lists
         name: Read the quarantine lists
         env:
-          UI_TESTS: ${{ needs.changes.outputs.ui_tests }}
+          EVENT: ${{ github.event_name }}
         run: |
           set -euo pipefail
           vitest="$(node scripts/quarantine.mjs --count vitest)"
           listed="$(node scripts/quarantine.mjs --count playwright)"
           # The Playwright list holds UI tests: it runs only in a run with UI tests (ADR-034), and every step below reads
-          # `playwright`, so a run without them leaves it out here, once. Anything but `true` leaves it out.
+          # `playwright`, so a run without them leaves it out here, once. A run has UI tests with `ci: full`, and with
+          # `ci: fast` in the nightly run and on demand (the rule of "Detect changes"); a switch that cannot be read, or an
+          # unknown value, leaves the list out: this job never fails, and never guesses that it should run more.
+          ui_tests=false
+          ci_mode="$(scripts/pipeline.sh get ci 2>/dev/null || echo unreadable)"
+          if [[ "$ci_mode" == 'full' ]] || [[ "$ci_mode" == 'fast' && ( "$EVENT" == 'schedule' || "$EVENT" == 'workflow_dispatch' ) ]]; then
+            ui_tests=true
+          fi
           playwright="$listed"
           playwright_later=0
-          if [[ "$UI_TESTS" != 'true' ]]; then playwright=0; playwright_later="$listed"; fi
+          if [[ "$ui_tests" != 'true' ]]; then playwright=0; playwright_later="$listed"; fi
           {
             echo "vitest=$vitest"
             echo "playwright=$playwright"
@@ -1442,11 +1449,11 @@ jobs:
   # main. FIVVI_QUARANTINE=only selects the listed tests.
   quarantine-android:
     name: Quarantine (Android)
-    needs: changes
     # No native test suite runs on a push to main ("Android tests", "Android Maestro"): the lists are read on the other events.
-    # Both lists hold UI tests (the Compose UI tests and the Maestro flows): with `ci: fast` (ADR-034) the job runs only in the
-    # nightly run and on demand.
-    if: github.event_name != 'push' && needs.changes.outputs.ui_tests == 'true'
+    # Both lists hold UI tests (the Compose UI tests and the Maestro flows): with `ci: fast` (ADR-034) they run only in the
+    # nightly run and on demand. The job waits for no other job, so it reads the switch itself (the first step), and a run
+    # without UI tests ends there with both lists left out.
+    if: github.event_name != 'push'
     runs-on: ubuntu-24.04
     continue-on-error: ${{ github.event_name == 'push' }}
     # The step timeouts below are literal on every event and add up to 95 (install 5, SDK setup 15, boot 10, Compose 25, debug
@@ -1467,10 +1474,21 @@ jobs:
       # Runs before any install, on the Node the runner has (scripts/quarantine-android.mjs imports nothing else).
       - id: lists
         name: Read the quarantine lists
+        env:
+          EVENT: ${{ github.event_name }}
         run: |
           set -euo pipefail
           compose="$(node scripts/quarantine-android.mjs count compose)"
           maestro="$(node scripts/quarantine-android.mjs count maestro)"
+          # Both lists hold UI tests: they run only in a run with UI tests (ADR-034): `ci: full`, or `ci: fast` in the nightly
+          # run and on demand (the rule of "Detect changes"). A switch that cannot be read, or an unknown value, leaves them out.
+          ui_tests=false
+          ci_mode="$(scripts/pipeline.sh get ci 2>/dev/null || echo unreadable)"
+          if [[ "$ci_mode" == 'full' ]] || [[ "$ci_mode" == 'fast' && ( "$EVENT" == 'schedule' || "$EVENT" == 'workflow_dispatch' ) ]]; then
+            ui_tests=true
+          fi
+          left_out=0
+          if [[ "$ui_tests" != 'true' ]]; then left_out=$((compose + maestro)); compose=0; maestro=0; fi
           {
             echo "compose=$compose"
             echo "maestro=$maestro"
@@ -1480,7 +1498,8 @@ jobs:
             echo '### Quarantine (Android)'
             echo "- Compose: $compose listed test(s)"
             echo "- Maestro: $maestro listed flow(s)"
-            if [[ "$compose" == '0' && "$maestro" == '0' ]]; then echo 'Nothing is quarantined: nothing to run.'; fi
+            if [[ "$left_out" != '0' ]]; then echo "$left_out listed UI test(s) run in the nightly run only: this run has no UI tests (ADR-034)."; fi
+            if [[ "$compose" == '0' && "$maestro" == '0' && "$left_out" == '0' ]]; then echo 'Nothing is quarantined: nothing to run.'; fi
           } >>"${GITHUB_STEP_SUMMARY:-/dev/null}"
 
       # The emulator creates a 6 GB data partition on its first boot and needs 7.4 GB free for it; Gradle and the web build

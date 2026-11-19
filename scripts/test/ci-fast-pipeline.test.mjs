@@ -191,10 +191,6 @@ describe('ADR-034 Android', () => {
       'scripts/android.sh build',
     );
   });
-
-  it('Quarantine (Android) runs only with UI tests: its lists are Compose and Maestro tests', () => {
-    assert.equal(jobIf(jobs['quarantine-android']), `github.event_name != 'push' && ${UI}`);
-  });
 });
 
 describe('ADR-034 E2E (Linux)', () => {
@@ -204,33 +200,39 @@ describe('ADR-034 E2E (Linux)', () => {
   });
 });
 
-describe('ADR-034 Quarantine: the Playwright list runs only with UI tests', () => {
-  const lists = stepNamed(jobs.quarantine, 'Read the quarantine lists');
-  const reporter = stepNamed(jobs.quarantine, 'Report the quarantined tests');
+// The two Quarantine jobs wait for no other job (#1361 AC2, #1363 AC1), so each reads the switch itself: `scripts/pipeline.sh get ci`
+// and the event, and decides whether the UI lists run. The decision is the one "Detect changes" makes for `ui_tests`.
+describe('ADR-034 the Quarantine jobs read the switch themselves', () => {
   const dirs = [];
   after(() => {
     for (const dir of dirs) rmSync(dir, { recursive: true, force: true });
   });
 
-  // Runs the step with a `scripts/quarantine.mjs` that lists `counts` and the given UI_TESTS; returns its outputs and summary.
-  const readLists = (uiTests, counts) => {
+  /** Runs the shell of `step` in a repo with the real pipeline scripts, the given switch and the stub `scriptFile`. */
+  const runLists = (step, { ci: mode, event }, scriptFile, stub) => {
     const dir = mkdtempSync(join(tmpdir(), 'quarantine-lists-'));
     dirs.push(dir);
+    spawnSync('git', ['init', '--quiet', dir]);
     mkdirSync(join(dir, 'scripts'));
-    writeFileSync(
-      join(dir, 'scripts/quarantine.mjs'),
-      `console.log(${JSON.stringify(counts)}[process.argv[3]]);\n`,
-    );
+    mkdirSync(join(dir, '.github'));
+    for (const file of ['pipeline.sh', '_lib.sh'])
+      cpSync(join(SCRIPTS, file), join(dir, 'scripts', file));
+    if (mode !== undefined)
+      writeFileSync(
+        join(dir, '.github/pipeline.json'),
+        JSON.stringify({ ci: mode, review: 'split' }),
+      );
+    writeFileSync(join(dir, 'scripts', scriptFile), stub);
     const output = join(dir, 'output');
     const summary = join(dir, 'summary');
     writeFileSync(output, '');
     writeFileSync(summary, '');
-    const result = spawnSync('bash', ['-c', script(lists)], {
+    const result = spawnSync('bash', ['-c', script(step)], {
       cwd: dir,
       encoding: 'utf8',
       env: {
         PATH: process.env.PATH,
-        UI_TESTS: uiTests,
+        EVENT: event,
         GITHUB_OUTPUT: output,
         GITHUB_STEP_SUMMARY: summary,
       },
@@ -247,77 +249,178 @@ describe('ADR-034 Quarantine: the Playwright list runs only with UI tests', () =
     };
   };
 
-  it('with UI tests (full, nightly) it reads both lists as before', () => {
-    const { outputs, summary } = readLists('true', { vitest: 2, playwright: 3 });
-    assert.deepEqual(outputs, { vitest: '2', playwright: '3', playwright_later: '0', any: 'true' });
-    assert.equal(summary, '');
-  });
+  // The events and settings in which a run has UI tests: full always, fast only in the nightly run and on demand.
+  const WITH_UI = [
+    { ci: 'full', event: 'pull_request' },
+    { ci: 'full', event: 'merge_group' },
+    { ci: 'fast', event: 'schedule' },
+    { ci: 'fast', event: 'workflow_dispatch' },
+  ];
+  const WITHOUT_UI = [
+    { ci: 'fast', event: 'pull_request' },
+    { ci: 'fast', event: 'merge_group' },
+  ];
 
-  it('without UI tests (fast) it runs the Vitest list only and leaves the Playwright list for the nightly run', () => {
-    const { outputs } = readLists('false', { vitest: 2, playwright: 3 });
-    assert.deepEqual(outputs, { vitest: '2', playwright: '0', playwright_later: '3', any: 'true' });
-  });
-
-  it('anything but `true` leaves the Playwright list out, an empty decision included', () => {
-    for (const value of ['', 'false', 'TRUE', 'yes']) {
-      assert.equal(readLists(value, { vitest: 0, playwright: 1 }).outputs.playwright, '0', value);
-    }
-  });
-
-  it('with no Vitest entries and Playwright entries left for later, nothing runs and the summary says why', () => {
-    const { outputs, summary } = readLists('false', { vitest: 0, playwright: 4 });
-    assert.equal(outputs.any, 'false');
-    assert.match(summary, /4 listed Playwright test\(s\) run in the nightly run only/);
-    assert.doesNotMatch(summary, /Nothing is quarantined/);
-    assert.match(
-      readLists('false', { vitest: 0, playwright: 0 }).summary,
-      /Nothing is quarantined/,
-    );
-  });
-
-  it('the Playwright steps wait for `playwright` not being 0, so the output above turns them all off', () => {
-    for (const name of ['Read Playwright version', 'Restore turbo cache']) {
-      assert.match(
-        stepIf(stepNamed(jobs.quarantine, name)),
-        /steps\.lists\.outputs\.playwright != '0'/,
-        name,
+  describe('Quarantine (Android)', () => {
+    const job = jobs['quarantine-android'];
+    const lists = stepNamed(job, 'Read the quarantine lists');
+    const read = (setting, counts) =>
+      runLists(
+        lists,
+        setting,
+        'quarantine-android.mjs',
+        `console.log(${JSON.stringify(counts)}[process.argv[3]]);\n`,
       );
-    }
+
+    it('waits for no job and has no job condition beyond a push: the lists step reads the switch', () => {
+      assert.doesNotMatch(job, /^ {4}needs:/m);
+      assert.equal(jobIf(job), "github.event_name != 'push'");
+      assert.match(lists, /^ {10}EVENT: \$\{\{ github\.event_name \}\}$/m);
+      assert.match(script(lists), /scripts\/pipeline\.sh get ci/);
+    });
+
+    it('with UI tests (full, nightly, on demand) it reads both lists as before', () => {
+      for (const setting of WITH_UI) {
+        const { outputs } = read(setting, { compose: 2, maestro: 1 });
+        assert.deepEqual(
+          outputs,
+          { compose: '2', maestro: '1', any: 'true' },
+          JSON.stringify(setting),
+        );
+      }
+    });
+
+    it('without UI tests (fast on a pull request or in a merge group) nothing runs and the summary says why', () => {
+      for (const setting of WITHOUT_UI) {
+        const { outputs, summary } = read(setting, { compose: 2, maestro: 1 });
+        assert.deepEqual(
+          outputs,
+          { compose: '0', maestro: '0', any: 'false' },
+          JSON.stringify(setting),
+        );
+        assert.match(summary, /nightly run/);
+      }
+    });
+
+    it('an unreadable switch leaves the lists out, never runs them on a guess', () => {
+      const { outputs } = read(
+        { ci: 'sometimes', event: 'pull_request' },
+        { compose: 2, maestro: 1 },
+      );
+      assert.equal(outputs.any, 'false');
+      assert.equal(
+        read({ event: 'pull_request' }, { compose: 2, maestro: 1 }).outputs.any,
+        'false',
+      );
+    });
   });
 
-  it('the report says the Playwright list was left for the nightly run, and reports it as before when it ran', () => {
-    const run = (env) => {
-      const dir = mkdtempSync(join(tmpdir(), 'quarantine-report-'));
-      dirs.push(dir);
-      const summary = join(dir, 'summary');
-      writeFileSync(summary, '');
-      const result = spawnSync('bash', ['-c', script(reporter)], {
-        encoding: 'utf8',
-        env: {
-          PATH: process.env.PATH,
-          RUNNER_TEMP: dir,
-          GITHUB_STEP_SUMMARY: summary,
-          VITEST_LISTED: '1',
-          VITEST: 'success',
-          VITEST_STATUS: '0',
-          E2E: 'skipped',
-          E2E_STATUS: '',
-          ...env,
-        },
-      });
-      assert.equal(result.status, 0, result.stderr);
-      return readFileSync(summary, 'utf8');
-    };
-    const later = run({ PLAYWRIGHT_LISTED: '0', PLAYWRIGHT_LATER: '3' });
-    assert.match(later, /Playwright: 3 listed, not run here: the UI tests run in the nightly run/);
-    assert.doesNotMatch(later, /nothing listed/);
-    const ran = run({
-      PLAYWRIGHT_LISTED: '3',
-      PLAYWRIGHT_LATER: '0',
-      E2E: 'success',
-      E2E_STATUS: '0',
+  describe('Quarantine', () => {
+    const lists = stepNamed(jobs.quarantine, 'Read the quarantine lists');
+    const reporter = stepNamed(jobs.quarantine, 'Report the quarantined tests');
+    const read = (setting, counts) =>
+      runLists(
+        lists,
+        setting,
+        'quarantine.mjs',
+        `console.log(${JSON.stringify(counts)}[process.argv[3]]);\n`,
+      );
+
+    it('waits for no job, has no condition and reads the switch itself', () => {
+      assert.doesNotMatch(jobs.quarantine, /^ {4}(needs|if):/m);
+      assert.match(lists, /^ {10}EVENT: \$\{\{ github\.event_name \}\}$/m);
+      assert.match(script(lists), /scripts\/pipeline\.sh get ci/);
     });
-    assert.match(ran, /Playwright: all 3 quarantined test\(s\) passed/);
+
+    it('with UI tests (full, nightly, on demand) it reads both lists as before', () => {
+      for (const setting of WITH_UI) {
+        const { outputs, summary } = read(setting, { vitest: 2, playwright: 3 });
+        assert.deepEqual(
+          outputs,
+          { vitest: '2', playwright: '3', playwright_later: '0', any: 'true' },
+          JSON.stringify(setting),
+        );
+        assert.equal(summary, '');
+      }
+    });
+
+    it('without UI tests (fast on a pull request or in a merge group) it runs the Vitest list only and leaves the Playwright list for the nightly run', () => {
+      for (const setting of WITHOUT_UI) {
+        const { outputs } = read(setting, { vitest: 2, playwright: 3 });
+        assert.deepEqual(
+          outputs,
+          { vitest: '2', playwright: '0', playwright_later: '3', any: 'true' },
+          JSON.stringify(setting),
+        );
+      }
+    });
+
+    it('an unreadable or unknown switch leaves the Playwright list out', () => {
+      for (const setting of [
+        { ci: 'sometimes', event: 'pull_request' },
+        { event: 'pull_request' },
+        { ci: 'sometimes', event: 'push' },
+      ]) {
+        assert.equal(read(setting, { vitest: 0, playwright: 1 }).outputs.playwright, '0');
+      }
+    });
+
+    it('with no Vitest entries and Playwright entries left for later, nothing runs and the summary says why', () => {
+      const setting = { ci: 'fast', event: 'pull_request' };
+      const { outputs, summary } = read(setting, { vitest: 0, playwright: 4 });
+      assert.equal(outputs.any, 'false');
+      assert.match(summary, /4 listed Playwright test\(s\) run in the nightly run only/);
+      assert.doesNotMatch(summary, /Nothing is quarantined/);
+      assert.match(read(setting, { vitest: 0, playwright: 0 }).summary, /Nothing is quarantined/);
+    });
+
+    it('the Playwright steps wait for `playwright` not being 0, so the output above turns them all off', () => {
+      for (const name of ['Read Playwright version', 'Restore turbo cache']) {
+        assert.match(
+          stepIf(stepNamed(jobs.quarantine, name)),
+          /steps\.lists\.outputs\.playwright != '0'/,
+          name,
+        );
+      }
+    });
+
+    it('the report says the Playwright list was left for the nightly run, and reports it as before when it ran', () => {
+      const run = (env) => {
+        const dir = mkdtempSync(join(tmpdir(), 'quarantine-report-'));
+        dirs.push(dir);
+        const summary = join(dir, 'summary');
+        writeFileSync(summary, '');
+        const result = spawnSync('bash', ['-c', script(reporter)], {
+          encoding: 'utf8',
+          env: {
+            PATH: process.env.PATH,
+            RUNNER_TEMP: dir,
+            GITHUB_STEP_SUMMARY: summary,
+            VITEST_LISTED: '1',
+            VITEST: 'success',
+            VITEST_STATUS: '0',
+            E2E: 'skipped',
+            E2E_STATUS: '',
+            ...env,
+          },
+        });
+        assert.equal(result.status, 0, result.stderr);
+        return readFileSync(summary, 'utf8');
+      };
+      const later = run({ PLAYWRIGHT_LISTED: '0', PLAYWRIGHT_LATER: '3' });
+      assert.match(
+        later,
+        /Playwright: 3 listed, not run here: the UI tests run in the nightly run/,
+      );
+      assert.doesNotMatch(later, /nothing listed/);
+      const ran = run({
+        PLAYWRIGHT_LISTED: '3',
+        PLAYWRIGHT_LATER: '0',
+        E2E: 'success',
+        E2E_STATUS: '0',
+      });
+      assert.match(ran, /Playwright: all 3 quarantined test\(s\) passed/);
+    });
   });
 });
 

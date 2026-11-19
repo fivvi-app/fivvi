@@ -21,7 +21,6 @@ const jobs = Object.fromEntries(
 const steps = (job) => job.split(/\n(?= {6}- )/).slice(1);
 const stepIf = (step) => step.match(/^ {8}if: (.+)$/m)?.[1] ?? '';
 const job = jobs['quarantine-android'];
-const jobIf = (text) => text.match(/^ {4}if: (.+)$/m)?.[1] ?? '';
 const code = (text) =>
   text
     .split('\n')
@@ -29,10 +28,9 @@ const code = (text) =>
     .join('\n');
 
 describe('#1363 AC1 the Quarantine (Android) job', () => {
-  it('is a job called Quarantine (Android), and waits for no other job than Detect changes', () => {
+  it('is a job called Quarantine (Android), and waits for no other job', () => {
     assert.match(job, /^ {4}name: Quarantine \(Android\)$/m);
-    // ADR-034: "Detect changes" says whether this run has UI tests, the kind of test both lists hold.
-    assert.match(job, /^ {4}needs: changes$/m);
+    assert.doesNotMatch(job, /^ {4}needs:/m);
   });
 
   it('is not required, and no job needs it', () => {
@@ -49,15 +47,16 @@ describe('#1363 AC1 the Quarantine (Android) job', () => {
   });
 
   it('does not run on a push to main, like the other native test suites', () => {
-    assert.match(job, /^ {4}if: github\.event_name != 'push' && .+$/m);
-    assert.match(jobIf(job), /^github\.event_name != 'push'/);
+    assert.match(job, /^ {4}if: github\.event_name != 'push'$/m);
   });
 
-  it('ADR-034: runs only in a run with UI tests, because both lists hold UI tests (the Compose UI tests and the Maestro flows)', () => {
-    assert.equal(
-      jobIf(job),
-      "github.event_name != 'push' && needs.changes.outputs.ui_tests == 'true'",
-    );
+  // ADR-034: both lists hold UI tests (the Compose UI tests and the Maestro flows). The job waits for nothing, so it reads the
+  // pipeline switch and the event itself in its first step (the behaviour is tested in ci-fast-pipeline.test.mjs).
+  it('ADR-034: reads the switch and the event itself to decide whether the UI lists run', () => {
+    const lists = steps(job).find((step) => step.includes('name: Read the quarantine lists'));
+    assert.match(lists, /^ {10}EVENT: \$\{\{ github\.event_name \}\}$/m);
+    assert.match(lists, /scripts\/pipeline\.sh get ci/);
+    assert.doesNotMatch(job, /needs\.changes/);
   });
 
   it('does nothing but read the lists while they are empty: every other step waits for a list that has entries', () => {
