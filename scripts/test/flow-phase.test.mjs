@@ -683,7 +683,9 @@ describe('flow phase of a spec', () => {
         assert.match(decision.next, /All 2 tickets are done/);
         assert.match(decision.next, /final spec review/);
         assert.match(decision.next, /scripts\/spec-review\.sh map 50/);
-        assert.match(decision.next, /scripts\/spec-review\.sh record 50 --final/);
+        assert.match(decision.next, /scripts\/spec-review\.sh record 50 --final clean\|not-clean --sha <sha>/);
+        assert.match(decision.next, /at that SHA, the origin\/main SHA named in the brief/);
+        assert.doesNotMatch(decision.next, /the code on origin\/main/);
         assert.match(decision.next, /scripts\/issue\.sh create bug --parent 50/);
       }
     });
