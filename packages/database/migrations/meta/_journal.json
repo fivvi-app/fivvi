@@ -260,6 +260,13 @@
       "when": 1795028184329,
       "tag": "0037_cron_class_series_policies",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1795040807838,
+      "tag": "0038_payouts",
+      "breakpoints": true
     }
   ]
 }

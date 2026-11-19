@@ -11,6 +11,8 @@ export {
   addPaymentChargeback,
   addPaymentCustomer,
   addPaymentRefund,
+  addPayout,
+  addPayoutLine,
   addSession,
   addTeamRole,
   addTrainerInvitation,

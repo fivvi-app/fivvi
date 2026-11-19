@@ -124,12 +124,36 @@ export interface ProviderSettlement {
   readonly settledAt: Date | null;
 }
 
+/** What a line of a settlement is (`PAYOUT_LINE_TYPES`): money in, money back, or what the provider kept. */
+export type ProviderSettlementLineType = 'payment' | 'refund' | 'chargeback' | 'fee' | 'other';
+
+/** Which fee a `fee` line is (`PAYOUT_FEE_KINDS`); `other` for one the provider reports that we cannot classify. */
+export type ProviderFeeKind =
+  | 'ideal'
+  | 'direct_debit'
+  | 'refund'
+  | 'failed_direct_debit'
+  | 'reversal'
+  | 'other';
+
 export interface ProviderSettlementLine {
+  /**
+   * The line's identity within its settlement: the provider's own ID of the payment, refund or
+   * chargeback it reports, or for a fee the ID of the balance transaction that carries it (one fee per
+   * transaction, so a fee is stored once and a later fetch only adds new ones).
+   */
+  readonly id: string;
   readonly settlementId: string;
-  /** The payment the line belongs to; `null` for a fee or a correction. */
+  readonly type: ProviderSettlementLineType;
+  /** Set for a `fee` line, `null` for every other. */
+  readonly feeKind: ProviderFeeKind | null;
+  /** The payment the line belongs to; `null` for a fee that has none, or a correction. */
   readonly paymentId: string | null;
   readonly description: string;
+  /** Signed: money in is above zero, refunds, reversals and fees below. */
   readonly amountCents: number;
+  /** How many transactions a fee line adds up; `null` for every other line. */
+  readonly count: number | null;
 }
 
 export interface PaymentProvider {
