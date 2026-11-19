@@ -602,7 +602,7 @@ The client app **Fivvi** (v1.31):
 - [ ] **Full bilingual QA pass:** review every string locally against the glossary and tone guide, on web, iOS, Android and email. Dates/times checked (`22 september 2026`, 24h, Europe/Amsterdam). The pilot owner flags anything that reads oddly.
 - [ ] Accessibility: the client timetable, the join pages and client web meet WCAG 2.2 AA. Native apps support Dynamic Type / font scaling, VoiceOver / TalkBack labels, and have sufficient contrast (the one exception for secondary text is in ADR-032).
 - [ ] Performance: client timetable budget met; calendar loads a busy week quickly.
-- [ ] Backups verified by an **actual restore** to a scratch Postgres service on Railway.
+- [ ] Backups verified by an **actual restore** to a scratch Postgres service on Railway. Drill log: [restore-drills.md](../engineering/restore-drills.md).
 - [ ] Runbooks: incident response, rollback, "a client says they didn't get the email", "wrong booking".
 - [ ] Import scripts dry-run against a copy of the pilot's real data, including agreements, balances and due dates, with a reconciliation report against the old app.
 - [ ] **Payments ready for real money:** the pilot owner has connected Mollie from Fivvi (*Betalingen koppelen*) at least a week before the cutover, because Mollie reviews SEPA Direct Debit separately, and the account is verified and live (and `@agent-queue billing` is removed from `scripts/high-risk-paths.txt` before the live key is set, §7); ADR-020's model, fees and the DPA are reviewed; the membership terms passed the consumer-law check (§4.4); invoices checked by the gym's accountant; runbooks for "a client was charged twice", "a debit failed", "a refund" and "the provider is down".

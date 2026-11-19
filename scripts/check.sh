@@ -22,6 +22,7 @@
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$ROOT/scripts/_shellcheck.sh"
+source "$ROOT/scripts/_slots.sh"
 
 FAST=false
 ALL=false
@@ -122,11 +123,16 @@ e2e_cached() {
     | jq -e '[.tasks[] | select(.task == "test:e2e" and .command != "<NONEXISTENT>")] | length > 0 and all(.cache.status == "HIT")' >/dev/null 2>&1
 }
 e2e_not_queued() { echo "$E2E_QUEUE_ERROR"; return 1; }
+# The integration and e2e suites are heavy jobs: each takes a slot of the machine's heavy pool (2 places by default, shared with
+# the simulator and emulator jobs of every worktree) for as long as it runs, and gives it back after (scripts/_slots.sh, #1388).
+# A suite that waits for the e2e queue holds no slot meanwhile; the queue comes first.
+no_slot() { echo "$SLOT_ERROR"; return 1; }
 
 release() {
   rm -rf "$LOG_DIR"
   ! $OWN_LOCK || [ "$(readlink "$LOCK" 2>/dev/null || true)" != "$$" ] || rm -f "$LOCK"
   release_e2e_queue
+  slot_release_all
 }
 on_exit release
 acquire_lock
@@ -344,7 +350,12 @@ if $FAST; then
   echo "- integration and e2e tests: skipped (--fast)"
 elif everything || [ "$(plan_names integration | wc -l)" -gt 0 ]; then
   RAN_INTEGRATION=true
-  check "integration tests" integration_tests
+  if slots_take heavy "check.sh integration tests ($(basename "$ROOT"))"; then
+    check "integration tests" integration_tests
+  else
+    check "integration tests" no_slot
+  fi
+  slot_release_all
 else
   skipped "integration tests" "no package with integration tests is affected"
 fi
@@ -352,7 +363,13 @@ if ! $FAST; then
   if [ "$(plan_flag e2e)" = true ]; then
     RAN_E2E=true
     if e2e_cached || acquire_e2e_queue; then
-      check "e2e tests (port $(e2e_port "$ROOT"))" e2e_tests
+      # Holding the queue means the suite runs (not a cache hit), so it takes its slot.
+      if ! $OWN_E2E_LOCK || slots_take heavy "check.sh e2e tests ($(basename "$ROOT"))"; then
+        check "e2e tests (port $(e2e_port "$ROOT"))" e2e_tests
+      else
+        check "e2e tests (port $(e2e_port "$ROOT"))" no_slot
+      fi
+      slot_release_all
       release_e2e_queue
     else
       check "e2e tests (port $(e2e_port "$ROOT"))" e2e_not_queued

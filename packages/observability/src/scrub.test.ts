@@ -144,6 +144,24 @@ describe('E009 scrubber', () => {
     });
   });
 
+  it('F022: keeps the tags of the cron task, run and class series, and still drops every other tag', () => {
+    const event = eventWithPersonalData();
+    event.tags = {
+      'cron.task': 'extend-class-series-horizon',
+      'cron.run_id': USER_ID,
+      'class_series.id': CLIENT_ID,
+      client_name: CLIENT_NAME,
+    };
+
+    const scrubbed = scrubEvent(event);
+
+    expect(scrubbed.tags).toEqual({
+      'cron.task': 'extend-class-series-horizon',
+      'cron.run_id': USER_ID,
+      'class_series.id': CLIENT_ID,
+    });
+  });
+
   it('AC4: keeps only UUIDs in the user context', () => {
     const event = eventWithPersonalData();
     event.user = { id: EMAIL, organization_id: CLIENT_NAME };

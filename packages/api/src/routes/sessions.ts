@@ -12,7 +12,9 @@ import {
 } from '@fivvi/database';
 import {
   confirmationLanguage,
+  type DetachedField,
   PRIVATE_SESSION_DURATIONS,
+  parseWeeklyRule,
   planPrivateSession,
   reschedulePrivateSession,
   sendsChangeNotice,
@@ -89,6 +91,31 @@ const SessionGroupClassSchema = z
   })
   .openapi('SessionGroupClass', { description: 'The class a class date was scheduled from.' });
 
+const SessionSeriesSchema = z
+  .object({
+    id: z.uuid().openapi({ description: 'The series ID.' }),
+    weekday: z.enum(['MO', 'TU', 'WE', 'TH', 'FR', 'SA', 'SU']).openapi({
+      description: 'The weekday of the weekly rule, as RRULE writes it: `TU` is every Tuesday.',
+    }),
+    localStartTime: z.string().openapi({
+      description: 'The series’ start on the wall clock of the workspace’s time zone: `HH:mm`.',
+    }),
+    occurrenceDate: z.string().openapi({
+      description: 'The local date in the series’ rule this date stands for: `YYYY-MM-DD`.',
+    }),
+    changedFields: z.array(z.enum(['time', 'trainer', 'capacity', 'location'])).openapi({
+      description:
+        'What was changed on this date alone (CO-01: *Aangepast t.o.v. de reeks*); empty when ' +
+        'the date follows its series. A change of the series from an earlier date leaves these ' +
+        'dates as they are.',
+    }),
+  })
+  .openapi('SessionSeries', {
+    description:
+      'The weekly series a class date belongs to (F022): enough for “Part of: Kracht, every ' +
+      'Tuesday 18:00” and what differs. Every team member may read it.',
+  });
+
 export const SessionTrainerSchema = z
   .object({
     id: z.uuid().openapi({ description: 'The trainer’s team-member ID, as in `GET …/trainers`.' }),
@@ -128,6 +155,9 @@ export const SessionSchema = z
     }),
     groupClass: SessionGroupClassSchema.optional().openapi({
       description: 'The class of a class date (F021); left out for the other kinds.',
+    }),
+    series: SessionSeriesSchema.optional().openapi({
+      description: 'The weekly series of a class date (F022); left out for a date on its own.',
     }),
     participants: z.array(SessionParticipantSchema).openapi({
       description:
@@ -484,11 +514,31 @@ const listUpcomingRoute = defineRoute(
  * key without one, and not who changed it last (only a refused change names them).
  */
 export function shown(session: SessionView, timeZone: string) {
-  const { startsAt, endsAt, trainer, groupClass, lastChangedBy: _lastChangedBy, ...rest } = session;
+  const {
+    startsAt,
+    endsAt,
+    trainer,
+    groupClass,
+    series,
+    lastChangedBy: _lastChangedBy,
+    ...rest
+  } = session;
+  const rule = series ? parseWeeklyRule(series.rrule) : undefined;
   return {
     ...rest,
     ...(trainer ? { trainer } : {}),
     ...(groupClass ? { groupClass } : {}),
+    ...(series && rule
+      ? {
+          series: {
+            id: series.id,
+            weekday: rule.weekday,
+            localStartTime: series.localStartTime,
+            occurrenceDate: series.occurrenceDate,
+            changedFields: series.detachedFields as DetachedField[],
+          },
+        }
+      : {}),
     startsAt: startsAt.toISOString(),
     endsAt: endsAt.toISOString(),
     timeZone,

@@ -162,3 +162,82 @@ describe('#413 native-gate.sh: parts that had no runner', () => {
     assert.doesNotMatch(result.stdout, /::error::part/);
   });
 });
+
+// ADR-034: with `ci: fast` the Android gate takes a skipped "Android Maestro" for a pass, and only that one part, and only
+// when ci.yml says the run has no UI tests (--skip-ok <label>). Without the option nothing changes.
+describe('ADR-034 native-gate.sh --skip-ok: a part that is skipped on purpose', () => {
+  const parts = (build, tests, maestro) => [
+    `Android build=${build}`,
+    `Android tests=${tests}`,
+    `Android Maestro=${maestro}`,
+  ];
+  const android = (skipOk, ...args) =>
+    gate(...skipOk.flatMap((label) => ['--skip-ok', label]), 'Android', 'true', ...args);
+
+  it('passes when the named part was skipped and the others succeeded', () => {
+    const result = android(['Android Maestro'], ...parts('success', 'success', 'skipped'));
+    assert.equal(result.status, 0, result.stdout);
+    assert.match(result.stdout, /Android: every part succeeded/);
+    assert.match(result.stdout, /Android Maestro: skipped on purpose/);
+  });
+
+  it('is fail-closed without the option: a skipped Maestro fails the gate, as in the full pipeline', () => {
+    const result = android([], ...parts('success', 'success', 'skipped'));
+    assert.equal(result.status, 1);
+    assert.match(result.stdout, /Android Maestro: did not run \(skipped\)/);
+  });
+
+  it('still fails when the named part ran and failed, or was cancelled or never got a runner', () => {
+    for (const bad of ['failure', 'cancelled', 'unacquired', 'abandoned']) {
+      const result = android(['Android Maestro'], ...parts('success', 'success', bad));
+      assert.equal(result.status, 1, bad);
+    }
+  });
+
+  it('accepts a skip for the named part only: a skipped build or tests part fails', () => {
+    for (const result of [
+      android(['Android Maestro'], ...parts('skipped', 'success', 'skipped')),
+      android(['Android Maestro'], ...parts('success', 'skipped', 'skipped')),
+    ]) {
+      assert.equal(result.status, 1);
+    }
+    assert.match(
+      android(['Android Maestro'], ...parts('skipped', 'success', 'skipped')).stdout,
+      /Android build: did not run \(skipped\)/,
+    );
+  });
+
+  it('a part with another label or no label that is skipped still fails', () => {
+    assert.equal(
+      android(['Android Maestro'], 'Android build=success', 'Android tests=success', 'skipped')
+        .status,
+      1,
+    );
+    assert.equal(android(['Android Maestro'], 'success', 'success', 'skipped').status, 1);
+  });
+
+  it('compares each label whole: Android or Maestro alone does not match Android Maestro, nor the other way round', () => {
+    for (const word of ['Android', 'Maestro']) {
+      const named = android(['Android Maestro'], `${word}=skipped`, 'Android build=success');
+      assert.equal(
+        named.status,
+        1,
+        `a skipped part labelled ${word} with --skip-ok 'Android Maestro'`,
+      );
+      const reverse = android([word], 'Android build=success', 'Android Maestro=skipped');
+      assert.equal(reverse.status, 1, `a skipped Android Maestro with --skip-ok ${word}`);
+      assert.match(reverse.stdout, /Android Maestro: did not run \(skipped\)/);
+    }
+  });
+
+  it('is skipped as a whole, as before, when the native decision says the app did not change', () => {
+    const result = gate('--skip-ok', 'Android Maestro', 'Android', 'false', 'skipped');
+    assert.equal(result.status, 0);
+    assert.match(result.stdout, /Android: skipped, nothing it builds from changed/);
+  });
+
+  it('needs a label after the option, and puts it before the name', () => {
+    assert.notEqual(gate('--skip-ok').status, 0);
+    assert.notEqual(gate('Android', 'true', '--skip-ok', 'x', 'success').status, 0);
+  });
+});

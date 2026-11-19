@@ -5,17 +5,21 @@
 #                         (scripts/bootstrap.sh --mobile runs this); --build-only: the JDK and the SDK platform and build
 #                         tools, for a build without an emulator. A package still missing after sdkmanager (a corrupt
 #                         download, #515) is installed again, SDK_INSTALL_ATTEMPTS times (3) in all
-#   android.sh test       ktlint with the literal-text, colour and Sentry checks, the release API address (HTTPS, not a
+#   android.sh test [--no-ui]  ktlint with the literal-text, colour and Sentry checks, the release API address (HTTPS, not a
 #                         placeholder; the check must also reject an empty, plain-HTTP and .invalid one) and Sentry DSN
 #                         (EU region), build, unit tests (nl-NL and en; BuildInfoTest once more with build number 42),
 #                         the release App Bundle signed with a throwaway upload key (E017), and the Compose UI tests on an emulator, booted for the run when none is connected
-#                         (pnpm test:android)
+#                         (pnpm test:android). --no-ui (ADR-034): the same without the emulator and the Compose UI tests: the
+#                         static checks, the debug build, the unit tests and the signed release bundle
 #   android.sh build      the part of test that needs no emulator: ktlint with the literal-text, colour and Sentry
 #                         checks, the release API address and Sentry DSN checks, and the debug build (CI's Android build job)
 #   android.sh maestro-apk  the debug app with the API address of the Maestro run (E2E_PORT), copied to
 #                         apps/android/build/maestro/app-debug.apk (MAESTRO_APK); maestro.sh android --apk installs it
-#   android.sh verify     the rest of test: unit tests (nl-NL and en; BuildInfoTest once more with build number 42), the
-#                         signed release App Bundle and the Compose UI tests on an emulator (CI's Android tests job)
+#   android.sh verify [--no-ui]  the rest of test: unit tests (nl-NL and en; BuildInfoTest once more with build number 42), the
+#                         signed release App Bundle and the Compose UI tests on an emulator (CI's Android tests job).
+#                         --no-ui (ADR-034; CI's Android tests job passes it while .github/pipeline.json says `ci: fast`, the
+#                         nightly run and `ci: full` run without it): the unit tests and the signed bundle only, no
+#                         emulator is booted and no Compose UI test runs, so the job needs no KVM and no AVD
 #   android.sh quarantine  the Android tests of quarantine/compose.txt only (unit tests and Compose UI tests; the Quarantine
 #                         job of CI), with FIVVI_QUARANTINE=only; does nothing while the list is empty. test, build... and
 #                         verify leave the listed tests out (E002 #1363, TESTING.md §8)
@@ -36,6 +40,7 @@
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 source "$(dirname "${BASH_SOURCE[0]}")/_android.sh"
+source "$(dirname "${BASH_SOURCE[0]}")/_slots.sh"
 
 usage() { usage_of "$0"; }
 
@@ -220,6 +225,7 @@ release_bundle_is_signed_with_the_upload_key() {
 BUILD_TASKS="ktlintCheck :lint-rules:test checkReleaseApiBaseUrl checkReleaseSentryDsn assembleDebug"
 
 # What follows the unit tests in test and verify.
+# after_unit_tests [--no-ui]
 after_unit_tests() {
   # E017 AC4: a build number passed from outside (-Pfivvi.buildNumber, as a release run does) becomes the versionCode.
   # Each application module has its own BuildInfoTest (:app, :client): a task of :core that matches no test would fail the
@@ -227,6 +233,7 @@ after_unit_tests() {
   gradle :app:testDebugUnitTest --tests app.fivvi.pro.BuildInfoTest \
     :client:testDebugUnitTest --tests app.fivvi.client.BuildInfoTest -Pfivvi.buildNumber=42
   release_bundle_is_signed_with_the_upload_key
+  [ "${1:-}" != --no-ui ] || return 0
   start_emulator
   # The time of the Compose UI tests, to size the step limit of CI by (E002 #1442: 13 to 21 minutes on the runners).
   local started=$SECONDS
@@ -235,14 +242,23 @@ after_unit_tests() {
   summary "Compose UI tests: **$((SECONDS - started))s**"
 }
 
+# The one option of test and verify: --no-ui (ADR-034). Sets UI_ARG to it, or to nothing.
+UI_ARG=""
+ui_option() {
+  UI_ARG=""
+  [ $# -le 1 ] || usage
+  [ $# -eq 0 ] || [ "$1" = --no-ui ] || usage
+  UI_ARG="${1:-}"
+}
+
 cmd_test() {
-  [ $# -eq 0 ] || usage
+  ui_option "$@"
   android_env
   on_exit stop_android
   # shellcheck disable=SC2086 # BUILD_TASKS are space-separated task names
   gradle_tests $BUILD_TASKS testDebugUnitTest
   release_url_check_rejects_bad_addresses
-  after_unit_tests
+  after_unit_tests ${UI_ARG:+"$UI_ARG"}
 }
 
 cmd_build() {
@@ -255,11 +271,11 @@ cmd_build() {
 }
 
 cmd_verify() {
-  [ $# -eq 0 ] || usage
+  ui_option "$@"
   android_env
   on_exit stop_android
   gradle_tests testDebugUnitTest
-  after_unit_tests
+  after_unit_tests ${UI_ARG:+"$UI_ARG"}
 }
 
 # The Quarantine job's part for Android (E002 #1363): the listed unit tests, then the listed Compose UI tests on an emulator.
@@ -316,14 +332,23 @@ cmd_avd_key() {
   avd_key || die "the system image or the emulator isn't installed in $(android_home); run android.sh setup"
 }
 
+# The slots test and verify take (scripts/slots.sh): the heavy one, and the emulator's unless --no-ui (ADR-034), which boots none.
+android_slots() {
+  local arg
+  for arg in "$@"; do
+    [ "$arg" != --no-ui ] || { echo heavy; return; }
+  done
+  echo heavy,android-emu
+}
+
 case "${1:-}" in
   avd-key) shift; cmd_avd_key "$@" ;;
   setup) shift; cmd_setup "$@" ;;
-  test) shift; cmd_test "$@" ;;
-  build) shift; cmd_build "$@" ;;
-  verify) shift; cmd_verify "$@" ;;
-  quarantine) shift; cmd_quarantine "$@" ;;
-  maestro-apk) shift; cmd_maestro_apk "$@" ;;
+  test) slots_wrap "$(android_slots "$@")" "$0" "$@"; shift; cmd_test "$@" ;;
+  build) slots_wrap heavy "$0" "$@"; shift; cmd_build "$@" ;;
+  verify) slots_wrap "$(android_slots "$@")" "$0" "$@"; shift; cmd_verify "$@" ;;
+  quarantine) slots_wrap heavy,android-emu "$0" "$@"; shift; cmd_quarantine "$@" ;;
+  maestro-apk) slots_wrap heavy "$0" "$@"; shift; cmd_maestro_apk "$@" ;;
   emulator) shift; cmd_emulator "$@" ;;
   last-test) shift; cmd_last_test "$@" ;;
   stop) shift; cmd_stop "$@" ;;

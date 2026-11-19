@@ -1,3 +1,8 @@
+// Module: `RETENTION`: every period of `retention-policy.md` §2 that Fivvi enforces as a named
+//        constant, with `retentionEndsAt` and `isRetentionOver` (hours and days in UTC, calendar
+//        months, the year after year end in the workspace zone)
+// Spec: E014 AC2
+
 import { localDateOf, localDayBounds } from '../scheduling/zoned-time.ts';
 import { WORKSPACE_DEFAULTS } from '../workspaces/defaults.ts';
 

@@ -1,3 +1,4 @@
+import type { MollieSettlementFixture } from '@fivvi/testing/mollie-settlements';
 import {
   type ConnectRequest,
   type ConnectStart,
@@ -16,6 +17,7 @@ import {
   type ProviderSettlementLine,
 } from '../provider.ts';
 import type { PaymentStatus } from '../status.ts';
+import { fromMollieSettlement } from './mollie-settlements.ts';
 
 // An in-memory payment provider with scripted outcomes (AC16), for tests of the engine and of
 // every feature on top of it. It behaves like the real thing where the engine relies on it: a
@@ -136,8 +138,20 @@ export class FakePaymentProvider implements PaymentProvider {
     lines: readonly ProviderSettlementLine[],
   ): void {
     const state = this.stateOf(access);
-    state.settlements.push(settlement);
+    const at = state.settlements.findIndex((stored) => stored.id === settlement.id);
+    if (at === -1) state.settlements.push(settlement);
+    else state.settlements[at] = settlement;
     state.settlementLines.set(settlement.id, [...lines]);
+  }
+
+  /**
+   * Serves a settlement as Mollie's documented responses report it (the fixtures of
+   * `@fivvi/testing/mollie-settlements`): the settlement and its lines, as the port reads them.
+   * The same settlement again replaces the first, as Mollie's settlement moves from open to paid out.
+   */
+  serveMollieSettlement(access: ProviderAccess, fixture: MollieSettlementFixture): void {
+    const { settlement, lines } = fromMollieSettlement(fixture);
+    this.addSettlement(access, settlement, lines);
   }
 
   connect(request: ConnectRequest): Promise<ConnectStart> {

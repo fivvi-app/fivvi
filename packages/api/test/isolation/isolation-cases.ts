@@ -1,6 +1,7 @@
 import { type DatabaseExecutor, locations, organizations, trainerProfiles } from '@fivvi/database';
 import {
   addAccessLogEntry,
+  addClassSeries,
   addGroupClass,
   addOffer,
   addSession,
@@ -129,6 +130,16 @@ const aSession: IsolationCase['seed'] = async (db, { workspaceId, clientId }) =>
 const aClass: IsolationCase['seed'] = async (db, { workspaceId }) => {
   const { id } = await addGroupClass(db, { workspaceId });
   return { class: id };
+};
+
+/** A class of the workspace the seed was called for with a weekly series: what the series list shows (F022). */
+const aClassWithASeries: IsolationCase['seed'] = async (db, { workspaceId }) => {
+  const { id, groupClassId } = await addClassSeries(db, {
+    workspaceId,
+    // Running for good: the list shows the series whatever "today" is.
+    endsOn: null,
+  });
+  return { class: groupClassId, series: id };
 };
 
 /** An offer of the workspace the seed was called for: what the offer routes list, read and change (F052). */
@@ -344,6 +355,8 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
     params: { classId: 'class' },
     body: { localDate: '2026-10-06', localStart: '18:00' },
   },
+  // The weekly series of a class (F022): the list names the seeded class.
+  listGroupClassSeries: { seed: aClassWithASeries, params: { classId: 'class' } },
   updateGroupClassDate: {
     seed: aGroupDate,
     reseedForEachCall: true,

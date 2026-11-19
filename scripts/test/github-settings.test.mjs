@@ -63,6 +63,8 @@ describe('the versioned GitHub settings', () => {
         'Android Maestro',
         // Not required, and never to be: the listed flaky Android tests run here (E002 #1363, TESTING.md §8).
         'Quarantine (Android)',
+        // ADR-034: opens the issue of a failed nightly run; runs only on the schedule, and is not required.
+        'Nightly report',
       ],
     );
   });
