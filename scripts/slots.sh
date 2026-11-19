@@ -13,7 +13,7 @@
 #       every class with its places, the holders and their ages, and the stale ones.
 #
 # The scripts that start heavy jobs take their slots with slots_wrap (test-ios.sh, android.sh, maestro.sh); check.sh takes
-# the heavy slot for its integration and e2e suites. The slots live in the main checkout's .work/slots/, shared by every
+# one heavy slot for its whole turbo run (and one for its e2e suite). The slots live in the main checkout's .work/slots/, shared by every
 # worktree. FIVVI_SLOTS=off turns them off; CI does not use them.
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
