@@ -9,6 +9,7 @@ export {
   createProductEventCaptureTransport,
   type ProductEventCaptureTransport,
   type SentProductEvent,
+  whatFivviSent,
 } from './product-event-capture.ts';
 export {
   anonymousDistinctId,

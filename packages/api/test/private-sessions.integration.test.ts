@@ -29,6 +29,7 @@ import {
   createProductEventCaptureTransport,
   createProductEvents,
   type ErrorReporter,
+  whatFivviSent,
 } from '@fivvi/observability';
 import { dstTransitions, manualClock, zonedTime } from '@fivvi/testing/clock';
 import { cloneTemplateDatabase, type TestDatabase } from '@fivvi/testing/database';
@@ -982,7 +983,7 @@ describe('F020 plan a private session', () => {
         { workspace_id: gym.id, surface: 'ios' },
       ]);
       expect(posthog.events[0]?.distinct_id).toBe(sarah.id);
-      const sent = JSON.stringify([posthog.events, lines]);
+      const sent = JSON.stringify([whatFivviSent(posthog.events), lines]);
       for (const personal of [
         'Anna de Vries',
         'anna@example.com',
@@ -1537,7 +1538,7 @@ describe('F020 plan a private session', () => {
           { workspace_id: gym.id, surface: 'android' },
         ]);
         expect(posthog.events[0]?.distinct_id).toBe(sarah.id);
-        const sent = JSON.stringify([posthog.events, lines]);
+        const sent = JSON.stringify([whatFivviSent(posthog.events), lines]);
         for (const personal of [
           'Anna de Vries',
           'anna@example.com',

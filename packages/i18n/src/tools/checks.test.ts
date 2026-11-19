@@ -118,6 +118,7 @@ describe('E005 i18n checks', () => {
         ['icu', []],
         ['generated', []],
         ['no-literal-trainer', []],
+        ['sorted', []],
       ]);
     });
 
@@ -227,6 +228,7 @@ describe('E005 i18n checks', () => {
       expect(output).toContain('✓ i18n icu');
       expect(output).toContain('✓ i18n generated');
       expect(output).toContain('✓ i18n no-literal-trainer');
+      expect(output).toContain('✓ i18n sorted');
       expect(code).toBe(0);
     });
 
