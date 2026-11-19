@@ -55,7 +55,8 @@ describe('#1363 AC1 the Quarantine (Android) job', () => {
   it('ADR-034: reads the switch and the event itself to decide whether the UI lists run', () => {
     const lists = steps(job).find((step) => step.includes('name: Read the quarantine lists'));
     assert.match(lists, /^ {10}EVENT: \$\{\{ github\.event_name \}\}$/m);
-    assert.match(lists, /scripts\/pipeline\.sh get ci/);
+    assert.match(lists, /scripts\/pipeline\.sh ui-tests --event "\$EVENT"/);
+    assert.doesNotMatch(lists, /pipeline\.sh get ci/);
     assert.doesNotMatch(job, /needs\.changes/);
   });
 

@@ -56,6 +56,45 @@ describe('pipeline.sh (ADR-034)', () => {
     }
   });
 
+  it('ui-tests prints true with ci full on every event, and with ci fast only for schedule and workflow_dispatch', () => {
+    const events = ['pull_request', 'merge_group', 'push', 'schedule', 'workflow_dispatch'];
+    for (const event of events) {
+      const full = run(['ui-tests', '--event', event], { ci: 'full', review: 'split' });
+      assert.equal(full.status, 0, full.stderr);
+      assert.equal(full.stdout, 'true\n', `full ${event}`);
+      const fast = run(['ui-tests', '--event', event], { ci: 'fast', review: 'split' });
+      assert.equal(fast.status, 0, fast.stderr);
+      assert.equal(
+        fast.stdout,
+        event === 'schedule' || event === 'workflow_dispatch' ? 'true\n' : 'false\n',
+        `fast ${event}`,
+      );
+    }
+  });
+
+  it('ui-tests fails closed: an unreadable or unknown switch is an error with no output, on every event', () => {
+    for (const event of ['pull_request', 'schedule', 'workflow_dispatch']) {
+      for (const content of [undefined, { review: 'split' }, { ci: 'sometimes', review: 'split' }, 'not json']) {
+        const r = run(['ui-tests', '--event', event], content);
+        assert.notEqual(r.status, 0, `${event} ${JSON.stringify(content)}`);
+        assert.equal(r.stdout, '');
+        assert.notEqual(r.stderr, '');
+      }
+    }
+  });
+
+  it('ui-tests needs --event with a value', () => {
+    for (const args of [['ui-tests'], ['ui-tests', '--event'], ['ui-tests', '--event', ''], ['ui-tests', 'schedule'], ['ui-tests', '--event', 'schedule', 'extra']]) {
+      const r = run(args, { ci: 'full', review: 'split' });
+      assert.notEqual(r.status, 0, args.join(' '));
+      assert.equal(r.stdout, '');
+    }
+  });
+
+  it('the header documents ui-tests', () => {
+    assert.match(readFileSync(SCRIPT, 'utf8'), /^# +pipeline\.sh ui-tests --event <event>/m);
+  });
+
   it('the committed switch is valid', () => {
     const committed = JSON.parse(
       readFileSync(join(import.meta.dirname, '..', '..', '.github', 'pipeline.json'), 'utf8'),

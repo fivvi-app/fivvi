@@ -77,9 +77,11 @@ describe('ADR-034 the schedule', () => {
 });
 
 describe('ADR-034 Detect changes', () => {
-  it('outputs ui_tests, from the step that reads scripts/pipeline.sh get ci', () => {
+  it('outputs ui_tests, from the step that asks scripts/pipeline.sh ui-tests, the one place of the rule', () => {
     assert.match(jobs.changes, /^ {6}ui_tests: \$\{\{ steps\.filter\.outputs\.ui_tests \}\}$/m);
-    assert.match(stepNamed(jobs.changes, 'Filter paths'), /scripts\/pipeline\.sh get ci/);
+    const filter = script(stepNamed(jobs.changes, 'Filter paths'));
+    assert.match(filter, /ui_tests="\$\(scripts\/pipeline\.sh ui-tests --event "\$EVENT"\)"/);
+    assert.doesNotMatch(filter, /ci_mode.*==.*'fast'/);
   });
 
   it('forces the Linux E2E decision in the nightly run like on demand', () => {
@@ -276,7 +278,9 @@ describe('ADR-034 the Quarantine jobs read the switch themselves', () => {
       assert.doesNotMatch(job, /^ {4}needs:/m);
       assert.equal(jobIf(job), "github.event_name != 'push'");
       assert.match(lists, /^ {10}EVENT: \$\{\{ github\.event_name \}\}$/m);
-      assert.match(script(lists), /scripts\/pipeline\.sh get ci/);
+      // One rule, one helper (scripts/pipeline.sh ui-tests): the step does not repeat it.
+      assert.match(script(lists), /scripts\/pipeline\.sh ui-tests --event "\$EVENT"/);
+      assert.doesNotMatch(script(lists), /pipeline\.sh get ci|workflow_dispatch/);
     });
 
     it('with UI tests (full, nightly, on demand) it reads both lists as before', () => {
@@ -329,7 +333,9 @@ describe('ADR-034 the Quarantine jobs read the switch themselves', () => {
     it('waits for no job, has no condition and reads the switch itself', () => {
       assert.doesNotMatch(jobs.quarantine, /^ {4}(needs|if):/m);
       assert.match(lists, /^ {10}EVENT: \$\{\{ github\.event_name \}\}$/m);
-      assert.match(script(lists), /scripts\/pipeline\.sh get ci/);
+      // One rule, one helper (scripts/pipeline.sh ui-tests): the step does not repeat it.
+      assert.match(script(lists), /scripts\/pipeline\.sh ui-tests --event "\$EVENT"/);
+      assert.doesNotMatch(script(lists), /pipeline\.sh get ci|workflow_dispatch/);
     });
 
     it('with UI tests (full, nightly, on demand) it reads both lists as before', () => {

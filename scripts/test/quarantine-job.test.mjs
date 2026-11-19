@@ -47,7 +47,8 @@ describe('#1361 AC2 the Quarantine job', () => {
       step.includes('name: Read the quarantine lists'),
     );
     assert.match(lists, /^ {10}EVENT: \$\{\{ github\.event_name \}\}$/m);
-    assert.match(lists, /scripts\/pipeline\.sh get ci/);
+    assert.match(lists, /scripts\/pipeline\.sh ui-tests --event "\$EVENT"/);
+    assert.doesNotMatch(lists, /pipeline\.sh get ci/);
     assert.doesNotMatch(quarantine, /needs\.changes/);
   });
 

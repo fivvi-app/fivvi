@@ -142,21 +142,18 @@ jobs:
           { echo '### What this change affects'; sed 's/^/- /' "$reasons"; } >>"${GITHUB_STEP_SUMMARY:-/dev/null}"
 
           # Whether the UI tests run (ADR-034, .github/pipeline.json): always with `ci: full`, and with `ci: fast` only in
-          # the nightly run and on demand; the PR's run-native label forces the native jobs, not the UI tests. The script
-          # fails closed: a missing or unknown setting stops this job, and with it the run.
-          ci_mode="$(scripts/pipeline.sh get ci)"
-          if [[ "$ci_mode" == 'full' ]]; then
-            ui_tests=true
+          # the nightly run and on demand; the PR's run-native label forces the native jobs, not the UI tests. The rule lives
+          # in scripts/pipeline.sh ui-tests, which the Quarantine jobs ask too; it fails closed: a missing or unknown
+          # setting stops this job, and with it the run. The reason below only words the answer.
+          ui_tests="$(scripts/pipeline.sh ui-tests --event "$EVENT")"
+          if [[ "$ui_tests" == 'false' ]]; then
+            ui_reason="ci is fast (.github/pipeline.json), so they run in the nightly run only"
+          elif [[ "$(scripts/pipeline.sh get ci)" == 'full' ]]; then
             ui_reason="ci is full (.github/pipeline.json), so every run runs them"
           elif [[ "$EVENT" == 'schedule' ]]; then
-            ui_tests=true
             ui_reason="the nightly run (schedule) runs them, every night"
-          elif [[ "$EVENT" == 'workflow_dispatch' ]]; then
-            ui_tests=true
-            ui_reason="workflow_dispatch runs everything"
           else
-            ui_tests=false
-            ui_reason="ci is fast (.github/pipeline.json), so they run in the nightly run only"
+            ui_reason="$EVENT runs everything"
           fi
           echo "UI tests: $([[ "$ui_tests" == 'true' ]] && echo run || echo 'not run'): $ui_reason."
           echo "ui_tests=$ui_tests" >>"$GITHUB_OUTPUT"
@@ -373,8 +370,10 @@ jobs:
       # Playwright version, whose lists differ. A restored file that no longer fits the index is ignored by apt, and
       # "apt-get autoclean" deletes such files before the save, so the caches do not pile up old versions.
       # The cache is saved right after the install passes, so a failing test run does not lose it. As with the other caches,
-      # a PR and a merge group read main's and their own, and the push run on main fills it (when it runs E2E: a web
-      # change; E002 #242). A cold run installs as before.
+      # a PR and a merge group read main's and their own. Who fills main's: with `ci: full` the push run on main (when it
+      # runs E2E: a web change; E002 #242); with `ci: fast` the push run never runs E2E (ADR-034), so only the nightly run
+      # (and a `full` push) does. In `fast` E2E does not run on a PR either, so a cold apt cache costs a PR nothing. A cold
+      # run installs as before.
       - name: Prepare the apt cache for Chromium's OS packages
         id: apt
         timeout-minutes: 2
@@ -503,13 +502,9 @@ jobs:
           listed="$(node scripts/quarantine.mjs --count playwright)"
           # The Playwright list holds UI tests: it runs only in a run with UI tests (ADR-034), and every step below reads
           # `playwright`, so a run without them leaves it out here, once. A run has UI tests with `ci: full`, and with
-          # `ci: fast` in the nightly run and on demand (the rule of "Detect changes"); a switch that cannot be read, or an
-          # unknown value, leaves the list out: this job never fails, and never guesses that it should run more.
-          ui_tests=false
-          ci_mode="$(scripts/pipeline.sh get ci 2>/dev/null || echo unreadable)"
-          if [[ "$ci_mode" == 'full' ]] || [[ "$ci_mode" == 'fast' && ( "$EVENT" == 'schedule' || "$EVENT" == 'workflow_dispatch' ) ]]; then
-            ui_tests=true
-          fi
+          # `ci: fast` in the nightly run and on demand (scripts/pipeline.sh ui-tests, the rule of "Detect changes"); a switch that
+          # cannot be read, or an unknown value, leaves the list out: this job never fails, and never guesses that it should run more.
+          ui_tests="$(scripts/pipeline.sh ui-tests --event "$EVENT" 2>/dev/null || echo false)"
           playwright="$listed"
           playwright_later=0
           if [[ "$ui_tests" != 'true' ]]; then playwright=0; playwright_later="$listed"; fi
@@ -1541,12 +1536,8 @@ jobs:
           compose="$(node scripts/quarantine-android.mjs count compose)"
           maestro="$(node scripts/quarantine-android.mjs count maestro)"
           # Both lists hold UI tests: they run only in a run with UI tests (ADR-034): `ci: full`, or `ci: fast` in the nightly
-          # run and on demand (the rule of "Detect changes"). A switch that cannot be read, or an unknown value, leaves them out.
-          ui_tests=false
-          ci_mode="$(scripts/pipeline.sh get ci 2>/dev/null || echo unreadable)"
-          if [[ "$ci_mode" == 'full' ]] || [[ "$ci_mode" == 'fast' && ( "$EVENT" == 'schedule' || "$EVENT" == 'workflow_dispatch' ) ]]; then
-            ui_tests=true
-          fi
+          # run and on demand (scripts/pipeline.sh ui-tests, the rule of "Detect changes"). A switch that cannot be read, or an unknown value, leaves them out.
+          ui_tests="$(scripts/pipeline.sh ui-tests --event "$EVENT" 2>/dev/null || echo false)"
           left_out=0
           if [[ "$ui_tests" != 'true' ]]; then left_out=$((compose + maestro)); compose=0; maestro=0; fi
           {
