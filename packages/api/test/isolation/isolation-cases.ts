@@ -18,7 +18,7 @@ import { eq, sql } from 'drizzle-orm';
 // no field for a status or an expectation, so it can't ask for a weaker answer.
 //
 // A new workspace or account route adds its case here, in its place in the order of operation IDs
-// (plain code-unit order, so `probe…` cases come last); `coverage.test.ts` fails, naming the
+// (plain code-unit order, so the `probe…` cases sit together between `lookup…` and `put…`); `coverage.test.ts` fails, naming the
 // operation, until it does, and fails on a case out of order. The README of this folder has the walk-through.
 
 export interface IsolationCase {
@@ -390,37 +390,17 @@ export const ISOLATION_CASES: Readonly<Record<string, IsolationCase>> = {
   // workspace and the answer holds none; the isolation is the access and the rate-limit key.
   lookupAddress: { query: '?postcode=1234AB&houseNumber=1', readsNoRecords: true },
 
-  // A probe route of the test app (`probe-routes.ts`), one per kind of access.
+  // The probe routes of the test app (`probe-routes.ts`), one per kind of access.
   probeCreateClient: {},
-
-  // A probe route of the test app (`probe-routes.ts`), one per kind of access.
   probeFindClient: { seed: theClient, params: { clientId: 'client' } },
-
-  // A probe route of the test app (`probe-routes.ts`), one per kind of access.
   probeListClients: { seed: theClient },
-
-  // A probe route of the test app (`probe-routes.ts`), one per kind of access.
   probeOwn: { seed: theWorkspace },
-
-  // A probe route of the test app (`probe-routes.ts`), one per kind of access.
   probeOwnFindClient: { seed: theClient, params: { clientId: 'client' } },
-
-  // A probe route of the test app (`probe-routes.ts`), one per kind of access.
   probeOwnListClients: { seed: theClient },
-
-  // A probe route of the test app (`probe-routes.ts`), one per kind of access.
   probeOwner: { seed: theWorkspace },
-
-  // A probe route of the test app (`probe-routes.ts`), one per kind of access.
   probePlaces: { seed: theWorkspace },
-
-  // A probe route of the test app (`probe-routes.ts`), one per kind of access.
   probeTeam: { seed: theWorkspace },
-
-  // A probe route of the test app (`probe-routes.ts`), one per kind of access.
   probeTeamPlaces: { seed: theWorkspace },
-
-  // A probe route of the test app (`probe-routes.ts`), one per kind of access.
   probeValidated: { query: '?page=1', body: { name: 'Bram' } },
 
   // The trainers of a workspace (F005): the switch routes act on the caller's own trainer profile, so they name no record.

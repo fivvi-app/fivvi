@@ -4,10 +4,15 @@ import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { promisify } from 'node:util';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { analyze } from './analyze.ts';
-import { readCatalogSet } from './catalog.ts';
+import { catalogFile, commentsFile, readCatalogSet } from './catalog.ts';
 import { runChecks } from './checks.ts';
 import { sortedCatalogs, unsortedCatalogProblems } from './sort.ts';
+
+/** Every leaf of a nested catalog as dot path → text; the order of the keys does not matter. */
+const flatten = (tree: unknown, prefix = ''): Record<string, unknown> =>
+  typeof tree === 'object' && tree !== null
+    ? Object.assign({}, ...Object.entries(tree).map(([k, v]) => flatten(v, `${prefix}${k}.`)))
+    : { [prefix.slice(0, -1)]: tree };
 
 const packageRoot = path.resolve(import.meta.dirname, '../..');
 const SORT_COMMAND = 'pnpm --filter @fivvi/i18n sort';
@@ -93,9 +98,19 @@ describe('E001 #1272 sorted catalogs', () => {
       expect(unsortedCatalogProblems(await readCatalogSet(packageRoot))).toEqual([]);
     });
 
-    it('AC6: sorting them again changes nothing', async () => {
-      const set = await readCatalogSet(packageRoot);
-      expect(sortedCatalogs(set)).toEqual(set);
+    it('AC6: sorting them again changes nothing, byte for byte', async () => {
+      const sorted = sortedCatalogs(await readCatalogSet(packageRoot));
+      const expected: [string, unknown][] = [
+        [catalogFile('nl-NL'), sorted.messages['nl-NL']],
+        [catalogFile('en'), sorted.messages.en],
+        [commentsFile, sorted.comments],
+      ];
+      for (const [file, tree] of expected) {
+        const committed = await readFile(path.join(packageRoot, file), 'utf8');
+        expect(committed === `${JSON.stringify(tree, null, 2)}\n`, `${file} is not sorted`).toBe(
+          true,
+        );
+      }
     });
   });
 
@@ -160,20 +175,12 @@ describe('E001 #1272 sorted catalogs', () => {
 
       const after = await readCatalogSet(root);
       expect(unsortedCatalogProblems(after)).toEqual([]);
-      const flat = (set: typeof after) => {
-        const analysis = analyze(set);
-        return {
-          keys: analysis.keys,
-          comments: [...analysis.comments].sort(),
-          texts: Object.fromEntries(
-            (['nl-NL', 'en'] as const).map((locale) => [
-              locale,
-              [...analysis.compiled[locale].keys()].sort(),
-            ]),
-          ),
-        };
-      };
-      expect(flat(after)).toEqual(flat(before));
+      for (const locale of ['nl-NL', 'en'] as const) {
+        const texts = flatten(before.messages[locale]);
+        expect(Object.keys(texts).length).toBeGreaterThan(1000);
+        expect(flatten(after.messages[locale])).toEqual(texts);
+      }
+      expect(flatten(after.comments)).toEqual(flatten(before.comments));
       expect(JSON.stringify(after.messages['nl-NL'])).toContain('"aaaFirst":"Eerste"');
       expect(after.comments).toHaveProperty(['app.aaaFirst'], 'Test comment');
       expect((await run('check', 'sorted')).code).toBe(0);
