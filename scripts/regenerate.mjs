@@ -139,7 +139,13 @@ const exec = (dir, argv, log) => {
  * Regenerates what the merge touched. Returns `{ refused: string[] }` naming the conflicted sources, or
  * `{ ran: string[], failed?: string }`.
  */
-export const regenerate = ({ dir, groups = GROUPS, all = false, check = true, log = console.log }) => {
+export const regenerate = ({
+  dir,
+  groups = GROUPS,
+  all = false,
+  check = true,
+  log = console.log,
+}) => {
   const conflicts = sourceConflicts(dir, groups);
   if (conflicts.length > 0) return { refused: conflicts };
 

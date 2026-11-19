@@ -121,7 +121,8 @@ const regenerateAll = () => {
 };
 const run = (...args) =>
   spawnSync('node', [SCRIPT, ...args], { cwd: repo, encoding: 'utf8', env: env() });
-const pnpmCalls = () => (existsSync(calls) ? readFileSync(calls, 'utf8').split('\n').filter(Boolean) : []);
+const pnpmCalls = () =>
+  existsSync(calls) ? readFileSync(calls, 'utf8').split('\n').filter(Boolean) : [];
 const unmerged = () => git('diff', '--name-only', '--diff-filter=U').split('\n').filter(Boolean);
 const staged = () => git('diff', '--cached', '--name-only').split('\n').filter(Boolean);
 
@@ -210,7 +211,13 @@ describe('regenerate.mjs', () => {
       ['--filter', '@fivvi/design-tokens', 'exec', 'node', 'src/cli.ts', 'check', 'generated'],
     ])
       pnpm(...check);
-    assert.equal(git('status', '--porcelain').split('\n').filter((l) => /^.\S/.test(l)).length, 0, 'nothing left unstaged');
+    assert.equal(
+      git('status', '--porcelain')
+        .split('\n')
+        .filter((l) => /^.\S/.test(l)).length,
+      0,
+      'nothing left unstaged',
+    );
     git('commit', '--quiet', '--no-edit');
     assert.equal(git('log', '-1', '--format=%P').trim().split(' ').length, 2, 'a merge commit');
   });
