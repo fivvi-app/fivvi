@@ -332,12 +332,21 @@ cmd_avd_key() {
   avd_key || die "the system image or the emulator isn't installed in $(android_home); run android.sh setup"
 }
 
+# The slots test and verify take (scripts/slots.sh): the heavy one, and the emulator's unless --no-ui (ADR-034), which boots none.
+android_slots() {
+  local arg
+  for arg in "$@"; do
+    [ "$arg" != --no-ui ] || { echo heavy; return; }
+  done
+  echo heavy,android-emu
+}
+
 case "${1:-}" in
   avd-key) shift; cmd_avd_key "$@" ;;
   setup) shift; cmd_setup "$@" ;;
-  test) slots_wrap heavy,android-emu "$0" "$@"; shift; cmd_test "$@" ;;
+  test) slots_wrap "$(android_slots "$@")" "$0" "$@"; shift; cmd_test "$@" ;;
   build) slots_wrap heavy "$0" "$@"; shift; cmd_build "$@" ;;
-  verify) slots_wrap heavy,android-emu "$0" "$@"; shift; cmd_verify "$@" ;;
+  verify) slots_wrap "$(android_slots "$@")" "$0" "$@"; shift; cmd_verify "$@" ;;
   quarantine) slots_wrap heavy,android-emu "$0" "$@"; shift; cmd_quarantine "$@" ;;
   maestro-apk) slots_wrap heavy "$0" "$@"; shift; cmd_maestro_apk "$@" ;;
   emulator) shift; cmd_emulator "$@" ;;
