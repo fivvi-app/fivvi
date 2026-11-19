@@ -113,6 +113,20 @@ describe('ADR-034 iOS tests', () => {
         assert.equal(runOf(fast), 'scripts/test-ios.sh test ${{ matrix.locale }} --unit-only');
       });
 
+      // Part 2 has nothing to run without UI tests: it takes no macOS runner (4 macOS jobs a run would be twice main's 2, and
+      // GitHub Free runs 5 at once), downloads no bundle and passes on Linux.
+      it('runs part 2 on Linux, without the bundle, when the run has no UI tests; every other part on macos-15', () => {
+        assert.equal(
+          job.match(/^ {4}runs-on: (.+)$/m)?.[1],
+          "${{ (needs.changes.outputs.ui_tests == 'true' || matrix.shard == 1) && 'macos-15' || 'ubuntu-24.04' }}",
+        );
+        const download = stepNamed(job, 'Download the test bundle');
+        assert.equal(stepIf(download), "needs.changes.outputs.ui_tests == 'true' || matrix.shard == 1");
+        // Both runs-on branches agree with the steps: a macOS part runs a test step, a Linux part runs none.
+        assert.equal(stepIf(full), UI);
+        assert.equal(stepIf(fast), `${NO_UI} && matrix.shard == 1`);
+      });
+
       it('keeps the matrix, the timeout and the name of a part', () => {
         assert.match(
           job,

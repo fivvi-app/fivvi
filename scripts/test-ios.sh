@@ -66,8 +66,8 @@
 #                   minute each (the slowest take 80 s on a runner), with the start of the run and a margin. It has its
 #                   own grace (IOS_TEST_DEADLINE_GRACE); release.yml's `ios-tests` timeout holds the first run and this
 #   IOS_UI_LOCALES  the locales whose UI tests run, default "nl en" (what `pnpm test:ios` does). The unit tests always run
-#                   in both. CI does not set it any more (#293): its two `iOS tests` jobs run every test in both languages on
-#                   every push. With "nl", the nl run is everything in nl and a second run is the unit tests in en, one
+#                   in both. CI does not set it any more (#293): its `iOS tests` parts (two per language, #1447) run every test in
+#                   both languages in a run with UI tests. With "nl", the nl run is everything in nl and a second run is the unit tests in en, one
 #                   result bundle per locale (E002 #242)
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"

@@ -406,7 +406,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
 
     it('builds exactly as the first build does: same runner, Xcode, timeout and steps', () => {
       for (const pattern of [
-        /^ {4}runs-on: (\S+)$/m,
+        /^ {4}runs-on: (.+)$/m,
         /^ {4}timeout-minutes: (\d+)$/m,
         /^ {6}DEVELOPER_DIR: (\S+)$/m,
       ]) {
@@ -1091,7 +1091,8 @@ describe('E002 #91 the native jobs in ci.yml', () => {
 
   it('E002 #242: the iOS jobs run on macos-15 with an Xcode that image has, and say why in a comment', () => {
     for (const section of [iosBuild, iosTests]) {
-      assert.match(section, /^ {4}runs-on: macos-15$/m);
+      // ios-tests runs part 2 on Linux in a run without UI tests (ci-fast-pipeline.test.mjs); every other part on macos-15.
+      assert.match(section, /^ {4}runs-on: (macos-15|\$\{\{ .*'macos-15'.* \}\})$/m);
       // The Xcode must be one the image installs (macos-15: 16.x and 26.0.1 to 26.3).
       assert.match(
         section,
@@ -2765,13 +2766,13 @@ esac`,
         ['FivviProUITests/YUITests', 1],
         ['FivviProUITests/ZUITests', 3],
       ];
-      const built = async () => {
+      const built = async (classes = CLASSES) => {
         const fake = checkout();
         assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
         const list = join(fake.repo, '..', 'ids.json');
         // The enumeration also lists a base class whose tests its subclasses inherit: no test of its own, and a result bundle
         // does not count it (two of the 192 tests of a real part, 17 November).
-        writeFileSync(list, JSON.stringify([...ids(...CLASSES), 'FivviProTests/BaseTestCase']));
+        writeFileSync(list, JSON.stringify([...ids(...classes), 'FivviProTests/BaseTestCase']));
         return { fake, list };
       };
       // The canned summary of the bundle of a part: it ran `total` tests and none failed.
@@ -2830,6 +2831,31 @@ esac`,
         assert.match(first.output, /Part 1 of 2 of the nl tests: 5 tests in 2 classes/);
         assert.match(second.output, /Part 2 of 2 of the nl tests: 3 tests in 2 classes/);
         assert.match(first.output, /✓ iOS tests in nl, part 1 of 2/);
+      });
+
+      // The weight of a class is its tests, ten each in the `<app>UITests` target of either app (scripts/_ios.sh, shard_plan).
+      // With FivviUITests weighed as a unit test the classes would be dealt out differently (part 1: AlphaTests and
+      // ClientUITests, part 2: ProfileUITests and BetaTests), so this fails if the client app's UI tests are not weighed.
+      it('weighs the UI tests of both apps ten to one and deals the classes out by that weight', async () => {
+        const classes = [
+          ['FivviProTests/AlphaTests', 25], // weight 25
+          ['FivviTests/BetaTests', 5], // weight 5
+          ['FivviUITests/ClientUITests', 3], // weight 30
+          ['FivviProUITests/ProfileUITests', 2], // weight 20
+        ];
+        const { fake, list } = await built(classes);
+
+        const first = await part(fake, list, 'nl', '1/2', 8);
+        const second = await part(fake, list, 'nl', '2/2', 27);
+
+        assert.equal(first.status, 0, first.output);
+        assert.equal(second.status, 0, second.output);
+        const [one, two] = runs(fake);
+        // Heaviest first onto the lightest part: Client 30 -> 1, Alpha 25 -> 2, Profile 20 -> 2 (25 < 30), Beta 5 -> 1 (30 < 45).
+        assert.deepEqual(only(one), ['FivviTests/BetaTests', 'FivviUITests/ClientUITests']);
+        assert.deepEqual(only(two), ['FivviProTests/AlphaTests', 'FivviProUITests/ProfileUITests']);
+        assert.match(first.output, /Part 1 of 2 of the nl tests: 8 tests in 2 classes/);
+        assert.match(second.output, /Part 2 of 2 of the nl tests: 27 tests in 2 classes/);
       });
 
       it('enumerates the language once, in its configuration and without -only-testing, before the run, on the same simulator', async () => {
@@ -7175,8 +7201,8 @@ describe('#413 the iOS gate says when no hosted runner picked a part up, and has
     assert.doesNotMatch(code, /macos-15-intel|ios_retry|ios-retry/);
     assert.doesNotMatch(code, /^ {2}workflow_dispatch:\n +inputs:/m);
     assert.deepEqual(
-      [...code.matchAll(/runs-on: (macos-[\w-]+)/g)].map((m) => m[1]),
-      // ios-build, its retry on the same image (#1268), ios-tests and its retry
+      [...code.matchAll(/runs-on: .*?'?(macos-[\w-]+)/g)].map((m) => m[1]),
+      // ios-build, its retry on the same image (#1268), ios-tests and its retry (the tests also name ubuntu-24.04, for part 2 of a run without UI tests)
       ['macos-15', 'macos-15', 'macos-15', 'macos-15'],
     );
   });

@@ -927,7 +927,11 @@ jobs:
     # Start from whichever build succeeded (the retry runs only when the first was abandoned); !cancelled() because a
     # skipped retry would skip this job.
     if: ${{ !cancelled() && github.event_name != 'push' && (needs.ios-build.result == 'success' || needs.ios-build-retry.result == 'success') }}
-    runs-on: macos-15
+    # Part 2 of a language has nothing to run in a run without UI tests (ADR-034, see the test steps below): it runs on
+    # Linux then and takes no macOS runner (the parts that run would otherwise make four macOS jobs where main has two,
+    # GitHub Free runs five at once, and a part 2 that got no runner would be retried and could fail "iOS" with no test
+    # involved). The job still passes as a part, so the gate and the retry plan read it as before.
+    runs-on: ${{ (needs.changes.outputs.ui_tests == 'true' || matrix.shard == 1) && 'macos-15' || 'ubuntu-24.04' }}
     continue-on-error: ${{ github.event_name == 'push' }}
     # A healthy run takes 14-21 min (#393), of which the simulator boot and settle is up to 4 min (xcodebuild 11-17). A test that hangs fails
     # after its own allowance (scripts/test-ios.sh), so this is the backstop for the whole job: the deadline there
@@ -962,6 +966,7 @@ jobs:
           persist-credentials: false
 
       - name: Download the test bundle
+        if: needs.changes.outputs.ui_tests == 'true' || matrix.shard == 1
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ios-test-bundle
@@ -970,7 +975,8 @@ jobs:
       # The tests of this part of this language, from the bundle of "iOS build", without building again, on this job's own
       # simulator. Prints the slowest tests. With `ci: fast` (ADR-034) only a run with UI tests (the nightly run, on
       # demand) runs the unit and UI tests, each part its half (#1447); every other run runs the unit tests of this
-      # language once, in part 1, and leaves the UI test target out (part 2 has nothing to run, its job passes).
+      # language once, in part 1, and leaves the UI test target out (part 2 has nothing to run: it runs on Linux, downloads no
+      # bundle, and passes).
       - name: Unit and UI tests (${{ matrix.locale }} ${{ matrix.shard }}/2)
         if: needs.changes.outputs.ui_tests == 'true'
         run: scripts/test-ios.sh test ${{ matrix.locale }} --shard ${{ matrix.shard }}/2
@@ -1034,7 +1040,8 @@ jobs:
     name: iOS tests (${{ matrix.locale }} ${{ matrix.shard }}/2) (retry)
     needs: [changes, ios-tests-plan]
     if: ${{ !cancelled() && github.event_name != 'push' && needs.ios-tests-plan.outputs.parts != '' && needs.ios-tests-plan.outputs.parts != '[]' }}
-    runs-on: macos-15
+    # As "iOS tests".
+    runs-on: ${{ (needs.changes.outputs.ui_tests == 'true' || matrix.shard == 1) && 'macos-15' || 'ubuntu-24.04' }}
     continue-on-error: ${{ github.event_name == 'push' }}
     # As "iOS tests".
     timeout-minutes: 44
@@ -1054,6 +1061,7 @@ jobs:
           persist-credentials: false
 
       - name: Download the test bundle
+        if: needs.changes.outputs.ui_tests == 'true' || matrix.shard == 1
         uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
         with:
           name: ios-test-bundle
@@ -1062,7 +1070,8 @@ jobs:
       # The tests of this part of this language, from the bundle of "iOS build", without building again, on this job's own
       # simulator. Prints the slowest tests. With `ci: fast` (ADR-034) only a run with UI tests (the nightly run, on
       # demand) runs the unit and UI tests, each part its half (#1447); every other run runs the unit tests of this
-      # language once, in part 1, and leaves the UI test target out (part 2 has nothing to run, its job passes).
+      # language once, in part 1, and leaves the UI test target out (part 2 has nothing to run: it runs on Linux, downloads no
+      # bundle, and passes).
       - name: Unit and UI tests (${{ matrix.locale }} ${{ matrix.shard }}/2)
         if: needs.changes.outputs.ui_tests == 'true'
         run: scripts/test-ios.sh test ${{ matrix.locale }} --shard ${{ matrix.shard }}/2
