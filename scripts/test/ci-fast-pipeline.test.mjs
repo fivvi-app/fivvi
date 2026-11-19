@@ -96,24 +96,50 @@ describe('ADR-034 iOS tests', () => {
   for (const name of ['ios-tests', 'ios-tests-retry']) {
     describe(name, () => {
       const job = jobs[name];
-      const full = stepNamed(job, 'Unit and UI tests (${{ matrix.locale }})');
+      const full = stepNamed(job, 'Unit and UI tests (${{ matrix.locale }} ${{ matrix.shard }}/2)');
       const fast = stepNamed(job, 'Unit tests (${{ matrix.locale }}), no UI tests in this run');
 
       it('waits for Detect changes too, for its decision', () => {
         assert.match(job, /^ {4}needs: \[changes, (ios-build, ios-build-retry|ios-tests-plan)\]$/m);
       });
 
-      it('runs every test with UI tests, and the unit tests with --unit-only without them', () => {
+      it('runs its part of every test with UI tests, and in part 1 the unit tests with --unit-only without them (#1447)', () => {
         assert.equal(stepIf(full), UI);
-        assert.equal(runOf(full), 'scripts/test-ios.sh test ${{ matrix.locale }}');
-        assert.equal(stepIf(fast), NO_UI);
+        assert.equal(
+          runOf(full),
+          'scripts/test-ios.sh test ${{ matrix.locale }} --shard ${{ matrix.shard }}/2',
+        );
+        assert.equal(stepIf(fast), `${NO_UI} && matrix.shard == 1`);
         assert.equal(runOf(fast), 'scripts/test-ios.sh test ${{ matrix.locale }} --unit-only');
       });
 
-      it('keeps the job name, the matrix and the timeout', () => {
-        assert.match(job, /^ {4}name: iOS tests \(\$\{\{ matrix\.locale \}\}\)( \(retry\))?$/m);
+      // Part 2 has nothing to run without UI tests: it takes no macOS runner (4 macOS jobs a run would be twice main's 2, and
+      // GitHub Free runs 5 at once), downloads no bundle and passes on Linux.
+      it('runs part 2 on Linux, without the bundle, when the run has no UI tests; every other part on macos-15', () => {
+        assert.equal(
+          job.match(/^ {4}runs-on: (.+)$/m)?.[1],
+          "${{ (needs.changes.outputs.ui_tests == 'true' || matrix.shard == 1) && 'macos-15' || 'ubuntu-24.04' }}",
+        );
+        const download = stepNamed(job, 'Download the test bundle');
+        assert.equal(
+          stepIf(download),
+          "needs.changes.outputs.ui_tests == 'true' || matrix.shard == 1",
+        );
+        // Both runs-on branches agree with the steps: a macOS part runs a test step, a Linux part runs none.
+        assert.equal(stepIf(full), UI);
+        assert.equal(stepIf(fast), `${NO_UI} && matrix.shard == 1`);
+      });
+
+      it('keeps the matrix, the timeout and the name of a part', () => {
+        assert.match(
+          job,
+          /^ {4}name: iOS tests \(\$\{\{ matrix\.locale \}\} \$\{\{ matrix\.shard \}\}\/2\)( \(retry\))?$/m,
+        );
         assert.match(job, /^ {4}timeout-minutes: 44$/m);
-        assert.match(job, /^ {8}locale: (\[nl, en\]|\$\{\{ fromJSON)/m);
+        assert.match(
+          job,
+          /^ {8}(locale: \[nl, en\]\n {8}shard: \[1, 2\]|include: \$\{\{ fromJSON)/m,
+        );
       });
     });
   }
