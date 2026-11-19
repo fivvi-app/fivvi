@@ -1,3 +1,7 @@
+// Module: Renders `docs/engineering/PRIVACY.md` from the registry; `pnpm --filter @fivvi/domain
+//        generate:privacy` writes it and a test fails when the file is out of date
+// Spec: E014 AC25
+
 import type { PrivacyDeclaration, PrivacySubject } from './registry.ts';
 import {
   describeRetention,

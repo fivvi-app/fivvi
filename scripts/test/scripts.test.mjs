@@ -340,6 +340,15 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     assert.equal(pr.android, 'false');
   });
 
+  it('ADR-034: the nightly (schedule) run runs both native jobs, whatever changed, a README-only change included', () => {
+    for (const changed of [['docs/product/FEATURES.md'], ['apps/ios/README.md']]) {
+      const jobs = nativeJobs(changed, ['--event', 'schedule']);
+      assert.equal(jobs.ios, 'true');
+      assert.equal(jobs.android, 'true');
+      assert.match(jobs.log, /run on demand|nightly/);
+    }
+  });
+
   const ci = () => readFileSync(join(SCRIPTS, '../.github/workflows/ci.yml'), 'utf8');
 
   it('E002 #91: the job names stay, and ci.yml has no path list of its own', () => {
@@ -368,6 +377,8 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
         'Android Maestro',
         // Not required, and never to be: the listed flaky Android tests run here (E002 #1363, TESTING.md §8).
         'Quarantine (Android)',
+        // ADR-034: opens the issue of a failed nightly run; runs only on the schedule, and is not required.
+        'Nightly report',
       ],
     );
   });
@@ -406,7 +417,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
 
     it('lets the tests start from either build, and the gate read every part', () => {
       const tests = job('ios-tests');
-      assert.match(tests, /^ {4}needs: \[ios-build, ios-build-retry\]$/m);
+      assert.match(tests, /^ {4}needs: \[changes, ios-build, ios-build-retry\]$/m);
       const condition = field('ios-tests', /^ {4}if: (.+)$/m);
       assert.match(condition, /!cancelled\(\)/);
       assert.match(condition, /needs\.ios-build\.result == 'success'/);
@@ -440,7 +451,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     it('runs the retried languages from the existing bundle, with the steps of the first try', () => {
       const retry = job('ios-tests-retry');
       assert.match(retry, /^ {4}name: iOS tests \(\$\{\{ matrix\.locale \}\}\) \(retry\)$/m);
-      assert.match(retry, /^ {4}needs: ios-tests-plan$/m);
+      assert.match(retry, /^ {4}needs: \[changes, ios-tests-plan\]$/m);
       const condition = field('ios-tests-retry', /^ {4}if: (.+)$/m);
       assert.match(condition, /!cancelled\(\)/);
       assert.match(condition, /needs\.ios-tests-plan\.outputs\.locales != '\[\]'/);
@@ -461,6 +472,9 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     });
   });
 
+  // The log (stdout and stderr) of the last detectAll run: why each job runs or skips.
+  let detectLog = '';
+
   // Runs the `Filter paths` step of the Detect changes job as it is in ci.yml, in a repo whose last commit changed
   // `changed`, with the event and label the workflow would pass; returns what it writes to $GITHUB_OUTPUT.
   // `earlier` are paths changed by a commit before it, in the same group: a merge queue group holds the commits of
@@ -472,6 +486,8 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     earlier = [],
     moves = [],
     noMergeBase = false,
+    pipeline = 'full',
+    expectFailure = false,
   }) => {
     const lines = ci().split('\n');
     const start = lines.findIndex((line) => line.includes('name: Filter paths'));
@@ -504,6 +520,14 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
         mkdirSync(join(repo, dir), { recursive: true });
       writeFileSync(join(repo, 'apps/ios/.keep'), '');
       writeFileSync(join(repo, 'apps/android/.keep'), '');
+      // The switch of ADR-034, which the Filter paths step reads through scripts/pipeline.sh.
+      mkdirSync(join(repo, '.github'), { recursive: true });
+      writeFileSync(
+        join(repo, '.github/pipeline.json'),
+        typeof pipeline === 'string'
+          ? JSON.stringify({ ci: pipeline, review: 'split' })
+          : JSON.stringify(pipeline),
+      );
       // The workspace scripts/affected.mjs reads: the web app depends on the database, the API on neither.
       writeFileSync(join(repo, 'pnpm-workspace.yaml'), 'packages:\n  - apps/*\n  - packages/*\n');
       for (const [dir, json] of Object.entries({
@@ -566,6 +590,8 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
           GITHUB_OUTPUT: output,
         },
       });
+      detectLog = `${result.stdout}${result.stderr}`;
+      if (expectFailure) return { status: result.status, log: detectLog };
       assert.equal(result.status, 0, result.stderr);
       const outputs = Object.fromEntries(
         readFileSync(output, 'utf8')
@@ -582,7 +608,7 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
 
   // The native jobs only, as most tests below ask; detectAll also has the Linux E2E decision (#293).
   const detectChanges = (options) => {
-    const { e2e: _e2e, ...native } = detectAll(options);
+    const { e2e: _e2e, ui_tests: _uiTests, ...native } = detectAll(options);
     return native;
   };
 
@@ -654,6 +680,87 @@ describe('CI path filters (scripts/native-jobs.sh, run by ci.yml)', () => {
     assert.equal(e2e({ event: 'workflow_dispatch' }), 'true');
     assert.equal(e2e({ event: 'pull_request', label: true }), 'true');
     assert.equal(e2e({ event: 'pull_request' }), 'false');
+  });
+
+  it('ADR-034: the nightly (schedule) run forces the native jobs and the Linux E2E job, whatever changed', () => {
+    for (const pipeline of ['fast', 'full']) {
+      assert.deepEqual(detectAll({ event: 'schedule', pipeline }), {
+        ios: 'true',
+        android: 'true',
+        e2e: 'true',
+        ui_tests: 'true',
+      });
+    }
+  });
+
+  describe('ADR-034 the ui_tests output of Detect changes (.github/pipeline.json)', () => {
+    const uiTests = (options) => detectAll(options).ui_tests;
+
+    it('full: every event runs the UI tests, as before ADR-034', () => {
+      for (const event of [
+        'pull_request',
+        'merge_group',
+        'push',
+        'workflow_dispatch',
+        'schedule',
+      ]) {
+        assert.equal(uiTests({ event, pipeline: 'full' }), 'true', event);
+      }
+      assert.equal(uiTests({ event: 'pull_request', pipeline: 'full', label: true }), 'true');
+    });
+
+    it('fast: a pull request, a merge group and a push run no UI test, whatever changed and also with the run-native label', () => {
+      for (const event of ['pull_request', 'merge_group', 'push']) {
+        for (const changed of [
+          ['docs/product/PRODUCT.md'],
+          ['apps/ios/App.swift'],
+          ['apps/web/src/a.ts'],
+        ]) {
+          assert.equal(
+            uiTests({ event, pipeline: 'fast', changed }),
+            'false',
+            `${event} ${changed}`,
+          );
+        }
+      }
+      assert.equal(uiTests({ event: 'pull_request', pipeline: 'fast', label: true }), 'false');
+    });
+
+    it('fast: workflow_dispatch and the nightly run do run the UI tests', () => {
+      for (const event of ['workflow_dispatch', 'schedule']) {
+        assert.equal(uiTests({ event, pipeline: 'fast' }), 'true', event);
+      }
+    });
+
+    it('does not change what the native and E2E jobs decide: a pull request still runs only what changed', () => {
+      assert.deepEqual(
+        detectAll({ event: 'pull_request', pipeline: 'fast', changed: ['apps/ios/App.swift'] }),
+        { ios: 'true', android: 'false', e2e: 'false', ui_tests: 'false' },
+      );
+      assert.deepEqual(
+        detectAll({ event: 'pull_request', pipeline: 'full', changed: ['apps/ios/App.swift'] }),
+        { ios: 'true', android: 'false', e2e: 'false', ui_tests: 'true' },
+      );
+    });
+
+    it('logs why, like the other skip decisions', () => {
+      detectAll({ event: 'pull_request', pipeline: 'fast' });
+      assert.match(detectLog, /UI tests: not run.*ci is fast.*nightly/i);
+      detectAll({ event: 'schedule', pipeline: 'fast' });
+      assert.match(detectLog, /UI tests: run.*nightly/i);
+      detectAll({ event: 'workflow_dispatch', pipeline: 'fast' });
+      assert.match(detectLog, /UI tests: run.*workflow_dispatch/);
+      detectAll({ event: 'pull_request', pipeline: 'full' });
+      assert.match(detectLog, /UI tests: run.*ci is full/i);
+    });
+
+    it('fails closed: a missing or unknown setting stops the job, it is not read as fast or full', () => {
+      for (const pipeline of ['quick', '', { review: 'split' }]) {
+        const run = detectAll({ event: 'pull_request', pipeline, expectFailure: true });
+        assert.notEqual(run.status, 0, JSON.stringify(pipeline));
+        assert.match(run.log, /ci/);
+      }
+    });
   });
 
   it('#293: a push to main is decided by the commits it adds', () => {
@@ -865,7 +972,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
       /uses: actions\/upload-artifact@[^\n]*\n +with:\n +name: ios-test-bundle\n +path: apps\/ios\/\.build\/ios-test-bundle\.tar\n/,
     );
     assert.match(iosBuild, /include-hidden-files: true/);
-    assert.match(iosTests, /needs: \[ios-build, ios-build-retry\]\n/);
+    assert.match(iosTests, /needs: \[changes, ios-build, ios-build-retry\]\n/);
     assert.match(iosTests, /matrix:\n +locale: \[nl, en\]/);
     assert.match(iosTests, /fail-fast: false/);
     assert.match(
@@ -1063,7 +1170,8 @@ describe('E002 #91 the native jobs in ci.yml', () => {
       assert.ok(order.every((index) => index > 0));
       assert.match(
         android,
-        /name: Stop the emulator\n +if: always\(\)\n +run: scripts\/android\.sh stop\n/,
+        // ADR-034: "Android tests" stops an emulator only in a run that booted one (UI tests).
+        /name: Stop the emulator\n +if: always\(\)( && needs\.changes\.outputs\.ui_tests == 'true')?\n +run: scripts\/android\.sh stop\n/,
       );
     }
   });
@@ -1098,10 +1206,27 @@ describe('E002 #91 the native jobs in ci.yml', () => {
         `${gate} runs after its parts, also when one failed`,
       );
       if (native === 'android') {
-        assert.match(section, /RESULTS: \$\{\{ join\(needs\.\*\.result, ' '\) \}\}/);
+        // ADR-034: the parts are labelled, so the gate can accept a skipped Maestro job when the run has no UI tests; the
+        // gate's own test is scripts/test/ci-fast-pipeline.test.mjs.
+        for (const [variable, result] of [
+          ['CHANGES', 'changes'],
+          ['BUILD', 'android-build'],
+          ['TESTS', 'android-tests'],
+          ['MAESTRO', 'android-maestro'],
+        ]) {
+          assert.match(
+            section,
+            new RegExp(`${variable}: \\$\\{\\{ needs\\.${result}\\.result \\}\\}`),
+          );
+        }
+        assert.match(section, /UI_TESTS: \$\{\{ needs\.changes\.outputs\.ui_tests \}\}/);
         assert.match(
           section,
-          new RegExp(`run: scripts/native-gate\\.sh ${name} true \\$RESULTS\n`),
+          /"Detect changes=\$CHANGES" "Android build=\$BUILD" "Android tests=\$TESTS" "Android Maestro=\$MAESTRO"/,
+        );
+        assert.match(
+          section,
+          /scripts\/native-gate\.sh \$\{skip_ok\[@\]\+"\$\{skip_ok\[@\]\}"\} Android true/,
         );
       } else {
         // iOS (#413): scripts/ios-parts.sh turns a cancelled part that no runner picked up into "unacquired" and passes
@@ -1121,7 +1246,11 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     const e2e = job('e2e');
     assert.match(e2e, /^ {4}name: E2E \(Linux\)$/m);
     assert.match(e2e, /^ {4}needs: changes$/m);
-    assert.match(e2e, /^ {4}if: needs\.changes\.outputs\.e2e == 'true'$/m);
+    // ADR-034: and, with `ci: fast`, a run with UI tests (the nightly run, on demand).
+    assert.match(
+      e2e,
+      /^ {4}if: needs\.changes\.outputs\.e2e == 'true' && needs\.changes\.outputs\.ui_tests == 'true'$/m,
+    );
     assert.match(job('changes'), /e2e: \$\{\{ steps\.filter\.outputs\.e2e \}\}/);
   });
 
@@ -1129,7 +1258,7 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     for (const [name, section] of Object.entries(parts)) {
       assert.match(
         section,
-        /needs: (changes|\[changes, ios-build\]|\[ios-build, ios-build-retry\]|\[changes, android-build\])\n/,
+        /needs: (changes|\[changes, ios-build\]|\[changes, ios-build, ios-build-retry\]|\[changes, android-build\])\n/,
         name,
       );
     }
@@ -3494,6 +3623,139 @@ esac`,
     }
   });
 
+  // ADR-034: with `ci: fast` the iOS tests jobs of CI run `test <locale> --unit-only`, and builders run the default mode
+  // with it: the unit tests of both apps, no UI test target; the build and every check stay.
+  describe('E002 ADR-034 --unit-only: the unit tests only, no UI test target', () => {
+    const tests = (fake) =>
+      fake
+        .log('xcodebuild')
+        .filter((line) => line.startsWith('test-without-building '))
+        .map((line) => ({
+          config: line.match(/-only-test-configuration (\S+)/)?.[1] ?? 'all',
+          skipsUI: / -skip-testing:FivviProUITests(\s|$)/.test(line),
+        }));
+    const builds = (fake) =>
+      fake.log('xcodebuild').filter((line) => /^build-for-testing /.test(line)).length;
+
+    it('the default mode builds once and runs the unit tests of nl and en one after the other, skipping the UI tests', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh', ['--unit-only']);
+
+      assert.equal(run.status, 0, run.output);
+      assert.equal(builds(fake), 1);
+      assert.deepEqual(tests(fake), [
+        { config: 'nl', skipsUI: true },
+        { config: 'en', skipsUI: true },
+      ]);
+      assert.match(run.output, /Unit tests in nl and en, no UI tests \(--unit-only\) \(simulator/);
+      assert.match(run.output, /✓ iOS/);
+    });
+
+    it('wins over IOS_UI_LOCALES, and runs every check of the default mode first', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh', ['--unit-only'], { IOS_UI_LOCALES: 'nl' });
+
+      assert.equal(run.status, 0, run.output);
+      assert.deepEqual(
+        tests(fake).map((test) => test.skipsUI),
+        [true, true],
+      );
+      assert.match(run.output, /SwiftLint/);
+    });
+
+    it('keeps the test-plan check: a UI test that runs in no configuration still fails before the build', async () => {
+      const fake = checkout();
+      const plan = join(fake.repo, 'apps/ios/FivviPro.xctestplan');
+      const json = JSON.parse(readFileSync(plan, 'utf8'));
+      json.configurations
+        .find((config) => config.name === 'nl')
+        .options.environmentVariableEntries.push({
+          key: 'FIVVI_SKIP_TESTS',
+          value: 'HomeUITests/test_E008_AC6_usesTokenColoursInLightAndDark',
+        });
+      writeFileSync(plan, JSON.stringify(json));
+
+      const run = await fake.run('scripts/test-ios.sh', ['--unit-only']);
+
+      assert.equal(run.status, 1, run.output);
+      assert.match(run.output, /runs in no configuration/);
+      assert.equal(builds(fake), 0);
+    });
+
+    it('fails when a unit test fails', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/test-ios.sh', ['--unit-only'], { FAKE_RESULT: 'fail' });
+
+      assert.equal(run.status, 1, run.output);
+    });
+
+    for (const locale of ['nl', 'en']) {
+      it(`test ${locale} runs the unit tests of that language from the bundle, skipping the UI tests, in either order of the options`, async () => {
+        const fake = checkout();
+        assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+        const before = fake.log('xcodebuild').length;
+
+        const run = await fake.run('scripts/test-ios.sh', ['test', locale, '--unit-only']);
+
+        assert.equal(run.status, 0, run.output);
+        const after = fake.log('xcodebuild').slice(before);
+        assert.equal(
+          after.filter((line) => line.startsWith('build-for-testing')).length,
+          0,
+          'no build',
+        );
+        const [test, ...more] = after.filter((line) => line.startsWith('test-without-building '));
+        assert.equal(more.length, 0);
+        assert.match(test, new RegExp(`-only-test-configuration ${locale}\\b`));
+        assert.match(test, / -skip-testing:FivviProUITests(\s|$)/);
+        assert.match(run.output, new RegExp(`Unit tests in ${locale} \\(--unit-only\\)`));
+        assert.doesNotMatch(run.output, /Unit and UI tests/);
+
+        const flipped = await fake.run('scripts/test-ios.sh', [
+          'test',
+          locale,
+          '--unit-only',
+          '--bundle',
+          join(fake.repo, 'apps/ios/.build/ios-test-bundle.tar'),
+        ]);
+        assert.equal(flipped.status, 0, flipped.output);
+      });
+    }
+
+    it('test without the option still runs the UI tests', async () => {
+      const fake = checkout();
+      assert.equal((await fake.run('scripts/test-ios.sh', ['build'])).status, 0);
+      const before = fake.log('xcodebuild').length;
+
+      const run = await fake.run('scripts/test-ios.sh', ['test', 'nl']);
+
+      assert.equal(run.status, 0, run.output);
+      const [test] = fake
+        .log('xcodebuild')
+        .slice(before)
+        .filter((line) => line.startsWith('test-without-building '));
+      assert.ok(!test.includes('-skip-testing'));
+    });
+
+    it('is refused for build and with unknown or repeated words', async () => {
+      const fake = checkout();
+
+      for (const args of [
+        ['build', '--unit-only'],
+        ['--unit-only', 'build'],
+        ['--unit-only', '--unit-only'],
+        ['--units'],
+      ]) {
+        const run = await fake.run('scripts/test-ios.sh', args);
+        assert.notEqual(run.status, 0, args.join(' '));
+      }
+      assert.deepEqual(tests(fake), []);
+    });
+  });
+
   describe('E002 #105 faster iOS tests without losing coverage', () => {
     const commands = (fake) =>
       fake
@@ -4216,6 +4478,80 @@ esac`,
       assert.match(tasks, /:app:bundleRelease/);
       assert.match(tasks, /connectedDebugAndroidTest/);
       assert.doesNotMatch(tasks, /ktlintCheck|assembleDebug/);
+    });
+
+    // ADR-034: `ci: fast` runs `verify --no-ui` in "Android tests", and builders run `test --no-ui`.
+    it('verify --no-ui runs the unit tests (nl-NL, en, BuildInfoTest with 42) and the signed release bundle, and boots no emulator', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/android.sh', ['verify', '--no-ui']);
+
+      assert.equal(run.status, 0, run.output);
+      const tasks = gradleTasks(fake);
+      assert.match(tasks, /testDebugUnitTest/);
+      assert.ok(
+        fake
+          .log('gradle')
+          .some(
+            (line) =>
+              line.includes('testDebugUnitTest') &&
+              line.includes('--tests app.fivvi.pro.BuildInfoTest') &&
+              line.includes('--tests app.fivvi.client.BuildInfoTest') &&
+              line.includes('-Pfivvi.buildNumber=42'),
+          ),
+        'BuildInfoTest of both apps with build number 42',
+      );
+      assert.match(tasks, /:app:bundleRelease/);
+      assert.doesNotMatch(tasks, /connectedDebugAndroidTest|ktlintCheck|assembleDebug/);
+      assert.equal(fake.emulator().booted, false, 'no emulator');
+      assert.doesNotMatch(run.output, /Compose UI tests/);
+    });
+
+    it('test --no-ui is build and verify --no-ui: the static checks, the debug build, the unit tests and the bundle', async () => {
+      const fake = checkout();
+
+      const run = await fake.run('scripts/android.sh', ['test', '--no-ui']);
+
+      assert.equal(run.status, 0, run.output);
+      const tasks = gradleTasks(fake);
+      for (const task of [
+        'ktlintCheck',
+        'assembleDebug',
+        'testDebugUnitTest',
+        ':app:bundleRelease',
+      ])
+        assert.match(tasks, new RegExp(task));
+      assert.doesNotMatch(tasks, /connectedDebugAndroidTest/);
+      assert.equal(fake.emulator().booted, false);
+    });
+
+    it('a failing Compose UI test fails verify, and --no-ui does not run it', async () => {
+      // The fake Gradle fails the Compose UI task when FAKE_RESULT=fail: --no-ui must not reach it.
+      const failing = checkout();
+      assert.equal(
+        (await failing.run('scripts/android.sh', ['verify'], { FAKE_RESULT: 'fail' })).status,
+        1,
+      );
+      const noUi = checkout();
+      const run = await noUi.run('scripts/android.sh', ['verify', '--no-ui'], {
+        FAKE_RESULT: 'fail',
+      });
+      assert.equal(run.status, 0, run.output);
+      assert.doesNotMatch(gradleTasks(noUi), /connectedDebugAndroidTest/);
+    });
+
+    it('--no-ui is only for test and verify, and takes no other word', async () => {
+      const fake = checkout();
+      for (const args of [
+        ['build', '--no-ui'],
+        ['quarantine', '--no-ui'],
+        ['verify', '--no-ui', '--no-ui'],
+        ['verify', '--ui'],
+        ['test', 'extra'],
+      ]) {
+        assert.notEqual((await fake.run('scripts/android.sh', args)).status, 0, args.join(' '));
+      }
+      assert.equal(gradleTasks(fake), '');
     });
 
     it('test is build and verify: the same Gradle tasks as before the split', async () => {

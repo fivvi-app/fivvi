@@ -2,7 +2,11 @@
 # The result of a native check in CI (#293): the gate job behind the required check names "iOS" and "Android", which
 # need their parts (a build job and test jobs). The ruleset names the gate, so it never changes while the parts do.
 #
-#   native-gate.sh <name> <true|false> <part>...
+#   native-gate.sh [--skip-ok <label>]... <name> <true|false> <part>...
+#       --skip-ok <label>  (ADR-034) a part with that label that is `skipped` counts as a success, because ci.yml skipped it on
+#                  purpose (the Maestro job when the run has no UI tests). Only the part with that label, only `skipped`:
+#                  every other result of it, and every other part, is judged as before. ci.yml passes it only when "Detect
+#                  changes" says `ui_tests` is `false`; without it a skipped part fails the gate
 #       <name>   the check this gate reports: iOS or Android
 #       true|false  the native decision of "Detect changes" (scripts/native-jobs.sh) for it
 #       <part>...  one per job the gate needs: [<label>=]<result>
@@ -18,6 +22,12 @@
 set -euo pipefail
 source "$(dirname "${BASH_SOURCE[0]}")/_lib.sh"
 
+skip_ok=()
+while [ "${1:-}" = --skip-ok ]; do
+  [ $# -ge 2 ] || usage_of "$0"
+  skip_ok+=("$2")
+  shift 2
+done
 [ $# -ge 3 ] || usage_of "$0"
 name="$1" decision="$2"
 shift 2
@@ -27,12 +37,25 @@ if [ "$decision" = false ]; then
   echo "$name: skipped, nothing it builds from changed."
   exit 0
 fi
+# Each --skip-ok label is compared whole, an element of the array, never a piece of a joined string: the labels have
+# spaces ("Android Maestro"), so "Android" or "Maestro" alone must not match it.
+label_skip_ok() {
+  local want
+  for want in ${skip_ok[@]+"${skip_ok[@]}"}; do
+    [ "$want" = "$1" ] && return 0
+  done
+  return 1
+}
 # One line per labelled part that did not succeed in $reasons.
 bad=() reasons=""
 for part in "$@"; do
   label="" result="$part"
   case "$part" in *=*) label="${part%%=*}" result="${part#*=}" ;; esac
   [ "$result" = success ] && continue
+  if [ "$result" = skipped ] && [ -n "$label" ] && label_skip_ok "$label"; then
+    echo "$label: skipped on purpose (no UI tests in this run), counts as a success."
+    continue
+  fi
   bad+=("$part")
   [ -n "$label" ] || continue
   case "$result" in

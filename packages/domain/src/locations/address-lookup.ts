@@ -1,3 +1,6 @@
+// Module: The query of an address lookup: a Dutch postcode, a house number and an optional addition, checked before anything leaves the server.
+// Spec: F015
+
 // The query of an address lookup (F015, spec #424): a Dutch postcode, a house number and an
 // optional addition, checked before anything leaves the server. Pure rules, no I/O: the API asks,
 // then hands the normalized query to whichever lookup is switched on.

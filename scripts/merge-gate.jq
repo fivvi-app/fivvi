@@ -2,7 +2,7 @@
 # Pure: no I/O.
 # Input:  {head, default_branch, pr: {number, state, draft, base, body}, risk: {risk: low|high|owner, reasons},
 #          required: [check name], checks: [statusCheckRollup entry], preview, queue_removed, queue_removed_at, requeued,
-#          after: null|{bug, issue, blocks, state, state_reason, closed_at}, threads}
+#          after: null|{bug, issue, blocks, state, state_reason, closed_at}, threads, review_setting}
 # preview: whether the head commit has a Railway preview, "yes", "no" or "pending" (pr.sh preview_of, the definition
 # pr.sh smoke uses too; the checks can't tell: Railway's status is green also when it skipped the deploy).
 # queue_removed: whether the merge queue removed the head commit (pr.sh queue_state), at queue_removed_at. Only the owner
@@ -10,6 +10,7 @@
 # the blockers of the issue the PR closes (blocks: whether it is one; issue: that issue), and requeued, whether the PR
 # body already records a re-queue of the head commit after a fix. The condition then also passes when <bug> blocks the
 # issue, was closed as completed after the removal, and the head commit was not re-queued after a fix before.
+# review_setting: what scripts/pipeline.sh get review says, "split" or "per-pr" (ADR-034); anything else, or none, is unknown.
 # $review_mark, $smoke_mark: the marks of the records pr.sh writes in the PR body (`**<mark>:** …`).
 # $no_preview: what pr.sh smoke records when there is no preview.
 # The first condition is "not owner-only": low and high pass, owner (and an unknown risk) fails (ADR-021).
@@ -112,6 +113,22 @@ def review_by_risk($f):
           detail: "the self-review record leaves should-fix findings as follow-ups, which only a low-risk PR may merge with; this PR is \(if $risk == "high" then "high-risk" elif $risk == "owner" then "owner-only" else "of unknown risk" end)"}
     else . end;
 
+# Review axes (ADR-034, decision 4): a record that says `(standards only)` (pr.sh reviewed --axes standards) covers the
+# standards axis alone. It satisfies the gate only while review is "split" and the PR is low-risk; any other record, with
+# or without the axes named, covers both. Fail closed: an unknown setting or an unknown risk needs both axes. The input is
+# the result of the earlier checks of the record; $f the facts.
+def review_axes($f):
+  ($f.pr.body | record($review_mark)) as $line
+  | if .ok and $line != null and ($line | contains("(standards only)")) then
+      if $f.review_setting == "split" and $f.risk.risk == "low" then
+        {ok: true, detail: "recorded for \($f.head | short), standards axis only (review is split and the PR is low-risk)"}
+      elif $f.review_setting == "split" then
+        {ok: false, detail: "the self-review record covers the standards axis only, which only a low-risk PR may merge with; this PR is \(if $f.risk.risk == "high" then "high-risk" elif $f.risk.risk == "owner" then "owner-only" else "of unknown risk" end): it needs both axes (standards and spec)"}
+      else
+        {ok: false, detail: "the self-review record covers the standards axis only, which counts only while review is split (pipeline.sh get review says \($f.review_setting // "nothing" | tostring)): it needs both axes (standards and spec)"}
+      end
+    else . end;
+
 . as $f
 | [
     {name: "not owner-only", ok: (.risk.risk | IN("low", "high")),
@@ -120,7 +137,7 @@ def review_by_risk($f):
               elif .risk.risk == "owner" then "owner-only: \(.risk.reasons | join("; "))"
               else "the risk is unknown: the owner decides" end)},
     checks_passed,
-    {name: "self-review clean"} + (on_head("self-review"; $f.pr.body | record($review_mark)) | review_by_risk($f)),
+    {name: "self-review clean"} + (on_head("self-review"; $f.pr.body | record($review_mark)) | review_by_risk($f) | review_axes($f)),
     {name: "preview smoke-checked"} + (
       ($f.pr.body | record($smoke_mark)) as $line
       | if $f.preview | IN("yes", "no", "pending") | not then {ok: false, detail: "whether the PR has a preview is unknown"}

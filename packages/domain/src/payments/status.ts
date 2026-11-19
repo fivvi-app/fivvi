@@ -1,3 +1,10 @@
+// Module: The status of a payment: `open`, `pending`, `paid`, `failed`, `canceled`, `expired`,
+//        later `refunded` and `charged_back`. `decideStatusChange` says whether a fetched status is
+//        news: the same one again, an earlier one arriving late, anything after
+//        `failed`/`canceled`/`expired`, and a refund or chargeback of a payment that was never paid
+//        change nothing
+// Spec: E019 AC7
+
 // The status of a payment in our ledger (E019, spec #466, AC7). It only ever moves forward, and
 // only because a status fetched from the provider says so (`applyProviderStatus`); this file is
 // the rule that decides whether a fetched status is news.

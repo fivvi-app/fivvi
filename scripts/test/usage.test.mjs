@@ -943,6 +943,512 @@ describe('usage.mjs', () => {
     });
   });
 
+  describe('flow', () => {
+    const WINDOW = ['--since', '2026-11-02', '--until', '2026-11-04T23:59:59Z'];
+    const search = (nodes, extra = {}) => ({
+      data: {
+        search: { issueCount: nodes.length, pageInfo: { hasNextPage: false }, nodes, ...extra },
+      },
+    });
+    const event = (type, createdAt, reason) => ({
+      __typename: type,
+      createdAt,
+      ...(reason ? { reason } : {}),
+    });
+    const issue = (number, createdAt) => ({ number, createdAt });
+    const mergedPrs = [
+      {
+        number: 10,
+        title: '[F1] one secret title',
+        body: 'a body that is never stored',
+        createdAt: '2026-11-02T14:00:00Z',
+        mergedAt: '2026-11-02T19:00:00Z',
+        commits: { nodes: [{ commit: { committedDate: '2026-11-02T12:00:00Z' } }] },
+        closingIssuesReferences: { nodes: [issue(1, '2026-11-02T00:00:00Z')] },
+        timelineItems: {
+          nodes: [
+            event('ReadyForReviewEvent', '2026-11-02T15:00:00Z'),
+            event('AddedToMergeQueueEvent', '2026-11-02T16:00:00Z'),
+            event('RemovedFromMergeQueueEvent', '2026-11-02T17:00:00Z', 'FAILED_CHECKS'),
+            event('AddedToMergeQueueEvent', '2026-11-02T18:00:00Z'),
+            event('RemovedFromMergeQueueEvent', '2026-11-02T19:00:00Z', 'merged'),
+          ],
+        },
+      },
+      {
+        number: 11,
+        title: '[F2] two',
+        body: '**Self-review:** standards and spec reviewers clean on `abc1234` ✅ (low risk: 1 should-fix finding left as a follow-up, ADR-033)',
+        createdAt: '2026-11-02T06:00:00Z',
+        mergedAt: '2026-11-02T10:00:00Z',
+        commits: { nodes: [{ commit: { committedDate: '2026-11-02T00:00:00Z' } }] },
+        closingIssuesReferences: {
+          nodes: [issue(2, '2026-11-01T00:00:00Z'), issue(3, '2026-11-01T12:00:00Z')],
+        },
+        timelineItems: {
+          nodes: [
+            event('AddedToMergeQueueEvent', '2026-11-02T08:00:00Z'),
+            event('RemovedFromMergeQueueEvent', '2026-11-02T08:30:00Z', 'MERGE_CONFLICT'),
+            event('RemovedFromMergeQueueEvent', '2026-11-02T10:00:00Z', 'merged'),
+          ],
+        },
+      },
+      {
+        number: 12,
+        title: 'Revert "[F1] one"',
+        body: '',
+        createdAt: '2026-11-03T00:30:00Z',
+        mergedAt: '2026-11-03T01:00:00Z',
+        commits: { nodes: [{ commit: { committedDate: '2026-11-03T00:00:00Z' } }] },
+        closingIssuesReferences: { nodes: [] },
+        timelineItems: { nodes: [] },
+      },
+    ];
+    const specs = [
+      {
+        number: 100,
+        createdAt: '2026-11-01T00:00:00Z',
+        closedAt: '2026-11-03T12:00:00Z',
+        subIssues: {
+          nodes: [
+            {
+              number: 900,
+              createdAt: '2026-11-01T11:00:00Z',
+              labels: { nodes: [{ name: 'bug' }] },
+            },
+            { number: 101, createdAt: '2026-11-01T12:00:00Z', labels: { nodes: [] } },
+          ],
+        },
+        timelineItems: {
+          nodes: [
+            { createdAt: '2026-11-01T00:00:01Z', label: { name: 'spec' } },
+            { createdAt: '2026-11-01T10:00:00Z', label: { name: 'spec-approved' } },
+          ],
+        },
+      },
+    ];
+    const bugs = [
+      { number: 200, title: 'Nightly UI tests failed', body: 'run 1' },
+      { number: 201, title: 'x', body: 'text\nFound by: spec review\nmore' },
+      { number: 202, title: 'Deploy failed', body: '<!-- fivvi:deploy-failed production -->' },
+      { number: 203, title: 'y', body: 'owner found it' },
+    ].map((b) => ({ ...b, createdAt: '2026-11-03T00:00:00Z' }));
+    const run = (id, event, conclusion, start, minutes) => ({
+      id,
+      event,
+      conclusion,
+      created_at: start,
+      run_started_at: start,
+      updated_at: new Date(Date.parse(start) + minutes * 60_000).toISOString(),
+    });
+    const runs = [
+      run(1, 'pull_request', 'failure', '2026-11-02T10:00:00Z', 30),
+      run(2, 'pull_request', 'success', '2026-11-02T11:00:00Z', 20),
+      run(3, 'pull_request', 'success', '2026-11-02T12:00:00Z', 10),
+      run(4, 'merge_group', 'success', '2026-11-02T13:00:00Z', 25),
+      run(5, 'merge_group', 'failure', '2026-11-02T14:00:00Z', 35),
+      run(6, 'schedule', 'success', '2026-11-03T02:00:00Z', 50),
+      run(7, 'push', null, '2026-11-03T03:00:00Z', 1),
+    ];
+    const job = (name, conclusion, seconds, label) => ({
+      name,
+      conclusion,
+      started_at: '2026-11-02T10:00:00Z',
+      completed_at: new Date(Date.parse('2026-11-02T10:00:00Z') + seconds * 1000).toISOString(),
+      labels: [label],
+    });
+    const jobsOfRun = {
+      1: [
+        job('Checks (Linux)', 'failure', 600, 'ubuntu-latest'),
+        job('iOS tests (nl)', 'success', 1200, 'macos-15'),
+      ],
+      2: [
+        job('Checks (Linux)', 'success', 300, 'ubuntu-latest'),
+        job('iOS tests (nl)', 'success', 1500, 'macos-15'),
+        job('E2E (Linux)', 'skipped', 0, 'ubuntu-latest'),
+      ],
+      3: [job('Checks (Linux)', 'success', 400, 'ubuntu-latest')],
+      4: [
+        job('Checks (Linux)', 'success', 500, 'ubuntu-latest'),
+        job('iOS tests (nl)', 'success', 1000, 'macos-15'),
+      ],
+      5: [job('Checks (Linux)', 'failure', 700, 'ubuntu-latest')],
+      6: [job('iOS tests (nl)', 'success', 1800, 'macos-15')],
+    };
+    const flowRules = (over = {}) => [
+      { match: 'repo view', out: { owner: { login: 'owner1' }, nameWithOwner: 'o/r' } },
+      { match: 'api user', out: { login: 'person1' } },
+      { match: 'pr list --state all --limit', out: [] },
+      { match: 'is:merged', out: search(over.prs ?? mergedPrs) },
+      { match: 'label:spec', out: search(over.specs ?? specs) },
+      { match: 'label:bug', out: search(over.bugs ?? bugs) },
+      { match: 'workflows/ci.yml/runs', out: { workflow_runs: over.runs ?? runs } },
+      ...Object.entries(jobsOfRun).map(([id, list]) => ({
+        match: `actions/runs/${id}/jobs`,
+        out: { jobs: list },
+      })),
+      ...(over.extra ?? []),
+    ];
+
+    // A repo whose main holds .github/pipeline.json as `files` says at each date: [[date, {ci, review} | null]].
+    const repoWith = (commits) => {
+      const dir = join(base, `repo-${++n}`);
+      mkdirSync(dir);
+      const git = (args, date) =>
+        spawnSync('git', ['-C', dir, ...args], {
+          encoding: 'utf8',
+          env: { ...process.env, GIT_AUTHOR_DATE: date, GIT_COMMITTER_DATE: date },
+        });
+      git(['init', '-q', '-b', 'main'], '2026-10-01T00:00:00Z');
+      git(['config', 'user.email', '1+t@users.noreply.github.com'], '2026-10-01T00:00:00Z');
+      git(['config', 'user.name', 't'], '2026-10-01T00:00:00Z');
+      git(['config', 'commit.gpgsign', 'false'], '2026-10-01T00:00:00Z');
+      for (const [date, settings] of commits) {
+        mkdirSync(join(dir, '.github'), { recursive: true });
+        if (settings) writeFileSync(join(dir, '.github/pipeline.json'), JSON.stringify(settings));
+        else writeFileSync(join(dir, 'README'), date);
+        git(['add', '-A'], date);
+        assert.equal(git(['commit', '-q', '-m', 'c', '--no-verify'], date).status, 0);
+      }
+      return dir;
+    };
+    const fullRepo = () => repoWith([['2026-10-01T00:00:00Z', null]]);
+    const flowSnapshot = (rules = flowRules(), { git = fullRepo(), cache, args = [] } = {}) => {
+      const dir = projects([]);
+      const done = snapshot(
+        dir,
+        [...WINDOW, '--git', git, '--cache', cache ?? join(base, `cache-${++n}`), ...args],
+        rules,
+      );
+      return done;
+    };
+
+    it('measures the time of the merged PRs in hours, median and p90, and the tickets merged per day', () => {
+      const { flow } = flowSnapshot().data;
+      const t = flow.time;
+      assert.equal(t.mergedPrs, 3);
+      assert.equal(t.tickets, 3);
+      assert.equal(t.ticketsPerDay, 1);
+      assert.deepEqual(t.backlog, { n: 3, median: 12, p90: 24 });
+      assert.deepEqual(t.firstCommitToPr, { n: 3, median: 2, p90: 6 });
+      // a PR that never was a draft is ready when it opens
+      assert.deepEqual(t.prToReady, { n: 3, median: 0, p90: 1 });
+      // a PR that was never queued has no queue times
+      assert.deepEqual(t.readyToQueued, { n: 2, median: 1.5, p90: 2 });
+      assert.deepEqual(t.queuedToMerged, { n: 2, median: 2.5, p90: 3 });
+      assert.deepEqual(t.prToMerged, { n: 3, median: 4, p90: 5 });
+      assert.deepEqual(t.issueToMerged, { n: 3, median: 22, p90: 34 });
+      assert.deepEqual(flow.window, {
+        since: '2026-11-02T00:00:00Z',
+        until: '2026-11-04T23:59:59Z',
+        days: 3,
+      });
+    });
+
+    it('measures a spec from created to spec-approved, first ticket and closed, leaving its bugs out of the tickets', () => {
+      const { spec } = flowSnapshot().data.flow.time;
+      assert.equal(spec.n, 1);
+      assert.deepEqual(spec.createdToApproved, { n: 1, median: 10, p90: 10 });
+      assert.deepEqual(spec.approvedToFirstTicket, { n: 1, median: 2, p90: 2 });
+      assert.deepEqual(spec.firstTicketToClosed, { n: 1, median: 48, p90: 48 });
+      assert.deepEqual(spec.createdToClosed, { n: 1, median: 60, p90: 60 });
+    });
+
+    it('counts CI runs per event with wall time and failure rate, a run per merged PR and the runner hours', () => {
+      const { ci } = flowSnapshot().data.flow;
+      assert.equal(ci.runs, 7);
+      assert.deepEqual(ci.events.pull_request, {
+        runs: 3,
+        wallMedianMinutes: 20,
+        wallP90Minutes: 30,
+        failureRate: 0.333,
+        nativeRuns: 2,
+        nativeWallMedianMinutes: 25,
+      });
+      assert.deepEqual(ci.events.merge_group, {
+        runs: 2,
+        wallMedianMinutes: 30,
+        wallP90Minutes: 35,
+        failureRate: 0.5,
+        nativeRuns: 1,
+        nativeWallMedianMinutes: 25,
+      });
+      assert.equal(ci.events.schedule.runs, 1);
+      assert.equal(ci.events.schedule.nativeWallMedianMinutes, 50);
+      // a run still going has no outcome and no wall time yet
+      assert.equal(ci.events.push.failureRate, null);
+      assert.equal(ci.events.push.wallMedianMinutes, null);
+      assert.equal(ci.events.push.nativeWallMedianMinutes, null);
+      assert.equal(ci.runsPerMergedPr, 1.67);
+      assert.deepEqual(ci.runnerHours, { linux: 0.7, macos: 1.5, other: 0 });
+    });
+
+    it('measures each job: run time and failure rate, the nightly run apart, a skipped job counted in neither', () => {
+      const { jobs } = flowSnapshot().data.flow.ci;
+      assert.deepEqual(jobs['Checks (Linux)'], { runs: 5, medianMinutes: 8.3, failureRate: 0.4 });
+      assert.deepEqual(jobs['iOS tests (nl)'], { runs: 3, medianMinutes: 20, failureRate: 0 });
+      assert.deepEqual(jobs['iOS tests (nl) (schedule)'], {
+        runs: 1,
+        medianMinutes: 30,
+        failureRate: 0,
+      });
+      assert.equal(jobs['E2E (Linux)'], undefined);
+    });
+
+    it('counts queue removals per PR by reason and does not count the removal that comes with a merge', () => {
+      const { ci } = flowSnapshot().data.flow;
+      assert.deepEqual(ci.removalsByReason, { failed_checks: 1, merge_conflict: 1 });
+      assert.equal(ci.queueRemovals, 2);
+      assert.equal(ci.queueRemovalsPerPr, 0.67);
+      const { prs } = flowSnapshot().data.flow;
+      assert.deepEqual(prs.find((p) => p.number === 10).removals, { failed_checks: 1 });
+    });
+
+    it('sorts the bugs of the window by source and counts them per merged ticket', () => {
+      const { quality } = flowSnapshot().data.flow;
+      assert.equal(quality.bugs.total, 4);
+      assert.equal(quality.bugs.perTicket, 1.33);
+      assert.deepEqual(quality.bugs.numbers, {
+        nightly: [200],
+        specReview: [201],
+        deploy: [202],
+        other: [203],
+      });
+    });
+
+    it('totals reverts, follow-up fixes and the PRs merged with should-fix follow-ups', () => {
+      const inWindow = (record) => ({ ...record, timestamp: '2026-11-03T00:00:00Z' });
+      const dir = projects([
+        {
+          id: 's',
+          records: [inWindow(call(0, { id: 'm' }))],
+          agents: [
+            {
+              name: 'a',
+              meta: meta('builder'),
+              records: [
+                inWindow(bash(0, 't', 'cd /r/.worktrees/fix-7-x && ls', { id: 'g1' })),
+                inWindow(result(1, 't')),
+              ],
+            },
+          ],
+        },
+      ]);
+      const rules = [
+        {
+          match: 'pr list --state all --head fix/7-x',
+          out: [
+            {
+              number: 70,
+              state: 'MERGED',
+              createdAt: '2026-11-02T12:00:00Z',
+              mergedAt: '2026-11-02T14:00:00Z',
+              additions: 5,
+              deletions: 0,
+            },
+          ],
+        },
+        {
+          match: 'pr view 70 --json files',
+          out: { files: [{ path: 'apps/web/a.ts', additions: 5, deletions: 0 }] },
+        },
+        { match: 'pr view 70 --json comments,reviews', out: { comments: [], reviews: [] } },
+        { match: 'pulls/70/comments', out: [] },
+        { match: 'issues/70/timeline', out: [] },
+        { match: 'run list --branch fix/7-x', out: [] },
+        {
+          match: 'pr list --state all --limit',
+          out: [
+            {
+              number: 70,
+              title: 't',
+              body: '',
+              createdAt: '2026-11-02T12:00:00Z',
+              headRefName: 'fix/7-x',
+            },
+            {
+              number: 75,
+              title: 'fix: a follow up of #70',
+              body: '',
+              createdAt: '2026-11-03T12:00:00Z',
+              headRefName: 'fix/8-y',
+            },
+            {
+              number: 76,
+              title: 'Revert "t #70"',
+              body: '',
+              createdAt: '2026-11-03T13:00:00Z',
+              headRefName: 'revert-70',
+            },
+          ],
+        },
+        ...flowRules(),
+      ];
+      const done = snapshot(
+        dir,
+        [...WINDOW, '--git', fullRepo(), '--cache', join(base, `cache-${++n}`)],
+        rules,
+      );
+      const { quality } = done.data.flow;
+      assert.equal(done.data.tickets[0].followUpFixes, 1);
+      assert.equal(quality.followUpFixes, 1);
+      assert.equal(quality.revertedTickets, 1);
+      assert.equal(quality.reverts, 1);
+      assert.equal(quality.prsWithShouldFixLeft, 1);
+      assert.equal(quality.shouldFixLeft, 1);
+    });
+
+    it('keeps one record of numbers per merged PR, and no title, body or text of GitHub', () => {
+      const done = flowSnapshot();
+      const text = JSON.stringify(done.data.flow);
+      for (const secret of [
+        'one secret title',
+        'never stored',
+        'owner found it',
+        'Nightly UI',
+        'Found by',
+        'fivvi:deploy',
+      ]) {
+        assert.ok(!text.includes(secret), secret);
+      }
+      assert.deepEqual(
+        done.data.flow.prs.find((p) => p.number === 11),
+        {
+          number: 11,
+          issues: [2, 3],
+          backlog: [24, 12],
+          issueToMerged: [34, 22],
+          firstCommitToPr: 6,
+          prToReady: 0,
+          readyToQueued: 2,
+          queuedToMerged: 2,
+          prToMerged: 4,
+          removals: { merge_conflict: 1 },
+        },
+      );
+    });
+
+    it('reads the next page of a search with the cursor of the last one', () => {
+      const first = {
+        ...search([mergedPrs[0]]),
+        data: {
+          search: {
+            issueCount: 3,
+            pageInfo: { hasNextPage: true, endCursor: 'c1' },
+            nodes: [mergedPrs[0]],
+          },
+        },
+      };
+      const second = search([mergedPrs[1], mergedPrs[2]]);
+      const rules = [{ match: 'is:merged', outs: [first, second] }, ...flowRules()];
+      const { data } = flowSnapshot(rules);
+      assert.equal(data.flow.time.mergedPrs, 3);
+      const searches = gh.calls().filter((c) => c.args.join(' ').includes('is:merged'));
+      assert.equal(searches.length, 2);
+      assert.ok(!searches[0].args.join(' ').includes('after='));
+      assert.ok(searches[1].args.includes('after=c1'));
+    });
+
+    it('asks for the runs a week at a time and counts a run that two weeks both return once', () => {
+      const { data } = flowSnapshot(flowRules(), { args: ['--since', '2026-10-20'] });
+      const lists = gh.calls().filter((c) => c.args.join(' ').includes('workflows/ci.yml/runs'));
+      assert.ok(lists.length >= 2, `${lists.length} calls`);
+      assert.equal(data.flow.ci.runs, 7);
+    });
+
+    it('keeps the jobs of a finished run in the cache and reads them from there next time', () => {
+      const cache = join(base, `cache-${++n}`);
+      flowSnapshot(flowRules(), { cache });
+      const jobCalls = () => gh.calls().filter((c) => c.args.join(' ').includes('/jobs'));
+      // run 7 has not finished: its jobs are neither read nor cached
+      assert.equal(jobCalls().length, 6);
+      assert.ok(existsSync(join(cache, '1.json')));
+      assert.ok(!existsSync(join(cache, '7.json')));
+      assert.deepEqual(JSON.parse(readFileSync(join(cache, '1.json'), 'utf8')), [
+        { name: 'Checks (Linux)', conclusion: 'failure', seconds: 600, os: 'linux' },
+        { name: 'iOS tests (nl)', conclusion: 'success', seconds: 1200, os: 'macos' },
+      ]);
+      const again = flowSnapshot(flowRules(), { cache });
+      assert.equal(jobCalls().length, 0);
+      assert.equal(again.data.flow.ci.jobs['Checks (Linux)'].runs, 5);
+    });
+
+    it('warns of a job list it could not read and goes on without it', () => {
+      const rules = flowRules({ extra: [] });
+      rules.unshift({ match: 'actions/runs/3/jobs', out: '', status: 1 });
+      const done = flowSnapshot(rules);
+      assert.deepEqual(done.data.flow.warnings.length, 1);
+      assert.match(done.data.flow.warnings[0], /run 3/);
+      assert.equal(done.data.flow.ci.runsWithoutJobs, 1);
+      assert.equal(done.data.flow.ci.jobs['Checks (Linux)'].runs, 4);
+    });
+
+    it('says which flow it measured: the settings on main at the start and the end of the window', () => {
+      const git = repoWith([
+        ['2026-10-01T00:00:00Z', { ci: 'fast', review: 'split' }],
+        ['2026-10-02T00:00:00Z', null],
+      ]);
+      const { settings, warnings } = flowSnapshot(flowRules(), { git }).data.flow;
+      assert.equal(settings.start.ci, 'fast');
+      assert.equal(settings.end.review, 'split');
+      assert.equal(settings.changed, false);
+      assert.deepEqual(warnings, []);
+    });
+
+    it('reads a main without .github/pipeline.json as the full flow', () => {
+      const { settings } = flowSnapshot().data.flow;
+      assert.deepEqual([settings.start.ci, settings.start.review], ['full', 'per-pr']);
+      assert.deepEqual([settings.end.ci, settings.end.review], ['full', 'per-pr']);
+      assert.equal(settings.changed, false);
+    });
+
+    it('warns when the settings changed inside the window, and shows both', () => {
+      const git = repoWith([
+        ['2026-10-01T00:00:00Z', null],
+        ['2026-11-03T12:00:00Z', { ci: 'fast', review: 'split' }],
+      ]);
+      const { settings, warnings } = flowSnapshot(flowRules(), { git }).data.flow;
+      assert.deepEqual([settings.start.ci, settings.start.review], ['full', 'per-pr']);
+      assert.deepEqual([settings.end.ci, settings.end.review], ['fast', 'split']);
+      assert.equal(settings.changed, true);
+      assert.equal(warnings.length, 1);
+      assert.match(warnings[0], /changed inside the window/);
+    });
+
+    it('warns of a change that went back inside the window, though the start equals the end', () => {
+      const git = repoWith([
+        ['2026-10-01T00:00:00Z', { ci: 'fast', review: 'split' }],
+        ['2026-11-03T00:00:00Z', { ci: 'full', review: 'split' }],
+        ['2026-11-03T12:00:00Z', { ci: 'fast', review: 'split' }],
+      ]);
+      const { settings, warnings } = flowSnapshot(flowRules(), { git }).data.flow;
+      assert.equal(settings.changed, true);
+      assert.equal(warnings.length, 1);
+    });
+
+    it('writes flow null and warns when gh fails, and still writes the tickets', () => {
+      const done = snapshot(projects([]));
+      assert.equal(done.data.flow, null);
+      assert.match(done.stderr, /warning: .*gh/i);
+    });
+
+    it('writes flow null and warns when a GitHub query fails half way', () => {
+      const rules = [{ match: 'label:bug', out: '', status: 1 }, ...flowRules()];
+      const done = flowSnapshot(rules);
+      assert.equal(done.data.flow, null);
+      assert.match(done.stderr, /warning: .*gh/i);
+    });
+
+    it('warns when a search holds as many results as GitHub returns at most', () => {
+      const rules = [
+        { match: 'label:bug', out: search(bugs, { issueCount: 1000 }) },
+        ...flowRules(),
+      ];
+      const { data } = flowSnapshot(rules);
+      assert.match(data.flow.warnings.join('\n'), /1000 results/);
+    });
+  });
+
   describe('files and commands', () => {
     it('writes docs/agents/usage/<label>.json by default, formatted with a trailing newline', () => {
       const dir = projects([{ id: 's1', records: [call(0, { id: 'm' })] }]);
@@ -1120,6 +1626,192 @@ describe('usage.mjs', () => {
       assert.match(out, /CI failures per ticket\s+n\/a → 1\.0\s+n\/a/);
       assert.match(out, /native minutes per ticket\s+0\.0 → 0\.0\s+n\/a/);
     });
+
+    describe('the flow', () => {
+      const spread = (median, p90 = median * 2) => ({ n: 10, median, p90 });
+      const flow = (over = {}) => ({
+        window: { since: '2026-10-21T00:00:00Z', until: '2026-11-18T23:59:59Z', days: 28 },
+        settings: {
+          ref: 'main',
+          start: { sha: 'a', ci: 'full', review: 'per-pr' },
+          end: { sha: 'a', ci: 'full', review: 'per-pr' },
+          changed: false,
+        },
+        warnings: [],
+        time: {
+          mergedPrs: 100,
+          tickets: 84,
+          ticketsPerDay: 3,
+          backlog: spread(30),
+          firstCommitToPr: spread(1),
+          prToReady: spread(2),
+          readyToQueued: spread(1),
+          queuedToMerged: spread(0.5),
+          prToMerged: spread(10),
+          issueToMerged: spread(40),
+          spec: {
+            n: 4,
+            createdToApproved: spread(43),
+            approvedToFirstTicket: spread(2),
+            firstTicketToClosed: spread(100),
+            createdToClosed: spread(150),
+          },
+        },
+        ci: {
+          runs: 800,
+          runsPerMergedPr: 4,
+          runnerHours: { linux: 200, macos: 400, other: 0 },
+          queueRemovalsPerPr: 0.5,
+          removalsByReason: { failed_checks: 30, merge_conflict: 10 },
+          events: {
+            pull_request: {
+              runs: 400,
+              wallMedianMinutes: 25,
+              wallP90Minutes: 60,
+              failureRate: 0.2,
+              nativeWallMedianMinutes: 25,
+            },
+            schedule: { runs: 0 },
+          },
+          jobs: { 'iOS tests (nl)': { runs: 100, medianMinutes: 22, failureRate: 0.1 } },
+        },
+        quality: {
+          bugs: { total: 20, perTicket: 0.24, nightly: 0, specReview: 0, deploy: 2, other: 18 },
+          reverts: 1,
+          revertedTickets: 1,
+          followUpFixes: 5,
+          prsWithShouldFixLeft: 3,
+        },
+        prs: [
+          {
+            number: 10,
+            issues: [1],
+            prToMerged: 10,
+            readyToQueued: 1,
+            queuedToMerged: 0.5,
+            issueToMerged: [40],
+          },
+          {
+            number: 11,
+            issues: [2, 3],
+            prToMerged: 20,
+            readyToQueued: 2,
+            queuedToMerged: 1,
+            issueToMerged: [50, 70],
+          },
+        ],
+        ...over,
+      });
+      const fast = () => {
+        const f = flow();
+        f.settings.end = { sha: 'b', ci: 'fast', review: 'split' };
+        f.time.prToMerged = spread(5);
+        f.time.backlog = spread(15, 40);
+        f.time.ticketsPerDay = 4.5;
+        f.ci.runnerHours = { linux: 150, macos: 100, other: 0 };
+        f.ci.removalsByReason = { failed_checks: 5 };
+        f.ci.events.pull_request = { ...f.ci.events.pull_request, nativeWallMedianMinutes: 6 };
+        f.ci.events.schedule = {
+          runs: 28,
+          wallMedianMinutes: 70,
+          wallP90Minutes: 80,
+          failureRate: 0.25,
+        };
+        f.ci.jobs['iOS tests (nl)'] = { runs: 80, medianMinutes: 4, failureRate: 0.02 };
+        f.ci.jobs['iOS tests (nl) (schedule)'] = { runs: 28, medianMinutes: 22, failureRate: 0.2 };
+        f.quality.bugs = {
+          total: 30,
+          perTicket: 0.4,
+          nightly: 8,
+          specReview: 6,
+          deploy: 1,
+          other: 15,
+        };
+        f.warnings = ['.github/pipeline.json changed inside the window (x)'];
+        return f;
+      };
+
+      it('prints the settings, the times, the CI, the removals by reason and the bugs, before → after', () => {
+        const out = compare(
+          { ...snap('full', [ticket()]), flow: flow() },
+          { ...snap('fast', [ticket()]), flow: fast() },
+        );
+        assert.match(out, /^Flow$/m);
+        assert.match(out, /settings\s+ci full, review per-pr → ci fast, review split/);
+        assert.match(out, /PR opened → merged, median\s+10\.0 → 5\.0\s+-50%/);
+        assert.match(out, /PR opened → merged, p90\s+20\.0 → 10\.0\s+-50%/);
+        assert.match(out, /issue opened → first commit, p90\s+60\.0 → 40\.0\s+-33%/);
+        assert.match(out, /tickets merged per day\s+3\.0 → 4\.5\s+\+50%/);
+        assert.match(out, /spec created → spec-approved, median\s+43\.0 → 43\.0/);
+        assert.match(out, /runner hours macos\s+400\.0 → 100\.0\s+-75%/);
+        assert.match(out, /runs per merged PR\s+4\.0 → 4\.0/);
+        assert.match(out, /pull_request wall median \(min\)\s+25\.0 → 25\.0/);
+        assert.match(out, /pull_request failure rate\s+20% → 20%/);
+        assert.match(out, /pull_request native runs wall median \(min\)\s+25\.0 → 6\.0\s+-76%/);
+        assert.match(out, /schedule runs\s+0 → 28/);
+        assert.match(out, /queue removals: failed_checks\s+30 → 5\s+-83%/);
+        assert.match(out, /queue removals: merge_conflict\s+10 → 0\s+-100%/);
+        assert.match(out, /job iOS tests \(nl\) median \(min\)\s+22\.0 → 4\.0\s+-82%/);
+        assert.match(out, /job iOS tests \(nl\) failure rate\s+10% → 2%/);
+        assert.match(out, /job iOS tests \(nl\) \(schedule\) median \(min\)\s+n\/a → 22\.0/);
+        assert.match(out, /bugs from nightly\s+0 → 8/);
+        assert.match(out, /bugs per merged ticket\s+0\.2 → 0\.4\s+\+67%/);
+        assert.match(out, /PRs merged with should-fix follow-ups\s+3 → 3/);
+      });
+
+      it('prints the warnings of a snapshot, and says so when one side has no flow', () => {
+        const out = compare(
+          { ...snap('full', [ticket()]), flow: flow() },
+          { ...snap('fast', [ticket()]), flow: fast() },
+        );
+        assert.match(out, /warning: fast: \.github\/pipeline\.json changed inside the window/);
+        const without = compare(snap('old', [ticket()]), {
+          ...snap('fast', [ticket()]),
+          flow: fast(),
+        });
+        assert.match(without, /warning: old has no flow section/);
+        assert.match(without, /PR opened → merged, median\s+n\/a → 5\.0\s+n\/a/);
+      });
+
+      it('prints nothing of the flow when neither snapshot has one', () => {
+        const out = compare(snap('a', [ticket()]), snap('b', [ticket()]));
+        assert.doesNotMatch(out, /Flow/);
+      });
+
+      it('shows the times per ticket group, joined by the PR of each ticket', () => {
+        const mine = (n, over = {}) => ticket({ pr: { number: n }, ...over });
+        const before = {
+          ...snap('full', [mine(10), mine(11), mine(10)]),
+          flow: flow(),
+        };
+        const quick = fast();
+        quick.prs = [
+          {
+            number: 10,
+            issues: [1],
+            prToMerged: 4,
+            readyToQueued: 0.5,
+            queuedToMerged: 0.25,
+            issueToMerged: [20],
+          },
+          {
+            number: 11,
+            issues: [2],
+            prToMerged: 8,
+            readyToQueued: 1,
+            queuedToMerged: 0.5,
+            issueToMerged: [30],
+          },
+        ];
+        const after = { ...snap('fast', [mine(10), mine(11), mine(10)]), flow: quick };
+        const out = compare(before, after);
+        const group = out.slice(out.indexOf('app-M (n 3 → 3)'), out.indexOf('Sessions'));
+        assert.match(group, /PR opened → merged, median hours\s+10\.0 → 4\.0\s+-60%/);
+        assert.match(group, /ready → first queued, median hours\s+1\.0 → 0\.5\s+-50%/);
+        assert.match(group, /first queued → merged, median hours\s+0\.5 → 0\.3/);
+        assert.match(group, /issue opened → merged, median hours\s+45\.0 → 20\.0\s+-56%/);
+      });
+    });
   });
 
   it('has the snapshot of the baseline run in docs/agents/usage', () => {
@@ -1128,5 +1820,21 @@ describe('usage.mjs', () => {
     const data = JSON.parse(readFileSync(file, 'utf8'));
     assert.equal(data.version, 1);
     assert.ok(Array.isArray(data.tickets));
+  });
+
+  it('has the snapshot of the full pipeline (ADR-034) with its flow, to compare the fast one with', () => {
+    const file = join(import.meta.dirname, '../../docs/agents/usage/2026-11-18-full-pipeline.json');
+    assert.ok(existsSync(file), `${file} is committed`);
+    const data = JSON.parse(readFileSync(file, 'utf8'));
+    assert.equal(data.label, '2026-11-18-full-pipeline');
+    assert.deepEqual(
+      [data.flow.settings.start.ci, data.flow.settings.start.review],
+      ['full', 'per-pr'],
+    );
+    assert.deepEqual(
+      [data.flow.settings.end.ci, data.flow.settings.end.review],
+      ['full', 'per-pr'],
+    );
+    assert.ok(data.flow.time.mergedPrs > 0 && data.flow.ci.runs > 0);
   });
 });

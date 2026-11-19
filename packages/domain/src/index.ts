@@ -82,6 +82,31 @@ export {
   validateOffer,
 } from './commerce/offers.ts';
 export {
+  type NewPayout,
+  type NewPayoutLine,
+  PAYOUT_FEE_KINDS,
+  PAYOUT_LINE_TYPES,
+  type PayoutDetails,
+  type PayoutLedger,
+  type PayoutLineRecord,
+  type PayoutRecord,
+  type PayoutStatusChange,
+  type RecordPayoutStatusChange,
+} from './commerce/payout-ledger.ts';
+export {
+  decidePayoutStatusChange,
+  PAYOUT_STATUSES,
+  type PayoutStatus,
+  type PayoutStatusDecision,
+} from './commerce/payout-status.ts';
+export {
+  type ImportedSettlement,
+  InvalidSettlementError,
+  type InvalidSettlementField,
+  importSettlement,
+  type SettlementImport,
+} from './commerce/reconciliation.ts';
+export {
   type AgreementClock,
   agreementClock,
   anchorDay,
@@ -175,6 +200,7 @@ export {
   type ProviderCustomerRequest,
   ProviderError,
   type ProviderErrorCode,
+  type ProviderFeeKind,
   type ProviderPayment,
   type ProviderPaymentRequest,
   type ProviderRefund,
@@ -183,6 +209,7 @@ export {
   type ProviderSequenceType,
   type ProviderSettlement,
   type ProviderSettlementLine,
+  type ProviderSettlementLineType,
 } from './payments/provider.ts';
 export type {
   ChargebackRecord,
@@ -276,6 +303,16 @@ export {
   retentionEndsAt,
 } from './privacy/retention.ts';
 export {
+  type ApplyFollowingDecision,
+  applyThisAndFollowing,
+  type DateUpdate,
+  DETACHABLE_FIELDS,
+  type DetachedField,
+  type SeriesChange,
+  type SeriesDate,
+  type SeriesState,
+} from './scheduling/apply-following.ts';
+export {
   type CalendarFilters,
   type ClockChange,
   clockChangeOn,
@@ -289,6 +326,11 @@ export {
   weekDates,
 } from './scheduling/calendar-grid.ts';
 export {
+  type ExpandedSeries,
+  type ExpandSeriesRefusal,
+  expandSeries,
+} from './scheduling/expand-series.ts';
+export {
   decideGroupDateEdit,
   GROUP_CLASS_LIMITS,
   type GroupDateEditDecision,
@@ -299,6 +341,7 @@ export {
   type ScheduleClassOnDateRefusal,
   scheduleClassOnDate,
 } from './scheduling/group-class.ts';
+export { type Materialization, materialize } from './scheduling/materialize.ts';
 export {
   decidePersonalRange,
   mergePersonalDay,
@@ -310,6 +353,11 @@ export {
   type PersonalRangeDecision,
   type PersonalSessionTimes,
 } from './scheduling/personal-day.ts';
+export {
+  type PlanWeeklySeriesDecision,
+  type PlanWeeklySeriesFacts,
+  planWeeklySeries,
+} from './scheduling/plan-series.ts';
 export {
   confirmationLanguage,
   type PlanPrivateSessionDecision,
@@ -324,6 +372,17 @@ export {
   sendsChangeNotice,
   sendsConfirmation,
 } from './scheduling/private-session.ts';
+export {
+  horizonEnd,
+  parseWeeklyRule,
+  SERIES_HORIZON_WEEKS,
+  type SeriesFacts,
+  type SeriesOccurrence,
+  WEEKDAYS,
+  type Weekday,
+  weekdayOf,
+  weeklyRule,
+} from './scheduling/series-rule.ts';
 export {
   addDays,
   instantToWallClock,
