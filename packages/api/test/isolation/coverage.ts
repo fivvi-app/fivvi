@@ -108,3 +108,21 @@ export function isolationCoverageProblems(
   }
   return problems;
 }
+
+/**
+ * One sentence per case that comes after one that sorts later. The cases are kept in order of
+ * operation ID (plain code-unit order, as `Array.prototype.sort()`), so two PRs that each add a
+ * route add their case in different places and do not conflict at the end of the list (E001, #1272).
+ */
+export function isolationOrderProblems(caseNames: readonly string[]): string[] {
+  const problems: string[] = [];
+  for (const [index, name] of caseNames.entries()) {
+    const before = caseNames[index - 1];
+    if (before !== undefined && before > name) {
+      problems.push(
+        `${name} comes after ${before} in ISOLATION_CASES: sort the cases by operation ID.`,
+      );
+    }
+  }
+  return problems;
+}

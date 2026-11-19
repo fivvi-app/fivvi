@@ -229,6 +229,81 @@ test.describe('F011 trainer invitations on the web', () => {
     ).toHaveCount(0);
   });
 
+  test('#1413: the sign-in opens with Lisa’s address filled in, with none of it in the URL, and another address still signs in', async ({
+    page,
+    context,
+    appLocale,
+    messages: copy,
+  }) => {
+    const { john, mike } = await team();
+    const lisa = newAddress('lisa');
+    await signInWithSession(context, john);
+    const token = await invite(page, lisa);
+    await context.clearCookies();
+
+    await page.goto(`/invitations/${token}`);
+
+    await expect(page).toHaveURL(/\/login\?returnTo=%2Finvitations%2F/);
+    const field = page.getByLabel(copy.signIn.emailLabel);
+    await expect(field).toHaveValue(lisa);
+    // The address is read on the server from the token: it is not in the link or the page's URL.
+    const url = decodeURIComponent(page.url());
+    expect(url).not.toContain(lisa);
+    expect(url).not.toContain(lisa.split('@')[0] as string);
+    expect(token).not.toContain('@');
+    await expectNoAxeViolations(page, `the invitation sign-in in ${appLocale}`);
+
+    // The field stays editable: Mike signs in with his own address and sees the wrong-account text.
+    await field.fill(mike);
+    await expect(field).toHaveValue(mike);
+    await signInWithCode(page, copy, mike);
+    await expect(page).toHaveURL(`/invitations/${token}`);
+    await expect(
+      page.getByText(
+        copy.invitation.wrongAccount.replace('{maskedEmail}', `l***@${lisa.split('@')[1]}`),
+      ),
+    ).toBeVisible();
+  });
+
+  test('#1413: the sign-in opens empty without an invitation, and for a withdrawn, an unknown or no token', async ({
+    page,
+    context,
+    messages: copy,
+  }) => {
+    const { john } = await team();
+    const lisa = newAddress('lisa');
+    await signInWithSession(context, john);
+    const withdrawn = await invite(page, lisa);
+    const id = await workspaceId(page);
+    const [pending] = (await (
+      await page.request.get(`/api/v1/workspaces/${id}/trainer-invitations`)
+    ).json()) as { id: string }[];
+    if (!pending) throw new Error('The invitation is not listed.');
+    expect(
+      (
+        await page.request.delete(`/api/v1/workspaces/${id}/trainer-invitations/${pending.id}`)
+      ).status(),
+    ).toBe(204);
+    const open = await invite(page, newAddress('tom'), 'Tom');
+    await context.clearCookies();
+
+    const field = page.getByLabel(copy.signIn.emailLabel);
+    for (const returnTo of [
+      `/invitations/${withdrawn}`,
+      '/invitations/not-a-token',
+      '/invitations',
+      '/home',
+    ]) {
+      await page.goto(`/login?${new URLSearchParams({ returnTo })}`);
+      await expect(field, returnTo).toHaveValue('');
+    }
+    await page.goto('/login');
+    await expect(field).toHaveValue('');
+    // A valid invitation is the only one that fills it in.
+    await page.goto(`/login?${new URLSearchParams({ returnTo: `/invitations/${open}` })}`);
+    await expect(field).not.toHaveValue('');
+  });
+
   test('AC5: Lisa declines and sees that she did; nothing is left on John’s list', async ({
     page,
     context,

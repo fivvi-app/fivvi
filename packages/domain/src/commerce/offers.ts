@@ -1,3 +1,11 @@
+// Module: Offers: `validateOffer` per kind (membership, credit pack, credit plan, single class
+//        pass) with the bounds of `OFFER_LIMITS` and a field-level reason for each invalid value,
+//        one credit kind per credit offer, a term over 12 months only with the confirmation flag,
+//        amounts as whole cents and VAT as 2100 or 900 basis points; `summarise` (the one-line
+//        summary) and `cancellationSentence` in Dutch and English from `packages/i18n`
+//        (`offers.*`), `formatEuros` (`€ 79,00` / `€79.00`) and `formatVatRate` (`21 %` / `21%`)
+// Spec: F052 AC4, AC7, AC8, AC10, AC16
+
 // Offers (F052, spec #468, ticket #785): what makes an offer valid for its kind, how it reads in one
 // line and the cancellation sentence a client sees. Pure rules, no I/O: the routes ask, the
 // repositories store the answer, and every platform shows the text this returns. Amounts are

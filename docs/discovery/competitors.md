@@ -31,7 +31,7 @@ Products a Dutch gym or PT studio could choose instead of Fivvi, and what we lea
 | Leads | Booking widget for trial lessons, automatic lead follow-up | Public booking page and QR codes (M5, M6); no lead follow-up planned |
 | Bookings | Waiting lists, credits, no-shows, bring a friend | Credits (group and private, never mixed), cutoff, makeups (M11); waitlists moved to the MVP on 31 October 2026 |
 | Finance | "Closed-loop finance": automated payments, invoices, reminders and follow-up; flexible payment methods | Recurring payments and invoices together, failed-payment handling, payouts (proposed) (M11); reminders and dunning beyond that in Release 4 (`PRODUCT.md §66`) |
-| Business clients | Company accounts that bill business ride passes or memberships | Billing details with a company name on invoices (`PRODUCT.md §96`); no separate company accounts |
+| Business clients | Company accounts that bill business ride passes or memberships | Billing details with a company name on invoices (`PRODUCT.md §96`); no separate company accounts. Company-paid sport is a post-MVP idea ([#1478](https://github.com/fivvi-app/fivvi/issues/1478)) |
 | Selling | In-app shop for merchandise and products; discount codes | Excluded from the MVP (`PRODUCT.md §53`: discounts); no shop planned |
 | Families | Family accounts: a parent books for children | Excluded from the MVP (`PRODUCT.md §53`); Release 4 (`PRODUCT.md §66`) |
 | Training | Workout programming, members log results (time, weight, reps) | Trainer-led live logging and notes (M7, after go-live) |
@@ -39,7 +39,7 @@ Products a Dutch gym or PT studio could choose instead of Fivvi, and what we lea
 | Team | Access for coaches, managers and administrative staff by responsibility | Owner and Trainer only in the MVP (decision 13) |
 | Locations | Multiple locations; a year of schedule ahead; bulk changes | One location at go-live (decision 12); more after go-live |
 | Pricing model | One fixed price per active customer, all features, no modules (their claim; the amount isn't published) | Platform pricing is open (decision 16) |
-| Partners | Mentions Urban Sports Club and ClassPass as part of gyms' business | Not planned |
+| Partners | Mentions Urban Sports Club and ClassPass as part of gyms' business | Not planned; a post-MVP idea since a studio owner asked for it ([#1477](https://github.com/fivvi-app/fivvi/issues/1477), `results/interview-02.md`) |
 
 **Where Huppa is ahead.** It has customers (its words), funding and a team, has member apps on both platforms, and covers more ground: shop, discounts, family and company accounts, insights and AI. It is built around the gym and its members.
 

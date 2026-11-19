@@ -12,7 +12,7 @@ export const PUBLIC_ROUTES: Readonly<Record<string, string>> = {
   requestDemo:
     'The caller is a visitor of the public website; it sends one email to Fivvi, stores nothing and is rate limited (F064).',
   getInvitation:
-    'The caller holds only the link; it shows the workspace name, the inviter and a masked address of a valid invitation, one neutral 404 otherwise (F011).',
+    'The caller holds only the link; it shows the workspace name, the inviter and the address (also masked) of a valid invitation, one neutral 404 otherwise (F011).',
   acceptInvitation:
     'The caller is not on the team yet; the token opens the invitation and the route judges the session itself, answering 401 without one (F011).',
   declineInvitation:

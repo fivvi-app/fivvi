@@ -220,6 +220,31 @@ slowest_classes() {
     | "| all | \($tests) | \($seconds | round) |", ($classes[:$n][] | "| \(.class) | \(.tests) | \(.seconds | round) |")' 2>/dev/null || true
 }
 
+# Which test classes part $2 of $3 runs (#1447), from the enumeration $1 (xcodebuild's `-enumerate-tests` in flat JSON, the
+# tests the configuration has): the classes are dealt out so that each part gets about the same time, and every class
+# goes to exactly one part, so that the parts together run every test once. A UI test costs about ten times a unit test
+# (6 s to start the app, then taps and waits against about 0.01 s), so a class weighs its tests, ten each in the
+# `<app>UITests` target of an app (FivviProUITests, FivviUITests) and one in any other. Heaviest class first (name as the tie-break) onto the part that has the
+# least so far (the lowest part as the tie-break): the same answer for every part, from the same enumeration. Only an
+# identifier of the form `<target>/<class>/<method>` is a test: the enumeration also lists a base class that other
+# classes inherit its tests from (`FivviProTests/ClientFormTestCase`), which runs no test of its own and which a result
+# bundle doesn't count (2 of the 192 of a part on 17 November, found by running one). Prints
+# one JSON object, `{"classes": ["<target>/<class>", ...], "tests": <how many tests those classes have>}`; nothing
+# when the enumeration can't be read, has no test or the part is not one of the $3.
+shard_plan() { # <enumeration file> <part> <of>
+  jq -c --argjson part "$2" --argjson of "$3" '
+    [.values[]?.enabledTests[]?.identifier | strings | select(split("/") | length >= 3)] as $ids
+    | select(($ids | length) > 0 and $part >= 1 and $part <= $of)
+    | ($ids | group_by(split("/")[:2] | join("/"))
+        | map({class: (.[0] | split("/")[:2] | join("/")), tests: length,
+               weight: (length * (if (.[0] | split("/")[0] | endswith("UITests")) then 10 else 1 end))})
+        | sort_by([-.weight, .class])) as $classes
+    | (reduce $classes[] as $c ([range($of) | {weight: 0, classes: [], tests: 0}];
+        (to_entries | min_by([.value.weight, .key]) | .key) as $i
+        | .[$i].weight += $c.weight | .[$i].tests += $c.tests | .[$i].classes += [$c.class])) as $parts
+    | {classes: ($parts[$part - 1].classes | sort), tests: $parts[$part - 1].tests}' "$1" 2>/dev/null || true
+}
+
 # The failed tests of the result bundle $1 as `<test>: <message>` lines (a message on one line), each once. Nothing when
 # the bundle can't be read: a report never changes the run's exit code (#290).
 failed_tests() {

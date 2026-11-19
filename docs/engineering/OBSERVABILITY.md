@@ -274,14 +274,15 @@ The `cron` service runs every 5 minutes ([ENVIRONMENTS.md §2](ENVIRONMENTS.md#2
 
 ### 6.1 Sentry tags
 
-A task that throws is reported with two tags, and a crash of the run itself (the database is unreachable, the cron role has no password yet) with `cron.run_id` only:
+A task that throws is reported with two tags (a task that fails on one record adds that record's tag, below), and a crash of the run itself (the database is unreachable, the cron role has no password yet) with `cron.run_id` only:
 
 | Tag | Value |
 |---|---|
 | `cron.task` | The task's name, lowercase words with hyphens, and a group before a dot for a group of tasks (`lettermint-usage`, `job-runs-retention`, `retention.sign-in-tokens`). Never a record or a person |
 | `cron.run_id` | The UUID of the run (one start of the cron). It is the `run_id` of that run's rows in `job_runs` and in the log line `Cron started: run <uuid>.` |
+| `class_series.id` | Only on a failure of one class series in the task `extend-class-series-horizon` (F022): the UUID of that series, so the Owner or an agent can find it. A UUID, never a name or a rule text |
 
-The scrubber allows only these two tags and `route` (§2): any other tag is dropped, so a tag can never carry personal data. The message of a failed task is not stored in `job_runs` (it could hold personal data); the run record only has the type of the error.
+The scrubber allows only these tags and `route` (§2): any other tag is dropped, so a tag can never carry personal data. The message of a failed task is not stored in `job_runs` (it could hold personal data); the run record only has the type of the error.
 
 ### 6.2 Reading `job_runs`
 

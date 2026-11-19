@@ -5,10 +5,7 @@ import XCTest
 @MainActor
 final class WorkspaceHomeUITests: SignInUITestCase {
     private func launch(workspace: String?, canCreate: Bool) throws -> (SignInScreen, StubServer) {
-        let server = try StubServer(
-            .greeting(key: "hello.title"),
-            signIn: StubServer.SignIn(workspaceName: workspace, canCreateWorkspace: canCreate)
-        )
+        let server = try StubServer(signIn: StubServer.SignIn(workspaceName: workspace, canCreateWorkspace: canCreate))
         return (SignInScreen.launch(against: server, session: .signedIn), server)
     }
 
@@ -42,9 +39,7 @@ final class WorkspaceHomeUITests: SignInUITestCase {
     }
 
     func test_F002_AC10_aFailedAccountCallShowsRetryAndNoWorkspace() throws {
-        let server = try StubServer(
-            .greeting(key: "hello.title"), signIn: StubServer.SignIn(meStatus: 503)
-        )
+        let server = try StubServer(signIn: StubServer.SignIn(meStatus: 503))
         let screen = SignInScreen.launch(against: server, session: .signedIn)
 
         XCTAssertTrue(screen.homeRetry.waitUntilExists(timeout: timeout))
@@ -52,9 +47,7 @@ final class WorkspaceHomeUITests: SignInUITestCase {
     }
 
     func test_F002_AC10_setUpOnTheWebWrapsAtTheLargestTextSize() throws {
-        let server = try StubServer(
-            .greeting(key: "hello.title"), signIn: StubServer.SignIn(workspaceName: nil, canCreateWorkspace: true)
-        )
+        let server = try StubServer(signIn: StubServer.SignIn(workspaceName: nil, canCreateWorkspace: true))
         let screen = SignInScreen.launch(against: server, session: .signedIn, textSize: AppLaunch.largestTextSize)
         let button = screen.app.buttons["home.openWeb"]
 

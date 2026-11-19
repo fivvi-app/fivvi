@@ -56,6 +56,7 @@ Type the filled-in results into `docs/discovery/results/`, one file per document
 | `results/metric-targets.md` | agreed targets and sign-off |
 | `results/prototype-validation.md` | findings list and sign-off |
 | `results/interview-01.md` | the first interview with the gym owner: tools, money flows, switching conditions (19 October 2026) |
+| `results/interview-02.md` | a short interview with a pilates studio owner: aggregators, company-paid sport, birthdays (19 November 2026) |
 
 Commit them on their own branch and worktree (for example `docs/discovery-results`) and open a PR against `main`, as described in [`WORKFLOW.md`](../engineering/WORKFLOW.md).
 

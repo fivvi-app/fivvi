@@ -65,6 +65,15 @@ export {
   updateSeriesDates,
 } from './repositories/class-series.ts';
 export {
+  addSeriesDatesIfMissing,
+  findDefaultLocationId,
+  listClassSeriesBehind,
+  lockClassSeries,
+  type SeriesDateToAdd,
+  type SeriesToExtend,
+  setClassSeriesMaterializedUntil,
+} from './repositories/class-series-horizon.ts';
+export {
   type ClientChanges,
   type ClientPage,
   type ClientView,
@@ -144,6 +153,29 @@ export {
   recordStatusChange,
   type StatusChangeRecord,
 } from './repositories/payments.ts';
+export {
+  findPayout,
+  findPayoutBySettlement,
+  type InPayoutScope,
+  insertPayout,
+  insertPayoutLines,
+  listPayoutLines,
+  listPayoutStatusChanges,
+  listPayouts,
+  type NewPayout,
+  type NewPayoutLine,
+  type NewPayoutStatusChange,
+  type PayoutDetails,
+  type PayoutFeeKind,
+  type PayoutLineRecord,
+  type PayoutLineType,
+  type PayoutRecord,
+  type PayoutStatus,
+  type PayoutStatusChangeRecord,
+  payoutLedger,
+  recordPayoutStatusChange,
+  refreshPayout,
+} from './repositories/payouts.ts';
 export {
   findMyNextSessionStart,
   hasMySession,
