@@ -1,3 +1,16 @@
+// Module: Weekly class series (F022, ADR-012): the one rule M4 knows (`FREQ=WEEKLY;BYDAY=XX`,
+//        anything else refused by `parseWeeklyRule`), `SERIES_HORIZON_WEEKS` (12) and `horizonEnd`;
+//        `expandSeries` turns the rule, the wall-clock start and the zone into local dates with UTC
+//        instants (18:00 stays 18:00 across the clocks changing; a start in the skipped hour is
+//        refused with the date); `planWeeklySeries` plans a first date repeated weekly (refuses a
+//        first date in the past); `materialize` gives the dates that do not exist yet and never
+//        updates one; `applyThisAndFollowing` splits the series at a date and updates the dates
+//        from there on, leaving the ones changed on their own (`detached_fields`) and counting
+//        them, and refuses a past date, a length that is no step and a skipped start on any date up
+//        to 12 weeks from today. **The only place a rule is expanded**:
+//        `test/rrule.architecture.test.ts` fails when other code reads one
+// Spec: F022 AC2, AC3, AC5, AC7, AC10
+
 import { addDays } from './zoned-time.ts';
 
 // The weekly rule of a class series (F022, spec #428, ADR-012). M4 knows one rule only: every week

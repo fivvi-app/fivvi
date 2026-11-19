@@ -1,3 +1,10 @@
+// Module: The privacy registry: one declaration per table of the schema with its subject (client,
+//        account, team member, workspace), the personal-data columns, the columns an export carries
+//        and what deletion does (`delete`, `anonymize`, `keep-for-law` with its retention
+//        constant); a test reads the Drizzle schema and fails naming a table that is not declared.
+//        **A feature that adds a table declares it here in the same PR**
+// Spec: E014 AC1
+
 import type { RetentionKey } from './retention.ts';
 
 /**

@@ -1,3 +1,10 @@
+// Module: The payment provider port (`PaymentProvider`): connect, status, create customer,
+//        create/get payment, list a customer's payments, create/get refund, list settlements and
+//        their lines, with `ProviderError` (`unavailable`, `unauthorized`, `not_found`,
+//        `rejected`). Amounts are integer cents; only the client's name and email, the amount, a
+//        description and our IDs reach the provider
+// Spec: E019 AC16, AC17
+
 import type { PaymentStatus } from './status.ts';
 
 // The payment provider port (E019, spec #466, AC16, ADR-020). Every feature that moves money

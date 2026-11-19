@@ -1,3 +1,7 @@
+// Module: A new client: the email address stored lower case, whether it is a duplicate of a client
+//        of the workspace, and which account it is linked to
+// Spec: F006 AC2–AC4, AC9
+
 /** The longest client name, in characters (F006 AC2). */
 export const CLIENT_NAME_MAX_LENGTH = 120;
 
