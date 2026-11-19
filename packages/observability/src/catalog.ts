@@ -56,6 +56,13 @@ export const PRODUCT_EVENT_CATALOG = defineCatalog({
     workspace_id: property.uuid(),
     surface: property.enum(['web', 'ios', 'android']),
   },
+  // F023: a scheduling save was refused because the trainer already has something at that time
+  // (`409 trainer_conflict`, PS-07). The workspace ID and the surface only (the account's UUID is
+  // the distinct ID): no session, client, class or trainer, no name, date or time.
+  double_booking_warned: {
+    workspace_id: property.uuid(),
+    surface: property.enum(['web', 'ios', 'android']),
+  },
   // F021: an Owner created a class, or put one on a date. The workspace ID only (the account's
   // UUID is the distinct ID): no class or session ID, name, description, trainer, date or time.
   class_created: {

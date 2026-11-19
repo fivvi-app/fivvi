@@ -384,6 +384,10 @@ export {
   weeklyRule,
 } from './scheduling/series-rule.ts';
 export {
+  findTrainerConflicts,
+  type TrainerBusySession,
+} from './scheduling/trainer-conflicts.ts';
+export {
   addDays,
   instantToWallClock,
   localDateOf,

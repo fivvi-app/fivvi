@@ -48,6 +48,13 @@ import {
   NOT_FOUND,
   validationErrorResponse,
 } from '../errors.ts';
+import {
+  allowConflictsField,
+  checkDoubleBooking,
+  TrainerConflictItemSchema,
+  type TrainerSlot,
+  trainerConflictResponse,
+} from '../sessions/trainer-conflicts.ts';
 import { SessionSchema, SessionTrainerSchema, shown } from './sessions.ts';
 
 // The group classes of a workspace (F021, spec #427), first slice: the Owner defines a class (a
@@ -215,6 +222,7 @@ const CreateGroupClassBodySchema = z
         `${LIMITS.duration.min} to ${LIMITS.duration.max} minutes in steps of ` +
         `${LIMITS.duration.step}; any other value answers \`400\` on \`durationMinutes\`.`,
     }),
+    allowConflicts: allowConflictsField,
     firstDate: FirstDateSchema.optional().openapi({
       description:
         'Puts the new class on one date in the same request (the apps’ quick create, TD-05): ' +
@@ -330,6 +338,7 @@ const ScheduleGroupClassDateBodySchema = z
         'out for the class’s.',
     }),
     repeat: repeatField,
+    allowConflicts: allowConflictsField,
     surface: z
       .enum(['ios', 'android'])
       .optional()
@@ -389,6 +398,7 @@ const UpdateGroupClassDateBodySchema = z
           'that `date`, and nothing is changed; a length that is not 15 to 240 minutes in steps ' +
           'of 5 answers `400` on `localEnd` (`invalid_duration`).',
       }),
+    allowConflicts: allowConflictsField,
     surface: z
       .enum(['ios', 'android'])
       .optional()
@@ -482,15 +492,29 @@ const ClassSeriesSchema = z
       'Its dates are class dates (`Session`) with a `series`.',
   });
 
-const ClassDateChangedSchema = z
+// The `409` of a date edit is one object, not a `oneOf` of the date's version refusal and
+// `TrainerConflict` (see `RescheduleRefusalSchema` in sessions.ts for why). `code` tells the
+// refusals apart; `session` comes with `class_date_changed`, `conflicts` with `trainer_conflict`.
+const ClassDateRefusalSchema = z
   .object({
-    code: z.enum(['class_date_changed']),
-    session: SessionSchema,
+    code: z.enum(['class_date_changed', 'trainer_conflict']).openapi({
+      description:
+        '`class_date_changed`: the date changed since the `version` sent; `trainer_conflict`: ' +
+        'the trainer already has something at the new time (PS-07).',
+    }),
+    session: SessionSchema.optional().openapi({
+      description: 'The date as it is now, for `class_date_changed`.',
+    }),
+    conflicts: z.array(TrainerConflictItemSchema).optional().openapi({
+      description:
+        'The overlapping sessions, soonest first, of this workspace only, for `trainer_conflict`.',
+    }),
   })
-  .openapi('ClassDateChanged', {
+  .openapi('UpdateGroupClassDateRefusal', {
     description:
-      'The date was changed since the version in the request; nothing was written. `session` ' +
-      'is the date as it is now, to show the reloaded values. Contains no user-facing text.',
+      'Why the date edit was refused; nothing was written. The version refusal ' +
+      '(`class_date_changed`) and the body of `TrainerConflict` (`trainer_conflict`) in one ' +
+      'object, told apart by `code`. Contains no user-facing text.',
   });
 
 // The capabilities come from the permission matrix in @fivvi/domain (F004): the Owner manages
@@ -534,7 +558,10 @@ const createGroupClassRoute = defineRoute(
       'capacity outside 1 to 100 and a duration outside 15 to 240 minutes in steps of 5 answer ' +
       '`400` with the field in `issues`. With a `firstDate` the class is also put on that date ' +
       '(the apps’ quick create), both in one transaction: a refused date answers `400` and ' +
-      'leaves no class. A trainer who does not train in the workspace answers `404`.',
+      'leaves no class. A trainer who does not train in the workspace answers `404`. When the ' +
+      'first date puts the class’s trainer where they already have something (a weekly repeat: ' +
+      'on any of its 12 dates), the answer is `409` with the code `trainer_conflict` and those ' +
+      'sessions, and nothing is stored, unless `allowConflicts` is `true` (PS-07).',
     security: SIGNED_IN,
     request: {
       params: WorkspaceParamsSchema,
@@ -549,6 +576,7 @@ const createGroupClassRoute = defineRoute(
         content: { 'application/json': { schema: CreatedGroupClassSchema } },
       },
       400: validationErrorResponse,
+      409: trainerConflictResponse,
       500: internalServerErrorResponse,
     },
   },
@@ -625,7 +653,10 @@ const scheduleGroupClassDateRoute = defineRoute(
       'A start the clocks skip answers `400` on `localStart` (`time_does_not_exist`); one they ' +
       'repeat takes the first. With `repeat: weekly` (F022) it also makes the weekly series and ' +
       'its next 12 weeks of dates in the same transaction; the answer is the first date with ' +
-      '`datesAdded`. A class or trainer that is not in the workspace answers `404`.',
+      '`datesAdded`. A class or trainer that is not in the workspace answers `404`. When the ' +
+      'date’s trainer already has a scheduled session of this workspace that overlaps (a weekly ' +
+      'repeat: on any of its 12 dates), the answer is `409` with the code `trainer_conflict` ' +
+      'and those sessions, and nothing is stored, unless `allowConflicts` is `true` (PS-07).',
     security: SIGNED_IN,
     request: {
       params: ClassParamsSchema,
@@ -641,6 +672,7 @@ const scheduleGroupClassDateRoute = defineRoute(
         content: { 'application/json': { schema: ScheduledClassDateSchema } },
       },
       400: validationErrorResponse,
+      409: trainerConflictResponse,
       500: internalServerErrorResponse,
     },
   },
@@ -688,7 +720,11 @@ const updateGroupClassDateRoute = defineRoute(
       'of day; when that is not after the new start the answer is `400` on `localEnd`. An end ' +
       'that is not after the start answers `400` on `localEnd` (`end_before_start`). The class ' +
       'and its other dates are not touched. A session that is not a class date of the ' +
-      'workspace (a private session too) answers `404`.',
+      'workspace (a private session too) answers `404`. A new time that puts the date’s trainer ' +
+      'where they already have a scheduled session of this workspace (with `scope: following`: ' +
+      'any date it moves) answers `409` with the code `trainer_conflict` and those sessions ' +
+      'unless `allowConflicts` is `true` (PS-07); a change of the capacity alone is never ' +
+      'checked, and the version is checked first.',
     security: SIGNED_IN,
     request: {
       params: SessionParamsSchema,
@@ -704,8 +740,12 @@ const updateGroupClassDateRoute = defineRoute(
       },
       400: validationErrorResponse,
       409: {
-        description: 'The date changed since the version in the request; nothing was written.',
-        content: { 'application/json': { schema: ClassDateChangedSchema } },
+        description:
+          'The date changed since the version in the request (`class_date_changed`), or the ' +
+          'trainer already has something at the new time (`trainer_conflict`); nothing was written.',
+        content: {
+          'application/json': { schema: ClassDateRefusalSchema },
+        },
       },
       500: internalServerErrorResponse,
     },
@@ -818,6 +858,24 @@ async function storeWeeklySeries(
   return { session, datesAdded: made.length };
 }
 
+/**
+ * The times a scheduling save puts the date's trainer in: the date, or with a weekly repeat each of
+ * the series' dates (the first of them is the date). None for *Trainer nodig*.
+ */
+function slotsOf(
+  date: {
+    readonly trainer: { readonly trainerProfileId: string } | null;
+    readonly startsAt: Date;
+    readonly endsAt: Date;
+  },
+  weekly: { outcome: string; plan?: PlannedSeries } | undefined,
+): TrainerSlot[] {
+  if (!date.trainer) return [];
+  const { trainerProfileId } = date.trainer;
+  const dates = weekly?.plan?.occurrences ?? [date];
+  return dates.map(({ startsAt, endsAt }) => ({ trainerProfileId, startsAt, endsAt }));
+}
+
 /** The series fields of an edit, in the order of `DETACHABLE_FIELDS`. */
 const inFieldOrder = (fields: readonly string[]): DetachedField[] =>
   DETACHABLE_FIELDS.filter((field) => fields.includes(field));
@@ -911,6 +969,12 @@ export function registerGroupClasses(app: OpenAPIHono) {
           })
         : undefined;
     if (weekly?.outcome === 'refused') return c.json(weekly.answer, 400);
+    const doubleBooked = await checkDoubleBooking(c, {
+      allowConflicts: body.allowConflicts,
+      surface: body.surface,
+      slots: plan?.outcome === 'scheduled' ? slotsOf(plan, weekly) : [],
+    });
+    if (doubleBooked) return c.json(doubleBooked, 409);
 
     const groupClass = await createGroupClass(scope, {
       nameNl: body.nameNl,
@@ -1046,6 +1110,12 @@ export function registerGroupClasses(app: OpenAPIHono) {
           })
         : undefined;
     if (weekly?.outcome === 'refused') return c.json(weekly.answer, 400);
+    const doubleBooked = await checkDoubleBooking(c, {
+      allowConflicts: body.allowConflicts,
+      surface: body.surface,
+      slots: slotsOf(decision, weekly),
+    });
+    if (doubleBooked) return c.json(doubleBooked, 409);
     const stored =
       weekly?.outcome === 'planned'
         ? await storeWeeklySeries(scope, groupClass.id, weekly.plan, decision, actor.id)
@@ -1181,9 +1251,55 @@ export function registerGroupClasses(app: OpenAPIHono) {
         }
       }
 
+      // The calendar is kept 12 weeks ahead from the series that now runs: dates that are missing
+      // are made, the ones that exist are never touched. Read now, so the double-booking check
+      // sees them too.
+      const through = applied.materializedUntil;
+      const missing = materialize(applied.later, dates, {
+        from: applied.later.startsOn,
+        to: through,
+      });
+
+      // A date that moves to a time its trainer is busy at warns (PS-07), the dates this save
+      // moves not at their old time; a date that stays, a cancelled one and a capacity change alone
+      // never do.
+      const before = new Map(dates.map((date) => [date.id, date]));
+      const doubleBooked = await checkDoubleBooking(c, {
+        allowConflicts: body.allowConflicts,
+        surface: body.surface,
+        moving: applied.updates.map((update) => update.sessionId),
+        slots: [
+          ...applied.updates.flatMap((update) => {
+            const old = before.get(update.sessionId);
+            const moved =
+              old !== undefined &&
+              old.status !== 'cancelled' &&
+              (old.startsAt.getTime() !== update.startsAt.getTime() ||
+                old.endsAt.getTime() !== update.endsAt.getTime());
+            return moved && update.trainerProfileId
+              ? [
+                  {
+                    trainerProfileId: update.trainerProfileId,
+                    startsAt: update.startsAt,
+                    endsAt: update.endsAt,
+                    sessionId: update.sessionId,
+                  },
+                ]
+              : [];
+          }),
+          ...(applied.later.trainerProfileId
+            ? missing.toInsert.map((occurrence) => ({
+                trainerProfileId: applied.later.trainerProfileId as string,
+                startsAt: occurrence.startsAt,
+                endsAt: occurrence.endsAt,
+              }))
+            : []),
+        ],
+      });
+      if (doubleBooked) return c.json(doubleBooked, 409);
+
       // Every change below is rolled back with the request when it ends in a refusal (the `409`).
       // The domain checked every date up to `through`, so none is dropped when the calendar is filled.
-      const through = applied.materializedUntil;
       let seriesId = stored.id;
       if (applied.split) {
         const later = await createClassSeries(scope, {
@@ -1229,14 +1345,8 @@ export function registerGroupClasses(app: OpenAPIHono) {
         return c.json(changed(latest), 409);
       }
 
-      // The calendar is kept 12 weeks ahead from the series that now runs: dates that are missing
-      // are made, the ones that exist are never touched.
       const actor = await findOwnTeamMember(scope);
       const locations = await listLocations(scope);
-      const missing = materialize(applied.later, dates, {
-        from: applied.later.startsOn,
-        to: through,
-      });
       await createSeriesDates(
         scope,
         seriesId,
@@ -1267,6 +1377,26 @@ export function registerGroupClasses(app: OpenAPIHono) {
       }
       return c.json({ ...shown(latest, workspace.timeZone), keptDates: applied.keptDates }, 200);
     }
+
+    // "Only this class": a new time that puts the trainer where they are busy warns (PS-07); the
+    // date's own old time does not count, and a capacity change alone is never checked.
+    const trainer = current.trainer ? await findTrainer(scope, current.trainer.id) : undefined;
+    const doubleBooked = await checkDoubleBooking(c, {
+      allowConflicts: body.allowConflicts,
+      surface: body.surface,
+      slots:
+        trainer && timeChanged && current.status === 'scheduled'
+          ? [
+              {
+                trainerProfileId: trainer.trainerProfileId,
+                startsAt: decision.startsAt,
+                endsAt: decision.endsAt,
+                sessionId,
+              },
+            ]
+          : [],
+    });
+    if (doubleBooked) return c.json(doubleBooked, 409);
 
     // "Only this class": this date changes and, in a series, is marked as different from it.
     const detachedFields = series
