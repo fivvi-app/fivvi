@@ -74,7 +74,12 @@ describe('pipeline.sh (ADR-034)', () => {
 
   it('ui-tests fails closed: an unreadable or unknown switch is an error with no output, on every event', () => {
     for (const event of ['pull_request', 'schedule', 'workflow_dispatch']) {
-      for (const content of [undefined, { review: 'split' }, { ci: 'sometimes', review: 'split' }, 'not json']) {
+      for (const content of [
+        undefined,
+        { review: 'split' },
+        { ci: 'sometimes', review: 'split' },
+        'not json',
+      ]) {
         const r = run(['ui-tests', '--event', event], content);
         assert.notEqual(r.status, 0, `${event} ${JSON.stringify(content)}`);
         assert.equal(r.stdout, '');
@@ -84,7 +89,13 @@ describe('pipeline.sh (ADR-034)', () => {
   });
 
   it('ui-tests needs --event with a value', () => {
-    for (const args of [['ui-tests'], ['ui-tests', '--event'], ['ui-tests', '--event', ''], ['ui-tests', 'schedule'], ['ui-tests', '--event', 'schedule', 'extra']]) {
+    for (const args of [
+      ['ui-tests'],
+      ['ui-tests', '--event'],
+      ['ui-tests', '--event', ''],
+      ['ui-tests', 'schedule'],
+      ['ui-tests', '--event', 'schedule', 'extra'],
+    ]) {
       const r = run(args, { ci: 'full', review: 'split' });
       assert.notEqual(r.status, 0, args.join(' '));
       assert.equal(r.stdout, '');
