@@ -39,7 +39,7 @@ Products a Dutch gym or PT studio could choose instead of Fivvi, and what we lea
 | Team | Access for coaches, managers and administrative staff by responsibility | Owner and Trainer only in the MVP (decision 13) |
 | Locations | Multiple locations; a year of schedule ahead; bulk changes | One location at go-live (decision 12); more after go-live |
 | Pricing model | One fixed price per active customer, all features, no modules (their claim; the amount isn't published) | Platform pricing is open (decision 16) |
-| Partners | Mentions Urban Sports Club and ClassPass as part of gyms' business | Not planned |
+| Partners | Mentions Urban Sports Club and ClassPass as part of gyms' business | Not planned; a post-MVP idea since a studio owner asked for it ([#1477](https://github.com/fivvi-app/fivvi/issues/1477), `results/interview-02.md`) |
 
 **Where Huppa is ahead.** It has customers (its words), funding and a team, has member apps on both platforms, and covers more ground: shop, discounts, family and company accounts, insights and AI. It is built around the gym and its members.
 
