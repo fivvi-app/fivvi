@@ -46,8 +46,10 @@ export const GROUPS = [
       'packages/contract/tools',
       'packages/contract/scripts',
       'packages/api/src',
-      // What the API's route schemas import (`dependencies` of packages/api, and the email package it uses).
+      // What the API's route schemas import (`dependencies` of packages/api, the email package it uses, and the
+      // locales and trainer words of i18n that feed the spec's enums).
       'packages/domain/src',
+      'packages/i18n/src',
       'packages/database/src',
       'packages/observability/src',
       'packages/email/src',

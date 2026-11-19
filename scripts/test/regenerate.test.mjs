@@ -163,6 +163,7 @@ beforeEach(() => {
   write('packages/i18n/nl-NL.json', spread(BASE_KEYS));
   write('packages/api/src/routes/example.ts', spread(BASE_KEYS));
   write('packages/domain/src/schema.ts', spread(BASE_KEYS));
+  write('packages/i18n/src/locales.ts', spread(BASE_KEYS));
   write('packages/design-tokens/tokens/color.light.json', spread(BASE_KEYS));
   write('README.md', 'base\n');
   regenerateAll();
@@ -320,6 +321,52 @@ describe('regenerate.mjs', () => {
     assert.equal(result.status, 1);
     assert.match(result.stderr, /packages\/domain\/src\/schema\.ts/);
     assert.deepEqual(pnpmCalls(), []);
+  });
+
+  it('refuses a conflict in the i18n source the API schemas import at runtime', () => {
+    diverge({
+      own: () => edit('packages/i18n/src/locales.ts', 'm', 'own'),
+      main: () => edit('packages/i18n/src/locales.ts', 'm', 'main'),
+    });
+    gitTry('merge', 'main');
+
+    const result = run();
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /packages\/i18n\/src\/locales\.ts/);
+    assert.deepEqual(pnpmCalls(), []);
+  });
+
+  it('regenerates the contract when a merge brings a change in the i18n source the API imports', () => {
+    diverge({
+      own: () => edit(ROUTE, 'a', 'own route'),
+      main: () => edit('packages/i18n/src/locales.ts', 'z', 'main words'),
+    });
+    gitTry('merge', '--no-commit', '--no-ff', 'main');
+
+    const result = run();
+
+    assert.equal(result.status, 0, result.stderr + result.stdout);
+    assert.ok(pnpmCalls().includes('generate:contract'));
+    assert.match(result.stdout, /Regenerated and staged: contract\b/);
+  });
+
+  it('does not count files that were unstaged or untracked before the run as left behind', () => {
+    diverge({
+      own: () => edit(ROUTE, 'a', 'own route'),
+      main: () => edit(ROUTE, 'z', 'main route'),
+    });
+    gitTry('merge', 'main');
+    write('README.md', 'edited, not staged\n');
+    write('notes.txt', 'untracked\n');
+
+    const result = run();
+
+    assert.equal(result.status, 0, result.stderr + result.stdout);
+    assert.ok(!staged().includes('README.md'));
+    assert.ok(!staged().includes('notes.txt'));
+    assert.match(git('status', '--porcelain'), /^ M README\.md$/m);
+    assert.match(git('status', '--porcelain'), /^\?\? notes\.txt$/m);
   });
 
   it('regenerates a conflicted openapi.json from the resolved routes and stages it with the clients', () => {
