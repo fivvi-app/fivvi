@@ -131,6 +131,8 @@ describe('the versioned GitHub settings', () => {
         timeout('ios'),
       timeout('android-tests') + timeout('android'),
       timeout('android-build') + timeout('android-maestro') + timeout('android'),
+      // Checks (Linux) needs no other job and runs beside the native chain (#1490: 25 minutes).
+      timeout('checks'),
     );
     assert.ok(
       queue.parameters.check_response_timeout_minutes > timeout('changes') + longestNative,

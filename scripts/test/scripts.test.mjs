@@ -1186,6 +1186,23 @@ describe('E002 #91 the native jobs in ci.yml', () => {
     assert.ok(waitNative > chain, 'pr.sh wait outlasts the Android chain by timeouts');
   });
 
+  it('E002 #1490 AC2: pr.sh wait outlasts Checks (Linux) in a run with no native job, and the queue timeout outlasts it', () => {
+    // Checks (Linux) needs no other job, so its own timeout is its whole chain; a Linux-only run waits WAIT_MINUTES.
+    const workflow = readFileSync(join(SCRIPTS, '../.github/workflows/ci.yml'), 'utf8');
+    const checks = Number(
+      workflow.slice(workflow.indexOf('\n  checks:\n')).match(/^ {4}timeout-minutes: (\d+)$/m)[1],
+    );
+    const queue = Number(
+      readFileSync(join(SCRIPTS, '../.github/rulesets/main.json'), 'utf8').match(
+        /"check_response_timeout_minutes": (\d+)/,
+      )[1],
+    );
+    const pr = readFileSync(join(SCRIPTS, 'pr.sh'), 'utf8');
+    const wait = Number(pr.match(/^WAIT_MINUTES=(\d+)$/m)[1]);
+    assert.ok(wait > checks, `pr.sh wait (${wait}) outlasts Checks (Linux) (${checks})`);
+    assert.ok(queue > checks, 'the queue timeout outlasts Checks (Linux)');
+  });
+
   it('#293: the debug app and the Maestro web server agree on the port the app has baked in', () => {
     const port = (section) => section.match(/^ {6}E2E_PORT: '(\d+)'$/m)?.[1];
     assert.ok(port(androidBuild), 'Android build sets E2E_PORT');
