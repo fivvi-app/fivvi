@@ -710,7 +710,9 @@
       "minimumTerm": "minimaal {duration}",
       "pricePerMonth": "{amount} per maand",
       "pricePerFourWeeks": "{amount} per 4 weken",
-      "singleClass": "1 groepsles"
+      "singleClass": "1 groepsles",
+      "deletedClass": "{name} (verwijderd)",
+      "deletedClassUnnamed": "Verwijderde les"
     },
     "cancellation": {
       "upTo": "{count, plural, one {Je kunt tot # uur van tevoren gratis annuleren.} other {Je kunt tot # uur van tevoren gratis annuleren.}}",

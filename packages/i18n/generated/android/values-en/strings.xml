@@ -338,6 +338,8 @@
         <item quantity="one">%1$d day</item>
         <item quantity="other">%1$d days</item>
     </plurals>
+    <string name="offers_summary_deleted_class">%1$s (deleted)</string>
+    <string name="offers_summary_deleted_class_unnamed">Deleted class</string>
     <plurals name="offers_summary_group_credits">
         <item quantity="one">%1$d group credit</item>
         <item quantity="other">%1$d group credits</item>

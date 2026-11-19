@@ -710,7 +710,9 @@
       "minimumTerm": "minimum {duration}",
       "pricePerMonth": "{amount} a month",
       "pricePerFourWeeks": "{amount} every 4 weeks",
-      "singleClass": "1 group class"
+      "singleClass": "1 group class",
+      "deletedClass": "{name} (deleted)",
+      "deletedClassUnnamed": "Deleted class"
     },
     "cancellation": {
       "upTo": "{count, plural, one {You can cancel free of charge up to # hour before.} other {You can cancel free of charge up to # hours before.}}",

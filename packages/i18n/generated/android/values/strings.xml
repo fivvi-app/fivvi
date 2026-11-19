@@ -392,6 +392,10 @@
         <item quantity="one">%1$d dag</item>
         <item quantity="other">%1$d dagen</item>
     </plurals>
+    <!-- A class an offer is limited to that was deleted later, still named on the offer's version. {name} is the class's name. -->
+    <string name="offers_summary_deleted_class">%1$s (verwijderd)</string>
+    <!-- A class an offer is limited to that was deleted with its name; the class is listed without a name. -->
+    <string name="offers_summary_deleted_class_unnamed">Verwijderde les</string>
     <!-- Part of an offer summary: a number of group credits. -->
     <plurals name="offers_summary_group_credits">
         <item quantity="one">%1$d groepscredit</item>

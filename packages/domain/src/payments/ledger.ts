@@ -1,3 +1,8 @@
+// Module: The payment ledger port (`PaymentLedger`): the payments of one workspace, provider
+//        customers and the append-only status lines. `packages/database` implements it
+//        (`paymentLedger`)
+// Spec: E019 AC5, AC7
+
 import type { PaymentStatus } from './status.ts';
 
 // The payment ledger port (E019, spec #466, AC5–AC7): the payments of one workspace, the

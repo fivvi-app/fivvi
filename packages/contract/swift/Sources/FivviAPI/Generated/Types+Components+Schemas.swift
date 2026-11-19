@@ -202,21 +202,29 @@ extension Components {
                 ///
                 /// - Remark: Generated from `#/components/schemas/ValidationError/IssuesPayload/code`.
                 public var code: Swift.String
+                /// The local date (`YYYY-MM-DD`) the issue is about, when the field alone does not say: the first date of a weekly class whose start the clocks skip (`time_does_not_exist`).
+                ///
+                /// - Remark: Generated from `#/components/schemas/ValidationError/IssuesPayload/date`.
+                public var date: Swift.String?
                 /// Creates a new `IssuesPayloadPayload`.
                 ///
                 /// - Parameters:
                 ///   - path: Dot-separated path of the invalid field.
                 ///   - code: Machine-readable issue code.
+                ///   - date: The local date (`YYYY-MM-DD`) the issue is about, when the field alone does not say: the first date of a weekly class whose start the clocks skip (`time_does_not_exist`).
                 public init(
                     path: Swift.String,
-                    code: Swift.String
+                    code: Swift.String,
+                    date: Swift.String? = nil
                 ) {
                     self.path = path
                     self.code = code
+                    self.date = date
                 }
                 public enum CodingKeys: String, CodingKey {
                     case path
                     case code
+                    case date
                 }
             }
             /// - Remark: Generated from `#/components/schemas/ValidationError/issues`.
@@ -372,6 +380,7 @@ extension Components {
                 case joinLink_view = "join_link.view"
                 case joinLink_renew = "join_link.renew"
                 case accessLog_read = "access_log.read"
+                case commerce_offers_manage = "commerce.offers.manage"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -513,6 +522,7 @@ extension Components {
                 case joinLink_view = "join_link.view"
                 case joinLink_renew = "join_link.renew"
                 case accessLog_read = "access_log.read"
+                case commerce_offers_manage = "commerce.offers.manage"
             }
             /// What the account may do in the workspace, from the permission matrix. The web and the apps show a section or an action only when its capability is listed, never from the role name; the API refuses the rest with `403` anyway.
             ///
@@ -2324,6 +2334,8 @@ extension Components {
             public var trainer: Components.Schemas.SessionTrainer?
             /// - Remark: Generated from `#/components/schemas/Session/groupClass`.
             public var groupClass: Components.Schemas.SessionGroupClass?
+            /// - Remark: Generated from `#/components/schemas/Session/series`.
+            public var series: Components.Schemas.SessionSeries?
             /// The clients in the session, in the order they were added. One for a private session; none for a class date until bookings exist (M5).
             ///
             /// - Remark: Generated from `#/components/schemas/Session/participants`.
@@ -2342,6 +2354,7 @@ extension Components {
             ///   - location:
             ///   - trainer:
             ///   - groupClass:
+            ///   - series:
             ///   - participants: The clients in the session, in the order they were added. One for a private session; none for a class date until bookings exist (M5).
             public init(
                 id: Swift.String,
@@ -2355,6 +2368,7 @@ extension Components {
                 location: Components.Schemas.Location,
                 trainer: Components.Schemas.SessionTrainer? = nil,
                 groupClass: Components.Schemas.SessionGroupClass? = nil,
+                series: Components.Schemas.SessionSeries? = nil,
                 participants: [Components.Schemas.SessionParticipant]
             ) {
                 self.id = id
@@ -2368,6 +2382,7 @@ extension Components {
                 self.location = location
                 self.trainer = trainer
                 self.groupClass = groupClass
+                self.series = series
                 self.participants = participants
             }
             public enum CodingKeys: String, CodingKey {
@@ -2382,6 +2397,7 @@ extension Components {
                 case location
                 case trainer
                 case groupClass
+                case series
                 case participants
             }
         }
@@ -2449,6 +2465,82 @@ extension Components {
                 case id
                 case nameNl
                 case nameEn
+            }
+        }
+        /// The weekly series of a class date (F022); left out for a date on its own.
+        ///
+        /// - Remark: Generated from `#/components/schemas/SessionSeries`.
+        public struct SessionSeries: Codable, Hashable, Sendable {
+            /// The series ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionSeries/id`.
+            public var id: Swift.String
+            /// The weekday of the weekly rule, as RRULE writes it: `TU` is every Tuesday.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionSeries/weekday`.
+            @frozen public enum WeekdayPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case mo = "MO"
+                case tu = "TU"
+                case we = "WE"
+                case th = "TH"
+                case fr = "FR"
+                case sa = "SA"
+                case su = "SU"
+            }
+            /// The weekday of the weekly rule, as RRULE writes it: `TU` is every Tuesday.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionSeries/weekday`.
+            public var weekday: Components.Schemas.SessionSeries.WeekdayPayload
+            /// The series’ start on the wall clock of the workspace’s time zone: `HH:mm`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionSeries/localStartTime`.
+            public var localStartTime: Swift.String
+            /// The local date in the series’ rule this date stands for: `YYYY-MM-DD`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionSeries/occurrenceDate`.
+            public var occurrenceDate: Swift.String
+            /// - Remark: Generated from `#/components/schemas/SessionSeries/ChangedFieldsPayload`.
+            @frozen public enum ChangedFieldsPayloadPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case time = "time"
+                case trainer = "trainer"
+                case capacity = "capacity"
+                case location = "location"
+            }
+            /// What was changed on this date alone (CO-01: *Aangepast t.o.v. de reeks*); empty when the date follows its series. A change of the series from an earlier date leaves these dates as they are.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionSeries/changedFields`.
+            public typealias ChangedFieldsPayload = [Components.Schemas.SessionSeries.ChangedFieldsPayloadPayload]
+            /// What was changed on this date alone (CO-01: *Aangepast t.o.v. de reeks*); empty when the date follows its series. A change of the series from an earlier date leaves these dates as they are.
+            ///
+            /// - Remark: Generated from `#/components/schemas/SessionSeries/changedFields`.
+            public var changedFields: Components.Schemas.SessionSeries.ChangedFieldsPayload
+            /// Creates a new `SessionSeries`.
+            ///
+            /// - Parameters:
+            ///   - id: The series ID.
+            ///   - weekday: The weekday of the weekly rule, as RRULE writes it: `TU` is every Tuesday.
+            ///   - localStartTime: The series’ start on the wall clock of the workspace’s time zone: `HH:mm`.
+            ///   - occurrenceDate: The local date in the series’ rule this date stands for: `YYYY-MM-DD`.
+            ///   - changedFields: What was changed on this date alone (CO-01: *Aangepast t.o.v. de reeks*); empty when the date follows its series. A change of the series from an earlier date leaves these dates as they are.
+            public init(
+                id: Swift.String,
+                weekday: Components.Schemas.SessionSeries.WeekdayPayload,
+                localStartTime: Swift.String,
+                occurrenceDate: Swift.String,
+                changedFields: Components.Schemas.SessionSeries.ChangedFieldsPayload
+            ) {
+                self.id = id
+                self.weekday = weekday
+                self.localStartTime = localStartTime
+                self.occurrenceDate = occurrenceDate
+                self.changedFields = changedFields
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case weekday
+                case localStartTime
+                case occurrenceDate
+                case changedFields
             }
         }
         /// A client’s place in a session.
@@ -2966,21 +3058,29 @@ extension Components {
             }
             /// - Remark: Generated from `#/components/schemas/CreatedGroupClass/firstDate`.
             public var firstDate: Components.Schemas.CreatedGroupClass.FirstDatePayload?
+            /// How many dates the class got: 12 when the `firstDate` repeats weekly (“12 groepslessen toegevoegd”); left out otherwise.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreatedGroupClass/datesAdded`.
+            public var datesAdded: Swift.Int?
             /// Creates a new `CreatedGroupClass`.
             ///
             /// - Parameters:
             ///   - groupClass:
             ///   - firstDate:
+            ///   - datesAdded: How many dates the class got: 12 when the `firstDate` repeats weekly (“12 groepslessen toegevoegd”); left out otherwise.
             public init(
                 groupClass: Components.Schemas.GroupClass,
-                firstDate: Components.Schemas.CreatedGroupClass.FirstDatePayload? = nil
+                firstDate: Components.Schemas.CreatedGroupClass.FirstDatePayload? = nil,
+                datesAdded: Swift.Int? = nil
             ) {
                 self.groupClass = groupClass
                 self.firstDate = firstDate
+                self.datesAdded = datesAdded
             }
             public enum CodingKeys: String, CodingKey {
                 case groupClass
                 case firstDate
+                case datesAdded
             }
         }
         /// A class to create: the Dutch name, optionally an English one, descriptions, the usual trainer, capacity and duration, and optionally its first date.
@@ -3085,21 +3185,36 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/FirstGroupClassDate/localStart`.
             public var localStart: Swift.String
+            /// *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FirstGroupClassDate/repeat`.
+            @frozen public enum RepeatPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case none = "none"
+                case weekly = "weekly"
+            }
+            /// *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
+            ///
+            /// - Remark: Generated from `#/components/schemas/FirstGroupClassDate/repeat`.
+            public var _repeat: Components.Schemas.FirstGroupClassDate.RepeatPayload?
             /// Creates a new `FirstGroupClassDate`.
             ///
             /// - Parameters:
             ///   - localDate: The date in the workspace’s time zone: `YYYY-MM-DD`.
             ///   - localStart: The start in the workspace’s time zone: `HH:mm`, 24 hours.
+            ///   - _repeat: *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
             public init(
                 localDate: Swift.String,
-                localStart: Swift.String
+                localStart: Swift.String,
+                _repeat: Components.Schemas.FirstGroupClassDate.RepeatPayload? = nil
             ) {
                 self.localDate = localDate
                 self.localStart = localStart
+                self._repeat = _repeat
             }
             public enum CodingKeys: String, CodingKey {
                 case localDate
                 case localStart
+                case _repeat = "repeat"
             }
         }
         /// Changes a class: every field left out stays as it is. Dates already planned keep their own trainer, capacity and times (they were copied when they were planned). Other fields are ignored.
@@ -3171,6 +3286,52 @@ extension Components {
                 case durationMinutes
             }
         }
+        /// The class date that was scheduled, with how many dates a weekly repeat made.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ScheduledClassDate`.
+        public struct ScheduledClassDate: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/ScheduledClassDate/value1`.
+            public var value1: Components.Schemas.Session
+            /// - Remark: Generated from `#/components/schemas/ScheduledClassDate/value2`.
+            public struct Value2Payload: Codable, Hashable, Sendable {
+                /// How many dates the request made: 12 for a weekly repeat (“12 groepslessen toegevoegd”); left out for one date. The session is the first of them.
+                ///
+                /// - Remark: Generated from `#/components/schemas/ScheduledClassDate/value2/datesAdded`.
+                public var datesAdded: Swift.Int?
+                /// Creates a new `Value2Payload`.
+                ///
+                /// - Parameters:
+                ///   - datesAdded: How many dates the request made: 12 for a weekly repeat (“12 groepslessen toegevoegd”); left out for one date. The session is the first of them.
+                public init(datesAdded: Swift.Int? = nil) {
+                    self.datesAdded = datesAdded
+                }
+                public enum CodingKeys: String, CodingKey {
+                    case datesAdded
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/ScheduledClassDate/value2`.
+            public var value2: Components.Schemas.ScheduledClassDate.Value2Payload
+            /// Creates a new `ScheduledClassDate`.
+            ///
+            /// - Parameters:
+            ///   - value1:
+            ///   - value2:
+            public init(
+                value1: Components.Schemas.Session,
+                value2: Components.Schemas.ScheduledClassDate.Value2Payload
+            ) {
+                self.value1 = value1
+                self.value2 = value2
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                self.value1 = try .init(from: decoder)
+                self.value2 = try .init(from: decoder)
+            }
+            public func encode(to encoder: any Swift.Encoder) throws {
+                try self.value1.encode(to: encoder)
+                try self.value2.encode(to: encoder)
+            }
+        }
         /// A class on a date: a local date and start; the end follows from the class’s duration.
         ///
         /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest`.
@@ -3191,14 +3352,25 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/capacity`.
             public var capacity: Swift.Int?
-            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            /// *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/repeat`.
+            @frozen public enum RepeatPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case none = "none"
+                case weekly = "weekly"
+            }
+            /// *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/repeat`.
+            public var _repeat: Components.Schemas.ScheduleGroupClassDateRequest.RepeatPayload?
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event (and `class_series_created` for a weekly repeat) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             ///
             /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/surface`.
             @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
                 case ios = "ios"
                 case android = "android"
             }
-            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event (and `class_series_created` for a weekly repeat) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             ///
             /// - Remark: Generated from `#/components/schemas/ScheduleGroupClassDateRequest/surface`.
             public var surface: Components.Schemas.ScheduleGroupClassDateRequest.SurfacePayload?
@@ -3209,18 +3381,21 @@ extension Components {
             ///   - localStart: The start in the workspace’s time zone: `HH:mm`, 24 hours. A time the clocks skip (02:30 on 28 March 2027) answers `400` on `localStart` with the code `time_does_not_exist`; a time they repeat (02:30 on 25 October 2026) takes the first.
             ///   - trainerId: The trainer of this date, a team-member ID from `GET …/trainers`. Leave it out for the class’s usual trainer; `null` plans the date as *Trainer nodig*.
             ///   - capacity: The capacity of this date, 1 to 100. Leave it out for the class’s.
-            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///   - _repeat: *Herhalen* / *Repeat* (F022): `none` (the default) puts the class on this date only; `weekly` makes a weekly series on the weekday of `localDate`, at `localStart`, and puts its next 12 weeks in the calendar (this date and 11 more, kept 12 weeks ahead by the daily task). A date before today answers `400` on `localDate` (`date_in_past`); a start the clocks skip on one of the 12 dates answers `400` on `localStart` with the code `time_does_not_exist` and that `date`, and nothing is created.
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_scheduled` event (and `class_series_created` for a weekly repeat) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             public init(
                 localDate: Swift.String,
                 localStart: Swift.String,
                 trainerId: Swift.String? = nil,
                 capacity: Swift.Int? = nil,
+                _repeat: Components.Schemas.ScheduleGroupClassDateRequest.RepeatPayload? = nil,
                 surface: Components.Schemas.ScheduleGroupClassDateRequest.SurfacePayload? = nil
             ) {
                 self.localDate = localDate
                 self.localStart = localStart
                 self.trainerId = trainerId
                 self.capacity = capacity
+                self._repeat = _repeat
                 self.surface = surface
             }
             public enum CodingKeys: String, CodingKey {
@@ -3228,7 +3403,210 @@ extension Components {
                 case localStart
                 case trainerId
                 case capacity
+                case _repeat = "repeat"
                 case surface
+            }
+        }
+        /// A weekly series of a class: “Every Tuesday 18:00–19:00 · Sarah · 8 spots, from 6 October”. Its dates are class dates (`Session`) with a `series`.
+        ///
+        /// - Remark: Generated from `#/components/schemas/ClassSeries`.
+        public struct ClassSeries: Codable, Hashable, Sendable {
+            /// The series ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/id`.
+            public var id: Swift.String
+            /// The class the series is of.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/groupClassId`.
+            public var groupClassId: Swift.String
+            /// The weekly rule: `FREQ=WEEKLY;BYDAY=XX`, one weekday (M4 knows no other).
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/rrule`.
+            public var rrule: Swift.String
+            /// The weekday of the rule: `TU` is every Tuesday.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/weekday`.
+            @frozen public enum WeekdayPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case mo = "MO"
+                case tu = "TU"
+                case we = "WE"
+                case th = "TH"
+                case fr = "FR"
+                case sa = "SA"
+                case su = "SU"
+            }
+            /// The weekday of the rule: `TU` is every Tuesday.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/weekday`.
+            public var weekday: Components.Schemas.ClassSeries.WeekdayPayload
+            /// The start on the wall clock of `timeZone`: `HH:mm`. It stays so across daylight saving time.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/localStartTime`.
+            public var localStartTime: Swift.String
+            /// How long each date lasts.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/durationMinutes`.
+            public var durationMinutes: Swift.Int
+            /// The IANA time zone the rule is read in.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/timeZone`.
+            public var timeZone: Swift.String
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/trainer`.
+            public struct TrainerPayload: Codable, Hashable, Sendable {
+                /// - Remark: Generated from `#/components/schemas/ClassSeries/trainer/value1`.
+                public var value1: Components.Schemas.SessionTrainer
+                /// The usual trainer of its dates. Left out for *Trainer nodig*.
+                ///
+                /// - Remark: Generated from `#/components/schemas/ClassSeries/trainer/value2`.
+                public var value2: OpenAPIRuntime.OpenAPIValueContainer
+                /// Creates a new `TrainerPayload`.
+                ///
+                /// - Parameters:
+                ///   - value1:
+                ///   - value2: The usual trainer of its dates. Left out for *Trainer nodig*.
+                public init(
+                    value1: Components.Schemas.SessionTrainer,
+                    value2: OpenAPIRuntime.OpenAPIValueContainer
+                ) {
+                    self.value1 = value1
+                    self.value2 = value2
+                }
+                public init(from decoder: any Swift.Decoder) throws {
+                    self.value1 = try .init(from: decoder)
+                    self.value2 = try .init(from: decoder)
+                }
+                public func encode(to encoder: any Swift.Encoder) throws {
+                    try self.value1.encode(to: encoder)
+                    try self.value2.encode(to: encoder)
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/trainer`.
+            public var trainer: Components.Schemas.ClassSeries.TrainerPayload?
+            /// The capacity its dates start with.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/capacity`.
+            public var capacity: Swift.Int
+            /// The first day it may have a date: `YYYY-MM-DD`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/startsOn`.
+            public var startsOn: Swift.String
+            /// The last day it may have a date; left out for a series that runs until it is stopped. A series ends the week before a later series that took over from a date on.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/endsOn`.
+            public var endsOn: Swift.String?
+            /// The last day the calendar was filled to: `YYYY-MM-DD`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/materializedUntil`.
+            public var materializedUntil: Swift.String
+            /// Raised by every change of the series.
+            ///
+            /// - Remark: Generated from `#/components/schemas/ClassSeries/version`.
+            public var version: Swift.Int
+            /// Creates a new `ClassSeries`.
+            ///
+            /// - Parameters:
+            ///   - id: The series ID.
+            ///   - groupClassId: The class the series is of.
+            ///   - rrule: The weekly rule: `FREQ=WEEKLY;BYDAY=XX`, one weekday (M4 knows no other).
+            ///   - weekday: The weekday of the rule: `TU` is every Tuesday.
+            ///   - localStartTime: The start on the wall clock of `timeZone`: `HH:mm`. It stays so across daylight saving time.
+            ///   - durationMinutes: How long each date lasts.
+            ///   - timeZone: The IANA time zone the rule is read in.
+            ///   - trainer:
+            ///   - capacity: The capacity its dates start with.
+            ///   - startsOn: The first day it may have a date: `YYYY-MM-DD`.
+            ///   - endsOn: The last day it may have a date; left out for a series that runs until it is stopped. A series ends the week before a later series that took over from a date on.
+            ///   - materializedUntil: The last day the calendar was filled to: `YYYY-MM-DD`.
+            ///   - version: Raised by every change of the series.
+            public init(
+                id: Swift.String,
+                groupClassId: Swift.String,
+                rrule: Swift.String,
+                weekday: Components.Schemas.ClassSeries.WeekdayPayload,
+                localStartTime: Swift.String,
+                durationMinutes: Swift.Int,
+                timeZone: Swift.String,
+                trainer: Components.Schemas.ClassSeries.TrainerPayload? = nil,
+                capacity: Swift.Int,
+                startsOn: Swift.String,
+                endsOn: Swift.String? = nil,
+                materializedUntil: Swift.String,
+                version: Swift.Int
+            ) {
+                self.id = id
+                self.groupClassId = groupClassId
+                self.rrule = rrule
+                self.weekday = weekday
+                self.localStartTime = localStartTime
+                self.durationMinutes = durationMinutes
+                self.timeZone = timeZone
+                self.trainer = trainer
+                self.capacity = capacity
+                self.startsOn = startsOn
+                self.endsOn = endsOn
+                self.materializedUntil = materializedUntil
+                self.version = version
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case groupClassId
+                case rrule
+                case weekday
+                case localStartTime
+                case durationMinutes
+                case timeZone
+                case trainer
+                case capacity
+                case startsOn
+                case endsOn
+                case materializedUntil
+                case version
+            }
+        }
+        /// The class date with its changes, and how many other dates kept their own.
+        ///
+        /// - Remark: Generated from `#/components/schemas/UpdatedClassDate`.
+        public struct UpdatedClassDate: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/UpdatedClassDate/value1`.
+            public var value1: Components.Schemas.Session
+            /// - Remark: Generated from `#/components/schemas/UpdatedClassDate/value2`.
+            public struct Value2Payload: Codable, Hashable, Sendable {
+                /// With `scope: following`: how many dates from this one on were changed on their own and kept as they are (CO-04). Left out for `scope: this`.
+                ///
+                /// - Remark: Generated from `#/components/schemas/UpdatedClassDate/value2/keptDates`.
+                public var keptDates: Swift.Int?
+                /// Creates a new `Value2Payload`.
+                ///
+                /// - Parameters:
+                ///   - keptDates: With `scope: following`: how many dates from this one on were changed on their own and kept as they are (CO-04). Left out for `scope: this`.
+                public init(keptDates: Swift.Int? = nil) {
+                    self.keptDates = keptDates
+                }
+                public enum CodingKeys: String, CodingKey {
+                    case keptDates
+                }
+            }
+            /// - Remark: Generated from `#/components/schemas/UpdatedClassDate/value2`.
+            public var value2: Components.Schemas.UpdatedClassDate.Value2Payload
+            /// Creates a new `UpdatedClassDate`.
+            ///
+            /// - Parameters:
+            ///   - value1:
+            ///   - value2:
+            public init(
+                value1: Components.Schemas.Session,
+                value2: Components.Schemas.UpdatedClassDate.Value2Payload
+            ) {
+                self.value1 = value1
+                self.value2 = value2
+            }
+            public init(from decoder: any Swift.Decoder) throws {
+                self.value1 = try .init(from: decoder)
+                self.value2 = try .init(from: decoder)
+            }
+            public func encode(to encoder: any Swift.Encoder) throws {
+                try self.value1.encode(to: encoder)
+                try self.value2.encode(to: encoder)
             }
         }
         /// The date was changed since the version in the request; nothing was written. `session` is the date as it is now, to show the reloaded values. Contains no user-facing text.
@@ -3280,6 +3658,28 @@ extension Components {
             ///
             /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/capacity`.
             public var capacity: Swift.Int?
+            /// *Wijzigen voor* / *Apply to* (F022, CO-04): `this` (the default) changes this date only and, for a date of a series, marks what differs (`Session.series.changedFields`). `following` changes the series from this date on: the series is split here (the earlier one ends the week before, a new one starts on this date) and every date from here on takes the new start, length and capacity, except dates that were changed on their own, which stay as they are (`keptDates` says how many). A date that is in no series answers `400` on `scope` (`not_in_series`), and so does a date before today (`date_in_past`: past dates of a series are not changed); a start the clocks skip on one of the dates it would reach, up to the end of the 12 weeks ahead, answers `400` on `localStart` (`time_does_not_exist`) with that `date`, and nothing is changed; a length that is not 15 to 240 minutes in steps of 5 answers `400` on `localEnd` (`invalid_duration`).
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/scope`.
+            @frozen public enum ScopePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case this = "this"
+                case following = "following"
+            }
+            /// *Wijzigen voor* / *Apply to* (F022, CO-04): `this` (the default) changes this date only and, for a date of a series, marks what differs (`Session.series.changedFields`). `following` changes the series from this date on: the series is split here (the earlier one ends the week before, a new one starts on this date) and every date from here on takes the new start, length and capacity, except dates that were changed on their own, which stay as they are (`keptDates` says how many). A date that is in no series answers `400` on `scope` (`not_in_series`), and so does a date before today (`date_in_past`: past dates of a series are not changed); a start the clocks skip on one of the dates it would reach, up to the end of the 12 weeks ahead, answers `400` on `localStart` (`time_does_not_exist`) with that `date`, and nothing is changed; a length that is not 15 to 240 minutes in steps of 5 answers `400` on `localEnd` (`invalid_duration`).
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/scope`.
+            public var scope: Components.Schemas.UpdateGroupClassDateRequest.ScopePayload?
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event (for `scope: following`) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event (for `scope: following`) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateGroupClassDateRequest/surface`.
+            public var surface: Components.Schemas.UpdateGroupClassDateRequest.SurfacePayload?
             /// Creates a new `UpdateGroupClassDateRequest`.
             ///
             /// - Parameters:
@@ -3287,22 +3687,30 @@ extension Components {
             ///   - localStart: The new start, `HH:mm` in the workspace’s time zone. Leave it out to keep it.
             ///   - localEnd: The new end, `HH:mm` on the same day as the start. Leave it out to keep its time of day: a start moved alone does not move the end with it, and one moved to or past the unchanged end is refused like any end. An end that is not after the start answers `400` on `localEnd` with the code `end_before_start`.
             ///   - capacity: The new capacity of this date, 1 to 100. Leave it out to keep it.
+            ///   - scope: *Wijzigen voor* / *Apply to* (F022, CO-04): `this` (the default) changes this date only and, for a date of a series, marks what differs (`Session.series.changedFields`). `following` changes the series from this date on: the series is split here (the earlier one ends the week before, a new one starts on this date) and every date from here on takes the new start, length and capacity, except dates that were changed on their own, which stay as they are (`keptDates` says how many). A date that is in no series answers `400` on `scope` (`not_in_series`), and so does a date before today (`date_in_past`: past dates of a series are not changed); a start the clocks skip on one of the dates it would reach, up to the end of the 12 weeks ahead, answers `400` on `localStart` (`time_does_not_exist`) with that `date`, and nothing is changed; a length that is not 15 to 240 minutes in steps of 5 answers `400` on `localEnd` (`invalid_duration`).
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `class_series_changed` event (for `scope: following`) with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
             public init(
                 version: Swift.Int,
                 localStart: Swift.String? = nil,
                 localEnd: Swift.String? = nil,
-                capacity: Swift.Int? = nil
+                capacity: Swift.Int? = nil,
+                scope: Components.Schemas.UpdateGroupClassDateRequest.ScopePayload? = nil,
+                surface: Components.Schemas.UpdateGroupClassDateRequest.SurfacePayload? = nil
             ) {
                 self.version = version
                 self.localStart = localStart
                 self.localEnd = localEnd
                 self.capacity = capacity
+                self.scope = scope
+                self.surface = surface
             }
             public enum CodingKeys: String, CodingKey {
                 case version
                 case localStart
                 case localEnd
                 case capacity
+                case scope
+                case surface
             }
         }
         /// The join link (*aanmeldlink*) of a workspace: where a new client asks to become a client.
@@ -3710,6 +4118,868 @@ extension Components {
                 case clientName
                 case clientRemoved
                 case objectId
+            }
+        }
+        /// An offer of the workspace with its current version. A saved change is a new version; the versions before it stay as they were.
+        ///
+        /// - Remark: Generated from `#/components/schemas/Offer`.
+        public struct Offer: Codable, Hashable, Sendable {
+            /// The offer ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Offer/id`.
+            public var id: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Offer/kind`.
+            public var kind: Components.Schemas.OfferKind
+            /// - Remark: Generated from `#/components/schemas/Offer/creditKind`.
+            public var creditKind: Components.Schemas.OfferCreditKind?
+            /// - Remark: Generated from `#/components/schemas/Offer/status`.
+            public var status: Components.Schemas.OfferStatus
+            /// `default` for a copy of one of Fivvi’s default plans, `owner` for the rest.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Offer/origin`.
+            @frozen public enum OriginPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case _default = "default"
+                case owner = "owner"
+            }
+            /// `default` for a copy of one of Fivvi’s default plans, `owner` for the rest.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Offer/origin`.
+            public var origin: Components.Schemas.Offer.OriginPayload
+            /// How many agreements run on the offer: 0 until agreements exist (F057).
+            ///
+            /// - Remark: Generated from `#/components/schemas/Offer/runningAgreements`.
+            public var runningAgreements: Swift.Int
+            /// The one-line summary in the caller’s language, e.g. "2 lessen per week · 6 maanden · € 79,00 per maand". Without a price the amount is left out.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Offer/summary`.
+            public var summary: Swift.String
+            /// The cancellation rule as clients read it, in the caller’s language.
+            ///
+            /// - Remark: Generated from `#/components/schemas/Offer/cancellation`.
+            public var cancellation: Swift.String
+            /// - Remark: Generated from `#/components/schemas/Offer/currentVersion`.
+            public var currentVersion: Components.Schemas.OfferVersion
+            /// Creates a new `Offer`.
+            ///
+            /// - Parameters:
+            ///   - id: The offer ID.
+            ///   - kind:
+            ///   - creditKind:
+            ///   - status:
+            ///   - origin: `default` for a copy of one of Fivvi’s default plans, `owner` for the rest.
+            ///   - runningAgreements: How many agreements run on the offer: 0 until agreements exist (F057).
+            ///   - summary: The one-line summary in the caller’s language, e.g. "2 lessen per week · 6 maanden · € 79,00 per maand". Without a price the amount is left out.
+            ///   - cancellation: The cancellation rule as clients read it, in the caller’s language.
+            ///   - currentVersion:
+            public init(
+                id: Swift.String,
+                kind: Components.Schemas.OfferKind,
+                creditKind: Components.Schemas.OfferCreditKind? = nil,
+                status: Components.Schemas.OfferStatus,
+                origin: Components.Schemas.Offer.OriginPayload,
+                runningAgreements: Swift.Int,
+                summary: Swift.String,
+                cancellation: Swift.String,
+                currentVersion: Components.Schemas.OfferVersion
+            ) {
+                self.id = id
+                self.kind = kind
+                self.creditKind = creditKind
+                self.status = status
+                self.origin = origin
+                self.runningAgreements = runningAgreements
+                self.summary = summary
+                self.cancellation = cancellation
+                self.currentVersion = currentVersion
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case kind
+                case creditKind
+                case status
+                case origin
+                case runningAgreements
+                case summary
+                case cancellation
+                case currentVersion
+            }
+        }
+        /// The kind of offer: `membership`, `credit_pack`, `credit_plan` or `single_class_pass`. There is no fifth kind, and it never changes once the offer exists.
+        ///
+        /// - Remark: Generated from `#/components/schemas/OfferKind`.
+        @frozen public enum OfferKind: String, Codable, Hashable, Sendable, CaseIterable {
+            case membership = "membership"
+            case creditPack = "credit_pack"
+            case creditPlan = "credit_plan"
+            case singleClassPass = "single_class_pass"
+        }
+        /// For a credit pack or credit plan; `null` otherwise.
+        ///
+        /// - Remark: Generated from `#/components/schemas/OfferCreditKind`.
+        @frozen public enum OfferCreditKind: String, Codable, Hashable, Sendable, CaseIterable {
+            case group = "group"
+            case _private = "private"
+            case _empty_ = ""
+        }
+        /// `off` is not for sale, `on` is, `archived` is a deleted offer whose agreements still run.
+        ///
+        /// - Remark: Generated from `#/components/schemas/OfferStatus`.
+        @frozen public enum OfferStatus: String, Codable, Hashable, Sendable, CaseIterable {
+            case off = "off"
+            case on = "on"
+            case archived = "archived"
+        }
+        /// The terms of an offer as of one saved change. Never changes once stored: an agreement keeps the version it started on.
+        ///
+        /// - Remark: Generated from `#/components/schemas/OfferVersion`.
+        public struct OfferVersion: Codable, Hashable, Sendable {
+            /// The version ID: what an agreement points at.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/id`.
+            public var id: Swift.String
+            /// The version number: 1 for the first, one more for every saved change.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/version`.
+            public var version: Swift.Int
+            /// The Dutch name: always there.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/nameNl`.
+            public var nameNl: Swift.String
+            /// The English name, or `null`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/nameEn`.
+            public var nameEn: Swift.String?
+            /// The Dutch description.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/descriptionNl`.
+            public var descriptionNl: Swift.String?
+            /// The English description.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/descriptionEn`.
+            public var descriptionEn: Swift.String?
+            /// The price including VAT in euro cents, 1 to 1,000,000; `null` until the owner sets it (a default plan).
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/priceCents`.
+            public var priceCents: Swift.Int?
+            /// The VAT rate in basis points: 2100 or 900; `null` until chosen. Never 0.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/vatRateBasisPoints`.
+            public var vatRateBasisPoints: Swift.Int?
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/billingCycle`.
+            public var billingCycle: Components.Schemas.OfferBillingCycle?
+            /// A membership’s term.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/termMonths`.
+            public var termMonths: Swift.Int?
+            /// A credit plan’s minimum term in months.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/minimumTermMonths`.
+            public var minimumTermMonths: Swift.Int?
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/endOfTerm`.
+            public var endOfTerm: Components.Schemas.OfferEndOfTerm?
+            /// A membership’s classes.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/classesPerWeek`.
+            public var classesPerWeek: Swift.Int?
+            /// Credits of a pack, or credits per billing cycle of a plan.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/credits`.
+            public var credits: Swift.Int?
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/validity`.
+            public var validity: Components.Schemas.OfferValidity?
+            /// The most credits a credit plan carries over to the next cycle.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/carryOverLimit`.
+            public var carryOverLimit: Swift.Int?
+            /// A credit pack a client buys once.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/oncePerClient`.
+            public var oncePerClient: Swift.Bool
+            /// Sold only to clients with a membership.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/membersOnly`.
+            public var membersOnly: Swift.Bool
+            /// Minutes before the start up to which a client cancels for free: whole hours.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/cutoffMinutes`.
+            public var cutoffMinutes: Swift.Int
+            /// A membership’s makeups.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/makeupsPerMonth`.
+            public var makeupsPerMonth: Swift.Int?
+            /// The most credits that come back a month on a timely cancellation; `null`: all.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/returnsPerMonth`.
+            public var returnsPerMonth: Swift.Int?
+            /// The classes the version is limited to; `null`: all group classes.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/coveredClasses`.
+            public var coveredClasses: [Components.Schemas.OfferCoveredClass]?
+            /// Days before the end that renewing is suggested and the client is reminded.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/renewalWindowDays`.
+            public var renewalWindowDays: Swift.Int?
+            /// When the version was saved, a UTC instant.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferVersion/createdAt`.
+            public var createdAt: Foundation.Date
+            /// Creates a new `OfferVersion`.
+            ///
+            /// - Parameters:
+            ///   - id: The version ID: what an agreement points at.
+            ///   - version: The version number: 1 for the first, one more for every saved change.
+            ///   - nameNl: The Dutch name: always there.
+            ///   - nameEn: The English name, or `null`.
+            ///   - descriptionNl: The Dutch description.
+            ///   - descriptionEn: The English description.
+            ///   - priceCents: The price including VAT in euro cents, 1 to 1,000,000; `null` until the owner sets it (a default plan).
+            ///   - vatRateBasisPoints: The VAT rate in basis points: 2100 or 900; `null` until chosen. Never 0.
+            ///   - billingCycle:
+            ///   - termMonths: A membership’s term.
+            ///   - minimumTermMonths: A credit plan’s minimum term in months.
+            ///   - endOfTerm:
+            ///   - classesPerWeek: A membership’s classes.
+            ///   - credits: Credits of a pack, or credits per billing cycle of a plan.
+            ///   - validity:
+            ///   - carryOverLimit: The most credits a credit plan carries over to the next cycle.
+            ///   - oncePerClient: A credit pack a client buys once.
+            ///   - membersOnly: Sold only to clients with a membership.
+            ///   - cutoffMinutes: Minutes before the start up to which a client cancels for free: whole hours.
+            ///   - makeupsPerMonth: A membership’s makeups.
+            ///   - returnsPerMonth: The most credits that come back a month on a timely cancellation; `null`: all.
+            ///   - coveredClasses: The classes the version is limited to; `null`: all group classes.
+            ///   - renewalWindowDays: Days before the end that renewing is suggested and the client is reminded.
+            ///   - createdAt: When the version was saved, a UTC instant.
+            public init(
+                id: Swift.String,
+                version: Swift.Int,
+                nameNl: Swift.String,
+                nameEn: Swift.String? = nil,
+                descriptionNl: Swift.String? = nil,
+                descriptionEn: Swift.String? = nil,
+                priceCents: Swift.Int? = nil,
+                vatRateBasisPoints: Swift.Int? = nil,
+                billingCycle: Components.Schemas.OfferBillingCycle? = nil,
+                termMonths: Swift.Int? = nil,
+                minimumTermMonths: Swift.Int? = nil,
+                endOfTerm: Components.Schemas.OfferEndOfTerm? = nil,
+                classesPerWeek: Swift.Int? = nil,
+                credits: Swift.Int? = nil,
+                validity: Components.Schemas.OfferValidity? = nil,
+                carryOverLimit: Swift.Int? = nil,
+                oncePerClient: Swift.Bool,
+                membersOnly: Swift.Bool,
+                cutoffMinutes: Swift.Int,
+                makeupsPerMonth: Swift.Int? = nil,
+                returnsPerMonth: Swift.Int? = nil,
+                coveredClasses: [Components.Schemas.OfferCoveredClass]? = nil,
+                renewalWindowDays: Swift.Int? = nil,
+                createdAt: Foundation.Date
+            ) {
+                self.id = id
+                self.version = version
+                self.nameNl = nameNl
+                self.nameEn = nameEn
+                self.descriptionNl = descriptionNl
+                self.descriptionEn = descriptionEn
+                self.priceCents = priceCents
+                self.vatRateBasisPoints = vatRateBasisPoints
+                self.billingCycle = billingCycle
+                self.termMonths = termMonths
+                self.minimumTermMonths = minimumTermMonths
+                self.endOfTerm = endOfTerm
+                self.classesPerWeek = classesPerWeek
+                self.credits = credits
+                self.validity = validity
+                self.carryOverLimit = carryOverLimit
+                self.oncePerClient = oncePerClient
+                self.membersOnly = membersOnly
+                self.cutoffMinutes = cutoffMinutes
+                self.makeupsPerMonth = makeupsPerMonth
+                self.returnsPerMonth = returnsPerMonth
+                self.coveredClasses = coveredClasses
+                self.renewalWindowDays = renewalWindowDays
+                self.createdAt = createdAt
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case version
+                case nameNl
+                case nameEn
+                case descriptionNl
+                case descriptionEn
+                case priceCents
+                case vatRateBasisPoints
+                case billingCycle
+                case termMonths
+                case minimumTermMonths
+                case endOfTerm
+                case classesPerWeek
+                case credits
+                case validity
+                case carryOverLimit
+                case oncePerClient
+                case membersOnly
+                case cutoffMinutes
+                case makeupsPerMonth
+                case returnsPerMonth
+                case coveredClasses
+                case renewalWindowDays
+                case createdAt
+            }
+        }
+        /// How often a recurring offer is billed: every `month` or every `four_weeks`.
+        ///
+        /// - Remark: Generated from `#/components/schemas/OfferBillingCycle`.
+        @frozen public enum OfferBillingCycle: String, Codable, Hashable, Sendable, CaseIterable {
+            case month = "month"
+            case fourWeeks = "four_weeks"
+            case _empty_ = ""
+        }
+        /// What happens when a term ends: the agreement `stop`s, or `continue`s per billing cycle until notice.
+        ///
+        /// - Remark: Generated from `#/components/schemas/OfferEndOfTerm`.
+        @frozen public enum OfferEndOfTerm: String, Codable, Hashable, Sendable, CaseIterable {
+            case stop = "stop"
+            case _continue = "continue"
+            case _empty_ = ""
+        }
+        /// How long a credit pack is good for.
+        ///
+        /// - Remark: Generated from `#/components/schemas/OfferValidity`.
+        public struct OfferValidity: Codable, Hashable, Sendable {
+            /// How many units, at least 1.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferValidity/amount`.
+            public var amount: Swift.Int
+            /// `day`, `week` or `month`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferValidity/unit`.
+            @frozen public enum UnitPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case day = "day"
+                case week = "week"
+                case month = "month"
+            }
+            /// `day`, `week` or `month`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferValidity/unit`.
+            public var unit: Components.Schemas.OfferValidity.UnitPayload
+            /// Creates a new `OfferValidity`.
+            ///
+            /// - Parameters:
+            ///   - amount: How many units, at least 1.
+            ///   - unit: `day`, `week` or `month`.
+            public init(
+                amount: Swift.Int,
+                unit: Components.Schemas.OfferValidity.UnitPayload
+            ) {
+                self.amount = amount
+                self.unit = unit
+            }
+            public enum CodingKeys: String, CodingKey {
+                case amount
+                case unit
+            }
+        }
+        /// A group class an offer version is limited to.
+        ///
+        /// - Remark: Generated from `#/components/schemas/OfferCoveredClass`.
+        public struct OfferCoveredClass: Codable, Hashable, Sendable {
+            /// The class ID.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferCoveredClass/id`.
+            public var id: Swift.String
+            /// The class’s name in the caller’s language (the English name when the caller reads English and there is one, else the Dutch). `null` for a class that was removed with its name.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferCoveredClass/name`.
+            public var name: Swift.String?
+            /// Whether the class is gone since this version was saved.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferCoveredClass/deleted`.
+            public var deleted: Swift.Bool
+            /// How the class is listed in the caller’s language: its name, with "(verwijderd)" / "(deleted)" after it when it is gone.
+            ///
+            /// - Remark: Generated from `#/components/schemas/OfferCoveredClass/label`.
+            public var label: Swift.String
+            /// Creates a new `OfferCoveredClass`.
+            ///
+            /// - Parameters:
+            ///   - id: The class ID.
+            ///   - name: The class’s name in the caller’s language (the English name when the caller reads English and there is one, else the Dutch). `null` for a class that was removed with its name.
+            ///   - deleted: Whether the class is gone since this version was saved.
+            ///   - label: How the class is listed in the caller’s language: its name, with "(verwijderd)" / "(deleted)" after it when it is gone.
+            public init(
+                id: Swift.String,
+                name: Swift.String? = nil,
+                deleted: Swift.Bool,
+                label: Swift.String
+            ) {
+                self.id = id
+                self.name = name
+                self.deleted = deleted
+                self.label = label
+            }
+            public enum CodingKeys: String, CodingKey {
+                case id
+                case name
+                case deleted
+                case label
+            }
+        }
+        /// A new offer: its kind, for credits the credit kind, and the fields of its first version. It starts switched off.
+        ///
+        /// - Remark: Generated from `#/components/schemas/CreateOfferRequest`.
+        public struct CreateOfferRequest: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/kind`.
+            public var kind: Components.Schemas.OfferKind
+            /// Required for a credit pack and a credit plan; refused for the other kinds.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/creditKind`.
+            @frozen public enum CreditKindPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case group = "group"
+                case _private = "private"
+                case _empty_ = ""
+            }
+            /// Required for a credit pack and a credit plan; refused for the other kinds.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/creditKind`.
+            public var creditKind: Components.Schemas.CreateOfferRequest.CreditKindPayload?
+            /// The Dutch name: trimmed, 1 to 80 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/nameNl`.
+            public var nameNl: Swift.String
+            /// The English name: trimmed, at most 80 characters. Blank: none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/nameEn`.
+            public var nameEn: Swift.String?
+            /// The Dutch description: trimmed, at most 500 characters. Blank: none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/descriptionNl`.
+            public var descriptionNl: Swift.String?
+            /// The English description: trimmed, at most 500 characters. Blank: none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/descriptionEn`.
+            public var descriptionEn: Swift.String?
+            /// The price including VAT in euro cents, 1 to 1000000. `null` or left out: no price yet (an offer without a price can be saved but not switched on). A non-whole number or one out of bounds answers `422`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/priceCents`.
+            public var priceCents: Swift.Int?
+            /// The VAT rate in basis points: 2100 (21 %) or 900 (9 %). Never 0.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/vatRateBasisPoints`.
+            public var vatRateBasisPoints: Swift.Int?
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/billingCycle`.
+            public var billingCycle: Components.Schemas.OfferBillingCycle?
+            /// A membership’s term in months, 1 to 24.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/termMonths`.
+            public var termMonths: Swift.Int?
+            /// The owner confirmed a first term over 12 months (consumer law). A longer term without it answers `422` on `termMonths`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/longTermConfirmed`.
+            public var longTermConfirmed: Swift.Bool?
+            /// A credit plan’s minimum term in months, 0 to 12.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/minimumTermMonths`.
+            public var minimumTermMonths: Swift.Int?
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/endOfTerm`.
+            public var endOfTerm: Components.Schemas.OfferEndOfTerm?
+            /// A membership’s classes a week, 1 to 7.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/classesPerWeek`.
+            public var classesPerWeek: Swift.Int?
+            /// A credit pack’s credits (1 to 200), or a credit plan’s credits per billing cycle (1 to 50).
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/credits`.
+            public var credits: Swift.Int?
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/validity`.
+            public var validity: Components.Schemas.OfferValidity?
+            /// A credit plan’s carry-over, 0 to 50.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/carryOverLimit`.
+            public var carryOverLimit: Swift.Int?
+            /// A credit pack a client can buy once. Default `false`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/oncePerClient`.
+            public var oncePerClient: Swift.Bool?
+            /// Sold only to clients with a membership (credits and the single class pass). Default `false`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/membersOnly`.
+            public var membersOnly: Swift.Bool?
+            /// Minutes before the start up to which a client cancels for free: a whole number of hours, 0 to 4320.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/cutoffMinutes`.
+            public var cutoffMinutes: Swift.Int?
+            /// A membership’s makeups a month, 0 to 10.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/makeupsPerMonth`.
+            public var makeupsPerMonth: Swift.Int?
+            /// Credit offers: the most credits that come back a month on a timely cancellation, 0 to 50. `null` or left out: always.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/returnsPerMonth`.
+            public var returnsPerMonth: Swift.Int?
+            /// The group classes the offer is limited to, 1 to 100 (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace, or one that was deleted and is not on the offer already, answers `422` on `coveredClassIds`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/coveredClassIds`.
+            public var coveredClassIds: [Swift.String]?
+            /// Days before the end that renewing is suggested, 0 to 365. Left out: 30.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/renewalWindowDays`.
+            public var renewalWindowDays: Swift.Int?
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `offer_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/surface`.
+            @frozen public enum SurfacePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case ios = "ios"
+                case android = "android"
+            }
+            /// The app that sends the request: `ios` or `android`. A request with a bearer token records the `offer_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            ///
+            /// - Remark: Generated from `#/components/schemas/CreateOfferRequest/surface`.
+            public var surface: Components.Schemas.CreateOfferRequest.SurfacePayload?
+            /// Creates a new `CreateOfferRequest`.
+            ///
+            /// - Parameters:
+            ///   - kind:
+            ///   - creditKind: Required for a credit pack and a credit plan; refused for the other kinds.
+            ///   - nameNl: The Dutch name: trimmed, 1 to 80 characters.
+            ///   - nameEn: The English name: trimmed, at most 80 characters. Blank: none.
+            ///   - descriptionNl: The Dutch description: trimmed, at most 500 characters. Blank: none.
+            ///   - descriptionEn: The English description: trimmed, at most 500 characters. Blank: none.
+            ///   - priceCents: The price including VAT in euro cents, 1 to 1000000. `null` or left out: no price yet (an offer without a price can be saved but not switched on). A non-whole number or one out of bounds answers `422`.
+            ///   - vatRateBasisPoints: The VAT rate in basis points: 2100 (21 %) or 900 (9 %). Never 0.
+            ///   - billingCycle:
+            ///   - termMonths: A membership’s term in months, 1 to 24.
+            ///   - longTermConfirmed: The owner confirmed a first term over 12 months (consumer law). A longer term without it answers `422` on `termMonths`.
+            ///   - minimumTermMonths: A credit plan’s minimum term in months, 0 to 12.
+            ///   - endOfTerm:
+            ///   - classesPerWeek: A membership’s classes a week, 1 to 7.
+            ///   - credits: A credit pack’s credits (1 to 200), or a credit plan’s credits per billing cycle (1 to 50).
+            ///   - validity:
+            ///   - carryOverLimit: A credit plan’s carry-over, 0 to 50.
+            ///   - oncePerClient: A credit pack a client can buy once. Default `false`.
+            ///   - membersOnly: Sold only to clients with a membership (credits and the single class pass). Default `false`.
+            ///   - cutoffMinutes: Minutes before the start up to which a client cancels for free: a whole number of hours, 0 to 4320.
+            ///   - makeupsPerMonth: A membership’s makeups a month, 0 to 10.
+            ///   - returnsPerMonth: Credit offers: the most credits that come back a month on a timely cancellation, 0 to 50. `null` or left out: always.
+            ///   - coveredClassIds: The group classes the offer is limited to, 1 to 100 (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace, or one that was deleted and is not on the offer already, answers `422` on `coveredClassIds`.
+            ///   - renewalWindowDays: Days before the end that renewing is suggested, 0 to 365. Left out: 30.
+            ///   - surface: The app that sends the request: `ios` or `android`. A request with a bearer token records the `offer_created` event with this surface; without it nothing is recorded. The web does not send it, and a request without a bearer token ignores it.
+            public init(
+                kind: Components.Schemas.OfferKind,
+                creditKind: Components.Schemas.CreateOfferRequest.CreditKindPayload? = nil,
+                nameNl: Swift.String,
+                nameEn: Swift.String? = nil,
+                descriptionNl: Swift.String? = nil,
+                descriptionEn: Swift.String? = nil,
+                priceCents: Swift.Int? = nil,
+                vatRateBasisPoints: Swift.Int? = nil,
+                billingCycle: Components.Schemas.OfferBillingCycle? = nil,
+                termMonths: Swift.Int? = nil,
+                longTermConfirmed: Swift.Bool? = nil,
+                minimumTermMonths: Swift.Int? = nil,
+                endOfTerm: Components.Schemas.OfferEndOfTerm? = nil,
+                classesPerWeek: Swift.Int? = nil,
+                credits: Swift.Int? = nil,
+                validity: Components.Schemas.OfferValidity? = nil,
+                carryOverLimit: Swift.Int? = nil,
+                oncePerClient: Swift.Bool? = nil,
+                membersOnly: Swift.Bool? = nil,
+                cutoffMinutes: Swift.Int? = nil,
+                makeupsPerMonth: Swift.Int? = nil,
+                returnsPerMonth: Swift.Int? = nil,
+                coveredClassIds: [Swift.String]? = nil,
+                renewalWindowDays: Swift.Int? = nil,
+                surface: Components.Schemas.CreateOfferRequest.SurfacePayload? = nil
+            ) {
+                self.kind = kind
+                self.creditKind = creditKind
+                self.nameNl = nameNl
+                self.nameEn = nameEn
+                self.descriptionNl = descriptionNl
+                self.descriptionEn = descriptionEn
+                self.priceCents = priceCents
+                self.vatRateBasisPoints = vatRateBasisPoints
+                self.billingCycle = billingCycle
+                self.termMonths = termMonths
+                self.longTermConfirmed = longTermConfirmed
+                self.minimumTermMonths = minimumTermMonths
+                self.endOfTerm = endOfTerm
+                self.classesPerWeek = classesPerWeek
+                self.credits = credits
+                self.validity = validity
+                self.carryOverLimit = carryOverLimit
+                self.oncePerClient = oncePerClient
+                self.membersOnly = membersOnly
+                self.cutoffMinutes = cutoffMinutes
+                self.makeupsPerMonth = makeupsPerMonth
+                self.returnsPerMonth = returnsPerMonth
+                self.coveredClassIds = coveredClassIds
+                self.renewalWindowDays = renewalWindowDays
+                self.surface = surface
+            }
+            public enum CodingKeys: String, CodingKey {
+                case kind
+                case creditKind
+                case nameNl
+                case nameEn
+                case descriptionNl
+                case descriptionEn
+                case priceCents
+                case vatRateBasisPoints
+                case billingCycle
+                case termMonths
+                case longTermConfirmed
+                case minimumTermMonths
+                case endOfTerm
+                case classesPerWeek
+                case credits
+                case validity
+                case carryOverLimit
+                case oncePerClient
+                case membersOnly
+                case cutoffMinutes
+                case makeupsPerMonth
+                case returnsPerMonth
+                case coveredClassIds
+                case renewalWindowDays
+                case surface
+            }
+        }
+        /// The offer changed since the version in the request; nothing was written. `offer` is the offer as it is now.
+        ///
+        /// - Remark: Generated from `#/components/schemas/OfferChanged`.
+        public struct OfferChanged: Codable, Hashable, Sendable {
+            /// - Remark: Generated from `#/components/schemas/OfferChanged/code`.
+            @frozen public enum CodePayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case offerChanged = "offer_changed"
+            }
+            /// - Remark: Generated from `#/components/schemas/OfferChanged/code`.
+            public var code: Components.Schemas.OfferChanged.CodePayload
+            /// - Remark: Generated from `#/components/schemas/OfferChanged/offer`.
+            public var offer: Components.Schemas.Offer
+            /// Creates a new `OfferChanged`.
+            ///
+            /// - Parameters:
+            ///   - code:
+            ///   - offer:
+            public init(
+                code: Components.Schemas.OfferChanged.CodePayload,
+                offer: Components.Schemas.Offer
+            ) {
+                self.code = code
+                self.offer = offer
+            }
+            public enum CodingKeys: String, CodingKey {
+                case code
+                case offer
+            }
+        }
+        /// The full set of fields of the offer’s next version, with the version it was changed from. A field left out is empty in the new version, not kept from the old one. The offer’s kind never changes.
+        ///
+        /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest`.
+        public struct UpdateOfferRequest: Codable, Hashable, Sendable {
+            /// The version the caller read (`Offer.currentVersion.version`). When the offer has been changed since, nothing is stored and the answer is `409`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/version`.
+            public var version: Swift.Int
+            /// A credit offer’s credit kind, which can change while no agreement uses it. Left out: unchanged. Refused for the other kinds.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/creditKind`.
+            @frozen public enum CreditKindPayload: String, Codable, Hashable, Sendable, CaseIterable {
+                case group = "group"
+                case _private = "private"
+                case _empty_ = ""
+            }
+            /// A credit offer’s credit kind, which can change while no agreement uses it. Left out: unchanged. Refused for the other kinds.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/creditKind`.
+            public var creditKind: Components.Schemas.UpdateOfferRequest.CreditKindPayload?
+            /// The Dutch name: trimmed, 1 to 80 characters.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/nameNl`.
+            public var nameNl: Swift.String
+            /// The English name: trimmed, at most 80 characters. Blank: none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/nameEn`.
+            public var nameEn: Swift.String?
+            /// The Dutch description: trimmed, at most 500 characters. Blank: none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/descriptionNl`.
+            public var descriptionNl: Swift.String?
+            /// The English description: trimmed, at most 500 characters. Blank: none.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/descriptionEn`.
+            public var descriptionEn: Swift.String?
+            /// The price including VAT in euro cents, 1 to 1000000. `null` or left out: no price yet (an offer without a price can be saved but not switched on). A non-whole number or one out of bounds answers `422`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/priceCents`.
+            public var priceCents: Swift.Int?
+            /// The VAT rate in basis points: 2100 (21 %) or 900 (9 %). Never 0.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/vatRateBasisPoints`.
+            public var vatRateBasisPoints: Swift.Int?
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/billingCycle`.
+            public var billingCycle: Components.Schemas.OfferBillingCycle?
+            /// A membership’s term in months, 1 to 24.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/termMonths`.
+            public var termMonths: Swift.Int?
+            /// The owner confirmed a first term over 12 months (consumer law). A longer term without it answers `422` on `termMonths`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/longTermConfirmed`.
+            public var longTermConfirmed: Swift.Bool?
+            /// A credit plan’s minimum term in months, 0 to 12.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/minimumTermMonths`.
+            public var minimumTermMonths: Swift.Int?
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/endOfTerm`.
+            public var endOfTerm: Components.Schemas.OfferEndOfTerm?
+            /// A membership’s classes a week, 1 to 7.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/classesPerWeek`.
+            public var classesPerWeek: Swift.Int?
+            /// A credit pack’s credits (1 to 200), or a credit plan’s credits per billing cycle (1 to 50).
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/credits`.
+            public var credits: Swift.Int?
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/validity`.
+            public var validity: Components.Schemas.OfferValidity?
+            /// A credit plan’s carry-over, 0 to 50.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/carryOverLimit`.
+            public var carryOverLimit: Swift.Int?
+            /// A credit pack a client can buy once. Default `false`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/oncePerClient`.
+            public var oncePerClient: Swift.Bool?
+            /// Sold only to clients with a membership (credits and the single class pass). Default `false`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/membersOnly`.
+            public var membersOnly: Swift.Bool?
+            /// Minutes before the start up to which a client cancels for free: a whole number of hours, 0 to 4320.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/cutoffMinutes`.
+            public var cutoffMinutes: Swift.Int?
+            /// A membership’s makeups a month, 0 to 10.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/makeupsPerMonth`.
+            public var makeupsPerMonth: Swift.Int?
+            /// Credit offers: the most credits that come back a month on a timely cancellation, 0 to 50. `null` or left out: always.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/returnsPerMonth`.
+            public var returnsPerMonth: Swift.Int?
+            /// The group classes the offer is limited to, 1 to 100 (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace, or one that was deleted and is not on the offer already, answers `422` on `coveredClassIds`.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/coveredClassIds`.
+            public var coveredClassIds: [Swift.String]?
+            /// Days before the end that renewing is suggested, 0 to 365. Left out: 30.
+            ///
+            /// - Remark: Generated from `#/components/schemas/UpdateOfferRequest/renewalWindowDays`.
+            public var renewalWindowDays: Swift.Int?
+            /// Creates a new `UpdateOfferRequest`.
+            ///
+            /// - Parameters:
+            ///   - version: The version the caller read (`Offer.currentVersion.version`). When the offer has been changed since, nothing is stored and the answer is `409`.
+            ///   - creditKind: A credit offer’s credit kind, which can change while no agreement uses it. Left out: unchanged. Refused for the other kinds.
+            ///   - nameNl: The Dutch name: trimmed, 1 to 80 characters.
+            ///   - nameEn: The English name: trimmed, at most 80 characters. Blank: none.
+            ///   - descriptionNl: The Dutch description: trimmed, at most 500 characters. Blank: none.
+            ///   - descriptionEn: The English description: trimmed, at most 500 characters. Blank: none.
+            ///   - priceCents: The price including VAT in euro cents, 1 to 1000000. `null` or left out: no price yet (an offer without a price can be saved but not switched on). A non-whole number or one out of bounds answers `422`.
+            ///   - vatRateBasisPoints: The VAT rate in basis points: 2100 (21 %) or 900 (9 %). Never 0.
+            ///   - billingCycle:
+            ///   - termMonths: A membership’s term in months, 1 to 24.
+            ///   - longTermConfirmed: The owner confirmed a first term over 12 months (consumer law). A longer term without it answers `422` on `termMonths`.
+            ///   - minimumTermMonths: A credit plan’s minimum term in months, 0 to 12.
+            ///   - endOfTerm:
+            ///   - classesPerWeek: A membership’s classes a week, 1 to 7.
+            ///   - credits: A credit pack’s credits (1 to 200), or a credit plan’s credits per billing cycle (1 to 50).
+            ///   - validity:
+            ///   - carryOverLimit: A credit plan’s carry-over, 0 to 50.
+            ///   - oncePerClient: A credit pack a client can buy once. Default `false`.
+            ///   - membersOnly: Sold only to clients with a membership (credits and the single class pass). Default `false`.
+            ///   - cutoffMinutes: Minutes before the start up to which a client cancels for free: a whole number of hours, 0 to 4320.
+            ///   - makeupsPerMonth: A membership’s makeups a month, 0 to 10.
+            ///   - returnsPerMonth: Credit offers: the most credits that come back a month on a timely cancellation, 0 to 50. `null` or left out: always.
+            ///   - coveredClassIds: The group classes the offer is limited to, 1 to 100 (a membership, a group credit offer or the single class pass). `null` or left out: all group classes. A class of another workspace, or one that was deleted and is not on the offer already, answers `422` on `coveredClassIds`.
+            ///   - renewalWindowDays: Days before the end that renewing is suggested, 0 to 365. Left out: 30.
+            public init(
+                version: Swift.Int,
+                creditKind: Components.Schemas.UpdateOfferRequest.CreditKindPayload? = nil,
+                nameNl: Swift.String,
+                nameEn: Swift.String? = nil,
+                descriptionNl: Swift.String? = nil,
+                descriptionEn: Swift.String? = nil,
+                priceCents: Swift.Int? = nil,
+                vatRateBasisPoints: Swift.Int? = nil,
+                billingCycle: Components.Schemas.OfferBillingCycle? = nil,
+                termMonths: Swift.Int? = nil,
+                longTermConfirmed: Swift.Bool? = nil,
+                minimumTermMonths: Swift.Int? = nil,
+                endOfTerm: Components.Schemas.OfferEndOfTerm? = nil,
+                classesPerWeek: Swift.Int? = nil,
+                credits: Swift.Int? = nil,
+                validity: Components.Schemas.OfferValidity? = nil,
+                carryOverLimit: Swift.Int? = nil,
+                oncePerClient: Swift.Bool? = nil,
+                membersOnly: Swift.Bool? = nil,
+                cutoffMinutes: Swift.Int? = nil,
+                makeupsPerMonth: Swift.Int? = nil,
+                returnsPerMonth: Swift.Int? = nil,
+                coveredClassIds: [Swift.String]? = nil,
+                renewalWindowDays: Swift.Int? = nil
+            ) {
+                self.version = version
+                self.creditKind = creditKind
+                self.nameNl = nameNl
+                self.nameEn = nameEn
+                self.descriptionNl = descriptionNl
+                self.descriptionEn = descriptionEn
+                self.priceCents = priceCents
+                self.vatRateBasisPoints = vatRateBasisPoints
+                self.billingCycle = billingCycle
+                self.termMonths = termMonths
+                self.longTermConfirmed = longTermConfirmed
+                self.minimumTermMonths = minimumTermMonths
+                self.endOfTerm = endOfTerm
+                self.classesPerWeek = classesPerWeek
+                self.credits = credits
+                self.validity = validity
+                self.carryOverLimit = carryOverLimit
+                self.oncePerClient = oncePerClient
+                self.membersOnly = membersOnly
+                self.cutoffMinutes = cutoffMinutes
+                self.makeupsPerMonth = makeupsPerMonth
+                self.returnsPerMonth = returnsPerMonth
+                self.coveredClassIds = coveredClassIds
+                self.renewalWindowDays = renewalWindowDays
+            }
+            public enum CodingKeys: String, CodingKey {
+                case version
+                case creditKind
+                case nameNl
+                case nameEn
+                case descriptionNl
+                case descriptionEn
+                case priceCents
+                case vatRateBasisPoints
+                case billingCycle
+                case termMonths
+                case longTermConfirmed
+                case minimumTermMonths
+                case endOfTerm
+                case classesPerWeek
+                case credits
+                case validity
+                case carryOverLimit
+                case oncePerClient
+                case membersOnly
+                case cutoffMinutes
+                case makeupsPerMonth
+                case returnsPerMonth
+                case coveredClassIds
+                case renewalWindowDays
             }
         }
     }

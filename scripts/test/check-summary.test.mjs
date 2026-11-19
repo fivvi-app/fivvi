@@ -7,7 +7,9 @@ import {
   lstatSync,
   mkdirSync,
   mkdtempSync,
+  readdirSync,
   readFileSync,
+  readlinkSync,
   realpathSync,
   rmSync,
   symlinkSync,
@@ -391,6 +393,7 @@ exit "$(cat "$FAKE_RUNS/$name.exit" 2>/dev/null || echo 0)"
       'check.sh',
       '_lib.sh',
       '_shellcheck.sh',
+      '_slots.sh',
       'test-summary.sh',
       'test-summary.jq',
       'affected.mjs',
@@ -802,6 +805,104 @@ exec /bin/rm "$@"
         holder?.kill();
         git('worktree', 'remove', '--force', linked);
       }
+    });
+
+    describe('E001 #1388: the integration and e2e suites take a heavy slot of the machine', () => {
+      const slotDir = () => join(repo(), '.work/slots/heavy');
+      const slotFiles = () => (existsSync(slotDir()) ? readdirSync(slotDir()) : []);
+      // Two other jobs (any process that runs) hold both heavy slots, until they end.
+      // With `polled`, they end once the run under test has polled for a slot once (the fake sleep leaves a mark).
+      const holdBoth = (seconds, polled = false) => {
+        const holders = [1, 2].map(() =>
+          polled
+            ? spawn(
+                'bash',
+                [
+                  '-c',
+                  'for _ in $(seq 600); do [ -e "$1" ] && exit 0; /bin/sleep 0.1; done',
+                  'holder',
+                  join(base, `runs-${n}`, 'slept'),
+                ],
+                { stdio: 'ignore' },
+              )
+            : spawn('sleep', [String(seconds)], { stdio: 'ignore' }),
+        );
+        return {
+          holders,
+          setup: () => {
+            mkdirSync(slotDir(), { recursive: true });
+            for (const [i, holder] of holders.entries()) {
+              symlinkSync(
+                `${holder.pid}|${Math.floor(Date.now() / 1000)}||test-ios.sh (other-${i})`,
+                join(slotDir(), `slot-${i + 1}`),
+              );
+            }
+          },
+          stop: () => {
+            for (const holder of holders) holder.kill();
+          },
+        };
+      };
+      const quick = { FIVVI_SLOT_POLL_SECONDS: '0.2', E2E_QUEUE_POLL_SECONDS: '0.2' };
+
+      it('AC2: takes a slot for each suite and gives it back at the end', () => {
+        const result = check({ unit: unit(), integration, e2e }, ['--all'], () => {}, quick);
+        assert.equal(result.status, 0, result.stdout);
+        assert.doesNotMatch(result.stderr, /waiting for a heavy slot/);
+        assert.deepEqual(slotFiles(), []);
+      });
+
+      it('AC2: waits for a free heavy slot, says who holds them, and runs when one ends', () => {
+        const both = holdBoth(0, true);
+        try {
+          const result = check({ unit: unit(), integration, e2e }, ['--all'], both.setup, quick);
+          assert.equal(result.status, 0, result.stdout);
+          assert.match(result.stderr, /waiting for a heavy slot \(2 places, all held/);
+          assert.match(result.stderr, /test-ios\.sh \(other-0\), \d+ min/);
+          assert.match(result.stdout, /✓ integration tests/);
+          assert.match(result.stdout, /✓ e2e tests/);
+          // A holder that is gone leaves its link behind for the next job; what check.sh took is given back.
+          assert.deepEqual(
+            slotFiles().filter((f) => /check\.sh/.test(readlinkSync(join(slotDir(), f)))),
+            [],
+          );
+        } finally {
+          both.stop();
+        }
+      });
+
+      it('AC3: gives up after the slot timeout with a message, runs no suite, and leaves the holders their slots', () => {
+        const both = holdBoth(120);
+        try {
+          const result = check({ unit: unit(), integration, e2e }, ['--all'], both.setup, {
+            ...quick,
+            FIVVI_SLOT_TIMEOUT_SECONDS: '1',
+          });
+          assert.equal(result.status, 1, result.stdout);
+          assert.match(result.stdout, /✗ integration tests/);
+          assert.match(result.stdout, /no heavy slot free after \d+ s/);
+          assert.equal(
+            result.summary.suites.find((s) => s.kind === 'integration').status,
+            'not-run',
+          );
+          assert.equal(slotFiles().length, 2);
+        } finally {
+          both.stop();
+        }
+      });
+
+      it('AC2: --fast takes no slot (it runs no integration or e2e suite)', () => {
+        const both = holdBoth(120);
+        try {
+          const result = check({ unit: unit() }, ['--all', '--fast'], both.setup, {
+            ...quick,
+            FIVVI_SLOT_TIMEOUT_SECONDS: '1',
+          });
+          assert.doesNotMatch(result.stdout, /no heavy slot/);
+        } finally {
+          both.stop();
+        }
+      });
     });
 
     const dryRun = (status) =>

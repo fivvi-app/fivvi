@@ -142,10 +142,10 @@ describe('pr.sh merge', () => {
   const gh = fakeGh();
   after(() => gh.cleanup());
 
-  const merge = (rules, args = []) => {
+  const merge = (rules, args = [], env = {}) => {
     const result = spawnSync(join(SCRIPTS, 'pr.sh'), ['merge', ...args], {
       encoding: 'utf8',
-      env: gh.env(rules),
+      env: { ...gh.env(rules), ...env },
     });
     const bodies = gh
       .calls()
@@ -228,6 +228,51 @@ describe('pr.sh merge', () => {
       !result.calls.some((call) => new RegExp(ENQUEUE).test(call)),
       result.calls.join('\n'),
     );
+  });
+
+  // ADR-034 decision 4: a standards-only review record merges only a low-risk PR while review is split.
+  describe('ADR-034: a standards-only review record', () => {
+    const STANDARDS = `Closes #57\n\n**Self-review:** standards reviewer clean on \`${HEAD}\` (standards only) ✅\n\n${NO_PREVIEW}`;
+    const MIGRATION = 'packages/database/migrations/0004.sql';
+    const settings = (review) => {
+      const dir = mkdtempSync(join(tmpdir(), 'pr-pipeline-'));
+      const file = join(dir, 'pipeline.json');
+      if (review !== undefined) writeFileSync(file, JSON.stringify({ ci: 'fast', review }));
+      return { FIVVI_PIPELINE_FILE: file };
+    };
+
+    it('queues a low-risk PR while review is split (the committed setting)', () => {
+      const result = merge(github({ body: STANDARDS }));
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(result.stdout, /✓ self-review clean: .*standards axis only/);
+    });
+
+    it('refuses a high-risk PR, which needs both axes', () => {
+      const result = merge(github({ body: STANDARDS, files: [MIGRATION] }));
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /✗ self-review clean: .*both axes/);
+      assert.ok(!result.calls.some((call) => new RegExp(ENQUEUE).test(call)));
+    });
+
+    it('refuses when review is per-pr', () => {
+      const result = merge(github({ body: STANDARDS }), [], settings('per-pr'));
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /✗ self-review clean: .*per-pr/);
+      assert.ok(!result.calls.some((call) => new RegExp(ENQUEUE).test(call)));
+    });
+
+    it('refuses when the setting cannot be read (fail closed)', () => {
+      const result = merge(github({ body: STANDARDS }), [], settings(undefined));
+      assert.equal(result.status, 1);
+      assert.match(result.stdout, /✗ self-review clean/);
+    });
+
+    it('still queues a record of both axes whatever the setting', () => {
+      for (const review of ['per-pr', undefined]) {
+        const result = merge(github(), [], settings(review));
+        assert.equal(result.status, 0, `${review}: ${result.stderr}`);
+      }
+    });
   });
 
   describe('ADR-021: a high-risk PR', () => {
@@ -774,18 +819,21 @@ describe('pr.sh reviewed', () => {
   const reviewed = (
     prHead,
     body = { out: { body: `Closes #57\n\n${OLD_RECORD}` } },
-    { args = [], risk = [] } = {},
+    { args = [], risk = [], env = {} } = {},
   ) => {
     const result = spawnSync(join(repo, 'scripts/pr.sh'), ['reviewed', ...args], {
       cwd: repo,
       encoding: 'utf8',
-      env: gh.env([
-        ...risk,
-        { match: '^pr list ', out: [{ number: 60 }] },
-        { match: '^pr view 60 .*--json headRefOid', out: { headRefOid: prHead } },
-        { match: '^pr view 60 .*--json body', ...body },
-        { match: '^pr edit 60 ', out: '' },
-      ]),
+      env: {
+        ...gh.env([
+          ...risk,
+          { match: '^pr list ', out: [{ number: 60 }] },
+          { match: '^pr view 60 .*--json headRefOid', out: { headRefOid: prHead } },
+          { match: '^pr view 60 .*--json body', ...body },
+          { match: '^pr edit 60 ', out: '' },
+        ]),
+        ...env,
+      },
     });
     const edits = gh.calls().filter((call) => call.args[1] === 'edit');
     const bodies = edits.map((call) => call.args[call.args.indexOf('--body') + 1]);
@@ -896,6 +944,108 @@ describe('pr.sh reviewed', () => {
         const result = reviewed(git('rev-parse', 'HEAD'), undefined, { args, risk: LOW });
         assert.equal(result.status, 1, args.join(' '));
         assert.match(result.stderr, /pr\.sh reviewed \[--should-fix <n>\]/);
+        assert.deepEqual(result.edits, []);
+      }
+    });
+  });
+
+  // ADR-034 decision 4: --axes standards records the standards axis only, for a low-risk PR while review is split.
+  describe('ADR-034: review axes', () => {
+    const LOW = riskRules([{ filename: 'apps/web/page.tsx' }]);
+    const HIGH = riskRules([
+      { filename: 'apps/web/page.tsx' },
+      { filename: 'packages/database/migrations/0004.sql' },
+    ]);
+    const setting = (review) => {
+      const file = join(mkdtempSync(join(tmpdir(), 'pr-pipeline-')), 'pipeline.json');
+      if (review !== undefined) writeFileSync(file, JSON.stringify({ ci: 'fast', review }));
+      return { FIVVI_PIPELINE_FILE: file };
+    };
+
+    it('records the standards axis only, naming it, for a low-risk PR while review is split', () => {
+      const head = git('rev-parse', 'HEAD');
+      const result = reviewed(head, undefined, {
+        args: ['--axes', 'standards'],
+        risk: LOW,
+        env: setting('split'),
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.deepEqual(result.bodies, [
+        `Closes #57\n\n**Self-review:** standards reviewer clean on \`${head}\` (standards only) ✅`,
+      ]);
+    });
+
+    it('combines with --should-fix', () => {
+      const head = git('rev-parse', 'HEAD');
+      const result = reviewed(head, undefined, {
+        args: ['--axes', 'standards', '--should-fix', '2'],
+        risk: LOW,
+        env: setting('split'),
+      });
+      assert.equal(result.status, 0, result.stderr);
+      assert.match(
+        result.bodies[0],
+        /\(standards only\) ✅ \(low risk: 2 should-fix findings left as follow-ups, ADR-033\)$/,
+      );
+    });
+
+    it('--axes both is the default record', () => {
+      const head = git('rev-parse', 'HEAD');
+      for (const env of [setting('split'), setting('per-pr')]) {
+        const result = reviewed(head, undefined, { args: ['--axes', 'both'], risk: HIGH, env });
+        assert.equal(result.status, 0, result.stderr);
+        assert.deepEqual(result.bodies, [
+          `Closes #57\n\n**Self-review:** standards and spec reviewers clean on \`${head}\` ✅`,
+        ]);
+      }
+    });
+
+    it('refuses a high-risk or owner-only PR: it needs both axes', () => {
+      const OWNER = riskRules([{ filename: 'scripts/pr.sh' }]);
+      for (const risk of [HIGH, OWNER]) {
+        const result = reviewed(git('rev-parse', 'HEAD'), undefined, {
+          args: ['--axes', 'standards'],
+          risk,
+          env: setting('split'),
+        });
+        assert.equal(result.status, 1);
+        assert.match(result.stderr, /standards axis only.*low-risk.*both axes/);
+        assert.deepEqual(result.edits, []);
+      }
+    });
+
+    it('refuses when review is per-pr or the setting cannot be read', () => {
+      for (const review of ['per-pr', undefined]) {
+        const result = reviewed(git('rev-parse', 'HEAD'), undefined, {
+          args: ['--axes', 'standards'],
+          risk: LOW,
+          env: setting(review),
+        });
+        assert.equal(result.status, 1, String(review));
+        assert.match(result.stderr, /standards axis only.*split/);
+        assert.deepEqual(result.edits, []);
+      }
+    });
+
+    it("refuses when the risk can't be read, never reading it as low", () => {
+      const result = reviewed(git('rev-parse', 'HEAD'), undefined, {
+        args: ['--axes', 'standards'],
+        risk: [{ match: '^api repos/[^ ]+/pulls/60/files', out: '', status: 1 }],
+        env: setting('split'),
+      });
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /could not decide the risk of PR #60/);
+      assert.deepEqual(result.edits, []);
+    });
+
+    it('rejects an unknown axes value', () => {
+      for (const args of [['--axes'], ['--axes', 'spec'], ['--axes', 'standards,spec']]) {
+        const result = reviewed(git('rev-parse', 'HEAD'), undefined, { args, risk: LOW });
+        assert.equal(result.status, 1, args.join(' '));
+        assert.match(
+          result.stderr,
+          /pr\.sh reviewed \[--should-fix <n>\] \[--axes standards\|both\]/,
+        );
         assert.deepEqual(result.edits, []);
       }
     });
@@ -1828,6 +1978,25 @@ describe('E002 #107 pr.sh ready', () => {
   it("E002 #107 AC1: doesn't need the rest of the merge gate: a high-risk PR or open threads", () => {
     const result = ready({ files: ['packages/database/migrations/0004.sql'] });
     assert.equal(result.status, 0, result.stderr);
+  });
+
+  // ADR-034: ready reads the real risk when the review record covers the standards axis only.
+  describe('ADR-034: a standards-only review record', () => {
+    const STANDARDS = `**Self-review:** standards reviewer clean on \`${HEAD}\` (standards only) ✅`;
+    it('marks a low-risk draft ready while review is split', () => {
+      const result = ready({ body: `Closes #57\n\n${STANDARDS}\n\n${NO_PREVIEW}` });
+      assert.equal(result.status, 0, result.stderr);
+    });
+
+    it('refuses a high-risk draft, which needs both axes', () => {
+      refuses(
+        {
+          body: `Closes #57\n\n${STANDARDS}\n\n${NO_PREVIEW}`,
+          files: ['packages/database/migrations/0004.sql'],
+        },
+        /self-review clean \(.*both axes/,
+      );
+    });
   });
 });
 

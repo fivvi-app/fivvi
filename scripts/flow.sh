@@ -4,7 +4,9 @@
 #   flow.sh status <n>                      facts, phase and next step for an issue
 #   flow.sh facts <n>                       the facts as JSON (input of scripts/flow-phase.jq)
 #   flow.sh next                            your open issues with their phase, the open specs, the ready tickets, the
-#                                           approved specs to cut (Cut #n), answered needs-info questions, PRs to
+#                                           approved specs to cut (Cut #n), the specs whose tickets are all closed
+#                                           and that wait for their final spec review (Review spec #n, only with
+#                                           review split, ADR-034; phase spec-review), answered needs-info questions, PRs to
 #                                           re-queue after their bug was fixed (Requeue PR #n after #bug) and the
 #                                           worktrees of merged PRs, also when the PR closed its issue (`Finish #n`,
 #                                           or `Clean up <branch>` for a branch without an issue; one that has
@@ -26,7 +28,9 @@
 #                                           agent", `Deploy bug: ...` when no open bug carries its marker, else
 #                                           `Build #n first: ...` (under "Waiting on the owner" while that bug waits on a
 #                                           human); a failing production deploy and a status it cannot read are lines
-#                                           under "Waiting on the owner", never work
+#                                           under "Waiting on the owner", never work. With `ci: fast` (ADR-034) an open
+#                                           issue titled `Nightly UI tests failed` (scripts/nightly-report.sh) comes next,
+#                                           as `Build #n first (nightly): ...`, and not a second time as a ready ticket
 #   flow.sh idle                            exit 0 and "idle: nothing for an agent" (plus what waits on the owner) when no
 #                                           agent has anything to do: nothing under "Ready for an agent" in `next` and no
 #                                           issue assigned to you in a phase an agent acts on; exit 1 and what there is
@@ -56,7 +60,10 @@
 #                                           then run clean.sh for the rest (caches, other leftovers);
 #                                           a spec that closes through its tickets (labelled spec or with sub-issues,
 #                                           not built as its own ticket) stays open: it only cleans up, says so and
-#                                           prints the spec's phase and next step (#509)
+#                                           prints the spec's phase and next step (#509). With review split (ADR-034,
+#                                           scripts/pipeline.sh) a spec whose tickets are all closed is in the phase
+#                                           spec-review until scripts/spec-review.sh status says a clean final review
+#                                           covers it; with per-pr it is complete, as before
 #   flow.sh lock acquire|status             the run lock of the factory (work skill, Factory): one run at a time. A file
 #   flow.sh lock refresh|release <run-id>   under the main checkout's .work/ (outside git, shared by all worktrees;
 #                                           FIVVI_RUN_LOCK overrides the path), expiring 3 hours after it was taken or
@@ -204,8 +211,29 @@ fixed_blockers() {
         | {number, title, closed_at: .closedAt}] end' <<<"$out"
 }
 
+# The review setting of ADR-034 (scripts/pipeline.sh get review): split or per-pr. Dies when it can't be read, so a missing
+# or broken file never reads as either.
+review_setting() { "$ROOT/scripts/pipeline.sh" get review || die "could not read the review setting (scripts/pipeline.sh get review)"; }
+
+# The spec-review facts of spec $1 whose tickets are all closed (ADR-034): `<setting> <covered|not-covered> <detail>`,
+# for facts() as JSON {review, spec_review}. Only a spec in that state costs the reads; spec_review is null with per-pr.
+spec_review_facts() {
+  local n="$1" setting out rc=0
+  setting="$(review_setting)" || exit 1
+  if [ "$setting" != split ]; then
+    jq -nc --arg review "$setting" '{review: $review, spec_review: null}'
+    return
+  fi
+  out="$("$ROOT/scripts/spec-review.sh" status "$n")" || rc=$?
+  case "$rc" in
+    0 | 1) jq -nc --arg review "$setting" --arg detail "$out" --argjson covered "$([ "$rc" = 0 ] && echo true || echo false)" \
+      '{review: $review, spec_review: {covered: $covered, detail: $detail}}' ;;
+    *) die "could not read the spec review of #$n (scripts/spec-review.sh status $n)" ;;
+  esac
+}
+
 facts() {
-  local n="$1" item parent=null children="[]" branches="[]" fixed="[]" child branch p login
+  local n="$1" item parent=null children="[]" branches="[]" fixed="[]" child branch p login review='{}'
   login="$(me)" || return 1
   item="$(gh issue view "$n" --repo "$REPO" --json number,title,state,labels,assignees,body,comments,parent,subIssues,blockedBy)"
   for child in $(jq -r '.subIssues.nodes[].number' <<<"$item"); do
@@ -224,14 +252,18 @@ facts() {
   if jq -e 'any(.[]; .pr != null and .pr.state == "OPEN" and .pr.queue.state == "removed")' <<<"$branches" >/dev/null; then
     fixed="$(fixed_blockers "$n")" || die "could not read the blockers of #$n"
   fi
+  # A spec whose tickets are all closed is in the phase spec-review or complete, by the review setting (ADR-034).
+  if jq -e 'length > 0 and all(.[]; .state == "CLOSED")' <<<"$children" >/dev/null && [ "$(jq -r .state <<<"$item")" = OPEN ]; then
+    review="$(spec_review_facts "$n")" || exit 1
+  fi
   jq --arg me "$login" --argjson parent "$parent" --argjson children "$children" --argjson branches "$branches" \
-    --argjson fixed "$fixed" "$ANSWERED_JQ"'{
+    --argjson fixed "$fixed" --argjson review "$review" "$ANSWERED_JQ"'{
     number, title, state, me: $me, answered: answered,
     labels: [.labels[].name], assignees: [.assignees[].login],
     described: ((.body // "") | gsub("\\s"; "") | length > 0),
     has_criteria: ((.body // "") | test("(^|\\n)#+\\s*acceptance criteria|(^|\\n)\\s*- \\[[ x]\\]"; "i")),
     parent: $parent, children: $children, branches: $branches,
-    blockers: [.blockedBy.nodes[] | select(.state == "OPEN") | {number, title}], fixed_blockers: $fixed}' <<<"$item"
+    blockers: [.blockedBy.nodes[] | select(.state == "OPEN") | {number, title}], fixed_blockers: $fixed} + $review' <<<"$item"
 }
 
 render() {
@@ -379,6 +411,26 @@ ready_items() {
   done <<<"$candidates"
   jq -r 'select(.answered) | "Triage #\(.number) \(.title) (answered)"' <<<"$2"
   awk -F'\t' '$3 == "requeue" { print "Requeue PR #" $1 " after #" $4 }' <<<"${3:-}"
+  spec_review_items "$1"
+}
+
+# The open specs whose tickets are all closed and that flow-phase.jq calls spec-review (ADR-034, review split): the final
+# spec review is ready work, `Review spec #n`. Facts are read only for a spec with every ticket closed. $1 is read_specs.
+# Dies when a read fails.
+spec_review_items() {
+  local done_specs n title f phase setting
+  done_specs="$(jq -r '.[] | select(.subIssuesSummary.total > 0 and .subIssuesSummary.completed == .subIssuesSummary.total)
+    | "\(.number)\t\(.title)"' <<<"$1")" || die "could not read the open specs"
+  [ -n "$done_specs" ] || return 0
+  # With per-pr nothing changes: no further read.
+  setting="$(review_setting)" || exit 1
+  [ "$setting" = split ] || return 0
+  while IFS=$'\t' read -r n title; do
+    [ -n "$n" ] || continue
+    f="$(facts "$n")" || die "could not read #$n"
+    phase="$(facts_phase "$f")" || die "could not read the phase of #$n"
+    [ "$phase" != spec-review ] || echo "Review spec #$n $title ($phase)"
+  done <<<"$done_specs"
 }
 
 cmd_next() {
@@ -400,7 +452,10 @@ cmd_next() {
   finished="$(finished_items "$mine")" || exit 1
   ready="$(ready_items "$specs" "$questions" "$removals" "$finished")" || exit 1
   deploy_items
-  ready="$DEPLOY_WORK$ready"
+  nightly_items
+  # The nightly issue is listed once, up front: not again as the ready ticket it also is.
+  if [ -n "$NIGHTLY_NUMBER" ]; then ready="$(grep -v "^#$NIGHTLY_NUMBER " <<<"$ready" || true)"; fi
+  ready="$DEPLOY_WORK$NIGHTLY_WORK$ready"
   grep . <<<"$ready" || echo "(none)"
   echo "== Waiting on the owner"
   owner="$(owner_items "$specs" "$questions" "$removals")" || exit 1
@@ -513,11 +568,35 @@ deploy_items() {
   done
 }
 
+# The open issue of a failed nightly run (ADR-034, scripts/nightly-report.sh), the oldest when there are several. With
+# `ci: fast` the UI tests run only in the nightly run, so its failure is work before the other tickets, right after a
+# failing deploy; with `full` there is no nightly run to wait for and the issue is an ordinary ready ticket, so nothing is
+# read. Sets NIGHTLY_WORK (a line ending in a newline, or empty) and NIGHTLY_NUMBER. An issue in a phase that waits on a human
+# is not work. Dies when the setting, the issues or the issue's facts can't be read.
+NIGHTLY_TITLE='Nightly UI tests failed'
+NIGHTLY_WORK=""
+NIGHTLY_NUMBER=""
+nightly_items() {
+  local mode n f phase
+  NIGHTLY_WORK="" NIGHTLY_NUMBER=""
+  mode="$("$ROOT/scripts/pipeline.sh" get ci)" || die "could not read the ci setting (scripts/pipeline.sh get ci)"
+  [ "$mode" = fast ] || return 0
+  n="$(gh issue list --repo "$REPO" --state open --search "\"$NIGHTLY_TITLE\" in:title" --limit 100 --json number,title \
+    --jq "[.[] | select(.title == \"$NIGHTLY_TITLE\") | .number] | min // empty")" || die "could not read the open issues"
+  [ -n "$n" ] || return 0
+  f="$(facts "$n")" || die "could not read #$n"
+  phase="$(facts_phase "$f")" || die "could not read the phase of #$n"
+  case "$WAITING_PHASES" in *" $phase "*) return 0 ;; esac
+  NIGHTLY_NUMBER="$n"
+  NIGHTLY_WORK="Build #$n first (nightly): $NIGHTLY_TITLE"$'\n'
+}
+
 # The scan of `idle`: the first line is `work` or `idle`, then the lines that explain it. Dies when a read fails.
 idle_scan() {
   local specs questions ready mine owner removals finished work='' n phase heads title
   deploy_items
-  work="$DEPLOY_WORK"
+  nightly_items
+  work="$DEPLOY_WORK$NIGHTLY_WORK"
   mine="$(assigned_lines)" || exit 1
   while IFS='|' read -r n phase heads title; do
     [ -n "$n" ] || continue
@@ -933,7 +1012,7 @@ cmd_finish() {
     echo "✅ #$n done"
   elif [ "$by_tickets" = true ]; then
     rm -rf "${NOTES_DIR:?}/$n"
-    echo "✅ #$n cleaned up. #$n stays open: a spec closes through its tickets (Phase complete, then scripts/issue.sh close $n)."
+    echo "✅ #$n cleaned up. #$n stays open: a spec closes through its tickets (Phase complete, then scripts/issue.sh close $n; with review split, after the final spec review: Phase spec-review)."
     d="$(jq -f "$PHASE_JQ" <<<"$(facts "$n")")"
     echo "Phase: $(jq -r .phase <<<"$d")"
     echo "Next: $(jq -r .next <<<"$d")"

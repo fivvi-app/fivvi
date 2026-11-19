@@ -7,6 +7,7 @@ Two native Android apps in one Gradle build (E008, E017, ADR-003): Kotlin, Jetpa
 ```bash
 scripts/bootstrap.sh --mobile   # once: JDK, Android SDK, the `fivvi` emulator, Maestro
 pnpm test:android               # what CI runs, in one go: ktlint, the release Sentry DSN, build (android.sh build), unit tests, Compose UI tests (android.sh verify)
+pnpm test:android --no-ui       # the same without the emulator and the Compose UI tests: what CI's Android tests job runs for a PR while `ci` is `fast` (ADR-034); the UI tests run in the nightly run
 pnpm test:maestro               # the local stack + e2e/maestro flows on the emulator, in nl-NL and en
                                 # (CI builds the app once with android.sh maestro-apk and runs maestro.sh android --apk)
 scripts/android.sh emulator     # boot the emulator and leave it running for repeated runs
@@ -23,7 +24,7 @@ To try an app against your local web server (`pnpm dev`, port 3000), run `./grad
 | Unit tests (nl-NL and en) | `./gradlew :app:testDebugUnitTest` | `./gradlew :client:testDebugUnitTest` |
 | Compose UI tests (emulator) | `./gradlew :app:connectedDebugAndroidTest` | `./gradlew :client:connectedDebugAndroidTest` |
 
-`:core:testDebugUnitTest` runs the tests of the shared code. `pnpm test:android` (`scripts/android.sh test`) runs all of them, for both apps. The Maestro flows (`pnpm test:maestro`) drive Fivvi Pro; the Fivvi flow (`e2e/maestro/fivvi/sign-in.yaml`) is ticket #507.
+`:core:testDebugUnitTest` runs the tests of the shared code. `pnpm test:android` (`scripts/android.sh test`) runs all of them, for both apps. `--no-ui` (`scripts/android.sh test --no-ui`, `scripts/android.sh verify --no-ui`, [ADR-034](../../docs/decisions/ADR-034-fast-pipeline.md)) leaves out the emulator and the Compose UI tests: the static checks, the build, the unit tests (nl-NL and en, `BuildInfoTest` with build number 42) and the signed release bundle; CI's `Android tests` job runs `verify --no-ui` without KVM and the AVD cache on a PR and in a merge group while `.github/pipeline.json` says `ci: fast`, and the full `verify` in the nightly run. The Maestro flows (`pnpm test:maestro`) drive Fivvi Pro; the Fivvi flow (`e2e/maestro/fivvi/sign-in.yaml`) is ticket #507.
 
 ## Layout
 

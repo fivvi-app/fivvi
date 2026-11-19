@@ -150,6 +150,52 @@ describe('issue.sh', () => {
     });
   });
 
+  // ADR-034: a finding of a spec review becomes a bug under the spec, built through the normal lane.
+  describe('create bug under a spec', () => {
+    it('takes --parent and --label ready-for-agent, and needs no approval read of the spec', () => {
+      const result = issueSh(
+        [{ match: '^issue create ', out: 'https://github.com/example/fivvi/issues/91' }],
+        'create',
+        'bug',
+        '--title',
+        'AC 3 of #50 fails',
+        '--body-file',
+        '-',
+        '--parent',
+        '50',
+        '--label',
+        'ready-for-agent',
+      );
+      assert.equal(result.status, 0, result.stderr);
+      const args = create(result.calls);
+      assert.equal(args[args.indexOf('--parent') + 1], '50');
+      assert.deepEqual(
+        args.flatMap((arg, i) => (args[i - 1] === '--label' ? [arg] : [])),
+        ['bug', 'needs-triage', 'ready-for-agent'],
+      );
+      assert.equal(
+        result.calls.filter((call) => call[0] === 'issue' && call[1] === 'view').length,
+        0,
+      );
+    });
+
+    it('rejects a --parent that is not an issue number', () => {
+      const result = issueSh(
+        [],
+        'create',
+        'bug',
+        '--title',
+        't',
+        '--body-file',
+        '-',
+        '--parent',
+        'x',
+      );
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /not an issue number/);
+    });
+  });
+
   describe('create spec', () => {
     const spec = (...extra) =>
       issueSh(

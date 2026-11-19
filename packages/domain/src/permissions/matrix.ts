@@ -1,3 +1,6 @@
+// Module: The permission matrix: which capabilities a team role has in its workspace; routes and clients ask for a capability, never a role name.
+// Spec: F004
+
 /**
  * The permission matrix (F004, `PRODUCT.md §9`): which capabilities a team role has in its
  * workspace. Pure data and lookups, no I/O. Routes, the web and the apps ask for a capability and
@@ -26,6 +29,7 @@ export const CAPABILITIES = [
   'join_link.view',
   'join_link.renew',
   'access_log.read',
+  'commerce.offers.manage',
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
 
