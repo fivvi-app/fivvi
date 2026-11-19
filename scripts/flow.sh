@@ -30,7 +30,17 @@
 #                                           human); a failing production deploy and a status it cannot read are lines
 #                                           under "Waiting on the owner", never work. With `ci: fast` (ADR-034) an open
 #                                           issue titled `Nightly UI tests failed` (scripts/nightly-report.sh) comes next,
-#                                           as `Build #n first (nightly): ...`, and not a second time as a ready ticket
+#                                           as `Build #n first (nightly): ...`, and not a second time as a ready ticket.
+#                                           Then every open PR GitHub marks CONFLICTING, drafts and owner-only ones
+#                                           included (#1274): `Refresh PR #n (conflicting with main)`, before the other
+#                                           tickets (conflict_items, below)
+#   flow.sh refresh <pr> [--owner <reason>]  a conflicting PR (#1274, spec #1481): without --owner, record that this run
+#                                           starts its refresh (the merge of origin/main in the PR's worktree, work skill,
+#                                           Refresh) and print the branch, the head commit and the worktree; with --owner,
+#                                           record that the refresh can't be done (a product decision, an unresolved
+#                                           conflict) and why: `next` then lists the PR under "Waiting on the owner" with
+#                                           that reason until its head commit changes. The records are files under
+#                                           .work/refresh/ (outside git); an attempt belongs to the run that holds the lock
 #   flow.sh idle                            exit 0 and "idle: nothing for an agent" (plus what waits on the owner) when no
 #                                           agent has anything to do: nothing under "Ready for an agent" in `next` and no
 #                                           issue assigned to you in a phase an agent acts on; exit 1 and what there is
@@ -135,10 +145,24 @@ issue_branches() {
     | sed -E 's#^refs/(heads|remotes/origin)/##' | grep -E "^[a-z]+/$n-" | sort -u || true
 }
 
+# The mergeable state of PR $1 as GitHub computes it: MERGEABLE, CONFLICTING or UNKNOWN (#1274). GitHub computes it on
+# demand, so a list of PRs often says UNKNOWN: it is read again (up to FIVVI_MERGEABLE_READS times, default 3, FIVVI_MERGEABLE_WAIT
+# seconds apart, default 2), and a state still UNKNOWN is returned as UNKNOWN, never as clean. Fails when a read fails.
+read_mergeable() {
+  local pr="$1" reads="${FIVVI_MERGEABLE_READS:-3}" wait="${FIVVI_MERGEABLE_WAIT:-2}" state="" i
+  for ((i = 1; i <= reads; i++)); do
+    [ "$i" -eq 1 ] || sleep "$wait"
+    state="$(gh pr view "$pr" --repo "$REPO" --json mergeable --jq '.mergeable // "UNKNOWN"')" \
+      || { echo "error: could not read the mergeable state of PR #$pr" >&2; return 1; }
+    [ "$state" = UNKNOWN ] || break
+  done
+  echo "$state"
+}
+
 pr_facts() {
-  local branch="$1" pr number threads risk refusal queue
+  local branch="$1" pr number threads risk refusal queue mergeable=""
   pr="$(gh pr list --repo "$REPO" --head "$branch" --state all \
-    --json number,state,isDraft,reviewDecision,statusCheckRollup,url,createdAt,headRefOid \
+    --json number,state,isDraft,reviewDecision,statusCheckRollup,url,createdAt,headRefOid,mergeable \
     --jq 'sort_by(.number) | last // empty')"
   [ -n "$pr" ] || { echo null; return; }
   number="$(jq -r .number <<<"$pr")"
@@ -149,6 +173,9 @@ pr_facts() {
     refusal="$("$ROOT/scripts/pr.sh" refusal "$number")" || die "could not read the refusal of PR #$number"
     # In the merge queue, or removed from it by GitHub (scripts/pr.sh queue, ADR-018).
     queue="$("$ROOT/scripts/pr.sh" queue "$number")" || die "could not read the merge queue state of PR #$number"
+    # Whether GitHub finds conflicts with main (#1274); an UNKNOWN state is read again.
+    mergeable="$(jq -r '.mergeable // ""' <<<"$pr")"
+    if [ "$mergeable" = UNKNOWN ]; then mergeable="$(read_mergeable "$number")" || exit 1; fi
     # shellcheck disable=SC2016 # GraphQL variables, not shell
     threads="$(gh api graphql -F owner="$OWNER" -F name="$NAME" -F n="$number" -f query='
       query($owner: String!, $name: String!, $n: Int!) {
@@ -158,6 +185,7 @@ pr_facts() {
   # GitHub reports unfinished conclusions and a missing review as "", not null.
   # A cancelled job is read by its retry job (scripts/check-retries.jq, #1384), as pr.sh wait and the merge gate do.
   jq -L "$ROOT/scripts" --argjson threads "$threads" --argjson risk "$risk" --argjson refusal "$refusal" --argjson queue "$queue" \
+    --arg mergeable "$mergeable" \
     'include "check-retries";
     def value(f): [f[] | select(. != null and . != "")] | first // "";
     def check_state:
@@ -169,7 +197,7 @@ pr_facts() {
     ([.statusCheckRollup[]? | {name: (.name // .context), state: check_state}] | settle_retries) as $checks
     | {
     number, state, url, draft: .isDraft, threads: $threads, risk: $risk.risk, risk_reasons: ($risk.reasons // []),
-    head: .headRefOid, refusal: $refusal, queue: $queue,
+    head: .headRefOid, refusal: $refusal, queue: $queue, mergeable: (if $mergeable == "" then null else $mergeable end),
     review: (if (.reviewDecision // "") == "" then null else .reviewDecision end),
     failing: [$checks[] | select(.state == "fail" or .state == "cancel")] | length,
     pending: [$checks[] | select(.state == "pending")] | length,
@@ -278,7 +306,8 @@ render() {
     (if (.children | length) == 0 then empty else "Tickets:",
       (.children[] | "  \(ref)\(if (.labels | length) > 0 then " [\(.labels | join(", "))]" else "" end)\(if (.assignees | length) > 0 then " (\(.assignees | join(", ")))" else "" end)\(if .blocked then " ⛓" else "" end)") end),
     (.branches[] | "Branch: \(.name)\(if .ahead != null then " · \(.ahead) ahead of main" else "" end)\(if .worktree then " · worktree \(.worktree) · \(if .dirty == 0 then "clean" else "\(.dirty) uncommitted" end)" else "" end)",
-      (.pr // empty | "PR: #\(.number) \(.state)\(if .draft then " draft" else "" end) · \(.age_days) days old · failing checks \(.failing) · pending \(.pending) · open threads \(.threads) · review \(.review // "none")\(if .risk == "owner" then " · owner-only" elif .risk then " · \(.risk)-risk" else "" end)\(if .queue.state == "queued" then " · in the merge queue (position \(.queue.position))" elif .queue.state == "removed" then " · removed from the merge queue (\(.queue.reason // "no reason given"))" else "" end) · \(.url)",
+      (.pr // empty | "PR: #\(.number) \(.state)\(if .draft then " draft" else "" end) · \(.age_days) days old · failing checks \(.failing) · pending \(.pending) · open threads \(.threads) · review \(.review // "none")\(if .risk == "owner" then " · owner-only" elif .risk then " · \(.risk)-risk" else "" end)\(if .queue.state == "queued" then " · in the merge queue (position \(.queue.position))" elif .queue.state == "removed" then " · removed from the merge queue (\(.queue.reason // "no reason given"))" else "" end)\(if .mergeable == "CONFLICTING" then " · conflicting with main" elif .mergeable == "UNKNOWN" then " · mergeable state unknown" else "" end) · \(.url)",
+        (if .mergeable == "CONFLICTING" then "Refresh: PR #\(.number) conflicts with main; merge origin/main into it (work skill, Refresh)" else empty end),
         (.risk as $risk | .risk_reasons[]? | "  \(if $risk == "owner" then "owner-only" else "high-risk" end): \(.)"))),
     (if $notes != "" then "Notes: \($notes)" else empty end),
     "Phase: \($d.phase)",
@@ -453,13 +482,14 @@ cmd_next() {
   ready="$(ready_items "$specs" "$questions" "$removals" "$finished")" || exit 1
   deploy_items
   nightly_items
+  conflict_items
   # The nightly issue is listed once, up front: not again as the ready ticket it also is.
   if [ -n "$NIGHTLY_NUMBER" ]; then ready="$(grep -v "^#$NIGHTLY_NUMBER " <<<"$ready" || true)"; fi
-  ready="$DEPLOY_WORK$NIGHTLY_WORK$ready"
+  ready="$DEPLOY_WORK$NIGHTLY_WORK$CONFLICT_WORK$ready"
   grep . <<<"$ready" || echo "(none)"
   echo "== Waiting on the owner"
   owner="$(owner_items "$specs" "$questions" "$removals")" || exit 1
-  owner="$DEPLOY_OWNER$owner"
+  owner="$DEPLOY_OWNER$CONFLICT_OWNER$owner"
   grep . <<<"$owner" || echo "(none)"
   sync_owner_labels "$owner"
   echo "== For the owner to read"
@@ -591,12 +621,127 @@ nightly_items() {
   NIGHTLY_WORK="Build #$n first (nightly): $NIGHTLY_TITLE"$'\n'
 }
 
+# Conflicting PRs (#1274, spec #1481): the factory keeps every open PR mergeable with main, so an owner-only PR that waits
+# for the owner does not go stale. `next` and `idle` read the mergeable state of every open PR, drafts included (one list,
+# then a read again of each UNKNOWN one, read_mergeable). A CONFLICTING PR is ready work, any risk, listed after a failing
+# deploy and the nightly bug and before the tickets: `Refresh PR #n (conflicting with main)`; the work skill's Refresh step
+# merges origin/main into it. Left out: a PR in the merge queue (GitHub tests it on the latest main), a PR of a spec the
+# owner has not approved (parked: its issue, or the parent spec of its issue, is a spec without spec-approved) and a PR whose
+# refresh is under way. A PR still UNKNOWN after the re-reads is under "Waiting on the owner" as unknown, never as clean.
+# The refresh records (flow.sh refresh, REFRESH_DIR) decide the rest: one refresh per PR and run, and a PR whose refresh
+# needs the owner waits for the owner with the reason until its head commit changes. Every conflicting PR that is not
+# parked or queued leaves the owner lists (CONFLICT_PRS): the owner can't queue it before it is refreshed.
+CONFLICT_WORK=""
+CONFLICT_OWNER=""
+CONFLICT_PRS=" "
+REFRESH_DIR="$NOTES_DIR/refresh"
+
+# The record of PR $1: `<kind> <run> <head> <time> <reason>` (kind attempt or owner; run is the run id or -), or nothing.
+refresh_record() { [ ! -f "$REFRESH_DIR/$1" ] || head -n 1 "$REFRESH_DIR/$1"; }
+
+# The run id of the live factory run (the lock, flow.sh lock), or `-` when no run holds a live lock.
+current_run() {
+  lock_read
+  if [ "$LOCK_STATE" = live ] && [ -n "$LOCK_RUN" ]; then echo "$LOCK_RUN"; else echo "-"; fi
+}
+
+# True when issue $1 belongs to a parked spec: a spec (itself, or the parent of the ticket) the owner has not approved.
+# Dies when a read fails.
+parked_issue() {
+  local issue="$1" view spec spec_view
+  view="$(gh issue view "$issue" --repo "$REPO" --json state,labels,parent)" || die "could not read #$issue"
+  if jq -e --arg spec "$SPEC_LABEL" '[.labels[].name] | index($spec)' <<<"$view" >/dev/null; then
+    spec_view="$view"
+  else
+    spec="$(jq -r '.parent.number // empty' <<<"$view")"
+    [ -n "$spec" ] || return 1
+    spec_view="$(gh issue view "$spec" --repo "$REPO" --json state,labels)" || die "could not read #$spec"
+  fi
+  jq -e --arg approved "$APPROVED_LABEL" '.state == "OPEN" and ([.labels[].name] | index($approved) | not)' <<<"$spec_view" >/dev/null
+}
+
+conflict_items() {
+  local prs pr title branch head state queue issue record kind run record_head reason current=""
+  CONFLICT_WORK="" CONFLICT_OWNER="" CONFLICT_PRS=" "
+  prs="$(gh pr list --repo "$REPO" --state open --limit 100 --json number,title,headRefName,headRefOid,mergeable \
+    --jq '.[] | [.number, (.headRefOid // "-"), (.mergeable // "-"), (.headRefName // "-"), .title] | @tsv')" \
+    || die "could not read the open PRs"
+  while IFS=$'\t' read -r pr head state branch title; do
+    [ -n "$pr" ] || continue
+    if [ "$state" = UNKNOWN ]; then state="$(read_mergeable "$pr")" || exit 1; fi
+    case "$state" in
+      UNKNOWN)
+        CONFLICT_OWNER+="PR #$pr $title (mergeable state unknown: GitHub has not computed it; read again next run)"$'\n'
+        continue ;;
+      CONFLICTING) ;;
+      *) continue ;;
+    esac
+    queue="$("$ROOT/scripts/pr.sh" queue "$pr")" || die "could not read the merge queue state of PR #$pr"
+    [ "$(jq -r '.state // ""' <<<"$queue")" != queued ] || continue
+    issue="$(branch_issue "$branch")"
+    if [ -n "$issue" ] && parked_issue "$issue"; then continue; fi
+    CONFLICT_PRS+="$pr "
+    record="$(refresh_record "$pr")"
+    if [ -n "$record" ]; then
+      read -r kind run record_head _ <<<"$record"
+      reason="$(cut -d' ' -f5- <<<"$record")"
+      case "$kind" in
+        owner)
+          if [ "$record_head" = "$head" ]; then
+            CONFLICT_OWNER+="Decide on PR #$pr $title (conflicting with main: $reason; or merge main by hand)"$'\n'
+            continue
+          fi ;;
+        attempt)
+          [ -n "$current" ] || current="$(current_run)"
+          if [ "$run" != - ] && [ "$run" = "$current" ]; then
+            if [ "$record_head" = "$head" ]; then continue; fi
+            CONFLICT_OWNER+="Decide on PR #$pr $title (still conflicting with main after a refresh in this run; the next run tries again, or merge main by hand)"$'\n'
+            continue
+          fi ;;
+      esac
+    fi
+    CONFLICT_WORK+="Refresh PR #$pr (conflicting with main)"$'\n'
+  done <<<"$prs"
+}
+
+# flow.sh refresh <pr> [--owner <reason>]: see the header. The record is one line, `<kind> <run> <head> <time> <reason>`.
+cmd_refresh() {
+  [ $# -ge 1 ] || usage
+  is_number "$1"
+  local pr="$1" reason="" kind=attempt view state branch head run wt now
+  shift
+  if [ $# -gt 0 ]; then
+    [ "$1" = --owner ] && [ $# -eq 2 ] || usage
+    kind=owner
+    reason="$(tr '\n\r' '  ' <<<"$2" | sed -E 's/^ +//; s/ +$//')"
+    [ -n "$reason" ] || die "--owner needs the reason the refresh of PR #$pr waits for the owner"
+  fi
+  view="$(gh pr view "$pr" --repo "$REPO" --json state,headRefName,headRefOid)" || die "could not read PR #$pr"
+  state="$(jq -r .state <<<"$view")"
+  [ "$state" = OPEN ] || die "PR #$pr is $state, not open"
+  branch="$(jq -r .headRefName <<<"$view")"
+  head="$(jq -r .headRefOid <<<"$view")"
+  run="$(current_run)"
+  now="$(jq -rn --argjson e "$(now_epoch)" '$e | todate')"
+  mkdir -p "$REFRESH_DIR"
+  printf '%s %s %s %s %s\n' "$kind" "$run" "$head" "$now" "${reason:-refresh}" >"$REFRESH_DIR/$pr"
+  if [ "$kind" = owner ]; then
+    echo "PR #$pr waits for the owner: $reason"
+    return 0
+  fi
+  wt="$(worktree_of "$branch")"
+  echo "Refresh PR #$pr: branch $branch, head ${head:0:7}"
+  if [ -n "$wt" ]; then echo "Worktree: $wt"; else echo "Worktree: none (scripts/wt.sh add $branch)"; fi
+  echo "Next: git merge origin/$(default_branch) in the worktree (a merge, never a rebase or a force-push), then the Refresh steps of the work skill"
+}
+
 # The scan of `idle`: the first line is `work` or `idle`, then the lines that explain it. Dies when a read fails.
 idle_scan() {
   local specs questions ready mine owner removals finished work='' n phase heads title
   deploy_items
   nightly_items
-  work="$DEPLOY_WORK$NIGHTLY_WORK"
+  conflict_items
+  work="$DEPLOY_WORK$NIGHTLY_WORK$CONFLICT_WORK"
   mine="$(assigned_lines)" || exit 1
   while IFS='|' read -r n phase heads title; do
     [ -n "$n" ] || continue
@@ -615,7 +760,7 @@ idle_scan() {
     grep . <<<"$work"
   else
     owner="$(owner_items "$specs" "$questions" "$removals")" || exit 1
-    owner="$DEPLOY_OWNER$owner"
+    owner="$DEPLOY_OWNER$CONFLICT_OWNER$owner"
     echo idle
     echo "== Waiting on the owner"
     grep . <<<"$owner" || echo "(none)"
@@ -710,6 +855,8 @@ owner_items() {
     --jq '.[] | select(.isDraft | not) | [.number, .title, .headRefOid, .headRefName // ""] | @tsv')" || die "could not read the open PRs"
   while IFS=$'\t' read -r pr title head branch; do
     [ -n "$pr" ] || continue
+    # A conflicting PR is the factory's to refresh first (conflict_items): the owner can't queue it before.
+    case "$CONFLICT_PRS" in *" $pr "*) continue ;; esac
     queue="$("$ROOT/scripts/pr.sh" queue "$pr")" || die "could not read the merge queue state of PR #$pr"
     case "$(jq -r '.state // ""' <<<"$queue")" in
       queued) continue ;;
@@ -1158,5 +1305,6 @@ case "${1:-}" in
   start)  shift; cmd_start "$@" ;;
   finish) shift; cmd_finish "$@" ;;
   slice)  shift; cmd_slice "$@" ;;
+  refresh) shift; cmd_refresh "$@" ;;
   *) usage ;;
 esac

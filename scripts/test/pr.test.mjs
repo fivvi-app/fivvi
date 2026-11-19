@@ -2430,3 +2430,121 @@ describe('E002 #107 pr.sh ship', () => {
     assert.ok(!result.calls.some((call) => /^pr (checks|edit|ready)/.test(call)));
   });
 });
+
+// #1274 (spec #1481): pr.sh refreshed records, in the PR body, that main was merged into the branch.
+describe('#1274 pr.sh refreshed', () => {
+  const gh = fakeGh();
+  let repo;
+  let mainSha;
+  const git = (...args) =>
+    execFileSync(
+      'git',
+      ['-C', repo, '-c', 'user.name=Test', '-c', 'user.email=test@example.com', ...args],
+      { encoding: 'utf8' },
+    ).trim();
+
+  before(() => {
+    repo = realpathSync(mkdtempSync(join(tmpdir(), 'pr-refreshed-')));
+    execFileSync('git', ['init', '--quiet', '--initial-branch=feature/57-hold-a-spot', repo]);
+    cpSync(SCRIPTS, join(repo, 'scripts'), { recursive: true });
+    git('add', '.');
+    git('commit', '--quiet', '-m', 'chore(E001): main');
+    mainSha = git('rev-parse', 'HEAD');
+    git('update-ref', 'refs/remotes/origin/main', mainSha);
+    git('remote', 'add', 'origin', 'https://github.com/example/fivvi.git');
+    // The branch's own work, then the merge of main (here a merge commit with main as its second parent).
+    writeFileSync(join(repo, 'work.txt'), 'work\n');
+    git('add', 'work.txt');
+    git('commit', '--quiet', '-m', 'feat(E001): the branch work');
+    git('merge', '--no-ff', '--quiet', '-m', 'Merge origin/main', 'origin/main');
+  });
+  after(() => {
+    gh.cleanup();
+    rmSync(repo, { recursive: true, force: true });
+  });
+
+  const REFRESHED = (sha) => `🔄 **Refreshed:** merged main at \`${sha}\``;
+  const refreshed = (prHead, body = 'Closes #57', env = {}) => {
+    const result = spawnSync(join(repo, 'scripts/pr.sh'), ['refreshed'], {
+      cwd: repo,
+      encoding: 'utf8',
+      env: {
+        ...gh.env([
+          { match: '^pr list ', out: [{ number: 60 }] },
+          { match: '^pr view 60 .*--json headRefOid', out: { headRefOid: prHead } },
+          { match: '^pr view 60 .*--json body', out: { body } },
+          { match: '^pr edit 60 ', out: '' },
+        ]),
+        ...env,
+      },
+    });
+    const edits = gh.calls().filter((call) => call.args[1] === 'edit');
+    return {
+      ...result,
+      edits,
+      bodies: edits.map((call) => call.args[call.args.indexOf('--body') + 1]),
+    };
+  };
+
+  it('AC2: records `🔄 **Refreshed:** merged main at <sha>` in the PR body, after the rest of it', () => {
+    const result = refreshed(git('rev-parse', 'HEAD'), 'Closes #57\n\n**Self-review:** old');
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(result.bodies, [
+      `Closes #57\n\n**Self-review:** old\n\n${REFRESHED(mainSha)}`,
+    ]);
+  });
+
+  it('keeps the records of earlier refreshes and does not write the same one twice', () => {
+    const head = git('rev-parse', 'HEAD');
+    const earlier = `Closes #57\n\n${REFRESHED('e'.repeat(40))}`;
+    assert.deepEqual(refreshed(head, earlier).bodies, [`${earlier}\n\n${REFRESHED(mainSha)}`]);
+    const again = refreshed(head, `Closes #57\n\n${REFRESHED(mainSha)}`);
+    assert.equal(again.status, 0, again.stderr);
+    assert.deepEqual(again.edits, []);
+  });
+
+  it('refuses when origin/main is not merged into the branch (merge again first)', () => {
+    git(
+      'update-ref',
+      'refs/remotes/origin/main',
+      git('commit-tree', '-p', mainSha, '-m', 'later', `${mainSha}^{tree}`),
+    );
+    try {
+      const result = refreshed(git('rev-parse', 'HEAD'));
+      assert.equal(result.status, 1);
+      assert.match(result.stderr, /origin\/main \([0-9a-f]{7}\) is not merged into this branch/);
+      assert.deepEqual(result.edits, []);
+    } finally {
+      git('update-ref', 'refs/remotes/origin/main', mainSha);
+    }
+  });
+
+  it('refuses when the local commit is not the PR head, or the tree is dirty', () => {
+    const result = refreshed('d'.repeat(40));
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /is not the PR head ddddddd/);
+    writeFileSync(join(repo, 'dirty.txt'), 'x');
+    try {
+      const dirty = refreshed(git('rev-parse', 'HEAD'));
+      assert.equal(dirty.status, 1);
+      assert.match(dirty.stderr, /uncommitted changes/);
+    } finally {
+      rmSync(join(repo, 'dirty.txt'));
+    }
+  });
+
+  it("leaves the body alone when it can't read it", () => {
+    const result = spawnSync(join(repo, 'scripts/pr.sh'), ['refreshed'], {
+      cwd: repo,
+      encoding: 'utf8',
+      env: gh.env([
+        { match: '^pr list ', out: [{ number: 60 }] },
+        { match: '^pr view 60 .*--json headRefOid', out: { headRefOid: git('rev-parse', 'HEAD') } },
+        { match: '^pr view 60 .*--json body', out: '', status: 1 },
+      ]),
+    });
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /could not read the body of PR #60/);
+    assert.equal(gh.calls().filter((call) => call.args[1] === 'edit').length, 0);
+  });
+});
