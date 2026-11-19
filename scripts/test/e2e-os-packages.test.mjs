@@ -51,12 +51,18 @@ describe('E002 #1470 E2E (Linux): Chromium OS packages come from a cache', () =>
     assert.doesNotMatch(stepNamed(PREPARE), /ImageVersion/);
   });
 
+  it('never fails the job over the restore: a stalled download is cut off after its time limit and the run installs cold', () => {
+    const restore = stepNamed(RESTORE);
+    assert.match(restore, /^ {8}timeout-minutes: 2$/m);
+    assert.match(restore, /^ {8}continue-on-error: true$/m);
+  });
+
   it('falls back only to the same Ubuntu release and Playwright version of another month', () => {
     const restore = stepNamed(RESTORE);
     const restoreKeys = restore.match(/^ {10}restore-keys: (.+)$/m);
     assert.ok(restoreKeys, 'the restore has restore-keys, one line');
-    // The key without the month and the trailing dash: a prefix of the key, never of another release or Playwright
-    // version, whose package lists differ.
+    // The key without the month (the prefix keeps the trailing dash): a prefix of the key, never of another release or
+    // Playwright version, whose package lists differ.
     const key = keyOf(restore);
     const prefix = key.replace(/\$\{\{ steps\.apt\.outputs\.month \}\}$/, '');
     assert.equal(restoreKeys[1], prefix);
@@ -76,7 +82,7 @@ describe('E002 #1470 E2E (Linux): Chromium OS packages come from a cache', () =>
     assert.equal(indexOfStep(SAVE), indexOfStep(PRUNE) + 1);
   });
 
-  it('saves the cache right after the install, under the same key, only when it was not restored', () => {
+  it('saves the cache after the install and the prune, under the same key, only when it was not restored', () => {
     const save = stepNamed(SAVE);
     assert.ok(save, 'a step saves the OS packages');
     assert.match(save, /uses: actions\/cache\/save@[0-9a-f]{40} # v/);
