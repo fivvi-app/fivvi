@@ -375,10 +375,42 @@ describe('E001 #1388 the heavy scripts take a slot', () => {
   it('AC2: test-ios.sh, android.sh and maestro.sh wrap themselves in the slots of what they start', () => {
     assert.match(read('test-ios.sh'), /^source "\$ROOT\/scripts\/_slots\.sh"$/m);
     assert.match(read('test-ios.sh'), /^slots_wrap ".*heavy,ios-sim.*" "\$0" /m);
-    assert.match(read('android.sh'), /slots_wrap heavy,android-emu "\$0" "\$@"/);
+    assert.match(read('android.sh'), /slots_wrap "\$\(android_slots "\$@"\)" "\$0" "\$@"/);
     assert.match(read('android.sh'), /slots_wrap heavy "\$0" "\$@"/);
     assert.match(read('maestro.sh'), /slots_wrap heavy,android-emu "\$0" "\$@"/);
     assert.match(read('maestro.sh'), /slots_wrap heavy,ios-sim "\$0" "\$@"/);
+  });
+
+  // ADR-034: android.sh test and verify with --no-ui boot no emulator, so they take only the heavy slot. `extra` is a usage
+  // error after the slots are taken, so no Gradle or emulator starts.
+  it('android.sh test and verify --no-ui do not wait for the emulator slot, and without --no-ui they do', () => {
+    const base = mkdtempSync(join(tmpdir(), 'slots-android-'));
+    try {
+      const slotsDir = join(base, 'slots');
+      mkdirSync(join(slotsDir, 'android-emu'), { recursive: true });
+      // A live holder of the only emulator slot: this test process.
+      symlinkSync(`${process.pid}|1||emulator job`, join(slotsDir, 'android-emu', 'slot-1'));
+      const androidSh = (args) =>
+        spawnSync(join(SCRIPTS, 'android.sh'), args, {
+          encoding: 'utf8',
+          timeout: 30_000,
+          env: {
+            PATH: process.env.PATH,
+            HOME: base,
+            FIVVI_SLOTS_DIR: slotsDir,
+            FIVVI_SLOT_POLL_SECONDS: '0.1',
+            FIVVI_SLOT_TIMEOUT_SECONDS: '1',
+          },
+        });
+      for (const command of ['test', 'verify']) {
+        const unit = androidSh([command, '--no-ui', 'extra']);
+        assert.doesNotMatch(unit.stderr, /android-emu/, `${command} --no-ui: ${unit.stderr}`);
+        const ui = androidSh([command, 'extra']);
+        assert.match(ui.stderr, /android-emu/, `${command}: ${ui.stderr}`);
+      }
+    } finally {
+      rmSync(base, { recursive: true, force: true });
+    }
   });
 
   it('AC2: slots_wrap does nothing on CI and with FIVVI_SLOTS=off, and otherwise holds the slots in the script itself', () => {

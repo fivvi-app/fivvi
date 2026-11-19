@@ -23,15 +23,24 @@
 #                 messages of the failed tests from the result bundle (#290). Shuts down the
 #                 simulators it booted when it ends, unless KEEP_DEVICE=1
 #
+#   test-ios.sh [--unit-only]    the unit tests of both apps only (ADR-034): the build and every check above stay, the tests run
+#                                nl and en one after the other on one simulator, each with -skip-testing:<app>UITests, so no UI
+#                                test target runs. Builders run it while the UI tests run in the nightly run of CI; `pnpm
+#                                test:ios` without it still runs everything. It wins over IOS_UI_LOCALES. The check that every UI
+#                                test runs in a test-plan configuration still runs
+#
 #   test-ios.sh build            the same checks and the one build-for-testing, then packs the test bundle (the .xctestrun
 #                                and the build products) into apps/ios/.build/ios-test-bundle.tar; runs no test. CI's
 #                                `iOS build` job (#293)
-#   test-ios.sh test <nl|en> [--bundle <file>] [--retry-failed]
+#   test-ios.sh test <nl|en> [--bundle <file>] [--retry-failed] [--unit-only]
 #                                unpacks that bundle (--bundle <file> names another) and runs the test plan's configuration
 #                                for one language, unit and UI tests, without building, on its own simulator. CI's two
 #                                `iOS tests` jobs run it in parallel, one per language, from the artifact of the build job;
 #                                CI never retries a failed test, so a flaky one stays visible and is quarantined
 #                                (TESTING.md §8). The options come in either order.
+#                                --unit-only (ADR-034: the `iOS tests` jobs pass it while .github/pipeline.json says
+#                                `ci: fast`; the nightly run and `ci: full` run without it) leaves out the UI test target:
+#                                -skip-testing:<app>UITests, the unit tests only
 #                                --retry-failed (only `release.sh tests ios` passes it, #1433) retries the failed UI tests
 #                                once when the run fails: on the same simulator, with -only-testing: for each of them, the
 #                                same configuration and allowances, into TestResults-<locale>-retry.xcresult, within
@@ -61,8 +70,10 @@ MODE=all
 ONLY_LOCALE=""
 BUNDLE_FILE=""
 RETRY_FAILED=false
+UNIT_ONLY=false
 case "${1:-}" in
   "") ;;
+  --unit-only) UNIT_ONLY=true; [ $# -eq 1 ] || usage_of "$0" ;;
   build) MODE=build; [ $# -eq 1 ] || usage_of "$0" ;;
   test)
     MODE='test'
@@ -73,6 +84,7 @@ case "${1:-}" in
       case "$1" in
         --bundle) [ $# -ge 2 ] || usage_of "$0"; BUNDLE_FILE="$2"; shift ;;
         --retry-failed) RETRY_FAILED=true ;;
+        --unit-only) UNIT_ONLY=true ;;
         *) usage_of "$0" ;;
       esac
       shift
@@ -93,6 +105,8 @@ UI_LOCALES="${IOS_UI_LOCALES:-$LOCALES}"
 for locale in $UI_LOCALES; do
   [[ " $LOCALES " == *" $locale "* ]] || die "IOS_UI_LOCALES: '$locale' is not one of: $LOCALES"
 done
+# --unit-only (ADR-034): no locale runs its UI tests.
+if $UNIT_ONLY; then UI_LOCALES=""; fi
 in_ui_locales() { [[ " $UI_LOCALES " == *" $1 "* ]]; }
 all_ui=true
 for locale in $LOCALES; do in_ui_locales "$locale" || all_ui=false; done
@@ -807,7 +821,11 @@ test_one_locale() { # <simulator>
   local tests=0 tests_started=$SECONDS bundle
   bundle="$(result_bundle "$ONLY_LOCALE")"
   rm -rf "$bundle" ".build/$RESULT_STEM-$ONLY_LOCALE-retry.xcresult"
-  step "$APP_UNIT and UI tests in $ONLY_LOCALE (simulator $1)"
+  if $UNIT_ONLY; then
+    step "$APP_UNIT tests in $ONLY_LOCALE (--unit-only) (simulator $1)"
+  else
+    step "$APP_UNIT and UI tests in $ONLY_LOCALE (simulator $1)"
+  fi
   run_tests "$1" "$ONLY_LOCALE" || tests=1
   TEST_ELAPSED=$((SECONDS - tests_started))
   report_slowest "$bundle" "$ONLY_LOCALE"
@@ -866,7 +884,7 @@ test_all_locales() { # <simulator> [second simulator]
   # One bundle per locale when the locales run at the same time or with different tests.
   $all_ui || per_locale=true
   if $parallel; then
-    $all_ui || ui_note=", UI tests in ${UI_LOCALES// / and } only"
+    if $UNIT_ONLY; then ui_note=", no UI tests (--unit-only)"; elif ! $all_ui; then ui_note=", UI tests in ${UI_LOCALES// / and } only"; fi
     step "$APP_UNIT and UI tests in nl and en at the same time${ui_note:-} (simulators $1 and $2)"
     test_locales_in_parallel "$1" "$2" || tests=1
   elif $all_ui; then
@@ -875,7 +893,11 @@ test_all_locales() { # <simulator> [second simulator]
   else
     # The UI tests of the other locale are skipped: one run per locale, one after the other (a failing run doesn't stop
     # the next), each with its own result bundle.
-    step "$APP_UNIT tests in nl and en, UI tests in ${UI_LOCALES// / and } only (simulator $1)"
+    if $UNIT_ONLY; then
+      step "$APP_UNIT tests in nl and en, no UI tests (--unit-only) (simulator $1)"
+    else
+      step "$APP_UNIT tests in nl and en, UI tests in ${UI_LOCALES// / and } only (simulator $1)"
+    fi
     for locale in $LOCALES; do run_tests "$1" "$locale" || tests=1; done
   fi
   for locale in $LOCALES; do

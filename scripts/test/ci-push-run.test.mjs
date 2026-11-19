@@ -45,6 +45,8 @@ describe('E002 #1357 the push run of CI on main', () => {
       'android-maestro',
       'android',
       'quarantine-android',
+      // ADR-034: the report of the nightly run, which runs only on the schedule.
+      'nightly-report',
     ]);
   });
 
@@ -56,6 +58,8 @@ describe('E002 #1357 the push run of CI on main', () => {
       /^ {2}merge_group:\n {4}types: \[checks_requested\]\n {4}branches: \[main\]$/m,
     );
     assert.match(ci, /^ {2}workflow_dispatch:$/m);
+    // ADR-034: and every night.
+    assert.match(ci, /^ {2}schedule:\n {4}- cron: '0 2 \* \* \*'$/m);
   });
 
   it('no job can fail the run of a push: each has continue-on-error on a push, and only on a push', () => {
@@ -86,7 +90,11 @@ describe('E002 #1357 the push run of CI on main', () => {
   it('the Linux jobs run on a push as on a pull request: nothing narrows them to other events', () => {
     assert.equal(jobIf(jobs.checks), '');
     assert.equal(jobIf(jobs.changes), '');
-    assert.equal(jobIf(jobs.e2e), "needs.changes.outputs.e2e == 'true'");
+    // ADR-034: with `ci: fast` the Playwright suite runs only in a run with UI tests, which a push is not.
+    assert.equal(
+      jobIf(jobs.e2e),
+      "needs.changes.outputs.e2e == 'true' && needs.changes.outputs.ui_tests == 'true'",
+    );
   });
 
   it('no native test suite runs on a push: not iOS tests, Android tests, Maestro or their retries', () => {
@@ -108,9 +116,13 @@ describe('E002 #1357 the push run of CI on main', () => {
         );
       }
     }
+    // A step per command: the iOS tests jobs and "Android tests" have one for a run with UI tests and one without (ADR-034).
     assert.deepEqual(found, [
       'ios-tests',
+      'ios-tests',
       'ios-tests-retry',
+      'ios-tests-retry',
+      'android-tests',
       'android-tests',
       'android-maestro',
       // The Quarantine (Android) job, itself skipped on a push (E002 #1363).
@@ -149,7 +161,8 @@ describe('E002 #1357 the push run of CI on main', () => {
     ]) {
       const step = upload(job, artifact);
       assert.ok(step, `${job} uploads ${artifact}`);
-      assert.match(step, new RegExp(`^ {8}if: ${NOT_PUSH}$`, 'm'), `${job} on a push`);
+      // ADR-034: the Maestro app is also left out of a run without UI tests, `... && needs.changes.outputs.ui_tests == 'true'`.
+      assert.match(step, new RegExp(`^ {8}if: ${NOT_PUSH}( && .+)?$`, 'm'), `${job} on a push`);
     }
   });
 
@@ -157,7 +170,7 @@ describe('E002 #1357 the push run of CI on main', () => {
     const maestroApk = steps(jobs['android-build']).find((step) =>
       step.includes('run: scripts/android.sh maestro-apk'),
     );
-    assert.match(maestroApk, new RegExp(`^ {8}if: ${NOT_PUSH}$`, 'm'));
+    assert.match(maestroApk, new RegExp(`^ {8}if: ${NOT_PUSH}( && .+)?$`, 'm'));
   });
 
   it('every long step of a job that runs on a push has a step timeout below its job timeout, only on a push', () => {
