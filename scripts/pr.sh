@@ -47,6 +47,12 @@
 #                                                 findings left (review by risk, ADR-033 item 5, until pilot setup); only
 #                                                 for a PR scripts/risk.sh calls low, they go to the notes file as
 #                                                 follow-ups; a high-risk or owner-only PR is refused
+#   pr.sh refreshed                               after a refresh of a conflicting PR (#1274, work skill, Refresh) was
+#                                                 pushed: record `🔄 **Refreshed:** merged main at <sha>` in the PR body,
+#                                                 <sha> being origin/main, which must be merged into the branch (an
+#                                                 ancestor of HEAD) and HEAD the PR's head commit with nothing uncommitted;
+#                                                 a line is added, never replaced (scripts/usage.mjs counts them), and the
+#                                                 same line is not written twice
 #   pr.sh merge [<pr>] [--after <bug>]            add a low-risk or high-risk (agent-queueable) PR to the merge queue
 #                                                 (ADR-018, ADR-021), which squash-merges it after testing it on the
 #                                                 latest main, only when every condition of the merge gate holds
@@ -654,6 +660,33 @@ cmd_reviewed() {
   record "$pr" "$REVIEW_MARK" "**$REVIEW_MARK:** $reviewers clean on \`$head\`$axes_note ✅$suffix"
 }
 
+# The record of a refresh (#1274): origin/main was merged into the branch that is the PR's head. It is a line of its own
+# (🔄 **Refreshed:** …), added after the others and never replacing one, so every refresh of a PR stays countable.
+REFRESH_MARK="Refreshed"
+cmd_refreshed() {
+  [ $# -eq 0 ] || usage
+  local pr head local_head main body line
+  pr="$(current_pr)"
+  [ -z "$(git status --porcelain)" ] || die "uncommitted changes: commit the merge and push it first (scripts/pr.sh create)"
+  head="$(head_of "$pr")"
+  local_head="$(git rev-parse HEAD)"
+  [ "$local_head" = "$head" ] \
+    || die "local HEAD ${local_head:0:7} is not the PR head ${head:0:7}: push with scripts/pr.sh create first"
+  main="$(git rev-parse --verify --quiet "origin/$(default_branch)^{commit}")" \
+    || die "origin/$(default_branch) is unknown here: git fetch origin, merge it, push, then run this again"
+  git merge-base --is-ancestor "$main" HEAD \
+    || die "origin/$(default_branch) (${main:0:7}) is not merged into this branch: merge it (git merge origin/$(default_branch)), push, then run this again"
+  line="🔄 **$REFRESH_MARK:** merged main at \`$main\`"
+  body="$(gh pr view "$pr" --repo "$REPO" --json body --jq .body)" || die "could not read the body of PR #$pr; nothing recorded"
+  if grep -qxF "$line" <<<"$body"; then
+    echo "📝 already recorded: $line"
+    return 0
+  fi
+  gh pr edit "$pr" --repo "$REPO" --body "${body:+$body$'\n\n'}$line" >/dev/null \
+    || die "could not update the body of PR #$pr; nothing recorded"
+  echo "📝 $line"
+}
+
 # What `pipeline.sh get review` says (ADR-034): split or per-pr; empty when it can't be read, which the merge gate reads as
 # unknown, so a standards-only review record never counts then.
 review_setting() { "$ROOT/scripts/pipeline.sh" get review 2>/dev/null || true; }
@@ -898,6 +931,7 @@ case "${1:-}" in
   reply)   shift; cmd_reply "$@" ;;
   smoke)   shift; cmd_smoke "$@" ;;
   reviewed) shift; cmd_reviewed "$@" ;;
+  refreshed) shift; cmd_refreshed "$@" ;;
   merge)   shift; cmd_merge "$@" ;;
   refusal) shift; cmd_refusal "$@" ;;
   queue)   shift; cmd_queue "$@" ;;

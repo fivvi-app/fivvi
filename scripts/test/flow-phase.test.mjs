@@ -257,6 +257,30 @@ describe('flow phase from the code', () => {
     );
   });
 
+  it('#1274: a PR whose refresh stayed with the owner is merge-refused until the hold is cleared, a refresh push does not clear it', () => {
+    const head = 'd'.repeat(40);
+    const held = (risk, overrides = {}) =>
+      pr({ risk, head, held: 'the last review was not clean', ...overrides });
+
+    for (const risk of ['low', 'high']) {
+      const waiting = decide(issue({ branches: [branch(held(risk))] }));
+      assert.equal(waiting.phase, 'merge-refused', risk);
+      assert.match(
+        waiting.next,
+        /^A refresh of main was merged into it and it stays with the owner: the last review was not clean\. The owner decides, or fix it, push \(scripts\/pr\.sh create\)/,
+      );
+      assert.match(waiting.next, /never run scripts\/pr\.sh merge on it/);
+    }
+    // A refusal of an older head (stale after the refresh push) does not matter: the hold does.
+    assert.equal(
+      phaseOf(held('low', { refusal: { sha: 'b'.repeat(40), reasons: 'x' } })),
+      'merge-refused',
+    );
+    // No hold, or a cleared one (null), is what it was before.
+    assert.equal(phaseOf(held('low', { held: null })), 'ready-to-merge');
+    assert.equal(phaseOf(pr({ risk: 'low', head })), 'ready-to-merge');
+  });
+
   it('leaves a low-risk PR the merge gate refused on its head commit to the owner', () => {
     const head = 'c'.repeat(40);
     const refused = (sha) =>
