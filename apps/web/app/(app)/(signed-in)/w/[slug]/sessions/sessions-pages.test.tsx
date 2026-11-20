@@ -84,7 +84,8 @@ describe.each(locales)('F020 the session page and + Nieuw in %s', (locale) => {
   });
 
   it('F020 #1414 AC2: the trainer row reads Jij / You only for the trainer whose team-member ID is the viewer’s, not for a namesake', () => {
-    const trainerRow = (html: string) => /<dd>([^<]*)<\/dd><dt[^>]*>[^<]*<\/dt><dd><a/.exec(html)?.[1];
+    const trainerRow = (html: string) =>
+      /<dd>([^<]*)<\/dd><dt[^>]*>[^<]*<\/dt><dd><a/.exec(html)?.[1];
     // The session's trainer is Sarah (t1). Another trainer, also called Sarah (t2), looks at it.
     expect(trainerRow(view({}, true, 't1'))).toBe(escapeHtml(copy.sessions.page.you));
     expect(trainerRow(view({}, true, 't2'))).toBe('Sarah');

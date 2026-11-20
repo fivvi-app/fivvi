@@ -268,7 +268,11 @@ describe('GET /v1/me', () => {
       accountId: id,
       role: 'trainer',
     });
-    const owner = await addTeamRole(client.db, { workspaceId: own.id, accountId: id, role: 'owner' });
+    const owner = await addTeamRole(client.db, {
+      workspaceId: own.id,
+      accountId: id,
+      role: 'owner',
+    });
     // A colleague with the same name in the same workspace is someone else.
     const { id: colleagueAccount } = await accountSignedIn('sarah-two@example.com', 'Sarah');
     const colleague = await addTeamRole(client.db, {
@@ -291,7 +295,11 @@ describe('GET /v1/me', () => {
     const { id, cookie } = await accountSignedIn('iso-me@example.com', 'Iso');
     const mine = await createWorkspace(client.db, { label: 'iso-mine' });
     const elsewhere = await createWorkspace(client.db, { label: 'iso-elsewhere' });
-    const own = await addTeamRole(client.db, { workspaceId: mine.id, accountId: id, role: 'owner' });
+    const own = await addTeamRole(client.db, {
+      workspaceId: mine.id,
+      accountId: id,
+      role: 'owner',
+    });
     const others = await accountSignedIn('iso-other@example.com', 'Iso');
     // Another account's roles: in her workspace, and in a workspace she is not part of.
     const colleague = await addTeamRole(client.db, { workspaceId: mine.id, accountId: others.id });

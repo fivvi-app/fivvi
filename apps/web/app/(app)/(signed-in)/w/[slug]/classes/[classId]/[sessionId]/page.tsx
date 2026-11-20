@@ -39,8 +39,7 @@ export default async function ClassDatePage({
   if (session.type !== 'group' || session.groupClass?.id !== classId) notFound();
   const canManage = capabilities.includes('class.manage');
   // PS-07 on CO-04 (only the Owner changes a date): the date of the person's own, as a trainer, is "Je hebt dan al iets".
-  const ownDate =
-    canManage && session.trainer !== undefined && teamMemberId === session.trainer.id;
+  const ownDate = canManage && session.trainer !== undefined && teamMemberId === session.trainer.id;
   return (
     <ClassDateView
       workspaceId={id}

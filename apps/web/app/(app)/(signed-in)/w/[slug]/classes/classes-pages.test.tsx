@@ -80,12 +80,7 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
   const list = (classes: GroupClass[]) =>
     render(
       locale,
-      <ClassesProvider
-        workspaceId="w1"
-        slug="johns-gym"
-        teamMemberId="m1"
-        trainerWord={word}
-      >
+      <ClassesProvider workspaceId="w1" slug="johns-gym" teamMemberId="m1" trainerWord={word}>
         <ClassList slug="johns-gym" classes={classes} trainerWord={word} />
       </ClassesProvider>,
     );
@@ -198,12 +193,7 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
     const view = (groupClass: GroupClass, canManage = true) =>
       render(
         locale,
-        <ClassesProvider
-          workspaceId="w1"
-          slug="johns-gym"
-          teamMemberId="m1"
-          trainerWord={word}
-        >
+        <ClassesProvider workspaceId="w1" slug="johns-gym" teamMemberId="m1" trainerWord={word}>
           <ClassView
             slug="johns-gym"
             groupClass={groupClass}
@@ -314,9 +304,7 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
           capabilities={capabilities}
           personName="John"
           groupClasses={
-            groupClasses
-              ? { workspaceId: 'w1', teamMemberId: 'm1', trainerWord: word }
-              : undefined
+            groupClasses ? { workspaceId: 'w1', teamMemberId: 'm1', trainerWord: word } : undefined
           }
         >
           <hr />
