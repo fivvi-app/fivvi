@@ -68,6 +68,7 @@ fun SessionFlow(
                 workspaceId,
                 session,
                 state.emailLocale,
+                state.myTrainerId,
                 onNotAllowed = { capabilities.onResponse(it, workspaceId, own) },
             )
         }
@@ -90,7 +91,9 @@ fun SessionFlow(
             form.emailLocale,
             RescheduleActions(
                 onClose = ::close,
-                onSubmit = form::save,
+                onSubmit = { form.save() },
+                onSaveAnyway = { form.save(allowConflicts = true) },
+                onDismissDoubleBooking = form::dismissDoubleBooking,
                 onNotify = form::setNotify,
                 time = SessionTimeActions(
                     onDate = form::setDate,

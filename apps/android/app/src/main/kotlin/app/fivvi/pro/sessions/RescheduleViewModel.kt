@@ -47,6 +47,8 @@ data class RescheduleState(
     val saving: Boolean = false,
     /** The API moved the session: PS-05 closes and TD-02 says where it went. */
     val moved: Session? = null,
+    /** PS-07: the trainer has something else at the new time (`409` `trainer_conflict`); nothing was stored. */
+    val doubleBooking: DoubleBooking? = null,
 ) {
     val zone: ZoneId get() = ZoneId.of(session.timeZone)
 
@@ -65,6 +67,8 @@ class RescheduleViewModel(
     private val workspaceId: UUID,
     session: Session,
     val emailLocale: Locale,
+    /** The team-member ID of the person among the trainers, when known: their own session reads *Je hebt dan al iets*. */
+    private val myTrainerId: UUID? = null,
     private val onNotAllowed: (Response<*>) -> Unit = {},
     now: () -> Instant = Instant::now,
 ) : ViewModel() {
@@ -95,17 +99,24 @@ class RescheduleViewModel(
     /** The move was handed on: it isn't handed on again. */
     fun onMovedHandled() = _state.update { it.copy(moved = null) }
 
-    /** Moves the session. When the API moved it, [RescheduleState.moved] has it; otherwise the state says what went wrong. */
-    fun save() {
+    /** *Terug* of PS-07: the warning goes, the form stays as it is and nothing is sent. */
+    fun dismissDoubleBooking() = _state.update { it.copy(doubleBooking = null) }
+
+    /**
+     * Moves the session. When the API moved it, [RescheduleState.moved] has it; otherwise the state says what went wrong.
+     * [allowConflicts] is *Toch opslaan* of PS-07: the same move again, saved even when the trainer has something then.
+     */
+    fun save(allowConflicts: Boolean = false) {
         val shown = _state.value
         if (shown.saving || shown.session.status != Session.Status.SCHEDULED) return
-        _state.update { it.copy(failure = null, time = it.time.cleared(), saving = true) }
+        _state.update { it.copy(failure = null, doubleBooking = null, time = it.time.cleared(), saving = true) }
         val request = ReschedulePrivateSessionRequest(
             localDate = SessionClock.localDate(shown.time.start),
             localStart = SessionClock.localStart(shown.time.start),
             durationMinutes = shown.time.durationMinutes,
             notify = shown.notify,
             version = shown.session.version,
+            allowConflicts = true.takeIf { allowConflicts },
             surface = ReschedulePrivateSessionRequest.Surface.ANDROID,
         )
         viewModelScope.launch { send(shown.session.id, request) }
@@ -138,16 +149,17 @@ class RescheduleViewModel(
 
     private fun fail(failure: RescheduleFailure) = _state.update { it.copy(saving = false, failure = failure) }
 
-    // The session was changed first: the form shows it as it is now and the next save uses its version. A trainer
-    // conflict (PS-07, #542) has no session to show: until that screen exists it says the move was not saved.
+    // The session was changed first: the form shows it as it is now and the next save uses its version. A clash with the
+    // trainer's other sessions (`trainer_conflict`) is PS-07's soft warning instead: the form stays as it is and so does
+    // the version, since nothing was stored.
     private fun reload(response: Response<*>) {
         val refusal = runCatching {
             Serializer.kotlinxSerializationJson.decodeFromString<ReschedulePrivateSessionRefusal>(
                 response.errorBody()?.string().orEmpty(),
             )
         }.getOrNull() ?: return fail(RescheduleFailure.NotSaved)
-        val session = refusal.session?.takeIf { refusal.code != ReschedulePrivateSessionRefusal.Code.TRAINER_CONFLICT }
-            ?: return fail(RescheduleFailure.NotSaved)
+        if (refusal.code == ReschedulePrivateSessionRefusal.Code.TRAINER_CONFLICT) return warn(refusal)
+        val session = refusal.session ?: return fail(RescheduleFailure.NotSaved)
         val zone = ZoneId.of(session.timeZone)
         val minutes = SessionClock.minutes(session.startsAt, session.endsAt)
         _state.update {
@@ -162,5 +174,12 @@ class RescheduleViewModel(
                 },
             )
         }
+    }
+
+    private fun warn(refusal: ReschedulePrivateSessionRefusal) {
+        val trainer = _state.value.session.trainer
+        val name = trainer?.name?.takeIf { trainer.id != myTrainerId }
+        val booking = DoubleBooking.of(refusal.conflicts, name) ?: return fail(RescheduleFailure.NotSaved)
+        _state.update { it.copy(saving = false, doubleBooking = booking) }
     }
 }

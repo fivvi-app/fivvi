@@ -6,6 +6,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.v2.createEmptyComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import app.fivvi.api.models.Client
@@ -311,6 +312,148 @@ class PrivateSessionFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private 
         compose.onNodeWithTag(
             RescheduleTags.FAILED,
         ).assertTextEquals(string(R.string.sessions_reschedule_changed_by, "Tom"))
+    }
+
+    // F023 AC6 (PS-07): plans a session of Anna for [trainer] (the Owner's choice; none for a Trainer) at the form's first start.
+    private fun planFirstSession(trainer: app.fivvi.api.models.Trainer? = null) {
+        openNewSession()
+        if (trainer != null) {
+            compose.onNodeWithTag(NewSessionTags.TRAINER).performScrollTo().performClick()
+            compose.onNodeWithTag("${NewSessionTags.TRAINER}.${trainer.id}").performClick()
+        }
+        chooseClient(anna)
+        compose.onNodeWithTag(NewSessionTags.SAVE).performClick()
+        compose.waitUntilTagExists(SessionTags.MENU)
+        app.pressBack()
+        compose.waitUntilTagExists(HomeTags.NEW)
+    }
+
+    private fun typeOfPrivateSession() = string(R.string.sessions_double_booking_type_private)
+
+    @Test
+    fun test_F023_AC6_planningOverOneOfYourOwnSessionsWarnsAndSaveAnywaySavesIt() {
+        launchAsSarah()
+        planFirstSession()
+        openNewSession()
+        chooseClient(mark)
+
+        compose.onNodeWithTag(NewSessionTags.SAVE).performClick()
+
+        compose.waitUntilTagExists(DoubleBookingTags.saveAnyway(NewSessionTags.PREFIX))
+        compose.onNodeWithText(string(R.string.sessions_double_booking_title_own)).assertIsDisplayed()
+        compose.onNodeWithText("(${typeOfPrivateSession()})", substring = true).assertIsDisplayed()
+        compose.onNodeWithText("Anna de Vries", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag(
+            DoubleBookingTags.back(NewSessionTags.PREFIX),
+        ).assertTextEquals(string(R.string.sessions_double_booking_back))
+        compose.onNodeWithTag(
+            DoubleBookingTags.saveAnyway(NewSessionTags.PREFIX),
+        ).assertTextEquals(string(R.string.sessions_double_booking_save_anyway))
+
+        // *Terug*: the form stays as it was and nothing more is sent.
+        compose.onNodeWithTag(DoubleBookingTags.back(NewSessionTags.PREFIX)).performClick()
+        compose.onNodeWithTag(DoubleBookingTags.saveAnyway(NewSessionTags.PREFIX)).assertDoesNotExist()
+        compose.onNodeWithTag(NewSessionTags.CLIENT_NAME).assertTextEquals("Mark Jansen")
+        assertEquals(2, sessions.created.size)
+
+        // *Toch opslaan*: the same request again, with allowConflicts.
+        compose.onNodeWithTag(NewSessionTags.SAVE).performClick()
+        compose.waitUntilTagExists(DoubleBookingTags.saveAnyway(NewSessionTags.PREFIX))
+        compose.onNodeWithTag(DoubleBookingTags.saveAnyway(NewSessionTags.PREFIX)).performClick()
+
+        compose.waitUntilTagExists(SessionTags.TITLE)
+        compose.waitUntil(UI_TIMEOUT_MILLIS) { sessions.created.size == 4 }
+        assertEquals(sessions.created[1].second, sessions.created[2].second)
+        assertEquals(sessions.created[2].second.copy(allowConflicts = true), sessions.created[3].second)
+        assertEquals(2, sessions.sessions.size)
+    }
+
+    @Test
+    fun test_F023_AC6_anOwnerPlanningForTomOverASessionOfTomNamesHim() {
+        launchAsJohn()
+        planFirstSession(tom)
+        openNewSession()
+        compose.onNodeWithTag(NewSessionTags.TRAINER).performScrollTo().performClick()
+        compose.onNodeWithTag("${NewSessionTags.TRAINER}.${tom.id}").performClick()
+        chooseClient(mark)
+
+        compose.onNodeWithTag(NewSessionTags.SAVE).performClick()
+
+        compose.waitUntilTagExists(DoubleBookingTags.saveAnyway(NewSessionTags.PREFIX))
+        compose.onNodeWithText(string(R.string.sessions_double_booking_title, "Tom")).assertIsDisplayed()
+    }
+
+    @Test
+    fun test_F023_AC6_movingASessionOverAnotherOfYoursWarnsAndSaveAnywayMovesIt() {
+        launchAsSarah()
+        openNewSession()
+        chooseClient(anna)
+        compose.onNodeWithTag(NewSessionTags.SAVE).performClick()
+        compose.waitUntilTagExists(SessionTags.MENU)
+        val planned = sessions.sessions.values.single()
+        // Mark's session of Sarah's, at the same time: moving Anna's (with no other change) overlaps it.
+        val other = sessionOf(
+            id = sessionIdOf("mark"),
+            client = mark,
+            trainer = sarah,
+            start = planned.startsAt.atZoneSameInstant(java.time.ZoneId.of(planned.timeZone)).toLocalDateTime(),
+        )
+        sessions.sessions[other.id] = other
+        // The trainer row reads *Jij* once the person is found among the trainers: the warning then names no one.
+        compose.waitUntil(UI_TIMEOUT_MILLIS) {
+            runCatching {
+                compose.onNodeWithTag(SessionTags.TRAINER).assertTextEquals(string(R.string.sessions_page_you))
+            }.isSuccess
+        }
+
+        compose.onNodeWithTag(SessionTags.MENU).performClick()
+        compose.onNodeWithTag(SessionTags.RESCHEDULE).performClick()
+        compose.waitUntilTagExists(RescheduleTags.SUBMIT)
+        compose.onNodeWithTag(RescheduleTags.SUBMIT).performClick()
+
+        compose.waitUntilTagExists(DoubleBookingTags.saveAnyway(RescheduleTags.PREFIX))
+        compose.onNodeWithText(string(R.string.sessions_double_booking_title_own)).assertIsDisplayed()
+        compose.onNodeWithText("Mark Jansen", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag(DoubleBookingTags.back(RescheduleTags.PREFIX)).performClick()
+        compose.onNodeWithTag(DoubleBookingTags.saveAnyway(RescheduleTags.PREFIX)).assertDoesNotExist()
+        assertEquals(1, sessions.moved.size)
+
+        compose.onNodeWithTag(RescheduleTags.SUBMIT).performClick()
+        compose.waitUntilTagExists(DoubleBookingTags.saveAnyway(RescheduleTags.PREFIX))
+        compose.onNodeWithTag(DoubleBookingTags.saveAnyway(RescheduleTags.PREFIX)).performClick()
+
+        compose.waitUntilTagExists(SessionTags.MOVED)
+        assertEquals(3, sessions.moved.size)
+        assertEquals(true, sessions.moved.last().third.allowConflicts)
+        assertEquals(sessions.moved[0].third.version, sessions.moved.last().third.version)
+    }
+
+    // AC13: the owner took the right away while the form was open.
+    @Test
+    fun test_F023_AC13_aRefusalOfTheMoveSaysThePersonHasNoRightsAnymore() {
+        launchAsSarah()
+        openNewSession()
+        chooseClient(anna)
+        compose.onNodeWithTag(NewSessionTags.SAVE).performClick()
+        compose.waitUntilTagExists(SessionTags.MENU)
+        sessions.rescheduleAnswers += { _, _ -> sessions.status(403) }
+        // The refusal makes the capability helper read the account again; the rights are still listed.
+        me.answerAccount(
+            email = "trainer@example.com",
+            name = "Sarah",
+            capabilities = trainerCapabilities,
+            role = MeWorkspace.Role.TRAINER,
+        )
+
+        compose.onNodeWithTag(SessionTags.MENU).performClick()
+        compose.onNodeWithTag(SessionTags.RESCHEDULE).performClick()
+        compose.waitUntilTagExists(RescheduleTags.SUBMIT)
+        compose.onNodeWithTag(RescheduleTags.SUBMIT).performClick()
+
+        compose.waitUntilTagExists(RescheduleTags.FAILED)
+        compose.onNodeWithTag(
+            RescheduleTags.FAILED,
+        ).assertTextEquals(string(R.string.sessions_reschedule_no_permission))
     }
 
     // AC9: Klantprofiel from the session shows the client's Komende sessies, and a row opens the session again.

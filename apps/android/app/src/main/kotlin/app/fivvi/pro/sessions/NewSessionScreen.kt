@@ -70,6 +70,10 @@ object NewSessionTags {
 class NewSessionActions(
     val onClose: () -> Unit,
     val onSave: () -> Unit,
+    /** *Toch opslaan* of PS-07: the same save again, with `allowConflicts`. */
+    val onSaveAnyway: () -> Unit,
+    /** *Terug* of PS-07. */
+    val onDismissDoubleBooking: () -> Unit,
     val onRetry: () -> Unit,
     val onPickClient: () -> Unit,
     val onNotify: (Boolean) -> Unit,
@@ -152,6 +156,15 @@ fun NewSessionScreen(
             },
             title = { Text(stringResource(R.string.sessions_form_discard_title)) },
             text = { Text(stringResource(R.string.sessions_form_discard_description)) },
+        )
+    }
+    state.doubleBooking?.let {
+        DoubleBookingDialog(
+            it,
+            state.workspace.zone,
+            NewSessionTags.PREFIX,
+            actions.onDismissDoubleBooking,
+            actions.onSaveAnyway,
         )
     }
 }

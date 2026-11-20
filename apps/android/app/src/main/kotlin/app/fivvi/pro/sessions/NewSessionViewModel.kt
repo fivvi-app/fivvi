@@ -10,6 +10,7 @@ import app.fivvi.api.models.Trainer
 import app.fivvi.pro.clients.WorkspaceDefaults
 import app.fivvi.pro.clients.defaultsOf
 import java.io.IOException
+import java.net.HttpURLConnection.HTTP_CONFLICT
 import java.net.HttpURLConnection.HTTP_FORBIDDEN
 import java.net.HttpURLConnection.HTTP_NOT_FOUND
 import java.time.Instant
@@ -60,6 +61,8 @@ data class NewSessionState(
     val clientMissing: Boolean = false,
     val trainerMissing: Boolean = false,
     val saveFailure: SaveFailure? = null,
+    /** PS-07: the trainer has something else then (`409` `trainer_conflict`); nothing was stored. */
+    val doubleBooking: DoubleBooking? = null,
     val saving: Boolean = false,
     /** A request failed for lack of a connection: the next successful read clears it. */
     val sawOffline: Boolean = false,
@@ -197,8 +200,14 @@ class NewSessionViewModel(
     /** The planned session was handed on: it isn't handed on again. */
     fun onSavedHandled() = _state.update { it.copy(saved = null) }
 
-    /** Plans the session. When the API saved it, [NewSessionState.saved] has it; otherwise the state says what went wrong. */
-    fun save() {
+    /** *Terug* of PS-07: the warning goes, the form stays as it is and nothing is sent. */
+    fun dismissDoubleBooking() = _state.update { it.copy(doubleBooking = null) }
+
+    /**
+     * Plans the session. When the API saved it, [NewSessionState.saved] has it; otherwise the state says what went wrong.
+     * [allowConflicts] is *Toch opslaan* of PS-07: the same request again, saved even when the trainer has something then.
+     */
+    fun save(allowConflicts: Boolean = false) {
         val shown = _state.value
         if (!shown.canSave) return
         val client = shown.client
@@ -206,6 +215,7 @@ class NewSessionViewModel(
         _state.update {
             it.copy(
                 saveFailure = null,
+                doubleBooking = null,
                 time = it.time.cleared(),
                 clientMissing = client == null,
                 trainerMissing = trainerMissing,
@@ -220,6 +230,7 @@ class NewSessionViewModel(
             durationMinutes = shown.time.durationMinutes,
             notify = shown.notify,
             trainerId = shown.trainerId.takeIf { forAnyTrainer },
+            allowConflicts = true.takeIf { allowConflicts },
             surface = PlanPrivateSessionRequest.Surface.ANDROID,
         )
         viewModelScope.launch { send(request) }
@@ -239,6 +250,18 @@ class NewSessionViewModel(
         when {
             refused != null -> _state.update { it.copy(saving = false, time = refused) }
 
+            response.code() == HTTP_CONFLICT -> {
+                val conflicts = DoubleBooking.conflictsOf(response.errorBody()?.string())
+                _state.update {
+                    val booking = DoubleBooking.of(conflicts, it.chosenTrainerName())
+                    if (booking != null) {
+                        it.copy(saving = false, doubleBooking = booking)
+                    } else {
+                        it.copy(saving = false, saveFailure = SaveFailure.NotSaved)
+                    }
+                }
+            }
+
             response.code() == HTTP_FORBIDDEN -> {
                 onNotAllowed(response)
                 _state.update { it.copy(saving = false, saveFailure = SaveFailure.NoPermission) }
@@ -246,6 +269,12 @@ class NewSessionViewModel(
 
             else -> _state.update { it.copy(saving = false, saveFailure = SaveFailure.NotSaved) }
         }
+    }
+
+    // The trainer the warning names: `null` for the person themself (*Je hebt dan al iets*).
+    private fun NewSessionState.chosenTrainerName(): String? {
+        if (!forAnyTrainer || trainerId == myTrainerId) return null
+        return trainers.firstOrNull { it.id == trainerId }?.name
     }
 
     companion object {
