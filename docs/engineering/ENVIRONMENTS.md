@@ -15,7 +15,7 @@ Where Fivvi runs, how a change gets there, and how to undo it (E003, [ADR-011](.
 - **`development` is the base environment, so production values never reach a preview.** Without a base environment, Railway copies PR environments from `production`, including every secret (Lettermint, Sentry, …). Previews run code nobody has merged yet, so they only ever get the test values in `development`. It also deploys `main` with demo data, as a shared place to try things. Its `web` sleeps when idle, so it costs little.
 - No `staging` environment (`ROADMAP.md` M1). Add one only when a real need appears.
 - **Production address:** `https://fivvi.app`, the custom domain of `web` in Railway (bought 21 October 2026, set up under #162). The Railway domain `https://web-production-d3fe2.up.railway.app` still points at the same service (`ROADMAP.md` §4.5).
-- **Uptime monitors** (UptimeRobot, free plan, set up by the owner in #47): every 5 minutes, with an email alert to the owner, on the production address:
+- **Uptime monitors** (UptimeRobot, free plan, set up by the owner in #47): every 5 minutes, with an email alert to the owner (the owner keeps the monitors' address current):
   - `GET /api/v1/health`, which expects `200` (it answers `503` when Postgres is unreachable);
   - `/`, the web app.
 

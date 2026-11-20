@@ -123,7 +123,7 @@ The log transport is the one known place where a sign-in link is printed as it i
 
 - **Local:** put the variables in `packages/email/.env` (git-ignored; every worktree needs its own). The `send:test` script loads it. It needs `LETTERMINT_API_TOKEN`, `LETTERMINT_ROUTE_SIGN_IN` and `LETTERMINT_ROUTE_MAIL` plus the sender (`EMAIL_FROM_ADDRESS`, `EMAIL_FROM_NAME`).
 - **Preview and production:** Railway variables on `web`, declared in `.railway/railway.ts` (`preserve()` for the keys, routes and address, so the file holds no value) and listed in [`docs/engineering/ENVIRONMENTS.md §7`](../../docs/engineering/ENVIRONMENTS.md#7-variables). The owner sets the values: the production token only in `production`, a separate token in `development` (every preview copies it). Never commit a token; rotate it in Lettermint if it leaks.
-- The sender comes from config, not code, because it changes when the own domain arrives (before M5).
+- The sender comes from config, not code, because it changed when the own domain fivvi.app arrived.
 
 ## Scripts
 
