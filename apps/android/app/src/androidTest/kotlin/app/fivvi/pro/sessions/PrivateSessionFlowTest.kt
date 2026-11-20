@@ -12,6 +12,7 @@ import androidx.compose.ui.test.performScrollTo
 import app.fivvi.api.models.Client
 import app.fivvi.api.models.MeWorkspace
 import app.fivvi.api.models.TeamMember
+import app.fivvi.api.models.Trainer
 import app.fivvi.api.models.UpcomingSession
 import app.fivvi.api.models.UpcomingSessions
 import app.fivvi.core.AppLanguage
@@ -315,7 +316,7 @@ class PrivateSessionFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private 
     }
 
     // F023 AC6 (PS-07): plans a session of Anna for [trainer] (the Owner's choice; none for a Trainer) at the form's first start.
-    private fun planFirstSession(trainer: app.fivvi.api.models.Trainer? = null) {
+    private fun planFirstSession(trainer: Trainer? = null) {
         openNewSession()
         if (trainer != null) {
             compose.onNodeWithTag(NewSessionTags.TRAINER).performScrollTo().performClick()
@@ -331,7 +332,7 @@ class PrivateSessionFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private 
     private fun typeOfPrivateSession() = string(R.string.sessions_double_booking_type_private)
 
     @Test
-    fun test_F023_AC6_planningOverOneOfYourOwnSessionsWarnsAndSaveAnywaySavesIt() {
+    fun test_F023_AC6_doubleBookingAlertOnPlanAndReschedule() {
         launchAsSarah()
         planFirstSession()
         openNewSession()
@@ -366,6 +367,34 @@ class PrivateSessionFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private 
         assertEquals(sessions.created[1].second, sessions.created[2].second)
         assertEquals(sessions.created[2].second.copy(allowConflicts = true), sessions.created[3].second)
         assertEquals(2, sessions.sessions.size)
+
+        // PS-05: moving the new session to where it already is overlaps the first one: the same alert over the move form.
+        // The trainer row reads *Jij* once the person is found among the trainers: the warning then names no one.
+        compose.waitUntil(UI_TIMEOUT_MILLIS) {
+            runCatching {
+                compose.onNodeWithTag(SessionTags.TRAINER).assertTextEquals(string(R.string.sessions_page_you))
+            }.isSuccess
+        }
+        compose.onNodeWithTag(SessionTags.MENU).performClick()
+        compose.onNodeWithTag(SessionTags.RESCHEDULE).performClick()
+        compose.waitUntilTagExists(RescheduleTags.SUBMIT)
+        compose.onNodeWithTag(RescheduleTags.SUBMIT).performClick()
+
+        compose.waitUntilTagExists(DoubleBookingTags.saveAnyway(RescheduleTags.PREFIX))
+        compose.onNodeWithText(string(R.string.sessions_double_booking_title_own)).assertIsDisplayed()
+        compose.onNodeWithText("Anna de Vries", substring = true).assertIsDisplayed()
+        compose.onNodeWithTag(DoubleBookingTags.back(RescheduleTags.PREFIX)).performClick()
+        compose.onNodeWithTag(DoubleBookingTags.saveAnyway(RescheduleTags.PREFIX)).assertDoesNotExist()
+        assertEquals(1, sessions.moved.size)
+
+        compose.onNodeWithTag(RescheduleTags.SUBMIT).performClick()
+        compose.waitUntilTagExists(DoubleBookingTags.saveAnyway(RescheduleTags.PREFIX))
+        compose.onNodeWithTag(DoubleBookingTags.saveAnyway(RescheduleTags.PREFIX)).performClick()
+
+        compose.waitUntilTagExists(SessionTags.MOVED)
+        assertEquals(3, sessions.moved.size)
+        assertEquals(true, sessions.moved.last().third.allowConflicts)
+        assertEquals(sessions.moved[0].third.version, sessions.moved.last().third.version)
     }
 
     @Test
@@ -381,51 +410,6 @@ class PrivateSessionFlowTest(@Suppress("UNUSED_PARAMETER") tag: String, private 
 
         compose.waitUntilTagExists(DoubleBookingTags.saveAnyway(NewSessionTags.PREFIX))
         compose.onNodeWithText(string(R.string.sessions_double_booking_title, "Tom")).assertIsDisplayed()
-    }
-
-    @Test
-    fun test_F023_AC6_movingASessionOverAnotherOfYoursWarnsAndSaveAnywayMovesIt() {
-        launchAsSarah()
-        openNewSession()
-        chooseClient(anna)
-        compose.onNodeWithTag(NewSessionTags.SAVE).performClick()
-        compose.waitUntilTagExists(SessionTags.MENU)
-        val planned = sessions.sessions.values.single()
-        // Mark's session of Sarah's, at the same time: moving Anna's (with no other change) overlaps it.
-        val other = sessionOf(
-            id = sessionIdOf("mark"),
-            client = mark,
-            trainer = sarah,
-            start = planned.startsAt.atZoneSameInstant(java.time.ZoneId.of(planned.timeZone)).toLocalDateTime(),
-        )
-        sessions.sessions[other.id] = other
-        // The trainer row reads *Jij* once the person is found among the trainers: the warning then names no one.
-        compose.waitUntil(UI_TIMEOUT_MILLIS) {
-            runCatching {
-                compose.onNodeWithTag(SessionTags.TRAINER).assertTextEquals(string(R.string.sessions_page_you))
-            }.isSuccess
-        }
-
-        compose.onNodeWithTag(SessionTags.MENU).performClick()
-        compose.onNodeWithTag(SessionTags.RESCHEDULE).performClick()
-        compose.waitUntilTagExists(RescheduleTags.SUBMIT)
-        compose.onNodeWithTag(RescheduleTags.SUBMIT).performClick()
-
-        compose.waitUntilTagExists(DoubleBookingTags.saveAnyway(RescheduleTags.PREFIX))
-        compose.onNodeWithText(string(R.string.sessions_double_booking_title_own)).assertIsDisplayed()
-        compose.onNodeWithText("Mark Jansen", substring = true).assertIsDisplayed()
-        compose.onNodeWithTag(DoubleBookingTags.back(RescheduleTags.PREFIX)).performClick()
-        compose.onNodeWithTag(DoubleBookingTags.saveAnyway(RescheduleTags.PREFIX)).assertDoesNotExist()
-        assertEquals(1, sessions.moved.size)
-
-        compose.onNodeWithTag(RescheduleTags.SUBMIT).performClick()
-        compose.waitUntilTagExists(DoubleBookingTags.saveAnyway(RescheduleTags.PREFIX))
-        compose.onNodeWithTag(DoubleBookingTags.saveAnyway(RescheduleTags.PREFIX)).performClick()
-
-        compose.waitUntilTagExists(SessionTags.MOVED)
-        assertEquals(3, sessions.moved.size)
-        assertEquals(true, sessions.moved.last().third.allowConflicts)
-        assertEquals(sessions.moved[0].third.version, sessions.moved.last().third.version)
     }
 
     // AC13: the owner took the right away while the form was open.

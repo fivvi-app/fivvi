@@ -16,6 +16,7 @@ import app.fivvi.api.models.TrainerConflictItem
 import app.fivvi.core.R
 import app.fivvi.core.ui.testTagsAsIds
 import java.time.ZoneId
+import java.util.Locale
 import kotlinx.serialization.decodeFromString
 
 /**
@@ -40,6 +41,26 @@ data class DoubleBooking(
         TrainerConflictItem.Type.GROUP -> R.string.sessions_double_booking_type_group
         TrainerConflictItem.Type.OPEN_GYM -> R.string.sessions_double_booking_type_open_gym
     }
+
+    /**
+     * One line of the alert, *do 24 sep, 09:00–10:00: Mark Jansen (privésessie)*: [template] is
+     * `sessions_double_booking_item` (the day, the end, the name, the start and the type, in that order) and [type] the
+     * word of the session's type; the times are the workspace's, which [format] holds.
+     */
+    fun line(
+        item: TrainerConflictItem,
+        english: Boolean,
+        format: SessionFormat,
+        template: String,
+        type: String,
+    ): String = template.format(
+        Locale.ROOT,
+        format.day(item.startsAt),
+        format.time(item.endsAt),
+        nameOf(item, english),
+        format.time(item.startsAt),
+        type,
+    )
 
     companion object {
         /** The warning for these sessions; `null` when the API listed none, so there is nothing to word. */
@@ -71,6 +92,7 @@ fun DoubleBookingDialog(
 ) {
     val format = rememberSessionFormat(zone)
     val english = LocalConfiguration.current.locales[0].language != "nl"
+    val template = stringResource(R.string.sessions_double_booking_item)
     AlertDialog(
         onDismissRequest = onBack,
         modifier = Modifier.testTagsAsIds(),
@@ -95,14 +117,7 @@ fun DoubleBookingDialog(
             Column {
                 booking.conflicts.forEach { item ->
                     Text(
-                        stringResource(
-                            R.string.sessions_double_booking_item,
-                            format.day(item.startsAt),
-                            format.time(item.endsAt),
-                            booking.nameOf(item, english),
-                            format.time(item.startsAt),
-                            stringResource(booking.typeOf(item)),
-                        ),
+                        booking.line(item, english, format, template, stringResource(booking.typeOf(item))),
                     )
                 }
             }

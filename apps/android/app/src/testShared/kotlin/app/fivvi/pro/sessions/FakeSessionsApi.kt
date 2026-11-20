@@ -86,8 +86,8 @@ fun sessionOf(
  * (the planning rules are the API's own and tested there; here a request is taken as it is, at the wall clock of
  * Amsterdam, with the version counted up). The one rule it models is the double booking of F023 AC7: a save that would
  * overlap another scheduled session of the same trainer answers `409 trainer_conflict` with those sessions, unless the
- * request says `allowConflicts`; back-to-back and cancelled sessions never overlap. A queued answer replaces the answer of the next call; [failure] makes every
- * call fail with that exception (no connection).
+ * request says `allowConflicts`; back-to-back and cancelled sessions never overlap. A queued answer replaces the answer of
+ * the next call; [failure] makes every call fail with that exception (no connection).
  */
 class FakeSessionsApi : SessionsApi {
     val sessions = mutableMapOf<UUID, Session>()
