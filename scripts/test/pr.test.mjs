@@ -1745,7 +1745,7 @@ describe('pr.sh create: which local check runs before the push', () => {
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(result.checks, ['check.sh --fast']);
     assert.match(result.stdout, /fast checks: follow-up push to PR #60/);
-    assert.match(result.stdout, /CI is still the full gate/);
+    assert.match(result.stdout, /CI is still the gate on this commit/);
   });
 
   it('ADR-033 AC3: runs everything (check.sh --all) with --full, on a first push and on a follow-up push', () => {

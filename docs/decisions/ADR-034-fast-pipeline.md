@@ -8,6 +8,8 @@
 | **Deciders** | Keyvan Mahmoudi (owner) |
 | **Related** | ADR-016, ADR-018, ADR-024, ADR-025, ADR-033; `docs/engineering/WORKFLOW.md §7`, `docs/engineering/TESTING.md`, `docs/agents/build.md`; the tag `pipeline-full-2026-11-18` |
 
+> **Amended by [ADR-035](ADR-035-lean-pipeline.md) (20 November 2026):** with `ci: lean` the integration tests also leave the PR and the merge group and run in the nightly run, which amends the line below about `Checks (Linux)`. ADR-034 amends [ADR-033](ADR-033-go-live-mode.md) item 3 (the tests run once: with `fast` the e2e tests run in the nightly run instead of in CI) as well as item 5.
+
 ## Context
 
 Measured on 18 November 2026 over the whole project (22 September to 18 November: 423 merged PRs, 1,017 issues, 1,605 CI runs with every job's timing, and the agent transcripts of 378 tickets since 19 October, `scripts/usage.mjs`):
