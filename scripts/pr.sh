@@ -241,7 +241,7 @@ cmd_create() {
   if $check; then
     if $full; then run_check --all "--full"
     elif [ -z "$existing" ]; then run_check --fast "first push of the branch; the integration and e2e tests run in CI or in the nightly run, as .github/pipeline.json says (ADR-034, ADR-035)"
-    else run_check --fast "follow-up push to PR #$existing; CI is still the full gate on this commit; --full runs everything here too"
+    else run_check --fast "follow-up push to PR #$existing; CI is still the gate on this commit; --full runs everything here too"
     fi
   fi
   warn_if_large
