@@ -62,6 +62,22 @@ env:
     timeout: 20000
 - tapOn:
     id: newSession\.save
+# PS-07 (F023): the trainer may already have something at that time, and then the save ends in the double-booking alert
+# instead of the session screen. The form's first start is the next full hour, so the earlier run of this flow (the other
+# language's, against the same database, or a seeded session of Sarah's week) can sit in it. The alert is not what this
+# flow tests, so it waits for the session screen or the alert, whichever comes, and keeps the session with *Toch opslaan*
+# (`allowConflicts`, the same on both apps). Without it the second language's run failed on "Not saved" (#1503).
+- extendedWaitUntil:
+    visible:
+      id: (session\.title|newSession\.doubleBooking\.saveAnyway)
+    timeout: 20000
+- runFlow:
+    when:
+      visible:
+        id: newSession\.doubleBooking\.saveAnyway
+    commands:
+      - tapOn:
+          id: newSession\.doubleBooking\.saveAnyway
 # AC10: the session screen opens with the data of the form: the client, the location with Route, the workspace with the
 # trainer.
 - extendedWaitUntil:
@@ -90,6 +106,18 @@ env:
     timeout: 20000
 - tapOn:
     id: reschedule\.submit
+# PS-07 again: the other language's session may sit in the same hour, so the move can end in the alert too.
+- extendedWaitUntil:
+    visible:
+      id: (session\.moved|reschedule\.doubleBooking\.saveAnyway)
+    timeout: 20000
+- runFlow:
+    when:
+      visible:
+        id: reschedule\.doubleBooking\.saveAnyway
+    commands:
+      - tapOn:
+          id: reschedule\.doubleBooking\.saveAnyway
 - extendedWaitUntil:
     visible:
       id: session\.moved
