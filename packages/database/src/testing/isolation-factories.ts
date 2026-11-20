@@ -15,6 +15,7 @@ import {
 } from '../schema/index.ts';
 import {
   addAccessLogEntry,
+  addBookingLink,
   addClassSeries,
   addClient,
   addClientBillingDetails,
@@ -122,6 +123,11 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
   group_classes: {
     scopeColumn: 'organization_id',
     create: (db, workspaceId) => addGroupClass(db, { workspaceId }),
+  },
+  // The standing link of all bookings, made by the system.
+  booking_links: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addBookingLink(db, { workspaceId }),
   },
   // An owner-made offer with its first version (the version is its own row, covered by `offer_versions`).
   offers: {

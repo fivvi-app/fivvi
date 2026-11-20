@@ -262,6 +262,11 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     BillingDetailsChange: 'type of the billing details repository (F059)',
     BillingDetailsChangedBy: 'type of the billing details repository (F059)',
     BillingDetailsView: 'type of the billing details repository (F059)',
+    BookingLinkClassView: 'type of the booking-link repository (F037)',
+    BookingLinkLanguageName: 'type of the booking-link repository (F037)',
+    BookingLinkScopeName: 'type of the booking-link repository (F037)',
+    BookingLinkSessionFacts: 'type of the booking-link repository (F037)',
+    BookingLinkView: 'type of the booking-link repository (F037)',
     ChargebackRecord: 'type of the refund repository (F060)',
     ClassDateChanges: 'type of the group-class repository (F021)',
     ClassDateUpdate: 'type of the group-class repository (F021)',
@@ -297,6 +302,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     LocationChanges: 'type of the location repository (F015)',
     LocationView: 'type of the location repository (F015)',
     MUSCLE_GROUPS: 'the fixed muscle groups of the library, a list of names (F039)',
+    NewBookingLink: 'type of the booking-link repository (F037)',
     NewChargeback: 'type of the refund repository (F060)',
     NewClassDate: 'type of the group-class repository (F021)',
     NewClassSeries: 'type of the class-series repository (F022)',
@@ -395,15 +401,19 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     createTrainerInvitation:
       'repository of the trainer invitations, takes the workspace scope (F011)',
     createWorkspaceWithOwner: 'repository of workspaces, takes the account scope (F002)',
+    deactivateBookingLink: 'repository of booking links, takes the workspace scope (F037)',
     deleteExpiredRateLimits: 'query of the rate limits, which have no tenant',
     deleteTeamMember: 'repository of the team, takes the workspace scope (F003)',
     deletionLogStore:
       'the deletion log over a workspace scope, as the domain’s DeletionLogStore port (E014); the database lets the scope insert entries for its own workspace and nothing else',
+    ensureStandingBookingLinks: 'repository of booking links, takes the workspace scope (F037)',
     findAccountForInvitation:
       'repository of accounts, takes a scope; reads the address and whether it is verified (F011)',
     findAccountIdByEmail: 'repository of accounts, takes a scope; reads an account ID only (F006)',
     findBillingDetails: 'repository of billing details, takes the workspace scope (F059)',
     findBookingEmails: 'repository of accounts, takes the account scope (F050)',
+    findBookingLink: 'repository of booking links, takes the workspace scope (F037)',
+    findBookingLinkSession: 'repository of booking links, takes the workspace scope (F037)',
     findClassSeries: 'repository of the class series, takes the workspace scope (F022)',
     findClient: 'repository of clients, takes a workspace scope',
     findClientByEmail: 'repository of clients, takes a workspace scope (F006)',
@@ -435,6 +445,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
       'repository of the team, takes the workspace scope; reads a name only (F011)',
     findTrainer: 'repository of the trainer profiles, takes the workspace scope (F020)',
     findWorkspace: 'repository of workspaces, takes the workspace scope (F002)',
+    getOrCreateBookingLink: 'repository of booking links, takes the workspace scope (F037)',
     hasMySession:
       'repository of the personal sessions, takes the workspace scope; answers yes or no (F013)',
     hasPendingInvitation:
@@ -451,6 +462,7 @@ describe('E011 every export of @fivvi/database is forbidden or allowed', () => {
     linkProviderRefund: 'repository of the refunds and reversals, takes the workspace scope (F060)',
     listAccessLog: 'repository of the access log, takes the workspace scope (E014)',
     listActiveClassSeries: 'repository of the class series, takes the workspace scope (F022)',
+    listBookingLinks: 'repository of booking links, takes the workspace scope (F037)',
     listChargebacksOfPayment:
       'repository of the refunds and reversals, takes the workspace scope (F060)',
     listClientWorkspaces: 'repository of workspaces, takes the account scope (F030)',

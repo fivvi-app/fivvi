@@ -102,7 +102,7 @@ The single source of truth for feature status. A status changes **in the same PR
 
 | ID | Feature | Status | Priority | Milestone | Depends on | NL | EN | Spec |
 |---|---|---|---|---|---|---|---|---|
-| F037 | Booking Links: for approved clients only, next to the workspace's one join link | PLANNED | Must | M6 | F027, F029 | ⬜ | ⬜ | §32 |
+| F037 | Booking Links: for approved clients only, next to the workspace's one join link | IN PROGRESS | Must | M6 | F027, F029 | ⬜ | ⬜ | §32 |
 | F038 | QR Codes: the join link's QR code for the desk, and class links | PLANNED | Must | M6 | F037 | ⬜ | ⬜ | §33 |
 
 ### Workouts

@@ -56,6 +56,20 @@ export {
   saveBillingDetails,
 } from './repositories/billing-details.ts';
 export {
+  type BookingLinkClassView,
+  type BookingLinkLanguageName,
+  type BookingLinkScopeName,
+  type BookingLinkSessionFacts,
+  type BookingLinkView,
+  deactivateBookingLink,
+  ensureStandingBookingLinks,
+  findBookingLink,
+  findBookingLinkSession,
+  getOrCreateBookingLink,
+  listBookingLinks,
+  type NewBookingLink,
+} from './repositories/booking-links.ts';
+export {
   type ClassSeriesChanges,
   type ClassSeriesView,
   createClassSeries,

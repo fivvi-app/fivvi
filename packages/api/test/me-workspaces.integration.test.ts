@@ -201,6 +201,8 @@ describe('@permission F004 capabilities on GET /v1/me/workspaces', () => {
       'class.read',
       'join_link.view',
       'join_link.renew',
+      'booking_link.manage',
+      'booking_link.copy',
       'access_log.read',
       'invoices.manage',
       'commerce.offers.manage',
@@ -213,6 +215,7 @@ describe('@permission F004 capabilities on GET /v1/me/workspaces', () => {
       'session.private.manage.own',
       'class.read',
       'join_link.view',
+      'booking_link.copy',
     ]);
   });
 
