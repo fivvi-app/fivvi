@@ -30,12 +30,15 @@
 		E50300000000000000000306 /* StubResponder.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000206 /* StubResponder.swift */; };
 		E50300000000000000000307 /* StubResponder+Account.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000207 /* StubResponder+Account.swift */; };
 		E50300000000000000000308 /* StubClientRoutes.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000208 /* StubClientRoutes.swift */; };
+		E50300000000000000000316 /* StubSessionRoutes.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000216 /* StubSessionRoutes.swift */; };
 		E50300000000000000000309 /* TestCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000209 /* TestCatalog.swift */; };
 		E50300000000000000000310 /* TouchTarget.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000210 /* TouchTarget.swift */; };
 		E50300000000000000000311 /* ScreenColours.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000211 /* ScreenColours.swift */; };
 		E50300000000000000000312 /* SignInScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000212 /* SignInScreen.swift */; };
 		E50300000000000000000313 /* SignInUITestCase.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000213 /* SignInUITestCase.swift */; };
 		E50300000000000000000314 /* AppLaunch.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000214 /* AppLaunch.swift */; };
+		E50300000000000000000320 /* OpenedLinksRecorder.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000220 /* OpenedLinksRecorder.swift */; };
+		E50300000000000000000321 /* EmbeddedEntitlements.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000221 /* EmbeddedEntitlements.swift */; };
 		E50300000000000000000315 /* AppLifecycle.swift in Sources */ = {isa = PBXBuildFile; fileRef = E50300000000000000000215 /* AppLifecycle.swift */; };
 /* End PBXBuildFile section */
 
@@ -76,12 +79,15 @@
 		E50300000000000000000206 /* StubResponder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StubResponder.swift"; sourceTree = "<group>"; };
 		E50300000000000000000207 /* StubResponder+Account.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StubResponder+Account.swift"; sourceTree = "<group>"; };
 		E50300000000000000000208 /* StubClientRoutes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StubClientRoutes.swift"; sourceTree = "<group>"; };
+		E50300000000000000000216 /* StubSessionRoutes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "StubSessionRoutes.swift"; sourceTree = "<group>"; };
 		E50300000000000000000209 /* TestCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TestCatalog.swift"; sourceTree = "<group>"; };
 		E50300000000000000000210 /* TouchTarget.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TouchTarget.swift"; sourceTree = "<group>"; };
 		E50300000000000000000211 /* ScreenColours.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "ScreenColours.swift"; sourceTree = "<group>"; };
 		E50300000000000000000212 /* SignInScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignInScreen.swift"; sourceTree = "<group>"; };
 		E50300000000000000000213 /* SignInUITestCase.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "SignInUITestCase.swift"; sourceTree = "<group>"; };
 		E50300000000000000000214 /* AppLaunch.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppLaunch.swift"; sourceTree = "<group>"; };
+		E50300000000000000000220 /* OpenedLinksRecorder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "OpenedLinksRecorder.swift"; sourceTree = "<group>"; };
+		E50300000000000000000221 /* EmbeddedEntitlements.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "EmbeddedEntitlements.swift"; sourceTree = "<group>"; };
 		E50300000000000000000215 /* AppLifecycle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "AppLifecycle.swift"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
@@ -163,6 +169,8 @@
 				E50300000000000000000022 /* Config */,
 				E50300000000000000000021 /* Strings */,
 				E50300000000000000000025 /* Fivvi Pro UI test support */,
+				E50300000000000000000026 /* Fivvi Pro shared app source */,
+				E50300000000000000000027 /* Fivvi Pro shared test support */,
 				E50300000000000000000023 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -210,6 +218,7 @@
 				E50300000000000000000206 /* StubResponder.swift */,
 				E50300000000000000000207 /* StubResponder+Account.swift */,
 				E50300000000000000000208 /* StubClientRoutes.swift */,
+				E50300000000000000000216 /* StubSessionRoutes.swift */,
 				E50300000000000000000209 /* TestCatalog.swift */,
 				E50300000000000000000210 /* TouchTarget.swift */,
 				E50300000000000000000211 /* ScreenColours.swift */,
@@ -220,6 +229,24 @@
 			);
 			name = "Fivvi Pro UI test support";
 			path = FivviProUITests/Support;
+			sourceTree = "<group>";
+		};
+		E50300000000000000000026 /* Fivvi Pro shared app source */ = {
+			isa = PBXGroup;
+			children = (
+				E50300000000000000000220 /* OpenedLinksRecorder.swift */,
+			);
+			name = "Fivvi Pro shared app source";
+			path = FivviPro/App;
+			sourceTree = "<group>";
+		};
+		E50300000000000000000027 /* Fivvi Pro shared test support */ = {
+			isa = PBXGroup;
+			children = (
+				E50300000000000000000221 /* EmbeddedEntitlements.swift */,
+			);
+			name = "Fivvi Pro shared test support";
+			path = FivviProTests/Support;
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -386,6 +413,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E50300000000000000000320 /* OpenedLinksRecorder.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -393,6 +421,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				E50300000000000000000321 /* EmbeddedEntitlements.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -409,6 +438,7 @@
 				E50300000000000000000306 /* StubResponder.swift in Sources */,
 				E50300000000000000000307 /* StubResponder+Account.swift in Sources */,
 				E50300000000000000000308 /* StubClientRoutes.swift in Sources */,
+				E50300000000000000000316 /* StubSessionRoutes.swift in Sources */,
 				E50300000000000000000309 /* TestCatalog.swift in Sources */,
 				E50300000000000000000310 /* TouchTarget.swift in Sources */,
 				E50300000000000000000311 /* ScreenColours.swift in Sources */,

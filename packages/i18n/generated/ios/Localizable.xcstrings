@@ -105,6 +105,60 @@
         }
       }
     },
+    "appLink.back" : {
+      "comment" : "Accessibility label of the back button on the opened-link screen of the client app: returns to the tabs.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Back"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Terug"
+          }
+        }
+      }
+    },
+    "appLink.openInBrowser" : {
+      "comment" : "Button on appLink.soon, in the client app: opens the same link in the phone's browser.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Open in the browser"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Openen in de browser"
+          }
+        }
+      }
+    },
+    "appLink.soon" : {
+      "comment" : "Client app (Fivvi): the screen a join link (/j/...) or an invitation link (/i/...) opens until the join and invitation screens exist (F029, F032). Says the app will open the link itself soon.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We'll open this link in the app soon."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze link openen we binnenkort in de app."
+          }
+        }
+      }
+    },
     "classes.date.back" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8068,6 +8122,24 @@
         }
       }
     },
+    "sessions.form.clientPlaceholder" : {
+      "comment" : "The client row of the new private session form of the native apps, before a client is chosen. Tapping it opens the client list.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Choose a client"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Kies een klant"
+          }
+        }
+      }
+    },
     "sessions.form.clientResults" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8671,6 +8743,24 @@
         }
       }
     },
+    "sessions.form.offline" : {
+      "comment" : "Shown on the new private session form of the native apps when the app can't reach the server; Save is off. Nothing is saved until the connection is back.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're offline. You can schedule once you're back online."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je bent offline. Plannen kan pas als je weer verbinding hebt."
+          }
+        }
+      }
+    },
     "sessions.form.open" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -8684,6 +8774,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Openen"
+          }
+        }
+      }
+    },
+    "sessions.form.pickerDone" : {
+      "comment" : "Confirm button of the date and the time picker of the session forms in the Android app.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Done"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Klaar"
           }
         }
       }
@@ -8894,6 +9002,24 @@
         }
       }
     },
+    "sessions.page.more" : {
+      "comment" : "Accessibility name of the ⋯ menu on the session screen of the native apps (Reschedule, Client profile).",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meer"
+          }
+        }
+      }
+    },
     "sessions.page.moved" : {
       "comment" : "Message after a session was moved. {date} is a short date, {time} a 24-hour time.",
       "extractionState" : "manual",
@@ -8942,6 +9068,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Verplaatsen"
+          }
+        }
+      }
+    },
+    "sessions.page.route" : {
+      "comment" : "Button on the session screen of the native apps, next to the location: opens the route to the location's address in the maps app.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Route"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Route"
           }
         }
       }
@@ -9010,6 +9154,24 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Locatie"
+          }
+        }
+      }
+    },
+    "sessions.page.you" : {
+      "comment" : "On the session screen, the trainer row when the person looking is the trainer: \"You\" (Dutch \"Jij\"), instead of their name.",
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Jij"
           }
         }
       }

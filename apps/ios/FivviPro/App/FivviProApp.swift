@@ -26,7 +26,10 @@ struct FivviProApp: App {
         }
         let session = Session(store: store, onSignedOut: ErrorReporting.clearUser)
         let auth = AuthMiddleware(store: store) { await session.tokenRejected() }
-        api = Client(serverURL: AppConfiguration.apiBaseURL(), transport: URLSessionTransport(), middlewares: [auth])
+        api = Client(
+            serverURL: AppConfiguration.apiBaseURL(), configuration: AppConfiguration.clientConfiguration,
+            transport: URLSessionTransport(), middlewares: [auth]
+        )
         language = AppLanguage(api: api, store: store)
         self.store = store
         _session = State(initialValue: session)

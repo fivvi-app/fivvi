@@ -64,6 +64,10 @@ export const APP_TABLE_PRIVILEGES: Readonly<Record<string, readonly Privilege[]>
   // suite can aim updates and deletes at other workspaces' rows.
   offers: ALL,
   offer_versions: ALL,
+  // Invoice details (F059): the workspace's own, edited by the Owner.
+  workspace_invoice_details: ALL,
+  // A client's billing details (F059): the client's own, and the Owner's on their behalf.
+  client_billing_details: ALL,
 };
 
 /**

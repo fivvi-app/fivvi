@@ -21,6 +21,9 @@ final class ClientProfileViewModel {
 
     private(set) var state: State
     private(set) var client: Client?
+    /// The client's coming private sessions (*Komende sessies*, F020 AC9), soonest first, once read; nil until then, and
+    /// after a read that failed before any answer.
+    private(set) var upcoming: Components.Schemas.UpcomingSessions?
     /// The client has just been added: the overview says so.
     private(set) var justAdded: Bool
     /// The last edit was saved: the overview says so.
@@ -80,6 +83,21 @@ final class ClientProfileViewModel {
     var localeText: String {
         client.map { catalog.emailLanguage(of: $0, workspaceDefault: workspace.defaultLocale) } ?? ""
     }
+    /// *do 24 sep om 09:00*, in the workspace's time zone.
+    func upcomingText(_ session: Components.Schemas.UpcomingSession) -> String {
+        let format = SessionFormat(
+            locale: catalog.formattingLocale,
+            timeZone: upcoming.flatMap { TimeZone(identifier: $0.timeZone) } ?? workspace.timeZone
+        )
+        return catalog.string(.clientProfileUpcomingWhen, format.day(session.startsAt), format.time(session.startsAt))
+    }
+
+    /// The trainer of a coming session, as the web shows `session.trainer.name`; nil without one.
+    func upcomingTrainerText(_ session: Components.Schemas.UpcomingSession) -> String? {
+        guard let name = session.trainer?.name, !name.isEmpty else { return nil }
+        return name
+    }
+
     var noPermissionText: String { catalog.string(.noPermissionBody, workspace.name) }
 
     // MARK: Reading and editing
@@ -136,6 +154,7 @@ final class ClientProfileViewModel {
                 client = fresh
                 state = .loaded
                 onChange(fresh)
+                await readUpcoming()
             case .forbidden:
                 await onForbidden(.clients_view)
                 state = .noPermission
@@ -146,6 +165,16 @@ final class ClientProfileViewModel {
             }
         } catch {
             if ClientRequestError(thrown: error) != .cancelled { failed() }
+        }
+    }
+
+    /// *Komende sessies*: a failed read leaves what was shown (or nothing); the overview doesn't depend on it.
+    private func readUpcoming() async {
+        let input = Operations.ListClientUpcomingSessions.Input(
+            path: .init(workspaceId: workspace.id, clientId: clientID)
+        )
+        if case let .ok(found)? = try? await api.listClientUpcomingSessions(input), let list = try? found.body.json {
+            upcoming = list
         }
     }
 

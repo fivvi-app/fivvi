@@ -41,6 +41,7 @@ describe('@permission F004 permission matrix', () => {
       'booking_link.manage',
       'booking_link.copy',
       'access_log.read',
+      'invoices.manage',
       'commerce.offers.manage',
     ]);
     expect(capabilitiesOf('owner')).toEqual(CAPABILITIES);
@@ -79,6 +80,8 @@ describe('@permission F004 permission matrix', () => {
     expect(rolesWith('booking_link.copy')).toEqual(['owner', 'trainer']);
     // E014: only the Owner reads the access log (AC6; retention-policy.md §3.4).
     expect(rolesWith('access_log.read')).toEqual(['owner']);
+    // F059: only the Owner keeps the invoice details and edits a client's billing details.
+    expect(rolesWith('invoices.manage')).toEqual(['owner']);
     // F052: only the Owner lists, reads, creates and changes the workspace's offers; money stays with the Owner.
     expect(rolesWith('commerce.offers.manage')).toEqual(['owner']);
   });

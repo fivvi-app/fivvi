@@ -1,5 +1,5 @@
 {
-  "id": "f77f4076-bedc-4a95-9970-023dbbd133d3",
+  "id": "58d61cf8-a97a-4fd3-bf4a-a499bb278ad2",
   "prevId": "cab8685c-392f-4eb7-a1bf-4e7b5a12de87",
   "version": "7",
   "dialect": "postgresql",
@@ -5139,8 +5139,8 @@
       },
       "isRLSEnabled": false
     },
-    "public.booking_links": {
-      "name": "booking_links",
+    "public.workspace_invoice_details": {
+      "name": "workspace_invoice_details",
       "schema": "",
       "columns": {
         "id": {
@@ -5156,50 +5156,66 @@
           "primaryKey": false,
           "notNull": true
         },
-        "code": {
-          "name": "code",
+        "legal_name": {
+          "name": "legal_name",
           "type": "text",
           "primaryKey": false,
+          "notNull": true
+        },
+        "street": {
+          "name": "street",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "house_number": {
+          "name": "house_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "house_number_addition": {
+          "name": "house_number_addition",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "postcode": {
+          "name": "postcode",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "city": {
+          "name": "city",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "kvk_number": {
+          "name": "kvk_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "vat_number": {
+          "name": "vat_number",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "question_email": {
+          "name": "question_email",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "no_vat": {
+          "name": "no_vat",
+          "type": "boolean",
+          "primaryKey": false,
           "notNull": true,
-          "default": "new_booking_link_code()"
-        },
-        "scope": {
-          "name": "scope",
-          "type": "booking_link_scope",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "group_class_id": {
-          "name": "group_class_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "session_id": {
-          "name": "session_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "language": {
-          "name": "language",
-          "type": "booking_link_language",
-          "typeSchema": "public",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "created_by_team_member_id": {
-          "name": "created_by_team_member_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "deactivated_at": {
-          "name": "deactivated_at",
-          "type": "timestamp with time zone",
-          "primaryKey": false,
-          "notNull": false
+          "default": false
         },
         "created_at": {
           "name": "created_at",
@@ -5216,88 +5232,11 @@
           "default": "now()"
         }
       },
-      "indexes": {
-        "booking_links_active_unique": {
-          "name": "booking_links_active_unique",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "scope",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "language",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "coalesce(\"group_class_id\", \"session_id\", '00000000-0000-0000-0000-000000000000'::uuid)",
-              "asc": true,
-              "isExpression": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": true,
-          "where": "\"booking_links\".\"deactivated_at\" IS NULL",
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "booking_links_organization_id_group_class_id_idx": {
-          "name": "booking_links_organization_id_group_class_id_idx",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "group_class_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        },
-        "booking_links_organization_id_session_id_idx": {
-          "name": "booking_links_organization_id_session_id_idx",
-          "columns": [
-            {
-              "expression": "organization_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            },
-            {
-              "expression": "session_id",
-              "isExpression": false,
-              "asc": true,
-              "nulls": "last"
-            }
-          ],
-          "isUnique": false,
-          "concurrently": false,
-          "method": "btree",
-          "with": {}
-        }
-      },
+      "indexes": {},
       "foreignKeys": {
-        "booking_links_organization_id_organizations_id_fk": {
-          "name": "booking_links_organization_id_organizations_id_fk",
-          "tableFrom": "booking_links",
+        "workspace_invoice_details_organization_id_organizations_id_fk": {
+          "name": "workspace_invoice_details_organization_id_organizations_id_fk",
+          "tableFrom": "workspace_invoice_details",
           "tableTo": "organizations",
           "columnsFrom": [
             "organization_id"
@@ -5307,91 +5246,58 @@
           ],
           "onDelete": "no action",
           "onUpdate": "no action"
-        },
-        "booking_links_group_class_fk": {
-          "name": "booking_links_group_class_fk",
-          "tableFrom": "booking_links",
-          "tableTo": "group_classes",
-          "columnsFrom": [
-            "organization_id",
-            "group_class_id"
-          ],
-          "columnsTo": [
-            "organization_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "booking_links_session_fk": {
-          "name": "booking_links_session_fk",
-          "tableFrom": "booking_links",
-          "tableTo": "sessions",
-          "columnsFrom": [
-            "organization_id",
-            "session_id"
-          ],
-          "columnsTo": [
-            "organization_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
-        "booking_links_created_by_fk": {
-          "name": "booking_links_created_by_fk",
-          "tableFrom": "booking_links",
-          "tableTo": "team_members",
-          "columnsFrom": [
-            "organization_id",
-            "created_by_team_member_id"
-          ],
-          "columnsTo": [
-            "organization_id",
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
       "uniqueConstraints": {
-        "booking_links_organization_id_id_unique": {
-          "name": "booking_links_organization_id_id_unique",
+        "workspace_invoice_details_organization_id_id_unique": {
+          "name": "workspace_invoice_details_organization_id_id_unique",
           "nullsNotDistinct": false,
           "columns": [
             "organization_id",
             "id"
           ]
         },
-        "booking_links_code_unique": {
-          "name": "booking_links_code_unique",
+        "workspace_invoice_details_organization_id_unique": {
+          "name": "workspace_invoice_details_organization_id_unique",
           "nullsNotDistinct": false,
           "columns": [
-            "code"
+            "organization_id"
           ]
         }
       },
       "policies": {
-        "booking_links_workspace": {
-          "name": "booking_links_workspace",
+        "workspace_invoice_details_workspace": {
+          "name": "workspace_invoice_details_workspace",
           "as": "PERMISSIVE",
           "for": "ALL",
           "to": [
             "fivvi_app"
           ],
-          "using": "\"booking_links\".\"organization_id\" = ANY (app_workspace_ids())",
-          "withCheck": "\"booking_links\".\"organization_id\" = ANY (app_workspace_ids())"
+          "using": "\"workspace_invoice_details\".\"organization_id\" = ANY (app_workspace_ids())",
+          "withCheck": "\"workspace_invoice_details\".\"organization_id\" = ANY (app_workspace_ids())"
         }
       },
       "checkConstraints": {
-        "booking_links_code_format": {
-          "name": "booking_links_code_format",
-          "value": "\"booking_links\".\"code\" ~ '^[0-9a-hjkmnp-tv-z]{8}$'"
+        "workspace_invoice_details_legal_name_valid": {
+          "name": "workspace_invoice_details_legal_name_valid",
+          "value": "char_length(\"workspace_invoice_details\".\"legal_name\") <= 120 AND btrim(\"workspace_invoice_details\".\"legal_name\") <> ''"
         },
-        "booking_links_target_matches_scope": {
-          "name": "booking_links_target_matches_scope",
-          "value": "(\"booking_links\".\"scope\" = 'class' AND \"booking_links\".\"group_class_id\" IS NOT NULL AND \"booking_links\".\"session_id\" IS NULL)\n        OR (\"booking_links\".\"scope\" = 'session' AND \"booking_links\".\"session_id\" IS NOT NULL AND \"booking_links\".\"group_class_id\" IS NULL)\n        OR (\"booking_links\".\"scope\" IN ('all', 'group') AND \"booking_links\".\"group_class_id\" IS NULL AND \"booking_links\".\"session_id\" IS NULL)"
+        "workspace_invoice_details_address_valid": {
+          "name": "workspace_invoice_details_address_valid",
+          "value": "char_length(\"workspace_invoice_details\".\"street\") <= 120 AND btrim(\"workspace_invoice_details\".\"street\") <> '' AND char_length(\"workspace_invoice_details\".\"city\") <= 120 AND btrim(\"workspace_invoice_details\".\"city\") <> ''\n        AND (\"workspace_invoice_details\".\"house_number_addition\" IS NULL OR char_length(\"workspace_invoice_details\".\"house_number_addition\") <= 10 AND btrim(\"workspace_invoice_details\".\"house_number_addition\") <> '')\n        AND \"workspace_invoice_details\".\"house_number\" ~ '^[0-9]{1,5}$' AND \"workspace_invoice_details\".\"postcode\" ~ '^[1-9][0-9]{3} [A-Z]{2}$'"
+        },
+        "workspace_invoice_details_kvk_number_format": {
+          "name": "workspace_invoice_details_kvk_number_format",
+          "value": "\"workspace_invoice_details\".\"kvk_number\" ~ '^[0-9]{8}$'"
+        },
+        "workspace_invoice_details_vat_number_format": {
+          "name": "workspace_invoice_details_vat_number_format",
+          "value": "\"workspace_invoice_details\".\"vat_number\" ~ '^NL[0-9]{9}B[0-9]{2}$'"
+        },
+        "workspace_invoice_details_question_email_valid": {
+          "name": "workspace_invoice_details_question_email_valid",
+          "value": "\"workspace_invoice_details\".\"question_email\" IS NULL OR (\"workspace_invoice_details\".\"question_email\" = lower(\"workspace_invoice_details\".\"question_email\") AND char_length(\"workspace_invoice_details\".\"question_email\") <= 254 AND \"workspace_invoice_details\".\"question_email\" ~ '^[^[:space:]@]+@[^[:space:]@]+\\.[^[:space:]@]+$')"
         }
       },
       "isRLSEnabled": false
@@ -5633,25 +5539,6 @@
         "accepted",
         "declined",
         "withdrawn"
-      ]
-    },
-    "public.booking_link_language": {
-      "name": "booking_link_language",
-      "schema": "public",
-      "values": [
-        "visitor",
-        "nl",
-        "en"
-      ]
-    },
-    "public.booking_link_scope": {
-      "name": "booking_link_scope",
-      "schema": "public",
-      "values": [
-        "all",
-        "group",
-        "class",
-        "session"
       ]
     }
   },

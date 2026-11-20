@@ -14,6 +14,11 @@
     "name": "Fivvi Pro",
     "title": "Fivvi"
   },
+  "appLink": {
+    "back": "Terug",
+    "openInBrowser": "Openen in de browser",
+    "soon": "Deze link openen we binnenkort in de app."
+  },
   "classes": {
     "date": {
       "back": "Alle lessen",
@@ -657,6 +662,7 @@
       "clientNew": "+ Nieuwe klant",
       "clientNewNamed": "+ Nieuwe klant ‘{query}’",
       "clientNone": "Geen klanten gevonden.",
+      "clientPlaceholder": "Kies een klant",
       "clientResults": "Klanten",
       "clientSearch": "Zoek op naam of e-mail",
       "clientUse": "Die gebruiken",
@@ -696,7 +702,9 @@
       },
       "notify": "{client} een bevestiging sturen",
       "notifyNote": "{email} · {language}",
+      "offline": "Je bent offline. Plannen kan pas als je weer verbinding hebt.",
       "open": "Openen",
+      "pickerDone": "Klaar",
       "save": "Opslaan",
       "saved": "Sessie met {client} gepland op {date} om {time}.",
       "startLabel": "Begin",
@@ -711,13 +719,16 @@
       "clientLabel": "Klant",
       "clientProfile": "Klantprofiel",
       "heading": "Privésessie met {client}",
+      "more": "Meer",
       "moved": "Verplaatst naar {date} om {time}.",
       "noTrainer": "Geen {word}",
       "reschedule": "Verplaatsen",
+      "route": "Route",
       "timeRange": "{date}, {start}–{end}",
       "trainerLabel": "{Word}",
       "whenLabel": "Wanneer",
-      "whereLabel": "Locatie"
+      "whereLabel": "Locatie",
+      "you": "Jij"
     },
     "reschedule": {
       "cancel": "Annuleren",

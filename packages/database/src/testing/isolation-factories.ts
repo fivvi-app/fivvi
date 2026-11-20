@@ -18,6 +18,7 @@ import {
   addBookingLink,
   addClassSeries,
   addClient,
+  addClientBillingDetails,
   addGroupClass,
   addOffer,
   addPayment,
@@ -30,6 +31,7 @@ import {
   addTeamRole,
   addTrainerInvitation,
   addTrainerProfile,
+  addWorkspaceInvoiceDetails,
   createAccount,
   uniqueMarker,
 } from './factories.ts';
@@ -149,6 +151,19 @@ export const isolationFactories: Readonly<Record<string, IsolationFactory>> = {
         .returning({ id: offerVersions.id });
       if (!row) throw new Error('offer version was not created.');
       return row;
+    },
+  },
+  // The seller's invoice details of the workspace (F059): one row per workspace.
+  workspace_invoice_details: {
+    scopeColumn: 'organization_id',
+    create: (db, workspaceId) => addWorkspaceInvoiceDetails(db, { workspaceId }),
+  },
+  // The billing details of a client of the workspace (F059): one row per client.
+  client_billing_details: {
+    scopeColumn: 'organization_id',
+    create: async (db, workspaceId) => {
+      const client = await addClient(db, { workspaceId });
+      return addClientBillingDetails(db, { workspaceId, clientId: client.id });
     },
   },
   // A weekly series of a class made for the workspace (its dates are `sessions` rows).

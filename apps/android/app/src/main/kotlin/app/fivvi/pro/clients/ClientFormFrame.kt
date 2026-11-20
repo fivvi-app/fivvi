@@ -36,7 +36,7 @@ internal class ClientFormBarTags(val title: String, val close: String, val submi
 /**
  * The frame of the add and the edit form, as the name editor of *Profiel* has it: a bar on top with ✕, the title and the
  * pill button ([submitText]) or, while [pending], a progress indicator, so the keyboard never covers them, and the fields
- * below in a scrolling column.
+ * below in a scrolling column. [submitEnabled] is off while the form can't be saved.
  */
 @Composable
 internal fun ClientFormFrame(
@@ -47,6 +47,8 @@ internal fun ClientFormFrame(
     onClose: () -> Unit,
     onSubmit: () -> Unit,
     modifier: Modifier = Modifier,
+    submitEnabled: Boolean = true,
+    closeLabel: String = stringResource(R.string.clients_add_dialog_close),
     content: @Composable ColumnScope.() -> Unit,
 ) {
     Column(modifier.fillMaxSize().safeDrawingPadding()) {
@@ -58,7 +60,7 @@ internal fun ClientFormFrame(
             IconButton(onClick = onClose, modifier = Modifier.testTag(tags.close)) {
                 Icon(
                     painterResource(R.drawable.ic_close),
-                    contentDescription = stringResource(R.string.clients_add_dialog_close),
+                    contentDescription = closeLabel,
                 )
             }
             Text(
@@ -74,7 +76,12 @@ internal fun ClientFormFrame(
                         .semantics { contentDescription = label },
                 )
             } else {
-                PillButton(text = submitText, onClick = onSubmit, modifier = Modifier.testTag(tags.submit))
+                PillButton(
+                    text = submitText,
+                    onClick = onSubmit,
+                    modifier = Modifier.testTag(tags.submit),
+                    enabled = submitEnabled,
+                )
             }
         }
         Column(

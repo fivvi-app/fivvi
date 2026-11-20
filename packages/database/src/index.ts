@@ -49,6 +49,13 @@ export {
   setPreferredLocale,
 } from './repositories/accounts.ts';
 export {
+  type BillingDetailsChange,
+  type BillingDetailsChangedBy,
+  type BillingDetailsView,
+  findBillingDetails,
+  saveBillingDetails,
+} from './repositories/billing-details.ts';
+export {
   type BookingLinkClassView,
   type BookingLinkLanguageName,
   type BookingLinkScopeName,
@@ -119,6 +126,13 @@ export {
   updateClassDate,
   updateGroupClass,
 } from './repositories/group-classes.ts';
+export {
+  findInvoiceQuestionEmail,
+  findInvoiceSettings,
+  type InvoiceSettingsChange,
+  type InvoiceSettingsView,
+  saveInvoiceSettings,
+} from './repositories/invoice-details.ts';
 export {
   findLocation,
   type LocationAddress,

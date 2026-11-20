@@ -14,6 +14,11 @@
     "name": "Fivvi Pro",
     "title": "Fivvi"
   },
+  "appLink": {
+    "back": "Back",
+    "openInBrowser": "Open in the browser",
+    "soon": "We'll open this link in the app soon."
+  },
   "classes": {
     "date": {
       "back": "All classes",
@@ -657,6 +662,7 @@
       "clientNew": "+ New client",
       "clientNewNamed": "+ New client ‘{query}’",
       "clientNone": "No clients found.",
+      "clientPlaceholder": "Choose a client",
       "clientResults": "Clients",
       "clientSearch": "Search by name or email",
       "clientUse": "Use them",
@@ -696,7 +702,9 @@
       },
       "notify": "Send {client} a confirmation",
       "notifyNote": "{email} · {language}",
+      "offline": "You're offline. You can schedule once you're back online.",
       "open": "Open",
+      "pickerDone": "Done",
       "save": "Save",
       "saved": "Session with {client} scheduled for {date} at {time}.",
       "startLabel": "Start",
@@ -711,13 +719,16 @@
       "clientLabel": "Client",
       "clientProfile": "Client profile",
       "heading": "Private session with {client}",
+      "more": "More",
       "moved": "Moved to {date} at {time}.",
       "noTrainer": "No {word}",
       "reschedule": "Reschedule",
+      "route": "Route",
       "timeRange": "{date}, {start}–{end}",
       "trainerLabel": "{Word}",
       "whenLabel": "When",
-      "whereLabel": "Location"
+      "whereLabel": "Location",
+      "you": "You"
     },
     "reschedule": {
       "cancel": "Cancel",

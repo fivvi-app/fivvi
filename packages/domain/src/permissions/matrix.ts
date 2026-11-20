@@ -31,6 +31,7 @@ export const CAPABILITIES = [
   'booking_link.manage',
   'booking_link.copy',
   'access_log.read',
+  'invoices.manage',
   'commerce.offers.manage',
 ] as const;
 export type Capability = (typeof CAPABILITIES)[number];
