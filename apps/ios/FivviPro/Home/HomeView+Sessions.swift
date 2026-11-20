@@ -8,20 +8,26 @@ import FivviUI
 
 /// The private session screens of the home's stack (F020): **+** → *Privésessie* (PS-04), TD-02 and, from it, PS-05.
 extension HomeView {
-    /// The person may plan private sessions in the workspace on screen: their own (every team member who trains) or
-    /// anyone's (`session.private.manage.any`).
-    private var mayPlanSessions: Bool {
-        let capabilities = account.capabilities
-        return capabilities.allows(.session_private_manage_own) || capabilities.allows(.session_private_manage_any)
-    }
-
-    /// **+** in the bar of the home: *Privésessie*, for whoever may plan sessions. The classes join it with their features.
+    /// **+** in the bar of the home: *Privésessie* for whoever may plan sessions, *Groepsles* for whoever has
+    /// `class.manage` (F021); a team member who plans sessions but not classes reads that the owner plans them.
     @ToolbarContentBuilder var newMenu: some ToolbarContent {
-        if clients != nil, mayPlanSessions {
+        let menu = NewMenu(capabilities: account.capabilities)
+        if clients != nil, menu.isVisible {
             ToolbarItem(placement: .primaryAction) {
                 Menu {
-                    Button(catalog[.newPrivateSession]) { openNewSession() }
-                        .accessibilityIdentifier("home.newPrivateSession")
+                    if menu.showsPrivateSession {
+                        Button(catalog[.newPrivateSession]) { openNewSession() }
+                            .accessibilityIdentifier("home.newPrivateSession")
+                    }
+                    if menu.showsGroupClass {
+                        Button(catalog[.newGroupClass]) { openNewClass() }
+                            .accessibilityIdentifier("home.newGroupClass")
+                    }
+                    if menu.showsGroupClassNote, let workspace = account.workspace {
+                        Button(menu.groupClassNote(workspaceName: workspace.name, catalog: catalog)) {}
+                            .disabled(true)
+                            .accessibilityIdentifier("home.newGroupClassNote")
+                    }
                 } label: {
                     Image(systemName: "plus")
                         .frame(minWidth: 44, minHeight: 44)

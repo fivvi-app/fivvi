@@ -59,6 +59,14 @@
     <string name="booking_links_status_active">Active</string>
     <string name="booking_links_title">Booking links</string>
     <string name="booking_links_trainer_note">%1$s see the links, but can\'t change them.</string>
+    <string name="classes_app_description_in_dutch">In Dutch</string>
+    <string name="classes_app_description_less">Less</string>
+    <string name="classes_app_description_more">More</string>
+    <string name="classes_app_description_note">Without an English text, English-speaking clients see the Dutch one.</string>
+    <string name="classes_app_edit">Edit class</string>
+    <string name="classes_app_manage_on_web">You manage this on the web</string>
+    <string name="classes_app_new_title">New group class</string>
+    <string name="classes_app_owner_note">You manage editing a class, a fixed series and %1$s on the web.</string>
     <string name="classes_date_back">All classes</string>
     <plurals name="classes_date_booked">
         <item quantity="one">%1$s/%2$s booked · %3$d spot free</item>
@@ -827,6 +835,7 @@
     <string name="workspace_nav_new">New</string>
     <string name="workspace_nav_new_client">Client</string>
     <string name="workspace_nav_new_group_class">Group class</string>
+    <string name="workspace_nav_new_group_class_note">The owner plans the group classes of %1$s.</string>
     <string name="workspace_nav_new_menu">Create new</string>
     <string name="workspace_nav_new_private_session">Private session</string>
     <string name="workspace_nav_personal">Personal</string>

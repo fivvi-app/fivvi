@@ -9,7 +9,9 @@ class PrivateSessionUITestCase: SignInUITestCase {
     private(set) var server: StubServer?
 
     /// Sarah (synthetic): a Trainer of John's Gym, or John, its Owner.
-    func launch(owner: Bool = false, recordsLinks: Bool = false) throws -> (SignInScreen, StubServer) {
+    func launch(
+        owner: Bool = false, recordsLinks: Bool = false, opensClassDate: String? = nil
+    ) throws -> (SignInScreen, StubServer) {
         let server = try StubServer(
             signIn: StubServer.SignIn(
                 email: owner ? "owner@example.com" : "trainer@example.com", workspaceName: "John's Gym",
@@ -17,7 +19,12 @@ class PrivateSessionUITestCase: SignInUITestCase {
             )
         )
         self.server = server
-        return (SignInScreen.launch(against: server, session: .signedIn, recordsOpenedLinks: recordsLinks), server)
+        return (
+            SignInScreen.launch(
+                against: server, session: .signedIn, recordsOpenedLinks: recordsLinks, opensClassDate: opensClassDate
+            ),
+            server
+        )
     }
 
     func any(_ id: String, in app: XCUIApplication) -> XCUIElement {

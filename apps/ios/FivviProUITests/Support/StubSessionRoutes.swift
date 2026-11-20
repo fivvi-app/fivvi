@@ -6,7 +6,10 @@ import Foundation
 /// depend on: a session starts at the local date and time in Europe/Amsterdam, a move with a stale version answers `409`
 /// with the session as it is and who changed it, a start can be refused as a time the clocks skip (`refuseNextStart`),
 /// and a plan or move that overlaps another scheduled session of the same trainer answers `409` `trainer_conflict`
-/// (PS-07, F023) unless the request has `allowConflicts: true`; back-to-back sessions are no overlap.
+/// (PS-07, F023) unless the request has `allowConflicts: true`; back-to-back sessions are no overlap. The group class
+/// routes of F021 are here too (`StubSessionRoutes+Classes.swift`): `POST …/group-classes` with its first date and
+/// `GET …/group-classes/{id}`, over a class date seeded without a trainer (*Trainer nodig*) with a long description in
+/// Dutch and English.
 final class StubSessionRoutes: @unchecked Sendable {
     static let seededSessionID = "8a0b1c2e-8a54-4b51-9a42-000000000001"
     static let annaID = "3f0b1c2e-8a54-4b51-9a42-000000000001"
@@ -15,12 +18,14 @@ final class StubSessionRoutes: @unchecked Sendable {
     static let otherTrainerName = "Tom Bakker"
     static let zone = "Europe/Amsterdam"
 
-    private let lock = NSLock()
-    private let signIn: StubServer.SignIn
+    let lock = NSLock()
+    let signIn: StubServer.SignIn
     private let clients: StubClientRoutes
-    private var sessions: [[String: Any]] = []
-    private var nextNumber = 2
-    private var refusesStart = false
+    var sessions: [[String: Any]] = []
+    var classes: [[String: Any]] = []
+    var createdClasses: [[String: String]] = []
+    var nextNumber = 3
+    var refusesStart = false
     private var planned: [[String: String]] = []
     private var moved: [[String: String]] = []
 
@@ -33,6 +38,8 @@ final class StubSessionRoutes: @unchecked Sendable {
             id: Self.seededSessionID, start: start, minutes: 60, client: (Self.annaID, "Anna de Vries"),
             trainer: (Self.myMemberID, myName)
         )]
+        let evening = Calendar.gregorianAmsterdam.date(bySettingHour: 18, minute: 0, second: 0, of: tomorrow)
+        seedClass(start: evening ?? tomorrow)
     }
 
     /// Every `POST …/sessions/private` body so far, each value as text.
@@ -56,16 +63,16 @@ final class StubSessionRoutes: @unchecked Sendable {
         }
     }
 
-    private var myName: String { signIn.name ?? "Owner" }
-    private var isOwner: Bool { signIn.role == "owner" }
+    var myName: String { signIn.name ?? "Owner" }
+    var isOwner: Bool { signIn.role == "owner" }
 
-    private static func iso() -> ISO8601DateFormatter {
+    static func iso() -> ISO8601DateFormatter {
         let formatter = ISO8601DateFormatter()
         formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return formatter
     }
 
-    private var location: [String: Any] {
+    var location: [String: Any] {
         [
             "id": "6d1c2d3e-0000-4000-8000-0000000000b1", "name": signIn.workspaceName ?? "John's Gym",
             "type": "organization_location", "isDefault": true,
@@ -74,7 +81,7 @@ final class StubSessionRoutes: @unchecked Sendable {
         ]
     }
 
-    private var trainers: [[String: Any]] {
+    var trainers: [[String: Any]] {
         [["id": Self.myMemberID, "name": myName], ["id": Self.otherMemberID, "name": Self.otherTrainerName]]
     }
 
@@ -91,14 +98,14 @@ final class StubSessionRoutes: @unchecked Sendable {
     }
 
     /// A JSON value as text: `true` and `false` stay words (a number's text would be 1 and 0).
-    private static func text(_ value: Any) -> String {
+    static func text(_ value: Any) -> String {
         if let number = value as? NSNumber, CFGetTypeID(number) == CFBooleanGetTypeID() {
             return number.boolValue ? "true" : "false"
         }
         return "\(value)"
     }
 
-    private static func date(_ day: String, _ time: String) -> Date? {
+    static func date(_ day: String, _ time: String) -> Date? {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.timeZone = TimeZone(identifier: zone)
@@ -107,7 +114,8 @@ final class StubSessionRoutes: @unchecked Sendable {
     }
 
     static func isSessionRoute(_ path: String) -> Bool {
-        path.hasPrefix("/api/v1/workspaces/") && ["/locations", "/trainers", "/team-members", "/sessions"]
+        path.hasPrefix("/api/v1/workspaces/")
+            && ["/locations", "/trainers", "/team-members", "/sessions", "/group-classes"]
             .contains { path.contains($0) } || path.hasSuffix("/upcoming-sessions")
     }
 
@@ -124,7 +132,7 @@ final class StubSessionRoutes: @unchecked Sendable {
             case ("GET", "sessions", 6): find(parts[5]).map { (200, $0) } ?? (404, ["code": "not_found"])
             case ("POST", "sessions", 7) where parts[6] == "reschedule": reschedule(parts[5], body)
             case ("GET", "clients", 7) where parts[6] == "upcoming-sessions": upcoming(parts[5])
-            default: nil
+            default: respondToClassRoute(method: method, parts: parts, body: body)
             }
         }
     }
@@ -137,9 +145,9 @@ final class StubSessionRoutes: @unchecked Sendable {
         ]])
     }
 
-    private func find(_ id: String) -> [String: Any]? { sessions.first { $0["id"] as? String == id } }
+    func find(_ id: String) -> [String: Any]? { sessions.first { $0["id"] as? String == id } }
 
-    private func skipped() -> (Int, [String: Any]) {
+    func skipped() -> (Int, [String: Any]) {
         refusesStart = false
         return (400, ["code": "validation_failed", "issues": [["path": "localStart", "code": "time_does_not_exist"]]])
     }
@@ -199,7 +207,7 @@ final class StubSessionRoutes: @unchecked Sendable {
     }
 
     /// The trainer's scheduled sessions that overlap `[start, start + minutes)`, soonest first, as the API lists them.
-    private func conflicts(trainerID: String, start: Date, minutes: Int, excluding id: String?) -> [[String: Any]] {
+    func conflicts(trainerID: String, start: Date, minutes: Int, excluding id: String?) -> [[String: Any]] {
         let end = start.addingTimeInterval(TimeInterval(minutes * 60))
         return sessions
             .compactMap { session -> (start: Date, item: [String: Any])? in
