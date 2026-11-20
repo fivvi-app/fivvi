@@ -150,12 +150,8 @@ final class NewSessionViewModel: Identifiable {
                 return load = .failed
             }
             if forAnyTrainer {
-                let team = try await SessionTeam.read(api: api, workspaceID: workspace.id, readTeam: true)
-                trainers = team.trainers
-                myTrainerID = SessionTeam.myTrainerID(
-                    trainers: team.trainers, members: team.members, teamRequested: team.teamRequested,
-                    email: email, name: accountName
-                )
+                trainers = try await SessionTeam.readTrainers(api: api, workspaceID: workspace.id)
+                myTrainerID = SessionTeam.myTrainerID(trainers: trainers, teamMemberID: workspace.teamMemberId)
                 if trainerID.isEmpty { trainerID = myTrainerID ?? "" }
             }
             load = .ready

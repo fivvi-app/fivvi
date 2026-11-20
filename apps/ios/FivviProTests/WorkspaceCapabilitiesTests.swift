@@ -132,7 +132,8 @@ final class WorkspaceCapabilitiesTests: XCTestCase {
             account.workspace,
             CurrentWorkspace(
                 id: johnsGym, name: "John's Gym", defaultLocale: .en,
-                timeZone: TimeZone(identifier: "Europe/Lisbon") ?? .current
+                timeZone: TimeZone(identifier: "Europe/Lisbon") ?? .current,
+                teamMemberId: StubAPI.memberID(of: johnsGym)
             ),
             "its ID, name, default language and time zone"
         )

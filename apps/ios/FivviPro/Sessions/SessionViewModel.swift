@@ -22,8 +22,6 @@ final class SessionViewModel {
 
     private(set) var state = State.loading
     private(set) var session: Session?
-    /// The team-member ID of the person looking, when it can be told: the trainer row then reads *Jij*.
-    private(set) var myTrainerID: String?
     /// The client's own record, for the language of the change email (PS-05); nil until read, or when it can't be.
     private(set) var clientRecord: Components.Schemas.Client?
     /// A move has just happened: the screen says where the session went.
@@ -32,24 +30,16 @@ final class SessionViewModel {
     let workspace: CurrentWorkspace
     private let sessionID: String
     private let api: any APIProtocol
-    private let email: String
-    private let accountName: String?
-    private let readTeam: Bool
     private let onForbidden: @MainActor (WorkspaceCapabilities.Capability) async -> Void
 
-    /// `readTeam`: the person may read the team (`team.view`), so their own place is found by their address.
     init(
-        api: any APIProtocol, workspace: CurrentWorkspace, sessionID: String, catalog: Catalog, email: String,
-        accountName: String?, readTeam: Bool,
+        api: any APIProtocol, workspace: CurrentWorkspace, sessionID: String, catalog: Catalog,
         onForbidden: @escaping @MainActor (WorkspaceCapabilities.Capability) async -> Void = { _ in }
     ) {
         self.api = api
         self.workspace = workspace
         self.sessionID = sessionID
         self.catalog = catalog
-        self.email = email
-        self.accountName = accountName
-        self.readTeam = readTeam
         self.onForbidden = onForbidden
     }
 
@@ -80,7 +70,7 @@ final class SessionViewModel {
             let word = TrainerWordForms(workspace.trainerWord, catalog: catalog).word
             return catalog.string(.sessionPageNoTrainer, word)
         }
-        return trainer.id == myTrainerID ? catalog[.sessionPageYou] : trainer.name
+        return trainer.id == workspace.teamMemberId ? catalog[.sessionPageYou] : trainer.name
     }
 
     /// The address as one line, for the maps app; nil when the location has none.
@@ -101,8 +91,7 @@ final class SessionViewModel {
         guard let session, let client, session.status == .scheduled else { return nil }
         return RescheduleViewModel(
             api: api, workspace: workspace, session: session, clientName: client.name,
-            clientLocale: clientRecord?.chosenLocale, catalog: catalog, now: now, myTrainerID: myTrainerID,
-            onForbidden: onForbidden
+            clientLocale: clientRecord?.chosenLocale, catalog: catalog, now: now, onForbidden: onForbidden
         )
     }
 
@@ -150,16 +139,8 @@ final class SessionViewModel {
         await readViewer()
     }
 
-    /// Who the person is among the trainers, and the client's language: both only to word the screen, so a failure here
-    /// changes nothing.
+    /// The client's language, only to word the screen, so a failure here changes nothing.
     private func readViewer() async {
-        if myTrainerID == nil,
-           let team = try? await SessionTeam.read(api: api, workspaceID: workspace.id, readTeam: readTeam) {
-            myTrainerID = SessionTeam.myTrainerID(
-                trainers: team.trainers, members: team.members, teamRequested: team.teamRequested,
-                email: email, name: accountName
-            )
-        }
         guard clientRecord == nil, let id = client?.clientId else { return }
         let input = Operations.GetClient.Input(path: .init(workspaceId: workspace.id, clientId: id))
         if case let .ok(found)? = try? await api.getClient(input) {

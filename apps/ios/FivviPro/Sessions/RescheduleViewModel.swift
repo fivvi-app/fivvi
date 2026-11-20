@@ -31,9 +31,6 @@ final class RescheduleViewModel: Identifiable {
     private(set) var catalog: Catalog
     let workspace: CurrentWorkspace
     let clientName: String
-    /// The team-member ID of the person among the trainers, when it is known: their own session reads *Je hebt dan al
-    /// iets*, another trainer's names them.
-    private let myTrainerID: String?
     /// The language the client's emails go out in: their own, else the workspace's default.
     private let emailLocale: Components.Schemas.Locale
     private let api: any APIProtocol
@@ -41,7 +38,7 @@ final class RescheduleViewModel: Identifiable {
 
     init(
         api: any APIProtocol, workspace: CurrentWorkspace, session: Session, clientName: String,
-        clientLocale: Components.Schemas.Locale?, catalog: Catalog, now: Date = Date(), myTrainerID: String? = nil,
+        clientLocale: Components.Schemas.Locale?, catalog: Catalog, now: Date = Date(),
         onForbidden: @escaping @MainActor (WorkspaceCapabilities.Capability) async -> Void = { _ in }
     ) {
         self.api = api
@@ -50,7 +47,6 @@ final class RescheduleViewModel: Identifiable {
         self.clientName = clientName
         emailLocale = clientLocale ?? workspace.defaultLocale
         self.catalog = catalog
-        self.myTrainerID = myTrainerID
         self.onForbidden = onForbidden
         let timeZone = TimeZone(identifier: session.timeZone) ?? workspace.timeZone
         notify = session.startsAt > now
@@ -157,9 +153,8 @@ final class RescheduleViewModel: Identifiable {
     private func reload(from refusal: Components.Schemas.ReschedulePrivateSessionRefusal) throws {
         if refusal.code == .trainerConflict, let conflicts = refusal.conflicts, !conflicts.isEmpty {
             let trainer = session.trainer
-            doubleBooking = DoubleBooking(
-                conflicts: conflicts, trainerName: trainer == nil || trainer?.id == myTrainerID ? nil : trainer?.name
-            )
+            let own = trainer == nil || trainer?.id == workspace.teamMemberId
+            doubleBooking = DoubleBooking(conflicts: conflicts, trainerName: own ? nil : trainer?.name)
             return
         }
         guard refusal.code != .trainerConflict, let current = refusal.session?.value1 else {

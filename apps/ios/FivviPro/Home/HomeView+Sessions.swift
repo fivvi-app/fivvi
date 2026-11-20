@@ -62,11 +62,10 @@ extension HomeView {
 
     /// TD-02 for the session `id`.
     @ViewBuilder func sessionScreen(_ id: String) -> some View {
-        if let workspace = account.workspace, case let .loaded(email) = account.state {
+        if let workspace = account.workspace, case .loaded = account.state {
             let capabilities = account.capabilities
             SessionScreen(
-                api: api, workspace: workspace, sessionID: id, language: language, email: email,
-                accountName: account.accountName, capabilities: capabilities,
+                api: api, workspace: workspace, sessionID: id, language: language, capabilities: capabilities,
                 onOpenClient: { path.append(.client(ClientRoute(id: $0))) }
             )
             .id(id)
@@ -82,12 +81,11 @@ struct SessionScreen: View {
     let onOpenClient: (String) -> Void
 
     init(
-        api: any APIProtocol, workspace: CurrentWorkspace, sessionID: String, language: AppLanguage, email: String,
-        accountName: String?, capabilities: WorkspaceCapabilities, onOpenClient: @escaping (String) -> Void
+        api: any APIProtocol, workspace: CurrentWorkspace, sessionID: String, language: AppLanguage,
+        capabilities: WorkspaceCapabilities, onOpenClient: @escaping (String) -> Void
     ) {
         _model = State(initialValue: SessionViewModel(
-            api: api, workspace: workspace, sessionID: sessionID, catalog: language.catalog, email: email,
-            accountName: accountName, readTeam: capabilities.allows(.team_view),
+            api: api, workspace: workspace, sessionID: sessionID, catalog: language.catalog,
             onForbidden: { await capabilities.forbidden($0) }
         ))
         self.language = language
