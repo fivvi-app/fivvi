@@ -15,6 +15,7 @@ import { ErrorLine } from '@fivvi/ui/kit/error-line';
 import { useRouter } from 'next/navigation';
 import { useTranslations } from 'next-intl';
 import { type FormEvent, useState } from 'react';
+import { type DoubleBooking, DoubleBookingDialog } from './double-booking';
 import { previewTimes, wallClockOf } from './session-time';
 import {
   type DateErrorKey,
@@ -44,12 +45,15 @@ export function RescheduleSession({
   session,
   client,
   defaultLocale,
+  ownSession,
 }: {
   workspaceId: string;
   session: Session;
   client: MovedClient;
   /** The workspace's default language for emails. */
   defaultLocale: Locale;
+  /** The signed-in person is the session's trainer: PS-07 says "Je hebt dan al iets". */
+  ownSession: boolean;
 }) {
   const t = useTranslations('sessions.page');
   const { day, time } = useSessionFormat(session.timeZone);
@@ -78,6 +82,7 @@ export function RescheduleSession({
             session={current}
             client={client}
             defaultLocale={defaultLocale}
+            ownSession={ownSession}
             close={() => setOpen(false)}
             moved={(result) => {
               setOpen(false);
@@ -104,6 +109,7 @@ function RescheduleForm({
   session,
   client,
   defaultLocale,
+  ownSession,
   close,
   moved,
 }: {
@@ -111,6 +117,7 @@ function RescheduleForm({
   session: Session;
   client: MovedClient;
   defaultLocale: Locale;
+  ownSession: boolean;
   close: () => void;
   moved: (session: Session) => void;
 }) {
@@ -127,6 +134,8 @@ function RescheduleForm({
   const [apiErrors, setApiErrors] = useState<{ date?: DateErrorKey; start?: StartErrorKey }>({});
   const [failure, setFailure] = useState<Failure | null>(null);
   const [pending, setPending] = useState(false);
+  // PS-07: the sessions the trainer already has at the new time; *Terug* closes it and keeps the form.
+  const [doubleBooking, setDoubleBooking] = useState<DoubleBooking | null>(null);
 
   const preview = previewTimes({ ...when, timeZone, now: new Date() });
   const language =
@@ -145,18 +154,31 @@ function RescheduleForm({
     setFailure(null);
     setApiErrors({});
     if (missing || preview.status !== 'placed') return;
+    await save(false);
+  }
+
+  /** Moves the session; `allowConflicts` is *Toch opslaan* of PS-07: the same move, on the same version. */
+  async function save(allowConflicts: boolean) {
     setPending(true);
     const result = await reschedulePrivateSession(workspaceId, current.id, {
       ...when,
       notify,
       version: current.version,
+      ...(allowConflicts ? { allowConflicts } : {}),
     });
     if (result.ok) {
       router.refresh();
       return moved(result.session);
     }
     setPending(false);
+    setDoubleBooking(null);
     if (result.reason === 'home') return window.location.replace(SIGNED_IN_HOME);
+    if (result.reason === 'trainerConflict') {
+      return setDoubleBooking({
+        conflicts: result.conflicts,
+        trainerName: ownSession || !current.trainer ? null : current.trainer.name,
+      });
+    }
     if (result.reason === 'fields') return setApiErrors({ date: result.date, start: result.start });
     if (result.reason === 'conflict') {
       // The reloaded values: the form shows the session as it is now, and the next save uses its version.
@@ -239,6 +261,13 @@ function RescheduleForm({
           </Button>
         </DialogFooter>
       </form>
+      <DoubleBookingDialog
+        doubleBooking={doubleBooking}
+        timeZone={timeZone}
+        pending={pending}
+        onBack={() => setDoubleBooking(null)}
+        onSaveAnyway={() => void save(true)}
+      />
     </DialogContent>
   );
 }

@@ -5,6 +5,7 @@ import { notFound } from 'next/navigation';
 import { getLocale, getTranslations } from 'next-intl/server';
 import { catalogLocale } from '../../../../../../../../i18n/config';
 import { apiClient } from '../../../../../../../../server/api';
+import { currentTeamMemberId } from '../../../../../../../../server/my-team-member';
 import { workspaceOf } from '../../../../../../../../server/workspace-of';
 import { NoPermission } from '../../../settings/general/no-permission';
 import { ClassDateView } from '../../class-date-view';
@@ -37,12 +38,19 @@ export default async function ClassDatePage({
     throw new Error('GET /v1/workspaces/{workspaceId}/sessions/{sessionId} did not answer.');
   }
   if (session.type !== 'group' || session.groupClass?.id !== classId) notFound();
+  const canManage = capabilities.includes('class.manage');
+  // PS-07 on CO-04 (only the Owner changes a date): the date of the person's own, as a trainer, is "Je hebt dan al iets".
+  const ownDate =
+    canManage &&
+    session.trainer !== undefined &&
+    (await currentTeamMemberId(id)) === session.trainer.id;
   return (
     <ClassDateView
       workspaceId={id}
       slug={slug}
       session={session}
-      canManage={capabilities.includes('class.manage')}
+      canManage={canManage}
+      ownDate={ownDate}
       trainerWord={trainerWordForms(trainerWord, catalogLocale(await getLocale()))}
     />
   );

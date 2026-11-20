@@ -1,8 +1,11 @@
 import type { Schemas } from '@fivvi/contract';
 import type { Locale } from '@fivvi/i18n';
+import { myTeamMemberId } from './my-team-member';
 
 export type Session = Schemas['Session'];
 export type Trainer = Schemas['Trainer'];
+/** One session of this workspace that the trainer already has at the time of a save (PS-07). */
+export type TrainerConflictItem = Schemas['TrainerConflictItem'];
 
 /** The `sessions.form.errors.*` keys that word a refused field of the date and start. */
 export type DateErrorKey = 'invalidDate';
@@ -16,10 +19,23 @@ export interface TimeInput {
   localStart: string;
   durationMinutes: number;
   notify: boolean;
+  /** *Toch opslaan* (PS-07): save although the trainer has something then. Left out, the API warns. */
+  allowConflicts?: boolean;
 }
+
+/**
+ * The API found sessions the trainer already has then (`409` `trainer_conflict`, F023 AC7) and stored
+ * nothing: the form asks PS-07 and may send the same request again with `allowConflicts`.
+ */
+export type TrainerConflictRefusal = {
+  ok: false;
+  reason: 'trainerConflict';
+  conflicts: TrainerConflictItem[];
+};
 
 /** The refusals both calls share. */
 type Refused =
+  | TrainerConflictRefusal
   /** The API refused the date or the start: the form words it under the field and keeps the input. */
   | { ok: false; reason: 'fields'; date?: DateErrorKey; start?: StartErrorKey }
   /** The person may not do this (any more), for example a Trainer moving a colleague's session. */
@@ -63,8 +79,10 @@ export async function planPrivateSession(
     notify: input.notify,
   };
   if (input.trainerId) body.trainerId = input.trainerId;
+  if (input.allowConflicts) body.allowConflicts = true;
   const answered = await send(`/api/v1/workspaces/${workspaceId}/sessions/private`, body, fetchFn);
   if ('failed' in answered) return answered.failed;
+  if (answered.status === 409) return trainerConflict(answered.body);
   if (answered.status !== 201) return refusal(answered.status, answered.body);
   const planned = answered.body as Schemas['PlannedPrivateSession'] | null;
   if (!planned?.session) return { ok: false, reason: 'generic' };
@@ -88,6 +106,7 @@ export async function reschedulePrivateSession(
     notify: input.notify,
     version: input.version,
   };
+  if (input.allowConflicts) body.allowConflicts = true;
   const answered = await send(
     `/api/v1/workspaces/${workspaceId}/sessions/${sessionId}/reschedule`,
     body,
@@ -101,10 +120,9 @@ export async function reschedulePrivateSession(
   }
   if (answered.status === 409) {
     const conflict = answered.body as Schemas['ReschedulePrivateSessionRefusal'] | null;
-    // `trainer_conflict` has no session: the web PS-07 warning is another ticket.
-    if (!conflict?.session || conflict.code === 'trainer_conflict') {
-      return { ok: false, reason: 'generic' };
-    }
+    // `trainer_conflict` has no session: it is PS-07's warning, not a session changed meanwhile.
+    if (conflict?.code === 'trainer_conflict') return trainerConflict(conflict);
+    if (!conflict?.session) return { ok: false, reason: 'generic' };
     return {
       ok: false,
       reason: 'conflict',
@@ -114,6 +132,15 @@ export async function reschedulePrivateSession(
     };
   }
   return refusal(answered.status, answered.body);
+}
+
+/** The refusal of a `409` that lists the overlapping sessions; one that lists none is a generic failure. */
+export function trainerConflict(
+  body: unknown,
+): TrainerConflictRefusal | { ok: false; reason: 'generic' } {
+  const { code, conflicts } = (body ?? {}) as Partial<Schemas['TrainerConflict']>;
+  if (code !== 'trainer_conflict' || !conflicts?.length) return { ok: false, reason: 'generic' };
+  return { ok: false, reason: 'trainerConflict', conflicts };
 }
 
 async function send(
@@ -204,8 +231,8 @@ export async function loadPlanningContext(
       team?.status === 200
         ? ((await team.json()) as Schemas['TeamMember'][])
         : ([] as Schemas['TeamMember'][]);
-    const mine = members.find((member) => member.email.toLowerCase() === email.toLowerCase());
-    const myTrainerId = trainerList.find(({ id }) => id === mine?.id)?.id ?? null;
+    const mine = myTeamMemberId(members, email);
+    const myTrainerId = trainerList.find(({ id }) => id === mine)?.id ?? null;
     if (!timeZone || !location) return { ok: false, reason: 'failed' };
     return {
       ok: true,

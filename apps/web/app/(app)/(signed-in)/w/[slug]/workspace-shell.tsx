@@ -81,7 +81,7 @@ export async function WorkspaceShell({
   }
   // *Lessen* and *Groepsles* in + Nieuw (F021), for a person who manages classes.
   const groupClasses = capabilities.includes('class.manage')
-    ? { workspaceId: id, trainerWord: trainerWordForms(trainerWord, locale) }
+    ? { workspaceId: id, email: me.email, trainerWord: trainerWordForms(trainerWord, locale) }
     : undefined;
   return (
     // The frame is compact; the dialogs and menus opened in it render in a portal, which would be

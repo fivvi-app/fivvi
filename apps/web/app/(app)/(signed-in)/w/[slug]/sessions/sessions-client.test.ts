@@ -35,6 +35,15 @@ const input = {
   notify: true,
 };
 
+const markSession = {
+  sessionId: 's2',
+  type: 'private' as const,
+  startsAt: '2026-10-08T07:00:00.000Z',
+  endsAt: '2026-10-08T08:00:00.000Z',
+  displayName: 'Mark Jansen',
+  displayNameEn: null,
+};
+
 describe('F020 sessions client: planning', () => {
   it('AC1: posts the local date, start and length to the private sessions route of this site', async () => {
     const fetchFn = reply(201, {
@@ -64,6 +73,46 @@ describe('F020 sessions client: planning', () => {
     await planPrivateSession('w1', { ...input, trainerId: 't2' }, fetchFn);
 
     expect(JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body))).toMatchObject({ trainerId: 't2' });
+  });
+
+  it('F023 AC5: a 409 trainer_conflict hands the overlapping sessions to the form (PS-07)', async () => {
+    const fetchFn = reply(409, { code: 'trainer_conflict', conflicts: [markSession] });
+
+    expect(await planPrivateSession('w1', { ...input, trainerId: 't2' }, fetchFn)).toEqual({
+      ok: false,
+      reason: 'trainerConflict',
+      conflicts: [markSession],
+    });
+  });
+
+  it('F023 AC5: Toch opslaan sends the same request again with allowConflicts', async () => {
+    const fetchFn = reply(201, {
+      session,
+      past: false,
+      repeatedStart: false,
+      confirmationEmail: false,
+    });
+
+    await planPrivateSession('w1', { ...input, trainerId: 't2', allowConflicts: true }, fetchFn);
+
+    expect(JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body))).toEqual({
+      ...input,
+      trainerId: 't2',
+      allowConflicts: true,
+    });
+  });
+
+  it('F023: a 409 without any overlapping session is a generic failure, not an empty warning', async () => {
+    expect(
+      await planPrivateSession(
+        'w1',
+        input,
+        reply(409, { code: 'trainer_conflict', conflicts: [] }),
+      ),
+    ).toEqual({
+      ok: false,
+      reason: 'generic',
+    });
   });
 
   it('AC5: a past session is saved like any other (the form warned about it before)', async () => {
@@ -187,25 +236,35 @@ describe('F020 sessions client: rescheduling', () => {
     expect(result).not.toHaveProperty('changedBy');
   });
 
-  it('F023: a 409 trainer_conflict has no session and stays a generic refusal until PS-07 is built', async () => {
-    const fetchFn = reply(409, {
-      code: 'trainer_conflict',
-      conflicts: [
-        {
-          sessionId: 's2',
-          type: 'private',
-          startsAt: '2026-10-08T07:00:00.000Z',
-          endsAt: '2026-10-08T08:00:00.000Z',
-          displayName: 'Mark Jansen',
-          displayNameEn: null,
-        },
-      ],
-    });
+  it('F023 AC5: a 409 trainer_conflict hands the overlapping sessions to the form (PS-07), not a changed session', async () => {
+    const fetchFn = reply(409, { code: 'trainer_conflict', conflicts: [markSession] });
 
     expect(await reschedulePrivateSession('w1', 's1', move, fetchFn)).toEqual({
       ok: false,
-      reason: 'generic',
+      reason: 'trainerConflict',
+      conflicts: [markSession],
     });
+  });
+
+  it('F023 AC5: Toch opslaan sends the same move again with allowConflicts, on the same version', async () => {
+    const fetchFn = reply(200, { session: { ...session, version: 2 }, past: false });
+
+    await reschedulePrivateSession('w1', 's1', { ...move, allowConflicts: true }, fetchFn);
+
+    expect(JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body))).toEqual({
+      ...move,
+      allowConflicts: true,
+    });
+  });
+
+  it('F023: a move without Toch opslaan does not send allowConflicts at all', async () => {
+    const fetchFn = reply(200, { session: { ...session, version: 2 }, past: false });
+
+    await reschedulePrivateSession('w1', 's1', move, fetchFn);
+
+    expect(JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body))).not.toHaveProperty(
+      'allowConflicts',
+    );
   });
 
   it('AC7: a 403 is a refusal, the DST refusal sits on the start field', async () => {

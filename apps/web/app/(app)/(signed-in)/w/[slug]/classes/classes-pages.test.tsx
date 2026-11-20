@@ -80,7 +80,12 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
   const list = (classes: GroupClass[]) =>
     render(
       locale,
-      <ClassesProvider workspaceId="w1" slug="johns-gym" trainerWord={word}>
+      <ClassesProvider
+        workspaceId="w1"
+        slug="johns-gym"
+        email="john@example.com"
+        trainerWord={word}
+      >
         <ClassList slug="johns-gym" classes={classes} trainerWord={word} />
       </ClassesProvider>,
     );
@@ -193,7 +198,12 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
     const view = (groupClass: GroupClass, canManage = true) =>
       render(
         locale,
-        <ClassesProvider workspaceId="w1" slug="johns-gym" trainerWord={word}>
+        <ClassesProvider
+          workspaceId="w1"
+          slug="johns-gym"
+          email="john@example.com"
+          trainerWord={word}
+        >
           <ClassView
             slug="johns-gym"
             groupClass={groupClass}
@@ -233,6 +243,7 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
           slug="johns-gym"
           session={session}
           canManage={canManage}
+          ownDate={false}
           trainerWord={word}
         />,
       );
@@ -302,7 +313,11 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
           canCreateWorkspace={false}
           capabilities={capabilities}
           personName="John"
-          groupClasses={groupClasses ? { workspaceId: 'w1', trainerWord: word } : undefined}
+          groupClasses={
+            groupClasses
+              ? { workspaceId: 'w1', email: 'john@example.com', trainerWord: word }
+              : undefined
+          }
         >
           <hr />
         </WorkspaceFrame>,

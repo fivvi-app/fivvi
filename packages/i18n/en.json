@@ -657,6 +657,7 @@
     "doubleBooking": {
       "back": "Back",
       "item": "{date}, {start}–{end}: {name} ({type})",
+      "note": "This is a warning. You can save it anyway.",
       "saveAnyway": "Save anyway",
       "title": "{trainer} already has something then",
       "titleOwn": "You already have something then",

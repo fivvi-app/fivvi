@@ -1,5 +1,7 @@
 import type { Schemas } from '@fivvi/contract';
 import { GROUP_CLASS_LIMITS as LIMITS } from '@fivvi/domain/group-class-limits';
+import { myTeamMemberId } from '../sessions/my-team-member';
+import { type TrainerConflictRefusal, trainerConflict } from '../sessions/sessions-client';
 
 export type GroupClass = Schemas['GroupClass'];
 export type Session = Schemas['Session'];
@@ -41,6 +43,8 @@ export type EndErrorKey = 'endBeforeStart' | 'timeDoesNotExist' | 'invalidTime';
 
 /** The refusals every call shares. */
 type Refused =
+  /** The trainer already has something then (`409` `trainer_conflict`, PS-07): `Toch opslaan` resends. */
+  | TrainerConflictRefusal
   /** The person may not do this (any more). */
   | { ok: false; reason: 'forbidden' }
   /** Not signed in: the signed-in home knows where this person belongs. */
@@ -213,6 +217,8 @@ export interface ScheduleInput {
   /** The trainer of this date, or `''` for *Trainer nodig*. */
   trainerId: string;
   capacity: string;
+  /** *Toch opslaan* (PS-07): save although the trainer has something then. */
+  allowConflicts?: boolean;
 }
 
 /**
@@ -235,6 +241,7 @@ export async function scheduleClassDate(
     trainerId: input.trainerId === '' ? null : input.trainerId,
     capacity: whole(input.capacity),
   };
+  if (input.allowConflicts) body.allowConflicts = true;
   const answered = await send(
     'POST',
     `/api/v1/workspaces/${workspaceId}/group-classes/${classId}/dates`,
@@ -242,6 +249,7 @@ export async function scheduleClassDate(
     fetchFn,
   );
   if ('failed' in answered) return answered.failed;
+  if (answered.status === 409) return trainerConflict(answered.body);
   if (answered.status === 201) {
     const session = answered.body as Session | null;
     if (!session?.id) return { ok: false, reason: 'generic' };
@@ -268,6 +276,8 @@ export interface EditDateInput {
   localStart: string;
   localEnd: string;
   capacity: string;
+  /** *Toch opslaan* (PS-07): save although the trainer has something then. */
+  allowConflicts?: boolean;
 }
 
 /**
@@ -295,6 +305,7 @@ export async function editClassDate(
     localEnd: input.localEnd,
     capacity: whole(input.capacity),
   };
+  if (input.allowConflicts) body.allowConflicts = true;
   const answered = await send(
     'PATCH',
     `/api/v1/workspaces/${workspaceId}/sessions/${sessionId}`,
@@ -309,11 +320,9 @@ export async function editClassDate(
   }
   if (answered.status === 409) {
     const conflict = answered.body as Schemas['UpdateGroupClassDateRefusal'] | null;
-    // `trainer_conflict` lists overlapping sessions and is no changed date: the web PS-07
-    // warning is another ticket, so it is the generic error for now.
-    if (!conflict?.session || conflict.code === 'trainer_conflict') {
-      return { ok: false, reason: 'generic' };
-    }
+    // `trainer_conflict` lists overlapping sessions and is no changed date: it is PS-07's warning.
+    if (conflict?.code === 'trainer_conflict') return trainerConflict(conflict);
+    if (!conflict?.session) return { ok: false, reason: 'generic' };
     return { ok: false, reason: 'conflict', session: conflict.session };
   }
   if (answered.status === 400) {
@@ -347,6 +356,8 @@ export interface ScheduleContext {
   trainers: Trainer[];
   /** Every class of the workspace, by name. */
   classes: GroupClass[];
+  /** The signed-in person's own team-member ID, when they train here; `null` otherwise. */
+  myTrainerId: string | null;
 }
 
 export type ScheduleContextResult =
@@ -356,41 +367,44 @@ export type ScheduleContextResult =
 /**
  * Reads what the scheduling form shows: the time zone (`GET …/workspaces/{id}`), the default
  * location (`GET …/locations`), the trainers (`GET …/trainers`) and the classes
- * (`GET …/group-classes`).
+ * (`GET …/group-classes`), and the signed-in person's own place among the trainers, found by their
+ * email address on `GET …/team-members` (PS-07 words their own overlap as "Je hebt dan al iets").
  */
 export async function loadScheduleContext(
   workspaceId: string,
+  email: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<ScheduleContextResult> {
   const base = `/api/v1/workspaces/${workspaceId}`;
   try {
-    const answers = await Promise.all([
+    const [workspace, locations, trainers, classes, team] = await Promise.all([
       fetchFn(base),
       fetchFn(`${base}/locations`),
       fetchFn(`${base}/trainers`),
       fetchFn(`${base}/group-classes`),
+      // The team list is a courtesy for the wording; without it the trainer is named.
+      fetchFn(`${base}/team-members`),
     ]);
+    const answers = [workspace, locations, trainers, classes];
     if (answers.some(({ status }) => [401, 403, 404].includes(status))) {
       return { ok: false, reason: 'home' };
     }
     if (answers.some(({ status }) => status !== 200)) return { ok: false, reason: 'failed' };
-    const [workspace, locations, trainers, classes] = answers as [
-      Response,
-      Response,
-      Response,
-      Response,
-    ];
     const { timeZone } = (await workspace.json()) as Schemas['Workspace'];
     const places = (await locations.json()) as Schemas['Location'][];
     const location = places.find(({ isDefault }) => isDefault) ?? places[0];
     if (!timeZone || !location) return { ok: false, reason: 'failed' };
+    const trainerList = (await trainers.json()) as Trainer[];
+    const members = team.status === 200 ? ((await team.json()) as Schemas['TeamMember'][]) : [];
+    const mine = myTeamMemberId(members, email);
     return {
       ok: true,
       context: {
         timeZone,
         locationName: location.name,
-        trainers: (await trainers.json()) as Trainer[],
+        trainers: trainerList,
         classes: (await classes.json()) as GroupClass[],
+        myTrainerId: trainerList.find(({ id }) => id === mine)?.id ?? null,
       },
     };
   } catch {

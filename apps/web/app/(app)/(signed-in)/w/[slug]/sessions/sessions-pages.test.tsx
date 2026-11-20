@@ -47,6 +47,7 @@ describe.each(locales)('F020 the session page and + Nieuw in %s', (locale) => {
         client={anna}
         defaultLocale="nl-NL"
         canMove={canMove}
+        ownSession={false}
         trainerWord={trainerWordForms('trainer', locale)}
       />,
     );
