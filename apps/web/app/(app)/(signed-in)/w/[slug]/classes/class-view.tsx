@@ -6,10 +6,11 @@ import { Card, CardContent } from '@fivvi/ui/components/card';
 import { PageShell } from '@fivvi/ui/kit/page-shell';
 import type { Route } from 'next';
 import Link from 'next/link';
-import { useLocale, useTranslations } from 'next-intl';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useEffect, useState } from 'react';
-import type { GroupClass } from './classes-client';
+import type { ClassSeries, GroupClass } from './classes-client';
 import { useClassDialogs } from './classes-provider';
+import { referenceDay, seriesEnd } from './series';
 
 /**
  * The page of a class (`/w/{slug}/classes/{id}`, F021, the Owner): the name in the viewer's
@@ -20,16 +21,20 @@ export function ClassView({
   slug,
   groupClass,
   canManage,
+  series = [],
   trainerWord,
 }: {
   slug: string;
   groupClass: GroupClass;
   /** The person has `class.manage`: they may put the class on a date. */
   canManage: boolean;
+  /** The weekly series of the class that still run (F022, `GET …/series`): *Reeksen*. */
+  series?: ClassSeries[];
   trainerWord: TrainerWordForms;
 }) {
   const t = useTranslations('classes');
   const locale = useLocale();
+  const format = useFormatter();
   const dialogs = useClassDialogs();
   const [ready, setReady] = useState(false);
   useEffect(() => setReady(true), []);
@@ -82,6 +87,43 @@ export function ClassView({
           </div>
         </CardContent>
       </Card>
+      {series.length > 0 ? (
+        <Card>
+          <CardContent className="grid gap-3 text-sm">
+            <h2 className="font-semibold">{t('series.title')}</h2>
+            <ul className="grid gap-2">
+              {series.map((item) => (
+                <li key={item.id} className="grid gap-0.5">
+                  <p>
+                    {t('series.line', {
+                      weekday: format.dateTime(referenceDay(item.weekday), {
+                        timeZone: 'UTC',
+                        weekday: 'long',
+                      }),
+                      start: item.localStartTime,
+                      end: seriesEnd(item.localStartTime, item.durationMinutes),
+                      trainer: item.trainer
+                        ? item.trainer.name
+                        : t('trainerNeeded', { ...trainerWord }),
+                      spots: t('spots', { count: item.capacity }),
+                    })}
+                  </p>
+                  <p className="text-muted-foreground">
+                    {t('series.from', {
+                      date: format.dateTime(new Date(`${item.startsOn}T12:00:00Z`), {
+                        timeZone: 'UTC',
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric',
+                      }),
+                    })}
+                  </p>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      ) : null}
     </PageShell>
   );
 }

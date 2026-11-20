@@ -3,11 +3,12 @@ import { Card, CardContent } from '@fivvi/ui/components/card';
 import { PageShell } from '@fivvi/ui/kit/page-shell';
 import type { Route } from 'next';
 import Link from 'next/link';
-import { useLocale, useTranslations } from 'next-intl';
+import { useFormatter, useLocale, useTranslations } from 'next-intl';
 import { useSessionFormat } from '../sessions/use-session-format';
 import type { Session } from './classes-client';
 import { CopyBookingLink } from './copy-booking-link';
 import { EditClassDate } from './edit-class-date';
+import { orderedFields, referenceDay } from './series';
 
 /**
  * CO-01 *Les op datum* (`/w/{slug}/classes/{classId}/{sessionId}`, F021): the title with the class
@@ -39,11 +40,13 @@ export function ClassDateView({
 }) {
   const t = useTranslations('classes');
   const locale = useLocale();
+  const format = useFormatter();
   const { longDay, time } = useSessionFormat(session.timeZone);
   const booked = session.participants.length;
   const name = session.groupClass
     ? pickContentLanguage(locale, session.groupClass.nameNl, session.groupClass.nameEn)
     : '';
+  const series = session.series;
   return (
     <PageShell>
       {canManage ? (
@@ -67,6 +70,32 @@ export function ClassDateView({
           </div>
         ) : null}
       </div>
+      {series ? (
+        <div className="grid gap-1 text-sm">
+          <p>
+            {t('date.seriesLine', {
+              name,
+              weekday: format.dateTime(referenceDay(series.weekday), {
+                timeZone: 'UTC',
+                weekday: 'long',
+              }),
+              time: series.localStartTime,
+            })}
+          </p>
+          {series.changedFields.length > 0 ? (
+            <p className="text-muted-foreground">
+              {t('date.changedFromSeries', {
+                fields: orderedFields(series.changedFields)
+                  // The fields read as a list in the middle of a sentence: *tijd, trainer*.
+                  .map((field) =>
+                    t(`date.changedField.${field}`, { ...trainerWord }).toLocaleLowerCase(locale),
+                  )
+                  .join(', '),
+              })}
+            </p>
+          ) : null}
+        </div>
+      ) : null}
       <Card>
         <CardContent>
           <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1.5 text-sm">

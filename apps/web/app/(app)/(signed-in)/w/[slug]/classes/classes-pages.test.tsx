@@ -292,6 +292,144 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
     });
   });
 
+  describe('F022 the series on CO-01 and on the class page', () => {
+    const seriesDate = (changedFields: ('time' | 'trainer' | 'capacity' | 'location')[] = []) =>
+      ({
+        ...date,
+        series: {
+          id: 'r1',
+          weekday: 'TU' as const,
+          localStartTime: '18:00',
+          occurrenceDate: '2026-10-06',
+          changedFields,
+        },
+      }) satisfies Session;
+    const view = (session: Session, canManage: boolean) =>
+      render(
+        locale,
+        <ClassDateView
+          workspaceId="w1"
+          slug="johns-gym"
+          session={session}
+          canManage={canManage}
+          canCopyLink={false}
+          ownDate={false}
+          trainerWord={word}
+        />,
+      );
+    const weekday = locale === 'en' ? 'Tuesday' : 'dinsdag';
+    const seriesLine = escapeHtml(
+      copy.classes.date.seriesLine
+        .replace('{name}', locale === 'en' ? 'Strength' : 'Kracht')
+        .replace('{weekday}', weekday)
+        .replace('{time}', '18:00'),
+    );
+
+    it('AC1: a date of a series says which one: "Onderdeel van: Kracht, elke dinsdag 18:00"', () => {
+      expect(view(seriesDate(), true)).toContain(seriesLine);
+    });
+
+    it('a date on its own has no series line', () => {
+      expect(view(date, true)).not.toContain(
+        escapeHtml(copy.classes.date.changedFromSeries.split('{')[0] ?? ''),
+      );
+      expect(view(date, true)).not.toContain(
+        escapeHtml(copy.classes.date.seriesLine.split('{')[0] ?? ''),
+      );
+    });
+
+    it('AC4: a date changed on its own says what differs, in the order time, trainer, capacity', () => {
+      const html = view(seriesDate(['capacity', 'time']), true);
+
+      expect(html).toContain(
+        escapeHtml(
+          copy.classes.date.changedFromSeries.replace(
+            '{fields}',
+            `${copy.classes.date.changedField.time}, ${copy.classes.date.changedField.capacity}`,
+          ),
+        ),
+      );
+    });
+
+    it('AC4: a date that follows its series has no Aangepast line', () => {
+      expect(view(seriesDate(), true)).not.toContain(
+        escapeHtml(copy.classes.date.changedFromSeries.split('{')[0] ?? ''),
+      );
+    });
+
+    it('AC8: the Trainer sees the series line, and no Wijzigen', () => {
+      const html = view(seriesDate(['time']), false);
+
+      expect(html).toContain(seriesLine);
+      expect(html).not.toContain(escapeHtml(copy.classes.date.edit));
+      expect(html).not.toContain('<button');
+    });
+
+    const classPage = (series: Schemas['ClassSeries'][]) =>
+      render(
+        locale,
+        <ClassesProvider workspaceId="w1" slug="johns-gym" teamMemberId="m1" trainerWord={word}>
+          <ClassView
+            slug="johns-gym"
+            groupClass={kracht}
+            canManage
+            series={series}
+            trainerWord={word}
+          />
+        </ClassesProvider>,
+      );
+    const weekly: Schemas['ClassSeries'] = {
+      id: 'r1',
+      groupClassId: 'c1',
+      rrule: 'FREQ=WEEKLY;BYDAY=TU',
+      weekday: 'TU',
+      localStartTime: '18:00',
+      durationMinutes: 60,
+      timeZone: 'Europe/Amsterdam',
+      trainer: { id: 't1', name: 'Sarah' },
+      capacity: 8,
+      startsOn: '2026-10-06',
+      materializedUntil: '2026-12-22',
+      version: 1,
+    };
+
+    it('AC1: Reeksen lists each series: "Elke dinsdag 18:00–19:00 · Sarah · 8 plekken", from its first date', () => {
+      const html = classPage([weekly]);
+
+      expect(html).toContain(escapeHtml(copy.classes.series.title));
+      expect(html).toContain(
+        escapeHtml(
+          copy.classes.series.line
+            .replace('{weekday}', weekday)
+            .replace('{start}', '18:00')
+            .replace('{end}', '19:00')
+            .replace('{trainer}', 'Sarah')
+            .replace('{spots}', locale === 'en' ? '8 spots' : '8 plekken'),
+        ),
+      );
+      expect(html).toContain(
+        escapeHtml(
+          copy.classes.series.from.replace(
+            '{date}',
+            locale === 'en' ? '6 October 2026' : '6 oktober 2026',
+          ),
+        ),
+      );
+    });
+
+    it('a series without a trainer says Trainer nodig', () => {
+      const { trainer: _trainer, ...without } = weekly;
+
+      expect(classPage([without])).toContain(
+        escapeHtml(copy.classes.trainerNeeded.replace('{Word}', word.Word)),
+      );
+    });
+
+    it('a class without a series has no Reeksen', () => {
+      expect(classPage([])).not.toContain(escapeHtml(copy.classes.series.title));
+    });
+  });
+
   describe('CO-01 Boekingslink kopiëren (F037)', () => {
     const view = (session: Session, canManage: boolean, canCopyLink: boolean) =>
       render(
