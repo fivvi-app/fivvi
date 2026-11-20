@@ -269,6 +269,26 @@ describe('F021 TW-03 classes client', () => {
         ),
       ).toEqual({ ok: false, reason });
     });
+
+    it('a trainer_conflict 409 is the generic error until the conflict warning exists (PS-07)', async () => {
+      const conflicts = [
+        {
+          sessionId: '00000000-0000-4000-8000-000000000001',
+          type: 'private',
+          startsAt: '2026-12-01T09:00:00.000Z',
+          endsAt: '2026-12-01T10:00:00.000Z',
+          displayName: 'Sam Voorbeeld',
+        },
+      ];
+      expect(
+        await scheduleClassDate(
+          'w1',
+          'c1',
+          { localDate: '2026-12-01', localStart: '10:00', trainerId: 't1', capacity: '8' },
+          reply(409, { code: 'trainer_conflict', conflicts }),
+        ),
+      ).toEqual({ ok: false, reason: 'generic' });
+    });
   });
 
   describe('editClassDate', () => {

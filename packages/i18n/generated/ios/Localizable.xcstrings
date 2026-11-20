@@ -5023,23 +5023,6 @@
         }
       }
     },
-    "hello.error" : {
-      "extractionState" : "manual",
-      "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "We couldn't load the greeting. Try again."
-          }
-        },
-        "nl" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "We konden de begroeting niet laden. Probeer het opnieuw."
-          }
-        }
-      }
-    },
     "hello.greeting" : {
       "comment" : "Greeting above the home screen. {name} is the user's first name.",
       "extractionState" : "manual",

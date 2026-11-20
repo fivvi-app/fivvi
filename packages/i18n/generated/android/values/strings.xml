@@ -317,7 +317,6 @@
     <string name="exercises_types_reps_only">Alleen herhalingen</string>
     <string name="exercises_types_time">Tijd</string>
     <string name="exercises_types_weight_reps">Gewicht × herhalingen</string>
-    <string name="hello_error">We konden de begroeting niet laden. Probeer het opnieuw.</string>
     <!-- Greeting above the home screen. {name} is the user's first name. -->
     <string name="hello_greeting">Hoi %1$s,</string>
     <!-- {date} is a weekday and date without year, e.g. 'dinsdag 22 september'. {time} is a 24-hour time, e.g. '18:00'. Both are formatted in code in the workspace time zone. -->

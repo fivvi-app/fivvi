@@ -460,7 +460,6 @@
     }
   },
   "hello": {
-    "error": "We couldn't load the greeting. Try again.",
     "greeting": "Hi {name},",
     "nextSession": "Your next session is on {date} at {time}.",
     "noSessionsToday": "You have no sessions today.",

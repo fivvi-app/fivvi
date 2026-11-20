@@ -296,7 +296,6 @@
     <string name="exercises_types_reps_only">Reps only</string>
     <string name="exercises_types_time">Time</string>
     <string name="exercises_types_weight_reps">Weight × reps</string>
-    <string name="hello_error">We couldn\'t load the greeting. Try again.</string>
     <string name="hello_greeting">Hi %1$s,</string>
     <string name="hello_next_session">Your next session is on %1$s at %2$s.</string>
     <string name="hello_no_sessions_today">You have no sessions today.</string>
