@@ -101,7 +101,8 @@ final class SessionViewModel {
         guard let session, let client, session.status == .scheduled else { return nil }
         return RescheduleViewModel(
             api: api, workspace: workspace, session: session, clientName: client.name,
-            clientLocale: clientRecord?.chosenLocale, catalog: catalog, now: now, onForbidden: onForbidden
+            clientLocale: clientRecord?.chosenLocale, catalog: catalog, now: now, myTrainerID: myTrainerID,
+            onForbidden: onForbidden
         )
     }
 
