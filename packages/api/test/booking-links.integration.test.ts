@@ -499,7 +499,7 @@ describe('F037 booking links through the API', () => {
     expect(await storedLinks(gym.id)).toEqual(before);
   });
 
-  it('AC10: other workspace 404, anonymous 401, client 404', async () => {
+  it('AC10: other workspace 404, anonymous 401, client 403', async () => {
     const { gym, other, mike, annaAccount, pieter, john, kracht } = await world();
     const link = (await (
       await make(gym.id, john, { scope: 'all', language: 'nl' })
@@ -524,7 +524,7 @@ describe('F037 booking links through the API', () => {
       (await deactivate(gym.id, link.id)).status,
     ]).toEqual([401, 401, 401]);
     // Anna, an approved client of John's Gym, is no team member: the access layer refuses her, as
-    // it refuses a client on every team route (the answer is 403, not a 404; see the ticket's report).
+    // it refuses a client on every team route: the platform access rule answers 403 (E011, ADR-022).
     const clientAnswers = [
       (await list(gym.id, annaAccount)).status,
       (await make(gym.id, annaAccount, body)).status,
