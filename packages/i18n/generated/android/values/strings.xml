@@ -64,6 +64,13 @@
     <string name="booking_links_status_active">Actief</string>
     <string name="booking_links_title">Boekingslinks</string>
     <string name="booking_links_trainer_note">%1$s zien de links, maar kunnen ze niet wijzigen.</string>
+    <string name="classes_app_description_in_dutch">In het Nederlands</string>
+    <string name="classes_app_description_less">Minder</string>
+    <string name="classes_app_description_more">Meer</string>
+    <string name="classes_app_description_note">Zonder Engelse tekst zien Engelstalige klanten de Nederlandse.</string>
+    <string name="classes_app_edit">Les wijzigen</string>
+    <string name="classes_app_manage_on_web">Dit beheer je op het web</string>
+    <string name="classes_app_owner_note">Les wijzigen, een vaste reeks en %1$s beheer je op het web.</string>
     <string name="classes_date_back">Alle lessen</string>
     <plurals name="classes_date_booked">
         <item quantity="one">%1$s/%2$s geboekt · %3$d plek vrij</item>
@@ -1043,6 +1050,7 @@
     <string name="workspace_nav_new">Nieuw</string>
     <string name="workspace_nav_new_client">Klant</string>
     <string name="workspace_nav_new_group_class">Groepsles</string>
+    <string name="workspace_nav_new_group_class_note">Groepslessen van %1$s plant de eigenaar.</string>
     <string name="workspace_nav_new_menu">Nieuw maken</string>
     <string name="workspace_nav_new_private_session">Privésessie</string>
     <string name="workspace_nav_personal">Persoonlijk</string>

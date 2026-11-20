@@ -89,6 +89,15 @@
     "trainerNote": "{Words} see the links, but can't change them."
   },
   "classes": {
+    "app": {
+      "descriptionInDutch": "In Dutch",
+      "descriptionLess": "Less",
+      "descriptionMore": "More",
+      "descriptionNote": "Without an English text, English-speaking clients see the Dutch one.",
+      "edit": "Edit class",
+      "manageOnWeb": "You manage this on the web",
+      "ownerNote": "You manage editing a class, a fixed series and {words} on the web."
+    },
     "date": {
       "back": "All classes",
       "booked": "{booked}/{capacity} booked · {free, plural, one {# spot free} other {# spots free}}",
@@ -1790,6 +1799,7 @@
     "new": "New",
     "newClient": "Client",
     "newGroupClass": "Group class",
+    "newGroupClassNote": "The owner plans the group classes of {workspaces}.",
     "newMenu": "Create new",
     "newPrivateSession": "Private session",
     "personal": "Personal",

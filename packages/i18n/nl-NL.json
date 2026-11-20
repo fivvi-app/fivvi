@@ -89,6 +89,15 @@
     "trainerNote": "{Words} zien de links, maar kunnen ze niet wijzigen."
   },
   "classes": {
+    "app": {
+      "descriptionInDutch": "In het Nederlands",
+      "descriptionLess": "Minder",
+      "descriptionMore": "Meer",
+      "descriptionNote": "Zonder Engelse tekst zien Engelstalige klanten de Nederlandse.",
+      "edit": "Les wijzigen",
+      "manageOnWeb": "Dit beheer je op het web",
+      "ownerNote": "Les wijzigen, een vaste reeks en {words} beheer je op het web."
+    },
     "date": {
       "back": "Alle lessen",
       "booked": "{booked}/{capacity} geboekt · {free, plural, one {# plek vrij} other {# plekken vrij}}",
@@ -1790,6 +1799,7 @@
     "new": "Nieuw",
     "newClient": "Klant",
     "newGroupClass": "Groepsles",
+    "newGroupClassNote": "Groepslessen van {workspaces} plant de eigenaar.",
     "newMenu": "Nieuw maken",
     "newPrivateSession": "Privésessie",
     "personal": "Persoonlijk",

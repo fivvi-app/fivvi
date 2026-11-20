@@ -992,6 +992,125 @@
         }
       }
     },
+    "classes.app.descriptionInDutch" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In Dutch"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "In het Nederlands"
+          }
+        }
+      }
+    },
+    "classes.app.descriptionLess" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Less"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Minder"
+          }
+        }
+      }
+    },
+    "classes.app.descriptionMore" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "More"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Meer"
+          }
+        }
+      }
+    },
+    "classes.app.descriptionNote" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Without an English text, English-speaking clients see the Dutch one."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Zonder Engelse tekst zien Engelstalige klanten de Nederlandse."
+          }
+        }
+      }
+    },
+    "classes.app.edit" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Edit class"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les wijzigen"
+          }
+        }
+      }
+    },
+    "classes.app.manageOnWeb" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You manage this on the web"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Dit beheer je op het web"
+          }
+        }
+      }
+    },
+    "classes.app.ownerNote" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You manage editing a class, a fixed series and %1$@ on the web."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Les wijzigen, een vaste reeks en %1$@ beheer je op het web."
+          }
+        }
+      }
+    },
     "classes.date.back" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -14157,6 +14276,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Groepsles"
+          }
+        }
+      }
+    },
+    "workspaceNav.newGroupClassNote" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "The owner plans the group classes of %1$@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Groepslessen van %1$@ plant de eigenaar."
           }
         }
       }

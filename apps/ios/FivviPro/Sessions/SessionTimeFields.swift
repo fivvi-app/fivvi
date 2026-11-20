@@ -73,9 +73,10 @@ final class SessionTimeFields {
     /// The `400` of the API: the first of its issues on the date or the start (`time_does_not_exist` is its own).
     func refuse(_ issues: [Components.Schemas.ValidationError.IssuesPayloadPayload]) -> Bool {
         for issue in issues {
-            if issue.path == "localDate" {
+            // The class form's quick create nests the date: `firstDate.localDate`.
+            if issue.path.hasSuffix("localDate") {
                 refusal = .invalidDate
-            } else if issue.path == "localStart" {
+            } else if issue.path.hasSuffix("localStart") {
                 refusal = issue.code == "time_does_not_exist" ? .timeDoesNotExist : .invalidTime
             }
         }
