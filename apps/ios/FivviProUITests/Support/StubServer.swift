@@ -101,6 +101,22 @@ final class StubServer: Sendable {
         responder.holdClientReads(hold)
     }
 
+    /// The private session bodies the app sent so far (`POST …/sessions/private`), each value as text (F020).
+    var plannedSessions: [[String: String]] { responder.sessionRoutes.plans }
+
+    /// The reschedule bodies the app sent so far, with the session's ID as `sessionId` (F020).
+    var movedSessions: [[String: String]] { responder.sessionRoutes.moves }
+
+    /// The next plan or move is refused as a start the clocks skip (`time_does_not_exist`, F020 AC5).
+    func refuseNextSessionStart() {
+        responder.sessionRoutes.refuseNextStart()
+    }
+
+    /// Someone else changed the seeded session meanwhile, so the next move answers `409` (F020 AC8).
+    func changeSessionBySomeoneElse() {
+        responder.sessionRoutes.changeSessionBySomeoneElse()
+    }
+
     /// While true, `GET /api/v1/me` gets no answer, so the loading state of the home stays on screen. Setting it to
     /// false answers the reads held.
     func holdAccountRequests(_ hold: Bool) {
