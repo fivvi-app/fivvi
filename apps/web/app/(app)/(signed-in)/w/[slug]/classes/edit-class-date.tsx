@@ -60,7 +60,10 @@ export function EditClassDate({
   const [formError, setFormError] = useState<'noPermission' | 'notSaved' | null>(null);
   const [changed, setChanged] = useState(false);
   const [pending, setPending] = useState(false);
-  const [saved, setSaved] = useState(false);
+  // *Wijzigen voor* (F022): only for a date of a series.
+  const [scope, setScope] = useState<'this' | 'following'>('this');
+  // After a save: how many dates kept their own changes, when the series was changed.
+  const [saved, setSaved] = useState<{ keptDates: number } | null>(null);
   // PS-07: the sessions the date's trainer already has at the new time; *Terug* keeps the form.
   const [doubleBooking, setDoubleBooking] = useState<DoubleBooking | null>(null);
   const [ready, setReady] = useState(false);
@@ -68,7 +71,7 @@ export function EditClassDate({
   useEffect(() => setReady(true), []);
   useEffect(() => {
     if (!saved) return;
-    const timer = setTimeout(() => setSaved(false), 8_000);
+    const timer = setTimeout(() => setSaved(null), 8_000);
     return () => clearTimeout(timer);
   }, [saved]);
 
@@ -85,6 +88,7 @@ export function EditClassDate({
       setErrors(null);
       setFormError(null);
       setChanged(false);
+      setScope('this');
     }
   }
 
@@ -102,13 +106,14 @@ export function EditClassDate({
     const result = await editClassDate(workspaceId, session.id, {
       version,
       ...value,
+      scope,
       ...(allowConflicts ? { allowConflicts } : {}),
     });
     setPending(false);
     setDoubleBooking(null);
     if (result.ok) {
       setOpen(false);
-      setSaved(true);
+      setSaved({ keptDates: result.keptDates ?? 0 });
       return router.refresh();
     }
     if (result.reason === 'home') return window.location.replace(SIGNED_IN_HOME);
@@ -130,13 +135,24 @@ export function EditClassDate({
   const dayOfStart = localDate(
     instantToWallClock(new Date(session.startsAt), session.timeZone).date,
   );
-  const timeError = (key: 'timeDoesNotExist' | 'invalidTime' | 'endBeforeStart' | undefined) =>
+  const timeError = (
+    key: 'timeDoesNotExist' | 'invalidTime' | 'endBeforeStart' | 'invalidDuration' | undefined,
+  ) =>
     key === undefined
       ? undefined
       : key === 'timeDoesNotExist'
         ? e(key, { date: dayOfStart })
-        : e(key);
-  const startError = timeError(errors?.start);
+        : key === 'invalidDuration'
+          ? e(key, {
+              min: LIMITS.duration.min,
+              max: LIMITS.duration.max,
+              step: LIMITS.duration.step,
+            })
+          : e(key);
+  const startError =
+    errors?.start === 'timeDoesNotExist' && errors.startDate
+      ? e('timeDoesNotExist', { date: localDate(errors.startDate) })
+      : timeError(errors?.start);
   const endError = timeError(errors?.end);
 
   return (
@@ -156,7 +172,9 @@ export function EditClassDate({
                   {t('title')}
                 </DialogTitle>
                 <DialogDescription id="edit-class-date-description">
-                  {t('description', { date: day(session.startsAt) })}
+                  {scope === 'following'
+                    ? t('descriptionFollowing', { date: day(session.startsAt) })
+                    : t('description', { date: day(session.startsAt) })}
                 </DialogDescription>
               </DialogHeader>
               <div className="grid grid-cols-2 gap-3">
@@ -193,6 +211,25 @@ export function EditClassDate({
                     : undefined
                 }
               />
+              {session.series ? (
+                <fieldset className="grid gap-2">
+                  <legend className="mb-1 text-sm font-medium">{t('scopeLabel')}</legend>
+                  {(['this', 'following'] as const).map((option) => (
+                    <label key={option} className="flex cursor-pointer items-center gap-2 text-sm">
+                      <input
+                        type="radio"
+                        name="scope"
+                        value={option}
+                        checked={scope === option}
+                        onChange={() => setScope(option)}
+                        className="size-4 accent-primary"
+                      />
+                      {option === 'this' ? t('scopeThis') : t('scopeFollowing')}
+                    </label>
+                  ))}
+                  {errors?.scope ? <ErrorLine>{e(errors.scope)}</ErrorLine> : null}
+                </fieldset>
+              ) : null}
               {changed ? <ErrorLine>{t('changed')}</ErrorLine> : null}
               {formError ? <ErrorLine>{e(formError)}</ErrorLine> : null}
               <DialogFooter className="mx-0 mb-0 border-0 bg-transparent p-0 pt-2">
@@ -216,7 +253,14 @@ export function EditClassDate({
           </DialogContent>
         ) : null}
       </Dialog>
-      {saved ? <Toast>{t('saved')}</Toast> : null}
+      {saved ? (
+        <Toast>
+          <div>
+            <p>{t('saved')}</p>
+            {saved.keptDates > 0 ? <p>{t('kept', { count: saved.keptDates })}</p> : null}
+          </div>
+        </Toast>
+      ) : null}
     </>
   );
 }

@@ -1087,6 +1087,91 @@
         }
       }
     },
+    "classes.date.changedField.capacity" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "capacity"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "capaciteit"
+          }
+        }
+      }
+    },
+    "classes.date.changedField.location" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "location"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "locatie"
+          }
+        }
+      }
+    },
+    "classes.date.changedField.time" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "time"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "tijd"
+          }
+        }
+      }
+    },
+    "classes.date.changedField.trainer" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$@"
+          }
+        }
+      }
+    },
+    "classes.date.changedFromSeries" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Changed from the series: %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Aangepast t.o.v. de reeks: %1$@"
+          }
+        }
+      }
+    },
     "classes.date.edit" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1117,6 +1202,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Nog geen boekingen."
+          }
+        }
+      }
+    },
+    "classes.date.seriesLine" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Part of: %1$@, every %3$@ %2$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Onderdeel van: %1$@, elke %3$@ %2$@"
           }
         }
       }
@@ -1274,6 +1376,23 @@
         }
       }
     },
+    "classes.edit.descriptionFollowing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "You're changing %1$@ and the classes after it. Classes with their own changes stay as they are."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Je wijzigt %1$@ en de lessen die erna komen. Lessen met eigen wijzigingen blijven zoals ze zijn."
+          }
+        }
+      }
+    },
     "classes.edit.endLabel" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1308,6 +1427,23 @@
         }
       }
     },
+    "classes.edit.errors.dateInPast" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A class in the past can't be changed for the following classes."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een les in het verleden wijzig je niet voor de volgende lessen."
+          }
+        }
+      }
+    },
     "classes.edit.errors.endBeforeStart" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -1321,6 +1457,23 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "De eindtijd moet na de begintijd liggen."
+          }
+        }
+      }
+    },
+    "classes.edit.errors.invalidDuration" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "A class lasts %2$@ to %1$@ minutes, in steps of %3$@."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Een les duurt %2$@ tot en met %1$@ minuten, in stappen van %3$@."
           }
         }
       }
@@ -1382,13 +1535,74 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This time doesn't exist on %1$@ because of daylight saving time."
+            "value" : "This time doesn't exist on %1$@ because of daylight saving time. Choose another time."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deze tijd bestaat niet op %1$@ door de zomertijd."
+            "value" : "Deze tijd bestaat niet op %1$@ door de zomertijd. Kies een andere tijd."
+          }
+        }
+      }
+    },
+    "classes.edit.kept" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg class has its own changes and stays as it is."
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg classes have their own changes and stay as they are."
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg les heeft eigen wijzigingen en blijft zoals hij is."
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg lessen hebben eigen wijzigingen en blijven zoals ze zijn."
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -1423,6 +1637,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Les opgeslagen."
+          }
+        }
+      }
+    },
+    "classes.edit.scopeFollowing" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This and following classes"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze en volgende lessen"
+          }
+        }
+      }
+    },
+    "classes.edit.scopeLabel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Apply to"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Wijzigen voor"
+          }
+        }
+      }
+    },
+    "classes.edit.scopeThis" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Only this class"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Alleen deze les"
           }
         }
       }
@@ -2192,6 +2457,23 @@
         }
       }
     },
+    "classes.schedule.errors.dateInPast" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "This date is in the past."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Deze datum ligt in het verleden."
+          }
+        }
+      }
+    },
     "classes.schedule.errors.dateRequired" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2300,13 +2582,13 @@
         "en" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "This time doesn't exist on %1$@ because of daylight saving time."
+            "value" : "This time doesn't exist on %1$@ because of daylight saving time. Choose another time."
           }
         },
         "nl" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "Deze tijd bestaat niet op %1$@ door de zomertijd."
+            "value" : "Deze tijd bestaat niet op %1$@ door de zomertijd. Kies een andere tijd."
           }
         }
       }
@@ -2345,6 +2627,91 @@
         }
       }
     },
+    "classes.schedule.repeatLabel" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Repeat"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Herhalen"
+          }
+        }
+      }
+    },
+    "classes.schedule.repeatNone" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Don't repeat"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Niet herhalen"
+          }
+        }
+      }
+    },
+    "classes.schedule.repeatNote" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We'll add the next 12 weeks to the calendar."
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "We zetten de komende 12 weken in de agenda."
+          }
+        }
+      }
+    },
+    "classes.schedule.repeatWeekly" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every week on %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elke week op %1$@"
+          }
+        }
+      }
+    },
+    "classes.schedule.repeatWeeklyAnyDay" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every week"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elke week"
+          }
+        }
+      }
+    },
     "classes.schedule.save" : {
       "extractionState" : "manual",
       "localizations" : {
@@ -2375,6 +2742,67 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Groepsles toegevoegd"
+          }
+        }
+      }
+    },
+    "classes.schedule.savedSeries" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg group class added"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg group classes added"
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "%1$#@count@"
+          },
+          "substitutions" : {
+            "count" : {
+              "argNum" : 1,
+              "formatSpecifier" : "lld",
+              "variations" : {
+                "plural" : {
+                  "one" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg groepsles toegevoegd"
+                    }
+                  },
+                  "other" : {
+                    "stringUnit" : {
+                      "state" : "translated",
+                      "value" : "%arg groepslessen toegevoegd"
+                    }
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -2443,6 +2871,57 @@
           "stringUnit" : {
             "state" : "translated",
             "value" : "Wanneer"
+          }
+        }
+      }
+    },
+    "classes.series.from" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "from %1$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "vanaf %1$@"
+          }
+        }
+      }
+    },
+    "classes.series.line" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Every %5$@ %3$@–%1$@ · %4$@ · %2$@"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Elke %5$@ %3$@–%1$@ · %4$@ · %2$@"
+          }
+        }
+      }
+    },
+    "classes.series.title" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Series"
+          }
+        },
+        "nl" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Reeksen"
           }
         }
       }

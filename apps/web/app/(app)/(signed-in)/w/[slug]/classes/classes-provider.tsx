@@ -93,9 +93,13 @@ export function ClassesProvider({
             {...(open.classId
               ? {}
               : { newClass: () => setOpen({ dialog: 'class', thenSchedule: true }) })}
-            scheduled={(session) => {
+            scheduled={(session, datesAdded) => {
               setOpen(null);
-              setMessage(t('schedule.saved'));
+              setMessage(
+                datesAdded === undefined
+                  ? t('schedule.saved')
+                  : t('schedule.savedSeries', { count: datesAdded }),
+              );
               router.push(`/w/${slug}/classes/${session.groupClass?.id}/${session.id}` as Route);
             }}
           />

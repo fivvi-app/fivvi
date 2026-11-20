@@ -549,4 +549,123 @@ describe('F021 TW-03 classes client', () => {
       expect(await loadTrainers('w1', reply(500))).toEqual({ ok: false, reason: 'failed' });
     });
   });
+
+  describe('F022 the weekly series', () => {
+    const when = { localDate: '2026-10-06', localStart: '18:00', trainerId: 't1', capacity: '8' };
+
+    it('AC1: a weekly repeat sends repeat weekly and returns how many dates were added', async () => {
+      const fetchFn = reply(201, { ...session, datesAdded: 12 });
+
+      const result = await scheduleClassDate('w1', 'c1', { ...when, repeat: 'weekly' }, fetchFn);
+
+      expect(result).toEqual({ ok: true, session: { ...session, datesAdded: 12 }, datesAdded: 12 });
+      expect(JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body))).toMatchObject({
+        repeat: 'weekly',
+      });
+    });
+
+    it('AC1: Niet herhalen sends no repeat and adds no count', async () => {
+      const fetchFn = reply(201, session);
+
+      const result = await scheduleClassDate('w1', 'c1', { ...when, repeat: 'none' }, fetchFn);
+
+      expect(result).toMatchObject({ ok: true });
+      expect(result).not.toHaveProperty('datesAdded');
+      expect(JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body))).not.toHaveProperty('repeat');
+    });
+
+    it('AC7: the refused date of a weekly class comes with the skipped start, so the message names it', async () => {
+      const fetchFn = reply(400, {
+        code: 'validation_failed',
+        issues: [{ path: 'localStart', code: 'time_does_not_exist', date: '2027-03-28' }],
+      });
+
+      expect(await scheduleClassDate('w1', 'c1', { ...when, repeat: 'weekly' }, fetchFn)).toEqual({
+        ok: false,
+        reason: 'fields',
+        start: 'timeDoesNotExist',
+        startDate: '2027-03-28',
+      });
+    });
+
+    it('a date before today is worded on the date', async () => {
+      const fetchFn = reply(400, {
+        code: 'validation_failed',
+        issues: [{ path: 'localDate', code: 'date_in_past' }],
+      });
+
+      expect(await scheduleClassDate('w1', 'c1', { ...when, repeat: 'weekly' }, fetchFn)).toEqual({
+        ok: false,
+        reason: 'fields',
+        date: 'dateInPast',
+      });
+    });
+
+    it('AC5: Deze en volgende lessen sends scope following and returns how many dates kept their own changes', async () => {
+      const fetchFn = reply(200, { ...session, version: 2, keptDates: 1 });
+
+      const result = await editClassDate(
+        'w1',
+        's1',
+        { version: 1, localStart: '18:00', localEnd: '19:00', capacity: '10', scope: 'following' },
+        fetchFn,
+      );
+
+      expect(result).toEqual({
+        ok: true,
+        session: { ...session, version: 2, keptDates: 1 },
+        keptDates: 1,
+      });
+      expect(JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body))).toMatchObject({
+        scope: 'following',
+      });
+    });
+
+    it('AC4: Alleen deze les sends no scope and reports no kept dates', async () => {
+      const fetchFn = reply(200, { ...session, version: 2 });
+
+      const result = await editClassDate(
+        'w1',
+        's1',
+        { version: 1, localStart: '18:30', localEnd: '19:30', capacity: '8', scope: 'this' },
+        fetchFn,
+      );
+
+      expect(result).not.toHaveProperty('keptDates');
+      expect(JSON.parse(String(fetchFn.mock.calls[0]?.[1]?.body))).not.toHaveProperty('scope');
+    });
+
+    it('AC7: a series change that would reach a skipped start names the date, and a past date is worded', async () => {
+      const skipped = reply(400, {
+        code: 'validation_failed',
+        issues: [{ path: 'localStart', code: 'time_does_not_exist', date: '2027-03-28' }],
+      });
+      expect(
+        await editClassDate(
+          'w1',
+          's1',
+          { version: 1, localStart: '02:30', localEnd: '03:30', capacity: '8', scope: 'following' },
+          skipped,
+        ),
+      ).toEqual({
+        ok: false,
+        reason: 'fields',
+        start: 'timeDoesNotExist',
+        startDate: '2027-03-28',
+      });
+
+      const past = reply(400, {
+        code: 'validation_failed',
+        issues: [{ path: 'scope', code: 'date_in_past' }],
+      });
+      expect(
+        await editClassDate(
+          'w1',
+          's1',
+          { version: 1, localStart: '18:00', localEnd: '19:00', capacity: '8', scope: 'following' },
+          past,
+        ),
+      ).toEqual({ ok: false, reason: 'fields', scope: 'dateInPast' });
+    });
+  });
 });
