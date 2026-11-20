@@ -456,57 +456,64 @@ describe('F021 TW-03 classes client', () => {
           );
         }
         if (path.endsWith('/trainers')) {
-          return Promise.resolve(Response.json([{ id: 't1', name: 'Sarah' }]));
-        }
-        if (path.endsWith('/group-classes')) return Promise.resolve(Response.json([stored]));
-        if (path.endsWith('/team-members')) {
+          // Two trainers with the same name: only the team-member ID tells them apart.
           return Promise.resolve(
             Response.json([
-              { id: 't1', email: 'sarah@example.com' },
-              { id: 't9', email: 'John@Example.com' },
+              { id: 't1', name: 'Sarah' },
+              { id: 't2', name: 'Sarah' },
             ]),
           );
         }
+        if (path.endsWith('/group-classes')) return Promise.resolve(Response.json([stored]));
         return Promise.resolve(Response.json({ timeZone: 'Europe/Amsterdam' }));
       });
 
     it('reads the time zone, the default location, the trainers and the classes', async () => {
-      expect(await loadScheduleContext('w1', 'nobody@example.com', answers())).toEqual({
+      expect(await loadScheduleContext('w1', 'm-nobody', answers())).toEqual({
         ok: true,
         context: {
           timeZone: 'Europe/Amsterdam',
           locationName: "John's Gym",
-          trainers: [{ id: 't1', name: 'Sarah' }],
+          trainers: [
+            { id: 't1', name: 'Sarah' },
+            { id: 't2', name: 'Sarah' },
+          ],
           classes: [stored],
           myTrainerId: null,
         },
       });
     });
 
-    it('F023 AC6: finds the signed-in trainer by the email on the team list, whatever its case', async () => {
-      const found = await loadScheduleContext('w1', 'sarah@example.com', answers());
-      expect(found).toMatchObject({ ok: true, context: { myTrainerId: 't1' } });
+    it('F020 #1414 AC2: finds the signed-in trainer by their team-member ID, not by name', async () => {
+      expect(await loadScheduleContext('w1', 't1', answers())).toMatchObject({
+        ok: true,
+        context: { myTrainerId: 't1' },
+      });
+      // The namesake is someone else: the other Sarah is not taken for the first.
+      expect(await loadScheduleContext('w1', 't2', answers())).toMatchObject({
+        ok: true,
+        context: { myTrainerId: 't2' },
+      });
     });
 
     it('F023 AC6: a person on the team who is no trainer is no trainer here', async () => {
-      const found = await loadScheduleContext('w1', 'john@example.com', answers());
+      const found = await loadScheduleContext('w1', 't9', answers());
       expect(found).toMatchObject({ ok: true, context: { myTrainerId: null } });
     });
 
-    it('F023 AC6: a team list that does not answer leaves the person unfound, not the form failed', async () => {
-      const found = await loadScheduleContext(
-        'w1',
-        'sarah@example.com',
-        answers({ '/team-members': new Response('{}', { status: 500 }) }),
+    it('F020 #1414 AC3: asks for no team list: nothing is matched by email', async () => {
+      const fetchFn = answers();
+      await loadScheduleContext('w1', 't1', fetchFn);
+      expect(fetchFn.mock.calls.map(([url]) => String(url))).not.toContain(
+        '/api/v1/workspaces/w1/team-members',
       );
-      expect(found).toMatchObject({ ok: true, context: { myTrainerId: null } });
     });
 
     it('sends a person the API does not know to the signed-in home', async () => {
       expect(
         await loadScheduleContext(
           'w1',
-          'sarah@example.com',
+          't1',
           answers({ '/trainers': new Response('{}', { status: 403 }) }),
         ),
       ).toEqual({ ok: false, reason: 'home' });
@@ -516,7 +523,7 @@ describe('F021 TW-03 classes client', () => {
       expect(
         await loadScheduleContext(
           'w1',
-          'sarah@example.com',
+          't1',
           answers({ '/locations': new Response('{}', { status: 500 }) }),
         ),
       ).toEqual({ ok: false, reason: 'failed' });

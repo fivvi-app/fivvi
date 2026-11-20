@@ -62,8 +62,10 @@ export function useOpenNewSession(): (() => void) | null {
 export interface NewSessionProps {
   workspaceId: string;
   slug: string;
-  /** The signed-in person's email address: their own place among the trainers is found by it. */
+  /** The signed-in person's email address: it names them when they have no name of their own. */
   email: string;
+  /** Their own team-member ID in the workspace: their own place among the trainers. */
+  teamMemberId: string;
   /** Their own name as entered; none until they have one. */
   personName: string | null;
   /** The person has `session.private.manage.any`: any trainer of the workspace. Otherwise only themself. */
@@ -86,6 +88,8 @@ export interface PlanningWorkspace {
   workspaceId: string;
   slug: string;
   name: string;
+  /** The person's own team-member ID in it. */
+  teamMemberId: string;
   canAddClients: boolean;
   trainerWord: TrainerWordForms;
 }
@@ -162,6 +166,7 @@ function NewSessionPanel({
   workspaceId: startId,
   slug: startSlug,
   email,
+  teamMemberId: startTeamMemberId,
   personName,
   forAnyTrainer,
   canAddClients: startCanAddClients,
@@ -175,6 +180,7 @@ function NewSessionPanel({
   const chosen = workspaces?.find((workspace) => workspace.workspaceId === chosenId);
   const workspaceId = chosen?.workspaceId ?? startId;
   const slug = chosen?.slug ?? startSlug;
+  const teamMemberId = chosen?.teamMemberId ?? startTeamMemberId;
   const canAddClients = chosen?.canAddClients ?? startCanAddClients;
   const trainerWord = chosen?.trainerWord ?? startTrainerWord;
   const t = useTranslations('sessions.form');
@@ -209,7 +215,7 @@ function NewSessionPanel({
     // Another workspace has its own clients, location and time zone.
     setLoaded({ status: 'loading' });
     setClient(null);
-    void loadPlanningContext(workspaceId, { forAnyTrainer, email }).then((result) => {
+    void loadPlanningContext(workspaceId, { forAnyTrainer, teamMemberId }).then((result) => {
       if (!current) return;
       if (!result.ok) {
         if (result.reason === 'home') return window.location.replace(SIGNED_IN_HOME);
@@ -221,7 +227,7 @@ function NewSessionPanel({
     return () => {
       current = false;
     };
-  }, [workspaceId, forAnyTrainer, email]);
+  }, [workspaceId, forAnyTrainer, teamMemberId]);
 
   const preview = previewTimes({ ...when, timeZone, now: new Date() });
   const dirty =

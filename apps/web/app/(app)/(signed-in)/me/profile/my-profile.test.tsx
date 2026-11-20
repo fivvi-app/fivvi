@@ -25,6 +25,7 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
             slug: 'johns-gym',
             trainerWord: 'trainer',
             role: 'trainer',
+            teamMemberId: 'm1',
             capabilities: [],
             trainsHere: true,
           },
@@ -34,6 +35,7 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
             slug: 'sarah',
             trainerWord: 'trainer',
             role: 'owner',
+            teamMemberId: 'm2',
             capabilities: [],
             trainsHere: false,
           },
@@ -92,6 +94,7 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
     slug: 'johns-gym',
     trainerWord: 'trainer',
     role: 'owner',
+    teamMemberId: 'm1',
     capabilities: OWNER,
     trainsHere: true,
   } as const;
@@ -101,6 +104,7 @@ describe.each(locales)('F003 TW-09 My profile in %s', (locale) => {
     slug: 'sarah',
     trainerWord: 'trainer',
     role: 'owner',
+    teamMemberId: 'm2',
     capabilities: OWNER,
     trainsHere: false,
   } as const;

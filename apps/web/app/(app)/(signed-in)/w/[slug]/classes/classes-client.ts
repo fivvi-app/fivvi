@@ -1,6 +1,5 @@
 import type { Schemas } from '@fivvi/contract';
 import { GROUP_CLASS_LIMITS as LIMITS } from '@fivvi/domain/group-class-limits';
-import { myTeamMemberId } from '../sessions/my-team-member';
 import { type TrainerConflictRefusal, trainerConflict } from '../sessions/sessions-client';
 
 export type GroupClass = Schemas['GroupClass'];
@@ -367,23 +366,22 @@ export type ScheduleContextResult =
 /**
  * Reads what the scheduling form shows: the time zone (`GET …/workspaces/{id}`), the default
  * location (`GET …/locations`), the trainers (`GET …/trainers`) and the classes
- * (`GET …/group-classes`), and the signed-in person's own place among the trainers, found by their
- * email address on `GET …/team-members` (PS-07 words their own overlap as "Je hebt dan al iets").
+ * (`GET …/group-classes`), and the signed-in person's own place among the trainers: the one whose
+ * ID is their own team-member ID (`teamMemberId` of `GET /v1/me`; PS-07 words their own overlap as
+ * "Je hebt dan al iets").
  */
 export async function loadScheduleContext(
   workspaceId: string,
-  email: string,
+  teamMemberId: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<ScheduleContextResult> {
   const base = `/api/v1/workspaces/${workspaceId}`;
   try {
-    const [workspace, locations, trainers, classes, team] = await Promise.all([
+    const [workspace, locations, trainers, classes] = await Promise.all([
       fetchFn(base),
       fetchFn(`${base}/locations`),
       fetchFn(`${base}/trainers`),
       fetchFn(`${base}/group-classes`),
-      // The team list is a courtesy for the wording; without it the trainer is named.
-      fetchFn(`${base}/team-members`),
     ]);
     const answers = [workspace, locations, trainers, classes];
     if (answers.some(({ status }) => [401, 403, 404].includes(status))) {
@@ -395,8 +393,6 @@ export async function loadScheduleContext(
     const location = places.find(({ isDefault }) => isDefault) ?? places[0];
     if (!timeZone || !location) return { ok: false, reason: 'failed' };
     const trainerList = (await trainers.json()) as Trainer[];
-    const members = team.status === 200 ? ((await team.json()) as Schemas['TeamMember'][]) : [];
-    const mine = myTeamMemberId(members, email);
     return {
       ok: true,
       context: {
@@ -404,7 +400,7 @@ export async function loadScheduleContext(
         locationName: location.name,
         trainers: trainerList,
         classes: (await classes.json()) as GroupClass[],
-        myTrainerId: trainerList.find(({ id }) => id === mine)?.id ?? null,
+        myTrainerId: trainerList.find(({ id }) => id === teamMemberId)?.id ?? null,
       },
     };
   } catch {

@@ -47,15 +47,15 @@ type Loaded =
  */
 export function ScheduleDialogContent({
   workspaceId,
-  email,
+  teamMemberId,
   classId,
   trainerWord,
   newClass,
   scheduled,
 }: {
   workspaceId: string;
-  /** The signed-in person's email address: their own place among the trainers is found by it. */
-  email: string;
+  /** The signed-in person's own team-member ID in the workspace: their place among the trainers. */
+  teamMemberId: string;
   classId?: string;
   trainerWord: TrainerWordForms;
   /** Closes this dialog and opens the form for a new class; absent where the class is fixed. */
@@ -95,7 +95,7 @@ export function ScheduleDialogContent({
 
   useEffect(() => {
     let current = true;
-    void loadScheduleContext(workspaceId, email).then((result) => {
+    void loadScheduleContext(workspaceId, teamMemberId).then((result) => {
       if (!current) return;
       if (!result.ok) {
         if (result.reason === 'home') return window.location.replace(SIGNED_IN_HOME);
@@ -109,7 +109,7 @@ export function ScheduleDialogContent({
     return () => {
       current = false;
     };
-  }, [workspaceId, email, classId]);
+  }, [workspaceId, teamMemberId, classId]);
 
   const groupClass =
     loaded.status === 'ready' ? loaded.context.classes.find(({ id }) => id === chosen) : undefined;

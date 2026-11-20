@@ -83,7 +83,7 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
       <ClassesProvider
         workspaceId="w1"
         slug="johns-gym"
-        email="john@example.com"
+        teamMemberId="m1"
         trainerWord={word}
       >
         <ClassList slug="johns-gym" classes={classes} trainerWord={word} />
@@ -201,7 +201,7 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
         <ClassesProvider
           workspaceId="w1"
           slug="johns-gym"
-          email="john@example.com"
+          teamMemberId="m1"
           trainerWord={word}
         >
           <ClassView
@@ -315,7 +315,7 @@ describe.each(locales)('F021 the classes pages in %s', (locale) => {
           personName="John"
           groupClasses={
             groupClasses
-              ? { workspaceId: 'w1', email: 'john@example.com', trainerWord: word }
+              ? { workspaceId: 'w1', teamMemberId: 'm1', trainerWord: word }
               : undefined
           }
         >
