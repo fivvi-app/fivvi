@@ -903,7 +903,7 @@ describe('E017 AC3: what a run refuses and what stops it', () => {
     const ciJobs = (id) => ci.slice(ci.indexOf(`\n  ${id}:\n`) + 1).split(/\n  [a-z-]+:\n/)[0];
     const build = minutes(ciJobs('ios-build'));
     const testsOfCi = minutes(ciJobs('ios-tests'));
-    // What the release adds to CI's part, as scripts/test-ios.sh has the numbers: the count of the part's tests before the
+    // What the release budgets on top of CI's part, as scripts/test-ios.sh has the numbers: the count of the part's tests before the
     // run (select_shard: the enumeration's deadline and grace, twice when the first try gives nothing), then the retry's
     // deadline and grace, plus a minute for what the job spends around the retry (the reports, the summary); the retry
     // boots nothing and settles nothing, and counts nothing again (the part was counted when it was chosen).

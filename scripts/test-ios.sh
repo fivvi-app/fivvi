@@ -744,7 +744,7 @@ retry_failed_ui_tests() { # <simulator> <locale>
   step "Retry the failed$APP_WORD UI tests in $label (simulator $udid)"
   echo "Retrying $count failed UI test(s) once in $label:$ids"
   rm -rf "$retry"
-  run_xcodebuild "$udid" "$retry" "$RETRY_DEADLINE" "$locale retried tests" -only-test-configuration "$locale" "${only[@]}" \
+  run_xcodebuild "$udid" "$retry" "$RETRY_DEADLINE" "$label retried tests" -only-test-configuration "$locale" "${only[@]}" \
     || status=$?
   outcomes="$(ui_test_outcomes "$retry" "${APP}UITests")"
   for id in $ids; do
